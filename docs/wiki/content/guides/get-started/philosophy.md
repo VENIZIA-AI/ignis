@@ -72,7 +72,6 @@ The 0.4 line added the pieces a multi-tenant API needs. Each links to its guide 
 | Scoped search | `defineSearchController({ scope })` applies the scope on the server |
 | Clean shutdown | `installShutdownSignals()` stops the application on SIGTERM and SIGINT |
 | Code in a browser or worker | The browser-pure entries and the `worker` package |
-| Upgrading settings | `devz codemod model-settings --write` rewrites old model settings |
 
 ## Maturity, honestly
 

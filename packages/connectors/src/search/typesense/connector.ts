@@ -9,34 +9,30 @@ import type {
   ISearchSynonymSetScoped,
 } from '@/search/core';
 import { BaseSearchConnector } from '@/search/core';
+import { RecordUtility } from '@/common/internal';
 import { SearchConnectorInternal } from '@/search/core/internal';
 import type { ISynonym } from '@/search/core/models';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { Client } from 'typesense';
 import {
   EntryOutcomes,
-  isRecord,
   isSynonymResponse,
-  mapSearchResult,
-  readBooleanFlag,
-  readNumberField,
-  readStringField,
-  toSynonym,
   TypesenseInternal,
+  TypesenseMapper,
+  TypesensePayloadReader,
 } from './internal';
 import {
-  buildEmptySearchResponse,
   MAX_HITS_PER_PAGE,
   MAX_MULTI_SEARCH_ENTRIES,
-  mergeWindowedResults,
-  readRequestedPage,
-  toSearchWindows,
+  TypesenseSearchWindows,
   type ISearchWindow,
 } from './internal/pagination-windows';
 import type {
   IMultiSearchResult,
   ITypesenseClientLike,
   ITypesenseConnectorOptions,
+  ITypesenseCallOptions,
   IUnionSearchResult,
   TCollectionCreateSchema,
   TCollectionFieldSchema,
@@ -56,6 +52,11 @@ export type { ITypesenseClientLike } from './common';
 /** Typesense engine connector - built/injected by TypesenseDataSource, which exposes the raw client via getClient(). */
 export class TypesenseConnector extends BaseSearchConnector {
   private readonly client: ITypesenseClientLike;
+  private readonly createClient: (opts: {
+    connectionTimeoutSeconds: number;
+  }) => ITypesenseClientLike;
+  /** An injected client is not built from `nodes` and `apiKey`, so a client for a call cannot be built from them either. */
+  private readonly canBuildCallClient: boolean;
 
   constructor(opts: ITypesenseConnectorOptions & { client?: ITypesenseClientLike }) {
     super({
@@ -63,16 +64,20 @@ export class TypesenseConnector extends BaseSearchConnector {
       identifier: opts.identifier ?? opts.name,
     });
 
+    const build = (clientOpts: { connectionTimeoutSeconds: number }) =>
+      new Client({
+        apiKey: opts.apiKey,
+        // NodeConfiguration.protocol is required upstream though ITypesenseNode.protocol is optional; default 'http', cloud users pass 'https'.
+        nodes: opts.nodes.map((node) => ({ ...node, protocol: node.protocol ?? 'http' })),
+        connectionTimeoutSeconds: clientOpts.connectionTimeoutSeconds,
+        numRetries: opts.numRetries,
+      });
+    this.createClient = opts.createClient ?? build;
+    this.canBuildCallClient = opts.client === undefined || opts.createClient !== undefined;
+
     try {
       this.client =
-        opts.client ??
-        new Client({
-          apiKey: opts.apiKey,
-          // NodeConfiguration.protocol is required upstream though ITypesenseNode.protocol is optional; default 'http', cloud users pass 'https'.
-          nodes: opts.nodes.map((node) => ({ ...node, protocol: node.protocol ?? 'http' })),
-          connectionTimeoutSeconds: opts.connectionTimeoutSeconds ?? 5,
-          numRetries: opts.numRetries,
-        });
+        opts.client ?? build({ connectionTimeoutSeconds: opts.connectionTimeoutSeconds ?? 5 });
 
       opts.onInitialized?.({ name: opts.name });
     } catch (error) {
@@ -90,6 +95,34 @@ export class TypesenseConnector extends BaseSearchConnector {
 
   getClient(): Client {
     return this.client as Client;
+  }
+
+  /**
+   * The client one call runs on. Without `timeoutMs` it is the connector's own; with it, a client whose
+   * `connectionTimeoutSeconds` is that many milliseconds, because `typesense-js` has no timeout per call. What it bounds
+   * is the wait for the response (an import answers after the batch is processed) and then the longest silence on the
+   * socket, not the whole transfer: a download that keeps arriving never trips it.
+   */
+  private clientFor(opts: ITypesenseCallOptions & { method: string }): ITypesenseClientLike {
+    const { timeoutMs, method } = opts;
+
+    if (timeoutMs === undefined) {
+      return this.client;
+    }
+
+    if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) {
+      throw getError({
+        message: `[${method}] Invalid timeoutMs | Expected a positive integer of milliseconds | Got: ${String(timeoutMs)}`,
+      });
+    }
+
+    if (!this.canBuildCallClient) {
+      throw getError({
+        message: `[${method}] timeoutMs needs createClient | This connector was given its own client, so it cannot build the client of a call from nodes and apiKey: pass createClient in the connector options`,
+      });
+    }
+
+    return this.createClient({ connectionTimeoutSeconds: timeoutMs / 1000 });
   }
 
   protected isNotFoundError(opts: { error: unknown }): boolean {
@@ -123,7 +156,11 @@ export class TypesenseConnector extends BaseSearchConnector {
     link: (opts) => this.linkSynonymSets(opts),
   };
 
-  readonly document: ISearchDocumentScoped = {
+  readonly document: ISearchDocumentScoped & {
+    find: <T extends object>(opts: { collection: string; id: string }) => Promise<T | null>;
+  } = {
+    find: <T extends object>(opts: { collection: string; id: string }) =>
+      this.findDocument<T>(opts),
     create: <T extends object>(opts: { collection: string; document: T }) =>
       this.createDocument(opts),
     get: <T extends object>(opts: { collection: string; id: string }) => this.getDocument<T>(opts),
@@ -148,7 +185,7 @@ export class TypesenseConnector extends BaseSearchConnector {
   async getHealth(): Promise<{ ok: boolean }> {
     try {
       const health = await this.client.health.retrieve();
-      return { ok: readBooleanFlag({ value: health, key: 'ok' }) };
+      return { ok: TypesensePayloadReader.readBooleanFlag({ value: health, key: 'ok' }) };
     } catch (error) {
       this.logger
         .for(this.getHealth.name)
@@ -157,16 +194,18 @@ export class TypesenseConnector extends BaseSearchConnector {
     }
   }
 
-  async createCollection(opts: {
-    schema: TCollectionCreateSchema;
-  }): Promise<TCollectionSchema | void> {
+  async createCollection(
+    opts: { schema: TCollectionCreateSchema } & ITypesenseCallOptions,
+  ): Promise<TCollectionSchema | void> {
     const { schema } = opts;
     const logger = this.logger.for(this.createCollection.name);
+    const client = this.clientFor({ ...opts, method: this.createCollection.name });
 
     const rs = await this.runEngineCall<TCollectionSchema | void>({
       method: this.createCollection.name,
       run: async () => {
-        const created = (await this.client.collections().create(schema)) as TCollectionSchema;
+        const result = await client.collections().create(schema);
+        const created = result as TCollectionSchema;
         logger.info('Created collection | name: %s', schema.name);
         return created;
       },
@@ -197,14 +236,16 @@ export class TypesenseConnector extends BaseSearchConnector {
     return this.getCollection({ name: schema.name });
   }
 
-  async getCollection(opts: { name: string }): Promise<TCollectionSchema> {
+  async getCollection(opts: { name: string } & ITypesenseCallOptions): Promise<TCollectionSchema> {
     const { name } = opts;
     this.assertNonEmpty({ value: name, name: 'collection', method: this.getCollection.name });
+    const client = this.clientFor({ ...opts, method: this.getCollection.name });
 
     const rs = await this.runEngineCall({
       method: this.getCollection.name,
       run: async () => {
-        const collection = (await this.client.collections(name).retrieve()) as TCollectionSchema;
+        const result = await client.collections(name).retrieve();
+        const collection = result as TCollectionSchema;
         return collection;
       },
       tolerate: this.notFoundTolerance({
@@ -219,7 +260,8 @@ export class TypesenseConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.listCollections.name,
       run: async () => {
-        const collections = (await this.client.collections().retrieve()) as TCollectionSchema[];
+        const result = await this.client.collections().retrieve();
+        const collections = result as TCollectionSchema[];
         return collections;
       },
     });
@@ -243,10 +285,12 @@ export class TypesenseConnector extends BaseSearchConnector {
     return rs;
   }
 
-  async patchCollectionSchema(opts: {
-    name: string;
-    fields: TCollectionFieldSchema[];
-  }): Promise<void> {
+  async patchCollectionSchema(
+    opts: {
+      name: string;
+      fields: TCollectionFieldSchema[];
+    } & ITypesenseCallOptions,
+  ): Promise<void> {
     const { name, fields } = opts;
     this.assertNonEmpty({
       value: name,
@@ -254,11 +298,12 @@ export class TypesenseConnector extends BaseSearchConnector {
       method: this.patchCollectionSchema.name,
     });
     const logger = this.logger.for(this.patchCollectionSchema.name);
+    const client = this.clientFor({ ...opts, method: this.patchCollectionSchema.name });
 
     await this.runEngineCall<void>({
       method: this.patchCollectionSchema.name,
       run: async () => {
-        await this.client.collections(name).update({ fields });
+        await client.collections(name).update({ fields });
         logger.info('Patched schema | name: %s | fields: %d', name, fields.length);
       },
       tolerate: this.notFoundTolerance({
@@ -315,8 +360,11 @@ export class TypesenseConnector extends BaseSearchConnector {
       method: this.getAlias.name,
       run: async () => {
         const alias = await this.client.aliases(name).retrieve();
-        const aliasName = readStringField({ value: alias, key: 'name' });
-        const collectionName = readStringField({ value: alias, key: 'collection_name' });
+        const aliasName = TypesensePayloadReader.readStringField({ value: alias, key: 'name' });
+        const collectionName = TypesensePayloadReader.readStringField({
+          value: alias,
+          key: 'collection_name',
+        });
 
         if (aliasName === undefined || collectionName === undefined) {
           SearchConnectorInternal.throwNotFoundError({
@@ -368,8 +416,9 @@ export class TypesenseConnector extends BaseSearchConnector {
       method: this.getSynonymSet.name,
       run: async () => {
         const result = await this.client.synonymSets(name).retrieve();
-        const items = isRecord(result) && Array.isArray(result.items) ? result.items : [];
-        return items.filter(isSynonymResponse).map(toSynonym);
+        const items =
+          RecordUtility.isRecord(result) && Array.isArray(result.items) ? result.items : [];
+        return items.filter(isSynonymResponse).map((value) => TypesenseMapper.toSynonym({ value }));
       },
       tolerate: this.notFoundFallback({
         method: this.getSynonymSet.name,
@@ -388,7 +437,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         const result = await this.client.synonymSets().retrieve();
         const sets = Array.isArray(result) ? result : [];
         return sets
-          .filter(isRecord)
+          .filter(RecordUtility.isRecord)
           .map((set) => set.name)
           .filter((setName): setName is string => typeof setName === 'string');
       },
@@ -453,10 +502,8 @@ export class TypesenseConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.createDocument.name,
       run: async () => {
-        const created = (await this.client
-          .collections(collection)
-          .documents()
-          .create(document)) as T;
+        const result = await this.client.collections(collection).documents().create(document);
+        const created = result as T;
         return created;
       },
       // Typesense rejects a duplicate id with 409; surfaced as the neutral already_exists conflict rather than the generic sanitized 503 - same contract Meilisearch's createDocument throws.
@@ -481,12 +528,39 @@ export class TypesenseConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.getDocument.name,
       run: async () => {
-        const document = (await this.client.collections(collection).documents(id).retrieve()) as T;
+        const result = await this.client.collections(collection).documents(id).retrieve();
+        const document = result as T;
         return document;
       },
       tolerate: this.notFoundTolerance({
         method: this.getDocument.name,
         subject: `Document '${id}' in collection '${collection}'`,
+      }),
+    });
+    return rs;
+  }
+
+  /** `getDocument` that answers `null` for a missing document, the way `getAlias` does, where `getDocument` throws `404 core.search_engine.not_found`. Any other failure throws as it does there. */
+  async findDocument<T extends object>(opts: {
+    collection: string;
+    id: string;
+  }): Promise<T | null> {
+    const { collection, id } = opts;
+    this.assertNonEmpty({ value: collection, name: 'collection', method: this.findDocument.name });
+    this.assertNonEmpty({ value: id, name: 'document id', method: this.findDocument.name });
+
+    const rs = await this.runEngineCall<T | null>({
+      method: this.findDocument.name,
+      run: async () => {
+        const result = await this.client.collections(collection).documents(id).retrieve();
+        const document = result as T;
+        return document;
+      },
+      tolerate: this.notFoundFallback({
+        method: this.findDocument.name,
+        message: 'Document not found | collection: %s | id: %s',
+        args: [collection, id],
+        fallback: null,
       }),
     });
     return rs;
@@ -523,10 +597,8 @@ export class TypesenseConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.upsertDocument.name,
       run: async () => {
-        const upserted = (await this.client
-          .collections(collection)
-          .documents()
-          .upsert(document)) as T;
+        const result = await this.client.collections(collection).documents().upsert(document);
+        const upserted = result as T;
         return upserted;
       },
     });
@@ -549,10 +621,8 @@ export class TypesenseConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.updateDocument.name,
       run: async () => {
-        const updated = (await this.client
-          .collections(collection)
-          .documents(id)
-          .update(document)) as T;
+        const result = await this.client.collections(collection).documents(id).update(document);
+        const updated = result as T;
         return updated;
       },
       tolerate: this.notFoundTolerance({
@@ -611,14 +681,22 @@ export class TypesenseConnector extends BaseSearchConnector {
     return { successCount, failCount };
   }
 
-  async importDocuments<T extends object>(opts: {
-    collection: string;
-    documents: T[];
-    action?: TTypesenseImportAction;
-    batchSize?: number;
-    dirtyValues?: TTypesenseDirtyValue;
-  }): Promise<IImportResult<TImportResponse>> {
-    const { collection, documents, dirtyValues } = opts;
+  async importDocuments<T extends object>(
+    opts: {
+      collection: string;
+      documents: T[];
+      action?: TTypesenseImportAction;
+      batchSize?: number;
+      dirtyValues?: TTypesenseDirtyValue;
+      /**
+       * Opt-in. When some rows are rejected, throw `422` after the last batch, with the counts in `extra.details` and
+       * every per-row response on the error's `responses`. The default stays: a rejected row is in `count.fail` and
+       * `responses` of the result and nothing throws.
+       */
+      throwOnFail?: boolean;
+    } & ITypesenseCallOptions,
+  ): Promise<IImportResult<TImportResponse>> {
+    const { collection, documents, dirtyValues, throwOnFail = false } = opts;
     this.assertNonEmpty({
       value: collection,
       name: 'collection',
@@ -640,6 +718,7 @@ export class TypesenseConnector extends BaseSearchConnector {
     }
 
     const logger = this.logger.for(this.importDocuments.name);
+    const client = this.clientFor({ ...opts, method: this.importDocuments.name });
     const batchSize = opts.batchSize && opts.batchSize > 0 ? opts.batchSize : 100;
     const responses: TImportResponse[] = [];
     let successCount = 0;
@@ -654,10 +733,8 @@ export class TypesenseConnector extends BaseSearchConnector {
           ? { action, throwOnFail: false, ['dirty_values']: dirtyValues }
           : { action, throwOnFail: false };
 
-        const batchResult = (await this.client
-          .collections(collection)
-          .documents()
-          .import(batch, importParams)) as TImportResponse[];
+        const result = await client.collections(collection).documents().import(batch, importParams);
+        const batchResult = result as TImportResponse[];
 
         const tally = this.tallyImportResponses({ batchResult, responses });
         successCount += tally.successCount;
@@ -695,6 +772,25 @@ export class TypesenseConnector extends BaseSearchConnector {
       successCount,
       failCount,
     );
+
+    if (throwOnFail && failCount > 0) {
+      const failed = getError({
+        statusCode: HTTP.ResultCodes.RS_4.UnprocessableEntity,
+        message: `[${this.importDocuments.name}] ${failCount} of ${documents.length} documents were rejected by the engine | collection: ${collection}`,
+        extra: {
+          details: {
+            totalCount: documents.length,
+            processedCount: successCount + failCount,
+            successCount,
+            failCount,
+          },
+        },
+      });
+      // Not in `extra`, which goes on the wire: the responses hold the rejected documents and the engine's text for each.
+      Reflect.set(failed, 'responses', responses);
+      throw failed;
+    }
+
     return { count: { success: successCount, fail: failCount }, responses };
   }
 
@@ -711,6 +807,13 @@ export class TypesenseConnector extends BaseSearchConnector {
     });
     this.assertNonEmpty({ value: filterBy, name: 'filterBy', method: this.updateByFilter.name });
 
+    // The engine answers an empty patch with a 400; refuse it here, before a round trip, as a caller's mistake.
+    if (!RecordUtility.isRecord(document) || Object.keys(document).length === 0) {
+      throw getError({
+        message: `[${this.updateByFilter.name}] Empty document | Pass at least one field to change`,
+      });
+    }
+
     const rs = await this.runEngineCall({
       method: this.updateByFilter.name,
       run: async () => {
@@ -722,7 +825,12 @@ export class TypesenseConnector extends BaseSearchConnector {
           .documents()
           .update(document, updateOptions);
 
-        return { updatedCount: readNumberField({ value: result, key: 'num_updated' }) };
+        return {
+          updatedCount: TypesensePayloadReader.readNumberField({
+            value: result,
+            key: 'num_updated',
+          }),
+        };
       },
     });
     return rs;
@@ -757,7 +865,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         }
 
         const result = await this.client.collections(collection).documents().delete(deleteParams);
-        return readNumberField({ value: result, key: 'num_deleted' });
+        return TypesensePayloadReader.readNumberField({ value: result, key: 'num_deleted' });
       },
     });
     return rs;
@@ -784,7 +892,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         logger.info(
           'Truncated collection | name: %s | deleted: %d',
           collection,
-          readNumberField({ value: result, key: 'num_deleted' }),
+          TypesensePayloadReader.readNumberField({ value: result, key: 'num_deleted' }),
         );
         return true;
       },
@@ -792,39 +900,81 @@ export class TypesenseConnector extends BaseSearchConnector {
     return rs;
   }
 
-  async exportDocuments(opts: {
-    collection: string;
-    filterBy?: string;
-    includeFields?: string[];
-  }): Promise<string> {
-    const { collection, filterBy, includeFields } = opts;
+  async exportDocuments(
+    opts: {
+      collection: string;
+      filterBy?: string;
+      includeFields?: string[];
+      excludeFields?: string[];
+    } & ITypesenseCallOptions,
+  ): Promise<string> {
+    const { collection } = opts;
     this.assertNonEmpty({
       value: collection,
       name: 'collection',
       method: this.exportDocuments.name,
     });
+    const client = this.clientFor({ ...opts, method: this.exportDocuments.name });
 
     const rs = await this.runEngineCall({
       method: this.exportDocuments.name,
       run: async () => {
-        const exportParams: Record<string, unknown> = {};
-
-        if (filterBy) {
-          exportParams['filter_by'] = filterBy;
-        }
-
-        if (includeFields && includeFields.length > 0) {
-          exportParams['include_fields'] = includeFields.join(',');
-        }
-
-        const exported = (await this.client
+        const result = await client
           .collections(collection)
           .documents()
-          .export(exportParams)) as string;
+          .export(TypesenseInternal.toExportParams(opts));
+        const exported = result as string;
         return exported;
       },
     });
     return rs;
+  }
+
+  /**
+   * The export as a stream of NDJSON lines, one document per line without its newline, read as the engine sends
+   * them. Memory stays bounded by one chunk and one partial line, so a collection of any size can be written to disk
+   * as it arrives, where `exportDocuments` builds the whole export as one string (at most 2^31 - 1 characters on Bun, about 2 GiB of ASCII text).
+   *
+   * ```typescript
+   * for await (const line of connector.streamDocuments({ collection: 'products', timeoutMs: 600_000 })) {
+   *   writer.write(`${line}\n`);
+   * }
+   * ```
+   *
+   * The call to the engine happens on the first read. A failure before the first line throws as `exportDocuments`
+   * does; one in the middle throws the same error from the loop, after the lines already read.
+   */
+  async *streamDocuments(
+    opts: {
+      collection: string;
+      filterBy?: string;
+      includeFields?: string[];
+      excludeFields?: string[];
+    } & ITypesenseCallOptions,
+  ): AsyncGenerator<string, void, undefined> {
+    const { collection } = opts;
+    const method = this.streamDocuments.name;
+    this.assertNonEmpty({ value: collection, name: 'collection', method });
+    const client = this.clientFor({ ...opts, method });
+
+    const source = await this.runEngineCall({
+      method,
+      run: () =>
+        client
+          .collections(collection)
+          .documents()
+          .exportStream(TypesenseInternal.toExportParams(opts)),
+    });
+
+    try {
+      yield* TypesenseInternal.toLines({ source });
+    } catch (error) {
+      if (isApplicationError(error)) {
+        throw error;
+      }
+
+      SearchConnectorInternal.wrapDependencyError({ method, error, logger: this.logger });
+    }
   }
 
   /**
@@ -874,19 +1024,25 @@ export class TypesenseConnector extends BaseSearchConnector {
     this.assertNonEmpty({ value: collection, name: 'collection', method: this.search.name });
     const logger = this.logger.for(this.search.name);
 
-    const paramsRecord = params as unknown as Record<string, unknown>;
-    const requested = readRequestedPage(paramsRecord);
-    const windows = requested ? toSearchWindows(requested) : [{ offset: 0, limit: 0 }];
+    const { common, body } = TypesenseInternal.splitCacheParams({
+      params: params as unknown as Record<string, unknown>,
+    });
+    const paramsRecord = body;
+    const requested = TypesenseSearchWindows.readRequestedPage({ params: paramsRecord });
+    const windows = requested
+      ? TypesenseSearchWindows.toSearchWindows(requested)
+      : [{ offset: 0, limit: 0 }];
 
     if (windows.length > 1 && requested) {
       this.assertSplittablePage({ paramsRecord, requested, windows, collection });
     }
 
-    // A single window passes the caller's params through UNCHANGED - `mode: 'raw'` reaches the
-    // engine byte-identical, and only a page the engine would have rejected outright gets rewritten.
+    // A single window passes the caller's params through unchanged but for the cache switches, which
+    // go to the common params - `mode: 'raw'` reaches the engine otherwise byte-identical, and only a
+    // page the engine would have rejected outright gets rewritten.
     const entries =
       windows.length === 1
-        ? [{ ...params, collection }]
+        ? [{ ...body, collection } as { collection: string } & Partial<TSearchParams>]
         : windows.map((window) => {
             // Each window carries its own offset/limit, so the caller's page keys are left out.
             const rest = Object.fromEntries(
@@ -901,12 +1057,13 @@ export class TypesenseConnector extends BaseSearchConnector {
             return entry as { collection: string } & Partial<TSearchParams>;
           });
 
-    const response = (await this.executeMultiSearch({
+    const result2 = await this.executeMultiSearch({
       method: this.search.name,
       entries,
-      commonParams: {},
+      commonParams: common as Partial<TSearchParams>,
       options,
-    })) as IMultiSearchResult<T>;
+    });
+    const response = result2 as IMultiSearchResult<T>;
 
     const results = Array.isArray(response?.results) ? response.results : [];
     const mapped: ISearchResult<T>[] = [];
@@ -919,7 +1076,9 @@ export class TypesenseConnector extends BaseSearchConnector {
         // a warning rather than a 500.
         case EntryOutcomes.MISSING_COLLECTION: {
           logger.warn('Search on missing collection, returning empty | name: %s', collection);
-          return mapSearchResult<T>(buildEmptySearchResponse());
+          return TypesenseMapper.mapSearchResult<T>({
+            raw: TypesenseSearchWindows.buildEmptySearchResponse(),
+          });
         }
 
         // A failed entry arrives inside an HTTP 200. Answering empty here would make a rejected
@@ -934,17 +1093,19 @@ export class TypesenseConnector extends BaseSearchConnector {
         // A real result - map it and let the loop collect the remaining windows.
         case EntryOutcomes.OK:
         default: {
-          mapped.push(mapSearchResult<T>(entry));
+          mapped.push(TypesenseMapper.mapSearchResult<T>({ raw: entry }));
           break;
         }
       }
     }
 
     if (mapped.length === 0) {
-      return mapSearchResult<T>(buildEmptySearchResponse());
+      return TypesenseMapper.mapSearchResult<T>({
+        raw: TypesenseSearchWindows.buildEmptySearchResponse(),
+      });
     }
 
-    return mergeWindowedResults<T>(mapped);
+    return TypesenseSearchWindows.mergeWindowedResults<T>({ results: mapped });
   }
 
   /**
@@ -1011,13 +1172,14 @@ export class TypesenseConnector extends BaseSearchConnector {
     // engine never returned, with no honest value for `request_params` or `page`, and it would
     // destroy the 1:1 correspondence that indexing depends on. `search()` can merge because it maps
     // to a neutral ISearchResult; here the caller is handed engine-shaped objects.
-    const rs = (await this.executeMultiSearch({
+    const result = await this.executeMultiSearch({
       method: this.multiSearch.name,
       entries: searches,
       union: isUnion,
       commonParams,
       options,
-    })) as IMultiSearchResult<T> | IUnionSearchResult<T>;
+    });
+    const rs = result as IMultiSearchResult<T> | IUnionSearchResult<T>;
 
     return rs;
   }

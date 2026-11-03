@@ -27,7 +27,7 @@ import {
 import { MailService } from '@/components/mail/services';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { FakeMailTransport } from './fakes';
-import { spawnSyncBounded } from '@venizia/dev-configs/testing';
+import { SpawnHelper } from '@venizia/dev-configs/testing';
 
 const PATH_REFUSED = 'core.mail.attachment_path_refused';
 const TOO_LARGE = 'core.mail.attachment_too_large';
@@ -171,7 +171,8 @@ describe('Mail attachments - path confinement', () => {
 
   test('a symlink inside the root that points outside it is refused', async () => {
     const { service, transport } = buildService({ attachmentRoot });
-    fileReadSpy = await spyOnFileReads();
+    const result = await spyOnFileReads();
+    fileReadSpy = result;
 
     const error = await captureError(
       service.send(buildMessage([{ filename: 'x', path: 'escape-link.txt' }])),
@@ -204,7 +205,8 @@ describe('Mail attachments - path confinement', () => {
 
   test('a file inside the root is read and handed over as content, with no path left', async () => {
     const { service, transport } = buildService({ attachmentRoot });
-    fileReadSpy = await spyOnFileReads();
+    const result2 = await spyOnFileReads();
+    fileReadSpy = result2;
 
     const result = await service.send(
       buildMessage([
@@ -292,7 +294,8 @@ describe('Mail attachments - size limit', () => {
 
   test('a file inside the root that is over the limit is refused by its size, before any read', async () => {
     const { service } = buildService({ attachmentRoot, maxAttachmentBytes: 1024 });
-    fileReadSpy = await spyOnFileReads();
+    const result = await spyOnFileReads();
+    fileReadSpy = result;
 
     const error = await captureError(
       service.send(buildMessage([{ filename: 'big.bin', path: 'big.bin' }])),
@@ -757,7 +760,7 @@ describe('Mail attachments - review fixes', () => {
 
   test('a FIFO inside the root is refused at once instead of hanging the send', async () => {
     const fifoPath = join(attachmentRoot, 'pipe');
-    const created = spawnSyncBounded({ cmd: ['mkfifo', fifoPath] });
+    const created = SpawnHelper.spawnSyncBounded({ cmd: ['mkfifo', fifoPath] });
     expect(created.exitCode).toBe(0);
 
     const { service } = buildService({ attachmentRoot });
@@ -796,7 +799,8 @@ describe('Mail attachments - review fixes', () => {
   });
 
   test('a file that grows after its size check is still capped while it is read', async () => {
-    fileReadSpy = await spyOnFileReads();
+    const result = await spyOnFileReads();
+    fileReadSpy = result;
     const handle = await open(secretFile);
     const prototype = Object.getPrototypeOf(handle);
     await handle.close();

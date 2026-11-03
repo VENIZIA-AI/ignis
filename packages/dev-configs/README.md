@@ -104,11 +104,11 @@ Every IGNIS package and example does.
 | :--- | :--- |
 | `@venizia/dev-configs` | Everything below, re-exported |
 | `@venizia/dev-configs/compilers` | `BunCompiler` |
-| `@venizia/dev-configs/testing` | `rejectionOf`, `expectRejection` - test helpers for a promise that must reject (imports `bun:test`; tests only) |
-| `@venizia/dev-configs/linters` | `oxlintConfigs`, `OxlintConfigs`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `LintIgnore`, `namingConventionConfigs`, `reactNamingConventionConfigs`, `houseConfigs`, `reactHouseConfigs`, `eslintConfigs`, `ReactEslintConfigs`, the rule classes and their types |
+| `@venizia/dev-configs/testing` | `RejectionHelper` (`rejectionOf`, `expectRejection`), `SpawnHelper` (`spawnSyncBounded`), `RepoTmp` (`findRoot`, `apply`) - test helpers (imports `bun:test`; tests only) |
+| `@venizia/dev-configs/linters` | `oxlintConfigs`, `OxlintConfigs`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `LintIgnore`, `namingConventionConfigs`, `reactNamingConventionConfigs`, `houseConfigs`, `reactHouseConfigs`, `eslintConfigs`, the rule classes and their types |
 | `@venizia/dev-configs/linters/oxlint` | `oxlintConfigs`, `OxlintConfigs`, `IOxlintPresetOptions`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `LintIgnore`, the rule classes and their types: everything an oxlint config needs, and nothing that loads ESLint. Loads in milliseconds: `/linters` also loads ESLint and its plugins, which an oxlint config never uses |
 | `@venizia/dev-configs/tsconfig.base.json` | Target and lib ES2025, `module` Node16, strict mode (`noImplicitAny` and `useUnknownInCatchVariables` on) with `strictPropertyInitialization` off (DI-injected properties have no initializer), `noEmitOnError`, tests excluded |
-| `@venizia/dev-configs/tsconfig.common.json` | Extends the base and switches `module` and `moduleResolution` to `nodenext` |
+| `@venizia/dev-configs/tsconfig.common.json` | Extends the base and restates `module` as `esnext` and `moduleResolution` as `bundler` |
 | `@venizia/dev-configs/tsconfig.browser.json` | Extends the base for a browser library built with a bundler: `module` ESNext, `moduleResolution` bundler, lib ES2025 + `DOM` + `DOM.Iterable`, `types: []` so no Bun types reach `dist` |
 | `@venizia/dev-configs/tsconfig.react.json` | Extends `tsconfig.browser.json` and sets `jsx: react-jsx` |
 
@@ -249,44 +249,6 @@ conventions, `curly`, `eslint-plugin-n`, plus these IGNIS rules:
 | `@typescript-eslint/ban-ts-comment` | `error` - `@ts-expect-error` with a description is still allowed |
 | `@typescript-eslint/no-namespace` | `error` |
 | `unicorn/switch-case-braces` | `['error', 'always']` |
-
-### ReactEslintConfigs
-
-`ReactEslintConfigs.create({ plugins })` is `eslintConfigs` plus what a React frontend needs. The
-plugins come in as options, so a backend installs none of them:
-
-```js
-// eslint.config.mjs
-import { ReactEslintConfigs } from '@venizia/dev-configs';
-import react from 'eslint-plugin-react';
-import reactHooks from 'eslint-plugin-react-hooks';
-import jsxA11y from 'eslint-plugin-jsx-a11y';
-
-export default [
-  { ignores: ['dist/'] },
-  ...ReactEslintConfigs.create({ plugins: { react, reactHooks, jsxA11y } }),
-];
-```
-
-| Adds | Setting |
-| :--- | :--- |
-| React correctness (`jsx-key`, `no-children-prop`, `no-deprecated`, ... - 14 rules) | `error`, `.jsx`/`.tsx` |
-| `jsx-a11y` (`alt-text`, `aria-props`, `aria-role`, `click-events-have-key-events`, `label-has-associated-control`, ... - 15 rules) | `error`, `.jsx`/`.tsx` |
-| `react-hooks/rules-of-hooks` / `exhaustive-deps` | `error`, every source file |
-| `@typescript-eslint/consistent-type-imports` | `['error', { prefer: 'type-imports', fixStyle: 'inline-type-imports', disallowTypeAnnotations: false }]` |
-| `naming-convention` | the base rule, plus PascalCase functions (`function App()`), `.jsx`/`.tsx` |
-| `no-restricted-properties` | `NoRestrictedPropertiesRule.build()` - bans `crypto.randomUUID` |
-
-Nothing in the base is relaxed: frontend code meets the backend's standard, so a floating promise, a
-`void`, a use before declaration or a shadowed name fails the lint as it does in a service.
-
-Rules the automatic JSX runtime or `tsc` already enforce (`react-in-jsx-scope`, `prop-types`,
-`jsx-no-undef`, ...) are left out.
-
-- `reactVersion` defaults to `'detect'`. Under ESLint 10, eslint-plugin-react 7 cannot detect it and
-  aborts - pass the version: `create({ plugins, reactVersion: '19.2' })`.
-- In an `eslint.config.ts`, `eslint-plugin-jsx-a11y` needs `@types/eslint-plugin-jsx-a11y`.
-- `consistent-type-imports` uses `fixStyle: inline-type-imports`, the same as the base preset.
 
 ### BrowserOxlintConfigs
 

@@ -1,6 +1,6 @@
 ---
 title: Transaction Support
-description: Explicit transaction support for atomic operations across repositories
+description: Repositories can start explicit transactions that you pass between services and repositories, with a choice of isolation level.
 packages: ['@venizia/ignis']
 ---
 
@@ -8,23 +8,13 @@ packages: ['@venizia/ignis']
 
 ## Transaction Support
 
-Added explicit transaction support to the repository layer, enabling atomic operations across multiple services and repositories.
+**In one line.** Call `beginTransaction()` on a repository and pass the transaction through `options` to run atomic operations across several services and repositories.
 
-## Overview
+## What changed
 
-- **Explicit Transactions**: `beginTransaction()` method on repositories.
-- **Isolation Levels**: Support for `READ COMMITTED`, `REPEATABLE READ`, and `SERIALIZABLE`.
-- **Pass-through Context**: Transaction objects can be passed via `options`.
-
-## New Features
-
-### Repository Transactions
-
-**File:** `packages/core-server/src/base/repositories/core/base.ts`
-
-**Problem:** Previously, transactions relied on Drizzle's callback API, which made it difficult to share a transaction context across different services or decoupled components.
-
-**Solution:** Introduced explicit `ITransaction` objects managed by the repository/datasource.
+- **Explicit transactions.** `repo.beginTransaction()` returns a transaction you commit or roll back yourself.
+- **Pass-through context.** Pass it as `options: { transaction: tx }` to any repository call.
+- **Isolation levels.** `READ COMMITTED`, `REPEATABLE READ` and `SERIALIZABLE` are supported.
 
 ```typescript
 const tx = await repo.beginTransaction();
@@ -32,27 +22,13 @@ const tx = await repo.beginTransaction();
 try {
   await repo.create({ data: {...}, options: { transaction: tx } });
   await otherRepo.create({ data: {...}, options: { transaction: tx } });
-  
+
   await tx.commit();
 } catch (err) {
   await tx.rollback();
 }
 ```
 
-## Files Changed
+## Who is affected
 
-### Core Package (`packages/core-server`)
-
-| File | Changes |
-|------|---------|
-| `src/base/repositories/core/base.ts` | Added `beginTransaction` and transaction handling logic |
-| `src/base/repositories/core/readable.ts` | Updated read methods to respect transaction context |
-| `src/base/repositories/core/persistable.ts` | Updated write methods to respect transaction context |
-| `src/base/datasources/common/types.ts` | Added `ITransaction`, `ITransactionOptions`, and `IsolationLevels` |
-| `src/base/datasources/base.ts` | Implemented `beginTransaction` on `BaseDataSource` |
-
-## Migration Guide
-
-### No Breaking Changes
-
-This is an additive feature. Existing code using standard CRUD methods will continue to work without modification (using implicit auto-commit transactions).
+- **Existing code.** No action needed. Calls without a transaction work as before, with implicit auto-commit.

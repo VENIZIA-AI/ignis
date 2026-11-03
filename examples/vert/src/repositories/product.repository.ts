@@ -1,7 +1,7 @@
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { Product, type productTable } from '@/models/entities';
 import { repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: Product, dataSource: PostgresDataSource })
 export class ProductRepository extends DefaultCRUDRepository<typeof productTable> {

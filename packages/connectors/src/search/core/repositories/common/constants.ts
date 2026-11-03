@@ -1,9 +1,9 @@
-import { buildQuerySchemas } from '@venizia/ignis-filter/schemas';
+import { QuerySchemaFactory } from '@venizia/ignis-filter/schemas';
 import { z } from 'zod';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 
 const { FieldsSchema, LimitSchema, OffsetSchema, OrderBySchema, SkipSchema, WhereSchema } =
-  buildQuerySchemas({
+  QuerySchemaFactory.build({
     // zod's own `.meta()`, which the OpenAPI generator reads: this layer must load without hono.
     decorate: (schema, metadata) => (schema instanceof z.ZodType ? schema.meta(metadata) : schema),
   });
@@ -56,7 +56,7 @@ const commonSearchParamsShape = {
 
   queryByWeights: z.array(z.number()).optional(),
 
-  /** Escape hatch for engine-specific tuning: keys are the engine's OWN wire names (`num_typos`, not `numTypos`), merged verbatim and unvalidated after every neutral param. */
+  /** Escape hatch for engine-specific tuning, merged after every neutral param. Keys are the engine's own wire names, passed verbatim; an engine may also accept camelCase names for its documented tuning (Typesense: `ITypesenseTuning`). */
   engineParams: z.record(z.string(), z.unknown()).optional(),
 };
 
@@ -65,6 +65,8 @@ const KeywordSearchSchema = z
     mode: z.literal(SearchModes.KEYWORD),
     query: z.string().optional(),
     queryBy: z.array(z.string()).optional(),
+    /** `false` returns no highlight markup. It wins over `highlightFields`. */
+    highlight: z.boolean().optional(),
     filter: SearchFilterSchema,
     ...commonSearchParamsShape,
   })

@@ -17,7 +17,7 @@ generated:
 | Module | Classes |
 |---|---|
 | `cron/` | `CronHelper` |
-| `crypto/` | _(see source)_ |
+| `crypto/` | `CredentialHelper` |
 | `env/` | _(see source)_ |
 | `error/` | _(see source)_ |
 | `logger/` | _(see source)_ |
@@ -29,7 +29,7 @@ generated:
 | `secrets/` | `AbstractSecretsHelper` · `DotenvVaultHelper` · `HashiCorpVaultHelper` · `SystemEnvsHelper` |
 | `slug/` | `SlugHelper` |
 | `socket/` | `SocketIOClientHelper` · `SocketIOServerHelper` · `WebSocketDeliveryHelper` · `WebSocketServerHelper` |
-| `storage/` | `BaseStorageHelper` · `BunS3Helper` · `DiskHelper` · `MemoryStorageHelper` · `MinioHelper` |
+| `storage/` | `BaseStorageHelper` · `BunS3Helper` · `DiskHelper` · `MemoryStorageHelper` |
 | `temporal/` | `AbstractTemporalHelper` · `TemporalHelper` |
 | `tree/` | _(see source)_ |
 | `uid/` | `OpaqueUidHelper` · `SnowflakeUidHelper` · `UuidHelper` |
@@ -37,4 +37,4 @@ generated:
 
 ## Utilities
 
-`build-info` · `form-body` · `hr-time` · `module` · `parse` · `performance` · `project-root` · `promise` · `request` · `sleep`
+`build-info` · `error` · `form-body` · `hr-time` · `module` · `parse` · `performance` · `project-root` · `promise` · `request`

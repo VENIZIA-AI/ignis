@@ -61,11 +61,10 @@ Every public method takes one options object with nested refs: a bucket is `{ na
 |---|---|---|---|
 | `BunS3Helper` | S3-compatible object storage | Bun's native `S3Client` (Bun runtime only) | `@venizia/ignis-helpers/bun-s3` |
 | `DiskHelper` | Local filesystem, one directory per bucket | Node `fs`/`fs/promises` | `@venizia/ignis-helpers` |
-| `MinioHelper` (deprecated) | MinIO and other S3-compatible servers | The `minio` driver | `@venizia/ignis-helpers/minio` |
 | `MemoryStorageHelper` | In-process key-value cache | A `Map` | `@venizia/ignis-helpers` |
 
-> [!WARNING]
-> `MinioHelper` is deprecated. Use `BunS3Helper`: it reaches MinIO over the same S3 API, and adds presigned URLs, object tagging and byte ranges.
+> [!NOTE]
+> `BunS3Helper` reaches a MinIO server over the same S3 API: set `endpoint.default` to the MinIO address and keep `virtualHostedStyle` at `false`. It also adds presigned URLs, object tagging and byte ranges.
 
 ## Common tasks
 
@@ -174,5 +173,4 @@ cache.unset('counter'); // true - it was bound
 - [`packages/helpers/src/modules/storage/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/base.ts) - `BaseStorageHelper`
 - [`packages/helpers/src/modules/storage/bun-s3/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/helper.ts) - `BunS3Helper`
 - [`packages/helpers/src/modules/storage/disk/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/disk/helper.ts) - `DiskHelper`
-- [`packages/helpers/src/modules/storage/minio/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/minio/helper.ts) - `MinioHelper` (deprecated)
 - [`packages/helpers/src/modules/storage/in-memory/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/in-memory/helper.ts) - `MemoryStorageHelper`

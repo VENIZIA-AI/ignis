@@ -5,7 +5,7 @@ import { z } from '@hono/zod-openapi';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import AutoArtifacts from '@venizia/ignis-boot/auto';
 import { getError } from '@venizia/ignis-helpers';
-import { uuidV4 } from '@venizia/ignis-helpers/uuid';
+import { UuidV4Generator } from '@venizia/ignis-helpers/uuid';
 import { Application } from '../application';
 
 const HOST = '127.0.0.1';
@@ -46,8 +46,8 @@ describe('typesense-search', () => {
   let application: Application;
   let baseUrl = '';
 
-  const typescriptId = uuidV4();
-  const draftId = uuidV4();
+  const typescriptId = UuidV4Generator.generate();
+  const draftId = UuidV4Generator.generate();
 
   const post = (opts: { path: string; body: object }) =>
     fetch(`${baseUrl}${opts.path}`, {
@@ -66,7 +66,8 @@ describe('typesense-search', () => {
 
     while (Date.now() < deadline) {
       const response = await post({ path: '/articles/search', body: opts.body });
-      const result = SearchResponse.parse(await response.json());
+      const payload = await response.json();
+      const result = SearchResponse.parse(payload);
 
       if (opts.predicate(result)) {
         return result;
@@ -127,7 +128,8 @@ describe('typesense-search', () => {
       },
     });
     expect(response.status).toBe(201);
-    expect(ArticleResponse.parse(await response.json()).data.id).toBe(typescriptId);
+    const payload = await response.json();
+    expect(ArticleResponse.parse(payload).data.id).toBe(typescriptId);
 
     // A second document, in a different category, gives the filter test something to exclude.
     const draft = await post({

@@ -64,7 +64,8 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
   override async configure(): Promise<void> {
     const logger = this.logger.for(this.configure.name);
     if (!this.client) {
-      const factory = (await ModuleUtility.load<AnyType>({ module: 'node-vault' })).default;
+      const result = await ModuleUtility.load<AnyType>({ module: 'node-vault' });
+      const factory = result.default;
       this.client = factory({ endpoint: this.endpoint, apiVersion: 'v1' }) as TVaultClient;
     }
     const { ttlSeconds, renewable } = await this.login();
@@ -120,12 +121,11 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
             message: '[HashiCorpVaultHelper.login] node-vault client lacks kubernetesLogin',
           });
         }
-        const jwt = (
-          await readFile(
-            this.auth.jwtPath ?? '/var/run/secrets/kubernetes.io/serviceaccount/token',
-            'utf8',
-          )
-        ).trimEnd();
+        const result = await readFile(
+          this.auth.jwtPath ?? '/var/run/secrets/kubernetes.io/serviceaccount/token',
+          'utf8',
+        );
+        const jwt = result.trimEnd();
         const payload: AnyObject = { role: this.auth.role, jwt };
         payload['mount_point'] = this.auth.mountPath ?? 'kubernetes';
         const res = await client.kubernetesLogin(payload);

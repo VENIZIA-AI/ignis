@@ -83,24 +83,22 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
       fn: CasbinDomainMatchingFunctions.KEY_MATCH,
     };
 
-    expect(
-      await enforceWithDomain({
-        domainMatching: dm,
-        lines,
-        requestDomain: 'Merchant_anything',
-        resource: 'Material.find',
-        action: 'read',
-      }),
-    ).toBe('allow');
-    expect(
-      await enforceWithDomain({
-        domainMatching: dm,
-        lines,
-        requestDomain: 'Merchant_other',
-        resource: 'Material.find',
-        action: 'read',
-      }),
-    ).toBe('allow');
+    const result = await enforceWithDomain({
+      domainMatching: dm,
+      lines,
+      requestDomain: 'Merchant_anything',
+      resource: 'Material.find',
+      action: 'read',
+    });
+    expect(result).toBe('allow');
+    const result2 = await enforceWithDomain({
+      domainMatching: dm,
+      lines,
+      requestDomain: 'Merchant_other',
+      resource: 'Material.find',
+      action: 'read',
+    });
+    expect(result2).toBe('allow');
   });
 
   test('scoped `g, user, role, Merchant_X` stays isolated to that merchant', async () => {
@@ -110,61 +108,56 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
       fn: CasbinDomainMatchingFunctions.KEY_MATCH,
     };
 
-    expect(
-      await enforceWithDomain({
-        domainMatching: dm,
-        lines,
-        requestDomain: 'Merchant_X',
-        resource: 'Material.find',
-        action: 'read',
-      }),
-    ).toBe('allow');
-    expect(
-      await enforceWithDomain({
-        domainMatching: dm,
-        lines,
-        requestDomain: 'Merchant_Y',
-        resource: 'Material.find',
-        action: 'read',
-      }),
-    ).toBe('deny');
+    const result = await enforceWithDomain({
+      domainMatching: dm,
+      lines,
+      requestDomain: 'Merchant_X',
+      resource: 'Material.find',
+      action: 'read',
+    });
+    expect(result).toBe('allow');
+    const result2 = await enforceWithDomain({
+      domainMatching: dm,
+      lines,
+      requestDomain: 'Merchant_Y',
+      resource: 'Material.find',
+      action: 'read',
+    });
+    expect(result2).toBe('deny');
   });
 
   test('backward-compatible: without domainMatching, `*` is a literal domain (no wildcard)', async () => {
     const lines = ['g, User_u, Role_r, *', 'p, Role_r, *, Material.find, read, allow'];
 
     // Without a domain matching function the `g` domain is compared exactly, so a stored `*` does NOT match a real request domain - behavior is unchanged when unset.
-    expect(
-      await enforceWithDomain({
-        lines,
-        requestDomain: 'Merchant_anything',
-        resource: 'Material.find',
-        action: 'read',
-      }),
-    ).toBe('deny');
+    const result = await enforceWithDomain({
+      lines,
+      requestDomain: 'Merchant_anything',
+      resource: 'Material.find',
+      action: 'read',
+    });
+    expect(result).toBe('deny');
     // It still matches a request whose domain is literally "*".
-    expect(
-      await enforceWithDomain({
-        lines,
-        requestDomain: '*',
-        resource: 'Material.find',
-        action: 'read',
-      }),
-    ).toBe('allow');
+    const result2 = await enforceWithDomain({
+      lines,
+      requestDomain: '*',
+      resource: 'Material.find',
+      action: 'read',
+    });
+    expect(result2).toBe('allow');
   });
 
   test('matching function survives a clearPolicy + reload + buildRoleLinks cycle (cache reload path)', async () => {
     // The matcher func is registered once per pooled enforcer at create(), but every request reloads the model inside pool.use, so it must still be in effect after that reload.
     const lines = ['g, User_u, Role_r, *', 'p, Role_r, *, Material.find, read, allow'];
-    expect(
-      await enforceWithDomain({
-        domainMatching: { roleDefinition: 'g', fn: CasbinDomainMatchingFunctions.KEY_MATCH },
-        lines,
-        requestDomain: 'Merchant_anything',
-        resource: 'Material.find',
-        action: 'read',
-      }),
-    ).toBe('allow');
+    const result = await enforceWithDomain({
+      domainMatching: { roleDefinition: 'g', fn: CasbinDomainMatchingFunctions.KEY_MATCH },
+      lines,
+      requestDomain: 'Merchant_anything',
+      resource: 'Material.find',
+      action: 'read',
+    });
+    expect(result).toBe('allow');
   });
 
   test('throws on an unsupported domain matching func', async () => {

@@ -1,8 +1,12 @@
+import { AuthorizationActions } from '@/base/auth/authorize/common/constants';
+import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
 import type { AbstractEntity } from '@/base/models';
 import { SchemaTypes } from '@/base/models/common/constants';
 import type { AbstractRepository } from '@/base/repositories';
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { BindingNamespaces } from '@/common/bindings';
+import { BindingKeys, MetadataRegistry } from '@/helpers/inversion';
+import type { AnyType, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { isClass } from '@venizia/ignis-inversion';
 import type { Env, Schema } from 'hono';
@@ -13,14 +17,52 @@ import type {
   TEntityPersistObject,
 } from '../common';
 import { PersistableCrudController } from './crud';
-import { assertWriteVerbsDeclareAuthorize } from './authorize-guard';
-import { defineControllerRouteConfigs } from './definition';
-import { registerFactoryRepositoryInjection } from './repository-injection';
+import { RouteConfigResolver } from './definition';
 
 /** Factory for generating typed CRUD controllers from entity definitions. */
 export class ControllerFactory extends BaseHelper {
+  /** The generated routes that change data: the ones that must never be answered by a `read` permission. */
+  private static readonly WRITE_VERBS = [
+    'create',
+    'updateById',
+    'updateBy',
+    'deleteById',
+    'deleteBy',
+  ] as const;
+
   constructor() {
     super({ scope: ControllerFactory.name });
+  }
+
+  /**
+   * Injects `repositories.<repositoryName>` into constructor parameter 0 of a factory-generated
+   * controller, so a subclass needs no constructor. Recorded as metadata rather than a parameter
+   * decorator, which Bun drops in some configurations. A subclass that declares its own `@inject` at
+   * index 0 wins, and a sibling subclass keeps the factory's key.
+   */
+  static registerRepositoryInjection(opts: {
+    target: TClass<unknown>;
+    factoryName: string;
+    controllerName: string;
+    repositoryName: string;
+  }): void {
+    const { target, factoryName, controllerName, repositoryName } = opts;
+
+    if (!repositoryName) {
+      throw getError({
+        message: `[${factoryName}] Invalid repository name | controller: ${controllerName} | repository.name must name the repository binding`,
+      });
+    }
+
+    MetadataRegistry.getInstance().setInjectMetadata({
+      target,
+      index: 0,
+      metadata: {
+        key: BindingKeys.build({ namespace: BindingNamespaces.REPOSITORY, key: repositoryName }),
+        index: 0,
+        isOptional: false,
+      },
+    });
   }
 
   static defineCrudController<
@@ -46,7 +88,7 @@ export class ControllerFactory extends BaseHelper {
       });
     }
 
-    assertWriteVerbsDeclareAuthorize({
+    ControllerFactory.assertWriteVerbsDeclareAuthorize({
       controllerName: name,
       authorize,
       routes,
@@ -57,7 +99,7 @@ export class ControllerFactory extends BaseHelper {
     const entityClass = isClass(entity) ? entity : entity();
     const entityInstance = new entityClass();
 
-    const routeDefinitions = defineControllerRouteConfigs({
+    const routeDefinitions = RouteConfigResolver.defineControllerRouteConfigs({
       isStrict: isStrict.requestSchema ?? true,
       idType: entityInstance.getIdType(),
       authenticate,
@@ -172,12 +214,81 @@ export class ControllerFactory extends BaseHelper {
     };
 
     Object.defineProperty(controllerClass, 'name', { value: name, configurable: true });
-    registerFactoryRepositoryInjection({
+    ControllerFactory.registerRepositoryInjection({
       target: controllerClass,
       factoryName: 'defineCrudController',
       controllerName: name,
       repositoryName: defOpts.repository.name,
     });
     return controllerClass;
+  }
+
+  private static describeSpec(opts: { spec: IAuthorizationSpec }): string {
+    const { spec } = opts;
+    return `{ action: ${String(spec.action)}, resource: ${String(spec.resource)} }`;
+  }
+
+  /**
+   * Refuses a CRUD controller whose enabled write verb would inherit a controller-level `authorize`
+   * that is only a `read` permission: the verb would then answer to anyone who may read.
+   *
+   * A write verb is fine when it declares its own `authorize` (a spec, an array, or `{ skip: true }`),
+   * skips authentication, is not enabled, or the controller is `readonly`. Only the literal action
+   * `read` is detected; a custom action name is the application's own vocabulary. An array counts when
+   * every spec in it is `read`, since the specs of one route must all pass.
+   */
+  static assertWriteVerbsDeclareAuthorize(opts: {
+    controllerName: string;
+    authorize: IAuthorizationSpec | IAuthorizationSpec[] | undefined;
+    routes: ICustomizableRoutes | undefined;
+    readonly: boolean | undefined;
+    enabledRoutes: Array<keyof ICustomizableRoutes> | undefined;
+  }): void {
+    const { controllerName, authorize, routes, readonly, enabledRoutes } = opts;
+
+    if (readonly || authorize == null) {
+      return;
+    }
+
+    const specs = Array.isArray(authorize) ? authorize : [authorize];
+    const isReadOnlyPermission =
+      specs.length > 0 && specs.every((spec) => spec.action === AuthorizationActions.READ);
+
+    if (!isReadOnlyPermission) {
+      return;
+    }
+
+    const offending = ControllerFactory.WRITE_VERBS.filter((verb) => {
+      const isEnabled = enabledRoutes
+        ? enabledRoutes.includes(verb)
+        : routes?.[verb]?.enabled !== false;
+      if (!isEnabled) {
+        return false;
+      }
+
+      const route = routes?.[verb];
+      return route?.authenticate?.skip !== true && route?.authorize == null;
+    });
+
+    if (offending.length === 0) {
+      return;
+    }
+
+    const inherited = specs.map((spec) => ControllerFactory.describeSpec({ spec })).join(', ');
+    const verbs = offending.map((verb) => `${controllerName}.${verb}`).join(', ');
+    const hasBulkVerb = offending.some((verb) => verb === 'updateBy' || verb === 'deleteBy');
+
+    throw getError({
+      message: [
+        `[defineCrudController] Write routes would inherit a read-only authorize | controller: ${controllerName} | routes: ${verbs} | inherited: ${inherited}`,
+        'Anyone allowed to read could then create, update or delete.',
+        `Fix: declare routes.<verb>.authorize for each of them (a spec, an array or { skip: true }), or set controller.readonly, or leave them out of controller.enabledRoutes.`,
+        ...(hasBulkVerb
+          ? [
+              'updateBy and deleteBy are bulk routes on the collection and are generated unless controller.enabledRoutes lists the routes you want, so dropping them there closes this too.',
+            ]
+          : []),
+      ].join(' | '),
+    });
   }
 }

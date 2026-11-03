@@ -4,7 +4,8 @@ import { getError } from '@venizia/ignis-helpers/core';
 export class CasbinModule {
   static async load(): Promise<typeof import('casbin')> {
     try {
-      return await import('casbin');
+      const result = await import('casbin');
+      return result;
     } catch {
       throw getError({
         message:

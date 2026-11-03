@@ -47,7 +47,7 @@ class ArticleController extends BaseRestController {
           conditions: { ownerId: 'currentUser' }, // available to voters/custom enforcers - the built-in Casbin enforcer ignores it
         },
         request: { params: z.object({ id: z.string() }) },
-        responses: jsonResponse({ description: 'Deleted article', schema: ArticleSchema }),
+        responses: OpenApiResponses.jsonResponse({ description: 'Deleted article', schema: ArticleSchema }),
       },
       handler: async (context: TRouteContext) => {
         const { id } = context.req.valid<{ id: string }>('param');
@@ -75,8 +75,8 @@ class ArticleController extends BaseRestController {
         resource: 'Article',
         allowedRoles: ['editor', AuthorizationRoles.ADMIN.identifier],
       },
-      request: { body: jsonContent({ schema: CreateArticleSchema }) },
-      responses: jsonResponse({ description: 'Created article', schema: ArticleSchema }),
+      request: { body: OpenApiResponses.jsonContent({ schema: CreateArticleSchema }) },
+      responses: OpenApiResponses.jsonResponse({ description: 'Created article', schema: ArticleSchema }),
     },
   })
   async create(context: TRouteContext) {
@@ -412,7 +412,7 @@ customRole.identifier; // '100-editor'
 Instead of hardcoding resource strings, declare `authorize.principal` on the model - `@model` auto-populates the static `AUTHORIZATION_SUBJECT` from it.
 
 ```typescript
-import { BasePostgresEntity, model, generateIdColumnDefs } from '@venizia/ignis';
+import { BasePostgresEntity, model, PostgresIdEnricher } from '@venizia/ignis';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 @model({
@@ -420,7 +420,7 @@ import { pgTable, text } from 'drizzle-orm/pg-core';
 })
 export class Article extends BasePostgresEntity<typeof Article.schema> {
   static override schema = pgTable('Article', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
     title: text('title').notNull(),
   });
 }
@@ -494,7 +494,7 @@ authorize({
 });
 ```
 
-- **Precedence** (`resolveRequestDomain`): `spec.domain` (resolver, then declarative) -> the global `IAuthorizeOptions.domainResolver` -> `SYSTEM_WIDE`.
+- **Precedence** (`RequestDomainResolver.resolveRequestDomain`): `spec.domain` (resolver, then declarative) -> the global `IAuthorizeOptions.domainResolver` -> `SYSTEM_WIDE`.
 - **Where it lands.** The resolved value is stashed on `Authorization.DOMAIN` and passed to the enforcer as `request.domain`.
 - **No domain = super-admin scope.** A route with no domain source at all enforces `SYSTEM_WIDE` in scoped mode.
 

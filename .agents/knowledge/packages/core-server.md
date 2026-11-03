@@ -119,11 +119,11 @@ The engine-neutral bases live in the kernel; every engine-specific implementatio
 on top of it, and `search` (engine-neutral) with `typesense` and `meilisearch` on top of it. The root
 barrel re-exports only the `postgres` connector, because it never value-imports a client library;
 `relational`, `sqlite`, `search`, `typesense` and `meilisearch` are sub-path exports only
-(`@venizia/ignis/relational`, `/sqlite`, `/search`, `/typesense`, `/meilisearch`), which is what keeps
+(`@venizia/ignis-connectors/relational`, `/sqlite`, `/search`, `/typesense`, `/meilisearch`), which is what keeps
 their client packages optional peers. A datasource's driver is named by passing the driver CLASS to
 `@datasource({ driver })`, not a string - a class reference is what actually pulls an optional peer
 into a consumer's bundle. `/search` and `/typesense` no longer carry the search controllers - they
-come from `@venizia/ignis/search/controllers` or `/typesense/controllers` - and `RecursiveTreeSql`
+come from `@venizia/ignis-connectors/search/controllers` or `/typesense/controllers` - and `RecursiveTreeSql`
 moved from `kernel` to `connectors`; the root still exports it through the postgres alias (see
 [connectors](/packages/connectors.md)). DataSources auto-discover their schema from every `@repository` binding that
 references them; no manual schema wiring is needed.
@@ -144,7 +144,7 @@ and - through the wholesale kernel re-export, not from `src/components/` - `Rest
 when it builds a queue or worker, not at import. A compiled binary using that executor passes both
 peers in `IBullMQMailExecutorOpts` - `module` (bullmq) and `redis.module` (ioredis) - or registers
 them with `ModuleUtility.register({ modules: { ioredis, bullmq } })`.
-Mail attachments are resolved in ONE place, `MailService.send()` via `resolveMailAttachments`
+Mail attachments are resolved in ONE place, `MailService.send()` via `MailAttachmentUtility.resolve`
 (`mail/utilities/attachment.utility.ts`, internal - not in the `/mail` barrel): every attachment
 becomes `content` bytes and loses `path`/`href`/`raw`/`encoding` before any transport sees it.
 Nodemailer would otherwise read a `path`, an `href` URL or `raw.path` itself; the old Mailgun
@@ -165,11 +165,11 @@ mapping forwarded the `path` string as `data`.
   fstat is still capped. Streams (Node `Readable` or web `ReadableStream`) are counted per chunk;
   the `for await` exit destroys/cancels them - never call `.destroy()` directly, a web stream has none.
   `Uint8Array` is bytes; any other `content` is `400 core.mail.invalid_configuration`.
-- A refused send releases EVERY attachment stream (`releaseAttachmentStreams`, in the
+- A refused send releases EVERY attachment stream (`MailAttachmentUtility.release`, in the
   `MailService.send()` catch and in each transport's catch) - otherwise an unread stream keeps its fd.
 - `attachmentRoot` (absolute, existing directory) and `maxAttachmentBytes` (positive safe integer)
   are validated in `MailComponent.createAndBindInstances()`; a bad value fails the boot (500).
-- `text`/`html` must be a string, or `null`/`undefined` (absent): `assertMailBodyIsText`
+- `text`/`html` must be a string, or `null`/`undefined` (absent): `MailBodyUtility.assertIsText`
   (`mail/utilities/body.utility.ts`) runs in `MailService.validateMessage()` and in the nodemailer
   transport; `400 core.mail.body_source_refused`. The nodemailer transport also sets nodemailer's
   `disableFileAccess`/`disableUrlAccess` on every send.
@@ -190,19 +190,19 @@ Its URL shape is two more options, both off by default and independent: `control
 (`string | (() => string)`, read per request) takes the bucket out of the path AND leaves the four
 bucket-management routes unregistered, and `controller.rawObjectPath` widens the object segment to
 the `{objectName}{.+}` catch-all so a raw nested path resolves - the percent-encoded form keeps
-working either way. `buildAssetDefinitions(opts)` builds the twelve route configs from those two
-flags; `StaticAssetDefinitions` is `buildAssetDefinitions({})` and is unchanged.
+working either way. `AssetDefinitionBuilder.build(opts)` builds the twelve route configs from those two
+flags.
 The upload labels - `principalType`, `principalId`, `variant`, `sequence`, `folderPath` - travel in
 the BODY, not the query: form fields on `POST {base}/objects`, and beside the commit token in the
 JSON body on `upload-commit`. A query string is logged everywhere it passes, and an identifier
 describing the payload belongs with the payload; the cost is that they are unreadable until the body
 is parsed, so `folderPath` is validated after parsing. `extra.maxBytes` is the upload ceiling and
 answers `413` with `core.static_asset.upload_too_large` - one code for both upload paths. Its
-`content-length` check is route middleware (`appendDeclaredLengthGuard`), appended AFTER the
+`content-length` check is route middleware (`AssetRouteOptions.appendLengthGuard`), appended AFTER the
 application's own `routes.upload.middleware`: `@hono/zod-openapi`'s form validator reads the whole
 body before any handler runs, so a check in the handler saved no memory. The per-file
 `buffer.length` check - the authoritative one - stays in the handler.
-Every built-in route takes `routes.<key>.enabled` (default `true`; `readRouteOverride` strips it
+Every built-in route takes `routes.<key>.enabled` (default `true`; `AssetRouteOptions.readOverride` strips it
 before the rest reaches `createRoute`). `controller.keyPrefix` scopes a controller inside a shared
 bucket: a key outside the prefix answers `404 core.storage.object_not_found` before any storage
 call; `listObjects` clamps to the prefix and lists `[]` for a disjoint one; the component's own

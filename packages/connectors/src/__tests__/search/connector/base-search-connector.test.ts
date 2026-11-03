@@ -51,13 +51,15 @@ class StubConnector extends BaseSearchConnector {
 describe('BaseSearchConnector', () => {
   test('ping() returns true when health ok', async () => {
     const connector = new StubConnector();
-    expect(await connector.ping()).toBe(true);
+    const result = await connector.ping();
+    expect(result).toBe(true);
   });
 
   test('ping() returns false when health not ok', async () => {
     const connector = new StubConnector();
     connector.healthOk = false;
-    expect(await connector.ping()).toBe(false);
+    const result = await connector.ping();
+    expect(result).toBe(false);
   });
 
   test('assertNonEmpty throws on empty value', () => {

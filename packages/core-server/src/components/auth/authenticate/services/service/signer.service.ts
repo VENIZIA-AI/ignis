@@ -56,7 +56,7 @@ export class ServiceAssertionSignerService extends BaseService {
     const lifetime =
       this.options.signLifetimeSeconds ?? ServiceAssertion.DEFAULT_SIGN_LIFETIME_SECONDS;
 
-    return new SignJWT({ htm: method.toUpperCase(), htu: path })
+    const assertion = new SignJWT({ htm: method.toUpperCase(), htu: path })
       .setProtectedHeader({
         alg: ServiceAssertion.ALGORITHM,
         kid: this.getKeyId(),
@@ -67,8 +67,10 @@ export class ServiceAssertionSignerService extends BaseService {
       .setAudience(audience)
       .setJti(this.requestIdGenerator.nextId())
       .setIssuedAt(now)
-      .setExpirationTime(now + lifetime)
-      .sign(await this.resolvePrivateKey());
+      .setExpirationTime(now + lifetime);
+
+    const privateKey = await this.resolvePrivateKey();
+    return assertion.sign(privateKey);
   }
 
   /**
@@ -112,7 +114,8 @@ export class ServiceAssertionSignerService extends BaseService {
 
     const { importPKCS8 } = await JoseLoader.load();
     const raw = await this.readKey({ source: this.options.keys!.private });
-    this.privateKey = await importPKCS8(raw, ServiceAssertion.ALGORITHM);
+    const result = await importPKCS8(raw, ServiceAssertion.ALGORITHM);
+    this.privateKey = result;
     return this.privateKey;
   }
 

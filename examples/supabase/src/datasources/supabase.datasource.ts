@@ -1,13 +1,13 @@
 import { EnvironmentKeys } from '@/common/environments';
 import { datasource, type TAnyDataSourceSchema, type ValueOrPromise } from '@venizia/ignis';
-import { BasePostgresDataSource } from '@venizia/ignis/postgres';
-import { PostgresJsDriver } from '@venizia/ignis/postgres/postgres-js';
+import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
+import { PostgresJsDriver } from '@venizia/ignis-connectors/postgres/postgres-js';
 import {
-  buildPostgresJsOptions,
+  SupabasePooler,
   PoolerModes,
   type TPoolerMode,
-} from '@venizia/ignis/postgres/supabase';
-import { applicationEnvironment, int } from '@venizia/ignis-helpers';
+} from '@venizia/ignis-connectors/postgres/supabase';
+import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
@@ -42,7 +42,10 @@ export class SupabaseDataSource extends BasePostgresDataSource<
         ),
         max: applicationEnvironment.get<number | undefined, string>(
           EnvironmentKeys.APP_ENV_SUPABASE_POOL_MAX,
-          { defaultValue: undefined, transform: (value) => (value ? int(value) : undefined) },
+          {
+            defaultValue: undefined,
+            transform: (value) => (value ? ParseUtility.toInt({ input: value }) : undefined),
+          },
         ),
       },
       // NO schema property - auto-discovered from @repository bindings.
@@ -52,7 +55,7 @@ export class SupabaseDataSource extends BasePostgresDataSource<
   override async configure(): Promise<void> {
     const { url, mode, max } = this.settings;
 
-    this.client = postgres(url, buildPostgresJsOptions({ mode, max }));
+    this.client = postgres(url, SupabasePooler.buildPostgresJsOptions({ mode, max }));
 
     // Plain Postgres persists between runs, unlike PGlite - but drizzle tracks applied migrations in
     // its own table, so running this against a database that already has them is a no-op. Mirrors the

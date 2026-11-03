@@ -30,7 +30,8 @@ export class FakeConnector implements IRawSqlConnector {
 
   async execute(query: TRawSqlQuery): Promise<IRawSqlResult> {
     const statement = typeof query === 'string' ? query : JSON.stringify(query);
-    return { rows: await this.client.run(statement) };
+    const result = await this.client.run(statement);
+    return { rows: result };
   }
 
   hostName(): string {

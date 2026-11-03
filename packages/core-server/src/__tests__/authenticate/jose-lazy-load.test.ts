@@ -2,7 +2,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
 import { JoseLoader } from '@/components/auth/authenticate/services/jose-loader';
-import { spawnSyncBounded } from '@venizia/dev-configs/testing';
+import { SpawnHelper } from '@venizia/dev-configs/testing';
 
 const PACKAGE_ROOT = join(__dirname, '../../..');
 
@@ -17,7 +17,7 @@ const probeJose = (opts: { body: string }): string => {
     console.log(isLoaded ? 'JOSE_LOADED' : 'JOSE_ABSENT');
   `;
 
-  const result = spawnSyncBounded({
+  const result = SpawnHelper.spawnSyncBounded({
     cmd: ['bun', '-e', probe],
     cwd: PACKAGE_ROOT,
     stdout: 'pipe',

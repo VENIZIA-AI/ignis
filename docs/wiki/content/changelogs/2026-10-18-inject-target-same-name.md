@@ -1,6 +1,6 @@
 ---
 title: Injecting a Class That Shares Its Name With the Bound One Is an Error
-description: "@inject({ target: X }) resolves the key recorded on X. When a different class of the same name is bound under that key, resolution now stops with an error naming both instead of handing back the other class."
+description: "When @inject({ target: X }) finds a different class of the same name bound under that key, resolution now stops with an error naming both instead of handing back the other class."
 packages: ['@venizia/ignis-inversion']
 ---
 
@@ -19,7 +19,5 @@ packages: ['@venizia/ignis-inversion']
 
 ## Who is affected
 
-- **Applications with two decorated classes of one name** (a library's own copy of a class the application registers). They used to get the registered class without a word; now boot (with `bootChecks.binding.doVerify`) or the first resolution names the clash. Keep one class - a re-export of the registered one - or rename the other.
+- **Applications with two decorated classes of one name** (a library's own copy of a class the application registers). Boot (with `bootChecks.binding.doVerify`) or the first resolution now names the clash. Keep one class - a re-export of the registered one - or rename the other.
 - **Everyone else.** No change.
-
-**Files:** [`packages/inversion/src/modules/container/container.ts`](https://github.com/VENIZIA-AI/ignis/blob/develop/packages/inversion/src/modules/container/container.ts)

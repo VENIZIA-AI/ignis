@@ -235,7 +235,7 @@ applyDefaultFilter(opts: { userFilter?: TFilter; shouldSkipDefaultFilter?: boole
 Read verbs (`find`/`findOne`/`findById`/`count`) call `applyDefaultFilter()` directly. Write verbs (`updateById`/`updateAll`/`deleteById`/`deleteAll`) route through the shared `_update`/`_delete` helpers instead. Those helpers call it against `{ where: opts.where }` (or `{ id }` for the `ById` forms) before building the SQL condition.
 
 > [!NOTE]
-> An older `DefaultFilterMixin` implemented this same behavior via mixin composition. It is no longer composed onto any repository class - see [Repository Mixins (Removed)](../repositories/mixins.md) for history.
+> An older `DefaultFilterMixin` implemented this same behavior via mixin composition. It is no longer composed onto any repository class - see [Moved from the removed mixins](../repositories/advanced.md#moved-from-the-removed-mixins).
 
 The merge itself is `FilterBuilder.mergeFilter()`. Reach it through the datasource's query dialect -
 `FilterBuilder` is abstract, so you never construct it directly:
@@ -255,7 +255,6 @@ queryDialect.mergeFilter({
 - [Filter System Overview](./) - the `filter` shape and every operator family
 - [Fields, Order & Pagination](./fields-order-pagination) - `settings.query.limit.default` resolution in full
 - [Advanced Repository Features](../repositories/advanced.md) - transactions, `log`/`lock` options, empty-where protection
-- [Repository Mixins (Removed)](../repositories/mixins.md) - history of the removed `DefaultFilterMixin`
 
 **Files:**
 

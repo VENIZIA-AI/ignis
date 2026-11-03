@@ -24,9 +24,10 @@ class BodyLimitWorkerApplication extends WorkerApplication {
   postConfigure() {}
 
   setupMiddlewares() {
-    this.getServer().post('/echo', async (context) =>
-      context.json({ length: (await context.req.text()).length }),
-    );
+    this.getServer().post('/echo', async (context) => {
+      const text = await context.req.text();
+      return context.json({ length: text.length });
+    });
   }
 }
 
@@ -55,18 +56,18 @@ describe('WorkerApplication - configs.middlewares.bodyLimit', () => {
       });
       port2.start();
     });
-    port2.postMessage(
-      await BffEnvelope.encodeRequest({
-        id: 'body-limit-1',
-        request: new Request('http://ignis.internal/echo', {
-          method: 'POST',
-          headers: { 'content-type': 'text/plain' },
-          body: 'x'.repeat(100),
-        }),
+    const result = await BffEnvelope.encodeRequest({
+      id: 'body-limit-1',
+      request: new Request('http://ignis.internal/echo', {
+        method: 'POST',
+        headers: { 'content-type': 'text/plain' },
+        body: 'x'.repeat(100),
       }),
-    );
+    });
+    port2.postMessage(result);
 
-    expect((await received).status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
+    const result2 = await received;
+    expect(result2.status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
     await application.stop();
   });
 
@@ -78,11 +79,14 @@ describe('WorkerApplication - configs.middlewares.bodyLimit', () => {
     application.lateMiddlewares = BODY_LIMIT;
     const { port1 } = new MessageChannel();
 
-    const refusal = await application.listen({ scope: port1 }).then(
-      () => undefined,
-      (error: unknown) => error,
-    );
+    let refusal: unknown;
+    try {
+      await application.listen({ scope: port1 });
+    } catch (error) {
+      refusal = error;
+    }
 
+    expect(refusal).toBeDefined();
     expect(String(refusal)).toContain('configs.middlewares.bodyLimit');
     expect(String(refusal)).toContain('constructor config');
     await application.stop();

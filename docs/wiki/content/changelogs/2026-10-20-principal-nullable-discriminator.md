@@ -1,6 +1,6 @@
 ---
 title: isNullableDiscriminator for the Principal Enricher
-description: "generatePrincipalColumnDefs takes isNullableDiscriminator; false makes the type column NOT NULL. The default keeps it nullable."
+description: "generatePrincipalColumnDefs takes isNullableDiscriminator, and false makes the principal type column NOT NULL."
 packages: ['@venizia/ignis-connectors']
 ---
 
@@ -23,9 +23,9 @@ generatePrincipalColumnDefs({
 
 ## What changed
 
-- **New option `isNullableDiscriminator`.** It sits next to `isNullableId` in `TPrincipalEnricherOptions`, on both the Postgres and the SQLite `generatePrincipalColumnDefs`.
-- **The default is `true`.** The `{discriminator}Type` column stays nullable, as it always was, so existing schemas and migrations do not change.
-- **`false` adds `NOT NULL`.** The column keeps its default value (`defaultPolymorphic`, `''` if omitted). The return type follows: the column is `NotNull<HasDefault<...>>`.
+- **New option `isNullableDiscriminator`** in `TPrincipalEnricherOptions`, on both the Postgres and the SQLite `generatePrincipalColumnDefs`.
+- **The default is `true`.** The `{discriminator}Type` column stays nullable, so existing schemas and migrations do not change.
+- **`false` adds `NOT NULL`.** The column keeps its default value (`defaultPolymorphic`, `''` if omitted).
 - **The id column is separate.** `isNullableId` still controls only `{discriminator}Id`.
 
 ## Who is affected

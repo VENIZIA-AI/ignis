@@ -1,6 +1,6 @@
 {
   "presetVersion": 1,
-  "summary": "A shared IGNIS library: services other backend apps import (exports to src, #src imports).",
+  "summary": "A library other IGNIS apps import: services backend apps bind (exports to src, #src imports).",
   "dependencies": {},
   "devDependencies": {
     "@types/bun": "catalog:",

@@ -93,6 +93,7 @@ describe('WorkerApplication.stop() closes its datasources', () => {
     await app.listen({ scope: new SilentScope() });
     await app.stop();
 
-    expect(await app.stop()).toBeUndefined();
+    const result = await app.stop();
+    expect(result).toBeUndefined();
   });
 });

@@ -1,4 +1,4 @@
-import { omit } from '@venizia/ignis-helpers/common';
+import { ObjectUtility } from '@venizia/ignis-helpers/common';
 import type { TTableSchemaWithId } from '@/relational/core/models/common';
 import type {
   ICountOptions,
@@ -11,7 +11,7 @@ import type {
   IWriteResult,
 } from '@/relational/core/repositories/common';
 import type { TSqliteConnector } from '@/relational/sqlite/drivers';
-import { throwNotSupported } from '@venizia/ignis-kernel';
+import { NotSupportedUtility } from '@venizia/ignis-kernel';
 import type { ILogger } from '@venizia/ignis-helpers/core';
 import type { AnyType, TNullable } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
@@ -39,7 +39,7 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
     // SQLite locks the whole database file, never a row, so there is no `FOR UPDATE` to
     // emit. A write transaction (`BEGIN IMMEDIATE`) already excludes every other writer.
     if (lock) {
-      throwNotSupported({
+      NotSupportedUtility.throwNotSupported({
         scope: SqliteQueryExecutor.name,
         feature: 'Row-level locking (SELECT ... FOR UPDATE)',
         logger: this.logger,
@@ -93,7 +93,7 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
 
     // Drizzle's `findFirst` config type structurally forbids `limit` - it always fetches one row.
     // This is the only place that knows that, so the strip happens here whatever the caller passed.
-    const queryOptions = omit({ source: opts.query, keys: ['limit'] });
+    const queryOptions = ObjectUtility.omit({ source: opts.query, keys: ['limit'] });
     const result = await queryInterface.findFirst(queryOptions);
 
     // Same drizzle-relational-query-versus-caller-generic boundary as `findMany` above.
@@ -109,7 +109,8 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
       return { count: this.readAffectedRowCount({ result }), rows: [] };
     }
 
-    const rows = returning ? await query.returning(returning as AnyType) : await query.returning();
+    const pending = returning ? query.returning(returning as AnyType) : query.returning();
+    const rows = await pending;
     return { count: rows.length, rows: rows as Array<R> };
   }
 
@@ -125,7 +126,8 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
       return { count: this.readAffectedRowCount({ result }), rows: [] };
     }
 
-    const rows = returning ? await query.returning(returning as AnyType) : await query.returning();
+    const pending = returning ? query.returning(returning as AnyType) : query.returning();
+    const rows = await pending;
     return { count: rows.length, rows: rows as Array<R> };
   }
 
@@ -138,7 +140,8 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
       return { count: this.readAffectedRowCount({ result }), rows: [] };
     }
 
-    const rows = returning ? await query.returning(returning as AnyType) : await query.returning();
+    const pending = returning ? query.returning(returning as AnyType) : query.returning();
+    const rows = await pending;
     return { count: rows.length, rows: rows as Array<R> };
   }
 

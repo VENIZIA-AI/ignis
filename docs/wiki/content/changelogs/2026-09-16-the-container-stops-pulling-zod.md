@@ -1,6 +1,6 @@
 ---
 title: The Container Stops Pulling zod
-description: "Importing Container alone cost 437 KB in a browser bundle, 423 KB of it zod, for a four-line const class. Splitting one file takes it to 64 KB."
+description: "Importing Container alone drops from 437 KB to 64 KB in a browser bundle, and a new @venizia/ignis-kernel/metadata sub-path serves consumers that never serve HTTP."
 packages: ['@venizia/ignis-kernel']
 ---
 
@@ -10,79 +10,20 @@ packages: ['@venizia/ignis-kernel']
 
 <Badge type="tip" text="Fix" />
 
-| | minified | gzip |
-|---|---|---|
-| Before | 437 KB | 107 KB |
-| After | **64 KB** | **21 KB** |
+**In one line.** Importing `Container` used to cost 437 KB minified (107 KB gzip), almost all of it zod. It is now 64 KB (21 KB gzip). The public surface is identical.
 
-Nothing about the API changed. `@venizia/ignis-kernel`'s public surface is identical.
+## What changed
 
-## What was happening
-
-```
-Container
-  -> helpers/inversion/registry
-  -> helpers/inversion/mixins            (barrel)
-  -> mixins/controllers/controller
-  -> base/controllers/common/constants   <- import { z } from '@hono/zod-openapi'
-  -> zod                                 (423 KB)
-```
-
-The controller mixin wanted one thing from that file: `ControllerTransports`, a four-line const
-class. But the same file called `z.object()` at module load for two request-header schemas, and an
-ESM module runs whole. Every consumer of `Container` paid for zod.
-
-The schemas moved to `base/controllers/common/schemas.ts`. Both files are re-exported from the same
-barrel, so no import path changes.
-
-## It is guarded now
-
-zod is browser-**pure**, so `make purity-kernel` had nothing to say - the problem was weight, not
-platform. A test bundles the container entry and fails over 120 KB, naming the file to check:
-
-```
-Container bundles to 437 KB. Something on its import path now pulls a heavy dependency -
-check for a new import in base/controllers/common/constants.ts or in the mixins barrel.
-```
-
-Nothing in a type system stops someone re-adding that import, so the measurement is the guard.
-
-## And a sub-path for consumers that never serve HTTP
+- **Smaller `Container` import.** The request-header zod schemas moved to a separate file. Both files are re-exported from the same barrel, so no import path changes.
+- **New sub-path `@venizia/ignis-kernel/metadata`.** For consumers that never serve HTTP: 69 KB minified, 23 KB gzip, against 619 KB and 161 KB for the root barrel.
+- **What it carries.** The stereotypes (`service`, `component`, `configuration`, `injectable`, `provide`, `model`, `datasource`, `repository`, `inject`), the namespaces (`BindingNamespaces`, `ArtifactNamespaces`), `ArtifactTypes`, `BindingKeys` and `MetadataRegistry`.
+- **`CoreBindings` is deliberately not on it.** It is one application's dictionary of server keys. It stays on the root barrel, so a consumer with its own `CoreBindings` never has two same-named classes one import apart.
 
 ```ts
 import { service, BindingNamespaces, ArtifactTypes } from "@venizia/ignis-kernel/metadata";
 ```
 
-| Entry | minified | gzip |
-|---|---|---|
-| `@venizia/ignis-kernel` | 619 KB | 161 KB |
-| `@venizia/ignis-kernel/metadata` | **69 KB** | **23 KB** |
-
-The root barrel is heavy **correctly** - it carries the REST surface. Splitting `constants.ts` did
-not change it and was never going to: `base/controllers` needs zod, legitimately. What a
-browser-side consumer needed was a boundary, not another file move.
-
-`./metadata` carries the stereotypes (`service`, `component`, `configuration`, `injectable`,
-`provide`, `model`, `datasource`, `repository`, `inject`), the namespaces
-(`BindingNamespaces`, `ArtifactNamespaces`) and `ArtifactTypes`, `BindingKeys`, `MetadataRegistry`.
-It is listed export by export rather than re-exporting `base/metadata` - that directory is clean
-today but promises nothing, and the point of a sub-path is a surface someone decided on.
-
-`CoreBindings` is deliberately **not** on it. The namespaces are the grammar of a binding key;
-`CoreBindings` is one application's dictionary - `APPLICATION_SERVER`, `APPLICATION_ROOT_ROUTER`,
-keys a server binds and a browser never will. Ship it beside the stereotypes and a consumer with its
-own `CoreBindings` has two same-named classes one import apart, binding under one key and resolving
-under another, with nothing failing until run time. It stays on the root barrel.
-
-Its weight is a contract, checked by the same test.
-
 ## Who is affected
 
-**You bundle IGNIS for a browser.** Import from `@venizia/ignis-kernel/metadata` - 23 KB gzipped instead of 161 KB. A deep import of `Container` alone also got 6.7x smaller.
-
-**Everyone else.** Nothing - same exports, same behaviour.
-
-**Files:**
-
-- [`packages/kernel/src/base/controllers/common/schemas.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/common/schemas.ts) - the zod schemas, kept apart
-- [`packages/kernel/src/base/controllers/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/common/constants.ts) - zod-free by design
+- **You bundle IGNIS for a browser.** Import from `@venizia/ignis-kernel/metadata` for 23 KB gzipped instead of 161 KB. A deep import of `Container` alone also got 6.7x smaller.
+- **Everyone else.** Nothing - same exports, same behaviour.

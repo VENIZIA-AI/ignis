@@ -63,15 +63,12 @@ import {
   BasicTokenService,
 
   // Controllers
-  defineAuthController,
+  AuthControllerFactory,
   JWKSController,
   authenticate,
 
   // Entity column helpers
-  extraUserColumns,
-  extraRoleColumns,
-  extraPermissionColumns,
-  extraPolicyDefinitionColumns,
+  AuthModelColumns,
   UserStatuses,
   UserTypes,
   RoleStatuses,
@@ -158,7 +155,7 @@ Bearer token service hierarchy:
 | `defineJWKSAuth(opts)` | Switches on `mode`.<br>**Issuer:** validates keys/format/kid/getTokenExpiresFn, binds to `JWKS_OPTIONS`, registers `JWKSIssuerTokenService` + `JWKSController`.<br>**Verifier:** validates `jwksUrl`, binds to `JWKS_OPTIONS`, registers `JWKSVerifierTokenService` |
 | `defineServiceAuth(opts)` | Validates `name` and `resolvePrincipal`, registers the verifier and the `service` strategy. With `keys` present it also registers the signer and mounts the certs route. Absent options: does nothing |
 | `defineBasicAuth(opts)` | Validates `verifyCredentials` presence, registers `BasicTokenService`. Skips (debug log) if `basicOptions` not bound |
-| `defineControllers(opts)` | Requires `jwtOptions` when `useAuthController: true`. Calls `defineAuthController()` and registers the generated controller |
+| `defineControllers(opts)` | Requires `jwtOptions` when `useAuthController: true`. Calls `AuthControllerFactory.define()` and registers the generated controller |
 | `defineOAuth2()` | Public stub, called during `binding()`, performs no action - not yet implemented |
 
 > [!NOTE]
@@ -295,9 +292,11 @@ interface IAuthUser {
   [extra: string | symbol]: any;
 }
 
+type TJWTTokenRole = { id: IdType; identifier: string; priority: number };
+
 interface IJWTTokenPayload extends JWTPayload, IAuthUser {
   userId: IdType;
-  roles: { id: IdType; identifier: string; priority: number }[];
+  roles?: TJWTTokenRole[];
   clientId?: string;
   provider?: string;
   email?: string;
@@ -305,6 +304,8 @@ interface IJWTTokenPayload extends JWTPayload, IAuthUser {
   [extra: string | symbol]: any;
 }
 ```
+
+`roles` may be absent. A token signed without it verifies without it, and authorization reads its roles as none. Check it before you read it: `payload.roles ?? []`.
 
 > [!TIP]
 > `IAuthUser` is intentionally minimal. Your `IAuthService` can return extra fields (roles, email, provider) - they pass through JWT generation and are available on `Authentication.CURRENT_USER` after authentication.
@@ -345,7 +346,7 @@ interface IPayloadFieldCodec<T = unknown> {
 
 ```typescript
 class AuthenticationFieldCodecs {
-  static readonly ROLES_CODEC: IPayloadFieldCodec<IJWTTokenPayload['roles']>;
+  static readonly ROLES_CODEC: IPayloadFieldCodec<TJWTTokenRole[]>;
   static build<T>(opts: { key: string; serialize; deserialize }): IPayloadFieldCodec<T>;
 }
 ```
@@ -469,8 +470,8 @@ AbstractBearerTokenService<E>          (extends BaseService)
 | `verify` | `(opts: { type, token }) => Promise<IJWTTokenPayload>` | Calls `doVerify()`, wraps errors as sanitized `401` |
 | `generate` | `(opts: { payload, getTokenExpiresFn? }) => Promise<string>` | Calls `getSigner()` then signs with `getSigningKey()` |
 | `serializeField` / `deserializeField` | `(opts) => string` / `any` | Per-field codec lookup, `JSON.stringify`/`JSON.parse` fallback |
-| `encryptPayload` | `(payload) => Record<string, any>` | AES-encrypts non-standard fields (keys and values). No-op if AES not configured |
-| `decryptPayload` | `(opts: { result }) => IJWTTokenPayload` | Reverses `encryptPayload`. No-op if AES not configured |
+| `encryptPayload` | `(payload) => Promise<Record<string, any>>` | AES-encrypts non-standard fields (keys and values). No-op if AES not configured. Async: callers `await` it |
+| `decryptPayload` | `(opts: { result }) => Promise<IJWTTokenPayload>` | Reverses `encryptPayload`. No-op if AES not configured. Async: callers `await` it |
 
 Static: `JWT_COMMON_FIELDS: Set<'iss'|'sub'|'aud'|'jti'|'nbf'|'exp'|'iat'>` - never encrypted or touched by field codecs.
 
@@ -570,7 +571,7 @@ The component applies `@controller({ path })` to `JWKSController` dynamically at
 
 ## Controller factory
 
-`defineAuthController(opts: TDefineAuthControllerOpts): typeof AuthController` builds a `BaseRestController` subclass at runtime.
+`AuthControllerFactory.define(opts: TDefineAuthControllerOpts): typeof AuthController` builds a `BaseRestController` subclass at runtime.
 
 **File:** [`packages/core-server/src/components/auth/authenticate/controllers/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/controllers/factory.ts)
 
@@ -620,7 +621,7 @@ type TPolicyDefinitionCommonColumns<
 
 Both are generic. `extraVariants` declares app-owned edge kinds that live in the same table, and `Metadata` types the `metadata` column - it defaults to `TSubsetGrantMetadata` (`{ ops: string[] }`), what subset grants write.
 
-`subjectId`, `targetId` and `domainId` are not in the common shape. `extraPolicyDefinitionColumns` adds all three per `idType`, as `text` or `integer`. The domain lives in two columns, `domainType` and `domainId`, never one - see [Usage & Examples](./usage#entity-column-helpers).
+`subjectId`, `targetId` and `domainId` are not in the common shape. `AuthModelColumns.buildPolicyDefinition` adds all three per `idType`, as `text` or `integer`. The domain lives in two columns, `domainType` and `domainId`, never one - see [Usage & Examples](./usage#entity-column-helpers).
 
 ## File structure
 
@@ -650,7 +651,7 @@ packages/kernel/src/base/auth/
 packages/core-server/src/components/auth/
 ├── authenticate/
 │   ├── controllers/
-│   │   ├── factory.ts            # defineAuthController() + JWTTokenPayloadSchema
+│   │   ├── factory.ts            # AuthControllerFactory + JWTTokenPayloadSchema
 │   │   ├── jwks/                 # JWKSController + route config
 │   │   └── service-certs/        # ServiceCertsController + route config
 │   ├── services/
@@ -663,7 +664,7 @@ packages/core-server/src/components/auth/
 │   ├── strategies/                      # JWSAuthenticationStrategy, JWKS*, BasicAuthenticationStrategy, ServiceAuthenticationStrategy
 │   └── component.ts                     # AuthenticateComponent
 └── models/
-    └── entities/                        # extraUserColumns, extraRoleColumns, extraPermissionColumns, extraPolicyDefinitionColumns
+    └── entities/                        # columns.ts (AuthModelColumns) + the model types
 ```
 
 ## See also

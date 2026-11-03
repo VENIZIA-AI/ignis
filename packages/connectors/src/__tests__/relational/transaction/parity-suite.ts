@@ -180,7 +180,8 @@ const PARITY_CASES: ITransactionParityCase[] = [
     name: 'rollback() after a failed commit is a no-op: resolves and issues nothing',
     failOn: TransactionEndStatements.COMMIT,
     run: async ({ handle, injectedError }) => {
-      expect(await captureRejection({ task: handle.transaction.commit() })).toBe(injectedError);
+      const result = await captureRejection({ task: handle.transaction.commit() });
+      expect(result).toBe(injectedError);
 
       await handle.transaction.rollback();
 
@@ -192,7 +193,8 @@ const PARITY_CASES: ITransactionParityCase[] = [
     name: 'rollback() after a failed rollback is a no-op: resolves and issues nothing',
     failOn: TransactionEndStatements.ROLLBACK,
     run: async ({ handle, injectedError }) => {
-      expect(await captureRejection({ task: handle.transaction.rollback() })).toBe(injectedError);
+      const result = await captureRejection({ task: handle.transaction.rollback() });
+      expect(result).toBe(injectedError);
 
       await handle.transaction.rollback();
 
@@ -203,7 +205,8 @@ const PARITY_CASES: ITransactionParityCase[] = [
     name: 'commit() after a failed commit still throws already ended',
     failOn: TransactionEndStatements.COMMIT,
     run: async ({ handle, injectedError }) => {
-      expect(await captureRejection({ task: handle.transaction.commit() })).toBe(injectedError);
+      const result = await captureRejection({ task: handle.transaction.commit() });
+      expect(result).toBe(injectedError);
 
       const caught = await captureRejection({ task: handle.transaction.commit() });
 
@@ -215,7 +218,8 @@ const PARITY_CASES: ITransactionParityCase[] = [
     name: 'commit() after a failed rollback still throws already ended',
     failOn: TransactionEndStatements.ROLLBACK,
     run: async ({ handle, injectedError }) => {
-      expect(await captureRejection({ task: handle.transaction.rollback() })).toBe(injectedError);
+      const result = await captureRejection({ task: handle.transaction.rollback() });
+      expect(result).toBe(injectedError);
 
       const caught = await captureRejection({ task: handle.transaction.commit() });
 

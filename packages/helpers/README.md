@@ -12,18 +12,18 @@ The root entry loads with no optional peer installed. Every third-party backend 
 
 ## Example
 
-Register a logger provider once at the entrypoint, then take scoped loggers and helpers anywhere:
+Choose a logger provider once at the entrypoint, then take scoped loggers and helpers anywhere:
 
 ```typescript
 // bun add pino ioredis
-import { createRedisHelper, LoggerFactory, RedisModes } from '@venizia/ignis-helpers';
+import { LoggerFactory, RedisHelperFactory, RedisModes } from '@venizia/ignis-helpers';
 import { PinoLogger } from '@venizia/ignis-helpers/pino';
 
 LoggerFactory.use({ provider: PinoLogger });
 
 const logger = LoggerFactory.getLogger(['CacheService']);
 
-const redis = createRedisHelper({
+const redis = RedisHelperFactory.create({
   mode: RedisModes.SINGLE,
   name: 'cache',
   host: '127.0.0.1',
@@ -37,7 +37,7 @@ const user = await redis.get({ key: 'user:1', transform: JSON.parse });
 logger.for('warmup').info('Cache warmed | user: %j', user);
 ```
 
-Notice that your code only ever types against `ILogger`. `LoggerFactory.use()` swaps the backend for every logger handed out so far. With no provider registered, the factory falls back to winston on the first log call.
+Notice that your code only ever types against `ILogger`. `LoggerFactory.use()` swaps the backend for every logger handed out so far. With no provider chosen, the factory uses the console; `@venizia/ignis` selects Winston when an application starts.
 
 Dates and IDs need no peer at all:
 
@@ -60,17 +60,16 @@ A helper that imports an optional peer as a value lives only on its own sub-path
 
 | Sub-path | What it gives | Extra peers |
 |---|---|---|
-| `.` | Everything peer-free: `LoggerFactory`, `ILogger`, `HfLogger`, Redis helpers (`createRedisHelper`), `SequentialQueueHelper`, disk and in-memory storage, `AES` / `RSA` / `ECDH`, fetch and TCP / TLS / UDP helpers, Bun WebSocket server, `createSecretsHelper`, `ApplicationEnvironment`, `WorkerPoolHelper`, `RetryHelper`, `TemporalHelper`, `UuidHelper`, `SnowflakeUidHelper`, `ModuleUtility`, `getError` | none to load. `ioredis` to use Redis; `hono` for the JSX types |
+| `.` | Everything peer-free: `LoggerFactory`, `ILogger`, `HfLogger`, Redis helpers (`RedisHelperFactory`), `SequentialQueueHelper`, disk and in-memory storage, `AES` / `RSA` / `ECDH`, fetch and TCP / TLS / UDP helpers, Bun WebSocket server, `SecretsHelperFactory`, `ApplicationEnvironment`, `WorkerPoolHelper`, `RetryHelper`, `TemporalHelper`, `UuidHelper`, `SnowflakeUidHelper`, `ModuleUtility`, `getError` | none to load. `ioredis` to use Redis; `hono` for the JSX types |
 | `./core` | Browser-safe runtime classes: `BaseHelper`, the error module, `RetryHelper`, `TemporalHelper`, `UuidHelper`, `TreeBuilder`, `TreeWalker`, `SlugHelper`, `UrlPolicy`, parse utilities | none |
 | `./common` | Constants, types, redaction and resolvers | none |
-| `./uuid` | `UuidHelper` and the standalone `uuidV4`, `uuidV5`, `uuidV7` | none |
+| `./uuid` | `UuidHelper` and the standalone `UuidV4Generator`, `UuidV5Generator`, `UuidV7Generator` | none |
 | `./temporal` | `TemporalHelper` and the `Native`, `Dayjs`, `Luxon` temporal adapters | none (your own `dayjs` or `luxon` if you pick that adapter) |
 | `./winston` | `WinstonLogger` | `winston`, `winston-transport`, `winston-daily-rotate-file` |
 | `./pino` | `PinoLogger` | `pino` (`pino-pretty` for text output, `pino-roll` for file rotation) |
 | `./bullmq` | `BullMQHelper` | `bullmq` |
 | `./mqtt` | `MQTTClientHelper` | `mqtt` |
 | `./kafka` | `KafkaProducerHelper`, `KafkaConsumerHelper`, `KafkaAdminHelper`, schema registry, bundler plugins | `@platformatic/kafka` |
-| `./minio` | `MinioHelper` | `minio` |
 | `./bun-s3` | `BunS3Helper` | none - Bun's native S3 client (Bun only) |
 | `./socket-io` | `SocketIOServerHelper`, `SocketIOClientHelper` | `socket.io`, `@socket.io/redis-adapter`, `@socket.io/redis-emitter`; `socket.io-client` for the client |
 | `./axios` | `AxiosFetcher`, `AxiosNetworkRequest` | `axios` |
@@ -91,7 +90,7 @@ import { ModuleUtility } from '@venizia/ignis-helpers';
 ModuleUtility.register({ modules: { ioredis } });
 ```
 
-A binary must also call `LoggerFactory.use()` explicitly - the winston fallback cannot reach a bundle. Details: [Module Utility](https://ignis.venizia.ai/references/utilities/module).
+A binary needs no `LoggerFactory.use()`: the console is the default logger. Details: [Module Utility](https://ignis.venizia.ai/references/utilities/module).
 
 ## Where it sits
 

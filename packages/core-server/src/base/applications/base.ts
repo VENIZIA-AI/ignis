@@ -1,4 +1,4 @@
-import { assertScopeFilterSupported } from '@venizia/ignis-connectors';
+import { ScopeFilterUtility } from '@venizia/ignis-connectors';
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import { BindingNamespaces, CoreBindings } from '@venizia/ignis-kernel';
 import { EnvironmentKeys } from '@/common/environments';
@@ -19,19 +19,19 @@ import type {
   ISecretsHelper,
   ISecretsRegistration,
 } from '@venizia/ignis-helpers';
-import { blankToUndefined, getError } from '@venizia/ignis-helpers/core';
-import { HTTP, isEmpty } from '@venizia/ignis-helpers/common';
+import { ParseUtility, getError } from '@venizia/ignis-helpers/core';
+import { HTTP, ObjectUtility } from '@venizia/ignis-helpers/common';
 import {
   applicationEnvironment,
-  createSecretsHelper,
+  SecretsHelperFactory,
+  PerformanceUtility,
   Environment,
-  executeWithPerformanceMeasure,
   SecretProviders,
-  toBoolean,
 } from '@venizia/ignis-helpers';
 import { contextStorage, tryGetContext } from 'hono/context-storage';
-import { AppErrorMiddleware, emojiFavicon } from '../middlewares';
+import { AppErrorMiddleware, EmojiFaviconMiddleware } from '../middlewares';
 import { serveStatic } from 'hono/bun';
+import { ServerLoggerStartup } from './common';
 import { ServerBootSteps } from './boot-steps';
 import { ServerApplication } from './server';
 import type { IRestApplication } from '@venizia/ignis-kernel';
@@ -80,7 +80,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
   override async registerControllers(): Promise<void> {
     await super.registerControllers();
 
-    await executeWithPerformanceMeasure({
+    await PerformanceUtility.executeWithMeasure({
       logger: this.logger,
       description: 'Register application gRPC controllers',
       scope: this.registerControllers.name,
@@ -143,7 +143,8 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     let provider: ISecretsHelper | undefined;
     const emptyHydrations: string[] = [];
     try {
-      provider = await createSecretsHelper({ ...registration, identifier: 'app' });
+      const result = await SecretsHelperFactory.create({ ...registration, identifier: 'app' });
+      provider = result;
       await provider.configure();
 
       await this.hydrateSecretEntries({ provider, registration, emptyHydrations, logger });
@@ -166,19 +167,20 @@ export abstract class BaseApplication extends ServerApplication implements IRest
       );
 
       if (provider) {
-        await provider
-          .shutdown()
-          .catch((shutdownError) =>
-            logger.error(
-              'Failed to shut down partially-built provider during fallback | error: %s',
-              shutdownError,
-            ),
+        try {
+          await provider.shutdown();
+        } catch (shutdownError) {
+          logger.error(
+            'Failed to shut down partially-built provider during fallback | error: %s',
+            shutdownError,
           );
+        }
       }
-      provider = await createSecretsHelper({
+      const result2 = await SecretsHelperFactory.create({
         provider: SecretProviders.SYSTEM_ENVS,
         identifier: 'app',
       });
+      provider = result2;
     }
 
     if (!provider) {
@@ -304,7 +306,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
   protected printStartUpInfo(opts: { scope: string }) {
     const { scope } = opts;
     const read = (key: string, fallback: string): string =>
-      blankToUndefined(process.env[key]) ?? fallback;
+      ParseUtility.blankToUndefined({ input: process.env[key] }) ?? fallback;
     const divider = '------------------------------------------------------------------------';
 
     this.logger.for(scope).info(divider);
@@ -343,7 +345,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
 
   /** Adds what only a listening server has, on top of the kernel's three - which stay in `RestApplication` so a browser Worker answers with the same envelope. */
   protected override async registerDefaultMiddlewares() {
-    await executeWithPerformanceMeasure({
+    await PerformanceUtility.executeWithMeasure({
       logger: this.logger,
       scope: this.registerDefaultMiddlewares.name,
       description: 'Register default application server handler',
@@ -365,7 +367,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
         // above (also works around the Bun + Hono body-parsing bug: https://github.com/honojs/middleware/issues/81).
         this.component(RequestTrackerComponent);
 
-        server.use(emojiFavicon({ icon: this.configs.favicon ?? '🔥' }));
+        server.use(EmojiFaviconMiddleware.create({ icon: this.configs.favicon ?? '🔥' }));
       },
     });
   }
@@ -380,8 +382,8 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     // reader rather than helping it. Set ALLOW_EMPTY_ENV_VALUE to `false` or `0` to turn the check
     // on. Read once rather than per key, and a blank value reads as unset - the same rule every
     // other env read follows.
-    const configured = blankToUndefined(process.env.ALLOW_EMPTY_ENV_VALUE);
-    const allowsEmpty = configured === undefined || toBoolean(configured);
+    const configured = ParseUtility.blankToUndefined({ input: process.env.ALLOW_EMPTY_ENV_VALUE });
+    const allowsEmpty = configured === undefined || ParseUtility.toBoolean({ input: configured });
 
     this.logger
       .for(this.initialize.name)
@@ -404,7 +406,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     for (const argKey of envKeys) {
       const argValue = applicationEnvironment.get<string | number>(argKey);
 
-      if (!isEmpty({ value: argValue })) {
+      if (!ObjectUtility.isEmpty({ value: argValue })) {
         continue;
       }
 
@@ -427,6 +429,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
    * `getBootSequence()`/`runBootSequence()` throws here before any socket binds.
    */
   override async initialize(): Promise<void> {
+    await ServerLoggerStartup.selectDefault();
     await this.runBootSequence({ steps: this.getBootSequence() });
   }
 
@@ -476,6 +479,8 @@ export abstract class BaseApplication extends ServerApplication implements IRest
    * silent at runtime and opposite: a search-backed model returns too many rows, a context-less one none.
    */
   protected validateScopeFilterSupport(): void {
-    assertScopeFilterSupported({ asyncContextEnabled: this.configs.asyncContext?.enable ?? false });
+    ScopeFilterUtility.assertScopeFilterSupported({
+      asyncContextEnabled: this.configs.asyncContext?.enable ?? false,
+    });
   }
 }

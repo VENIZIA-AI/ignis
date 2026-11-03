@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { PostgresQueryExecutor } from '@/relational/postgres/repositories/executor';
-import { expectRejection } from '@venizia/dev-configs/testing';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 
 const usersTable = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -249,7 +249,7 @@ describe('PostgresQueryExecutor', () => {
   test('findMany throws a schema key mismatch error naming the entity and available keys', async () => {
     const { connector } = createFakeQueryConnector({ entries: { articles: {} } });
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: new PostgresQueryExecutor().findMany({
         connector: connector as never,
         entityName: 'users',
@@ -263,7 +263,7 @@ describe('PostgresQueryExecutor', () => {
   test('a caller-supplied scope names the thrown error instead of the executor class', async () => {
     const { connector } = createFakeQueryConnector({ entries: { articles: {} } });
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: new PostgresQueryExecutor().findFirst({
         connector: connector as never,
         entityName: 'users',

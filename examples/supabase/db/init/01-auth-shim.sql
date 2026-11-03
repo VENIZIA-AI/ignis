@@ -1,5 +1,5 @@
--- Minimal stand-ins for what a real Supabase project provisions. `withAuthContext` (from
--- @venizia/ignis/postgres/supabase) needs exactly two things: a role it can `SET LOCAL ROLE` into,
+-- Minimal stand-ins for what a real Supabase project provisions. `SupabaseRls.withAuthContext` (from
+-- @venizia/ignis-connectors/postgres/supabase) needs exactly two things: a role it can `SET LOCAL ROLE` into,
 -- and an `auth.uid()` function that reads the claims it sets with `set_config`. Everything else the
 -- Supabase platform ships - GoTrue, PostgREST, Studio, Realtime, Kong - is unrelated to RLS itself,
 -- so this example runs on plain Postgres instead of the full `supabase/postgres` image.

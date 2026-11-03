@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -18,7 +18,7 @@ export class PathCases extends BaseTestCases {
       await repo.createAll({
         data: [
           {
-            code: `JSON_FILTER_A_${getUID()}`,
+            code: `JSON_FILTER_A_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: {
@@ -29,7 +29,7 @@ export class PathCases extends BaseTestCases {
             },
           },
           {
-            code: `JSON_FILTER_B_${getUID()}`,
+            code: `JSON_FILTER_B_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: {
@@ -40,7 +40,7 @@ export class PathCases extends BaseTestCases {
             },
           },
           {
-            code: `JSON_FILTER_C_${getUID()}`,
+            code: `JSON_FILTER_C_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: {
@@ -51,7 +51,7 @@ export class PathCases extends BaseTestCases {
             },
           },
           {
-            code: `JSON_FILTER_D_${getUID()}`,
+            code: `JSON_FILTER_D_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: {
@@ -62,7 +62,7 @@ export class PathCases extends BaseTestCases {
             },
           },
           {
-            code: `JSON_FILTER_E_${getUID()}`,
+            code: `JSON_FILTER_E_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: {
@@ -192,13 +192,13 @@ export class PathCases extends BaseTestCases {
       await repo.createAll({
         data: [
           {
-            code: `KEBAB_A_${getUID()}`,
+            code: `KEBAB_A_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: { 'user-id': 'usr-001', 'api-key': 'key-abc', 'created-at': '2025-01-01' },
           },
           {
-            code: `KEBAB_B_${getUID()}`,
+            code: `KEBAB_B_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: { 'user-id': 'usr-002', 'api-key': 'key-xyz', 'created-at': '2025-01-02' },
@@ -223,7 +223,11 @@ export class PathCases extends BaseTestCases {
       await repo.deleteAll({ where: { group } });
     } catch (error) {
       this.context.logger.error('[CASE 17] FAILED | Error: %s', (error as Error).message);
-      await repo.deleteAll({ where: { group } }).catch(() => {});
+      try {
+        await repo.deleteAll({ where: { group } });
+      } catch (cleanupError) {
+        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+      }
     }
   }
 }

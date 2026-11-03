@@ -1,0 +1,258 @@
+/*
+ * Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
+ * scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
+ *
+ * The docs shell of an inner page, after the Venizia docs frame (Figma "Docs / Introduction"): a quiet left
+ * navigation with no rule and no tinted pill, its active item marked by a square and the product colour;
+ * an eyebrow, a large title and a lead line above the text; an outline without a rule; the "Getting help" panel and a previous/next card with an arrow button at the end. It
+ * restyles the default theme's own regions and is imported after doc.css, header.css and footer.css, so
+ * it wins over them. Inner pages have no footer (SiteLayout).
+ */
+
+/* ---- the left navigation: no rule, no pill ----------------------------------------------------- */
+@media (min-width: 960px) {
+  .VPSidebar {
+    background-image: none;
+  }
+}
+
+.VPSidebar .group + .group {
+  border-top: 0;
+}
+
+.VPSidebarItem.level-0 > .item > .text,
+html .VPSidebar .VPSidebarItem.level-0.has-active > .item > .text,
+.VPSidebarItem.level-0 > .item > .link > .text {
+  color: var(--text-muted);
+  font: 500 12px/1.4 var(--font-sans);
+  letter-spacing: 0.04em;
+}
+
+.VPSidebarItem.level-1 .text,
+.VPSidebarItem.level-2 .text,
+.VPSidebarItem.level-3 .text {
+  font-size: 14px;
+}
+
+/* the active item: the product colour and a square before it, no tint, and the row as tall as the others */
+.VPSidebarItem.is-active > .item {
+  margin: 0;
+}
+
+.VPSidebarItem.is-active > .item .link {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  background: none;
+}
+
+.VPSidebarItem.is-active > .item .link::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -14px;
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  background: var(--accent);
+}
+
+/* ---- the text ------------------------------------------------------------------------------------ */
+.doc-eyebrow {
+  margin: 0 0 12px;
+  color: var(--text-muted);
+  font: 500 12px/1.3 var(--font-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.vp-doc h1 {
+  margin-bottom: 20px;
+  font-size: clamp(34px, 4.4vw, 56px);
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+
+/* the line under the title: the lead of the page */
+.vp-doc h1 + p {
+  color: var(--text-title);
+  font-size: 18px;
+  line-height: 1.45;
+}
+
+/* ---- the outline: no rule, no moving marker ---------------------------------------------------- */
+.VPDocAsideOutline .content {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.VPDocAsideOutline .outline-marker {
+  display: none;
+}
+
+.VPDocAsideOutline .outline-title {
+  font: 500 12px/32px var(--font-sans);
+  letter-spacing: 0.04em;
+}
+
+.VPDocAsideOutline .outline-link {
+  font-size: 14px;
+}
+
+/* ---- the end of a page: the help panel, then previous and next --------------------------------- */
+.doc-help {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  margin: var(--space-8) 0 var(--space-5);
+  padding: var(--space-5) var(--space-5);
+  border-radius: var(--radius);
+  background: #1b1b1b;
+  color: #ffffffa3;
+}
+
+.doc-help-text {
+  max-width: 460px;
+}
+
+.doc-help-label {
+  margin: 0 0 8px;
+  color: #ffffff99;
+  font: 500 12px/1.3 var(--font-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.doc-help-title {
+  margin: 0 0 8px;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+
+.doc-help p:last-child {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.doc-help-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* the buttons of the panel: the Figma button at 48 px high (143 x 48), with its 12 px north-east arrow */
+.doc-help-actions a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 31px 0 23px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font: 500 14px/1 var(--font-sans);
+  letter-spacing: -0.015em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition:
+    background-color 0.18s,
+    border-color 0.18s;
+}
+
+.doc-help-actions a::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 12px;
+  height: 12px;
+  background: currentColor;
+  -webkit-mask: var(--arrow-ne) center / 100% 100% no-repeat;
+  mask: var(--arrow-ne) center / 100% 100% no-repeat;
+  transition: transform 0.25s var(--ease-link);
+}
+
+.doc-help-actions a:hover::after {
+  transform: translate(2px, -2px);
+}
+
+.doc-help-primary {
+  background: #1e40af;
+  color: #ffffff;
+}
+
+.doc-help-primary:hover {
+  background: #2a50c8;
+}
+
+.doc-help-ghost {
+  border-color: #ffffff4d !important;
+  color: #ffffff;
+}
+
+.doc-help-ghost:hover {
+  border-color: #ffffff !important;
+}
+
+/* previous and next: a card with a 36px arrow button on the side the page goes to */
+.VPDocFooter .pager-link {
+  position: relative;
+  padding: 16px 70px 16px 18px;
+}
+
+.VPDocFooter .pager-link.prev {
+  padding: 16px 18px 16px 70px;
+}
+
+.VPDocFooter .pager-link::before,
+.VPDocFooter .pager-link::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 17px;
+  width: 36px;
+  height: 36px;
+  margin-top: -18px;
+  color: var(--text-title);
+}
+
+/* the box of the arrow button: 36 x 36, a 1px line, 4px radius */
+.VPDocFooter .pager-link::after {
+  border: 1px solid currentColor;
+  border-radius: var(--radius);
+}
+
+/* the arrow inside it: the Figma right arrow, mirrored for the previous card */
+.VPDocFooter .pager-link::before {
+  z-index: 1;
+  background: currentColor;
+  -webkit-mask: var(--arrow-right) center / 36px 36px no-repeat;
+  mask: var(--arrow-right) center / 36px 36px no-repeat;
+}
+
+.VPDocFooter .pager-link.prev::before {
+  -webkit-mask-image: var(--arrow-left);
+  mask-image: var(--arrow-left);
+}
+
+.VPDocFooter .pager-link.prev::before,
+.VPDocFooter .pager-link.prev::after {
+  right: auto;
+  left: 17px;
+}
+
+.VPDocFooter .pager-link .desc {
+  font: 500 12px/1 var(--font-sans);
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 560px) {
+  .doc-help-actions {
+    width: 100%;
+  }
+}

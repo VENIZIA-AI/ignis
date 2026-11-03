@@ -1,5 +1,5 @@
 /**
- * Starts the NPM Release workflow ONCE for the whole plan and waits for it. The run itself loops the packages
+ * Starts the Release workflow ONCE for the whole plan and waits for it. The run itself loops the packages
  * in dependency order (scripts/release/release-run.ts): this script plans, dispatches, watches and reads back.
  *
  *   bun scripts/release/release.ts                      # every changed package and every package that depends on one, in order
@@ -20,14 +20,14 @@
  * defines (a patch promotes every prerelease, a minor or a major moves all nine); no package is named for it.
  */
 
-import { parseReleaseArgs } from './release-args';
+import { ReleaseArgs } from './release-args';
 import { ReleaseDispatch } from './release-dispatch';
 import { ReleaseModes, ReleaseOrder } from './release-constants';
 import { ReleaseKinds, ReleaseTargets } from './release-kind';
-import { planFullSweep } from './release-plan';
+import { ReleasePlan } from './release-plan';
 import { type IPlanEntry, ReleasePlanInput } from './release-plan-input';
-import { type IPublishedPackage, waitForTarballs } from './release-tarballs';
-import { type IRunStatus, watchRun } from './release-watch';
+import { type IPublishedPackage, ReleaseTarballs } from './release-tarballs';
+import { type IRunStatus, ReleaseWatch } from './release-watch';
 
 interface IPackageState {
   name: string;
@@ -35,7 +35,7 @@ interface IPackageState {
   localVersion: string;
   publishedVersion: string | null;
   changedFiles: number;
-  /** The workspace packages this one ships as dependencies or peer dependencies (npm names). */
+  /** The workspace packages this one ships as dependencies or peer dependencies, or bakes into its presets (npm names). */
   dependsOn: string[];
 }
 
@@ -132,6 +132,17 @@ const countChangedSinceRelease = async (opts: { name: string }): Promise<number>
   return files.size;
 };
 
+/** The parsed `presets/<kind>/preset.json` templates (`scripts/preset/vulcan-preset.ts` builds the shipped presets from them). */
+const readPresetTemplates = async (): Promise<unknown[]> => {
+  const templates: unknown[] = [];
+
+  for await (const path of new Bun.Glob('presets/*/preset.json').scan({ cwd: '.' })) {
+    templates.push(await readJson(path));
+  }
+
+  return templates;
+};
+
 const collectState = async (opts: {
   names: readonly string[];
   distTag: string;
@@ -155,8 +166,9 @@ const collectState = async (opts: {
         distTag: opts.distTag,
       }),
       changedFiles: await countChangedSinceRelease({ name }),
-      // Only what is published counts: `dependencies` and `peerDependencies`, never `devDependencies`.
-      dependsOn: Object.keys({ ...manifest.dependencies, ...manifest.peerDependencies }),
+      // What is published counts: `dependencies` and `peerDependencies`, and the workspace packages the preset
+      // templates of a package that ships presets name (their versions are baked in at release); `ReleasePlan.dependsOn`.
+      dependsOn: ReleasePlan.dependsOn({ manifest, presets: await readPresetTemplates() }),
     });
   }
 
@@ -252,7 +264,7 @@ const waitForNewRun = async (opts: { previousRunId: string }): Promise<string> =
 
 /** Watches the run to its end. A run that waits for an approval is waited for, with no deadline, and said so once. */
 const waitForCompletion = (opts: { runId: string }): Promise<string> =>
-  watchRun({
+  ReleaseWatch.run({
     view: async () => {
       const { stdout } = await run({
         command: ['gh', 'run', 'view', opts.runId, '--json', 'status,conclusion'],
@@ -307,7 +319,7 @@ const main = async (): Promise<void> => {
     plan: planText,
     issue,
     named,
-  } = parseReleaseArgs(Bun.argv.slice(2));
+  } = ReleaseArgs.parse({ args: Bun.argv.slice(2) });
   const unknownNames = named.filter((name) => !ReleaseOrder.isKnown(name));
   if (unknownNames.length > 0) {
     throw new Error(
@@ -370,7 +382,7 @@ const main = async (): Promise<void> => {
     // behind keeps pointing at the old version and consumers install both copies.
     plan = states;
     if (requested.length === 0) {
-      const planned = planFullSweep({ packages: states });
+      const planned = ReleasePlan.planFullSweep({ packages: states });
       for (const entry of planned) {
         if (entry.cascadedFrom) {
           cascadedFrom.set(entry.name, entry.cascadedFrom);
@@ -440,7 +452,26 @@ const main = async (): Promise<void> => {
   }
 
   const previousRunId = await resolveLatestRunId();
-  await run({ command: ['gh', ...ReleaseDispatch.buildArgs({ entries, mode, issue })] });
+  // The run title the workflow shows: the plan job works out the same string and refuses a different one. The commit
+  // is the head of the branch the run is dispatched on, which `assertReleasable` has just fetched. The workflow that
+  // runs is the file on that branch: one that does not declare `label` (main, until the Sync) is sent none, because
+  // GitHub refuses an input the file does not declare.
+  const { stdout: headSha } = await run({ command: ['git', 'rev-parse', `origin/${branch}`] });
+  const { stdout: workflowText } = await run({
+    command: ['git', 'show', `origin/${branch}:.github/workflows/${ReleaseDispatch.WORKFLOW}`],
+  });
+  const label = ReleaseDispatch.declaresLabel({ workflowText })
+    ? ReleaseTargets.labelOf({
+        kind,
+        targets: ReleaseTargets.of({ entries, mode }),
+        issue,
+        sha: headSha,
+      })
+    : undefined;
+  if (label === undefined) {
+    console.log(`  ${branch} has no run title input yet: the run is titled by its mode`);
+  }
+  await run({ command: ['gh', ...ReleaseDispatch.buildArgs({ entries, mode, issue, label })] });
 
   const runId = await waitForNewRun({ previousRunId });
   console.log(`\n  run ${runId} - waiting...`);
@@ -455,13 +486,22 @@ const main = async (): Promise<void> => {
   const released = await readReleased({ runId, states: plan });
 
   // The workflow pushes its own release commits. Without this the operator reads a repo that disagrees
-  // with the registry.
-  await run({ command: ['git', 'pull', '--ff-only', '--quiet', 'origin', branch] });
+  // with the registry. The release has already published, so a checkout that cannot be fast-forwarded is a warning
+  // with the command to run by hand, never a failed release.
+  for (const command of ReleaseDispatch.syncCommands({ branch })) {
+    const { exitCode } = await run({ command, allowFailure: true });
+    if (exitCode !== 0) {
+      console.warn(
+        `\n  WARNING | the release is done, but \`${command.join(' ')}\` exited ${exitCode}, so this checkout is not at origin/${branch}. Run it by hand: git pull --ff-only origin refs/heads/${branch}`,
+      );
+      break;
+    }
+  }
 
   // The workflow is green and the packument lists the versions, but a tarball can answer 404 for
   // minutes after that, and an install of the train fails in that window. Done means installable.
   console.log(`\n  waiting until all ${released.length} tarball(s) answer 200...`);
-  await waitForTarballs({ packages: released });
+  await ReleaseTarballs.waitForAll({ packages: released });
 
   console.log(`\n✓ Released ${plan.length} package(s); every tarball answers 200.`);
 };

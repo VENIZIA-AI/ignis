@@ -25,7 +25,7 @@ Authorization is Casbin-based and **scoped** - the model is domain-aware (`sub, 
 
 ## Where the code lives
 
-The tree is split across two packages. The engine-free seam lives in `@venizia/ignis-kernel` at `packages/kernel/src/base/auth/authorize`: all of `common` (`AuthorizationPolicyVariants`, `CasbinRuleVariants`, `AuthorizationDomainScopes`, `AuthorizeBindingKeys`), the `authorize()` middleware, `AuthorizationProvider` and `resolveRequestDomain`, `AuthorizationEnforcerRegistry`, the `AuthorizationRole` model, and the builders (`GrantBuilder`, `AuthorizationPermissionBuilder`, `AuthorizationPolicyBuilder`). `casbin` is an optional peer of kernel and only ever type-imported there - `common/types/enforcer.ts` imports `type Adapter` and nothing else.
+The tree is split across two packages. The engine-free seam lives in `@venizia/ignis-kernel` at `packages/kernel/src/base/auth/authorize`: all of `common` (`AuthorizationPolicyVariants`, `CasbinRuleVariants`, `AuthorizationDomainScopes`, `AuthorizeBindingKeys`), the `authorize()` middleware, `AuthorizationProvider` and `RequestDomainResolver`, `AuthorizationEnforcerRegistry`, the `AuthorizationRole` model, and the builders (`GrantBuilder`, `AuthorizationPermissionBuilder`, `AuthorizationPolicyBuilder`). `casbin` is an optional peer of kernel and only ever type-imported there - `common/types/enforcer.ts` imports `type Adapter` and nothing else.
 
 The Drizzle- and Casbin-bound half stays in core at `packages/core-server/src/components/auth/authorize`: `BaseFilteredAdapter`, `ScopedCasbinAdapter`, `AuthorizeComponent`, `CasbinAuthorizationEnforcer`, `ResourceRoleManager`, and `CASBIN_RBAC_DOMAIN_SCOPED_MODEL`. Core's barrel re-exports the kernel barrel, so a `@venizia/ignis-core` import still resolves every symbol on either side of the split. Unqualified paths below are core-relative.
 
@@ -49,7 +49,7 @@ The whole RBAC state is a graph. Nodes are User / Role / Permission / Domain; ev
 
 The `variant` column's TypeScript type is closed to these seven values by default. An app can store
 its own edge kind in the same table - `ScopedCasbinAdapter` never selects an undeclared variant, so
-it is purely the app's data - by declaring it via `extraPolicyDefinitionColumns({ extraVariants: [...] })`
+it is purely the app's data - by declaring it via `AuthModelColumns.buildPolicyDefinition({ extraVariants: [...] })`
 in `packages/core-server/src/components/auth/models/entities/policy-definition.model.ts`. `effect`
 does not get the same treatment: its value is read by Casbin's own effect evaluator, not merely
 filtered on, so an undeclared value there is a correctness risk, not a harmless unselected row.
@@ -140,7 +140,7 @@ Three states, and NULL is one of them:
   the ambiguity the split removes. `AuthorizationPolicyBuilder` normalises it to null, so a caller
   passing the literal produces `domain: 'ANY_MEMBER'` with `domainType: null` - the ONE intended
   divergence, and a backfill diff must not read it as drift.
-- **`policyDefinitionDomainShapeCheck()` returns CHECK predicate TEXT, not a Drizzle `SQL`**: a
+- **`AuthModelColumns.buildPolicyDefinitionDomainShapeCheck()` returns CHECK predicate TEXT, not a Drizzle `SQL`**: a
   column reference in a `sql` template renders schema-qualified, which is invalid in a table-level
   CHECK. It is two-way on purpose - half a constraint admits half the broken rows.
 - **The `IS NOT NULL` guard in its last branch is load-bearing, not redundant.** A NULL `domain_type`
@@ -168,7 +168,7 @@ The permission join in `queryPrincipalPolicies` is a `LEFT JOIN`: a grant whose 
 
 Measured with `EXPLAIN (ANALYZE, BUFFERS)` against a real Postgres database: the grant branch's `(subject_type, subject_id)` scan and the permission join's primary-key lookup are already efficient; without the anchor/recursive index above, the CTE's recursive term falls back to a sequential scan, because nothing indexes `variant`. A query the framework writes and an index it never mentions is the seam that produced the production incident this adapter's read path descends from.
 
-`BaseFilteredAdapter` is deliberately thin - it owns only the connector plumbing, a `query()` helper, `loadLines()`, and no-op write methods. Its `query()` exists because Drizzle's `execute()` result shape differs per driver (`node-postgres` yields `{ rows }`, `postgres-js` yields the row list itself), so adapters must never read `.rows` directly; `readResultRows()` normalizes it. There is no `DrizzleCasbinAdapter` in source.
+`BaseFilteredAdapter` is deliberately thin - it owns only the connector plumbing, a `query()` helper, `loadLines()`, and no-op write methods. Its `query()` exists because Drizzle's `execute()` result shape differs per driver (`node-postgres` yields `{ rows }`, `postgres-js` yields the row list itself), so adapters must never read `.rows` directly; `DrizzleResultUtility.readResultRows()` normalizes it. There is no `DrizzleCasbinAdapter` in source.
 
 The `connector` getter resolves `dataSource.getConnector?.() ?? dataSource.connector`, throwing a named `[BaseFilteredAdapter]` framework error when a datasource exposes neither - a cold (not-yet-wired) datasource used to fail with a bare `TypeError` instead. `ICasbinPolicySource` declares both `getConnector?()` (preferred - lazily wires the driver, survives pool rotation) and `connector?` (back-compat, a pre-wired connector) as optional.
 

@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 import { ApplicationError } from '@venizia/ignis-helpers/core';
-import { expectRejection } from '@venizia/dev-configs/testing';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 import { makeHelper } from './fake-client';
 
 const schema = { name: 'products', fields: [{ name: 'title', type: 'string' as const }] };
@@ -56,7 +56,7 @@ describe('TypesenseConnector collections', () => {
 
   test('collectionExists surfaces an infrastructure failure instead of reporting absence', async () => {
     const { helper } = makeHelper({ throwOn: { 'collections.exists': new Error('network') } });
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: helper.collectionExists({ name: 'products' }),
       message: /temporarily unavailable/i,
     });
@@ -75,9 +75,11 @@ describe('TypesenseConnector collections', () => {
 
   test('deleteCollection returns true on success, false on 404', async () => {
     const ok = makeHelper();
-    expect(await ok.helper.deleteCollection({ name: 'products' })).toBe(true);
+    const result = await ok.helper.deleteCollection({ name: 'products' });
+    expect(result).toBe(true);
     const missing = makeHelper({ throwOn: { 'collections.delete': { httpStatus: 404 } } });
-    expect(await missing.helper.deleteCollection({ name: 'nope' })).toBe(false);
+    const result2 = await missing.helper.deleteCollection({ name: 'nope' });
+    expect(result2).toBe(false);
   });
 
   test('upsertAlias calls aliases().upsert with collection_name', async () => {
@@ -121,11 +123,13 @@ describe('TypesenseConnector collections', () => {
     const present = makeHelper({
       aliasByName: { products: aliasResponse },
     });
-    expect(await present.helper.getAlias({ name: 'products' })).toEqual({
+    const result = await present.helper.getAlias({ name: 'products' });
+    expect(result).toEqual({
       name: 'products',
       collection: 'products_v2',
     });
     const absent = makeHelper({ throwOn: { 'aliases.retrieve': { httpStatus: 404 } } });
-    expect(await absent.helper.getAlias({ name: 'nope' })).toBeNull();
+    const result2 = await absent.helper.getAlias({ name: 'nope' });
+    expect(result2).toBeNull();
   });
 });

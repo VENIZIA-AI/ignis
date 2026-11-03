@@ -56,7 +56,8 @@ const listBundledBuiltins = async (opts: { entry: string }): Promise<string[]> =
   }
 
   try {
-    const metafile = JSON.parse(await Bun.file(metafilePath).text()) as IMetafile;
+    const result = await Bun.file(metafilePath).text();
+    const metafile = JSON.parse(result) as IMetafile;
     const builtins = new Set<string>();
 
     const metafileInputsEntries = Object.entries(metafile.inputs);
@@ -91,10 +92,12 @@ const listBundledBuiltins = async (opts: { entry: string }): Promise<string[]> =
  */
 describe('relational sub-paths bundle clean for a browser', () => {
   test('the postgres tier pulls in no node builtin', async () => {
-    expect(await listBundledBuiltins({ entry: 'src/relational/postgres/index.ts' })).toEqual([]);
+    const result = await listBundledBuiltins({ entry: 'src/relational/postgres/index.ts' });
+    expect(result).toEqual([]);
   }, 120_000);
 
   test('the sqlite tier pulls in no node builtin', async () => {
-    expect(await listBundledBuiltins({ entry: 'src/relational/sqlite/index.ts' })).toEqual([]);
+    const result = await listBundledBuiltins({ entry: 'src/relational/sqlite/index.ts' });
+    expect(result).toEqual([]);
   }, 120_000);
 });

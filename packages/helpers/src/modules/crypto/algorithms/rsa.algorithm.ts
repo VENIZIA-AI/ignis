@@ -1,4 +1,3 @@
-import C from 'node:crypto';
 import { getError } from '@/modules/error';
 import { MINIMUM_RSA_MODULUS_BITS } from '../common/constants';
 import { BaseCryptoAlgorithm } from './base.algorithm';
@@ -11,13 +10,23 @@ interface IRSAExtraOptions {
 
 export type RSAAlgorithmType = 'rsa';
 
+/**
+ * OAEP with SHA-1 for both the label hash and MGF1, and the public exponent 65537: what Node's
+ * `publicEncrypt`/`privateDecrypt` and `generateKeyPairSync('rsa')` used by default, so keys and
+ * ciphertext written by earlier releases still work. Do not change them: every ciphertext stored under
+ * them would stop decrypting.
+ */
+const OAEP = { name: 'RSA-OAEP', hash: 'SHA-1' } as const;
+const PUBLIC_EXPONENT = new Uint8Array([0x01, 0x00, 0x01]);
+
+/** `generateDERKeyPair`, `encrypt` and `decrypt` are async: they run over `crypto.subtle`. */
 export class RSA extends BaseCryptoAlgorithm<
   RSAAlgorithmType,
   string,
   string,
   string,
-  string,
-  string,
+  Promise<string>,
+  Promise<string>,
   IRSAExtraOptions
 > {
   constructor(opts: { algorithm: RSAAlgorithmType }) {
@@ -32,7 +41,7 @@ export class RSA extends BaseCryptoAlgorithm<
    * Rejects a modulus below `MINIMUM_RSA_MODULUS_BITS` rather than generating it - a weak key still
    * works, signs, and verifies, so this is the only point where the size is ever checked.
    */
-  generateDERKeyPair(opts?: { modulus: number }) {
+  async generateDERKeyPair(opts?: { modulus: number }) {
     const modulus = opts?.modulus ?? MINIMUM_RSA_MODULUS_BITS;
 
     if (modulus < MINIMUM_RSA_MODULUS_BITS) {
@@ -41,17 +50,23 @@ export class RSA extends BaseCryptoAlgorithm<
       });
     }
 
-    const keys = C.generateKeyPairSync('rsa', {
-      modulusLength: modulus,
-    });
+    const keys = await crypto.subtle.generateKey(
+      { ...OAEP, modulusLength: modulus, publicExponent: PUBLIC_EXPONENT },
+      true,
+      ['encrypt', 'decrypt'],
+    );
 
-    return {
-      publicKey: keys.publicKey.export({ type: 'spki', format: 'der' }),
-      privateKey: keys.privateKey.export({ type: 'pkcs8', format: 'der' }),
-    };
+    const publicKey = await crypto.subtle.exportKey('spki', keys.publicKey);
+    const privateKey = await crypto.subtle.exportKey('pkcs8', keys.privateKey);
+
+    return { publicKey: Buffer.from(publicKey), privateKey: Buffer.from(privateKey) };
   }
 
-  encrypt(opts: { message: string; secret: string; opts?: IRSAExtraOptions }) {
+  async encrypt(opts: {
+    message: string;
+    secret: string;
+    opts?: IRSAExtraOptions;
+  }): Promise<string> {
     const { message, secret: pubKey } = opts;
     const {
       inputEncoding = { key: 'base64', message: 'utf-8' },
@@ -60,13 +75,19 @@ export class RSA extends BaseCryptoAlgorithm<
     } = opts.opts ?? {};
 
     try {
-      const k = C.createPublicKey({
-        key: Buffer.from(pubKey, inputEncoding.key),
-        format: 'der',
-        type: 'spki',
-      });
-      const rs = C.publicEncrypt(k, Buffer.from(message, inputEncoding.message));
-      return rs.toString(outputEncoding);
+      const key = await crypto.subtle.importKey(
+        'spki',
+        Buffer.from(pubKey, inputEncoding.key),
+        OAEP,
+        false,
+        ['encrypt'],
+      );
+      const cipherBytes = await crypto.subtle.encrypt(
+        { name: OAEP.name },
+        key,
+        Buffer.from(message, inputEncoding.message),
+      );
+      return Buffer.from(cipherBytes).toString(outputEncoding);
     } catch (error) {
       if (doThrow) {
         throw error;
@@ -76,7 +97,11 @@ export class RSA extends BaseCryptoAlgorithm<
     }
   }
 
-  decrypt(opts: { message: string; secret: string; opts?: IRSAExtraOptions }) {
+  async decrypt(opts: {
+    message: string;
+    secret: string;
+    opts?: IRSAExtraOptions;
+  }): Promise<string> {
     const { message, secret: privKey } = opts;
     const {
       inputEncoding = { key: 'base64', message: 'base64' },
@@ -85,13 +110,19 @@ export class RSA extends BaseCryptoAlgorithm<
     } = opts.opts ?? {};
 
     try {
-      const k = C.createPrivateKey({
-        key: Buffer.from(privKey, inputEncoding.key),
-        format: 'der',
-        type: 'pkcs8',
-      });
-      const rs = C.privateDecrypt(k, Buffer.from(message, inputEncoding.message));
-      return rs.toString(outputEncoding);
+      const key = await crypto.subtle.importKey(
+        'pkcs8',
+        Buffer.from(privKey, inputEncoding.key),
+        OAEP,
+        false,
+        ['decrypt'],
+      );
+      const plainBytes = await crypto.subtle.decrypt(
+        { name: OAEP.name },
+        key,
+        Buffer.from(message, inputEncoding.message),
+      );
+      return Buffer.from(plainBytes).toString(outputEncoding);
     } catch (error) {
       if (doThrow) {
         throw error;

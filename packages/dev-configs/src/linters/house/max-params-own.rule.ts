@@ -1,6 +1,6 @@
 import type { Linter, Rule } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
-import { AstNodeTypes, HOUSE_PLUGIN_NAMESPACE, nodeType, readField } from './common';
+import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 
 const HOOK_NAME = /^use[A-Z]/;
 const CALL_TYPES = new Set(['CallExpression', 'NewExpression']);
@@ -10,18 +10,20 @@ const isArrayContaining = (opts: { list: unknown; item: unknown }) =>
 
 /** `useX(...)`: a hook's callback is ours, so it counts. */
 const isHookCall = (call: unknown) => {
-  const callee = readField({ node: call, key: 'callee' });
-  const name = readField({ node: callee, key: 'name' });
+  const callee = AstNode.readField({ node: call, key: 'callee' });
+  const name = AstNode.readField({ node: callee, key: 'name' });
   return (
-    nodeType({ node: callee }) === 'Identifier' && typeof name === 'string' && HOOK_NAME.test(name)
+    AstNode.getType({ node: callee }) === 'Identifier' &&
+    typeof name === 'string' &&
+    HOOK_NAME.test(name)
   );
 };
 
 /** `node` is an argument of a call or `new` that is not a hook. */
 const isLibraryArgument = (opts: { node: unknown; parent: unknown }) =>
-  CALL_TYPES.has(nodeType({ node: opts.parent }) ?? '') &&
+  CALL_TYPES.has(AstNode.getType({ node: opts.parent }) ?? '') &&
   isArrayContaining({
-    list: readField({ node: opts.parent, key: 'arguments' }),
+    list: AstNode.readField({ node: opts.parent, key: 'arguments' }),
     item: opts.node,
   }) &&
   !isHookCall(opts.parent);
@@ -34,11 +36,16 @@ const hasDeclaredShape = (object: unknown): boolean => {
   let current = object;
 
   while (current) {
-    const parent = readField({ node: current, key: 'parent' });
-    const parentType = nodeType({ node: parent });
+    const parent = AstNode.readField({ node: current, key: 'parent' });
+    const parentType = AstNode.getType({ node: parent });
     const isTypedVariable =
       parentType === 'VariableDeclarator' &&
-      Boolean(readField({ node: readField({ node: parent, key: 'id' }), key: 'typeAnnotation' }));
+      Boolean(
+        AstNode.readField({
+          node: AstNode.readField({ node: parent, key: 'id' }),
+          key: 'typeAnnotation',
+        }),
+      );
 
     if (
       isTypedVariable ||
@@ -49,8 +56,8 @@ const hasDeclaredShape = (object: unknown): boolean => {
     }
 
     const isNestedValue =
-      parentType === 'Property' && readField({ node: parent, key: 'value' }) === current;
-    current = isNestedValue ? readField({ node: parent, key: 'parent' }) : undefined;
+      parentType === 'Property' && AstNode.readField({ node: parent, key: 'value' }) === current;
+    current = isNestedValue ? AstNode.readField({ node: parent, key: 'parent' }) : undefined;
   }
 
   return false;
@@ -84,17 +91,18 @@ export class MaxParamsOwnRule {
       const isCallback = (node: Rule.Node) => {
         const parent = node.parent;
         const isJsxProp =
-          nodeType({ node: parent }) === 'JSXExpressionContainer' &&
-          nodeType({ node: readField({ node: parent, key: 'parent' }) }) === 'JSXAttribute';
+          AstNode.getType({ node: parent }) === 'JSXExpressionContainer' &&
+          AstNode.getType({ node: AstNode.readField({ node: parent, key: 'parent' }) }) ===
+            'JSXAttribute';
         return isJsxProp || isLibraryArgument({ node, parent });
       };
 
       const isInjectedConstructor = (opts: { node: Rule.Node; params: unknown[] }) => {
         const parent = opts.node.parent;
         const isDecorated = (param: unknown) => {
-          const own = readField({ node: param, key: 'decorators' });
-          const property = readField({
-            node: readField({ node: param, key: 'parameter' }),
+          const own = AstNode.readField({ node: param, key: 'decorators' });
+          const property = AstNode.readField({
+            node: AstNode.readField({ node: param, key: 'parameter' }),
             key: 'decorators',
           });
           return (
@@ -104,32 +112,35 @@ export class MaxParamsOwnRule {
         };
 
         return (
-          nodeType({ node: parent }) === 'MethodDefinition' &&
-          readField({ node: parent, key: 'kind' }) === 'constructor' &&
+          AstNode.getType({ node: parent }) === 'MethodDefinition' &&
+          AstNode.readField({ node: parent, key: 'kind' }) === 'constructor' &&
           opts.params.every(isDecorated)
         );
       };
 
       const isTypedByContext = (node: Rule.Node) => {
         const parent = node.parent;
-        const parentType = nodeType({ node: parent });
+        const parentType = AstNode.getType({ node: parent });
         const isTypedInit =
           parentType === 'VariableDeclarator' &&
-          readField({ node: parent, key: 'init' }) === node &&
+          AstNode.readField({ node: parent, key: 'init' }) === node &&
           Boolean(
-            readField({ node: readField({ node: parent, key: 'id' }), key: 'typeAnnotation' }),
+            AstNode.readField({
+              node: AstNode.readField({ node: parent, key: 'id' }),
+              key: 'typeAnnotation',
+            }),
           );
-        const grandParent = readField({ node: parent, key: 'parent' });
+        const grandParent = AstNode.readField({ node: parent, key: 'parent' });
         const isMember =
           parentType === 'Property' &&
-          readField({ node: parent, key: 'value' }) === node &&
-          nodeType({ node: grandParent }) === 'ObjectExpression';
+          AstNode.readField({ node: parent, key: 'value' }) === node &&
+          AstNode.getType({ node: grandParent }) === 'ObjectExpression';
 
         return isTypedInit || (isMember && hasDeclaredShape(grandParent));
       };
 
       const check = (node: Rule.Node) => {
-        const params = readField({ node, key: 'params' });
+        const params = AstNode.readField({ node, key: 'params' });
         if (!Array.isArray(params) || params.length <= max) {
           return;
         }

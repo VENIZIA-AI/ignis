@@ -8,8 +8,8 @@ import {
   AuthorizationPolicyVariants,
   BindingNamespaces,
 } from '@venizia/ignis';
-import { applicationEnvironment, getError } from '@venizia/ignis-helpers';
-import { uuidV7 } from '@venizia/ignis-helpers/uuid';
+import { applicationEnvironment, getError, LoggerFactory } from '@venizia/ignis-helpers';
+import { UuidV7Generator } from '@venizia/ignis-helpers/uuid';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
@@ -62,7 +62,12 @@ const isListening = async (opts: { port: number }) => {
     });
     socket.end();
     return true;
-  } catch {
+  } catch (error) {
+    LoggerFactory.getLogger(['smoke']).info(
+      'nothing listens on port %d | Error: %s',
+      opts.port,
+      (error as Error).message,
+    );
     return false;
   }
 };
@@ -72,11 +77,16 @@ const ConfigurationResponse = z.object({ data: z.object({ id: z.string(), code: 
 
 // Bun awaits an async describe callback before it collects the tests, so the probe can gate skipIf.
 describe('vert', async () => {
-  const servicesUp =
-    (await isListening({ port: POSTGRES_PORT })) && (await isListening({ port: REDIS_PORT }));
+  const isPostgresUp = await isListening({ port: POSTGRES_PORT });
+  let isRedisUp = false;
+  if (isPostgresUp) {
+    const redisProbe = await isListening({ port: REDIS_PORT });
+    isRedisUp = redisProbe;
+  }
+  const servicesUp = isPostgresUp && isRedisUp;
 
   describe.skipIf(!servicesUp)('against docker compose', () => {
-    const suffix = uuidV7().slice(-12);
+    const suffix = UuidV7Generator.generate().slice(-12);
     const password = 'smoke-password';
     const reader = `reader_${suffix}`;
     const outsider = `outsider_${suffix}`;
@@ -105,31 +115,33 @@ describe('vert', async () => {
         },
       });
       expect(response.status).toBe(200);
-      return SignInResponse.parse(await response.json()).token.value;
+      const signInBody = await response.json();
+      return SignInResponse.parse(signInBody).token.value;
     };
 
-    const bearer = async (opts: { username: string }) => ({
-      authorization: `Bearer ${await signIn(opts)}`,
-    });
+    const bearer = async (opts: { username: string }) => {
+      const token = await signIn(opts);
+      return { authorization: `Bearer ${token}` };
+    };
 
     /** One organization, one role granted read:configuration in it, and the reader assigned to it. */
     const seedGrant = async (opts: { userId: string }) => {
       const permissions = repository<PermissionRepository>({ name: PermissionRepository.name });
       const existing = await permissions.findOne({ filter: { where: { code: 'configuration' } } });
-      const permission =
-        existing ??
-        (
-          await permissions.create({
-            data: {
-              code: 'configuration',
-              name: 'Read Configuration',
-              subject: 'configuration',
-              action: AuthorizationActions.READ,
-              method: 'GET',
-              scope: 'global',
-            },
-          })
-        ).data;
+      let permission = existing;
+      if (!permission) {
+        const created = await permissions.create({
+          data: {
+            code: 'configuration',
+            name: 'Read Configuration',
+            subject: 'configuration',
+            action: AuthorizationActions.READ,
+            method: 'GET',
+            scope: 'global',
+          },
+        });
+        permission = created.data;
+      }
 
       const { data: organization } = await repository<OrganizationRepository>({
         name: OrganizationRepository.name,
@@ -208,7 +220,8 @@ describe('vert', async () => {
       if (!user) {
         throw getError({ message: '[smoke] The reader was not created by sign-up' });
       }
-      seeded = await seedGrant({ userId: user.id });
+      const grant = await seedGrant({ userId: user.id });
+      seeded = grant;
     });
 
     afterAll(async () => {
@@ -250,13 +263,16 @@ describe('vert', async () => {
         body: { code: configurationCode, group: 'smoke' },
       });
       expect(created.status).toBe(201);
-      const { data } = ConfigurationResponse.parse(await created.json());
+      const createdBody = await created.json();
+      const { data } = ConfigurationResponse.parse(createdBody);
 
+      const readerHeaders = await bearer({ username: reader });
       const read = await fetch(`${baseUrl}/configurations/${data.id}`, {
-        headers: await bearer({ username: reader }),
+        headers: readerHeaders,
       });
       expect(read.status).toBe(200);
-      expect(ConfigurationResponse.parse(await read.json()).data.code).toBe(configurationCode);
+      const readBody = await read.json();
+      expect(ConfigurationResponse.parse(readBody).data.code).toBe(configurationCode);
 
       const anonymous = await fetch(`${baseUrl}/configurations/${data.id}`);
       expect(anonymous.status).toBe(401);
@@ -265,10 +281,12 @@ describe('vert', async () => {
     test('Casbin allows the reader and forbids the outsider', async () => {
       const routeUrl = `${baseUrl}/authz-example/configurations`;
 
-      const allowed = await fetch(routeUrl, { headers: await bearer({ username: reader }) });
+      const readerHeaders = await bearer({ username: reader });
+      const allowed = await fetch(routeUrl, { headers: readerHeaders });
       expect(allowed.status).toBe(200);
 
-      const forbidden = await fetch(routeUrl, { headers: await bearer({ username: outsider }) });
+      const outsiderHeaders = await bearer({ username: outsider });
+      const forbidden = await fetch(routeUrl, { headers: outsiderHeaders });
       expect(forbidden.status).toBe(403);
     });
 
@@ -280,9 +298,10 @@ describe('vert', async () => {
         throw getError({ message: '[smoke] The outsider was not created by sign-up' });
       }
 
+      const readerHeaders = await bearer({ username: reader });
       const response = await post({
         path: '/auth/change-password',
-        headers: await bearer({ username: reader }),
+        headers: readerHeaders,
         body: {
           scheme: 'basic',
           oldCredential: password,

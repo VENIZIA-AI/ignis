@@ -278,7 +278,7 @@ See [Attachments](./usage#attachments) for how both apply.
   config: {
     host: applicationEnvironment.get<string>('APP_ENV_MAIL_HOST') ?? 'smtp.gmail.com',
     port: +(applicationEnvironment.get<number>('APP_ENV_MAIL_PORT') ?? 465),
-    secure: toBoolean(applicationEnvironment.get<boolean>('APP_ENV_MAIL_SECURE') ?? true),
+    secure: ParseUtility.toBoolean({ input: applicationEnvironment.get<boolean>('APP_ENV_MAIL_SECURE') ?? true }),
     auth: {
       type: 'oauth2',
       user: applicationEnvironment.get<string>('APP_ENV_MAIL_USER'),
@@ -488,7 +488,7 @@ interface IMailService {
 
 **`sendBatch(messages, options?)`**
 
-Sends every message via `send()` with concurrency bounded by `executePromiseWithLimit()`, default `MailDefaults.BATCH_CONCURRENCY` (`5`). A `send()` that throws is caught per-message and downgraded to `{ success: false, error }`; a failure in the batch operation itself throws `MailErrorCodes.BATCH_SEND_FAILED`.
+Sends every message via `send()` with concurrency bounded by `PromiseUtility.executeWithLimit()`, default `MailDefaults.BATCH_CONCURRENCY` (`5`). A `send()` that throws is caught per-message and downgraded to `{ success: false, error }`; a failure in the batch operation itself throws `MailErrorCodes.BATCH_SEND_FAILED`.
 
 **`sendTemplate(opts)`**
 
@@ -644,7 +644,7 @@ private isCustomOptions(options: TMailOptions): options is ICustomMailOptions
 
 A guard that does not match throws `Invalid <Provider> configuration` (`INVALID_CONFIGURATION`, 500) - `Invalid Amazon SES configuration` for this one.
 
-For `custom`, an additional `isMailTransport()` utility check reports specifically which of `send`/`verify` is missing.
+For `custom`, an additional `MailTypeUtility.isTransport()` check reports specifically which of `send`/`verify` is missing.
 
 ```typescript
 interface IMailTransport {
@@ -861,16 +861,31 @@ interface IInternalQueueMailExecutorOpts {
 
 ```typescript
 // type.utility.ts
-function isMailTransport(value: AnyType): value is IMailTransport;
-function isValidMailOptions(options: AnyType): options is TMailOptions;
+class MailTypeUtility {
+  static isTransport(value: AnyType): value is IMailTransport;
+  static isValidOptions(options: AnyType): options is TMailOptions;
+}
 
 // verification.utility.ts
-function getExpiryTime(minutes: number): Date;         // Date `minutes` minutes from now
-function getExpiryTimeInHours(hours: number): Date;     // Date `hours` hours from now
+class MailVerificationUtility {
+  static getExpiryTime(opts: { minutes: number }): Date;       // Date `minutes` minutes from now
+  static getExpiryTimeInHours(opts: { hours: number }): Date;  // Date `hours` hours from now
+}
+
+// address.utility.ts, mime.utility.ts
+class MailAddressUtility {
+  static splitList(opts: { value: string | string[] }): string[];
+}
+class MailMimeUtility {
+  static formatAddressHeader(opts: { value: string | string[] }): string;
+  static buildRawMessage(opts: { message: IMailMessage }): Promise<Buffer>;
+}
 ```
 
-- `isMailTransport()` checks that `send` and `verify` are functions, and that `close` is either a function or `undefined`.
-- `isValidMailOptions()` checks that `provider` is a string and `config` is truthy. It does not validate the shape of `config` against the specific provider.
+The old function names of these methods are removed; `devz codemod namespace-functions` moves a call written with one to the class form. `isMailTransport` is now `MailTypeUtility.isTransport` and `isValidMailOptions` is now `MailTypeUtility.isValidOptions`. Both keep a positional parameter, because a type guard narrows its own parameter.
+
+- `MailTypeUtility.isTransport()` checks that `send` and `verify` are functions, and that `close` is either a function or `undefined`.
+- `MailTypeUtility.isValidOptions()` checks that `provider` is a string and `config` is truthy. It does not validate the shape of `config` against the specific provider.
 
 **Source:** [`utilities/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/utilities)
 

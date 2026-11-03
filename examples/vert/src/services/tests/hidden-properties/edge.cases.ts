@@ -1,4 +1,4 @@
-import { getUID } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { eq, like } from 'drizzle-orm';
 import { User } from '../../../models/entities';
 import { BaseTestCases } from '../base-test.cases';
@@ -99,7 +99,7 @@ export class EdgeCases extends BaseTestCases {
     this.context.logCase('[CASE 12] Verify hidden data is actually stored in DB');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const testPassword = `testPw${uniqueId}`;
       const testSecret = `testSecret${uniqueId}`;
       const testRealm = `HIDDEN_TEST_VERIFY_${uniqueId}`;
@@ -160,7 +160,7 @@ export class EdgeCases extends BaseTestCases {
     const transaction = await repo.beginTransaction();
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const created = await repo.create({
         data: {
           realm: `HIDDEN_TEST_TX_${uniqueId}`,
@@ -239,10 +239,10 @@ export class EdgeCases extends BaseTestCases {
     );
 
     try {
-      const uid1 = getUID();
-      const uid2 = getUID();
-      const uid3 = getUID();
-      const uid4 = getUID();
+      const uid1 = ParseUtility.getUID();
+      const uid2 = ParseUtility.getUID();
+      const uid3 = ParseUtility.getUID();
+      const uid4 = ParseUtility.getUID();
       await repo.createAll({
         data: [
           {
@@ -331,7 +331,7 @@ export class EdgeCases extends BaseTestCases {
     this.context.logCase('[CASE 20] Handle null hidden field values correctly');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const created = await repo.create({
         data: {
           realm: `HIDDEN_TEST_NULL_${uniqueId}`,

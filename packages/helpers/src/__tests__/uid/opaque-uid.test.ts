@@ -217,7 +217,8 @@ describe('OpaqueUidHelper - isAvailable', () => {
     const pending = new OpaqueUidHelper().nextId({ isAvailable: async () => true });
 
     expect(typeof (pending as PromiseLike<string>).then).toBe('function');
-    expect(await pending).toHaveLength(6);
+    const result = await pending;
+    expect(result).toHaveLength(6);
   });
 
   test('an async check redraws the same way, and awaits every verdict', async () => {
@@ -238,9 +239,12 @@ describe('OpaqueUidHelper - isAvailable', () => {
   });
 
   test('an async check that never accepts rejects instead of looping forever', async () => {
-    const failure = await new OpaqueUidHelper()
-      .nextId({ isAvailable: async () => false, maxAttempts: 3 })
-      .catch((error: unknown) => error);
+    let failure: unknown;
+    try {
+      await new OpaqueUidHelper().nextId({ isAvailable: async () => false, maxAttempts: 3 });
+    } catch (error) {
+      failure = error;
+    }
 
     expect(String(failure)).toContain('No available id after 3 attempts');
   });

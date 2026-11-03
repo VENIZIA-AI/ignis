@@ -189,8 +189,10 @@ describe('scopeFilter - UNRESTRICTED applies no scope for this call', () => {
       options: { shouldReturn: false },
     });
 
-    expect((await rawRow(1))?.name).toBe('updated-everywhere');
-    expect((await rawRow(3))?.name).toBe('updated-everywhere');
+    const row1 = await rawRow(1);
+    const row3 = await rawRow(3);
+    expect(row1?.name).toBe('updated-everywhere');
+    expect(row3?.name).toBe('updated-everywhere');
   });
 
   test('deleteAll (soft) reaches every tenant', async () => {
@@ -198,8 +200,10 @@ describe('scopeFilter - UNRESTRICTED applies no scope for this call', () => {
 
     await repository.deleteAll({ where: {}, options: { shouldReturn: false } });
 
-    expect((await rawRow(1))?.deletedAt).not.toBeNull();
-    expect((await rawRow(3))?.deletedAt).not.toBeNull();
+    const row1 = await rawRow(1);
+    const row3 = await rawRow(3);
+    expect(row1?.deletedAt).not.toBeNull();
+    expect(row3?.deletedAt).not.toBeNull();
   });
 
   test('restoreById reaches a row belonging to another tenant', async () => {
@@ -208,7 +212,8 @@ describe('scopeFilter - UNRESTRICTED applies no scope for this call', () => {
     const result = await repository.restoreById({ id: 4 });
 
     expect(result.count).toBe(1);
-    expect((await rawRow(4))?.deletedAt).toBeNull();
+    const row4 = await rawRow(4);
+    expect(row4?.deletedAt).toBeNull();
   });
 
   test('restoreAll reaches every tenant', async () => {
@@ -222,8 +227,10 @@ describe('scopeFilter - UNRESTRICTED applies no scope for this call', () => {
       options: { shouldReturn: false },
     });
 
-    expect((await rawRow(2))?.deletedAt).toBeNull();
-    expect((await rawRow(4))?.deletedAt).toBeNull();
+    const row2 = await rawRow(2);
+    const row4 = await rawRow(4);
+    expect(row2?.deletedAt).toBeNull();
+    expect(row4?.deletedAt).toBeNull();
   });
 });
 

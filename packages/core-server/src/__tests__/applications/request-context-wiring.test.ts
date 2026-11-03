@@ -2,7 +2,7 @@ import 'reflect-metadata';
 
 import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications';
-import { generateUserAuditColumnDefs } from '@/connectors';
+import { PostgresUserAuditEnricher } from '@/connectors';
 import { RequestTrackerComponent } from '@/components';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
@@ -16,7 +16,7 @@ import { pgTable } from 'drizzle-orm/pg-core';
 import { afterEach, describe, expect, test } from 'bun:test';
 
 const auditTable = pgTable('request_context_wiring_audit', {
-  ...generateUserAuditColumnDefs({
+  ...PostgresUserAuditEnricher.generateColumnDefs({
     created: { dataType: 'number', columnName: 'created_by', allowAnonymous: true },
     modified: { dataType: 'number', columnName: 'modified_by', allowAnonymous: true },
   }),
@@ -100,7 +100,8 @@ describe('BaseApplication - request context wiring for the user-audit enricher',
     const port = application.getServerPort();
     const response = await fetch(`http://127.0.0.1:${port}/audit-with-user`);
 
-    expect(await response.json()).toEqual({ stamped: AUDIT_USER_ID });
+    const result = await response.json();
+    expect(result).toEqual({ stamped: AUDIT_USER_ID });
   });
 
   test('a live request with no audit user stamps null, and does not throw', async () => {
@@ -114,7 +115,8 @@ describe('BaseApplication - request context wiring for the user-audit enricher',
     const port = application.getServerPort();
     const response = await fetch(`http://127.0.0.1:${port}/audit-without-user`);
 
-    expect(await response.json()).toEqual({ stamped: null });
+    const result = await response.json();
+    expect(result).toEqual({ stamped: null });
   });
 
   test('outside a request the installed resolver reports no context at all', async () => {

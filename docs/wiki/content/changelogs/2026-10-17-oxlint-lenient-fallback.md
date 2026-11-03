@@ -22,8 +22,8 @@ export default defineConfig(OxlintConfigs.create({ lenientFallback: true }));
 
 ## What changed
 
-- **`OxlintConfigs.create({ lenientFallback })`.** With `lenientFallback: true`, `prefer-nullish-coalescing` allows `||` where the left side is a string or a number, so `opts.name || 'guest'` and `opts.limit || 20` pass. It still flags `||` on objects and booleans.
-- **The same option on the browser and React presets.** `BrowserOxlintConfigs.create()` and `ReactOxlintConfigs.create()` take it too.
+- **`lenientFallback: true`** makes `prefer-nullish-coalescing` allow `||` where the left side is a string or a number, so `opts.name || 'guest'` and `opts.limit || 20` pass. It still flags `||` on objects and booleans.
+- **`BrowserOxlintConfigs.create()` and `ReactOxlintConfigs.create()`** take the option too.
 - **The default is unchanged.** `oxlintConfigs` and `OxlintConfigs.create()` stay strict, because `||` also swallows a real `''` or `0`.
 
 ## Who is affected

@@ -1,5 +1,5 @@
 import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
-import { throwNotSupported } from '@venizia/ignis-kernel';
+import { NotSupportedUtility } from '@venizia/ignis-kernel';
 import type { Client } from '@libsql/client';
 import type { ILogger, IPoolControlOptions } from '@venizia/ignis-helpers/core';
 import type { AnyType } from '@venizia/ignis-helpers/common';
@@ -96,7 +96,7 @@ export class LibSqlDriver<
     // A remote client opens a stream per statement and closes it, so BEGIN would neither hold nor
     // error - the transaction would silently not exist.
     if (this.client.protocol !== FILE_PROTOCOL) {
-      throwNotSupported({
+      NotSupportedUtility.throwNotSupported({
         scope: LibSqlDriver.name,
         feature: `Explicit transactions over a '${this.client.protocol}' libsql client - every statement runs on its own connection, so BEGIN cannot hold; use a \`file:\` or \`:memory:\` url, or an embedded replica`,
         logger: this.logger,
@@ -108,7 +108,8 @@ export class LibSqlDriver<
     // The bare pool error names only a timeout; on one connection the cause is almost always an
     // unreleased transaction, so say so where the caller reads it.
     try {
-      client = await this.slot.acquire();
+      const result2 = await this.slot.acquire();
+      client = result2;
     } catch (error) {
       throw getError({
         message: `[${LibSqlDriver.name}][acquire] Could not borrow the single libsql connection | ${(error as Error)?.message ?? String(error)} | An unreleased transaction still holds it - commit/rollback it, or raise \`acquireTimeoutMs\``,

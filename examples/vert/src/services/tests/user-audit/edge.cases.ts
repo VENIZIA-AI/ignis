@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { Configuration } from '../../../models/entities';
 import { UserAuditCases } from './support';
@@ -15,7 +15,7 @@ export class EdgeCases extends UserAuditCases {
     this.context.logCase('[CASE 8] Update null audit fields to non-null values');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const testCode = `AUDIT_NULL_TO_NONNULL_${uniqueId}`;
       // Create real User for FK constraint
       const lateUser = await this.createTestUser(`CASE8_LATE_${uniqueId}`);
@@ -54,10 +54,11 @@ export class EdgeCases extends UserAuditCases {
       });
 
       // Verify
-      [dbRecord] = await connector
+      const [latestRecord] = await connector
         .select()
         .from(Configuration.schema)
         .where(eq(Configuration.schema.code, testCode));
+      dbRecord = latestRecord;
 
       if (dbRecord?.modifiedBy === lateUser) {
         this.context.logger.info(
@@ -90,7 +91,7 @@ export class EdgeCases extends UserAuditCases {
     this.context.logCase('[CASE 11] Audit tracking works correctly within transactions');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const testCode = `AUDIT_TX_${uniqueId}`;
       // Create real Users for FK constraint (outside transaction)
       const txUser = await this.createTestUser(`CASE11_TX_${uniqueId}`);
@@ -176,7 +177,7 @@ export class EdgeCases extends UserAuditCases {
     this.context.logCase('[CASE 12] Rollback - audit field changes should not persist');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const testCode = `AUDIT_ROLLBACK_${uniqueId}`;
       // Create real Users for FK constraint
       const originalUser = await this.createTestUser(`CASE12_ORIGINAL_${uniqueId}`);
@@ -226,10 +227,11 @@ export class EdgeCases extends UserAuditCases {
       await transaction.rollback();
 
       // Verify changes did NOT persist
-      [dbRecord] = await connector
+      const [latestRecord] = await connector
         .select()
         .from(Configuration.schema)
         .where(eq(Configuration.schema.id, recordId));
+      dbRecord = latestRecord;
 
       if (dbRecord?.modifiedBy === originalUser && dbRecord?.nValue === 100) {
         this.context.logger.info(
@@ -267,7 +269,7 @@ export class EdgeCases extends UserAuditCases {
     );
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const group = `AUDIT_DATATYPE_${uniqueId}`;
 
       // Create multiple test users to verify audit fields work with valid User IDs
@@ -336,7 +338,7 @@ export class EdgeCases extends UserAuditCases {
     this.context.logCase('[CASE 18] Delete operations return records with audit fields');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const testCode = `AUDIT_DELETE_${uniqueId}`;
       // Create real User for FK constraint
       const testUser = await this.createTestUser(`CASE18_DELETE_${uniqueId}`);
@@ -396,7 +398,7 @@ export class EdgeCases extends UserAuditCases {
     this.context.logCase('[CASE 19] Security - Test audit field injection attempts');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const group = `AUDIT_SECURITY_${uniqueId}`;
 
       // Test potentially malicious audit field values
@@ -481,7 +483,7 @@ export class EdgeCases extends UserAuditCases {
     this.context.logCase('[CASE 20] Test null audit fields and FK constraint validation');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const group = `AUDIT_EMPTY_NULL_${uniqueId}`;
 
       // Test 1: Empty string should be rejected by FK constraint

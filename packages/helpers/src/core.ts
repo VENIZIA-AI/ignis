@@ -5,6 +5,10 @@ export { EnvironmentNames } from './modules/env/names';
 export * from './modules/error';
 export { LogLevels } from './modules/logger/common/types';
 export type { ILogger, ILoggerProvider, TLogLevel } from './modules/logger/common/types';
+// The one way to get a logger, the same in the browser and on the server: `LoggerFactory` imports nothing from node, and its
+// default provider is the console. An application chooses another with `LoggerFactory.use({ provider, level })`.
+export { ConsoleLogger } from './modules/logger/base/console';
+export { LoggerFactory } from './modules/logger/factory';
 export * from './modules/network/http-request/fetcher/base-fetcher';
 // The node fetcher carries no node builtin - its one `querystring.stringify` is written out - so the
 // framework HTTP layer is reachable from a browser bundle, and a connector on HTTP need not
@@ -48,15 +52,25 @@ export { TreeWalker } from './modules/tree/walk';
 // symbol below is verified free of node builtins/globals.
 export { BuildInfoRegistry } from './utilities/build-info.utility';
 export type { IBuildInfo, TBuildInfoRecord } from './utilities/build-info.utility';
-export { blankToUndefined, int, keysToCamel, toBoolean, toCamel } from './utilities/parse.utility';
-export { executeWithPerformanceMeasure } from './utilities/performance.utility';
-export { readFormBody, RequestBodyErrors } from './utilities/form-body.utility';
+export { ParseUtility } from './utilities/parse.utility';
+export { PerformanceUtility } from './utilities/performance.utility';
+export { FormBodyUtility, RequestBodyErrors } from './utilities/form-body.utility';
 export { ProjectRootRegistry } from './utilities/project-root.utility';
 
+// `ECDH` is the one crypto algorithm that is browser-pure: it runs over `crypto.subtle`, `btoa` and `atob`. It and its
+// base class come by leaf path, never the algorithms barrel, which also carries `AES` and `RSA`
+// (server code: they use `Buffer`, and `AES` reads files with `node:fs`).
+export { AbstractCryptoAlgorithm } from './modules/crypto/algorithms/abstract.algorithm';
+export { ECDH } from './modules/crypto/algorithms/ecdh.algorithm';
+export type {
+  ECDHAlgorithmType,
+  IECDHEncryptedPayload,
+  IECDHExtraOptions,
+} from './modules/crypto/algorithms/ecdh.algorithm';
+
 // Type-only: erased at compile time, so re-exporting these carries no runtime/bundle cost even
-// though the concrete classes they describe (crypto algorithms, the ioredis-backed helper) are not
+// though the concrete classes they describe (the other crypto algorithms, the ioredis-backed helper) are not
 // themselves part of this pure surface.
 export { AESAlgorithms } from './modules/crypto/algorithms/aes.constants';
 export type { AESAlgorithmType } from './modules/crypto/algorithms/aes.constants';
-export type { IPayloadCipher } from './modules/crypto/common/types';
 export type { IRedisHelper } from './modules/redis/common/interfaces';

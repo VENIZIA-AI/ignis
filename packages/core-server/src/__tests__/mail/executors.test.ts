@@ -16,9 +16,12 @@ describe('DirectMailExecutorHelper', () => {
   test('enqueue without setProcessor throws PROCESSOR_NOT_SET', async () => {
     const executor = new DirectMailExecutorHelper();
 
-    const error = await executor
-      .enqueueVerificationEmail('a@b.com')
-      .catch((caught: AnyType) => caught);
+    let error: AnyType;
+    try {
+      await executor.enqueueVerificationEmail('a@b.com');
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(error.message).toBe(MailExecutorErrors.PROCESSOR_NOT_SET);
   });
@@ -51,9 +54,12 @@ describe('DirectMailExecutorHelper', () => {
       return Promise.resolve({ ...successProcessorResult, message: email });
     }) as AnyType);
 
-    const syncError = await executor
-      .enqueueVerificationEmail('a@b.com')
-      .catch((caught: AnyType) => caught);
+    let syncError: AnyType;
+    try {
+      await executor.enqueueVerificationEmail('a@b.com');
+    } catch (caught) {
+      syncError = caught;
+    }
     expect(syncError.message).toBe('sync boom');
 
     shouldThrow = false;
@@ -66,9 +72,12 @@ describe('InternalQueueMailExecutorHelper', () => {
   test('enqueue without setProcessor throws PROCESSOR_NOT_SET', async () => {
     const executor = new InternalQueueMailExecutorHelper({ identifier: 'mail-no-processor' });
 
-    const error = await executor
-      .enqueueVerificationEmail('a@b.com')
-      .catch((caught: AnyType) => caught);
+    let error: AnyType;
+    try {
+      await executor.enqueueVerificationEmail('a@b.com');
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(error.message).toBe(MailExecutorErrors.PROCESSOR_NOT_SET);
     await executor.close();
@@ -282,7 +291,12 @@ describe('BullMQMailExecutorHelper - teardown', () => {
       workerHelpers: [failing],
     });
 
-    const error = await executor.removeWorker(0).catch((caught: AnyType) => caught);
+    let error: AnyType;
+    try {
+      await executor.removeWorker(0);
+    } catch (caught) {
+      error = caught;
+    }
     expect(error.message).toBe('worker close failed');
     expect(executor.getWorkerCount()).toBe(0);
   });
@@ -293,8 +307,10 @@ describe('BullMQMailExecutorHelper - teardown', () => {
       workerHelpers: [new FakeWorkerHelper()],
     });
 
-    expect(await executor.removeWorker(5)).toBe(false);
-    expect(await executor.removeWorker(-1)).toBe(false);
+    const result = await executor.removeWorker(5);
+    expect(result).toBe(false);
+    const result2 = await executor.removeWorker(-1);
+    expect(result2).toBe(false);
     expect(executor.getWorkerCount()).toBe(1);
   });
 
@@ -307,7 +323,12 @@ describe('BullMQMailExecutorHelper - teardown', () => {
       workerHelpers: [failing, healthy],
     });
 
-    const error = await executor.close().catch((caught: AnyType) => caught);
+    let error: AnyType;
+    try {
+      await executor.close();
+    } catch (caught) {
+      error = caught;
+    }
     expect(error.message).toContain('worker close failed');
 
     expect(healthy.isClosed).toBe(true);
@@ -333,18 +354,24 @@ describe('BullMQMailExecutorHelper - enqueue', () => {
   test('worker-only mode refuses to enqueue', async () => {
     const { executor } = buildBullMQExecutor({ mode: BullMQExecutorModes.WORKER_ONLY });
 
-    const error = await executor
-      .enqueueVerificationEmail('a@b.com')
-      .catch((caught: AnyType) => caught);
+    let error: AnyType;
+    try {
+      await executor.enqueueVerificationEmail('a@b.com');
+    } catch (caught) {
+      error = caught;
+    }
     expect(error.message).toContain('Cannot enqueue jobs in worker-only mode');
   });
 
   test('both-mode without a processor throws PROCESSOR_NOT_SET', async () => {
     const { executor } = buildBullMQExecutor({ mode: BullMQExecutorModes.BOTH });
 
-    const error = await executor
-      .enqueueVerificationEmail('a@b.com')
-      .catch((caught: AnyType) => caught);
+    let error: AnyType;
+    try {
+      await executor.enqueueVerificationEmail('a@b.com');
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(error.message).toBe(MailExecutorErrors.PROCESSOR_NOT_SET);
   });

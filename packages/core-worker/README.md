@@ -23,7 +23,7 @@ Inside the Worker, extend `WorkerApplication` and call `listen()` instead of `st
 ```typescript
 // worker.ts
 import { z } from '@hono/zod-openapi';
-import { BaseRestController, controller, get, jsonResponse } from '@venizia/ignis-kernel';
+import { BaseRestController, controller, get, OpenApiResponses } from '@venizia/ignis-kernel';
 import { WorkerApplication } from '@venizia/ignis-worker';
 import type { Context } from 'hono';
 
@@ -38,7 +38,7 @@ class NoteController extends BaseRestController {
   @get({
     configs: {
       path: '/',
-      responses: jsonResponse({ schema: z.array(z.object({ title: z.string() })) }),
+      responses: OpenApiResponses.jsonResponse({ schema: z.array(z.object({ title: z.string() })) }),
     },
   })
   list(context: Context) {
@@ -87,13 +87,13 @@ request that arrives while the application is still booting.
 
 ## Make an existing client use it
 
-Most HTTP clients do not accept a custom fetcher. `installBffFetch` answers the page's global `fetch`
+Most HTTP clients do not accept a custom fetcher. `BffFetchBridge.install` answers the page's global `fetch`
 for every URL under `basePath` and leaves every other call on the network:
 
 ```typescript
-import { installBffFetch } from '@venizia/ignis-worker';
+import { BffFetchBridge } from '@venizia/ignis-worker';
 
-installBffFetch({ transport: bff, basePath: '/api' });
+BffFetchBridge.install({ transport: bff, basePath: '/api' });
 
 await fetch('/api/notes'); // answered by the Worker
 ```
@@ -108,7 +108,7 @@ Install it before the code that calls `fetch` starts. It returns a function that
 | `SharedBffTransport` | One Worker per origin. It elects one tab with the Web Locks API and forwards the other tabs' requests over a `BroadcastChannel`. Use it by default |
 | `WorkerBffTransport` | One Worker per transport, for a BFF that holds no origin-exclusive resource |
 | `InProcessBffTransport` | No Worker - the same envelope round trip in one thread, for tests |
-| `installBffFetch` | Routes the global `fetch` into a transport |
+| `BffFetchBridge` | `BffFetchBridge.install` routes the global `fetch` into a transport |
 | `BffEnvelope`, `BFF_SYNTHETIC_ORIGIN` | The request, response and error envelopes that cross `postMessage` |
 
 `SharedBffTransport` exists because a database like PGlite in OPFS holds an exclusive per-origin

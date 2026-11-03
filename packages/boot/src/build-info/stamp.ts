@@ -28,10 +28,13 @@ export class BuildInfoStamp {
    * stay with the application's `getAppInfo()`, which the health reporter reads when they are absent.
    */
   static async register(): Promise<void> {
-    const stamp =
-      typeof IGNIS_BUILD_INFO !== 'undefined'
-        ? IGNIS_BUILD_INFO
-        : await BuildInfoResolver.getInstance().resolve();
+    let stamp: TBuildInfoRecord;
+    if (typeof IGNIS_BUILD_INFO !== 'undefined') {
+      stamp = IGNIS_BUILD_INFO;
+    } else {
+      const resolved = await BuildInfoResolver.getInstance().resolve();
+      stamp = resolved;
+    }
 
     BuildInfoRegistry.set({
       buildInfo: { commit: stamp.commit, branch: stamp.branch, builtAt: stamp.builtAt },

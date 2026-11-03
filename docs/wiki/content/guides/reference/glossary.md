@@ -30,7 +30,7 @@ const TodoRoutes = {
   GET_ALL: {
     method: HTTP.Methods.GET,
     path: '/',
-    responses: jsonResponse({ schema: z.array(z.object({ id: z.string() })) }),
+    responses: OpenApiResponses.jsonResponse({ schema: z.array(z.object({ id: z.string() })) }),
   },
 } as const;
 
@@ -133,7 +133,7 @@ export const todoTable = pgTable('Todo', {
 });
 
 // Relations
-export const userRelations = createRelations({
+export const userRelations = RelationsFactory.create({
   source: userTable,
   relations: [{ name: 'posts', type: 'many', schema: postTable, metadata: {} }],
 });
@@ -194,9 +194,9 @@ await repository.find({
 
 ```typescript
 const TodoRoutes = {
-  GET_ALL: { method: HTTP.Methods.GET, path: '/', responses: jsonResponse({ schema: z.array(z.any()) }) },
-  GET_BY_ID: { method: HTTP.Methods.GET, path: '/{id}', request: { params: z.object({ id: z.string() }) }, responses: jsonResponse({ schema: z.any() }) },
-  CREATE: { method: HTTP.Methods.POST, path: '/', request: { body: jsonContent({ description: 'Todo to create', schema: z.any() }) }, responses: jsonResponse({ schema: z.any() }) },
+  GET_ALL: { method: HTTP.Methods.GET, path: '/', responses: OpenApiResponses.jsonResponse({ schema: z.array(z.any()) }) },
+  GET_BY_ID: { method: HTTP.Methods.GET, path: '/{id}', request: { params: z.object({ id: z.string() }) }, responses: OpenApiResponses.jsonResponse({ schema: z.any() }) },
+  CREATE: { method: HTTP.Methods.POST, path: '/', request: { body: OpenApiResponses.jsonContent({ description: 'Todo to create', schema: z.any() }) }, responses: OpenApiResponses.jsonResponse({ schema: z.any() }) },
 } as const;
 
 @controller({ path: '/todos' })

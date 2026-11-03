@@ -1,4 +1,4 @@
-import { generateIdColumnDefs } from '@/relational/sqlite/models';
+import { SqliteIdEnricher } from '@/relational/sqlite/models';
 import { SqliteQueryDialect } from '@/relational/sqlite/repositories/dialect/query-dialect';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
@@ -14,7 +14,7 @@ import { blob, SQLiteSyncDialect, sqliteTable, text } from 'drizzle-orm/sqlite-c
  * since the failure mode is a query that compiles and then matches nothing.
  */
 const table = sqliteTable('json_parity_fixture', {
-  ...generateIdColumnDefs(),
+  ...SqliteIdEnricher.generateColumnDefs(),
   metadata: text('meta_data', { mode: 'json' }),
   payload: blob('payload_blob', { mode: 'json' }),
 });
@@ -106,15 +106,18 @@ describe('SqliteFilterBuilder - a numeric JSON path component addresses BOTH rea
   // '{counts,0}'` is 9, and so is the array form. Row 1 is the object
   // key, row 2 the array element; before the fix only row 2 matched.
   test('the object key AND the array element match, as they both do on Postgres', async () => {
-    expect(await selectMatchingIds({ 'metadata.counts.0': { gt: 5 } })).toEqual([1, 2]);
+    const result = await selectMatchingIds({ 'metadata.counts.0': { gt: 5 } });
+    expect(result).toEqual([1, 2]);
   });
 
   test('the object reading participates rather than matching everything', async () => {
-    expect(await selectMatchingIds({ 'metadata.counts.0': { lt: 5 } })).toEqual([3]);
+    const result = await selectMatchingIds({ 'metadata.counts.0': { lt: 5 } });
+    expect(result).toEqual([3]);
   });
 
   test('the bracket spelling parses to the same path and answers the same', async () => {
-    expect(await selectMatchingIds({ 'metadata.counts[0]': { gt: 5 } })).toEqual([1, 2]);
+    const result = await selectMatchingIds({ 'metadata.counts[0]': { gt: 5 } });
+    expect(result).toEqual([1, 2]);
   });
 
   test('a non-numeric component keeps emitting a single extraction', () => {
@@ -184,10 +187,12 @@ describe('SQLite refuses a blob-mode json column instead of compiling it', () =>
   test('the same misreading raises malformed JSON when the path reaches an array', async () => {
     const hex = Buffer.from('[1,23]', 'utf8').toString('hex');
 
-    const message = await client.execute(`SELECT json_extract(x'${hex}', '$[0]') AS v`).then(
-      () => '',
-      (error: Error) => error.message,
-    );
+    let message = '';
+    try {
+      await client.execute(`SELECT json_extract(x'${hex}', '$[0]') AS v`);
+    } catch (error) {
+      message = (error as Error).message;
+    }
 
     expect(message).toContain('malformed JSON');
   });

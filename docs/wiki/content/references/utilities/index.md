@@ -1,22 +1,24 @@
 # Utilities
 
-Pure, standalone functions providing common, reusable logic for the IGNIS framework. All utilities are stateless and easy to use.
+Static-method classes providing common, reusable logic for the IGNIS framework. All utilities are stateless and easy to use, and every method takes one options object.
+
+The helpers utilities used to be bare functions (`int`, `sleep`, `executePromiseWithLimit`, ...). Those names are removed; `devz codemod namespace-functions` moves your calls to the class form.
 
 ## Quick Reference
 
 | Utility | Package | Purpose | Key Functions |
 |---------|---------|---------|---------------|
 | **Duration** | `ignis-helpers` | Duration units and conversion | `DurationUnits`, `DurationMultipliers.toMilliseconds()`, `.parseToMilliseconds()` |
-| **JSX** | `ignis` | HTML/JSX responses | `htmlContent()`, `htmlResponse()` |
+| **JSX** | `ignis` | HTML/JSX responses | `OpenApiResponses.htmlContent()`, `OpenApiResponses.htmlResponse()` |
 | **Module** | `ignis-helpers` | Optional peer loading | `ModuleUtility` |
-| **Parse** | `ignis-helpers` | Data type conversion | `int()`, `float()`, `toBoolean()`, `toCamel()` |
-| **Performance** | `ignis-helpers` | Execution timing | `executeWithPerformanceMeasure()`, `getPerformanceCheckpoint()` |
-| **Promise** | `ignis-helpers` | Promise helpers | `executePromiseWithLimit()`, `isPromiseLike()`, `getDeepProperty()` |
-| **Request** | `ignis-helpers` | HTTP utilities | `parseMultipartBody()`, `sanitizeFilename()`, `createContentDispositionHeader()` |
+| **Parse** | `ignis-helpers` | Data type conversion | `ParseUtility.toInt()`, `.toFloat()`, `.toBoolean()`, `.toCamel()` |
+| **Performance** | `ignis-helpers` | Execution timing | `PerformanceUtility.executeWithMeasure()`, `.getCheckpoint()` |
+| **Promise** | `ignis-helpers` | Promise helpers | `PromiseUtility.executeWithLimit()`, `isPromiseLike()`, `ErrorUtility.toError()` |
+| **Request** | `ignis-helpers` | HTTP utilities | `RequestUtility.parseMultipartBody()`, `.sanitizeFilename()`, `.buildContentDispositionHeader()` |
 | **Retry** | `ignis-helpers` | Backoff-driven retries | `RetryHelper` |
-| **Schema** | `ignis` | Zod schema helpers | `jsonContent()`, `jsonResponse()`, `requiredString()`, `idParamsSchema()` |
+| **Schema** | `ignis` | Zod schema helpers | `OpenApiResponses.jsonContent()`, `OpenApiResponses.jsonResponse()`, `OpenApiSchemas.requiredString()`, `OpenApiSchemas.idParams()` |
 | **Statuses** | `ignis` | Status code constants | `Statuses`, `CommonStatuses`, `UserStatuses`, `RoleStatuses` |
-| **Timing** | `ignis-helpers` | Pause and measure | `sleep()`, `hrTime()` |
+| **Timing** | `ignis-helpers` | Pause and measure | `PromiseUtility.sleep()`, `HrTimeUtility.getSeconds()` |
 
 Calendar dates - parsing, formatting, adding a month in a time zone - live in [`TemporalHelper`](/extensions/helpers/temporal/).
 
@@ -30,7 +32,7 @@ Calendar dates - parsing, formatting, adding a month in a time zone - live in [`
 
 ### Time & Performance
 
-- [**Timing**](#timing) - `sleep()` to pause, `hrTime()` to read a high-resolution clock
+- [**Timing**](#timing) - `PromiseUtility.sleep()` to pause, `HrTimeUtility.getSeconds()` to read a high-resolution clock
 - [**Duration**](./duration.md) - A unit vocabulary, written-duration parsing, and conversion between units and milliseconds
 - [**Performance**](./performance.md) - Utilities for measuring code execution time and performance profiling
 
@@ -50,25 +52,25 @@ Calendar dates - parsing, formatting, adding a month in a time zone - live in [`
 Utilities are imported from `@venizia/ignis` (schema, JSX, and status helpers) or `@venizia/ignis-helpers` (runtime utilities):
 
 ```typescript
-import { jsonContent, jsonResponse, htmlResponse, requiredString, Statuses } from '@venizia/ignis';
-import { sleep, int, float, toBoolean } from '@venizia/ignis-helpers';
+import { OpenApiResponses, OpenApiSchemas, Statuses } from '@venizia/ignis';
+import { ParseUtility, PromiseUtility } from '@venizia/ignis-helpers';
 
 // Timing
-await sleep(1000);
+await PromiseUtility.sleep({ ms: 1000 });
 
 // Parse
-const myInt = int('1,000'); // 1000
-const myFloat = float('1,234.567', 2); // 1234.57
-const myBool = toBoolean('true'); // true
+const myInt = ParseUtility.toInt({ input: '1,000' }); // 1000
+const myFloat = ParseUtility.toFloat({ input: '1,234.567', digit: 2 }); // 1234.57
+const myBool = ParseUtility.toBoolean({ input: 'true' }); // true
 
 // Schema (for OpenAPI JSON routes)
-const responseSchema = jsonResponse({
+const responseSchema = OpenApiResponses.jsonResponse({
   description: 'User data',
   schema: z.object({ id: z.string(), name: z.string() }),
 });
 
 // JSX (for HTML routes)
-const htmlResponseSchema = htmlResponse({
+const htmlResponseSchema = OpenApiResponses.htmlResponse({
   description: 'Dashboard page',
 });
 
@@ -81,24 +83,24 @@ if (Statuses.isCompleted(order.status)) {
 
 ## Timing
 
-Two small functions with no page of their own. Both ship from the root of `@venizia/ignis-helpers`.
+Two small methods with no page of their own. Both ship from the root of `@venizia/ignis-helpers`. The old `sleep(ms)` and `hrTime()` functions are removed.
 
-| Function | Signature | What it does |
+| Method | Signature | What it does |
 |---|---|---|
-| `sleep` | `sleep(ms: number): Promise<unknown>` | Resolves after `ms` milliseconds, through `setTimeout` |
-| `hrTime` | `hrTime(): number` | Seconds from `process.hrtime()`, to nine decimals - for measuring, not for dates. Bun only |
+| `PromiseUtility.sleep` | `sleep({ ms: number }): Promise<unknown>` | Resolves after `ms` milliseconds, through `setTimeout` |
+| `HrTimeUtility.getSeconds` | `getSeconds(): number` | Seconds from `process.hrtime()`, to nine decimals - for measuring, not for dates. Bun only |
 
 ```typescript
-import { hrTime, sleep } from '@venizia/ignis-helpers';
+import { HrTimeUtility, PromiseUtility } from '@venizia/ignis-helpers';
 
-const startedAt = hrTime();
-await sleep(250);
-const elapsedSeconds = hrTime() - startedAt; // about 0.25
+const startedAt = HrTimeUtility.getSeconds();
+await PromiseUtility.sleep({ ms: 250 });
+const elapsedSeconds = HrTimeUtility.getSeconds() - startedAt; // about 0.25
 ```
 
 **Files:**
 
-- [`packages/helpers/src/utilities/sleep.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/sleep.utility.ts) - `sleep`
-- [`packages/helpers/src/utilities/hr-time.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/hr-time.utility.ts) - `hrTime`
+- [`packages/helpers/src/utilities/promise.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/promise.utility.ts) - `PromiseUtility.sleep`
+- [`packages/helpers/src/utilities/hr-time.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/hr-time.utility.ts) - `HrTimeUtility`
 
 > **Related:** [Helpers Reference](/extensions/helpers/) | [Core Concepts Guide](../../guides/core-concepts/application/)

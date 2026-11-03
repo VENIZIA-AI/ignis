@@ -1,5 +1,5 @@
 import { datasource, model, RelationTypes } from '@venizia/ignis-kernel';
-import { createRelations } from '@/relational/core/repositories/dialect/relations/create';
+import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
 import type { TRelationConfig } from '@/relational/core/repositories/common';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
@@ -77,10 +77,14 @@ class ModelNameDataSource extends BasePostgresDataSource<{}, {}, {}, PGlite> {
         // Keyed by the registered model name, as auto-discovery keys a real application.
         [OWNER_TABLE]: ownerTable,
         ModelNameChild: childTable,
-        ownerRelations: createRelations({ source: ownerTable, relations: ownerRelationsConfig })
-          .relations,
-        childRelations: createRelations({ source: childTable, relations: childRelationsConfig })
-          .relations,
+        ownerRelations: RelationsFactory.create({
+          source: ownerTable,
+          relations: ownerRelationsConfig,
+        }).relations,
+        childRelations: RelationsFactory.create({
+          source: childTable,
+          relations: childRelationsConfig,
+        }).relations,
       },
     });
 

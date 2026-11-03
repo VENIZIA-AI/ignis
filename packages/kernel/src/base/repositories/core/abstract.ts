@@ -4,7 +4,7 @@ import type { IModelMetadata } from '@/helpers/inversion';
 import { MetadataRegistry } from '@/helpers/inversion';
 import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
-import { resolveValue } from '@venizia/ignis-helpers/common';
+import { ResolverUtility } from '@venizia/ignis-helpers/common';
 import { RetryBackoffStrategies, RetryHelper, RetryJitterModes } from '@venizia/ignis-helpers/core';
 import type {
   IExtraOptions,
@@ -254,9 +254,11 @@ export abstract class AbstractRepository<
       });
     }
 
-    // resolveValue() erases to the resolved value's structural type, not this class-or-resolver
+    // ResolverUtility.resolveValue() erases to the resolved value's structural type, not this class-or-resolver
     // union's member - the `@repository` decorator guarantees a class constructor here.
-    const ModelClass = resolveValue({ value: binding.model }) as TClass<AbstractEntity>;
+    const ModelClass = ResolverUtility.resolveValue({
+      value: binding.model,
+    }) as TClass<AbstractEntity>;
     return new ModelClass();
   }
 

@@ -26,7 +26,8 @@ const installCopy = async (opts: { name: string }): Promise<TKernelModule> => {
   rmSync(target, { recursive: true, force: true });
   cpSync(DIST_ROOT, target, { recursive: true });
 
-  return (await import(join(target, 'index.js'))) as TKernelModule;
+  const result = await import(join(target, 'index.js'));
+  return result as TKernelModule;
 };
 
 /**
@@ -50,8 +51,10 @@ describe('a second copy of the kernel is harmless, not forbidden', () => {
       });
     }
 
-    copyA = await installCopy({ name: 'copy-a' });
-    copyB = await installCopy({ name: 'copy-b' });
+    const result = await installCopy({ name: 'copy-a' });
+    copyA = result;
+    const result2 = await installCopy({ name: 'copy-b' });
+    copyB = result2;
   });
 
   afterAll(() => {

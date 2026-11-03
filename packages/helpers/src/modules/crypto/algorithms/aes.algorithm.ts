@@ -1,8 +1,8 @@
 import { AESAlgorithms, type AESAlgorithmType } from './aes.constants';
-import { isEmpty } from '@venizia/ignis-inversion';
-import C from 'node:crypto';
+import { ObjectUtility } from '@venizia/ignis-inversion';
 import fs from 'node:fs';
 import { getError } from '@/modules/error';
+import { AesEngine } from './aes.engine';
 import { BaseCryptoAlgorithm } from './base.algorithm';
 
 const DEFAULT_LENGTH = 16;
@@ -33,13 +33,14 @@ export type TAESSecret = string | IAESKeyringEntry[];
 
 export { AESAlgorithms, type AESAlgorithmType };
 
+/** `encrypt` and `decrypt` are async: key derivation and the cipher run over `crypto.subtle`. */
 export class AES extends BaseCryptoAlgorithm<
   AESAlgorithmType,
   string,
   string,
   TAESSecret,
-  string,
-  string,
+  Promise<string>,
+  Promise<string>,
   IAESExtraOptions
 > {
   constructor(opts: { algorithm: AESAlgorithmType }) {
@@ -50,19 +51,19 @@ export class AES extends BaseCryptoAlgorithm<
     return new AES({ algorithm });
   }
 
-  protected resolveEncryptKey(opts: {
+  protected async resolveEncryptKey(opts: {
     secret: TAESSecret;
     kdfSalt?: string;
     kdfIterations?: number;
-  }): { id: string; key: Buffer } {
+  }): Promise<{ id: string; key: Buffer }> {
     const { secret, kdfSalt, kdfIterations } = opts;
     const entry = Array.isArray(secret) ? secret[0] : { id: DEFAULT_KEY_ID, secret };
 
-    if (!entry || isEmpty({ value: entry.secret })) {
+    if (!entry || ObjectUtility.isEmpty({ value: entry.secret })) {
       throw getError({ message: '[AES][resolveEncryptKey] Missing secret or empty keyring' });
     }
 
-    const key = this.normalizeSecretKey({
+    const key = await this.normalizeSecretKey({
       secret: entry.secret,
       length: this.getAlgorithmKeySize(),
       kdfSalt,
@@ -71,12 +72,12 @@ export class AES extends BaseCryptoAlgorithm<
     return { id: entry.id, key };
   }
 
-  protected resolveDecryptKey(opts: {
+  protected async resolveDecryptKey(opts: {
     secret: TAESSecret;
     id: string;
     kdfSalt?: string;
     kdfIterations?: number;
-  }): Buffer {
+  }): Promise<Buffer> {
     const { secret, id, kdfSalt, kdfIterations } = opts;
     const length = this.getAlgorithmKeySize();
 
@@ -92,19 +93,28 @@ export class AES extends BaseCryptoAlgorithm<
     }
 
     // Without this the empty secret derives a key from '' and fails as an opaque OpenSSL error, hiding a plain configuration mistake.
-    if (isEmpty({ value: entry.secret })) {
+    if (ObjectUtility.isEmpty({ value: entry.secret })) {
       throw getError({
         message: `[AES][resolveDecryptKey] Keyring entry for key id "${id}" has an empty secret`,
       });
     }
 
-    return this.normalizeSecretKey({ secret: entry.secret, length, kdfSalt, kdfIterations });
+    return this.normalizeSecretKey({
+      secret: entry.secret,
+      length,
+      kdfSalt,
+      kdfIterations,
+    });
   }
 
-  encrypt(opts: { message: string; secret: TAESSecret; opts?: IAESExtraOptions }) {
+  async encrypt(opts: {
+    message: string;
+    secret: TAESSecret;
+    opts?: IAESExtraOptions;
+  }): Promise<string> {
     const { message, secret } = opts;
     const {
-      iv = C.randomBytes(DEFAULT_LENGTH),
+      iv = Buffer.from(crypto.getRandomValues(new Uint8Array(DEFAULT_LENGTH))),
       inputEncoding = 'utf-8',
       outputEncoding = 'base64',
       doThrow = true,
@@ -113,32 +123,34 @@ export class AES extends BaseCryptoAlgorithm<
     } = opts.opts ?? {};
 
     try {
-      const { id, key } = this.resolveEncryptKey({ secret, kdfSalt, kdfIterations });
+      const { id, key } = await this.resolveEncryptKey({ secret, kdfSalt, kdfIterations });
       const idBuffer = Buffer.from(id, 'utf-8');
       if (idBuffer.length > 0xff) {
         throw getError({ message: '[AES][encrypt] Key id too long (max 255 bytes)' });
       }
 
-      const cipher = C.createCipheriv(this.algorithm, key, iv);
+      // `decrypt` reads exactly DEFAULT_LENGTH bytes of IV from the envelope, so any other length would write a ciphertext nothing can read.
+      if (iv.length !== DEFAULT_LENGTH) {
+        throw getError({
+          message: `[AES][encrypt] The IV must be ${DEFAULT_LENGTH} bytes, got ${iv.length}`,
+        });
+      }
+
+      const { cipherText, authTag } = await AesEngine.seal({
+        algorithm: this.algorithm,
+        key,
+        iv,
+        plain: Buffer.from(message, inputEncoding),
+      });
 
       // Envelope: [version(1)][idLen(1)][id(idLen)][iv(16)][authTag(16, gcm only)][cipher]
       const header = Buffer.from([CIPHERTEXT_VERSION, idBuffer.length]);
-      const parts = [header, idBuffer, iv];
+      const parts: Uint8Array[] = [header, idBuffer, iv];
 
-      const cipherText = cipher.update(message, inputEncoding);
-      const cipherFinal = cipher.final();
-
-      switch (this.algorithm) {
-        case 'aes-256-cbc': {
-          break;
-        }
-        case 'aes-256-gcm': {
-          parts.push((cipher as C.CipherGCM).getAuthTag());
-          break;
-        }
+      if (authTag !== null) {
+        parts.push(authTag);
       }
       parts.push(cipherText);
-      parts.push(cipherFinal);
 
       return Buffer.concat(parts).toString(outputEncoding);
     } catch (error) {
@@ -150,20 +162,23 @@ export class AES extends BaseCryptoAlgorithm<
     }
   }
 
-  encryptFile(opts: { absolutePath: string; secret: TAESSecret }): string {
+  async encryptFile(opts: { absolutePath: string; secret: TAESSecret }): Promise<string> {
     const { absolutePath, secret } = opts;
 
-    if (!absolutePath || isEmpty({ value: absolutePath })) {
+    if (!absolutePath || ObjectUtility.isEmpty({ value: absolutePath })) {
       return '';
     }
 
     const buffer = fs.readFileSync(absolutePath);
     const fileContent = buffer?.toString('utf-8');
-    const encrypted = this.encrypt({ message: fileContent, secret });
-    return encrypted;
+    return this.encrypt({ message: fileContent, secret });
   }
 
-  decrypt(opts: { message: string; secret: TAESSecret; opts?: IAESDecryptOptions }) {
+  async decrypt(opts: {
+    message: string;
+    secret: TAESSecret;
+    opts?: IAESDecryptOptions;
+  }): Promise<string> {
     const { message, secret } = opts;
     const {
       inputEncoding = 'base64',
@@ -190,25 +205,22 @@ export class AES extends BaseCryptoAlgorithm<
       const iv = raw.subarray(cursor, cursor + DEFAULT_LENGTH);
       cursor += DEFAULT_LENGTH;
 
-      const key = this.resolveDecryptKey({ secret, id, kdfSalt, kdfIterations });
-      const decipher = C.createDecipheriv(this.algorithm, key, iv);
+      const key = await this.resolveDecryptKey({ secret, id, kdfSalt, kdfIterations });
 
-      switch (this.algorithm) {
-        case 'aes-256-cbc': {
-          break;
-        }
-        case 'aes-256-gcm': {
-          const authTag = raw.subarray(cursor, cursor + DEFAULT_LENGTH);
-          cursor += DEFAULT_LENGTH;
-          (decipher as C.DecipherGCM).setAuthTag(authTag);
-          break;
-        }
+      let authTag: Uint8Array | null = null;
+      if (this.algorithm === AESAlgorithms.AES_256_GCM) {
+        authTag = raw.subarray(cursor, cursor + DEFAULT_LENGTH);
+        cursor += DEFAULT_LENGTH;
       }
 
-      const cipherText = raw.subarray(cursor);
-      return Buffer.concat([decipher.update(cipherText), decipher.final()]).toString(
-        outputEncoding,
-      );
+      const plain = await AesEngine.open({
+        algorithm: this.algorithm,
+        key,
+        iv,
+        cipherText: raw.subarray(cursor),
+        authTag,
+      });
+      return Buffer.from(plain).toString(outputEncoding);
     } catch (error) {
       if (doThrow) {
         throw error;
@@ -218,16 +230,15 @@ export class AES extends BaseCryptoAlgorithm<
     }
   }
 
-  decryptFile(opts: { absolutePath: string; secret: TAESSecret }) {
+  async decryptFile(opts: { absolutePath: string; secret: TAESSecret }): Promise<string> {
     const { absolutePath, secret } = opts;
 
-    if (!absolutePath || isEmpty({ value: absolutePath })) {
+    if (!absolutePath || ObjectUtility.isEmpty({ value: absolutePath })) {
       return '';
     }
 
     const buffer = fs.readFileSync(absolutePath);
     const fileContent = buffer?.toString('utf-8');
-    const decrypted = this.decrypt({ message: fileContent, secret });
-    return decrypted;
+    return this.decrypt({ message: fileContent, secret });
   }
 }

@@ -1,9 +1,8 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { randomBytes } from 'node:crypto';
 import { getError } from '@venizia/ignis-helpers/core';
 import { MailErrorCodes, type IMailAttachment, type IMailMessage } from '../common';
-import { splitAddressList } from './address.utility';
-import { readAttachmentContent } from './attachment.utility';
+import { MailAddressUtility } from './address.utility';
+import { MailAttachmentUtility } from './attachment.utility';
 
 const CRLF = '\r\n';
 const BASE64_LINE_LENGTH = 76;
@@ -19,6 +18,11 @@ const MAX_HEADER_LINE_LENGTH = 78;
 const MAX_HEADER_HARD_LIMIT = 990;
 /** RFC 2047 caps one encoded-word (`=?charset?B?...?=` included) at 75 characters. */
 const ENCODED_WORD_MAX_LENGTH = 75;
+
+/** `bytes` random bytes as lowercase hex, from the platform CSPRNG. */
+function generateRandomHex(opts: { bytes: number }): string {
+  return Buffer.from(crypto.getRandomValues(new Uint8Array(opts.bytes))).toString('hex');
+}
 
 function isAscii(value: string): boolean {
   for (let index = 0; index < value.length; index++) {
@@ -93,11 +97,9 @@ function encodeAddress(address: string): string {
   return `${encodeWord(name)} <${addr}>`;
 }
 
-/** Formats a `to`/`cc`/`from`/`replyTo` field as one RFC 5322 address list: splits a
- * comma-separated string or array into individual mailboxes, RFC 2047-encodes each display name,
- * and rejoins with `, ` - the same shape whether the caller passed a string or an array. */
-export function formatAddressHeader(value: string | string[]): string {
-  return splitAddressList(value).map(encodeAddress).join(', ');
+/** The body of `MailMimeUtility.formatAddressHeader`, callable from the header builder. */
+function formatAddressList(value: string | string[]): string {
+  return MailAddressUtility.splitList({ value }).map(encodeAddress).join(', ');
 }
 
 /**
@@ -227,22 +229,22 @@ function buildHeaders(message: IMailMessage): string[] {
 
   if (message.from) {
     assertNoAddressListInjection({ field: 'from', value: message.from });
-    headers.push(foldHeaderLine(`From: ${formatAddressHeader(message.from)}`));
+    headers.push(foldHeaderLine(`From: ${formatAddressList(message.from)}`));
   }
 
   if (message.to) {
     assertNoAddressListInjection({ field: 'to', value: message.to });
-    headers.push(foldHeaderLine(`To: ${formatAddressHeader(message.to)}`));
+    headers.push(foldHeaderLine(`To: ${formatAddressList(message.to)}`));
   }
 
   if (message.cc) {
     assertNoAddressListInjection({ field: 'cc', value: message.cc });
-    headers.push(foldHeaderLine(`Cc: ${formatAddressHeader(message.cc)}`));
+    headers.push(foldHeaderLine(`Cc: ${formatAddressList(message.cc)}`));
   }
 
   if (message.replyTo) {
     assertNoAddressListInjection({ field: 'replyTo', value: message.replyTo });
-    headers.push(foldHeaderLine(`Reply-To: ${formatAddressHeader(message.replyTo)}`));
+    headers.push(foldHeaderLine(`Reply-To: ${formatAddressList(message.replyTo)}`));
   }
 
   // Checked, never emitted: a `Bcc:` header would disclose the blind recipients, so they travel as
@@ -257,7 +259,7 @@ function buildHeaders(message: IMailMessage): string[] {
   // so an omission here is an omission on the wire (some receiving MTAs reject a `Date`-less
   // message outright, and a missing `Message-ID` breaks threading and dedup).
   headers.push(`Date: ${new Date().toUTCString()}`);
-  headers.push(`Message-ID: <${randomBytes(16).toString('hex')}@${extractDomain(message.from)}>`);
+  headers.push(`Message-ID: <${generateRandomHex({ bytes: 16 })}@${extractDomain(message.from)}>`);
   headers.push('MIME-Version: 1.0');
 
   if (message.headers) {
@@ -319,8 +321,8 @@ function attachmentNameParams(attribute: 'name' | 'filename', value: string): st
 }
 
 async function attachmentPart(attachment: IMailAttachment, boundary: string): Promise<string> {
-  // No root here: a `path` that did not go through `resolveMailAttachments` is refused, never read.
-  const content = await readAttachmentContent({ attachment });
+  // No root here: a `path` that did not go through `MailAttachmentUtility.resolve` is refused, never read.
+  const content = await MailAttachmentUtility.readContent({ attachment });
   const contentType = attachment.contentType ?? 'application/octet-stream';
   assertNoHeaderInjection({ field: 'attachment.contentType', value: contentType });
 
@@ -356,112 +358,126 @@ async function attachmentPart(attachment: IMailAttachment, boundary: string): Pr
 
 /** Every boundary is generated the same way - a fixed prefix plus random hex - so no two nested multipart sections in one message can ever collide. */
 function newBoundary(label: string): string {
-  return `----=_${label}_${randomBytes(12).toString('hex')}`;
+  return `----=_${label}_${generateRandomHex({ bytes: 12 })}`;
 }
 
-/**
- * Builds a raw RFC 822 message with zero external dependencies - Amazon SES's `SendEmailCommand`
- * `Content.Simple` shape has no attachment field, so attachments require a raw MIME body. Written
- * by hand instead of depending on `nodemailer`'s `MailComposer` so the `ses` provider never needs
- * the `nodemailer` peer installed at all.
- *
- * Inline (`cid`) attachments nest under `multipart/related` next to the body - a mail client
- * only renders `cid:` references inline when they share a `multipart/related` parent with the
- * body; under `multipart/mixed` they show up as ordinary downloadable attachments instead. Plain
- * file attachments (no `cid`) stay under `multipart/mixed`, alongside the body or the
- * `multipart/related` group when both kinds are present.
- */
-export async function buildRawMimeMessage(message: IMailMessage): Promise<Buffer> {
-  const headers = buildHeaders(message);
-  const attachments = message.attachments ?? [];
-  const inlineAttachments = attachments.filter((attachment) => Boolean(attachment.cid));
-  const fileAttachments = attachments.filter((attachment) => !attachment.cid);
-  const hasBothBodies = Boolean(message.text) && Boolean(message.html);
-  const singleContentType = message.html ? ('text/html' as const) : ('text/plain' as const);
-  const singleContent = message.html ?? message.text ?? '';
+export class MailMimeUtility {
+  /** Formats a `to`/`cc`/`from`/`replyTo` field as one RFC 5322 address list: splits a
+   * comma-separated string or array into individual mailboxes, RFC 2047-encodes each display name,
+   * and rejoins with `, ` - the same shape whether the caller passed a string or an array. */
+  static formatAddressHeader(opts: { value: string | string[] }): string {
+    return formatAddressList(opts.value);
+  }
 
-  const bodyPart = (boundary: string): string => {
-    if (!hasBothBodies) {
-      return textPart(boundary, singleContentType, singleContent);
+  /**
+   * Builds a raw RFC 822 message with zero external dependencies - Amazon SES's `SendEmailCommand`
+   * `Content.Simple` shape has no attachment field, so attachments require a raw MIME body. Written
+   * by hand instead of depending on `nodemailer`'s `MailComposer` so the `ses` provider never needs
+   * the `nodemailer` peer installed at all.
+   *
+   * Inline (`cid`) attachments nest under `multipart/related` next to the body - a mail client
+   * only renders `cid:` references inline when they share a `multipart/related` parent with the
+   * body; under `multipart/mixed` they show up as ordinary downloadable attachments instead. Plain
+   * file attachments (no `cid`) stay under `multipart/mixed`, alongside the body or the
+   * `multipart/related` group when both kinds are present.
+   */
+  static async buildRawMessage(opts: { message: IMailMessage }): Promise<Buffer> {
+    const { message } = opts;
+    const headers = buildHeaders(message);
+    const attachments = message.attachments ?? [];
+    const inlineAttachments = attachments.filter((attachment) => Boolean(attachment.cid));
+    const fileAttachments = attachments.filter((attachment) => !attachment.cid);
+    const hasBothBodies = Boolean(message.text) && Boolean(message.html);
+    const singleContentType = message.html ? ('text/html' as const) : ('text/plain' as const);
+    const singleContent = message.html ?? message.text ?? '';
+
+    const bodyPart = (boundary: string): string => {
+      if (!hasBothBodies) {
+        return textPart(boundary, singleContentType, singleContent);
+      }
+
+      const altBoundary = newBoundary('Alt');
+      return [
+        `--${boundary}`,
+        `Content-Type: multipart/alternative; boundary="${altBoundary}"`,
+        '',
+        [
+          textPart(altBoundary, 'text/plain', message.text ?? ''),
+          textPart(altBoundary, 'text/html', message.html ?? ''),
+          `--${altBoundary}--`,
+        ].join(CRLF),
+      ].join(CRLF);
+    };
+
+    if (attachments.length === 0 && !hasBothBodies) {
+      headers.push(`Content-Type: ${singleContentType}; charset=UTF-8`);
+      headers.push('Content-Transfer-Encoding: base64');
+      return Buffer.from([...headers, '', encodeTextBase64(singleContent)].join(CRLF), 'utf-8');
     }
 
-    const altBoundary = newBoundary('Alt');
-    return [
-      `--${boundary}`,
-      `Content-Type: multipart/alternative; boundary="${altBoundary}"`,
-      '',
-      [
-        textPart(altBoundary, 'text/plain', message.text ?? ''),
-        textPart(altBoundary, 'text/html', message.html ?? ''),
-        `--${altBoundary}--`,
-      ].join(CRLF),
-    ].join(CRLF);
-  };
-
-  if (attachments.length === 0 && !hasBothBodies) {
-    headers.push(`Content-Type: ${singleContentType}; charset=UTF-8`);
-    headers.push('Content-Transfer-Encoding: base64');
-    return Buffer.from([...headers, '', encodeTextBase64(singleContent)].join(CRLF), 'utf-8');
-  }
-
-  if (attachments.length === 0) {
-    const boundary = newBoundary('Alt');
-    headers.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
-    const parts = [
-      textPart(boundary, 'text/plain', message.text ?? ''),
-      textPart(boundary, 'text/html', message.html ?? ''),
-      `--${boundary}--`,
-    ];
-    return Buffer.from([...headers, '', parts.join(CRLF)].join(CRLF), 'utf-8');
-  }
-
-  const buildRelatedPart = async (parentBoundary: string): Promise<string> => {
-    const relatedBoundary = newBoundary('Related');
-    const parts = [bodyPart(relatedBoundary)];
-
-    for (const attachment of inlineAttachments) {
-      parts.push(await attachmentPart(attachment, relatedBoundary));
+    if (attachments.length === 0) {
+      const boundary = newBoundary('Alt');
+      headers.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
+      const parts = [
+        textPart(boundary, 'text/plain', message.text ?? ''),
+        textPart(boundary, 'text/html', message.html ?? ''),
+        `--${boundary}--`,
+      ];
+      return Buffer.from([...headers, '', parts.join(CRLF)].join(CRLF), 'utf-8');
     }
 
-    parts.push(`--${relatedBoundary}--`);
+    const buildRelatedPart = async (parentBoundary: string): Promise<string> => {
+      const relatedBoundary = newBoundary('Related');
+      const parts = [bodyPart(relatedBoundary)];
 
-    return [
-      `--${parentBoundary}`,
-      `Content-Type: multipart/related; boundary="${relatedBoundary}"`,
-      '',
-      parts.join(CRLF),
-    ].join(CRLF);
-  };
+      for (const attachment of inlineAttachments) {
+        const result = await attachmentPart(attachment, relatedBoundary);
+        parts.push(result);
+      }
 
-  if (inlineAttachments.length > 0 && fileAttachments.length === 0) {
-    const relatedBoundary = newBoundary('Related');
-    const parts = [bodyPart(relatedBoundary)];
+      parts.push(`--${relatedBoundary}--`);
 
-    for (const attachment of inlineAttachments) {
-      parts.push(await attachmentPart(attachment, relatedBoundary));
+      return [
+        `--${parentBoundary}`,
+        `Content-Type: multipart/related; boundary="${relatedBoundary}"`,
+        '',
+        parts.join(CRLF),
+      ].join(CRLF);
+    };
+
+    if (inlineAttachments.length > 0 && fileAttachments.length === 0) {
+      const relatedBoundary = newBoundary('Related');
+      const parts = [bodyPart(relatedBoundary)];
+
+      for (const attachment of inlineAttachments) {
+        const result = await attachmentPart(attachment, relatedBoundary);
+        parts.push(result);
+      }
+
+      parts.push(`--${relatedBoundary}--`);
+      headers.push(`Content-Type: multipart/related; boundary="${relatedBoundary}"`);
+      return Buffer.from([...headers, '', parts.join(CRLF)].join(CRLF), 'utf-8');
     }
 
-    parts.push(`--${relatedBoundary}--`);
-    headers.push(`Content-Type: multipart/related; boundary="${relatedBoundary}"`);
-    return Buffer.from([...headers, '', parts.join(CRLF)].join(CRLF), 'utf-8');
+    const mixedBoundary = newBoundary('Mixed');
+    headers.push(`Content-Type: multipart/mixed; boundary="${mixedBoundary}"`);
+
+    const bodyParts: string[] = [];
+
+    if (inlineAttachments.length > 0) {
+      const result2 = await buildRelatedPart(mixedBoundary);
+      bodyParts.push(result2);
+    } else {
+      bodyParts.push(bodyPart(mixedBoundary));
+    }
+
+    for (const attachment of fileAttachments) {
+      const result3 = await attachmentPart(attachment, mixedBoundary);
+      bodyParts.push(result3);
+    }
+
+    bodyParts.push(`--${mixedBoundary}--`);
+
+    return Buffer.from([...headers, '', bodyParts.join(CRLF)].join(CRLF), 'utf-8');
   }
-
-  const mixedBoundary = newBoundary('Mixed');
-  headers.push(`Content-Type: multipart/mixed; boundary="${mixedBoundary}"`);
-
-  const bodyParts: string[] = [];
-
-  if (inlineAttachments.length > 0) {
-    bodyParts.push(await buildRelatedPart(mixedBoundary));
-  } else {
-    bodyParts.push(bodyPart(mixedBoundary));
-  }
-
-  for (const attachment of fileAttachments) {
-    bodyParts.push(await attachmentPart(attachment, mixedBoundary));
-  }
-
-  bodyParts.push(`--${mixedBoundary}--`);
-
-  return Buffer.from([...headers, '', bodyParts.join(CRLF)].join(CRLF), 'utf-8');
 }

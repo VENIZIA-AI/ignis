@@ -47,18 +47,24 @@ describe('fetchers hand an UPPERCASE method to their transport', () => {
     const upper = method.toUpperCase();
 
     test(`NodeFetcher normalizes '${method}' and '${upper}' to ${upper} before fetch()`, async () => {
-      expect(await captureNodeFetchMethod(method)).toBe(upper);
-      expect(await captureNodeFetchMethod(upper as THttpMethod)).toBe(upper);
+      const result = await captureNodeFetchMethod(method);
+      expect(result).toBe(upper);
+      const result2 = await captureNodeFetchMethod(upper as THttpMethod);
+      expect(result2).toBe(upper);
     });
 
     test(`AxiosFetcher normalizes '${method}' and '${upper}' to ${upper} before request()`, async () => {
-      expect(await captureAxiosMethod(method)).toBe(upper);
-      expect(await captureAxiosMethod(upper as THttpMethod)).toBe(upper);
+      const result = await captureAxiosMethod(method);
+      expect(result).toBe(upper);
+      const result2 = await captureAxiosMethod(upper as THttpMethod);
+      expect(result2).toBe(upper);
     });
   }
 
   test('an omitted method reaches the transport as GET, not as undefined', async () => {
-    expect(await captureNodeFetchMethod()).toBe('GET');
-    expect(await captureAxiosMethod()).toBe('GET');
+    const result = await captureNodeFetchMethod();
+    expect(result).toBe('GET');
+    const result2 = await captureAxiosMethod();
+    expect(result2).toBe('GET');
   });
 });

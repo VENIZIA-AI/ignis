@@ -42,7 +42,7 @@ a network. `curl` against the dev server returns the SPA shell; the routed URL i
 - **A second tab works.** One tab holds the Worker and the OPFS handle; the rest reach it through
   `SharedBffTransport`. Close the leading tab and a follower is promoted in place, no reload.
 - **react-admin talks to it unmodified.** `DefaultRestDataProvider` points at `/api` and reaches the
-  network through the global `fetch`, which `installBffFetch` answers. Nothing in the front end knows
+  network through the global `fetch`, which `BffFetchBridge.install` answers. Nothing in the front end knows
   a Worker exists.
 
 ## The one workaround left, and the two that were removed
@@ -57,14 +57,14 @@ a new sub-path was imported. Rolldown's CommonJS interop shim then read `__filen
 takes inside a Worker, hence the second.
 
 Every package in `PURITY_CLAIMS` now ships ES modules only, and
-`assertBrowserEsmEntry` in `scripts/checks/purity/manifest.ts` fails the gate if a claimed sub-path stops publishing a runtime entry in `dist/esm`. Measured
+`PurityManifest.assertBrowserEsmEntry` in `scripts/checks/purity/manifest.ts` fails the gate if a claimed sub-path stops publishing a runtime entry in `dist/esm`. Measured
 on the production build: the page chunk fell from **682 KB to 54 KB**, because the ESM entry is
 tree-shakeable where the CommonJS one was not.
 
 There was a third: an alias pointing `hono/context-storage` at `src/shims/hono-context-storage.ts`,
 because `@venizia/ignis-connectors/postgres` imported that module and its body constructs an
 `AsyncLocalStorage`. It replaced the module for the entire build, not one call site, so a model using
-`enrichUserAudit` had `createdBy` and `modifiedBy` written as `null` on every row with no error. Both
+`PostgresUserAuditEnricher.enrich` had `createdBy` and `modifiedBy` written as `null` on every row with no error. Both
 the alias and the shim are gone: the enricher now reads
 [`RequestContextRegistry`](/packages/kernel.md), and this Worker installs no resolver, which the
 enricher reads as "no request context" - the state its `allowAnonymous` branch already handled.

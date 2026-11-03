@@ -5,7 +5,7 @@ import {
   BaseAppErrorMiddleware,
   BaseRestController,
   controller,
-  jsonResponse,
+  OpenApiResponses,
   RestApplication,
 } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
@@ -54,7 +54,7 @@ class OrderController extends BaseRestController {
   }
 
   override binding() {
-    const responses = jsonResponse({
+    const responses = OpenApiResponses.jsonResponse({
       description: 'Order',
       schema: z.object({ id: z.string() }),
     });
@@ -176,10 +176,12 @@ const probeServer = async (opts: { path: string }): Promise<IProbedResponse> => 
     NODE_ENV: 'production',
   });
 
+  const body: Record<string, any> = await response.json();
+
   return {
     status: response.status,
     contentType: response.headers.get(HTTP.Headers.CONTENT_TYPE),
-    body: (await response.json()) as Record<string, any>,
+    body,
   };
 };
 

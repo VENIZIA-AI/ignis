@@ -1,4 +1,3 @@
-import C from 'node:crypto';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import {
@@ -11,6 +10,9 @@ import {
 interface IHashExtraOptions {
   outputEncoding?: THashOutputEncoding;
 }
+
+/** Text is hashed as UTF-8, bytes as they are. */
+type THashInput = string | Uint8Array;
 
 /**
  * One-way message digests and keyed HMACs. Unlike `AES`/`RSA` this has no `decrypt` - a digest
@@ -51,25 +53,41 @@ export class Hash extends BaseHelper {
     }
   }
 
-  /** Plain digest, no secret. MD5/SHA1 are broken/weak - see {@link HashAlgorithms} - never use for security decisions. */
-  digest(opts: { message: string; opts?: IHashExtraOptions }): string {
+  /**
+   * Plain digest, no secret. `message` is text (UTF-8), bytes, or several parts hashed in order as ONE message: a git
+   * blob is the header text "blob <size>" and a NUL byte, then the bytes, so its parts are the header and the bytes. MD5/SHA1
+   * are broken/weak - see {@link HashAlgorithms} - never use for security decisions.
+   */
+  digest(opts: {
+    message: THashInput | ReadonlyArray<THashInput>;
+    opts?: IHashExtraOptions;
+  }): string {
     const { message } = opts;
     const { outputEncoding = DEFAULT_HASH_OUTPUT_ENCODING } = opts.opts ?? {};
+    const hash = new Bun.CryptoHasher(this.algorithm);
 
-    return C.createHash(this.algorithm).update(message).digest(outputEncoding);
+    for (const part of Array.isArray(message) ? message : [message]) {
+      hash.update(part);
+    }
+
+    return hash.digest(outputEncoding);
   }
 
-  /** Keyed HMAC. `secret` is mandatory and validated non-empty so a request for an HMAC never silently degrades into an unkeyed digest. */
-  hmac(opts: { message: string; secret: string; opts?: IHashExtraOptions }): string {
+  /**
+   * Keyed HMAC. `message` and `secret` are text (UTF-8) or bytes: a `Buffer` or `Uint8Array` key gives the same output
+   * as the text of the same bytes, so a token printed with one keeps verifying with the other. `secret` is mandatory and
+   * validated non-empty so a request for an HMAC never silently degrades into an unkeyed digest.
+   */
+  hmac(opts: { message: THashInput; secret: THashInput; opts?: IHashExtraOptions }): string {
     const { message, secret } = opts;
     const { outputEncoding = DEFAULT_HASH_OUTPUT_ENCODING } = opts.opts ?? {};
 
-    if (!secret) {
+    if (secret.length === 0) {
       throw getError({
         message: `[Hash][hmac] Missing secret for HMAC-${this.algorithm.toUpperCase()}`,
       });
     }
 
-    return C.createHmac(this.algorithm, secret).update(message).digest(outputEncoding);
+    return new Bun.CryptoHasher(this.algorithm, secret).update(message).digest(outputEncoding);
   }
 }

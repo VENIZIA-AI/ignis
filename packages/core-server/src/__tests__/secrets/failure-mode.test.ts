@@ -2,7 +2,7 @@ import { BaseApplication } from '@/base/applications/base';
 import { type AnyType } from '@venizia/ignis-helpers/common';
 import { SecretProviders, type ISecretsRegistration } from '@venizia/ignis-helpers';
 import { afterEach, describe, expect, test } from 'bun:test';
-import { expectRejection } from '@venizia/dev-configs/testing';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 
 class FailingSecretsApp extends BaseApplication {
   override getProjectRoot() {
@@ -37,7 +37,8 @@ describe('hydrateSecrets failure mode', () => {
       config: { path: { base: '', isStrict: false } },
     });
 
-    expect(await app.hydrateSecrets()).toBeUndefined();
+    const result = await app.hydrateSecrets();
+    expect(result).toBeUndefined();
   });
 
   test('production env throws ApplicationError', async () => {
@@ -47,7 +48,7 @@ describe('hydrateSecrets failure mode', () => {
       config: { path: { base: '', isStrict: false } },
     });
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: app.hydrateSecrets(),
       message: /non-development environment/,
     });

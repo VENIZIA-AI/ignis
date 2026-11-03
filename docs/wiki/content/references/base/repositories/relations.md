@@ -52,17 +52,17 @@ A model built with `ModelFactory.defineEntity` declares its relations keyed by n
 ```typescript
 // src/models/user.model.ts
 import { model } from '@venizia/ignis';
-import { generateIdColumnDefs, many, ModelFactory, one } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, many, ModelFactory, one } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   name: text('name').notNull(),
 });
 
 export const postTable = pgTable('Post', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   authorId: text('author_id').notNull().references((): AnyPgColumn => userTable.id),
   title: text('title').notNull(),
 });
@@ -88,12 +88,12 @@ export class Post extends ModelFactory.defineEntity({
 
 ### The class form
 
-A class-based model declares a static `relations` resolver instead, returning an array of `TRelationConfig`. `MetadataRegistry` resolves the array during schema discovery and passes it to `createRelations`. `createRelations` builds the actual Drizzle `relations()` definition - application code never calls it directly.
+A class-based model declares a static `relations` resolver instead, returning an array of `TRelationConfig`. `MetadataRegistry` resolves the array during schema discovery and passes it to `RelationsFactory.create`. `RelationsFactory.create` builds the actual Drizzle `relations()` definition - application code never calls it directly.
 
 ```typescript
 // src/models/user.model.ts
 import { model, RelationTypes } from '@venizia/ignis';
-import { BaseEntity, TRelationConfig } from '@venizia/ignis/postgres';
+import { BaseEntity, TRelationConfig } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import { Post } from './post.model';
 
@@ -309,7 +309,7 @@ async function getUser(id: string, includePosts: boolean) {
 For a model built with `defineEntity`, `TEntityObject<typeof User>` is the row plus every declared relation, each optional:
 
 ```typescript
-import type { TEntityObject } from '@venizia/ignis/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 
 const user = await userRepository.findOne<TEntityObject<typeof User>>({
   filter: { where: { id: '123' }, include: [{ relation: 'posts' }] },
@@ -418,7 +418,6 @@ const comments = await commentRepository.find({
 
 - [Repositories overview](/references/base/repositories/) - CRUD basics, common tasks
 - [Advanced Features](./advanced) - transactions, hidden properties, performance
-- [Repository Mixins (Removed)](./mixins) - where default-filter and fields-visibility behavior lives now
 - [Filter System](/references/base/filter-system/) - every `where` operator, ordering, pagination
 - [Models - Full Reference](/references/base/models-reference) - `@model`, entity hierarchy, schema enrichers
 - [Drizzle ORM Relations](https://orm.drizzle.team/docs/rqb#relations) - relation definition guide
@@ -429,4 +428,4 @@ const comments = await commentRepository.find({
 - [`packages/kernel/src/base/repositories/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/constants.ts) - `RelationTypes`
 - [`packages/connectors/src/relational/postgres/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/common/types.ts) - `TRelationConfig`
 - [`packages/connectors/src/relational/core/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/dialect/filter.ts) - `FilterBuilder` (`resolveRelations`, `toInclude`)
-- [`packages/connectors/src/relational/postgres/repositories/dialect/relation.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/dialect/relation.ts) - `createRelations` (config -> Drizzle `relations()`)
+- [`packages/connectors/src/relational/postgres/repositories/dialect/relation.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/dialect/relation.ts) - `RelationsFactory` re-export; `RelationsFactory.create` (config -> Drizzle `relations()`)

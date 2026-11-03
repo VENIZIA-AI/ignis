@@ -26,14 +26,13 @@ const typed: { value: TPeriod }[] = mapped; // compiled only after this fix
 
 ## What changed
 
-- **The three aliases end in `& {}`.** `TConstValue`, `TStringConstValue` and `TNumberConstValue` in `@venizia/ignis-helpers`, and `TConstValue` in `@venizia/ignis-inversion`, have the same members as before.
-- **The members no longer widen.** Before, a value of these types became `string` or `number` inside an object literal, in a `let`, or in a method's inferred return type.
+- **`TConstValue`, `TStringConstValue` and `TNumberConstValue`** in `@venizia/ignis-helpers`, and `TConstValue` in `@venizia/ignis-inversion`, no longer widen to `string` or `number` inside an object literal, in a `let`, or in a method's inferred return type. Their members are the same as before.
 - **Nothing else moves.** Class members are still assignable (`Periods.DAY`). The union still works as `Record` keys, with `satisfies`, in overloads and in exhaustive `switch`es. In generic code it converts both ways with `Extract<ValueOf<T>, ...>`.
 
 ## Who is affected
 
-- **Code that copied the value into an object or a `let`.** The type is now the literal union, as it always should have been. Casts or explicit return types added to work around the widening can go.
-- **A generic inferred from one of these values, then given a plain `string`.** It no longer compiles. In practice this is a test: `expect(value).toBe(someString)`. See below.
+- **Code that copied the value into an object or a `let`.** The type is now the literal union. Casts or explicit return types added to work around the widening can go.
+- **A generic inferred from one of these values, then given a plain `string`.** It no longer compiles. In practice this is a test: `expect(value).toBe(someString)`.
 - **Everyone else.** No action needed.
 
 ## Breaking changes
@@ -60,11 +59,4 @@ for (const [unit, expected] of table) {
 
 Give the generic the wider type, as above, or type the expected value with the same alias.
 
-## Details
-
-- A `static readonly` initializer gives each member a widening literal type. `Extract<ValueOf<T>, ...>` passed that type through unchanged, so TypeScript widened it at the first mutable position. Intersecting with `{}` makes it a regular literal union with the same members.
-- A method that returned one of these values in an object, with no return type, widened it too. An explicit return type added for that reason still compiles, and is no longer required.
-
-**Files:** [`packages/helpers/src/common/types/const-value.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/const-value.ts), [`packages/inversion/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/types.ts)
-
-See [Const value extraction types](/extensions/helpers/types/reference#const-value-extraction-types) for the reference.
+See [Const value extraction types](/extensions/helpers/types/reference#const-value-extraction-types).

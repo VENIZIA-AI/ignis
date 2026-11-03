@@ -45,7 +45,7 @@ while every concrete connector chain stays in `@venizia/ignis`. The public impor
 ## The relational chain
 
 The five-class chain lives in `connectors/relational` - the engine-neutral SQL tier, reachable at the
-`@venizia/ignis/relational` sub-path - not in `connectors/postgres`. `connectors/postgres` extends it
+`@venizia/ignis-connectors/relational` sub-path - not in `connectors/postgres`. `connectors/postgres` extends it
 one-for-one: five thin subclasses that add no behavior and only rebind the two engine-facing type
 parameters. Full account, including the two ports a datasource supplies (`IRelationalQueryDialect`,
 `IRelationalQueryExecutor`) and what stays genuinely Postgres-only:
@@ -207,11 +207,11 @@ Building Drizzle relations needs the relational connector, but the mixin that re
 the browser-pure kernel. `RelationBuilderRegistry`
 (`packages/kernel/src/helpers/inversion/common/relation-builder.ts`) is the seam: the mixin only
 calls `resolve()`, and `BaseRelationalDataSource`'s module body calls
-`set({ builder: createRelations })` on load. One value import the other way drags `drizzle-orm` into
+`set({ builder: RelationsFactory.create })` on load. One value import the other way drags `drizzle-orm` into
 every graph that uses `@repository`.
 
 The install runs from `packages/connectors/src/relational/core/datasources/base.ts`, which reaches
-`createRelations` through a **deep import** of `relational/core/repositories/dialect/relations/create.ts`
+`RelationsFactory` through a **deep import** of `relational/core/repositories/dialect/relations/create.ts`
 rather than a barrel - a `sideEffects: false` bundler drops an unused export's module body even when
 it is reachable through a barrel `export *` chain. A model that declares relations with no builder
 installed throws at resolve time instead of silently producing an empty `with` clause, and

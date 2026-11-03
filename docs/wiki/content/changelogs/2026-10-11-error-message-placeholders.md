@@ -31,27 +31,19 @@ throw getError({
 }
 ```
 
-Before, `message` was the raw template. A client that fell back to `message` for a code it could not translate showed `%{available}` to the user.
+Before, `message` was the raw template, so a client that fell back to `message` showed `%{available}` to the user.
 
 ## What changed
 
 - **`message` is filled.** The error middleware replaces each `%{key}` with `String(args[key])` from `normalized.args`.
 - **`normalized.text` keeps the template.** A client that translates `code` + `args` works unchanged. A `transform` still changes only `normalized.text`.
 - **`Error.message` and the log keep the template.** An arg value stays in the `args` map, where the log redacts secret-shaped keys.
-- **A missing arg stays as written.** Outside production, the middleware logs one warning that names the code and the missing keys. Production stays silent.
-- **Only an intentional error is filled.** A validation, database or unexpected error writes its own text, and that text passes through unchanged.
-
-A route error inside a Worker host goes through the same middleware, so it answers the same body.
+- **A missing arg stays as written.** Outside production, the middleware logs one warning naming the code and the missing keys. Production stays silent.
+- **Only an intentional error is filled.** A validation, database or unexpected error writes its own text, unchanged. A route error inside a Worker host answers the same body.
 
 ## Who is affected
 
 - **A client that shows `message`.** It now shows readable text. No change needed.
 - **A client or test that compares `message` with the catalog template.** Compare `normalized.text` instead, or expect the filled text.
 
-## Details
-
-The fill runs in the response only. Filling `Error.message` too would print each value inline in the log line, outside the redacted `args` map.
-
-**Files:** [`packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts), [`packages/inversion/src/modules/error/message-template.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/message-template.ts)
-
-See [Read the error response shape](/extensions/helpers/error/#read-the-error-response-shape) for the full response.
+See [Read the error response shape](/extensions/helpers/error/#read-the-error-response-shape).

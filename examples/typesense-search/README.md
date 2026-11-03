@@ -17,7 +17,7 @@ The app listens on `http://localhost:3000` (set `PORT` to change it). Browse the
 
 | File | What it does |
 |---|---|
-| `src/models/article.model.ts` | One collection: `defineSearchCollection` + the `field` DSL, no Drizzle `pgTable` anywhere |
+| `src/models/article.model.ts` | One collection: `SearchCollectionFactory.define` + the `field` DSL, no Drizzle `pgTable` anywhere |
 | `src/repositories/article.repository.ts` | An empty class under `@repository({ model, dataSource })`, same shape as the Postgres branch |
 | `src/controllers/article.controller.ts` | Factory CRUD from `ControllerFactory.defineCrudController` - indexes and reads documents |
 | `src/controllers/search.controller.ts` | `POST /articles/search` and `/multi-search` from `SearchControllerFactory.defineSearchController` |

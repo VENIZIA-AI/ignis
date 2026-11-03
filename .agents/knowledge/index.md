@@ -83,6 +83,7 @@ How the code is written. Read before writing any.
 - [Coding style](/conventions/coding-style.md)
 - [Error handling](/conventions/error-handling.md)
 - [Const classes](/conventions/const-classes.md)
+- [Async style](/conventions/async-style.md)
 - [Narrowing authority](/conventions/narrowing-authority.md)
 - [Binding key namespaces](/conventions/binding-key-namespaces.md)
 - [Testing conventions](/conventions/testing-conventions.md)

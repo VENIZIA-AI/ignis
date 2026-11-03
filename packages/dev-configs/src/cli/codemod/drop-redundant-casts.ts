@@ -875,6 +875,7 @@ by halving, so the package is checked a handful of times, not once per cast.
 
   --write            write the changed files (without it, nothing is written)
   --check            dry run that exits 1 while a removable cast remains (for CI)
+  --all              with --write and no path: rewrite every source file under the working directory (--write needs a path or --all)
   --project <file>   the tsconfig to check against (default: the nearest tsconfig.json of each file)
   --include-tests    also try casts in test files (skipped by default)
   --help             print this text and exit
@@ -889,6 +890,7 @@ const USAGE_ERROR_CODE = 2;
 class CastFlags {
   static readonly WRITE = '--write';
   static readonly CHECK = '--check';
+  static readonly ALL = '--all';
   static readonly PROJECT = '--project';
   static readonly INCLUDE_TESTS = '--include-tests';
   static readonly HELP = '--help';
@@ -897,6 +899,7 @@ class CastFlags {
   static readonly SCHEME_SET = new Set<string>([
     this.WRITE,
     this.CHECK,
+    this.ALL,
     this.PROJECT,
     this.INCLUDE_TESTS,
     this.HELP,
@@ -959,6 +962,17 @@ export class DropRedundantCastsCommand {
 
     const isWrite = flags.includes(CastFlags.WRITE);
     const isCheck = flags.includes(CastFlags.CHECK);
+
+    const refusal = CodemodFiles.refusal({
+      command: 'drop-redundant-casts',
+      isWrite,
+      isAll: flags.includes(CastFlags.ALL),
+      paths,
+    });
+    if (refusal) {
+      console.error(`${refusal}\n${USAGE}`);
+      return USAGE_ERROR_CODE;
+    }
     const includeTests = flags.includes(CastFlags.INCLUDE_TESTS);
 
     if (isWrite && isCheck) {
@@ -970,7 +984,8 @@ export class DropRedundantCastsCommand {
 
     let typescript: TTypeScript;
     try {
-      typescript = (await import('typescript')).default;
+      const result2 = await import('typescript');
+      typescript = result2.default;
     } catch {
       console.error('devz codemod: the "typescript" package is required to check your sources');
       return 1;

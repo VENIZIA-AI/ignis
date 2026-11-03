@@ -14,11 +14,11 @@ description: What changed in @venizia/ignis 0.0.11-0 / @venizia/ignis-helpers 0.
 IGNIS core was restructured around ONE engine-neutral repository family:
 
 - `src/base` now holds a single `AbstractRepository` / `AbstractDataSource` / `AbstractEntity` family. Every engine implements it under `src/connectors/{postgres,typesense}`.
-- Postgres remains re-exported from the root barrel - **your imports keep working unchanged**. Every connector is also addressable explicitly: `@venizia/ignis/postgres`, `@venizia/ignis/typesense` (typesense is subpath-only; its client is an optional peer).
+- Postgres remains re-exported from the root barrel - **your imports keep working unchanged**. Every connector is also addressable explicitly: `@venizia/ignis-connectors/postgres`, `@venizia/ignis-connectors/typesense` (typesense is subpath-only; its client is an optional peer).
 - Canonical class names are the paradigm-family names (`BaseRelationalDataSource`, `BaseRelationalEntity`, `DefaultRelationalRepository`, ...). The engine name appears only at the concrete datasource (`TypesenseDataSource`) and the query dialect (`PostgresQueryOperators`).
 - The historical names (`BaseDataSource`, `BaseEntity`, `BasePostgresDataSource`, `BasePostgresEntity`, `DefaultCRUDRepository`, ...) all keep resolving from the same import paths. The one exception is `RDBQueryOperators`, which is **gone** - rename it to `PostgresQueryOperators`. Most are alias re-exports of the SAME classes; the five repository names (`PostgresBaseRepository`, `ReadableRepository`, `PersistableRepository`, `DefaultCRUDRepository`, `SoftDeletableRepository`) are Postgres subclasses of the neutral chain, so they are distinct class objects from their neutral parents. `instanceof`, metadata, and bindings are unaffected. No action required.
 - New capabilities model: `dataSource.getCapabilities()` and a standardized NotSupported error (HTTP 501, `normalized.code` `core.not_supported`) for engine gaps (e.g. transactions on search engines).
-- New engine: the **Typesense search branch** (`BaseSearchEntity`, `defineSearchCollection`, typed `TSearchDocument`, `DefaultSearchRepository`). It does not affect existing postgres code.
+- New engine: the **Typesense search branch** (`BaseSearchEntity`, `SearchCollectionFactory.define`, typed `TSearchDocument`, `DefaultSearchRepository`). It does not affect existing postgres code.
 
 ## Required migrations (in order)
 
@@ -55,7 +55,7 @@ const port = applicationEnvironment.get<string>(Keys.PORT, { defaultValue: '3000
 // New capability - transform raw env values in one read:
 const nodes = applicationEnvironment.get<string[], string>(Keys.NODES, {
   defaultValue: [],
-  transform: value => toDelimitedArray(value),
+  transform: value => ParseUtility.toDelimitedArray({ input: value }),
 });
 ```
 
@@ -65,7 +65,7 @@ Measured impact on a consumer: **5 call sites** use the positional form. They fa
 grep -rnE "applicationEnvironment.get(<[^>]*>)?\([^,)]+, [^{]" packages/*/src --include='*.ts'
 ```
 
-New helpers: `toDelimitedArray(input, separator?)` (split + trim + drop empties) and `toTrimmed(input)` from `@venizia/ignis-helpers`.
+New helpers: `ParseUtility.toDelimitedArray({ input, separator? })` (split + trim + drop empties) and `ParseUtility.toTrimmed({ input })` from `@venizia/ignis-helpers`.
 
 ### 3. Purge stale TypeScript build info
 
@@ -102,7 +102,7 @@ All IGNIS examples now declare these explicitly.
 ## Rollout procedure (proven order)
 
 1. Bump `@venizia/ignis` -> `0.0.11-0` and `@venizia/ignis-helpers` -> `0.0.10-0` in ONE canary package first - `packages/commerce` is the recommended canary (heaviest transaction + ControllerFactory usage).
-2. Run migrations 1-3 on the canary; `tsc --noEmit` must be clean.
+2. Run migrations 1-3 on the canary; `bun check` must exit 0 (a failing run exits 1, so test for `!= 0`).
 3. Run the canary's test suite.
 4. Green -> apply migrations repo-wide, bump the remaining packages, full suite.
 

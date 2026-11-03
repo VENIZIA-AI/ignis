@@ -54,18 +54,23 @@ describe('BaseFilteredAdapter - FilteredAdapter contract', () => {
   });
 
   test('loadPolicy() is a no-op resolving to undefined', async () => {
-    expect(await createAdapter().loadPolicy()).toBeUndefined();
+    const result = await createAdapter().loadPolicy();
+    expect(result).toBeUndefined();
   });
 
   test('savePolicy() resolves true', async () => {
-    expect(await createAdapter().savePolicy()).toBe(true);
+    const result = await createAdapter().savePolicy();
+    expect(result).toBe(true);
   });
 
   test('addPolicy() / removePolicy() / removeFilteredPolicy() are no-ops', async () => {
     const adapter = createAdapter();
-    expect(await adapter.addPolicy()).toBeUndefined();
-    expect(await adapter.removePolicy()).toBeUndefined();
-    expect(await adapter.removeFilteredPolicy()).toBeUndefined();
+    const result = await adapter.addPolicy();
+    expect(result).toBeUndefined();
+    const result2 = await adapter.removePolicy();
+    expect(result2).toBeUndefined();
+    const result3 = await adapter.removeFilteredPolicy();
+    expect(result3).toBeUndefined();
   });
 });
 

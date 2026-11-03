@@ -1,34 +1,34 @@
 # Search & Typesense
 
-IGNIS ships a **typesense connector** under `@venizia/ignis/typesense` for full-text and faceted search. It plugs into the same `@model`/`@repository`/`@datasource` decorators as the PostgreSQL connector. Documents replace Drizzle tables, and the query surface is intentionally narrower - search engines are not relational databases.
+IGNIS ships a **typesense connector** under `@venizia/ignis-connectors/typesense` for full-text and faceted search. It plugs into the same `@model`/`@repository`/`@datasource` decorators as the PostgreSQL connector. Documents replace Drizzle tables, and the query surface is intentionally narrower - search engines are not relational databases.
 
 > [!IMPORTANT] Subpath-only import
-> `typesense` is an **optional peer dependency**. Unlike `postgres`, the typesense connector is not re-exported from the `@venizia/ignis` root barrel, so apps that don't use search never pull in the `typesense` client. Always import from `@venizia/ignis/typesense`:
+> `typesense` is an **optional peer dependency**. Unlike `postgres`, the typesense connector is not re-exported from the `@venizia/ignis` root barrel, so apps that don't use search never pull in the `typesense` client. Always import from `@venizia/ignis-connectors/typesense`:
 >
 > ```typescript
 > import {
 >   TypesenseDataSource,
 >   BaseSearchEntity,
->   defineSearchCollection,
+>   SearchCollectionFactory,
 >   field,
-> } from '@venizia/ignis/typesense';
+> } from '@venizia/ignis-connectors/typesense';
 > ```
 >
 > See [Connectors](/references/base/connectors) for the full dual-door export model.
 
 ## Defining a Search Collection
 
-Instead of a Drizzle `pgTable`, define a collection with `defineSearchCollection` and the `field` DSL:
+Instead of a Drizzle `pgTable`, define a collection with `SearchCollectionFactory.define` and the `field` DSL:
 
 ```typescript
 // src/models/entities/article.model.ts
 import { model } from '@venizia/ignis';
 import {
   BaseSearchEntity,
-  defineSearchCollection,
+  SearchCollectionFactory,
   field,
   TSearchDocument,
-} from '@venizia/ignis/typesense';
+} from '@venizia/ignis-connectors/typesense';
 
 @model({
   settings: {
@@ -40,7 +40,7 @@ import {
   },
 })
 export class ArticleDocument extends BaseSearchEntity<typeof ArticleDocument.schema> {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'articles',
     fields: [
       field.id(),
@@ -80,7 +80,7 @@ The same `@model` settings you use with Drizzle entities - `hiddenProperties`, `
 
 Each `flags` object may set `searchable`, `filterable`, `facet`, `sortable`, `optional` (all `boolean`). Note: `searchable`/`filterable` have no direct Typesense wire equivalent - Typesense indexes every field by default - so they're dropped at compile time. Only `facet`, `optional`, and `sortable` (mapped to Typesense's `sort`) actually reach the compiled collection schema. They're still worth setting for documentation/intent and for future engines that do distinguish them.
 
-`defineSearchCollection` validates at call time: throws on an empty `name`, empty `fields`, duplicate field names, a non-`string` `id` field, or an unknown `defaultSort` field reference.
+`SearchCollectionFactory.define` validates at call time: throws on an empty `name`, empty `fields`, duplicate field names, a non-`string` `id` field, or an unknown `defaultSort` field reference.
 
 ### `TSearchDocument<T>`
 
@@ -134,7 +134,7 @@ The `model` config is camelCase and maps to Typesense's snake_case `model_config
 **Client-provided vectors** - you compute the embedding yourself and send it with each document. Declare `dimensions` and a distance metric instead of `embed`:
 
 ```typescript
-import { VectorDistances } from '@venizia/ignis/typesense';
+import { VectorDistances } from '@venizia/ignis-connectors/typesense';
 
 field.vector('embedding', { dimensions: 384, distance: VectorDistances.COSINE });
 // VectorDistances: COSINE ('cosine'), INNER_PRODUCT ('ip'), L2 ('l2')
@@ -149,7 +149,7 @@ See [Searching](#searching-with-search-mode) for querying these fields with `mod
 Declare synonym sets on the collection; they are provisioned alongside it at `configure()`:
 
 ```typescript
-static override schema = defineSearchCollection({
+static override schema = SearchCollectionFactory.define({
   name: 'articles',
   fields: [ /* ... */ ],
   synonyms: [
@@ -178,8 +178,8 @@ await connector.linkSynonymSets({ collection: 'articles', synonymSets: ['article
 ```typescript
 // src/datasources/search.datasource.ts
 import { datasource } from '@venizia/ignis';
-import { TypesenseDataSource } from '@venizia/ignis/typesense';
-import { applicationEnvironment, int } from '@venizia/ignis-helpers';
+import { TypesenseDataSource } from '@venizia/ignis-connectors/typesense';
+import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
 
 @datasource()
 export class SearchDataSource extends TypesenseDataSource {
@@ -190,7 +190,7 @@ export class SearchDataSource extends TypesenseDataSource {
         nodes: [
           {
             host: applicationEnvironment.get<string>('APP_ENV_TYPESENSE_HOST'),
-            port: int(applicationEnvironment.get<string>('APP_ENV_TYPESENSE_PORT')),
+            port: ParseUtility.toInt({ input: applicationEnvironment.get<string>('APP_ENV_TYPESENSE_PORT') }),
             protocol: applicationEnvironment.get<string>('APP_ENV_TYPESENSE_PROTOCOL'),
           },
         ],
@@ -223,7 +223,8 @@ Mirrors the PostgreSQL connector's ladder, but for documents instead of rows:
 AbstractRepository (engine-neutral)
   -> SearchBaseRepository (narrows dataSource/entity to AbstractSearchDataSource/BaseSearchEntity)
        also exported as TypesenseBaseRepository
-    -> ReadableSearchRepository (count, existsWith, find, findOne, findById, search<TResult>())
+    -> ReadableSearchRepository (count, existsWith, find, findOne, findById, search<TResult>(),
+                                 searchCount, facets, suggest)
       -> PersistableSearchRepository (create, createAll, updateById, updateAll,
                                       deleteById, deleteAll, import)
         -> DefaultSearchRepository (convenience alias, adds nothing)
@@ -234,7 +235,7 @@ AbstractRepository (engine-neutral)
 import { SearchDataSource } from '@/datasources/search.datasource';
 import { ArticleDocument, TArticleDocument } from '@/models/entities';
 import { repository } from '@venizia/ignis';
-import { DefaultSearchRepository } from '@venizia/ignis/typesense';
+import { DefaultSearchRepository } from '@venizia/ignis-connectors/typesense';
 
 @repository({ model: ArticleDocument, dataSource: SearchDataSource })
 export class ArticleRepository extends DefaultSearchRepository<TArticleDocument> {
@@ -245,6 +246,8 @@ export class ArticleRepository extends DefaultSearchRepository<TArticleDocument>
 ```
 
 `find()`/`findOne()`/`findById()`/`count()`/`existsWith()` accept the same `TFilter`/`TWhere` shape as PostgreSQL repositories. The `TypesenseQueryDialect` translates `where` into Typesense's `filter_by` syntax, `order` into `sort_by` (max 3 fields - a Typesense limit), `limit`/`skip` into `per_page`/`page`, and `fields` into `include_fields`. `filter.include` is **not supported** and throws - there is no relation model for documents.
+
+One repository per collection is the intended shape: the repository knows its model, its default filter and its hidden fields. When the collection is only known at runtime, such as a registry that picks it by name, call the connector instead. Its methods take `collection`: `dataSource.getConnector().search({ collection, params })`. The connector applies no model, so no default filter and no hidden fields.
 
 Search engines index asynchronously, so a document can be missing right after a write. `find()`/`findOne()`/`findById()` accept the same `options.retry` as PostgreSQL - re-read until the document shows up:
 
@@ -273,6 +276,8 @@ Same options, same rules as PostgreSQL - see [Read Retry](/references/base/repos
 - On Meilisearch, the duplicate pre-check is not atomic, so two concurrent creates of the same id can both pass it. See the [Meilisearch guide](./search-meilisearch) and use the connector upsert when that's possible.
 - **`updateById()` against a missing id throws `404` (`normalized.code: 'core.search_engine.not_found'`)** on both engines. This is the deliberate divergence from the PostgreSQL connector, where a missing-id `updateById` is a silent `{ count: 0 }`.
 - **`deleteById()` against a missing id is silent** (`{ count: 0, data: null }`), matching the relational connectors.
+- **A request the engine rejects is a 4xx, not a 503.** A 400 or 422 throws that status with the engine message kept, a 404 the verb does not tolerate throws `404 core.search_engine.not_found`, and a 409 throws `409 core.search_engine.already_exists`. Only a transport failure, a 5xx, a 401/403, a 408 or a 429 throws the sanitized `503 core.search_engine.dependency_unavailable`.
+- **Typesense `import` does not throw `ImportError`.** The connector passes `throwOnFail: false`, so a rejected row is in `count.fail` and `responses` of the result.
 
 ## Searching with `search({ mode })`
 
@@ -331,16 +336,26 @@ await repository.search({
 
 All non-`raw` modes accept the same optional camelCase tuning fields, mapped to Typesense's snake_case at the dialect boundary. That covers faceting (`facetBy`, `facetQuery`, `maxFacetValues`), highlighting (`highlightFields`, `highlightFullFields`, `highlightStartTag`/`highlightEndTag`, `snippetThreshold`), grouping (`groupBy`, `groupLimit`, `groupMissingValues`), and `queryByWeights`. These are the ENGINE-NEUTRAL fields - every search engine supports them.
 
-Typesense-specific tuning (`num_typos`, `prefix`, `infix`, `use_cache`, `cache_ttl`, `exhaustive_search`, `pinned_hits`, `hidden_hits`, `prioritize_exact_match`, `drop_tokens_threshold`, `preset`) goes through `engineParams`, passed verbatim to the engine with WIRE names. The neutral input schema no longer carries knobs only one engine understands:
+Typesense-specific tuning goes through `engineParams`, because the neutral input schema carries no knob that only one engine understands. Twelve of those knobs have a camelCase name, typed by `ITypesenseTuning`: `numTypos`, `dropTokensThreshold`, `typoTokensThreshold`, `infix`, `prioritizeExactMatch`, `prioritizeTokenPosition`, `prioritizeNumMatchingFields`, `textMatchType`, `rerankHybridMatches`, `useCache`, `cacheTtl` and `maxCandidates`. A list sets `numTypos` or `infix` per `queryBy` field. The numeric ones must be non-negative integers (`maxCandidates` a positive one), under either spelling; anything else throws before a request, and so does giving one param twice (`numTypos` and `num_typos`). `useCache` and `cacheTtl` are sent as multi-search query parameters, where Typesense reads them. Every other knob (`prefix`, `exhaustive_search`, `pinned_hits`, `hidden_hits`, `preset`, ...) keeps its wire name, and wire names are passed verbatim:
 
 ```typescript
+import type { ITypesenseTuning } from '@venizia/ignis-connectors/typesense';
+
+const tuning: ITypesenseTuning = { numTypos: 1, infix: 'fallback' };
+
 await repository.search({
   mode: 'keyword',
   query: 'shoes',
   queryBy: ['name'],
-  engineParams: { num_typos: 1, prefix: false, preset: 'listing' },
+  engineParams: { ...tuning, preset: 'listing' },
 });
 ```
+
+`engineParams` is still the one door to the engine's own parameters, so a scoped search controller refuses it, the camelCase names included.
+
+Sorting is not a tuning knob: it is `filter.order` in the neutral input, and the dialect sends it as `sort_by` (at most three fields, each declared sortable). `suggest()` takes no `order`, so its documents come back in relevance order.
+
+`searchCount()`, `facets()` and `suggest()` take the same `engineParams`, checked and sent the same way, so they match what a `search()` with that tuning matches. Without it, a count, a facet or a suggestion can differ from the search beside it (an accented query that finds unaccented names in `search()` finds none in `suggest()`). Repository methods are not routes, so the scoped-controller refusal is unchanged: a search controller's routes call `search()` and `multiSearch()` only, and a scoped one still answers `400` to `engineParams` on `/search`.
 
 ```typescript
 await repository.search({
@@ -355,6 +370,55 @@ await repository.search({
 ```
 
 `mode` values are also available as the `SearchModes` const (`SearchModes.KEYWORD`/`SEMANTIC`/`HYBRID`/`RAW`) if you prefer named constants over string literals.
+
+A keyword search also takes `highlight: false`, which returns no highlight markup (Typesense `highlight_fields: none`) and wins over `highlightFields`.
+
+### Count a search with `searchCount()`
+
+`count({ where })` counts by filter only, and it is always exact. `searchCount()` counts what a text query matches:
+
+```typescript
+const { count, isFoundExact } = await articleRepository.searchCount({
+  query: 'renewable',
+  queryBy: ['title', 'content'], // omit it to use the model's defaultQueryBy
+  where: { published: true },
+});
+```
+
+It is a search with a page of 0, so `count` is the engine's `found`. When the engine stops early (`search_cutoff`), `isFoundExact` is `false` and `count` is an estimate. A `where` that matches nothing answers `{ count: 0, isFoundExact: true }` without calling the engine, and so does a collection that does not exist yet.
+
+### Facets without hits with `facets()`
+
+`facets()` returns the counts of one or more fields and no documents:
+
+```typescript
+const { facets, found } = await articleRepository.facets({
+  facetBy: ['category', 'author'],
+  query: 'renewable', // optional, '*' when omitted
+  queryBy: ['title'],
+  where: { published: true },
+  maxFacetValues: 20, // values per field
+  facetQuery: 'category:ener', // narrow one field's values by a prefix
+});
+```
+
+`facetBy` must name at least one field and `maxFacetValues` must be a positive integer; either breach throws before a request. A field the model hides (`hiddenProperties`) cannot be named in `facetBy`, in `facetQuery`, in `queryBy`, in `groupBy` or in `highlightFields` / `highlightFullFields`, here or in `search()`, because a count, a match, a group key or a highlight on it would tell the caller what it holds. `facets` is empty when the engine returned none. Meilisearch refuses `maxFacetValues` and `facetQuery`.
+
+### Autocomplete with `suggest()`
+
+`suggest()` is the call behind a search box: the documents that match what the user has typed so far.
+
+```typescript
+const articles = await articleRepository.suggest({
+  query: 'renew',
+  queryBy: ['title'], // omit it to use the model's defaultQueryBy
+  limit: 5, // 8 when omitted
+  includeFields: ['id', 'title'],
+  where: { published: true },
+});
+```
+
+It is a keyword search, never semantic, with highlighting off and a small page. The last word matches as a prefix, which both engines do by default. A blank `query` answers `[]` without calling the engine. `limit` must be a positive integer and stays under the model's `maxLimit`.
 
 ### The result envelope
 
@@ -371,13 +435,22 @@ interface ISearchResult<TDocument extends object = object> {
     highlight?: unknown;
     highlights?: unknown[];
     score?: number;
+    rankFusionScore?: number;
+    vectorDistance?: number;
   }>;
-  facetCounts?: unknown[];
+  facetCounts?: ISearchFacetCount[];
   groupedHits?: unknown[];
+}
+
+interface ISearchFacetCount {
+  fieldName: string;
+  counts: Array<{ value: string; count: number; highlighted?: string }>;
+  sampled?: boolean;
+  stats?: { avg?: number; max?: number; min?: number; sum?: number; totalValues?: number };
 }
 ```
 
-`isFoundExact` is required, and it is the field to read before trusting `found`. There is no `textMatch` field; the per-hit relevance number is `score`.
+`isFoundExact` is required, and it is the field to read before trusting `found`. There is no `textMatch` field; the per-hit relevance number is `score`, and it is the keyword match score in every mode, hybrid included. A hybrid or vector hit also carries `rankFusionScore` and `vectorDistance`. Facet `value` is always a string, numbers included; `stats` is set only for a numeric field.
 
 ## Cross-Collection Multi-Search
 
@@ -418,7 +491,7 @@ Both `searches` entries and `commonParams` are camelCase (`filterBy`, `queryBy`,
 import { ArticleDocument } from '@/models/entities';
 import { ArticleRepository } from '@/repositories';
 import { controller } from '@venizia/ignis';
-import { SearchControllerFactory } from '@venizia/ignis/typesense/controllers';
+import { SearchControllerFactory } from '@venizia/ignis-connectors/typesense/controllers';
 
 const BaseSearchController = SearchControllerFactory.defineSearchController({
   entity: ArticleDocument,
@@ -433,7 +506,7 @@ export class ArticleSearchController extends BaseSearchController {}
 
 The subclass needs no constructor. The factory injects the repository bound under `repository.name`, the same way `defineCrudController` does. To inject a different repository, declare your own constructor with `@inject` on its first parameter - that wins.
 
-Import the factory from `@venizia/ignis/typesense/controllers` (or `@venizia/ignis/search/controllers`), never from `@venizia/ignis/typesense`. That entry loads without `hono`, so it carries no controller.
+Import the factory from `@venizia/ignis-connectors/typesense/controllers` (or `@venizia/ignis-connectors/search/controllers`), never from `@venizia/ignis-connectors/typesense`. That entry loads without `hono`, so it carries no controller.
 
 It registers `POST /search` (request body is the mode-discriminated schema, so validation and OpenAPI come for free, and the handler dispatches to `repository.search`). It also registers `POST /multi-search`, which dispatches to `dataSource.multiSearch`. For anything the factory does not cover, write a custom `BaseRestController` calling `repository.search()` or `getClient()` directly.
 
@@ -469,6 +542,41 @@ const ScopedSearchController = SearchControllerFactory.defineSearchController({
 
 A scope is a `where` ANDed into a filter, so the three inputs that carry the engine's own filter string cannot take one. A scoped controller therefore refuses `mode: 'raw'` and `engineParams` (`400`), and `defineSearchController` throws unless `routes.multiSearch.enabled` is `false`.
 
+## Big collections: streaming export, timeouts and import errors
+
+These are methods of the connector (`dataSource.getConnector()`), not of the repository.
+
+**Stream an export instead of building one string.** `exportDocuments` returns the whole export as one string, which breaks past the string limit (on Bun a string holds at most 2^31 - 1 characters, about 2 GiB of ASCII text). `streamDocuments` is an async iterable of NDJSON lines, one document per line without its newline, read as the engine sends them; memory stays at one chunk and one partial line, so you can write to disk as it arrives:
+
+```typescript
+const connector = dataSource.getConnector();
+const file = Bun.file('products.ndjson').writer();
+
+for await (const line of connector.streamDocuments({
+  collection: 'products',
+  excludeFields: ['embedding'],
+  timeoutMs: 30 * 60 * 1000,
+})) {
+  file.write(`${line}\n`);
+}
+
+await file.end();
+```
+
+A failure before the first line throws as `exportDocuments` does; one in the middle throws from the loop, after the lines you already have.
+
+**`excludeFields` next to `includeFields`.** Both `exportDocuments` and `streamDocuments` take `filterBy`, `includeFields` and `excludeFields`. A copy job drops its vector fields with `excludeFields: ['embedding']`. `search()` already takes `excludeFields` (and the model's `hiddenProperties` are added to it).
+
+**A timeout for one call.** The client has one timeout (`connectionTimeoutSeconds`, 5 s by default). `timeoutMs` (a positive integer of milliseconds) overrides it for one call of `exportDocuments`, `streamDocuments`, `importDocuments`, `getCollection`, `createCollection` and `patchCollectionSchema`. It is how long to wait for the engine's answer (an import answers once the batch is processed; a schema change once it is applied) and then the longest silence on the connection: it is not a deadline for the whole transfer, so a download that keeps arriving never trips it. `typesense-js` has no timeout per call, so the connector runs that call on a second client with the timeout set; when you give the connector your own `client`, also pass `createClient` in its options, or a call with `timeoutMs` is refused. A client you wrote yourself also needs `documents().exportStream`.
+
+**A stream whose reader pauses.** A stream you stop reading is a connection that falls silent, and the engine's socket is closed after `timeoutMs` of it. If you import each batch while you read, the import must finish within the stream's `timeoutMs`; otherwise spool the stream to a file first and import from the file. A copy of a collection is `getCollection`, `createCollection`, `streamDocuments` to a file, then `importDocuments` from it.
+
+**Fail on a partial import.** `importDocuments` returns rejected rows in `count.fail` and `responses` and does not throw. Pass `throwOnFail: true` to get a `422` after the last batch instead, with the counts in `extra.details` and every per-row response on the error's `responses` (they hold the rejected documents, so they are not in `extra`, which goes on the wire).
+
+**A missing document as `null`.** `getDocument` throws `404 core.search_engine.not_found`. `findDocument({ collection, id })` (also `document.find`) returns `null` for a missing document, the way `getAlias` does, and throws for any other failure. A missing collection is a 404 too, so a mistyped collection name also answers `null`.
+
+**`updateByFilter` refuses an empty `document`** with a `400` before it calls the engine.
+
 ## Transactions and Locking
 
 The typesense connector has no transaction or row-level-locking model. Passing a `transaction` or `lock` option to any repository method throws:
@@ -481,7 +589,7 @@ await articleRepository.updateById({
 });
 ```
 
-This is the same `throwNotSupported` convention used everywhere in the framework for capabilities an engine doesn't implement - see [Connectors](/references/base/connectors) and [Transactions](./transactions).
+This is the same `NotSupportedUtility.throwNotSupported` convention used everywhere in the framework for capabilities an engine doesn't implement - see [Connectors](/references/base/connectors) and [Transactions](./transactions).
 
 ## See Also
 

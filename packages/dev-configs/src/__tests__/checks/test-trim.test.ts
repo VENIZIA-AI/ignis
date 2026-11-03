@@ -3,11 +3,11 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CheckCommand } from '../../cli/check';
-import { checkControls, listTestTitles } from '../../checks/test-controls';
-import { findDeadTestCode } from '../../checks/test-dead-code';
-import { formatLedgerResults, replayLedger } from '../../checks/test-mutate';
+import { TestControlsCheck } from '../../checks/test-controls';
+import { DeadTestCodeCheck } from '../../checks/test-dead-code';
+import { TestMutateCheck } from '../../checks/test-mutate';
 import type { ILedgerLine } from '../../checks/test-mutate';
-import { analyseJunit, formatTestWeight } from '../../checks/test-weight';
+import { TestWeightCheck } from '../../checks/test-weight';
 
 const SCRATCH = join(__dirname, '../../../../../.agents/local/tmp');
 mkdirSync(SCRATCH, { recursive: true });
@@ -82,7 +82,7 @@ describe('test-weight', () => {
   ]);
 
   test('totals, per label, the heaviest file and the slowest case', () => {
-    const report = analyseJunit({
+    const report = TestWeightCheck.analyseJunit({
       reports: [
         { label: 'alpha', xml: alpha },
         { label: 'beta', xml: beta },
@@ -105,7 +105,7 @@ describe('test-weight', () => {
   });
 
   test('positive control: the same suite and case name in two files is reported, with entities decoded', () => {
-    const report = analyseJunit({
+    const report = TestWeightCheck.analyseJunit({
       reports: [
         { label: 'alpha', xml: alpha },
         { label: 'beta', xml: beta },
@@ -121,15 +121,15 @@ describe('test-weight', () => {
   });
 
   test('files that assert nothing and files with skips are listed', () => {
-    const report = analyseJunit({ reports: [{ label: 'alpha', xml: alpha }] });
+    const report = TestWeightCheck.analyseJunit({ reports: [{ label: 'alpha', xml: alpha }] });
 
     expect(report.zeroAssertionFiles).toEqual(['src/__tests__/b.test.ts']);
     expect(report.skippedFiles).toEqual([{ file: 'alpha/src/__tests__/b.test.ts', skipped: 1 }]);
   });
 
   test('the printed report names the heaviest file first', () => {
-    const lines = formatTestWeight({
-      report: analyseJunit({ reports: [{ label: 'alpha', xml: alpha }] }),
+    const lines = TestWeightCheck.formatReport({
+      report: TestWeightCheck.analyseJunit({ reports: [{ label: 'alpha', xml: alpha }] }),
       top: 1,
     });
 
@@ -141,9 +141,12 @@ describe('test-weight', () => {
   test('the command: a missing file is a usage error, a real file prints and exits 0', async () => {
     const root = makeFolder({ 'alpha.xml': alpha });
 
-    expect(await CheckCommand.run({ root, args: ['test-weight', 'nope.xml'] })).toBe(2);
-    expect(await CheckCommand.run({ root, args: ['test-weight'] })).toBe(2);
-    expect(await CheckCommand.run({ root, args: ['test-weight', 'alpha.xml'] })).toBe(0);
+    const result = await CheckCommand.run({ root, args: ['test-weight', 'nope.xml'] });
+    expect(result).toBe(2);
+    const result2 = await CheckCommand.run({ root, args: ['test-weight'] });
+    expect(result2).toBe(2);
+    const result3 = await CheckCommand.run({ root, args: ['test-weight', 'alpha.xml'] });
+    expect(result3).toBe(0);
   });
 });
 
@@ -158,7 +161,8 @@ describe('test-controls', () => {
   `;
 
   test('lists the titles of test, it, describe, test.each and the skip forms', async () => {
-    expect(await listTestTitles({ source: SOURCE })).toEqual([
+    const result = await TestControlsCheck.listTitles({ source: SOURCE });
+    expect(result).toEqual([
       'gate X',
       'positive control: a bad entry is refused',
       'positive control: skipped is still a title',
@@ -170,7 +174,7 @@ describe('test-controls', () => {
   test('every registered control found: OK', async () => {
     const root = makeFolder({ 'x.test.ts': SOURCE });
 
-    const report = await checkControls({
+    const report = await TestControlsCheck.run({
       root,
       controls: [
         { gate: 'x', file: 'x.test.ts', titlePattern: '^positive control', min: 2 },
@@ -184,7 +188,7 @@ describe('test-controls', () => {
   test('positive control: a pattern that no longer matches, a count that fell and a missing file are problems', async () => {
     const root = makeFolder({ 'x.test.ts': SOURCE });
 
-    const report = await checkControls({
+    const report = await TestControlsCheck.run({
       root,
       controls: [
         { gate: 'renamed', file: 'x.test.ts', titlePattern: 'negative control' },
@@ -206,10 +210,11 @@ describe('test-controls', () => {
     const root = makeFolder({ 'fixtures/plain.service.ts': 'export class PlainService {}\n' });
     const entries = [{ gate: 'scanner', file: 'fixtures/plain.service.ts', kind: 'file' as const }];
 
-    expect(await checkControls({ root, controls: entries })).toEqual({ checked: 1, problems: [] });
+    const result = await TestControlsCheck.run({ root, controls: entries });
+    expect(result).toEqual({ checked: 1, problems: [] });
 
     rmSync(join(root, 'fixtures/plain.service.ts'));
-    const report = await checkControls({ root, controls: entries });
+    const report = await TestControlsCheck.run({ root, controls: entries });
 
     expect(report.problems).toHaveLength(1);
     expect(report.problems[0].message).toContain(
@@ -231,11 +236,12 @@ describe('test-controls', () => {
       }),
     });
 
-    expect(await CheckCommand.run({ root: good, args: ['test-controls', 'controls.json'] })).toBe(
-      0,
-    );
-    expect(await CheckCommand.run({ root: bad, args: ['test-controls', 'controls.json'] })).toBe(1);
-    expect(await CheckCommand.run({ root: good, args: ['test-controls'] })).toBe(2);
+    const result = await CheckCommand.run({ root: good, args: ['test-controls', 'controls.json'] });
+    expect(result).toBe(0);
+    const result2 = await CheckCommand.run({ root: bad, args: ['test-controls', 'controls.json'] });
+    expect(result2).toBe(1);
+    const result3 = await CheckCommand.run({ root: good, args: ['test-controls'] });
+    expect(result3).toBe(2);
   });
 });
 
@@ -256,7 +262,7 @@ describe('test-dead-code', () => {
       'pkg/src/__tests__/support/orphan-helper.ts': 'export const orphan = 1;\n',
     });
 
-    const candidates = findDeadTestCode({ root });
+    const candidates = DeadTestCodeCheck.find({ root });
 
     expect(candidates.map((candidate) => candidate.file)).toEqual([
       'pkg/src/__tests__/support/orphan-helper.ts',
@@ -269,7 +275,7 @@ describe('test-dead-code', () => {
       'pkg/src/__tests__/groups/one.ts': 'export const one = 1;\n',
     });
 
-    expect(findDeadTestCode({ root })).toEqual([
+    expect(DeadTestCodeCheck.find({ root })).toEqual([
       { file: 'pkg/src/__tests__/groups/one.ts', kind: 'folder-referenced' },
     ]);
   });
@@ -280,7 +286,7 @@ describe('test-dead-code', () => {
       'pkg/src/__tests__/types.d.ts': 'export {};\n',
     });
 
-    expect(findDeadTestCode({ root })).toEqual([]);
+    expect(DeadTestCodeCheck.find({ root })).toEqual([]);
   });
 });
 
@@ -310,17 +316,19 @@ describe('test-mutate', () => {
     const root = project();
     const before = readFileSync(join(root, 'src/lib.ts'), 'utf8');
 
-    const results = replayLedger({ root, ledger: { mutants: [line()] } });
+    const results = TestMutateCheck.replayLedger({ root, ledger: { mutants: [line()] } });
 
     expect(results).toEqual([{ id: 'add-plus', survivorRed: true, candidateRed: true, ok: true }]);
     expect(readFileSync(join(root, 'src/lib.ts'), 'utf8')).toBe(before);
-    expect(formatLedgerResults(results).at(-1)).toContain('1/1 ledger lines hold');
+    expect(TestMutateCheck.formatLedgerResults({ results }).at(-1)).toContain(
+      '1/1 ledger lines hold',
+    );
   }, 60_000);
 
   test('positive control: a survivor that does not cover the mutant is refused', () => {
     const root = project();
 
-    const results = replayLedger({
+    const results = TestMutateCheck.replayLedger({
       root,
       ledger: {
         mutants: [
@@ -341,7 +349,7 @@ describe('test-mutate', () => {
   test('positive control: a candidate that stays green under the mutant needs a vacuous record', () => {
     const root = project();
 
-    const results = replayLedger({
+    const results = TestMutateCheck.replayLedger({
       root,
       ledger: { mutants: [line({ candidateName: 'subtracts' })] },
     });
@@ -360,11 +368,15 @@ describe('test-mutate', () => {
         secondMutant: { file: 'src/lib.ts', find: 'a - b', replace },
       });
 
-    expect(replayLedger({ root, ledger: { mutants: [vacuous('a - b')] } })[0]).toMatchObject({
+    expect(
+      TestMutateCheck.replayLedger({ root, ledger: { mutants: [vacuous('a - b')] } })[0],
+    ).toMatchObject({
       ok: true,
       candidateGreenUnderSecond: true,
     });
-    expect(replayLedger({ root, ledger: { mutants: [vacuous('a * b')] } })[0]).toMatchObject({
+    expect(
+      TestMutateCheck.replayLedger({ root, ledger: { mutants: [vacuous('a * b')] } })[0],
+    ).toMatchObject({
       ok: false,
       candidateGreenUnderSecond: false,
     });
@@ -375,7 +387,7 @@ describe('test-mutate', () => {
     const before = readFileSync(join(root, 'src/lib.ts'), 'utf8');
 
     expect(() =>
-      replayLedger({
+      TestMutateCheck.replayLedger({
         root,
         ledger: {
           mutants: [line({ mutant: { file: 'src/lib.ts', find: 'number', replace: 'string' } })],
@@ -383,7 +395,10 @@ describe('test-mutate', () => {
       }),
     ).toThrow(/occurs 4 times/);
     expect(() =>
-      replayLedger({ root, ledger: { mutants: [line({ candidateName: 'no such case' })] } }),
+      TestMutateCheck.replayLedger({
+        root,
+        ledger: { mutants: [line({ candidateName: 'no such case' })] },
+      }),
     ).toThrow(/ran no case/);
     expect(readFileSync(join(root, 'src/lib.ts'), 'utf8')).toBe(before);
     expect(existsSync(join(root, '.agents/local/tmp'))).toBe(true);
@@ -395,7 +410,7 @@ describe('test-mutate', () => {
     writeFileSync(join(root, 'src/other.ts'), 'export const k = 1;\n');
     const lib = readFileSync(join(root, 'src/lib.ts'), 'utf8');
 
-    const results = replayLedger({
+    const results = TestMutateCheck.replayLedger({
       root,
       ledger: {
         mutants: [
@@ -420,7 +435,9 @@ describe('test-mutate', () => {
     mkdirSync(join(root, '.agents/local/tmp'), { recursive: true });
     writeFileSync(join(root, '.agents/local/tmp/test-mutate-add-plus-0.orig'), 'x');
 
-    expect(() => replayLedger({ root, ledger: { mutants: [line()] } })).toThrow(/interrupted run/);
+    expect(() => TestMutateCheck.replayLedger({ root, ledger: { mutants: [line()] } })).toThrow(
+      /interrupted run/,
+    );
   });
 
   test('the command: exit 0 when every line holds, 1 when one does not, 2 without a ledger', async () => {
@@ -439,8 +456,11 @@ describe('test-mutate', () => {
       }),
     );
 
-    expect(await CheckCommand.run({ root, args: ['test-mutate', 'good.json'] })).toBe(0);
-    expect(await CheckCommand.run({ root, args: ['test-mutate', 'bad.json'] })).toBe(1);
-    expect(await CheckCommand.run({ root, args: ['test-mutate'] })).toBe(2);
+    const result = await CheckCommand.run({ root, args: ['test-mutate', 'good.json'] });
+    expect(result).toBe(0);
+    const result2 = await CheckCommand.run({ root, args: ['test-mutate', 'bad.json'] });
+    expect(result2).toBe(1);
+    const result3 = await CheckCommand.run({ root, args: ['test-mutate'] });
+    expect(result3).toBe(2);
   }, 120_000);
 });

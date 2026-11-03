@@ -10,8 +10,8 @@ import {
   type TAmazonSesConfig,
   type TAmazonSesModule,
 } from '../../common';
-import { buildRawMimeMessage, formatAddressHeader, splitAddressList } from '../../utilities';
-import { releaseAttachmentStreams } from '../../utilities/attachment.utility';
+import { MailAddressUtility, MailMimeUtility } from '../../utilities';
+import { MailAttachmentUtility } from '../../utilities/attachment.utility';
 
 export class AmazonSesTransportHelper extends BaseHelper implements IMailTransport {
   private client: AnyType;
@@ -33,19 +33,23 @@ export class AmazonSesTransportHelper extends BaseHelper implements IMailTranspo
     try {
       logger.debug('Sending email with Amazon SES to: %s', message.to);
 
-      const rawMessage = await buildRawMimeMessage(message);
+      const rawMessage = await MailMimeUtility.buildRawMessage({ message });
       const command = new this.sendEmailCommandConstructor({
         // `FromEmailAddress` carries the same RFC 5321/5322 mailbox syntax as the raw `From:`
         // header and is subject to the same 7-bit-ASCII requirement - encoding it separately
         // here (instead of passing `message.from` through untouched) is what keeps a non-ASCII
         // display name from reaching the SES API as raw UTF-8 bytes.
-        FromEmailAddress: message.from ? formatAddressHeader(message.from) : message.from,
+        FromEmailAddress: message.from
+          ? MailMimeUtility.formatAddressHeader({ value: message.from })
+          : message.from,
         Destination: {
-          ToAddresses: splitAddressList(message.to),
-          CcAddresses: message.cc ? splitAddressList(message.cc) : undefined,
-          BccAddresses: message.bcc ? splitAddressList(message.bcc) : undefined,
+          ToAddresses: MailAddressUtility.splitList({ value: message.to }),
+          CcAddresses: message.cc ? MailAddressUtility.splitList({ value: message.cc }) : undefined,
+          BccAddresses: message.bcc
+            ? MailAddressUtility.splitList({ value: message.bcc })
+            : undefined,
         },
-        // No `ReplyToAddresses` here: `buildRawMimeMessage` already writes a single, RFC
+        // No `ReplyToAddresses` here: `MailMimeUtility.buildRawMessage` already writes a single, RFC
         // 2047-encoded `Reply-To` header into the raw content. Setting both sends the same
         // address through two channels SES treats independently - a client can end up showing a
         // reply-to derived from whichever one SES prioritizes, and the other becomes a silent,
@@ -67,7 +71,7 @@ export class AmazonSesTransportHelper extends BaseHelper implements IMailTranspo
         'Amazon SES send failed | error: %s',
         error instanceof Error ? error.message : error,
       );
-      releaseAttachmentStreams({ attachments: message.attachments });
+      MailAttachmentUtility.release({ attachments: message.attachments });
 
       return {
         success: false,

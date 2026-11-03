@@ -14,7 +14,7 @@ Technical reference for the DI system in IGNIS - managing resource lifecycles an
 - `packages/inversion/src/modules/registry/index.ts` - Base `MetadataRegistry`
 - `packages/inversion/src/modules/metadata/injectors.ts` - Base `@inject` decorator
 - `packages/inversion/src/common/types.ts` - `BindingScopes`, `BindingValueTypes`, `BindingKeys`, `IProvider`
-- `packages/kernel/src/helpers/inversion/container.ts` - Extended `Container` with `ApplicationLogger`
+- `packages/kernel/src/helpers/inversion/container.ts` - Extended `Container` with a scoped logger
 - `packages/kernel/src/helpers/inversion/registry.ts` - Extended `MetadataRegistry` (singleton, with model/repository/datasource mixins)
 - `packages/kernel/src/base/metadata/injectors.ts` - Core `@inject` (wired to extended registry)
 

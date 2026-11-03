@@ -6,7 +6,7 @@ import { Hono } from 'hono';
 import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { Logger } from '@venizia/ignis-helpers/winston';
-import { buildDataRange } from '@venizia/ignis-kernel/repository';
+import { DataRangeUtility } from '@venizia/ignis-kernel/repository';
 import { HttpDataSource, HttpRepository } from '@venizia/ignis-connectors/http';
 import type { TRouteContext } from '@/base/controllers';
 import { BaseRestController } from '@/base/controllers';
@@ -42,7 +42,11 @@ class ExtrasController extends BaseRestController {
           context,
           format: 'array',
           payload: { count: data.length, data },
-          range: buildDataRange({ skip: 0, dataLength: data.length, total: ROWS.length }),
+          range: DataRangeUtility.buildDataRange({
+            skip: 0,
+            dataLength: data.length,
+            total: ROWS.length,
+          }),
           extra: {
             counts: {
               isDefault: true,
@@ -130,7 +134,12 @@ afterAll(async () => {
 });
 
 const failureOf = async (task: Promise<unknown>) => {
-  const caught = await task.catch((error: unknown) => error);
+  let caught: unknown;
+  try {
+    await task;
+  } catch (error) {
+    caught = error;
+  }
   if (!isApplicationError(caught)) {
     throw new Error(`expected an ApplicationError, got: ${String(caught)}`);
   }
@@ -175,9 +184,12 @@ describe('what is computed is what was asked for, plus the defaults', () => {
   test('count, existsWith and findOne compute no default', async () => {
     const before = calls.counts;
 
-    expect(await products.count({ where: {} })).toEqual({ count: 2 });
-    expect(await products.existsWith({ where: {} })).toBe(true);
-    expect((await products.findOne({ filter: {} }))?.id).toBe(1);
+    const result = await products.count({ where: {} });
+    expect(result).toEqual({ count: 2 });
+    const result2 = await products.existsWith({ where: {} });
+    expect(result2).toBe(true);
+    const one = await products.findOne({ filter: {} });
+    expect(one?.id).toBe(1);
     expect(calls.counts).toBe(before);
   });
 
@@ -197,7 +209,8 @@ describe('what is computed is what was asked for, plus the defaults', () => {
     });
 
     expect(response.headers.get('x-response-extra')).toBe('summary');
-    expect(await response.json()).toEqual({ count: 2, data: ROWS, extra: { summary: 'summary' } });
+    const result = await response.json();
+    expect(result).toEqual({ count: 2, data: ROWS, extra: { summary: 'summary' } });
   });
 });
 

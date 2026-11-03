@@ -14,8 +14,9 @@ packages: ['@venizia/ignis-connectors']
 
 ## What changed
 
-- **The schema is kept.** `walk` used to quote only the table name, so `"merchants"` was read instead of `"commerce"."merchants"` and the walk hit the wrong relation or none. A Postgres table in a named schema is now emitted as `"schema"."table"` in both terms. A table in the default schema stays unqualified, and SQLite is unchanged.
-- **`anchorFilter` is new.** It is ANDed into the anchor term's `WHERE`, next to the `idColumn = rootId` match, the way `recursiveFilter` is ANDed into the recursive term.
+- **The schema is kept.** `walk` used to read `"merchants"` instead of `"commerce"."merchants"`, so the walk hit the wrong relation or none. A Postgres table in a named schema is now emitted as `"schema"."table"`. A table in the default schema stays unqualified, and SQLite is unchanged.
+- **`anchorFilter` is new.** It is ANDed into the anchor term's `WHERE`, the way `recursiveFilter` is ANDed into the recursive term.
+- **`walk` still applies no soft delete by itself.** It takes a table, not a model, so pass both filters to exclude deleted rows.
 
 ```typescript
 RecursiveTreeSql.walk({
@@ -28,8 +29,6 @@ RecursiveTreeSql.walk({
   recursiveFilter: sql`t.deleted_at IS NULL`,
 });
 ```
-
-- **`walk` still applies no soft delete by itself.** It takes a table, not a model, so it cannot know a model's soft-delete or `scopeFilter` settings. Pass both filters to exclude deleted rows.
 
 ## Who is affected
 

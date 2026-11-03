@@ -22,10 +22,10 @@ export default defineConfig(BrowserOxlintConfigs.create());
 
 ## What changed
 
-- **`BrowserOxlintConfigs.create()`.** This preset is `oxlintConfigs` plus the `crypto.randomUUID` ban. The method is `undefined` on a plain-http origin. Until now, only the React preset carried the ban.
-- **`browserOxfmtConfigs`.** This preset is `oxfmtConfigs` with `arrowParens: 'always'` (`(x) => x`) and `bracketSameLine: true`. `bracketSameLine` keeps the closing `>` of a JSX element on its last attribute line.
-- **`tsconfig.browser.json` and `tsconfig.react.json`.** These configs are for a library that a bundler builds. They set `moduleResolution: bundler`, add the `DOM` lib, and set `types: []`, so no Bun types reach `dist`. The React config also sets `jsx: react-jsx`.
-- **`ReactOxlintConfigs` builds on `BrowserOxlintConfigs`.** The rules are the same. The `crypto.randomUUID` ban now also covers `.mjs` and `.cjs` files.
+- **`BrowserOxlintConfigs.create()`** is `oxlintConfigs` plus the `crypto.randomUUID` ban (the method is `undefined` on a plain-http origin). Until now, only the React preset carried the ban.
+- **`browserOxfmtConfigs`** is `oxfmtConfigs` with `arrowParens: 'always'` and `bracketSameLine: true`.
+- **`tsconfig.browser.json` and `tsconfig.react.json`** are for a library that a bundler builds. They set `moduleResolution: bundler`, add the `DOM` lib, and set `types: []`, so no Bun types reach `dist`. The React config also sets `jsx: react-jsx`.
+- **`ReactOxlintConfigs` builds on `BrowserOxlintConfigs`.** The rules are the same, and the `crypto.randomUUID` ban now also covers `.mjs` and `.cjs` files.
 
 | Tool | Backend | Browser | React |
 |---|---|---|---|
@@ -36,8 +36,8 @@ export default defineConfig(BrowserOxlintConfigs.create());
 
 ## Who is affected
 
-- **Backend projects.** Nothing changes. The backend presets are untouched. No action needed.
-- **A browser or React project that copies these overrides by hand.** Switch to the new exports and delete the copies. A sample swap:
+- **Backend projects.** No action needed.
+- **A browser or React project that copies these overrides by hand.** Switch to the new exports and delete the copies:
 
 ```typescript
 // Before

@@ -11,7 +11,7 @@
   },
   "scripts": {
     "server:dev": "NODE_ENV=development bun run src/index.ts",
-    "compile": "sh scripts/compile.sh",
+    "compile": "bun scripts/compile.ts",
     "typecheck": "bun check",
     "lint": "bun run check:artifacts && devz lint",
     "lint:fix": "devz lint --fix",
@@ -29,8 +29,8 @@
     "@scalar/hono-api-reference": "catalog:",
     "@venizia/ignis": "workspace:*",
     "@venizia/ignis-boot": "workspace:*",
+    "@venizia/ignis-connectors": "workspace:*",
     "@venizia/ignis-helpers": "workspace:*",
-    "bcrypt": "^6.0.0",
     "dotenv-flow": "catalog:",
     "drizzle-orm": "catalog:",
     "drizzle-zod": "catalog:",
@@ -39,7 +39,6 @@
     "pg": "catalog:"
   },
   "devDependencies": {
-    "@types/bcrypt": "^6.0.0",
     "@types/bun": "catalog:",
     "@types/pg": "catalog:",
     "@venizia/dev-configs": "workspace:*",

@@ -3,7 +3,7 @@ import { BaseApplication } from '@/base/applications';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { AssetControllerFactory } from '@/components/static-asset/controller';
 import {
-  buildCommitToken,
+  AssetCommitToken,
   META_LINK_CREATE_FAILED,
   StaticAssetStorageTypes,
 } from '@/components/static-asset/common';
@@ -98,7 +98,8 @@ describe('the upload-policy route', () => {
     const router = await mount({ helper, directUpload: ALLOW });
 
     const response = await askPolicy(router, [{ fileName: 'a.png' }, { fileName: 'b.png' }]);
-    const policies = (await response.json()) as Array<{ objectName: string; commitToken: string }>;
+    const result = await response.json();
+    const policies = result as Array<{ objectName: string; commitToken: string }>;
 
     expect(response.status).toBe(200);
     expect(policies).toHaveLength(2);
@@ -148,7 +149,9 @@ describe('the upload-commit route', () => {
     const helper = new FakeStorageHelper();
     const router = await mount({ helper, directUpload: ALLOW });
 
-    const policies = (await (await askPolicy(router, [{ fileName: 'a.png' }])).json()) as Array<{
+    const result2 = await askPolicy(router, [{ fileName: 'a.png' }]);
+    const result = await result2.json();
+    const policies = result as Array<{
       objectName: string;
       commitToken: string;
     }>;
@@ -173,7 +176,7 @@ describe('the upload-commit route', () => {
   test('a forged token is refused without a single storage call', async () => {
     const helper = new FakeStorageHelper();
     const router = await mount({ helper, directUpload: ALLOW });
-    const forged = buildCommitToken({
+    const forged = AssetCommitToken.build({
       payload: { bucket: 'uploads', key: 'pending/x/a.png', expiresAt: Date.now() + 60_000 },
       secretKey: 'not-the-secret',
     });
@@ -198,7 +201,9 @@ describe('the upload-commit route', () => {
       },
     });
 
-    const policies = (await (await askPolicy(router, [{ fileName: 'a.png' }])).json()) as Array<{
+    const result2 = await askPolicy(router, [{ fileName: 'a.png' }]);
+    const result = await result2.json();
+    const policies = result as Array<{
       commitToken: string;
     }>;
     helper.calls.length = 0;
@@ -233,7 +238,9 @@ describe('a direct upload lands a MetaLink row, like every other upload', () => 
       },
     });
 
-    const policies = (await (await askPolicy(router, [{ fileName: 'a.png' }])).json()) as Array<{
+    const result2 = await askPolicy(router, [{ fileName: 'a.png' }]);
+    const result = await result2.json();
+    const policies = result as Array<{
       objectName: string;
       commitToken: string;
     }>;
@@ -247,7 +254,8 @@ describe('a direct upload lands a MetaLink row, like every other upload', () => 
       bucketName: 'uploads',
       objectName: policies[0].objectName.slice('pending/'.length),
     });
-    expect(await response.json()).toHaveProperty('metaLink');
+    const result3 = await response.json();
+    expect(result3).toHaveProperty('metaLink');
   });
 
   test('a label in the commit query is a 400, and nothing is recorded', async () => {
@@ -267,7 +275,9 @@ describe('a direct upload lands a MetaLink row, like every other upload', () => 
       },
     });
 
-    const policies = (await (await askPolicy(router, [{ fileName: 'a.png' }])).json()) as Array<{
+    const result2 = await askPolicy(router, [{ fileName: 'a.png' }]);
+    const result = await result2.json();
+    const policies = result as Array<{
       objectName: string;
       commitToken: string;
     }>;
@@ -300,7 +310,9 @@ describe('a direct upload lands a MetaLink row, like every other upload', () => 
       },
     });
 
-    const policies = (await (await askPolicy(router, [{ fileName: 'a.png' }])).json()) as Array<{
+    const result2 = await askPolicy(router, [{ fileName: 'a.png' }]);
+    const result = await result2.json();
+    const policies = result as Array<{
       objectName: string;
       commitToken: string;
     }>;
@@ -339,14 +351,17 @@ describe('a direct upload lands a MetaLink row, like every other upload', () => 
       },
     });
 
-    const policies = (await (await askPolicy(router, [{ fileName: 'a.png' }])).json()) as Array<{
+    const result2 = await askPolicy(router, [{ fileName: 'a.png' }]);
+    const result = await result2.json();
+    const policies = result as Array<{
       objectName: string;
       commitToken: string;
     }>;
     helper.seedObject({ bucket: 'uploads', key: policies[0].objectName });
 
     const response = await commit(router, policies[0].commitToken);
-    const body = (await response.json()) as { metaLink: { error: string }; link: string };
+    const result3 = await response.json();
+    const body = result3 as { metaLink: { error: string }; link: string };
 
     expect(response.status).toBe(200);
     expect(body.metaLink).toEqual({ error: META_LINK_CREATE_FAILED });
@@ -358,13 +373,16 @@ describe('a direct upload lands a MetaLink row, like every other upload', () => 
     const helper = new FakeStorageHelper();
     const router = await mount({ helper, directUpload: ALLOW });
 
-    const policies = (await (await askPolicy(router, [{ fileName: 'a.png' }])).json()) as Array<{
+    const result2 = await askPolicy(router, [{ fileName: 'a.png' }]);
+    const result = await result2.json();
+    const policies = result as Array<{
       objectName: string;
       commitToken: string;
     }>;
     helper.seedObject({ bucket: 'uploads', key: policies[0].objectName });
 
-    expect((await commit(router, policies[0].commitToken)).status).toBe(200);
+    const result3 = await commit(router, policies[0].commitToken);
+    expect(result3.status).toBe(200);
   });
 });
 
@@ -389,7 +407,8 @@ describe('the routes exist only when directUpload is configured', () => {
     const server = application.getServer() as OpenAPIHono;
     server.route(TEST_CONFIGS.path.base, application.getRootRouter());
 
-    expect((await askPolicy(server, [{ fileName: 'a.png' }])).status).toBe(404);
+    const result = await askPolicy(server, [{ fileName: 'a.png' }]);
+    expect(result.status).toBe(404);
   });
 });
 
@@ -432,7 +451,9 @@ describe('routes that take no labels say so', () => {
     const helper = new FakeStorageHelper();
     const router = await mount({ helper, directUpload: ALLOW });
 
-    const policies = (await (await askPolicy(router, [{ fileName: 'a.png' }])).json()) as Array<{
+    const result2 = await askPolicy(router, [{ fileName: 'a.png' }]);
+    const result = await result2.json();
+    const policies = result as Array<{
       objectName: string;
       commitToken: string;
     }>;
@@ -445,6 +466,7 @@ describe('routes that take no labels say so', () => {
     });
 
     expect(response.status).toBe(400);
-    expect(JSON.stringify(await response.json())).toContain('upload policy was issued');
+    const result3 = await response.json();
+    expect(JSON.stringify(result3)).toContain('upload policy was issued');
   });
 });

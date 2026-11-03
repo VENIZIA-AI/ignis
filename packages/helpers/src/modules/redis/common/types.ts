@@ -9,7 +9,8 @@ export interface IRedisSingleHelperProps {
   host: string;
   port: string | number;
   user?: string;
-  password: string;
+  /** Omit it for a Redis with no password. */
+  password?: string;
   database?: number;
   autoConnect?: boolean;
   maxRetry?: number;

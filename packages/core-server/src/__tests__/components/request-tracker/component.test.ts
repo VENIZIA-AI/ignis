@@ -5,12 +5,12 @@ import type { TRouteContext } from '@/base/controllers';
 import { BaseRestController } from '@/base/controllers';
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import { controller } from '@/base/metadata';
-import { jsonContent, jsonResponse } from '@venizia/ignis-kernel';
+import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { RequestTrackerComponent } from '@/components/request-tracker';
 import { z } from '@hono/zod-openapi';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { HTTP, type AnyType, type ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { parseMultipartBody } from '@venizia/ignis-helpers';
+import { RequestUtility } from '@venizia/ignis-helpers';
 import { afterEach, describe, expect, test } from 'bun:test';
 
 const TEST_CONFIGS: IApplicationConfigs = {
@@ -31,7 +31,7 @@ class EchoController extends BaseRestController {
       configs: {
         method: HTTP.Methods.GET,
         path: '/',
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.object({ requestId: z.string() }),
           description: 'Echo request id',
         }),
@@ -47,12 +47,12 @@ class EchoController extends BaseRestController {
         method: HTTP.Methods.POST,
         path: '/',
         request: {
-          body: jsonContent({
+          body: OpenApiResponses.jsonContent({
             description: 'Echo body',
             schema: z.object({ name: z.string() }),
           }),
         },
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.object({ name: z.string() }),
           description: 'Echo body back',
         }),
@@ -68,14 +68,14 @@ class EchoController extends BaseRestController {
       configs: {
         method: HTTP.Methods.POST,
         path: '/upload',
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.object({ names: z.array(z.string()) }),
           description: 'Echo uploaded file names',
         }),
       },
     }).to({
       handler: async (context: TRouteContext) => {
-        const { files } = await parseMultipartBody({ context });
+        const { files } = await RequestUtility.parseMultipartBody({ context });
         return context.json({ names: files.map((file) => file.originalname) }, 200);
       },
     });
@@ -132,7 +132,8 @@ describe('RequestTrackerComponent — request id', () => {
     });
     expect(response.status).toBe(200);
 
-    const body = (await response.json()) as { requestId: string };
+    const result = await response.json();
+    const body = result as { requestId: string };
     expect(body.requestId).toBe('inbound-request-id');
     expect(response.headers.get('x-request-id')).toBe('inbound-request-id');
   });
@@ -141,7 +142,8 @@ describe('RequestTrackerComponent — request id', () => {
     const router = await bootTrackedApplication();
 
     const response = await router.request('/echo', { headers: CLIENT_HEADERS });
-    const body = (await response.json()) as { requestId: string };
+    const result = await response.json();
+    const body = result as { requestId: string };
 
     expect(body.requestId.length).toBeGreaterThan(0);
     expect(response.headers.get('x-request-id')).toBe(body.requestId);
@@ -158,7 +160,8 @@ describe('RequestTrackerComponent — body parsing', () => {
       body: JSON.stringify({ name: 'ignis' }),
     });
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ name: 'ignis' });
+    const result = await response.json();
+    expect(result).toEqual({ name: 'ignis' });
   });
 
   test('a malformed JSON body is a clean 400, never an unhandled throw', async () => {
@@ -176,7 +179,8 @@ describe('RequestTrackerComponent — body parsing', () => {
     });
     expect(response.status).toBe(400);
 
-    const responseBody = (await response.json()) as Record<string, AnyType>;
+    const result = await response.json();
+    const responseBody = result as Record<string, AnyType>;
     expect(responseBody.message).toBe('Malformed Body Payload');
   });
 
@@ -190,7 +194,8 @@ describe('RequestTrackerComponent — body parsing', () => {
     });
 
     // `content-length: 0` short-circuits the spy, so the status comes from the downstream route validator, not an unhandled throw inside the middleware.
-    const responseBody = (await response.json()) as Record<string, AnyType>;
+    const result = await response.json();
+    const responseBody = result as Record<string, AnyType>;
     expect(responseBody.message).not.toBe('Malformed Body Payload');
   });
 
@@ -209,7 +214,8 @@ describe('RequestTrackerComponent — body parsing', () => {
     });
 
     // The spy itself must not reject a non-JSON payload; the route (JSON body) decides.
-    const responseBody = (await response.json()) as Record<string, AnyType>;
+    const result = await response.json();
+    const responseBody = result as Record<string, AnyType>;
     expect(responseBody.message).not.toBe('Malformed Body Payload');
   });
 
@@ -225,7 +231,8 @@ describe('RequestTrackerComponent — body parsing', () => {
       body: formData,
     });
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ names: ['photo.jpg'] });
+    const result = await response.json();
+    expect(result).toEqual({ names: ['photo.jpg'] });
   });
 });
 
@@ -256,7 +263,8 @@ describe('configs.middlewares.bodyLimit runs before the spy reads a body', () =>
     const response = await router.request('/echo/upload', MALFORMED_FORM);
 
     expect(response.status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
-    expect(JSON.stringify(await response.json())).toContain('core.request.body_too_large');
+    const result = await response.json();
+    expect(JSON.stringify(result)).toContain('core.request.body_too_large');
   });
 
   test('without a limit the same body reaches the spy, which refuses it', async () => {

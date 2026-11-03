@@ -24,8 +24,7 @@ import {
   UserStatuses,
   UserTypes,
 } from '@venizia/ignis';
-import { getError, HTTP } from '@venizia/ignis-helpers';
-import { compare, genSalt, hash } from 'bcrypt';
+import { getError, HTTP, CredentialHelper } from '@venizia/ignis-helpers';
 import { and, eq } from 'drizzle-orm';
 import { type Env } from 'hono';
 
@@ -73,7 +72,7 @@ export class AuthenticationService
       });
     }
 
-    const password = await hash(opts.credential, await genSalt());
+    const password = await CredentialHelper.hash({ password: opts.credential });
     await this.userRepository.create({
       data: {
         username: opts.username,
@@ -104,7 +103,14 @@ export class AuthenticationService
       .where(eq(userTable.username, opts.identifier.value))
       .limit(1);
 
-    const isValid = user?.password ? await compare(opts.credential.value, user.password) : false;
+    let isValid = false;
+    if (user?.password) {
+      const isCredentialMatched = await CredentialHelper.verify({
+        password: opts.credential.value,
+        hash: user.password,
+      });
+      isValid = isCredentialMatched;
+    }
     if (!user || !isValid) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
@@ -159,14 +165,18 @@ export class AuthenticationService
       throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'User not found' });
     }
 
-    if (!(await compare(opts.oldCredential, user.password))) {
+    const isOldCredentialValid = await CredentialHelper.verify({
+      password: opts.oldCredential,
+      hash: user.password,
+    });
+    if (!isOldCredentialValid) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
         message: 'Invalid old password',
       });
     }
 
-    const password = await hash(opts.newCredential, await genSalt());
+    const password = await CredentialHelper.hash({ password: opts.newCredential });
     await this.userRepository.updateById({ id: opts.userId, data: { password } });
 
     return { message: 'Password changed successfully' };

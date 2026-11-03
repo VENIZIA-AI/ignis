@@ -5,6 +5,8 @@ description: [One sentence, plain - what changed and why it matters]
 
 # Changelog - YYYY-MM-DD
 
+<!-- Write an entry ONLY for a change that affects the people who use the published packages: a new feature, API, option or config key; changed behaviour or a breaking change with its upgrade step; a bug fix a user could hit; a security fix; a deprecation or a removal. Release tooling, CI, guards, refactors with no visible change, tests, agent rules, internal docs and repository hygiene get NO entry. Date the entry on or after the day of the release that carries it. Keep it short and lead with the user's benefit. -->
+
 ## [Main Title/Focus Area]
 
 <!-- Keep only the badges that apply -->

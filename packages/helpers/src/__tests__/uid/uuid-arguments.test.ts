@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import path from 'node:path';
-import { createUuidV4, createUuidV7, UuidHelper, uuidV4, uuidV7 } from '@/modules/uid';
+import { UuidV4Generator, UuidV7Generator, UuidHelper } from '@/modules/uid';
 import { PACKAGE_ROOT } from '../package-root';
-import { spawnSyncBounded } from '@venizia/dev-configs/testing';
+import { SpawnHelper } from '@venizia/dev-configs/testing';
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -28,14 +28,14 @@ const callWith = (opts: {
 }) => opts.generator(...opts.args);
 
 const v7Generators = [
-  { name: 'uuidV7', generator: uuidV7 },
-  { name: 'createUuidV7()', generator: createUuidV7() },
+  { name: 'UuidV7Generator.generate', generator: UuidV7Generator.generate },
+  { name: 'UuidV7Generator.create()', generator: UuidV7Generator.create() },
   { name: 'UuidHelper.v7', generator: UuidHelper.getInstance().v7 },
 ];
 
 const v4Generators = [
-  { name: 'uuidV4', generator: uuidV4 },
-  { name: 'createUuidV4()', generator: createUuidV4() },
+  { name: 'UuidV4Generator.generate', generator: UuidV4Generator.generate },
+  { name: 'UuidV4Generator.create()', generator: UuidV4Generator.create() },
   { name: 'UuidHelper.v4', generator: UuidHelper.getInstance().v4 },
 ];
 
@@ -57,8 +57,8 @@ describe('a v7 generator ignores whatever it is called with', () => {
   }
 
   test('Array.from and map, the two point-free shapes callers actually write', () => {
-    const fromArray = Array.from({ length: 3 }, uuidV7);
-    const mapped = ['a', 'b'].map(uuidV7);
+    const fromArray = Array.from({ length: 3 }, UuidV7Generator.generate);
+    const mapped = ['a', 'b'].map(UuidV7Generator.generate);
 
     expect([...fromArray, ...mapped].every((id) => UUID_V7.test(id))).toBe(true);
   });
@@ -71,12 +71,15 @@ describe('an older helpers version already holding the v7 slot', () => {
   test('its generator is still called with no argument', () => {
     const script = `
       Reflect.set(globalThis, Symbol.for('@venizia/ignis-helpers:uuid-v7'), Bun.randomUUIDv7);
-      const { uuidV7 } = await import('${V7_SOURCE}');
-      const ids = Array.from({ length: 3 }, uuidV7);
+      const { UuidV7Generator } = await import('${V7_SOURCE}');
+      const ids = Array.from({ length: 3 }, UuidV7Generator.generate);
       const stamps = ids.map(id => Number.parseInt(id.slice(0, 8) + id.slice(9, 13), 16));
       console.log(JSON.stringify({ ids, current: stamps.every(stamp => Math.abs(stamp - Date.now()) < 60_000) }));
     `;
-    const run = spawnSyncBounded({ cmd: [process.execPath, '-e', script], stderr: 'pipe' });
+    const run = SpawnHelper.spawnSyncBounded({
+      cmd: [process.execPath, '-e', script],
+      stderr: 'pipe',
+    });
     const report: { ids: Array<string>; current: boolean } = JSON.parse(run.stdout.toString());
 
     expect(report.ids.every((id) => UUID_V7.test(id))).toBe(true);
@@ -98,7 +101,10 @@ describe('an older helpers version already holding a UuidHelper instance', () =>
       const stamps = ids.map(id => Number.parseInt(id.slice(0, 8) + id.slice(9, 13), 16));
       console.log(JSON.stringify({ fresh: helper instanceof UuidHelper, current: stamps.every(stamp => Math.abs(stamp - Date.now()) < 60_000) }));
     `;
-    const run = spawnSyncBounded({ cmd: [process.execPath, '-e', script], stderr: 'pipe' });
+    const run = SpawnHelper.spawnSyncBounded({
+      cmd: [process.execPath, '-e', script],
+      stderr: 'pipe',
+    });
     const report: { fresh: boolean; current: boolean } = JSON.parse(
       run.stdout.toString().trim().split('\n').at(-1) ?? '{}',
     );
@@ -144,7 +150,7 @@ describe('the native v4 path never forwards an argument', () => {
     };
     Object.defineProperty(crypto, 'randomUUID', { value: strict, configurable: true });
 
-    const generate = createUuidV4();
+    const generate = UuidV4Generator.create();
     const ids = STRAY_ARGUMENTS.map((args) => callWith({ generator: generate, args }));
 
     expect(prototypeRandomUuid).toBeDefined();

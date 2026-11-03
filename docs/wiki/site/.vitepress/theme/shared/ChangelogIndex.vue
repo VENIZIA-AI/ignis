@@ -63,7 +63,7 @@ const meta = (entry: TChangelogEntry): string =>
       <span class="cl-latest-title">{{ latest.title }}</span>
       <span class="cl-latest-summary">{{ latest.summary }}</span>
       <span v-if="meta(latest)" class="cl-meta">{{ meta(latest) }}</span>
-      <span class="cl-arrow" aria-hidden="true">→</span>
+      <span class="cl-arrow" aria-hidden="true"></span>
     </a>
 
     <div class="cl-bar">

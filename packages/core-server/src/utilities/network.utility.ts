@@ -1,9 +1,9 @@
-import { ApplicationLogger, ErrorPrettier } from '@venizia/ignis-helpers';
+import { ErrorPrettier, LoggerFactory } from '@venizia/ignis-helpers';
 import type { Context } from 'hono';
 import { getConnInfo } from 'hono/bun';
 
 export class NetworkUtility {
-  private static readonly logger = ApplicationLogger.get('getIncomingIp');
+  private static readonly logger = LoggerFactory.getLogger(['getIncomingIp']);
   /** Latches the warning: an absent conninfo peer fails identically for every later request. */
   private static hasReportedUnavailable = false;
 

@@ -1,10 +1,13 @@
 ---
 title: The Deprecated Model Settings Keys Are Removed
-description: "defaultFilter, defaultLimit, maxLimit and scopeFilter are gone from @model settings. A model that still uses one throws when the decorator runs. getScopeFilterSettings() is now getAccessSettings(). devz codemod model-settings rewrites the keys."
+description: "defaultFilter, defaultLimit, maxLimit and scopeFilter are gone from @model settings, and a model that still uses one throws when the decorator runs."
 packages: ['@venizia/ignis-kernel', '@venizia/ignis-connectors']
 ---
 
 # Changelog - 2026-10-26
+
+> [!NOTE]
+> `devz codemod model-settings`, named on this page, was removed in `@venizia/dev-configs` 0.4.7-5; on that release or later it exits 2 as an unknown codemod. Run it from an earlier release, or move the keys by hand with the table in [the old @model keys are removed](/changelogs/2026-11-03-old-model-settings-keys-are-removed).
 
 ## The deprecated model settings keys are removed
 
@@ -14,14 +17,13 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis-connectors']
 
 ## What changed
 
-- **The keys are removed** from `IModelSettings`: `defaultFilter`, `defaultLimit`, `maxLimit` and `scopeFilter` (with `scopeFilter.writeGuard` and `scopeFilter.sharedRows`). The types `IScopeFilterSettings`, `IDeprecatedModelSetting` and the `deprecatedSettings` metadata field go with them.
-- **The decorator throws on an old key.** A plain-JavaScript or `any`-typed model gets no type error, and a model that dropped `scopeFilter` would run unscoped. So the decorator refuses it, listing every removed key it finds:
+- **The keys are removed** from `IModelSettings`: `defaultFilter`, `defaultLimit`, `maxLimit` and `scopeFilter` (with `scopeFilter.writeGuard` and `scopeFilter.sharedRows`). The types `IScopeFilterSettings`, `IDeprecatedModelSetting` and the `deprecatedSettings` metadata field go with them, and so does the boot deprecation warning.
+- **The decorator throws on an old key,** listing every removed key it finds:
 
 ```text
 [model][Product] Removed settings key(s): settings.defaultFilter (use settings.query.filter), settings.scopeFilter (use settings.access) | removed in 0.4.3 | run 'devz codemod model-settings --write' to rewrite them
 ```
 
-- **The boot deprecation warning is gone**, with the code that normalised the old keys.
 - **`getScopeFilterSettings()` is `getAccessSettings()`.** It is the repository method that returns the model's `access` settings, and the override point for stubs and test doubles. A subclass that overrides the old name no longer takes effect: rename the override.
 
 ## Migrate

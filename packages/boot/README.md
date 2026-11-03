@@ -141,7 +141,7 @@ The resolver reads each field from the environment first (first non-blank key wi
 | Subpath | What it gives | Extra peers |
 |---|---|---|
 | `@venizia/ignis-boot` | Everything from the two subpaths below | `typescript` |
-| `@venizia/ignis-boot/generator` | `generateArtifactIndex`, `checkArtifactIndex`, `ArtifactScanner`, `ArtifactIndexEmitter`, `ArtifactStereotypes`, `ArtifactTypes`, `ArtifactIndexFields` | `typescript` |
+| `@venizia/ignis-boot/generator` | `ArtifactIndexGenerator`, `ArtifactScanner`, `ArtifactIndexEmitter`, `ArtifactStereotypes`, `ArtifactTypes`, `ArtifactIndexFields` | `typescript` |
 | `@venizia/ignis-boot/build-info` | `BuildInfoStamp`, `BuildInfoResolver`, `BuildInfoEnvironmentKeys` | none |
 
 | Binary | File |
@@ -151,9 +151,9 @@ The resolver reads each field from the environment first (first non-blank key wi
 The package ships ES modules. The programmatic API mirrors the CLI:
 
 ```typescript
-import { checkArtifactIndex } from '@venizia/ignis-boot/generator';
+import { ArtifactIndexGenerator } from '@venizia/ignis-boot/generator';
 
-const { isFresh } = checkArtifactIndex({ root: 'src', out: 'src/generated/artifacts.ts' });
+const { isFresh } = ArtifactIndexGenerator.check({ root: 'src', out: 'src/generated/artifacts.ts' });
 ```
 
 ## Where it sits

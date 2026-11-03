@@ -11,13 +11,13 @@ Exhaustive reference for every utility type, resolver function, and constant cla
 **Files:**
 
 - [`packages/helpers/src/common/types/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types) - utility, class, const-value, resolver, field-mapping, and injection types
-- [`packages/helpers/src/common/resolvers.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/resolvers.ts) - `resolveValue`, `resolveValueAsync`, `resolveClass`
+- [`packages/helpers/src/common/resolvers.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/resolvers.ts) - `resolveValue`, `resolveValueAsync`, `ClassResolver.resolveClass`
 - [`packages/helpers/src/common/constants/app.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/app.ts) - `Defaults`, `RuntimeModules`, `DataTypes`
 - [`packages/helpers/src/common/constants/http.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/http.ts) - `HTTP`
 - [`packages/helpers/src/common/constants/grpc.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/grpc.ts) - `GRPC`
 - [`packages/helpers/src/common/constants/mime.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/mime.ts) - `MimeTypes`, `FileExtensions`, `ContentTypes`, `ContentTypeTable`
 - [`packages/helpers/src/common/constants/duration.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/duration.ts) - `DurationUnits`, `DurationAliases`, `DurationMultipliers`, `IDuration`
-- [`packages/helpers/src/common/redact.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/redact.ts) - `redactSecrets`, `toJsonSafe`, `redactUrlCredentials`, `REDACTED`
+- [`packages/helpers/src/common/redact.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/redact.ts) - `RedactUtility` (`redactSecrets`, `toJsonSafe`, `redactUrlCredentials`), `REDACTED`
 - [`packages/helpers/src/common/constants/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/index.ts) - constants barrel
 
 ## Find what you need
@@ -81,9 +81,9 @@ import type {
 
 // isClass (source-level class-syntax check, re-exported from @venizia/ignis-inversion)
 import { isClass } from '@venizia/ignis-helpers';
-
-// Resolver functions
-import { resolveValue, resolveValueAsync, resolveClass } from '@venizia/ignis-helpers';
+// Resolver classes
+import { ResolverUtility, ClassResolver } from '@venizia/ignis-helpers';
+import { resolveValue, resolveValueAsync, ClassResolver } from '@venizia/ignis-helpers';
 
 // Constants
 import {
@@ -103,7 +103,7 @@ import {
 } from '@venizia/ignis-helpers';
 
 // Redaction
-import { redactSecrets, toJsonSafe, redactUrlCredentials, REDACTED } from '@venizia/ignis-helpers';
+import { RedactUtility, REDACTED } from '@venizia/ignis-helpers';
 
 // Derived constant types
 import type {
@@ -194,7 +194,7 @@ function MyMixin<T extends TMixinTarget<BaseClass>>(Base: T) {
 const isClass: <T>(target: any) => target is TClass<T>;
 ```
 
-Declared in `@venizia/ignis-inversion` and re-exported by `helpers`. It's the single predicate that tells a constructor from a resolver function. Controller factories and `resolveValue`/`resolveValueAsync`/`resolveClass` all branch on it.
+Declared in `@venizia/ignis-inversion` and re-exported by `helpers`. It's the single predicate that tells a constructor from a resolver function. Controller factories and `resolveValue`/`resolveValueAsync`/`ClassResolver.resolveClass` all branch on it.
 
 - **Filters to functions with a `prototype`** - true of every non-arrow function, so this alone is not sufficient.
 - **Decompiles the function via `Function.prototype.toString`** and regex-tests that the source text literally starts with the `class` keyword.
@@ -263,15 +263,15 @@ type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>;
 | `TValueOrResolver<T>` | `T \| TResolver<T>` | Config options that accept an eager value or a sync resolver |
 | `TValueOrAsyncResolver<T>` | `T \| TAsyncResolver<T>` | Config options that accept an eager value or a sync/async resolver |
 
-### resolveValue
+### ResolverUtility.resolveValue
 
-`Source ->` [`resolvers.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/resolvers.ts) (also `resolveValueAsync`, `resolveClass`)
+`Source ->` [`resolvers.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/resolvers.ts) (also `resolveValueAsync`, `ClassResolver.resolveClass`)
 
 ```typescript
-const resolveValue: <T>(opts: { value: TValueOrResolver<T> }) => T;
+ResolverUtility.resolveValue<T>(opts: { value: TValueOrResolver<T> }): T;
 ```
 
-Synchronously resolves a lazy value.
+Synchronously resolves a lazy value. The old free functions `resolveValue` and `resolveValueAsync` are gone; `devz codemod namespace-functions` moves their callers.
 
 | Input | Result |
 |---|---|
@@ -279,20 +279,20 @@ Synchronously resolves a lazy value.
 | Class constructor | Returned as-is - detected via `isClass()`, never invoked |
 | Resolver function | Invoked; the return value is returned |
 
-### resolveValueAsync
+### ResolverUtility.resolveValueAsync
 
 ```typescript
-const resolveValueAsync: <T>(opts: { value: TValueOrAsyncResolver<T> }) => Promise<T>;
+ResolverUtility.resolveValueAsync<T>(opts: { value: TValueOrAsyncResolver<T> }): Promise<T>;
 ```
 
-Async version of `resolveValue`. Same three cases, but the resolver's return value is `await`-ed before being returned.
+Async version of `ResolverUtility.resolveValue`. Same three cases, but the resolver's return value is `await`-ed before being returned.
 
-### resolveClass
+### ClassResolver.resolveClass
 
 ```typescript
-const resolveClass: <T>(opts: {
+ClassResolver.resolveClass<T>(opts: {
   ref: TClass<T> | TResolver<TClass<T>> | string;
-}) => TClass<T> | string;
+}): TClass<T> | string;
 ```
 
 Resolves lazy class references.
@@ -306,7 +306,7 @@ Resolves lazy class references.
 ### Resolution example
 
 ```typescript
-import { TValueOrAsyncResolver, resolveValueAsync } from '@venizia/ignis-helpers';
+import { TValueOrAsyncResolver, ResolverUtility } from '@venizia/ignis-helpers';
 
 interface DatabaseConfig {
   host: string;
@@ -328,7 +328,7 @@ const config3: ConfigOption = async () => {
 };
 
 // Resolve any of the above uniformly
-const resolved = await resolveValueAsync({ value: config3 });
+const resolved = await ResolverUtility.resolveValueAsync({ value: config3 });
 ```
 
 ## Field Mapping Types
@@ -829,36 +829,36 @@ Keeps secrets out of log lines. Key names are matched case-insensitively, at any
 
 | Export | Signature | Does |
 |---|---|---|
-| `redactSecrets` | `(value: unknown, seen?: WeakSet<object>, depth?: number): unknown` | Replaces the value of any secret-looking key with `REDACTED`. `depth` defaults to `Infinity` |
-| `toJsonSafe` | `(opts: { value: unknown; depth?: number }): unknown` | Projects a value into something `JSON.stringify` can render, breaking cycles per branch |
-| `redactUrlCredentials` | `(url: string): string` | Strips the password out of a connection URL's authority section |
+| `RedactUtility.redactSecrets` | `(opts: { value: unknown; seen?: WeakSet<object>; depth?: number }): unknown` | Replaces the value of any secret-looking key with `REDACTED`. `depth` defaults to `Infinity` |
+| `RedactUtility.toJsonSafe` | `(opts: { value: unknown; depth?: number }): unknown` | Projects a value into something `JSON.stringify` can render, breaking cycles per branch |
+| `RedactUtility.redactUrlCredentials` | `(opts: { url: string }): string` | Strips the password out of a connection URL's authority section |
 | `REDACTED` | `'[REDACTED]'` | The replacement string |
 
 The key pattern covers the options spellings (`password`, `secret`, `apiKey`, `privateKey`, `connectionString`), the snake_case wire spellings (`client_token`, `secret_id`, `role_id`), any `*_token`/`*Token` and `*_secret`/`*Secret` key, and the HTTP header spellings (`x-api-key`, `authorization`, `cookie`, `set-cookie`).
 
-`redactUrlCredentials` exists because `redactSecrets` matches on key names and cannot see a password sitting inside a URL string. A value that does not parse as a URL comes back unchanged.
+`RedactUtility.redactUrlCredentials` exists because `RedactUtility.redactSecrets` matches on key names and cannot see a password sitting inside a URL string. A value that does not parse as a URL comes back unchanged.
 
 ```typescript
-import { redactSecrets, redactUrlCredentials, toJsonSafe } from '@venizia/ignis-helpers';
+import { RedactUtility } from '@venizia/ignis-helpers';
 
-redactSecrets({ user: 'ada', password: 'hunter2' });
+RedactUtility.redactSecrets({ value: { user: 'ada', password: 'hunter2' } });
 // => { user: 'ada', password: '[REDACTED]' }
 
-redactUrlCredentials('postgres://ada:hunter2@db:5432/app');
+RedactUtility.redactUrlCredentials({ url: 'postgres://ada:hunter2@db:5432/app' });
 // => 'postgres://ada:[REDACTED]@db:5432/app'
 
 const node: Record<string, unknown> = { name: 'a' };
 node.self = node;
-toJsonSafe({ value: node });
+RedactUtility.toJsonSafe({ value: node });
 // => { name: 'a', self: '[Circular]' } - one branch, not the whole payload
 ```
 
 > [!WARNING]
-> `APP_ENV_LOGGER_DO_REDACT=false` turns key masking off, for local debugging only. It is fail-closed: only the literal string `false` disables it, and it is read per call. The structural pass in `toJsonSafe` always runs regardless.
+> `APP_ENV_LOGGER_DO_REDACT=false` turns key masking off, for local debugging only. It is fail-closed: only the literal string `false` disables it, and it is read per call. The structural pass in `RedactUtility.toJsonSafe` always runs regardless.
 
 ## See also
 
 - [Types overview](/extensions/helpers/types/) - introduction and the most common tasks
 - [Dependency Injection](/guides/core-concepts/dependency-injection) - `TInjectionGetter` and DI-adjacent types in use
-- [Repository Mixins](/references/base/repositories/mixins) - `TMixinTarget` in use
+- [Advanced Patterns](/best-practices/code-style-standards/advanced-patterns) - `TMixinTarget` in use
 - [Helpers Overview](/extensions/helpers/) - all available helpers

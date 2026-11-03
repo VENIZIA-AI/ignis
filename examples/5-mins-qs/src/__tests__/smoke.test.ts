@@ -17,6 +17,7 @@ const findFreePort = async () => {
 
 const waitForServer = async (opts: { url: string; process: Bun.Subprocess }) => {
   const deadline = Date.now() + START_TIMEOUT_MS;
+  let lastError: unknown;
 
   while (Date.now() < deadline) {
     if (opts.process.exitCode !== null) {
@@ -25,10 +26,14 @@ const waitForServer = async (opts: { url: string; process: Bun.Subprocess }) => 
       });
     }
 
-    const isUp = await fetch(opts.url).then(
-      (response) => response.ok,
-      () => false,
-    );
+    let isUp = false;
+    try {
+      const response = await fetch(opts.url);
+      isUp = response.ok;
+    } catch (error) {
+      // Refused while the server boots: keep polling and keep the last error for the timeout.
+      lastError = error;
+    }
 
     if (isUp) {
       return;
@@ -38,7 +43,7 @@ const waitForServer = async (opts: { url: string; process: Bun.Subprocess }) => 
   }
 
   throw getError({
-    message: `[smoke] server did not answer within ${START_TIMEOUT_MS} ms | Url: ${opts.url}`,
+    message: `[smoke] server did not answer within ${START_TIMEOUT_MS} ms | Url: ${opts.url} | Last error: ${String(lastError)}`,
   });
 };
 
@@ -69,7 +74,8 @@ describe('5-mins-qs', () => {
     const response = await fetch(`${baseUrl}/hello`);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ message: 'Hello from IGNIS!' });
+    const payload = await response.json();
+    expect(payload).toEqual({ message: 'Hello from IGNIS!' });
   });
 
   test('GET /doc/explorer serves the API reference', async () => {

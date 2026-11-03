@@ -4,9 +4,15 @@ import { JSX_FILES } from '../jsx-files';
 import { reactNamingConventionConfigs } from '../react-eslint';
 import { HOUSE_PLUGIN_NAMESPACE } from './common';
 import { ConstClassValuesRule } from './const-class-values.rule';
+import { EffectCleanupConsistencyRule } from './effect-cleanup-consistency.rule';
 import { MaxParamsOwnRule } from './max-params-own.rule';
+import { NoAsyncHookCallbackRule } from './no-async-hook-callback.rule';
+import { NoAwaitPromiseChainRule } from './no-await-promise-chain.rule';
+import { NoInlineAwaitRule } from './no-inline-await.rule';
 import { NoLeakedRenderRule } from './no-leaked-render.rule';
 import { NoNewErrorRule } from './no-new-error.rule';
+import { NoReturnAwaitRule } from './no-return-await.rule';
+import { NoSilentCatchRule } from './no-silent-catch.rule';
 import { houseEslintPlugin } from './plugin';
 
 const SOURCE_FILES = ['**/*.{ts,tsx,mts,cts}'];
@@ -78,4 +84,54 @@ export const reactHouseConfigs: Linter.Config[] = [
   ...reactNamingConventionConfigs,
   ...houseRuleConfigs,
   ...reactRuleConfigs,
+];
+
+/**
+ * The async style rules, opt-in until every Venizia repository has been swept (the owner's rollout: the option in
+ * one release, the default in the next). Spread it next to `houseConfigs`:
+ *
+ * ```js
+ * export default [...houseConfigs, ...asyncStyleConfigs];
+ * ```
+ *
+ * `await` stands alone as a statement or as the whole initializer of a declaration (`no-inline-await`), a
+ * function returns the promise instead of `return await` (`no-return-await`), an `await` never takes a promise
+ * chain (`no-await-promise-chain`), and a caught error leaves a trace (`no-silent-catch`). They apply to test
+ * files too.
+ */
+export const asyncStyleConfigs: Linter.Config[] = [
+  {
+    files: SOURCE_FILES,
+    plugins: { [HOUSE_PLUGIN_NAMESPACE]: houseEslintPlugin },
+    rules: {
+      [NoInlineAwaitRule.NAME]: NoInlineAwaitRule.build(),
+      [NoReturnAwaitRule.NAME]: NoReturnAwaitRule.build(),
+      [NoAwaitPromiseChainRule.NAME]: NoAwaitPromiseChainRule.build(),
+      [NoSilentCatchRule.NAME]: NoSilentCatchRule.build(),
+    },
+  },
+];
+
+/**
+ * The hook async rules, opt-in like `asyncStyleConfigs`. Spread it next to `reactHouseConfigs`:
+ *
+ * ```js
+ * export default [...reactHouseConfigs, ...reactAsyncStyleConfigs];
+ * ```
+ *
+ * A hook never gets an async function (`no-async-hook-callback`), and an effect callback returns a cleanup on every
+ * path or on none (`effect-cleanup-consistency`). Hooks live in `.ts` files too, so it covers all source files.
+ * It also carries `no-await-promise-chain` and `no-silent-catch`: a hook body is where a promise chain lives.
+ */
+export const reactAsyncStyleConfigs: Linter.Config[] = [
+  {
+    files: SOURCE_FILES,
+    plugins: { [HOUSE_PLUGIN_NAMESPACE]: houseEslintPlugin },
+    rules: {
+      [NoAsyncHookCallbackRule.NAME]: NoAsyncHookCallbackRule.build(),
+      [EffectCleanupConsistencyRule.NAME]: EffectCleanupConsistencyRule.build(),
+      [NoAwaitPromiseChainRule.NAME]: NoAwaitPromiseChainRule.build(),
+      [NoSilentCatchRule.NAME]: NoSilentCatchRule.build(),
+    },
+  },
 ];

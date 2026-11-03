@@ -1,4 +1,4 @@
-import { toSafeEcho } from '@/common/internal';
+import { EchoUtility } from '@/common/internal';
 import type {
   IModelAccessSettings,
   TDrizzleQueryOptions,
@@ -12,7 +12,6 @@ import type {
 } from '@venizia/ignis-kernel';
 import {
   DEFAULT_LIMIT,
-  parseOrderEntry,
   QueryOperators,
   RelationTypes,
   ScopeFilterMissingBehaviors,
@@ -23,7 +22,7 @@ import type { TTableObject, TTableSchemaWithId } from '@/relational/core/models/
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
-import { isEmpty, resolveValue } from '@venizia/ignis-helpers/common';
+import { ObjectUtility, ResolverUtility } from '@venizia/ignis-helpers/common';
 import {
   and,
   asc,
@@ -41,12 +40,7 @@ import {
 } from 'drizzle-orm';
 import type { TRelationConfig, TTableColumns } from '../common';
 import { ScopeFilterDenial, TableColumnCache } from '../common';
-import {
-  isJsonPath,
-  parseJsonPath,
-  validateJsonColumnType,
-  validateJsonPathComponents,
-} from './internal';
+import { JsonPathUtility } from './internal';
 
 /** Operators whose scalar operand determines the JSON numeric-cast need in jsonNeedsNumericCast. */
 /** What one registry lookup yields - named so the three setting readers can accept an already-resolved entry instead of each repeating the lookup. */
@@ -341,7 +335,7 @@ export abstract class FilterBuilder extends BaseHelper {
     }
 
     try {
-      const relationsArray = resolveValue({
+      const relationsArray = ResolverUtility.resolveValue({
         value: modelEntry.relationsResolver,
       }) as Array<TRelationConfig>;
       const relationsRecord: Record<string, TRelationConfig> = {};
@@ -424,7 +418,7 @@ export abstract class FilterBuilder extends BaseHelper {
     const { tableName, schema, where } = opts;
     const columns = this.getColumns(schema);
 
-    if (!columns || isEmpty({ value: columns })) {
+    if (!columns || ObjectUtility.isEmpty({ value: columns })) {
       throw getError({
         message: `[FilterBuilder][toWhere] Table: ${tableName} | Failed to get table columns`,
       });
@@ -467,14 +461,14 @@ export abstract class FilterBuilder extends BaseHelper {
       return condition ? [condition] : [];
     }
 
-    if (isJsonPath({ key })) {
+    if (JsonPathUtility.isJsonPath({ key })) {
       return this.buildJsonWhereCondition({ key, value, columns, tableName });
     }
 
     const column = columns[key];
     if (!column) {
       throw getError({
-        message: `[FilterBuilder][toWhere] Table: ${tableName} | Column NOT FOUND | key: '${toSafeEcho({ value: key })}'`,
+        message: `[FilterBuilder][toWhere] Table: ${tableName} | Column NOT FOUND | key: '${EchoUtility.toSafeEcho({ value: key })}'`,
       });
     }
 
@@ -516,7 +510,7 @@ export abstract class FilterBuilder extends BaseHelper {
         continue;
       }
 
-      if (isJsonPath({ key })) {
+      if (JsonPathUtility.isJsonPath({ key })) {
         orderBy.push(this.buildJsonOrderBy({ key, direction, columns, tableName }));
         continue;
       }
@@ -524,7 +518,7 @@ export abstract class FilterBuilder extends BaseHelper {
       const column = columns[key];
       if (!column) {
         throw getError({
-          message: `[FilterBuilder][toOrderBy] Table: ${tableName} | Column NOT FOUND | key: '${toSafeEcho({ value: key })}'`,
+          message: `[FilterBuilder][toOrderBy] Table: ${tableName} | Column NOT FOUND | key: '${EchoUtility.toSafeEcho({ value: key })}'`,
         });
       }
 
@@ -545,7 +539,7 @@ export abstract class FilterBuilder extends BaseHelper {
     let parsed = this._orderEntryCache.get(entry);
 
     if (!parsed) {
-      parsed = parseOrderEntry({ entry });
+      parsed = Sorts.parseEntry({ entry });
 
       if (entry.length <= ORDER_ENTRY_CACHE_MAX_LENGTH) {
         // Clearing, not evicting the oldest: deleting from the front of a JSC Map is slow.
@@ -641,7 +635,7 @@ export abstract class FilterBuilder extends BaseHelper {
           : mergedScope;
 
       const hasNoEffectiveFilter =
-        isEmpty({ value: scopedFilter }) || Object.keys(scopedFilter).length === 0;
+        ObjectUtility.isEmpty({ value: scopedFilter }) || Object.keys(scopedFilter).length === 0;
       if (hasNoEffectiveFilter && hiddenProps.size === 0) {
         result[relationName] = true;
         continue;
@@ -815,23 +809,23 @@ export abstract class FilterBuilder extends BaseHelper {
   }): { column: TTableColumns[string]; path: string[] } {
     const { key, columns, tableName, methodName } = opts;
 
-    const parsed = parseJsonPath({ key });
+    const parsed = JsonPathUtility.parseJsonPath({ key });
 
     const column = columns[parsed.columnName];
     if (!column) {
       throw getError({
-        message: `[FilterBuilder][${methodName}] Table: ${tableName} | Column NOT FOUND | key: '${toSafeEcho({ value: parsed.columnName })}'`,
+        message: `[FilterBuilder][${methodName}] Table: ${tableName} | Column NOT FOUND | key: '${EchoUtility.toSafeEcho({ value: parsed.columnName })}'`,
       });
     }
 
-    validateJsonColumnType({
+    JsonPathUtility.validateJsonColumnType({
       column,
       columnName: parsed.columnName,
       tableName,
       methodName: `FilterBuilder.${methodName}`,
     });
 
-    validateJsonPathComponents({
+    JsonPathUtility.validateJsonPathComponents({
       path: parsed.path,
       tableName,
       methodName: `FilterBuilder.${methodName}`,

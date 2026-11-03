@@ -76,7 +76,7 @@ class ControllerFactory extends BaseHelper {
     const entityInstance = new entityClass();
 
     // Derive request/response schemas + route configs from the entity instance
-    const definitions = defineControllerRouteConfigs({
+    const definitions = RouteConfigResolver.defineControllerRouteConfigs({
       idType: entityInstance.getIdType(),
       routes,
       schema: {
@@ -138,18 +138,22 @@ Support multiple input types that resolve to a single value:
 export type TResolver<T> = (...args: any[]) => T;
 export type TValueOrResolver<T> = T | TResolver<T>;
 
-// Resolver function
-export const resolveValue = <T>(valueOrResolver: TValueOrResolver<T>): T => {
-  if (typeof valueOrResolver !== 'function') {
-    return valueOrResolver;  // Direct value
-  }
+// Resolver function (ResolverUtility.resolveValue, declared in @venizia/ignis-inversion)
+export class ResolverUtility {
+  static resolveValue<T>(opts: { value: TValueOrResolver<T> }): T {
+    const { value } = opts;
 
-  if (isClass(valueOrResolver)) {
-    return valueOrResolver as T;  // Class constructor (return as-is)
-  }
+    if (typeof value !== 'function') {
+      return value;  // Direct value
+    }
 
-  return (valueOrResolver as TResolver<T>)();  // Function resolver
-};
+    if (isClass(value)) {
+      return value as T;  // Class constructor (return as-is)
+    }
+
+    return (value as TResolver<T>)();  // Function resolver
+  }
+}
 
 // isClass (declared in @venizia/ignis-inversion, re-exported by helpers) - distinguishes class
 // constructors from arrow/regular functions by testing the SOURCE against /^class[\s{]/,
@@ -175,7 +179,7 @@ const opts1: IOptions = { entity: User };           // Direct class
 const opts2: IOptions = { entity: () => User };     // Resolver function (for lazy loading)
 
 // In consumer code
-const EntityClass = resolveValue({ value: opts.entity });
+const EntityClass = ResolverUtility.resolveValue({ value: opts.entity });
 const instance = new EntityClass();
 ```
 

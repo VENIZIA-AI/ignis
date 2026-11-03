@@ -23,7 +23,7 @@
 export class EnvironmentKeys {
   // --- Read by the framework -------------------------------------------------------------------
 
-  /** `AppConstants.APPLICATION_NAME` and the startup banner. */
+  /** The startup banner. */
   static readonly APP_ENV_APPLICATION_NAME = 'APP_ENV_APPLICATION_NAME';
   /** `DateUtility`'s default zone and the startup banner. */
   static readonly APP_ENV_APPLICATION_TIMEZONE = 'APP_ENV_APPLICATION_TIMEZONE';

@@ -15,8 +15,8 @@ The smallest real datasource: a `pg.Pool` wrapped in a class, wired to node-post
 ```typescript
 import { Pool } from 'pg';
 import { datasource } from '@venizia/ignis';
-import { BasePostgresDataSource } from '@venizia/ignis/postgres';
-import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
+import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 
 interface IDataSourceConfigs {
   host: string;
@@ -48,7 +48,7 @@ A `@repository` binds a model to `PostgresDataSource`, and the schema is auto-di
 - **The driver wires lazily.** The first time `getConnector()` or `beginTransaction()` is called, the base class reads the class named in `@datasource({ driver })`. It instantiates that class over `this.client` and builds `this.connector` from it.
 - **`stop()` closes it.** `application.stop()` calls `close()` on every datasource the boot configured, which ends the client through the driver. You write no shutdown code. A datasource you configure by hand in `postConfigure()` is yours to close.
 - **Three layers, not two.** IGNIS splits datasources into an engine-neutral root (`AbstractDataSource` - no SQL, no Drizzle, no pool), an engine-neutral relational tier (`AbstractRelationalDataSource` -> `BaseRelationalDataSource`, which owns the driver seam, schema auto-discovery and transactions), and one branch per engine. See [Connectors](/references/base/connectors) for the full architecture.
-- **Naming.** `BasePostgresDataSource` is a **subclass** of the neutral `BaseRelationalDataSource`, not an alias for it. It adds the Postgres dialect, executor and `BEGIN TRANSACTION ISOLATION LEVEL` statement. `BaseDataSource` is the one true alias here - the same class under its historical name. The neutral `BaseRelationalDataSource` lives at `@venizia/ignis/relational` and is not re-exported from `@venizia/ignis/postgres`.
+- **Naming.** `BasePostgresDataSource` is a **subclass** of the neutral `BaseRelationalDataSource`, not an alias for it. It adds the Postgres dialect, executor and `BEGIN TRANSACTION ISOLATION LEVEL` statement. `BaseDataSource` is the one true alias here - the same class under its historical name. The neutral `BaseRelationalDataSource` lives at `@venizia/ignis-connectors/relational` and is not re-exported from `@venizia/ignis-connectors/postgres`.
 
 ## Common tasks
 
@@ -58,7 +58,7 @@ Pass connection settings through the constructor's `config` option. `configure()
 
 ```typescript
 import { Pool } from 'pg';
-import { applicationEnvironment, int } from '@venizia/ignis-helpers';
+import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
 
 export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
   constructor() {
@@ -66,7 +66,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
       name: PostgresDataSource.name,
       config: {
         host: applicationEnvironment.get<string>('APP_ENV_POSTGRES_HOST'),
-        port: int(applicationEnvironment.get<string>('APP_ENV_POSTGRES_PORT')),
+        port: ParseUtility.toInt({ input: applicationEnvironment.get<string>('APP_ENV_POSTGRES_PORT') }),
         database: applicationEnvironment.get<string>('APP_ENV_POSTGRES_DATABASE'),
         user: applicationEnvironment.get<string>('APP_ENV_POSTGRES_USERNAME'),
         password: applicationEnvironment.get<string>('APP_ENV_POSTGRES_PASSWORD'),
@@ -84,17 +84,17 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 
 | Driver | Import from | Package | When to use |
 |---|---|---|---|
-| `NodePostgresDriver` | `@venizia/ignis/postgres/node-postgres` | `pg` | Long-standing default |
-| `PostgresJsDriver` | `@venizia/ignis/postgres/postgres-js` | `postgres` | Required for Supabase's transaction pooler; faster elsewhere |
-| `PGliteDriver` | `@venizia/ignis/postgres/pglite` | `@electric-sql/pglite` | Postgres compiled to WASM, in-process. Tests and local runs with no server |
-| `LibSqlDriver` | `@venizia/ignis/sqlite/libsql` | `@libsql/client` | SQLite: `:memory:`, a local file, remote Turso, or an embedded replica |
+| `NodePostgresDriver` | `@venizia/ignis-connectors/postgres/node-postgres` | `pg` | Long-standing default |
+| `PostgresJsDriver` | `@venizia/ignis-connectors/postgres/postgres-js` | `postgres` | Required for Supabase's transaction pooler; faster elsewhere |
+| `PGliteDriver` | `@venizia/ignis-connectors/postgres/pglite` | `@electric-sql/pglite` | Postgres compiled to WASM, in-process. Tests and local runs with no server |
+| `LibSqlDriver` | `@venizia/ignis-connectors/sqlite/libsql` | `@libsql/client` | SQLite: `:memory:`, a local file, remote Turso, or an embedded replica |
 
 `PGliteDriver` and `LibSqlDriver` each hold one session, so `acquire()` hands out a one-slot pool. Write through `acquire()` when a transaction may be open.
 
 Swapping drivers only changes which class `@datasource` names and how `configure()` builds the client:
 
 ```typescript
-import { PostgresJsDriver } from '@venizia/ignis/postgres/postgres-js';
+import { PostgresJsDriver } from '@venizia/ignis-connectors/postgres/postgres-js';
 import postgres from 'postgres';
 import type { Sql } from 'postgres';
 import * as schema from '@/schemas';
@@ -119,7 +119,7 @@ See [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-driv
 `beginTransaction()` acquires a connection, issues `BEGIN`, and returns a handle with a scoped `connector`, `commit()`, and `rollback()`.
 
 ```typescript
-import { IsolationLevels } from '@venizia/ignis/postgres';
+import { IsolationLevels } from '@venizia/ignis-connectors/postgres';
 import { userTable } from '@/schemas';
 
 const transaction = await postgresDataSource.beginTransaction({

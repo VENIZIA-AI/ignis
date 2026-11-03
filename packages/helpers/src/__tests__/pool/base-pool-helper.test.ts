@@ -126,6 +126,7 @@ describe('BasePoolHelper — waiting, timeout, load-shed', () => {
     }
     expect(error).toBeDefined();
     // cleanup so the test process doesn't hang on the still-pending w1
+    // eslint-disable-next-line venizia/no-silent-catch -- the pending waiter's rejection is irrelevant to this test; only an unhandled-rejection warning is lost
     w1.catch(() => undefined);
   });
 

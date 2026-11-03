@@ -6,7 +6,7 @@ import { ServerBootSteps } from '@/base/applications';
 import type { IApplicationConfigs } from '@/base/applications';
 import { BaseRestController } from '@/base/controllers';
 import { controller, get, inject, model, repository, service } from '@/base/metadata';
-import { assertApplicationBoots } from '@/testing';
+import { ApplicationBootAssertion } from '@/testing';
 import { z } from '@hono/zod-openapi';
 import {
   BasePostgresDataSource,
@@ -20,12 +20,15 @@ import {
   BindingNamespaces,
   CoreBindings,
   type IApplicationInfo,
-  jsonResponse,
+  OpenApiResponses,
 } from '@venizia/ignis-kernel';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import { beforeEach, describe, expect, spyOn, test } from 'bun:test';
 
-const okResponse = jsonResponse({ schema: z.object({ hit: z.string() }), description: 'ok' });
+const okResponse = OpenApiResponses.jsonResponse({
+  schema: z.object({ hit: z.string() }),
+  description: 'ok',
+});
 
 const calls = { failing: 0, counting: 0, component: 0, hydrate: 0, rotatables: 0, override: 0 };
 
@@ -299,15 +302,25 @@ const FULL: IPlan = {
   controllers: [AccountController],
 };
 
-describe('assertApplicationBoots - the boot path', () => {
+describe('ApplicationBootAssertion.assert - the boot path', () => {
   test('C1/C2 an unregistered injection is rejected with the very error boot raises', async () => {
     const application = new PlannedApplication({ controllers: [BrokenController] });
     const boot = application.initialize.bind(application);
     application.init();
-    const original = await boot().catch((error: unknown) => error);
+    let original: unknown;
+    try {
+      await boot();
+    } catch (error) {
+      original = error;
+    }
 
     const fresh = new PlannedApplication({ controllers: [BrokenController] });
-    const error = await assertApplicationBoots(fresh).catch((caught: unknown) => caught);
+    let error: unknown;
+    try {
+      await ApplicationBootAssertion.assert({ application: fresh });
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(error).toBeInstanceOf(Error);
     expect(String(error)).toContain(
@@ -329,7 +342,12 @@ describe('assertApplicationBoots - the boot path', () => {
       }
     };
 
-    const error = await assertApplicationBoots(application).catch((caught: unknown) => caught);
+    let error: unknown;
+    try {
+      await ApplicationBootAssertion.assert({ application });
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(seen).toHaveLength(1);
     expect(error).toBe(seen[0]);
@@ -338,30 +356,43 @@ describe('assertApplicationBoots - the boot path', () => {
   test('C3 a correct application resolves with that same application', async () => {
     const application = new PlannedApplication(FULL);
 
-    expect(await assertApplicationBoots(application)).toBe(application);
+    const result = await ApplicationBootAssertion.assert({ application });
+    expect(result).toBe(application);
   });
 
   test('C3 a factory is accepted, sync or async', async () => {
-    const sync = await assertApplicationBoots(() => new PlannedApplication(FULL));
-    const asynchronous = await assertApplicationBoots(async () => new PlannedApplication(FULL));
+    const sync = await ApplicationBootAssertion.assert({
+      application: () => new PlannedApplication(FULL),
+    });
+    const asynchronous = await ApplicationBootAssertion.assert({
+      application: async () => new PlannedApplication(FULL),
+    });
 
     expect(sync).toBeInstanceOf(PlannedApplication);
     expect(asynchronous).toBeInstanceOf(PlannedApplication);
   });
 
   test('C4 the routes of the controllers are mounted on the root router afterwards (start() mounts it on the server)', async () => {
-    const application = await assertApplicationBoots(new PlannedApplication(FULL));
+    const application = await ApplicationBootAssertion.assert({
+      application: new PlannedApplication(FULL),
+    });
 
     const response = await application.getRootRouter().request('/accounts/');
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ hit: 'list' });
+    const result = await response.json();
+    expect(result).toEqual({ hit: 'list' });
   });
 
   test('C5 a service injecting an unregistered key fails even though no controller references it', async () => {
-    const error = await assertApplicationBoots(
-      new PlannedApplication({ ...FULL, services: [AccountService, OrphanService] }),
-    ).catch((caught: unknown) => caught);
+    let error: unknown;
+    try {
+      await ApplicationBootAssertion.assert({
+        application: new PlannedApplication({ ...FULL, services: [AccountService, OrphanService] }),
+      });
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(String(error)).toContain('services.NeverRegistered');
   });
@@ -375,19 +406,27 @@ describe('assertApplicationBoots - the boot path', () => {
       },
     });
 
-    const booted = await assertApplicationBoots(application, { verifyBindings: false });
+    const booted = await ApplicationBootAssertion.assert({
+      application,
+      options: { verifyBindings: false },
+    });
 
     expect(booted).toBe(application);
   });
 });
 
-describe('assertApplicationBoots - the shared verification core', () => {
+describe('ApplicationBootAssertion.assert - the shared verification core', () => {
   const ORPHANED: IPlan = { ...FULL, services: [AccountService, OrphanService] };
 
   test('I3 the rejection is the core error: it says what is missing and who needs it', async () => {
-    const error = await assertApplicationBoots(new PlannedApplication(ORPHANED)).catch(
-      (caught: unknown) => caught,
-    );
+    let error: unknown;
+    try {
+      await ApplicationBootAssertion.assert({
+        application: new PlannedApplication(ORPHANED),
+      });
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(String(error)).toContain('[verifyBindings] 1 binding(s) cannot be resolved | ');
     expect(Reflect.get(Object(error), 'extra')).toMatchObject({
@@ -399,14 +438,26 @@ describe('assertApplicationBoots - the shared verification core', () => {
     for (const skip of [OrphanService, 'OrphanService', 'services.OrphanService']) {
       const application = new PlannedApplication(ORPHANED);
 
-      expect(await assertApplicationBoots(application, { skipBindings: [skip] })).toBe(application);
+      const result = await ApplicationBootAssertion.assert({
+        application,
+        options: { skipBindings: [skip] },
+      });
+      expect(result).toBe(application);
     }
   });
 
   test('I5 a skipBindings name that matches nothing rejects, naming it', async () => {
-    const error = await assertApplicationBoots(new PlannedApplication(FULL), {
-      skipBindings: ['services.Typo'],
-    }).catch((caught: unknown) => caught);
+    let error: unknown;
+    try {
+      await ApplicationBootAssertion.assert({
+        application: new PlannedApplication(FULL),
+        options: {
+          skipBindings: ['services.Typo'],
+        },
+      });
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(String(error)).toContain('skip matched no binding: services.Typo');
   });
@@ -419,15 +470,21 @@ describe('assertApplicationBoots - the shared verification core', () => {
       },
     });
 
-    expect(await assertApplicationBoots(application, { skipBindings: [OrphanService] })).toBe(
+    const result = await ApplicationBootAssertion.assert({
       application,
-    );
+      options: { skipBindings: [OrphanService] },
+    });
+    expect(result).toBe(application);
   });
 
   test('I6 verifyBindings: false skips the verification and a skipBindings name is then not checked', async () => {
     const application = new PlannedApplication(ORPHANED);
 
-    expect(await assertApplicationBoots(application, { verifyBindings: false })).toBe(application);
+    const result = await ApplicationBootAssertion.assert({
+      application,
+      options: { verifyBindings: false },
+    });
+    expect(result).toBe(application);
   });
 
   test('I9 the verification runs after validateScopeFilterSupport, so its error comes first when both fail', async () => {
@@ -437,26 +494,38 @@ describe('assertApplicationBoots - the shared verification core', () => {
       }
     }
 
-    const error = await assertApplicationBoots(new ScopeFilterFailingApplication(ORPHANED)).catch(
-      (caught: unknown) => caught,
-    );
+    let error: unknown;
+    try {
+      await ApplicationBootAssertion.assert({
+        application: new ScopeFilterFailingApplication(ORPHANED),
+      });
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(String(error)).toContain('SCOPE FILTER UNSUPPORTED');
   });
 });
 
-describe('assertApplicationBoots - datasources and components', () => {
+describe('ApplicationBootAssertion.assert - datasources and components', () => {
   test('C7 positive control: a plain initialize() fails at the datasource', async () => {
     const application = new PlannedApplication(FULL);
     application.init();
 
-    const error = await application.initialize().catch((caught: unknown) => caught);
+    let error: unknown;
+    try {
+      await application.initialize();
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(String(error)).toContain('REAL INFRA');
   });
 
   test('C7 by default configure() is not called and the repository, service and controller resolve', async () => {
-    const application = await assertApplicationBoots(new PlannedApplication(FULL));
+    const application = await ApplicationBootAssertion.assert({
+      application: new PlannedApplication(FULL),
+    });
 
     expect(calls.failing).toBe(0);
     expect(application.isBound({ key: 'repositories.AccountRepository' })).toBe(true);
@@ -470,47 +539,58 @@ describe('assertApplicationBoots - datasources and components', () => {
     ['its class name', () => 'FailingDataSource'],
     ['its binding key', () => 'datasources.FailingDataSource'],
   ])('C8 a datasource kept by %s runs its real configure()', async (_form, target) => {
-    const error = await assertApplicationBoots(new PlannedApplication(FULL), {
-      keepDataSources: [target()],
-    }).catch((caught: unknown) => caught);
+    let error: unknown;
+    try {
+      await ApplicationBootAssertion.assert({
+        application: new PlannedApplication(FULL),
+        options: {
+          keepDataSources: [target()],
+        },
+      });
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(String(error)).toContain('REAL INFRA');
     expect(calls.failing).toBe(1);
   });
 
   test('C8 keeping one datasource leaves the others skipped', async () => {
-    await assertApplicationBoots(
-      new PlannedApplication({ ...FULL, dataSources: [FailingDataSource, CountingDataSource] }),
-      { keepDataSources: [CountingDataSource] },
-    );
+    await ApplicationBootAssertion.assert({
+      application: new PlannedApplication({
+        ...FULL,
+        dataSources: [FailingDataSource, CountingDataSource],
+      }),
+      options: { keepDataSources: [CountingDataSource] },
+    });
 
     expect(calls.counting).toBe(1);
     expect(calls.failing).toBe(0);
   });
 
   test('C9 a datasource a component contributes is skipped by default too', async () => {
-    await assertApplicationBoots(
-      new PlannedApplication({ ...FULL, components: [ContributingComponent] }),
-    );
+    await ApplicationBootAssertion.assert({
+      application: new PlannedApplication({ ...FULL, components: [ContributingComponent] }),
+    });
 
     expect(calls.counting).toBe(0);
   });
 
   test('C10 a component named in skipComponents is not configured', async () => {
-    await assertApplicationBoots(
-      new PlannedApplication({ ...FULL, components: [CountingComponent] }),
-      {
+    await ApplicationBootAssertion.assert({
+      application: new PlannedApplication({ ...FULL, components: [CountingComponent] }),
+      options: {
         skipComponents: [CountingComponent],
       },
-    );
+    });
 
     expect(calls.component).toBe(0);
   });
 
   test('C11 a component that is not named is configured as in a real boot', async () => {
-    await assertApplicationBoots(
-      new PlannedApplication({ ...FULL, components: [CountingComponent] }),
-    );
+    await ApplicationBootAssertion.assert({
+      application: new PlannedApplication({ ...FULL, components: [CountingComponent] }),
+    });
 
     expect(calls.component).toBe(1);
   });
@@ -525,21 +605,26 @@ describe('assertApplicationBoots - datasources and components', () => {
       }
     }
 
-    await assertApplicationBoots(new OverridingApplication(FULL));
+    await ApplicationBootAssertion.assert({ application: new OverridingApplication(FULL) });
 
     expect(calls.override).toBeGreaterThan(0);
     expect(calls.failing).toBe(0);
   });
 });
 
-describe('assertApplicationBoots - a failing component names the way out', () => {
+describe('ApplicationBootAssertion.assert - a failing component names the way out', () => {
   const planned = () => new PlannedApplication({ ...FULL, components: [ThrowingComponent] });
 
   test('a boot that fails inside a component logs one line naming skipComponents, and rejects with the original error', async () => {
     const application = planned();
     const lines = recordLogs(application);
 
-    const error = await assertApplicationBoots(application).catch((caught: unknown) => caught);
+    let error: unknown;
+    try {
+      await ApplicationBootAssertion.assert({ application });
+    } catch (caught) {
+      error = caught;
+    }
     const hints = lines.filter((line) => line.message.includes('skipComponents'));
 
     expect(error).toBe(BINDING_FAILURE);
@@ -554,9 +639,17 @@ describe('assertApplicationBoots - a failing component names the way out', () =>
     });
     const lines = recordLogs(application);
 
-    const error = await assertApplicationBoots(application, {
-      skipComponents: [CountingComponent],
-    }).catch((caught: unknown) => caught);
+    let error: unknown;
+    try {
+      await ApplicationBootAssertion.assert({
+        application,
+        options: {
+          skipComponents: [CountingComponent],
+        },
+      });
+    } catch (caught) {
+      error = caught;
+    }
     const hints = lines.filter((line) => line.message.includes('skipComponents'));
 
     expect(error).toBe(BINDING_FAILURE);
@@ -571,7 +664,12 @@ describe('assertApplicationBoots - a failing component names the way out', () =>
     });
     const lines = recordLogs(application);
 
-    await assertApplicationBoots(application).catch((caught: unknown) => caught);
+    try {
+      await ApplicationBootAssertion.assert({ application });
+      // eslint-disable-next-line venizia/no-silent-catch -- the boot fails on purpose; this test checks only the logged hints, not the error
+    } catch {
+      // The rejection is expected.
+    }
 
     expect(lines.filter((line) => line.message.includes('skipComponents'))).toHaveLength(0);
   });
@@ -580,7 +678,12 @@ describe('assertApplicationBoots - a failing component names the way out', () =>
     const application = new PlannedApplication({ controllers: [BrokenController] });
     const lines = recordLogs(application);
 
-    await assertApplicationBoots(application).catch((caught: unknown) => caught);
+    try {
+      await ApplicationBootAssertion.assert({ application });
+      // eslint-disable-next-line venizia/no-silent-catch -- the boot fails on purpose; this test checks only the logged hints, not the error
+    } catch {
+      // The rejection is expected.
+    }
 
     expect(lines.filter((line) => line.message.includes('skipComponents'))).toHaveLength(0);
   });
@@ -589,8 +692,11 @@ describe('assertApplicationBoots - a failing component names the way out', () =>
     const application = planned();
     const lines = recordLogs(application);
 
-    const booted = await assertApplicationBoots(application, {
-      skipComponents: [ThrowingComponent],
+    const booted = await ApplicationBootAssertion.assert({
+      application,
+      options: {
+        skipComponents: [ThrowingComponent],
+      },
     });
 
     expect(booted).toBe(application);
@@ -598,17 +704,20 @@ describe('assertApplicationBoots - a failing component names the way out', () =>
   });
 });
 
-describe('assertApplicationBoots - steps and secrets', () => {
+describe('ApplicationBootAssertion.assert - steps and secrets', () => {
   test('C13 without skipSteps the two secrets steps do not run', async () => {
-    await assertApplicationBoots(new PlannedApplication(FULL));
+    await ApplicationBootAssertion.assert({ application: new PlannedApplication(FULL) });
 
     expect(calls.hydrate).toBe(0);
     expect(calls.rotatables).toBe(0);
   });
 
   test('C14 skipSteps replaces the default: only the named step is skipped', async () => {
-    await assertApplicationBoots(new PlannedApplication(FULL), {
-      skipSteps: [ServerBootSteps.WIRE_SECRET_ROTATABLES],
+    await ApplicationBootAssertion.assert({
+      application: new PlannedApplication(FULL),
+      options: {
+        skipSteps: [ServerBootSteps.WIRE_SECRET_ROTATABLES],
+      },
     });
 
     expect(calls.hydrate).toBe(1);
@@ -618,24 +727,42 @@ describe('assertApplicationBoots - steps and secrets', () => {
   test('C15 an unknown step name rejects before anything boots', async () => {
     const application = new PlannedApplication(FULL);
 
-    const error = await assertApplicationBoots(application, {
-      skipSteps: ['notAStep' as never],
-    }).catch((caught: unknown) => caught);
+    let error: unknown;
+    try {
+      await ApplicationBootAssertion.assert({
+        application,
+        options: {
+          skipSteps: ['notAStep' as never],
+        },
+      });
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(String(error)).toContain("Unknown boot step in skipSteps: 'notAStep'");
     expect(application.isBound({ key: CoreBindings.APPLICATION_INSTANCE })).toBe(false);
   });
 });
 
-describe('assertApplicationBoots - guards', () => {
+describe('ApplicationBootAssertion.assert - guards', () => {
   test('C16 the same instance a second time is refused, also after a failed first call', async () => {
     const good = new PlannedApplication(FULL);
-    await assertApplicationBoots(good);
+    await ApplicationBootAssertion.assert({ application: good });
     const bad = new PlannedApplication({ controllers: [BrokenController] });
-    await assertApplicationBoots(bad).catch(() => {});
+    try {
+      await ApplicationBootAssertion.assert({ application: bad });
+      // eslint-disable-next-line venizia/no-silent-catch -- the first call fails on purpose; the test asserts the second call, not this error
+    } catch {
+      // The rejection is expected.
+    }
 
     for (const application of [good, bad]) {
-      const error = await assertApplicationBoots(application).catch((caught: unknown) => caught);
+      let error: unknown;
+      try {
+        await ApplicationBootAssertion.assert({ application });
+      } catch (caught) {
+        error = caught;
+      }
 
       expect(String(error)).toContain('already booted');
     }
@@ -644,17 +771,32 @@ describe('assertApplicationBoots - guards', () => {
   test('C17 an application booted outside the helper is refused too', async () => {
     const application = new PlannedApplication(FULL);
     application.init();
-    await application.initialize().catch(() => {});
+    try {
+      await application.initialize();
+      // eslint-disable-next-line venizia/no-silent-catch -- this boot only marks the application as booted (it fails at the datasource); the test asserts the helper's refusal, not this error
+    } catch {
+      // The rejection is expected.
+    }
 
-    const error = await assertApplicationBoots(application).catch((caught: unknown) => caught);
+    let error: unknown;
+    try {
+      await ApplicationBootAssertion.assert({ application });
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(String(error)).toContain('already booted');
   });
 
   test('C18 an application with no controller is rejected', async () => {
-    const error = await assertApplicationBoots(
-      new PlannedApplication({ dataSources: [FailingDataSource] }),
-    ).catch((caught: unknown) => caught);
+    let error: unknown;
+    try {
+      await ApplicationBootAssertion.assert({
+        application: new PlannedApplication({ dataSources: [FailingDataSource] }),
+      });
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(String(error)).toContain('registered no controller');
   });
@@ -662,7 +804,10 @@ describe('assertApplicationBoots - guards', () => {
   test('C19 allowNoControllers lets it through', async () => {
     const application = new PlannedApplication({ dataSources: [FailingDataSource] });
 
-    const booted = await assertApplicationBoots(application, { allowNoControllers: true });
+    const booted = await ApplicationBootAssertion.assert({
+      application,
+      options: { allowNoControllers: true },
+    });
 
     expect(booted).toBe(application);
   });
@@ -676,8 +821,13 @@ describe('assertApplicationBoots - guards', () => {
     const failed = new PlannedApplication({ controllers: [BrokenController] });
     const configureBefore = FailingDataSource.prototype.configure;
 
-    await assertApplicationBoots(passed);
-    await assertApplicationBoots(failed).catch(() => {});
+    await ApplicationBootAssertion.assert({ application: passed });
+    try {
+      await ApplicationBootAssertion.assert({ application: failed });
+      // eslint-disable-next-line venizia/no-silent-catch -- the failing call is on purpose; the test asserts what is restored afterwards, not this error
+    } catch {
+      // The rejection is expected.
+    }
 
     for (const application of [passed, failed]) {
       expect(Object.hasOwn(application, 'registerDynamicBindings')).toBe(false);
@@ -695,20 +845,30 @@ describe('assertApplicationBoots - guards', () => {
     const application = new PlannedApplication(FULL);
     Object.defineProperty(application, 'registerDynamicBindings', { value: undefined });
 
-    const error = await assertApplicationBoots(application).catch((caught: unknown) => caught);
+    let error: unknown;
+    try {
+      await ApplicationBootAssertion.assert({ application });
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(String(error)).toContain("kernel method 'registerDynamicBindings' is missing");
     expect(calls.failing).toBe(0);
   });
 });
 
-describe("assertApplicationBoots - duplicate routes (the helper's own check)", () => {
+describe("ApplicationBootAssertion.assert - duplicate routes (the helper's own check)", () => {
   const DUPLICATES: IPlan = { controllers: [FirstDuplicateController, SecondDuplicateController] };
 
   test('C27 the same method and path mounted twice rejects, naming both controllers', async () => {
-    const error = await assertApplicationBoots(new PlannedApplication(DUPLICATES)).catch(
-      (caught: unknown) => caught,
-    );
+    let error: unknown;
+    try {
+      await ApplicationBootAssertion.assert({
+        application: new PlannedApplication(DUPLICATES),
+      });
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(String(error)).toContain('GET /dup/users/:param');
     expect(String(error)).toContain('controllers.FirstDuplicateController');
@@ -719,7 +879,10 @@ describe("assertApplicationBoots - duplicate routes (the helper's own check)", (
   test('C27 routes: false turns the check off', async () => {
     const application = new PlannedApplication(DUPLICATES);
 
-    const booted = await assertApplicationBoots(application, { routes: false });
+    const booted = await ApplicationBootAssertion.assert({
+      application,
+      options: { routes: false },
+    });
 
     expect(booted).toBe(application);
   });
@@ -727,13 +890,19 @@ describe("assertApplicationBoots - duplicate routes (the helper's own check)", (
   test('a route with a validated request chain is one route, not a duplicate of itself', async () => {
     const application = new PlannedApplication({ controllers: [ValidatedController] });
 
-    expect(await assertApplicationBoots(application)).toBe(application);
+    const result = await ApplicationBootAssertion.assert({ application });
+    expect(result).toBe(application);
   });
 
   test('one controller declaring the same method and path twice is a duplicate, reported once', async () => {
-    const error = await assertApplicationBoots(
-      new PlannedApplication({ controllers: [SelfDuplicateController] }),
-    ).catch((caught: unknown) => caught);
+    let error: unknown;
+    try {
+      await ApplicationBootAssertion.assert({
+        application: new PlannedApplication({ controllers: [SelfDuplicateController] }),
+      });
+    } catch (caught) {
+      error = caught;
+    }
     const message = String(error);
 
     expect(message).toContain('1 route(s) are mounted more than once');
@@ -742,19 +911,24 @@ describe("assertApplicationBoots - duplicate routes (the helper's own check)", (
   });
 
   test('C27 distinct paths on one controller are not duplicates', async () => {
-    const booted = await assertApplicationBoots(new PlannedApplication(FULL));
+    const booted = await ApplicationBootAssertion.assert({
+      application: new PlannedApplication(FULL),
+    });
 
     expect(booted).toBeInstanceOf(PlannedApplication);
   });
 });
 
-describe('assertApplicationBoots - what it never does', () => {
+describe('ApplicationBootAssertion.assert - what it never does', () => {
   test('A1 it never calls start(), never listens and never configures what is skipped', async () => {
     const application = new PlannedApplication({ ...FULL, components: [CountingComponent] });
     const start = spyOn(application, 'start');
     const serve = spyOn(Bun, 'serve');
 
-    await assertApplicationBoots(application, { skipComponents: [CountingComponent] });
+    await ApplicationBootAssertion.assert({
+      application,
+      options: { skipComponents: [CountingComponent] },
+    });
 
     expect(start).not.toHaveBeenCalled();
     expect(serve).not.toHaveBeenCalled();
@@ -765,7 +939,9 @@ describe('assertApplicationBoots - what it never does', () => {
   });
 
   test('A1 BindingNamespaces are the tags the helper reads: controllers exist after a boot', async () => {
-    const application = await assertApplicationBoots(new PlannedApplication(FULL));
+    const application = await ApplicationBootAssertion.assert({
+      application: new PlannedApplication(FULL),
+    });
 
     expect(application.findByTag({ tag: BindingNamespaces.CONTROLLER }).length).toBeGreaterThan(0);
   });

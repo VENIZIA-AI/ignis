@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { asTypedContext } from '@venizia/ignis-kernel';
+import { ContextUtility } from '@venizia/ignis-kernel';
 import { CasbinAuthorizationEnforcer } from '@/components/auth/authorize/enforcers/casbin.enforcer';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models/rbac-domain.model';
 import { CasbinEnforcerModelDrivers } from '@venizia/ignis-kernel';
@@ -49,12 +49,12 @@ function poolEnforcer(adapter: FilteredAdapter, poolSize = 4) {
 async function decide(e: CasbinAuthorizationEnforcer, userId: string, obj: string) {
   const rules = await e.buildRules({
     user: { principalType: 'User', userId },
-    context: asTypedContext({}),
+    context: ContextUtility.asTypedContext({ context: {} }),
   });
   return e.evaluate({
     rules,
     request: { resource: obj, action: 'read', domain: 'SYSTEM_WIDE' },
-    context: asTypedContext({}),
+    context: ContextUtility.asTypedContext({ context: {} }),
   });
 }
 
@@ -80,9 +80,12 @@ describe('CasbinAuthorizationEnforcer — pool isolation (§9 race fix)', () => 
     // poolSize 1 forces the SAME enforcer instance to be reused across users.
     const e = poolEnforcer(new DelayedPerUserAdapter(0), 1);
     await e.configure();
-    expect(await decide(e, 'A', 'A_secret')).toBe('allow');
-    expect(await decide(e, 'B', 'A_secret')).toBe('deny'); // reused enforcer must not still hold A's grant
-    expect(await decide(e, 'B', 'B_secret')).toBe('allow');
+    const result = await decide(e, 'A', 'A_secret');
+    expect(result).toBe('allow');
+    const result2 = await decide(e, 'B', 'A_secret');
+    expect(result2).toBe('deny'); // reused enforcer must not still hold A's grant
+    const result3 = await decide(e, 'B', 'B_secret');
+    expect(result3).toBe('allow');
   });
 });
 
@@ -127,8 +130,10 @@ describe('CasbinAuthorizationEnforcer — discard recovery', () => {
     expect(error).toBeDefined();
 
     // Pool must have re-created capacity: a later valid request resolves correctly, with no stale state from the failed borrow.
-    expect(await decide(e, 'A', 'A_secret')).toBe('allow');
-    expect(await decide(e, 'A', 'B_secret')).toBe('deny');
+    const result = await decide(e, 'A', 'A_secret');
+    expect(result).toBe('allow');
+    const result2 = await decide(e, 'A', 'B_secret');
+    expect(result2).toBe('deny');
   });
 });
 
@@ -138,7 +143,7 @@ describe('CasbinAuthorizationEnforcer — fail-closed', () => {
     await e.configure();
     const rules = await e.buildRules({
       user: { principalType: 'User', userId: 'A' },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
     e.destroy();
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -147,7 +152,7 @@ describe('CasbinAuthorizationEnforcer — fail-closed', () => {
       await e.evaluate({
         rules,
         request: { resource: 'A_secret', action: 'read', domain: 'SYSTEM_WIDE' },
-        context: asTypedContext({}),
+        context: ContextUtility.asTypedContext({ context: {} }),
       });
     } catch (err) {
       error = err;

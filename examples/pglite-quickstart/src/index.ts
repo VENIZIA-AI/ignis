@@ -1,5 +1,6 @@
 import AutoArtifacts from '@venizia/ignis-boot/auto';
 import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
+import { LoggerFactory } from '@venizia/ignis-helpers';
 import { Application } from './application';
 
 const application = new Application({
@@ -19,6 +20,6 @@ const main = async () => {
 };
 
 main().catch((error: unknown) => {
-  console.error('[main] Application start failed | Error:', error);
+  LoggerFactory.getLogger(['main']).error('Application start failed | Error: %o', error);
   process.exit(1);
 });

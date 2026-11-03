@@ -231,7 +231,7 @@ packages/kernel/src/base/auth/authorize/
 ├── models/authorization-role.model.ts  # AuthorizationRole
 └── providers/
     ├── authorization.provider.ts  # AuthorizationProvider
-    └── request-domain.ts          # resolveRequestDomain, readDeclarative
+    └── request-domain.ts          # RequestDomainResolver (resolveRequestDomain, readDeclarative)
 
 packages/core-server/src/components/auth/authorize/
 ├── adapters/
@@ -426,9 +426,9 @@ type TAuthorizationDomainResolver<E extends Env = Env> = (opts: {
 }) => ValueOrPromise<TNullable<{ type: string; id: IdType }>>;
 ```
 
-`resolveRequestDomain()` (`providers/request-domain.ts`) turns either shape into a casbin domain string. Precedence: `spec.domain` (resolver, then declarative `readDeclarative()`) -> `IAuthorizeOptions.domainResolver` -> `AuthorizationDomainScopes.SYSTEM_WIDE`.
+`RequestDomainResolver.resolveRequestDomain({ spec, context, options })` (`providers/request-domain.ts`) turns either shape into a casbin domain string. Precedence: `spec.domain` (resolver, then declarative `RequestDomainResolver.readDeclarative()`) -> `IAuthorizeOptions.domainResolver` -> `AuthorizationDomainScopes.SYSTEM_WIDE`.
 
-`readDeclarative()` reads `context.req.param/header/query()` for `'param'|'header'|'query'`, or `context.get(key)` for `'context'`.
+`RequestDomainResolver.readDeclarative({ source, context })` reads `context.req.param/header/query()` for `'param'|'header'|'query'`, or `context.get(key)` for `'context'`.
 
 ### TAuthorizationConditions / TAuthorizationVoter / TAuthorizeFn
 
@@ -542,10 +542,10 @@ All constant classes follow the same pattern: static readonly values + `SCHEME_S
 
 `isValidAction(input)` / `isValidRule(input)` check membership; `ACTION_SCHEME_SET` / `RULE_SCHEME_SET` hold the sets.
 
-The `variant` column's TypeScript type (`extraPolicyDefinitionColumns` in [`policy-definition.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/models/entities/policy-definition.model.ts)) is closed to these seven values by default - `extraPolicyDefinitionColumns()`. An application with its own edge type stored in the same table declares it explicitly, and only that call site's column type widens:
+The `variant` column's TypeScript type (`AuthModelColumns.buildPolicyDefinition` in [`columns.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/models/entities/columns.ts)) is closed to these seven values by default - `AuthModelColumns.buildPolicyDefinition()`. An application with its own edge type stored in the same table declares it explicitly, and only that call site's column type widens:
 
 ```typescript
-extraPolicyDefinitionColumns({ idType: 'string', extraVariants: ['merchant_role'] });
+AuthModelColumns.buildPolicyDefinition({ idType: 'string', extraVariants: ['merchant_role'] });
 ```
 
 `ScopedCasbinAdapter` never selects an undeclared variant - it is purely the application's own data alongside the seven above.
@@ -1214,7 +1214,7 @@ const enforcer = await registry.resolveEnforcer({ name: resolvedName });
 // 5b. Resolve request domain - only when spec.domain or a global domainResolver is in play.
 // Held in a LOCAL. The context is set for observability, and nothing reads it back.
 const domainScope = spec.domain || options?.domainResolver
-  ? await resolveRequestDomain({ spec, context, options })
+  ? await RequestDomainResolver.resolveRequestDomain({ spec, context, options })
   : undefined;
 context.set(Authorization.DOMAIN, domainScope);
 
@@ -1516,7 +1516,7 @@ interface IRpcMetadata {
 
 ### CRUD factory authorization
 
-`defineControllerRouteConfigs` (`base/controllers/factory/definition.ts`) resolves each generated route's `authorize` via `resolveRouteAuthorize(routeKey)`:
+`RouteConfigResolver.defineControllerRouteConfigs` (`base/controllers/factory/definition.ts`) resolves each generated route's `authorize` via `resolveRouteAuthorize(routeKey)`:
 
 1. Endpoint `authenticate: { skip: true }` -> `undefined` (skips both authentication and authorization).
 2. Endpoint `authorize: { skip: true }` -> `undefined` (authorization only; authentication still runs).

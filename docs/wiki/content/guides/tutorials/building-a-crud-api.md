@@ -90,17 +90,17 @@ Create `src/models/todo.model.ts`:
 // src/models/todo.model.ts
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
-} from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { boolean, pgTable, text } from 'drizzle-orm/pg-core';
 
 // 1. Define the Drizzle table for 'Todo'
 export const todoTable = pgTable('Todo', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   title: text('title').notNull(),
   description: text('description'),
   isCompleted: boolean('is_completed').default(false),
@@ -121,8 +121,8 @@ export type TTodo = TEntityObject<typeof Todo>;
 - `TEntityObject<typeof Todo>` is the row type
 
 **Schema Enrichers:**
-- `generateIdColumnDefs()` - Adds the `id` column: text filled by a UUID v7 the application generates, an identity integer, or a big-number identity
-- `generateTzColumnDefs()` - Adds `createdAt` and `modifiedAt` timestamps
+- `PostgresIdEnricher.generateColumnDefs()` - Adds the `id` column: text filled by a UUID v7 the application generates, an identity integer, or a big-number identity
+- `PostgresTzEnricher.generateColumnDefs()` - Adds `createdAt` and `modifiedAt` timestamps
 
 > **Deep Dive:** See [Models & Enrichers Reference](/references/base/models-reference#schema-enrichers) for all available enrichers and options.
 
@@ -177,7 +177,7 @@ import {
   datasource,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
 
 interface IDataSourceConfigs {
@@ -264,7 +264,7 @@ Create `src/repositories/todo.repository.ts`:
 import { Todo, type todoTable } from '@/models/todo.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 // Both 'model' and 'dataSource' are required for schema auto-discovery
 @repository({ model: Todo, dataSource: PostgresDataSource })

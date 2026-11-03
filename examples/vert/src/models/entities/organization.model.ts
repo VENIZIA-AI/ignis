@@ -1,16 +1,16 @@
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
   type TEntityObject,
-} from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
 import { boolean, pgTable, text } from 'drizzle-orm/pg-core';
 
 /** The authorization domain: a user's role assignments are scoped to one organization. */
 export const organizationTable = pgTable('Organization', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   identifier: text('identifier').unique().notNull(),
   name: text('name').notNull(),
   description: text('description'),

@@ -88,7 +88,8 @@ describe('optional peers inside a compiled binary', () => {
     // binary then runs from a directory with no node_modules anywhere above it.
     // Named per process: two runs in one checkout would otherwise delete each other's entry.
     const entry = path.join(PACKAGE_ROOT, `src/__tests__/.compiled-binary-probe-${process.pid}.ts`);
-    workDirectory = await mkdtemp(path.join(tmpdir(), 'ignis-compiled-'));
+    const result = await mkdtemp(path.join(tmpdir(), 'ignis-compiled-'));
+    workDirectory = result;
     binary = path.join(workDirectory, 'probe');
 
     await writeFile(entry, PROBE);

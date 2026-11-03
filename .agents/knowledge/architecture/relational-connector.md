@@ -20,7 +20,7 @@ tags: [architecture, connectors, drizzle, postgres, sqlite, relational]
 - [Rotation drains by capability, not by class](#rotation-drains-by-capability-not-by-class)
 - [What stays Postgres-only](#what-stays-postgres-only)
 - [`UpdateBuilder` is reachable two ways - use the dialect](#updatebuilder-is-reachable-two-ways---use-the-dialect)
-- [Historical names off `@venizia/ignis/postgres`](#historical-names-off-veniziaignispostgres)
+- [Historical names off `@venizia/ignis-connectors/postgres`](#historical-names-off-veniziaignis-connectorspostgres)
 - [The tier is falsified by one suite, run twice](#the-tier-is-falsified-by-one-suite-run-twice)
 - [Related](#related)
 <!-- okf:generated:contents end -->
@@ -58,11 +58,11 @@ Every class is **declared** under a distinct name. The Postgres branch declares
 `AbstractRelationalDataSource` and `BaseRelationalDataSource`. Two classes never share a declaration
 name across the two barrels.
 
-The `*RelationalDataSource` spellings are served **only** from `@venizia/ignis/relational`:
+The `*RelationalDataSource` spellings are served **only** from `@venizia/ignis-connectors/relational`:
 `relational/postgres/datasources/index.ts` deliberately declines to alias them, so no datasource
 name resolves to two different classes across sibling sub-paths. The root of `@venizia/ignis` comes
 from an alias barrel of its own - `packages/core-server/src/connectors/index.ts` - and that barrel
-re-exports `./postgres` alone, so reach the neutral tier through the `@venizia/ignis/relational`
+re-exports `./postgres` alone, so reach the neutral tier through the `@venizia/ignis-connectors/relational`
 sub-path, never through the root.
 
 The repository chain forks the same way: `RelationalBaseRepository` and its four subclasses are
@@ -208,7 +208,7 @@ repository-level convenience over `beginTransaction()`, not a new capability.
 **If `execute` ends the owned transaction itself**, `runInTransaction` never ends it a second time.
 It tells the outcome apart through `TRANSACTION_STATE_KEY` (`transaction-lifecycle.ts`), a
 `Symbol.for('@venizia/ignis-connectors/transaction-state')` well-known symbol read by
-`isTransactionCommitted({ transaction })` (`transaction-state.ts`) - a registry symbol rather than a
+`TransactionLifecycle.isCommitted({ transaction })` (same file) - a registry symbol rather than a
 class check, so it recognises a handle or double built on `TransactionLifecycle` even when the
 repository and the transaction load from different module copies (a `@venizia/ignis/testing` double
 from one installed copy with a `@venizia/ignis-connectors` repository from another).
@@ -223,7 +223,7 @@ returns success while that commit can still go on to fail.
 ## Relation building crosses the kernel boundary through a registry
 
 `RepositoryMetadataMixin` builds Drizzle relations but must never import Drizzle: one value import
-of `createRelations` drags `drizzle-orm` into every graph that uses `@repository`. The seam is
+of `RelationsFactory` drags `drizzle-orm` into every graph that uses `@repository`. The seam is
 `RelationBuilderRegistry` (`packages/kernel/src/helpers/inversion/common/relation-builder.ts`), a
 class with static `set`/`resolve` whose `TRelationBuilder` signature is typed in `unknown`s, so the
 kernel names no engine type. `resolveModelRelations()` calls `RelationBuilderRegistry.resolve()`,
@@ -316,7 +316,7 @@ overrides only `operators`, `jsonNeedsNumericCast`, `buildJsonWhereCondition` an
 **one** abstract member, `composeJsonSet({ target, path, value })`. It owns the plain-versus-JSON
 split, the column-not-found throws, `toUpdateData`, and the two path validators - and that last part
 is why it is a base rather than a copied skeleton: an engine composing through `sql.raw` is
-injectable the moment it forgets `validateJsonPathComponents`.
+injectable the moment it forgets `JsonPathUtility.validateJsonPathComponents`.
 
 Each call receives the expression built so far, so two paths on one column nest rather than discard
 each other. For a one-level path `UpdateBuilder` returns `jsonb_set(target, '{"a"}', '"v"'::jsonb, true)`.
@@ -343,7 +343,7 @@ not delete a public export on a hunch). **New code should go through the dialect
 direct `new UpdateBuilder()` constructor bypasses the datasource's port resolution and only makes
 sense for a caller that already knows it is talking to Postgres.
 
-## Historical names off `@venizia/ignis/postgres`
+## Historical names off `@venizia/ignis-connectors/postgres`
 
 Two different mechanisms keep the pre-lift names resolving, and the difference matters if you ever
 compare classes by identity.
@@ -351,7 +351,7 @@ compare classes by identity.
 **Postgres subclasses** - a real class, distinct from its neutral parent, verified by a runtime probe
 against the built package:
 
-| Name (`@venizia/ignis/postgres`) | Extends | Declared in |
+| Name (`@venizia/ignis-connectors/postgres`) | Extends | Declared in |
 |---|---|---|
 | `PostgresBaseRepository` (abstract) | `RelationalBaseRepository` | `relational/postgres` |
 | `ReadableRepository` | `ReadableRelationalRepository` | `relational/postgres` |
@@ -363,26 +363,26 @@ against the built package:
 chain. `instanceof` still holds - a `SoftDeletableRepository` instance is a
 `DefaultRelationalRepository` - and nothing in the framework or in a consumer compares repository classes
 by `===`, `instanceof` against the neutral name, or `.constructor ===`. The neutral names are no
-longer exported from `@venizia/ignis/postgres`; import them from `@venizia/ignis/relational`.
+longer exported from `@venizia/ignis-connectors/postgres`; import them from `@venizia/ignis-connectors/relational`.
 
 **Alias re-exports** - the SAME class object under a second name:
 
-| Alias (`@venizia/ignis/postgres`) | Canonical name | Declared in |
+| Alias (`@venizia/ignis-connectors/postgres`) | Canonical name | Declared in |
 |---|---|---|
 | `BaseEntity`, `BasePostgresEntity` | `BaseRelationalEntity` | `relational/core` |
 | `BaseDataSource` | `BasePostgresDataSource` | `relational/postgres` |
 
 `BaseDataSource` is the only datasource alias on that sub-path. `AbstractRelationalDataSource` and
 `BaseRelationalDataSource` are deliberately NOT aliased there - they are served only from
-`@venizia/ignis/relational` - so no datasource name means a different class depending on which of
+`@venizia/ignis-connectors/relational` - so no datasource name means a different class depending on which of
 the two sub-paths you import from.
 
 **Withdrawn - `FilterBuilder`.** A third collision existed and was removed rather than kept.
-`relational/postgres` used to re-export its subclass as `FilterBuilder`, so `@venizia/ignis/postgres`
-served the Postgres class while `@venizia/ignis/relational` served the abstract neutral base under
+`relational/postgres` used to re-export its subclass as `FilterBuilder`, so `@venizia/ignis-connectors/postgres`
+served the Postgres class while `@venizia/ignis-connectors/relational` served the abstract neutral base under
 the identical name. That alias is gone. Verified against the built `dist`:
 
-| Name | `@venizia/ignis` (root) | `@venizia/ignis/postgres` | `@venizia/ignis/relational` |
+| Name | `@venizia/ignis` (root) | `@venizia/ignis-connectors/postgres` | `@venizia/ignis-connectors/relational` |
 |---|---|---|---|
 | `FilterBuilder` | absent | absent | the abstract neutral base |
 | `PostgresFilterBuilder` | present | present | absent |
@@ -394,7 +394,7 @@ root too. A consumer imports
 [the 2026-08-01 changelog](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/changelogs/2026-08-01-relational-connector-lift.md).
 
 `NodePostgresDriver` is unaffected by the lift - it always lived at its own
-`@venizia/ignis/postgres/node-postgres` sub-path (it eagerly imports `pg`, so it stays out of the
+`@venizia/ignis-connectors/postgres/node-postgres` sub-path (it eagerly imports `pg`, so it stays out of the
 root `./postgres` barrel by the same rule every other optional-peer driver follows).
 
 ## The tier is falsified by one suite, run twice

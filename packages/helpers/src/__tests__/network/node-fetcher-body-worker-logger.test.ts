@@ -1,14 +1,13 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { type AnyType } from '@/common';
-import { loggerSlot } from '@/modules/logger/slot';
+import { LoggerFactory } from '@/modules/logger/factory';
 import { NodeFetcher, NodeFetchNetworkRequest } from '@/modules/network';
 
 const originalFetch = globalThis.fetch;
-const originalResolve = loggerSlot.resolve;
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
-  loggerSlot.resolve = originalResolve;
+  LoggerFactory.reset();
 });
 
 interface ICaptured {
@@ -166,13 +165,31 @@ describe('NodeFetcher - logging', () => {
     expect(lines[0]).not.toContain('pw');
   });
 
-  test('with no logger, no default logger is resolved - a browser never reaches the node provider', async () => {
+  test('with no logger, no provider logger is built - a request writes no line of its own', async () => {
     captureRequest();
     let resolved = 0;
-    loggerSlot.resolve = () => {
-      resolved += 1;
-      throw new Error('the default logger must not be built by a request');
-    };
+    const lines: Array<string> = [];
+    const record = (message: string) => lines.push(message);
+    LoggerFactory.use({
+      provider: {
+        get: () => {
+          resolved += 1;
+          return {
+            debug: record,
+            info: record,
+            warn: record,
+            error: record,
+            emerg: record,
+            log: (_level, message) => record(message),
+            for: () => {
+              throw new Error('a request must not derive a logger');
+            },
+          };
+        },
+      },
+    });
+    // `use()` re-points the loggers other suites in this process created, which builds one each: count from here.
+    resolved = 0;
 
     const request = new NodeFetchNetworkRequest({
       name: 'no-logger',
@@ -181,6 +198,7 @@ describe('NodeFetcher - logging', () => {
     await request.getNetworkService().send({ url: request.getRequestUrl({ paths: ['x'] }) });
 
     expect(resolved).toBe(0);
+    expect(lines).toEqual([]);
   });
 });
 

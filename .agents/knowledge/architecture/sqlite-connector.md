@@ -22,12 +22,12 @@ tags: [architecture, connectors, drizzle, sqlite, libsql, relational]
 falsifies that tier: every seam `connectors/relational` declares abstract now has two
 implementations, not one.
 
-Reach it at `@venizia/ignis/sqlite`, and the driver at `@venizia/ignis/sqlite/libsql`.
+Reach it at `@venizia/ignis-connectors/sqlite`, and the driver at `@venizia/ignis-connectors/sqlite/libsql`.
 
 ```typescript
 import { datasource } from '@venizia/ignis';
-import { BaseSqliteDataSource } from '@venizia/ignis/sqlite';
-import { LibSqlDriver } from '@venizia/ignis/sqlite/libsql';
+import { BaseSqliteDataSource } from '@venizia/ignis-connectors/sqlite';
+import { LibSqlDriver } from '@venizia/ignis-connectors/sqlite/libsql';
 import { createClient } from '@libsql/client';
 
 @datasource({ driver: LibSqlDriver })
@@ -153,7 +153,7 @@ different SQL.
   ten `FilterBuilder` seam members and inherits the rest: the three mandatory ones (`operators`,
   `buildJsonWhereCondition`, `buildJsonOrderBy`) plus two optional overrides.
   `validateJsonColumn()` narrows rather than replaces the neutral check - it calls `super` and then
-  `assertNotBlobJsonColumn`, because Drizzle reports `dataType: 'json'` for
+  `SqliteJsonPathUtility.assertNotBlobJsonColumn`, because Drizzle reports `dataType: 'json'` for
   `blob(name, { mode: 'json' })` too, and SQLite reads a BLOB argument to a json function as JSONB
   while Drizzle stores JSON text. `jsonNeedsNumericCast()` returns `false`: `json_extract` hands
   back the value in its own type, so there is no cast to apply.

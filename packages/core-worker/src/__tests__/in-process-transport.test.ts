@@ -4,7 +4,7 @@ import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kerne
 import {
   BaseRestController,
   controller,
-  jsonResponse,
+  OpenApiResponses,
   RestApplication,
 } from '@venizia/ignis-kernel';
 import type { AnyType } from '@venizia/ignis-helpers/common';
@@ -34,7 +34,7 @@ class HelloController extends BaseRestController {
       configs: {
         method: HTTP.Methods.GET,
         path: '/',
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           description: 'Greeting',
           schema: z.object({ message: z.string() }),
         }),
@@ -95,7 +95,8 @@ describe('InProcessBffTransport drives a real app.fetch()', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ message: 'hello worker' });
+    const result = await response.json();
+    expect(result).toEqual({ message: 'hello worker' });
   });
 
   test('an unregistered path still resolves through app.fetch(), as a 404', async () => {

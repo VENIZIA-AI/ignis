@@ -219,7 +219,8 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
       // A call aborted while the session refreshed is not sent again.
       if (shouldRetry) {
         signal?.throwIfAborted();
-        response = await send();
+        const result = await send();
+        response = result;
       }
     }
 
@@ -291,7 +292,8 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     const response = await this.sendRequest({ ...opts, url, headers });
 
     if (!response.ok) {
-      throw await this.toResponseError({ response, url, verb: 'read' });
+      const result = await this.toResponseError({ response, url, verb: 'read' });
+      throw result;
     }
 
     // A 204 or an empty body is no row; a list asked for of it still throws below.
@@ -334,7 +336,8 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     const response = await this.sendRequest({ ...opts, url, headers });
 
     if (!response.ok) {
-      throw await this.toResponseError({ response, url, verb: 'write' });
+      const result = await this.toResponseError({ response, url, verb: 'write' });
+      throw result;
     }
 
     // A 204, or a route that answers nothing, has no body to parse.

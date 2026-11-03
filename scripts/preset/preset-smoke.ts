@@ -31,7 +31,8 @@ const HELLO_BODY = { message: 'Hello from IGNIS!' };
 const SERVER_TIMEOUT_MS = 15_000;
 const POLL_INTERVAL_MS = 100;
 const DOCKER = process.env.SMOKE_DOCKER === '1';
-const TOTAL_STEPS = DOCKER ? 14 : 13;
+/** Counts the shared-kind step too once `smoke` finds the pinned VULCAN can run it. */
+let totalSteps = DOCKER ? 14 : 13;
 const IMAGE = 'ignis-preset-smoke';
 /** Planted in the app's .env before the image builds: it must never reach a layer. */
 const PLANTED_SECRET = 'smoke-secret-must-not-leak';
@@ -48,6 +49,10 @@ const APP_ROOT_ENTRIES = new Set([
 const VENDOR_DIR = 'vendor';
 const LIB = 'billing';
 const LIB_DIR = 'libs';
+const SHARED = 'common';
+const SHARED_DIR = 'libs';
+/** The first VULCAN that has `vulcan add --shared`; the shared-kind step runs from the pinned version on. */
+const SHARED_MIN_VULCAN = '0.4.9-0';
 const LIB_SCRIPTS = ['clean', 'lint', 'lint:fix', 'test', 'typecheck'];
 /** Exported while the app compiles; the stamp keeps 12 characters of a commit, so this is exactly 12. */
 const STAMP_COMMIT = 'c0ffee5e7123';
@@ -59,7 +64,7 @@ let stepNumber = 0;
 
 const step = (opts: { label: string }): void => {
   stepNumber += 1;
-  console.log(`[preset-smoke ${stepNumber}/${TOTAL_STEPS}] ${opts.label}`);
+  console.log(`[preset-smoke ${stepNumber}/${totalSteps}] ${opts.label}`);
 };
 
 /** Runs one command and returns its stdout; a non-zero exit throws with the command and its output. */
@@ -293,6 +298,34 @@ const assertLibrary = (opts: { libDir: string }): void => {
   }
 };
 
+/** A shared package names no IGNIS or ARDOR package in any dependency map, and no token is left in it. */
+const assertSharedPackage = (opts: { sharedDir: string }): void => {
+  const manifest = JSON.parse(readFileSync(join(opts.sharedDir, 'package.json'), 'utf8')) as Record<
+    string,
+    unknown
+  >;
+  const leftovers = findLeftoverTokens({ folder: opts.sharedDir });
+
+  for (const key of ['dependencies', 'devDependencies', 'peerDependencies']) {
+    const names = Object.keys((manifest[key] as Record<string, string> | undefined) ?? {});
+    const framework = names.filter(
+      (name) => name.startsWith('@venizia/ignis') || name.startsWith('@venizia/ardor'),
+    );
+
+    if (framework.length > 0) {
+      throw new Error(
+        `[preset-smoke] the shared package names a framework package in ${key}: ${framework.join(', ')}`,
+      );
+    }
+  }
+
+  if (leftovers.length > 0) {
+    throw new Error(
+      `[preset-smoke] unreplaced {{ tokens in the shared package: ${leftovers.join(', ')}`,
+    );
+  }
+};
+
 /** Polls GET /api/hello on a port until it answers the hello body, or the deadline passes. */
 const waitForHello = async (opts: { port: number }): Promise<unknown> => {
   const deadline = Date.now() + SERVER_TIMEOUT_MS;
@@ -499,24 +532,49 @@ const assertStampBaked = (opts: { binary: string }): void => {
 };
 
 /** VULCAN at the version this repository declares: the smoke must not run a release that came out after it. */
-export const defaultVulcanCommand = (opts: { root: string }): string => {
-  const manifest = JSON.parse(readFileSync(join(opts.root, 'package.json'), 'utf8')) as {
-    devDependencies?: Record<string, string>;
-  };
-  const version = manifest.devDependencies?.['@venizia/vulcan'];
-  if (!version || !/^\d+\.\d+\.\d+/.test(version)) {
-    throw new Error(
-      `[preset-smoke] devDependencies['@venizia/vulcan'] must be an exact version to pin the smoke, found: ${version}`,
-    );
+export class PresetSmoke {
+  static readonly SHARED_MIN_VULCAN = SHARED_MIN_VULCAN;
+
+  static getPinnedVulcanVersion(opts: { root: string }): string {
+    const manifest = JSON.parse(readFileSync(join(opts.root, 'package.json'), 'utf8')) as {
+      devDependencies?: Record<string, string>;
+    };
+    const version = manifest.devDependencies?.['@venizia/vulcan'];
+    if (!version || !/^\d+\.\d+\.\d+/.test(version)) {
+      throw new Error(
+        `[preset-smoke] devDependencies['@venizia/vulcan'] must be an exact version to pin the smoke, found: ${version}`,
+      );
+    }
+
+    return version;
   }
 
-  return `bun x @venizia/vulcan@${version}`;
-};
+  static getDefaultVulcanCommand(opts: { root: string }): string {
+    return `bun x @venizia/vulcan@${PresetSmoke.getPinnedVulcanVersion(opts)}`;
+  }
+
+  /** True when this VULCAN version has `vulcan add --shared`: at or above `SHARED_MIN_VULCAN`, prereleases ordered by semver. */
+  static supportsSharedKind(opts: { version: string }): boolean {
+    return Bun.semver.order(opts.version, SHARED_MIN_VULCAN) >= 0;
+  }
+}
 
 const smoke = async (opts: { root: string; scratch: string }): Promise<void> => {
-  const vulcan = (process.env.VULCAN_CMD ?? defaultVulcanCommand({ root: opts.root }))
+  const vulcan = (
+    process.env.VULCAN_CMD ?? PresetSmoke.getDefaultVulcanCommand({ root: opts.root })
+  )
     .split(/\s+/)
     .filter(Boolean);
+  const runsShared = PresetSmoke.supportsSharedKind({
+    version: PresetSmoke.getPinnedVulcanVersion({ root: opts.root }),
+  });
+  if (runsShared) {
+    totalSteps += 1;
+  } else {
+    console.log(
+      `[preset-smoke] the shared-kind step is skipped: the pinned VULCAN is below ${SHARED_MIN_VULCAN}, the first with \`vulcan add --shared\``,
+    );
+  }
   const tarballDir = join(opts.scratch, 'tgz');
   const presetDir = join(opts.scratch, 'preset');
   const workDir = join(opts.scratch, 'work');
@@ -650,6 +708,34 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
     await run({ command: ['bun', 'run', check], cwd: libDir });
   }
   assertLibrary({ libDir });
+
+  if (runsShared) {
+    step({
+      label:
+        'vulcan add --shared (from the packed preset): install, sync, and the shared package checks',
+    });
+    await run({
+      command: [
+        'bun',
+        'x',
+        'vulcan',
+        'add',
+        '--preset',
+        `file:${join(presetDir, 'package')}`,
+        '--shared',
+        SHARED,
+        '--dir',
+        SHARED_DIR,
+      ],
+      cwd: projectDir,
+    });
+
+    const sharedDir = join(projectDir, SHARED_DIR, SHARED);
+    for (const check of ['typecheck', 'lint', 'test']) {
+      await run({ command: ['bun', 'run', check], cwd: sharedDir });
+    }
+    assertSharedPackage({ sharedDir });
+  }
 
   if (DOCKER) {
     step({

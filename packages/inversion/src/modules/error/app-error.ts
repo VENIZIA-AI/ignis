@@ -1,5 +1,5 @@
 import { type TNullable } from '@/common/types';
-import { omit } from '@/common/utilities';
+import { ObjectUtility } from '@/common/utilities';
 import { MessageCode } from './message-code';
 import { MessageTemplate } from './message-template';
 import type { TError, TErrorLogLevel, TErrorNormalized, TResponsedError } from './common';
@@ -47,7 +47,7 @@ export class ApplicationError extends Error {
 
     // Explicit `extra` wins over swept keys.
     const merged = {
-      ...omit({ source: opts, keys: KNOWN_KEYS }),
+      ...ObjectUtility.omit({ source: opts, keys: KNOWN_KEYS }),
       ...extra,
     };
     this.extra = Object.keys(merged).length > 0 ? merged : undefined;
@@ -122,5 +122,3 @@ export const isApplicationError = (error: unknown): error is ApplicationError =>
     typeof normalized.text === 'string'
   );
 };
-
-export type TApplicationError = ApplicationError;

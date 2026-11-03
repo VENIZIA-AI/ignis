@@ -100,7 +100,7 @@ import {
   BaseRestController,
   controller,
   get,
-  jsonContent,
+  OpenApiResponses,
   type TRouteContext,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
@@ -118,7 +118,7 @@ export class HelloController extends BaseRestController {
     configs: {
       path: '/',
       responses: {
-        [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+        [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
           description: 'Says hello',
           schema: z.object({ message: z.string() }),
         }),
@@ -132,7 +132,7 @@ export class HelloController extends BaseRestController {
 ```
 
 - `services/core-api/src/index.ts` - initializes and starts the application.
-- `services/core-api/src/boot.test.ts` - proves the application boots, with no database, port or network: it calls `assertApplicationBoots` from `@venizia/ignis/testing`.
+- `services/core-api/src/boot.test.ts` - proves the application boots, with no database, port or network: it calls `ApplicationBootAssertion.assert` from `@venizia/ignis/testing`.
 - `services/core-api/src/smoke.test.ts` - exercises the running server with an end-to-end smoke test.
 - `services/core-api/.env.example` - lists every `APP_ENV_*` key the app reads (application, server, logger), each with a comment. Copy it to `.env` for a local run: bun loads `.env` on start.
 - `services/core-api/.configs/lints/.ignore`, `.configs/formatters/.ignore` - paths `devz lint` skips, one pattern per line. They ship with comments only.
@@ -164,7 +164,7 @@ The project needs a first commit: `git add -A && git commit -m init`. See [Docke
 
 ## 5. Add more apps
 
-Each new app or package comes from a preset, never by hand. Add a frontend that calls `core-api`, and a shared library:
+Each new app or package comes from a preset, never by hand. Add a frontend that calls `core-api`, and a library other IGNIS apps import:
 
 ```bash
 bun x --no-install vulcan add --preset ardor --app web --frontend-dir apps --api core-api

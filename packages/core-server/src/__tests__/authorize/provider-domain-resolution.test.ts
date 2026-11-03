@@ -8,7 +8,7 @@ import {
   type TAuthorizationDecision,
 } from '@venizia/ignis-kernel';
 import { authorize } from '@venizia/ignis-kernel';
-import { resolveRequestDomain } from '@venizia/ignis-kernel';
+import { RequestDomainResolver } from '@venizia/ignis-kernel';
 import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin';
 import type {
   IAuthorizeOptions,
@@ -278,9 +278,9 @@ describe('AuthorizationProvider — ABSTAIN → defaultDecision (line 155)', () 
   });
 });
 
-describe('resolveRequestDomain — unknown `from` hits default branch (lines 27-28)', () => {
+describe('RequestDomainResolver.resolveRequestDomain — unknown `from` hits default branch (lines 27-28)', () => {
   test('unrecognized declarative `from` → null → SYSTEM_WIDE', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: {
         action: 'read',
         resource: 'Order',
@@ -298,7 +298,7 @@ describe('resolveRequestDomain — unknown `from` hits default branch (lines 27-
           query: () => undefined,
         },
         get: () => undefined,
-        // Stub only implements the accessors resolveRequestDomain reads, not the full Hono Context shape.
+        // Stub only implements the accessors RequestDomainResolver.resolveRequestDomain reads, not the full Hono Context shape.
       } as any,
       options: undefined,
     });
@@ -322,10 +322,15 @@ describe('ScopedCasbinAdapter — no-op write methods (lines 43-48)', () => {
       },
     });
 
-    expect(await adapter.loadPolicy()).toBeUndefined();
-    expect(await adapter.savePolicy()).toBe(true);
-    expect(await adapter.addPolicy()).toBeUndefined();
-    expect(await adapter.removePolicy()).toBeUndefined();
-    expect(await adapter.removeFilteredPolicy()).toBeUndefined();
+    const result = await adapter.loadPolicy();
+    expect(result).toBeUndefined();
+    const result2 = await adapter.savePolicy();
+    expect(result2).toBe(true);
+    const result3 = await adapter.addPolicy();
+    expect(result3).toBeUndefined();
+    const result4 = await adapter.removePolicy();
+    expect(result4).toBeUndefined();
+    const result5 = await adapter.removeFilteredPolicy();
+    expect(result5).toBeUndefined();
   });
 });

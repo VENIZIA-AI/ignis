@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { PACKAGE_ROOT } from '../package-root';
-import { spawnSyncBounded } from '@venizia/dev-configs/testing';
+import { SpawnHelper } from '@venizia/dev-configs/testing';
 
 /**
  * The `./uuid` subpath exists so a browser bundle can mint an id without the error surface, the
@@ -33,7 +33,7 @@ const gzippedSize = async (opts: { name: string; source: string }): Promise<numb
   const outfile = path.join(probeDirectory, `${opts.name}.bundle.js`);
   await writeFile(entryPath, opts.source);
 
-  const build = spawnSyncBounded({
+  const build = SpawnHelper.spawnSyncBounded({
     cmd: ['bun', 'build', '--target=browser', '--minify', entryPath, '--outfile', outfile],
     cwd: PACKAGE_ROOT,
     stdout: 'pipe',
@@ -43,12 +43,14 @@ const gzippedSize = async (opts: { name: string; source: string }): Promise<numb
     throw new Error(`[uuid-bundle-budget] bun build failed | stderr: ${build.stderr.toString()}`);
   }
 
-  return Bun.gzipSync(await Bun.file(outfile).bytes(), { level: 9 }).length;
+  const result = await Bun.file(outfile).bytes();
+  return Bun.gzipSync(result, { level: 9 }).length;
 };
 
 describe('the ./uuid subpath bundle budget', () => {
   beforeAll(async () => {
-    probeDirectory = await mkdtemp(path.join(tmpdir(), 'ignis-uuid-budget-'));
+    const result = await mkdtemp(path.join(tmpdir(), 'ignis-uuid-budget-'));
+    probeDirectory = result;
   });
 
   afterAll(async () => {
@@ -58,7 +60,7 @@ describe('the ./uuid subpath bundle budget', () => {
   test(`uuidV4 alone stays under ${BUDGETS.v4} B gzip`, async () => {
     const size = await gzippedSize({
       name: 'v4',
-      source: `import { uuidV4 } from '${UUID_ENTRY}';\nglobalThis.probe = uuidV4();\n`,
+      source: `import { UuidV4Generator } from '${UUID_ENTRY}';\nglobalThis.probe = UuidV4Generator.generate();\n`,
     });
 
     expect(size).toBeLessThanOrEqual(BUDGETS.v4);
@@ -67,7 +69,7 @@ describe('the ./uuid subpath bundle budget', () => {
   test(`uuidV7 alone stays under ${BUDGETS.v7} B gzip`, async () => {
     const size = await gzippedSize({
       name: 'v7',
-      source: `import { uuidV7 } from '${UUID_ENTRY}';\nglobalThis.probe = uuidV7();\n`,
+      source: `import { UuidV7Generator } from '${UUID_ENTRY}';\nglobalThis.probe = UuidV7Generator.generate();\n`,
     });
 
     expect(size).toBeLessThanOrEqual(BUDGETS.v7);
@@ -79,11 +81,11 @@ describe('the ./uuid subpath bundle budget', () => {
     const [v4Only, withV5] = await Promise.all([
       gzippedSize({
         name: 'shake-v4',
-        source: `import { uuidV4 } from '${UUID_ENTRY}';\nglobalThis.probe = uuidV4();\n`,
+        source: `import { UuidV4Generator } from '${UUID_ENTRY}';\nglobalThis.probe = UuidV4Generator.generate();\n`,
       }),
       gzippedSize({
         name: 'shake-v5',
-        source: `import { uuidV4, uuidV5, UuidNamespaces } from '${UUID_ENTRY}';\nglobalThis.probe = [uuidV4(), uuidV5({ namespace: UuidNamespaces.DNS, name: 'x' })];\n`,
+        source: `import { UuidV4Generator, UuidV5Generator, UuidNamespaces } from '${UUID_ENTRY}';\nglobalThis.probe = [UuidV4Generator.generate(), UuidV5Generator.generate({ namespace: UuidNamespaces.DNS, name: 'x' })];\n`,
       }),
     ]);
 

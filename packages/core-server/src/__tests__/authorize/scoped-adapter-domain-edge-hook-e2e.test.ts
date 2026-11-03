@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { type SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
-import { asTypedContext } from '@venizia/ignis-kernel';
+import { ContextUtility } from '@venizia/ignis-kernel';
 import { CasbinAuthorizationEnforcer } from '@/components/auth/authorize/enforcers/casbin.enforcer';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models/rbac-domain.model';
 import { AuthorizationDomainScopes, CasbinEnforcerModelDrivers } from '@venizia/ignis-kernel';
@@ -102,12 +102,12 @@ const decide = async (opts: {
   const { enforcer, domain } = opts;
   const rules = await enforcer.buildRules({
     user: { principalType: 'User', userId: 1 },
-    context: asTypedContext({}),
+    context: ContextUtility.asTypedContext({ context: {} }),
   });
   return enforcer.evaluate({
     rules,
     request: { resource: 'Activation', action: 'read', domain },
-    context: asTypedContext({}),
+    context: ContextUtility.asTypedContext({ context: {} }),
   });
 };
 
@@ -132,13 +132,15 @@ describe('resolveDomainEdges e2e - grant axis (g3)', () => {
   test('a grant carrying domain Organizer_A applies at Merchant_new purely via a hook-supplied g3 edge', async () => {
     const withoutHook = buildEnforcer({});
     await withoutHook.configure();
-    expect(await decide({ enforcer: withoutHook, domain: 'Merchant_new' })).toBe('deny');
+    const result = await decide({ enforcer: withoutHook, domain: 'Merchant_new' });
+    expect(result).toBe('deny');
 
     const withHook = buildEnforcer({
       resolveDomainEdges: async () => [{ child: 'Merchant_new', parent: 'Organizer_A' }],
     });
     await withHook.configure();
-    expect(await decide({ enforcer: withHook, domain: 'Merchant_new' })).toBe('allow');
+    const result2 = await decide({ enforcer: withHook, domain: 'Merchant_new' });
+    expect(result2).toBe('allow');
   });
 });
 
@@ -185,7 +187,8 @@ describe('resolveDomainEdges e2e - role axis (g), via the overlay shared across 
       isScoped: true,
     });
     await enforcerWithoutHook.configure();
-    expect(await decide({ enforcer: enforcerWithoutHook, domain: 'Merchant_new' })).toBe('deny');
+    const result = await decide({ enforcer: enforcerWithoutHook, domain: 'Merchant_new' });
+    expect(result).toBe('deny');
 
     const enforcerWithHook = new CasbinAuthorizationEnforcer({
       model: {
@@ -200,7 +203,8 @@ describe('resolveDomainEdges e2e - role axis (g), via the overlay shared across 
       isScoped: true,
     });
     await enforcerWithHook.configure();
-    expect(await decide({ enforcer: enforcerWithHook, domain: 'Merchant_new' })).toBe('allow');
+    const result2 = await decide({ enforcer: enforcerWithHook, domain: 'Merchant_new' });
+    expect(result2).toBe('allow');
   });
 });
 
@@ -212,8 +216,10 @@ describe('resolveDomainEdges e2e - duplicate edges', () => {
     });
     await enforcer.configure();
 
-    expect(await decide({ enforcer, domain: 'Merchant_new' })).toBe('allow');
+    const result = await decide({ enforcer, domain: 'Merchant_new' });
+    expect(result).toBe('allow');
     // Sibling domain never linked to Organizer_A by either source - must stay denied.
-    expect(await decide({ enforcer, domain: 'Merchant_untouched' })).toBe('deny');
+    const result2 = await decide({ enforcer, domain: 'Merchant_untouched' });
+    expect(result2).toBe('deny');
   });
 });

@@ -132,22 +132,10 @@ export type TInclusion = {
   shouldSkipDefaultFilter?: boolean;
 };
 
-/** Maximum number of items to return. Defaults to 10 for top-level list queries. */
-export type TLimit = number | undefined;
-
-/** Number of items to offset for pagination. */
-export type TOffset = number | undefined;
-
-/** Number of items to skip for pagination. */
-export type TSkip = number | undefined;
-
-/** Sorting order for results - regular columns (`fieldName ASC`) and JSON/JSONB paths (`metadata.field DESC`). */
-export type TOrderBy = string[] | undefined;
-
 /** A sort direction, exactly the `Sorts` values. */
 export type TSortDirection = TConstValue<typeof Sorts>;
 
-/** One order entry read by `parseOrderEntry`: the field as written, the direction lower-cased. */
+/** One order entry read by `Sorts.parseEntry`: the field as written, the direction lower-cased. */
 export type TParsedOrderEntry = { field: string; direction: TSortDirection };
 
 /** An order direction in either case. */

@@ -10,41 +10,41 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Layout: [monorepo layout](/overview/monorepo-layout.md).
 
-**1120 source files across 9 packages.**
+**1113 source files across 9 packages.**
 
-## boot  (26 source files)
+## boot  (27 source files)
 
 | Subsystem | Files |
 |---|---|
 | `bun/` | 8 |
-| `generator/` | 7 |
+| `generator/` | 8 |
 | `build-info/` | 5 |
 | `common/` | 2 |
 | `vite/` | 2 |
 | `clis/` | 1 |
 
-## connectors  (240 source files)
+## connectors  (237 source files)
 
 | Subsystem | Files |
 |---|---|
-| `relational/` | 141 |
-| `search/` | 78 |
+| `relational/` | 138 |
+| `search/` | 77 |
+| `common/` | 7 |
 | `http/` | 7 |
-| `common/` | 6 |
 | `raw-sql/` | 5 |
 | `testing/` | 2 |
 
-## core-server  (208 source files)
+## core-server  (193 source files)
 
 | Subsystem | Files |
 |---|---|
-| `components/` | 162 |
-| `base/` | 21 |
-| `connectors/` | 14 |
-| `common/` | 3 |
+| `components/` | 160 |
+| `base/` | 22 |
 | `utilities/` | 3 |
+| `common/` | 2 |
 | `helpers/` | 2 |
 | `testing/` | 2 |
+| `connectors/` | 1 |
 
 ## core-worker  (20 source files)
 
@@ -54,28 +54,28 @@ generated:
 | `applications/` | 4 |
 | `envelope/` | 4 |
 
-## dev-configs  (54 source files)
+## dev-configs  (78 source files)
 
 | Subsystem | Files |
 |---|---|
-| `linters/` | 26 |
+| `linters/` | 35 |
+| `cli/` | 24 |
 | `checks/` | 11 |
-| `cli/` | 9 |
 | `testing/` | 5 |
 | `compilers/` | 2 |
 
-## filter  (9 source files)
+## filter  (8 source files)
 
 | Subsystem | Files |
 |---|---|
-| `common/` | 4 |
 | `schemas/` | 4 |
+| `common/` | 3 |
 
-## helpers  (313 source files)
+## helpers  (306 source files)
 
 | Subsystem | Files |
 |---|---|
-| `modules/` | 281 |
+| `modules/` | 274 |
 | `common/` | 17 |
 | `utilities/` | 11 |
 
@@ -86,11 +86,11 @@ generated:
 | `modules/` | 29 |
 | `common/` | 5 |
 
-## kernel  (215 source files)
+## kernel  (209 source files)
 
 | Subsystem | Files |
 |---|---|
-| `base/` | 178 |
-| `helpers/` | 24 |
+| `base/` | 173 |
+| `helpers/` | 23 |
 | `common/` | 8 |
 | `utilities/` | 2 |

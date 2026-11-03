@@ -1,6 +1,6 @@
 ---
 title: devz check purity - the Browser-Purity Gate Ships in dev-configs
-description: "The browser-purity gate of IGNIS moves into @venizia/dev-configs as devz check purity and the new ./checks export. A repository keeps only its claims. Output is identical; the gate also refuses an entry that reaches dev-configs."
+description: "The browser-purity gate is now devz check purity in @venizia/dev-configs, so a repository keeps only its claims file."
 packages: ['@venizia/dev-configs']
 ---
 
@@ -10,11 +10,11 @@ packages: ['@venizia/dev-configs']
 
 <Badge type="tip" text="Enhancement" />
 
-**In one line.** The probe, the derivation of rows from `exports` and the report that `make purity` ran from this repository's scripts are now `devz check purity --claims <file>`, so ARDOR and VULCAN use the same engine instead of copies. Nothing changes for an application. Ships in 0.4.4.
+**In one line.** The browser-purity gate that ran from one repository's scripts is now `devz check purity --claims <file>`, so other repositories use the same engine instead of copies. Nothing changes for an application. Ships in 0.4.4.
 
 ## What changed
 
-- **`devz check purity --claims <file> [package] [--json]`.** Probes every entry the claims file lists as browser-pure. `make purity` and `make purity-<package>` call it; the report is byte for byte what the script printed, on every package and for a package filter that matches nothing (exit 1).
+- **`devz check purity --claims <file> [package] [--json]`.** Probes every entry the claims file lists as browser-pure. The report is the same as the old script's, and a package filter that matches nothing exits 1.
 - **`@venizia/dev-configs/checks`.** A new export with `buildManifest`, `deriveEntries`, `assertNoWorkspaceExternal`, `assertBrowserEsmEntry`, `probeEntry` and `checkPurity` for a repository that wants the engine in its own tests.
 - **`--json`.** Prints the verdict per entry (verdict, size, builtins, globals) with the repository root replaced by `<root>`, so two machines on one commit print the same text.
 - **The gate is one check stricter.** An entry whose bundle contains `@venizia/dev-configs` fails: that package is Bun-only tooling and must never reach a browser.

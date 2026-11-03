@@ -1,4 +1,4 @@
-import { getUID } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -424,20 +424,30 @@ export class CombinedCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[COMBO-PRODUCT] Product search: price range + tags (using Product repo)');
 
-    const testTag = `COMBO_TEST_${getUID()}`;
+    const testTag = `COMBO_TEST_${ParseUtility.getUID()}`;
 
     try {
       // Setup test products
       await repo.createAll({
         data: [
           {
-            code: `COMBO_A_${getUID()}`,
+            code: `COMBO_A_${ParseUtility.getUID()}`,
             name: 'Product A',
             price: 100,
             tags: [testTag, 'featured'],
           },
-          { code: `COMBO_B_${getUID()}`, name: 'Product B', price: 200, tags: [testTag, 'sale'] },
-          { code: `COMBO_C_${getUID()}`, name: 'Product C', price: 300, tags: [testTag] },
+          {
+            code: `COMBO_B_${ParseUtility.getUID()}`,
+            name: 'Product B',
+            price: 200,
+            tags: [testTag, 'sale'],
+          },
+          {
+            code: `COMBO_C_${ParseUtility.getUID()}`,
+            name: 'Product C',
+            price: 300,
+            tags: [testTag],
+          },
         ],
       });
 

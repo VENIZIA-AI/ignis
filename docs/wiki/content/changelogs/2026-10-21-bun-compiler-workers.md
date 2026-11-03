@@ -23,7 +23,7 @@ await BunCompiler.compile({
 
 ## What changed
 
-- **`workers?: string[]`.** Bun only embeds a worker file in a compiled executable when the file is an entrypoint of the build. `BunCompiler.compile` passes each worker after the main `entrypoint`, so `new Worker('./image-reader.worker.ts')` in the app finds it inside the binary.
+- **`workers?: string[]`.** With it, `new Worker('./image-reader.worker.ts')` in the app finds the worker inside the compiled binary.
 - **`entrypoint` is unchanged.** A compile without workers needs no change.
 
 ## Who is affected

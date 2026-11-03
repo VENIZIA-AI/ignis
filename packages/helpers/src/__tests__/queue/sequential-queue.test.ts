@@ -85,7 +85,8 @@ describe('SequentialQueueHelper — state machine', () => {
     await queue.enqueue(2);
     await queue.enqueue(3);
 
-    expect(await withTimeout({ promise: drained.promise })).not.toBe('TIMED_OUT');
+    const result = await withTimeout({ promise: drained.promise });
+    expect(result).not.toBe('TIMED_OUT');
 
     expect(processed).toEqual([1, 2, 3]);
     expect(queue.getTotalEvent()).toBe(3);
@@ -128,7 +129,8 @@ describe('SequentialQueueHelper — state machine', () => {
 
     queue.nextMessage();
 
-    expect(await withTimeout({ promise: drained.promise })).not.toBe('TIMED_OUT');
+    const result = await withTimeout({ promise: drained.promise });
+    expect(result).not.toBe('TIMED_OUT');
     expect(processed).toEqual([10, 20]);
   });
 
@@ -159,7 +161,8 @@ describe('SequentialQueueHelper — state machine', () => {
 
     queue.unlock({ shouldProcessNextElement: true });
 
-    expect(await withTimeout({ promise: drained.promise })).not.toBe('TIMED_OUT');
+    const result = await withTimeout({ promise: drained.promise });
+    expect(result).not.toBe('TIMED_OUT');
     expect(processed).toEqual([1, 2]);
     expect(queue.getState()).toBe(QueueStatuses.WAITING);
   });
@@ -187,7 +190,8 @@ describe('SequentialQueueHelper — state machine', () => {
     await queue.enqueue(1);
     await queue.enqueue(2);
 
-    expect(await withTimeout({ promise: drained.promise })).not.toBe('TIMED_OUT');
+    const result = await withTimeout({ promise: drained.promise });
+    expect(result).not.toBe('TIMED_OUT');
     await flush();
 
     expect(processed).toEqual([1, 2]); // the failing element must NOT block the next one
@@ -220,7 +224,8 @@ describe('SequentialQueueHelper — state machine', () => {
     await queue.enqueue(1);
     await queue.enqueue(2);
 
-    expect(await withTimeout({ promise: drained.promise })).not.toBe('TIMED_OUT');
+    const result = await withTimeout({ promise: drained.promise });
+    expect(result).not.toBe('TIMED_OUT');
     await flush();
 
     expect(processed).toEqual([1, 2]);
@@ -255,7 +260,8 @@ describe('SequentialQueueHelper — state machine', () => {
     await queue.enqueue(1);
     await queue.enqueue(2);
 
-    expect(await withTimeout({ promise: drained.promise })).not.toBe('TIMED_OUT');
+    const result = await withTimeout({ promise: drained.promise });
+    expect(result).not.toBe('TIMED_OUT');
     await flush();
 
     expect(processed).toEqual([1, 2]);
@@ -297,7 +303,8 @@ describe('SequentialQueueHelper — state machine', () => {
     });
 
     await queue.enqueue(1);
-    expect(await withTimeout({ promise: drained.promise })).not.toBe('TIMED_OUT');
+    const result = await withTimeout({ promise: drained.promise });
+    expect(result).not.toBe('TIMED_OUT');
 
     queue.settle();
     expect(queue.getState()).toBe(QueueStatuses.SETTLED);

@@ -31,7 +31,7 @@ Technical reference for the `Secrets` provider family. It covers how IGNIS loads
 
 Secrets reach the application through two independent channels.
 
-- **Hydrate (static)** - during boot, the framework fetches secrets from the vault and merges them into `Envs` and `process.env`. Any code that already reads `process.env.APP_ENV_*` keeps working unchanged. Set once, never rotated.
+- **Hydrate (static)** - during boot, the framework fetches secrets from the vault and merges them into `applicationEnvironment` and `process.env`. Any code that already reads `process.env.APP_ENV_*` keeps working unchanged. Set once, never rotated.
 - **Provider (dynamic)** - the resolved provider is bound in the container at the key `@app/config`. Code that needs on-demand reads, dynamic credentials, or rotation injects that provider and calls `await secrets.get(...)`.
 
 A single registration drives both. The hydrate path is a convenience over the provider path - the same provider produces both.
@@ -40,7 +40,7 @@ A single registration drives both. The hydrate path is a convenience over the pr
 
 ```
 AbstractSecretsHelper (BaseHelper; TTL cache, lease registry, renewal scheduler, onRotate dispatch)
-  ├── SystemEnvsHelper       // 'system-envs'     - process.env / Envs. Static, zero deps, default.
+  ├── SystemEnvsHelper       // 'system-envs'     - process.env / applicationEnvironment. Static, zero deps, default.
   ├── HashiCorpVaultHelper   // 'hashicorp-vault' - full KV + dynamic + lease + rotation.
   └── DotenvVaultHelper      // 'dotenv-vault'    - encrypted .env.vault, static only.
 ```
@@ -56,7 +56,7 @@ interface ISecretsHelper extends IConfigurable {
   // One-shot read of a static / KV value (TTL-cached).
   get<TValue = string>(opts: { path: string; key?: string; defaultValue?: TValue }): Promise<TValue>;
 
-  // Whole KV bundle at a path - hydration merges this into Envs.
+  // Whole KV bundle at a path - hydration merges this into applicationEnvironment.
   getBundle(opts: { path: string }): Promise<Record<string, string>>;
 
   // Lease-bearing dynamic secret. The provider tracks the lease, schedules renewal,
@@ -104,7 +104,7 @@ An application opts in by overriding `registerSecrets()` on its `BaseApplication
 interface ISecretsRegistration {
   provider: TSecretProvider;              // SecretProviders.*
   config?: AnyObject;                     // provider-specific (endpoint, auth, ...)
-  hydrate?: Array<{                       // static KV -> merged into Envs at boot
+  hydrate?: Array<{                       // static KV -> merged into applicationEnvironment at boot
     path: string;
     prefix?: string;                      // prepend to every merged key
     keys?: Record<string, string>;        // explicit vaultKey -> envKey (wins over prefix)
@@ -163,7 +163,7 @@ The registration is consumed by an async boot phase, `hydrateSecrets()`, spliced
 
 ```
 validateEnvs → staticConfigure → preConfigure
-   → hydrateSecrets()               ← resolve provider, hydrate Envs, bind @app/config, set up leases
+   → hydrateSecrets()               ← resolve provider, hydrate applicationEnvironment, bind @app/config, set up leases
    → registerConfigurations → registerDataSources → registerComponents
    → registerContributedDataSources
    → wireSecretRotatables()         ← connect each lease key to its datasource
@@ -174,8 +174,8 @@ validateEnvs → staticConfigure → preConfigure
 
 `hydrateSecrets()` does four things:
 
-1. Calls `registerSecrets()` and builds the provider via `createSecretsHelper({ provider })`.
-2. Runs `provider.configure()` (authentication), then merges every `hydrate` entry into `Envs` + `process.env`, and opens every `lease`.
+1. Calls `registerSecrets()` and builds the provider via `SecretsHelperFactory.create({ provider })`.
+2. Runs `provider.configure()` (authentication), then merges every `hydrate` entry into `applicationEnvironment` + `process.env`, and opens every `lease`.
 3. Binds the live provider at `CoreBindings.APPLICATION_CONFIG` (`@app/config`) as a singleton.
 4. Registers a post-stop hook (`secrets.shutdown`) so `provider.shutdown()` runs on teardown, revoking outstanding leases.
 
@@ -225,7 +225,7 @@ An application that does use this provider and compiles a binary must ship `node
 
 **File:** `packages/helpers/src/modules/secrets/dotenv/dotenv.helper.ts`
 
-Decrypts a committed `.env.vault` file with a per-environment `DOTENV_KEY` (via `@dotenvx/dotenvx`) into a flat key-value map, which the hydrate path merges into `Envs`. Static only - `lease()` throws NotSupported. `@dotenvx/dotenvx` is an optional peer reached through the `@venizia/ignis-helpers/dotenv-vault` sub-path.
+Decrypts a committed `.env.vault` file with a per-environment `DOTENV_KEY` (via `@dotenvx/dotenvx`) into a flat key-value map, which the hydrate path merges into `applicationEnvironment`. Static only - `lease()` throws NotSupported. `@dotenvx/dotenvx` is an optional peer reached through the `@venizia/ignis-helpers/dotenv-vault` sub-path.
 
 ## Rotation and the Soft-Evict Contract
 
@@ -239,7 +239,7 @@ The PostgreSQL datasource implements `onSecretRotated()` on `AbstractRelationalD
 4. Drain the old pool with `end()`. It resolves once checked-out clients are released, so in-flight transactions finish on the old pool while new work uses the new one.
 
 > [!WARNING] configure() must read from this.settings
-> Rotation applies new credentials by writing them onto `this.settings` and re-running `configure()`. A `configure()` that builds its pool from a hard-coded connection string, or reads `Envs` directly, will rebuild with **stale** credentials.
+> Rotation applies new credentials by writing them onto `this.settings` and re-running `configure()`. A `configure()` that builds its pool from a hard-coded connection string, or reads `applicationEnvironment` directly, will rebuild with **stale** credentials.
 
 ## Consuming the Provider
 

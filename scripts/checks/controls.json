@@ -67,7 +67,7 @@
       "min": 4
     },
     {
-      "gate": "assertApplicationBoots",
+      "gate": "ApplicationBootAssertion.assert",
       "file": "packages/core-server/src/__tests__/testing/assert-application-boots.test.ts",
       "titlePattern": "^(C1/C2|C2|C5|C7|C8|C15|C16|C17|C18|C21|C27|I3|I4|I5|I9|A1)\\b",
       "min": 21
@@ -150,7 +150,7 @@
     },
     {
       "gate": "atlas index workflow guards",
-      "file": "scripts/release/__tests__/atlas-index-workflow.test.ts",
+      "file": "scripts/release/__tests__/docs-workflow.test.ts",
       "titlePattern": "the key is read only by the step that publishes",
       "min": 1
     }

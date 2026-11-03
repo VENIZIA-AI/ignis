@@ -2,38 +2,34 @@ import { BindingNamespaces } from '@/common/bindings';
 import type {
   IArtifactRegistrationOptions,
   IDataSourceMetadata,
-  IInjectMetadata,
   IModelMetadata,
   IResolvedRepositoryMetadata,
   TRepositoryMetadata,
 } from '@/helpers/inversion';
-import {
-  ArtifactTypes,
-  BindingKeys,
-  MetadataKeys,
-  MetadataRegistry,
-  resolveInjectTarget,
-} from '@/helpers/inversion';
-import { resolveClass, resolveValue } from '@venizia/ignis-helpers/common';
+import { ArtifactTypes, BindingKeys, MetadataKeys, MetadataRegistry } from '@/helpers/inversion';
+import { ClassResolver, ResolverUtility } from '@venizia/ignis-helpers/common';
+import type { IInjectMetadata } from '@venizia/ignis-inversion';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IDataSource } from '../datasources';
 import { isDataSourceClass } from '../datasources';
 import type { AbstractEntity } from '../models';
 import { RepositoryTypes } from '../repositories/common/constants';
-import { injectable, pickRegistrationOptions } from './injectable';
-import { normalizeModelMetadata } from './model-metadata';
-import { assertNoRemovedModelSettings } from './model-settings';
+import { injectable, InjectableUtility } from './injectable';
+import { ModelMetadataUtility } from './model-metadata';
 
 /** Registers a model class with its static schema and relations. */
 export const model = (input: IModelMetadata = {}): ClassDecorator => {
   return (target) => {
-    injectable({ type: ArtifactTypes.MODEL, ...pickRegistrationOptions({ metadata: input }) })(
-      target,
-    );
+    injectable({
+      type: ArtifactTypes.MODEL,
+      ...InjectableUtility.pickRegistrationOptions({ metadata: input }),
+    })(target);
 
-    const metadata = normalizeModelMetadata({ model: target.name, metadata: input });
+    const metadata = ModelMetadataUtility.normalizeModelMetadata({
+      model: target.name,
+      metadata: input,
+    });
 
-    assertNoRemovedModelSettings({ model: target.name, settings: metadata.settings });
     const { settings } = metadata;
 
     const defaultLimit = settings?.query?.limit?.default;
@@ -67,7 +63,7 @@ export const datasource = (metadata?: IDataSourceMetadata): ClassDecorator => {
   return (target) => {
     injectable({
       type: ArtifactTypes.DATASOURCE,
-      ...pickRegistrationOptions({ metadata: metadata ?? {} }),
+      ...InjectableUtility.pickRegistrationOptions({ metadata: metadata ?? {} }),
     })(target);
     MetadataRegistry.getInstance().setDataSourceMetadata({ target, metadata });
   };
@@ -165,7 +161,7 @@ const registerDataSourceInjection = (opts: {
     // `@inject({ target })` carries no key; read the one recorded on the class. The function form
     // resolves through the same helper the container uses, so both paths read one class.
     const injectedTarget = injectAtIndex0.target
-      ? resolveInjectTarget({ target: injectAtIndex0.target })
+      ? ResolverUtility.resolveInjectTarget({ target: injectAtIndex0.target })
       : undefined;
     const injectKey =
       injectAtIndex0.key ??
@@ -234,7 +230,7 @@ const resolveRepositoryMetadata = <
 
   validateRepositoryMetadata({ metadata, target });
 
-  const resolvedDataSource = resolveClass({ ref: metadata.dataSource });
+  const resolvedDataSource = ClassResolver.resolveClass({ ref: metadata.dataSource });
   if (!resolvedDataSource) {
     throw getError({
       message: `[@repository][${target.name}] The dataSource resolver returned nothing at decoration time | An import cycle leaves the datasource class undefined here; import it without the cycle, or name it as a string`,
@@ -256,7 +252,7 @@ const resolveRepositoryMetadata = <
     };
   }
 
-  const resolvedModel = resolveValue({ value: metadata.model });
+  const resolvedModel = ResolverUtility.resolveValue({ value: metadata.model });
 
   registry.registerRepositoryBinding({
     repository: target,
@@ -313,7 +309,7 @@ const applyRepositoryMetadata = <
   const { metadata, registration, target, registry } = opts;
   injectable({
     type: ArtifactTypes.REPOSITORY,
-    ...pickRegistrationOptions({ metadata: registration }),
+    ...InjectableUtility.pickRegistrationOptions({ metadata: registration }),
   })(target);
 
   const resolved = resolveRepositoryMetadata({ metadata, target, registry });

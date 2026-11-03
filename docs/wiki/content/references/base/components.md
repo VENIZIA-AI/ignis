@@ -107,7 +107,6 @@ packages/kernel/src/base/components/controller/
 
 ```
 packages/core-server/src/components/controller/
-├── index.ts              # Empty - only comments; gRPC is not re-exported here
 └── grpc/
     ├── grpc.component.ts
     └── common/
@@ -504,7 +503,7 @@ export class GrpcBindingKeys {
 }
 ```
 
-> **Note:** `GrpcComponent` is excluded from the barrel at `packages/core-server/src/components/controller/index.ts`, which holds only comments. Import it from the `@venizia/ignis/grpc` subpath if you ever need the symbol. You never import it in application code - `BaseApplication.registerControllers()` instantiates it automatically when `transports` includes `'grpc'`.
+> **Note:** `GrpcComponent` is not exported from the components barrel. Import it from the `@venizia/ignis/grpc` subpath if you ever need the symbol. You never import it in application code - `BaseApplication.registerControllers()` instantiates it automatically when `transports` includes `'grpc'`.
 
 
 ## Component Implementation Patterns
@@ -572,7 +571,7 @@ import {
   TJWTTokenServiceOptions,
 } from './common';
 import { BasicTokenService, JWSTokenService } from './services';
-import { defineAuthController } from './controllers';
+import { AuthControllerFactory } from './controllers';
 
 export class AuthenticateComponent extends BaseComponent {
   constructor(
@@ -637,7 +636,7 @@ export class AuthenticateComponent extends BaseComponent {
         });
       }
 
-      this.application.controller(defineAuthController(restOptions.controllerOpts));
+      this.application.controller(AuthControllerFactory.define(restOptions.controllerOpts));
     }
   }
 }
@@ -724,7 +723,7 @@ The shipped `ApiReferenceComponent` does **not** use this pattern: it passes `in
 
 | Component | Import Path | Key Features |
 |-----------|-------------|-------------|
-| **StaticAssetComponent** | `@venizia/ignis/static-asset` | File upload/download CRUD, MinIO/Disk storage. |
+| **StaticAssetComponent** | `@venizia/ignis/static-asset` | File upload/download CRUD, S3 (incl. MinIO)/Disk storage. |
 | **MailComponent** | `@venizia/ignis/mail` | Nodemailer/Mailgun transporters, Direct/BullMQ/InternalQueue executors. |
 | **SocketIOComponent** | `@venizia/ignis/socket-io` | Socket.IO server with Redis adapter for horizontal scaling. |
 | **WebSocketComponent** | `@venizia/ignis/websocket` | WebSocket support. |

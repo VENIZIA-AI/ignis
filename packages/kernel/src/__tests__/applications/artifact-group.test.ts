@@ -35,15 +35,15 @@ describe('ArtifactIndexHelper.flatten - groups', () => {
   test('a group whose content was inlined at build flattens to that content', async () => {
     const content = { services: [StockService] };
     const group = ArtifactGroup.define({ folder: 'inventory', content });
-    expect(await helper.flatten({ input: group, application })).toEqual([content]);
+    const result = await helper.flatten({ input: group, application });
+    expect(result).toEqual([content]);
   });
 
   test('a group without content flattens to what the global resolver answers', async () => {
     ArtifactGroup.setResolver({ resolve: async () => ({ services: [StockService] }) });
     const group = ArtifactGroup.define({ folder: 'inventory' });
-    expect(await helper.flatten({ input: group, application })).toEqual([
-      { services: [StockService] },
-    ]);
+    const result = await helper.flatten({ input: group, application });
+    expect(result).toEqual([{ services: [StockService] }]);
   });
 
   test('a protocol object with its own resolve is resolved through it (the auto group)', async () => {
@@ -54,9 +54,8 @@ describe('ArtifactIndexHelper.flatten - groups', () => {
       content: undefined,
       resolve: async () => ({ controllers: [StockController] }),
     };
-    expect(await helper.flatten({ input: [auto], application })).toEqual([
-      { controllers: [StockController] },
-    ]);
+    const result = await helper.flatten({ input: [auto], application });
+    expect(result).toEqual([{ controllers: [StockController] }]);
   });
 
   test('a group without content and without a resolver names the fix', async () => {
@@ -133,9 +132,8 @@ describe('ArtifactGroup.pick', () => {
       content: { services: [StockService], controllers: [StockController] },
     });
     const slice = ArtifactGroup.pick({ group, kinds: ['controllers'] });
-    expect(await helper.flatten({ input: slice, application })).toEqual([
-      { controllers: [StockController] },
-    ]);
+    const result = await helper.flatten({ input: slice, application });
+    expect(result).toEqual([{ controllers: [StockController] }]);
   });
 
   test('a resolver-backed group is resolved when artifacts are registered, not when picked', async () => {
@@ -151,9 +149,8 @@ describe('ArtifactGroup.pick', () => {
       kinds: ['services'],
     });
     expect(calls).toBe(0);
-    expect(await helper.flatten({ input: slice, application })).toEqual([
-      { services: [StockService] },
-    ]);
+    const result = await helper.flatten({ input: slice, application });
+    expect(result).toEqual([{ services: [StockService] }]);
     expect(calls).toBe(1);
   });
 
@@ -163,7 +160,8 @@ describe('ArtifactGroup.pick', () => {
       content: { services: [StockService] },
     });
     const slice = ArtifactGroup.pick({ group, kinds: ['controllers'] });
-    expect(await helper.flatten({ input: slice, application })).toEqual([{}]);
+    const result = await helper.flatten({ input: slice, application });
+    expect(result).toEqual([{}]);
   });
 
   test('slices a protocol object with its own resolve (the auto group), and stays a group', async () => {
@@ -176,9 +174,8 @@ describe('ArtifactGroup.pick', () => {
     };
     const slice = ArtifactGroup.pick({ group: auto, kinds: ['services'] });
     expect(ArtifactGroup.isGroup(slice)).toBe(true);
-    expect(await helper.flatten({ input: [slice], application })).toEqual([
-      { services: [StockService] },
-    ]);
+    const result = await helper.flatten({ input: [slice], application });
+    expect(result).toEqual([{ services: [StockService] }]);
   });
 });
 
@@ -192,9 +189,8 @@ describe('ArtifactGroup.application', () => {
       resolve: async ({ group: target }) =>
         target.folder === undefined ? { services: [StockService] } : {},
     });
-    expect(await helper.flatten({ input: group, application })).toEqual([
-      { services: [StockService] },
-    ]);
+    const result = await helper.flatten({ input: group, application });
+    expect(result).toEqual([{ services: [StockService] }]);
   });
 
   test('hands its ignore patterns to the resolver', async () => {
@@ -205,16 +201,14 @@ describe('ArtifactGroup.application', () => {
       resolve: async ({ group: target }) =>
         target.ignore?.includes('repositories/clickhouse/**') ? { services: [StockService] } : {},
     });
-    expect(await helper.flatten({ input: group, application })).toEqual([
-      { services: [StockService] },
-    ]);
+    const result = await helper.flatten({ input: group, application });
+    expect(result).toEqual([{ services: [StockService] }]);
   });
 
   test('takes content inlined by a build', async () => {
     const group = ArtifactGroup.application({ content: { controllers: [StockController] } });
-    expect(await helper.flatten({ input: group, application })).toEqual([
-      { controllers: [StockController] },
-    ]);
+    const result = await helper.flatten({ input: group, application });
+    expect(result).toEqual([{ controllers: [StockController] }]);
   });
 });
 

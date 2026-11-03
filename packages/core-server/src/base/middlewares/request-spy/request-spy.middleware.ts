@@ -66,9 +66,14 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
       // Anything else is read, if at all, from a clone: a handler may stream `req.raw.body` on (an upload proxy), and reading the request itself would drain it and mangle binary bytes.
       // A body an earlier middleware read cannot be cloned; Hono's cache serves it instead.
       if (contentType.startsWith(TEXT_CONTENT_TYPE_PREFIX)) {
-        const rs = opts.req.raw.bodyUsed
-          ? await opts.req.text()
-          : await opts.req.raw.clone().text();
+        let rs: string;
+        if (opts.req.raw.bodyUsed) {
+          const cached = await opts.req.text();
+          rs = cached;
+        } else {
+          const cloned = await opts.req.raw.clone().text();
+          rs = cloned;
+        }
         return rs;
       }
 

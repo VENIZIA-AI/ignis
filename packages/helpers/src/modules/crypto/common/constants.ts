@@ -2,9 +2,6 @@ import type { TConstValue } from '@/common';
 
 export const DEFAULT_CIPHER_BITS = 256;
 
-/** Legacy padEnd key-stretching char, no longer used - keys now derive via PBKDF2 (`DEFAULT_KDF_*`). Kept only so existing imports do not break. */
-export const DEFAULT_PAD_END = (0x00).toString();
-
 /**
  * Public and identical across every deployment, so it stops a bare dictionary attack but not a
  * table precomputed against this value - pass `kdfSalt` for per-deployment isolation. Never
@@ -61,3 +58,19 @@ export class HashOutputEncodings {
 export type THashOutputEncoding = TConstValue<typeof HashOutputEncodings>;
 
 export const DEFAULT_HASH_OUTPUT_ENCODING: THashOutputEncoding = HashOutputEncodings.HEX;
+
+export class CredentialAlgorithms {
+  /** What `Bun.password` writes by default, with its default parameters. */
+  static readonly ARGON2ID = 'argon2id';
+  static readonly BCRYPT = 'bcrypt';
+
+  static readonly SCHEME_SET = new Set<string>([this.ARGON2ID, this.BCRYPT]);
+
+  static isValid(value: string): value is TCredentialAlgorithm {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+export type TCredentialAlgorithm = TConstValue<typeof CredentialAlgorithms>;
+
+export const DEFAULT_CREDENTIAL_ALGORITHM: TCredentialAlgorithm = CredentialAlgorithms.ARGON2ID;

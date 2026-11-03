@@ -33,7 +33,7 @@ export class UserPolicyLineCache extends BaseHelper {
   async fetch(opts: { user: IAuthorizationUser }): Promise<string[]> {
     const cacheKey = await this.resolveCacheKey({ user: opts.user });
 
-    // Cache hit - Redis owns expiry (PX on write), so a present key is fresh; a corrupted/legacy entry must NOT 500 the request, so it is discarded and refetched.
+    // Cache hit - Redis owns expiry (PX on write), so a present key is fresh; an entry that does not decode (corrupted, or not an array of policy lines) must NOT 500 the request, so it is discarded and refetched.
     const raw = await this.cached.options.connection.get({ key: cacheKey });
     if (raw) {
       const lines = this.parseLines({ raw, cacheKey });

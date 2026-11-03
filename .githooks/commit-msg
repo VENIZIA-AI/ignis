@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# Refuses an agent signature in the commit message (commit.message in .configs/vulcan.config.mts)
+bun x --no-install vulcan commit-check "$1"

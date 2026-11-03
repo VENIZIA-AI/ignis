@@ -42,7 +42,22 @@ export interface IRecursiveTreeOptions {
 
   /** Runtime-checked with `is(table, Table)`; also the sole dialect selector (Postgres vs SQLite) - see {@link RecursiveTreeSql}. */
   table: unknown;
-  rootId: string;
+
+  /**
+   * Where the walk starts: one id, several ids (each is a root of the walk), or none. With no root a DOWN walk
+   * starts from every row whose parent column is NULL; an UP walk needs a root (the ancestors of every row is never
+   * what is meant) and an empty list is refused, because it would silently return nothing.
+   */
+  rootId?: string | ReadonlyArray<string>;
+
+  /**
+   * `'all'` makes every row a root of the walk, narrowed only by `filter` and `anchorFilter`. Use it when the
+   * closure of every row is wanted, not the tree under one root. Cannot be combined with `rootId`. A row shows up
+   * once per root that reaches it: in a DOWN walk a node at depth 3 below the top is returned four times (as its own
+   * root and under each of its three ancestors), each time with its own `depth`; select `depth = 0` to get
+   * each row once. Works for both directions; an UP walk then returns every row with all of its ancestors.
+   */
+  start?: 'all';
   direction: TRecursiveTreeDirection;
 
   /**
@@ -58,7 +73,16 @@ export interface IRecursiveTreeOptions {
   columns?: string[];
 
   /**
-   * ANDed into the anchor term's WHERE clause, next to the `idColumn = rootId` match - build it with
+   * ANDed into BOTH terms (the anchor and the recursive one): a row it rejects is not in the walk and its subtree is
+   * cut off. Build it with Drizzle's own `sql` tag and name the table by its alias `t`, which both terms use for it when this option is set:
+   * `sql\`t.deleted_at IS NULL\``. An unqualified column is ambiguous in the recursive term when the walk carries it too
+   * (`id`, `parent_id`, anything in `columns`). It is the same as passing the fragment as {@link anchorFilter} and as
+   * {@link recursiveFilter}, written once.
+   */
+  filter?: SQL;
+
+  /**
+   * ANDed into the anchor term's WHERE clause, next to the root match - build it with
    * Drizzle's own `sql` tag, columns unqualified. Together with {@link recursiveFilter} it keeps a
    * row out of the walk at both ends, e.g. `sql\`deleted_at IS NULL\`` on each term.
    *
@@ -103,11 +127,13 @@ export class RecursiveTreeSql {
       name,
       table,
       rootId,
+      start,
       direction,
       maxDepth,
       idColumn = 'id',
       parentColumn = 'parent_id',
       columns = [],
+      filter,
       anchorFilter,
       recursiveFilter,
       trackPath = false,
@@ -177,8 +203,18 @@ export class RecursiveTreeSql {
       ? RecursiveTreeSql.compileCycleGuardFragments({ engine, idIdentifier })
       : { basePathColumns: sql``, recursivePathColumns: sql`` };
 
+    const rootCondition = RecursiveTreeSql.compileRootCondition({
+      rootId,
+      start,
+      direction,
+      idIdentifier,
+      parentIdentifier,
+    });
+    const bothTerms = filter ? sql` AND (${filter})` : sql``;
+    // The anchor names the table by the alias `t` only when `filter` is given, so a fragment written once with `t.` is valid in both terms; without it the anchor's text is what it always was.
+    const anchorTable = filter ? sql`${tableIdentifier} t` : tableIdentifier;
     const anchorExtraFilter = anchorFilter ? sql` AND (${anchorFilter})` : sql``;
-    const baseCase = sql`SELECT ${baseColumnList}, ${depthCast} AS depth${basePathColumns} FROM ${tableIdentifier} WHERE ${idIdentifier} = ${rootId}${anchorExtraFilter}`;
+    const baseCase = sql`SELECT ${baseColumnList}, ${depthCast} AS depth${basePathColumns} FROM ${anchorTable} WHERE ${rootCondition}${bothTerms}${anchorExtraFilter}`;
 
     // DOWN walks parent -> children (t.parentColumn = r.idColumn); UP walks child -> parent (t.idColumn = r.parentColumn).
     const joinCondition =
@@ -191,9 +227,64 @@ export class RecursiveTreeSql {
     const cycleGuard = trackPath ? sql` AND NOT r.is_cycle` : sql``;
     const extraFilter = recursiveFilter ? sql` AND (${recursiveFilter})` : sql``;
 
-    const recursiveCase = sql`SELECT ${recursiveColumnList}, r.depth + 1${recursivePathColumns} FROM ${tableIdentifier} t JOIN ${cteIdentifier} r ON ${joinCondition} WHERE r.depth + 1 <= ${maxDepth}${cycleGuard}${extraFilter}`;
+    const recursiveCase = sql`SELECT ${recursiveColumnList}, r.depth + 1${recursivePathColumns} FROM ${tableIdentifier} t JOIN ${cteIdentifier} r ON ${joinCondition} WHERE r.depth + 1 <= ${maxDepth}${cycleGuard}${bothTerms}${extraFilter}`;
 
     return sql`WITH RECURSIVE ${cteIdentifier} AS (${baseCase} UNION ALL ${recursiveCase})`;
+  }
+
+  /** The anchor's root match: one id keeps the SQL it always had; several ids are an IN list; none is every row without a parent; `start: 'all'` is every row. */
+  private static compileRootCondition(opts: {
+    rootId?: string | ReadonlyArray<string>;
+    start?: 'all';
+    direction: TRecursiveTreeDirection;
+    idIdentifier: Name;
+    parentIdentifier: Name;
+  }): SQL {
+    const { rootId, start, direction, idIdentifier, parentIdentifier } = opts;
+
+    if (start !== undefined) {
+      if (start !== 'all') {
+        throw getError({
+          message: `[RecursiveTreeSql.walk] Invalid 'start' | Expected 'all' or no value | Got: ${String(start)}`,
+        });
+      }
+
+      if (rootId !== undefined) {
+        throw getError({
+          message:
+            "[RecursiveTreeSql.walk] Invalid 'start' | 'all' makes every row a root, so it cannot be combined with 'rootId'",
+        });
+      }
+
+      // true for every row; `1 = 1` rather than TRUE because it reads the same on Postgres and on every SQLite version
+      return sql`1 = 1`;
+    }
+
+    if (rootId === undefined) {
+      if (direction === RecursiveTreeDirections.UP) {
+        throw getError({
+          message: `[RecursiveTreeSql.walk] Invalid 'rootId' | An ${RecursiveTreeDirections.UP} walk needs at least one root | Got: undefined`,
+        });
+      }
+
+      return sql`${parentIdentifier} IS NULL`;
+    }
+
+    if (typeof rootId === 'string') {
+      return sql`${idIdentifier} = ${rootId}`;
+    }
+
+    if (rootId.length === 0) {
+      throw getError({
+        message:
+          "[RecursiveTreeSql.walk] Invalid 'rootId' | An empty list of roots would return nothing | Got: []",
+      });
+    }
+
+    return sql`${idIdentifier} IN (${sql.join(
+      rootId.map((id) => sql`${id}`),
+      sql`, `,
+    )})`;
   }
 
   /** See {@link RecursiveTreeSql} for why there is no separate `engine` option. */

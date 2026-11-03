@@ -1,6 +1,6 @@
 ---
 title: Nested Relations & Generic Types
-description: Added support for deep nested inclusions and generic return types in repositories
+description: Repository include filters now work at any depth, and repository methods accept a generic return type.
 packages: ['@venizia/ignis']
 ---
 
@@ -8,26 +8,14 @@ packages: ['@venizia/ignis']
 
 ## Nested Relations Support & Generic Repository Types
 
-This update introduces support for deeply nested relation queries in repositories and enables stronger type safety via generic return types.
+**In one line.** You can include relations inside relations, and type the result of `find` and `findOne` without casting.
 
-## Overview
+## What changed
 
-- **Nested Inclusions**: `include` filters now work recursively to any depth.
-- **Generic Repository Methods**: `find<R>`, `findOne<R>`, etc. now support custom return types.
-- **FilterBuilder Decoupling**: Decoupled filter builder from MetadataRegistry for cleaner architecture.
-
-## New Features
-
-### Nested Relations Support
-
-**File:** `packages/core-server/src/base/repositories/operators/filter.ts`
-
-**Problem:** Previously, the `FilterBuilder` could only resolve relations for the root entity. Nested includes (e.g., `include: [{ relation: 'a', scope: { include: [{ relation: 'b' }] } }]`) failed because it didn't know the schema of relation 'a'.
-
-**Solution:** The builder now accepts a `relationResolver` function (injected from the Repository) which allows it to dynamically lookup schemas and relations for any entity during recursive traversal.
+- **Nested includes.** `include` filters work recursively to any depth.
+- **Generic return types.** `find<R>`, `findOne<R>` and the other read and write methods accept a type parameter that defaults to the entity schema.
 
 ```typescript
-// Now works recursively!
 const result = await repo.findOne({
   filter: {
     include: [{
@@ -38,50 +26,15 @@ const result = await repo.findOne({
     }]
   }
 });
-```
 
-### Generic Repository Methods
-
-**File:** `packages/core-server/src/base/repositories/common/types.ts`
-
-**Problem:** Repository methods like `findOne` were hardcoded to return the base `DataObject`. When using `include`, the return type didn't reflect the added relations, forcing users to use `as any` or unsafe casts.
-
-**Solution:** All read and write methods now accept a generic type parameter `<R>` which defaults to the entity's schema but can be overridden.
-
-```typescript
-// Define expected shape
 type UserWithPosts = User & { posts: Post[] };
 
-// Type-safe call
 const user = await userRepo.findOne<UserWithPosts>({
   filter: { include: [{ relation: 'posts' }] }
 });
-
-// TypeScript knows 'posts' exists!
 console.log(user?.posts.length);
 ```
 
-**Benefits:**
-- Stronger type safety in application code.
-- Reduces need for `as any` casting.
-- Better IDE auto-completion.
+## Who is affected
 
-## Files Changed
-
-### Core Package (`packages/core-server`)
-
-| File | Changes |
-|------|---------|
-| `src/base/repositories/common/types.ts` | Added generic `<R>` to all repository interface methods |
-| `src/base/repositories/core/base.ts` | Implemented `getRelationResolver` and updated abstract signatures |
-| `src/base/repositories/core/readable.ts` | Updated `find`, `findOne`, `findById` to support generics |
-| `src/base/repositories/core/persistable.ts` | Updated `create`, `update`, `delete` methods to support generics |
-| `src/base/repositories/operators/filter.ts` | Added `relationResolver` support for recursive includes |
-
-## Migration Guide
-
-### No Breaking Changes
-
-This update is fully backward compatible.
-- Existing calls to repository methods will continue to work (using the default `DataObject` return type).
-- The new generic type parameter is optional.
+- **Existing code.** No action needed. The type parameter is optional and existing calls keep the default return type.

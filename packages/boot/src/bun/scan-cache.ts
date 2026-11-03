@@ -7,7 +7,6 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { ArtifactStereotypes, type IScannedArtifact } from '../generator/common';
 
@@ -15,9 +14,41 @@ import { ArtifactStereotypes, type IScannedArtifact } from '../generator/common'
 export class ArtifactScanCache {
   static readonly VERSION = 2;
 
+  /**
+   * A 128-bit hash of `text` as 32 hex characters (cyrb128: four 32-bit lanes, public domain). It names a cache file and
+   * tells a changed tree from an unchanged one; nothing here is a secret, so it needs no cryptographic strength. It is
+   * plain arithmetic on purpose: this file runs under Vite, which runs under Node, where `Bun` and `node:crypto`
+   * (removed from the sources) are not available, and under Bun alike. The same text gives the same string on both.
+   */
+  static digest(opts: { text: string }): string {
+    let h1 = 1779033703;
+    let h2 = 3144134277;
+    let h3 = 1013904242;
+    let h4 = 2773480762;
+
+    for (let index = 0; index < opts.text.length; index++) {
+      const code = opts.text.charCodeAt(index);
+      h1 = h2 ^ Math.imul(h1 ^ code, 597399067);
+      h2 = h3 ^ Math.imul(h2 ^ code, 2869860233);
+      h3 = h4 ^ Math.imul(h3 ^ code, 951274213);
+      h4 = h1 ^ Math.imul(h4 ^ code, 2716044179);
+    }
+
+    h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
+    h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+    h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
+    h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+    h1 ^= h2 ^ h3 ^ h4;
+    h2 ^= h1;
+    h3 ^= h1;
+    h4 ^= h1;
+
+    return [h1, h2, h3, h4].map((lane) => (lane >>> 0).toString(16).padStart(8, '0')).join('');
+  }
+
   static location(opts: { root: string }): string {
     const root = resolve(opts.root);
-    const key = createHash('sha1').update(root).digest('hex').slice(0, 16);
+    const key = ArtifactScanCache.digest({ text: root }).slice(0, 16);
     return join(dirname(root), 'node_modules', '.cache', 'ignis-artifacts', `${key}.json`);
   }
 
@@ -52,9 +83,9 @@ export class ArtifactScanCache {
       entries.push(`${file}:${stats.size}:${stats.mtimeMs}`);
     }
 
-    return createHash('sha1')
-      .update(`${ArtifactScanCache.VERSION}\n${entries.join('\n')}`)
-      .digest('hex');
+    return ArtifactScanCache.digest({
+      text: `${ArtifactScanCache.VERSION}\n${entries.join('\n')}`,
+    });
   }
 
   /** The cached scan, or `undefined` for a missing, stale or unreadable cache - never an error. */
@@ -66,6 +97,7 @@ export class ArtifactScanCache {
     let stored: { fingerprint?: unknown; artifacts?: unknown };
     try {
       stored = JSON.parse(readFileSync(file, 'utf8'));
+      // eslint-disable-next-line venizia/no-silent-catch -- a corrupt cache is a miss; the cause is not reported and the only cost is one fresh scan
     } catch {
       // A corrupt cache is a miss: the caller scans and rewrites it.
       return undefined;
@@ -94,6 +126,7 @@ export class ArtifactScanCache {
       );
       renameSync(temporary, file);
       return true;
+      // eslint-disable-next-line venizia/no-silent-catch -- the `false` returned below is the report; the cause of the failed write is lost and the next start pays one scan
     } catch {
       // Caching is an optimisation; reporting `false` lets the caller go on with the scan it already has.
       return false;

@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-helpers",
-  "version": "0.4.6",
+  "version": "0.4.7-6",
   "description": "Production-ready TypeScript utility library: pluggable logging (winston or pino behind one ILogger contract), Redis single/cluster/sentinel with pub/sub, BullMQ/MQTT/Kafka message queues, MinIO/Disk/Bun-S3 object storage, AES-256/RSA/ECDH cryptography, Snowflake UID generation, cron scheduling, Socket.IO/WebSocket, TCP/TLS/UDP networking, HTTP clients, secrets/Vault, worker thread pools, and environment management. Sub-path imports isolate optional peer dependencies so the root barrel never forces a peer into your bundle.",
   "keywords": [
     "aes",
@@ -36,7 +36,6 @@
     "logger",
     "logging",
     "message-queue",
-    "minio",
     "mqtt",
     "network",
     "nodejs",
@@ -136,10 +135,6 @@
       "types": "./dist/esm/modules/queue/mqtt/index.d.ts",
       "default": "./dist/esm/modules/queue/mqtt/index.js"
     },
-    "./minio": {
-      "types": "./dist/esm/modules/storage/minio/index.d.ts",
-      "default": "./dist/esm/modules/storage/minio/index.js"
-    },
     "./bun-s3": {
       "types": "./dist/esm/modules/storage/bun-s3/index.d.ts",
       "default": "./dist/esm/modules/storage/bun-s3/index.js"
@@ -178,8 +173,7 @@
     "access": "public"
   },
   "scripts": {
-    "force-update": "sh ../../scripts/build/force-update.sh",
-    "prepublishOnly": "make rebuild"
+    "force-update": "sh ../../scripts/build/force-update.sh"
   },
   "dependencies": {
     "@venizia/ignis-inversion": "workspace:*",
@@ -203,7 +197,6 @@
     "hono": "catalog:",
     "ioredis": "catalog:",
     "luxon": "^3.7.2",
-    "minio": "^8.0.7",
     "mqtt": "^5.16.1",
     "node-vault": "^0.13.0",
     "oxlint": "catalog:",
@@ -229,7 +222,6 @@
     "cron": "^4.4.0",
     "hono": "^4.13.13",
     "ioredis": "^6.0.0",
-    "minio": "^8.0.7",
     "mqtt": "^5.16.1",
     "node-vault": "^0.13.0",
     "pino": "^10.4.0",
@@ -255,9 +247,6 @@
       "optional": true
     },
     "cron": {
-      "optional": true
-    },
-    "minio": {
       "optional": true
     },
     "mqtt": {

@@ -1,6 +1,6 @@
 import { type AnyType } from '@/common/types';
 import { getError, isApplicationError } from '@/modules/error';
-import { invokeHook } from '@/modules/queue/common';
+import { HookUtility } from '@/modules/queue/common';
 import { KafkaClientEvents, KafkaHealthStatuses } from '@/modules/queue/kafka/common/constants';
 import { BaseKafkaHelper } from '@/modules/queue/kafka/base';
 import { EventEmitter } from 'node:events';
@@ -76,10 +76,12 @@ const brokerPayload = (opts: { host: string; port: number }) => {
 
 /** Awaits a rejection explicitly: bun's `expect(...).rejects` is typed as non-thenable in this repo. */
 const captureRejection = async (opts: { promise: Promise<unknown> }): Promise<Error> => {
-  const outcome = await opts.promise.then(
-    () => null,
-    (error: unknown) => error as Error,
-  );
+  let outcome: Error | null = null;
+  try {
+    await opts.promise;
+  } catch (error) {
+    outcome = error as Error;
+  }
 
   if (!outcome) {
     throw getError({ message: 'Expected the promise to REJECT, but it resolved' });
@@ -242,10 +244,10 @@ describe('BaseKafkaHelper — broker events, health tracking, close paths', () =
     client.isCloseHanging = true;
     const helper = new TestKafkaHelper({ client, shutdownTimeout: 20 });
 
-    const error = await helper.closeGracefully().catch((closeError: unknown) => closeError);
+    const error = await captureRejection({ promise: helper.closeGracefully() });
 
     expect(isApplicationError(error)).toBe(true);
-    expect((error as Error).message).toContain('Shutdown timed out');
+    expect(error.message).toContain('Shutdown timed out');
   });
 });
 
@@ -276,7 +278,7 @@ class ExtendingKafkaHelper extends BaseKafkaHelper<AnyType> {
       (payload: { broker: { host: string; port: number } }) => {
         const brokerKey = `${payload.broker.host}:${payload.broker.port}`;
         this.connectedBrokers.add(brokerKey);
-        invokeHook({
+        HookUtility.invoke({
           logger: this.logger,
           scope: 'configureBrokerConnect',
           execution: () => this.onBrokerConnect?.({ broker: payload.broker }),

@@ -13,7 +13,7 @@ Every peer dependency below is optional. You install one only when you use the h
 | [Error](./error/) | Error utilities | You throw or handle an error | None |
 | [Secrets & Vault](./secrets/) | Secrets and credentials | You read config or credentials from Vault or a vaulted `.env` | `node-vault` or `@dotenvx/dotenvx` |
 | [Inversion](./inversion/) | DI container | You build custom bindings or providers | None |
-| [Logger](./logger/) | Logging | You need scoped, leveled logging | `winston` or `pino` |
+| [Logger](./logger/) | Logging | You need scoped, leveled logging | none for the console; `winston` or `pino` optional |
 | [Network](./network/) | HTTP/TCP/UDP clients | You call another service over HTTP, TCP, or UDP | `axios`, for the Axios client only |
 | [Kafka](./kafka/) | Kafka messaging | You publish or consume Kafka topics | `@platformatic/kafka` |
 | [Queue](./queue/) | Job queues | You need background or delayed work | `bullmq` or `mqtt` |
@@ -37,7 +37,6 @@ A helper with an optional peer dependency ships from its own subpath, so a bundl
 | `@venizia/ignis-helpers/bullmq` | `bullmq` |
 | `@venizia/ignis-helpers/mqtt` | `mqtt` |
 | `@venizia/ignis-helpers/socket-io` | `socket.io`; `socket.io-client` only for `SocketIOClientHelper`, loaded when it configures |
-| `@venizia/ignis-helpers/minio` | `minio` |
 | `@venizia/ignis-helpers/bun-s3` | none - Bun native |
 | `@venizia/ignis-helpers/hashicorp-vault` | `node-vault` |
 | `@venizia/ignis-helpers/dotenv-vault` | `@dotenvx/dotenvx` |
@@ -50,9 +49,9 @@ this package that are already browser-safe.
 | Import from | Holds |
 |---|---|
 | `@venizia/ignis-helpers/common` | Constants and pure types: `HTTP`, `GRPC`, `TConstValue`, the duration and mime tables, the redaction helpers |
-| `@venizia/ignis-helpers/core` | Browser-safe runtime classes: `BaseHelper`, the error module, `RetryHelper`, `TemporalHelper`, `TreeBuilder`, `TreeWalker`, `SlugHelper`, `UrlPolicy`, `BuildInfoRegistry`, `ProjectRootRegistry`, and the parse utilities |
+| `@venizia/ignis-helpers/core` | Browser-safe runtime classes: `BaseHelper`, the error module, `RetryHelper`, `TemporalHelper`, `TreeBuilder`, `TreeWalker`, `SlugHelper`, `UrlPolicy`, `BuildInfoRegistry`, `ProjectRootRegistry`, `ECDH` (with its base class `AbstractCryptoAlgorithm`), and the parse utilities |
 | `@venizia/ignis-helpers/temporal` | `TemporalHelper` and its adapters alone |
-| `@venizia/ignis-helpers/uuid` | `uuidV4`, `uuidV5`, `uuidV7` and `UuidHelper` alone - see [UID](./uid/) |
+| `@venizia/ignis-helpers/uuid` | `UuidV4Generator`, `UuidV5Generator`, `UuidV7Generator` and `UuidHelper` alone - see [UID](./uid/) |
 
 Import one of them when your code has to bundle for a browser.
 

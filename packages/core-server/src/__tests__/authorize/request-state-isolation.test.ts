@@ -172,7 +172,8 @@ describe('per-request authorization state is not shared across specs', () => {
       enforcerName: 'strict',
     });
 
-    expect((await run(first, context)).error).toBeUndefined();
+    const result = await run(first, context);
+    expect(result.error).toBeUndefined();
     const secondResult = await run(second, context);
 
     // Each enforcer built its OWN rules - the second did not reuse the cached slot.

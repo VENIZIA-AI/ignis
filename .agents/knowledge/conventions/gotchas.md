@@ -30,7 +30,7 @@ tags: [conventions, gotchas, debugging]
 - [`bun build` folds `process.env.NODE_ENV` into the BUILD machine's value](#bun-build-folds-processenvnode_env-into-the-build-machines-value)
 - [A published env name nobody reads is worse than no name at all](#a-published-env-name-nobody-reads-is-worse-than-no-name-at-all)
 - [The health-check `stats` route is a security default, and `enable` overrides it silently](#the-health-check-stats-route-is-a-security-default-and-enable-overrides-it-silently)
-- [Compiled binaries: renamed classes, two module copies, no default logger](#compiled-binaries-renamed-classes-two-module-copies-no-default-logger)
+- [Compiled binaries: renamed classes, two module copies](#compiled-binaries-renamed-classes-two-module-copies)
 - [A self-refreshing cache must gate its retry on the last attempt, not the last success](#a-self-refreshing-cache-must-gate-its-retry-on-the-last-attempt-not-the-last-success)
 - [A const-value alias without the empty intersection widens to string](#a-const-value-alias-without-the-empty-intersection-widens-to-string)
 - [bun-types 1.4 types binary data as typed arrays and DataView, never a bare ArrayBufferView](#bun-types-14-types-binary-data-as-typed-arrays-and-dataview-never-a-bare-arraybufferview)
@@ -87,7 +87,7 @@ Traps worth knowing before you hit them yourself. Look for yours here first.
 - [A type used on a decorated member must come from `import type`](#under-bun-runs-source-a-type-used-on-a-decorated-member-must-come-from-import-type)
 - [A dynamic `import('./own-module')` bundles the barrel with undefined exports](#a-dynamic-importown-module-in-library-code-makes-bun-bundle-the-barrel-with-undefined-exports)
 - [`bun build` folds `process.env.NODE_ENV` into the build machine's value](#bun-build-folds-processenvnodeenv-into-the-build-machines-value)
-- [Compiled binaries: renamed classes, two module copies, no default logger](#compiled-binaries-renamed-classes-two-module-copies-no-default-logger)
+- [Compiled binaries: renamed classes, two module copies](#compiled-binaries-renamed-classes-two-module-copies)
 - [bun-types never accepts a bare `ArrayBufferView`](#bun-types-14-types-binary-data-as-typed-arrays-and-dataview-never-a-bare-arraybufferview)
 
 **DI and decorators**
@@ -225,10 +225,10 @@ builtins by design (measured 2026-09-18; the optional peers themselves are lazy)
 two, and the derivation fails if either stops being published.
 
 `external` narrows what a row measures, so it is printed next to every verdict. It may only exempt a
-third party's packaging - `assertNoWorkspaceExternal` refuses any `@venizia/` specifier at manifest
+third party's packaging - `PurityManifest.assertNoWorkspaceExternal` refuses any `@venizia/` specifier at manifest
 load time.
 
-Every claimed package ships ES modules only, and `assertBrowserEsmEntry` refuses a claim whose sub-path
+Every claimed package ships ES modules only, and `PurityManifest.assertBrowserEsmEntry` refuses a claim whose sub-path
 publishes no runtime entry in `dist/esm`. A package that a browser bundler cannot take as ES modules
 would need a per-consumer workaround, so the claim would not be true. Entries are probed per runtime
 condition, and there is only `default` now, so the waived impure sub-paths are
@@ -303,7 +303,7 @@ move `isApplicationError` already makes for `ApplicationError`, and `isRedisHelp
 Worker are separate realms and still get one registry each, which is correct - they run separate
 applications.
 
-The same rule holds in helpers, which has no `SingletonRealm`: `LoggerFactory`'s provider, `applicationEnvironment`
+The same rule holds in helpers, which has no `SingletonRealm`: `LoggerFactory`'s provider and level, `applicationEnvironment`
 and `ModuleUtility`'s registry each live in a `globalThis` slot keyed `Symbol.for('ignis:<name>')` (2026-09-06;
 two of the three were bare module instances before, and a consumer's `AppEnvs.set()` in one copy was invisible to
 the other). A new module-level singleton in helpers follows the same shape, and its test loads the module
@@ -486,13 +486,13 @@ The two ways to get it wrong are opposites, which is the whole trap:
   `warn` naming the route and the environment - because it cannot know whether the port is
   reachable, and on a cluster-internal one this is often the right call.
 - **A blank `secretKey`** fails CLOSED: `isStatsAuthorized` refuses every request. Routing that read
-  through `blankToUndefined` would therefore turn a locked route into an open one, the opposite of
+  through `ParseUtility.blankToUndefined` would therefore turn a locked route into an open one, the opposite of
   what that helper buys everywhere else.
 
 The closed-by-default shape is `stats: { enable: Boolean(secretKey), secretKey }` - a host with no
 key never mounts the route, and nothing depends on `NODE_ENV`.
 
-## Compiled binaries: renamed classes, two module copies, no default logger
+## Compiled binaries: renamed classes, two module copies
 
 - bun renames a decorated class expression that shadows its own variable - tsc emits
   `let X = X_1 = class X` for every decorated class - so `X.name` becomes `X_1` under
@@ -505,9 +505,10 @@ key never mounts the route, and nothing depends on `NODE_ENV`.
   from a string. `--minify` (identifiers) turns names into `Aw`/`Iw` - use
   `--minify-whitespace --minify-syntax`.
 - If the bundle holds two copies of helpers (two installed versions), `LoggerFactory` keeps the provider
-  in `globalThis[Symbol.for('ignis:logger-provider')]` so `use()` in one copy is seen by the other. Register a provider at the entrypoint
-  (`LoggerFactory.use({ provider: WinstonLogger })`): the winston default is loaded with
-  `createRequire('./winston')`, which cannot resolve inside a binary.
+  and the level in `globalThis[Symbol.for('ignis:logger-provider')]` and `...('ignis:logger-level')` so `use()`
+  in one copy is seen by the other. A binary needs no `use()`: the console is the default and `@venizia/ignis`
+  selects Winston through an import the bundler sees. Name a class (`LoggerFactory.use({ provider: PinoLogger })`)
+  only to choose another provider.
 - Proof recipe: run the binary with `APP_ENV_POSTGRES_HOST=127.0.0.1 APP_ENV_POSTGRES_PORT=1`. It
   must reach `postConfigure` and fail with `ECONNREFUSED`, never at import.
 
@@ -546,9 +547,10 @@ Uint8Array | DataView`. Narrowing a parameter keeps older bun-types assignable (
 
 ## Four transitive advisories stay by decision - do not "fix" them with an override
 
-`bun audit` reports `decode-uri-component` and `stream-json` under `minio`, and `esbuild`/`vite` 5 under
-`vitepress` and `drizzle-kit`. The patched releases of the first two are ESM-only while `minio` uses
-`require()`; `stream-json` also renamed the `jsonl/Parser.js` path `minio` imports. A workspace-wide
+`bun audit` reports `decode-uri-component` (now through `query-string`, no longer through `minio`, which
+`@venizia/ignis-helpers` dropped with `MinioHelper`; `stream-json` went with it) and `esbuild`/`vite` 5 under
+`vitepress` and `drizzle-kit`. The patched release of `decode-uri-component` is ESM-only while its
+consumer uses `require()`. A workspace-wide
 `esbuild` override forces `vite` 5 onto an esbuild it does not support, and `vitepress` 1.6.4 is the
 latest and pins `vite` 5. All four are dev-server or self-built-input exposures; the changelog
 `2026-09-04-dependency-floors-raised` carries the reasoning. A new advisory beyond these six is a real finding.
@@ -568,14 +570,14 @@ earlier middleware already read cannot be cloned (`req.raw.bodyUsed`): read it t
 `RequestSpyMiddleware.value()` calls `parseBody` for every content type in a development
 environment, and for `application/json` only elsewhere - its own malformed-JSON `400` is a contract,
 the rest is unread. A route whose `request.body.content` declares a form type gets its own
-`formBodyReader` middleware, appended after every application middleware and just ahead of the
+`FormBodyMiddleware.read` middleware, appended after every application middleware and just ahead of the
 validator, and `parseMultipartBody` maps its own parse failure - both land on
 `400 core.request.body_malformed`, the same object as the spy's. Application middleware that calls
 `context.req.formData()` itself, ahead of any framework reader (an upload authorization guard, for
 example), is covered by NONE of this: a malformed body there is a raw `TypeError` outside
 development, which the error envelope renders as a `500`, not a `400`. Call helpers'
-`readFormBody({ req: context.req })` instead - it reads through the request's own cache, so a
-route's later `formData()`/`parseMultipartBody()` call gets the same result, and maps the parse
+`FormBodyUtility.readFormBody({ req: context.req })` instead - it reads through the request's own cache, so a
+route's later `formData()`/`RequestUtility.parseMultipartBody()` call gets the same result, and maps the parse
 failure itself.
 
 ## Under `path.isStrict: false`, a route declared with a trailing slash is unreachable

@@ -8,10 +8,10 @@ import { StaticAssetStorageTypes } from '@/components/static-asset/common';
 import { RequestTrackerComponent } from '@/components/request-tracker';
 import { z } from '@hono/zod-openapi';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import { parseMultipartBody } from '@venizia/ignis-helpers';
+import { RequestUtility } from '@venizia/ignis-helpers';
 import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
-import { ControllerTransports, jsonResponse, MetadataRegistry } from '@venizia/ignis-kernel';
+import { ControllerTransports, OpenApiResponses, MetadataRegistry } from '@venizia/ignis-kernel';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { FakeStorageHelper } from '../components/static-asset/fake-storage.helper';
 
@@ -42,11 +42,14 @@ class HandParsedController extends BaseRestController {
       configs: {
         method: HTTP.Methods.POST,
         path: '/',
-        responses: jsonResponse({ schema: z.object({ count: z.number() }), description: 'Files' }),
+        responses: OpenApiResponses.jsonResponse({
+          schema: z.object({ count: z.number() }),
+          description: 'Files',
+        }),
       },
     }).to({
       handler: async (context: TRouteContext) => {
-        const { files } = await parseMultipartBody({ context });
+        const { files } = await RequestUtility.parseMultipartBody({ context });
         return context.json({ count: files.length }, 200);
       },
     });
@@ -117,7 +120,8 @@ describe('a malformed multipart body is a 400 in every environment', () => {
       const response = await postMalformed({ server, path: '/hand' });
 
       expect(response.status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
-      expect(JSON.stringify(await response.json())).toContain(BODY_MALFORMED_CODE);
+      const result = await response.json();
+      expect(JSON.stringify(result)).toContain(BODY_MALFORMED_CODE);
     });
 
     test(`the static-asset upload route answers 400 in '${environment}'`, async () => {
@@ -127,7 +131,8 @@ describe('a malformed multipart body is a 400 in every environment', () => {
       const response = await postMalformed({ server, path: '/assets/objects' });
 
       expect(response.status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
-      expect(JSON.stringify(await response.json())).toContain(BODY_MALFORMED_CODE);
+      const result = await response.json();
+      expect(JSON.stringify(result)).toContain(BODY_MALFORMED_CODE);
       expect(helper.calls).toEqual([]);
     });
   }

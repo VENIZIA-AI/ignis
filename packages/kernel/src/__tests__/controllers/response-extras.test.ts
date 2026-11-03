@@ -68,7 +68,8 @@ describe('computing the plan', () => {
   test('each value under its name, the group given its keys', async () => {
     const plan = resolve('facets(status),summary');
 
-    expect(await ResponseExtras.compute({ plan, offered })).toEqual({
+    const result = await ResponseExtras.compute({ plan, offered });
+    expect(result).toEqual({
       facets: ['status'],
       summary: 'summary',
       counts: 'counts',
@@ -94,9 +95,12 @@ describe('computing the plan', () => {
         requested: ResponseExtras.parse({ header: 'slow,fast' }),
         offered: throwing,
       });
-      const failure = await ResponseExtras.compute({ plan, offered: throwing }).catch(
-        (error: Error) => error.message,
-      );
+      let failure: string | undefined;
+      try {
+        await ResponseExtras.compute({ plan, offered: throwing });
+      } catch (error) {
+        failure = error instanceof Error ? error.message : String(error);
+      }
 
       await Bun.sleep(20);
       expect(failure).toBe('fast failed');

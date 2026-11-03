@@ -5,8 +5,5 @@
     "target": "ES2025",
     "module": "esnext",
     "moduleResolution": "bundler"
-  },
-  "ts-node": {
-    "transpileOnly": true
   }
 }

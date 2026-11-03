@@ -1,6 +1,6 @@
 ---
 title: Drizzle Casbin Adapter - Schema-Qualified Tables
-description: The Casbin policy adapter now qualifies its tables with a configurable schema name (default "public") instead of relying on the Postgres search_path
+description: The Casbin policy adapter now qualifies its tables with a configurable schema name (default "public") instead of relying on the Postgres search_path.
 packages: ['@venizia/ignis']
 ---
 
@@ -14,19 +14,18 @@ packages: ['@venizia/ignis']
 
 ## What changed
 
-- **Per-entity `schemaName`.** Every entity (`permission`, `role`, `policyDefinition`) accepts an optional `schemaName`, so the three tables may live in three different schemas; each defaults to `public`.
-- **Qualified SQL.** Every `FROM`/`JOIN` now reads `"<schema>"."<table>"`, escaped via `sql.identifier`, instead of a bare table name.
-- **Centralized resolution.** A private `schemaOf()` helper applies the `public` default at query-build time - no mutation of the caller-supplied `entities` object, no non-null assertions.
+- **Per-entity `schemaName`.** Each entity (`permission`, `role`, `policyDefinition`) accepts an optional `schemaName`, default `public`. The three tables can live in different schemas.
+- **Qualified SQL.** Queries now read `"<schema>"."<table>"` instead of a bare table name.
 
 ## Who is affected
 
-- **Casbin tables already in the `public` schema.** No action needed - the default reproduces the previous behavior.
-- **Casbin tables in a non-`public` schema, relying on `search_path`.** Must act - queries will fail to resolve the relation until `schemaName` is set explicitly. See breaking changes below.
+- **Casbin tables in the `public` schema.** No action needed.
+- **Casbin tables in another schema that relied on `search_path`.** Queries fail to resolve the table until you set `schemaName`.
 
 ## Breaking changes
 
 > [!WARNING]
-> Only affects deployments whose Casbin tables live outside the `public` schema and relied on `search_path` to resolve them.
+> Only affects deployments whose Casbin tables live outside the `public` schema and relied on `search_path`.
 
 **Before** (resolved via `search_path`):
 
@@ -39,7 +38,6 @@ new DrizzleCasbinAdapter({
     policyDefinition: { tableName: 'policy_definitions', principalType: 'PolicyDefinition' },
   },
 });
-// Emits: FROM "policy_definitions"
 ```
 
 **After** (explicit schema):
@@ -57,17 +55,10 @@ new DrizzleCasbinAdapter({
     },
   },
 });
-// Emits: FROM "auth"."policy_definitions"
 ```
 
-**Migration step:** add `schemaName` to every entity whose table is not in `public`. No change needed for tables already in `public`.
+Migration step: add `schemaName` to every entity whose table is not in `public`.
 
 ## Details
 
-> [!NOTE]
-> All three entities accept `schemaName`, so each table can live in a different schema. The current queries only read `policy_definitions` and `permissions` in a `FROM`/`JOIN`, so `role.schemaName` is accepted as configuration but does not yet affect emitted SQL.
-
-| File | Package |
-|------|---------|
-| `src/components/auth/authorize/adapters/drizzle-casbin.ts` | core |
-| `src/__tests__/authorize/drizzle-casbin-adapter.test.ts` | core |
+- The queries only read `policy_definitions` and `permissions`, so `role.schemaName` is accepted but does not yet change the SQL.

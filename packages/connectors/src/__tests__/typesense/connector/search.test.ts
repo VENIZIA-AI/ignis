@@ -18,7 +18,7 @@ describe('TypesenseConnector search', () => {
   });
 
   test('maps facet_counts/grouped_hits/text_match onto camelCase result fields', async () => {
-    // Wire-shaped fixture assembled via bracket assignment, never a snake_case TS identifier - same convention as connector.ts's buildEmptySearchResponse().
+    // Wire-shaped fixture assembled via bracket assignment, never a snake_case TS identifier - same convention as TypesenseSearchWindows.buildEmptySearchResponse().
     const facetCount: Record<string, unknown> = { counts: [{ value: 'nike', count: 1 }] };
     facetCount['field_name'] = 'brand';
     const groupedHit: Record<string, unknown> = { hits: [{ document: { id: '1' } }] };
@@ -40,11 +40,84 @@ describe('TypesenseConnector search', () => {
 
     expect(result.outOf).toBe(10);
     expect(result.searchTimeMs).toBe(3);
-    expect(result.facetCounts).toEqual([facetCount]);
+    expect(result.facetCounts).toEqual([
+      { fieldName: 'brand', counts: [{ value: 'nike', count: 1 }] },
+    ]);
     expect(result.groupedHits).toEqual([groupedHit]);
     expect(result.hits?.[0]?.document).toEqual({ id: '1' });
     expect(result.hits?.[0]?.highlight).toEqual({ title: {} });
     expect(result.hits?.[0]?.score).toBe(123456);
+  });
+
+  test('maps a facet with highlighted values, sampled and stats onto ISearchFacetCount', async () => {
+    const facet: Record<string, unknown> = {
+      counts: [
+        { value: 'nike', count: 3, highlighted: '<mark>ni</mark>ke' },
+        { value: 'adidas', count: 1 },
+        'not-a-record',
+        { count: 2 },
+      ],
+      sampled: true,
+      stats: { avg: 10.5, max: 20, min: 1, sum: 105, ['total_values']: 10 },
+    };
+    facet['field_name'] = 'brand';
+    const searchResult: Record<string, unknown> = { found: 4, hits: [] };
+    searchResult['facet_counts'] = [facet, 'junk', { counts: [] }];
+
+    const { helper } = makeHelper({ searchResult });
+    const result = await helper.search({ collection: 'products', params: { q: '*' } });
+
+    expect(result.facetCounts).toEqual([
+      {
+        fieldName: 'brand',
+        counts: [
+          { value: 'nike', count: 3, highlighted: '<mark>ni</mark>ke' },
+          { value: 'adidas', count: 1 },
+        ],
+        sampled: true,
+        stats: { avg: 10.5, max: 20, min: 1, sum: 105, totalValues: 10 },
+      },
+    ]);
+  });
+
+  test('a facet of numbers keeps the value as the string the engine sent', async () => {
+    const facet: Record<string, unknown> = { counts: [{ value: '42', count: 5 }] };
+    facet['field_name'] = 'price';
+    const searchResult: Record<string, unknown> = { found: 5 };
+    searchResult['facet_counts'] = [facet];
+
+    const { helper } = makeHelper({ searchResult });
+    const result = await helper.search({ collection: 'products', params: { q: '*' } });
+
+    expect(result.facetCounts).toEqual([
+      { fieldName: 'price', counts: [{ value: '42', count: 5 }] },
+    ]);
+  });
+
+  test('a hybrid hit carries rankFusionScore and vectorDistance next to the text_match score', async () => {
+    const hit: Record<string, unknown> = { document: { id: '1' } };
+    hit['text_match'] = 77;
+    hit['vector_distance'] = 0.12;
+    hit['hybrid_search_info'] = { ['rank_fusion_score']: 0.83 };
+    const keywordOnly: Record<string, unknown> = { document: { id: '2' } };
+    keywordOnly['text_match'] = 5;
+    const malformed: Record<string, unknown> = { document: { id: '3' } };
+    malformed['vector_distance'] = 'far';
+    malformed['hybrid_search_info'] = { ['rank_fusion_score']: 'high' };
+
+    const { helper } = makeHelper({
+      searchResult: { found: 3, hits: [hit, keywordOnly, malformed] },
+    });
+    const result = await helper.search({ collection: 'products', params: { q: '*' } });
+
+    expect(result.hits?.[0]).toEqual({
+      document: { id: '1' },
+      score: 77,
+      rankFusionScore: 0.83,
+      vectorDistance: 0.12,
+    });
+    expect(result.hits?.[1]).toEqual({ document: { id: '2' }, score: 5 });
+    expect(result.hits?.[2]).toEqual({ document: { id: '3' } });
   });
 
   test('search on a missing collection returns an empty result, not a 500', async () => {
@@ -154,5 +227,39 @@ describe('TypesenseConnector search', () => {
     });
     const ms = fake.calls.find((c) => c.op === 'multiSearch.perform');
     expect((ms!.args[2] as { abortSignal: AbortSignal }).abortSignal).toBe(abortController.signal);
+  });
+
+  test('use_cache and cache_ttl travel as multi-search common params, not in the per-search body', async () => {
+    const { helper, fake } = makeHelper({ searchResult: { found: 0, hits: [] } });
+
+    await helper.search({
+      collection: 'products',
+      params: { q: 'shoe', ['use_cache']: true, ['cache_ttl']: 30 } as never,
+    });
+
+    const call = fake.calls.find((c) => c.op === 'multiSearch.perform');
+    const [request, common] = (call?.args ?? []) as [{ searches: unknown[] }, unknown];
+    expect(request.searches).toEqual([{ q: 'shoe', collection: 'products' }]);
+    expect(common).toEqual({ ['use_cache']: true, ['cache_ttl']: 30 });
+  });
+
+  test('a page split into windows keeps use_cache in the common params only', async () => {
+    const { helper, fake } = makeHelper({ searchResult: { found: 0, hits: [] } });
+
+    await helper.search({
+      collection: 'products',
+      params: { q: '*', ['per_page']: 500, ['use_cache']: true } as never,
+    });
+
+    const call = fake.calls.find((c) => c.op === 'multiSearch.perform');
+    const [request, common] = (call?.args ?? []) as [
+      { searches: Array<Record<string, unknown>> },
+      unknown,
+    ];
+    expect(request.searches.length).toBeGreaterThan(1);
+    for (const entry of request.searches) {
+      expect(entry).not.toHaveProperty('use_cache');
+    }
+    expect(common).toEqual({ ['use_cache']: true });
   });
 });

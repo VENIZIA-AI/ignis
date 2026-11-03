@@ -1,6 +1,6 @@
 import type { IdType } from '@/base/models/common';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
-import type { AESAlgorithmType, IPayloadCipher } from '@venizia/ignis-helpers/core';
+import type { AESAlgorithmType } from '@venizia/ignis-helpers/core';
 import type { JWTPayload } from 'jose';
 import type {
   JOSEStandards,
@@ -75,8 +75,6 @@ export interface IJWSTokenServiceOptions {
   aesAlgorithm?: AESAlgorithmType;
   applicationSecret?: string;
   fieldCodecs?: IPayloadFieldCodec[];
-  /** Overrides the payload cipher - pass `LegacyAES` to keep reading tokens issued before the PBKDF2 envelope. */
-  cipher?: IPayloadCipher;
 
   /** Claim checks applied on verify. Unset means signature and time claims only. */
   verify?: IJWTVerifyOptions;
@@ -100,8 +98,6 @@ export interface IJWKSIssuerOptions {
   aesAlgorithm?: AESAlgorithmType;
   applicationSecret?: string;
   fieldCodecs?: IPayloadFieldCodec[];
-  /** Overrides the payload cipher - pass `LegacyAES` to keep reading tokens issued before the PBKDF2 envelope. */
-  cipher?: IPayloadCipher;
 
   /** Claim checks applied on verify. Unset means signature and time claims only. */
   verify?: IJWTVerifyOptions;
@@ -118,8 +114,6 @@ export interface IJWKSVerifierOptions {
   aesAlgorithm?: AESAlgorithmType;
   applicationSecret?: string;
   fieldCodecs?: IPayloadFieldCodec[];
-  /** Overrides the payload cipher - pass `LegacyAES` to keep reading tokens issued before the PBKDF2 envelope. */
-  cipher?: IPayloadCipher;
 
   /** Claim checks applied on verify. Unset means signature and time claims only. */
   verify?: IJWTVerifyOptions;
@@ -131,9 +125,16 @@ export type TJWTTokenServiceOptions =
   | { standard: typeof JOSEStandards.JWS; options: IJWSTokenServiceOptions }
   | { standard: typeof JOSEStandards.JWKS; options: TJWKSTokenServiceOptions };
 
+/** One role as a token carries it. */
+export type TJWTTokenRole = { id: IdType; identifier: string; priority: number };
+
+/**
+ * What a token carries. `roles` may be absent: `generate` signs a payload without it as is, `verify`
+ * returns it without `roles`, and authorization reads its roles as none. Check it before you read it.
+ */
 export interface IJWTTokenPayload extends JWTPayload, IAuthUser {
   userId: IdType;
-  roles: { id: IdType; identifier: string; priority: number }[];
+  roles?: TJWTTokenRole[];
 
   clientId?: string;
   provider?: string;

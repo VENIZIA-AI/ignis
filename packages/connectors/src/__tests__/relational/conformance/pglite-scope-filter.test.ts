@@ -191,29 +191,35 @@ describe('scopeFilter - write verbs are scoped to the current tenant', () => {
       options: { shouldReturn: false },
     });
 
-    expect((await rawRow(1))?.name).toBe('a-active-updated');
-    expect((await rawRow(3))?.name).toBe('b-active');
+    const row1 = await rawRow(1);
+    const row3 = await rawRow(3);
+    expect(row1?.name).toBe('a-active-updated');
+    expect(row3?.name).toBe('b-active');
   });
 
   test("deleteAll (soft) only soft-deletes the current tenant's active row", async () => {
     await repository.deleteAll({ where: {}, options: { shouldReturn: false } });
 
-    expect((await rawRow(1))?.deletedAt).not.toBeNull();
-    expect((await rawRow(3))?.deletedAt).toBeNull();
+    const row1 = await rawRow(1);
+    const row3 = await rawRow(3);
+    expect(row1?.deletedAt).not.toBeNull();
+    expect(row3?.deletedAt).toBeNull();
   });
 
   test("updateById on another tenant's id is a scoped no-op, not a cross-tenant write", async () => {
     const result = await repository.updateById({ id: 3, data: { name: 'hacked' } });
 
     expect(result.count).toBe(0);
-    expect((await rawRow(3))?.name).toBe('b-active');
+    const row3 = await rawRow(3);
+    expect(row3?.name).toBe('b-active');
   });
 
   test("deleteById on another tenant's id is a scoped no-op", async () => {
     const result = await repository.deleteById({ id: 3 });
 
     expect(result.count).toBe(0);
-    expect((await rawRow(3))?.deletedAt).toBeNull();
+    const row3 = await rawRow(3);
+    expect(row3?.deletedAt).toBeNull();
   });
 });
 
@@ -222,21 +228,25 @@ describe('scopeFilter - restore() is scoped (the site that would otherwise leak)
     const result = await repository.restoreById({ id: 2 });
 
     expect(result.count).toBe(1);
-    expect((await rawRow(2))?.deletedAt).toBeNull();
+    const row2 = await rawRow(2);
+    expect(row2?.deletedAt).toBeNull();
   });
 
   test("restoring ANOTHER tenant's soft-deleted row is denied, not just filtered from the result", async () => {
     const result = await repository.restoreById({ id: 4 });
 
     expect(result.count).toBe(0);
-    expect((await rawRow(4))?.deletedAt).not.toBeNull();
+    const row4 = await rawRow(4);
+    expect(row4?.deletedAt).not.toBeNull();
   });
 
   test('restoreAll only reaches the current tenant', async () => {
     await repository.restoreAll({ where: {}, options: { shouldReturn: false } });
 
-    expect((await rawRow(2))?.deletedAt).toBeNull();
-    expect((await rawRow(4))?.deletedAt).not.toBeNull();
+    const row2 = await rawRow(2);
+    const row4 = await rawRow(4);
+    expect(row2?.deletedAt).toBeNull();
+    expect(row4?.deletedAt).not.toBeNull();
   });
 });
 
@@ -257,7 +267,8 @@ describe("scopeFilter - onMissing: 'deny' (the default) matches zero rows for ev
     const result = await repository.restoreById({ id: 2 });
 
     expect(result.count).toBe(0);
-    expect((await rawRow(2))?.deletedAt).not.toBeNull();
+    const row2 = await rawRow(2);
+    expect(row2?.deletedAt).not.toBeNull();
   });
 });
 

@@ -1,23 +1,23 @@
 import { model } from '@venizia/ignis';
 import {
-  generateDataTypeColumnDefs,
-  generateIdColumnDefs,
-  generateTzColumnDefs,
-  generateUserAuditColumnDefs,
+  PostgresDataTypeEnricher,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
+  PostgresUserAuditEnricher,
   ModelFactory,
   one,
   type TEntityObject,
-} from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
 import { foreignKey, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
 import { userTable } from './user.model';
 
 export const configurationTable = pgTable(
   'Configuration',
   {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...generateTzColumnDefs(),
-    ...generateDataTypeColumnDefs(),
-    ...generateUserAuditColumnDefs({
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresTzEnricher.generateColumnDefs(),
+    ...PostgresDataTypeEnricher.generateColumnDefs(),
+    ...PostgresUserAuditEnricher.generateColumnDefs({
       created: { dataType: 'string', columnName: 'created_by' },
       modified: { dataType: 'string', columnName: 'modified_by' },
     }),

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { assertNoWorkspaceExternal } from '@venizia/dev-configs/checks';
+import { PurityManifest } from '@venizia/dev-configs/checks';
 import { PURITY_MANIFEST } from '../manifest';
 
 const REPOSITORY_ROOT = join(__dirname, '../../../..');
@@ -37,9 +37,11 @@ const readPublishedTargets = (opts: { package: string }): string[] => {
   return [...new Set(targets)];
 };
 
-describe('assertNoWorkspaceExternal', () => {
+describe('PurityManifest.assertNoWorkspaceExternal', () => {
   test('the real manifest passes - nothing externalises a workspace package', () => {
-    expect(() => assertNoWorkspaceExternal(PURITY_MANIFEST)).not.toThrow();
+    expect(() =>
+      PurityManifest.assertNoWorkspaceExternal({ manifest: PURITY_MANIFEST }),
+    ).not.toThrow();
   });
 });
 

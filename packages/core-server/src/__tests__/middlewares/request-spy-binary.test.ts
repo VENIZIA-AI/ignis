@@ -44,11 +44,18 @@ const buildServer = (opts: {
   server.use(middleware.value());
   // Reads the RAW stream, as a proxy does.
   server.put('/upload', async (context) => {
-    const bytes = new Uint8Array(await new Response(context.req.raw.body).arrayBuffer());
+    const result = await new Response(context.req.raw.body).arrayBuffer();
+    const bytes = new Uint8Array(result);
     return context.json({ bytes: Array.from(bytes) });
   });
-  server.post('/text', async (context) => context.json({ text: await context.req.raw.text() }));
-  server.post('/signed', async (context) => context.json({ text: await context.req.text() }));
+  server.post('/text', async (context) => {
+    const text = await context.req.raw.text();
+    return context.json({ text });
+  });
+  server.post('/signed', async (context) => {
+    const text = await context.req.text();
+    return context.json({ text });
+  });
 
   return server;
 };
@@ -71,7 +78,8 @@ describe('RequestSpyMiddleware - bodies it does not parse reach the handler unto
       });
 
       expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ bytes: Array.from(BINARY) });
+      const result = await response.json();
+      expect(result).toEqual({ bytes: Array.from(BINARY) });
     });
 
     test(`a text body is still readable from the raw request in '${environment}'`, async () => {
@@ -82,7 +90,8 @@ describe('RequestSpyMiddleware - bodies it does not parse reach the handler unto
       });
 
       expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ text: 'id,name\n1,IGNIS' });
+      const result = await response.json();
+      expect(result).toEqual({ text: 'id,name\n1,IGNIS' });
     });
 
     test(`a text body an earlier middleware read reaches the handler intact in '${environment}'`, async () => {
@@ -93,7 +102,8 @@ describe('RequestSpyMiddleware - bodies it does not parse reach the handler unto
       });
 
       expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ text: 'signed payload' });
+      const result = await response.json();
+      expect(result).toEqual({ text: 'signed payload' });
     });
   }
 

@@ -254,7 +254,8 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
 
     let isValid: boolean;
     try {
-      isValid = await this.validateResource({ resource });
+      const result = await this.validateResource({ resource });
+      isValid = result;
     } catch (error) {
       // A throwing validate must NOT leak the popped candidate (it would corrupt `total` and can permanently starve the pool); treat it like an invalid resource - discard and retry.
       logger.warn('validate hook threw; discarding resource: %s', error);
@@ -282,7 +283,8 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
   private async createAndHand(): Promise<void> {
     let resource: T;
     try {
-      resource = await this.createResource();
+      const result = await this.createResource();
+      resource = result;
     } catch (error) {
       this.takeNextWaiter()?.reject(error);
       return;

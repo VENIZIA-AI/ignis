@@ -1,7 +1,7 @@
 import { ArticleDocument } from '@/models/article.model';
 import { ArticleRepository } from '@/repositories/article.repository';
 import { controller } from '@venizia/ignis';
-import { SearchControllerFactory } from '@venizia/ignis/typesense/controllers';
+import { SearchControllerFactory } from '@venizia/ignis-connectors/typesense/controllers';
 
 const BASE_PATH = '/articles';
 

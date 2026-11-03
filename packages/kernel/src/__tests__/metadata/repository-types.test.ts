@@ -10,7 +10,7 @@ import {
   MetadataKeys,
   MetadataRegistry,
 } from '@/helpers/inversion';
-import type { IInjectMetadata } from '@/helpers/inversion';
+import type { IInjectMetadata } from '@venizia/ignis-inversion';
 import { describe, expect, test } from 'bun:test';
 
 /** The schema is irrelevant here; `JSON.parse` returns the untyped shape the abstract signature asks for without a cast. */

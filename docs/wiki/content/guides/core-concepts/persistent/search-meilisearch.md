@@ -1,6 +1,6 @@
 # Search & Meilisearch
 
-IGNIS ships a **meilisearch connector** under `@venizia/ignis/meilisearch`. It shares the entire search paradigm with the Typesense connector: the same `@model`/`@repository`/`@datasource` decorators and the same `defineSearchCollection` field DSL. It also shares the same repository tiers and controller factory. All of that lives in the engine-neutral `@venizia/ignis/search` module.
+IGNIS ships a **meilisearch connector** under `@venizia/ignis-connectors/meilisearch`. It shares the entire search paradigm with the Typesense connector: the same `@model`/`@repository`/`@datasource` decorators and the same `SearchCollectionFactory.define` and `field` DSL. It also shares the same repository tiers and controller factory. All of that lives in the engine-neutral `@venizia/ignis-connectors/search` module.
 
 What it does **not** share is the pretence that the two engines are the same. Where Meilisearch differs from Typesense, IGNIS surfaces the difference rather than papering over it.
 
@@ -8,8 +8,8 @@ What it does **not** share is the pretence that the two engines are the same. Wh
 > `meilisearch` is an **optional peer dependency**. The connector is never re-exported from the `@venizia/ignis` root barrel, so apps that don't use it never pull in the client.
 >
 > ```typescript
-> import { MeilisearchDataSource } from '@venizia/ignis/meilisearch';
-> import { BaseSearchEntity, defineSearchCollection, field } from '@venizia/ignis/search';
+> import { MeilisearchDataSource } from '@venizia/ignis-connectors/meilisearch';
+> import { BaseSearchEntity, SearchCollectionFactory, field } from '@venizia/ignis-connectors/search';
 > ```
 >
 > Install it alongside the framework:
@@ -23,12 +23,12 @@ What it does **not** share is the pretence that the two engines are the same. Wh
 The collection DSL is the same one the Typesense connector uses. What changes is which flags matter.
 
 ```typescript
-import { BaseSearchEntity, defineSearchCollection, field } from '@venizia/ignis/search';
+import { BaseSearchEntity, SearchCollectionFactory, field } from '@venizia/ignis-connectors/search';
 import { model } from '@venizia/ignis';
 
 @model()
 export class ArticleDocument extends BaseSearchEntity {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'articles',
     fields: [
       field.id(),
@@ -59,7 +59,7 @@ The `searchable` and `filterable` flags are **load-bearing here** and are silent
 
 ```typescript
 import { datasource } from '@venizia/ignis';
-import { MeilisearchDataSource } from '@venizia/ignis/meilisearch';
+import { MeilisearchDataSource } from '@venizia/ignis-connectors/meilisearch';
 
 @datasource()
 export class ArticleSearchDataSource extends MeilisearchDataSource {}
@@ -157,7 +157,7 @@ The experimental `documents/edit` route would do this server-side, but it is gat
 
 When a batch fails, the batches after the failure point did not land. The thrown error's `details` carry `{ totalCount, processedCount }`, so a caller can resume from `processedCount` rather than replaying the whole import.
 
-**Meilisearch error classification reads the real SDK error shape.** A thrown `MeilisearchApiError` carries its body under `error.cause.code` and its HTTP status under `error.response.status`, not top-level `code`/`httpStatus`. Reading only the flat shape misclassifies a legitimate 404 (for example the existence probe inside `create()`) as an unrelated 503 dependency failure. The classifier checks both the flat shape (task-error responses) and the nested `cause`/`response` shape (thrown SDK errors).
+**Meilisearch error classification reads the real SDK error shape.** A thrown `MeilisearchApiError` carries its body under `error.cause.code` and its HTTP status under `error.response.status`, not top-level `code`/`httpStatus`. Reading only the flat shape misclassifies a legitimate 404 (for example the existence probe inside `create()`) as an unrelated 503 dependency failure. The same two shapes feed the mapping of an engine 400, 404, 409 or 422 to its 4xx error. The classifier checks both the flat shape (task-error responses) and the nested `cause`/`response` shape (thrown SDK errors).
 
 **`createCollection`/`ensureCollection` are idempotent.** An `index_already_exists` failure is tolerated and logged rather than thrown. Boot-time provisioning against an already-provisioned collection (a restart, a second app instance) succeeds instead of crashing.
 
@@ -171,7 +171,9 @@ The guarantee is upheld one layer up: `SearchBaseRepository` strips hidden field
 
 **Engine-specific knobs never reach the neutral schema.** The neutral search input carries only fields every engine supports. Typesense-only tuning (`num_typos`, `pinned_hits`, `preset`, ...) travels through `engineParams` with wire names and is passed verbatim to the engine. Sending it to a Meilisearch datasource is a caller error.
 
-The dialect still raises a named error for known-foreign knobs arriving via untyped input. Use `engineParams` (or `mode: 'raw'`) for Meilisearch-native tuning such as `rankingScoreThreshold`.
+The dialect still raises a named error for known-foreign knobs arriving via untyped input. Use `engineParams` (or `mode: 'raw'`) for Meilisearch-native tuning such as `rankingScoreThreshold`. `searchCount()`, `facets()` and `suggest()` take `engineParams` too, passed the same way.
+
+**Facets come back as `ISearchFacetCount[]`, the same shape as Typesense.** `facetCounts` holds one entry per field, built from Meilisearch's `facetDistribution` (`{ fieldName, counts: [{ value, count }] }`), with `stats: { min, max }` for a numeric field from `facetStats`. `repository.facets({ facetBy })` and `repository.searchCount()` work here too; `maxFacetValues` and `facetQuery` throw, because Meilisearch sets the first in an index setting and searches facet values on its own route. `suggest()` works, and `highlight: false` adds nothing, because Meilisearch highlights only the fields you name.
 
 **`multiSearch` batches but does not merge.** `union: true` throws. Meilisearch merges results through its `federation` option, which this connector does not model, so `getCapabilities()` honestly reports `union: false`.
 
@@ -185,7 +187,7 @@ This path is compiled and translated but is **not exercised end to end** by the 
 
 ## Adding another search engine
 
-The neutral paradigm lives in `@venizia/ignis/search` and imports no engine. To add one:
+The neutral paradigm lives in `@venizia/ignis-connectors/search` and imports no engine. To add one:
 
 1. Implement `ISearchConnector`, declaring **only** the optional verb groups your engine actually has.
 2. Write a compiler from `ISearchCollectionDefinition` to the engine's schema or settings.

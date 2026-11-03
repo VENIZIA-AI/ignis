@@ -53,8 +53,10 @@ afterAll(async () => {
 });
 
 describe('runInTransaction runtime - postgres (PGlite)', () => {
-  const countNamed = async (opts: { name: string }) =>
-    (await postgresRepository.count({ where: { name: opts.name } })).count;
+  const countNamed = async (opts: { name: string }) => {
+    const counted = await postgresRepository.count({ where: { name: opts.name } });
+    return counted.count;
+  };
 
   test('owned: a resolved execute really commits - the row is visible afterwards', async () => {
     postgresDataSource.recorder.reset();
@@ -65,7 +67,8 @@ describe('runInTransaction runtime - postgres (PGlite)', () => {
     });
 
     expect(created.count).toBe(1);
-    expect(await countNamed({ name: 'owned-commit' })).toBe(1);
+    const result = await countNamed({ name: 'owned-commit' });
+    expect(result).toBe(1);
     expect(postgresDataSource.recorder.statements).toContain(TransactionEndStatements.COMMIT);
     expect(postgresDataSource.recorder.statements).not.toContain(TransactionEndStatements.ROLLBACK);
   });
@@ -87,7 +90,8 @@ describe('runInTransaction runtime - postgres (PGlite)', () => {
     });
 
     expect(caught).toBe(original);
-    expect(await countNamed({ name: 'owned-rollback' })).toBe(0);
+    const result = await countNamed({ name: 'owned-rollback' });
+    expect(result).toBe(0);
     expect(postgresDataSource.recorder.statements).toContain(TransactionEndStatements.ROLLBACK);
     expect(postgresDataSource.recorder.statements).not.toContain(TransactionEndStatements.COMMIT);
   });
@@ -120,7 +124,8 @@ describe('runInTransaction runtime - postgres (PGlite)', () => {
     });
 
     expect(result).toBe('execute-result');
-    expect(await countNamed({ name: 'execute-committed' })).toBe(1);
+    const result2 = await countNamed({ name: 'execute-committed' });
+    expect(result2).toBe(1);
     expect(
       postgresDataSource.recorder.statements.filter((statement) =>
         TransactionEndStatements.isValid(statement),
@@ -149,7 +154,8 @@ describe('runInTransaction runtime - postgres (PGlite)', () => {
         /^\[PostgresTransactionRepository\]\[runInTransaction\] .*execute/,
       ),
     });
-    expect(await countNamed({ name: 'execute-rolled-back' })).toBe(0);
+    const result2 = await countNamed({ name: 'execute-rolled-back' });
+    expect(result2).toBe(0);
     expect(
       postgresDataSource.recorder.statements.filter((statement) =>
         TransactionEndStatements.isValid(statement),
@@ -180,7 +186,8 @@ describe('runInTransaction runtime - postgres (PGlite)', () => {
       }
     }
 
-    expect(await countNamed({ name: 'joined-rollback' })).toBe(0);
+    const result = await countNamed({ name: 'joined-rollback' });
+    expect(result).toBe(0);
   });
 
   test('joined: an ended handle throws before execute runs', async () => {
@@ -200,8 +207,10 @@ describe('runInTransaction runtime - postgres (PGlite)', () => {
 });
 
 describe('runInTransaction runtime - sqlite (libsql :memory:)', () => {
-  const countNamed = async (opts: { name: string }) =>
-    (await sqliteRepository.count({ where: { name: opts.name } })).count;
+  const countNamed = async (opts: { name: string }) => {
+    const counted = await sqliteRepository.count({ where: { name: opts.name } });
+    return counted.count;
+  };
 
   test('owned: a resolved execute really commits - the row is visible afterwards', async () => {
     sqliteDataSource.recorder.reset();
@@ -212,7 +221,8 @@ describe('runInTransaction runtime - sqlite (libsql :memory:)', () => {
     });
 
     expect(created.count).toBe(1);
-    expect(await countNamed({ name: 'owned-commit' })).toBe(1);
+    const result = await countNamed({ name: 'owned-commit' });
+    expect(result).toBe(1);
     expect(sqliteDataSource.recorder.statements).toContain(TransactionEndStatements.COMMIT);
     expect(sqliteDataSource.recorder.statements).not.toContain(TransactionEndStatements.ROLLBACK);
   });
@@ -234,7 +244,8 @@ describe('runInTransaction runtime - sqlite (libsql :memory:)', () => {
     });
 
     expect(caught).toBe(original);
-    expect(await countNamed({ name: 'owned-rollback' })).toBe(0);
+    const result = await countNamed({ name: 'owned-rollback' });
+    expect(result).toBe(0);
     expect(sqliteDataSource.recorder.statements).toContain(TransactionEndStatements.ROLLBACK);
     expect(sqliteDataSource.recorder.statements).not.toContain(TransactionEndStatements.COMMIT);
   });
@@ -265,7 +276,8 @@ describe('runInTransaction runtime - sqlite (libsql :memory:)', () => {
     });
 
     expect(result).toBe('execute-result');
-    expect(await countNamed({ name: 'execute-committed' })).toBe(1);
+    const result2 = await countNamed({ name: 'execute-committed' });
+    expect(result2).toBe(1);
     expect(
       sqliteDataSource.recorder.statements.filter((statement) =>
         TransactionEndStatements.isValid(statement),
@@ -294,7 +306,8 @@ describe('runInTransaction runtime - sqlite (libsql :memory:)', () => {
         /^\[SqliteTransactionRepository\]\[runInTransaction\] .*execute/,
       ),
     });
-    expect(await countNamed({ name: 'execute-rolled-back' })).toBe(0);
+    const result2 = await countNamed({ name: 'execute-rolled-back' });
+    expect(result2).toBe(0);
     expect(
       sqliteDataSource.recorder.statements.filter((statement) =>
         TransactionEndStatements.isValid(statement),
@@ -325,7 +338,8 @@ describe('runInTransaction runtime - sqlite (libsql :memory:)', () => {
       }
     }
 
-    expect(await countNamed({ name: 'joined-rollback' })).toBe(0);
+    const result = await countNamed({ name: 'joined-rollback' });
+    expect(result).toBe(0);
   });
 
   test('joined: an ended handle throws before execute runs', async () => {

@@ -153,10 +153,19 @@
   border: 1px solid var(--stroke-strong);
   border-radius: var(--radius);
   color: var(--text-title);
-  font-size: 18px;
   transition:
     background-color 0.18s,
     color 0.18s;
+}
+
+/* the arrow of the Venizia docs frame (a right arrow, 1.5px round strokes), as a mask in the colour of the box */
+.cl-arrow::before {
+  content: '';
+  width: 36px;
+  height: 36px;
+  background: currentColor;
+  -webkit-mask: var(--arrow-right) center / 36px 36px no-repeat;
+  mask: var(--arrow-right) center / 36px 36px no-repeat;
 }
 
 .cl-latest:hover .cl-arrow {

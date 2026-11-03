@@ -1,5 +1,4 @@
 import { spawnSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
@@ -63,8 +62,6 @@ const TEST_TIMEOUT_MILLISECONDS = 300_000;
 // eslint-disable-next-line venizia/no-new-error -- getError would be a dev-configs -> inversion cycle
 const replayError = (message: string): Error => new Error(message);
 
-const checksum = (bytes: Buffer): string => createHash('sha256').update(bytes).digest('hex');
-
 /** The nearest folder at or above the test file that holds a `package.json`: where `bun test` runs. */
 const packageDirectoryOf = (opts: { root: string; file: string }): string => {
   let current = dirname(join(opts.root, opts.file));
@@ -115,7 +112,7 @@ const runIsRed = (opts: { root: string; file: string; name?: string }): boolean 
   return result.status !== 0 || failed > 0;
 };
 
-/** Applies `mutant`, runs `action`, and puts the file back byte for byte, verified by checksum. */
+/** Applies `mutant`, runs `action`, and puts the file back byte for byte, verified byte for byte. */
 const withMutant = <T>(opts: {
   root: string;
   mutant: IMutant;
@@ -143,7 +140,6 @@ const withMutant = <T>(opts: {
   }
 
   writeFileSync(backup, original);
-  const expected = checksum(original);
 
   let outcome: { value: T } | { error: unknown };
 
@@ -160,7 +156,7 @@ const withMutant = <T>(opts: {
   // Restored whatever the action did, and checked, before its result or error is passed on.
   writeFileSync(path, original);
 
-  if (checksum(readFileSync(path)) !== expected) {
+  if (!readFileSync(path).equals(original)) {
     throw replayError(
       `[test-mutate][${opts.id}] ${opts.mutant.file} was not restored | the backup is ${backup}`,
     );
@@ -175,7 +171,7 @@ const withMutant = <T>(opts: {
   return outcome.value;
 };
 
-/** Applies every edit of `mutant`, runs `action`, and puts each file back byte for byte, verified by checksum. */
+/** Applies every edit of `mutant`, runs `action`, and puts each file back byte for byte, verified byte for byte. */
 const withMutants = <T>(opts: {
   root: string;
   mutant: IMutant | IMutant[];
@@ -199,77 +195,77 @@ const withMutants = <T>(opts: {
   return apply(0);
 };
 
-/** Replays every line; never throws for a green survivor (that is a result), only for an unusable ledger. */
-export const replayLedger = (opts: {
-  root: string;
-  ledger: ILedger;
-  scratch?: string;
-}): ILedgerResult[] => {
-  const root = resolve(opts.root);
-  const scratch = opts.scratch ?? join(root, '.agents/local/tmp');
-  const results: ILedgerResult[] = [];
+export class TestMutateCheck {
+  /** Replays every line; never throws for a green survivor (that is a result), only for an unusable ledger. */
+  static replayLedger(opts: { root: string; ledger: ILedger; scratch?: string }): ILedgerResult[] {
+    const root = resolve(opts.root);
+    const scratch = opts.scratch ?? join(root, '.agents/local/tmp');
+    const results: ILedgerResult[] = [];
 
-  for (const line of opts.ledger.mutants) {
-    const { survivorRed, candidateRed } = withMutants({
-      root,
-      mutant: line.mutant,
-      scratch,
-      id: line.id,
-      action: () => ({
-        survivorRed: runIsRed({ root, file: line.survivor, name: line.survivorName }),
-        candidateRed: runIsRed({ root, file: line.candidate, name: line.candidateName }),
-      }),
-    });
-    const result: ILedgerResult = { id: line.id, survivorRed, candidateRed, ok: true };
-    const expectation = line.expectCandidate ?? 'red';
+    for (const line of opts.ledger.mutants) {
+      const { survivorRed, candidateRed } = withMutants({
+        root,
+        mutant: line.mutant,
+        scratch,
+        id: line.id,
+        action: () => ({
+          survivorRed: runIsRed({ root, file: line.survivor, name: line.survivorName }),
+          candidateRed: runIsRed({ root, file: line.candidate, name: line.candidateName }),
+        }),
+      });
+      const result: ILedgerResult = { id: line.id, survivorRed, candidateRed, ok: true };
+      const expectation = line.expectCandidate ?? 'red';
 
-    if (!survivorRed) {
-      result.ok = false;
-      result.problem =
-        'the survivor stayed green under the mutant: it does not cover the behaviour';
-    } else if (expectation === 'red' && !candidateRed) {
-      result.ok = false;
-      result.problem =
-        'the candidate stayed green under the mutant: record it as vacuous with a second mutant, or pick a mutant it checks';
-    } else if (expectation === 'vacuous') {
-      if (!line.secondMutant) {
+      if (!survivorRed) {
         result.ok = false;
-        result.problem = 'a vacuous line needs a secondMutant';
-      } else if (candidateRed) {
+        result.problem =
+          'the survivor stayed green under the mutant: it does not cover the behaviour';
+      } else if (expectation === 'red' && !candidateRed) {
         result.ok = false;
-        result.problem = 'the candidate went red under the mutant: it is not vacuous';
-      } else {
-        const greenUnderSecond = !withMutants({
-          root,
-          mutant: line.secondMutant,
-          scratch,
-          id: `${line.id}-second`,
-          action: () => runIsRed({ root, file: line.candidate, name: line.candidateName }),
-        });
-        result.candidateGreenUnderSecond = greenUnderSecond;
-
-        if (!greenUnderSecond) {
+        result.problem =
+          'the candidate stayed green under the mutant: record it as vacuous with a second mutant, or pick a mutant it checks';
+      } else if (expectation === 'vacuous') {
+        if (!line.secondMutant) {
           result.ok = false;
-          result.problem = 'the candidate went red under the second mutant: it is not vacuous';
+          result.problem = 'a vacuous line needs a secondMutant';
+        } else if (candidateRed) {
+          result.ok = false;
+          result.problem = 'the candidate went red under the mutant: it is not vacuous';
+        } else {
+          const greenUnderSecond = !withMutants({
+            root,
+            mutant: line.secondMutant,
+            scratch,
+            id: `${line.id}-second`,
+            action: () => runIsRed({ root, file: line.candidate, name: line.candidateName }),
+          });
+          result.candidateGreenUnderSecond = greenUnderSecond;
+
+          if (!greenUnderSecond) {
+            result.ok = false;
+            result.problem = 'the candidate went red under the second mutant: it is not vacuous';
+          }
         }
       }
+
+      results.push(result);
     }
 
-    results.push(result);
+    return results;
   }
 
-  return results;
-};
+  /** The report lines of a replay, one per ledger line and a closing tally. */
+  static formatLedgerResults(opts: { results: ILedgerResult[] }): string[] {
+    const { results } = opts;
+    const lines = results.map(
+      (result) =>
+        `${result.ok ? 'ok  ' : 'FAIL'} ${result.id}: survivor ${result.survivorRed ? 'red' : 'GREEN'}, candidate ${result.candidateRed ? 'red' : 'green'}${result.problem ? ` | ${result.problem}` : ''}`,
+    );
+    const failed = results.filter((result) => !result.ok).length;
+    lines.push(
+      `\n[test-mutate] ${results.length - failed}/${results.length} ledger lines hold${failed ? `, ${failed} do not` : ''}.`,
+    );
 
-export const formatLedgerResults = (results: ILedgerResult[]): string[] => {
-  const lines = results.map(
-    (result) =>
-      `${result.ok ? 'ok  ' : 'FAIL'} ${result.id}: survivor ${result.survivorRed ? 'red' : 'GREEN'}, candidate ${result.candidateRed ? 'red' : 'green'}${result.problem ? ` | ${result.problem}` : ''}`,
-  );
-  const failed = results.filter((result) => !result.ok).length;
-  lines.push(
-    `\n[test-mutate] ${results.length - failed}/${results.length} ledger lines hold${failed ? `, ${failed} do not` : ''}.`,
-  );
-
-  return lines;
-};
+    return lines;
+  }
+}

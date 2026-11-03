@@ -6,7 +6,7 @@ import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { FakePool } from './fake-pg-client';
 import { runTransactionContract } from './transaction-contract';
-import { expectRejection } from '@venizia/dev-configs/testing';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 
 @datasource({ driver: NodePostgresDriver })
 class ProbeDataSource extends BasePostgresDataSource<{}> {
@@ -87,6 +87,7 @@ describe('beginTransaction - failure paths', () => {
 
     try {
       await transaction.commit();
+      // eslint-disable-next-line venizia/no-silent-catch -- the COMMIT failure is asserted in the previous test; this one checks only the release
     } catch {
       // Asserted in the previous test.
     }
@@ -116,6 +117,7 @@ describe('beginTransaction - failure paths', () => {
 
     try {
       await transaction.commit();
+      // eslint-disable-next-line venizia/no-silent-catch -- the COMMIT failure is asserted in "a failed COMMIT rethrows"; this test counts only the releases
     } catch {
       // Expected.
     }
@@ -235,6 +237,7 @@ describe('beginTransaction - rollback after a failure-ended transaction', () => 
 
     try {
       await transaction.commit();
+      // eslint-disable-next-line venizia/no-silent-catch -- the first COMMIT failure is asserted above; this test checks the second commit()
     } catch {
       // asserted above
     }
@@ -356,7 +359,7 @@ describe('beginTransaction - driver wiring', () => {
     const dataSource = new UndecoratedDataSource({ name: 'undecorated', config: {} });
     dataSource.configure();
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: dataSource.beginTransaction(),
       message: /must name a driver CLASS/,
     });
@@ -379,7 +382,7 @@ describe('beginTransaction - driver wiring', () => {
     const dataSource = new StringDriverDataSource({ name: 'string-driver', config: {} });
     dataSource.configure();
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: dataSource.beginTransaction(),
       message: /must name a driver CLASS/,
     });

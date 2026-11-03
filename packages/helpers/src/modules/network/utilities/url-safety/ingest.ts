@@ -114,10 +114,11 @@ export class UrlIngest {
         });
       }
 
-      target = await UrlIngest.assertReachableUrl({
+      const result = await UrlIngest.assertReachableUrl({
         url: new URL(location, target).toString(),
         policy,
       });
+      target = result;
     }
 
     throw getError({

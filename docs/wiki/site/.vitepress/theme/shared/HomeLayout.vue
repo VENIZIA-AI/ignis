@@ -12,15 +12,19 @@ import HomeWindow from './HomeWindow.vue';
 import type { THomeContent } from './home-types';
 import InstallBox from './InstallBox.vue';
 import TerminalView from './TerminalView.vue';
+import { useDust } from './useDust';
 import { useReveal } from './useReveal';
 import { useTerminal } from './useTerminal';
 
 defineProps<{ content: THomeContent }>();
 
 const root = ref<HTMLElement | null>(null);
+const dust = ref<HTMLCanvasElement | null>(null);
 
 useReveal(root);
 useTerminal(root);
+/* the cloud sits over the hero window on the right, so the dust is thin behind the headline and the lede */
+useDust(dust, { cloud: { x: 0.72, y: 0.5, rx: 0.42, ry: 0.7 } });
 
 const isExternal = (href: string): boolean => /^https?:/.test(href);
 const targetOf = (href: string) => (isExternal(href) ? '_blank' : undefined);
@@ -30,6 +34,7 @@ const relOf = (href: string) => (isExternal(href) ? 'noopener noreferrer' : unde
 <template>
   <div ref="root" class="vh">
     <section class="hero">
+      <canvas ref="dust" class="dust" aria-hidden="true"></canvas>
       <div class="wrap">
         <div class="hero-head">
           <div class="eyebrow"><i></i>{{ content.eyebrow }}</div>

@@ -1,4 +1,4 @@
-import { blankToUndefined } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { defineConfig } from 'drizzle-kit';
 
 /**
@@ -16,6 +16,6 @@ export default defineConfig({
     roles: { provider: 'supabase' },
   },
   dbCredentials: {
-    url: blankToUndefined(process.env.APP_ENV_SUPABASE_DATABASE_URL) ?? '',
+    url: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_SUPABASE_DATABASE_URL }) ?? '',
   },
 });

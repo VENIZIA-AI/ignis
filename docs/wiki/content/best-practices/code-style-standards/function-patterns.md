@@ -75,16 +75,16 @@ Use consistent prefixes based on function purpose:
 
 | Prefix | Purpose | Examples |
 |--------|---------|----------|
-| `generate*` | Create column definitions / schemas | `generateIdColumnDefs()`, `generateTzColumnDefs()` |
+| `generate*` | Create column definitions / schemas | `PostgresIdEnricher.generateColumnDefs()`, `PostgresTzEnricher.generateColumnDefs()` |
 | `build*` | Construct complex objects | `buildValueCondition()`, `buildJsonOrderBy()` |
-| `to*` | Convert/transform data | `toCamel()`, `toBoolean()` |
-| `is*` | Boolean validation/check | `isApplicationError()`, `isInt()`, `isFloat()`, `isPromiseLike()` |
+| `to*` | Convert/transform data | `ParseUtility.toCamel()`, `ParseUtility.toBoolean()` |
+| `is*` | Boolean validation/check | `isApplicationError()`, `ParseUtility.isInt()`, `ParseUtility.isFloat()`, `isPromiseLike()` |
 | `has*` | Boolean ownership check | `hasBucket()`, `hasPermission()` |
 | `assert*` | Throws when the condition fails, returns nothing | `assertBucketExists()`, `assertOwner()` |
 | `extract*` | Pull out specific parts | `extractTimestamp()`, `extractWorkerId()`, `extractSequence()` |
-| `enrich*` | Enhance with additional data | `enrichUserAudit()`, `enrichWithMetadata()` |
+| `enrich*` | Enhance with additional data | `PostgresUserAuditEnricher.enrich()`, `enrichWithMetadata()` |
 | `get*` | Retrieve/fetch data | `getSchema()`, `getConnector()`, `getError()` |
-| `resolve*` | Determine/compute value | `resolveValue()`, `resolveClass()` |
+| `resolve*` | Determine/compute value | `ResolverUtility.resolveValue()`, `ClassResolver.resolveClass()` |
 
 ### `is*` versus `assert*`
 
@@ -99,20 +99,20 @@ each caller writing its own error message is how one condition ends up with four
 
 ```typescript
 // Generators - create schema definitions
-const idCols = generateIdColumnDefs({ id: { dataType: 'string' } });
-const tzCols = generateTzColumnDefs();
+const idCols = PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } });
+const tzCols = PostgresTzEnricher.generateColumnDefs();
 
 // Builders - construct complex query objects
 const condition = buildValueCondition(column, value);
 const orderBy = buildJsonOrderBy(schema, path, direction);
 
 // Converters - transform data types
-const camelCase = toCamel('snake_case');
-const bool = toBoolean('true');
+const camelCase = ParseUtility.toCamel({ input: 'snake_case' });
+const bool = ParseUtility.toBoolean({ input: 'true' });
 
 // Validators - boolean checks
 if (isApplicationError(error)) { /* ... */ }
-if (isInt(value)) { /* ... */ }
+if (ParseUtility.isInt({ input: value })) { /* ... */ }
 if (isPromiseLike(result)) { /* ... */ }
 
 // Extractors - pull specific data
@@ -156,9 +156,9 @@ async syncData() {
 **With the helper utility:**
 
 ```typescript
-import { executeWithPerformanceMeasure } from '@venizia/ignis-helpers';
+import { PerformanceUtility } from '@venizia/ignis-helpers';
 
-await executeWithPerformanceMeasure({
+await PerformanceUtility.executeWithMeasure({
   logger: this.logger,
   level: 'info',              // default: 'debug'
   scope: 'DataSync',
@@ -173,14 +173,14 @@ await executeWithPerformanceMeasure({
 **Method-scoped logging pattern:**
 
 Any class extending `BaseHelper` (services, controllers, repositories, helpers) already has
-`this.logger`. Acquire one standalone with `ApplicationLogger.get(...)` and always annotate
+`this.logger`. Acquire one standalone with `LoggerFactory.getLogger([scope])` and always annotate
 `ILogger` - never a concrete provider class.
 
 ```typescript
-import { ApplicationLogger, ILogger } from '@venizia/ignis-helpers';
+import { LoggerFactory, ILogger } from '@venizia/ignis-helpers';
 
 class UserService {
-  private logger: ILogger = ApplicationLogger.get('UserService');
+  private logger: ILogger = LoggerFactory.getLogger(['UserService']);
 
   async createUser(data: TCreateUserRequest) {
     // .for() returns a method-scoped child logger

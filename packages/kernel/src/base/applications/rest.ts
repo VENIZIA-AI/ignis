@@ -2,11 +2,11 @@ import type { TBindingNamespace } from '@/common/bindings';
 import { ArtifactNamespaces, BindingNamespaces, CoreBindings } from '@/common/bindings';
 import type { Binding, TBindingScope } from '@/helpers/inversion';
 import { BindingScopes, MetadataRegistry } from '@/helpers/inversion';
-import { assertBindingsResolve } from '@venizia/ignis-inversion';
+import { BindingVerifier } from '@venizia/ignis-inversion';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { AnyType, IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
-  executeWithPerformanceMeasure,
+  PerformanceUtility,
   getError,
   RequestIdGenerator,
   RetryHelper,
@@ -28,7 +28,7 @@ import type { TMixinOpts } from '../mixins/common';
 import type { IRepository } from '../repositories';
 import type { IService } from '../services';
 import { AbstractApplication } from './abstract';
-import { registerCors } from './cors';
+import { CorsUtility } from './cors';
 import { ArtifactIndexHelper } from './artifact-index';
 import type { IBootSequenceStep } from './boot-sequence';
 import { BootSteps } from './boot-sequence';
@@ -132,7 +132,7 @@ export abstract class RestApplication<
 
     // First of all, so every response the framework produces on its own - a bodyLimit 413, a body the
     // request spy cannot parse, the error envelope - leaves with the headers a browser needs to read it.
-    registerCors({ server, options: this.configs.middlewares?.cors });
+    CorsUtility.registerCors({ server, options: this.configs.middlewares?.cors });
 
     server.use(requestId({ generator: () => this.generateRequestId() }));
 
@@ -331,7 +331,7 @@ export abstract class RestApplication<
     }
 
     const logger = this.logger.for(this.verifyBindings.name);
-    const { verified } = assertBindingsResolve({
+    const { verified } = BindingVerifier.assertResolve({
       container: this,
       namespaces: [BindingNamespaces.SERVICE, BindingNamespaces.REPOSITORY],
       scope: this.verifyBindings.name,
@@ -349,7 +349,7 @@ export abstract class RestApplication<
     const stepsEntries = steps.entries();
     for (const [index, step] of stepsEntries) {
       try {
-        await executeWithPerformanceMeasure({
+        await PerformanceUtility.executeWithMeasure({
           logger: this.logger,
           scope: this.initialize.name,
           description: `Boot step ${index + 1}/${steps.length} ${step.name}`,
@@ -550,7 +550,7 @@ export abstract class RestApplication<
   }
 
   async registerConfigurations(): Promise<void> {
-    await executeWithPerformanceMeasure({
+    await PerformanceUtility.executeWithMeasure({
       logger: this.logger,
       scope: this.registerConfigurations.name,
       description: 'Register application configurations',
@@ -574,7 +574,7 @@ export abstract class RestApplication<
   }
 
   async registerComponents(): Promise<void> {
-    await executeWithPerformanceMeasure({
+    await PerformanceUtility.executeWithMeasure({
       logger: this.logger,
       scope: this.registerComponents.name,
       description: 'Register application components',
@@ -590,7 +590,7 @@ export abstract class RestApplication<
    * would run twice. Runs after every component, so a component a datasource registers is never configured.
    */
   async registerContributedDataSources(): Promise<void> {
-    await executeWithPerformanceMeasure({
+    await PerformanceUtility.executeWithMeasure({
       logger: this.logger,
       scope: this.registerContributedDataSources.name,
       description: 'Register application contributed data sources',
@@ -602,7 +602,7 @@ export abstract class RestApplication<
 
   /** REST only - the kernel has no gRPC (it reaches `node:module`). `BaseApplication` adds the gRPC branch on top. */
   async registerControllers(): Promise<void> {
-    await executeWithPerformanceMeasure({
+    await PerformanceUtility.executeWithMeasure({
       logger: this.logger,
       description: 'Register application REST controllers',
       scope: this.registerControllers.name,
@@ -790,7 +790,7 @@ export abstract class RestApplication<
   }
 
   async registerDataSources(): Promise<void> {
-    await executeWithPerformanceMeasure({
+    await PerformanceUtility.executeWithMeasure({
       logger: this.logger,
       scope: this.registerDataSources.name,
       description: 'Register application data sources',

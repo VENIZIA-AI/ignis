@@ -396,8 +396,9 @@ describe('executeWithRetry', () => {
           throw new Error('transient');
         },
       });
-    } catch {
+    } catch (error) {
       // exhaustion is the point
+      expect(error).toBeInstanceOf(Error);
     }
 
     expect(events).toEqual(['debug', 'debug', 'warn']);

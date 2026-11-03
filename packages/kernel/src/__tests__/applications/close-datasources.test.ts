@@ -141,7 +141,8 @@ describe('RestApplication.closeDataSources', () => {
   });
 
   test('the engine-neutral root has nothing to release', async () => {
-    expect(await new PlainDataSource().close()).toBeUndefined();
+    const result = await new PlainDataSource().close();
+    expect(result).toBeUndefined();
   });
 
   test('a close() that never settles is given up on, and the next datasource still closes', async () => {

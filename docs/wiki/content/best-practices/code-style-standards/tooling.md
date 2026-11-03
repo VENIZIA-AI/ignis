@@ -216,7 +216,6 @@ Bun's defaults already match the rest of the old IGNIS style: `tabWidth` 2, `tra
 | `devz lint --fix src/a.ts` | Fixes only those files. `--fix` comes first |
 | `devz clean` | Takes no argument (`--help` prints the usage; any other argument exits 2 and deletes nothing). Removes `dist`, `node_modules/.cache` and the `*.tsbuildinfo` files in the project root |
 | `devz check purity --claims <file> [package] [--json]` | Bundles every entry your claims file lists as browser-pure with `bun build --target=browser` and fails on a Node builtin, a Node global, an unresolved import, or a path into `@venizia/dev-configs`. Needs a build. `[package]` limits it to one package and exits 1 when it matches nothing; `--json` prints the verdict without machine paths. See [Checking browser purity](#checking-browser-purity) |
-| `devz check purity --claims <file> [package] [--json]` | Bundles every entry your claims file lists as browser-pure with `bun build --target=browser` and fails on a Node builtin, a Node global, an unresolved import, or a path into `@venizia/dev-configs`. Needs a build. `[package]` limits it to one package and exits 1 when it matches nothing; `--json` prints the verdict without machine paths. See [Checking browser purity](#checking-browser-purity) |
 | `devz check module-cycles <dir> [--max <n>]` | Lists the import cycles of a built ES module folder, such as `packages/kernel/dist/esm`. Exits 1 when there are more than `--max` (no bound by default), 2 on a usage error. Bun turns every member of a cycle into a lazy initializer, so a barrel `export *` over one can leave its exports undefined |
 | `devz check split-report [--dist <dir>] [folder...]` | A report, never a gate: hub files, `types.ts` outside `common/`, scope folders without a barrel, files over 500 lines, and the import cycles of `--dist` (default `dist`; `dist/esm` in IGNIS). With no folder it reads every `packages/*` and `examples/*` that has a `src/` |
 | `devz check catalog [--glob <pattern>]... [--pinned <file>]... [--preset-prefix <prefix>]` | Guards dependency ranges against the root `workspaces.catalog`: a catalogued dependency is `catalog:` (`npm publish` ships it verbatim), a `peerDependencies` range is never `catalog:`, and every catalog entry is used. `packages/*/package.json` is always read; `--glob` adds more. `--pinned` names a manifest outside the workspace, whose ranges must equal the catalog's. A file under `--preset-prefix` may use `catalog:` in its peers |
@@ -224,9 +223,10 @@ Bun's defaults already match the rest of the old IGNIS style: `tabWidth` 2, `tra
 | `devz check test-dead-code` | Lists the support files under `__tests__` (fixtures, helpers) that no other file refers to by name or path. They are candidates: delete one and run the suite before trusting it |
 | `devz check test-mutate <ledger.json>` | Replays a mutation ledger: for each line it applies the break to a file, runs the survivor and the candidate test, and restores the file. The survivor must go red, or the line fails and exits 1 |
 | `devz check test-controls <registry.json>` | Fails when a registered positive-control test (a test that proves a gate can fail) has been deleted or renamed |
-| `devz codemod model-settings [paths...] [--write \| --check]` | Moves `@model` settings from the flat keys to `query` and `access`, and `skipMigrate` to `migration.use`. A dry run unless you pass `--write`; `--check` is the dry run that exits 1 when anything would change or a model is left untouched. Inside git it reads only the files git knows, so ignored folders are never touched; `--help` prints the usage. A `settings` value that is not an object literal is reported with its file and line and left untouched |
-| `devz codemod drop-redundant-casts [paths...] [--write \| --check]` | Removes the `as X` casts the compiler no longer needs: a removal is kept only if the package still typechecks, checked in batches. A dry run unless you pass `--write`; `--check` exits 1 while a removable cast remains; `--project <tsconfig>` picks the tsconfig; `--include-tests` also tries test files. It never touches `as const`, `as unknown`, `x as unknown as T` or a cast of an `any` expression. [Details](/changelogs/2026-10-26-devz-codemod-drop-redundant-casts) |
-| `devz codemod const-classes [paths...] [--write \| --check]` | Turns a string-literal union in an exported type alias, or in a property of an exported interface or object type, into a const class (`SCHEME_SET`, `isValid`) plus `TConstValue<typeof X>`, the shape the `venizia/const-class-values` rule asks for. It proposes the class and member names and prints them; `--emit-map` writes them to a file you edit, `--map` applies your names. The values stay the same, so no call site changes. A union in a parameter, a return type or a generic is reported and left untouched. [Details](/changelogs/2026-10-26-devz-codemod-const-classes) |
+| `devz codemod drop-redundant-casts [paths...] [--write [--all] \| --check]` | Removes the `as X` casts the compiler no longer needs: a removal is kept only if the package still typechecks, checked in batches. A dry run unless you pass `--write`, which needs a path or `--all` (the whole tree); `--check` exits 1 while a removable cast remains; `--project <tsconfig>` picks the tsconfig; `--include-tests` also tries test files. It never touches `as const`, `as unknown`, `x as unknown as T` or a cast of an `any` expression. [Details](/changelogs/2026-10-26-devz-codemod) |
+| `devz codemod const-classes [paths...] [--write [--all] \| --check]` | Turns a string-literal union in an exported type alias, or in a property of an exported interface or object type, into a const class (`SCHEME_SET`, `isValid`) plus `TConstValue<typeof X>`, the shape the `venizia/const-class-values` rule asks for. It writes no comment of its own above the class. It proposes the class and member names and prints them; `--emit-map` writes them to a file you edit, `--map` applies your names. `--write` needs a path or `--all` (the whole tree). The values stay the same, so no call site changes. A union in a parameter, a return type or a generic is reported and left untouched. [Details](/changelogs/2026-10-26-devz-codemod) |
+| `devz codemod namespace-functions [paths...] [--write \| --check]` | Moves calls of an IGNIS function that now lives in a class to the class form with one options object: `oldName(a, b)` becomes `ClassName.method({ first: a, second: b })`; a function that already took one options object keeps its arguments and only the callee changes. It follows named, aliased and namespace imports of the modules its table lists, adds the class to the import and drops the old name once nothing else uses it. The old names are removed from the packages, so run it once after you upgrade. It also moves `ApplicationLogger` to `LoggerFactory.getLogger([scope])`: `.get('scope')`, `.get(NAME)` and `.get({ scope })`, with the import fixed. A dry run unless you pass `--write`, which refuses a file with local changes; `--check` exits 1 while a call can be rewritten or is left untouched. A spread argument, a wrong argument count, the old name used as a value, a re-export or a name collision is reported with its file and line |
+| `devz codemod connector-imports [paths...] [--write \| --check]` | Moves the removed connector sub-path imports of `@venizia/ignis` (`/postgres`, `/postgres/*`, `/relational`, `/sqlite`, `/sqlite/libsql`, `/search`, `/search/controllers`, `/meilisearch`, `/typesense`, `/typesense/controllers`) to the same names under `@venizia/ignis-connectors`. It rewrites the specifier of an import, an export from, a dynamic `import()`, a `require()`, an `import()` type and a `mock.module()` call, and names each `package.json` that does not list `@venizia/ignis-connectors`. A dry run unless you pass `--write`, which refuses a file with local changes; `--check` exits 1 while a file would change |
 
 With a file list, the command drops the files the tools do not handle (`.md`, `.json`, ...) and exits 0 when none is left. A listed file that a `.ignore` skips passes quietly, so a commit that touches only generated code is not blocked. Paths are relative to the project, and `bun run lint src/a.ts` passes them through. Outside a script, run `bun x --no-install devz lint`: `--no-install` keeps Bun from fetching a newer version than the project pins.
 
@@ -260,39 +260,7 @@ devz check purity kernel --claims scripts/checks/purity/manifest.ts    # one pac
 | `external` | Third-party specifiers kept out of the bundle for one sub-path. A name that starts with the workspace scope is refused |
 | `impure` | Sub-paths and conditions expected to fail. The waiver is exact: a waived entry that turns out pure fails as a stale waiver |
 
-The scratch file goes to `.agents/local/tmp` under the folder you run in, never to the system temp. `@venizia/dev-configs/checks` also exports the engine functions (`buildManifest`, `probeEntry`, `checkPurity`) for a repository that wants them in its own tests. It is Bun-only tooling, so a browser entry must never import it.
-
-### Checking browser purity
-
-`devz check purity` is the gate behind `make purity` in IGNIS and ARDOR. The engine ships in `@venizia/dev-configs`; a repository supplies only its claims, in a module that exports `PURITY_CLAIMS`:
-
-```typescript
-// scripts/checks/purity/manifest.ts
-import type { IPurityClaim, IPurityOptions } from '@venizia/dev-configs/checks';
-
-export const PURITY_CLAIMS: IPurityClaim[] = [
-  { package: 'inversion' },
-  { package: 'helpers', subpaths: ['./core', './common'] },
-  { package: 'connectors', impure: { './typesense': ['default'] } },
-];
-
-// Optional: every claimed sub-path must publish its runtime entry below this prefix.
-export const PURITY_OPTIONS: IPurityOptions = { esmEntryPrefix: './dist/esm/' };
-```
-
-```bash
-devz check purity --claims scripts/checks/purity/manifest.ts           # every claim
-devz check purity kernel --claims scripts/checks/purity/manifest.ts    # one package
-```
-
-| Claim field | Meaning |
-|---|---|
-| `package` | Directory under `packages/`. The rows come from its `exports` map, one per runtime condition, so a sub-path added later is probed at once |
-| `subpaths` | Claim only these sub-paths, as spelled in `exports`. Each must still exist |
-| `external` | Third-party specifiers kept out of the bundle for one sub-path. A name that starts with the workspace scope is refused |
-| `impure` | Sub-paths and conditions expected to fail. The waiver is exact: a waived entry that turns out pure fails as a stale waiver |
-
-The scratch file goes to `.agents/local/tmp` under the folder you run in, never to the system temp. `@venizia/dev-configs/checks` also exports the engine functions (`buildManifest`, `probeEntry`, `checkPurity`) for a repository that wants them in its own tests. It is Bun-only tooling, so a browser entry must never import it.
+The scratch file goes to `.agents/local/tmp` under the folder you run in, never to the system temp. `@venizia/dev-configs/checks` also exports the engine classes (`PurityManifest.build`, `PurityProbe.probeEntry`, `PurityCheck.run`) for a repository that wants them in its own tests. It is Bun-only tooling, so a browser entry must never import it.
 
 In the IGNIS repository, the Makefile runs each package with its own tools:
 
@@ -365,7 +333,7 @@ export default defineConfig({
 
 Generated or vendored paths go in `.configs/lints/.ignore` (see [Skipping paths](#skipping-paths-ignore)). The older in-config route still works for the linters: `ReactOxlintConfigs.create({ ignore })` turns every oxlint rule off for those paths, and `LintIgnore.eslint({ patterns })` is the ESLint entry; neither reaches `bun fmt`.
 
-A project that stays on ESLint uses `ReactEslintConfigs.create({ plugins: { react, reactHooks, jsxA11y } })` instead - the same rules, with the plugins passed in. The full tables are in the [package README](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/README.md).
+The full tables are in the [package README](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/README.md).
 
 ## TypeScript Configuration
 

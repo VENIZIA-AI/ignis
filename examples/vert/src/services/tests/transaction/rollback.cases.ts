@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -12,7 +12,7 @@ export class RollbackCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 2] Rollback on Error - Data should NOT persist after rollback');
 
-    const code1 = `TX_ROLLBACK_ERR_${getUID()}`;
+    const code1 = `TX_ROLLBACK_ERR_${ParseUtility.getUID()}`;
     const transaction = await repo.beginTransaction();
 
     try {
@@ -52,7 +52,7 @@ export class RollbackCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 3] Explicit Rollback - Manual rollback discards changes');
 
-    const code = `TX_EXPLICIT_ROLLBACK_${getUID()}`;
+    const code = `TX_EXPLICIT_ROLLBACK_${ParseUtility.getUID()}`;
     const transaction = await repo.beginTransaction();
 
     try {
@@ -83,7 +83,7 @@ export class RollbackCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 16] Rollback Verifies No Data Persisted');
 
-    const group = `TX_VERIFY_ROLLBACK_${getUID()}`;
+    const group = `TX_VERIFY_ROLLBACK_${ParseUtility.getUID()}`;
     const transaction = await repo.beginTransaction();
 
     try {
@@ -129,8 +129,8 @@ export class RollbackCases extends BaseTestCases {
     } catch (error) {
       try {
         await transaction.rollback();
-      } catch {
-        /* ignore */
+      } catch (rollbackError) {
+        this.context.logger.error('Rollback failed: %s', (rollbackError as Error).message);
       }
       this.context.logger.error('[CASE 16] FAILED with error: %o', error);
     }

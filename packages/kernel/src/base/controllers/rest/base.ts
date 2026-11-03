@@ -1,9 +1,9 @@
 import type { Hook, OpenAPIHono } from '@hono/zod-openapi';
-import { buildDataRange } from '@/base/repositories/common/types';
+import { DataRangeUtility } from '@/base/repositories/common/types';
 import type { TDataRange } from '@/base/repositories/common/types';
 import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { executeWithPerformanceMeasure, toBoolean } from '@venizia/ignis-helpers/core';
+import { PerformanceUtility, ParseUtility } from '@venizia/ignis-helpers/core';
 import type { Env, Schema } from 'hono';
 import { ResponseFormats } from '../common/constants';
 import type { TResponseFormat } from '../common/constants';
@@ -17,13 +17,6 @@ import type {
 import { AbstractRestController } from './abstract';
 import type { IRequestedExtra, TResponseExtra } from './extras';
 import { ResponseExtras } from './extras';
-
-/** `Content-Range` of a page: inclusive `end`, and `records * /<total>` (no space) when the page is empty. Exported so a route that writes the header itself uses the one formatter. */
-export const toContentRange = (opts: { range: TDataRange; count: number }): string => {
-  const { range, count } = opts;
-  const { start, end, total } = range;
-  return count > 0 ? `records ${start}-${end}/${total}` : `records */${total}`;
-};
 
 /** Recommended base class for REST controllers with concrete bindRoute and defineRoute implementations. */
 export abstract class BaseRestController<
@@ -41,7 +34,7 @@ export abstract class BaseRestController<
 > {
   /** Runs a handler task under performance measurement (fixed logger/level/description). */
   measure<R>(opts: { scope: string; args: unknown; task: () => Promise<R> }) {
-    return executeWithPerformanceMeasure({
+    return PerformanceUtility.executeWithMeasure({
       logger: this.logger,
       level: 'debug',
       scope: opts.scope,
@@ -62,7 +55,7 @@ export abstract class BaseRestController<
   >(opts: { context: RequestContext; payload: ResponseData }) {
     const { context, payload } = opts;
     const requestCountData = context.req.header(HTTP.Headers.REQUEST_COUNT_DATA) ?? 'true';
-    const useCountData = toBoolean(requestCountData);
+    const useCountData = ParseUtility.toBoolean({ input: requestCountData });
 
     context.header(HTTP.Headers.RESPONSE_COUNT_DATA, payload.count.toString());
 
@@ -132,7 +125,10 @@ export abstract class BaseRestController<
     const { context, format, payload, range, extra } = opts;
 
     if (range) {
-      context.header(HTTP.Headers.CONTENT_RANGE, toContentRange({ range, count: payload.count }));
+      context.header(
+        HTTP.Headers.CONTENT_RANGE,
+        DataRangeUtility.toContentRange({ range, count: payload.count }),
+      );
     }
     context.header(HTTP.Headers.RESPONSE_FORMAT, format);
 
@@ -165,7 +161,9 @@ export abstract class BaseRestController<
     // `x-response-extra` marks it, so a client unwraps `{ data, extra }` only when the server says so.
     context.header(HTTP.Headers.RESPONSE_COUNT_DATA, payload.count.toString());
     context.header(HTTP.Headers.RESPONSE_EXTRA, Object.keys(computed).join(','));
-    const useCountData = toBoolean(context.req.header(HTTP.Headers.REQUEST_COUNT_DATA) ?? 'true');
+    const useCountData = ParseUtility.toBoolean({
+      input: context.req.header(HTTP.Headers.REQUEST_COUNT_DATA) ?? 'true',
+    });
 
     return useCountData
       ? { count: payload.count, data: payload.data, extra: computed }
@@ -183,9 +181,13 @@ export abstract class BaseRestController<
     const range =
       'range' in opts
         ? opts.range
-        : buildDataRange({ offset: opts.offset, dataLength: count, total: opts.total });
+        : DataRangeUtility.buildDataRange({
+            offset: opts.offset,
+            dataLength: count,
+            total: opts.total,
+          });
 
-    context.header(HTTP.Headers.CONTENT_RANGE, toContentRange({ range, count }));
+    context.header(HTTP.Headers.CONTENT_RANGE, DataRangeUtility.toContentRange({ range, count }));
     context.header(HTTP.Headers.RESPONSE_COUNT_DATA, count.toString());
     context.header(HTTP.Headers.RESPONSE_FORMAT, ResponseFormats.ARRAY);
   }

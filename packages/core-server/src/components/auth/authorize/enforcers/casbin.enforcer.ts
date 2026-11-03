@@ -150,9 +150,14 @@ export class CasbinAuthorizationEnforcer<
     const { user } = opts;
     const cached = this.options.cached;
 
-    const lines = cached.use
-      ? await this.requireRedisCache().fetch({ user })
-      : await this.extractUserLines({ user });
+    let lines: string[];
+    if (cached.use) {
+      const fetched = await this.requireRedisCache().fetch({ user });
+      lines = fetched;
+    } else {
+      const extracted = await this.extractUserLines({ user });
+      lines = extracted;
+    }
 
     return { user, lines };
   }

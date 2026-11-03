@@ -11,7 +11,7 @@ difficulty: intermediate
 ```typescript
 // src/models/product.model.ts
 import { model } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { currentMerchantId } from '@/utilities/merchant';
 import { productTable } from './product.table';
 
@@ -42,12 +42,12 @@ That one declaration hides the cost price from every result, hides soft-deleted 
 
 ```typescript
 // src/models/product.table.ts
-import { generateIdColumnDefs, generateTzColumnDefs } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, PostgresTzEnricher } from '@venizia/ignis-connectors/postgres';
 import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core';
 
 export const productTable = pgTable('Product', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   merchantId: text('merchant_id').notNull(),
   name: text('name').notNull(),
   costPrice: integer('cost_price').notNull(),
@@ -101,7 +101,7 @@ export class ProductRepository extends DefaultCRUDRepository<typeof Product.sche
 | `access.write.sharedRows` | `false` | Lets a restricted caller create, change and delete rows with no owner (`null` scope column) |
 | `authorize.principal` | none | The authorization subject name of the model |
 
-Settings are grouped by what they do. `query` shapes what a query returns. `access` decides who may read and write rows. `hiddenProperties` and `authorize` stand alone. The old flat names (`defaultFilter`, `defaultLimit`, `maxLimit`, `scopeFilter`) were removed in 0.4.3, see [Migrating from the old keys](#migrating-from-the-old-keys).
+Settings are grouped by what they do. `query` shapes what a query returns. `access` decides who may read and write rows. `hiddenProperties` and `authorize` stand alone. The old flat names (`defaultFilter`, `defaultLimit`, `maxLimit`, `scopeFilter`) are removed; the [changelog](/changelogs/2026-11-03-old-model-settings-keys-are-removed) maps each to its new key.
 
 ## 2. hiddenProperties
 
@@ -110,7 +110,7 @@ Settings are grouped by what they do. `query` shapes what a query returns. `acce
 ```typescript
 // src/models/product.model.ts
 import { model } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { productTable } from './product.table';
 
 @model({ settings: { hiddenProperties: ['costPrice'] } })
@@ -128,7 +128,7 @@ Use it for values a client must never receive: cost prices, password hashes, int
 ```typescript
 // src/models/product.model.ts
 import { model } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { productTable } from './product.table';
 
 @model({
@@ -175,7 +175,7 @@ export const findIncludingDeleted = (opts: { repository: ProductRepository }) =>
 ```typescript
 // src/models/product.model.ts
 import { model, ScopeFilters } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { currentMerchantId, isPlatformAdmin } from '@/utilities/merchant';
 import { productTable } from './product.table';
 
@@ -213,7 +213,7 @@ Keep `'deny'`. `'allow'` is declared once for the whole model, so it also unscop
 // src/models/product.model.ts
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { model, ScopeFilters } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { currentMerchantId } from '@/utilities/merchant';
 import { productTable } from './product.table';
 
@@ -265,7 +265,7 @@ The guard reads the allowed values from the resolved `where`: an equality, `eq`,
 ```typescript
 // src/models/product.model.ts
 import { model } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { currentMerchantId } from '@/utilities/merchant';
 import { productTable } from './product.table';
 
@@ -288,11 +288,11 @@ Some tables hold rows that belong to no merchant. Say `TaxType`: the platform de
 
 ```typescript
 // src/models/tax-type.table.ts
-import { generateIdColumnDefs } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher } from '@venizia/ignis-connectors/postgres';
 import { integer, pgTable, text } from 'drizzle-orm/pg-core';
 
 export const taxTypeTable = pgTable('TaxType', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   merchantId: text('merchant_id'), // null: a shared type
   name: text('name').notNull(),
   rate: integer('rate').notNull(),
@@ -302,7 +302,7 @@ export const taxTypeTable = pgTable('TaxType', {
 ```typescript
 // src/models/tax-type.model.ts
 import { model } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { currentMerchantIds } from '@/utilities/merchant';
 import { taxTypeTable } from './tax-type.table';
 
@@ -339,7 +339,7 @@ By default the guard checks every column the resolved scope constrains, and find
 ```typescript
 // src/models/product.model.ts
 import { model } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { currentMerchantId } from '@/utilities/merchant';
 import { productTable } from './product.table';
 
@@ -374,7 +374,7 @@ A refused write is an `ApplicationError` with HTTP status `403` and the code `co
 | `... \| the resolved scope cannot be verified on a write \| column 'merchantId': the operator 'gt' cannot be checked on a write` | The scope is an `or` over several columns, a range or another shape the guard cannot read |
 | `... \| no scope could be resolved for this caller` | `resolve()` returned `null` and `onMissing` is `'deny'`, on a create |
 
-At boot, `assertScopeFilterSupported` refuses an `access` on a search-backed model, an `access` while `asyncContext.enable` is off (every query would match zero rows), a `write.mode` other than `reject` or `assign`, and `columns` that is empty or names a property the model does not have.
+At boot, `ScopeFilterUtility.assertScopeFilterSupported` refuses an `access` on a search-backed model, an `access` while `asyncContext.enable` is off (every query would match zero rows), a `write.mode` other than `reject` or `assign`, and `columns` that is empty or names a property the model does not have.
 
 ## 5. query.limit
 
@@ -383,7 +383,7 @@ At boot, `assertScopeFilterSupported` refuses an `access` on a search-backed mod
 ```typescript
 // src/models/product.model.ts
 import { model } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { productTable } from './product.table';
 
 @model({
@@ -409,7 +409,7 @@ Without `query.limit` the framework defaults apply: 10 rows by default and a cei
 ```typescript
 // src/models/product.model.ts
 import { model } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { productTable } from './product.table';
 
 @model({ settings: { authorize: { principal: 'Product' } } })
@@ -452,7 +452,7 @@ The full `Product`, and `TaxType` for the shared rows:
 // src/models/product.model.ts
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { model, ScopeFilters } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { currentMerchantId } from '@/utilities/merchant';
 import { productTable } from './product.table';
 
@@ -503,25 +503,6 @@ export class Product extends ModelFactory.defineEntity({ table: productTable }) 
 | Catch a misspelled scope column at boot | `access.columns` |
 | Smaller or larger pages | `query.limit.default` and `query.limit.max` |
 | Name the model for authorization | `authorize.principal` |
-
-## Migrating from the old keys
-
-0.4.2 grouped the settings and 0.4.3 removed the old keys. A model that still uses one throws when the `@model` decorator runs, naming the key to use, so it can never lose its row scope without a sound:
-
-```text
-[model][Product] Removed settings key(s): settings.scopeFilter (use settings.access) | removed in 0.4.3 | run 'devz codemod model-settings --write' to rewrite them
-```
-
-| Old | New |
-|---|---|
-| `defaultFilter` | `query.filter` |
-| `defaultLimit` | `query.limit.default` |
-| `maxLimit` | `query.limit.max` |
-| `scopeFilter` | `access` |
-| `scopeFilter.writeGuard` | `access.write.mode` |
-| `scopeFilter.sharedRows` | `access.write.sharedRows` |
-
-To rewrite your models mechanically, run `bunx devz codemod model-settings` to see the files it would change (it writes nothing), then add `--write` to write them. The codemod leaves anything it cannot read for sure, such as a `settings` that is a variable, and prints its file and line. See the [changelog](/changelogs/2026-10-25-model-settings-query-access).
 
 ## See also
 

@@ -1,0 +1,148 @@
+/*
+ * Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
+ * scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
+ *
+ * Two blocks of the Venizia docs frame, for a page to use where it has the content: "At a glance" (AtAGlance.vue,
+ * a label and up to four facts side by side) and "Where to start" (WhereToStart.vue, numbered rows with a 36 px
+ * arrow button). Figma: the label is 12 px, uppercase; a fact is a 16 px title over 14 px text; a row is a number,
+ * a title and a text between hairlines, 80 px high, with the button at the right. Written to win over the
+ * `.vp-doc` rules for headings, paragraphs and links inside a page.
+ */
+
+.vp-doc .glance,
+.vp-doc .start {
+  margin: 48px 0;
+}
+
+.vp-doc .block-label {
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+  color: var(--text-muted);
+  font: 500 12px/1.3 var(--font-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ---- At a glance ----------------------------------------------------------------------------- */
+.vp-doc .glance-items {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px 16px;
+  margin: 0;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--stroke);
+  list-style: none;
+}
+
+.vp-doc .glance-item {
+  min-width: 0;
+  margin: 0;
+}
+
+.vp-doc .glance-title {
+  margin: 0 0 8px;
+  color: var(--text-title);
+  font: 500 16px/21px var(--font-sans);
+  letter-spacing: -0.015em;
+}
+
+.vp-doc .glance-text {
+  margin: 0;
+  color: var(--text-body);
+  font: 400 14px/18px var(--font-sans);
+  letter-spacing: -0.015em;
+}
+
+@media (max-width: 720px) {
+  .vp-doc .glance-items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 440px) {
+  .vp-doc .glance-items {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- Where to start -------------------------------------------------------------------------- */
+.vp-doc .start-rows {
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--stroke);
+  list-style: none;
+}
+
+.vp-doc .start-row {
+  margin: 0;
+  border-top: 1px solid var(--stroke);
+}
+
+.vp-doc a.start-link {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 36px;
+  align-items: center;
+  min-height: 80px;
+  padding: 17px 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.vp-doc .start-number {
+  align-self: start;
+  padding-top: 2px;
+  color: var(--accent-text);
+  font: 500 14px/18px var(--font-sans);
+}
+
+.vp-doc .start-body {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding-right: 16px;
+}
+
+.vp-doc .start-title {
+  color: var(--text-title);
+  font: 500 16px/21px var(--font-sans);
+  letter-spacing: -0.015em;
+}
+
+.vp-doc .start-text {
+  color: var(--text-body);
+  font: 400 14px/18px var(--font-sans);
+  letter-spacing: -0.015em;
+}
+
+/* the arrow button: 36 x 36, a 1 px line, radius 4, the Figma arrow inside (tokens.css) */
+.vp-doc .start-arrow {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--text-title);
+  border-radius: var(--radius);
+  color: var(--text-title);
+  transition:
+    background-color 0.18s,
+    color 0.18s;
+}
+
+.vp-doc .start-arrow::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: currentColor;
+  -webkit-mask: var(--arrow-right) center / 36px 36px no-repeat;
+  mask: var(--arrow-right) center / 36px 36px no-repeat;
+}
+
+.vp-doc a.start-link:hover .start-arrow {
+  background: var(--text-title);
+  color: var(--bg);
+}
+
+.vp-doc a.start-link:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}

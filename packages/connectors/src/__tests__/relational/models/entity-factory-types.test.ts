@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { spawnSyncBounded } from '@venizia/dev-configs/testing';
+import { SpawnHelper } from '@venizia/dev-configs/testing';
 
 /**
  * What `defineEntity` promises is that a WRONG shape stops compiling, which a runtime test cannot
@@ -19,17 +19,17 @@ const POSTGRES = `${PACKAGE_ROOT}/src/relational/postgres`;
 const PRELUDE = `
 import { integer, pgTable, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
-import { generateIdColumnDefs, many, ModelFactory, one } from '${POSTGRES}';
+import { many, ModelFactory, one, PostgresIdEnricher } from '${POSTGRES}';
 import type { TEntityObject } from '${POSTGRES}';
 
 export const PolicyTable = pgTable('Policy', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   title: text('title').notNull(),
   sequence: integer('sequence').notNull(),
 });
 
 export const FeatureTable = pgTable('Feature', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   policyId: text('policy_id').notNull().references((): AnyPgColumn => PolicyTable.id),
   code: text('code').notNull(),
 });
@@ -121,12 +121,12 @@ export const Bad = ModelFactory.defineEntity({
 
   'pg-schema': `
 import { pgSchema, text } from 'drizzle-orm/pg-core';
-import { generateIdColumnDefs, ModelFactory } from '${POSTGRES}';
+import { ModelFactory, PostgresIdEnricher } from '${POSTGRES}';
 import type { TEntityObject } from '${POSTGRES}';
 
 const commerce = pgSchema('commerce');
 export const ItemTable = commerce.table('Item', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   name: text('name').notNull(),
 });
 export class EntityItem extends ModelFactory.defineEntity({ table: ItemTable }) {}
@@ -138,11 +138,11 @@ export const wrongItem: TEntityObject<typeof EntityItem> = { id: 'i', name: 1 };
 
   sqlite: `
 import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import { generateIdColumnDefs, ModelFactory } from '${PACKAGE_ROOT}/src/relational/sqlite';
+import { ModelFactory, SqliteIdEnricher } from '${PACKAGE_ROOT}/src/relational/sqlite';
 import type { TEntityObject } from '${PACKAGE_ROOT}/src/relational/sqlite';
 
 export const NoteTable = sqliteTable('Note', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...SqliteIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   body: text('body').notNull(),
 });
 export class EntityNote extends ModelFactory.defineEntity({ table: NoteTable }) {}
@@ -155,12 +155,12 @@ export const wrongNote: TEntityObject<typeof EntityNote> = { id: 'n', body: 1 };
   // Two files that import each other - the shape that broke with the table inside the class.
   'cycle-policy': `
 import { pgTable, text } from 'drizzle-orm/pg-core';
-import { generateIdColumnDefs, many, ModelFactory } from '${POSTGRES}';
+import { many, ModelFactory, PostgresIdEnricher } from '${POSTGRES}';
 import type { TEntityObject } from '${POSTGRES}';
 import { CycleFeatureTable } from './cycle-feature.probe';
 
 export const CyclePolicyTable = pgTable('CyclePolicy', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   title: text('title').notNull(),
 });
 export class CyclePolicy extends ModelFactory.defineEntity({
@@ -173,12 +173,12 @@ export type TCyclePolicy = TEntityObject<typeof CyclePolicy>;
   'cycle-feature': `
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
-import { generateIdColumnDefs, many, ModelFactory, one } from '${POSTGRES}';
+import { many, ModelFactory, one, PostgresIdEnricher } from '${POSTGRES}';
 import type { TEntityObject } from '${POSTGRES}';
 import { CyclePolicyTable } from './cycle-policy.probe';
 
 export const CycleFeatureTable = pgTable('CycleFeature', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   policyId: text('policy_id').notNull().references((): AnyPgColumn => CyclePolicyTable.id),
   parentId: text('parent_id').references((): AnyPgColumn => CycleFeatureTable.id),
 });
@@ -219,7 +219,8 @@ describe('defineEntity keeps the compiler strict', () => {
   beforeAll(async () => {
     // Inside `__tests__`, so the production build - which excludes `**/__tests__` - never sees a
     // probe a crash left behind.
-    probeDirectory = await mkdtemp(path.join(PACKAGE_ROOT, 'src/__tests__/.type-probe-'));
+    const result2 = await mkdtemp(path.join(PACKAGE_ROOT, 'src/__tests__/.type-probe-'));
+    probeDirectory = result2;
 
     const probeEntries = [...Object.entries(PROBES), [CANARY, CANARY_BODY]];
     await Promise.all(
@@ -249,7 +250,7 @@ describe('defineEntity keeps the compiler strict', () => {
       }),
     );
 
-    const result = spawnSyncBounded({
+    const result = SpawnHelper.spawnSyncBounded({
       cmd: [process.execPath, TSC, '-p', configPath],
       cwd: PACKAGE_ROOT,
       stdout: 'pipe',

@@ -110,7 +110,10 @@ describe('scopeFilter write guard', () => {
     return result.rows;
   };
 
-  const rows = async () => (await allRows()).map(({ merchantId, name }) => ({ merchantId, name }));
+  const rows = async () => {
+    const all = await allRows();
+    return all.map(({ merchantId, name }) => ({ merchantId, name }));
+  };
 
   beforeAll(async () => {
     await client.waitReady;
@@ -133,7 +136,8 @@ describe('scopeFilter write guard', () => {
     test('a row inside the scope is written', async () => {
       await build(RejectItem).create({ data: { merchantId: 'm-a', name: 'one' } });
 
-      expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'one' }]);
+      const result = await rows();
+      expect(result).toEqual([{ merchantId: 'm-a', name: 'one' }]);
     });
 
     test('a row outside the scope is refused with 403, the code, the model and the column - and no value', async () => {
@@ -147,14 +151,16 @@ describe('scopeFilter write guard', () => {
       expect(error.message).not.toContain('m-secret-other');
       expect(error.message).not.toContain('m-a');
       expect(error.normalized.code).toBe(RepositoryErrorCodes.SCOPE_WRITE_DENIED);
-      expect(await rows()).toEqual([]);
+      const result = await rows();
+      expect(result).toEqual([]);
     });
 
     test('a row without the scope column is refused', async () => {
       const error = await refusal(build(RejectItem).create({ data: { name: 'one' } }));
 
       expect(error.message).toContain('the scope column is missing');
-      expect(await rows()).toEqual([]);
+      const result = await rows();
+      expect(result).toEqual([]);
     });
 
     test('createAll: one bad row refuses the whole batch and nothing is written', async () => {
@@ -169,7 +175,8 @@ describe('scopeFilter write guard', () => {
       );
 
       expect(error.message).toContain('merchantId');
-      expect(await rows()).toEqual([]);
+      const result = await rows();
+      expect(result).toEqual([]);
     });
 
     test('createAll: every row inside the scope is written', async () => {
@@ -180,7 +187,8 @@ describe('scopeFilter write guard', () => {
         ],
       });
 
-      expect((await rows()).map((row) => row.name)).toEqual(['ok-1', 'ok-2']);
+      const result = await rows();
+      expect(result.map((row) => row.name)).toEqual(['ok-1', 'ok-2']);
     });
 
     test('an inq scope allows each of its values and refuses others', async () => {
@@ -193,7 +201,8 @@ describe('scopeFilter write guard', () => {
       });
 
       await refusal(build(RejectItem).create({ data: { merchantId: 'm-c', name: 'c' } }));
-      expect((await rows()).map((row) => row.name)).toEqual(['a', 'b']);
+      const result = await rows();
+      expect(result.map((row) => row.name)).toEqual(['a', 'b']);
     });
 
     test('an eq operator, an array and an and-combination are read like an equality', async () => {
@@ -201,7 +210,8 @@ describe('scopeFilter write guard', () => {
       await build(RejectItem).create({ data: { merchantId: 'm-a', name: 'ok' } });
       await refusal(build(RejectItem).create({ data: { merchantId: 'm-b', name: 'bad' } }));
 
-      expect((await rows()).map((row) => row.name)).toEqual(['ok']);
+      const result = await rows();
+      expect(result.map((row) => row.name)).toEqual(['ok']);
     });
   });
 
@@ -215,7 +225,8 @@ describe('scopeFilter write guard', () => {
       );
 
       expect(error.message).toContain('merchantId');
-      expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'one' }]);
+      const result = await rows();
+      expect(result).toEqual([{ merchantId: 'm-a', name: 'one' }]);
     });
 
     test('a payload that sets the scope column to null is refused', async () => {
@@ -223,7 +234,8 @@ describe('scopeFilter write guard', () => {
       const created = await repository.create({ data: { merchantId: 'm-a', name: 'one' } });
 
       await refusal(repository.updateById({ id: created.data.id, data: { merchantId: null } }));
-      expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'one' }]);
+      const result = await rows();
+      expect(result).toEqual([{ merchantId: 'm-a', name: 'one' }]);
     });
 
     test('a payload that keeps the scope column inside the scope is written', async () => {
@@ -234,7 +246,8 @@ describe('scopeFilter write guard', () => {
         id: created.data.id,
         data: { merchantId: 'm-a', name: 'two' },
       });
-      expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'two' }]);
+      const result = await rows();
+      expect(result).toEqual([{ merchantId: 'm-a', name: 'two' }]);
     });
 
     test('a payload that does not name the scope column is not checked', async () => {
@@ -242,7 +255,8 @@ describe('scopeFilter write guard', () => {
       const created = await repository.create({ data: { merchantId: 'm-a', name: 'one' } });
 
       await repository.updateById({ id: created.data.id, data: { name: 'renamed' } });
-      expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'renamed' }]);
+      const result = await rows();
+      expect(result).toEqual([{ merchantId: 'm-a', name: 'renamed' }]);
     });
   });
 
@@ -250,19 +264,22 @@ describe('scopeFilter write guard', () => {
     test('fills an absent scope column from an equality scope', async () => {
       await build(AssignItem).create({ data: { name: 'one' } });
 
-      expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'one' }]);
+      const result = await rows();
+      expect(result).toEqual([{ merchantId: 'm-a', name: 'one' }]);
     });
 
     test('still refuses a value that is present and disagrees', async () => {
       await refusal(build(AssignItem).create({ data: { merchantId: 'm-b', name: 'bad' } }));
-      expect(await rows()).toEqual([]);
+      const result = await rows();
+      expect(result).toEqual([]);
     });
 
     test('cannot assign from an inq scope, so an absent column is refused', async () => {
       scope = { merchantId: { inq: ['m-a', 'm-b'] } };
 
       await refusal(build(AssignItem).create({ data: { name: 'one' } }));
-      expect(await rows()).toEqual([]);
+      const result = await rows();
+      expect(result).toEqual([]);
     });
 
     test('createAll stamps every row that lacks the column', async () => {
@@ -270,7 +287,8 @@ describe('scopeFilter write guard', () => {
         data: [{ name: 'one' }, { merchantId: 'm-a', name: 'two' }],
       });
 
-      expect(await rows()).toEqual([
+      const result = await rows();
+      expect(result).toEqual([
         { merchantId: 'm-a', name: 'one' },
         { merchantId: 'm-a', name: 'two' },
       ]);
@@ -289,7 +307,8 @@ describe('scopeFilter write guard', () => {
         ],
       });
 
-      expect(await rows()).toEqual([
+      const result = await rows();
+      expect(result).toEqual([
         { merchantId: 'm-other', name: 'explicit' },
         { merchantId: null, name: 'shared' },
         { merchantId: null, name: 'absent' },
@@ -302,7 +321,8 @@ describe('scopeFilter write guard', () => {
       scope = ScopeFilters.UNRESTRICTED;
 
       await repository.updateById({ id: created.data.id, data: { merchantId: 'm-b' } });
-      expect(await rows()).toEqual([{ merchantId: 'm-b', name: 'one' }]);
+      const result = await rows();
+      expect(result).toEqual([{ merchantId: 'm-b', name: 'one' }]);
     });
 
     test('a scope that cannot be resolved refuses a create (onMissing defaults to deny)', async () => {
@@ -324,7 +344,8 @@ describe('scopeFilter write guard', () => {
         data: { name: 'changed' },
       });
       expect(result.count).toBe(0);
-      expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'one' }]);
+      const result2 = await rows();
+      expect(result2).toEqual([{ merchantId: 'm-a', name: 'one' }]);
     });
   });
 
@@ -333,7 +354,8 @@ describe('scopeFilter write guard', () => {
       await refusal(build(RejectItem).create({ data: { merchantId: null, name: 'shared' } }));
       await build(SharedItem).create({ data: { merchantId: null, name: 'shared' } });
 
-      expect(await rows()).toEqual([{ merchantId: null, name: 'shared' }]);
+      const result = await rows();
+      expect(result).toEqual([{ merchantId: null, name: 'shared' }]);
     });
 
     test('sharedRows still refuses a value from another scope', async () => {
@@ -343,7 +365,8 @@ describe('scopeFilter write guard', () => {
     test('sharedRows lets an absent scope column through', async () => {
       await build(SharedItem).create({ data: { name: 'no-owner' } });
 
-      expect(await rows()).toEqual([{ merchantId: null, name: 'no-owner' }]);
+      const result = await rows();
+      expect(result).toEqual([{ merchantId: null, name: 'no-owner' }]);
     });
   });
 
@@ -377,7 +400,8 @@ describe('scopeFilter write guard', () => {
         );
         expect(error.message).toMatch(/cannot be verified/);
         expect(error.message).toMatch(pattern);
-        expect(await rows()).toEqual([]);
+        const result = await rows();
+        expect(result).toEqual([]);
       },
     );
   });
@@ -395,7 +419,8 @@ describe('scopeFilter write guard', () => {
     test('a scope over the declared column passes', async () => {
       await build(DeclaredItem).create({ data: { merchantId: 'm-a', name: 'one' } });
 
-      expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'one' }]);
+      const result = await rows();
+      expect(result).toEqual([{ merchantId: 'm-a', name: 'one' }]);
     });
   });
 
@@ -417,7 +442,8 @@ describe('scopeFilter write guard', () => {
         await repository.create({ data: { merchantId: 'm-b', name: 'also-in-list' } });
         await refusal(repository.create({ data: { merchantId: 'm-c', name: 'outside' } }));
 
-        expect((await rows()).map((row) => row.name)).toEqual(['in-list', 'also-in-list']);
+        const result = await rows();
+        expect(result.map((row) => row.name)).toEqual(['in-list', 'also-in-list']);
       },
     );
 
@@ -431,7 +457,8 @@ describe('scopeFilter write guard', () => {
       await refusal(repository.create({ data: { name: 'no-owner' } }));
 
       expect(withNull.message).toContain('merchantId');
-      expect(await rows()).toEqual([]);
+      const result = await rows();
+      expect(result).toEqual([]);
     });
 
     test('with sharedRows true null and an absent column are accepted', async () => {
@@ -441,7 +468,8 @@ describe('scopeFilter write guard', () => {
       await repository.create({ data: { merchantId: null, name: 'shared' } });
       await repository.create({ data: { name: 'no-owner' } });
 
-      expect(await rows()).toEqual([
+      const result = await rows();
+      expect(result).toEqual([
         { merchantId: null, name: 'shared' },
         { merchantId: null, name: 'no-owner' },
       ]);
@@ -458,7 +486,8 @@ describe('scopeFilter write guard', () => {
           ],
         }),
       );
-      expect(await rows()).toEqual([]);
+      const result = await rows();
+      expect(result).toEqual([]);
     });
 
     test('an update may move a row to another listed id; to null only with sharedRows; never outside the list', async () => {
@@ -469,17 +498,20 @@ describe('scopeFilter write guard', () => {
       await repository.updateById({ id: created.data.id, data: { merchantId: 'm-b' } });
       await refusal(repository.updateById({ id: created.data.id, data: { merchantId: null } }));
       await refusal(repository.updateById({ id: created.data.id, data: { merchantId: 'm-c' } }));
-      expect((await rows()).map((row) => row.merchantId)).toEqual(['m-b']);
+      const result = await rows();
+      expect(result.map((row) => row.merchantId)).toEqual(['m-b']);
 
       await build(SharedItem).updateById({ id: created.data.id, data: { merchantId: null } });
-      expect((await rows()).map((row) => row.merchantId)).toEqual([null]);
+      const result2 = await rows();
+      expect(result2.map((row) => row.merchantId)).toEqual([null]);
     });
 
     test('UNRESTRICTED still bypasses it', async () => {
       scope = ScopeFilters.UNRESTRICTED;
 
       await build(RejectItem).create({ data: { merchantId: null, name: 'shared' } });
-      expect(await rows()).toEqual([{ merchantId: null, name: 'shared' }]);
+      const result = await rows();
+      expect(result).toEqual([{ merchantId: null, name: 'shared' }]);
     });
 
     test('sharedRows also grants null when the scope has no null branch', async () => {
@@ -487,7 +519,8 @@ describe('scopeFilter write guard', () => {
 
       await refusal(build(RejectItem).create({ data: { merchantId: null, name: 'shared' } }));
       await build(SharedItem).create({ data: { merchantId: null, name: 'shared' } });
-      expect((await rows()).map((row) => row.name)).toEqual(['shared']);
+      const result = await rows();
+      expect(result.map((row) => row.name)).toEqual(['shared']);
     });
   });
 
@@ -500,7 +533,8 @@ describe('scopeFilter write guard', () => {
       await refusal(repository.create({ data: { merchantId: null, name: 'null' } }));
       await refusal(repository.create({ data: { name: 'absent' } }));
       await refusal(repository.createAll({ data: [{ merchantId: 'm-a', name: 'a' }] }));
-      expect(await rows()).toEqual([]);
+      const result = await rows();
+      expect(result).toEqual([]);
     });
 
     test('refuses every update that names the column, whatever the value', async () => {
@@ -511,14 +545,16 @@ describe('scopeFilter write guard', () => {
       await refusal(repository.updateById({ id: created.data.id, data: { merchantId: 'm-a' } }));
       await refusal(repository.updateById({ id: created.data.id, data: { merchantId: 'm-b' } }));
       await refusal(repository.updateById({ id: created.data.id, data: { merchantId: null } }));
-      expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'one' }]);
+      const result = await rows();
+      expect(result).toEqual([{ merchantId: 'm-a', name: 'one' }]);
     });
 
     test('an inq with no values behaves the same', async () => {
       scope = { merchantId: { inq: [] } };
 
       await refusal(build(RejectItem).create({ data: { merchantId: 'm-a', name: 'a' } }));
-      expect(await rows()).toEqual([]);
+      const result = await rows();
+      expect(result).toEqual([]);
     });
 
     test('an empty list inside an or-null scope accepts only through sharedRows', async () => {
@@ -528,7 +564,8 @@ describe('scopeFilter write guard', () => {
       await refusal(build(RejectItem).create({ data: { merchantId: null, name: 'shared' } }));
       await build(SharedItem).create({ data: { merchantId: null, name: 'shared' } });
       await refusal(build(SharedItem).create({ data: { merchantId: 'm-a', name: 'a' } }));
-      expect((await rows()).map((row) => row.name)).toEqual(['shared']);
+      const result = await rows();
+      expect(result.map((row) => row.name)).toEqual(['shared']);
     });
   });
 
@@ -546,7 +583,8 @@ describe('scopeFilter write guard', () => {
     test('create and createAll', async () => {
       await refusal(build(RejectItem).create({ data: { merchantId: 'm-b', name: 'x' } }));
       await refusal(build(RejectItem).createAll({ data: [{ merchantId: 'm-b', name: 'x' }] }));
-      expect(await rows()).toEqual([]);
+      const result = await rows();
+      expect(result).toEqual([]);
     });
 
     test('updateById, updateAll and updateBy: a payload naming another scope is refused', async () => {
@@ -556,7 +594,8 @@ describe('scopeFilter write guard', () => {
       await refusal(repository.updateAll({ where: { name: 'mine' }, data: { merchantId: 'm-b' } }));
       await refusal(repository.updateBy({ where: { name: 'mine' }, data: { merchantId: 'm-b' } }));
 
-      expect((await rows()).map((row) => row.merchantId)).toEqual(['m-a', 'm-b']);
+      const result = await rows();
+      expect(result.map((row) => row.merchantId)).toEqual(['m-a', 'm-b']);
     });
 
     test('updateAll and updateBy with a payload that stays in scope touch only the scoped rows', async () => {
@@ -573,17 +612,22 @@ describe('scopeFilter write guard', () => {
         options: { force: true },
       });
 
-      expect((await rows()).map((row) => row.name)).toEqual(['renamed-by', 'theirs']);
+      const result = await rows();
+      expect(result.map((row) => row.name)).toEqual(['renamed-by', 'theirs']);
     });
 
     test('deleteById, deleteAll and deleteBy only reach rows inside the scope', async () => {
       const { repository, mine, theirs } = await seed();
 
-      expect((await repository.deleteById({ id: theirs })).count).toBe(0);
-      expect((await repository.deleteBy({ where: { name: 'theirs' } })).count).toBe(0);
-      expect((await repository.deleteAll({ where: {}, options: { force: true } })).count).toBe(1);
+      const result = await repository.deleteById({ id: theirs });
+      expect(result.count).toBe(0);
+      const result2 = await repository.deleteBy({ where: { name: 'theirs' } });
+      expect(result2.count).toBe(0);
+      const result3 = await repository.deleteAll({ where: {}, options: { force: true } });
+      expect(result3.count).toBe(1);
       expect(mine).toBeDefined();
-      expect((await rows()).map((row) => row.name)).toEqual(['theirs']);
+      const result4 = await rows();
+      expect(result4.map((row) => row.name)).toEqual(['theirs']);
     });
 
     test('soft delete and restore go through the guarded update', async () => {
@@ -591,10 +635,12 @@ describe('scopeFilter write guard', () => {
       const created = await soft.create({ data: { merchantId: 'm-a', name: 'soft' } });
 
       await soft.deleteById({ id: created.data.id });
-      expect((await allRows()).map((row) => row.deletedAt !== null)).toEqual([true]);
+      const result = await allRows();
+      expect(result.map((row) => row.deletedAt !== null)).toEqual([true]);
 
       await soft.restoreById({ id: created.data.id });
-      expect((await allRows()).map((row) => row.deletedAt)).toEqual([null]);
+      const result2 = await allRows();
+      expect(result2.map((row) => row.deletedAt)).toEqual([null]);
     });
   });
 
@@ -613,7 +659,10 @@ describe('scopeFilter write guard', () => {
       return { repository, mine: mine.data.id, shared: shared.data.id, theirs: theirs.data.id };
     };
 
-    const names = async () => (await rows()).map((row) => row.name);
+    const names = async () => {
+      const found = await rows();
+      return found.map((row) => row.name);
+    };
 
     test('reads still return my rows and the shared rows, never the other merchant', async () => {
       const { repository } = await seed();
@@ -626,44 +675,53 @@ describe('scopeFilter write guard', () => {
     test('updateById changes my row, and a shared row stays untouched (count 0)', async () => {
       const { repository, mine, shared, theirs } = await seed();
 
-      expect((await repository.updateById({ id: mine, data: { name: 'mine-2' } })).count).toBe(1);
-      expect((await repository.updateById({ id: shared, data: { name: 'shared-2' } })).count).toBe(
-        0,
-      );
-      expect((await repository.updateById({ id: theirs, data: { name: 'theirs-2' } })).count).toBe(
-        0,
-      );
+      const result = await repository.updateById({ id: mine, data: { name: 'mine-2' } });
+      expect(result.count).toBe(1);
+      const result2 = await repository.updateById({ id: shared, data: { name: 'shared-2' } });
+      expect(result2.count).toBe(0);
+      const result3 = await repository.updateById({ id: theirs, data: { name: 'theirs-2' } });
+      expect(result3.count).toBe(0);
 
-      expect(await names()).toEqual(['mine-2', 'shared', 'theirs']);
+      const result4 = await names();
+      expect(result4).toEqual(['mine-2', 'shared', 'theirs']);
     });
 
     test('deleteById removes my row, and a shared row stays (count 0)', async () => {
       const { repository, mine, shared } = await seed();
 
-      expect((await repository.deleteById({ id: shared })).count).toBe(0);
-      expect((await repository.deleteById({ id: mine })).count).toBe(1);
+      const result = await repository.deleteById({ id: shared });
+      expect(result.count).toBe(0);
+      const result2 = await repository.deleteById({ id: mine });
+      expect(result2.count).toBe(1);
 
-      expect(await names()).toEqual(['shared', 'theirs']);
+      const result3 = await names();
+      expect(result3).toEqual(['shared', 'theirs']);
     });
 
     test('updateAll and updateBy touch only my rows', async () => {
       const { repository } = await seed();
 
       await repository.updateAll({ where: {}, data: { name: 'all' }, options: { force: true } });
-      expect(await names()).toEqual(['all', 'shared', 'theirs']);
+      const result = await names();
+      expect(result).toEqual(['all', 'shared', 'theirs']);
 
       await repository.updateBy({ where: {}, data: { name: 'by' }, options: { force: true } });
-      expect(await names()).toEqual(['by', 'shared', 'theirs']);
+      const result2 = await names();
+      expect(result2).toEqual(['by', 'shared', 'theirs']);
     });
 
     test('deleteAll and deleteBy touch only my rows', async () => {
       const { repository } = await seed();
 
-      expect((await repository.deleteAll({ where: {}, options: { force: true } })).count).toBe(1);
-      expect(await names()).toEqual(['shared', 'theirs']);
+      const result = await repository.deleteAll({ where: {}, options: { force: true } });
+      expect(result.count).toBe(1);
+      const result2 = await names();
+      expect(result2).toEqual(['shared', 'theirs']);
 
-      expect((await repository.deleteBy({ where: {}, options: { force: true } })).count).toBe(0);
-      expect(await names()).toEqual(['shared', 'theirs']);
+      const result3 = await repository.deleteBy({ where: {}, options: { force: true } });
+      expect(result3.count).toBe(0);
+      const result4 = await names();
+      expect(result4).toEqual(['shared', 'theirs']);
     });
 
     test('a payload that does not name the scope column cannot reach a shared row through a name filter either', async () => {
@@ -672,66 +730,83 @@ describe('scopeFilter write guard', () => {
       const result = await repository.updateAll({ where: { name: 'shared' }, data: { name: 'x' } });
 
       expect(result.count).toBe(0);
-      expect(await names()).toEqual(['mine', 'shared', 'theirs']);
+      const result2 = await names();
+      expect(result2).toEqual(['mine', 'shared', 'theirs']);
     });
 
     test('soft delete and restore reach my row only, not a shared one', async () => {
       const { repository, mine, shared } = await seed(SoftItem, SoftDeletableRelationalRepository);
 
-      expect((await repository.deleteById({ id: shared })).count).toBe(0);
-      expect((await repository.deleteById({ id: mine })).count).toBe(1);
-      expect((await allRows()).map((row) => row.deletedAt !== null)).toEqual([true, false, false]);
+      const result = await repository.deleteById({ id: shared });
+      expect(result.count).toBe(0);
+      const result2 = await repository.deleteById({ id: mine });
+      expect(result2.count).toBe(1);
+      const result3 = await allRows();
+      expect(result3.map((row) => row.deletedAt !== null)).toEqual([true, false, false]);
 
       scope = ScopeFilters.UNRESTRICTED;
       await repository.deleteById({ id: shared });
       scope = sharedScope;
-      expect((await allRows()).map((row) => row.deletedAt !== null)).toEqual([true, true, false]);
+      const result4 = await allRows();
+      expect(result4.map((row) => row.deletedAt !== null)).toEqual([true, true, false]);
 
-      expect((await repository.restoreById({ id: shared })).count).toBe(0);
-      expect((await repository.restoreById({ id: mine })).count).toBe(1);
-      expect((await allRows()).map((row) => row.deletedAt !== null)).toEqual([false, true, false]);
+      const result5 = await repository.restoreById({ id: shared });
+      expect(result5.count).toBe(0);
+      const result6 = await repository.restoreById({ id: mine });
+      expect(result6.count).toBe(1);
+      const result7 = await allRows();
+      expect(result7.map((row) => row.deletedAt !== null)).toEqual([false, true, false]);
     });
 
     test('with sharedRows true the shared row can be changed, deleted, soft deleted and restored', async () => {
       const { repository, shared, theirs } = await seed(SharedItem);
 
-      expect((await repository.updateById({ id: shared, data: { name: 'shared-2' } })).count).toBe(
-        1,
-      );
-      expect((await repository.updateById({ id: theirs, data: { name: 'theirs-2' } })).count).toBe(
-        0,
-      );
-      expect((await repository.deleteById({ id: shared })).count).toBe(1);
-      expect(await names()).toEqual(['mine', 'theirs']);
+      const result = await repository.updateById({ id: shared, data: { name: 'shared-2' } });
+      expect(result.count).toBe(1);
+      const result2 = await repository.updateById({ id: theirs, data: { name: 'theirs-2' } });
+      expect(result2.count).toBe(0);
+      const result3 = await repository.deleteById({ id: shared });
+      expect(result3.count).toBe(1);
+      const result4 = await names();
+      expect(result4).toEqual(['mine', 'theirs']);
 
       const soft = await seed(SoftSharedItem, SoftDeletableRelationalRepository);
-      expect((await soft.repository.deleteById({ id: soft.shared })).count).toBe(1);
-      expect((await soft.repository.restoreById({ id: soft.shared })).count).toBe(1);
+      const result5 = await soft.repository.deleteById({ id: soft.shared });
+      expect(result5.count).toBe(1);
+      const result6 = await soft.repository.restoreById({ id: soft.shared });
+      expect(result6.count).toBe(1);
     });
 
     test('UNRESTRICTED still reaches every row', async () => {
       const { repository, shared, theirs } = await seed();
 
       scope = ScopeFilters.UNRESTRICTED;
-      expect((await repository.updateById({ id: shared, data: { name: 'a' } })).count).toBe(1);
-      expect((await repository.deleteById({ id: theirs })).count).toBe(1);
+      const result = await repository.updateById({ id: shared, data: { name: 'a' } });
+      expect(result.count).toBe(1);
+      const result2 = await repository.deleteById({ id: theirs });
+      expect(result2.count).toBe(1);
     });
 
     test('a scope that only allows null matches no row for a write', async () => {
       const { repository, shared } = await seed();
       scope = { merchantId: null };
 
-      expect((await repository.updateById({ id: shared, data: { name: 'a' } })).count).toBe(0);
-      expect((await repository.deleteById({ id: shared })).count).toBe(0);
-      expect(await names()).toEqual(['mine', 'shared', 'theirs']);
+      const result = await repository.updateById({ id: shared, data: { name: 'a' } });
+      expect(result.count).toBe(0);
+      const result2 = await repository.deleteById({ id: shared });
+      expect(result2.count).toBe(0);
+      const result3 = await names();
+      expect(result3).toEqual(['mine', 'shared', 'theirs']);
     });
 
     test('a null inside a list is dropped for a write and the other values stay', async () => {
       const { repository, mine, shared } = await seed();
       scope = { merchantId: { inq: ['m-a', null] } };
 
-      expect((await repository.updateById({ id: shared, data: { name: 'a' } })).count).toBe(0);
-      expect((await repository.updateById({ id: mine, data: { name: 'b' } })).count).toBe(1);
+      const result = await repository.updateById({ id: shared, data: { name: 'a' } });
+      expect(result.count).toBe(0);
+      const result2 = await repository.updateById({ id: mine, data: { name: 'b' } });
+      expect(result2.count).toBe(1);
     });
 
     test('a scope the guard cannot read refuses a delete instead of leaving shared rows reachable', async () => {
@@ -741,7 +816,8 @@ describe('scopeFilter write guard', () => {
       const error = await refusal(repository.deleteById({ id: shared }));
 
       expect(error.message).toMatch(/cannot be verified/);
-      expect(await names()).toEqual(['mine', 'shared', 'theirs']);
+      const result = await names();
+      expect(result).toEqual(['mine', 'shared', 'theirs']);
     });
   });
 });

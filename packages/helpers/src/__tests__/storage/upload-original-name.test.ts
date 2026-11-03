@@ -4,21 +4,11 @@
  * the name still reaches a header carries it in a header-safe form.
  */
 
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  spyOn,
-  test,
-} from 'bun:test';
+import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import { type IUploadFile } from '@/modules/storage/common';
 import { DiskHelper } from '@/modules/storage/disk';
-import { MinioHelper } from '@/modules/storage/minio';
 
 /** Runs the upload and returns the thrown message - "" when it did NOT throw, which fails the match. */
 const captureError = async (opts: { task: Promise<unknown> }): Promise<string> => {
@@ -100,7 +90,8 @@ describe('BaseStorageHelper.upload - the original name when the key is generated
       files: [buildFile({ originalName: 'a&b.xlsx' })],
     });
 
-    expect(await captureError({ task })).toBe('[upload] Invalid original file name');
+    const result = await captureError({ task });
+    expect(result).toBe('[upload] Invalid original file name');
     expect(writtenPaths).toHaveLength(0);
   });
 
@@ -117,7 +108,8 @@ describe('BaseStorageHelper.upload - the original name when the key is generated
       normalizeNameFn: generateKey,
     });
 
-    expect(await captureError({ task })).toBe('[upload] Invalid original file name');
+    const result = await captureError({ task });
+    expect(result).toBe('[upload] Invalid original file name');
     expect(writtenPaths).toHaveLength(0);
   });
 
@@ -128,7 +120,8 @@ describe('BaseStorageHelper.upload - the original name when the key is generated
       normalizeNameFn: ({ file }) => `imports/${file.originalName}`,
     });
 
-    expect(await captureError({ task })).toMatch(/Invalid normalized object name/);
+    const result = await captureError({ task });
+    expect(result).toMatch(/Invalid normalized object name/);
     expect(writtenPaths).toHaveLength(0);
   });
 
@@ -143,77 +136,8 @@ describe('BaseStorageHelper.upload - the original name when the key is generated
         file.originalName === 'second.xlsx' ? '../escape.xlsx' : `imports/${file.originalName}`,
     });
 
-    expect(await captureError({ task })).toMatch(/Invalid normalized object name/);
+    const result = await captureError({ task });
+    expect(result).toMatch(/Invalid normalized object name/);
     expect(writtenPaths).toHaveLength(0);
-  });
-});
-
-describe('MinioHelper.upload - the original name travels as header-safe metadata', () => {
-  const metadataHeaders: Array<Headers> = [];
-  let server: ReturnType<typeof Bun.serve>;
-  let helper: MinioHelper;
-
-  beforeAll(() => {
-    server = Bun.serve({
-      port: 0,
-      fetch: (request) => {
-        if (request.method === 'PUT') {
-          metadataHeaders.push(request.headers);
-        }
-        return new Response('', { status: 200, headers: { etag: '"etag"' } });
-      },
-    });
-
-    helper = new MinioHelper({
-      endPoint: '127.0.0.1',
-      port: server.port,
-      useSSL: false,
-      accessKey: 'access',
-      secretKey: 'secret-key',
-      region: 'us-east-1',
-    });
-  });
-
-  afterAll(async () => {
-    await server.stop(true);
-  });
-
-  /** RFC 2047, the form S3 uses for metadata outside US-ASCII. */
-  const decodeEncodedWord = (opts: { value: string }): string => {
-    const match = /^=\?UTF-8\?B\?([A-Za-z0-9+/=]*)\?=$/.exec(opts.value);
-    return match ? Buffer.from(match[1], 'base64').toString('utf8') : opts.value;
-  };
-
-  test('a non-ASCII name is stored encoded instead of failing the request', async () => {
-    await helper.upload({
-      bucket: { name: 'assets' },
-      files: [buildFile({ originalName: 'Kiểm kê.xlsx' })],
-      normalizeNameFn: generateKey,
-    });
-
-    const stored = metadataHeaders.at(-1)?.get('x-amz-meta-originalname') ?? '';
-    expect(stored).toMatch(/^=\?UTF-8\?B\?/);
-    expect(decodeEncodedWord({ value: stored })).toBe('Kiểm kê.xlsx');
-  });
-
-  test('a non-ASCII key reaches the metadata encoded as well', async () => {
-    await helper.upload({
-      bucket: { name: 'assets' },
-      files: [buildFile({ originalName: 'Kiểm kê.xlsx' })],
-      normalizeNameFn: ({ file }) => `imports/${file.originalName}`,
-    });
-
-    const stored = metadataHeaders.at(-1)?.get('x-amz-meta-normalizename') ?? '';
-    expect(decodeEncodedWord({ value: stored })).toBe('imports/Kiểm kê.xlsx');
-  });
-
-  test('an ASCII name is stored byte for byte, as before', async () => {
-    await helper.upload({
-      bucket: { name: 'assets' },
-      files: [buildFile({ originalName: 'Stock & sales #1!.xlsx' })],
-      normalizeNameFn: generateKey,
-    });
-
-    expect(metadataHeaders.at(-1)?.get('x-amz-meta-originalname')).toBe('Stock & sales #1!.xlsx');
   });
 });

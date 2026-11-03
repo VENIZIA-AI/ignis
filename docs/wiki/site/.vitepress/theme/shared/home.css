@@ -44,20 +44,21 @@
   padding: 0 !important;
 }
 
-/* ---- buttons: 4px radius, uppercase 14px, an arrow in the corner ------------------------ */
+/* ---- buttons, after the Venizia frame (Figma Button 125 x 40): 4px radius, uppercase 14px/500, 20px left text
+   inset and 28px right, the 10px north-east arrow 6px from the right edge and 5px from the top ------ */
 .vh .btn {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 48px;
-  padding: 0 28px 0 22px;
+  height: 40px;
+  padding: 0 27px 0 19px;
   border: 1px solid var(--stroke-strong);
   border-radius: var(--radius);
   background: transparent;
   color: var(--text-title);
   font: 500 14px/1 var(--font-sans);
-  letter-spacing: -0.005em;
+  letter-spacing: -0.015em;
   text-transform: uppercase;
   text-decoration: none;
   cursor: pointer;
@@ -69,13 +70,13 @@
 .vh .btn::after {
   content: '';
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 7px;
-  height: 7px;
-  border-top: 1.5px solid currentColor;
-  border-right: 1.5px solid currentColor;
-  opacity: 0.8;
+  top: 4px;
+  right: 5px;
+  width: 10px;
+  height: 10px;
+  background: currentColor;
+  -webkit-mask: var(--arrow-ne) center / 100% 100% no-repeat;
+  mask: var(--arrow-ne) center / 100% 100% no-repeat;
   transition: transform 0.25s var(--ease-link);
 }
 .vh .btn:hover::after {
@@ -115,15 +116,22 @@
   overflow: hidden;
   padding-block: clamp(48px, 8vw, 104px) clamp(48px, 7vw, 88px);
 }
-.vh .hero::before {
-  content: '';
+/* the dust canvas (useDust.ts): behind the hero's content, in the product's accent. The page starts on a plain
+   background; the canvas is invisible until the composable has drawn its first frame (`data-ready`), then
+   fades in. Without script it never shows, and the page is complete on the plain background. */
+.vh .dust {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle at 1px 1px, var(--dot) 1px, transparent 0);
-  background-size: 18px 18px;
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 78%);
-  mask-image: linear-gradient(to bottom, #000 0%, transparent 78%);
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity 0.9s ease-out;
   pointer-events: none;
+}
+.vh .dust[data-ready] {
+  opacity: 1;
 }
 .vh .hero::after {
   content: '';
@@ -141,7 +149,8 @@
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
   gap: clamp(32px, 3.4vw, 48px);
-  align-items: center;
+  /* the copy and the window start at the same height: centred on each other, the shorter one began lower */
+  align-items: start;
 }
 
 /* the headline runs the full width above the two columns */
@@ -422,13 +431,22 @@
   color: var(--accent-on-dark);
   font-weight: 600;
 }
+/* the caret takes no room (the block is painted by ::after), so a command wraps in the same places while it is typed */
 .vh .caret {
+  position: relative;
   display: none;
-  width: 0.55em;
+  width: 0;
   height: 1.15em;
-  margin-left: 2px;
-  background: var(--win-text);
   vertical-align: text-bottom;
+}
+.vh .caret::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 2px;
+  width: 0.55em;
+  height: 100%;
+  background: var(--win-text);
 }
 .js .vh .term-cmd .prompt,
 .js .vh .term-cmd .typed-rest {
@@ -653,13 +671,26 @@
 .vh .steps {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-  gap: var(--space-6);
+  column-gap: var(--space-6);
+  row-gap: 0;
   counter-reset: step;
 }
 .vh .step {
   min-width: 0;
+  margin-bottom: var(--space-6);
   border-top: 1px solid var(--stroke-strong);
   padding-top: var(--space-4);
+}
+/* A step is four rows (number, heading, text, terminal) of the grid it sits in, so the rows are shared:
+   the headings, the texts and the terminals of steps side by side start at the same height, and each
+   terminal fills its row, as tall as the tallest of them. The height is final from the first paint. */
+@supports (grid-template-rows: subgrid) {
+  .vh .step {
+    display: grid;
+    grid-row: span 4;
+    grid-template-rows: subgrid;
+    row-gap: 0;
+  }
 }
 .vh .step::before {
   counter-increment: step;
@@ -683,6 +714,7 @@
 }
 .vh .step .win-panel {
   display: block;
+  box-sizing: border-box;
   max-height: none;
   border: 1px solid var(--win-stroke);
   border-radius: var(--radius);
@@ -826,8 +858,17 @@
   .vh .stat:last-child {
     border-bottom: 0;
   }
+  /* a finger needs a taller target: 48px as on venizia.ai, with its 12px arrow */
   .vh .btn {
     flex: 1 1 100%;
+    height: 48px;
+    padding: 0 31px 0 23px;
+  }
+  .vh .btn::after {
+    top: 5px;
+    right: 6px;
+    width: 12px;
+    height: 12px;
   }
   .vh .status td:first-child {
     white-space: normal;

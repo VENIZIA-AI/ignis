@@ -121,42 +121,44 @@ export class ModuleGraph {
   }
 }
 
-/**
- * `devz check module-cycles <dir> [--max <n>]`: prints the cycles of a built ESM directory and
- * returns 1 when there are more than `max` (no bound by default), 2 on a usage error.
- */
-export const runModuleCycles = (opts: {
-  args: string[];
-  print: (line: string) => void;
-  printError: (line: string) => void;
-}): number => {
-  const { args, print, printError } = opts;
-  const { positionals, values } = parseArgs({
-    args,
-    allowPositionals: true,
-    options: { max: { type: 'string' }, dist: { type: 'string' } },
-  });
-  const dir = values.dist ?? positionals[0];
-  const usage = 'usage: devz check module-cycles <built ESM dir> [--max <n>]';
-  if (!dir) {
-    printError(usage);
-    return 2;
-  }
-
-  let max = Number.POSITIVE_INFINITY;
-  if (values.max !== undefined) {
-    if (!/^\d+$/.test(values.max)) {
+export class ModuleCyclesCheck {
+  /**
+   * `devz check module-cycles <dir> [--max <n>]`: prints the cycles of a built ESM directory and
+   * returns 1 when there are more than `max` (no bound by default), 2 on a usage error.
+   */
+  static run(opts: {
+    args: string[];
+    print: (line: string) => void;
+    printError: (line: string) => void;
+  }): number {
+    const { args, print, printError } = opts;
+    const { positionals, values } = parseArgs({
+      args,
+      allowPositionals: true,
+      options: { max: { type: 'string' }, dist: { type: 'string' } },
+    });
+    const dir = values.dist ?? positionals[0];
+    const usage = 'usage: devz check module-cycles <built ESM dir> [--max <n>]';
+    if (!dir) {
       printError(usage);
       return 2;
     }
-    max = Number(values.max);
-  }
 
-  const cycles = ModuleGraph.fromDirectory({ dir }).cycles();
-  print(`${dir}: ${cycles.length} cycle(s)`);
-  for (const cycle of cycles) {
-    print(`  - ${cycle.join(' <-> ')}`);
-  }
+    let max = Number.POSITIVE_INFINITY;
+    if (values.max !== undefined) {
+      if (!/^\d+$/.test(values.max)) {
+        printError(usage);
+        return 2;
+      }
+      max = Number(values.max);
+    }
 
-  return cycles.length > max ? 1 : 0;
-};
+    const cycles = ModuleGraph.fromDirectory({ dir }).cycles();
+    print(`${dir}: ${cycles.length} cycle(s)`);
+    for (const cycle of cycles) {
+      print(`  - ${cycle.join(' <-> ')}`);
+    }
+
+    return cycles.length > max ? 1 : 0;
+  }
+}

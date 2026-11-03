@@ -64,7 +64,7 @@ try {
 Pass `isolationLevel` to control how the transaction sees concurrent changes:
 
 ```typescript
-import { IsolationLevels } from '@venizia/ignis/postgres';
+import { IsolationLevels } from '@venizia/ignis-connectors/postgres';
 
 const tx = await repository.beginTransaction({
   isolationLevel: IsolationLevels.SERIALIZABLE,
@@ -350,7 +350,7 @@ const result = await userRepository.find({
 
 ### WeakMap cache
 
-- **Column metadata is cached per schema.** The filter builder caches table column metadata (`getCachedColumns`) to avoid repeated reflection.
+- **Column metadata is cached per schema.** The filter builder caches table column metadata (`TableColumnCache.get`) to avoid repeated reflection.
 - **Populated on first access.** The first access calls Drizzle's `getTableColumns()` and caches the result; later queries read the `WeakMap` instead.
 - **No configuration needed.** The cache is automatic.
 
@@ -483,7 +483,7 @@ All the behavior lives on the engine-neutral `*RelationalRepository` ladder. Eac
 | Neutral class | Scope | Description |
 |---|---|---|
 | `AbstractRepository` | N/A | Engine-neutral abstract base (`@venizia/ignis-kernel`), defines every method signature, lazy `dataSource`/`entity` resolution, the `limit` shape and ceiling checks. Plain `BaseHelper` subclass, no mixin composition. |
-| `RelationalBaseRepository` | N/A | Relational base. Adds `FilterBuilder`/`UpdateBuilder`, hidden-column exclusion (`getHiddenProperties`/`getVisibleProperties`), default-filter application (`getDefaultFilter`/`applyDefaultFilter`) - the behavior formerly provided by the now-removed `FieldsVisibilityMixin`/`DefaultFilterMixin` (see [Repository Mixins](./mixins)). |
+| `RelationalBaseRepository` | N/A | Relational base. Adds `FilterBuilder`/`UpdateBuilder`, hidden-column exclusion (`getHiddenProperties`/`getVisibleProperties`), default-filter application (`getDefaultFilter`/`applyDefaultFilter`) - the behavior formerly provided by the now-removed `FieldsVisibilityMixin`/`DefaultFilterMixin` (see [Moved from the removed mixins](#moved-from-the-removed-mixins)). |
 | `ReadableRelationalRepository` | `READ_ONLY` | Read-only operations (`find`, `findOne`, `findById`, `count`, `existsWith`). Write operations throw. |
 | `PersistableRelationalRepository` | `READ_WRITE` | Adds write operations (`create`, `update`, `delete`) with `UpdateBuilder`. |
 | `DefaultRelationalRepository` | `READ_WRITE` | Extends `PersistableRelationalRepository` with no additional logic - **recommended default**. |
@@ -501,7 +501,7 @@ Each engine binding extends its own neutral rung, never the engine's previous ru
 
 A binding rebinds `ExtraOptions` (to `IDatabaseExtraOptions` for Postgres, `ISqliteExtraOptions` for SQLite) and `TDataSource` (to `IPostgresDataSource` / `ISqliteDataSource`). Nothing else changes, so `options.transaction.connector` needs no cast.
 
-Code samples throughout the docs use the Postgres names (`DefaultCRUDRepository`, `ReadableRepository`), since that is what `@venizia/ignis/postgres` code most commonly imports today. The neutral classes are importable from `@venizia/ignis/relational`; they are **not** re-exported from `@venizia/ignis` or `@venizia/ignis/postgres`.
+Code samples throughout the docs use the Postgres names (`DefaultCRUDRepository`, `ReadableRepository`), since that is what `@venizia/ignis-connectors/postgres` code most commonly imports today. The neutral classes are importable from `@venizia/ignis-connectors/relational`; they are **not** re-exported from `@venizia/ignis` or `@venizia/ignis-connectors/postgres`.
 
 ```typescript
 @repository({ model: AuditLog, dataSource: PostgresDataSource })
@@ -517,6 +517,15 @@ export class AuditLogRepository extends ReadableRepository<typeof AuditLog.schem
 
 - `updateBy(opts)` - alias for `updateAll(opts)`.
 - `deleteBy(opts)` - alias for `deleteAll(opts)`.
+
+### Moved from the removed mixins
+
+`FieldsVisibilityMixin` and `DefaultFilterMixin` are no longer exported. Their methods now live on `RelationalBaseRepository`, so a repository that extends `DefaultCRUDRepository` (or any class in the relational chain) already has them and needs no change.
+
+| Old (mixin) | New |
+|---|---|
+| `FieldsVisibilityMixin` -> `getHiddenProperties()`, `getVisibleProperties()`, `hasHiddenProperties()` | `RelationalBaseRepository` (same names) |
+| `DefaultFilterMixin` -> `getDefaultFilter()`, `hasDefaultFilter()`, `applyDefaultFilter()` | `RelationalBaseRepository` (same names) |
 
 ## Default Filter Bypass
 
@@ -642,7 +651,6 @@ Write operations additionally support:
 - [Repositories overview](/references/base/repositories/) - CRUD basics, common tasks
 - [Relations & Includes](./relations) - eager loading, nested `scope` filters, many-to-many
 - [SoftDeletableRepository](./soft-deletable) - soft delete, restore, hard delete
-- [Repository Mixins (Removed)](./mixins) - where `FieldsVisibilityMixin`/`DefaultFilterMixin` behavior lives now
 - [Filter System](/references/base/filter-system/) - every `where` operator, JSON paths, array operators
 - [Default Filter](/references/base/filter-system/default-filter) - automatic filter configuration
 - [DataSources - Full Reference](/references/base/datasources-reference) - transaction internals, isolation levels, driver seam

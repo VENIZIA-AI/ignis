@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -18,7 +18,7 @@ export class EdgeCases extends BaseTestCases {
     try {
       await repo.create({
         data: {
-          code: `TX_INACTIVE_${getUID()}`,
+          code: `TX_INACTIVE_${ParseUtility.getUID()}`,
           group: 'TX_TEST',
           dataType: DataTypes.NUMBER,
           nValue: 100,
@@ -50,7 +50,7 @@ export class EdgeCases extends BaseTestCases {
     try {
       await repo.create({
         data: {
-          code: `TX_INACTIVE_RB_${getUID()}`,
+          code: `TX_INACTIVE_RB_${ParseUtility.getUID()}`,
           group: 'TX_TEST',
           dataType: DataTypes.NUMBER,
           nValue: 100,
@@ -175,7 +175,7 @@ export class EdgeCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 20] Large Transaction With Many Operations');
 
-    const group = `TX_LARGE_${getUID()}`;
+    const group = `TX_LARGE_${ParseUtility.getUID()}`;
     const operationCount = 50;
     const transaction = await repo.beginTransaction();
 
@@ -255,11 +255,15 @@ export class EdgeCases extends BaseTestCases {
     } catch (error) {
       try {
         await transaction.rollback();
-      } catch {
-        /* ignore */
+      } catch (rollbackError) {
+        this.context.logger.error('Rollback failed: %s', (rollbackError as Error).message);
       }
       this.context.logger.error('[CASE 20] FAILED with error: %o', error);
-      await repo.deleteAll({ where: { group } }).catch(() => {});
+      try {
+        await repo.deleteAll({ where: { group } });
+      } catch (cleanupError) {
+        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+      }
     }
   }
 }

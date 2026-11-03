@@ -7,19 +7,19 @@ import {
   MessageCode,
   MessageTemplate,
 } from '@venizia/ignis-helpers/core';
-import { HTTP, toJsonSafe } from '@venizia/ignis-helpers/common';
+import { HTTP, RedactUtility } from '@venizia/ignis-helpers/common';
 import type { IProvider } from '@venizia/ignis-inversion';
 import type { Context } from 'hono';
 import type { ErrorHandler, HTTPResponseError } from 'hono/types';
 import { REQUEST_ID_KEY } from '../common';
-import { isDatabaseClientError, isRetryableDatabaseError } from './database.handler';
+import { DatabaseErrorHandler } from './database.handler';
 import {
   ApplicationErrorTypes,
   DATABASE_RETRYABLE_ERROR_CODE,
   DATABASE_RETRYABLE_ERROR_MESSAGE,
 } from './definition';
 import type { IResolvedApplicationError, TApplicationErrorType } from './common';
-import { formatZodError } from './zod.handler';
+import { ZodErrorHandler } from './zod.handler';
 
 const DEFAULT_INTERNAL_ERROR_MESSAGE = 'Internal Server Error';
 
@@ -37,7 +37,7 @@ export type TErrorLogFormatter = (opts: {
 }) => string;
 
 type TThrown = Error | HTTPResponseError;
-type TDatabaseClientError = ReturnType<typeof isDatabaseClientError>;
+type TDatabaseClientError = ReturnType<typeof DatabaseErrorHandler.isDatabaseClientError>;
 
 /**
  * Renders a value into one log-safe fragment.
@@ -59,7 +59,7 @@ const renderValue = (opts: { value: unknown }): string => {
     return value;
   }
 
-  const safe = toJsonSafe({ value });
+  const safe = RedactUtility.toJsonSafe({ value });
 
   try {
     return JSON.stringify(safe) ?? String(value);
@@ -72,6 +72,7 @@ const renderValue = (opts: { value: unknown }): string => {
       );
 
       return rendered ?? String(value);
+      // eslint-disable-next-line venizia/no-silent-catch -- the marker returned below is the report; the only thing lost is the unrenderable value's text in the log line
     } catch {
       // Not a swallowed failure: this marker IS the report, and it lands in the log line the caller
       // is building.
@@ -233,7 +234,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
       return ApplicationErrorTypes.DATABASE_CLIENT;
     }
 
-    if (isRetryableDatabaseError({ error })) {
+    if (DatabaseErrorHandler.isRetryableDatabaseError({ error })) {
       return ApplicationErrorTypes.DATABASE_RETRYABLE;
     }
 
@@ -295,7 +296,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
 
   private resolve(opts: { error: TThrown; isProduction: boolean }): IResolvedApplicationError {
     const { error, isProduction } = opts;
-    const dbError = isDatabaseClientError({ error, isProduction });
+    const dbError = DatabaseErrorHandler.isDatabaseClientError({ error, isProduction });
     const type = this.classify({ error, dbError });
 
     switch (type) {
@@ -420,7 +421,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
       const isProduction = this.isProduction({ context, error, requestId });
 
       if (error.name === 'ZodError') {
-        const rs = formatZodError({
+        const rs = ZodErrorHandler.formatZodError({
           isProduction,
           requestId,
           url: context.req.url,

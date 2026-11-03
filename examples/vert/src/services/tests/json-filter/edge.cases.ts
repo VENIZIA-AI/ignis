@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -35,19 +35,19 @@ export class EdgeCases extends BaseTestCases {
       await repo.createAll({
         data: [
           {
-            code: `OBJ_A_${getUID()}`,
+            code: `OBJ_A_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: { role: 'admin', permissions: ['read', 'write'] },
           },
           {
-            code: `OBJ_B_${getUID()}`,
+            code: `OBJ_B_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: { role: 'user', permissions: ['read'] },
           },
           {
-            code: `OBJ_C_${getUID()}`,
+            code: `OBJ_C_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: { role: 'admin', permissions: ['read', 'write'] },
@@ -83,7 +83,11 @@ export class EdgeCases extends BaseTestCases {
       await repo.deleteAll({ where: { group } });
     } catch (error) {
       this.context.logger.error('[CASE 18] FAILED | Error: %s', (error as Error).message);
-      await repo.deleteAll({ where: { group } }).catch(() => {});
+      try {
+        await repo.deleteAll({ where: { group } });
+      } catch (cleanupError) {
+        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+      }
     }
   }
 
@@ -102,19 +106,19 @@ export class EdgeCases extends BaseTestCases {
       await repo.createAll({
         data: [
           {
-            code: `EMPTY_A_${getUID()}`,
+            code: `EMPTY_A_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: { name: 'A', metadata: {} },
           },
           {
-            code: `EMPTY_B_${getUID()}`,
+            code: `EMPTY_B_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: { name: 'B', metadata: { key: 'value' } },
           },
           {
-            code: `EMPTY_C_${getUID()}`,
+            code: `EMPTY_C_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: { name: 'C', metadata: {} },
@@ -146,7 +150,11 @@ export class EdgeCases extends BaseTestCases {
       await repo.deleteAll({ where: { group } });
     } catch (error) {
       this.context.logger.error('[CASE 19] FAILED | Error: %s', (error as Error).message);
-      await repo.deleteAll({ where: { group } }).catch(() => {});
+      try {
+        await repo.deleteAll({ where: { group } });
+      } catch (cleanupError) {
+        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+      }
     }
   }
 
@@ -167,31 +175,31 @@ export class EdgeCases extends BaseTestCases {
       await repo.createAll({
         data: [
           {
-            code: `MIXED_A_${getUID()}`,
+            code: `MIXED_A_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: { priority: 5, status: 'active' }, // Number
           },
           {
-            code: `MIXED_B_${getUID()}`,
+            code: `MIXED_B_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: { priority: 'high', status: 'active' }, // String! Previously would crash
           },
           {
-            code: `MIXED_C_${getUID()}`,
+            code: `MIXED_C_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: { priority: 10, status: 'pending' }, // Number
           },
           {
-            code: `MIXED_D_${getUID()}`,
+            code: `MIXED_D_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: { priority: null, status: 'inactive' }, // Null! Previously would crash
           },
           {
-            code: `MIXED_E_${getUID()}`,
+            code: `MIXED_E_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: { status: 'unknown' }, // Missing field! Previously would crash
@@ -239,7 +247,11 @@ export class EdgeCases extends BaseTestCases {
       this.context.logger.error(
         '[CASE 20] This likely means numeric casting crashed on non-numeric values',
       );
-      await repo.deleteAll({ where: { group } }).catch(() => {});
+      try {
+        await repo.deleteAll({ where: { group } });
+      } catch (cleanupError) {
+        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+      }
     }
   }
 }

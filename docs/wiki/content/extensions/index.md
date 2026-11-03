@@ -29,14 +29,14 @@ Every peer dependency below is optional. You install one only when you use the h
 | [Environment](./helpers/env/) | Env var management | You need typed, validated env var access | None |
 | [Error](./helpers/error/) | Error utilities | You throw or handle an error | None |
 | [Inversion](./helpers/inversion/) | DI container | You build custom bindings or providers | None |
-| [Logger](./helpers/logger/) | Logging | You need scoped, leveled logging | `winston` or `pino` |
+| [Logger](./helpers/logger/) | Logging | You need scoped, leveled logging | none for the console; `winston` or `pino` optional |
 | [Network](./helpers/network/) | HTTP/TCP/UDP clients | You call another service over HTTP, TCP, or UDP | `axios`, for the Axios client only |
 | [Kafka](./helpers/kafka/) | Kafka messaging | You publish or consume Kafka topics | `@platformatic/kafka` |
 | [Queue](./helpers/queue/) | Job queues | You need background or delayed work | `bullmq` or `mqtt` |
 | [Redis](./helpers/redis/) | Redis client | You need a Redis connection - cache, pub/sub, locks | `ioredis` |
 | [Secrets](./helpers/secrets/) | Secret loading and rotation | You read secrets from Vault, dotenv, or the environment | `node-vault` or `@dotenvx/dotenvx` |
 | [Socket.IO](./helpers/socket-io/) | Socket.IO server | You build a custom real-time feature | `socket.io` |
-| [Storage](./helpers/storage/) | File storage | You read/write files to S3 or disk directly | None for the Bun S3 backend, which uses Bun's own client; `minio` for the MinIO one |
+| [Storage](./helpers/storage/) | File storage | You read/write files to S3 or disk directly | None for the Bun S3 backend, which uses Bun's own client (it also reaches MinIO servers) |
 | [Types](./helpers/types/) | Shared types | You need IGNIS's shared TypeScript utility types | None |
 | [UID](./helpers/uid/) | Snowflake IDs | You need unique, sortable IDs | None |
 | [WebSocket](./helpers/websocket/) | WebSocket server | You build a custom real-time feature | None |

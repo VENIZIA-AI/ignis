@@ -67,7 +67,7 @@ async sendBulkNotifications(users: Array<{ email: string; name: string }>) {
 }
 ```
 
-- **Concurrency defaults to `MailDefaults.BATCH_CONCURRENCY` (`5`).** `sendBatch()` runs every message through `send()` with `executePromiseWithLimit()`.
+- **Concurrency defaults to `MailDefaults.BATCH_CONCURRENCY` (`5`).** `sendBatch()` runs every message through `send()` with `PromiseUtility.executeWithLimit()`.
 - **One bad message never aborts the batch.** A `send()` that throws is caught per-message and converted to `{ success: false, error }`; only a failure of the batch operation itself throws `BATCH_SEND_FAILED`.
 
 ### Message validation
@@ -368,15 +368,15 @@ await executor.setProcessor(
 
 | Generator | Implements | Behavior |
 |-----------|-----------|----------|
-| `NumericCodeGenerator` | `IVerificationCodeGenerator` | `crypto.randomInt(0, 10^length)`, zero-padded via `padStart()` -- e.g. code `42` at length `6` becomes `"000042"` |
-| `RandomTokenGenerator` | `IVerificationTokenGenerator` | `crypto.randomBytes(bytes).toString('base64url')` -- 32 bytes produces a 43-character string, URL-safe, no padding |
+| `NumericCodeGenerator` | `IVerificationCodeGenerator` | a uniform random integer in `[0, 10^length)` from `crypto.getRandomValues` (rejection sampling, so no code is likelier), zero-padded via `padStart()` -- e.g. code `42` at length `6` becomes `"000042"` |
+| `RandomTokenGenerator` | `IVerificationTokenGenerator` | `bytes` random bytes from `crypto.getRandomValues`, as base64url -- 32 bytes produces a 43-character string, URL-safe, no padding |
 | `DefaultVerificationDataGenerator` | `IVerificationDataGenerator` | Composes both generators via `@inject`, producing a full `IVerificationData` with separate expiries |
 
 `DefaultVerificationDataGenerator.generateVerificationData()` returns:
 
 - A short numeric code (manual entry: SMS, email)
 - A long base64url token (URL-based verification links)
-- Separate expiries: code via `getExpiryTime(minutes)`, token via `getExpiryTimeInHours(hours)`
+- Separate expiries: code via `MailVerificationUtility.getExpiryTime({ minutes })`, token via `MailVerificationUtility.getExpiryTimeInHours({ hours })`
 - ISO 8601 generation timestamps, `codeAttempts: 0`, `lastCodeSentAt` set to now
 
 **End-to-end verification flow:**

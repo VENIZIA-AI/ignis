@@ -46,12 +46,16 @@ describe('BasePoolHelper - destroy() while a create() is still in flight', () =>
   test('the late resource is destroyed, not parked in idle where nothing would ever close it', async () => {
     const { pool, created, destroyed, finishCreate } = buildPool();
 
-    const acquiring = pool.acquire().catch(() => 'rejected');
+    const acquiring = pool.acquire().catch((error: unknown) => {
+      expect(error).toBeInstanceOf(Error);
+      return 'rejected';
+    });
     // Let the dispatch loop reach the awaited create().
     await Bun.sleep(10);
 
     await pool.destroy();
-    expect(await acquiring).toBe('rejected');
+    const result = await acquiring;
+    expect(result).toBe('rejected');
 
     finishCreate();
     await Bun.sleep(30);

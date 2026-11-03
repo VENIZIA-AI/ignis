@@ -15,7 +15,8 @@ describe('envelope round-trip', () => {
     expect(rebuilt.method).toBe('POST');
     expect(rebuilt.url).toBe('http://ignis.internal/orders?limit=20');
     expect(rebuilt.headers.get('x-trace')).toBe('abc');
-    expect(await rebuilt.json()).toEqual({ note: 'hello' });
+    const result = await rebuilt.json();
+    expect(result).toEqual({ note: 'hello' });
   });
 
   test('the envelope is structured-cloneable, which a Request is not', async () => {
@@ -38,7 +39,8 @@ describe('envelope round-trip', () => {
 
     expect(rebuilt.status).toBe(201);
     expect(rebuilt.headers.get('content-type')).toBe('application/json');
-    expect(await rebuilt.json()).toEqual([{ id: 1 }]);
+    const result = await rebuilt.json();
+    expect(result).toEqual([{ id: 1 }]);
   });
 
   test('a body is carried as an ArrayBuffer, never a stream', async () => {

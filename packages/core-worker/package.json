@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-worker",
-  "version": "0.4.6",
+  "version": "0.4.7-6",
   "description": "Browser Web Worker host for the IGNIS framework: the request/response envelope, the transport contract, and WorkerApplication - the layer that listens on `onmessage` instead of a socket, so a RestApplication can serve its controllers with no server anywhere.",
   "keywords": [
     "browser",
@@ -52,8 +52,7 @@
     "access": "public"
   },
   "scripts": {
-    "force-update": "sh ../../scripts/build/force-update.sh",
-    "prepublishOnly": "make rebuild"
+    "force-update": "sh ../../scripts/build/force-update.sh"
   },
   "dependencies": {
     "@venizia/ignis-helpers": "workspace:*",

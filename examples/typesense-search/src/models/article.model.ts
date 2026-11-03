@@ -1,16 +1,16 @@
 import { model } from '@venizia/ignis';
 import {
   BaseSearchEntity,
-  defineSearchCollection,
+  SearchCollectionFactory,
   field,
   type TSearchDocument,
-} from '@venizia/ignis/typesense';
+} from '@venizia/ignis-connectors/typesense';
 
 // A search collection replaces a Drizzle pgTable: `field.*` declares the wire shape instead of
 // column builders. `id` is auto-prepended, so it is never listed here.
 @model()
 export class ArticleDocument extends BaseSearchEntity<typeof ArticleDocument.schema> {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'articles',
     fields: [
       field.string('title', { searchable: true, sortable: true }),

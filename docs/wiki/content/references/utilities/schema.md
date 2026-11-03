@@ -12,17 +12,17 @@ Helper functions and predefined schemas for working with `zod` and `@hono/zod-op
 ## In one example
 
 ```typescript
-import { jsonResponse, requiredString, idParamsSchema } from '@venizia/ignis';
+import { OpenApiResponses, OpenApiSchemas } from '@venizia/ignis';
 import { z } from '@hono/zod-openapi';
 
-const UserSchema = z.object({ id: z.number(), name: requiredString({ min: 1, max: 50 }) });
+const UserSchema = z.object({ id: z.number(), name: OpenApiSchemas.requiredString({ min: 1, max: 50 }) });
 
 this.defineRoute({
   configs: {
     path: '/{id}',
     method: 'get',
-    request: { params: idParamsSchema({ idType: 'number' }) },
-    responses: jsonResponse({ schema: UserSchema, description: 'A single user object' }),
+    request: { params: OpenApiSchemas.idParams({ idType: 'number' }) },
+    responses: OpenApiResponses.jsonResponse({ schema: UserSchema, description: 'A single user object' }),
   },
   handler: (context) => {
     const { id } = context.req.valid('param');
@@ -74,7 +74,7 @@ this.defineRoute({
 
 - [Utilities Overview](/references/utilities/) - all utility functions
 - [JSX Utility](/references/utilities/jsx) - `htmlContent()` / `htmlResponse()` for HTML routes
-- [Parse Utility](/references/utilities/parse) - `toCamel()` / `keysToCamel()`, the transforms `snakeToCamel` builds on
+- [Parse Utility](/references/utilities/parse) - `ParseUtility.toCamel()` / `ParseUtility.keysToCamel()`, the transforms `snakeToCamel` builds on
 - [REST Controllers Guide](/guides/core-concepts/rest-controllers) - defining routes with `request`/`responses`
 
 **Files:**

@@ -119,6 +119,7 @@ class LockManagerStub {
     // `held` promise returned below. This chain exists only to release the lock, which a real
     // `LockManager` does whether the callback resolved or threw.
     this.holder = held
+      // eslint-disable-next-line venizia/no-silent-catch -- the caller sees the rejection through `held`; this chain only releases the lock, so nothing is lost here
       .catch(() => undefined)
       .finally(() => {
         this.holder = undefined;
@@ -282,7 +283,8 @@ describe('SharedBffTransport', () => {
     expect(transport.getRole()).toBe(BffRoles.LEADER);
 
     const response = await transport.fetch({ request: new Request('http://app.test/api/notes') });
-    expect(await response.json()).toMatchObject({ served: true, path: '/api/notes' });
+    const result = await response.json();
+    expect(result).toMatchObject({ served: true, path: '/api/notes' });
   });
 
   test('the first tab leads and the second follows', async () => {
@@ -325,7 +327,8 @@ describe('SharedBffTransport', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({
+    const result = await response.json();
+    expect(result).toMatchObject({
       served: true,
       path: '/api/notes',
       method: 'POST',
@@ -373,7 +376,8 @@ describe('SharedBffTransport', () => {
     expect(AnsweringWorker.createdCount).toBe(2);
 
     const response = await follower.fetch({ request: new Request('http://app.test/api/notes') });
-    expect(await response.json()).toMatchObject({ served: true });
+    const result = await response.json();
+    expect(result).toMatchObject({ served: true });
   });
 
   test('closing rejects whatever it was still waiting for', async () => {

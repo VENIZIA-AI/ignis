@@ -7,21 +7,27 @@ export class AstNodeTypes {
   static readonly ARROW_FUNCTION_EXPRESSION = 'ArrowFunctionExpression';
   static readonly EXPORT_NAMED_DECLARATION = 'ExportNamedDeclaration';
   static readonly UNION_TYPE = 'TSUnionType';
+  static readonly AWAIT_EXPRESSION = 'AwaitExpression';
+  static readonly RETURN_STATEMENT = 'ReturnStatement';
+  static readonly CATCH_CLAUSE = 'CatchClause';
 }
 
 /** The ESLint namespace the house rules live under: `venizia/<rule>`. */
 export const HOUSE_PLUGIN_NAMESPACE = 'venizia';
 
-/** A field of an AST node, read without trusting its type: TypeScript nodes carry fields estree does not declare. */
-export const readField = (opts: { node: unknown; key: string }): unknown => {
-  const { node, key } = opts;
-  return typeof node === 'object' && node !== null && key in node
-    ? Reflect.get(node, key)
-    : undefined;
-};
+/** Reads an AST node without trusting its type: TypeScript nodes carry fields estree does not declare. */
+export class AstNode {
+  /** A field of an AST node. */
+  static readField(opts: { node: unknown; key: string }): unknown {
+    const { node, key } = opts;
+    return typeof node === 'object' && node !== null && key in node
+      ? Reflect.get(node, key)
+      : undefined;
+  }
 
-/** The node's `type`, or `undefined` for anything that is not an AST node. */
-export const nodeType = (opts: { node: unknown }): string | undefined => {
-  const type = readField({ node: opts.node, key: 'type' });
-  return typeof type === 'string' ? type : undefined;
-};
+  /** The node's `type`, or `undefined` for anything that is not an AST node. */
+  static getType(opts: { node: unknown }): string | undefined {
+    const type = AstNode.readField({ node: opts.node, key: 'type' });
+    return typeof type === 'string' ? type : undefined;
+  }
+}

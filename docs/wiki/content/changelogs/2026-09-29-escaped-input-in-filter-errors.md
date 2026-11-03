@@ -10,28 +10,24 @@ packages: ['@venizia/ignis-connectors', '@venizia/ignis-filter']
 
 <Badge type="info" text="Bug Fix" />
 
-**In one line.** An error that quotes a key, field or order entry a request sent now writes every unsafe character as an escape, so the message stays on one line.
+**In one line.** A crafted key can no longer forge a log line: errors that quote a key, field or order entry a request sent now write every unsafe character as a `\uXXXX` escape.
 
 ## What changed
 
-A key such as `na\nme` used to print a real newline inside the message, so a caller could split a log line or send terminal control sequences. Now these characters come out as `\uXXXX` escapes:
+A key such as `na\nme` used to print a real newline inside the message, so a caller could split a log line or send terminal control sequences. These characters are now escaped:
 
 - C0 control characters (`\u0000`-`\u001f`), including newline, carriage return, ESC and NUL;
 - DEL (`\u007f`) and the C1 range (`\u0080`-`\u009f`);
-- the Unicode line and paragraph separators (` `, ` `).
+- the Unicode line and paragraph separators.
 
-| Message | Where |
-|---|---|
-| `Column NOT FOUND \| key: '...'` | relational `toWhere`, `toOrderBy`, JSON-path columns, and updates |
-| `Invalid JSON path component: '...'` | relational JSON-path keys |
-| `Field NOT FOUND \| field: '...'` | Typesense and Meilisearch |
-| `[parseOrderEntry] ... \| entry: "..."` | every dialect's order parser |
+The messages covered:
+
+- `Column NOT FOUND | key: '...'` (relational `toWhere`, `toOrderBy`, JSON-path columns, and updates)
+- `Invalid JSON path component: '...'`
+- `Field NOT FOUND | field: '...'` (Typesense and Meilisearch)
+- `[parseOrderEntry] ... | entry: "..."` (every dialect's order parser)
 
 ## Who is affected
 
-- **Anyone who reads these messages in logs.** A crafted key can no longer forge a log line.
-- **A test that asserts one of these messages for a key with a control character.** It now sees the escape instead of the raw character. Messages for ordinary keys are unchanged.
-
-## Migration
-
-None.
+- **Anyone who reads these messages in logs.** No action needed.
+- **A test that asserts one of these messages for a key with a control character.** It now sees the escape. Messages for ordinary keys are unchanged.

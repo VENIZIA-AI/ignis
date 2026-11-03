@@ -1,18 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import type { AnyType } from '@/common/types';
-import {
-  float,
-  getUID,
-  int,
-  isFloat,
-  isInt,
-  keysToCamel,
-  parseArrayToMapWithKey,
-  toBoolean,
-  toCamel,
-  toDelimitedArray,
-  toTrimmed,
-} from '@/utilities/parse.utility';
+import { ParseUtility } from '@/utilities/parse.utility';
 
 const realRandom = Math.random;
 
@@ -23,100 +11,104 @@ const wirePayload = (json: string): Record<string, unknown> => {
 
 describe('int', () => {
   test('parses plain numeric input', () => {
-    expect(int(42)).toBe(42);
-    expect(int('42')).toBe(42);
-    expect(int('42.9')).toBe(42);
-    expect(int(-7)).toBe(-7);
-    expect(int('0x10')).toBe(0);
+    expect(ParseUtility.toInt({ input: 42 })).toBe(42);
+    expect(ParseUtility.toInt({ input: '42' })).toBe(42);
+    expect(ParseUtility.toInt({ input: '42.9' })).toBe(42);
+    expect(ParseUtility.toInt({ input: -7 })).toBe(-7);
+    expect(ParseUtility.toInt({ input: '0x10' })).toBe(0);
   });
 
   test('returns 0 for garbage, empty and nullish input', () => {
-    expect(int('abc')).toBe(0);
-    expect(int('')).toBe(0);
-    expect(int(undefined)).toBe(0);
-    expect(int(null)).toBe(0);
-    expect(int(Number.NaN)).toBe(0);
-    expect(int({})).toBe(0);
-    expect(int('12px')).toBe(0);
-    expect(int(true)).toBe(0);
+    expect(ParseUtility.toInt({ input: 'abc' })).toBe(0);
+    expect(ParseUtility.toInt({ input: '' })).toBe(0);
+    expect(ParseUtility.toInt({ input: undefined })).toBe(0);
+    expect(ParseUtility.toInt({ input: null })).toBe(0);
+    expect(ParseUtility.toInt({ input: Number.NaN })).toBe(0);
+    expect(ParseUtility.toInt({ input: {} })).toBe(0);
+    expect(ParseUtility.toInt({ input: '12px' })).toBe(0);
+    expect(ParseUtility.toInt({ input: true })).toBe(0);
   });
 
   test('strips thousand separators - the comma normalization must actually be reachable', () => {
-    expect(int('1,234')).toBe(1234);
-    expect(int('1,234,567')).toBe(1_234_567);
+    expect(ParseUtility.toInt({ input: '1,234' })).toBe(1234);
+    expect(ParseUtility.toInt({ input: '1,234,567' })).toBe(1_234_567);
   });
 });
 
 describe('float', () => {
   test('parses and rounds to the requested precision', () => {
-    expect(float('3.14159')).toBe(3.14);
-    expect(float('3.14159', 4)).toBe(3.1416);
-    expect(float(2)).toBe(2);
+    expect(ParseUtility.toFloat({ input: '3.14159' })).toBe(3.14);
+    expect(ParseUtility.toFloat({ input: '3.14159', digit: 4 })).toBe(3.1416);
+    expect(ParseUtility.toFloat({ input: 2 })).toBe(2);
   });
 
   test('returns 0 for garbage, empty and nullish input', () => {
-    expect(float('abc')).toBe(0);
-    expect(float('')).toBe(0);
-    expect(float(undefined)).toBe(0);
-    expect(float(null)).toBe(0);
-    expect(float(0)).toBe(0);
+    expect(ParseUtility.toFloat({ input: 'abc' })).toBe(0);
+    expect(ParseUtility.toFloat({ input: '' })).toBe(0);
+    expect(ParseUtility.toFloat({ input: undefined })).toBe(0);
+    expect(ParseUtility.toFloat({ input: null })).toBe(0);
+    expect(ParseUtility.toFloat({ input: 0 })).toBe(0);
   });
 
   test('strips thousand separators - the comma normalization must actually be reachable', () => {
-    expect(float('1,234.567', 2)).toBe(1234.57);
-    expect(float('12,345')).toBe(12345);
+    expect(ParseUtility.toFloat({ input: '1,234.567', digit: 2 })).toBe(1234.57);
+    expect(ParseUtility.toFloat({ input: '12,345' })).toBe(12345);
   });
 });
 
 describe('isInt / isFloat', () => {
   test('isInt accepts integral numbers and integral numeric strings', () => {
-    expect(isInt(5)).toBe(true);
-    expect(isInt('5')).toBe(true);
-    expect(isInt(5.5)).toBe(false);
-    expect(isInt('abc')).toBe(false);
+    expect(ParseUtility.isInt({ input: 5 })).toBe(true);
+    expect(ParseUtility.isInt({ input: '5' })).toBe(true);
+    expect(ParseUtility.isInt({ input: 5.5 })).toBe(false);
+    expect(ParseUtility.isInt({ input: 'abc' })).toBe(false);
   });
 
   test('isFloat accepts numbers and fractional strings', () => {
-    expect(isFloat(5.5)).toBe(true);
-    expect(isFloat('5.5')).toBe(true);
-    expect(isFloat(5)).toBe(true);
-    expect(isFloat('abc')).toBe(false);
+    expect(ParseUtility.isFloat({ input: 5.5 })).toBe(true);
+    expect(ParseUtility.isFloat({ input: '5.5' })).toBe(true);
+    expect(ParseUtility.isFloat({ input: 5 })).toBe(true);
+    expect(ParseUtility.isFloat({ input: 'abc' })).toBe(false);
   });
 });
 
 describe('toCamel', () => {
   test('camelizes snake and kebab segments', () => {
-    expect(toCamel('first_name')).toBe('firstName');
-    expect(toCamel('first-name')).toBe('firstName');
-    expect(toCamel('a_b_c')).toBe('aBC');
+    expect(ParseUtility.toCamel({ input: 'first_name' })).toBe('firstName');
+    expect(ParseUtility.toCamel({ input: 'first-name' })).toBe('firstName');
+    expect(ParseUtility.toCamel({ input: 'a_b_c' })).toBe('aBC');
   });
 
   test('leaves an already-camel key untouched', () => {
-    expect(toCamel('firstName')).toBe('firstName');
-    expect(toCamel('id')).toBe('id');
-    expect(toCamel('')).toBe('');
+    expect(ParseUtility.toCamel({ input: 'firstName' })).toBe('firstName');
+    expect(ParseUtility.toCamel({ input: 'id' })).toBe('id');
+    expect(ParseUtility.toCamel({ input: '' })).toBe('');
   });
 
   test('a leading underscore is consumed and the next letter capitalized (pinned behavior)', () => {
-    expect(toCamel('_private')).toBe('Private');
-    expect(toCamel('__x')).toBe('_X');
+    expect(ParseUtility.toCamel({ input: '_private' })).toBe('Private');
+    expect(ParseUtility.toCamel({ input: '__x' })).toBe('_X');
   });
 
   test('a separator followed by a digit is left in place (pinned behavior)', () => {
-    expect(toCamel('address_1')).toBe('address_1');
-    expect(toCamel('utm_2source')).toBe('utm_2source');
+    expect(ParseUtility.toCamel({ input: 'address_1' })).toBe('address_1');
+    expect(ParseUtility.toCamel({ input: 'utm_2source' })).toBe('utm_2source');
   });
 });
 
 describe('keysToCamel', () => {
   test('camelizes flat keys', () => {
-    const result = keysToCamel(wirePayload('{"first_name":"a","last_name":"b","id":1}'));
+    const result = ParseUtility.keysToCamel({
+      source: wirePayload('{"first_name":"a","last_name":"b","id":1}'),
+    });
 
     expect(result).toEqual({ firstName: 'a', lastName: 'b', id: 1 });
   });
 
   test('recurses into nested objects', () => {
-    const result = keysToCamel(wirePayload('{"outer_key":{"inner_key":{"deep_key":1}}}'));
+    const result = ParseUtility.keysToCamel({
+      source: wirePayload('{"outer_key":{"inner_key":{"deep_key":1}}}'),
+    });
 
     expect(result).toEqual({ outerKey: { innerKey: { deepKey: 1 } } });
   });
@@ -128,7 +120,7 @@ describe('keysToCamel', () => {
     source['undefined_value'] = undefined;
     source['created_at'] = date;
 
-    const result = keysToCamel(source);
+    const result = ParseUtility.keysToCamel({ source });
 
     expect(result.nullValue).toBeNull();
     expect(result.undefinedValue).toBeUndefined();
@@ -136,11 +128,11 @@ describe('keysToCamel', () => {
   });
 
   test('camelizes keys of objects nested inside arrays', () => {
-    const result = keysToCamel(
-      wirePayload(
+    const result = ParseUtility.keysToCamel({
+      source: wirePayload(
         '{"user_list":[{"first_name":"a"},{"first_name":"b","nested_one":{"deep_key":2}}],"scalar_list":[1,"two",null]}',
       ),
-    );
+    });
 
     expect(result.userList).toEqual([
       { firstName: 'a' },
@@ -150,7 +142,7 @@ describe('keysToCamel', () => {
   });
 
   test('an array value stays an array - never collapsed into an index-keyed object', () => {
-    const result = keysToCamel(wirePayload('{"items":[1,2,3]}'));
+    const result = ParseUtility.keysToCamel({ source: wirePayload('{"items":[1,2,3]}') });
 
     expect(Array.isArray(result.items)).toBe(true);
     expect(result.items).toEqual([1, 2, 3]);
@@ -170,65 +162,67 @@ describe('keysToCamel', () => {
  */
 describe('toBoolean', () => {
   test('treats the falsy wire values as false', () => {
-    expect(toBoolean('')).toBe(false);
-    expect(toBoolean('false')).toBe(false);
-    expect(toBoolean('0')).toBe(false);
-    expect(toBoolean(false)).toBe(false);
-    expect(toBoolean(0)).toBe(false);
-    expect(toBoolean(null)).toBe(false);
-    expect(toBoolean(undefined)).toBe(false);
+    expect(ParseUtility.toBoolean({ input: '' })).toBe(false);
+    expect(ParseUtility.toBoolean({ input: 'false' })).toBe(false);
+    expect(ParseUtility.toBoolean({ input: '0' })).toBe(false);
+    expect(ParseUtility.toBoolean({ input: false })).toBe(false);
+    expect(ParseUtility.toBoolean({ input: 0 })).toBe(false);
+    expect(ParseUtility.toBoolean({ input: null })).toBe(false);
+    expect(ParseUtility.toBoolean({ input: undefined })).toBe(false);
   });
 
   test('treats everything else as true (pinned - any non-empty string is truthy)', () => {
-    expect(toBoolean('true')).toBe(true);
-    expect(toBoolean('1')).toBe(true);
-    expect(toBoolean(true)).toBe(true);
-    expect(toBoolean(1)).toBe(true);
-    expect(toBoolean('anything')).toBe(true);
-    expect(toBoolean('FALSE')).toBe(true);
+    expect(ParseUtility.toBoolean({ input: 'true' })).toBe(true);
+    expect(ParseUtility.toBoolean({ input: '1' })).toBe(true);
+    expect(ParseUtility.toBoolean({ input: true })).toBe(true);
+    expect(ParseUtility.toBoolean({ input: 1 })).toBe(true);
+    expect(ParseUtility.toBoolean({ input: 'anything' })).toBe(true);
+    expect(ParseUtility.toBoolean({ input: 'FALSE' })).toBe(true);
   });
 });
 
 describe('toDelimitedArray / toTrimmed', () => {
   test('splits, trims and drops empty entries', () => {
-    expect(toDelimitedArray('a, b , ,c')).toEqual(['a', 'b', 'c']);
-    expect(toDelimitedArray('a|b', '|')).toEqual(['a', 'b']);
-    expect(toDelimitedArray('')).toEqual([]);
-    expect(toDelimitedArray(null)).toEqual([]);
-    expect(toDelimitedArray(undefined)).toEqual([]);
+    expect(ParseUtility.toDelimitedArray({ input: 'a, b , ,c' })).toEqual(['a', 'b', 'c']);
+    expect(ParseUtility.toDelimitedArray({ input: 'a|b', separator: '|' })).toEqual(['a', 'b']);
+    expect(ParseUtility.toDelimitedArray({ input: '' })).toEqual([]);
+    expect(ParseUtility.toDelimitedArray({ input: null })).toEqual([]);
+    expect(ParseUtility.toDelimitedArray({ input: undefined })).toEqual([]);
   });
 
   test('toTrimmed normalizes a possibly-absent value', () => {
-    expect(toTrimmed('  x  ')).toBe('x');
-    expect(toTrimmed(undefined)).toBe('');
-    expect(toTrimmed(null)).toBe('');
-    expect(toTrimmed(5)).toBe('5');
+    expect(ParseUtility.toTrimmed({ input: '  x  ' })).toBe('x');
+    expect(ParseUtility.toTrimmed({ input: undefined })).toBe('');
+    expect(ParseUtility.toTrimmed({ input: null })).toBe('');
+    expect(ParseUtility.toTrimmed({ input: 5 })).toBe('5');
   });
 });
 
 describe('parseArrayToMapWithKey', () => {
   test('keys by the given field, last element wins', () => {
-    const result = parseArrayToMapWithKey(
-      [
+    const result = ParseUtility.parseArrayToMapWithKey({
+      items: [
         { id: 1, name: 'first' },
         { id: 2, name: 'second' },
         { id: 1, name: 'override' },
       ],
-      'id',
-    );
+      key: 'id',
+    });
 
     expect(result.size).toBe(2);
     expect(result.get(1)).toEqual({ id: 1, name: 'override' });
   });
 
   test('an empty array yields an empty map', () => {
-    expect(parseArrayToMapWithKey([], 'id').size).toBe(0);
+    expect(ParseUtility.parseArrayToMapWithKey({ items: [], key: 'id' }).size).toBe(0);
   });
 
   test('throws when an element lacks the key', () => {
     const elements = [{ id: 1 }, {} as AnyType];
 
-    expect(() => parseArrayToMapWithKey(elements, 'id')).toThrow('Invalid keyMap');
+    expect(() => ParseUtility.parseArrayToMapWithKey({ items: elements, key: 'id' })).toThrow(
+      'Invalid keyMap',
+    );
   });
 });
 
@@ -239,21 +233,21 @@ describe('getUID', () => {
 
   test('produces an uppercase alphanumeric, non-empty id', () => {
     for (let index = 0; index < 200; index += 1) {
-      const uid = getUID();
+      const uid = ParseUtility.getUID();
       expect(uid).toMatch(/^[0-9A-Z]+$/);
     }
   });
 
   test('is unique across a batch', () => {
-    const ids = new Set(Array.from({ length: 5_000 }, () => getUID()));
+    const ids = new Set(Array.from({ length: 5_000 }, () => ParseUtility.getUID()));
     expect(ids.size).toBe(5_000);
   });
 
   test('degenerate Math.random values yield a degenerate id (pinned - not a collision-safe id source)', () => {
     Math.random = () => 0;
-    expect(getUID()).toBe('');
+    expect(ParseUtility.getUID()).toBe('');
 
     Math.random = () => 0.5;
-    expect(getUID()).toBe('I');
+    expect(ParseUtility.getUID()).toBe('I');
   });
 });

@@ -44,7 +44,7 @@ criterion is topics. A file whose exports all serve one concept stays (the kept 
 
 - A `bun build` bundle initialises modules reached through a dynamic `import()` lazily; a registration
   that must run at import time lives in a module listed in `sideEffects`, not in a leaf file.
-- Moving a runtime function out of a types file (`resolveValue`, `isClass`, `toEntityId`) is part of
+- Moving a runtime function out of a types file (`ResolverUtility.resolveValue`, `isClass`, `ModelUtility.toEntityId`) is part of
   the split: `common/<topic>.ts` for code, `common/types/` for types, both behind the same barrel.
 - Two implementers on one git index: a path-scoped `git commit -- <paths>` is the only safe commit.
 

@@ -52,6 +52,20 @@ const withTimeout = <T>(p: Promise<T>, ms: number, label: string): Promise<T> =>
     ),
   ]);
 
+/** Best-effort teardown: a failed or timed-out step is logged and swallowed, so it never masks the test result. */
+const settleQuietly = async (opts: {
+  pending: Promise<unknown>;
+  ms: number;
+  label: string;
+}): Promise<void> => {
+  const { pending, ms, label } = opts;
+  try {
+    await withTimeout(pending, ms, label);
+  } catch (error) {
+    console.warn(`[kafka.integration] ${label} failed: ${(error as Error).message}`);
+  }
+};
+
 const createdTopics: string[] = [];
 let topicSeq = 0;
 const freshTopicName = (): string => {
@@ -99,18 +113,22 @@ afterAll(async () => {
     return;
   }
   if (createdTopics.length) {
-    await withTimeout(
-      admin.getAdmin().deleteTopics({ topics: createdTopics }),
-      30_000,
-      'afterAll deleteTopics',
-    ).catch(() => {
-      /* best-effort cleanup */
+    await settleQuietly({
+      pending: admin.getAdmin().deleteTopics({ topics: createdTopics }),
+      ms: 30_000,
+      label: 'afterAll deleteTopics',
     });
   }
-  await withTimeout(producer.close({ isForce: true }), 10_000, 'afterAll producer.close').catch(
-    () => {},
-  );
-  await withTimeout(admin.close({ isForce: true }), 10_000, 'afterAll admin.close').catch(() => {});
+  await settleQuietly({
+    pending: producer.close({ isForce: true }),
+    ms: 10_000,
+    label: 'afterAll producer.close',
+  });
+  await settleQuietly({
+    pending: admin.close({ isForce: true }),
+    ms: 10_000,
+    label: 'afterAll admin.close',
+  });
 }, 60_000);
 
 // --- Admin ---
@@ -132,11 +150,8 @@ describe('KafkaAdminHelper (live)', () => {
     async () => {
       const topic = freshTopicName();
       await createTopic(topic, 2);
-      const topics = (await withTimeout(
-        admin.getAdmin().listTopics({}),
-        20_000,
-        'listTopics',
-      )) as string[];
+      const result = await withTimeout(admin.getAdmin().listTopics({}), 20_000, 'listTopics');
+      const topics = result as string[];
       expect(topics).toContain(topic);
     },
     TIMEOUT,
@@ -216,7 +231,11 @@ describe('KafkaProducerHelper (live)', () => {
         );
         expect(result).toBe('ok');
       } finally {
-        await withTimeout(txProducer.close({ isForce: true }), 10_000, 'tx.close').catch(() => {});
+        await settleQuietly({
+          pending: txProducer.close({ isForce: true }),
+          ms: 10_000,
+          label: 'tx.close',
+        });
       }
     },
     TIMEOUT,
@@ -253,7 +272,11 @@ describe('KafkaProducerHelper (live)', () => {
         }
         expect(didThrow).toBe(true);
       } finally {
-        await withTimeout(txProducer.close({ isForce: true }), 10_000, 'tx.close').catch(() => {});
+        await settleQuietly({
+          pending: txProducer.close({ isForce: true }),
+          ms: 10_000,
+          label: 'tx.close',
+        });
       }
     },
     TIMEOUT,
@@ -317,7 +340,7 @@ describe('KafkaConsumerHelper (live)', () => {
           expect(got.has(value)).toBe(true);
         }
       } finally {
-        await withTimeout(consumer.close(), 15_000, 'consumer.close').catch(() => {});
+        await settleQuietly({ pending: consumer.close(), ms: 15_000, label: 'consumer.close' });
       }
     },
     TIMEOUT,
@@ -365,7 +388,7 @@ describe('KafkaConsumerHelper (live)', () => {
         expect(didJoin).toBe(true);
         expect(doneCount).toBeGreaterThan(0);
       } finally {
-        await withTimeout(consumer.close(), 15_000, 'consumer.close').catch(() => {});
+        await settleQuietly({ pending: consumer.close(), ms: 15_000, label: 'consumer.close' });
       }
     },
     TIMEOUT,
@@ -409,7 +432,7 @@ describe('KafkaConsumerHelper (live)', () => {
         expect(errorSeen).not.toBeNull();
         expect((errorSeen as AnyType as Error).message).toBe('handler-failure');
       } finally {
-        await withTimeout(consumer.close(), 15_000, 'consumer.close').catch(() => {});
+        await settleQuietly({ pending: consumer.close(), ms: 15_000, label: 'consumer.close' });
       }
     },
     TIMEOUT,
@@ -454,7 +477,7 @@ describe('KafkaConsumerHelper (live)', () => {
         );
         await withTimeout(firstReceived, 25_000, 'first.receive');
       } finally {
-        await withTimeout(first.close(), 15_000, 'first.close').catch(() => {});
+        await settleQuietly({ pending: first.close(), ms: 15_000, label: 'first.close' });
       }
 
       // Second consumer, same group, committed mode: should NOT see the message again.
@@ -481,7 +504,7 @@ describe('KafkaConsumerHelper (live)', () => {
         await new Promise((resolve) => setTimeout(resolve, 6_000));
         expect(didRedeliver).toBe(false);
       } finally {
-        await withTimeout(second.close(), 15_000, 'second.close').catch(() => {});
+        await settleQuietly({ pending: second.close(), ms: 15_000, label: 'second.close' });
       }
     },
     60_000,
@@ -510,7 +533,7 @@ describe('KafkaConsumerHelper (live)', () => {
         const stream2 = consumer.getStream();
         expect(stream1).toBe(stream2);
       } finally {
-        await withTimeout(consumer.close(), 15_000, 'consumer.close').catch(() => {});
+        await settleQuietly({ pending: consumer.close(), ms: 15_000, label: 'consumer.close' });
       }
     },
     TIMEOUT,
@@ -560,7 +583,7 @@ describe('KafkaConsumerHelper (live)', () => {
         expect(() => consumer.stopLagMonitoring()).not.toThrow();
         expect(() => consumer.stopLagMonitoring()).not.toThrow(); // duplicate
       } finally {
-        await withTimeout(consumer.close(), 15_000, 'consumer.close').catch(() => {});
+        await settleQuietly({ pending: consumer.close(), ms: 15_000, label: 'consumer.close' });
       }
     },
     TIMEOUT,
@@ -611,7 +634,7 @@ describe('KafkaConsumerHelper (live)', () => {
         expect(settled.join).toBe(baseline.join);
         expect(settled.disc).toBe(baseline.disc);
       } finally {
-        await withTimeout(consumer.close(), 15_000, 'consumer.close').catch(() => {});
+        await settleQuietly({ pending: consumer.close(), ms: 15_000, label: 'consumer.close' });
       }
     },
     60_000,
@@ -634,12 +657,17 @@ describe('Kafka resilience (live config, bad endpoint)', () => {
       let didFail = false;
       try {
         await withTimeout(badAdmin.getAdmin().listTopics({}), 12_000, 'bad-listTopics');
-      } catch {
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
         didFail = true;
       }
       expect(didFail).toBe(true);
       expect(badAdmin.isHealthy()).toBe(false);
-      await withTimeout(badAdmin.close({ isForce: true }), 8_000, 'bad.close').catch(() => {});
+      await settleQuietly({
+        pending: badAdmin.close({ isForce: true }),
+        ms: 8_000,
+        label: 'bad.close',
+      });
     },
     TIMEOUT,
   );

@@ -1,7 +1,7 @@
 import { type AnyType } from '@/common/types';
 import { BaseLogger } from '../base';
 import { type ILogger, type TLogLevel } from '../common';
-import { formatLogMessage } from '../formatting';
+import { LogFormatUtility } from '../formatting';
 import { PinoBackingLogger } from './backing';
 
 /** pino provider satisfying `ILoggerProvider`, staying pino-native: numeric levels, `msg`, epoch `time`, pid/hostname pass through unchanged. No custom-instance param on `get()` unlike `WinstonLogger.get` - advanced/test injection goes through `PinoBackingLogger.set()`. */
@@ -26,7 +26,7 @@ export class PinoLogger extends BaseLogger {
   protected write(opts: { level: TLogLevel; message: string; args: Array<AnyType> }) {
     const line =
       opts.args.length > 0
-        ? formatLogMessage({ message: opts.message, args: opts.args })
+        ? LogFormatUtility.formatMessage({ message: opts.message, args: opts.args })
         : opts.message;
 
     const backing = PinoBackingLogger.get() as AnyType;

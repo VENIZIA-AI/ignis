@@ -8,7 +8,7 @@ UPDATE_TARGETS := $(addprefix update-,$(PACKAGES))
 # INSTALL & CLEAN
 # ----------------------------------------------------------------------------
 install:
-	@echo "📥 Installing dependencies (with force-update via postinstall)..."
+	@echo "📥 Installing dependencies..."
 	@bun install
 	@echo "✅ Install completed."
 
@@ -62,7 +62,8 @@ docs:
 
 # ----------------------------------------------------------------------------
 # FORCE UPDATE TARGETS (fetch latest from NPM registry)
-# Note: 'bun install' triggers postinstall which runs force-update automatically
+# `update` is only an alias of `install` (no package runs a postinstall); the per-package
+# `update-<pkg>` targets are the ones that raise dependencies to the registry's latest.
 # ----------------------------------------------------------------------------
 update: install
 

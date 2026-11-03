@@ -29,17 +29,17 @@ Never hard-coding a secret is not enough on its own. An options object holding o
 
 | Function | Use For | Behavior |
 |----------|---------|----------|
-| `redactSecrets(value)` | Any object/array being logged | Recursively replaces every value whose key matches a secret-looking name with `'[REDACTED]'` |
-| `redactUrlCredentials(url)` | A connection/broker URL string | Strips the password out of a URL's authority section: `mqtts://user:hunter2@broker:8883` becomes `mqtts://user:[REDACTED]@broker:8883`. A value that doesn't parse as a URL, or one with no password, is returned unchanged |
+| `RedactUtility.redactSecrets({ value })` | Any object/array being logged | Recursively replaces every value whose key matches a secret-looking name with `'[REDACTED]'` |
+| `RedactUtility.redactUrlCredentials({ url })` | A connection/broker URL string | Strips the password out of a URL's authority section: `mqtts://user:hunter2@broker:8883` becomes `mqtts://user:[REDACTED]@broker:8883`. A value that doesn't parse as a URL, or one with no password, is returned unchanged |
 
 ```typescript
-import { redactSecrets, redactUrlCredentials } from '@venizia/ignis-helpers';
+import { RedactUtility } from '@venizia/ignis-helpers';
 
-this.logger.info('[connect] Options: %s', redactSecrets(connectionOptions));
-this.logger.info('[connect] Broker: %s', redactUrlCredentials(brokerUrl));
+this.logger.info('[connect] Options: %s', RedactUtility.redactSecrets({ value: connectionOptions }));
+this.logger.info('[connect] Broker: %s', RedactUtility.redactUrlCredentials({ url: brokerUrl }));
 ```
 
-`redactSecrets` matches on the **key name**, case-insensitively, at any depth:
+`RedactUtility.redactSecrets` matches on the **key name**, case-insensitively, at any depth:
 
 - Options-object spellings: `password`, `passphrase`, `secret`, `token`, `apiKey`, `privateKey`, `credentials`, `authorization`, `connectionString`, ...
 - Any `*_token` / `*Token` key: `access_token`, `refresh_token`, `vaultToken`, ...
@@ -59,13 +59,13 @@ These are the primitives the framework itself uses. Outbound HTTP request config
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { jsonContent, jsonResponse } from '@venizia/ignis';
+import { OpenApiResponses } from '@venizia/ignis';
 
 const CreateUserRoute = {
   method: 'post',
   path: '/users',
   request: {
-    body: jsonContent({
+    body: OpenApiResponses.jsonContent({
       schema: z.object({
         email: z.string().email(),           // Valid email
         age: z.number().int().min(18),       // Adult only
@@ -73,7 +73,7 @@ const CreateUserRoute = {
       }),
     }),
   },
-  responses: jsonResponse({ /* ... */ }),
+  responses: OpenApiResponses.jsonResponse({ /* ... */ }),
 } as const;
 ```
 
@@ -123,7 +123,7 @@ Configure model properties that should **never be returned** through repository 
 })
 export class User extends BaseRelationalEntity<typeof User.schema> {
   static override schema = pgTable('User', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
     email: text('email').notNull(),
     password: text('password'),      // Never returned via repository
     apiSecret: text('api_secret'),   // Never returned via repository
@@ -159,21 +159,21 @@ When handling file uploads, prevent **path traversal attacks** and ensure safe f
 
 **Problem:** Malicious filenames like `../../../etc/passwd` can write files outside intended directories.
 
-**Solution:** Use `sanitizeFilename()` to strip dangerous patterns:
+**Solution:** Use `RequestUtility.sanitizeFilename()` to strip dangerous patterns:
 
 ```typescript
-import { sanitizeFilename } from '@venizia/ignis-helpers';
+import { RequestUtility } from '@venizia/ignis-helpers';
 
 // ❌ DANGEROUS - User-controlled filename
 const unsafeFilename = req.body.filename; // Could be "../../../etc/passwd"
 fs.writeFileSync(`./uploads/${unsafeFilename}`, data);
 
 // ✅ SAFE - Sanitized filename
-const safeFilename = sanitizeFilename(req.body.filename);
+const safeFilename = RequestUtility.sanitizeFilename({ filename: req.body.filename });
 fs.writeFileSync(`./uploads/${safeFilename}`, data);
 ```
 
-**What `sanitizeFilename()` does:**
+**What `RequestUtility.sanitizeFilename()` does:**
 - Extracts basename (removes directory paths)
 - Removes dangerous characters (`../`, special chars)
 - Replaces consecutive dots with single dot
@@ -181,12 +181,12 @@ fs.writeFileSync(`./uploads/${safeFilename}`, data);
 
 ### Safe File Download Headers
 
-Use `createContentDispositionHeader()` for secure download responses:
+Use `RequestUtility.buildContentDispositionHeader()` for secure download responses:
 
 ```typescript
 import { z } from '@hono/zod-openapi';
 import { get, type TRouteContext } from '@venizia/ignis';
-import { createContentDispositionHeader, sanitizeFilename } from '@venizia/ignis-helpers';
+import { RequestUtility } from '@venizia/ignis-helpers';
 
 @get({
   configs: {
@@ -198,13 +198,13 @@ import { createContentDispositionHeader, sanitizeFilename } from '@venizia/ignis
 })
 async downloadFile(context: TRouteContext) {
   const { filename } = context.req.valid<{ filename: string }>('param');
-  const safeFilename = sanitizeFilename(filename);
+  const safeFilename = RequestUtility.sanitizeFilename({ filename });
   const fileBuffer = await fs.readFile(`./uploads/${safeFilename}`);
 
   return new Response(fileBuffer, {
     headers: {
       'Content-Type': 'application/octet-stream',
-      'Content-Disposition': createContentDispositionHeader({
+      'Content-Disposition': RequestUtility.buildContentDispositionHeader({
         filename: safeFilename,
         type: 'attachment',
       }),
@@ -215,15 +215,15 @@ async downloadFile(context: TRouteContext) {
 
 ### Built-in Multipart Parsing
 
-Use `parseMultipartBody()` for safe file uploads with automatic sanitization:
+Use `RequestUtility.parseMultipartBody()` for safe file uploads with automatic sanitization:
 
 ```typescript
 import { post, type TRouteContext } from '@venizia/ignis';
-import { HTTP, parseMultipartBody } from '@venizia/ignis-helpers';
+import { HTTP, RequestUtility } from '@venizia/ignis-helpers';
 
 @post({ configs: { path: '/upload' } })
 async uploadFile(context: TRouteContext) {
-  const { files } = await parseMultipartBody({
+  const { files } = await RequestUtility.parseMultipartBody({
     context,
     storage: 'disk',        // or 'memory' for buffer
     uploadDir: './uploads', // Target directory
@@ -526,7 +526,7 @@ Deliberate `getError` messages are always returned verbatim, in every environmen
 - Admin actions
 
 > [!NOTE]
-> When logging a request or connection config that might carry credentials, wrap it in `redactSecrets()` (or `redactUrlCredentials()` for a URL) rather than logging it raw. See [Redaction at Log Time](#redaction-at-log-time) above. This is what the framework's own outbound HTTP and MQTT logging already does automatically.
+> When logging a request or connection config that might carry credentials, wrap it in `RedactUtility.redactSecrets()` (or `RedactUtility.redactUrlCredentials()` for a URL) rather than logging it raw. See [Redaction at Log Time](#redaction-at-log-time) above. This is what the framework's own outbound HTTP and MQTT logging already does automatically.
 
 ## Security Checklist
 

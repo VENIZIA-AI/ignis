@@ -83,7 +83,8 @@ describe('HealthCheckComponent — routes', () => {
 
     const response = await router.request('/health');
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ status: 'ok' });
+    const result = await response.json();
+    expect(result).toMatchObject({ status: 'ok' });
   });
 
   test('POST /health/ping echoes the message back as a PONG', async () => {
@@ -96,7 +97,8 @@ describe('HealthCheckComponent — routes', () => {
     });
     expect(response.status).toBe(200);
 
-    const body = (await response.json()) as Record<string, AnyType>;
+    const result = await response.json();
+    const body = result as Record<string, AnyType>;
     expect(body.type).toBe('PONG');
     expect(body.message).toBe('hello');
     expect(typeof body.date).toBe('string');
@@ -127,7 +129,8 @@ describe('HealthCheckComponent — options resilience', () => {
 
     const response = await router.request('/health');
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ status: 'ok' });
+    const result = await response.json();
+    expect(result).toMatchObject({ status: 'ok' });
   });
 
   test('a partial restOptions binding falls back to the default path instead of crashing at boot', async () => {

@@ -224,11 +224,14 @@ describe('the singleton cache holds any value, falsy ones included', () => {
     const read = () =>
       container.get<Promise<string>>({ key: 'config' }).catch((error: Error) => error.message);
 
-    expect(await read()).toBe('offline');
-    expect(await read()).toBe('offline');
+    const result = await read();
+    expect(result).toBe('offline');
+    const result2 = await read();
+    expect(result2).toBe('offline');
 
     container.clear();
-    expect(await read()).toBe('loaded');
+    const result3 = await read();
+    expect(result3).toBe('loaded');
   });
 
   test('a resolved async singleton stays cached', async () => {

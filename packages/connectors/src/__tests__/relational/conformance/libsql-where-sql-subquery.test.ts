@@ -58,21 +58,23 @@ afterAll(() => {
 
 describe('SQLite - inSql and ninSql', () => {
   test('inSql keeps the rows the subquery returns', async () => {
-    expect(await selectIds({ id: { inSql: taggedWith('red') } })).toEqual([1, 2]);
+    const result = await selectIds({ id: { inSql: taggedWith('red') } });
+    expect(result).toEqual([1, 2]);
   });
 
   test('ninSql drops them', async () => {
-    expect(await selectIds({ id: { ninSql: taggedWith('red') } })).toEqual([3, 4]);
+    const result = await selectIds({ id: { ninSql: taggedWith('red') } });
+    expect(result).toEqual([3, 4]);
   });
 
   test('an empty subquery matches nothing', async () => {
-    expect(await selectIds({ id: { inSql: taggedWith('green') } })).toEqual([]);
+    const result = await selectIds({ id: { inSql: taggedWith('green') } });
+    expect(result).toEqual([]);
   });
 
   test('inside an or group', async () => {
-    expect(
-      await selectIds({ or: [{ id: { inSql: taggedWith('blue') } }, { name: 'o4' }] }),
-    ).toEqual([3, 4]);
+    const result = await selectIds({ or: [{ id: { inSql: taggedWith('blue') } }, { name: 'o4' }] });
+    expect(result).toEqual([3, 4]);
   });
 
   test('a string is refused with a 400', () => {

@@ -1,7 +1,7 @@
 import { Authentication, BaseRestController, controller, get, post } from '@venizia/ignis';
 import type { TRouteContext, ValueOrPromise } from '@venizia/ignis';
 import { Environment, HTTP } from '@venizia/ignis-helpers';
-import { uuidV7 } from '@venizia/ignis-helpers/uuid';
+import { UuidV7Generator } from '@venizia/ignis-helpers/uuid';
 import { RouteConfigs, type TRoute5Body } from './definitions';
 
 @controller({ path: '/test', when: () => !Environment.is({ name: Environment.PRODUCTION }) })
@@ -58,7 +58,7 @@ export class TestController extends BaseRestController {
 
     return context.json(
       {
-        id: uuidV7(),
+        id: UuidV7Generator.generate(),
         name: body.name,
         age: body.age,
       },

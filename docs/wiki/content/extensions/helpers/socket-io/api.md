@@ -42,8 +42,8 @@ SocketIOServerHelper (extends BaseHelper)
   |           +-- redisEmitter = duplicateClient()
   |
   |-- configure()  [async]
-  |     |-- ensureRedisClientsConnecting([redisPub, redisSub, redisEmitter])
-  |     |-- await Promise.all(waitForRedisReady x3)   # 30s timeout per client
+  |     |-- RedisUtility.ensureConnecting({ clients: [redisPub, redisSub, redisEmitter], scope })
+  |     |-- await Promise.all(RedisUtility.waitForReady x3)   # 30s timeout per client
   |     |-- initIOServer()                     # new IOServer(server, serverOptions) | new IOServer() + io.bind(engine)
   |     |-- io.adapter(createAdapter(redisPub, redisSub))
   |     |-- emitter = new Emitter(redisEmitter)
@@ -67,7 +67,7 @@ SocketIOServerHelper (extends BaseHelper)
   |     |-- registerRoomHandlers({ socket, clientId })  # 'join' / 'leave'
   |     |-- interval = setInterval(ping, pingInterval)
   |     |-- send 'authenticated' to socket.id
-  |     +-- invokeHook(clientConnectedFn)
+  |     +-- HookUtility.invoke(clientConnectedFn)
   |
   |-- send({ destination?, payload, doLog?, callback? })
   |     +-- emitter.compress(true).to(destination)?.emit(topic, data)
@@ -123,7 +123,7 @@ Validates the `engine` field. Duplicates the provided `redisConnection` into thr
 
 1. Registers `error` listeners on all three duplicated Redis clients (logged, not thrown)
 2. Kicks off `connect()` on any client still in `'wait'` status
-3. `await Promise.all([waitForRedisReady(redisPub), waitForRedisReady(redisSub), waitForRedisReady(redisEmitter)])`
+3. `await Promise.all([RedisUtility.waitForReady({ client: redisPub }), RedisUtility.waitForReady({ client: redisSub }), RedisUtility.waitForReady({ client: redisEmitter })])`
 4. Creates the `IOServer` - `new IOServer()` followed by `io.bind(engine)`
 5. Attaches the Redis adapter via `@socket.io/redis-adapter`
 6. Creates the Redis emitter via `@socket.io/redis-emitter`
@@ -132,7 +132,7 @@ Validates the `engine` field. Duplicates the provided `redisConnection` into thr
 Must be called before `on()`, `send()`, or any server operation.
 
 > [!NOTE]
-> `waitForRedisReady` rejects after **30 seconds** if a client never reaches `ready` (or immediately on that client's `error` event). A broken Redis connection fails `configure()` instead of hanging boot indefinitely.
+> `RedisUtility.waitForReady` rejects after **30 seconds** if a client never reaches `ready` (or immediately on that client's `error` event). A broken Redis connection fails `configure()` instead of hanging boot indefinitely.
 
 #### `getIOServer(): IOServer`
 

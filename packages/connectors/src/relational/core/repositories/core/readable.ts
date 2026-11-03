@@ -1,4 +1,4 @@
-import { omit } from '@venizia/ignis-helpers/common';
+import { ObjectUtility } from '@venizia/ignis-helpers/common';
 import type {
   IExtraOptions,
   TByIdFilter,
@@ -12,7 +12,7 @@ import type {
   TRow,
   TWhere,
 } from '@venizia/ignis-kernel';
-import { buildDataRange, DEFAULT_LIMIT, RepositoryOperationScopes } from '@venizia/ignis-kernel';
+import { DataRangeUtility, DEFAULT_LIMIT, RepositoryOperationScopes } from '@venizia/ignis-kernel';
 import type { IRelationalDataSource } from '@/relational/core/datasources/common';
 import type {
   BaseRelationalEntity,
@@ -203,15 +203,19 @@ export class ReadableRelationalRepository<
     let total: number;
 
     if (effectiveOptions.transaction) {
-      data = await dataPromise;
-      ({ count: total } = await countPromise());
+      const result = await dataPromise;
+      data = result;
+      const counted = await countPromise();
+      total = counted.count;
     } else {
-      [data, { count: total }] = await Promise.all([dataPromise, countPromise()]);
+      const [rows, counted] = await Promise.all([dataPromise, countPromise()]);
+      data = rows;
+      total = counted.count;
     }
 
     return {
       data,
-      range: buildDataRange({
+      range: DataRangeUtility.buildDataRange({
         skip: mergedFilter.skip,
         offset: mergedFilter.offset,
         dataLength: data.length,
@@ -258,7 +262,7 @@ export class ReadableRelationalRepository<
       shouldSkipDefaultFilter: opts?.options?.shouldSkipDefaultFilter,
     });
 
-    const queryOptions = omit({
+    const queryOptions = ObjectUtility.omit({
       source: this.buildQuery({ filter: mergedFilter }),
       keys: ['limit'],
     });

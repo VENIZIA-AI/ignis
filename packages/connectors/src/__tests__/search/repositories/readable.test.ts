@@ -233,12 +233,14 @@ describe('ReadableSearchRepository', () => {
   describe('existsWith', () => {
     test('true when count > 0', async () => {
       dataSource.fakeConnector.countDocumentsResponse = 3;
-      expect(await repository.existsWith({ where: { status: 'active' } })).toBe(true);
+      const result = await repository.existsWith({ where: { status: 'active' } });
+      expect(result).toBe(true);
     });
 
     test('false when count is 0', async () => {
       dataSource.fakeConnector.countDocumentsResponse = 0;
-      expect(await repository.existsWith({ where: { status: 'active' } })).toBe(false);
+      const result = await repository.existsWith({ where: { status: 'active' } });
+      expect(result).toBe(false);
     });
   });
 

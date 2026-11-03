@@ -14,7 +14,7 @@ import {
   datasource,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
 
 interface IDataSourceConfigs {
@@ -134,18 +134,18 @@ See [Registering artifacts](../application/bootstrapping). DataSources are bound
 
 | Engine | Driver/Package | Import | Status |
 |--------|---------|--------|--------|
-| PostgreSQL | `node-postgres` (`pg`) or `postgres` | `@venizia/ignis` or `@venizia/ignis/postgres` | Supported, transactions + 3 isolation levels. See [Postgres Drivers](./postgres-drivers) |
-| PGlite (embedded Postgres) | `@electric-sql/pglite` (optional peer) | `@venizia/ignis/postgres/pglite` | Supported. See [PGlite](./pglite) |
-| SQLite | `@libsql/client` (optional peer) | `@venizia/ignis/sqlite` and `@venizia/ignis/sqlite/libsql` | Supported, transactions with begin modes. See [SQLite](./sqlite) |
-| Typesense (search) | `typesense` (optional peer) | `@venizia/ignis/typesense` (subpath-only) | Supported, no transactions/locks. See [Search and Typesense](./search-typesense) |
-| Meilisearch (search) | `meilisearch` (optional peer) | `@venizia/ignis/meilisearch` (subpath-only) | Supported, no transactions/locks. See [Search and Meilisearch](./search-meilisearch) |
+| PostgreSQL | `node-postgres` (`pg`) or `postgres` | `@venizia/ignis` or `@venizia/ignis-connectors/postgres` | Supported, transactions + 3 isolation levels. See [Postgres Drivers](./postgres-drivers) |
+| PGlite (embedded Postgres) | `@electric-sql/pglite` (optional peer) | `@venizia/ignis-connectors/postgres/pglite` | Supported. See [PGlite](./pglite) |
+| SQLite | `@libsql/client` (optional peer) | `@venizia/ignis-connectors/sqlite` and `@venizia/ignis-connectors/sqlite/libsql` | Supported, transactions with begin modes. See [SQLite](./sqlite) |
+| Typesense (search) | `typesense` (optional peer) | `@venizia/ignis-connectors/typesense` (subpath-only) | Supported, no transactions/locks. See [Search and Typesense](./search-typesense) |
+| Meilisearch (search) | `meilisearch` (optional peer) | `@venizia/ignis-connectors/meilisearch` (subpath-only) | Supported, no transactions/locks. See [Search and Meilisearch](./search-meilisearch) |
 | MySQL | - | - | Not planned; would be a new connector under `packages/connectors/src/relational/` |
 
 ## DataSource Template
 
 ```typescript
 import { BasePostgresDataSource, datasource, ValueOrPromise } from '@venizia/ignis';
-import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
 
 interface IDataSourceConfigs {

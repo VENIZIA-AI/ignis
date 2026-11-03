@@ -3,7 +3,7 @@ import type { AnyType } from '@venizia/ignis-helpers/common';
 
 import { AbstractRepository } from '@venizia/ignis-kernel';
 import type { TCount, TFilter } from '@venizia/ignis-kernel';
-import { buildDataRange, RepositoryErrorCodes } from '@venizia/ignis-kernel';
+import { DataRangeUtility, RepositoryErrorCodes } from '@venizia/ignis-kernel';
 import { ReadableRelationalRepository } from '@venizia/ignis-connectors/relational';
 import { ReadableSearchRepository } from '@venizia/ignis-connectors/search';
 
@@ -99,23 +99,29 @@ describe('shared AbstractRepository core helpers', () => {
     });
   });
 
-  describe('buildDataRange', () => {
+  describe('DataRangeUtility.buildDataRange', () => {
     test('follows the HTTP Content-Range convention (inclusive end index)', () => {
-      expect(buildDataRange({ skip: 20, dataLength: 2, total: 100 })).toEqual({
+      expect(DataRangeUtility.buildDataRange({ skip: 20, dataLength: 2, total: 100 })).toEqual({
         start: 20,
         end: 21,
         total: 100,
       });
-      expect(buildDataRange({ offset: 5, dataLength: 3, total: 9 })).toEqual({
+      expect(DataRangeUtility.buildDataRange({ offset: 5, dataLength: 3, total: 9 })).toEqual({
         start: 5,
         end: 7,
         total: 9,
       });
-      expect(buildDataRange({ dataLength: 0, total: 0 })).toEqual({ start: 0, end: 0, total: 0 });
+      expect(DataRangeUtility.buildDataRange({ dataLength: 0, total: 0 })).toEqual({
+        start: 0,
+        end: 0,
+        total: 0,
+      });
     });
 
     test('skip wins over offset', () => {
-      expect(buildDataRange({ skip: 10, offset: 3, dataLength: 1, total: 50 })).toEqual({
+      expect(
+        DataRangeUtility.buildDataRange({ skip: 10, offset: 3, dataLength: 1, total: 50 }),
+      ).toEqual({
         start: 10,
         end: 10,
         total: 50,
@@ -132,7 +138,9 @@ describe('shared AbstractRepository core helpers', () => {
         options: { shouldQueryRange: true },
       });
 
-      expect(result.range).toEqual(buildDataRange({ skip: 20, dataLength: 2, total: 100 }));
+      expect(result.range).toEqual(
+        DataRangeUtility.buildDataRange({ skip: 20, dataLength: 2, total: 100 }),
+      );
     });
 
     test('the search readable builds its range through the shared helper', async () => {
@@ -150,7 +158,9 @@ describe('shared AbstractRepository core helpers', () => {
         options: { shouldQueryRange: true },
       });
 
-      expect(result.range).toEqual(buildDataRange({ skip: 20, dataLength: 2, total: 100 }));
+      expect(result.range).toEqual(
+        DataRangeUtility.buildDataRange({ skip: 20, dataLength: 2, total: 100 }),
+      );
     });
   });
 });

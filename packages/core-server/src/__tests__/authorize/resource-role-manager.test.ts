@@ -109,7 +109,8 @@ describe('ResourceRoleManager', () => {
       await manager.addLink('Order', 'Sales');
     }
 
-    expect(await manager.getRoles('Order')).toEqual(['Sales']);
+    const result = await manager.getRoles('Order');
+    expect(result).toEqual(['Sales']);
     expect(manager.syncedHasLink('Order.find', 'Sales')).toBe(true);
   });
 
@@ -134,7 +135,8 @@ describe('ResourceRoleManager', () => {
       ['Order', 'Sales'],
       ['Invoice', 'Sales'],
     ]);
-    expect((await manager.getUsers('Sales')).sort()).toEqual(['Invoice', 'Order']);
+    const result = await manager.getUsers('Sales');
+    expect(result.sort()).toEqual(['Invoice', 'Order']);
   });
 
   it('emits debug log once per graph build across many syncedHasLink calls', async () => {

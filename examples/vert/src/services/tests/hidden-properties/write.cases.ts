@@ -1,4 +1,4 @@
-import { getUID } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { User } from '../../../models/entities';
 import { BaseTestCases } from '../base-test.cases';
@@ -17,7 +17,7 @@ export class WriteCases extends BaseTestCases {
     );
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const testRealm = `HIDDEN_TEST_${uniqueId}`;
       const created = await repo.create({
         data: {
@@ -75,7 +75,7 @@ export class WriteCases extends BaseTestCases {
       const updated = await repo.updateById({
         id: anyUser.id,
         data: {
-          realm: `HIDDEN_TEST_UPDATED_${getUID()}`,
+          realm: `HIDDEN_TEST_UPDATED_${ParseUtility.getUID()}`,
           password: 'new_password_789',
         },
       });
@@ -109,8 +109,8 @@ export class WriteCases extends BaseTestCases {
     this.context.logCase('[CASE 8] CreateAll should exclude hidden properties from response');
 
     try {
-      const uid1 = getUID();
-      const uid2 = getUID();
+      const uid1 = ParseUtility.getUID();
+      const uid2 = ParseUtility.getUID();
       const created = await repo.createAll({
         data: [
           {
@@ -225,7 +225,7 @@ export class WriteCases extends BaseTestCases {
     this.context.logCase('[CASE 10] DeleteById should exclude hidden properties from response');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const created = await repo.create({
         data: {
           realm: `HIDDEN_TEST_DELETE_${uniqueId}`,
@@ -276,7 +276,7 @@ export class WriteCases extends BaseTestCases {
     );
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const created = await repo.create({
         data: {
           realm: `HIDDEN_TEST_ONLYHIDDEN_${uniqueId}`,

@@ -6,6 +6,14 @@ resource: docs/wiki
 tags: [process, docs, wiki]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Steps](#steps)
+- [What the changelog records](#what-the-changelog-records)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 ## Steps
 
 1. Know the difference: `docs/wiki/` is the human-facing documentation site, a VitePress site built
@@ -21,7 +29,8 @@ tags: [process, docs, wiki]
    datasources - plus `utilities/` and `configuration/`), `extensions/` (the per-component,
    per-helper and atlas references, under `extensions/components/`, `extensions/helpers/` and
    `extensions/atlas/`), `best-practices/` (architecture, testing, deployment), `changelogs/`
-   (feature announcements - indexed by atlas as their own `changelog` corpus).
+   (what changed for the people who use the published packages - indexed by atlas as their own
+   `changelog` corpus; see [what the changelog records](#what-the-changelog-records)).
 3. To add a new doc page: create the `.md` file under the right `content/` subdirectory, then add
    it to the VitePress sidebar config at `docs/wiki/site/.vitepress/config.mts` - a page that
    exists but isn't in the sidebar config is unreachable from site navigation. This is enforced,
@@ -30,7 +39,14 @@ tags: [process, docs, wiki]
    if any `content/**/*.md` page has no menu link, or if a menu link points at a page that no
    longer exists. The only exemptions are the template skeletons under
    `extensions/components/template/` and `extensions/helpers/template/`, and the content root
-   `index.md` (the script's `UNLISTED` list). A second gate, `make wiki-links-check`, checks that
+   `index.md` (the script's `UNLISTED` list). Right after the VitePress build, the shared build check
+   (`docs/wiki/site/.vitepress/theme/shared/build-check.ts`, a copy of VULCAN's) reads the build output
+   and the built pages: VitePress exits 0 when a component throws while a page is rendered on the
+   server, so it fails on a `ReferenceError`, `TypeError`, Vue warning or hydration message in the
+   output, on a built home page without its hero (two buttons), footer, two dust canvases, brand and
+   venizia.ai link, on style sheets without the button arrow, and on a built inner page that has a
+   footer. `docs-build.sh` calls it with `--check --log` only: without `--check` it builds, and it
+   refuses to run inside a docs build. A second gate, `make wiki-links-check`, checks that
    every path the wiki and the knowledge bundle name still exists on disk. A third, `make
    wiki-anchors-check`, checks that every `#fragment` a link names resolves - the sidebar gate sees
    a dead page but not a dead anchor, so a renamed heading used to leave every link into it
@@ -44,9 +60,9 @@ tags: [process, docs, wiki]
    other Makefile targets carry - `docs` has no prerequisite target). Clean with `bun run
    docs:clean`.
 5. The built site reaches production through GitHub Pages, not through you: the
-   `.github/workflows/deploy-docs.yml` workflow ("Deploy Wiki Site") runs `make docs` and deploys
-   `docs/wiki/site/.vitepress/dist`, on every push to `main` that touches `docs/wiki/**` and on
-   manual dispatch. Nothing else publishes the site - merging your page to `main` is the deploy.
+   `.github/workflows/deploy-docs.yml` workflow ("Docs") runs `make docs` and deploys
+   `docs/wiki/site/.vitepress/dist`, on every push to `develop` that touches `docs/wiki/**` and on
+   manual dispatch with `job=docs` (the default; `job=atlas-index` publishes the atlas pair of a `ref` and deploys no wiki). Nothing else publishes the site - merging your page to `develop` is the deploy.
 6. There is no compiled output in this package any more: `content/` is plain markdown VitePress
    reads directly, and every script under `scripts/` runs straight with `bun`, no build step. The
    `mcp-server/` directory this step used to describe is deleted; the MCP server that answers over
@@ -74,6 +90,31 @@ tags: [process, docs, wiki]
    VitePress piece the shared CSS overrides is gone. `.gitattributes` marks the folder `-text` so git
    converts no byte. Keep `bun fmt` off it: `make lint-wiki` still checks it. What stays ours:
    `product.css`, `home-content.ts`, `design-tokens.css`, `theme/index.ts`, `config.mts`.
+
+## What the changelog records
+
+The changelog records only what affects the people who install and use the published `@venizia/*` packages.
+Internal work is not recorded. A pull request with only internal changes gets no entry, and no guard asks for one.
+
+**Write an entry** when a change alters what a user of the published packages sees or does:
+
+- a new feature, API, option or config key;
+- changed behaviour or a breaking change, with its upgrade step;
+- a bug fix a user could hit;
+- a security fix;
+- a deprecation or a removal.
+
+**Write no entry** for internal work: release tooling, CI and workflows, guards and gates; refactors and code
+sweeps with no change a user can see; tests; agent rules and skills; internal docs and knowledge pages; repository
+hygiene. A tool users run themselves (`devz`, a lint rule a user turns on, a codemod) is user-facing: it gets an
+entry.
+
+An entry is short and says the user's benefit first: one plain sentence, what changed, who is affected and what they
+do about it, and the upgrade step of a breaking change. Several changes to one topic are one entry. The template is
+`docs/wiki/content/changelogs/template.md`.
+
+An entry is attached to the first release made on or after its date (`vulcan x atlas releases`), so date it on or
+after the day the release that carries it is made.
 
 ## Related
 

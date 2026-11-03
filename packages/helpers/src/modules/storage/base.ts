@@ -1,8 +1,8 @@
-import { isEmpty } from '@venizia/ignis-inversion';
+import { ObjectUtility } from '@venizia/ignis-inversion';
 import { ContentTypeTable, type IDuration, MimeTypes } from '@/common';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { executePromiseWithLimit } from '@/utilities/promise.utility';
+import { PromiseUtility } from '@/utilities/promise.utility';
 import { Readable } from 'node:stream';
 import {
   type IBucketInfo,
@@ -18,7 +18,7 @@ import {
   type IUploadResult,
   type TUploadNaming,
 } from './common';
-import { isNotFoundError, StorageConcurrency, StorageErrors } from './common';
+import { StorageUtility, StorageConcurrency, StorageErrors } from './common';
 
 export abstract class BaseStorageHelper extends BaseHelper implements IStorageHelper {
   constructor(opts: { scope: string; identifier: string }) {
@@ -38,7 +38,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       return false;
     }
 
-    if (!name || isEmpty({ value: name })) {
+    if (!name || ObjectUtility.isEmpty({ value: name })) {
       this.logger.for(this.isValidSegment.name).error('Empty name provided');
       return false;
     }
@@ -107,7 +107,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     const { path: pathStr } = opts;
     const maxDepth = opts.maxDepth ?? BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH;
 
-    if (typeof pathStr !== 'string' || !pathStr || isEmpty({ value: pathStr })) {
+    if (typeof pathStr !== 'string' || !pathStr || ObjectUtility.isEmpty({ value: pathStr })) {
       this.logger.for(this.isValidKeyPath.name).error('Empty or invalid path provided');
       return false;
     }
@@ -427,7 +427,8 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     const { bucket, object, source, contentType } = opts;
     const body =
       source instanceof Response || source instanceof Request ? source : new Response(source);
-    const buffer = Buffer.from(await body.arrayBuffer());
+    const result = await body.arrayBuffer();
+    const buffer = Buffer.from(result);
 
     await this.writeObject({
       bucket,
@@ -453,7 +454,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       return [];
     }
 
-    return executePromiseWithLimit({
+    return PromiseUtility.executeWithLimit({
       limit: Math.max(1, opts.limit ?? StorageConcurrency.DEFAULT_LIMIT),
       tasks: items.map((item, index) => () => task({ item, index })),
     });
@@ -463,7 +464,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
   protected asStorageError(opts: IObjectLocation & { error: unknown; operation: string }): unknown {
     const { error, operation, bucket, object } = opts;
 
-    if (!isNotFoundError({ error })) {
+    if (!StorageUtility.isNotFoundError({ error })) {
       return error;
     }
 

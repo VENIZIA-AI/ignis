@@ -10,11 +10,10 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**121 targets.**
+**118 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
-| `make agent-setup` | `vulcan-sync` | Write the gitignored agent adapters (CLAUDE.md, .claude/) with VULCAN. |
 | `make all` | `build` | Rebuilds all packages (alias for 'build-all'). |
 | `make atlas-releases` | - | Print the releases atlas computes from the git tags. |
 | `make atlas-symbols` | - | Print the symbols atlas reads from the built .d.ts. |
@@ -23,7 +22,6 @@ generated:
 | `make build-all` | `core core-worker boot docs surface-check wiki-links-check wiki-anchors-check` | Rebuilds all packages in order, then the wiki and its checks. |
 | `make build-checks` | - | Gate: the built output - self-contained sourcemaps, the oxlint subpath loads no ESLint. Needs a build. |
 | `make catalog-check` | - | Gate: every catalogued dep is referenced as "catalog:", none drifted. |
-| `make changelogs-migrate` | - | Write a packages: list into every changelog that declares none. |
 | `make clean` | - | Clean build artifacts from all packages. |
 | `make clean-install` | - | Load every published sub-path from packed tarballs in an empty project. |
 | `make clean-install-boot` | - | Load one package's sub-paths from a clean install. Needs a build. |
@@ -42,7 +40,7 @@ generated:
 | `make core-server` | `connectors boot` | Rebuild one package, after its dependencies. |
 | `make core-worker` | `kernel` | Rebuild one package, after its dependencies. |
 | `make dev-configs` | - | Rebuild one package, after its dependencies. |
-| `make docs` | - | Rebuilds wiki (VitePress) for GitHub Pages. |
+| `make docs` | - | Rebuilds wiki (VitePress) for GitHub Pages; fails on a server render error or a home page without footer and canvases. |
 | `make examples-check` | - | Gate: every example type-checks against the built packages. Needs a build. |
 | `make filter` | `inversion` | Rebuild one package, after its dependencies. |
 | `make fmt-files` | - | Format check / write of package.json, .github, .agents, .configs, presets and examples. |
@@ -53,7 +51,6 @@ generated:
 | `make install` | - | Install all dependencies with bun. |
 | `make inversion` | `dev-configs` | Rebuild one package, after its dependencies. |
 | `make kernel` | `helpers filter` | Rebuild one package, after its dependencies. |
-| `make knowledge-symbols-check` | - | Fail when a symbol a concept names is gone or its signature changed |
 | `make lint` | `lint-packages` | lint-<pkg> for every package. |
 | `make lint-all` | `lint-packages lint-scripts lint-files lint-wiki` | lint-packages, lint-scripts, lint-files (package.json, .github, .agents, .configs, presets, examples) and lint-wiki. |
 | `make lint-boot` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
@@ -107,7 +104,7 @@ generated:
 | `make split-report` | - | Report hub files, stray types, missing barrels, long files, cycles (informational). |
 | `make surface-check` | - | Gate: the public surface equals the snapshot. |
 | `make surface-gen` | - | Snapshot every exported symbol into .agents/knowledge/reference/public-surface.md. |
-| `make test-all` | `test-dev-configs test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server` | test-<pkg> for every package with a suite (BUN_TEST_FLAGS, default --parallel). |
+| `make test-all` | `test-dev-configs test-inversion test-filter test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server` | test-<pkg> for every package with a suite (BUN_TEST_FLAGS, default --parallel). |
 | `make test-boot` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-connectors` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-core` | `test-core-server` | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
@@ -120,7 +117,7 @@ generated:
 | `make test-kernel` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-scripts` | - | Run the repository gate scripts' own regression tests. |
 | `make tmp-leak-check` | - | test-all and test-scripts, then fail if the run left anything in the system temp or in .agents/local/tmp. |
-| `make update` | `install` | Force update all packages from NPM registry. |
+| `make update` | `install` | Alias of 'install'; to raise one package's deps use 'update-<pkg>'. |
 | `make update-boot` | - | Force update one package's dependencies from NPM. |
 | `make update-connectors` | - | Force update one package's dependencies from NPM. |
 | `make update-core` | `update-core-server` | Force update one package's dependencies from NPM. |

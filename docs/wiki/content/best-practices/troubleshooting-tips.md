@@ -84,10 +84,10 @@ APP_ENV_LOGGER_FOLDER_PATH=./logs
 
 **Use method-scoped logging with `.for()`:**
 ```typescript
-import { ApplicationLogger, type ILogger } from '@venizia/ignis-helpers';
+import { LoggerFactory, type ILogger } from '@venizia/ignis-helpers';
 
 class UserService {
-  private logger: ILogger = ApplicationLogger.get('UserService');
+  private logger: ILogger = LoggerFactory.getLogger(['UserService']);
 
   async createUser(data: TCreateUserRequest) {
     this.logger.for('createUser').info('Creating user: %j', data);
@@ -105,7 +105,7 @@ class UserService {
 }
 ```
 
-Annotate against `ILogger`, never a concrete provider class. Acquire a logger via `BaseHelper.logger` (inside any helper, service, controller or repository), `ApplicationLogger.get('Scope')`, or `LoggerFactory.getLogger(['A', 'B'])`.
+Annotate against `ILogger`, never a concrete provider class. Acquire a logger via `BaseHelper.logger` (inside any helper, service, controller or repository), or `LoggerFactory.getLogger(['A', 'B'])`.
 
 **Common debugging commands:**
 ```bash

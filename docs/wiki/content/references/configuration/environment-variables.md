@@ -165,8 +165,8 @@ APP_ENV_POSTGRES_DATABASE=my_app_prod
 
 ```typescript
 import { datasource, ValueOrPromise } from '@venizia/ignis';
-import { BaseDataSource } from '@venizia/ignis/postgres';
-import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { BaseDataSource } from '@venizia/ignis-connectors/postgres';
+import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
 
 interface IDataSourceConfigs {
@@ -206,7 +206,7 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
 ```
 
 > [!NOTE]
-> `BaseDataSource` from `@venizia/ignis/postgres` is the alias for `BasePostgresDataSource`. Both
+> `BaseDataSource` from `@venizia/ignis-connectors/postgres` is the alias for `BasePostgresDataSource`. Both
 > names resolve to the same class on that subpath.
 
 
@@ -289,7 +289,7 @@ APP_ENV_LOGGER_DGRAM_LEVELS=error,warn,info
 ## Storage Variables (MinIO/S3)
 
 > [!NOTE]
-> These are application-level conventions (used by the `vert` reference application), not variables read by the framework. `MinioHelper` and the StaticAsset component receive their configuration programmatically - your application wires these values in.
+> These are application-level conventions (used by the `vert` reference application), not variables read by the framework. `BunS3Helper` and the StaticAsset component receive their configuration programmatically - your application wires these values in.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|

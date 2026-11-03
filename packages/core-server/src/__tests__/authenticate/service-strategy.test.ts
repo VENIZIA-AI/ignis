@@ -11,7 +11,7 @@ import { ServiceAssertionSignerService } from '@/components/auth/authenticate/se
 import { ServiceAssertionVerifierService } from '@/components/auth/authenticate/services/service/verifier.service';
 import { ServiceAuthenticationStrategy } from '@/components/auth/authenticate/strategies/service.strategy';
 import type { AnyType } from '@venizia/ignis-helpers/common';
-import { expectRejection } from '@venizia/dev-configs/testing';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 
 /**
  * The seam an application owns: `resolvePrincipal` returning `null`, a principal with no `userId`,
@@ -35,11 +35,13 @@ const buildStack = async (opts: { resolvePrincipal: IServiceAuthOptions['resolve
     extractable: true,
   });
 
+  const result = await exportPKCS8(privateKey);
+  const result2 = await exportSPKI(publicKey);
   const keys = {
     driver: 'text' as const,
     format: 'pem' as const,
-    private: await exportPKCS8(privateKey),
-    public: await exportSPKI(publicKey),
+    private: result,
+    public: result2,
   };
 
   const signer = new ServiceAssertionSignerService({
@@ -50,7 +52,10 @@ const buildStack = async (opts: { resolvePrincipal: IServiceAuthOptions['resolve
 
   const server = Bun.serve({
     port: 0,
-    fetch: async () => Response.json(await signer.getPublicJWKS()),
+    fetch: async () => {
+      const jwks = await signer.getPublicJWKS();
+      return Response.json(jwks);
+    },
   });
 
   const options: IServiceAuthOptions = {
@@ -123,7 +128,7 @@ describe('the strategy validates what the application hands back', () => {
       buildContext({ url: 'http://pricing/v1/api/x', method: 'GET', token }),
     );
 
-    await expectRejection({ task, message: /no principal/ });
+    await RejectionHelper.expectRejection({ task, message: /no principal/ });
     await server.stop(true);
   });
 
@@ -143,7 +148,7 @@ describe('the strategy validates what the application hands back', () => {
       buildContext({ url: 'http://pricing/v1/api/x', method: 'GET', token }),
     );
 
-    await expectRejection({ task, message: /no principal/ });
+    await RejectionHelper.expectRejection({ task, message: /no principal/ });
     await server.stop(true);
   });
 
@@ -156,7 +161,7 @@ describe('the strategy validates what the application hands back', () => {
       buildContext({ url: 'http://pricing/v1/api/x', method: 'GET' }),
     );
 
-    await expectRejection({ task, message: /Missing service assertion/ });
+    await RejectionHelper.expectRejection({ task, message: /Missing service assertion/ });
     await server.stop(true);
   });
 });

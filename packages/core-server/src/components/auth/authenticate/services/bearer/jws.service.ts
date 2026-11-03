@@ -42,7 +42,6 @@ export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenSer
       aesAlgorithm,
       applicationSecret,
       fieldCodecs: options.fieldCodecs,
-      cipher: options.cipher,
       sign: options.sign,
     });
     this.jwtSecret = new TextEncoder().encode(this.options.jwtSecret);
@@ -67,7 +66,7 @@ export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenSer
     const now = Math.floor(Date.now() / 1000);
     const expiresIn = await opts.getTokenExpiresFn();
 
-    const encryptedPayload = this.encryptPayload(opts.payload);
+    const encryptedPayload = await this.encryptPayload(opts.payload);
 
     const signer = new SignJWT(Object.assign({}, encryptedPayload))
       .setProtectedHeader({ alg: this.options.headerAlgorithm ?? 'HS256' })

@@ -1,19 +1,26 @@
-name: CI
-run-name: 'CI | ${{ github.event_name }} | ${{ github.head_ref || github.ref_name }}'
+name: Checks
+# The title of a pull request run is the pull request's title; any other run is titled by its branch.
+run-name: '${{ github.event.pull_request.title || github.ref_name }}'
 
-# Manual only, by decision. These gates are a full build, seven test suites, lint and the purity
-# probe, and they used to fire on every pull request AND every push to develop - including the
-# release workflow's own commits, so a four-package release chain paid for four extra full runs.
-# Nothing enforces this workflow as a required status check, so running it on demand blocks nothing.
+# Every pull request to develop or main, and on demand. There is no `push` trigger on purpose: these
+# gates are a full build, seven test suites, lint and the purity probe, and a push to develop includes
+# the release workflow's own commits, so a four-package release chain paid for four extra full runs.
+# A pull request is checked before it merges, which is where the release run's own gates would
+# otherwise be the first to see a defect. A red check does not block the merge: the ruleset has no
+# required status check (marking one is a repository setting, not this file's).
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [develop, main]
 
 permissions:
   contents: read
 
+# A newer push to the same pull request replaces the older run. A manual run that is already running is
+# never cancelled (GitHub still drops a manual run that is only queued when a newer one for the branch arrives).
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true

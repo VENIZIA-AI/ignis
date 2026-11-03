@@ -1,6 +1,6 @@
 # SQLite
 
-IGNIS ships a **SQLite connector** at `@venizia/ignis/sqlite`, driven by libsql. It is the second engine on the engine-neutral relational tier, so `@model`, `@repository`, `@datasource`, filters, transactions and soft delete all mean the same thing they mean on Postgres.
+IGNIS ships a **SQLite connector** at `@venizia/ignis-connectors/sqlite`, driven by libsql. It is the second engine on the engine-neutral relational tier, so `@model`, `@repository`, `@datasource`, filters, transactions and soft delete all mean the same thing they mean on Postgres.
 
 They do not all *do* the same thing. Read this table first - it is what a Postgres user needs before anything else.
 
@@ -44,9 +44,9 @@ import { createClient } from '@libsql/client';
 import type { Client } from '@libsql/client';
 import { datasource } from '@venizia/ignis';
 import type { TAnyDataSourceSchema, ValueOrPromise } from '@venizia/ignis';
-import { BaseSqliteDataSource } from '@venizia/ignis/sqlite';
-import type { ISqliteDataSourceSettings } from '@venizia/ignis/sqlite';
-import { LibSqlDriver } from '@venizia/ignis/sqlite/libsql';
+import { BaseSqliteDataSource } from '@venizia/ignis-connectors/sqlite';
+import type { ISqliteDataSourceSettings } from '@venizia/ignis-connectors/sqlite';
+import { LibSqlDriver } from '@venizia/ignis-connectors/sqlite/libsql';
 
 @datasource({ driver: LibSqlDriver })
 export class SqliteDataSource extends BaseSqliteDataSource<
@@ -77,21 +77,21 @@ There is no `getConnectionString()` override. SQLite inherits one that returns `
 
 ## Models
 
-Same decorators, `sqliteTable` instead of `pgTable`, and the enrichers come from `@venizia/ignis/sqlite`:
+Same decorators, `sqliteTable` instead of `pgTable`, and the enrichers come from `@venizia/ignis-connectors/sqlite`:
 
 ```typescript
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  SqliteIdEnricher,
+  SqliteTzEnricher,
   ModelFactory,
-} from '@venizia/ignis/sqlite';
-import type { TEntityObject } from '@venizia/ignis/sqlite';
+} from '@venizia/ignis-connectors/sqlite';
+import type { TEntityObject } from '@venizia/ignis-connectors/sqlite';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const productTable = sqliteTable('Product', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...SqliteIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...SqliteTzEnricher.generateColumnDefs(),
   name: text('name').notNull(),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   metadata: text('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
@@ -107,9 +107,9 @@ Three column choices differ from the Postgres twin:
 
 - **JSON is a json-mode `text` column.** Declare the mode. A JSON path on a plain `text` column is rejected rather than compiled into a `json_extract` that quietly returns `NULL`.
 - **Booleans are `integer(..., { mode: 'boolean' })`** - SQLite stores 0 and 1.
-- **Timestamps are ISO 8601 strings.** `generateTzColumnDefs()` handles this, defaulting to `(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`. Comparisons stay lexicographic, so ordering by a timestamp still works.
+- **Timestamps are ISO 8601 strings.** `SqliteTzEnricher.generateColumnDefs()` handles this, defaulting to `(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`. Comparisons stay lexicographic, so ordering by a timestamp still works.
 
-`generateIdColumnDefs` accepts `dataType: 'string'` and `dataType: 'number'`. There is no `'big-number'` - an integer primary key in SQLite is already the 64-bit rowid.
+`SqliteIdEnricher.generateColumnDefs` accepts `dataType: 'string'` and `dataType: 'number'`. There is no `'big-number'` - an integer primary key in SQLite is already the 64-bit rowid.
 
 ## Repositories
 
@@ -117,7 +117,7 @@ Three column choices differ from the Postgres twin:
 
 ```typescript
 import { repository } from '@venizia/ignis';
-import { DefaultSqliteRepository } from '@venizia/ignis/sqlite';
+import { DefaultSqliteRepository } from '@venizia/ignis-connectors/sqlite';
 
 @repository({ model: Product, dataSource: SqliteDataSource })
 export class ProductRepository extends DefaultSqliteRepository<typeof productTable> {}
@@ -162,7 +162,7 @@ SQLite has no isolation levels. Every SQLite transaction is already serializable
 | `SqliteBeginModes.EXCLUSIVE` | `BEGIN EXCLUSIVE` | At `BEGIN`, blocking readers too |
 
 ```typescript
-import { SqliteBeginModes } from '@venizia/ignis/sqlite';
+import { SqliteBeginModes } from '@venizia/ignis-connectors/sqlite';
 
 const transaction = await this.dataSource.beginTransaction({
   beginMode: SqliteBeginModes.IMMEDIATE,
@@ -287,7 +287,7 @@ A SQLite application does not run as a `bun build --compile` binary out of the b
 
 ## Runnable example
 
-`examples/sqlite-quickstart/` is this page as an app: a `sqliteTable` model with a `text` id and `text({ mode: 'json' })` metadata, `generateTzColumnDefs` for the timestamp default, and the same repository and controller the PGlite example uses.
+`examples/sqlite-quickstart/` is this page as an app: a `sqliteTable` model with a `text` id and `text({ mode: 'json' })` metadata, `SqliteTzEnricher.generateColumnDefs` for the timestamp default, and the same repository and controller the PGlite example uses.
 
 ```bash
 cd examples/sqlite-quickstart

@@ -74,9 +74,11 @@ export class HealthCheckComponent extends BaseComponent<IHealthCheckOptions> {
 
     // `getAppInfo()` is async while the container builds the controller synchronously, so the
     // resolved value is bound here rather than resolved inside the controller.
-    this.application
-      .bind<IApplicationInfo>({ key: HealthCheckBindingKeys.APPLICATION_INFO })
-      .toValue(await this.application.getAppInfo());
+    const binding = this.application.bind<IApplicationInfo>({
+      key: HealthCheckBindingKeys.APPLICATION_INFO,
+    });
+    const appInfo = await this.application.getAppInfo();
+    binding.toValue(appInfo);
 
     // The gate and the app identity are per container, but `@controller` writes the PATH onto this
     // one shared class in the process-wide MetadataRegistry, and `RestComponent` reads it back at

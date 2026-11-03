@@ -3,7 +3,7 @@
 import { type AnyType } from '@/common';
 import { BunS3Helper } from '@/modules/storage/bun-s3';
 import { DurationUnits } from '@/common';
-import { StoragePresignDefaults, toExpirySeconds } from '@/modules/storage/common';
+import { StoragePresignDefaults, StorageUtility } from '@/modules/storage/common';
 import { afterEach, describe, expect, test } from 'bun:test';
 
 const originalFetch = globalThis.fetch;
@@ -40,7 +40,10 @@ describe('BunS3Helper.presignPut / presignGet - real S3Client, unreachable endpo
 
     expect(new URL(url).searchParams.get('X-Amz-Expires')).toBe(
       String(
-        toExpirySeconds({ expiresIn: StoragePresignDefaults.PUT_EXPIRES_IN, operation: 'test' }),
+        StorageUtility.toExpirySeconds({
+          expiresIn: StoragePresignDefaults.PUT_EXPIRES_IN,
+          operation: 'test',
+        }),
       ),
     );
   });
@@ -73,7 +76,10 @@ describe('BunS3Helper.presignPut / presignGet - real S3Client, unreachable endpo
 
     expect(new URL(url).searchParams.get('X-Amz-Expires')).toBe(
       String(
-        toExpirySeconds({ expiresIn: StoragePresignDefaults.GET_EXPIRES_IN, operation: 'test' }),
+        StorageUtility.toExpirySeconds({
+          expiresIn: StoragePresignDefaults.GET_EXPIRES_IN,
+          operation: 'test',
+        }),
       ),
     );
   });
@@ -128,9 +134,15 @@ describe('BunS3Helper.getObjectTags / replaceObjectTags - stubbed fetch', () => 
     globalThis.fetch = (() =>
       Promise.resolve(new Response('internal error', { status: 500 }))) as AnyType;
 
-    const error = await buildHelper()
-      .getObjectTags({ bucket: { name: 'assets' }, object: { key: 'file.png' } })
-      .catch((caught: Error) => caught);
+    let error: unknown;
+    try {
+      await buildHelper().getObjectTags({
+        bucket: { name: 'assets' },
+        object: { key: 'file.png' },
+      });
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(error).toBeInstanceOf(Error);
     expect((error as Error).message).toContain('500');
@@ -166,9 +178,16 @@ describe('BunS3Helper.getObjectTags / replaceObjectTags - stubbed fetch', () => 
   test('replaceObjectTags throws a getError carrying the status and body on a non-2xx response', async () => {
     globalThis.fetch = (() => Promise.resolve(new Response('denied', { status: 403 }))) as AnyType;
 
-    const error = await buildHelper()
-      .replaceObjectTags({ bucket: { name: 'assets' }, object: { key: 'file.png' }, tags: {} })
-      .catch((caught: Error) => caught);
+    let error: unknown;
+    try {
+      await buildHelper().replaceObjectTags({
+        bucket: { name: 'assets' },
+        object: { key: 'file.png' },
+        tags: {},
+      });
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(error).toBeInstanceOf(Error);
     expect((error as Error).message).toContain('403');

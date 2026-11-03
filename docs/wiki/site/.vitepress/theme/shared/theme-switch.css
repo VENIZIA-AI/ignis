@@ -98,6 +98,5 @@ html.dark .VPSwitchAppearance .icon .moon {
     border-color var(--fade, 0.2s) ease,
     fill var(--fade, 0.2s) ease,
     stroke var(--fade, 0.2s) ease,
-    --dot var(--fade, 0.2s) ease,
     --glow var(--fade, 0.2s) ease !important;
 }

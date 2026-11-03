@@ -136,7 +136,7 @@ class UserService extends BaseService {
 
 ```typescript
 import { repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 import { User, type userTable } from '../models';
 import { PostgresDataSource } from '../datasources';
 
@@ -160,12 +160,12 @@ class UserRepository extends DefaultCRUDRepository<typeof userTable> {
 
 ```typescript
 import { model } from '@venizia/ignis';
-import { generateIdColumnDefs, ModelFactory } from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, ModelFactory } from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('users', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
 });
@@ -214,7 +214,7 @@ export type TUser = TEntityObject<typeof User>;
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { BaseRestController, controller, get, inject, jsonContent, post, TRouteContext } from '@venizia/ignis';
+import { BaseRestController, controller, get, inject, OpenApiResponses, post, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 @controller({ path: '/users' })
@@ -231,7 +231,7 @@ class UserController extends BaseRestController {
     configs: {
       path: '/',
       request: {
-        body: jsonContent({
+        body: OpenApiResponses.jsonContent({
           description: 'User data',
           schema: z.object({ name: z.string() }),
         }),
@@ -430,8 +430,7 @@ import {
   inject,
 
   // Utilities
-  jsonResponse,
-  htmlResponse,
+  OpenApiResponses,
   Statuses,
 } from '@venizia/ignis';
 ```
@@ -442,7 +441,6 @@ import {
 import {
   // Logging
   LoggerFactory,
-  ApplicationLogger,
 
   // Caching
   RedisSingleHelper,
@@ -462,9 +460,8 @@ import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 ```
 
 > [!NOTE]
-> `MinioHelper` from `@venizia/ignis-helpers/minio` is `@deprecated`. Use `BunS3Helper` from
-> `@venizia/ignis-helpers/bun-s3` instead - it reaches MinIO over the same S3 API, and adds
-> presigned URLs, tagging and byte ranges.
+> `BunS3Helper` from `@venizia/ignis-helpers/bun-s3` reaches MinIO servers over the same S3 API
+> (`endpoint` plus path-style addressing), and adds presigned URLs, tagging and byte ranges.
 
 `Hash` is the crypto surface for digests and HMACs. Both methods are synchronous.
 
@@ -492,7 +489,7 @@ import { BindingNamespaces } from '@venizia/ignis';
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { jsonResponse, TRouteContext } from '@venizia/ignis';
+import { OpenApiResponses, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 @get({
@@ -501,7 +498,7 @@ import { HTTP } from '@venizia/ignis-helpers';
     request: {
       params: z.object({ id: z.string() }),
     },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'User data',
       schema: z.object({
         id: z.string(),
@@ -523,12 +520,12 @@ getUser(context: TRouteContext) {
 ### HTML Response
 
 ```typescript
-import { htmlResponse, TRouteContext } from '@venizia/ignis';
+import { OpenApiResponses, TRouteContext } from '@venizia/ignis';
 
 @get({
   configs: {
     path: '/dashboard',
-    responses: htmlResponse({
+    responses: OpenApiResponses.htmlResponse({
       description: 'Dashboard page',
     }),
   },
@@ -601,7 +598,7 @@ handler, `RequestSpyMiddleware` and the emoji favicon during `initialize()`. You
 | `AppErrorMiddleware` | no | Global error handler, installed via `onError` |
 | `notFoundHandler` | yes | JSON 404 response for unknown routes |
 | `RequestSpyMiddleware` | no | Request and response logging with timing |
-| `emojiFavicon` | yes | Serves an emoji as an SVG favicon |
+| `EmojiFaviconMiddleware.create` | yes | Serves an emoji as an SVG favicon |
 
 Change the favicon through `configs.favicon` and the error wrapper through `configs.error.rootKey`
 rather than re-registering anything.
@@ -646,13 +643,12 @@ import {
   controller,
   DefaultCRUDRepository,
   inject,
-  jsonContent,
+  OpenApiResponses,
   post,
   repository,
   TRouteContext,
 } from '@venizia/ignis';
-import { genSalt, hash } from 'bcrypt';
-import { HTTP } from '@venizia/ignis-helpers';
+import { HTTP, CredentialHelper } from '@venizia/ignis-helpers';
 import { PostgresDataSource } from '../datasources';
 import { User } from '../models';
 
@@ -674,7 +670,7 @@ class UserController extends BaseRestController {
     configs: {
       path: '/',
       request: {
-        body: jsonContent({
+        body: OpenApiResponses.jsonContent({
           description: 'User data',
           schema: z.object({
             name: z.string(),
@@ -707,9 +703,9 @@ class UserService extends BaseService {
   }
 
   async create(data: CreateUserDto) {
-    // Business logic. Passwords want a slow, salted KDF, so this is `bcrypt`, not the
-    // digest helper - `Hash` is for message digests and HMACs, never for credentials.
-    const hashedPassword = await hash(data.password, await genSalt(10));
+    // Business logic. Passwords want a slow, salted KDF, so this is `CredentialHelper` (argon2id over
+    // `Bun.password`), not the digest helper - `Hash` is for message digests and HMACs, never for credentials.
+    const hashedPassword = await CredentialHelper.hash({ password: data.password });
 
     return this.userRepository.create({
       data: {

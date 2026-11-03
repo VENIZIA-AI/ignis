@@ -80,12 +80,12 @@ nested filter.
 | Entry point | What it gives | Extra peers |
 | :--- | :--- | :--- |
 | `@venizia/ignis-filter` | Types, `QueryOperators`, `Sorts`. Does not load zod | none |
-| `@venizia/ignis-filter/schemas` | `FilterSchema`, `WhereSchema`, `FieldsSchema`, `InclusionSchema`, `LimitSchema`, `OffsetSchema`, `SkipSchema`, `OrderBySchema`, `buildQuerySchemas` | none (`zod` is a dependency) |
+| `@venizia/ignis-filter/schemas` | `FilterSchema`, `WhereSchema`, `FieldsSchema`, `InclusionSchema`, `LimitSchema`, `OffsetSchema`, `SkipSchema`, `OrderBySchema`, `QuerySchemaFactory` | none (`zod` is a dependency) |
 
 Both ship as ES modules, with no node builtin, so they load in a browser.
 
 The schemas here carry no OpenAPI descriptions. On a server, import them from `@venizia/ignis`
-instead: the same schemas, built through `buildQuerySchemas({ decorate })` with an OpenAPI
+instead: the same schemas, built through `QuerySchemaFactory.build({ decorate })` with an OpenAPI
 decorator, so your API reference documents them.
 
 The schema's inferred type is looser than `TFilter<T>`. It describes what arrives over the wire,

@@ -2,7 +2,7 @@ import { repository } from '@/base/metadata';
 import { AbstractEntity } from '@/base/models';
 import { BindingNamespaces } from '@/common/bindings';
 import { BindingKeys, Container, MetadataKeys, MetadataRegistry } from '@/helpers/inversion';
-import type { IInjectMetadata } from '@/helpers/inversion';
+import type { IInjectMetadata } from '@venizia/ignis-inversion';
 import type { TClass } from '@venizia/ignis-helpers/common';
 import { describe, expect, spyOn, test } from 'bun:test';
 import { ProbeDataSource } from '../support/artifact-fixtures';

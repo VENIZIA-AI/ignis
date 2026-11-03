@@ -1,7 +1,7 @@
 import type { TWhere } from '@venizia/ignis-filter';
-import { parseOrderEntry } from '@venizia/ignis-filter';
+import { Sorts } from '@venizia/ignis-filter';
 import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
-import { assertKnownField } from '@/search/core/repositories/common/dialect-helpers';
+import { SearchDialectHelper } from '@/search/core/repositories/common/dialect-helpers';
 import { describe, expect, test } from 'bun:test';
 import { jsonb, pgTable, serial, text } from 'drizzle-orm/pg-core';
 
@@ -95,7 +95,7 @@ describe.each(UNSAFE)(
 
     test('search dialects: unknown field', () => {
       const message = messageOf(() =>
-        assertKnownField({
+        SearchDialectHelper.assertKnownField({
           field: `na${raw}me`,
           engine: 'Typesense',
           capabilities: { fields: new Set(['name']) },
@@ -119,8 +119,8 @@ describe.each(UNSAFE_IN_ORDER)(
       expectSafe({ message, escaped });
     });
 
-    test('parseOrderEntry: invalid direction', () => {
-      const message = messageOf(() => parseOrderEntry({ entry: `name AS${raw}C` }));
+    test('Sorts.parseEntry: invalid direction', () => {
+      const message = messageOf(() => Sorts.parseEntry({ entry: `name AS${raw}C` }));
       expectSafe({ message, escaped });
     });
   },

@@ -4,11 +4,12 @@ import {
   AbstractSecretsHelper,
   SecretProviders,
   SystemEnvsHelper,
-  formatLogMessage,
+  LogFormatUtility,
+  LoggerFactory,
   type ISecretsRegistration,
 } from '@venizia/ignis-helpers';
 import { Logger } from '@venizia/ignis-helpers/winston';
-import { afterEach, describe, expect, spyOn, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 
 // Mirrors the leaky shape of real Vault transport errors (token/secret_id in enumerable props the logger deep-inspects at depth 5) without any optional peer.
 class FakeSensitiveTransportError extends Error {
@@ -36,15 +37,22 @@ class SystemEnvsBackedApp extends BaseApplication {
 }
 
 const originalNodeEnv = process.env.NODE_ENV;
+
+// These tests call `hydrateSecrets()` without `initialize()`, which is where `@venizia/ignis` picks the server's logger: they choose Winston, whose `Logger.prototype` they spy on.
+beforeEach(() => {
+  LoggerFactory.use({ provider: Logger });
+});
+
 afterEach(() => {
   process.env.NODE_ENV = originalNodeEnv;
+  LoggerFactory.reset();
 });
 
 /** Formats each captured log call the way the framework logger would and asserts the secret VALUES never reach the line, while the diagnostic message still does. An Error at `%s` is projected by `ErrorPrettier`, so the credential-bearing `config`/`response` are dropped outright rather than redacted in place. */
 const assertRedactedThroughLogger = (calls: unknown[][]) => {
   expect(calls.length).toBeGreaterThan(0);
   for (const [message, ...args] of calls) {
-    const rendered = formatLogMessage({ message: String(message), args });
+    const rendered = LogFormatUtility.formatMessage({ message: String(message), args });
     expect(rendered).not.toContain('super-secret');
     expect(rendered).not.toContain('X-Vault-Token');
     expect(rendered).toContain('connect ECONNREFUSED');

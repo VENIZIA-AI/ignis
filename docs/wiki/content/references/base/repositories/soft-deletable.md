@@ -12,21 +12,21 @@ Reference for `SoftDeletableRepository` - delete methods set a `deletedAt` times
 
 - [`packages/connectors/src/relational/core/repositories/core/soft-deletable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/soft-deletable.ts) - `SoftDeletableRelationalRepository` - delete/restore overrides, `isStrict` findById, `TDeletedAtColumn`
 - [`packages/connectors/src/relational/postgres/repositories/core/soft-deletable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/soft-deletable.ts) - `SoftDeletableRepository`, the Postgres binding
-- [`packages/connectors/src/relational/postgres/models/enrichers/tz.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/tz.enricher.ts) - `generateTzColumnDefs` - adds the `deletedAt` column
+- [`packages/connectors/src/relational/postgres/models/enrichers/tz.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/tz.enricher.ts) - `PostgresTzEnricher.generateColumnDefs` - adds the `deletedAt` column
 
 ## Setup
 
 ### 1. Define the model with a `deletedAt` column
 
-Use the `generateTzColumnDefs` enricher with the `deleted` option enabled:
+Use the `PostgresTzEnricher.generateColumnDefs` enricher with the `deleted` option enabled:
 
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import {
   BaseEntity,
   model,
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
 } from '@venizia/ignis';
 
 @model({
@@ -37,8 +37,8 @@ import {
 })
 export class Category extends BaseEntity<typeof Category.schema> {
   static override schema = pgTable('Category', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...generateTzColumnDefs({
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresTzEnricher.generateColumnDefs({
       deleted: { enable: true, columnName: 'deleted_at', withTimezone: true },
     }),
     name: text('name').notNull(),
@@ -50,7 +50,7 @@ export class Category extends BaseEntity<typeof Category.schema> {
 > - The model **must** have a `deletedAt` column. `SoftDeletableRepository` requires `TSoftDeletableTableSchema`, which enforces `{ deletedAt: AnyColumn<{ data: Date | string | null }> }`. The bound is Drizzle's dialect-free `AnyColumn`, the exact twin of `AnyPgColumn`, so the same column satisfies it on SQLite too.
 > - Set `query: { filter: { where: { deletedAt: null } } }` in `@model` settings so soft-deleted records are excluded by default.
 > - Optionally add `deletedAt` to `hiddenProperties` to hide it from API responses.
-> - Use `generateTzColumnDefs` with `deleted: { enable: true, ... }` to add the column, or define it manually with `timestamp('deleted_at', { mode: 'date', withTimezone: true })`.
+> - Use `PostgresTzEnricher.generateColumnDefs` with `deleted: { enable: true, ... }` to add the column, or define it manually with `timestamp('deleted_at', { mode: 'date', withTimezone: true })`.
 
 ### 2. Extend `SoftDeletableRepository`
 
@@ -311,6 +311,5 @@ It rebinds `ExtraOptions` to `IDatabaseExtraOptions` and `TDataSource` to `IPost
 
 - [Repositories overview](/references/base/repositories/) - CRUD basics, common tasks
 - [Advanced Features](./advanced) - transactions, hidden properties, performance
-- [Repository Mixins (Removed)](./mixins) - where default-filter and fields-visibility behavior lives now
 - [Default Filter](/references/base/filter-system/default-filter) - configuring `@model` default filters
 - [Models - Full Reference](/references/base/models-reference) - `@model`, entity hierarchy, schema enrichers

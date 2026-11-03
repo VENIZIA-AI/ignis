@@ -1,4 +1,4 @@
-import { int } from '@/utilities';
+import { ParseUtility } from '@/utilities';
 import { ModuleUtility } from '@/utilities/module.utility';
 import type { Cluster, ClusterOptions } from 'ioredis';
 import { AbstractRedisHelper } from './../base';
@@ -14,7 +14,7 @@ export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
 
     const startupNodes = opts.nodes.map((node) => ({
       host: node.host,
-      port: int(node.port),
+      port: ParseUtility.toInt({ input: node.port }),
       password: node.password,
     }));
 

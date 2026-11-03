@@ -145,7 +145,8 @@ describe('QUERY wire integration against a live Bun.serve echo', () => {
         headers: { ['content-type']: 'application/json' },
       });
 
-      const echoed = (await response.json()) as IEchoedRequest;
+      const result = await response.json();
+      const echoed = result as IEchoedRequest;
       expect(echoed.method).toBe('QUERY');
       expect(echoed.body).toBe(payload);
       expect(echoed.contentType).toBe('application/json');

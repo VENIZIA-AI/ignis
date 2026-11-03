@@ -88,7 +88,8 @@ describe('TransactionDouble', () => {
     const commitError = getError({ message: '[TransactionDoubleTest] commit refused' });
     const double = new TransactionDouble({ commitError });
 
-    expect(await captureRejection({ task: double.commit() })).toBe(commitError);
+    const result = await captureRejection({ task: double.commit() });
+    expect(result).toBe(commitError);
     expect(double.state).toBe(TransactionStates.FAILED);
     expect(double.isActive).toBe(false);
     expect(double.commitCount).toBe(1);
@@ -98,7 +99,8 @@ describe('TransactionDouble', () => {
     const rollbackError = getError({ message: '[TransactionDoubleTest] rollback refused' });
     const double = new TransactionDouble({ rollbackError });
 
-    expect(await captureRejection({ task: double.rollback() })).toBe(rollbackError);
+    const result = await captureRejection({ task: double.rollback() });
+    expect(result).toBe(rollbackError);
     expect(double.state).toBe(TransactionStates.FAILED);
 
     await double.rollback();
@@ -167,7 +169,8 @@ describe('Engine doubles', () => {
     const commitError = getError({ message: '[TransactionDoubleTest] commit refused' });
     const double = new PostgresTransactionDouble({ commitError });
 
-    expect(await captureRejection({ task: double.commit() })).toBe(commitError);
+    const result = await captureRejection({ task: double.commit() });
+    expect(result).toBe(commitError);
     expect(double.state).toBe(TransactionStates.FAILED);
   });
 });
@@ -184,7 +187,8 @@ describe('Cast-free use in a repository test', () => {
 
     const beginSpy = spyOn(repository, 'beginTransaction').mockResolvedValue(double);
 
-    expect(await repository.beginTransaction()).toBe(double);
+    const result = await repository.beginTransaction();
+    expect(result).toBe(double);
     expect(beginSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -194,7 +198,8 @@ describe('Cast-free use in a repository test', () => {
 
     spyOn(repository, 'beginTransaction').mockResolvedValue(double);
 
-    expect(await repository.beginTransaction()).toBe(double);
+    const result = await repository.beginTransaction();
+    expect(result).toBe(double);
   });
 
   test('spyOn(...).mockResolvedValue(double) on SQLite repositories', async () => {
@@ -205,8 +210,10 @@ describe('Cast-free use in a repository test', () => {
     spyOn(neutral, 'beginTransaction').mockResolvedValue(double);
     spyOn(bound, 'beginTransaction').mockResolvedValue(double);
 
-    expect(await neutral.beginTransaction()).toBe(double);
-    expect(await bound.beginTransaction()).toBe(double);
+    const result = await neutral.beginTransaction();
+    expect(result).toBe(double);
+    const result2 = await bound.beginTransaction();
+    expect(result2).toBe(double);
   });
 
   test('options: { transaction: double } fits every tier of extra options', () => {

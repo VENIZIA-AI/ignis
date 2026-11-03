@@ -2,15 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CheckCommand } from '../../../cli/check';
-import {
-  assertBrowserEsmEntry,
-  assertNoWorkspaceExternal,
-  buildManifest,
-  checkPurity,
-  deriveEntries,
-  probeEntry,
-  PurityVerdicts,
-} from '../../../checks';
+import { PurityCheck, PurityManifest, PurityProbe, PurityVerdicts } from '../../../checks';
 import type { IPurityClaim, IPurityEntry } from '../../../checks';
 
 const REPOSITORY_ROOT = join(__dirname, '../../../../../..');
@@ -57,10 +49,14 @@ const run = async (opts: {
   root: string;
   claims: IPurityClaim[];
   filter?: string;
-}): Promise<{ report: Awaited<ReturnType<typeof checkPurity>>; out: string[]; err: string[] }> => {
+}): Promise<{
+  report: Awaited<ReturnType<typeof PurityCheck.run>>;
+  out: string[];
+  err: string[];
+}> => {
   const out: string[] = [];
   const err: string[] = [];
-  const report = await checkPurity({
+  const report = await PurityCheck.run({
     root: opts.root,
     claims: opts.claims,
     filter: opts.filter,
@@ -72,7 +68,7 @@ const run = async (opts: {
   return { report, out, err };
 };
 
-describe('assertNoWorkspaceExternal', () => {
+describe('PurityManifest.assertNoWorkspaceExternal', () => {
   test('rejects an entry that externalises a workspace package, naming the entry and the package', () => {
     const poisoned: IPurityEntry[] = [
       {
@@ -83,9 +79,15 @@ describe('assertNoWorkspaceExternal', () => {
       },
     ];
 
-    expect(() => assertNoWorkspaceExternal(poisoned)).toThrow(/workspace package/);
-    expect(() => assertNoWorkspaceExternal(poisoned)).toThrow(/poisoned/);
-    expect(() => assertNoWorkspaceExternal(poisoned)).toThrow(/@venizia\/ignis-helpers/);
+    expect(() => PurityManifest.assertNoWorkspaceExternal({ manifest: poisoned })).toThrow(
+      /workspace package/,
+    );
+    expect(() => PurityManifest.assertNoWorkspaceExternal({ manifest: poisoned })).toThrow(
+      /poisoned/,
+    );
+    expect(() => PurityManifest.assertNoWorkspaceExternal({ manifest: poisoned })).toThrow(
+      /@venizia\/ignis-helpers/,
+    );
   });
 
   test('does not reject a third-party external', () => {
@@ -93,7 +95,7 @@ describe('assertNoWorkspaceExternal', () => {
       { label: 'clean', package: 'connectors', entry: 'x.js', external: ['@electric-sql/pglite'] },
     ];
 
-    expect(() => assertNoWorkspaceExternal(clean)).not.toThrow();
+    expect(() => PurityManifest.assertNoWorkspaceExternal({ manifest: clean })).not.toThrow();
   });
 
   test('rejects a workspace package buried behind an earlier third-party entry', () => {
@@ -106,7 +108,9 @@ describe('assertNoWorkspaceExternal', () => {
       },
     ];
 
-    expect(() => assertNoWorkspaceExternal(mixed)).toThrow(/@venizia\/ignis-kernel/);
+    expect(() => PurityManifest.assertNoWorkspaceExternal({ manifest: mixed })).toThrow(
+      /@venizia\/ignis-kernel/,
+    );
   });
 
   test('the scope is a parameter: another repository names its own', () => {
@@ -114,12 +118,14 @@ describe('assertNoWorkspaceExternal', () => {
       { label: 'e', package: 'p', entry: 'x.js', external: ['@acme/core'] },
     ];
 
-    expect(() => assertNoWorkspaceExternal(entries)).not.toThrow();
-    expect(() => assertNoWorkspaceExternal(entries, '@acme/')).toThrow(/@acme\/core/);
+    expect(() => PurityManifest.assertNoWorkspaceExternal({ manifest: entries })).not.toThrow();
+    expect(() =>
+      PurityManifest.assertNoWorkspaceExternal({ manifest: entries, workspaceScope: '@acme/' }),
+    ).toThrow(/@acme\/core/);
   });
 });
 
-describe('deriveEntries', () => {
+describe('PurityManifest.deriveEntries', () => {
   const root = repository({
     lib: {
       exports: {
@@ -136,26 +142,34 @@ describe('deriveEntries', () => {
   });
 
   test('one row per runtime condition, labelled by condition only when there are several', () => {
-    const labels = deriveEntries({ claim: { package: 'lib' }, root }).map((row) => row.label);
+    const labels = PurityManifest.deriveEntries({ claim: { package: 'lib' }, root }).map(
+      (row) => row.label,
+    );
 
     expect(labels).toEqual(['lib [import]', 'lib [require]', 'lib/sub']);
   });
 
   test('a claimed sub-path that the exports map no longer publishes fails the derivation', () => {
     expect(() =>
-      deriveEntries({ claim: { package: 'lib', subpaths: ['.', './renamed-away'] }, root }),
+      PurityManifest.deriveEntries({
+        claim: { package: 'lib', subpaths: ['.', './renamed-away'] },
+        root,
+      }),
     ).toThrow(/no longer\s+publishes/);
   });
 
   test('an external declared for a sub-path that is gone fails the derivation', () => {
     expect(() =>
-      deriveEntries({ claim: { package: 'lib', external: { './renamed-away': ['pg'] } }, root }),
+      PurityManifest.deriveEntries({
+        claim: { package: 'lib', external: { './renamed-away': ['pg'] } },
+        root,
+      }),
     ).toThrow(/no longer\s+publishes/);
   });
 
   test('a waiver against a sub-path that is not claimed fails the derivation', () => {
     expect(() =>
-      deriveEntries({
+      PurityManifest.deriveEntries({
         claim: { package: 'lib', subpaths: ['.'], impure: { './sub': ['default'] } },
         root,
       }),
@@ -164,25 +178,31 @@ describe('deriveEntries', () => {
 
   test('a waiver under a condition the map does not publish fails the derivation', () => {
     expect(() =>
-      deriveEntries({ claim: { package: 'lib', impure: { '.': ['browser'] } }, root }),
+      PurityManifest.deriveEntries({
+        claim: { package: 'lib', impure: { '.': ['browser'] } },
+        root,
+      }),
     ).toThrow(/under condition 'browser'/);
   });
 
   test('a waived condition marks its row, the others stay claimed', () => {
-    const rows = deriveEntries({ claim: { package: 'lib', impure: { '.': ['require'] } }, root });
+    const rows = PurityManifest.deriveEntries({
+      claim: { package: 'lib', impure: { '.': ['require'] } },
+      root,
+    });
 
     expect(rows.find((row) => row.label === 'lib [require]')?.expectImpure).toBe(true);
     expect(rows.find((row) => row.label === 'lib [import]')?.expectImpure).toBeUndefined();
   });
 
   test('a package without an exports map is a broken claim', () => {
-    expect(() => deriveEntries({ claim: { package: 'bare' }, root })).toThrow(
+    expect(() => PurityManifest.deriveEntries({ claim: { package: 'bare' }, root })).toThrow(
       /publishes no `exports` map/,
     );
   });
 });
 
-describe('assertBrowserEsmEntry', () => {
+describe('PurityManifest.assertBrowserEsmEntry', () => {
   const root = repository({
     esm: { exports: { '.': { types: './dist/esm/index.d.ts', default: './dist/esm/index.js' } } },
     dual: {
@@ -194,20 +214,28 @@ describe('assertBrowserEsmEntry', () => {
 
   test('passes when every runtime entry is below the prefix', () => {
     expect(() =>
-      assertBrowserEsmEntry({ claims: [{ package: 'esm' }], root, esmEntryPrefix: './dist/esm/' }),
+      PurityManifest.assertBrowserEsmEntry({
+        claims: [{ package: 'esm' }],
+        root,
+        esmEntryPrefix: './dist/esm/',
+      }),
     ).not.toThrow();
   });
 
   test('fails when one runtime condition points outside it', () => {
     expect(() =>
-      assertBrowserEsmEntry({ claims: [{ package: 'dual' }], root, esmEntryPrefix: './dist/esm/' }),
+      PurityManifest.assertBrowserEsmEntry({
+        claims: [{ package: 'dual' }],
+        root,
+        esmEntryPrefix: './dist/esm/',
+      }),
     ).toThrow(/runtime entry is not in dist\/esm/);
   });
 
-  test('buildManifest checks it only when the repository asks for it', () => {
-    expect(buildManifest({ claims: [{ package: 'dual' }], root }).length).toBe(2);
+  test('PurityManifest.build checks it only when the repository asks for it', () => {
+    expect(PurityManifest.build({ claims: [{ package: 'dual' }], root }).length).toBe(2);
     expect(() =>
-      buildManifest({
+      PurityManifest.build({
         claims: [{ package: 'dual' }],
         root,
         options: { esmEntryPrefix: './dist/esm/' },
@@ -216,7 +244,7 @@ describe('assertBrowserEsmEntry', () => {
   });
 });
 
-describe('checkPurity', () => {
+describe('PurityCheck.run', () => {
   const root = repository({
     pure: {
       exports: { '.': { types: './index.d.ts', default: './index.js' } },
@@ -324,7 +352,7 @@ describe('a browser entry never reaches dev-configs (C10)', () => {
   });
 
   test('positive control: an entry that bundles an installed @venizia/dev-configs fails and says so', async () => {
-    const result = await probeEntry({
+    const result = await PurityProbe.probeEntry({
       entry: join(fixtureRoot, 'packages/app/index.js'),
       cwd: fixtureRoot,
     });
@@ -350,24 +378,29 @@ describe('devz check purity', () => {
   });
 
   test('exits 0 for a clean tree, 1 for a filter that matches nothing, 2 without --claims', async () => {
-    expect(
-      await CheckCommand.run({ root: claimsRoot, args: ['purity', '--claims', 'claims.ts'] }),
-    ).toBe(0);
-    expect(
-      await CheckCommand.run({
-        root: claimsRoot,
-        args: ['purity', 'nope', '--claims', 'claims.ts'],
-      }),
-    ).toBe(1);
-    expect(await CheckCommand.run({ root: claimsRoot, args: ['purity'] })).toBe(2);
-    expect(await CheckCommand.run({ root: claimsRoot, args: ['nothing'] })).toBe(2);
+    const result = await CheckCommand.run({
+      root: claimsRoot,
+      args: ['purity', '--claims', 'claims.ts'],
+    });
+    expect(result).toBe(0);
+    const result2 = await CheckCommand.run({
+      root: claimsRoot,
+      args: ['purity', 'nope', '--claims', 'claims.ts'],
+    });
+    expect(result2).toBe(1);
+    const result3 = await CheckCommand.run({ root: claimsRoot, args: ['purity'] });
+    expect(result3).toBe(2);
+    const result4 = await CheckCommand.run({ root: claimsRoot, args: ['nothing'] });
+    expect(result4).toBe(2);
   }, 60_000);
 
   test('a claims file without PURITY_CLAIMS is refused', async () => {
     writeFileSync(join(claimsRoot, 'empty.ts'), 'export const OTHER = 1;\n');
 
-    expect(
-      await CheckCommand.run({ root: claimsRoot, args: ['purity', '--claims', 'empty.ts'] }),
-    ).toBe(2);
+    const result = await CheckCommand.run({
+      root: claimsRoot,
+      args: ['purity', '--claims', 'empty.ts'],
+    });
+    expect(result).toBe(2);
   });
 });

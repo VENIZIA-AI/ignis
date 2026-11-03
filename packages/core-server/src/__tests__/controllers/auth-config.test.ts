@@ -6,9 +6,9 @@ import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
 import type { TRouteContext } from '@/base/controllers';
 import { BaseRestController } from '@/base/controllers';
-import { defineControllerRouteConfigs } from '@venizia/ignis-kernel';
+import { RouteConfigResolver } from '@venizia/ignis-kernel';
 import { model } from '@/base/metadata';
-import { jsonResponse } from '@venizia/ignis-kernel';
+import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { SchemaTypes } from '@venizia/ignis-kernel';
 import { AuthenticateStrategy, AuthenticationModes } from '@venizia/ignis-kernel';
 import { AuthorizationActions } from '@venizia/ignis-kernel';
@@ -18,7 +18,10 @@ import { z } from '@hono/zod-openapi';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 
-const okResponse = jsonResponse({ schema: z.object({ hit: z.string() }), description: 'ok' });
+const okResponse = OpenApiResponses.jsonResponse({
+  schema: z.object({ hit: z.string() }),
+  description: 'ok',
+});
 
 @model({ type: 'entity' })
 class AuthConfigAccount extends BasePostgresEntity<typeof AuthConfigAccount.schema> {
@@ -35,7 +38,7 @@ const buildRouteDefinitions = (opts: {
   authorize?: object;
   routes?: object;
 }) => {
-  return defineControllerRouteConfigs({
+  return RouteConfigResolver.defineControllerRouteConfigs({
     isStrict: true,
     idType: entityInstance.getIdType(),
     authenticate: opts.authenticate as never,
@@ -194,6 +197,7 @@ describe('Route auth config - controller level vs route level', () => {
 
     const response = await restController.getRouter().request('/public');
     expect(response.status).toBe(HTTP.ResultCodes.RS_2.Ok);
-    expect(await response.json()).toEqual({ hit: 'public' });
+    const result = await response.json();
+    expect(result).toEqual({ hit: 'public' });
   });
 });

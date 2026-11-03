@@ -72,7 +72,10 @@ export class ArtifactGroup implements IArtifactGroup {
       folder: group.folder,
       site: group.site,
       content: group.content ? slice(group.content) : undefined,
-      resolve: async () => slice(await ArtifactGroup.resolveContent({ group })),
+      resolve: async () => {
+        const content = await ArtifactGroup.resolveContent({ group });
+        return slice(content);
+      },
       kinds,
       ignore: group.ignore,
     });

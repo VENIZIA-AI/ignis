@@ -26,6 +26,17 @@ describe('RedisSingleHelper', () => {
     expect(helper.getClient().status).toBe('wait');
   });
 
+  it('takes no password for a Redis that has none', () => {
+    helper = new RedisSingleHelper({
+      name: 'single-test',
+      host: '127.0.0.1',
+      port: 6379,
+      autoConnect: false,
+    });
+    // ioredis stores a missing password as null and sends no AUTH for it.
+    expect(helper.getClient().options.password ?? null).toBeNull();
+  });
+
   it('applies the maxRetry-bounded retry strategy', () => {
     helper = new RedisSingleHelper({
       name: 'single-test',

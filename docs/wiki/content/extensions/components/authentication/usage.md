@@ -31,7 +31,7 @@ const SECURE_ROUTE_CONFIG = {
   path: '/secure-data',
   method: HTTP.Methods.GET,
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
-  responses: jsonResponse({ description: 'Protected data', schema: z.object({ message: z.string() }) }),
+  responses: OpenApiResponses.jsonResponse({ description: 'Protected data', schema: z.object({ message: z.string() }) }),
 } as const;
 ```
 
@@ -42,7 +42,7 @@ const FALLBACK_AUTH_CONFIG = {
   path: '/api/data',
   method: HTTP.Methods.GET,
   authenticate: { strategies: [Authentication.STRATEGY_JWT, Authentication.STRATEGY_BASIC], mode: AuthenticationModes.ANY },
-  responses: jsonResponse({ description: 'Data via JWT or Basic', schema: z.object({ data: z.any() }) }),
+  responses: OpenApiResponses.jsonResponse({ description: 'Data via JWT or Basic', schema: z.object({ data: z.any() }) }),
 } as const;
 ```
 
@@ -53,7 +53,7 @@ const PUBLIC_ROUTE_CONFIG = {
   path: '/public',
   method: HTTP.Methods.GET,
   authenticate: { skip: true },
-  responses: jsonResponse({ description: 'Public endpoint', schema: z.object({ message: z.string() }) }),
+  responses: OpenApiResponses.jsonResponse({ description: 'Public endpoint', schema: z.object({ message: z.string() }) }),
 } as const;
 ```
 
@@ -405,24 +405,30 @@ Column helper functions return pre-configured Drizzle columns for auth-related t
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import {
-  extraUserColumns, extraRoleColumns, extraPermissionColumns, extraPolicyDefinitionColumns,
-  generateIdColumnDefs, generateTzColumnDefs,
+  extraUserColumns,
+  extraRoleColumns,
+  extraPermissionColumns,
+  extraPolicyDefinitionColumns,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
 } from '@venizia/ignis';
 
 export const users = pgTable('users', {
-  ...generateIdColumnDefs(),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs(),
+  ...PostgresTzEnricher.generateColumnDefs(),
   ...extraUserColumns(),
   username: text('username').unique().notNull(),
   passwordHash: text('password_hash').notNull(),
 });
 
-export const roles = pgTable('roles', { ...generateIdColumnDefs(), ...generateTzColumnDefs(), ...extraRoleColumns() });
-export const permissions = pgTable('permissions', { ...generateIdColumnDefs(), ...generateTzColumnDefs(), ...extraPermissionColumns() });
-export const policyDefinitions = pgTable('policy_definitions', { ...generateIdColumnDefs(), ...generateTzColumnDefs(), ...extraPolicyDefinitionColumns() });
+export const roles = pgTable('roles', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...extraRoleColumns() });
+export const permissions = pgTable('permissions', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...extraPermissionColumns() });
+export const policyDefinitions = pgTable('policy_definitions', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...extraPolicyDefinitionColumns() });
 ```
 
-**`extraUserColumns(opts?: { idType })`**
+The old function names of these methods are removed. `devz codemod namespace-functions` moves a call written with one to the class form.
+
+**`AuthModelColumns.buildUser(opts?: { idType })`**
 
 | Column | DB column | Type | Default | Description |
 |--------|-----------|------|---------|-------------|
@@ -433,7 +439,7 @@ export const policyDefinitions = pgTable('policy_definitions', { ...generateIdCo
 | `lastLoginAt` | `last_login_at` | `timestamp (tz)` | `null` | Last login timestamp |
 | `parentId` | `parent_id` | `text` or `integer` | `null` | Depends on `idType` |
 
-**`extraRoleColumns()`** - no options.
+**`AuthModelColumns.buildRole()`** - no options.
 
 | Column | DB column | Type | Default | Description |
 |--------|-----------|------|---------|-------------|
@@ -443,7 +449,7 @@ export const policyDefinitions = pgTable('policy_definitions', { ...generateIdCo
 | `priority` | `priority` | `integer` | -- | Lower = higher priority |
 | `status` | `status` | `text` | `RoleStatuses.ACTIVATED` | Role lifecycle status |
 
-**`extraPermissionColumns(opts?: { idType })`**
+**`AuthModelColumns.buildPermission(opts?: { idType })`**
 
 | Column | DB column | Type | Default | Description |
 |--------|-----------|------|---------|-------------|
@@ -456,7 +462,7 @@ export const policyDefinitions = pgTable('policy_definitions', { ...generateIdCo
 | `description` | `description` | `text` | `null` | Optional |
 | `parentId` | `parent_id` | `text` or `integer` | `null` | Depends on `idType` |
 
-**`extraPolicyDefinitionColumns(opts?: { idType })`** - Casbin-style policies mapping subjects to targets.
+**`AuthModelColumns.buildPolicyDefinition(opts?: { idType })`** - Casbin-style policies mapping subjects to targets.
 
 | Column | DB column | Type | Nullable | Description |
 |--------|-----------|------|----------|-------------|
@@ -473,7 +479,7 @@ export const policyDefinitions = pgTable('policy_definitions', { ...generateIdCo
 
 All `idType` options default to `'number'` (`integer` columns). Pass `'string'` for `text` columns - UUID primary keys, for example.
 
-The domain is two columns, never one. Only three pairs are legal: both `null` (every domain the subject belongs to), `'SYSTEM_WIDE'` with a `null` id, or a real type paired with a real id. `policyDefinitionDomainShapeCheck()` returns exactly that as CHECK predicate text for your migration. The casbin `<Type>_<id>` token is not stored - `ScopedCasbinAdapter` assembles it in SQL at read time.
+The domain is two columns, never one. Only three pairs are legal: both `null` (every domain the subject belongs to), `'SYSTEM_WIDE'` with a `null` id, or a real type paired with a real id. `AuthModelColumns.buildPolicyDefinitionDomainShapeCheck()` returns exactly that as CHECK predicate text for your migration. The casbin `<Type>_<id>` token is not stored - `ScopedCasbinAdapter` assembles it in SQL at read time.
 
 `'p'` and `'g'` are Casbin rule prefixes, not `variant` values - each `variant` maps to one of them internally. See the [Authorization component](../authorization/) to build these tables end to end. Its [Usage guide](../authorization/usage) covers policy definitions, domain scoping, and the adapter that reads this table.
 

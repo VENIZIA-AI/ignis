@@ -1,6 +1,6 @@
 import type { TFilter, TWhere } from '@venizia/ignis-kernel';
 import { datasource, model, RelationTypes } from '@venizia/ignis-kernel';
-import { createRelations } from '@/relational/core/repositories/dialect/relations/create';
+import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
 import type { TRelationConfig } from '@/relational/core/repositories/common';
 import type { TTableInsert, TTableObject, TTableSchemaWithId } from '@/relational/core/models';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
@@ -85,9 +85,11 @@ class JsonPathDataSource extends BasePostgresDataSource<{}, {}, {}, PGlite> {
         // Keyed by the registered model name, as auto-discovery keys a real application.
         [ORDER_MODEL_NAME]: orderTable,
         JsonPathSupplier: supplierTable,
-        orderRelations: createRelations({ source: orderTable, relations: orderRelationsConfig })
-          .relations,
-        supplierRelations: createRelations({
+        orderRelations: RelationsFactory.create({
+          source: orderTable,
+          relations: orderRelationsConfig,
+        }).relations,
+        supplierRelations: RelationsFactory.create({
           source: supplierTable,
           relations: supplierRelationsConfig,
         }).relations,
@@ -284,23 +286,27 @@ describe('Postgres - a JSON-path key renders a qualified column', () => {
 
 describe('Postgres - a JSON-path key runs on a join with a same-named column', () => {
   test('control: the join itself runs', async () => {
-    expect(await selectJoinedOrderIds({})).toEqual({ ids: [1, 2, 3, 4] });
+    const result = await selectJoinedOrderIds({});
+    expect(result).toEqual({ ids: [1, 2, 3, 4] });
   });
 
   test('where on a JSON path, text extraction', async () => {
-    expect(await selectJoinedOrderIds({ where: { 'metadata.tier': 'gold' } })).toEqual({
+    const result = await selectJoinedOrderIds({ where: { 'metadata.tier': 'gold' } });
+    expect(result).toEqual({
       ids: [1, 2, 4],
     });
   });
 
   test('where on a JSON path, numeric-cast branch', async () => {
-    expect(await selectJoinedOrderIds({ where: { 'metadata.priority': { gt: 3 } } })).toEqual({
+    const result = await selectJoinedOrderIds({ where: { 'metadata.priority': { gt: 3 } } });
+    expect(result).toEqual({
       ids: [2, 3, 4],
     });
   });
 
   test('order by a JSON path', async () => {
-    expect(await selectJoinedOrderIds({ order: ['metadata.priority DESC'] })).toEqual({
+    const result = await selectJoinedOrderIds({ order: ['metadata.priority DESC'] });
+    expect(result).toEqual({
       ids: [2, 4, 3, 1],
     });
   });

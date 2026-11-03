@@ -15,7 +15,6 @@ Exhaustive reference for the Queue helper family. For a readable introduction an
 - [`packages/helpers/src/modules/queue/internal/sequential/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/internal/sequential/common/types.ts) - `QueueStatuses`, `TQueueStatus`, `TQueueElement`, `IQueueCallback`
 - [`packages/helpers/src/modules/queue/internal/hf/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/internal/hf/helper.ts) - `HfQueueHelper`
 - [`packages/helpers/src/modules/queue/mqtt/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/mqtt/helper.ts) - `MQTTClientHelper`
-- [`packages/helpers/src/modules/queue/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/common/types.ts) - `TBullQueueRole`
 
 ## Find what you need
 
@@ -428,7 +427,7 @@ The constructor calls `configure()` automatically, which connects via `mqtt.conn
 | `onClose` | `(error?: Error) => void` | - | Fired on the `'close'` event. |
 
 > [!NOTE]
-> At connect time, `MQTTClientHelper` logs the broker `url` through `redactUrlCredentials()` and `options` through `redactSecrets()`. A password embedded in the URL (`mqtts://user:hunter2@broker:8883`) never reaches the log. Only `mqtts://user:[REDACTED]@broker:8883` does.
+> At connect time, `MQTTClientHelper` logs the broker `url` through `RedactUtility.redactUrlCredentials()` and `options` through `RedactUtility.redactSecrets()`. A password embedded in the URL (`mqtts://user:hunter2@broker:8883`) never reaches the log. Only `mqtts://user:[REDACTED]@broker:8883` does.
 
 ### Methods
 

@@ -1,6 +1,6 @@
 ---
 title: Relational Connector Lift - Engine-Neutral SQL Tier
-description: The SQL repository and datasource tier splits into an engine-neutral connectors/relational and a Postgres branch, reachable at a new @venizia/ignis/relational export. Ten names leave @venizia/ignis/postgres for their Postgres spellings, and findById finally accepts options.retry.
+description: The SQL repository tier gains an engine-neutral @venizia/ignis/relational export, ten relational names are renamed to their Postgres spellings, and findById now accepts options.retry.
 packages: ['@venizia/ignis']
 ---
 
@@ -10,54 +10,34 @@ packages: ['@venizia/ignis']
 
 <Badge type="danger" text="Breaking Change" /> <Badge type="tip" text="Enhancement" /> <Badge type="info" text="Bug Fix" /> <Badge type="warning" text="Behavior Change" />
 
-**In one line.** IGNIS's SQL repository and datasource tier now splits into an engine-neutral
-`connectors/relational` and a Postgres branch on top of it, published at a new
-`@venizia/ignis/relational` export. Ten `*Relational*` names leave `@venizia/ignis` and
-`@venizia/ignis/postgres` for their Postgres spellings on the same path, and `findById` accepts
-`options.retry` for the first time.
+**In one line.** The SQL repository and datasource tier now splits into an engine-neutral `@venizia/ignis/relational` and a Postgres branch, ten `*Relational*` names move to their Postgres spellings, and `findById` accepts `options.retry`.
 
-**Upgrading?** Go straight to the [Migration guide](#migration-guide). It is a detection grep, a
-codemod, and a short table of hand edits. Every break here is a rename, so `tsc` finds all of them.
-
-## The problem it solves
-
-Every SQL class in IGNIS - `DefaultCRUDRepository`, `BasePostgresDataSource`, the query dialect - was
-hard-wired to Postgres, down to a single class calling Drizzle's Postgres query builder directly. A
-second SQL engine (SQLite, or a Postgres-compatible engine like PGlite for tests and browsers) had no
-seam to plug into; it would have needed its own copy of the repository chain.
+**Upgrading?** Go to the [Migration guide](#migration-guide). Every break is a rename, so `tsc` finds all of them.
 
 ## What changed
 
-- **New engine-neutral tier.** `connectors/relational` carries the datasource root, driver contract,
-  entity base, and the five-class repository chain (`RelationalBaseRepository` through
-  `SoftDeletableRelationalRepository`), all free of Postgres-specific Drizzle imports.
-- **One repository, any SQL engine.** A repository reaches the database through two ports its
-  datasource supplies: `getQueryDialect()` (filter and update translation) and `getQueryExecutor()`
-  (the seven query verbs - `select`, `count`, `findMany`, `findFirst`, `insert`, `update`, `remove`).
-  `PostgresQueryExecutor` is now the only place in `connectors/postgres` that calls a Drizzle query
-  builder.
-- **New `@venizia/ignis/relational` export**, published beside `@venizia/ignis/postgres`. It is not
-  merged into the root barrel - the two tiers declare several of the same class names (see Details).
-- **`@venizia/ignis/relational` publishes a dialect-free `TTableSchemaWithId`**, bound by Drizzle's
-  `Table` rather than `PgTable`, so a `sqliteTable` satisfies it. The `TTableSchemaWithId` on
-  `@venizia/ignis` and `@venizia/ignis/postgres` is unchanged and stays `PgTable`-branded - it has to
-  compose with the `TTableObject` and `TTableInsert` those entries serve.
-- **`findById` now accepts `options.retry`** on `SoftDeletableRepository`. The runtime always
-  supported it; only the type signature rejected it. See [Fixes](#fixes).
+- **New engine-neutral tier** at `@venizia/ignis/relational`, beside `@venizia/ignis/postgres`. It is not merged into the root barrel. A second SQL engine plugs in through `getQueryDialect()` and `getQueryExecutor()` on its datasource.
+- **Dialect-free `TTableSchemaWithId`** at `@venizia/ignis/relational`, bound by Drizzle's `Table` so a `sqliteTable` satisfies it. The one on `@venizia/ignis` and `@venizia/ignis/postgres` is unchanged.
+- **`findById` accepts `options.retry`** on `SoftDeletableRepository`. The runtime always supported it; only the type signature rejected it.
+- **`TSoftDeletableTableSchema` composes with the root barrel again.** If you hit `TS2344` intersecting it and feeding the result to `TTableObject`, that is fixed. Delete any local workaround that re-declared the schema.
+- **`getIdType` is one function again.** Same signature and behavior.
+
+## Who is affected
+
+- **Anyone importing a `*Relational*` repository, datasource, driver type or `FilterBuilder` from `@venizia/ignis` or `@venizia/ignis/postgres`.** Rename per the table below.
+- **Anyone using `ReadableRepository`, `PersistableRepository`, `DefaultCRUDRepository`, `SoftDeletableRepository`, `BasePostgresDataSource`, `AbstractPostgresDataSource`, `BaseDataSource`, `BaseRelationalEntity` or `NodePostgresDriver`.** No action needed.
+- **Any repository subclass that calls `denyOperation`,** overrode `getQueryInterface`, or read `this._updateBuilder`. See below. Search repositories are affected by `denyOperation`.
+- **Anything matching the string `"is not a postgres transaction"`,** parsing the `shouldReturn: false` debug log, or comparing repository classes by identity. See Behavior changes.
+- **Building a second SQL engine connector.** `connectors/relational` has no Postgres coupling to work around.
 
 ## Breaking changes
 
-Every rename below is name-only. The class or type is the same one you already use, on the same
-import path, with the same type parameters and the same behavior.
+> [!WARNING]
+> Every rename is name-only: the same class or type, on the same import path, with the same type parameters and behavior.
 
 ### Ten names move to their Postgres spelling
 
-The neutral tier now declares the `*Relational*` names for real, so `@venizia/ignis/postgres` can no
-longer alias them onto its own classes. One name would mean two different classes on sibling
-sub-paths. Each old name has a Postgres spelling that was already exported before the lift.
-
-Rename the import. Do not switch to `@venizia/ignis/relational` - the class of that name there is the
-neutral one, and its `connector` is `unknown` rather than a `PgDatabase`.
+Rename the import. Do not switch to `@venizia/ignis/relational`. The class of that name there is the neutral one, and its `connector` is `unknown` rather than a `PgDatabase`.
 
 | Old name | Use instead | Kind |
 |----------|-------------|------|
@@ -75,33 +55,15 @@ neutral one, and its `connector` is `unknown` rather than a `PgDatabase`.
 ```typescript
 // Before
 import { BaseRelationalDataSource, DefaultRelationalRepository, FilterBuilder } from '@venizia/ignis';
-// After
-import { BasePostgresDataSource, DefaultCRUDRepository, PostgresFilterBuilder } from '@venizia/ignis';
-```
-
-A repository subclass changes only its `extends` clause:
-
-```typescript
-// Before
 export class UserRepository extends DefaultRelationalRepository<typeof User.schema> {}
 // After
+import { BasePostgresDataSource, DefaultCRUDRepository, PostgresFilterBuilder } from '@venizia/ignis';
 export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {}
 ```
 
-`BaseDataSource`, `BaseEntity`, `BasePostgresEntity`, `BaseRelationalEntity`, `IStatementResult` and
-`UpdateBuilder` are untouched. Each still resolves from `@venizia/ignis` and
-`@venizia/ignis/postgres` under the name you already use. `NodePostgresDriver` and `PostgresJsDriver`
-keep their own sub-paths, `@venizia/ignis/postgres/node-postgres` and
-`@venizia/ignis/postgres/postgres-js`, unchanged.
+`BaseDataSource`, `BaseEntity`, `BasePostgresEntity`, `BaseRelationalEntity`, `IStatementResult`, `UpdateBuilder`, `NodePostgresDriver` and `PostgresJsDriver` are untouched, at the same paths.
 
-### The two driver types are now `T`-prefixed
-
-`IRelationalDriver` and `IRelationalConnection` were interfaces in
-`connectors/postgres/drivers/driver.ts`. They are now Postgres *narrowings* - type aliases over the
-neutral interfaces of the same name. IGNIS names a symbol after its declaration keyword: `I` for an
-`interface`, `T` for a `type`. So the aliases are `TRelationalDriver` and `TRelationalConnection`.
-
-The type parameters did not change, so an existing driver class needs one edit:
+The two driver types now carry a `T` prefix because they are type aliases. A driver class needs one edit:
 
 ```typescript
 // Before
@@ -117,23 +79,11 @@ export class MyDriver<Schema extends TAnyDataSourceSchema> implements TRelationa
 }
 ```
 
-The genuine interfaces keep the `I` prefix at `@venizia/ignis/relational`. There they take a
-connector type parameter instead of a schema: `IRelationalDriver<TConnector, Client>` and
-`IRelationalConnection<TConnector>`. Reach for those only when you build a second SQL engine.
-`IStatementResult` is still an interface and is unchanged on both paths.
+At `@venizia/ignis/relational` the real interfaces keep the `I` prefix and take a connector type parameter: `IRelationalDriver<TConnector, Client>` and `IRelationalConnection<TConnector>`. Use those only when building a second SQL engine.
 
 ### `denyOperation` takes an options object
 
-`AbstractRepository.denyOperation` is `protected`, so this breaks any repository subclass that calls
-it. Both connector families are affected - a `ReadableSearchRepository` subclass as much as a
-relational one.
-
-```typescript
-// Before
-protected denyOperation(methodName: string): never;
-// After
-protected denyOperation(opts: { methodName: string }): never;
-```
+`AbstractRepository.denyOperation` is `protected`, so this breaks any repository subclass that calls it, including search repositories.
 
 ```typescript
 // Before
@@ -144,25 +94,16 @@ return this.denyOperation({ methodName: this.create.name });
 
 ### Two protected members leave the repository tier
 
-Both were `protected`, so they are invisible from outside but part of the contract a subclass
-inherits. Nothing about them changed for a caller that only uses the public verbs.
+| Removed | Use instead |
+|---------|-------------|
+| `getQueryInterface(opts?)` | `queryExecutor`, a `protected` getter. To reach the raw connector, call `resolveConnector` (unchanged) |
+| `_updateBuilder` | the public `updateBuilder` getter, or `dataSource.getQueryDialect()` |
 
-| Removed | Was | Use instead |
-|---------|-----|-------------|
-| `getQueryInterface(opts?)` | `protected`, on the repository base | `queryExecutor`, a `protected` getter returning the datasource's `IRelationalQueryExecutor` |
-| `_updateBuilder` | `protected` field of type `UpdateBuilder` | the public `updateBuilder` getter, or `dataSource.getQueryDialect()` |
-
-Resolving Drizzle's relational-query interface is engine knowledge, so it moved down into each
-engine's query executor, where it is now `private`. A subclass that overrode `getQueryInterface` to
-reach the raw connector should call `resolveConnector` instead - that is unchanged.
-
-The public `updateBuilder` getter survives, now typed `AnyType` and marked `@deprecated`: the
-concrete builder is engine-specific, and an engine without one returns `undefined`.
+The public `updateBuilder` getter is now typed `AnyType` and marked `@deprecated`. An engine without a builder returns `undefined`.
 
 ## Migration guide
 
-Every break in this release is a rename. No behavior changes, no signature changes, no new required
-arguments. A project with no `*Relational*` imports has nothing to do.
+A project with no `*Relational*` imports has nothing to do.
 
 ### 1. Find what is affected
 
@@ -171,16 +112,14 @@ arguments. A project with no `*Relational*` imports has nothing to do.
 grep -rn --include='*.ts' --include='*.tsx' -E \
   '\b(RelationalBaseRepository|ReadableRelationalRepository|PersistableRelationalRepository|DefaultRelationalRepository|SoftDeletableRelationalRepository|AbstractRelationalDataSource|BaseRelationalDataSource|FilterBuilder|IRelationalDriver|IRelationalConnection)\b' src/
 
-# Hand edits - protected members and the reworded error string
+# Hand edits
 grep -rn --include='*.ts' -E \
   '\b(denyOperation|getQueryInterface|_updateBuilder)\b|is not a postgres transaction' src/
 ```
 
-Both commands silent means the release is a drop-in upgrade.
+Both silent means a drop-in upgrade.
 
 ### 2. Rename the imports
-
-The renames are mechanical. Run this from the project root:
 
 ```bash
 grep -rlZ --include='*.ts' --include='*.tsx' -E \
@@ -199,95 +138,41 @@ grep -rlZ --include='*.ts' --include='*.tsx' -E \
 '
 ```
 
-The `\b` anchors are load-bearing, not decoration. Without them `FilterBuilder` also rewrites the
-inside of `PostgresFilterBuilder` and `SqliteFilterBuilder`, producing
-`PostgresPostgresFilterBuilder`. On BSD sed (macOS) use `sed -i ''` instead of `sed -i`.
+The `\b` anchors matter: without them `FilterBuilder` also rewrites the inside of `PostgresFilterBuilder`. On macOS use `sed -i ''`.
 
-**Two things the codemod cannot decide for you:**
+The codemod cannot decide two things:
 
-- **Duplicate imports.** A file that already imported `PostgresFilterBuilder` alongside
-  `FilterBuilder` ends up importing the same name twice, which is a `TS2300`. Merge the two import
-  statements. `tsc` points at every one.
-- **`@venizia/ignis/relational` is exempt.** `IRelationalDriver` and `IRelationalConnection` keep the
-  `I` prefix on that sub-path, because there they really are interfaces. Only the `@venizia/ignis`
-  and `@venizia/ignis/postgres` spellings became `T`. If you import from `/relational`, revert those
-  two lines by hand - and see the warning below about which class you actually want.
+- **Duplicate imports.** A file that already imported `PostgresFilterBuilder` next to `FilterBuilder` now imports the same name twice (`TS2300`). Merge the two imports.
+- **`@venizia/ignis/relational` imports.** `IRelationalDriver` and `IRelationalConnection` keep the `I` prefix there. Revert those two lines by hand.
 
 ### 3. The hand edits
 
-| If you have | Change to | Why |
-|---|---|---|
-| `denyOperation(name)` | `denyOperation({ methodName: name })` | Options-object convention. Affects search repositories too |
-| an override of `getQueryInterface` | call `resolveConnector` directly, or use `queryExecutor` | Moved into each engine's query executor |
-| a read of `this._updateBuilder` | the public `updateBuilder` getter | The protected field is gone |
-| a match on `"is not a postgres transaction"` | `"is not a relational transaction"` | Message reworded, condition identical |
-| a parser reading `rs.rowCount` from the `shouldReturn: false` debug log | `rs.count` | Normalized across drivers |
-| `ReadableRepository === ReadableRelationalRepository` | `instanceof` | The Postgres names are subclasses now, not aliases |
+| If you have | Change to |
+|---|---|
+| `denyOperation(name)` | `denyOperation({ methodName: name })` |
+| an override of `getQueryInterface` | call `resolveConnector` directly, or use `queryExecutor` |
+| a read of `this._updateBuilder` | the public `updateBuilder` getter |
+| a match on `"is not a postgres transaction"` | `"is not a relational transaction"` |
+| a parser reading `rs.rowCount` from the `shouldReturn: false` debug log | `rs.count` |
+| `ReadableRepository === ReadableRelationalRepository` | `instanceof` |
 
 ### 4. Verify
 
-```bash
-bun run typecheck    # or: tsc --noEmit
-```
-
-Every break in this release is a compile error, so a green typecheck is the whole proof. Do not rely
-on `bun test` here - Bun erases types rather than checking them, so a test run stays green while the
-build is broken.
+Run `bun run typecheck` (or `tsc --noEmit`). Every break is a compile error, so a green typecheck is the proof. `bun test` is not enough, because Bun erases types.
 
 ### What NOT to change
 
-**Do not repoint these imports at `@venizia/ignis/relational`.** The old names do exist there, so the
-import resolves and the file compiles - which is exactly what makes it a trap. The class you get is
-the engine-neutral one:
-
-```typescript
-import { DefaultRelationalRepository } from '@venizia/ignis/relational';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
-
-neutral.connector;    // unknown
-postgres.connector;   // TRelationalConnector<TAnyDataSourceSchema>
-```
-
-Every Drizzle call on an `unknown` connector then fails to typecheck, one layer away from the import
-that caused it. `@venizia/ignis/relational` is for building a second SQL engine, not for consuming
-Postgres.
-
-**These are untouched, at the same paths, with the same behavior:** `BaseDataSource`, `BaseEntity`,
-`BasePostgresEntity`, `BaseRelationalEntity`, `IStatementResult`, `UpdateBuilder`,
-`NodePostgresDriver`, `PostgresJsDriver`, and every repository already spelled the Postgres way
-(`ReadableRepository`, `PersistableRepository`, `DefaultCRUDRepository`, `SoftDeletableRepository`,
-`PostgresBaseRepository`, `BasePostgresDataSource`, `AbstractPostgresDataSource`).
+Do not repoint the old names at `@venizia/ignis/relational`. They exist there, so the import resolves, but you get the neutral class: `connector` is `unknown` and every Drizzle call then fails to typecheck. That path is for building a second SQL engine, not for consuming Postgres.
 
 ## Behavior changes
 
-- **`resolveConnector`'s error message reworded.** A repository called with a transaction it cannot
-  use now throws `"... is not a relational transaction"`, where it previously said
-  `"... is not a postgres transaction"`. The failure condition is identical; only the wording changed.
-- **A debug log now carries different content in one branch.** `create`/`updateAll`/`deleteAll`
-  called with `options: { shouldReturn: false }` still emit the same debug line
-  (`'INSERT result | shouldReturn: %s | rs: %j'` and its `UPDATE`/`DELETE` siblings, same level, same
-  scope), but `rs` is now `{ count, rows: [] }` instead of the raw driver result (`pg`'s
-  `{ rows, rowCount }`, or postgres-js's `RowList`). Anything parsing that specific log line's `%j`
-  payload sees a different object shape in the `shouldReturn: false` branch only.
-- **The five Postgres repository names are subclasses, not aliases.** They used to be the neutral
-  classes under a second name. So `ReadableRepository === ReadableRelationalRepository` is false
-  where it used to be true, and `instanceof DefaultCRUDRepository` is false for a
-  `SoftDeletableRepository`. `instanceof` down the chain is unaffected, and nothing in IGNIS compares
-  repository classes by identity.
+- **Reworded error.** A repository given a transaction it cannot use now throws `"... is not a relational transaction"` instead of `"... is not a postgres transaction"`. The condition is identical.
+- **Different debug log payload.** `create`, `updateAll` and `deleteAll` with `options: { shouldReturn: false }` log the same line, but `rs` is now `{ count, rows: [] }` instead of the raw driver result. Only this branch is affected.
+- **Postgres repository names are subclasses, not aliases.** `ReadableRepository === ReadableRelationalRepository` is now false, and `instanceof DefaultCRUDRepository` is false for a `SoftDeletableRepository`. `instanceof` down the chain is unaffected.
 
 ## Fixes
 
-### `findById` accepts `options.retry`
-
-This is the most user-visible change in the set. [Read retry](/references/base/repositories/advanced#read-retry-replica-lag)
-shipped for `find`, `findOne` and `findById`, but `findById` was rejected at compile time on
-`SoftDeletableRepository`. Its three overloads typed `options` as `ExtraOptions & { isStrict?: X }`,
-which drops `IWithReadRetry`. `RelationalBaseRepository`'s four abstract read verbs had the same
-defect. The runtime plumbing was always complete, so the option worked the moment the signature
-allowed it.
-
-All seven signatures now carry `TFindOptions`, `TFindRangeOptions` or `TFindOneOptions`, matching the
-`IReadableRepository` contract. Nothing to migrate - code that did not compile now does:
+`findById` now compiles with `options.retry`. Nothing to migrate:
 
 ```typescript
 const category = await repository.findById({
@@ -296,9 +181,7 @@ const category = await repository.findById({
 });
 ```
 
-**Ordering.** Pass `retry` and `isStrict: true` together and retries run first. `isStrict` is
-evaluated after the loop is exhausted, because retry lives in `super.findById` -> `findOne`. So a
-strict read waits out replica lag before it throws `ENTITY_NOT_FOUND`:
+With `retry` and `isStrict: true` together, retries run first. A strict read waits out replica lag before it throws `ENTITY_NOT_FOUND`.
 
 ```typescript
 const category = await repository.findById({
@@ -307,98 +190,10 @@ const category = await repository.findById({
 });
 ```
 
-### `TSoftDeletableTableSchema` composes with the root barrel again
-
-The Postgres tier declares `TSoftDeletableTableSchema` itself rather than re-exporting the neutral
-one. The neutral schema is branded with Drizzle's dialect-free `Table`, while the root barrel serves
-`PgTable`-branded `TTableObject` and `TTableInsert` beside it. The two could not compose.
-
-The symptom, if you saw it: intersecting the schema and feeding the result to the row types failed
-with `TS2344`.
-
-```typescript
-import type { TSoftDeletableTableSchema, TTableObject } from '@venizia/ignis';
-
-type TArchivableTableSchema = TSoftDeletableTableSchema & { status: unknown };
-type TArchivableRow = TTableObject<TArchivableTableSchema>; // TS2344 before the fix
-```
-
-Nothing to migrate. The break never reached a release, and both sides of the root barrel are
-`PgTable`-branded again. `packages/core-server/src/__tests__/connectors/postgres/root-barrel-composability.test.ts`
-pins it - `bun run typecheck` is the gate, since `bun test` erases types.
-
-### `getIdType` is one function again
-
-The Postgres copy is deleted. `@venizia/ignis/postgres` re-exports the neutral function from
-`connectors/relational/models/common`. Same signature, same behavior, one object instead of two. The
-neutral bound is `Table`-branded and therefore wider, so every Postgres caller still satisfies it.
-Invisible at runtime, nothing to migrate.
-
-## Notes
-
-`TRelationalTransactionOptions` is the neutral SQL transaction options type, at
-`@venizia/ignis/relational`. It was spelled `IRelationalTransactionOptions` earlier in this work and
-follows the same `T`-for-`type` rule as the two driver types above. It is new here and was never
-published, so there is nothing to migrate. `IDatabaseTransactionOptions` extends it and is unchanged.
-
-## Who is affected
-
-- **Anyone importing a `*Relational*` repository, datasource, driver type or `FilterBuilder` from
-  `@venizia/ignis` or `@venizia/ignis/postgres`.** Rename per the table above. Same path, same
-  behavior.
-- **Anyone using `ReadableRepository`, `PersistableRepository`, `DefaultCRUDRepository`,
-  `SoftDeletableRepository`, `BasePostgresDataSource`, `AbstractPostgresDataSource`, `BaseDataSource`,
-  `BaseRelationalEntity` or `NodePostgresDriver`.** No action needed. Every one of these still
-  resolves at the same import path, with the same behavior and the same Postgres-typed `connector`.
-- **Any repository subclass that calls `denyOperation`.** Wrap the argument:
-  `denyOperation({ methodName })`. This includes search repositories.
-- **Any repository subclass that overrode `getQueryInterface` or read `this._updateBuilder`.** Both
-  are gone from the repository tier - use `queryExecutor` and the public `updateBuilder` getter. A
-  subclass that only uses the public verbs is unaffected.
-- **Anyone who wanted `retry` on `findById`.** It compiles now. Nothing else to do.
-- **Anyone who hit `TS2344` intersecting `TSoftDeletableTableSchema`.** Fixed. Delete any local
-  workaround that re-declared the schema.
-- **Anything matching on the literal string `"is not a postgres transaction"`.** Update the match to
-  `"is not a relational transaction"`.
-- **A log pipeline parsing the `shouldReturn: false` branch's `rs` field structurally** (for example,
-  reading `rs.rowCount`). Read `rs.count` instead - it is already normalized across drivers.
-- **Anything comparing repository classes by identity.** `ReadableRepository ===
-  ReadableRelationalRepository` is now false. Use `instanceof`.
-- **Building a second SQL engine connector (SQLite, PGlite).** The seam now exists:
-  `connectors/relational` has no Postgres coupling to work around.
-
 ## Details
 
-The Postgres branch declares `AbstractPostgresDataSource` and `BasePostgresDataSource`. The neutral
-tier declares `AbstractRelationalDataSource` and `BaseRelationalDataSource`. No two classes share a
-declaration name. The same holds for the five repository classes and for `FilterBuilder`.
+- Import one sub-path per file. Do not merge `@venizia/ignis/relational` with the root barrel: they declare different classes under similar names.
+- The compatibility aliases are removed rather than kept, because an alias would reintroduce the collision between the two sub-paths.
+- `TRelationalTransactionOptions` is the neutral SQL transaction options type at `@venizia/ignis/relational`. `IDatabaseTransactionOptions` extends it and is unchanged.
 
-`connectors/index.ts` exports `./postgres` only. Merging `./relational` into the root barrel would
-put two different classes under one name for every pair above, and make one of each unreachable.
-That is also why the compat aliases are gone rather than kept: an alias would have reintroduced the
-collision across sibling sub-paths. Reach the neutral tier only through `@venizia/ignis/relational`,
-and import one sub-path per file.
-
-`FilterBuilder` turned out to already be engine-neutral - zero `drizzle-orm/pg-core` imports - once
-its one Postgres-only call (`getTableConfig(schema).name`) was swapped for Drizzle's dialect-free
-`getTableName(schema)`. It moved whole to `connectors/relational/repositories/dialect/filter.ts` and
-became `abstract`: its operator table is now `protected abstract get operators()`, so the class names
-no engine at all. `PostgresFilterBuilder` is the Postgres subclass, and it supplies one member -
-`PostgresQueryOperators.FNS`. A second SQL engine does the same and inherits the other 736 lines. The
-JSON-path methods stay `protected` on the neutral base for the same reason: override, never fork.
-
-Only `PostgresQueryOperators`, `UpdateBuilder`, and those JSON-path defaults remain genuinely
-Postgres-specific.
-
-| File | Package |
-|------|---------|
-| `src/connectors/relational/**` | core |
-| `src/connectors/postgres/datasources/**` | core |
-| `src/connectors/postgres/drivers/driver.ts` | core |
-| `src/connectors/postgres/repositories/**` | core |
-| `src/connectors/postgres/models/**` | core |
-| `src/base/repositories/core/abstract.ts` | core |
-| `src/connectors/search/repositories/core/readable.ts` | core |
-
-See also: [Connectors](/references/base/connectors) for how IGNIS's engine-neutral contract works
-across every connector family, Postgres included.
+See also: [Connectors](/references/base/connectors) for the engine-neutral contract, and [Read retry](/references/base/repositories/advanced#read-retry-replica-lag).

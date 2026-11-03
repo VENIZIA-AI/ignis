@@ -31,7 +31,6 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
       aesAlgorithm: this.options.aesAlgorithm,
       applicationSecret: this.options.applicationSecret,
       fieldCodecs: this.options.fieldCodecs,
-      cipher: this.options.cipher,
       sign: this.options.sign,
     });
   }
@@ -202,7 +201,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
     const now = Math.floor(Date.now() / 1000);
     const expiresIn = await opts.getTokenExpiresFn();
 
-    const encryptedPayload = this.encryptPayload(opts.payload);
+    const encryptedPayload = await this.encryptPayload(opts.payload);
 
     const signer = new SignJWT({ ...encryptedPayload })
       .setProtectedHeader({ alg: this.options.algorithm, kid: this.options.kid })

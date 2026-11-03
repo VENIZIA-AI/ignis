@@ -2,12 +2,12 @@ import { AuthenticationModes } from '@/base/auth/authenticate/common/constants';
 import { authenticate as authenticateFn } from '@/base/auth/authenticate/middlewares/authenticate.middleware';
 import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
 import { authorize as authorizeFn } from '@/base/auth/authorize/middlewares/authorize.middleware';
-import { formBodyReader, hasFormBody } from '@/base/middlewares/form-body/form-body.middleware';
+import { FormBodyMiddleware } from '@/base/middlewares/form-body/form-body.middleware';
 import { AuthenticationStrategyRegistry } from '@/base/auth/authenticate/strategies/strategy-registry';
 import { DroppedRouteDecorators } from '@/base/metadata/routes/common';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
 import { RoutePathScopes, type TRoutePathScope } from '@/base/controllers/common/constants';
-import { htmlResponse } from '@/base/controllers/common/html-response';
+import { OpenApiResponses } from '@/base/models/common';
 import type { Hook } from '@hono/zod-openapi';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
@@ -142,7 +142,7 @@ export abstract class AbstractRestController<
     const { strategies = [], mode = AuthenticationModes.ANY } = authenticate;
 
     // Boot-time and NON-fatal: names a misspelled strategy at error level instead of leaving it as
-    // a 401 nobody can explain. Deliberately not a throw - `defineAuthController` hard-codes `jwt`
+    // a 401 nobody can explain. Deliberately not a throw - `AuthControllerFactory.define` hard-codes `jwt`
     // on four routes, and ANY mode tolerates a strategy that does not resolve, so failing here would
     // stop applications booting that work today. `assertRegistered` is there for an application that
     // does want the hard failure.
@@ -180,8 +180,8 @@ export abstract class AbstractRestController<
     }
 
     // Last: an application middleware and any size check run before the body is read.
-    if (hasFormBody({ content: restConfig.request?.body?.content })) {
-      mws.push(formBodyReader);
+    if (FormBodyMiddleware.hasFormBody({ content: restConfig.request?.body?.content })) {
+      mws.push(FormBodyMiddleware.read);
     }
 
     return { restConfig, security, mws };
@@ -211,7 +211,11 @@ export abstract class AbstractRestController<
     return createRoute<string, RouteConfig>(
       Object.assign({}, restConfig, {
         middleware: mws,
-        responses: Object.assign({}, htmlResponse({ description: 'HTML page' }), responses),
+        responses: Object.assign(
+          {},
+          OpenApiResponses.htmlResponse({ description: 'HTML page' }),
+          responses,
+        ),
         tags: [...tags, this.scope],
         security,
       }) as any,

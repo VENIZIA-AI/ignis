@@ -17,7 +17,7 @@ A worker entry built from the worker and kernel packages builds to about 680 kB 
 | `@venizia/ignis-inversion` | Root |
 | `@venizia/ignis-filter` | Root and `/schemas` |
 | `@venizia/ignis-kernel` | Root, `/metadata`, `/repository` |
-| `@venizia/ignis-worker` | Root (`WorkerApplication`, `installBffFetch`, `SharedBffTransport`) |
+| `@venizia/ignis-worker` | Root (`WorkerApplication`, `BffFetchBridge`, `SharedBffTransport`) |
 | `@venizia/ignis-connectors` | Everything except the engine clients (a database driver opens a socket) |
 | `@venizia/ignis-helpers` | `/core`, `/common`, `/uuid`, `/temporal`, `/socket-io/client` only |
 
@@ -41,14 +41,14 @@ The worker entry imports only the worker and kernel packages:
 ```typescript
 // src/worker.ts
 import {
+  BffFetchBridge,
   type IBffTransport,
-  installBffFetch,
   SharedBffTransport,
   WorkerApplication,
 } from '@venizia/ignis-worker';
 import type { IApplicationInfo } from '@venizia/ignis-kernel';
 
-export { installBffFetch, SharedBffTransport, WorkerApplication };
+export { BffFetchBridge, SharedBffTransport, WorkerApplication };
 export type { IApplicationInfo, IBffTransport };
 ```
 
@@ -79,8 +79,8 @@ export default defineConfig({
 
 Run `vite build`. Point `lib.entry` at `src/main.ts` for the main-thread entry. Neither entry produces a `node:` import.
 
-> [!NOTE] Install `installBffFetch` before the application boots
-> `installBffFetch` answers the page's global `fetch` for requests under its `basePath`. A request sent before it is installed leaves the page and 404s against whatever serves it.
+> [!NOTE] Install `BffFetchBridge` before the application boots
+> `BffFetchBridge.install({ transport, basePath })` answers the page's global `fetch` for requests under its `basePath` and returns the uninstall function. A request sent before it is installed leaves the page and 404s against whatever serves it. The old function `installBffFetch` is gone; `devz codemod namespace-functions` moves its callers.
 
 ## When `define: { global: 'globalThis' }` helps
 
@@ -118,10 +118,11 @@ No published IGNIS or ARDOR package imports the helpers root. `@venizia/ignis-ke
 |---|---|
 | `import { ... } from '@venizia/ignis-helpers'` | `/core`, `/common`, `/uuid`, `/temporal`, `/socket-io/client` |
 | `import { ... } from '@venizia/ignis'` | The kernel, inversion, filter and worker packages |
-| `Hash`, AES, RSA or ECDH from the helpers root | A WebCrypto call in your own code (the IGNIS crypto classes are synchronous and need `node:crypto`) |
+| `Hash`, AES or RSA from the helpers root | A WebCrypto call in your own code (`AES` and `RSA` need `node:crypto`, `Hash` needs Bun) |
+| `ECDH` from the helpers root | `ECDH` from `@venizia/ignis-helpers/core`: same class, same wire format as the server, no `node:crypto` |
 | `vite-plugin-node-polyfills` | Fix the import |
 
-IGNIS has no WebCrypto crypto helpers yet. The classes in `@venizia/ignis-helpers` are synchronous and Buffer-based, and WebCrypto is asynchronous, so they cannot share one interface.
+`ECDH` is the one crypto class that runs in a browser: it is built on WebCrypto (`crypto.subtle`, `btoa`, `atob`), so a page and a server speak one wire format with one class. `AES` and `RSA` are synchronous and Buffer-based, and WebCrypto is asynchronous, so they cannot share one interface and stay server-side; `Hash` is synchronous over `Bun.CryptoHasher`.
 
 ## What was checked
 

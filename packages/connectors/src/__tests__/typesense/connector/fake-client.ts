@@ -13,6 +13,8 @@ export interface IFakeBehavior {
   multiSearchResult?: unknown;
   importResponse?: Array<{ success: boolean }>;
   exportResult?: string;
+  // The chunks `documents().exportStream()` yields, produced lazily (one per read) so a test can see how far ahead the reader got.
+  exportChunks?: () => AsyncIterable<string | Uint8Array>;
   numDeleted?: number;
   numUpdated?: number;
   aliasByName?: Record<string, Record<string, string>>;
@@ -100,6 +102,11 @@ export const createFakeClient = (behavior: IFakeBehavior = {}) => {
       record('documents.export', name, params);
       maybeThrow('documents.export');
       return behavior.exportResult ?? '';
+    },
+    exportStream: async (params?: unknown) => {
+      record('documents.exportStream', name, params);
+      maybeThrow('documents.exportStream');
+      return behavior.exportChunks?.() ?? (async function* () {})();
     },
   });
 
@@ -206,11 +213,19 @@ export const createFakeClient = (behavior: IFakeBehavior = {}) => {
 // Shared connector-construction fixture - the single source of truth for test suites; do NOT re-declare per test file, copies drift.
 export const makeHelper = (behavior: IFakeBehavior = {}) => {
   const fake = createFakeClient(behavior);
+  // The per-call timeout seam: every client built for a call that sets `timeoutMs` is recorded, and answers as the same fake.
+  const timeouts: number[] = [];
+  // The call client is a second fake with its own call log, so a test can tell which client a call really ran on.
+  const callFake = createFakeClient(behavior);
   const helper = new TypesenseConnector({
     name: 'test',
     nodes: [{ host: 'localhost', port: 8108 }],
     apiKey: 'k',
     client: fake.client,
+    createClient: ({ connectionTimeoutSeconds }) => {
+      timeouts.push(connectionTimeoutSeconds);
+      return callFake.client;
+    },
   });
-  return { helper, fake };
+  return { helper, fake, callFake, timeouts };
 };

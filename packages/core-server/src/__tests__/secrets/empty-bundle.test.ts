@@ -2,7 +2,7 @@ import { BaseApplication } from '@/base/applications/base';
 import { type AnyType } from '@venizia/ignis-helpers/common';
 import { SecretProviders, type ISecretsRegistration } from '@venizia/ignis-helpers';
 import { afterEach, describe, expect, test } from 'bun:test';
-import { expectRejection } from '@venizia/dev-configs/testing';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 
 /**
  * The system-envs provider always returns a non-empty bundle, but a `keys` mapping onto absent
@@ -43,7 +43,7 @@ describe('hydrateSecrets empty-bundle handling', () => {
       config: { path: { base: '', isStrict: false } },
     });
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: app.hydrateSecrets(),
       message: /empty secret bundle/i,
     });
@@ -56,6 +56,7 @@ describe('hydrateSecrets empty-bundle handling', () => {
       config: { path: { base: '', isStrict: false } },
     });
 
-    expect(await app.hydrateSecrets()).toBeUndefined();
+    const result = await app.hydrateSecrets();
+    expect(result).toBeUndefined();
   });
 });

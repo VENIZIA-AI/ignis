@@ -1,5 +1,4 @@
 import { ControllerFactory } from '@/base/controllers/factory/controller';
-import { registerFactoryRepositoryInjection } from '@/base/controllers/factory/repository-injection';
 import { controller, inject } from '@/base/metadata';
 import { AbstractEntity } from '@/base/models';
 import { BindingNamespaces } from '@/common/bindings';
@@ -73,7 +72,8 @@ class SiblingItemController extends ItemCrudController {}
 const countThrough = async (opts: { controller: ItemController }) => {
   const router = await opts.controller.configure();
   const response = await router.request(`/count?where=${encodeURIComponent('{}')}`);
-  return { status: response.status, body: await response.json() };
+  const result = await response.json();
+  return { status: response.status, body: result };
 };
 
 describe('defineCrudController injects the repository named in repository.name', () => {
@@ -81,7 +81,8 @@ describe('defineCrudController injects the repository named in repository.name',
     const container = buildContainer();
     const resolved = container.resolve(ItemController);
 
-    expect(await countThrough({ controller: resolved })).toEqual({
+    const result = await countThrough({ controller: resolved });
+    expect(result).toEqual({
       status: 200,
       body: { count: 'named'.length },
     });
@@ -91,7 +92,8 @@ describe('defineCrudController injects the repository named in repository.name',
     const container = buildContainer();
     const resolved = container.resolve(ExplicitItemController);
 
-    expect(await countThrough({ controller: resolved })).toEqual({
+    const result = await countThrough({ controller: resolved });
+    expect(result).toEqual({
       status: 200,
       body: { count: 'explicit-one'.length },
     });
@@ -101,7 +103,8 @@ describe('defineCrudController injects the repository named in repository.name',
     const container = buildContainer();
     const resolved = container.resolve(SiblingItemController);
 
-    expect(await countThrough({ controller: resolved })).toEqual({
+    const result = await countThrough({ controller: resolved });
+    expect(result).toEqual({
       status: 200,
       body: { count: 'named'.length },
     });
@@ -120,11 +123,11 @@ describe('defineCrudController injects the repository named in repository.name',
   });
 });
 
-describe('registerFactoryRepositoryInjection - the one injection every generated controller uses', () => {
+describe('ControllerFactory.registerRepositoryInjection - the one injection every generated controller uses', () => {
   test('records repositories.<name> at parameter 0, required', () => {
     class GeneratedProbeController {}
 
-    registerFactoryRepositoryInjection({
+    ControllerFactory.registerRepositoryInjection({
       target: GeneratedProbeController,
       factoryName: 'defineProbeController',
       controllerName: 'GeneratedProbeController',
@@ -139,7 +142,7 @@ describe('registerFactoryRepositoryInjection - the one injection every generated
   test('the target is a class - a plain function is a compile error', () => {
     const plainFunction = () => undefined;
 
-    registerFactoryRepositoryInjection({
+    ControllerFactory.registerRepositoryInjection({
       // @ts-expect-error - a factory registers the injection on the class it generated, never on a plain function
       target: plainFunction,
       factoryName: 'defineProbeController',
@@ -156,7 +159,7 @@ describe('registerFactoryRepositoryInjection - the one injection every generated
     class NamelessProbeController {}
 
     expect(() =>
-      registerFactoryRepositoryInjection({
+      ControllerFactory.registerRepositoryInjection({
         target: NamelessProbeController,
         factoryName: 'defineProbeController',
         controllerName: 'NamelessProbeController',

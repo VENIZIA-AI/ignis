@@ -255,7 +255,8 @@ describe('NodemailerTransportHelper', () => {
   test('a failed verification resolves false instead of throwing', async () => {
     const { helper } = buildNodemailerTransport({ verifyError: new Error('ECONNREFUSED') });
 
-    expect(await helper.verify()).toBe(false);
+    const result = await helper.verify();
+    expect(result).toBe(false);
   });
 
   test('close() releases the underlying transporter', async () => {
@@ -679,13 +680,15 @@ describe('AmazonSesTransportHelper - verify and close', () => {
   test('an enabled sending account verifies true', async () => {
     const { helper } = buildSesTransport({ sendingEnabled: true });
 
-    expect(await helper.verify()).toBe(true);
+    const result = await helper.verify();
+    expect(result).toBe(true);
   });
 
   test('a disabled sending account verifies false', async () => {
     const { helper } = buildSesTransport({ sendingEnabled: false });
 
-    expect(await helper.verify()).toBe(false);
+    const result = await helper.verify();
+    expect(result).toBe(false);
   });
 
   test('a failed verification resolves false instead of throwing', async () => {
@@ -694,7 +697,8 @@ describe('AmazonSesTransportHelper - verify and close', () => {
       throw new Error('AccessDenied');
     };
 
-    expect(await helper.verify()).toBe(false);
+    const result = await helper.verify();
+    expect(result).toBe(false);
   });
 
   test('close() releases the underlying client', async () => {

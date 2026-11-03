@@ -10,7 +10,7 @@ packages: ['@venizia/ignis-connectors']
 
 <Badge type="info" text="Bug Fix" />
 
-**In one line.** `const Base = SearchControllerFactory.defineSearchController({ ... })` failed to type-check with TS2883 ("the inferred type cannot be named") after the `scope` option was added, because the type of that option was not exported.
+**In one line.** `const Base = SearchControllerFactory.defineSearchController({ ... })` failed to type-check with TS2883 ("the inferred type cannot be named") after the `scope` option was added. It compiles again.
 
 ## What changed
 
@@ -18,4 +18,4 @@ packages: ['@venizia/ignis-connectors']
 
 ## Who is affected
 
-Apps that keep the result of `defineSearchController` in a constant and build with declarations. They compile again; no code change is needed.
+Apps that keep the result of `defineSearchController` in a constant and build with declarations. No code change is needed.

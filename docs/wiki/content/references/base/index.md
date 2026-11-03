@@ -86,7 +86,7 @@ from a kernel sub-path instead.
 |---|---|---|
 | `@venizia/ignis-kernel` | Everything: applications, controllers, repositories, the REST surface | 161 KB gzipped |
 | `@venizia/ignis-kernel/metadata` | The stereotypes (`service`, `component`, `configuration`, `injectable`, `provide`, `model`, `datasource`, `repository`, `inject`), `BindingNamespaces`, `ArtifactNamespaces`, `ArtifactTypes`, `BindingKeys`, `MetadataRegistry` | **13.9 KB gzipped** |
-| `@venizia/ignis-kernel/repository` | `AbstractRepository`, `AbstractDataSource`, `AbstractEntity`, the CRUD contract interfaces, `buildDataRange`, `DEFAULT_LIMIT`, `DEFAULT_MAX_LIMIT`, `RepositoryOperationScopes`, `CoreErrorCodes`, `SearchErrorCodes`, `throwNotSupported`, `SchemaTypes`, and the filter vocabulary - without the OpenAPI layer | **14.7 KB gzipped** |
+| `@venizia/ignis-kernel/repository` | `AbstractRepository`, `AbstractDataSource`, `AbstractEntity`, the CRUD contract interfaces, `DataRangeUtility`, `DEFAULT_LIMIT`, `DEFAULT_MAX_LIMIT`, `RepositoryOperationScopes`, `CoreErrorCodes`, `SearchErrorCodes`, `ErrorUtility`, `SchemaTypes`, and the filter vocabulary - without the OpenAPI layer | **14.7 KB gzipped** |
 
 Both figures are the whole surface (`export *`). Naming what you import tree-shakes further - two
 symbols come to 11.0 KB.
@@ -163,6 +163,6 @@ Each SQL engine binds every rung with one thin subclass. The bindings are siblin
 | `SoftDeletableRelationalRepository` | `SoftDeletableRepository` | `SoftDeletableSqliteRepository` |
 
 > [!NOTE] Where each name resolves
-> The Postgres names come from `@venizia/ignis` or `@venizia/ignis/postgres`, the SQLite names from `@venizia/ignis/sqlite`, and the neutral `*Relational*` names from `@venizia/ignis/relational`. The neutral names are deliberately absent from the engine subpaths, so `RelationalBaseRepository` and `BaseRelationalDataSource` do **not** resolve from `@venizia/ignis` or `@venizia/ignis/postgres`.
+> The Postgres names come from `@venizia/ignis` or `@venizia/ignis-connectors/postgres`, the SQLite names from `@venizia/ignis-connectors/sqlite`, and the neutral `*Relational*` names from `@venizia/ignis-connectors/relational`. The neutral names are deliberately absent from the engine subpaths, so `RelationalBaseRepository` and `BaseRelationalDataSource` do **not** resolve from `@venizia/ignis` or `@venizia/ignis-connectors/postgres`.
 
 > **Related:** [Core Concepts Guide](../../guides/core-concepts/application/) | [Persistent Layer Guide](../../guides/core-concepts/persistent/)

@@ -2,7 +2,6 @@ import { defineConfig, type DefaultTheme } from 'vitepress';
 import { withMermaid } from 'vitepress-plugin-mermaid';
 import { writeChangelogFeed } from './theme/shared/changelog-loader.ts';
 import { venziaCodeTheme } from './theme/shared/code-theme.ts';
-import { VENIZIA_LOGO_SVG } from './theme/shared/venizia-logo.ts';
 
 // ── Sidebar: Core API ──
 // Shown for: /references/, /references/base/*, /references/configuration/*, /references/utilities/*
@@ -65,7 +64,6 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
         items: [
           { text: 'Overview', link: '/references/base/repositories/' },
           { text: 'SoftDeletableRepository', link: '/references/base/repositories/soft-deletable' },
-          { text: 'Mixins', link: '/references/base/repositories/mixins' },
           { text: 'Relations & Includes', link: '/references/base/repositories/relations' },
           { text: 'Advanced Features', link: '/references/base/repositories/advanced' },
         ],
@@ -511,6 +509,7 @@ const config = defineConfig({
                   link: '/best-practices/code-style-standards/constants-configuration',
                 },
                 { text: 'Control Flow', link: '/best-practices/code-style-standards/control-flow' },
+                { text: 'Async Style', link: '/best-practices/code-style-standards/async-style' },
                 {
                   text: 'Advanced Patterns',
                   link: '/best-practices/code-style-standards/advanced-patterns',
@@ -685,7 +684,6 @@ const config = defineConfig({
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/VENIZIA-AI/ignis' },
-      { icon: { svg: VENIZIA_LOGO_SVG }, link: 'https://venizia.ai', ariaLabel: 'Venizia' },
     ],
   },
 });

@@ -1,5 +1,9 @@
-name: 'NPM Release'
-run-name: 'NPM Release | plan: ${{ inputs.plan }} | build_mode: ${{ inputs.build_mode }} | commit: ${{ github.sha }}'
+name: Release
+# The title of the run. `release.ts` sends `label` (`stable · 0.4.6 boot,kernel; 0.4.5 filter · #664 · c84852a`: kind,
+# versions with their packages, issue, short commit) and the plan job refuses a label that is not what it computed, so
+# the title cannot name a release the run does not make. A dispatch by hand has no label: the title is the mode, the
+# issue and the whole commit (an Actions expression cannot cut it short).
+run-name: "Release · ${{ inputs.label || format('{0}{1} · {2}', inputs.build_mode, inputs.issue && format(' · {0}{1}', '#', inputs.issue) || '', github.sha) }}"
 
 on:
   workflow_dispatch:
@@ -26,10 +30,15 @@ on:
         description: 'Issue number the release commits serve (prefixes each with [#N])'
         required: false
         default: ''
+      label:
+        type: string
+        description: 'The run title, filled in by scripts/release/release.ts; the plan job refuses one that is not its own (empty = titled by the mode)'
+        required: false
+        default: ''
 
-# ONE run releases the whole plan. The packages are released one after the other in dependency order by
-# scripts/release/release-run.ts (the `publish` job): for each, bump, pack, check, publish, wait until the
-# tarball answers 200, then the release commit and the tag. A run that stops is continued by dispatching the same
+# ONE run releases the whole plan. The packages are released in dependency order by scripts/release/release-run.ts
+# (the `publish` job) in two passes: for each package, bump, pack, check and publish; then, for each published
+# package, wait until the tarball answers 200 and write the release commit and the tag. A run that stops is continued by dispatching the same
 # plan again: what is released is skipped, what is on npm without its commit or tag is recorded without a second
 # publish, and a stale plan stops the run before anything is published.
 #
@@ -108,6 +117,8 @@ jobs:
         id: plan
         env:
           PLAN: ${{ inputs.plan }}
+          RELEASE_ISSUE: ${{ inputs.issue }}
+          RELEASE_LABEL: ${{ inputs.label }}
         run: bun scripts/release/release-run.ts plan
 
       # A stable only: the merge of main back into develop, tried in throwaway worktrees with the versions of this plan
@@ -421,7 +432,7 @@ jobs:
           HEADLINE: ${{ needs.plan.outputs.headline }}
 
   # ---------------------------------------------------------------------------------------------
-  # PUBLISH - needs every gate and the approval of a stable, and is the only job with write access.
+  # PUBLISH - needs every gate and the approval of a stable, and is the only job with the npm publish identity (`id-token`); `atlas-index` below also writes, `contents` only.
   # It holds no registry token: npm trusted publishing signs in with the job's own identity.
   # ---------------------------------------------------------------------------------------------
   publish:
@@ -437,7 +448,7 @@ jobs:
       && (needs.approve.result == 'success'
       || (needs.approve.result == 'skipped' && needs.plan.outputs.kind == 'prerelease')) }}
     runs-on: ubuntu-26.04
-    # Nine publishes, each followed by a wait of up to fifteen minutes for its tarball, plus the build.
+    # Nine publishes, then up to fifteen minutes of waiting for each tarball, plus the build.
     timeout-minutes: 240
     # The environment holds the publish identity's ref rule (develop and main). It has no reviewers: the owner's
     # approval is the `approve` job's, and only a stable has one. Its settings are GitHub's, not this file's; this
@@ -525,17 +536,37 @@ jobs:
       # -------------------------------------------------------------------------
       # RELEASE - the loop
       # -------------------------------------------------------------------------
-      # Per package: bump, pack, check the manifest and the checksum, publish the packed file with provenance, wait
-      # until its tarball answers 200, move the dist-tags, then the release commit, the push and the tag. The
-      # publish is the only step that cannot be undone, so git is written only after the package is installable:
-      # after any stop, git equals the registry. Reported, never repaired: npm cannot un-publish, and force-pushing
-      # develop to chase a live version does more damage than the gap.
+      # Pass one, per package: bump, pack, check the manifest and the checksum, publish the packed file with
+      # provenance. Pass two, per published package in order: wait until its tarball answers 200, move the dist-tags,
+      # then the release commit, the push and the tag. The publish is the only step that cannot be undone, so git is
+      # written only after the package is installable; a stop in pass one still records what was published, and the
+      # same plan dispatched again records the rest without a second publish. Reported, never repaired: npm cannot
+      # un-publish, and force-pushing develop to chase a live version does more damage than the gap.
       - name: Release the plan
         env:
           PLAN: ${{ needs.plan.outputs.plan }}
           TARGET_BRANCH: ${{ needs.plan.outputs.branch }}
           RELEASE_ISSUE: ${{ inputs.issue }}
         run: bun scripts/release/release-run.ts run
+
+      # -------------------------------------------------------------------------
+      # GITHUB RELEASE
+      # -------------------------------------------------------------------------
+      # One Release for the run, on the tag of the last package of the plan (core-server when it is in the plan): a
+      # stable is marked Latest only when that package is core-server and its newest stable, and carries the
+      # changelog entries added since the previous stable (or a line saying there is no change for users, when there is none); a
+      # prerelease is marked Pre-release, never Latest, and lists its commits. A tag that has a Release is skipped, so
+      # dispatching the same plan again makes a missing one and never a second. A failure is reported in the run
+      # summary and never fails or undoes a publish. The script refuses the tag of the atlas index, whose release is
+      # not a publish's. No secret: the job's own token, which has `contents: write`, is all it uses.
+      - name: Create the GitHub Release
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_KIND: ${{ needs.plan.outputs.kind }}
+          TARGETS: ${{ needs.plan.outputs.targets }}
+        run: bun scripts/release/github-release.ts create --targets "$TARGETS" --kind "$RELEASE_KIND"
 
       # -------------------------------------------------------------------------
       # MERGE BACK (a stable only)
@@ -572,3 +603,82 @@ jobs:
           echo "  the usual cause is a conflict that is more than a version; read the merge step above"
           echo "  finish it: dispatch the same plan again on main - it publishes nothing, tags nothing and merges back (a new run, a new approval)"
           echo "  or by hand: merge origin/main into develop in a worktree of develop, resolve, commit and push"
+
+  # ---------------------------------------------------------------------------------------------
+  # ATLAS INDEX - the signed atlas pair of each release tag. The release commits and tags are pushed with the Actions
+  # token, and GitHub starts no workflow from such a push, so the `atlas-index` job of deploy-docs.yml never runs for
+  # them and a consumer on a release commit would build the index itself. Each package of the plan has its own tag
+  # `<dir>-v<version>` on its own release commit: one run of VULCAN's action per tag, with `ref`, builds the pair of that
+  # tag's commit from this one full-history checkout. It is a job of its own after `publish`, holding `contents: write`
+  # and nothing else: no `id-token`, no environment, so the signing key never shares a job with the npm publish
+  # identity. The action does nothing while ATLAS_INDEX_KEY is empty and refuses a tag whose commit is not on main or
+  # develop; the job never fails a release that has published. The key is the one secret of this workflow, and the one
+  # `deploy-docs.yml` uses, on the one step that publishes.
+  # ---------------------------------------------------------------------------------------------
+  atlas-index:
+    name: Atlas index ${{ matrix.package }}
+    needs: [plan, publish]
+    # A tag is pushed as soon as its package is installable, so a publish that stopped halfway still left tags: this job
+    # runs after a failed publish too, and a package whose tag is not there is skipped by the tag step.
+    if: ${{ !cancelled() && (needs.publish.result == 'success' || needs.publish.result == 'failure') }}
+    runs-on: ubuntu-26.04
+    continue-on-error: true
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    # Each run uploads to the one release `atlas-index` of this repository: one tag at a time.
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        package: ${{ fromJSON(needs.plan.outputs.matrix).package }}
+
+    steps:
+      # The tags the publish job pushed are fetched with the whole history; the commit to build is the tag's, not this one.
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+
+      # The action runs the project's installed atlas (`vulcan x atlas index publish`).
+      - name: Install
+        run: bun install
+
+      # `<dir>-v<version>`, the tag `release-run.ts` makes for the package, from the versions the plan gave.
+      - name: Name the tag
+        id: tag
+        env:
+          RELEASED_PACKAGE: ${{ matrix.package }}
+          TARGETS: ${{ needs.plan.outputs.targets }}
+        run: |
+          TAG=""
+          IFS=',' read -ra PAIRS <<< "$TARGETS"
+          for PAIR in "${PAIRS[@]}"; do
+            if [ "${PAIR%%=*}" = "$RELEASED_PACKAGE" ]; then
+              TAG="${PAIR%%=*}-v${PAIR#*=}"
+            fi
+          done
+          [ -n "$TAG" ] || { echo "ERROR | $RELEASED_PACKAGE is not in the plan targets: $TARGETS"; exit 1; }
+
+          # The tag is in this clone (the checkout fetched every tag), or the package was not released by this run.
+          if git rev-parse --verify --quiet "refs/tags/$TAG" > /dev/null; then
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            echo "$TAG is not a tag of this repository - no pair to publish"
+          fi
+
+      - name: Publish the atlas index of the tag
+        if: ${{ steps.tag.outputs.tag != '' }}
+        uses: VENIZIA-AI/vulcan/.github/actions/atlas-index@7197538a8a67238a91f02abbfee792b7632d358c # vulcan-v0.4.9-4
+        with:
+          ref: ${{ steps.tag.outputs.tag }}
+        env:
+          ATLAS_INDEX_KEY: ${{ secrets.ATLAS_INDEX_KEY }}

@@ -42,7 +42,7 @@ That's it - `UserRepository` already has `find`, `findOne`, `findById`, `create`
 
 A Postgres class is **not** an alias for the neutral one beside it, and it does not extend the Postgres class above it. Each one extends its own neutral counterpart and rebinds two generic defaults - `ExtraOptions` to `IDatabaseExtraOptions` and `TDataSource` to `IPostgresDataSource`. SQLite binds the same five rungs as `SqliteBaseRepository`, `ReadableSqliteRepository`, `PersistableSqliteRepository`, `DefaultSqliteRepository`, and `SoftDeletableSqliteRepository`.
 
-Import the Postgres names from `@venizia/ignis` or `@venizia/ignis/postgres`, the SQLite names from `@venizia/ignis/sqlite`, and the neutral names from `@venizia/ignis/relational`. The neutral names are deliberately absent from the engine subpaths, so one class never ships under two names.
+Import the Postgres names from `@venizia/ignis` or `@venizia/ignis-connectors/postgres`, the SQLite names from `@venizia/ignis-connectors/sqlite`, and the neutral names from `@venizia/ignis-connectors/relational`. The neutral names are deliberately absent from the engine subpaths, so one class never ships under two names.
 
 ## Common tasks
 
@@ -276,7 +276,6 @@ The connector's readers are exported for a client that talks to the same server 
 - [Relations & Includes](./relations) - eager loading, nested `scope` filters, many-to-many
 - [Advanced Features](./advanced) - transactions, hidden properties, `shouldQueryRange`, performance, read retry
 - [SoftDeletableRepository](./soft-deletable) - soft delete, restore, hard delete
-- [Repository Mixins (Removed)](./mixins) - where `FieldsVisibilityMixin`/`DefaultFilterMixin` behavior lives now
 - [Filter System](/references/base/filter-system/) - every `where` operator, ordering, pagination
 - [Repositories Guide](/guides/core-concepts/persistent/repositories) - creating repositories step by step
 

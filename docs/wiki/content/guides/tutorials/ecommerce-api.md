@@ -86,18 +86,18 @@ Each model is a Drizzle table plus a class built from it with `ModelFactory.defi
 // src/models/category.model.ts
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
   many,
   one,
-} from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text, varchar } from 'drizzle-orm/pg-core';
 
 export const categoryTable = pgTable('Category', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   name: varchar('name', { length: 100 }).notNull(),
   slug: varchar('slug', { length: 100 }).unique().notNull(),
   description: text('description'),
@@ -126,18 +126,18 @@ export type TCategory = TEntityObject<typeof Category>;
 // src/models/product.model.ts
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
   one,
-} from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text, varchar, decimal, integer, boolean } from 'drizzle-orm/pg-core';
 import { categoryTable } from './category.model';
 
 export const productTable = pgTable('Product', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   name: varchar('name', { length: 255 }).notNull(),
   description: text('description'),
   price: decimal('price', { precision: 10, scale: 2 }).notNull(),
@@ -169,26 +169,26 @@ export type TProduct = TEntityObject<typeof Product>;
 // src/models/cart.model.ts
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
   many,
   one,
-} from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text, varchar, integer } from 'drizzle-orm/pg-core';
 import { productTable } from './product.model';
 
 export const cartTable = pgTable('Cart', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   userId: text('user_id'),
   sessionId: varchar('session_id', { length: 255 }),
 });
 
 export const cartItemTable = pgTable('CartItem', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   cartId: text('cart_id').notNull(),
   productId: text('product_id').notNull(),
   quantity: integer('quantity').default(1).notNull(),
@@ -226,19 +226,19 @@ export type TCartItem = TEntityObject<typeof CartItem>;
 // src/models/order.model.ts
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
   many,
   one,
-} from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text, varchar, decimal, integer, jsonb } from 'drizzle-orm/pg-core';
 import { productTable } from './product.model';
 
 export const orderTable = pgTable('Order', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   userId: text('user_id'),
   email: varchar('email', { length: 255 }).notNull(),
   status: varchar('status', { length: 50 }).default('pending').notNull(),
@@ -252,7 +252,7 @@ export const orderTable = pgTable('Order', {
 });
 
 export const orderItemTable = pgTable('OrderItem', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   orderId: text('order_id').notNull(),
   productId: text('product_id').notNull(),
   name: varchar('name', { length: 255 }).notNull(),
@@ -305,7 +305,7 @@ import {
   datasource,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
 
 interface IDataSourceConfigs {
@@ -363,7 +363,7 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
 import { Product, type productTable } from '@/models/product.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: Product, dataSource: PostgresDataSource })
 export class ProductRepository extends DefaultCRUDRepository<typeof productTable> {}
@@ -376,7 +376,7 @@ export class ProductRepository extends DefaultCRUDRepository<typeof productTable
 import { Category, type categoryTable } from '@/models/category.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: Category, dataSource: PostgresDataSource })
 export class CategoryRepository extends DefaultCRUDRepository<typeof categoryTable> {}
@@ -389,7 +389,7 @@ export class CategoryRepository extends DefaultCRUDRepository<typeof categoryTab
 import { Cart, CartItem, type cartTable, type cartItemTable } from '@/models/cart.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { inject, repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: CartItem, dataSource: PostgresDataSource })
 export class CartItemRepository extends DefaultCRUDRepository<typeof cartItemTable> {}
@@ -444,7 +444,7 @@ export class CartRepository extends DefaultCRUDRepository<typeof cartTable> {
 import { Order, OrderItem, type orderTable, type orderItemTable } from '@/models/order.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { inject, repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: OrderItem, dataSource: PostgresDataSource })
 export class OrderItemRepository extends DefaultCRUDRepository<typeof orderItemTable> {}
@@ -924,7 +924,7 @@ import {
   controller,
   get,
   inject,
-  jsonContent,
+  OpenApiResponses,
   TRouteContext,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
@@ -943,7 +943,7 @@ const ProductRoutes = {
       }),
     },
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'List of products',
         schema: z.object({
           products: z.array(z.any()),
@@ -959,7 +959,7 @@ const ProductRoutes = {
       params: z.object({ id: z.string().uuid() }),
     },
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Product details',
         schema: z.any(),
       }),
@@ -1015,7 +1015,7 @@ import {
   put,
   del,
   inject,
-  jsonContent,
+  OpenApiResponses,
   TRouteContext,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
@@ -1026,7 +1026,7 @@ const CartRoutes = {
     method: HTTP.Methods.GET,
     path: '/',
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Current cart',
         schema: z.any(),
       }),
@@ -1036,7 +1036,7 @@ const CartRoutes = {
     method: HTTP.Methods.POST,
     path: '/items',
     request: {
-      body: jsonContent({
+      body: OpenApiResponses.jsonContent({
         schema: z.object({
           productId: z.string().uuid(),
           quantity: z.number().int().positive().default(1),
@@ -1044,7 +1044,7 @@ const CartRoutes = {
       }),
     },
     responses: {
-      [HTTP.ResultCodes.RS_2.Created]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Created]: OpenApiResponses.jsonContent({
         description: 'Item added to cart',
         schema: z.any(),
       }),
@@ -1055,14 +1055,14 @@ const CartRoutes = {
     path: '/items/{productId}',
     request: {
       params: z.object({ productId: z.string().uuid() }),
-      body: jsonContent({
+      body: OpenApiResponses.jsonContent({
         schema: z.object({
           quantity: z.number().int().min(0),
         }),
       }),
     },
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Item quantity updated',
         schema: z.any(),
       }),
@@ -1152,7 +1152,7 @@ import {
   get,
   post,
   inject,
-  jsonContent,
+  OpenApiResponses,
   TRouteContext,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
@@ -1163,7 +1163,7 @@ const OrderRoutes = {
     method: HTTP.Methods.POST,
     path: '/',
     request: {
-      body: jsonContent({
+      body: OpenApiResponses.jsonContent({
         schema: z.object({
           cartId: z.string().uuid(),
           email: z.string().email(),
@@ -1180,7 +1180,7 @@ const OrderRoutes = {
       }),
     },
     responses: {
-      [HTTP.ResultCodes.RS_2.Created]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Created]: OpenApiResponses.jsonContent({
         description: 'Order created',
         schema: z.object({
           order: z.any(),
@@ -1194,14 +1194,14 @@ const OrderRoutes = {
     path: '/{id}/confirm',
     request: {
       params: z.object({ id: z.string().uuid() }),
-      body: jsonContent({
+      body: OpenApiResponses.jsonContent({
         schema: z.object({
           paymentIntentId: z.string(),
         }),
       }),
     },
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Order confirmed',
         schema: z.any(),
       }),
@@ -1214,7 +1214,7 @@ const OrderRoutes = {
       params: z.object({ id: z.string().uuid() }),
     },
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Order details',
         schema: z.any(),
       }),

@@ -65,7 +65,8 @@ describe('sqlite-quickstart', () => {
     const response = await post({ path: '/notes', body: { title: 'First note' } });
     expect(response.status).toBe(201);
 
-    const { data } = NoteResponse.parse(await response.json());
+    const payload = await response.json();
+    const { data } = NoteResponse.parse(payload);
     expect(data.title).toBe('First note');
     noteId = data.id;
   });
@@ -73,7 +74,8 @@ describe('sqlite-quickstart', () => {
   test('GET /notes/:id returns the note', async () => {
     const response = await fetch(`${baseUrl}/notes/${noteId}`);
     expect(response.status).toBe(200);
-    expect(NoteResponse.parse(await response.json()).data.id).toBe(noteId);
+    const payload = await response.json();
+    expect(NoteResponse.parse(payload).data.id).toBe(noteId);
   });
 
   test('GET /notes with include returns the related comments', async () => {
@@ -84,7 +86,8 @@ describe('sqlite-quickstart', () => {
     const response = await fetch(`${baseUrl}/notes?filter=${filter}`);
     expect(response.status).toBe(200);
 
-    const { data } = NoteListResponse.parse(await response.json());
+    const payload = await response.json();
+    const { data } = NoteListResponse.parse(payload);
     expect(data.find((note) => note.id === noteId)?.comments).toEqual([
       expect.objectContaining({ noteId, text: 'A comment' }),
     ]);
@@ -97,7 +100,8 @@ describe('sqlite-quickstart', () => {
     // A missing id is not an error: the read answers 200 with an empty envelope.
     const response = await fetch(`${baseUrl}/notes/${noteId}`);
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ count: 0, data: null });
+    const payload = await response.json();
+    expect(payload).toEqual({ count: 0, data: null });
   });
 
   test('GET /doc/openapi.json serves the API description', async () => {

@@ -10,28 +10,29 @@ Exhaustive reference for `AES`, `RSA`, `ECDH`, the shared `AbstractCryptoAlgorit
 
 **Files:**
 
-- [`packages/helpers/src/modules/crypto/algorithms/base.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/base.algorithm.ts) - `AbstractCryptoAlgorithm`, `BaseCryptoAlgorithm`
+- [`packages/helpers/src/modules/crypto/algorithms/abstract.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/abstract.algorithm.ts) - `AbstractCryptoAlgorithm`
+- [`packages/helpers/src/modules/crypto/algorithms/base.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/base.algorithm.ts) - `BaseCryptoAlgorithm`
 - [`packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts) - `AES`, `AESAlgorithmType`
 - [`packages/helpers/src/modules/crypto/algorithms/rsa.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/rsa.algorithm.ts) - `RSA`, `RSAAlgorithmType`
 - [`packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts) - `ECDH`, `ECDHAlgorithmType`, `IECDHEncryptedPayload`, `IECDHExtraOptions`
-- [`packages/helpers/src/modules/crypto/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/common/types.ts) - `ICryptoAlgorithm`, `IPayloadCipher`
-- [`packages/helpers/src/modules/crypto/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/common/constants.ts) - `DEFAULT_CIPHER_BITS`, `DEFAULT_PAD_END`, `DEFAULT_KDF_SALT`, `DEFAULT_KDF_ITERATIONS`, `DEFAULT_KDF_DIGEST`, `MINIMUM_KDF_SALT_BYTES`, `MINIMUM_RSA_MODULUS_BITS`, `HashAlgorithms`, `HashOutputEncodings`
+- [`packages/helpers/src/modules/crypto/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/common/types.ts) - `ICryptoAlgorithm`
+- [`packages/helpers/src/modules/crypto/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/common/constants.ts) - `DEFAULT_CIPHER_BITS`, `DEFAULT_KDF_SALT`, `DEFAULT_KDF_ITERATIONS`, `DEFAULT_KDF_DIGEST`, `MINIMUM_KDF_SALT_BYTES`, `MINIMUM_RSA_MODULUS_BITS`, `HashAlgorithms`, `HashOutputEncodings`
 - [`packages/helpers/src/modules/crypto/algorithms/hash.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/hash.algorithm.ts) - `Hash`
 
 ## Quick Reference
 
 | Class | Extends | Secret type | Async | Runtime API |
 |-------|---------|--------------|-------|-------------|
-| `AES` | `BaseCryptoAlgorithm` | `TAESSecret` - `string \| IAESKeyringEntry[]` | No | Node `node:crypto` |
-| `RSA` | `BaseCryptoAlgorithm` | `string` (base64 DER key) | No | Node `node:crypto` |
+| `AES` | `BaseCryptoAlgorithm` | `TAESSecret` - `string \| IAESKeyringEntry[]` | Yes | Web Crypto (`crypto.subtle`) |
+| `RSA` | `BaseCryptoAlgorithm` | `string` (base64 DER key) | Yes | Web Crypto (`crypto.subtle`) |
 | `ECDH` | `AbstractCryptoAlgorithm` | `CryptoKey` | Yes | Web Crypto (`crypto.subtle`) |
-| `Hash` | `BaseHelper` | `string` (HMAC only - `digest` takes none) | No | Node `node:crypto` |
+| `Hash` | `BaseHelper` | `string` (HMAC only - `digest` takes none) | No | Bun (`Bun.CryptoHasher`) |
 
 ### Import paths
 
 ```typescript
 // Algorithm classes
-import { AES, LegacyAES, RSA, ECDH, Hash } from '@venizia/ignis-helpers';
+import { AES, RSA, ECDH, Hash } from '@venizia/ignis-helpers';
 
 // Hash const-classes
 import { HashAlgorithms, HashOutputEncodings } from '@venizia/ignis-helpers';
@@ -55,7 +56,6 @@ import type {
   IECDHEncryptedPayload,
   IECDHExtraOptions,
   ICryptoAlgorithm,
-  IPayloadCipher,
 } from '@venizia/ignis-helpers';
 ```
 
@@ -98,16 +98,16 @@ interface ICryptoAlgorithm<
 }
 ```
 
-`AbstractCryptoAlgorithm` extends `BaseHelper` and declares `encrypt`/`decrypt` as abstract. It adds no behavior of its own. `BaseCryptoAlgorithm` is the concrete base for string-secret algorithms:
+`AbstractCryptoAlgorithm` extends `BaseHelper` and declares `encrypt`/`decrypt` as abstract. It adds no behavior of its own, and it lives in its own file with no `node:*` import, so a browser-pure class can extend it (`ECDH` does). It is still exported from `base.algorithm.ts` and from the package root, and also from `@venizia/ignis-helpers/core`. `BaseCryptoAlgorithm` is the concrete base for string-secret algorithms:
 
 | Member | Signature | Description |
 |--------|-----------|--------------|
 | constructor | `(opts: { scope: string; algorithm: AlgorithmType })` | Sets `this.algorithm`, calls `validateAlgorithmName` |
 | `validateAlgorithmName` | `(opts: { algorithm: AlgorithmType }) => void` | Throws if `algorithm` is empty/falsy |
-| `normalizeSecretKey` | `(opts: { secret: string; length: number; kdfSalt?: string; kdfIterations?: number }) => Buffer` | Derives a `length`-byte key with PBKDF2-SHA256, 100,000 iterations. Results are memoised per secret, salt, iteration count and length |
+| `normalizeSecretKey` | `(opts: { secret: string; length: number; kdfSalt?: string; kdfIterations?: number }) => Promise<Buffer>` | Derives a `length`-byte key with PBKDF2-SHA256, 100,000 iterations. Results are memoised per secret, salt, iteration count and length |
 | `getAlgorithmKeySize` | `() => number` | Parses the bit size out of `this.algorithm` (`256` from `'aes-256-gcm'`), divides by 8, and returns the **byte** count - `32`, not `256` |
 
-`normalizeSecretKey` never pads and never truncates. It always runs the KDF.
+`normalizeSecretKey` never pads and never truncates. It always runs the KDF, over `crypto.subtle`, and resolves to the key.
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
@@ -141,12 +141,12 @@ const aes = AES.withAlgorithm('aes-256-gcm'); // or 'aes-256-cbc'
 ### `encrypt`
 
 ```typescript
-encrypt(opts: { message: string; secret: TAESSecret; opts?: IAESExtraOptions }): string
+encrypt(opts: { message: string; secret: TAESSecret; opts?: IAESExtraOptions }): Promise<string>
 ```
 
 | Option (`opts.opts`) | Type | Default | Description |
 |-----------------------|------|---------|-------------|
-| `iv` | `Buffer` | `crypto.randomBytes(16)` | Initialization vector |
+| `iv` | `Buffer` | 16 random bytes from `crypto.getRandomValues` | Initialization vector |
 | `inputEncoding` | `crypto.Encoding` | `'utf-8'` | Encoding of `message` |
 | `outputEncoding` | `crypto.Encoding` | `'base64'` | Encoding of the returned ciphertext |
 | `doThrow` | `boolean` | `true` | If `false`, returns the original `message` instead of throwing on error |
@@ -162,12 +162,12 @@ The secret is run through `normalizeSecretKey` to the algorithm's key size (32 b
 The version byte is `0x01`. The key id is the entry `decrypt` looks up in a keyring - `'0'` when `secret` is a bare string.
 
 > [!WARNING] This envelope is not the pre-PBKDF2 one
-> Ciphertext written before this format started with the raw IV and derived its key by padding the secret. `decrypt` rejects it. Read that data with [`LegacyAES`](#legacyaes) instead.
+> Ciphertext written before this format started with the raw IV and derived its key by padding the secret. `decrypt` rejects it on its version byte; re-encrypt that data with the key you still hold.
 
 ```typescript
 import C from 'node:crypto';
 
-const encrypted = aes.encrypt({
+const encrypted = await aes.encrypt({
   message: 'hello',
   secret: 'my-secret',
   opts: {
@@ -182,7 +182,7 @@ const encrypted = aes.encrypt({
 ### `decrypt`
 
 ```typescript
-decrypt(opts: { message: string; secret: TAESSecret; opts?: IAESDecryptOptions }): string
+decrypt(opts: { message: string; secret: TAESSecret; opts?: IAESDecryptOptions }): Promise<string>
 ```
 
 `decrypt` takes no `iv`. The envelope carries the one `encrypt` used, so passing another would be ignored - the option is absent from `IAESDecryptOptions` and supplying it is a compile error.
@@ -201,22 +201,22 @@ decrypt(opts: { message: string; secret: TAESSecret; opts?: IAESDecryptOptions }
 For `aes-256-gcm`, the next 16 bytes after the IV are read as the auth tag. That tag is passed to `setAuthTag` before the remaining bytes are treated as ciphertext.
 
 > [!WARNING]
-> Decrypting `aes-256-gcm` ciphertext with an `aes-256-cbc` instance (or vice versa) throws `Unsupported state or unable to authenticate data`. The two modes produce incompatible byte layouts - always encrypt and decrypt with the same one.
+> Decrypting `aes-256-gcm` ciphertext with an `aes-256-cbc` instance (or vice versa) throws, and the returned Promise rejects. The two modes produce incompatible byte layouts - always encrypt and decrypt with the same one.
 
 ### `encryptFile` / `decryptFile`
 
 ```typescript
-encryptFile(opts: { absolutePath: string; secret: TAESSecret }): string
-decryptFile(opts: { absolutePath: string; secret: TAESSecret }): string
+encryptFile(opts: { absolutePath: string; secret: TAESSecret }): Promise<string>
+decryptFile(opts: { absolutePath: string; secret: TAESSecret }): Promise<string>
 ```
 
-Both read the file synchronously via `fs.readFileSync`, decode it as UTF-8, then call `encrypt`/`decrypt` on the string content using default extra-options. If `absolutePath` is empty or falsy, both return `''` without touching the filesystem.
+Both read the file synchronously via `fs.readFileSync`, decode it as UTF-8, then `await` `encrypt`/`decrypt` on the string content using default extra-options. If `absolutePath` is empty or falsy, both resolve to `''` without touching the filesystem.
 
 Neither takes an options object, so neither can carry a custom `kdfSalt` or `kdfIterations`. Read the file yourself and call `encrypt`/`decrypt` directly when you need those.
 
 ```typescript
-const encrypted = aes.encryptFile({ absolutePath: '/path/to/config.json', secret: 'my-secret' });
-const decrypted = aes.decryptFile({ absolutePath: '/path/to/config.json.enc', secret: 'my-secret' });
+const encrypted = await aes.encryptFile({ absolutePath: '/path/to/config.json', secret: 'my-secret' });
+const decrypted = await aes.decryptFile({ absolutePath: '/path/to/config.json.enc', secret: 'my-secret' });
 ```
 
 ### Key rotation with a keyring
@@ -229,8 +229,8 @@ const KEYRING = [
   { id: '1', secret: process.env.APP_ENV_SECRET_V1! }, // retired - still needed to read old rows
 ];
 
-const fresh = aes.encrypt({ message: 'payload', secret: KEYRING }); // tagged id '2'
-const old = aes.decrypt({ message: rowFromLastYear, secret: KEYRING }); // resolved by its own id
+const fresh = await aes.encrypt({ message: 'payload', secret: KEYRING }); // tagged id '2'
+const old = await aes.decrypt({ message: rowFromLastYear, secret: KEYRING }); // resolved by its own id
 ```
 
 Rotating means prepending a new entry, not re-encrypting the estate. Drop an old entry only once nothing carries its id any more - `decrypt` throws `No key in keyring matches ciphertext key id` when it cannot resolve one, and a keyring entry with an empty `secret` is refused by name rather than failing later inside OpenSSL.
@@ -239,45 +239,6 @@ Rotating means prepending a new entry, not re-encrypting the estate. Drop an old
 |---|---|---|
 | `'my-secret'` | that string | `'0'` |
 | `[{ id, secret }, ...]` | the FIRST entry | that entry's `id` |
-
-### LegacyAES
-
-`Source ->` [`packages/helpers/src/modules/crypto/algorithms/aes-legacy.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/aes-legacy.algorithm.ts)
-
-`LegacyAES` reproduces the pre-PBKDF2 behaviour exactly: the key is the secret padded with `'0'` (or truncated) to the algorithm's key size, and the output is `IV [+ GCM auth tag] + ciphertext` with no version header.
-
-Reach for it when you hold data written by an earlier IGNIS and do not want to re-encrypt it. The API mirrors `AES`, minus the keyring - `secret` is a plain string.
-
-```typescript
-import { LegacyAES } from '@venizia/ignis-helpers';
-
-const legacy = LegacyAES.withAlgorithm('aes-256-cbc');
-const plaintext = legacy.decrypt({ message: rowWrittenBeforeTheUpgrade, secret: APPLICATION_SECRET });
-```
-
-The two formats never cross-decrypt, by design. `AES` rejects a legacy envelope on its version byte; `LegacyAES` fails the auth tag on a new one. Nothing falls back silently in either direction.
-
-### IPayloadCipher - choosing the cipher a component uses
-
-A component that encrypts on your behalf takes `IPayloadCipher`, the string-in/string-out slice both classes satisfy:
-
-```typescript
-export interface IPayloadCipher {
-  encrypt(opts: { message: string; secret: string }): string;
-  decrypt(opts: { message: string; secret: string }): string;
-}
-```
-
-The bearer-token services accept it as `cipher`. An application holding tokens issued before the envelope change keeps them readable by handing over the legacy cipher instead of invalidating every session:
-
-```typescript
-new JWSTokenService({
-  jwtSecret,
-  getTokenExpiresFn,
-  applicationSecret,
-  cipher: LegacyAES.withAlgorithm('aes-256-cbc'), // omit it and you get AES
-});
-```
 
 ## RSA
 
@@ -292,12 +253,12 @@ const rsa = RSA.withAlgorithm(); // no parameters - always algorithm 'rsa'
 ### `generateDERKeyPair`
 
 ```typescript
-generateDERKeyPair(opts?: { modulus: number }): { publicKey: Buffer; privateKey: Buffer }
+generateDERKeyPair(opts?: { modulus: number }): Promise<{ publicKey: Buffer; privateKey: Buffer }>
 ```
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `modulus` | `number` | `MINIMUM_RSA_MODULUS_BITS`, `2048` | RSA modulus length in bits, passed to `crypto.generateKeyPairSync` |
+| `modulus` | `number` | `MINIMUM_RSA_MODULUS_BITS`, `2048` | RSA modulus length in bits, passed to `crypto.subtle.generateKey` |
 
 A `modulus` below `MINIMUM_RSA_MODULUS_BITS` throws `[RSA][generateDERKeyPair] Modulus N is below the 2048-bit minimum`. The key is refused rather than generated. A weak key that exists is a weak key someone will end up using. 2048 bits is the NIST SP 800-57 Part 1 floor past 2030.
 
@@ -306,10 +267,10 @@ A `modulus` below `MINIMUM_RSA_MODULUS_BITS` throws `[RSA][generateDERKeyPair] M
 ### `encrypt`
 
 ```typescript
-encrypt(opts: { message: string; secret: string; opts?: IRSAExtraOptions }): string
+encrypt(opts: { message: string; secret: string; opts?: IRSAExtraOptions }): Promise<string>
 ```
 
-`secret` is the base64-encoded public key (SPKI/DER). Internally builds a public key via `crypto.createPublicKey({ format: 'der', type: 'spki' })` and calls `crypto.publicEncrypt`.
+`secret` is the base64-encoded public key (SPKI/DER). It is imported with `crypto.subtle.importKey('spki', ...)`, and the message is encrypted with `crypto.subtle.encrypt` under RSA-OAEP with SHA-1.
 
 | Option (`opts.opts`) | Type | Default | Description |
 |-----------------------|------|---------|-------------|
@@ -321,10 +282,10 @@ encrypt(opts: { message: string; secret: string; opts?: IRSAExtraOptions }): str
 ### `decrypt`
 
 ```typescript
-decrypt(opts: { message: string; secret: string; opts?: IRSAExtraOptions }): string
+decrypt(opts: { message: string; secret: string; opts?: IRSAExtraOptions }): Promise<string>
 ```
 
-`secret` is the base64-encoded private key (PKCS8/DER). Internally builds a private key via `crypto.createPrivateKey({ format: 'der', type: 'pkcs8' })` and calls `crypto.privateDecrypt`.
+`secret` is the base64-encoded private key (PKCS8/DER). It is imported with `crypto.subtle.importKey('pkcs8', ...)`, and the message is decrypted with `crypto.subtle.decrypt` under RSA-OAEP with SHA-1.
 
 | Option (`opts.opts`) | Type | Default | Description |
 |-----------------------|------|---------|-------------|
@@ -335,15 +296,15 @@ decrypt(opts: { message: string; secret: string; opts?: IRSAExtraOptions }): str
 
 ```typescript
 const rsa = RSA.withAlgorithm();
-const { publicKey, privateKey } = rsa.generateDERKeyPair({ modulus: 4096 });
+const { publicKey, privateKey } = await rsa.generateDERKeyPair({ modulus: 4096 });
 
-const encrypted = rsa.encrypt({
+const encrypted = await rsa.encrypt({
   message: 'hello',
   secret: publicKey.toString('base64'),
   opts: { outputEncoding: 'hex', doThrow: false },
 });
 
-const decrypted = rsa.decrypt({
+const decrypted = await rsa.decrypt({
   message: encrypted,
   secret: privateKey.toString('base64'),
   opts: { inputEncoding: { key: 'base64', message: 'hex' } },
@@ -355,6 +316,8 @@ const decrypted = rsa.decrypt({
 `Source ->` [`ecdh.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts)
 
 `ECDH` implements ECDH P-256 key exchange with HKDF-derived AES-256-GCM session encryption, entirely on the Web Crypto API (`crypto.subtle`). Every method is `async`.
+
+It also runs in a browser or a Worker: base64 is `btoa`/`atob`, with no `Buffer` and no `node:*`, so import it from `@venizia/ignis-helpers/core` and a page and a server speak one wire format with one class. The wire format is the same as before: a raw public key, a 32-byte salt, a 12-byte IV and a 128-bit tag, all base64.
 
 ```typescript
 const ecdh = ECDH.withAlgorithm(); // curve is always 'ecdh-p256'
@@ -477,16 +440,16 @@ const decrypted = await ecdh.decrypt({ message: encrypted, secret: bobKey });
 class Hash extends BaseHelper {
   static withAlgorithm(algorithm: THashAlgorithm): Hash;
 
-  digest(opts: { message: string; opts?: { outputEncoding?: THashOutputEncoding } }): string;
-  hmac(opts: { message: string; secret: string; opts?: { outputEncoding?: THashOutputEncoding } }): string;
+  digest(opts: { message: string | Uint8Array | ReadonlyArray<string | Uint8Array>; opts?: { outputEncoding?: THashOutputEncoding } }): string;
+  hmac(opts: { message: string | Uint8Array; secret: string | Uint8Array; opts?: { outputEncoding?: THashOutputEncoding } }): string;
 }
 ```
 
 | Member | Signature | Description |
 |--------|-----------|--------------|
 | `Hash.withAlgorithm(algorithm)` | `(algorithm: THashAlgorithm) => Hash` | Returns a memoized instance for `algorithm` - at most five instances ever exist, one per algorithm |
-| `digest` | `(opts: { message: string; opts?: IHashExtraOptions }) => string` | Plain digest. Takes no secret at all |
-| `hmac` | `(opts: { message: string; secret: string; opts?: IHashExtraOptions }) => string` | Keyed HMAC. `secret` is required and validated non-empty; throws via `getError` if empty |
+| `digest` | `(opts: { message: string \| Uint8Array \| ReadonlyArray<string \| Uint8Array>; opts?: IHashExtraOptions }) => string` | Plain digest. Takes no secret at all. Text is hashed as UTF-8, bytes as they are, and an array is several parts hashed in order as one message |
+| `hmac` | `(opts: { message: string \| Uint8Array; secret: string \| Uint8Array; opts?: IHashExtraOptions }) => string` | Keyed HMAC. `secret` is required and validated non-empty in either form; throws via `getError` if empty. A `Buffer` or `Uint8Array` key gives the same output as the text of the same bytes |
 
 | Const-class | Values |
 |---|---|
@@ -512,19 +475,28 @@ const sha256Hmac = Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({
 > [!NOTE]
 > The old standalone `hash(text, options)` function is removed - see the [2026-08-30 changelog](/changelogs/2026-08-30-crypto-hashing) for the migration table.
 
+## Passwords
+
+`CredentialHelper` is a class of static methods over `Bun.password`. It throws on a runtime other than Bun.
+
+| Method | Returns | Notes |
+|---|---|---|
+| `hash({ password, algorithm?, cost? })` | `Promise<string>` | `algorithm` is `'argon2id'` (default, the default parameters of `Bun.password`, `$argon2id$`) or `'bcrypt'` (`$2b$`, 60 characters). `cost` is for bcrypt only: an integer from 4 to 31, default 10. An empty or non-string password, an unknown algorithm, a cost with argon2id and a cost out of range throw. A bcrypt hash written for a password longer than 72 bytes is read by Bun only, not by the `bcrypt` package |
+| `verify({ password, hash })` | `Promise<boolean>` | Reads any bcrypt hash, and an argon2 hash. An empty or non-string password or hash is `false`. A stored value that is not a password hash throws with status 500. A bcrypt hash is retried with the first 72 bytes of a longer password, the way the `bcrypt` package reads it: for legacy hashes only, a hash written by `hash` never needs it |
+
 ## API Summary
 
 | Method | Class | Returns | Description |
 |--------|-------|---------|-------------|
 | `AES.withAlgorithm(algorithm)` | `AES` | `AES` | Create an AES instance with CBC or GCM mode |
-| `encrypt(opts)` | `AES` | `string` | Encrypt a string message |
-| `decrypt(opts)` | `AES` | `string` | Decrypt a ciphertext string |
-| `encryptFile(opts)` | `AES` | `string` | Encrypt file contents to a string |
-| `decryptFile(opts)` | `AES` | `string` | Decrypt file contents to a string |
+| `encrypt(opts)` | `AES` | `Promise<string>` | Encrypt a string message |
+| `decrypt(opts)` | `AES` | `Promise<string>` | Decrypt a ciphertext string |
+| `encryptFile(opts)` | `AES` | `Promise<string>` | Encrypt file contents to a string |
+| `decryptFile(opts)` | `AES` | `Promise<string>` | Decrypt file contents to a string |
 | `RSA.withAlgorithm()` | `RSA` | `RSA` | Create an RSA instance |
-| `generateDERKeyPair(opts?)` | `RSA` | `{ publicKey: Buffer; privateKey: Buffer }` | Generate a DER-format key pair |
-| `encrypt(opts)` | `RSA` | `string` | Encrypt with a public key |
-| `decrypt(opts)` | `RSA` | `string` | Decrypt with a private key |
+| `generateDERKeyPair(opts?)` | `RSA` | `Promise<{ publicKey: Buffer; privateKey: Buffer }>` | Generate a DER-format key pair |
+| `encrypt(opts)` | `RSA` | `Promise<string>` | Encrypt with a public key |
+| `decrypt(opts)` | `RSA` | `Promise<string>` | Decrypt with a private key |
 | `ECDH.withAlgorithm(opts?)` | `ECDH` | `ECDH` | Create an ECDH instance. Passing options requires `algorithm` alongside `hkdfInfo` |
 | `generateKeyPair()` | `ECDH` | `Promise<{ keyPair: CryptoKeyPair; publicKeyB64: string }>` | Generate a P-256 key pair |
 | `importPublicKey(opts)` | `ECDH` | `Promise<CryptoKey>` | Import a peer's base64 public key |
@@ -534,6 +506,8 @@ const sha256Hmac = Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({
 | `Hash.withAlgorithm(algorithm)` | `Hash` | `Hash` | Get the memoized instance for an algorithm |
 | `digest(opts)` | `Hash` | `string` | Plain digest, no secret |
 | `hmac(opts)` | `Hash` | `string` | Keyed HMAC, secret required |
+| `CredentialHelper.hash(opts)` | `CredentialHelper` | `Promise<string>` | An argon2id (default) or bcrypt password hash over `Bun.password` |
+| `CredentialHelper.verify(opts)` | `CredentialHelper` | `Promise<boolean>` | Check a password against a stored hash |
 
 ## Troubleshooting
 
@@ -555,7 +529,7 @@ const ecdh = ECDH.withAlgorithm();             // no parameter needed
 
 **Fix:** Pass base64 strings through exactly as produced by the methods that generated them (`publicKeyB64`, `salt`, `iv`, `ct`). Do not trim, re-encode, or modify them.
 
-### "Unsupported state or unable to authenticate data"
+### "OperationError: The operation failed for an operation-specific reason"
 
 **Cause:** Either the ciphertext or auth tag was modified in transit, or encrypt and decrypt used different algorithm modes. The two modes produce incompatible byte layouts.
 

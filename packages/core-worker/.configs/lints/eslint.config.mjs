@@ -1,4 +1,4 @@
-import { houseConfigs } from '@venizia/dev-configs/linters';
+import { asyncStyleConfigs, houseConfigs } from '@venizia/dev-configs/linters';
 import { builtinModules } from 'node:module';
 
 /**
@@ -93,4 +93,4 @@ const browserPurity = {
 
 // oxlint (.configs/oxlint.config.mts) owns the shared preset; this file adds what oxlint cannot run: the
 // ESQuery selector below, and the naming rule. src/__tests__/browser-purity.test.ts lints with it.
-export default [...houseConfigs, browserPurity];
+export default [...houseConfigs, ...asyncStyleConfigs, browserPurity];

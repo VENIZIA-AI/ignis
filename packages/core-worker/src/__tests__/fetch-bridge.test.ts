@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { installBffFetch } from '@/transport/fetch-bridge';
+import { BffFetchBridge } from '@/transport/fetch-bridge';
 import type { IBffTransport } from '@/transport/common/types';
 
 /** Records what reached the transport, so a test can assert the request was routed intact. */
@@ -8,10 +8,15 @@ const createRecordingTransport = () => {
 
   const transport: IBffTransport = {
     fetch: async ({ request }) => {
+      let body = '';
+      if (request.body) {
+        const text = await request.text();
+        body = text;
+      }
       seen.push({
         url: request.url,
         method: request.method,
-        body: request.body ? await request.text() : '',
+        body,
       });
       return new Response('from-bff', { status: 200 });
     },
@@ -27,9 +32,14 @@ const createCarrier = () => {
   const carrier = {
     fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
       const request = new Request(input, init);
+      let body = '';
+      if (request.body) {
+        const text = await request.text();
+        body = text;
+      }
       networkCalls.push({
         url: request.url,
-        body: request.body ? await request.text() : '',
+        body,
       });
       return new Response('from-network', { status: 200 });
     }) as unknown as typeof globalThis.fetch,
@@ -38,16 +48,17 @@ const createCarrier = () => {
   return { carrier, networkCalls };
 };
 
-describe('installBffFetch', () => {
+describe('BffFetchBridge.install', () => {
   test('routes a matching path to the transport', async () => {
     const { transport, seen } = createRecordingTransport();
     const { carrier } = createCarrier();
 
-    const uninstall = installBffFetch({ transport, basePath: '/api', carrier });
+    const uninstall = BffFetchBridge.install({ transport, basePath: '/api', carrier });
 
     const response = await carrier.fetch('https://app.test/api/notes');
 
-    expect(await response.text()).toBe('from-bff');
+    const result = await response.text();
+    expect(result).toBe('from-bff');
     expect(seen).toHaveLength(1);
     expect(seen[0]!.url).toBe('https://app.test/api/notes');
 
@@ -58,11 +69,12 @@ describe('installBffFetch', () => {
     const { transport, seen } = createRecordingTransport();
     const { carrier, networkCalls } = createCarrier();
 
-    const uninstall = installBffFetch({ transport, basePath: '/api', carrier });
+    const uninstall = BffFetchBridge.install({ transport, basePath: '/api', carrier });
 
     const response = await carrier.fetch('https://app.test/assets/logo.svg');
 
-    expect(await response.text()).toBe('from-network');
+    const result = await response.text();
+    expect(result).toBe('from-network');
     expect(seen).toHaveLength(0);
     expect(networkCalls).toHaveLength(1);
 
@@ -80,7 +92,7 @@ describe('installBffFetch', () => {
     const { transport } = createRecordingTransport();
     const { carrier, networkCalls } = createCarrier();
 
-    const uninstall = installBffFetch({ transport, basePath: '/api', carrier });
+    const uninstall = BffFetchBridge.install({ transport, basePath: '/api', carrier });
 
     const request = new Request('https://app.test/upstream/items', {
       method: 'POST',
@@ -100,7 +112,7 @@ describe('installBffFetch', () => {
     const { transport, seen } = createRecordingTransport();
     const { carrier } = createCarrier();
 
-    const uninstall = installBffFetch({ transport, basePath: '/api', carrier });
+    const uninstall = BffFetchBridge.install({ transport, basePath: '/api', carrier });
 
     await carrier.fetch(
       new Request('https://app.test/api/notes', {
@@ -120,7 +132,7 @@ describe('installBffFetch', () => {
     const { transport, seen } = createRecordingTransport();
     const { carrier, networkCalls } = createCarrier();
 
-    const uninstall = installBffFetch({
+    const uninstall = BffFetchBridge.install({
       transport,
       basePath: ['/api', '/internal'],
       carrier,
@@ -141,7 +153,7 @@ describe('installBffFetch', () => {
     const { carrier } = createCarrier();
     const original = carrier.fetch;
 
-    const uninstall = installBffFetch({ transport, basePath: '/api', carrier });
+    const uninstall = BffFetchBridge.install({ transport, basePath: '/api', carrier });
     expect(carrier.fetch).not.toBe(original);
 
     uninstall();
@@ -156,7 +168,7 @@ describe('installBffFetch', () => {
     const { transport } = createRecordingTransport();
     const { carrier } = createCarrier();
 
-    const uninstall = installBffFetch({ transport, basePath: '/api', carrier });
+    const uninstall = BffFetchBridge.install({ transport, basePath: '/api', carrier });
 
     const laterPatch = (async () => new Response('later')) as unknown as typeof globalThis.fetch;
     carrier.fetch = laterPatch;
@@ -170,9 +182,9 @@ describe('installBffFetch', () => {
     const { transport } = createRecordingTransport();
     const { carrier } = createCarrier();
 
-    const uninstall = installBffFetch({ transport, basePath: '/api', carrier });
+    const uninstall = BffFetchBridge.install({ transport, basePath: '/api', carrier });
 
-    expect(() => installBffFetch({ transport, basePath: '/other', carrier })).toThrow(
+    expect(() => BffFetchBridge.install({ transport, basePath: '/other', carrier })).toThrow(
       /already installed/,
     );
 
@@ -183,8 +195,12 @@ describe('installBffFetch', () => {
     const { transport } = createRecordingTransport();
     const { carrier } = createCarrier();
 
-    expect(() => installBffFetch({ transport, basePath: '', carrier })).toThrow(/Invalid basePath/);
-    expect(() => installBffFetch({ transport, basePath: [], carrier })).toThrow(/Invalid basePath/);
+    expect(() => BffFetchBridge.install({ transport, basePath: '', carrier })).toThrow(
+      /Invalid basePath/,
+    );
+    expect(() => BffFetchBridge.install({ transport, basePath: [], carrier })).toThrow(
+      /Invalid basePath/,
+    );
   });
 
   /** Whatever the runtime hung on `fetch` has to survive the swap - Bun puts `preconnect` there. */
@@ -194,7 +210,7 @@ describe('installBffFetch', () => {
 
     Object.defineProperty(carrier.fetch, 'preconnect', { value: () => 'kept', configurable: true });
 
-    const uninstall = installBffFetch({ transport, basePath: '/api', carrier });
+    const uninstall = BffFetchBridge.install({ transport, basePath: '/api', carrier });
 
     expect((carrier.fetch as unknown as { preconnect: () => string }).preconnect()).toBe('kept');
 
@@ -202,12 +218,12 @@ describe('installBffFetch', () => {
   });
 });
 
-describe('installBffFetch - which requests it claims', () => {
+describe('BffFetchBridge.install - which requests it claims', () => {
   test('a matching path on another origin goes to the network, not the BFF', async () => {
     const { transport, seen } = createRecordingTransport();
     const { carrier, networkCalls } = createCarrier();
 
-    const uninstall = installBffFetch({
+    const uninstall = BffFetchBridge.install({
       transport,
       basePath: '/api',
       carrier,
@@ -216,7 +232,8 @@ describe('installBffFetch - which requests it claims', () => {
 
     const response = await carrier.fetch('https://api.example.com/api/users');
 
-    expect(await response.text()).toBe('from-network');
+    const result = await response.text();
+    expect(result).toBe('from-network');
     expect(seen).toHaveLength(0);
     expect(networkCalls).toHaveLength(1);
 
@@ -227,7 +244,7 @@ describe('installBffFetch - which requests it claims', () => {
     const { transport, seen } = createRecordingTransport();
     const { carrier } = createCarrier();
 
-    const uninstall = installBffFetch({
+    const uninstall = BffFetchBridge.install({
       transport,
       basePath: '/api',
       carrier,
@@ -245,7 +262,7 @@ describe('installBffFetch - which requests it claims', () => {
     const { transport, seen } = createRecordingTransport();
     const { carrier, networkCalls } = createCarrier();
 
-    const uninstall = installBffFetch({ transport, basePath: '/api', carrier });
+    const uninstall = BffFetchBridge.install({ transport, basePath: '/api', carrier });
 
     await carrier.fetch('https://app.test/apix');
     await carrier.fetch('https://app.test/api-docs');
@@ -262,7 +279,7 @@ describe('installBffFetch - which requests it claims', () => {
     const { transport, seen } = createRecordingTransport();
     const { carrier, networkCalls } = createCarrier();
 
-    const uninstall = installBffFetch({ transport, basePath: '/api/', carrier });
+    const uninstall = BffFetchBridge.install({ transport, basePath: '/api/', carrier });
 
     await carrier.fetch('https://app.test/api/notes');
     await carrier.fetch('https://app.test/apix');
@@ -274,12 +291,12 @@ describe('installBffFetch - which requests it claims', () => {
   });
 });
 
-describe('installBffFetch - origin is opt-in', () => {
+describe('BffFetchBridge.install - origin is opt-in', () => {
   test('without an origin, a matching path on any origin is claimed, as before', async () => {
     const { transport, seen } = createRecordingTransport();
     const { carrier } = createCarrier();
 
-    const uninstall = installBffFetch({ transport, basePath: '/api', carrier });
+    const uninstall = BffFetchBridge.install({ transport, basePath: '/api', carrier });
 
     await carrier.fetch('https://gateway.example.com/api/orders');
 
@@ -292,7 +309,7 @@ describe('installBffFetch - origin is opt-in', () => {
     const { transport, seen } = createRecordingTransport();
     const { carrier, networkCalls } = createCarrier();
 
-    const uninstall = installBffFetch({
+    const uninstall = BffFetchBridge.install({
       transport,
       basePath: '/v1/api',
       carrier,

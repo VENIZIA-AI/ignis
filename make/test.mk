@@ -1,7 +1,7 @@
 # Package test suites, the browser-purity gate, the clean-install gate, and the gate scripts' own tests.
 
-# Packages with no suite of their own; their `test-<pkg>` says so and passes.
-NO_TEST := filter
+# Packages with no suite of their own; their `test-<pkg>` says so and passes. None now: filter has one.
+NO_TEST :=
 # The test environment, in one place: logs land in the gitignored app_data of the package, not its root.
 # The logger path is absolute: a test that spawns a process in another folder (a temp folder) must not
 # make an app_data there.
@@ -36,8 +36,10 @@ test-all: $(addprefix test-,$(TEST_PACKAGES))
 $(addprefix test-,$(TEST_PACKAGES)): test-%:
 	@cd packages/$* && $(TEST_ENV) bun test ./src $(BUN_TEST_FLAGS)
 
+ifneq ($(strip $(NO_TEST)),)
 $(addprefix test-,$(NO_TEST)):
 	@echo "ℹ️  No test suite in this package - skipping."
+endif
 
 # A test run must leave nothing in the system temp (a test used /tmp, not os.tmpdir()) and nothing in
 # .agents/local/tmp (a test made a folder and kept it). CI runs the same snapshot and verify around its

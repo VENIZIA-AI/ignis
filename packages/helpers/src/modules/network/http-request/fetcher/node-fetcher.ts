@@ -1,10 +1,10 @@
-import { redactSecrets } from '@/common/redact';
+import { RedactUtility } from '@/common/redact';
 import { HTTP, type THttpMethod } from '@/common/constants/http';
 import { type AnyObject } from '@/common/types';
 import {
   type IQueryStringOptions,
   QueryStringSeparators,
-  toQueryString,
+  QueryStringUtility,
 } from '../../utilities/query-string';
 
 import { BaseNetworkRequest } from '../base-network-request.helper';
@@ -107,7 +107,9 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
     };
 
     // `?` only when the url carries no query string of its own - a second `?` is not a separator, so the server would read the previous parameter's value as `1?extra=2`.
-    const serializedParams = params ? toQueryString({ params, ...this.queryString }) : '';
+    const serializedParams = params
+      ? QueryStringUtility.toQueryString({ params, ...this.queryString })
+      : '';
     const requestUrl = serializedParams
       ? `${url}${url.includes(QueryStringSeparators.START) ? QueryStringSeparators.PAIR : QueryStringSeparators.START}${serializedParams}`
       : url;
@@ -132,7 +134,7 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
       '[%s] URL: %s | Props: %s | Timeout: %s',
       this.send.name,
       url,
-      redactSecrets(loggableConfigs),
+      RedactUtility.redactSecrets({ value: loggableConfigs }),
       timeout,
     );
 

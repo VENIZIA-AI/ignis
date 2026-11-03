@@ -26,8 +26,3 @@ export class TableColumnCache {
     return columns;
   }
 }
-
-/** Published name of {@link TableColumnCache.get}. */
-export const getCachedColumns = <Schema extends TTableSchemaWithId>(
-  schema: Schema,
-): TTableColumns => TableColumnCache.get(schema);

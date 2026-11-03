@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Pino Provider
 
-`PinoLogger` is the second logger provider behind the `ILogger` contract - the throughput option. Winston remains the DEFAULT. Nothing changes for apps that never register pino.
+`PinoLogger` is the second logger provider behind the `ILogger` contract - the throughput option. The console is the default provider, and `@venizia/ignis` selects Winston at startup. Nothing changes for apps that never choose pino.
 
 | Provider | Output | Speed (measured) |
 |---|---|---|
@@ -23,18 +23,18 @@ import { PinoLogger } from '@venizia/ignis-helpers/pino';
 LoggerFactory.use({ provider: PinoLogger });
 ```
 
-The two providers register symmetrically - `WinstonLogger` lives at `@venizia/ignis-helpers/winston` the same way. Both are sub-path only, with optional peers. Exactly ONE provider is ever loaded - registering pino here means winston is never loaded, nor bundled.
+Add `level: LogLevels.INFO` (from `@venizia/ignis-helpers`) to set the level for every provider. Because the application chose a provider, `@venizia/ignis` keeps it and does not select Winston. The two providers register symmetrically - `WinstonLogger` lives at `@venizia/ignis-helpers/winston` the same way. Both are sub-path only, with optional peers. Exactly ONE provider is ever loaded - registering pino here means winston is never loaded, nor bundled.
 
 From that moment, every factory-issued logger runs on pino:
 
 - `BaseHelper.logger` in every controller, service, repository, and helper
-- `ApplicationLogger.get(...)`
+- `LoggerFactory.getLogger(...)` from anywhere
 - Even a module-level `const logger = LoggerFactory.getLogger([...])`, captured at import time before this line ran - thanks to swap-on-use delegation
 
 Import order doesn't matter. The factory re-points every wrapper it has ever issued when `use()` is called.
 
 > [!IMPORTANT]
-> `Logger.get(...)` (the concrete `WinstonLogger` alias) and `defineCustomLogger` deliberately do NOT follow the registration - they name winston explicitly. See the name/role table in the [Full reference](/extensions/helpers/logger/reference).
+> `Logger.get(...)` (the concrete `WinstonLogger` alias) and `WinstonLoggerFactory.defineCustomLogger` deliberately do NOT follow the registration - they name winston explicitly. See the name/role table in the [Full reference](/extensions/helpers/logger/reference).
 
 ## Installing the peers
 
@@ -72,7 +72,7 @@ A missing peer fails with the standard install-hint error BEFORE any worker thre
 Identical by construction:
 
 - the `[Scope] ` message prefix
-- args formatting through `formatLogMessage` - deep inspection plus secret redaction; a `token` field renders `[REDACTED]` on pino exactly as on winston
+- args formatting through `LogFormatUtility.formatMessage` - deep inspection plus secret redaction; a `token` field renders `[REDACTED]` on pino exactly as on winston
 - the level vocabulary and floor semantics
 - the `DEBUG` gate on `debug()`
 
@@ -91,7 +91,9 @@ If your operations depend on the left column, stay on winston - it is not deprec
 
 ## Advanced: injecting a backing instance
 
-`setPinoBackingLogger({ instance })` replaces the env-driven singleton with a pino instance you configured yourself. Tests use this with an in-memory destination; apps can use it for exotic transports. The previous instance's transport is flushed and closed on replacement. `buildPinoOptions()` and `resolveDestinationPlan()` are exported for building compatible options.
+`PinoBackingLogger.set({ instance })` replaces the env-driven singleton with a pino instance you configured yourself. Tests use this with an in-memory destination; apps can use it for exotic transports. The previous instance's transport is flushed and closed on replacement. `PinoBackingLogger.buildOptions()` and `PinoDestination.resolvePlan()` are exported for building compatible options.
+
+The bare functions `setPinoBackingLogger`, `getPinoBackingLogger`, `buildPinoOptions`, `mapFrequency`, `mapMaxFilesToCount`, `resolveDestinationPlan` and `buildDestination` are removed; use `PinoBackingLogger.set`, `PinoBackingLogger.get`, `PinoBackingLogger.buildOptions`, `PinoDestination.mapFrequency`, `PinoDestination.mapMaxFilesToCount`, `PinoDestination.resolvePlan` and `PinoDestination.build`. `PinoDestination.mapFrequency` and `PinoDestination.build` take an options object (`{ value }` and `{ plan }`).
 
 ## See also
 

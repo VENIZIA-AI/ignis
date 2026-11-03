@@ -17,7 +17,7 @@ Every binding, endpoint, type, and internal mechanism of `StaticAssetComponent`.
 - [`packages/core-server/src/components/static-asset/controller/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/factory.ts)
 - [`packages/core-server/src/components/static-asset/controller/base.definition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/base.definition.ts)
 - [`packages/core-server/src/components/static-asset/controller/key-scope.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/key-scope.ts) - `controller.keyPrefix`
-- [`packages/core-server/src/components/static-asset/controller/meta-link.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/meta-link.ts) - `createMetaLinkRow`, `refreshMetaLinkRows`
+- [`packages/core-server/src/components/static-asset/controller/meta-link.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/meta-link.ts) - `AssetMetaLink.createRow`, `AssetMetaLink.refreshRows`
 - [`packages/core-server/src/components/static-asset/controller/route-options.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/route-options.ts) - `enabled`, the `maxBytes` route guard
 - [`packages/core-server/src/components/static-asset/ingest.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/ingest.ts)
 - [`packages/core-server/src/components/static-asset/common/errors.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/errors.ts)
@@ -35,7 +35,7 @@ Every binding, endpoint, type, and internal mechanism of `StaticAssetComponent`.
 | Package | `@venizia/ignis` (core component) + `@venizia/ignis-helpers` (storage helpers) |
 | Component class | `StaticAssetComponent` |
 | Import subpath | `@venizia/ignis/static-asset` - not on the root barrel |
-| Storage helpers | `DiskHelper`, `BunS3Helper` (`@venizia/ignis-helpers/bun-s3`), `MinioHelper` (`@venizia/ignis-helpers/minio`, deprecated) |
+| Storage helpers | `DiskHelper`, `BunS3Helper` (`@venizia/ignis-helpers/bun-s3`); a MinIO server is reached through `BunS3Helper` |
 | Runtimes | Both - `BunS3Helper` specifically requires Bun (imports Bun's native `S3Client`) |
 | Optional feature | MetaLink - Postgres-backed upload tracking via `BaseMetaLinkModel`/`BaseMetaLinkRepository` |
 
@@ -51,8 +51,7 @@ import {
   AssetIngest,
   BaseMetaLinkModel,
   BaseMetaLinkRepository,
-  buildObjectLink,
-  resolveServedContentType,
+  AssetCommitToken,
   RENDERABLE_CONTENT_TYPES,
   StaticAssetErrors,
   WHITELIST_HEADERS,
@@ -73,7 +72,6 @@ import type {
 // Helpers - main entry + storage-backend subpaths
 import { DiskHelper } from '@venizia/ignis-helpers';
 import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
-import { MinioHelper } from '@venizia/ignis-helpers/minio';
 ```
 
 ## Binding keys
@@ -127,7 +125,6 @@ type TStaticAssetsComponentOptions<Schema extends TMetaLinkCompatibleSchema = TM
   } & (
     | { storage: typeof StaticAssetStorageTypes.BUN_S3; helper: BunS3Helper }
     | { storage: typeof StaticAssetStorageTypes.DISK; helper: DiskHelper }
-    | { storage: typeof StaticAssetStorageTypes.MINIO; helper: MinioHelper }
   ) &
     ({ useMetaLink?: false | undefined } | { useMetaLink: true; metaLink: TMetaLinkConfig<Schema> });
 };
@@ -150,8 +147,8 @@ The constraint is the ROW, not the table: any table whose row carries the MetaLi
 | `controller.rawObjectPath` | `boolean` | `false` | `true` serves a raw nested path, <code v-pre>/objects/photos/2024/f.jpg</code>. A percent-encoded path keeps working either way |
 | `controller.keyPrefix` | `string` | `undefined` | The key scope this controller owns inside a shared bucket, for example `'tenant-a'`. Absent means every key in the bucket. See [`controller.keyPrefix`](#controller-keyprefix) |
 | `controller.routes` | object | `undefined` | Per-route overrides, including the `enabled` switch - see [Per-route overrides](#per-route-overrides) |
-| `storage` | `'disk' \| 'bun-s3' \| 'minio'` | - | Selects which `helper` type is required (discriminated union) |
-| `helper` | `DiskHelper \| BunS3Helper \| MinioHelper` | - | Storage backend instance matching `storage` |
+| `storage` | `'disk' \| 'bun-s3'` | - | Selects which `helper` type is required (discriminated union) |
+| `helper` | `DiskHelper \| BunS3Helper` | - | Storage backend instance matching `storage` |
 | `extra` | `TStaticAssetExtraOptions` | `undefined` | Multipart parsing mode, name/link normalization, max folder depth, upload size ceiling |
 | `useMetaLink` | `boolean` | `false` | Enables the `PUT .../meta-links/:objectName` route and DB tracking on upload/delete |
 | `metaLink` | `TMetaLinkConfig<Schema>` | - | Required when `useMetaLink: true`; ignored otherwise |
@@ -161,7 +158,7 @@ The constraint is the ROW, not the table: any table whose row carries the MetaLi
 
 ### Per-route overrides
 
-Each key accepts a `TStaticAssetRouteConfig` - `Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>` (typically `authenticate`, `authorize`, `path`, and `middleware`) plus `enabled`. `readRouteOverride` splits `enabled` off before the rest is shallow-merged onto the base definition the factory built for this controller: `{ ...definitions.UPLOAD, ...routes?.upload }`.
+Each key accepts a `TStaticAssetRouteConfig` - `Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>` (typically `authenticate`, `authorize`, `path`, and `middleware`) plus `enabled`. `AssetRouteOptions.readOverride` splits `enabled` off before the rest is shallow-merged onto the base definition the factory built for this controller: `{ ...definitions.UPLOAD, ...routes?.upload }`.
 
 | Route key | HTTP Method | Base Path | Registered when |
 |-----------|-------------|-----------|------------------|
@@ -206,7 +203,7 @@ A configured `bucket` shortens `upload`, `listObjects`, `getObjectByName`, `down
 
 ### `controller.keyPrefix`
 
-Splits one shared bucket between controllers. `normalizeKeyPrefix` normalizes the value to exactly
+Splits one shared bucket between controllers. `AssetKeyScope.normalizePrefix` normalizes the value to exactly
 one trailing slash (`'tenant-a'`, `'/tenant-a'` and `'tenant-a/'` all become `'tenant-a/'`, so
 `tenant-a` never also owns `tenant-ab/`), and every segment must pass `isValidSegment()` or the
 controller throws at registration.
@@ -275,7 +272,7 @@ type TStaticAssetExtraOptions = {
 
 ```typescript
 (linkOptions: IObjectLocation) =>
-  buildObjectLink({
+  AssetControllerFactory.buildObjectLink({
     basePath: controller.basePath,
     bucket: linkOptions.bucket,
     object: linkOptions.object,
@@ -284,19 +281,19 @@ type TStaticAssetExtraOptions = {
   });
 ```
 
-`buildObjectLink` is exported, so a hand-written route can build the same link:
+`AssetControllerFactory.buildObjectLink` is public, so a hand-written route can build the same link.
 
 ```typescript
-const buildObjectLink = (
+static buildObjectLink(
   opts: IObjectLocation & {
     basePath: string;
     hasConfiguredBucket?: boolean;
     rawObjectPath?: boolean;
   },
-) => string;
+): string;
 ```
 
-This is why every generated link points back at the `objects/{objectName}` stream route by default, regardless of storage backend. `buildObjectLink` follows the [URL shapes](#url-shapes) above, so a link always resolves against the routes that controller registered. The `PUT .../meta-links/{objectName}` route builds its fallback link with the same function.
+This is why every generated link points back at the `objects/{objectName}` stream route by default, regardless of storage backend. `AssetControllerFactory.buildObjectLink` follows the [URL shapes](#url-shapes) above, so a link always resolves against the routes that controller registered. The `PUT .../meta-links/{objectName}` route builds its fallback link with the same function.
 
 `BaseStorageHelper` has its own backend-specific `normalizeObjectLink()`. It only runs when you call a helper's `upload()` directly, outside the component. Through `StaticAssetComponent`, the component's default `normalizeLinkFn` always takes priority instead.
 
@@ -305,11 +302,9 @@ This is why every generated link points back at the `objects/{objectName}` strea
 ```typescript
 class StaticAssetStorageTypes {
   static readonly DISK = 'disk';
-  /** @deprecated Use {@link StaticAssetStorageTypes.BUN_S3}, which reaches MinIO over the same S3 API. */
-  static readonly MINIO = 'minio';
   static readonly BUN_S3 = 'bun-s3';
 
-  static readonly SCHEME_SET = new Set([this.DISK, this.MINIO, this.BUN_S3]);
+  static readonly SCHEME_SET = new Set([this.DISK, this.BUN_S3]);
 
   static isValid(orgType: string): boolean {
     return this.SCHEME_SET.has(orgType);
@@ -317,17 +312,16 @@ class StaticAssetStorageTypes {
 }
 
 type TStaticAssetStorageType = TConstValue<typeof StaticAssetStorageTypes>;
-// 'disk' | 'minio' | 'bun-s3'
+// 'disk' | 'bun-s3'
 ```
 
 | Type | Constant | Helper | Requires |
 |------|----------|--------|----------|
 | `'disk'` | `StaticAssetStorageTypes.DISK` | `DiskHelper` | Local filesystem write access |
 | `'bun-s3'` | `StaticAssetStorageTypes.BUN_S3` | `BunS3Helper` | Bun runtime (imports Bun's native `S3Client`) |
-| `'minio'` | `StaticAssetStorageTypes.MINIO` | `MinioHelper` from `@venizia/ignis-helpers/minio` | The `minio` driver |
 
-> [!WARNING]
-> `StaticAssetStorageTypes.MINIO` and `MinioHelper` are `@deprecated`, though still a live arm of the options union. Use `BunS3Helper` with `StaticAssetStorageTypes.BUN_S3`: it reaches MinIO over the same S3 API, and adds presigned URLs, object tagging and byte ranges.
+> [!NOTE]
+> MinIO is not a storage type of its own. Use `BunS3Helper` with `StaticAssetStorageTypes.BUN_S3` and point `endpoint.default` at the MinIO server (path-style addressing is the default): it reaches MinIO over the same S3 API, and adds presigned URLs, object tagging and byte ranges.
 
 ## Storage helpers
 
@@ -406,10 +400,9 @@ BaseStorageHelper (abstract - implements the validators, upload, the stream meth
     |
     +-- DiskHelper    (local filesystem)
     +-- BunS3Helper   (Bun-native S3, Bun only)
-    +-- MinioHelper   (minio driver, deprecated)
 ```
 
-`expiresIn` is an `IDuration` (`{ unit, value }`), not seconds. `presignPut`, `presignGet`, `getObjectTags` and `replaceObjectTags` throw on `DiskHelper` and `MinioHelper`; only `BunS3Helper` implements them. See the [Storage full reference](/extensions/helpers/storage/api#presign-and-object-tagging).
+`expiresIn` is an `IDuration` (`{ unit, value }`), not seconds. `presignPut`, `presignGet`, `getObjectTags` and `replaceObjectTags` throw on `DiskHelper`; only `BunS3Helper` implements them. See the [Storage full reference](/extensions/helpers/storage/api#presign-and-object-tagging).
 
 ### Supporting types
 
@@ -555,18 +548,7 @@ const bunS3Helper = new BunS3Helper({
 > [!IMPORTANT]
 > Set `endpoint.public` when the application reaches S3 over an internal address. `host` is inside every SigV4 signature, so a URL signed against the internal endpoint cannot be rewritten to a public one afterwards - the signature breaks. `endpoint.default` stays the host this process talks to.
 
-### `MinioHelper`
-
-```typescript
-import { MinioHelper } from '@venizia/ignis-helpers/minio';
-
-/** @deprecated Use `IBunS3HelperOptions` from `@venizia/ignis-helpers/bun-s3`. */
-interface IMinioHelperOptions extends IStorageHelperOptions, ClientOptions {}
-```
-
-`ClientOptions` is the `minio` driver's own option type, so `endPoint`, `port`, `useSSL`, `accessKey` and `secretKey` pass straight through. Sub-path import only, like `BunS3Helper`.
-
-`MinioHelper` is the one backend that persists an upload metadata dictionary (`originalName`, `normalizeName`, `size`, `encoding`, `mimeType`). It does not implement presigning or object tagging, so those four methods throw.
+To use a MinIO server, point `endpoint.default` at it (`'http://localhost:9000'`) and keep `virtualHostedStyle` at its default `false`. MinIO speaks the same S3 API, so no separate helper or driver is needed.
 
 ## Controller factory
 
@@ -647,7 +629,7 @@ defineExtraRoutes: ({ controller, helper }) => {
     configs: {
       method: 'get',
       path: '/health',
-      responses: jsonResponse({ schema: z.object({ buckets: z.number() }) }),
+      responses: OpenApiResponses.jsonResponse({ schema: z.object({ buckets: z.number() }) }),
     },
     handler: async context => {
       const buckets = await helper.getBuckets();
@@ -695,7 +677,7 @@ Upload and list share <code v-pre>/buckets/{bucketName}/objects</code> and diffe
 
 ### Where `maxBytes` runs
 
-`extra.maxBytes`'s `content-length` check is route middleware, built by `appendDeclaredLengthGuard`
+`extra.maxBytes`'s `content-length` check is route middleware, built by `AssetRouteOptions.appendLengthGuard`
 and appended AFTER your own `routes.upload.middleware` - so an application check of its own (for
 example inventory `REQUEST_TOO_LARGE`) still answers first. It runs before the route's body
 validator and before the handler.
@@ -724,7 +706,7 @@ authoritative.
    | Segment count vs. `maxFolderDepth` | `400 "Folder path exceeds max depth of {n}"` if over |
    | Each segment via `isValidSegment()` | `400 "Invalid folder path segment: {segment}"` if any fails |
 
-3. `multipart/form-data` parsed via `parseMultipartBody()`.
+3. `multipart/form-data` parsed via `RequestUtility.parseMultipartBody()`.
 4. Each file's effective buffer is checked non-empty - direct `buffer`, or `readFileSync(file.path)` when `storage: 'disk'` was used. Empty content returns `400 "Empty file content | name: {originalName}"`. The same pass checks `buffer.length` against `maxBytes`, the authoritative size check - see [Where `maxBytes` runs](#where-maxbytes-runs).
 5. `helper.upload()` runs the storage-helper-level checks below. Under `controller.keyPrefix`, a key outside the scope is refused there too, with `400 core.static_asset.object_key_out_of_scope` - see [`controller.keyPrefix`](#controller-keyprefix).
 6. Spool files written by `storage: 'disk'` parsing are removed in a `finally` block via `rmSync({ force: true })` - regardless of success or failure. Removal errors are logged, never thrown.
@@ -766,18 +748,18 @@ These correspond to `'content-encoding'`, `'cache-control'`, `'etag'` and `'last
 When streaming a file - both <code v-pre>objects/{objectName}</code> and <code v-pre>download/{objectName}</code> - the controller copies only these keys from the storage metadata onto the response. Every other metadata header is dropped. Each forwarded value is sanitized with `String(value).replace(/[\r\n]/g, '')` before being set, to prevent HTTP header injection.
 
 > [!WARNING]
-> `content-type` is **not** on the list, and the served type is never taken from storage metadata or from what the uploader declared. It is derived from the object KEY by `resolveServedContentType`, because a renderable type that a client chose is stored cross-site scripting on the API origin, and `nosniff` cannot stop a type the server itself declared.
+> `content-type` is **not** on the list, and the served type is never taken from storage metadata or from what the uploader declared. It is derived from the object KEY by `AssetControllerFactory.resolveServedContentType`, because a renderable type that a client chose is stored cross-site scripting on the API origin, and `nosniff` cannot stop a type the server itself declared.
 
 ### Served content type
 
 ```typescript
-const resolveServedContentType = (opts: {
+static resolveServedContentType(opts: {
   helper: IStorageHelper;
   object: IObjectRef;
-}): { contentType: string; isRenderable: boolean } => { /* ... */ };
+}): { contentType: string; isRenderable: boolean };
 ```
 
-`resolveServedContentType` runs `helper.getMimeType({ filename: object.key })` and checks the answer against `RENDERABLE_CONTENT_TYPES`:
+`AssetControllerFactory.resolveServedContentType` runs `helper.getMimeType({ filename: object.key })` and checks the answer against `RENDERABLE_CONTENT_TYPES`:
 
 | Outcome | `contentType` | `isRenderable` | Response |
 |---|---|---|---|
@@ -793,7 +775,7 @@ All streaming responses also set:
 ```http
 X-Content-Type-Options: nosniff
 Content-Security-Policy: sandbox
-Content-Type: <resolveServedContentType, from the object key>
+Content-Type: <AssetControllerFactory.resolveServedContentType, from the object key>
 Content-Length: <bytes in the response body>
 Content-Disposition: attachment; filename="..."   (always on download; on objects when the type is not renderable)
 Accept-Ranges: bytes                              (objects route, advertised unconditionally)
@@ -843,7 +825,7 @@ const { upload, stat } = await AssetIngest.fromUrl({
   url: 'https://cdn.example.com/logo.png',
   bucket: { name: 'uploads' },
   normalizeLinkFn: ({ bucket, object }) =>
-    buildObjectLink({ basePath: '/assets', bucket, object }),
+    AssetControllerFactory.buildObjectLink({ basePath: '/assets', bucket, object }),
 });
 ```
 
@@ -922,7 +904,7 @@ Both classes come from the separate `@venizia/ignis-connectors` package, importe
   |------|-----------|--------------|
   | Refresh, `metaLink.createMetaLink` configured | One `repository.updateAll({ data: { mimetype, size, etag, isSynced: true }, where: { bucketName, objectName } })` - `link` and `metadata` are left alone, because the hook owns them | Every row for that `(bucketName, objectName)` pair |
   | Refresh, no hook | The same `updateAll`, plus `link` in the same statement; then one `updateById` **per row**, `{ metadata: { ...row.metadata, ...fileStat.metadata } }` - the stat's keys win, the row's other keys survive. Skipped entirely when the stat carries no metadata | Every row for that `(bucketName, objectName)` pair |
-  | Create | Only when the refresh updated `0` rows: `createMetaLinkRow` - the same builder `upload` and `upload-commit` use, so `metaLink.createMetaLink` runs when provided, with a fresh `getStat()` result | One row, with no principal and no labels |
+  | Create | Only when the refresh updated `0` rows: `AssetMetaLink.createRow` - the same builder `upload` and `upload-commit` use, so `metaLink.createMetaLink` runs when provided, with a fresh `getStat()` result | One row, with no principal and no labels |
 
   Rows per pair are deliberately not unique, and a refresh keeps each row's own `storageType` and labels (`variant`, `principalType`, `principalId`, `sequence`) either way.
 

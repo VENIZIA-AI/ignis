@@ -49,7 +49,7 @@ than one value patched at the edge - see [[storage-endpoint-audiences]] below.
 ### Through the backend - the default, and right for most cases
 
 `POST {base}/objects`. The backend holds the whole file, so bandwidth is paid twice and concurrent
-uploaders multiply memory - which is what `parseMultipartBody.storage: 'memory' | 'disk'` manages.
+uploaders multiply memory - which is what `RequestUtility.parseMultipartBody({ storage: 'memory' | 'disk' })` manages.
 
 It buys the one thing the other two cannot: the backend sees every byte, so it can check magic bytes,
 scan, or re-encode. For a few megabytes this is the correct model and needs nothing else.
@@ -74,7 +74,7 @@ It does take `tagging`, `contentLength` and `contentType`, all SIGNED and sent b
 merely sent is a tag S3 ignores, so a step gated on reading it back fails silently; signed, it exists
 the moment the object does. `contentLength` stays an exact number, not a ceiling - the equality limit
 above, not an oversight. `contentType` closes the same hole on the RECEIVING side that
-`resolveServedContentType` closes on the serving side: unsigned, the uploader picks the stored type. Built as a query-signed SigV4 URL, because `S3Client.presign` takes a method
+`AssetControllerFactory.resolveServedContentType` closes on the serving side: unsigned, the uploader picks the stored type. Built as a query-signed SigV4 URL, because `S3Client.presign` takes a method
 and an expiry and nothing else.
 
 ### POST policy - what `directUpload` uses
@@ -114,7 +114,7 @@ Absent, neither route exists.
 The third trip exists because S3 tells the backend nothing. Without it there is no MetaLink row and
 no way to attach the object to anything.
 
-Both paths write that row through ONE builder, `createMetaLinkRow`. They diverged once and the
+Both paths write that row through ONE builder, `AssetMetaLink.createRow`. They diverged once and the
 symptom was a client rendering an empty state with no error. The labels
 `principalType`/`principalId`/`variant` reach the commit as QUERY, because the token carries no
 business fields. A failed row is `metaLink: { error: 'META_LINK_CREATE_FAILED' }` inside a 200 - the
@@ -143,7 +143,7 @@ entirely when the stat carries none) - fed from the first statement's own `RETUR
 read, because `find` applies `DEFAULT_LIMIT` (10) and would silently refresh only part of a larger
 pair. That merge is a read-then-write: a concurrent write to a row's `metadata` landing between the
 two statements is lost. Only when the refresh counts zero rows does it create one, through
-`createMetaLinkRow` - the same builder `upload` uses, so `createMetaLink` and the entry's `storage`
+`AssetMetaLink.createRow` - the same builder `upload` uses, so `createMetaLink` and the entry's `storage`
 apply. The response carries `MetaLinkRecreateActions.REFRESHED`/`.CREATED` (a real
 `z.enum(...)` in the OpenAPI document, not `string`), `count`, and every touched row as `metaLinks`
 (`metaLink` stays `metaLinks[0]`, for existing callers). The two steps are still not atomic: two

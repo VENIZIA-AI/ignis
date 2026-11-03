@@ -80,7 +80,8 @@ describe('GET /health/stats is off unless a host opts in', () => {
   test('enable: false leaves the route unmounted, not merely empty', async () => {
     const router = await boot({ options: { stats: { enable: false } } });
 
-    expect((await router.request('/health/stats')).status).toBe(404);
+    const result = await router.request('/health/stats');
+    expect(result.status).toBe(404);
   });
 
   /**
@@ -104,7 +105,8 @@ describe('GET /health/stats is off unless a host opts in', () => {
       options: { stats: { enable: true } },
       registrationOptions: { stats: { enable: false } },
     });
-    expect((await overridden.request('/health/stats')).status).toBe(404);
+    const result = await overridden.request('/health/stats');
+    expect(result.status).toBe(404);
   });
 
   /**
@@ -146,7 +148,8 @@ describe('GET /health/stats is off unless a host opts in', () => {
   test('a config-derived enable that is not a boolean does not mount the route', async () => {
     const router = await boot({ options: { stats: { enable: 'false' } } });
 
-    expect((await router.request('/health/stats')).status).toBe(404);
+    const result = await router.request('/health/stats');
+    expect(result.status).toBe(404);
   });
 
   test('enabled: it reports build, process and memory', async () => {
@@ -154,7 +157,8 @@ describe('GET /health/stats is off unless a host opts in', () => {
 
     const response = await router.request('/health/stats');
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({
+    const result = await response.json();
+    expect(result).toMatchObject({
       build: { service: 'stats-app', version: '9.9.9' },
       process: {
         pid: expect.any(Number),
@@ -173,7 +177,8 @@ describe('the stats gate', () => {
     const router = await boot({ options: { stats: { enable: true, secretKey: 'shhh' } } });
 
     // 404, not 401: an unauthorised caller must not learn the route exists.
-    expect((await router.request('/health/stats')).status).toBe(404);
+    const result = await router.request('/health/stats');
+    expect(result.status).toBe(404);
   });
 
   test('the same route answers when the header carries the key', async () => {
@@ -216,7 +221,9 @@ describe('the stats gate', () => {
       const record = Object(body);
       return { keys: Object.keys(record).sort(), message: record.message };
     };
-    expect(shapeOf(await refused.json())).toEqual(shapeOf(await absent.json()));
+    const result = await refused.json();
+    const absentBody = await absent.json();
+    expect(shapeOf(result)).toEqual(shapeOf(absentBody));
   });
 
   /**
@@ -251,8 +258,10 @@ describe('the stats gate', () => {
     const locked = await boot({ options: { stats: { enable: true, secretKey: 'shhh' } } });
     const open = await boot({ options: { stats: { enable: true } } });
 
-    expect((await locked.request('/health/stats')).status).toBe(404);
-    expect((await open.request('/health/stats')).status).toBe(200);
+    const result = await locked.request('/health/stats');
+    expect(result.status).toBe(404);
+    const result2 = await open.request('/health/stats');
+    expect(result2.status).toBe(200);
   });
 });
 
@@ -263,7 +272,8 @@ describe('the build stamp resolves without reading a file or spawning git', () =
     });
 
     const router = await boot({ options: { stats: { enable: true } } });
-    const body = await (await router.request('/health/stats')).json();
+    const result = await router.request('/health/stats');
+    const body = await result.json();
 
     // `version` is not in the stamp, so it still falls through to getAppInfo().
     expect(body).toMatchObject({
@@ -284,7 +294,8 @@ describe('the build stamp resolves without reading a file or spawning git', () =
     });
 
     const router = await boot({ options: { stats: { enable: true } } });
-    const body = await (await router.request('/health/stats')).json();
+    const result = await router.request('/health/stats');
+    const body = await result.json();
 
     expect(body).toMatchObject({ build: { service: 'stats-app', commit: 'unspecified' } });
   });
@@ -295,7 +306,8 @@ describe('the build stamp resolves without reading a file or spawning git', () =
     const router = await boot({
       options: { stats: { enable: true, buildInfo: { commit: 'from-options' } } },
     });
-    const body = await (await router.request('/health/stats')).json();
+    const result = await router.request('/health/stats');
+    const body = await result.json();
 
     expect(body).toMatchObject({ build: { commit: 'from-options' } });
   });
@@ -303,7 +315,8 @@ describe('the build stamp resolves without reading a file or spawning git', () =
   /** A host that ran no generator must still be diagnosable, not blank. */
   test('with no stamp at all it reports the app info and marks the rest unspecified', async () => {
     const router = await boot({ options: { stats: { enable: true } } });
-    const body = await (await router.request('/health/stats')).json();
+    const result = await router.request('/health/stats');
+    const body = await result.json();
 
     expect(body).toMatchObject({
       build: {

@@ -12,9 +12,10 @@ import type {
   TRow,
   TWhere,
 } from '@venizia/ignis-kernel';
-import { buildDataRange, DEFAULT_LIMIT } from '@venizia/ignis-kernel/repository';
+import { DataRangeUtility, DEFAULT_LIMIT } from '@venizia/ignis-kernel/repository';
 import type { IdType } from '@venizia/ignis-kernel';
-import type { ISearchResult } from '@/search/core';
+import { getError } from '@venizia/ignis-helpers/core';
+import type { ISearchFacetCount, ISearchResult } from '@/search/core';
 import type { TSearchInput } from '@/search/core/repositories/common';
 import { SearchModes } from '@/search/core/repositories/common';
 import type { AbstractSearchDataSource } from '@/search/core/datasources';
@@ -22,6 +23,9 @@ import { SearchBaseRepository } from './base';
 
 /** The match-everything term. `build()` already seeds `query` with it, so a filter-only listing reaches the engine as `q: '*'` - naming fields for a term that ignores fields would mean nothing. */
 const WILDCARD_QUERY = '*';
+
+/** The page size of `suggest()` when the caller gives none. */
+const SUGGEST_DEFAULT_LIMIT = 8;
 
 /** The inputs the dialect translates - `raw` has already returned by the time these are resolved, and `applySearchInput` accepts only this narrowed union. */
 type TTranslatableSearchInput = Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
@@ -106,12 +110,14 @@ export class ReadableSearchRepository<
 
     // No round-trip for an absorbing where: with no filterBy the engine would happily return the
     // whole collection, which is the opposite of what the filter asked for.
-    const result = query.matchNone
-      ? { hits: [], found: 0 }
-      : await this.connector.search<TDocument>({
-          collection: this.collectionName,
-          params: this.queryDialect.toWireParams({ query }),
-        });
+    let result: Pick<ISearchResult<TDocument>, 'hits' | 'found'> = { hits: [], found: 0 };
+    if (!query.matchNone) {
+      const searched = await this.connector.search<TDocument>({
+        collection: this.collectionName,
+        params: this.queryDialect.toWireParams({ query }),
+      });
+      result = searched;
+    }
 
     const { hits, found } = result;
 
@@ -126,7 +132,7 @@ export class ReadableSearchRepository<
 
     return {
       data,
-      range: buildDataRange({
+      range: DataRangeUtility.buildDataRange({
         skip: effectiveFilter.skip,
         offset: effectiveFilter.offset,
         dataLength: data.length,
@@ -147,10 +153,11 @@ export class ReadableSearchRepository<
 
     // `retry` is handled above so it is absent here; TFindOneOptions's retry generic (TNullable<R>)
     // does not unify with find's own (Array<R>), hence the options-only cast.
-    const results = (await this.find<R, F>({
+    const result = await this.find<R, F>({
       filter: { ...filter, limit: 1 },
       options: options as TFindOptions<IExtraOptions, TRow<TDocument, R, F>>,
-    })) as Array<TRow<TDocument, R, F>>;
+    });
+    const results = result as Array<TRow<TDocument, R, F>>;
 
     return results[0] ?? null;
   }
@@ -194,7 +201,9 @@ export class ReadableSearchRepository<
       shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
     });
 
-    this.queryDialect.applySearchInput({ query, input: this.withDefaultQueryBy({ input: opts }) });
+    const input = this.withDefaultQueryBy({ input: opts });
+    this.assertNoHiddenFieldsNamed({ input });
+    this.queryDialect.applySearchInput({ query, input });
 
     // Same short-circuit as find(): an absorbing filter cannot be expressed to the engine, and
     // omitting it would search everything.
@@ -215,6 +224,154 @@ export class ReadableSearchRepository<
         document: this.omitHiddenFields(hit.document),
       })),
     };
+  }
+
+  /** The count of a text search: how many documents match `query` and `where`. Unlike `count()`, which asks the document endpoint for an exact filter-only total, this goes through search, so `isFoundExact` says whether the engine stopped early and `count` is an estimate. */
+  async searchCount(opts: {
+    query: string;
+    queryBy?: string[];
+    where?: TWhere;
+    engineParams?: Record<string, unknown>;
+    options?: IExtraOptions;
+  }): Promise<{ count: number; isFoundExact: boolean }> {
+    const { query, queryBy, where, engineParams, options } = opts;
+
+    const result = await this.search({
+      mode: SearchModes.KEYWORD,
+      query,
+      queryBy,
+      engineParams,
+      filter: { where, limit: 0 },
+      options,
+    });
+
+    return { count: result.found, isFoundExact: result.isFoundExact };
+  }
+
+  /** Facet counts without hits, over the documents that match `query` (all of them when omitted) and `where`. `maxFacetValues` and `facetQuery` are for engines that take them; the others refuse them. */
+  async facets(opts: {
+    facetBy: string[];
+    query?: string;
+    queryBy?: string[];
+    where?: TWhere;
+    maxFacetValues?: number;
+    facetQuery?: string;
+    engineParams?: Record<string, unknown>;
+    options?: IExtraOptions;
+  }): Promise<{ facets: ISearchFacetCount[]; found: number; isFoundExact: boolean }> {
+    const { facetBy, query, queryBy, where, maxFacetValues, facetQuery, engineParams, options } =
+      opts;
+
+    if (facetBy.length === 0 || facetBy.some((name) => name.trim().length === 0)) {
+      throw getError({
+        message: `[${this.constructor.name}][facets] Invalid facetBy | Expected at least one non-empty field name | Got: ${JSON.stringify(facetBy)}`,
+      });
+    }
+
+    if (
+      maxFacetValues !== undefined &&
+      (!Number.isInteger(maxFacetValues) || maxFacetValues <= 0)
+    ) {
+      throw getError({
+        message: `[${this.constructor.name}][facets] Invalid maxFacetValues | Expected a positive integer | Got: ${String(maxFacetValues)}`,
+      });
+    }
+
+    const result = await this.search({
+      mode: SearchModes.KEYWORD,
+      query: query ?? WILDCARD_QUERY,
+      queryBy,
+      facetBy,
+      facetQuery,
+      maxFacetValues,
+      engineParams,
+      filter: { where, limit: 0 },
+      options,
+    });
+
+    return {
+      facets: result.facetCounts ?? [],
+      found: result.found,
+      isFoundExact: result.isFoundExact,
+    };
+  }
+
+  /** Autocomplete: documents whose fields match `query` as typed so far. A keyword search with highlighting off and a small page (`limit`, 8 by default); the last word matches as a prefix, which both engines do by default. A blank `query` answers an empty list without asking the engine. */
+  async suggest<R extends object = TDocument>(opts: {
+    query: string;
+    queryBy?: string[];
+    limit?: number;
+    includeFields?: string[];
+    where?: TWhere;
+    engineParams?: Record<string, unknown>;
+    options?: IExtraOptions;
+  }): Promise<R[]> {
+    const {
+      query,
+      queryBy,
+      limit = SUGGEST_DEFAULT_LIMIT,
+      includeFields,
+      where,
+      engineParams,
+      options,
+    } = opts;
+
+    if (!Number.isInteger(limit) || limit <= 0) {
+      throw getError({
+        message: `[${this.constructor.name}][suggest] Invalid limit | Expected a positive integer | Got: ${String(limit)}`,
+      });
+    }
+
+    if (query.trim().length === 0) {
+      return [];
+    }
+
+    const result = await this.search<R>({
+      mode: SearchModes.KEYWORD,
+      query,
+      queryBy,
+      highlight: false,
+      engineParams,
+      filter: { where, fields: includeFields, limit },
+      options,
+    });
+
+    return (result.hits ?? []).map((hit) => hit.document);
+  }
+
+  /** Documents lose their hidden fields on the way out, but a facet count or a match on one would still tell the caller what the field holds; so they are refused as `facetBy`, in `facetQuery`, as `queryBy`, as `groupBy` and in the highlight fields (a group key and a highlight snippet carry the value too). */
+  protected assertNoHiddenFieldsNamed(opts: { input: TTranslatableSearchInput }): void {
+    const { input } = opts;
+
+    if (this.hiddenFields.length === 0) {
+      return;
+    }
+
+    const named: Array<{ param: string; field: string }> = [];
+
+    for (const param of ['facetBy', 'groupBy', 'highlightFields', 'highlightFullFields'] as const) {
+      for (const field of input[param] ?? []) {
+        named.push({ param, field });
+      }
+    }
+
+    if (input.facetQuery !== undefined) {
+      named.push({ param: 'facetQuery', field: input.facetQuery.split(':')[0]?.trim() ?? '' });
+    }
+
+    if ('queryBy' in input) {
+      for (const field of input.queryBy ?? []) {
+        named.push({ param: 'queryBy', field });
+      }
+    }
+
+    const hidden = named.find(({ field }) => this.hiddenFields.includes(field));
+
+    if (hidden) {
+      throw getError({
+        message: `[${this.constructor.name}][search] '${hidden.param}' names a hidden field | field: '${hidden.field}' | hidden fields never leave the repository, so they cannot be counted, matched or faceted`,
+      });
+    }
   }
 
   protected withDefaultQueryBy(opts: {

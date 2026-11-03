@@ -9,7 +9,8 @@ describe('DotenvVaultHelper', () => {
       decode: () => ({ APP_ENV_DB_PASSWORD: 'decrypted' }),
     });
     await provider.configure();
-    expect(await provider.getBundle({ path: 'ignored' })).toEqual({
+    const result = await provider.getBundle({ path: 'ignored' });
+    expect(result).toEqual({
       APP_ENV_DB_PASSWORD: 'decrypted',
     });
   });

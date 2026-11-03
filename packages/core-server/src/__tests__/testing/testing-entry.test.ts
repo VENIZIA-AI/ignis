@@ -27,7 +27,7 @@ const TESTING_EXPORTS = [
 ];
 
 /** What the entry adds beside the connectors' doubles. */
-const BOOT_EXPORTS = ['assertApplicationBoots'];
+const BOOT_EXPORTS = ['ApplicationBootAssertion'];
 
 const PACKAGE_ROOT = path.resolve(import.meta.dir, '../../..');
 

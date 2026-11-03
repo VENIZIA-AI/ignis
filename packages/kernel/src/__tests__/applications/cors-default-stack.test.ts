@@ -26,9 +26,10 @@ const buildServer = async (opts: { middlewares?: IApplicationConfigs['middleware
   await application['registerDefaultMiddlewares']();
 
   const server = application.getServer();
-  server.post('/echo', async (context) =>
-    context.json({ length: (await context.req.text()).length }),
-  );
+  server.post('/echo', async (context) => {
+    const text = await context.req.text();
+    return context.json({ length: text.length });
+  });
   server.get('/boom', () => {
     throw new Error('route failure');
   });
@@ -155,21 +156,12 @@ describe('configs.middlewares.cors - installed first in the default stack', () =
       },
     });
 
-    expect(
-      (await list.request('/boom', { headers: { origin: OTHER_ORIGIN } })).headers.get(
-        'access-control-allow-origin',
-      ),
-    ).toBe(OTHER_ORIGIN);
-    expect(
-      (await fn.request('/boom', { headers: { origin: ORIGIN } })).headers.get(
-        'access-control-allow-origin',
-      ),
-    ).toBe(ORIGIN);
-    expect(
-      (await fn.request('/boom', { headers: { origin: OTHER_ORIGIN } })).headers.get(
-        'access-control-allow-origin',
-      ),
-    ).toBeNull();
+    const result = await list.request('/boom', { headers: { origin: OTHER_ORIGIN } });
+    expect(result.headers.get('access-control-allow-origin')).toBe(OTHER_ORIGIN);
+    const result2 = await fn.request('/boom', { headers: { origin: ORIGIN } });
+    expect(result2.headers.get('access-control-allow-origin')).toBe(ORIGIN);
+    const result3 = await fn.request('/boom', { headers: { origin: OTHER_ORIGIN } });
+    expect(result3.headers.get('access-control-allow-origin')).toBeNull();
   });
 });
 
@@ -186,20 +178,22 @@ const bootFailure = async (middlewares: IApplicationConfigs['middlewares']): Pro
 
 describe('configs.middlewares.cors - validated at boot', () => {
   test("credentials with origin '*' is refused with a message naming both", async () => {
-    expect(await bootFailure({ cors: { enable: true, origin: '*', credentials: true } })).toMatch(
-      /credentials cannot be combined with origin '\*'/,
-    );
+    const result = await bootFailure({ cors: { enable: true, origin: '*', credentials: true } });
+    expect(result).toMatch(/credentials cannot be combined with origin '\*'/);
   });
 
   test("credentials with a list that contains '*' is refused too", async () => {
-    expect(
-      await bootFailure({ cors: { enable: true, origin: [ORIGIN, '*'], credentials: true } }),
-    ).toMatch(/credentials/);
+    const result = await bootFailure({
+      cors: { enable: true, origin: [ORIGIN, '*'], credentials: true },
+    });
+    expect(result).toMatch(/credentials/);
   });
 
   test('a missing or empty origin is refused', async () => {
-    expect(await bootFailure({ cors: { enable: true, origin: '' } })).toMatch(/origin is required/);
-    expect(await bootFailure({ cors: { enable: true, origin: [] } })).toMatch(/origin is required/);
+    const result = await bootFailure({ cors: { enable: true, origin: '' } });
+    expect(result).toMatch(/origin is required/);
+    const result2 = await bootFailure({ cors: { enable: true, origin: [] } });
+    expect(result2).toMatch(/origin is required/);
   });
 
   test('a wildcard origin without credentials is accepted', async () => {

@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 const SKIPPED_DIRECTORIES = new Set(['node_modules', 'dist', 'build', '.git']);
 const SOURCE_PATTERN = /\.(?:ts|tsx|mts|cts)$/;
@@ -23,6 +23,31 @@ export class CodemodFiles {
     return CodemodFiles.fromGit({ target }) ?? CodemodFiles.fromWalk({ target });
   }
 
+  /**
+   * Why a call must be refused, or `undefined` when it may go on. `--write` with no path rewrote every source
+   * file under the working directory, which is how one command typed without a path changed 134 clean files: a
+   * codemod that rewrites broadly needs a path or an explicit `--all`. A dry run (and `--check`) with no path still
+   * lists the whole tree.
+   */
+  static refusal(opts: {
+    command: string;
+    isWrite: boolean;
+    isAll: boolean;
+    paths: ReadonlyArray<string>;
+  }): string | undefined {
+    const { command, isWrite, isAll, paths } = opts;
+
+    if (isAll && paths.length > 0) {
+      return `devz codemod ${command}: --all and a path contradict each other (--all means the whole working tree)`;
+    }
+
+    if (isWrite && !isAll && paths.length === 0) {
+      return `devz codemod ${command}: --write needs a path, or --all to rewrite every source file under the working directory (nothing was written)`;
+    }
+
+    return undefined;
+  }
+
   /** Tracked files plus untracked files git does not ignore; `undefined` outside a repository or without git. */
   static fromGit(opts: { target: string }): string[] | undefined {
     const { target } = opts;
@@ -39,6 +64,7 @@ export class CodemodFiles {
           stdio: ['ignore', 'pipe', 'ignore'],
         },
       );
+      // eslint-disable-next-line venizia/no-silent-catch -- not a git repository or no git: the caller falls back to the directory walk; the git error text is lost
     } catch {
       return undefined;
     }
@@ -49,6 +75,44 @@ export class CodemodFiles {
       .filter((path) => !path.split('/').some((segment) => SKIPPED_DIRECTORIES.has(segment)))
       .map((path) => join(target, path))
       .filter((path) => existsSync(path) && statSync(path).isFile());
+  }
+
+  /**
+   * The files under `target` that a write could not be undone with git: changed in the working tree,
+   * staged, or untracked. `undefined` outside a repository or without git, where there is nothing to check.
+   */
+  static dirty(opts: { target: string }): Set<string> | undefined {
+    const { target } = opts;
+    const cwd = statSync(target).isFile() ? dirname(target) : target;
+    const queries = [
+      ['ls-files', '--modified', '--others', '--exclude-standard', '-z'],
+      ['diff', '--cached', '--name-only', '--relative', '-z'],
+    ];
+    const paths = new Set<string>();
+
+    for (const query of queries) {
+      let output: string;
+
+      try {
+        output = execFileSync('git', query, {
+          cwd,
+          encoding: 'utf8',
+          maxBuffer: 256 * 1024 * 1024,
+          stdio: ['ignore', 'pipe', 'ignore'],
+        });
+        // eslint-disable-next-line venizia/no-silent-catch -- not a git repository or no git: nothing to check, so no dirty set; the git error text is lost
+      } catch {
+        return undefined;
+      }
+
+      for (const path of output.split('\0')) {
+        if (path !== '') {
+          paths.add(join(cwd, path));
+        }
+      }
+    }
+
+    return paths;
   }
 
   /** The directory walk used outside git: skips dot-directories and the build folders. */

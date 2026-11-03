@@ -1,16 +1,16 @@
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
+  PostgresIdEnricher,
   many,
   ModelFactory,
   one,
   type TEntityObject,
-} from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
 import { type AnyPgColumn, jsonb, pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
 
 // PGlite is real Postgres, so `jsonb` and `timestamptz` work unchanged.
 export const noteTable = pgTable('notes', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   title: varchar('title', { length: 200 }).notNull(),
   body: varchar('body', { length: 2000 }),
   metadata: jsonb('metadata').$type<{ tags?: string[]; pinned?: boolean }>(),
@@ -18,7 +18,7 @@ export const noteTable = pgTable('notes', {
 });
 
 export const commentTable = pgTable('comments', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   noteId: text('note_id')
     .notNull()
     .references((): AnyPgColumn => noteTable.id, { onDelete: 'cascade' }),

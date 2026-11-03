@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core';
 import type { TTableSchemaWithId } from '@/relational/core/models/common';
-import { getIdType } from '@/relational/core/models/common';
+import { RelationalEntityUtility } from '@/relational/core/models/common';
 
 const postgresUsers = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -17,12 +17,12 @@ const sqliteUsers = sqliteTable('users', {
 describe('TTableSchemaWithId is engine-neutral', () => {
   test('a pgTable satisfies the neutral bound', () => {
     const schema: TTableSchemaWithId = postgresUsers;
-    expect(getIdType({ entity: schema })).toBe('number');
+    expect(RelationalEntityUtility.getIdType({ entity: schema })).toBe('number');
   });
 
   test('a sqliteTable satisfies the neutral bound', () => {
     const schema: TTableSchemaWithId = sqliteUsers;
-    expect(getIdType({ entity: schema })).toBe('number');
+    expect(RelationalEntityUtility.getIdType({ entity: schema })).toBe('number');
   });
 
   test('$inferSelect and $inferInsert survive the widening', () => {

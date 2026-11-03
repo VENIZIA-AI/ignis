@@ -1,5 +1,5 @@
 import { service } from '@venizia/ignis';
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestService } from '../base-test.service';
 import { CompositionCases } from './composition.cases';
 import { EdgeCases } from './edge.cases';
@@ -58,35 +58,35 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
       await this.productRepository.createAll({
         data: [
           {
-            code: `P_ADV_1_${getUID()}`,
+            code: `P_ADV_1_${ParseUtility.getUID()}`,
             name: 'Gaming Laptop X1',
             price: 1500,
             tags: ['electronics', 'gaming', 'computer'],
             description: 'High performance gaming laptop',
           },
           {
-            code: `P_ADV_2_${getUID()}`,
+            code: `P_ADV_2_${ParseUtility.getUID()}`,
             name: 'Office Mouse',
             price: 25,
             tags: ['electronics', 'accessory', 'office'],
             description: 'Wireless mouse',
           },
           {
-            code: `P_ADV_3_${getUID()}`,
+            code: `P_ADV_3_${ParseUtility.getUID()}`,
             name: 'Gaming Chair',
             price: 350,
             tags: ['furniture', 'gaming', 'office'],
             description: 'Ergonomic chair',
           },
           {
-            code: `P_ADV_4_${getUID()}`,
+            code: `P_ADV_4_${ParseUtility.getUID()}`,
             name: 'Cheap Monitor',
             price: 120,
             tags: ['electronics', 'monitor', 'office'],
             description: '1080p display',
           },
           {
-            code: `P_ADV_5_${getUID()}`,
+            code: `P_ADV_5_${ParseUtility.getUID()}`,
             name: 'Pro Monitor',
             price: 800,
             tags: ['electronics', 'monitor', 'gaming'],
@@ -99,7 +99,7 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
       await this.configurationRepository.createAll({
         data: [
           {
-            code: `C_ADV_1_${getUID()}`,
+            code: `C_ADV_1_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             nValue: 100,
@@ -111,7 +111,7 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
             },
           },
           {
-            code: `C_ADV_2_${getUID()}`,
+            code: `C_ADV_2_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             nValue: 200,
@@ -123,7 +123,7 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
             },
           },
           {
-            code: `C_ADV_3_${getUID()}`,
+            code: `C_ADV_3_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             nValue: 300,

@@ -1,4 +1,4 @@
-import { buildManifest } from '@venizia/dev-configs/checks';
+import { PurityManifest } from '@venizia/dev-configs/checks';
 import type { IPurityClaim, IPurityOptions } from '@venizia/dev-configs/checks';
 import { join } from 'node:path';
 
@@ -51,7 +51,7 @@ export const PURITY_CLAIMS: IPurityClaim[] = [
 ];
 
 /** The derived rows, for the gates that read them (the clean-install gate). */
-export const PURITY_MANIFEST = buildManifest({
+export const PURITY_MANIFEST = PurityManifest.build({
   claims: PURITY_CLAIMS,
   root: join(__dirname, '../../..'),
   options: PURITY_OPTIONS,

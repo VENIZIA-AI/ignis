@@ -1,7 +1,7 @@
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { Configuration, type configurationTable } from '@/models/entities';
 import { repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 /** `@repository` binds the model and the datasource; the class adds only its own queries. */
 @repository({ model: Configuration, dataSource: PostgresDataSource })

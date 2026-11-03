@@ -177,7 +177,8 @@ describe('BasePoolHelper — concurrency invariants (white-box)', () => {
     let current = only;
     for (let i = 0; i < count; i++) {
       pool.release({ resource: current });
-      current = await waiters[i];
+      const result = await waiters[i];
+      current = result;
     }
     expect(order).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
   });
@@ -529,6 +530,7 @@ describe('BasePoolHelper — maxWaitingClients boundaries', () => {
     }
     expect(err).toBeDefined();
     expect((err as Error).message).toContain('Too many waiting clients');
+    // eslint-disable-next-line venizia/no-silent-catch -- the waiter's rejection is irrelevant to this test; only an unhandled-rejection warning is lost
     w1.catch(() => undefined); // avoid unhandled rejection on the still-pending waiter
   });
 });
@@ -686,6 +688,7 @@ describe('BasePoolHelper — mixed-op stress', () => {
           })(),
         );
       } else if (mode === 1) {
+        // eslint-disable-next-line venizia/no-silent-catch -- stress test: a rejected use() is tolerated here, the pool invariants asserted afterwards are the check
         tasks.push(pool.use({ execution: async (r) => r }).catch(() => undefined));
       } else {
         tasks.push(
@@ -732,7 +735,8 @@ describe('BasePoolHelper — waiter queue (head-index) correctness', () => {
     let current = only;
     for (let i = 0; i < count; i++) {
       pool.release({ resource: current });
-      current = await waiters[i];
+      const result = await waiters[i];
+      current = result;
     }
     pool.release({ resource: current });
 
@@ -748,7 +752,8 @@ describe('BasePoolHelper — waiter queue (head-index) correctness', () => {
     const a = await pool.acquire(); // hold the only resource
 
     let isW1Rejected = false;
-    const w1 = pool.acquire().catch(() => {
+    const w1 = pool.acquire().catch((error: unknown) => {
+      expect(error).toBeInstanceOf(Error);
       isW1Rejected = true;
     }); // enqueued at t≈0 → times out at ≈80ms
 

@@ -117,10 +117,12 @@ describe('StaticAssetComponent', () => {
     });
     expect(uploadResponse.status).toBe(200);
 
-    const uploaded = (await uploadResponse.json()) as Array<{ link: string }>;
+    const result = await uploadResponse.json();
+    const uploaded = result as Array<{ link: string }>;
     const getResponse = await router.request(uploaded[0].link);
     expect(getResponse.status).toBe(200);
-    expect(await getResponse.text()).toBe('flat');
+    const result2 = await getResponse.text();
+    expect(result2).toBe('flat');
   });
 
   test('the link returned by a nested upload resolves back to the object route', async () => {
@@ -137,7 +139,8 @@ describe('StaticAssetComponent', () => {
     });
     expect(uploadResponse.status).toBe(200);
 
-    const uploaded = (await uploadResponse.json()) as Array<{
+    const result = await uploadResponse.json();
+    const uploaded = result as Array<{
       link: string;
       object: { key: string };
     }>;
@@ -145,7 +148,8 @@ describe('StaticAssetComponent', () => {
 
     const getResponse = await router.request(uploaded[0].link);
     expect(getResponse.status).toBe(200);
-    expect(await getResponse.text()).toBe('nested');
+    const result2 = await getResponse.text();
+    expect(result2).toBe('nested');
   });
 
   test('a bucket name that fails validation never reaches the storage backend', async () => {

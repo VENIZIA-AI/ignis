@@ -11,7 +11,8 @@ export class ScalarUIProvider extends BaseHelper implements IUIProvider {
     let scalarModule: typeof import('@scalar/hono-api-reference');
 
     try {
-      scalarModule = await import('@scalar/hono-api-reference');
+      const result = await import('@scalar/hono-api-reference');
+      scalarModule = result;
     } catch (error) {
       this.logger
         .for(this.render.name)

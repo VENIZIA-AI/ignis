@@ -32,7 +32,8 @@ export class TreeBuilder extends BaseHelper {
         }
 
         seen.add(key);
-        children.push(await buildNode(childValue));
+        const result = await buildNode(childValue);
+        children.push(result);
       }
 
       return { value, children };

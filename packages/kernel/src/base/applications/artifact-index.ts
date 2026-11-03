@@ -204,7 +204,8 @@ export class ArtifactIndexHelper extends BaseHelper {
   }): Promise<IArtifactIndex[]> {
     const { input, application } = opts;
     if (ArtifactGroup.isGroup(input)) {
-      return this.flatten({ input: await this.contentOf({ group: input }), application });
+      const result = await this.contentOf({ group: input });
+      return this.flatten({ input: result, application });
     }
     if (Array.isArray(input)) {
       const nested = await Promise.all(

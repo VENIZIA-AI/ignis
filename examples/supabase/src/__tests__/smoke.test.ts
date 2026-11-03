@@ -5,8 +5,8 @@
 // `describe.skipIf` without a top-level await (this package stays CommonJS, like every other
 // example).
 import AutoArtifacts from '@venizia/ignis-boot/auto';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
-import { uuidV4 } from '@venizia/ignis-helpers/uuid';
+import { applicationEnvironment, LoggerFactory } from '@venizia/ignis-helpers';
+import { UuidV4Generator } from '@venizia/ignis-helpers/uuid';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import postgres from 'postgres';
 import { z } from '@hono/zod-openapi';
@@ -29,7 +29,11 @@ const isDatabaseReachable = async (opts: { url: string }): Promise<boolean> => {
   try {
     await client`select 1`;
     return true;
-  } catch {
+  } catch (error) {
+    LoggerFactory.getLogger(['smoke']).warn(
+      'Database unreachable, RLS suite skipped | Error: %o',
+      error,
+    );
     return false;
   } finally {
     await client.end({ timeout: 1 });
@@ -43,8 +47,8 @@ describe('supabase-example', async () => {
     let application: Application;
     let baseUrl = '';
 
-    const userAId = uuidV4();
-    const userBId = uuidV4();
+    const userAId = UuidV4Generator.generate();
+    const userBId = UuidV4Generator.generate();
     let tokenA = '';
     let tokenB = '';
     let noteAId = '';
@@ -89,8 +93,10 @@ describe('supabase-example', async () => {
 
       baseUrl = `http://${HOST}:${application.getServerPort()}/api`;
 
-      tokenA = await mintToken({ subject: userAId });
-      tokenB = await mintToken({ subject: userBId });
+      const mintedTokenA = await mintToken({ subject: userAId });
+      tokenA = mintedTokenA;
+      const mintedTokenB = await mintToken({ subject: userBId });
+      tokenB = mintedTokenB;
     });
 
     afterAll(async () => {
@@ -110,7 +116,8 @@ describe('supabase-example', async () => {
         body: { title: 'A - private note' },
       });
       expect(responseA.status).toBe(200);
-      const noteA = NoteSchema.parse(await responseA.json());
+      const payloadA = await responseA.json();
+      const noteA = NoteSchema.parse(payloadA);
       expect(noteA.ownerId).toBe(userAId);
       noteAId = noteA.id;
 
@@ -121,20 +128,23 @@ describe('supabase-example', async () => {
         body: { title: 'B - private note' },
       });
       expect(responseB.status).toBe(200);
-      const noteB = NoteSchema.parse(await responseB.json());
+      const payloadB = await responseB.json();
+      const noteB = NoteSchema.parse(payloadB);
       expect(noteB.ownerId).toBe(userBId);
       noteBId = noteB.id;
     });
 
     test("GET /notes returns only the caller's own rows - two users, two answers", async () => {
       const responseA = await authedFetch({ path: '/notes', token: tokenA });
-      const { data: notesA } = NoteListResponse.parse(await responseA.json());
+      const payloadA = await responseA.json();
+      const { data: notesA } = NoteListResponse.parse(payloadA);
       expect(notesA.every((note) => note.ownerId === userAId)).toBe(true);
       expect(notesA.some((note) => note.id === noteAId)).toBe(true);
       expect(notesA.some((note) => note.id === noteBId)).toBe(false);
 
       const responseB = await authedFetch({ path: '/notes', token: tokenB });
-      const { data: notesB } = NoteListResponse.parse(await responseB.json());
+      const payloadB = await responseB.json();
+      const { data: notesB } = NoteListResponse.parse(payloadB);
       expect(notesB.every((note) => note.ownerId === userBId)).toBe(true);
       expect(notesB.some((note) => note.id === noteBId)).toBe(true);
       expect(notesB.some((note) => note.id === noteAId)).toBe(false);
@@ -144,7 +154,8 @@ describe('supabase-example', async () => {
       const response = await authedFetch({ path: '/notes/unscoped' });
       expect(response.status).toBe(200);
 
-      const { data } = NoteListResponse.parse(await response.json());
+      const payload = await response.json();
+      const { data } = NoteListResponse.parse(payload);
       expect(data.some((note) => note.id === noteAId)).toBe(true);
       expect(data.some((note) => note.id === noteBId)).toBe(true);
     });
@@ -156,7 +167,8 @@ describe('supabase-example', async () => {
         token: tokenA,
       });
       expect(response.status).toBe(200);
-      expect(CountResponse.parse(await response.json()).count).toBe(0);
+      const payload = await response.json();
+      expect(CountResponse.parse(payload).count).toBe(0);
     });
 
     test("DELETE /notes/:id removes the caller's own note", async () => {
@@ -166,7 +178,8 @@ describe('supabase-example', async () => {
         token: tokenA,
       });
       expect(response.status).toBe(200);
-      expect(CountResponse.parse(await response.json()).count).toBe(1);
+      const payload = await response.json();
+      expect(CountResponse.parse(payload).count).toBe(1);
     });
 
     test('GET /doc/openapi.json serves the API description', async () => {

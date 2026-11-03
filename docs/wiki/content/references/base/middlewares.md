@@ -33,7 +33,7 @@ Before reading this document, you should understand:
 | `AppErrorMiddleware` | `IProvider<ErrorHandler>` | no (its parent `BaseAppErrorMiddleware` is) | Global error handler (Zod, DB constraints, generic) |
 | `notFoundHandler` | `NotFoundHandler` | yes | JSON 404 response for unknown routes |
 | `RequestSpyMiddleware` | `IProvider<MiddlewareHandler>` | no | Request/response logging with timing |
-| `emojiFavicon` | `MiddlewareHandler` | yes | Serves an emoji as SVG favicon |
+| `EmojiFaviconMiddleware.create` | `MiddlewareHandler` | yes | Serves an emoji as SVG favicon |
 
 ## Default Registration Order
 
@@ -75,7 +75,7 @@ protected async registerDefaultMiddlewares() {
   this.component(RequestTrackerComponent);
 
   // 7. Emoji favicon
-  server.use(emojiFavicon({ icon: this.configs.favicon ?? '🔥' }));
+  server.use(EmojiFaviconMiddleware.create({ icon: this.configs.favicon ?? '🔥' }));
 }
 ```
 
@@ -168,15 +168,15 @@ Over the limit, and with no `onError`, the request answers `413` with `core.requ
 A route whose `request.body.content` declares `multipart/form-data` or `application/x-www-form-urlencoded` gets one more middleware appended, after every application middleware and after the static-asset length guard, and before the route's own validator:
 
 ```
-authenticate -> authorize -> application middleware -> (static-asset maxBytes guard) -> formBodyReader -> validator
+authenticate -> authorize -> application middleware -> (static-asset maxBytes guard) -> FormBodyMiddleware.read -> validator
 ```
 
-`formBodyReader` reads the form through `readFormBody` (from `@venizia/ignis-helpers`) and caches the result, so the validator that runs next reads the same `FormData` instead of the stream, and never gets a chance to throw its own generic parse failure. Read here, a malformed form is `400 core.request.body_malformed` - the same code `RequestSpyMiddleware`'s own JSON check throws, and the one `parseMultipartBody` throws when a handler parses a form by hand. See [Error Handling Logic](#error-handling-logic) for what a Hono `HTTPException` your own code throws (or a validator's) renders as.
+`FormBodyMiddleware.read` reads the form through `readFormBody` (from `@venizia/ignis-helpers`) and caches the result, so the validator that runs next reads the same `FormData` instead of the stream, and never gets a chance to throw its own generic parse failure. Read here, a malformed form is `400 core.request.body_malformed` - the same code `RequestSpyMiddleware`'s own JSON check throws, and the one `parseMultipartBody` throws when a handler parses a form by hand. See [Error Handling Logic](#error-handling-logic) for what a Hono `HTTPException` your own code throws (or a validator's) renders as.
 
-`AbstractRestController.buildRouteMiddlewares` decides whether to append it, with `hasFormBody({ content })` reading `restConfig.request?.body?.content`. Neither `hasFormBody` nor `formBodyReader` is exported from `@venizia/ignis` - they run for every declared form route automatically.
+`AbstractRestController.buildRouteMiddlewares` decides whether to append it, with `FormBodyMiddleware.hasFormBody({ content })` reading `restConfig.request?.body?.content`. Neither `FormBodyMiddleware.hasFormBody` nor `FormBodyMiddleware.read` is exported from `@venizia/ignis` - they run for every declared form route automatically.
 
 > [!WARNING]
-> Middleware that reads a form body itself - an upload guard running before the route's own validator - is not covered by this reader. Call `readFormBody({ req: context.req })` there too; see [Request Utility](/references/utilities/request#notes).
+> Middleware that reads a form body itself - an upload guard running before the route's own validator - is not covered by this reader. Call `FormBodyUtility.readFormBody({ req: context.req })` there too; see [Request Utility](/references/utilities/request#notes).
 
 ## AppErrorMiddleware
 
@@ -509,14 +509,14 @@ The middleware class is not exported from `@venizia/ignis`, but the key is: impo
 or read the context variable by its literal value `'requestId'`.
 
 ```typescript
-import { get, jsonResponse, TRouteContext } from '@venizia/ignis';
+import { get, OpenApiResponses, TRouteContext } from '@venizia/ignis';
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers';
 
 const ExampleConfig = {
   method: HTTP.Methods.GET,
   path: '/example',
-  responses: jsonResponse({
+  responses: OpenApiResponses.jsonResponse({
     schema: z.object({ requestId: z.string() }),
   }),
 } as const;
@@ -529,7 +529,7 @@ async example(context: TRouteContext) {
 ```
 
 
-## emojiFavicon
+## EmojiFaviconMiddleware
 
 A simple middleware that serves an emoji as an SVG favicon on `/favicon.ico`.
 
@@ -539,7 +539,9 @@ you. To change the icon, set `configs.favicon`.
 ### Signature
 
 ```typescript
-function emojiFavicon(opts: { icon: string }): MiddlewareHandler
+class EmojiFaviconMiddleware {
+  static create(opts: { icon: string }): MiddlewareHandler;
+}
 ```
 
 | Parameter | Type | Description |
@@ -561,7 +563,7 @@ Several middleware behaviors are configured through `IApplicationConfigs`:
 
 ```typescript
 interface IApplicationConfigs {
-  favicon?: string;                    // Emoji for emojiFavicon (default: '🔥')
+  favicon?: string;                    // Emoji for EmojiFaviconMiddleware.create (default: '🔥')
   error?: { rootKey: string };         // Root key wrapper for AppErrorMiddleware
   asyncContext?: { enable: boolean };  // Enable Hono contextStorage() middleware
   middlewares?: IMiddlewareConfigs;    // Only bodyLimit is installed by the framework - see Body limit

@@ -1,5 +1,5 @@
 import type { TEntityDataObject, TRouteContext } from '@venizia/ignis-kernel';
-import { BaseRestController, buildDataRange } from '@venizia/ignis-kernel';
+import { BaseRestController, DataRangeUtility } from '@venizia/ignis-kernel';
 import type { AbstractEntity } from '@venizia/ignis-kernel';
 import type { TAnyObjectSchema } from '@venizia/ignis-kernel';
 import type { AnyType } from '@venizia/ignis-helpers/common';
@@ -9,7 +9,7 @@ import type { Env, Schema } from 'hono';
 import type { TMultiSearchInput, TSearchInput } from '@/search/core/repositories/common';
 import { SearchModes } from '@/search/core/repositories/common';
 import type { ReadableSearchRepository } from '../repositories/core/readable';
-import { applySearchScope } from './scope';
+import { SearchControllerScope } from './scope';
 import type { TSearchScopeResolver } from './scope';
 
 /** Where the page starts, for `Content-Range`. Friendly modes carry `filter.skip` or `filter.offset`; raw mode carries the engine's own `offset`, or a 1-based `page` with `per_page`/`perPage`. A raw request that names a page but no page size is measured against this page's hit count, so only its last page can be off. */
@@ -17,7 +17,7 @@ const resolveSearchStart = (opts: { input: TSearchInput; hitCount: number }): nu
   const { input, hitCount } = opts;
 
   if (input.mode !== SearchModes.RAW) {
-    // Same precedence as buildDataRange: the repository filter carries skip or offset.
+    // Same precedence as DataRangeUtility.buildDataRange: the repository filter carries skip or offset.
     return input.filter?.skip ?? input.filter?.offset ?? 0;
   }
 
@@ -68,9 +68,15 @@ export abstract class AbstractSearchController<
   async search(opts: { context: TRouteContext<RouteEnv> }) {
     const { context } = opts;
     const body = context.req.valid<TSearchInput>('json');
-    const input = this.searchScope
-      ? await applySearchScope({ resolve: this.searchScope, context, input: body })
-      : body;
+    let input = body;
+    if (this.searchScope) {
+      const scoped = await SearchControllerScope.applySearchScope({
+        resolve: this.searchScope,
+        context,
+        input: body,
+      });
+      input = scoped;
+    }
 
     const rs = await this.measure({
       scope: 'search',
@@ -85,7 +91,11 @@ export abstract class AbstractSearchController<
     const start = resolveSearchStart({ input, hitCount: rs.hits.length });
     this.setListHeaders({
       context,
-      range: buildDataRange({ offset: start, dataLength: rs.hits.length, total: rs.found }),
+      range: DataRangeUtility.buildDataRange({
+        offset: start,
+        dataLength: rs.hits.length,
+        total: rs.found,
+      }),
       count: rs.hits.length,
     });
 

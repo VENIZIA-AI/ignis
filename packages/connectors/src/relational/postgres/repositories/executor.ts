@@ -1,4 +1,4 @@
-import { omit } from '@venizia/ignis-helpers/common';
+import { ObjectUtility } from '@venizia/ignis-helpers/common';
 import type {
   ICountOptions,
   IInsertOptions,
@@ -77,7 +77,7 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
 
     // Drizzle's `findFirst` config type structurally forbids `limit` - it always fetches one row.
     // This is the only place that knows that, so the strip happens here whatever the caller passed.
-    const queryOptions = omit({ source: opts.query, keys: ['limit'] });
+    const queryOptions = ObjectUtility.omit({ source: opts.query, keys: ['limit'] });
     const result = await queryInterface.findFirst(queryOptions);
 
     // Same drizzle-relational-query-versus-caller-generic boundary as `findMany` above.
@@ -93,7 +93,8 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
       return { count: this.readAffectedRowCount({ result }), rows: [] };
     }
 
-    const rows = returning ? await query.returning(returning as AnyType) : await query.returning();
+    const pending = returning ? query.returning(returning as AnyType) : query.returning();
+    const rows = await pending;
     return { count: rows.length, rows: rows as Array<R> };
   }
 
@@ -109,7 +110,8 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
       return { count: this.readAffectedRowCount({ result }), rows: [] };
     }
 
-    const rows = returning ? await query.returning(returning as AnyType) : await query.returning();
+    const pending = returning ? query.returning(returning as AnyType) : query.returning();
+    const rows = await pending;
     return { count: rows.length, rows: rows as Array<R> };
   }
 
@@ -122,7 +124,8 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
       return { count: this.readAffectedRowCount({ result }), rows: [] };
     }
 
-    const rows = returning ? await query.returning(returning as AnyType) : await query.returning();
+    const pending = returning ? query.returning(returning as AnyType) : query.returning();
+    const rows = await pending;
     return { count: rows.length, rows: rows as Array<R> };
   }
 

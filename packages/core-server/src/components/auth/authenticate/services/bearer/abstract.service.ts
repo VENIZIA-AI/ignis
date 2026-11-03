@@ -1,4 +1,4 @@
-import type { AESAlgorithmType, IPayloadCipher } from '@venizia/ignis-helpers';
+import type { AESAlgorithmType } from '@venizia/ignis-helpers';
 import { AES } from '@venizia/ignis-helpers';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
@@ -28,7 +28,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     'iat',
   ]);
 
-  protected aes: IPayloadCipher | null = null;
+  protected aes: AES | null = null;
   protected applicationSecret: string | null = null;
   protected fieldCodecs: Map<string, IPayloadFieldCodec> = new Map();
 
@@ -40,11 +40,9 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     aesAlgorithm?: AESAlgorithmType;
     applicationSecret?: string;
     fieldCodecs?: IPayloadFieldCodec[];
-    /** Overrides the cipher. Pass `LegacyAES` to keep reading tokens issued before the PBKDF2 envelope; `aesAlgorithm` is then the cipher's own concern and is ignored here. */
-    cipher?: IPayloadCipher;
     sign?: IJWTSignOptions;
   }): void {
-    const { aesAlgorithm = 'aes-256-cbc', applicationSecret, fieldCodecs, cipher, sign } = opts;
+    const { aesAlgorithm = 'aes-256-cbc', applicationSecret, fieldCodecs, sign } = opts;
 
     this.signOptions = sign ?? null;
 
@@ -58,7 +56,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
       return;
     }
 
-    this.aes = cipher ?? AES.withAlgorithm(aesAlgorithm);
+    this.aes = AES.withAlgorithm(aesAlgorithm);
     this.applicationSecret = applicationSecret;
   }
 
@@ -103,7 +101,8 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     }
 
     try {
-      return await this.doVerify(token);
+      const result = await this.doVerify(token);
+      return result;
     } catch (error) {
       // No log here - `cause` carries the reason (JWTExpired, signature mismatch) to the error handler, which logs the request once. An expired token is the caller's problem, hence `warn`.
       throw getError({
@@ -133,7 +132,8 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     const signer = await this.getSigner({ payload, getTokenExpiresFn, claims });
 
     try {
-      const rs = await signer.sign(await this.getSigningKey());
+      const result = await this.getSigningKey();
+      const rs = await signer.sign(result);
       return rs;
     } catch (error) {
       this.logger.for(this.generate.name).error('Failed to generate token | Error: %s', error);
@@ -155,7 +155,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     return JSON.stringify(value);
   }
 
-  encryptPayload(payload: IJWTTokenPayload): Record<string, any> {
+  async encryptPayload(payload: IJWTTokenPayload): Promise<Record<string, any>> {
     if (!this.aes || !this.applicationSecret) {
       return payload;
     }
@@ -176,17 +176,18 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
         continue;
       }
 
-      const encryptedKey = this.aes.encrypt({
+      const encryptedKey = await this.aes.encrypt({
         message: key,
         secret: this.applicationSecret,
       });
 
       const serialized = this.serializeField({ key, value });
 
-      rs[encryptedKey] = this.aes.encrypt({
+      const encryptedValue = await this.aes.encrypt({
         message: serialized,
         secret: this.applicationSecret,
       });
+      rs[encryptedKey] = encryptedValue;
     }
 
     return rs;
@@ -258,7 +259,9 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     return signer;
   }
 
-  decryptPayload(opts: { result: JWTVerifyResult<IJWTTokenPayload> }): IJWTTokenPayload {
+  async decryptPayload(opts: {
+    result: JWTVerifyResult<IJWTTokenPayload>;
+  }): Promise<IJWTTokenPayload> {
     const { payload, protectedHeader } = opts.result;
 
     if (!this.aes || !this.applicationSecret) {
@@ -276,11 +279,11 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
         continue;
       }
 
-      const decryptedKey = this.aes.decrypt({
+      const decryptedKey = await this.aes.decrypt({
         message: key,
         secret: this.applicationSecret,
       });
-      const decryptedValue = this.aes.decrypt({
+      const decryptedValue = await this.aes.decrypt({
         message: payload[key],
         secret: this.applicationSecret,
       });

@@ -14,13 +14,12 @@ packages: ['@venizia/ignis-helpers']
 
 ## What changed
 
-- **Duration units.** `DurationMultipliers.toMilliseconds`, `fromMilliseconds` and `convert` returned `NaN` for a unit named `constructor` or `toString` instead of the documented `null`. They now check the unit against `DurationUnits` first.
+- **Duration units.** `DurationMultipliers.toMilliseconds`, `fromMilliseconds` and `convert` returned `NaN` for a unit named `constructor` or `toString` instead of the documented `null`. They now return `null`.
 - **Environment and secrets.** `ApplicationEnvironment.get('constructor')` returned `Object`, and a secrets provider asked for a key named `toString` returned a function; both ignored the `defaultValue`. An unknown name now reads as unset.
 - **TCP server.** `NetworkTcpServer.getClient({ id: 'constructor' })` returned `Object` instead of `undefined`.
-- **Worker bus.** `BaseWorker` keeps its buses in a table with no prototype, so a bus key such as `__proto__` is an ordinary key.
+- **Worker bus.** A bus key such as `__proto__` is now an ordinary key in `BaseWorker`.
 - **High-frequency logger.** `HfLogger.log` given a level that only exists on `Object.prototype` now writes the entry as `info`.
 
 ## Who is affected
 
-- **Code that passed a unit, key or id from outside the program to these helpers.** The helpers now answer `null`, `undefined` or the default, as documented. No action needed.
-- **Everyone else.** No action needed.
+No action needed. Code that passed a unit, key or id from outside the program to these helpers now gets `null`, `undefined` or the default, as documented.

@@ -47,16 +47,16 @@ Each model is a Drizzle table plus a class built from it with `ModelFactory.defi
 // src/models/user.model.ts
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
-} from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, varchar, text, timestamp, boolean } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   username: varchar('username', { length: 50 }).unique().notNull(),
   displayName: varchar('display_name', { length: 100 }),
   avatar: text('avatar'),
@@ -76,19 +76,19 @@ export type TUser = TEntityObject<typeof User>;
 // src/models/room.model.ts
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
   many,
   one,
-} from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, varchar, text, timestamp, boolean } from 'drizzle-orm/pg-core';
 import { userTable } from './user.model';
 
 export const roomTable = pgTable('Room', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   name: varchar('name', { length: 100 }).notNull(),
   description: text('description'),
   isPrivate: boolean('is_private').default(false).notNull(),
@@ -96,7 +96,7 @@ export const roomTable = pgTable('Room', {
 });
 
 export const roomMemberTable = pgTable('RoomMember', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   roomId: text('room_id').notNull(),
   userId: text('user_id').notNull(),
   role: varchar('role', { length: 20 }).default('member').notNull(),
@@ -142,19 +142,19 @@ export type TRoomMember = TEntityObject<typeof RoomMember>;
 // src/models/message.model.ts
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
   one,
-} from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
 import { userTable } from './user.model';
 import { roomTable } from './room.model';
 
 export const messageTable = pgTable('Message', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   roomId: text('room_id').notNull(),
   senderId: text('sender_id').notNull(),
   content: text('content').notNull(),
@@ -165,8 +165,8 @@ export const messageTable = pgTable('Message', {
 });
 
 export const directMessageTable = pgTable('DirectMessage', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   senderId: text('sender_id').notNull(),
   receiverId: text('receiver_id').notNull(),
   content: text('content').notNull(),
@@ -228,7 +228,7 @@ import {
   datasource,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
 
 interface IDataSourceConfigs {
@@ -286,7 +286,7 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
 import { User, type userTable } from '@/models/user.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: User, dataSource: PostgresDataSource })
 export class UserRepository extends DefaultCRUDRepository<typeof userTable> {}
@@ -299,7 +299,7 @@ export class UserRepository extends DefaultCRUDRepository<typeof userTable> {}
 import { Room, RoomMember, type roomTable, type roomMemberTable } from '@/models/room.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { inject, repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: RoomMember, dataSource: PostgresDataSource })
 export class RoomMemberRepository extends DefaultCRUDRepository<typeof roomMemberTable> {}
@@ -370,7 +370,7 @@ export class RoomRepository extends DefaultCRUDRepository<typeof roomTable> {
 import { Message, DirectMessage, type messageTable, type directMessageTable } from '@/models/message.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { inject, repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: DirectMessage, dataSource: PostgresDataSource })
 export class DirectMessageRepository extends DefaultCRUDRepository<typeof directMessageTable> {}
@@ -1012,7 +1012,7 @@ export class ChatApp extends BaseApplication {
       name: 'chat-redis',
       host: process.env.APP_ENV_REDIS_HOST ?? 'localhost',
       port: +(process.env.APP_ENV_REDIS_PORT ?? 6379),
-      password: process.env.APP_ENV_REDIS_PASSWORD ?? '',
+      password: process.env.APP_ENV_REDIS_PASSWORD,
       autoConnect: false,
     });
 
@@ -1143,8 +1143,7 @@ import {
   BaseRestController,
   controller,
   inject,
-  jsonContent,
-  jsonResponse,
+  OpenApiResponses,
   TRouteContext,
   BindingKeys,
   BindingNamespaces,
@@ -1169,7 +1168,7 @@ const ChatRoutes = {
   GET_ROOMS: {
     method: HTTP.Methods.GET,
     path: '/rooms',
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'User rooms',
       schema: z.array(z.any()),
     }),
@@ -1178,12 +1177,12 @@ const ChatRoutes = {
     method: HTTP.Methods.POST,
     path: '/rooms',
     request: {
-      body: jsonContent({
+      body: OpenApiResponses.jsonContent({
         description: 'Room data',
         schema: CreateRoomSchema,
       }),
     },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'Created room',
       schema: z.any(),
     }),
@@ -1195,7 +1194,7 @@ const ChatRoutes = {
       params: z.object({ roomId: z.string() }),
       query: PaginationQuerySchema,
     },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'Room messages',
       schema: z.array(z.any()),
     }),
@@ -1203,7 +1202,7 @@ const ChatRoutes = {
   GET_CONVERSATIONS: {
     method: HTTP.Methods.GET,
     path: '/conversations',
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'User conversations',
       schema: z.array(z.any()),
     }),
@@ -1215,7 +1214,7 @@ const ChatRoutes = {
       params: z.object({ userId: z.string() }),
       query: PaginationQuerySchema,
     },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'Direct messages',
       schema: z.array(z.any()),
     }),
@@ -1528,7 +1527,7 @@ this.redisHelper = new RedisSingleHelper({
   name: 'chat-redis',
   host: process.env.APP_ENV_REDIS_HOST ?? 'localhost',
   port: +(process.env.APP_ENV_REDIS_PORT ?? 6379),
-  password: process.env.APP_ENV_REDIS_PASSWORD ?? '',
+  password: process.env.APP_ENV_REDIS_PASSWORD,
   autoConnect: false,
 });
 

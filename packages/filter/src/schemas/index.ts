@@ -1,9 +1,9 @@
-import { buildQuerySchemas } from './builder';
+import { QuerySchemaFactory } from './builder';
 
 export * from './builder';
 export * from './common';
 
-/** Ready-to-use schemas with no documentation metadata attached - the browser case, and the reason most consumers never touch `buildQuerySchemas` directly. */
+/** Ready-to-use schemas with no documentation metadata attached - the browser case, and the reason most consumers never touch `QuerySchemaFactory.build` directly. */
 export const {
   FieldsSchema,
   FilterSchema,
@@ -13,4 +13,4 @@ export const {
   OrderBySchema,
   SkipSchema,
   WhereSchema,
-} = buildQuerySchemas();
+} = QuerySchemaFactory.build();

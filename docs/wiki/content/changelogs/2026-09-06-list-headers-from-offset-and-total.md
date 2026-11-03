@@ -1,6 +1,6 @@
 ---
 title: setListHeaders Takes offset + total; toContentRange Is Exported
-description: BaseRestController.setListHeaders accepts { offset, total, count } beside { range, count } and derives the inclusive range with buildDataRange. toContentRange, the one Content-Range formatter, is exported from @venizia/ignis-kernel. Routes that formatted the header by hand delete the copy.
+description: BaseRestController.setListHeaders accepts offset and total beside range, and toContentRange is exported from @venizia/ignis-kernel, so routes stop formatting Content-Range by hand.
 packages: ['@venizia/ignis-kernel']
 ---
 
@@ -10,26 +10,19 @@ packages: ['@venizia/ignis-kernel']
 
 <Badge type="tip" text="New Feature" />
 
-**In one line.** A route whose engine reports `offset` and `total` instead of a `TDataRange` now calls `setListHeaders` directly, and nobody formats `Content-Range` by hand again.
+**In one line.** A route whose engine reports `offset` and `total` instead of a `TDataRange` can now call `setListHeaders` directly, with no hand-formatted `Content-Range`.
+
+## What changed
+
+- **`BaseRestController.setListHeaders()`** takes `{ context, count }` plus either `{ range }` or `{ offset, total }`. The second form derives the inclusive range with `buildDataRange`.
+- **`toContentRange({ range, count })`** is now exported from `@venizia/ignis-kernel`.
+- **An empty page** still writes `records */<total>`.
+- **`respond()` is unchanged.** Use it when the body is the `{ count, data }` envelope.
 
 ```typescript
 this.setListHeaders({ context, offset, total, count: hits.length });
 return context.json({ found, isFoundExact, hits });
 ```
-
-## The problem it solves
-
-`setListHeaders` took only a repository `TDataRange`. A search engine answers with an offset and a total, so search routes rebuilt the header string themselves: three copies of the same five lines in one consumer, each a place for the inclusive-end rule to drift.
-
-## What changed
-
-| Symbol | Change | Package |
-|---|---|---|
-| `BaseRestController.setListHeaders()` | Options are `{ context, count }` plus either `{ range }` or `{ offset, total }`; the second form derives the range with `buildDataRange` | kernel |
-| `toContentRange({ range, count })` | Exported from `@venizia/ignis-kernel` (was module-private) | kernel |
-
-- An empty page still writes `records */<total>`.
-- `respond()` is unchanged; use it when the body is the `{ count, data }` envelope.
 
 ## Who is affected
 

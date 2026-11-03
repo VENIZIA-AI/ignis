@@ -68,10 +68,12 @@ const buildJob = (opts?: { id?: string }): AnyType => {
 
 /** Awaits a rejection explicitly: bun's `expect(...).rejects` is typed as non-thenable in this repo. */
 const captureRejection = async (opts: { promise: Promise<unknown> }): Promise<Error> => {
-  const outcome = await opts.promise.then(
-    () => null,
-    (error: unknown) => error as Error,
-  );
+  let outcome: Error | null = null;
+  try {
+    await opts.promise;
+  } catch (error) {
+    outcome = error as Error;
+  }
 
   if (!outcome) {
     throw getError({ message: 'Expected the promise to REJECT, but it resolved' });
@@ -262,7 +264,8 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
     });
 
     const worker: FakeBullWorker = helper.worker as AnyType;
-    expect(await worker.processor(buildJob())).toBeUndefined();
+    const result = await worker.processor(buildJob());
+    expect(result).toBeUndefined();
   });
 
   test('completed/failed hooks receive the job and are reported on rejection', async () => {

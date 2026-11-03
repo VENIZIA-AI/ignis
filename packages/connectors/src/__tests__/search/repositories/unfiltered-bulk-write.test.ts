@@ -26,14 +26,16 @@ describe('deleteAll without an effective where', () => {
   test('an ABSENT where is refused, not silently turned into a truncate', async () => {
     const { repository, connector } = buildRepository();
 
-    expect(await messageOf(repository.deleteAll())).toContain('DENY');
+    const result = await messageOf(repository.deleteAll());
+    expect(result).toContain('DENY');
     expect(connector.deleteAllDocumentsCalls).toHaveLength(0);
   });
 
   test('an EMPTY where object is refused too - it compiles to no filter at all', async () => {
     const { repository, connector } = buildRepository();
 
-    expect(await messageOf(repository.deleteAll({ where: {} }))).toContain('DENY');
+    const result = await messageOf(repository.deleteAll({ where: {} }));
+    expect(result).toContain('DENY');
     expect(connector.deleteAllDocumentsCalls).toHaveLength(0);
   });
 
@@ -60,8 +62,7 @@ describe('updateAll without an effective where', () => {
   test('is refused - there is no unfiltered bulk update on a search engine', async () => {
     const { repository } = buildRepository();
 
-    expect(await messageOf(repository.updateAll({ data: { name: 'x' }, where: {} }))).toContain(
-      'DENY',
-    );
+    const result = await messageOf(repository.updateAll({ data: { name: 'x' }, where: {} }));
+    expect(result).toContain('DENY');
   });
 });

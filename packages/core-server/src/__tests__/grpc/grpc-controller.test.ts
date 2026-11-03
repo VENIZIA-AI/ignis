@@ -398,15 +398,18 @@ describe('BaseGrpcController - interceptors from the component options', () => {
     const first = () => {};
     const second = () => {};
 
-    expect(await buildController([first, second])).toEqual({ interceptors: [first, second] });
+    const result = await buildController([first, second]);
+    expect(result).toEqual({ interceptors: [first, second] });
   });
 
   test('an empty list passes no router option', async () => {
-    expect(await buildController([])).toEqual({});
+    const result = await buildController([]);
+    expect(result).toEqual({});
   });
 
   test('no interceptors passes no router option', async () => {
-    expect(await buildController()).toEqual({});
+    const result = await buildController();
+    expect(result).toEqual({});
   });
 });
 
@@ -474,7 +477,12 @@ describe('BaseGrpcController - ConnectRPC peers registered through ModuleUtility
 
     ModuleUtility.setProjectRoot({ projectRoot: root });
     const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
-    const error = await ctrl.configure().catch((caught: unknown) => caught);
+    let error: unknown;
+    try {
+      await ctrl.configure();
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(String(error)).toContain("Please install '@connectrpc/connect'");
   });

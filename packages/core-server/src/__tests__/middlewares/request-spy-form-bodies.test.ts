@@ -54,7 +54,8 @@ describe('RequestSpyMiddleware - form bodies are parsed only where they are logg
       });
 
       expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ bodyUsed: false });
+      const result = await response.json();
+      expect(result).toEqual({ bodyUsed: false });
     });
 
     test(`a malformed multipart body is left to the route in '${environment}'`, async () => {
@@ -74,7 +75,8 @@ describe('RequestSpyMiddleware - form bodies are parsed only where they are logg
         body: 'name=IGNIS',
       });
 
-      expect(await response.json()).toEqual({ bodyUsed: false });
+      const result = await response.json();
+      expect(result).toEqual({ bodyUsed: false });
     });
 
     test(`malformed JSON is still a clean 400 in '${environment}'`, async () => {
@@ -102,9 +104,10 @@ describe('RequestSpyMiddleware - form bodies are parsed only where they are logg
     process.env.NODE_ENV = 'production';
     const spy = new RequestSpyMiddleware();
     const server = new OpenAPIHono();
-    server.post('/parse', async (context) =>
-      context.json(await spy.parseBody({ req: context.req })),
-    );
+    server.post('/parse', async (context) => {
+      const parsed = await spy.parseBody({ req: context.req });
+      return context.json(parsed);
+    });
 
     const response = await server.request('/parse', {
       method: 'POST',
@@ -112,6 +115,7 @@ describe('RequestSpyMiddleware - form bodies are parsed only where they are logg
       body: 'name=IGNIS',
     });
 
-    expect(await response.json()).toEqual({ name: 'IGNIS' });
+    const result = await response.json();
+    expect(result).toEqual({ name: 'IGNIS' });
   });
 });

@@ -1,8 +1,16 @@
 import { type AnyType } from '@/common/types';
+import { LoggerDebugGate } from '../common/debug-gate';
 import { type ILogger, LogLevels, type TLogLevel } from '../common/types';
 import { AbstractLogger } from './abstract';
 
-/** The resolver's default when no provider is registered - the only logger a browser bundle can reach. Extends AbstractLogger rather than BaseLogger because BaseLogger's DEBUG gate reads process.env at module load. */
+/**
+ * The default logger provider: it writes to the console, and it is the only provider a browser bundle reaches. It
+ * satisfies `ILoggerProvider` (`ConsoleLogger.get(scope)`), so it is registered like Winston and Pino.
+ *
+ * Extends AbstractLogger rather than BaseLogger because BaseLogger's module graph reads `process.env` at load.
+ * `debug` follows the rule of the other providers (`LoggerDebugGate`): off unless `DEBUG` is truthy and the
+ * environment is allowed, and off in a browser, which has no `process`; `LoggerFactory.use({ level })` overrides it.
+ */
 export class ConsoleLogger extends AbstractLogger {
   private readonly prefix: string;
 
@@ -11,8 +19,8 @@ export class ConsoleLogger extends AbstractLogger {
     this.prefix = scope !== '' ? `[${scope}] ` : '';
   }
 
-  static get(opts: { scope: string }): ILogger {
-    return new ConsoleLogger(opts.scope);
+  static get(scope: string): ConsoleLogger {
+    return new ConsoleLogger(scope);
   }
 
   private emit(opts: {
@@ -24,6 +32,10 @@ export class ConsoleLogger extends AbstractLogger {
   }
 
   debug(message: string, ...args: AnyType[]) {
+    if (!LoggerDebugGate.isOpen()) {
+      return;
+    }
+
     this.emit({ sink: console.debug, message, args });
   }
 
@@ -66,6 +78,6 @@ export class ConsoleLogger extends AbstractLogger {
 
   for(methodName: string): ILogger {
     const childScope = this.scope !== '' ? `${this.scope}-${methodName}` : methodName;
-    return ConsoleLogger.get({ scope: childScope });
+    return ConsoleLogger.get(childScope);
   }
 }

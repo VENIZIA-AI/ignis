@@ -47,14 +47,16 @@ describe('absorbing filter - read path', () => {
   test('count() reports zero without asking the engine to count', async () => {
     const { repository, connector } = buildRepository();
 
-    expect(await repository.count({ where: emptyPermissionScope() })).toEqual({ count: 0 });
+    const result = await repository.count({ where: emptyPermissionScope() });
+    expect(result).toEqual({ count: 0 });
     expect(connector.countDocumentsCalls).toHaveLength(0);
   });
 
   test('existsWith() is false', async () => {
     const { repository } = buildRepository();
 
-    expect(await repository.existsWith({ where: emptyPermissionScope() })).toBe(false);
+    const result = await repository.existsWith({ where: emptyPermissionScope() });
+    expect(result).toBe(false);
   });
 
   test('an absorbing clause ANDed with a real one still matches nothing', async () => {
@@ -72,7 +74,8 @@ describe('absorbing filter - read path', () => {
   test('`inq: []` is absorbing too', async () => {
     const { repository, connector } = buildRepository();
 
-    expect(await repository.find({ filter: { where: { status: { inq: [] } } } })).toEqual([]);
+    const result = await repository.find({ filter: { where: { status: { inq: [] } } } });
+    expect(result).toEqual([]);
     expect(connector.searchCalls).toHaveLength(0);
   });
 

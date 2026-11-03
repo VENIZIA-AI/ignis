@@ -2,18 +2,18 @@ import type { BunPlugin } from 'bun';
 import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { platformaticKafkaPlugins, platformaticWasmPlugin } from '../../../modules/queue/kafka';
-import { spawnSyncBounded } from '@venizia/dev-configs/testing';
+import { PlatformaticKafkaPlugins } from '../../../modules/queue/kafka';
+import { SpawnHelper } from '@venizia/dev-configs/testing';
 
 const ENTRYPOINT = 'src/__tests__/kafka/fixtures/kafka-entrypoint.ts';
 
 /** `--all` registers the full plugin set: a binary needs every one of them to boot, so the wasm plugin alone cannot carry the boot case. */
 const resolvePlugins = (): BunPlugin[] => {
   if (process.argv.includes('--all')) {
-    return platformaticKafkaPlugins();
+    return PlatformaticKafkaPlugins.build();
   }
 
-  return process.argv.includes('--plugin') ? [platformaticWasmPlugin()] : [];
+  return process.argv.includes('--plugin') ? [PlatformaticKafkaPlugins.buildWasmPlugin()] : [];
 };
 
 const probe = async (): Promise<void> => {
@@ -40,7 +40,7 @@ const probe = async (): Promise<void> => {
       return;
     }
 
-    const executed = spawnSyncBounded({ cmd: [outfile] });
+    const executed = SpawnHelper.spawnSyncBounded({ cmd: [outfile] });
     console.log(
       JSON.stringify({
         success: built.success,

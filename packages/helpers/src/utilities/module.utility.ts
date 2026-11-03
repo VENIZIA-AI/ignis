@@ -83,6 +83,7 @@ export class ModuleUtility {
     try {
       const file = Bun.resolveSync(opts.module, this.getProjectRoot());
       return path.isAbsolute(file) ? file : undefined;
+      // eslint-disable-next-line venizia/no-silent-catch -- documented contract: an unresolvable module is `undefined` and the caller falls back to a plain `import()`
     } catch {
       return undefined;
     }
@@ -103,7 +104,8 @@ export class ModuleUtility {
 
     try {
       const file = this.resolveEsmFile({ module });
-      return (await import(file === undefined ? module : pathToFileURL(file).href)) as T;
+      const result = await import(file === undefined ? module : pathToFileURL(file).href);
+      return result as T;
     } catch (error) {
       throw this.fail({ method: 'load', module, error });
     }
@@ -120,7 +122,8 @@ export class ModuleUtility {
 
     for (const module of opts.modules) {
       // `load` answers from the registry first, so a module the application handed over comes back as itself.
-      loaded[module] = await this.load({ module });
+      const result = await this.load({ module });
+      loaded[module] = result;
     }
 
     this.register({ modules: loaded });

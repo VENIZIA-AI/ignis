@@ -1,8 +1,8 @@
 import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { platformaticKafkaPlugins, platformaticWasmPlugin } from '../../../modules/queue/kafka';
-import { spawnSyncBounded } from '@venizia/dev-configs/testing';
+import { PlatformaticKafkaPlugins } from '../../../modules/queue/kafka';
+import { SpawnHelper } from '@venizia/dev-configs/testing';
 
 const ENTRYPOINT = 'src/__tests__/kafka/fixtures/registry-entrypoint.ts';
 
@@ -23,7 +23,9 @@ const probe = async (): Promise<void> => {
       target: 'bun',
       // Matches the production compile settings the bare-specifier count is only valid for.
       minify: { whitespace: true, syntax: true },
-      plugins: isPluginEnabled ? platformaticKafkaPlugins() : [platformaticWasmPlugin()],
+      plugins: isPluginEnabled
+        ? PlatformaticKafkaPlugins.build()
+        : [PlatformaticKafkaPlugins.buildWasmPlugin()],
       ...(isCompiled ? { compile: { outfile } } : {}),
     });
 
@@ -39,14 +41,15 @@ const probe = async (): Promise<void> => {
       return;
     }
 
-    const executed = spawnSyncBounded({ cmd: [outfile] });
+    const executed = SpawnHelper.spawnSyncBounded({ cmd: [outfile] });
+    const outputBytes = await Bun.file(outfile).bytes();
     console.log(
       JSON.stringify({
         success: built.success,
         exitCode: executed.exitCode,
         stdout: executed.stdout.toString().trim(),
         stderr: executed.stderr.toString().trim(),
-        hasBareSpecifier: Buffer.from(await Bun.file(outfile).bytes()).includes(BARE_SPECIFIER),
+        hasBareSpecifier: Buffer.from(outputBytes).includes(BARE_SPECIFIER),
       }),
     );
   } finally {

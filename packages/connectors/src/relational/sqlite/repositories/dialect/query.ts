@@ -1,7 +1,7 @@
 import type { IQueryHandlerOptions } from '@venizia/ignis-kernel';
-import { buildSubqueryCondition } from '@/relational/core/repositories/dialect/internal';
+import { SubqueryUtility } from '@/relational/core/repositories/dialect/internal';
 import { QueryOperators } from '@venizia/ignis-kernel';
-import { throwNotSupported } from '@venizia/ignis-kernel';
+import { NotSupportedUtility } from '@venizia/ignis-kernel';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import {
   between,
@@ -34,7 +34,7 @@ export class SqliteQueryOperators extends QueryOperators {
   private static reject(opts: { operator: string; reason: string }): never {
     const { operator, reason } = opts;
 
-    return throwNotSupported({
+    return NotSupportedUtility.throwNotSupported({
       scope: SqliteQueryOperators.name,
       feature: `Operator '${operator}' - ${reason}`,
       // Not `LoggerFactory`: it reaches the helpers root barrel, which pulls `ioredis` and fails a
@@ -84,9 +84,13 @@ export class SqliteQueryOperators extends QueryOperators {
       return opts.value.length === 0 ? sql`false` : inArray(opts.column, opts.value);
     },
     [this.IN_SQL]: (opts: IQueryHandlerOptions) =>
-      buildSubqueryCondition({ ...opts, operator: this.IN_SQL, isNegated: false }),
+      SubqueryUtility.buildSubqueryCondition({ ...opts, operator: this.IN_SQL, isNegated: false }),
     [this.NOT_IN_SQL]: (opts: IQueryHandlerOptions) =>
-      buildSubqueryCondition({ ...opts, operator: this.NOT_IN_SQL, isNegated: true }),
+      SubqueryUtility.buildSubqueryCondition({
+        ...opts,
+        operator: this.NOT_IN_SQL,
+        isNegated: true,
+      }),
     [this.NIN]: (opts: IQueryHandlerOptions) => {
       if (!Array.isArray(opts.value)) {
         return ne(opts.column, opts.value);

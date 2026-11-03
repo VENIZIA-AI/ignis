@@ -1,19 +1,19 @@
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   many,
   ModelFactory,
   type TEntityObject,
-} from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
 import { boolean, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
 import { saleChannelProductTable } from './sale-channel-product.model';
 
 export const saleChannelTable = pgTable(
   'SaleChannel',
   {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...generateTzColumnDefs(),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresTzEnricher.generateColumnDefs(),
     code: text('code').notNull(),
     name: text('name').notNull(),
     description: text('description'),

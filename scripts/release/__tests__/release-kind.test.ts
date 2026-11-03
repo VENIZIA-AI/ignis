@@ -252,3 +252,107 @@ describe('ReleaseTargets.plan', () => {
     ).toBe('2 packages, up to 0.4.10');
   });
 });
+
+describe('ReleaseTargets.labelOf and labelProblems: the run title', () => {
+  const SHA = 'c84852a7e1d0b6a2f3c9d8e7b6a5f4e3d2c1b0a9';
+  const TARGETS = ReleaseTargets.of({
+    entries: [
+      { name: 'helpers', from: '0.4.5' },
+      { name: 'inversion', from: '0.4.4' },
+      { name: 'kernel', from: '0.4.5' },
+    ],
+    mode: 'prerelease',
+  });
+
+  test('is the kind, each version from the highest down with its packages, the issue and the short commit', () => {
+    expect(
+      ReleaseTargets.labelOf({ kind: 'prerelease', targets: TARGETS, issue: '664', sha: SHA }),
+    ).toBe('prerelease · 0.4.6-0 helpers,kernel; 0.4.5-0 inversion · #664 · c84852a');
+  });
+
+  test('the versions are ordered by semver, not by text', () => {
+    const targets = [
+      { name: 'helpers', from: '0.4.9', target: '0.4.10', distTag: 'latest' as const },
+      { name: 'kernel', from: '0.4.8', target: '0.4.9', distTag: 'latest' as const },
+    ];
+
+    expect(ReleaseTargets.labelOf({ kind: 'stable', targets })).toBe(
+      'stable · 0.4.10 helpers; 0.4.9 kernel',
+    );
+  });
+
+  test('no issue and no commit leave their parts out', () => {
+    const label = 'prerelease · 0.4.6-0 helpers,kernel; 0.4.5-0 inversion';
+
+    expect(ReleaseTargets.labelOf({ kind: 'prerelease', targets: TARGETS })).toBe(label);
+    expect(
+      ReleaseTargets.labelOf({ kind: 'prerelease', targets: TARGETS, issue: '', sha: '' }),
+    ).toBe(label);
+  });
+
+  test('labelProblems accepts the expected label and an empty or absent one, and refuses any other', () => {
+    const expected = ReleaseTargets.labelOf({ kind: 'stable', targets: TARGETS, sha: SHA });
+
+    expect(ReleaseTargets.labelProblems({ label: expected, expected })).toEqual([]);
+    expect(ReleaseTargets.labelProblems({ label: '', expected })).toEqual([]);
+    expect(ReleaseTargets.labelProblems({ label: undefined, expected })).toEqual([]);
+    expect(
+      ReleaseTargets.labelProblems({ label: 'stable · 0.4.7 helpers', expected })[0],
+    ).toContain('is not what the plan computes');
+  });
+
+  test('the refusal quotes the label, so a newline or a :: line cannot forge a log line', () => {
+    const [problem] = ReleaseTargets.labelProblems({
+      label: 'x\n::add-mask::y',
+      expected: 'stable',
+    });
+
+    expect(problem).toContain('"x\\n::add-mask::y"');
+    expect(problem).not.toContain('\n');
+  });
+});
+
+describe('ReleaseTargets.quote: a value in one log line', () => {
+  /** A string from code points, so that no invisible character sits in this file. */
+  const text = (...codes: number[]): string => String.fromCodePoint(...codes);
+
+  test('escapes what JSON leaves as it is: bidirectional, zero-width, separators and astral characters', () => {
+    expect(
+      ReleaseTargets.quote({ value: `a${text(0x202e)}b${text(0x200b)}c${text(0x2066)}d` }),
+    ).toBe('"a\\u202eb\\u200bc\\u2066d"');
+    expect(ReleaseTargets.quote({ value: text(0xfeff, 0x85, 0x2028, 0x2029, 0x7f, 0xa0) })).toBe(
+      '"\\ufeff\\u0085\\u2028\\u2029\\u007f\\u00a0"',
+    );
+    expect(ReleaseTargets.quote({ value: text(0xe0041, 0x1f600) })).toBe('"\\u{e0041}\\u{1f600}"');
+  });
+
+  test('whatever goes in, only printable ASCII and the middle dot come out', () => {
+    const hostile = text(0x202e, 0x200b, 0x1f600, 0x0a, 0x1b, 0x3164, 0x2800, 0xad);
+
+    expect(ReleaseTargets.quote({ value: `x${hostile}"y"` })).toMatch(/^[\x20-\x7e·]*$/);
+  });
+
+  test('keeps JSON quoting for a newline and a quote, and leaves plain text and the middle dot alone', () => {
+    expect(ReleaseTargets.quote({ value: 'x\n"y"' })).toBe('"x\\n\\"y\\""');
+    expect(ReleaseTargets.quote({ value: 'stable · 0.4.6 kernel' })).toBe(
+      '"stable · 0.4.6 kernel"',
+    );
+  });
+
+  test('echoes the first 200 characters of a long value and says how many were left out', () => {
+    const quoted = ReleaseTargets.quote({ value: 'x'.repeat(70_000) });
+
+    expect(quoted.length).toBeLessThan(260);
+    expect(quoted).toContain('(69800 more characters)');
+  });
+
+  test('a refusal shows a hostile label escaped', () => {
+    const [problem] = ReleaseTargets.labelProblems({
+      label: `stable${text(0x202e)} · 0.4.6`,
+      expected: 'stable · 0.4.6',
+    });
+
+    expect(problem).toContain('stable\\u202e');
+    expect(problem).not.toContain(text(0x202e));
+  });
+});

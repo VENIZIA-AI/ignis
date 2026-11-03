@@ -13,6 +13,8 @@ interface ITypesenseDocumentsApi {
   import(documents: unknown[], options?: unknown): Promise<unknown>;
   search(searchParameters: unknown, options?: unknown): Promise<unknown>;
   export(options?: unknown): Promise<unknown>;
+  /** The export as a stream of NDJSON text: a Node `Readable` (`typesense-js`), which is async-iterable. */
+  exportStream(options?: unknown): Promise<AsyncIterable<string | Uint8Array>>;
 }
 interface ITypesenseDocumentApi {
   retrieve(): Promise<unknown>;

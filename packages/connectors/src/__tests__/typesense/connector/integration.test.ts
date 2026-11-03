@@ -26,7 +26,8 @@ describe.if(hasEnv)('TypesenseConnector integration (live)', () => {
   const collection = 'ignis_core_it';
 
   test('create → import → search → delete round-trip', async () => {
-    expect(await helper.ping()).toBe(true);
+    const result = await helper.ping();
+    expect(result).toBe(true);
     await helper.deleteCollection({ name: collection });
     await helper.createCollection({
       schema: {
@@ -53,7 +54,8 @@ describe.if(hasEnv)('TypesenseConnector integration (live)', () => {
     const search = await helper.search({ collection, params: searchParams });
     expect(search.found).toBeGreaterThanOrEqual(1);
 
-    expect(await helper.deleteCollection({ name: collection })).toBe(true);
+    const result2 = await helper.deleteCollection({ name: collection });
+    expect(result2).toBe(true);
   });
 });
 

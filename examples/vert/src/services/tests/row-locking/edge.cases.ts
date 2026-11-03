@@ -65,8 +65,8 @@ export class EdgeCases extends BaseTestCases {
       }
       try {
         await transaction.rollback();
-      } catch {
-        /* ignore */
+      } catch (rollbackError) {
+        this.context.logger.error('Rollback failed: %s', (rollbackError as Error).message);
       }
     }
   }
@@ -102,8 +102,8 @@ export class EdgeCases extends BaseTestCases {
       }
       try {
         await transaction.rollback();
-      } catch {
-        /* ignore */
+      } catch (rollbackError) {
+        this.context.logger.error('Rollback failed: %s', (rollbackError as Error).message);
       }
     }
   }

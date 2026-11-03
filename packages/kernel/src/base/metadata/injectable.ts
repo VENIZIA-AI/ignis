@@ -79,36 +79,39 @@ export const provide = (opts: { key: string; scope?: TBindingScope }): MethodDec
   };
 };
 
-/** The registration defaults a stereotype forwards to `@injectable`, copied field by field so an absent option stays absent. */
-export const pickRegistrationOptions = <ApplicationType = unknown>(opts: {
-  metadata: IArtifactRegistrationOptions<ApplicationType>;
-}): IArtifactRegistrationOptions<ApplicationType> => {
-  const { binding, allowOverride, scope, order, when, after } = opts.metadata;
-  const registration: IArtifactRegistrationOptions<ApplicationType> = {};
+/** Helpers of the stereotype decorators; the decorators themselves stay functions. */
+export class InjectableUtility {
+  /** The registration defaults a stereotype forwards to `@injectable`, copied field by field so an absent option stays absent. */
+  static pickRegistrationOptions<ApplicationType = unknown>(opts: {
+    metadata: IArtifactRegistrationOptions<ApplicationType>;
+  }): IArtifactRegistrationOptions<ApplicationType> {
+    const { binding, allowOverride, scope, order, when, after } = opts.metadata;
+    const registration: IArtifactRegistrationOptions<ApplicationType> = {};
 
-  if (binding !== undefined) {
-    registration.binding = binding;
+    if (binding !== undefined) {
+      registration.binding = binding;
+    }
+
+    if (allowOverride !== undefined) {
+      registration.allowOverride = allowOverride;
+    }
+
+    if (scope !== undefined) {
+      registration.scope = scope;
+    }
+
+    if (order !== undefined) {
+      registration.order = order;
+    }
+
+    if (when !== undefined) {
+      registration.when = when;
+    }
+
+    if (after !== undefined) {
+      registration.after = after;
+    }
+
+    return registration;
   }
-
-  if (allowOverride !== undefined) {
-    registration.allowOverride = allowOverride;
-  }
-
-  if (scope !== undefined) {
-    registration.scope = scope;
-  }
-
-  if (order !== undefined) {
-    registration.order = order;
-  }
-
-  if (when !== undefined) {
-    registration.when = when;
-  }
-
-  if (after !== undefined) {
-    registration.after = after;
-  }
-
-  return registration;
-};
+}

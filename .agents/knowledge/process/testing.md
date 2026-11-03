@@ -35,9 +35,9 @@ tags: [process, test, bun]
    `make purity` / `make purity-<package>` is not a `bun test` run either - it is a standalone Bun
    script (`devz check purity`, from `@venizia/dev-configs`) that bundles each manifest entry with `bun build
    --target=browser` and inspects the metafile, so it reads `dist/` and needs a build first. CI runs
-   it right after the lint step - but CI itself is `workflow_dispatch` only now, so nothing runs it
-   on a push or a pull request, and no hook does either. Running the purity gate and the test suite before
-   committing is on you.
+   it right after the lint step, on every pull request to `develop` and `main` and on a manual dispatch,
+   never on a push; no hook runs it. Running the purity gate and the test suite before committing is
+   still on you, because a red pull request check costs a round trip.
 7. A test never writes outside the repository. The root `Makefile` exports `TMPDIR` as the gitignored
    `.agents/local/tmp`, so `os.tmpdir()` and `mkdtemp` land there under every `make` target; remove
    what the test makes in `afterEach`/`afterAll`. Never write a literal `/tmp/...` path. A bare
@@ -51,11 +51,11 @@ tags: [process, test, bun]
    clean-install gate's `ignis-clean-install-*` sandbox (a sandbox below the repository would resolve
    the repository `node_modules`): it is removed in a `finally`, and the gate lists it as allowed
    rather than ignoring it (`TmpLeak.ALLOWED_SYSTEM_PATHS`).
-8. An application's boot is proved without datasource connections, a socket or a secrets provider by `assertApplicationBoots` from
+8. An application's boot is proved without datasource connections, a socket or a secrets provider by `ApplicationBootAssertion.assert({ application })` from
    `@venizia/ignis/testing` (`packages/core-server/src/testing/assert-application-boots.ts`). It wraps
    `registerDynamicBindings` and `getBootSequence` on one instance, skips the `configure()` of datasources
    (and of the components in `skipComponents`) and the two secrets steps, never calls `start()`, rethrows
-   boot's own error, and after boot runs `assertBindingsResolve` from `@venizia/ignis-inversion` over services and
+   boot's own error, and after boot runs `BindingVerifier.assertResolve` from `@venizia/ignis-inversion` over services and
    repositories (`skipBindings` leaves some out; the kernel's own step is off for the run). Components run for real (their `binding()` registers what the check resolves), so one that needs Redis,
    Kafka or S3 is named in `skipComponents`. It adds a duplicate-route check of its own, because
    boot has none. The `ignis` preset generates `src/boot.test.ts` with it; the smoke gate runs that test.

@@ -17,12 +17,10 @@ describe('ArtifactIndexHelper.flatten', () => {
     const second = { services: [AlsoPlain] };
     const third = { controllers: [Plain] };
 
-    expect(await helper.flatten({ input: first, application })).toEqual([first]);
-    expect(await helper.flatten({ input: [first, [second, [third]]], application })).toEqual([
-      first,
-      second,
-      third,
-    ]);
+    const result = await helper.flatten({ input: first, application });
+    expect(result).toEqual([first]);
+    const result2 = await helper.flatten({ input: [first, [second, [third]]], application });
+    expect(result2).toEqual([first, second, third]);
   });
 
   test('a conditional entry contributes its subtree when its when answers true and nothing when false', async () => {

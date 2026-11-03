@@ -86,7 +86,12 @@ describe('MailComponent - wiring', () => {
   test('missing mail options fail loudly', async () => {
     const { component } = buildComponent({ mailOptions: null });
 
-    const error = await component.configure().catch((caught: AnyType) => caught);
+    let error: AnyType;
+    try {
+      await component.configure();
+    } catch (caught) {
+      error = caught;
+    }
     expect(error.message).toContain('Mail options not configured');
   });
 

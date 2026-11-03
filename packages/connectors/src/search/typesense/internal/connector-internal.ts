@@ -4,6 +4,26 @@ import { EntryOutcomes, type TEntryClassification } from './outcomes';
 
 // Typesense-specific error classification only; engine-agnostic plumbing lives in SearchConnectorInternal.
 export class TypesenseInternal {
+  /** Typesense reads the server-side cache switches from the `/multi_search` query string, not from a search's body: `typesense-js` sends its own `use_cache` there too. */
+  private static readonly CACHE_PARAMS = new Set(['use_cache', 'cache_ttl']);
+
+  /** Splits a search's wire params into the cache switches (multi-search common params) and the rest (the per-search body). */
+  static splitCacheParams(opts: { params: Record<string, unknown> }) {
+    const common: Record<string, unknown> = {};
+    const body: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(opts.params)) {
+      if (TypesenseInternal.CACHE_PARAMS.has(key)) {
+        common[key] = value;
+        continue;
+      }
+
+      body[key] = value;
+    }
+
+    return { common, body };
+  }
+
   private static asHttpLike(opts: { error: unknown }): IHttpLikeError {
     const { error } = opts;
 
@@ -39,6 +59,60 @@ export class TypesenseInternal {
     }
 
     return this.messageOf({ error }).includes(phrase);
+  }
+
+  /** The wire parameters of an export: `filter_by`, `include_fields` and `exclude_fields`, each only when given. */
+  static toExportParams(opts: {
+    filterBy?: string;
+    includeFields?: string[];
+    excludeFields?: string[];
+  }): Record<string, unknown> {
+    const { filterBy, includeFields, excludeFields } = opts;
+    const params: Record<string, unknown> = {};
+
+    if (filterBy) {
+      params['filter_by'] = filterBy;
+    }
+
+    if (includeFields && includeFields.length > 0) {
+      params['include_fields'] = includeFields.join(',');
+    }
+
+    if (excludeFields && excludeFields.length > 0) {
+      params['exclude_fields'] = excludeFields.join(',');
+    }
+
+    return params;
+  }
+
+  /**
+   * NDJSON lines out of a stream of chunks (text or bytes): a line may span chunks, and a multi-byte character may
+   * too, so bytes go through one streaming decoder. Blank lines are dropped; a last line without a newline is yielded.
+   */
+  static async *toLines(opts: {
+    source: AsyncIterable<string | Uint8Array>;
+  }): AsyncGenerator<string, void, undefined> {
+    const decoder = new TextDecoder();
+    let pending = '';
+
+    for await (const chunk of opts.source) {
+      pending += typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
+
+      let newline = pending.indexOf('\n');
+      while (newline >= 0) {
+        const line = pending.slice(0, newline);
+        pending = pending.slice(newline + 1);
+        if (line.trim() !== '') {
+          yield line;
+        }
+        newline = pending.indexOf('\n');
+      }
+    }
+
+    pending += decoder.decode();
+    if (pending.trim() !== '') {
+      yield pending;
+    }
   }
 
   static isAlreadyExistsError(opts: { error: unknown }): boolean {

@@ -56,7 +56,7 @@ The commit is required: the root `.dockerignore` leaves `.git` out, so the [buil
 
 | Stage | What it does |
 |---|---|
-| `builder` | `oven/bun:1.4.3-alpine`: copies the whole project, `bun install --frozen-lockfile --ignore-scripts`, then `bun run compile` for `bun-linux-<arch>-musl` |
+| `builder` | `oven/bun:1.4.4-alpine`: copies the whole project, `bun install --frozen-lockfile --ignore-scripts`, then `bun run compile` for `bun-linux-<arch>-musl` |
 | `production` | `alpine:3.21` with the binary, `libstdc++` and `libgcc`, run as a non-root user on the app's port |
 
 | Build argument | Meaning |
@@ -170,15 +170,13 @@ BUN_TARGET=bun-linux-arm64 bun run compile
 **Cons:** Platform-specific, newer technology (test thoroughly)
 
 > [!IMPORTANT]
-> **A compiled binary MUST register a logger provider explicitly.** Logger providers are sub-path exports and `winston` is an optional peer, so the default provider is reached through a runtime `require` that the bundler cannot see. Without this line the binary throws on its first log call.
+> **A compiled binary needs no `LoggerFactory.use` for the logger.** The console is the default provider, and `@venizia/ignis` selects Winston at `initialize()` through an import the bundler sees. If `winston` is not installed, the console stays. To choose Pino, or Winston in a script that never builds an application, name the class yourself at the entrypoint:
 >
 > ```typescript
-> // before the application is built
-> import { LoggerFactory } from '@venizia/ignis-helpers';
-> import { WinstonLogger } from '@venizia/ignis-helpers/winston';
-> // or: import { PinoLogger } from '@venizia/ignis-helpers/pino';
+> import { LoggerFactory, LogLevels } from '@venizia/ignis-helpers';
+> import { PinoLogger } from '@venizia/ignis-helpers/pino';
 >
-> LoggerFactory.use({ provider: WinstonLogger });
+> LoggerFactory.use({ provider: PinoLogger, level: LogLevels.INFO });
 > ```
 >
 > The same rule applies to any optional peer: only a value import of the class carries it into the bundle. Naming a driver class in `@datasource({ driver: NodePostgresDriver })` is what pulls `pg` in.
@@ -313,7 +311,7 @@ bun run force-update next
 
 **Makefile shortcuts (repo root):**
 ```bash
-make update           # Reinstall deps (postinstall runs force-update)
+make update           # Same as make install (bun install); no force-update
 make update-core      # Update only @venizia/ignis
 make update-helpers   # Update only @venizia/ignis-helpers
 ```
@@ -673,14 +671,14 @@ Configure structured logging:
 
 ```typescript
 import type { ILogger } from '@venizia/ignis-helpers';
-import { ApplicationLogger, LoggerFactory } from '@venizia/ignis-helpers';
+import { LoggerFactory, LogLevels } from '@venizia/ignis-helpers';
 import { PinoLogger } from '@venizia/ignis-helpers/pino';
 
-// One line at the entrypoint selects the provider. Omit it and winston is loaded on
-// first use - which only works when winston is installed and the app is not compiled.
-LoggerFactory.use({ provider: PinoLogger });
+// One line at the entrypoint chooses the provider and the level. Omit it and
+// @venizia/ignis selects winston at initialize() (the console when winston is not installed).
+LoggerFactory.use({ provider: PinoLogger, level: LogLevels.INFO });
 
-const logger: ILogger = ApplicationLogger.get('MyService');
+const logger: ILogger = LoggerFactory.getLogger(['MyService']);
 logger.info('Service started | port: %d | env: %s', 3000, 'production');
 
 // Method-scoped child logger
@@ -689,7 +687,7 @@ logger.for('start').warn('Slow boot | took: %d ms', 1420);
 
 **Operational notes:**
 - Five levels, each a direct method: `debug`, `info`, `warn`, `error`, `emerg`
-- `debug()` is compiled out at module load unless `DEBUG` is truthy and `NODE_ENV` is a development env - restart to change it
+- `debug()` is off unless `DEBUG` is truthy and `NODE_ENV` is a development env, or `LoggerFactory.use({ level })` says otherwise - the environment is read once, so restart to change it
 - Log an `Error` with `%s`; `%j` swallows the stack
 - Secret-looking keys redact to `[REDACTED]` automatically
 - File output is opt-in: without `APP_ENV_LOGGER_FOLDER_PATH` nothing is written to disk
