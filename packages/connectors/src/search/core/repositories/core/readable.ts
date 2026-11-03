@@ -231,14 +231,16 @@ export class ReadableSearchRepository<
     query: string;
     queryBy?: string[];
     where?: TWhere;
+    engineParams?: Record<string, unknown>;
     options?: IExtraOptions;
   }): Promise<{ count: number; isFoundExact: boolean }> {
-    const { query, queryBy, where, options } = opts;
+    const { query, queryBy, where, engineParams, options } = opts;
 
     const result = await this.search({
       mode: SearchModes.KEYWORD,
       query,
       queryBy,
+      engineParams,
       filter: { where, limit: 0 },
       options,
     });
@@ -254,9 +256,11 @@ export class ReadableSearchRepository<
     where?: TWhere;
     maxFacetValues?: number;
     facetQuery?: string;
+    engineParams?: Record<string, unknown>;
     options?: IExtraOptions;
   }): Promise<{ facets: ISearchFacetCount[]; found: number; isFoundExact: boolean }> {
-    const { facetBy, query, queryBy, where, maxFacetValues, facetQuery, options } = opts;
+    const { facetBy, query, queryBy, where, maxFacetValues, facetQuery, engineParams, options } =
+      opts;
 
     if (facetBy.length === 0 || facetBy.some((name) => name.trim().length === 0)) {
       throw getError({
@@ -280,6 +284,7 @@ export class ReadableSearchRepository<
       facetBy,
       facetQuery,
       maxFacetValues,
+      engineParams,
       filter: { where, limit: 0 },
       options,
     });
@@ -298,9 +303,18 @@ export class ReadableSearchRepository<
     limit?: number;
     includeFields?: string[];
     where?: TWhere;
+    engineParams?: Record<string, unknown>;
     options?: IExtraOptions;
   }): Promise<R[]> {
-    const { query, queryBy, limit = SUGGEST_DEFAULT_LIMIT, includeFields, where, options } = opts;
+    const {
+      query,
+      queryBy,
+      limit = SUGGEST_DEFAULT_LIMIT,
+      includeFields,
+      where,
+      engineParams,
+      options,
+    } = opts;
 
     if (!Number.isInteger(limit) || limit <= 0) {
       throw getError({
@@ -317,6 +331,7 @@ export class ReadableSearchRepository<
       query,
       queryBy,
       highlight: false,
+      engineParams,
       filter: { where, fields: includeFields, limit },
       options,
     });
