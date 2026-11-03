@@ -360,7 +360,8 @@ describe('ReadableSearchRepository - searchCount, facets and suggest', () => {
       ];
 
       for (const run of runs) {
-        expect(await failureOf(run)).toMatch(/numTypos/);
+        const message = await failureOf(run);
+        expect(message).toMatch(/numTypos/);
       }
       expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
     });
