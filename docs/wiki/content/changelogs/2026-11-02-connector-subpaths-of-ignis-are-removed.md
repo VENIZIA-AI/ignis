@@ -1,7 +1,7 @@
 ---
 title: The connector sub-paths of @venizia/ignis are removed, and one codemod moves your imports
 description: "@venizia/ignis/postgres, /relational, /sqlite, /search, /typesense, /meilisearch and their driver and controller sub-paths are removed; import them from @venizia/ignis-connectors, which your app must list as a dependency, and run devz codemod connector-imports."
-packages: ['@venizia/ignis', '@venizia/dev-configs']
+packages: ['@venizia/ignis', '@venizia/ignis-connectors', '@venizia/dev-configs']
 ---
 
 # Changelog - 2026-11-02
@@ -68,10 +68,13 @@ To upgrade:
 2. Add `@venizia/ignis-connectors` to your `dependencies`, at the version `@venizia/ignis` depends on.
 3. Dry run: `bunx devz codemod connector-imports` lists every file it would change.
 4. Apply: `bunx devz codemod connector-imports --write`.
-5. Run your formatter and your typecheck.
+5. Edit by hand any `.js`, `.cjs` or `.mjs` file that imports a removed sub-path: the codemod does not read them.
+6. Run your formatter and your typecheck.
 
 ## Details
 
+- **The codemod reads `.ts`, `.tsx`, `.mts` and `.cts` files only.** A `.js`, `.cjs` or `.mjs` file is not read, so its imports of the removed sub-paths stay until you edit them (`grep -rn "@venizia/ignis/\(postgres\|sqlite\|relational\|search\|typesense\|meilisearch\)"` finds them).
+- **The codemod never edits a `package.json`.** It prints a warning for each `package.json` nearest a changed file that does not list `@venizia/ignis-connectors`; add the dependency yourself (step 2).
 - The codemod changes the quoted specifier and nothing else, so import order and formatting are yours to fix with your formatter.
 - A string that is not in an import position, a comment, and a name that only starts like a removed one (`@venizia/ignis/postgres-extra`) are not touched.
 - `devz codemod namespace-functions` and `devz codemod connector-imports` can run in either order: the function table still lists the old `@venizia/ignis/<sub-path>` modules next to the `@venizia/ignis-connectors` ones.
