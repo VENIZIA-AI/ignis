@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
-import { ScopeThroughBrand } from '@venizia/ignis-kernel';
+import { ScopeThrough } from '@venizia/ignis-kernel';
 import { integer, pgTable, serial } from 'drizzle-orm/pg-core';
-import { many, ModelFactory, one, ScopeThrough } from '@/relational/postgres/models';
+import { many, ModelFactory, one } from '@/relational/postgres/models';
 
 /** `tsc --noEmit` is the real gate here: a misused `@ts-expect-error` fails the build, not `bun test`. */
 const productTable = pgTable('through_types_product', { id: serial('id').primaryKey() });
@@ -30,5 +30,4 @@ test('ScopeThrough.of takes the name of a one relation of the entity, and nothin
   ScopeThrough.of({ entity: VariantBase, relation: name });
 
   expect(through.relation).toBe('product');
-  expect(through[ScopeThroughBrand.KEY]).toBe(true);
 });

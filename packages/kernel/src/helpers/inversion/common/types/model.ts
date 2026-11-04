@@ -1,7 +1,7 @@
 import type { AbstractEntity, TModelType } from '@/base/models';
 import type {
   ScopeFilters,
-  ScopeThroughBrand,
+  ScopeThrough,
   TFilter,
   TScopeFilterMissingBehavior,
   TScopeOperation,
@@ -44,15 +44,6 @@ export interface IModelAccessWriteSettings {
    * READ shared rows, a separate permission). Reads are scoped as before.
    */
   sharedRows?: boolean;
-}
-
-/**
- * A model scoped through its parent: the name of a `one` relation, branded so only `ScopeThrough.of` makes one.
- * The relation name is checked against the model's own relations when the value is built, and again at boot.
- */
-export interface IScopeThrough<RelationName extends string = string> {
-  readonly [ScopeThroughBrand.KEY]: true;
-  readonly relation: RelationName;
 }
 
 /**
@@ -102,14 +93,12 @@ export interface IModelAccessSettings {
 
 /**
  * Row access for a child model that has no scope columns of its own: it inherits the scope of the parent a `one`
- * relation points at. Reads only in this release; every write to the model is refused.
+ * relation points at. A parent that resolves no scope always denies the child: `onMissing` is not offered here, because
+ * `'allow'` would show the child's rows of every tenant while the parent shows none.
  */
 export interface IModelAccessThroughSettings {
-  through: IScopeThrough;
-
-  /** What an unresolved scope of the parent does to a query on this model. Same meaning as on `IModelAccessSettings`. */
-  onMissing?: TScopeFilterMissingBehavior;
-
+  through: ScopeThrough;
+  onMissing?: never;
   resolve?: never;
   columns?: never;
   write?: never;

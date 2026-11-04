@@ -5,7 +5,7 @@ import { MetadataRegistry, ScopeWriteGuards } from '@venizia/ignis-kernel';
 import type { IModelRegistryEntry } from '@venizia/ignis-kernel';
 import { ScopeThroughLink } from '@/relational/core/repositories/common/scope-through';
 import { BaseSearchEntity } from '@/search/core/models';
-import { getTableColumns, is, Table } from 'drizzle-orm';
+import { getTableColumns, getTableName, is, Table } from 'drizzle-orm';
 
 export class ScopeFilterUtility {
   /**
@@ -19,8 +19,8 @@ export class ScopeFilterUtility {
     logger?: ILogger;
   }): string | undefined {
     const { name, models, logger } = opts;
-    const visited = new Set([name]);
     let current = models.get(name);
+    const visited = new Set([current]);
     let hops = 0;
 
     while (current?.metadata?.settings?.access?.through) {
@@ -58,18 +58,18 @@ export class ScopeFilterUtility {
           );
       }
 
-      const parent = [...models].find(([, entry]) => entry.schema === link.parentSchema);
+      const { parentEntry } = link;
 
-      if (!parent?.[1].metadata?.settings?.access) {
-        return `the parent ${parent?.[0] ?? 'model'} has no access setting`;
+      if (!parentEntry?.metadata?.settings?.access) {
+        return `the parent ${getTableName(link.parentSchema)} has no access setting`;
       }
 
-      if (visited.has(parent[0])) {
-        return `through goes in a cycle at ${parent[0]}`;
+      if (visited.has(parentEntry)) {
+        return `through goes in a cycle at ${getTableName(link.parentSchema)}`;
       }
 
-      visited.add(parent[0]);
-      current = parent[1];
+      visited.add(parentEntry);
+      current = parentEntry;
     }
 
     return undefined;
@@ -117,6 +117,12 @@ export class ScopeFilterUtility {
 
       if (access.through) {
         const problem = ScopeFilterUtility.throughProblem({ name, models, logger: opts.logger });
+
+        if (access.onMissing !== undefined) {
+          invalidThrough.push(
+            `${name}: onMissing is not available on through, a parent that resolves no scope always denies`,
+          );
+        }
 
         if (access.columns || access.write) {
           invalidThrough.push(`${name}: columns and write belong to a resolver, not to through`);

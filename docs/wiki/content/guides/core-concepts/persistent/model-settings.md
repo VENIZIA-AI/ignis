@@ -416,8 +416,8 @@ A model that has only a foreign key to its parent can inherit the parent's scope
 
 ```typescript
 // src/models/variant.model.ts
-import { model } from '@venizia/ignis';
-import { many, ModelFactory, one, ScopeThrough } from '@venizia/ignis-connectors/postgres';
+import { model, ScopeThrough } from '@venizia/ignis';
+import { ModelFactory, one } from '@venizia/ignis-connectors/postgres';
 import { productTable } from './product.table';
 import { variantTable } from './variant.table';
 
@@ -442,8 +442,8 @@ variant.product_id IN (SELECT product.id FROM product WHERE <Product's scope>)
 
 - **The parent decides.** `Product` keeps its `access.resolve`. A change to its scope reaches every child with no edit. The `operation` the child call passes (`READ`) is the one `Product`'s `resolve` receives.
 - **Several hops.** Each model declares its own one hop: an `Option` through `Variant`, `Variant` through `Product`. A chain is at most 5 hops, and the application refuses to start on a longer one or on a cycle.
-- **`UNRESTRICTED` and `null`** come from the parent: an unrestricted parent leaves the child unrestricted for that call, and a parent that cannot resolve a scope follows the child's `onMissing` (`'deny'` by default).
-- **A row with a null foreign key** matches no parent, so it is invisible.
+- **`UNRESTRICTED` and `null`** come from the parent: an unrestricted parent leaves the child unrestricted for that call, and a parent that cannot resolve a scope denies the child. A `through` model has no `onMissing`: `'allow'` would show the child's rows of every tenant while the parent shows none, so the application refuses to start with one.
+- **A row with a null foreign key** matches no parent, so under a restricting scope it is invisible. Under `UNRESTRICTED` the whole table is visible, such rows included.
 - **`include`** applies the included model's own scope, so a `through` child loaded through any relation is scoped too.
 - **Writes name a parent the caller may reach.** See [Writes through a parent](#writes-through-a-parent).
 - **`through` replaces `resolve`.** A model declares one of them; `columns` and `write` belong to `resolve` only. At boot the application checks that the relation is a `one` with a single-column key, that the parent has an `access`, and warns when the foreign key has no index.
@@ -462,7 +462,7 @@ SELECT parent.pk FROM parent WHERE parent.pk IN (<the keys the rows name>) AND <
 - **A batch is all or nothing.** `createAll` with one foreign parent writes nothing.
 - **Update and delete** select the rows with the child's scope, built from the parent's scope for `UPDATE` or `DELETE`. A payload that does not name the foreign key checks no parent. A soft delete counts as a delete.
 - **One transaction.** The check and the write run in the same transaction: the caller's, or one the repository opens and commits. On Postgres the checked parents are read `FOR SHARE`, so a parent that moves to another tenant after the check cannot be missed. SQLite has no row lock; its transactions begin `IMMEDIATE`, which excludes every other writer. A caller who opens a deferred SQLite transaction on purpose weakens that.
-- **`UNRESTRICTED`** from the parent skips the scope and still requires the parent to exist. A parent that resolves `null` refuses the write unless the model's `onMissing` is `'allow'`.
+- **`UNRESTRICTED`** from the parent skips the scope and still requires the parent to exist. A parent that resolves `null` refuses the write.
 - **A model with `through` cannot use `write.sharedRows` or `write.mode`:** there is no scope column on the child to fill or to leave null.
 
 #### `through` or a copied column

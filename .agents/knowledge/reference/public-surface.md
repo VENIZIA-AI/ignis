@@ -1425,7 +1425,6 @@ generated:
 - `IRpcMetadata` interface
 - `isClass` const
 - `isClassProvider` const
-- `IScopeThrough` interface
 - `isDataSourceClass` const
 - `ISearchableDataSourceCapabilities` interface
 - `IServerConfigMixin` interface
@@ -1493,7 +1492,7 @@ generated:
 - `ScopeFilterMissingBehaviors` class
 - `ScopeFilters` class
 - `ScopeOperations` class
-- `ScopeThroughBrand` class
+- `ScopeThrough` class
 - `ScopeWriteGuards` class
 - `SearchErrorCodes` class
 - `SecFetchSiteValues` const
@@ -1597,6 +1596,7 @@ generated:
 - `TModelAccessSettings` type
 - `TModelClass` type
 - `TModelType` type
+- `TOneRelationNameOf` type
 - `TOrderEntry` type
 - `TOrigin` type
 - `TParsedOrderEntry` type
@@ -1717,7 +1717,7 @@ generated:
 
 ## connectors
 
-### `@venizia/ignis-connectors` (130)
+### `@venizia/ignis-connectors` (128)
 
 - `AbstractDriverDataSource` class
 - `AbstractRelationalDataSource` class
@@ -1800,7 +1800,6 @@ generated:
 - `RelationsFactory` class
 - `ScopeFilterDenial` class
 - `ScopeFilterUtility` class
-- `ScopeThrough` class
 - `SearchBaseRepository` class
 - `SearchCollectionFactory` class
 - `SearchErrors` const
@@ -1823,7 +1822,6 @@ generated:
 - `TIdColumn` type
 - `TMultiSearchEntry` type
 - `TMultiSearchInput` type
-- `TOneRelationNameOf` type
 - `TPrimaryKey` type
 - `TRecursiveTreeDirection` type
 - `TRelationalConnectorOf` type
@@ -1886,7 +1884,7 @@ generated:
 - `TRawSqlQuery` type
 - `TRawSqlSchema` type
 
-### `@venizia/ignis-connectors/relational` (72)
+### `@venizia/ignis-connectors/relational` (70)
 
 - `AbstractRelationalDataSource` class
 - `AuditUserResolver` class
@@ -1933,7 +1931,6 @@ generated:
 - `RelationDeclarations` class
 - `RelationsFactory` class
 - `ScopeFilterDenial` class
-- `ScopeThrough` class
 - `SoftDeletableRelationalRepository` class
 - `TableColumnCache` class
 - `TColumnDefinition` type
@@ -1944,7 +1941,6 @@ generated:
 - `TEntityObject` type
 - `TGetIdType` type
 - `TIdColumn` type
-- `TOneRelationNameOf` type
 - `TPrimaryKey` type
 - `TRecursiveTreeDirection` type
 - `TRelationalConnectorOf` type
@@ -1961,7 +1957,7 @@ generated:
 - `TTableObject` type
 - `TTableSchemaWithId` type
 
-### `@venizia/ignis-connectors/postgres` (81)
+### `@venizia/ignis-connectors/postgres` (79)
 
 - `AbstractPostgresDataSource` class
 - `BaseDataSource` class
@@ -2006,7 +2002,6 @@ generated:
 - `RelationalEntityUtility` class
 - `RelationDeclarations` class
 - `RelationsFactory` class
-- `ScopeThrough` class
 - `SoftDeletableRepository` class
 - `TableColumnCache` class
 - `TAnyConnector` type
@@ -2022,7 +2017,6 @@ generated:
 - `TIdEnricherOptions` type
 - `TIdEnricherResult` type
 - `TIsolationLevel` type
-- `TOneRelationNameOf` type
 - `TPrimaryKey` type
 - `TPrincipalEnricherOptions` type
 - `TRecursiveTreeDirection` type
@@ -2075,7 +2069,7 @@ generated:
 - `SupabaseRls` class
 - `TPoolerMode` type
 
-### `@venizia/ignis-connectors/sqlite` (73)
+### `@venizia/ignis-connectors/sqlite` (71)
 
 - `AbstractSqliteDataSource` class
 - `BaseSqliteDataSource` class
@@ -2105,7 +2099,6 @@ generated:
 - `RecursiveTreeSql` class
 - `RelationalEntityUtility` class
 - `RelationDeclarations` class
-- `ScopeThrough` class
 - `SoftDeletableSqliteRepository` class
 - `SqliteBaseRepository` class
 - `SqliteBeginModes` class
@@ -2129,7 +2122,6 @@ generated:
 - `TIdColumn` type
 - `TIdEnricherOptions` type
 - `TIdEnricherResult` type
-- `TOneRelationNameOf` type
 - `TPrimaryKey` type
 - `TPrincipalEnricherOptions` type
 - `TRecursiveTreeDirection` type
@@ -2371,7 +2363,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1011)
+### `@venizia/ignis` (1009)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2801,7 +2793,6 @@ generated:
 - `IScopedCasbinEntities` interface
 - `IScopedCasbinPolicyFilter` interface
 - `IScopedCasbinTable` interface
-- `IScopeThrough` interface
 - `isDatabaseTransaction` const
 - `isDataSourceClass` const
 - `ISearchableDataSourceCapabilities` interface
@@ -3016,7 +3007,6 @@ generated:
 - `ScopeFilters` class
 - `ScopeOperations` class
 - `ScopeThrough` class
-- `ScopeThroughBrand` class
 - `ScopeWriteGuards` class
 - `SearchErrorCodes` class
 - `SecFetchSiteValues` const

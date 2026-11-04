@@ -261,12 +261,13 @@ export abstract class RelationalBaseRepository<
       throw denied;
     }
 
-    if (isUnresolved && settings.onMissing !== ScopeFilterMissingBehaviors.ALLOW) {
+    // A parent that resolves no scope always denies its child: there is no onMissing to open it.
+    if (isUnresolved) {
       throw denied;
     }
 
     const parentScope =
-      isUnresolved || scope === ScopeFilters.UNRESTRICTED
+      scope === ScopeFilters.UNRESTRICTED
         ? undefined
         : this.queryDialect.toWhere({
             tableName: getTableName(link.parentSchema),

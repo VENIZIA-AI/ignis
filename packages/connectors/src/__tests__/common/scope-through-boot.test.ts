@@ -2,10 +2,10 @@ import {
   AbstractEntity,
   MetadataRegistry,
   RelationTypes,
-  ScopeThroughBrand,
-  type IScopeThrough,
+  ScopeThrough,
 } from '@venizia/ignis-kernel';
 import { afterEach, describe, expect, test } from 'bun:test';
+import { getTableName } from 'drizzle-orm';
 import { index, integer, pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { ScopeFilterUtility } from '@/common';
@@ -64,8 +64,12 @@ class Entity extends AbstractEntity {
   }
 }
 
-const brand = (relation: string): IScopeThrough => {
-  return { [ScopeThroughBrand.KEY]: true, relation };
+/** An entity that declares no relations: the types accept no name for it, so every test name is built at runtime. */
+const NO_RELATIONS = { relationDefinitions: undefined };
+
+const through = (relation: string) => {
+  // @ts-expect-error - a name built at runtime skips the types; the boot check is what catches it
+  return ScopeThrough.of({ entity: NO_RELATIONS, relation });
 };
 
 const oneOf = (opts: { name: string; schema: TTableSchemaWithId }): TRelationConfig => {
@@ -74,13 +78,13 @@ const oneOf = (opts: { name: string; schema: TTableSchemaWithId }): TRelationCon
 
 const registry = MetadataRegistry.getInstance();
 
+/** Registered under the table name, the way a model is, so the parent is found by the same lookup the repository uses. */
 const register = (opts: {
-  name: string;
-  schema: object;
+  schema: TTableSchemaWithId;
   access: object;
   relations?: TRelationConfig[];
 }) => {
-  registry.getAllModels().set(opts.name, {
+  registry.getAllModels().set(getTableName(opts.schema), {
     target: Entity as never,
     metadata: { settings: { access: opts.access } } as never,
     schema: opts.schema,
@@ -88,8 +92,19 @@ const register = (opts: {
   } as never);
 };
 
-const parent = () =>
-  register({ name: 'Product', schema: productTable, access: { resolve: () => null } });
+const parent = () => register({ schema: productTable, access: { resolve: () => null } });
+
+const child = (opts: {
+  schema: TTableSchemaWithId;
+  relation: string;
+  target: TTableSchemaWithId;
+}) => {
+  register({
+    schema: opts.schema,
+    access: { through: through(opts.relation) },
+    relations: [oneOf({ name: opts.relation, schema: opts.target })],
+  });
+};
 
 const check = (logger?: RecordingLogger) => {
   ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: true, logger });
@@ -102,60 +117,58 @@ describe('ScopeFilterUtility.assertScopeFilterSupported - access.through', () =>
 
   test('passes for a chain of two hops that ends in a resolver', () => {
     parent();
-    register({
-      name: 'Variant',
-      schema: variantTable,
-      access: { through: brand('product') },
-      relations: [oneOf({ name: 'product', schema: productTable })],
-    });
-    register({
-      name: 'Option',
-      schema: optionTable,
-      access: { through: brand('variant') },
-      relations: [oneOf({ name: 'variant', schema: variantTable })],
-    });
+    child({ schema: variantTable, relation: 'product', target: productTable });
+    child({ schema: optionTable, relation: 'variant', target: variantTable });
 
     expect(check).not.toThrow();
   });
 
   test('refuses a model that declares both a resolver and a through, or neither', () => {
     register({
-      name: 'Both',
       schema: variantTable,
-      access: { resolve: () => null, through: brand('product') },
+      access: { resolve: () => null, through: through('product') },
     });
-    expect(check).toThrow(/Both.*resolve or through/);
+    expect(check).toThrow(/boot_variant.*resolve or through/);
 
     registry.getAllModels().clear();
-    register({ name: 'Neither', schema: variantTable, access: { onMissing: 'deny' } });
-    expect(check).toThrow(/Neither.*resolve or through/);
+    register({ schema: variantTable, access: {} });
+    expect(check).toThrow(/boot_variant.*resolve or through/);
   });
 
   test('refuses columns and write on a through model', () => {
     parent();
     register({
-      name: 'Variant',
       schema: variantTable,
-      access: { through: brand('product'), columns: ['productId'] },
+      access: { through: through('product'), columns: ['productId'] },
       relations: [oneOf({ name: 'product', schema: productTable })],
     });
 
-    expect(check).toThrow(/Variant.*columns and write/);
+    expect(check).toThrow(/boot_variant.*columns and write/);
+  });
+
+  test('refuses onMissing on a through model: a parent that resolves no scope always denies', () => {
+    parent();
+    register({
+      schema: variantTable,
+      access: { through: through('product'), onMissing: 'allow' },
+      relations: [oneOf({ name: 'product', schema: productTable })],
+    });
+
+    expect(check).toThrow(/boot_variant.*onMissing/);
   });
 
   test('refuses a relation the model does not declare, and names it', () => {
     parent();
-    register({ name: 'Variant', schema: variantTable, access: { through: brand('prodcut') } });
+    register({ schema: variantTable, access: { through: through('prodcut') } });
 
-    expect(check).toThrow(/Variant.*prodcut/);
+    expect(check).toThrow(/boot_variant.*prodcut/);
   });
 
   test('refuses a to-many relation', () => {
     parent();
     register({
-      name: 'Product',
       schema: productTable,
-      access: { through: brand('variants') },
+      access: { through: through('variants') },
       relations: [
         {
           name: 'variants',
@@ -166,31 +179,21 @@ describe('ScopeFilterUtility.assertScopeFilterSupported - access.through', () =>
       ],
     });
 
-    expect(check).toThrow(/Product.*variants/);
+    expect(check).toThrow(/boot_product.*variants/);
   });
 
   test('refuses a parent that has no access of its own', () => {
-    register({ name: 'Product', schema: productTable, access: { resolve: () => null } });
-    registry.getAllModels().get('Product')!.metadata = { settings: {} } as never;
-    register({
-      name: 'Variant',
-      schema: variantTable,
-      access: { through: brand('product') },
-      relations: [oneOf({ name: 'product', schema: productTable })],
-    });
+    register({ schema: productTable, access: { resolve: () => null } });
+    registry.getAllModels().get('boot_product')!.metadata = { settings: {} } as never;
+    child({ schema: variantTable, relation: 'product', target: productTable });
 
-    expect(check).toThrow(/Variant.*no access/);
+    expect(check).toThrow(/boot_variant.*no access/);
   });
 
   test('refuses a cycle', () => {
-    register({
-      name: 'Category',
-      schema: categoryTable,
-      access: { through: brand('parent') },
-      relations: [oneOf({ name: 'parent', schema: categoryTable })],
-    });
+    child({ schema: categoryTable, relation: 'parent', target: categoryTable });
 
-    expect(check).toThrow(/Category.*cycle/);
+    expect(check).toThrow(/boot_category.*cycle/);
   });
 
   test('refuses a chain longer than the limit and passes one at the limit', () => {
@@ -207,9 +210,8 @@ describe('ScopeFilterUtility.assertScopeFilterSupported - access.through', () =>
 
       chain.push(table);
       register({
-        name: `Level${level}`,
         schema: table,
-        access: { through: brand('parent') },
+        access: { through: through('parent') },
         relations: [
           {
             name: 'parent',
@@ -221,36 +223,26 @@ describe('ScopeFilterUtility.assertScopeFilterSupported - access.through', () =>
       });
     }
 
-    expect(check).toThrow(/Level6.*deeper than 5/);
+    expect(check).toThrow(/boot_level_6.*deeper than 5/);
 
-    registry.getAllModels().delete('Level6');
+    registry.getAllModels().delete('boot_level_6');
 
     expect(check).not.toThrow();
   });
 
   test('warns, without failing, when the foreign key has no index', () => {
     parent();
-    register({
-      name: 'LooseVariant',
-      schema: looseVariantTable,
-      access: { through: brand('product') },
-      relations: [oneOf({ name: 'product', schema: productTable })],
-    });
+    child({ schema: looseVariantTable, relation: 'product', target: productTable });
     const logger = new RecordingLogger();
 
     expect(() => check(logger)).not.toThrow();
     expect(logger.countAt({ level: 'warn' })).toBe(1);
-    expect(logger.calls[0].args[0]).toBe('LooseVariant');
+    expect(logger.calls[0].args[0]).toBe('boot_loose_variant');
   });
 
   test('does not warn when the foreign key is indexed', () => {
     parent();
-    register({
-      name: 'Variant',
-      schema: variantTable,
-      access: { through: brand('product') },
-      relations: [oneOf({ name: 'product', schema: productTable })],
-    });
+    child({ schema: variantTable, relation: 'product', target: productTable });
     const logger = new RecordingLogger();
 
     check(logger);
