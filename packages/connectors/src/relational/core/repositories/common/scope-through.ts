@@ -3,10 +3,10 @@ import { RelationTypes } from '@venizia/ignis-kernel';
 import type { IModelRegistryEntry } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
 import { getTableColumns, getTableName, is } from 'drizzle-orm';
-import type { AnyColumn } from 'drizzle-orm';
+import type { AnyColumn, Table } from 'drizzle-orm';
 import { getTableConfig as getPgTableConfig, PgTable } from 'drizzle-orm/pg-core';
 import { getTableConfig as getSqliteTableConfig } from 'drizzle-orm/sqlite-core';
-import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
+import { SQLiteTable } from 'drizzle-orm/sqlite-core';
 import type { TTableSchemaWithId } from '@/relational/core/models/common';
 import { OneRelations } from '../dialect/relations/one';
 import type { TRelationConfig } from './types';
@@ -22,7 +22,7 @@ export class ScopeThroughLink {
    * Throws when the relation is missing, is not a `one`, or has no single-column key on this side.
    */
   static of(opts: {
-    schema: TTableSchemaWithId;
+    schema: Table;
     relation: string;
     relations: Record<string, TRelationConfig>;
   }): { parentSchema: TTableSchemaWithId; childProperty: string; parentColumn: AnyColumn } {
@@ -65,12 +65,14 @@ export class ScopeThroughLink {
   }
 
   /** Whether `property` of `schema` leads an index, a primary key or a unique constraint: the shape a semi-join on it needs. */
-  static isIndexed(opts: { schema: TTableSchemaWithId; property: string }): boolean {
+  static isIndexed(opts: { schema: Table; property: string }): boolean {
     const { schema, property } = opts;
     const column = getTableColumns(schema)[property];
     const config = is(schema, PgTable)
       ? getPgTableConfig(schema)
-      : getSqliteTableConfig(schema as SQLiteTable);
+      : is(schema, SQLiteTable)
+        ? getSqliteTableConfig(schema)
+        : undefined;
 
     const leadsWith = (columns: ReadonlyArray<unknown>) => {
       return Reflect.get(columns[0] ?? {}, 'name') === column?.name;
@@ -79,9 +81,9 @@ export class ScopeThroughLink {
     return (
       column?.primary === true ||
       column?.isUnique === true ||
-      config.indexes.some((item) => leadsWith(item.config.columns)) ||
-      config.primaryKeys.some((item) => leadsWith(item.columns)) ||
-      config.uniqueConstraints.some((item) => leadsWith(item.columns))
+      config?.indexes.some((item) => leadsWith(item.config.columns)) === true ||
+      config?.primaryKeys.some((item) => leadsWith(item.columns)) === true ||
+      config?.uniqueConstraints.some((item) => leadsWith(item.columns)) === true
     );
   }
 }

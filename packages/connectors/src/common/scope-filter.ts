@@ -30,11 +30,17 @@ export class ScopeFilterUtility {
         return `through is deeper than ${ScopeThroughLink.MAX_DEPTH} hops`;
       }
 
+      const { schema } = current;
+
+      if (!is(schema, Table)) {
+        return 'the model has no table to read a foreign key from';
+      }
+
       let link: ReturnType<typeof ScopeThroughLink.of>;
 
       try {
         link = ScopeThroughLink.of({
-          schema: current.schema as never,
+          schema,
           relation: current.metadata.settings.access.through.relation,
           relations: ScopeThroughLink.relationsOf({ entry: current }),
         });
@@ -42,13 +48,7 @@ export class ScopeFilterUtility {
         return error instanceof Error ? error.message : String(error);
       }
 
-      if (
-        hops === 1 &&
-        !ScopeThroughLink.isIndexed({
-          schema: current.schema as never,
-          property: link.childProperty,
-        })
-      ) {
+      if (hops === 1 && !ScopeThroughLink.isIndexed({ schema, property: link.childProperty })) {
         logger
           ?.for('assertScopeFilterSupported')
           .warn(
