@@ -38,6 +38,7 @@
     "LICENSE.md",
     "dist",
     "!**/__tests__",
+    "!**/*.d.ts.map",
     "!**/*.tsbuildinfo"
   ],
   "sideEffects": false,
