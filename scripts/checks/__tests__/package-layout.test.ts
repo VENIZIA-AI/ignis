@@ -16,7 +16,14 @@ const REQUIRED = [
   'src',
   'tsconfig.json',
 ];
-const FILES = ['README.md', 'LICENSE.md', 'dist', '!**/__tests__', '!**/*.d.ts.map', '!**/*.tsbuildinfo'];
+const FILES = [
+  'README.md',
+  'LICENSE.md',
+  'dist',
+  '!**/__tests__',
+  '!**/*.d.ts.map',
+  '!**/*.tsbuildinfo',
+];
 
 const trackedRootOf = (opts: { name: string }): string[] => {
   const listed = Bun.spawnSync(['git', 'ls-files', `packages/${opts.name}`], {
