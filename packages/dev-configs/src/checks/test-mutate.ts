@@ -21,7 +21,7 @@ export interface IMutant {
   replace: string;
 }
 
-/** One ledger line: a candidate test that is redundant because the survivor test already catches the same break. */
+/** One ledger line: a candidate test that the survivor test makes redundant, or one that proves nothing (`vacuous`). */
 export interface ILedgerLine {
   id: string;
   /** Repository-relative test file that is deleted. */

@@ -37,7 +37,7 @@ export interface IControlsReport {
   problems: IControlProblem[];
 }
 
-/** Verifies that every positive control in the registry still exists: its test file is present and enough test titles match its pattern. */
+/** Verifies that every positive control in the registry still exists: its file is present and, for a test entry, enough test titles match its pattern. */
 export class TestControlsCheck {
   /**
    * The titles in a test file: the first string argument of `test`, `it`, `describe` and of the
