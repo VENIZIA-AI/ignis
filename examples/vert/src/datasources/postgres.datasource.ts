@@ -51,6 +51,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 
   override getConnectionString(): ValueOrPromise<string> {
     const { host, port, user, password, database } = this.settings;
+
     return `${this.protocol}://${user}:${password}@${host}:${port}/${database}`;
   }
 }

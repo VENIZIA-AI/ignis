@@ -129,6 +129,7 @@ export class PathCases extends BaseTestCases {
       if (results.length === 2) {
         const levels = results.map((r) => (r.jValue as any)?.metadata?.level);
         const allHigh = levels.every((l) => l === 'high');
+
         if (allHigh) {
           this.context.logger.info('[CASE 3] PASSED | Found 2 records with level = "high"');
           this.context.logger.info(
@@ -223,6 +224,7 @@ export class PathCases extends BaseTestCases {
       await repo.deleteAll({ where: { group } });
     } catch (error) {
       this.context.logger.error('[CASE 17] FAILED | Error: %s', (error as Error).message);
+
       try {
         await repo.deleteAll({ where: { group } });
       } catch (cleanupError) {

@@ -38,6 +38,7 @@ export class EdgeCases extends UserAuditCases {
 
       if (!dbRecord) {
         this.context.logger.error('[CASE 8] FAILED | Record not found');
+
         return;
       }
 
@@ -115,6 +116,7 @@ export class EdgeCases extends UserAuditCases {
       if (!created.data) {
         this.context.logger.error('[CASE 11] FAILED | Create in transaction returned no data');
         await transaction.rollback();
+
         return;
       }
 
@@ -134,6 +136,7 @@ export class EdgeCases extends UserAuditCases {
       if (!found) {
         this.context.logger.error('[CASE 11] FAILED | Record not found in transaction');
         await transaction.rollback();
+
         return;
       }
 
@@ -203,6 +206,7 @@ export class EdgeCases extends UserAuditCases {
 
       if (!dbRecord) {
         this.context.logger.error('[CASE 12] FAILED | Initial record not created');
+
         return;
       }
 
@@ -356,6 +360,7 @@ export class EdgeCases extends UserAuditCases {
 
       if (!created.data) {
         this.context.logger.error('[CASE 18] FAILED | Record creation failed');
+
         return;
       }
 
@@ -366,6 +371,7 @@ export class EdgeCases extends UserAuditCases {
 
       if (deleted.count !== 1 || !deleted.data) {
         this.context.logger.error('[CASE 18] FAILED | Delete did not return expected count');
+
         return;
       }
 
@@ -488,6 +494,7 @@ export class EdgeCases extends UserAuditCases {
 
       // Test 1: Empty string should be rejected by FK constraint
       let emptyStringRejected = false;
+
       try {
         await repo.create({
           data: {
@@ -511,6 +518,7 @@ export class EdgeCases extends UserAuditCases {
 
       // Test 2: Null should be accepted (FK allows null for optional audit fields)
       let nullAccepted = false;
+
       try {
         await repo.create({
           data: {

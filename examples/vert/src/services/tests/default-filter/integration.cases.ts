@@ -174,6 +174,7 @@ export class IntegrationCases extends BaseTestCases {
 
       if (found?.code === testCode) {
         const hasRelations = ((found as any).saleChannelProducts?.length ?? 0) > 0;
+
         if (hasRelations) {
           this.context.logger.info(
             '[CASE 26] PASSED | Nested relations loaded with default filter',

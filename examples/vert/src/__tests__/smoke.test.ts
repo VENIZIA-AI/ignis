@@ -61,6 +61,7 @@ const isListening = async (opts: { port: number }) => {
       socket: { data: () => {} },
     });
     socket.end();
+
     return true;
   } catch (error) {
     LoggerFactory.getLogger(['smoke']).info(
@@ -68,6 +69,7 @@ const isListening = async (opts: { port: number }) => {
       opts.port,
       (error as Error).message,
     );
+
     return false;
   }
 };
@@ -79,10 +81,12 @@ const ConfigurationResponse = z.object({ data: z.object({ id: z.string(), code: 
 describe('vert', async () => {
   const isPostgresUp = await isListening({ port: POSTGRES_PORT });
   let isRedisUp = false;
+
   if (isPostgresUp) {
     const redisProbe = await isListening({ port: REDIS_PORT });
     isRedisUp = redisProbe;
   }
+
   const servicesUp = isPostgresUp && isRedisUp;
 
   describe.skipIf(!servicesUp)('against docker compose', () => {
@@ -116,11 +120,13 @@ describe('vert', async () => {
       });
       expect(response.status).toBe(200);
       const signInBody = await response.json();
+
       return SignInResponse.parse(signInBody).token.value;
     };
 
     const bearer = async (opts: { username: string }) => {
       const token = await signIn(opts);
+
       return { authorization: `Bearer ${token}` };
     };
 
@@ -129,6 +135,7 @@ describe('vert', async () => {
       const permissions = repository<PermissionRepository>({ name: PermissionRepository.name });
       const existing = await permissions.findOne({ filter: { where: { code: 'configuration' } } });
       let permission = existing;
+
       if (!permission) {
         const created = await permissions.create({
           data: {
@@ -217,9 +224,11 @@ describe('vert', async () => {
       const user = await repository<UserRepository>({ name: UserRepository.name }).findByUsername({
         username: reader,
       });
+
       if (!user) {
         throw getError({ message: '[smoke] The reader was not created by sign-up' });
       }
+
       const grant = await seedGrant({ userId: user.id });
       seeded = grant;
     });
@@ -294,6 +303,7 @@ describe('vert', async () => {
       const target = await repository<UserRepository>({ name: UserRepository.name }).findByUsername(
         { username: outsider },
       );
+
       if (!target) {
         throw getError({ message: '[smoke] The outsider was not created by sign-up' });
       }

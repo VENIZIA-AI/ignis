@@ -23,6 +23,7 @@ export class ReadCases extends BaseTestCases {
 
       if (!findOneUser) {
         this.context.logger.warn('[CASE 2] SKIPPED | No test user found');
+
         return;
       }
 
@@ -35,6 +36,7 @@ export class ReadCases extends BaseTestCases {
       });
 
       let findHasHidden = false;
+
       for (const user of findUsers) {
         if ('password' in user || 'secret' in user) {
           findHasHidden = true;
@@ -87,6 +89,7 @@ export class ReadCases extends BaseTestCases {
 
       if (users.length === 0) {
         this.context.logger.warn('[CASE 11] SKIPPED | No test users found');
+
         return;
       }
 
@@ -153,6 +156,7 @@ export class ReadCases extends BaseTestCases {
 
       if (!foundByPassword) {
         this.context.logger.error('[CASE 13] FAILED | Could not find user by password filter');
+
         return;
       }
 
@@ -162,6 +166,7 @@ export class ReadCases extends BaseTestCases {
           testRealm,
           foundByPassword.realm,
         );
+
         return;
       }
 
@@ -258,6 +263,7 @@ export class ReadCases extends BaseTestCases {
 
       if (directResults.length === 0) {
         this.context.logger.warn('[CASE 15] SKIPPED | No test users found');
+
         return;
       }
 
@@ -265,6 +271,7 @@ export class ReadCases extends BaseTestCases {
 
       if (!knownPassword) {
         this.context.logger.warn('[CASE 15] SKIPPED | Test user has no password');
+
         return;
       }
 

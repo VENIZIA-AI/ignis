@@ -36,6 +36,7 @@ export class PathsCases extends BaseTestCases {
 
       if (updateResult.count === 1) {
         const verified = await repo.findById({ id });
+
         if (verified?.nValue === 200 && verified?.description === 'Updated description') {
           this.context.logger.info('[CASE 1] PASSED | Normal columns updated correctly');
         } else {

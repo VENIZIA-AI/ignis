@@ -40,6 +40,7 @@ export class QueriesCases extends UserAuditCases {
 
       if (!dbRecord) {
         this.context.logger.error('[CASE 9] FAILED | Record not found via direct query');
+
         return;
       }
 
@@ -193,6 +194,7 @@ export class QueriesCases extends UserAuditCases {
       });
 
       let userId: string;
+
       if (!testUser) {
         const createdUser = await this.context.userRepository.create({
           data: {
@@ -227,6 +229,7 @@ export class QueriesCases extends UserAuditCases {
 
       if (!configWithCreator) {
         this.context.logger.error('[CASE 14] FAILED | Configuration not found');
+
         return;
       }
 
@@ -303,6 +306,7 @@ export class QueriesCases extends UserAuditCases {
 
       // Count by createdBy
       const countCreatedByA = await repo.count({ where: { group, createdBy: userA } });
+
       if (countCreatedByA.count === 2) {
         this.context.logger.info(
           '[CASE 17] PASSED | Count by createdBy | userA: %d',
@@ -317,6 +321,7 @@ export class QueriesCases extends UserAuditCases {
 
       // ExistsWith by modifiedBy
       const existsModifiedByB = await repo.existsWith({ where: { group, modifiedBy: userB } });
+
       if (existsModifiedByB) {
         this.context.logger.info(
           '[CASE 17] PASSED | ExistsWith by modifiedBy | userB exists: true',
@@ -329,6 +334,7 @@ export class QueriesCases extends UserAuditCases {
       const existsNonExistent = await repo.existsWith({
         where: { group, createdBy: 'NON_EXISTENT_USER' },
       });
+
       if (!existsNonExistent) {
         this.context.logger.info(
           '[CASE 17] PASSED | ExistsWith for non-existent createdBy returns false',

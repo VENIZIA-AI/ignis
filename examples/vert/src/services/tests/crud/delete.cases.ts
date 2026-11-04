@@ -39,6 +39,7 @@ export class DeleteCases extends BaseTestCases {
       }
 
       const verifyDeleted = await repo.findById({ id: firstId });
+
       if (verifyDeleted === null) {
         this.context.logger.info(
           '[case8DeleteByIdAndDeleteAll] PASSED | DeleteById verified (record not found)',
@@ -50,6 +51,7 @@ export class DeleteCases extends BaseTestCases {
       }
 
       const deleteAllResult = await repo.deleteAll({ where: { group } });
+
       if (deleteAllResult.count === 2) {
         this.context.logger.info(
           '[case8DeleteByIdAndDeleteAll] PASSED | DeleteAll removed remaining records | count: %d',
@@ -63,6 +65,7 @@ export class DeleteCases extends BaseTestCases {
       }
 
       const remaining = await repo.find({ filter: { where: { group } } });
+
       if (remaining.length === 0) {
         this.context.logger.info('[case8DeleteByIdAndDeleteAll] PASSED | All records deleted');
       } else {

@@ -81,6 +81,7 @@ export class EdgeCases extends BaseTestCases {
 
       // Check initial state
       const isActiveInitially = transaction.isActive;
+
       if (isActiveInitially) {
         this.context.logger.info('[CASE 13] PASSED | Transaction is active after begin');
       } else {
@@ -91,6 +92,7 @@ export class EdgeCases extends BaseTestCases {
 
       // Check state after commit
       const isActiveAfterCommit = transaction.isActive;
+
       if (!isActiveAfterCommit) {
         this.context.logger.info('[CASE 13] PASSED | Transaction is inactive after commit');
       } else {
@@ -102,6 +104,7 @@ export class EdgeCases extends BaseTestCases {
       await tx2.rollback();
 
       const isActiveAfterRollback = tx2.isActive;
+
       if (!isActiveAfterRollback) {
         this.context.logger.info('[CASE 13] PASSED | Transaction is inactive after rollback');
       } else {
@@ -182,6 +185,7 @@ export class EdgeCases extends BaseTestCases {
     try {
       // Create many records
       const createPromises: Promise<any>[] = [];
+
       for (let i = 0; i < operationCount; i++) {
         createPromises.push(
           repo.create({
@@ -195,6 +199,7 @@ export class EdgeCases extends BaseTestCases {
           }),
         );
       }
+
       await Promise.all(createPromises);
 
       // Update some records
@@ -258,7 +263,9 @@ export class EdgeCases extends BaseTestCases {
       } catch (rollbackError) {
         this.context.logger.error('Rollback failed: %s', (rollbackError as Error).message);
       }
+
       this.context.logger.error('[CASE 20] FAILED with error: %o', error);
+
       try {
         await repo.deleteAll({ where: { group } });
       } catch (cleanupError) {

@@ -35,6 +35,7 @@ export class ModifiedByCases extends UserAuditCases {
 
       if (!created.data) {
         this.context.logger.error('[CASE 4] FAILED | No data returned from create');
+
         return;
       }
 
@@ -58,6 +59,7 @@ export class ModifiedByCases extends UserAuditCases {
 
       if (!dbRecord) {
         this.context.logger.error('[CASE 4] FAILED | Record not found after update');
+
         return;
       }
 
@@ -151,6 +153,7 @@ export class ModifiedByCases extends UserAuditCases {
             record.modifiedBy,
           );
         }
+
         if (record.createdBy !== originalUser) {
           createdByPreserved = false;
           this.context.logger.error(
@@ -206,6 +209,7 @@ export class ModifiedByCases extends UserAuditCases {
 
       if (!created.data) {
         this.context.logger.error('[CASE 7] FAILED | No data returned from create');
+
         return;
       }
 
@@ -230,6 +234,7 @@ export class ModifiedByCases extends UserAuditCases {
           regularUser,
           dbRecord?.modifiedBy,
         );
+
         return;
       }
 
@@ -302,6 +307,7 @@ export class ModifiedByCases extends UserAuditCases {
 
       if (!created.data) {
         this.context.logger.error('[CASE 13] FAILED | Record creation failed');
+
         return;
       }
 
@@ -328,6 +334,7 @@ export class ModifiedByCases extends UserAuditCases {
 
       if (!dbRecord) {
         this.context.logger.error('[CASE 13] FAILED | Record not found after concurrent updates');
+
         return;
       }
 
@@ -392,6 +399,7 @@ export class ModifiedByCases extends UserAuditCases {
 
       if (!created.data) {
         this.context.logger.error('[CASE 15] FAILED | Record creation failed');
+
         return;
       }
 

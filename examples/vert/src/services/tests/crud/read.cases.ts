@@ -32,6 +32,7 @@ export class ReadCases extends BaseTestCases {
       }
 
       const notFound = await repo.findOne({ filter: { where: { code: 'NON_EXISTENT_CODE' } } });
+
       if (notFound === null) {
         this.context.logger.info('[case3FindOne] PASSED | Non-existent record returns null');
       } else {
@@ -65,6 +66,7 @@ export class ReadCases extends BaseTestCases {
       });
 
       const whereResult = await repo.find({ filter: { where: { group } } });
+
       if (whereResult.length === 5) {
         this.context.logger.info(
           '[case4FindWithFilter] PASSED | Where filter | count: %d',
@@ -80,6 +82,7 @@ export class ReadCases extends BaseTestCases {
       const orderedAsc = await repo.find({
         filter: { where: { group }, order: ['nValue ASC'] },
       });
+
       if (orderedAsc[0]?.nValue === 100 && orderedAsc[4]?.nValue === 500) {
         this.context.logger.info('[case4FindWithFilter] PASSED | Order ASC works correctly');
       } else {
@@ -92,6 +95,7 @@ export class ReadCases extends BaseTestCases {
       const orderedDesc = await repo.find({
         filter: { where: { group }, order: ['nValue DESC'] },
       });
+
       if (orderedDesc[0]?.nValue === 500 && orderedDesc[4]?.nValue === 100) {
         this.context.logger.info('[case4FindWithFilter] PASSED | Order DESC works correctly');
       } else {
@@ -104,6 +108,7 @@ export class ReadCases extends BaseTestCases {
       const limited = await repo.find({
         filter: { where: { group }, limit: 2 },
       });
+
       if (limited.length === 2) {
         this.context.logger.info(
           '[case4FindWithFilter] PASSED | Limit | count: %d',
@@ -119,6 +124,7 @@ export class ReadCases extends BaseTestCases {
       const skipped = await repo.find({
         filter: { where: { group }, order: ['nValue ASC'], skip: 2, limit: 2 },
       });
+
       if (skipped.length === 2 && skipped[0]?.nValue === 300 && skipped[1]?.nValue === 400) {
         this.context.logger.info('[case4FindWithFilter] PASSED | Skip/offset works correctly');
       } else {
@@ -158,6 +164,7 @@ export class ReadCases extends BaseTestCases {
       }
 
       const notFound = await repo.findById({ id: '00000000-0000-0000-0000-000000000000' });
+
       if (notFound === null) {
         this.context.logger.info('[case5FindById] PASSED | Non-existent id returns null');
       } else {
@@ -192,6 +199,7 @@ export class ReadCases extends BaseTestCases {
 
       // Count all in group
       const countAll = await repo.count({ where: { group } });
+
       if (countAll.count === 5) {
         this.context.logger.info('[case14CountOperation] PASSED | Count all: %d', countAll.count);
       } else {
@@ -205,6 +213,7 @@ export class ReadCases extends BaseTestCases {
       const countFiltered = await repo.count({
         where: { group, nValue: { gt: 200 } },
       });
+
       if (countFiltered.count === 3) {
         this.context.logger.info(
           '[case14CountOperation] PASSED | Count filtered (nValue > 200): %d',
@@ -221,6 +230,7 @@ export class ReadCases extends BaseTestCases {
       const countNone = await repo.count({
         where: { group, nValue: { gt: 1000 } },
       });
+
       if (countNone.count === 0) {
         this.context.logger.info('[case14CountOperation] PASSED | Count with no matches: 0');
       } else {
@@ -248,6 +258,7 @@ export class ReadCases extends BaseTestCases {
     try {
       // Check before creating (should not exist)
       const existsBefore = await repo.existsWith({ where: { code } });
+
       if (!existsBefore) {
         this.context.logger.info(
           '[case15ExistsWithOperation] PASSED | Does not exist before create',
@@ -265,6 +276,7 @@ export class ReadCases extends BaseTestCases {
 
       // Check after creating (should exist)
       const existsAfter = await repo.existsWith({ where: { code } });
+
       if (existsAfter) {
         this.context.logger.info('[case15ExistsWithOperation] PASSED | Exists after create');
       } else {
@@ -275,6 +287,7 @@ export class ReadCases extends BaseTestCases {
       await repo.deleteAll({ where: { code } });
 
       const existsAfterDelete = await repo.existsWith({ where: { code } });
+
       if (!existsAfterDelete) {
         this.context.logger.info(
           '[case15ExistsWithOperation] PASSED | Does not exist after delete',

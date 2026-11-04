@@ -107,6 +107,7 @@ export class Application extends BaseApplication {
     const isRequested = applicationEnvironment.get<string>(
       EnvironmentKeys.APP_ENV_RUN_REPOSITORY_TESTS,
     );
+
     if (isRequested !== 'true') {
       return;
     }

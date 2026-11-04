@@ -108,6 +108,7 @@ export class CompositeCases extends BaseTestCases {
       });
 
       const saleChannelProducts = (productWithRelations as any)?.saleChannelProducts;
+
       if (saleChannelProducts?.length === 1) {
         this.context.logger.info('[CASE 17] PASSED | All related entities committed together');
       } else {

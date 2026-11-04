@@ -32,6 +32,7 @@ export class ValueCases extends BaseTestCases {
 
       // Verify max integer
       const maxRecord = await repo.findOne({ filter: { where: { code: `${group}_MAX` } } });
+
       if (maxRecord?.nValue === maxInt) {
         this.context.logger.info(
           '[case13BoundaryValues] PASSED | Max integer: %d',
@@ -47,6 +48,7 @@ export class ValueCases extends BaseTestCases {
 
       // Verify min integer
       const minRecord = await repo.findOne({ filter: { where: { code: `${group}_MIN` } } });
+
       if (minRecord?.nValue === minInt) {
         this.context.logger.info(
           '[case13BoundaryValues] PASSED | Min integer: %d',
@@ -62,6 +64,7 @@ export class ValueCases extends BaseTestCases {
 
       // Verify long string
       const longRecord = await repo.findOne({ filter: { where: { code: `${group}_LONG` } } });
+
       if (longRecord?.description?.length === 5000) {
         this.context.logger.info(
           '[case13BoundaryValues] PASSED | Long string length: %d',
@@ -76,6 +79,7 @@ export class ValueCases extends BaseTestCases {
 
       // Verify zero
       const zeroRecord = await repo.findOne({ filter: { where: { code: `${group}_ZERO` } } });
+
       if (zeroRecord?.nValue === 0) {
         this.context.logger.info('[case13BoundaryValues] PASSED | Zero value handled correctly');
       } else {
@@ -87,6 +91,7 @@ export class ValueCases extends BaseTestCases {
 
       // Verify negative integer
       const negRecord = await repo.findOne({ filter: { where: { code: `${group}_NEGATIVE` } } });
+
       if (negRecord?.nValue === -999) {
         this.context.logger.info(
           '[case13BoundaryValues] PASSED | Negative integer: %d',
@@ -145,11 +150,13 @@ export class ValueCases extends BaseTestCases {
         if (expected === 0) {
           return Math.abs(actual) < 1e-15;
         }
+
         return Math.abs((actual - expected) / expected) < 1e-10; // 0.00000001% relative error
       };
 
       // Verify PI with floating point precision
       const piRecord = await repo.findOne({ filter: { where: { code: `${group}_PI` } } });
+
       if (piRecord?.nValue != null && isCloseEnough(piRecord.nValue, pi)) {
         this.context.logger.info(
           '[case19DoublePrecisionValues] PASSED | PI value: %d (precision maintained)',
@@ -165,6 +172,7 @@ export class ValueCases extends BaseTestCases {
 
       // Verify very small decimal
       const smallRecord = await repo.findOne({ filter: { where: { code: `${group}_SMALL` } } });
+
       if (smallRecord?.nValue != null && isCloseEnough(smallRecord.nValue, smallDecimal)) {
         this.context.logger.info(
           '[case19DoublePrecisionValues] PASSED | Small decimal: %d',
@@ -180,6 +188,7 @@ export class ValueCases extends BaseTestCases {
 
       // Verify large decimal
       const largeRecord = await repo.findOne({ filter: { where: { code: `${group}_LARGE` } } });
+
       if (largeRecord?.nValue != null && isCloseEnough(largeRecord.nValue, largeDecimal)) {
         this.context.logger.info(
           '[case19DoublePrecisionValues] PASSED | Large decimal: %d',
@@ -195,6 +204,7 @@ export class ValueCases extends BaseTestCases {
 
       // Verify negative decimal
       const negRecord = await repo.findOne({ filter: { where: { code: `${group}_NEGATIVE` } } });
+
       if (negRecord?.nValue != null && isCloseEnough(negRecord.nValue, negativeDecimal)) {
         this.context.logger.info(
           '[case19DoublePrecisionValues] PASSED | Negative decimal: %d',
@@ -210,6 +220,7 @@ export class ValueCases extends BaseTestCases {
 
       // Verify scientific notation
       const sciRecord = await repo.findOne({ filter: { where: { code: `${group}_SCIENTIFIC` } } });
+
       if (sciRecord?.nValue != null && isCloseEnough(sciRecord.nValue, scientificNotation)) {
         this.context.logger.info(
           '[case19DoublePrecisionValues] PASSED | Scientific notation: %d',
@@ -227,6 +238,7 @@ export class ValueCases extends BaseTestCases {
       const gtFilterResult = await repo.find({
         filter: { where: { group, nValue: { gt: 1.0 } } },
       });
+
       // Should find: PI (3.14...), LARGE (999999999.99...), expected 2 records
       if (gtFilterResult.length === 2) {
         this.context.logger.info(
@@ -249,6 +261,7 @@ export class ValueCases extends BaseTestCases {
       });
 
       const updatedRecord = await repo.findById({ id: recordToUpdate!.id });
+
       if (
         updatedRecord &&
         updatedRecord.nValue !== null &&

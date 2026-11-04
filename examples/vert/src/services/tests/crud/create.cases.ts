@@ -105,6 +105,7 @@ export class CreateCases extends BaseTestCases {
 
       // Verify null values are stored correctly
       const found = await repo.findOne({ filter: { where: { code } } });
+
       if (found?.nValue === null && found?.description === null) {
         this.context.logger.info(
           '[case9CreateWithNullValues] PASSED | Null values persisted correctly',
@@ -191,6 +192,7 @@ export class CreateCases extends BaseTestCases {
 
       // Verify all records exist
       const allRecords = await repo.find({ filter: { where: { group } } });
+
       if (allRecords.length === concurrentCount) {
         this.context.logger.info(
           '[case16ConcurrentCreates] PASSED | All %d records persisted',
@@ -248,6 +250,7 @@ export class CreateCases extends BaseTestCases {
       const duplicateRecords = await repo.find({
         filter: { where: { code: duplicateCode } },
       });
+
       if (duplicateRecords.length === 1) {
         this.context.logger.info(
           '[case16ConcurrentCreates] PASSED | Only 1 record with duplicate code',

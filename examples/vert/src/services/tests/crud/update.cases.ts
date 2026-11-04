@@ -35,6 +35,7 @@ export class UpdateCases extends BaseTestCases {
       }
 
       const verified = await repo.findById({ id });
+
       if (verified?.nValue === 999 && verified?.description === 'Updated') {
         this.context.logger.info('[case6UpdateById] PASSED | Update verified in database');
       } else {
@@ -84,6 +85,7 @@ export class UpdateCases extends BaseTestCases {
 
       const verified = await repo.find({ filter: { where: { group } } });
       const allUpdated = verified.every((r) => r.nValue === 999);
+
       if (allUpdated) {
         this.context.logger.info('[case7UpdateAll] PASSED | All records updated to nValue=999');
       } else {
@@ -97,6 +99,7 @@ export class UpdateCases extends BaseTestCases {
         where: { group },
         data: { nValue: 888 },
       });
+
       if (updateByResult.count === 3) {
         this.context.logger.info('[case7UpdateAll] PASSED | UpdateBy works as alias for UpdateAll');
       }
@@ -172,6 +175,7 @@ export class UpdateCases extends BaseTestCases {
 
       // Verify only the updated field changed
       const updated = await repo.findById({ id });
+
       if (updated?.nValue === 999 && updated?.description === 'Original description') {
         this.context.logger.info(
           '[case17UpdateWithPartialData] PASSED | Only nValue updated | description preserved',

@@ -255,6 +255,7 @@ export class EdgeCases extends BaseTestCases {
 
       // Verify no tables were dropped (Configuration table still works)
       const configStillExists = await repo.findById({ id });
+
       if (configStillExists) {
         this.context.logger.info('[CASE 16] PASSED | Database intact after injection attempt');
       }

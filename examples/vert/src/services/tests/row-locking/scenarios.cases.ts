@@ -64,12 +64,15 @@ export class ScenariosCases extends BaseTestCases {
       } catch (rollbackError) {
         this.context.logger.error('tx1 rollback failed: %s', (rollbackError as Error).message);
       }
+
       try {
         await tx2.rollback();
       } catch (rollbackError) {
         this.context.logger.error('tx2 rollback failed: %s', (rollbackError as Error).message);
       }
+
       this.context.logger.error('[CASE 7] FAILED with error: %o', error);
+
       try {
         await repo.deleteAll({ where: { group } });
       } catch (cleanupError) {
@@ -131,12 +134,15 @@ export class ScenariosCases extends BaseTestCases {
       } catch (rollbackError) {
         this.context.logger.error('tx1 rollback failed: %s', (rollbackError as Error).message);
       }
+
       try {
         await tx2.rollback();
       } catch (rollbackError) {
         this.context.logger.error('tx2 rollback failed: %s', (rollbackError as Error).message);
       }
+
       this.context.logger.error('[CASE 8] FAILED with error: %o', error);
+
       try {
         await repo.deleteAll({ where: { code } });
       } catch (cleanupError) {
@@ -173,6 +179,7 @@ export class ScenariosCases extends BaseTestCases {
       if (!locked) {
         this.context.logger.error('[CASE 12] FAILED - Could not find record to lock');
         await transaction.rollback();
+
         return;
       }
 
@@ -188,6 +195,7 @@ export class ScenariosCases extends BaseTestCases {
 
       // Verify
       const updated = await repo.findOne({ filter: { where: { code } } });
+
       if (updated?.nValue === 150) {
         this.context.logger.info('[CASE 12] PASSED - Lock + update: 100 -> 150');
       } else {
@@ -198,6 +206,7 @@ export class ScenariosCases extends BaseTestCases {
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 12] FAILED with error: %o', error);
+
       try {
         await repo.deleteAll({ where: { code } });
       } catch (cleanupError) {
@@ -264,11 +273,13 @@ export class ScenariosCases extends BaseTestCases {
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 13] FAILED with error: %o', error);
+
       try {
         await configRepo.deleteAll({ where: { code: configCode } });
       } catch (configError) {
         this.context.logger.error('Config cleanup failed: %s', (configError as Error).message);
       }
+
       try {
         await productRepo.deleteAll({
           where: { code: productCode },
@@ -332,12 +343,15 @@ export class ScenariosCases extends BaseTestCases {
       } catch (rollbackError) {
         this.context.logger.error('tx1 rollback failed: %s', (rollbackError as Error).message);
       }
+
       try {
         await tx2.rollback();
       } catch (rollbackError) {
         this.context.logger.error('tx2 rollback failed: %s', (rollbackError as Error).message);
       }
+
       this.context.logger.error('[CASE 14] FAILED with error: %o', error);
+
       try {
         await repo.deleteAll({ where: { code } });
       } catch (cleanupError) {

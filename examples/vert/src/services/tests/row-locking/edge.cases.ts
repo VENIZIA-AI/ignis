@@ -25,6 +25,7 @@ export class EdgeCases extends BaseTestCases {
       );
     } catch (error) {
       const message = (error as Error).message;
+
       if (message.includes('requires a transaction')) {
         this.context.logger.info('[CASE 9] PASSED - Correctly threw: %s', message);
       } else {
@@ -58,11 +59,13 @@ export class EdgeCases extends BaseTestCases {
       await transaction.rollback();
     } catch (error) {
       const message = (error as Error).message;
+
       if (message.includes('incompatible with Query API')) {
         this.context.logger.info('[CASE 10] PASSED - Correctly threw: %s', message);
       } else {
         this.context.logger.error('[CASE 10] FAILED - Unexpected error: %s', message);
       }
+
       try {
         await transaction.rollback();
       } catch (rollbackError) {
@@ -95,11 +98,13 @@ export class EdgeCases extends BaseTestCases {
       await transaction.rollback();
     } catch (error) {
       const message = (error as Error).message;
+
       if (message.includes('incompatible with Query API')) {
         this.context.logger.info('[CASE 11] PASSED - Correctly threw: %s', message);
       } else {
         this.context.logger.error('[CASE 11] FAILED - Unexpected error: %s', message);
       }
+
       try {
         await transaction.rollback();
       } catch (rollbackError) {
@@ -128,6 +133,7 @@ export class EdgeCases extends BaseTestCases {
         this.context.logger.error('[CASE 15] FAILED - %s !== %s', value, expected);
         allPassed = false;
       }
+
       if (!LockStrengths.isValid(value)) {
         this.context.logger.error('[CASE 15] FAILED - isValid(%s) returned false', value);
         allPassed = false;
