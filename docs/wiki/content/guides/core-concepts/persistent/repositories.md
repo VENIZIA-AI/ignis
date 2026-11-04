@@ -166,7 +166,7 @@ const { count, data } = await repo.updateEach({
 });
 ```
 
-It runs one update per row, in the order given, inside one transaction: a refused payload or a failed statement writes nothing. Pass `options: { transaction }` to join yours, and the repository leaves the commit to you. Each row goes through the same rules as `updateById` - the default filter, the row scope, hidden fields and the audit stamps - so `data[i]` is `null` and the row adds 0 to `count` when it does not match (missing, outside the scope, soft deleted). `updateEach` is N statements, not one; `shouldReturn: false` returns `data: null`, and empty `rows` return `{ count: 0, data: [] }` without opening a transaction. Relational repositories only.
+It runs one update per row, in the order given, inside one transaction: a refused payload or a failed statement writes nothing. Pass `options: { transaction }` to join yours, and the repository leaves the commit to you. Each row goes through the same rules as `updateById` - the default filter, the row scope, hidden fields and the audit stamps - so `data[i]` is `null` and the row adds 0 to `count` when it does not match (missing, outside the scope, soft deleted). A repeated `id` runs once per occurrence and adds to `count` each time. `updateEach` is N statements, not one; `shouldReturn: false` returns `data: null`, and empty `rows` return `{ count: 0, data: [] }` without opening a transaction. Relational repositories only.
 
 ## Extra Options
 

@@ -1,4 +1,4 @@
-import { datasource, model } from '@venizia/ignis-kernel';
+import { datasource, model, type ITransaction } from '@venizia/ignis-kernel';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
@@ -63,9 +63,20 @@ class EachDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
   }
 }
 
+/** Records the transaction each statement resolves its connector from. */
+class RecordingRepository extends SoftDeletableRepository<typeof eachTable> {
+  routedThrough: Array<ITransaction | undefined> = [];
+
+  protected override resolveConnector(opts?: { transaction?: ITransaction }) {
+    this.routedThrough.push(opts?.transaction);
+
+    return super.resolveConnector(opts);
+  }
+}
+
 let client: PGlite;
 let dataSource: EachDataSource;
-let repository: SoftDeletableRepository<typeof eachTable>;
+let repository: RecordingRepository;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -84,7 +95,7 @@ beforeAll(async () => {
   `);
 
   dataSource = new EachDataSource({ client });
-  repository = new SoftDeletableRepository<typeof eachTable>(dataSource as AnyType, {
+  repository = new RecordingRepository(dataSource as AnyType, {
     entityClass: EachEntity as AnyType,
   });
 });
@@ -133,6 +144,7 @@ const failureOf = async (opts: { run: Promise<unknown> }): Promise<string> => {
 
 beforeEach(async () => {
   stampCounter = 0;
+  repository.routedThrough = [];
   await seed();
 });
 
@@ -216,8 +228,52 @@ describe('updateEach', () => {
 
     const result = await repository.updateEach({ rows: [] });
 
+    const unreturned = await repository.updateEach({ rows: [], options: { shouldReturn: false } });
+
     expect(result).toEqual({ count: 0, data: [] });
+    expect(unreturned).toEqual({ count: 0, data: null });
     expect(begin).not.toHaveBeenCalled();
+    begin.mockRestore();
+  });
+
+  test('a null id is refused and the rows before it are not written', async () => {
+    const message = await failureOf({
+      run: repository.updateEach({
+        rows: [
+          { id: 1, data: { name: 'a2' } },
+          // @ts-expect-error the id type does not admit null; the repository still has to refuse it
+          { id: null, data: { name: 'x' } },
+        ],
+      }),
+    });
+
+    expect(message).toContain('id is null or undefined');
+
+    const rows = await rawRows();
+    expect(rows.map((row) => row.name)).toEqual(['a', 'b', 'c', 'd']);
+  });
+
+  test('every row is routed through the one transaction the repository began', async () => {
+    const begin = spyOn(dataSource, 'beginTransaction');
+
+    await repository.updateEach({
+      rows: [
+        { id: 1, data: { name: 'a2' } },
+        { id: 2, data: { name: 'b2' } },
+        { id: 3, data: { name: 'foreign' } },
+      ],
+    });
+
+    const [began] = begin.mock.results;
+    const transaction = await began.value;
+
+    expect(begin).toHaveBeenCalledTimes(1);
+    expect(repository.routedThrough).toHaveLength(3);
+
+    for (const routed of repository.routedThrough) {
+      expect(routed === transaction).toBe(true);
+    }
+
     begin.mockRestore();
   });
 

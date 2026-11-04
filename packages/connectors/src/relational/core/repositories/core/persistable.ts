@@ -270,9 +270,10 @@ export class PersistableRelationalRepository<
     };
   }): Promise<TCount & { data: TNullable<Array<TNullable<R>>> }> {
     const { rows, options } = opts;
+    const shouldReturn = options?.shouldReturn !== false;
 
     if (rows.length === 0) {
-      return { count: 0, data: [] };
+      return { count: 0, data: shouldReturn ? [] : null };
     }
 
     return this.runInTransaction({
@@ -294,7 +295,7 @@ export class PersistableRelationalRepository<
           data.push(rs.data?.[0] ?? null);
         }
 
-        return { count, data: options?.shouldReturn === false ? null : data };
+        return { count, data: shouldReturn ? data : null };
       },
     });
   }
