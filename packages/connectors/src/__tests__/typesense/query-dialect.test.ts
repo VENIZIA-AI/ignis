@@ -917,14 +917,6 @@ describe('TypesenseQueryDialect.toWireParams - sortBy for the sorts filter.order
     ).toThrow(/at most 3/);
   });
 
-  test('sortBy is a field of the query as well as a key of engineParams', () => {
-    const wire = dialect.toWireParams({
-      query: { query: 'sho', sortBy: EVAL_SORT } as ITypesenseSearchQuery,
-    });
-
-    expect(wire['sort_by']).toBe(EVAL_SORT);
-  });
-
   test('commas inside an _eval expression do not count as sort fields', () => {
     const sort = '_eval([(a:=X):2, (b:=Y):1]):desc,_text_match:desc,createdAt:desc';
     const wire = dialect.toWireParams({ query: { query: 'sho', engineParams: { sortBy: sort } } });
@@ -948,6 +940,52 @@ describe('TypesenseQueryDialect.toWireParams - sortBy for the sorts filter.order
         },
       }),
     ).toThrow(/at most 3 fields \| got: 4/);
+  });
+
+  test.each([
+    ['a:asc)'],
+    ['(a:asc'],
+    ['_eval([(a:=X):1):desc'],
+    ['a),b,c,d'],
+    ['_eval(`x):1'],
+    ['a`'],
+  ])('unbalanced input %p is refused, never counted', (bad) => {
+    expect(() =>
+      dialect.toWireParams({ query: { query: 'sho', engineParams: { sortBy: bad } } }),
+    ).toThrow(/Unbalanced/);
+  });
+
+  test('an undefined sortBy is skipped, as an undefined field of the query is', () => {
+    const wire = dialect.toWireParams({
+      query: { query: 'sho', engineParams: { sortBy: undefined, ['sort_by']: undefined } },
+    });
+
+    expect(wire).not.toHaveProperty('sort_by');
+    expect(wire).not.toHaveProperty('sortBy');
+  });
+
+  test('a multi-search entry sortBy gets the same checks as engineParams', () => {
+    expect(() =>
+      dialect.toWireParams({ query: { query: 'sho', sortBy: 'a:asc,b:asc,c:asc,d:asc' } }),
+    ).toThrow(/at most 3 fields/);
+    expect(() => dialect.toWireParams({ query: { query: 'sho', sortBy: '' } })).toThrow(
+      /non-empty string/,
+    );
+  });
+
+  test('the refusal names where each sort came from: a field of the query, then engineParams', () => {
+    let message = '';
+
+    try {
+      dialect.toWireParams({
+        query: { query: 'sho', sortBy: 'createdAt:desc', engineParams: { sortBy: EVAL_SORT } },
+      });
+    } catch (error) {
+      message = (error as Error).message;
+    }
+
+    expect(message).toContain("'query.sortBy' and 'sortBy' both set 'sort_by'");
+    expect(message).not.toContain('filter.order');
   });
 
   test.each([[''], ['   '], [42], [null], [['a:asc']]])('%p is refused', (bad) => {
@@ -983,8 +1021,11 @@ describe('TypesenseQueryDialect.toWireParams - sortBy for the sorts filter.order
     ).toThrow(/both set 'sort_by'/);
   });
 
-  test('an empty order does not count as a sort: sortBy still applies', () => {
+  test('an empty order builds no sort, so sortBy still applies', () => {
     const built = dialect.build({ filter: { order: [] } });
+
+    expect(built).not.toHaveProperty('sortBy');
+
     const wire = dialect.toWireParams({
       query: { ...built, engineParams: { sortBy: EVAL_SORT } },
     });

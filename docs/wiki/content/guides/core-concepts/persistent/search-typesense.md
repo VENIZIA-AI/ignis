@@ -374,7 +374,7 @@ await repository.search({
 
 | Rule | Why |
 |---|---|
-| A non-empty string | An empty `sort_by` is a mistake, not "no sort" |
+| A non-empty, balanced string | An empty `sort_by` is a mistake, not "no sort"; a stray bracket or backtick would hide the entry count |
 | At most three top-level entries | Typesense's limit; `_eval(...)` counts as one, however many commas it holds |
 | Given once | `sortBy` with `filter.order`, or with `sort_by`, throws instead of letting one win |
 

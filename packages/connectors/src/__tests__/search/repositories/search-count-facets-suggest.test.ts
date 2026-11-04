@@ -408,8 +408,8 @@ describe('ReadableSearchRepository - searchCount, facets and suggest', () => {
         ];
 
         for (const run of runs) {
-          const result15 = await failureOf(run);
-          expect(result15).toMatch(/at most 3 fields/);
+          const message = await failureOf(run);
+          expect(message).toMatch(/at most 3 fields/);
         }
         expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
       });

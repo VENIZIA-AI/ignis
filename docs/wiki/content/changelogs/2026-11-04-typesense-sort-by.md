@@ -31,7 +31,7 @@ packages: ['@venizia/ignis-connectors']
 
 **Before:** `search({ ..., filter: { order: ['createdAt DESC'] }, engineParams: { ['sort_by']: 'name:asc' } })` sent `name:asc` and ignored `filter.order`.
 
-**After:** the same call throws `'filter.order' and 'sort_by' both set 'sort_by' | Give it once`. Drop one of them. A `sort_by` that is empty, not a string, or has more than three top-level entries also throws now.
+**After:** the same call throws `'query.sortBy' and 'sort_by' both set 'sort_by' | Give it once` (`query.sortBy` is what `filter.order` compiles into). Drop one of them. A `sort_by` that is empty, not a string, unbalanced (a stray bracket or backtick), or has more than three top-level entries also throws now. `engineParams: { sortBy: undefined }` is skipped, not refused.
 
 ## Details
 
