@@ -150,7 +150,7 @@ Reads take an extra `query` (`THttpExtraQuery`) beside `filter`/`where`, and eve
 
 `@venizia/ignis-connectors/testing` (re-exported by core-server as `@venizia/ignis/testing`) exports
 five runtime names: `TransactionStates`, `TransactionDouble`, `PostgresTransactionDouble`,
-`SqliteTransactionDouble`, and `RepositoryDoubles`. None of the five is exported from the root barrel, `/relational`,
+`SqliteTransactionDouble`, and `RepositoryDouble`. None of the five is exported from the root barrel, `/relational`,
 `/postgres`, `/sqlite`, or core-server's root - a test scans every `src/**` file outside `testing/`
 and `__tests__/` for an import of `@/testing` or the published specifier and fails the connectors
 test suite if one exists.
@@ -169,7 +169,7 @@ named: `new PostgresTransactionDouble<TRelationalConnector>(...)`); without it t
 `never`, as before. `onCommit` and `onRollback` run awaited when the end statement is reached: after the
 count goes up, before `commitError`/`rollbackError`; a throw from a hook fails the end. PGlite has no double
 of its own: its connector is the Postgres `TRelationalConnector`, so `PostgresTransactionDouble` is its double.
-`RepositoryDoubles.withTransactions({ repository, transaction, source, logger? })` gives a hand-made repository double the real `runInTransaction`, `rollbackOwnedTransaction` and `resolveEndedByExecute` read off `source.prototype`, a repository class the caller passes (never reimplemented, and the testing entry imports no repository code: the clean-install check loads it without `drizzle-orm`), plus a `beginTransaction` that returns `transaction` and a logger.
+`RepositoryDouble.withTransactions({ repository, transaction, source, logger? })` gives a hand-made repository double the real `runInTransaction`, `rollbackOwnedTransaction` and `resolveEndedByExecute` read off `source.prototype`, a repository class the caller passes (never reimplemented, and the testing entry imports no repository code: the clean-install check loads it without `drizzle-orm`), plus a `beginTransaction` that returns `transaction` and a logger.
 
 ## The 15 published sub-paths
 

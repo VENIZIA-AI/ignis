@@ -1,6 +1,6 @@
 import type { ITransaction } from '@venizia/ignis-kernel';
 import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
-import { PostgresTransactionDouble, RepositoryDoubles, TransactionStates } from '@/testing';
+import { PostgresTransactionDouble, RepositoryDouble, TransactionStates } from '@/testing';
 import { getError } from '@venizia/ignis-helpers/core';
 import { describe, expect, mock, test } from 'bun:test';
 
@@ -13,7 +13,7 @@ const buildRepository = () => {
   const create = mock(
     async (opts: { data: { name: string }; options?: { transaction?: ITransaction } }) => opts.data,
   );
-  const repository = RepositoryDoubles.withTransactions({
+  const repository = RepositoryDouble.withTransactions({
     repository: { create },
     transaction,
     source: DefaultCRUDRepository,
@@ -34,7 +34,7 @@ const createInTransaction = (opts: {
   });
 };
 
-describe('RepositoryDoubles.withTransactions', () => {
+describe('RepositoryDouble.withTransactions', () => {
   test('runs a repository method inside a transaction and commits it', async () => {
     const { repository, transaction, create } = buildRepository();
 
@@ -48,7 +48,7 @@ describe('RepositoryDoubles.withTransactions', () => {
 
   test('rolls back when the repository method throws, and rethrows the original error', async () => {
     const { repository, transaction, create } = buildRepository();
-    const original = getError({ message: '[RepositoryDoublesTest] create failed' });
+    const original = getError({ message: '[RepositoryDoubleTest] create failed' });
     create.mockRejectedValueOnce(original);
 
     let caught;
@@ -66,7 +66,7 @@ describe('RepositoryDoubles.withTransactions', () => {
   });
 
   test('joins a transaction it is given and leaves its end to the owner', async () => {
-    const { repository, create } = buildRepository();
+    const { repository, transaction: built, create } = buildRepository();
     const owner = new PostgresTransactionDouble();
 
     await repository.runInTransaction({
@@ -75,9 +75,11 @@ describe('RepositoryDoubles.withTransactions', () => {
         repository.create({ data: { name: 'b' }, options: { transaction } }),
     });
 
-    expect(create).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledWith({ data: { name: 'b' }, options: { transaction: owner } });
     expect(owner.commitCount).toBe(0);
     expect(owner.rollbackCount).toBe(0);
+    expect(built.commitCount).toBe(0);
+    expect(built.state).toBe(TransactionStates.ACTIVE);
   });
 
   test('an owned transaction that execute ended itself is not ended twice', async () => {

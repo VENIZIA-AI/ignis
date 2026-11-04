@@ -2332,7 +2332,7 @@ generated:
 - `ISqliteTransactionDoubleOptions` interface
 - `ITransactionDoubleOptions` interface
 - `PostgresTransactionDouble` class
-- `RepositoryDoubles` class
+- `RepositoryDouble` class
 - `SqliteTransactionDouble` class
 - `TransactionDouble` class
 - `TransactionStates` class
@@ -3509,7 +3509,7 @@ generated:
 - `ISqliteTransactionDoubleOptions` interface
 - `ITransactionDoubleOptions` interface
 - `PostgresTransactionDouble` class
-- `RepositoryDoubles` class
+- `RepositoryDouble` class
 - `SqliteTransactionDouble` class
 - `TBootProbeTarget` type
 - `TransactionDouble` class
