@@ -1,5 +1,6 @@
 import { type TConstValue } from '../types';
 
+/** The top-level part of a MIME type (`image`, `video`, `text`), plus `unknown`. For the full content type see `ContentTypes`. */
 export class MimeTypes {
   static readonly UNKNOWN = 'unknown';
   static readonly IMAGE = 'image';
@@ -12,6 +13,7 @@ export class MimeTypes {
     return this.SCHEME_SET.has(value);
   }
 }
+/** One of the `MimeTypes` values. */
 export type TMimeTypes = TConstValue<typeof MimeTypes>;
 
 /** The leading dot is part of the value: `path.extname` returns one. */
@@ -78,6 +80,7 @@ export class FileExtensions {
     return this.SCHEME_SET.has(value);
   }
 }
+/** One of the `FileExtensions` values, with its leading dot. */
 export type TFileExtension = TConstValue<typeof FileExtensions>;
 
 /** Full content types, as they go on the wire. `MimeTypes` holds only the top-level part. */
@@ -146,6 +149,7 @@ export class ContentTypes {
     return this.SCHEME_SET.has(value);
   }
 }
+/** One of the `ContentTypes` values. */
 export type TContentType = TConstValue<typeof ContentTypes>;
 
 /** The extension table and the lookup that reads it, together - the `DurationMultipliers` shape. */

@@ -21,6 +21,7 @@ import {
 } from './callbacks';
 import { type IKafkaConnectionOptions } from './connection';
 
+/** Options for the Kafka consumer helper. `groupId` is required; timeouts and intervals are in milliseconds and `maxBytes` is in bytes, defaulting to {@link KafkaDefaults}. */
 export interface IKafkaConsumerOptions<
   KeyType = string,
   ValueType = string,
@@ -64,6 +65,7 @@ export interface IKafkaConsumerOptions<
   onLagError?: TKafkaLagErrorCallback;
 }
 
+/** Options for starting consumption. `reconnectDelayMs` is in milliseconds; the reconnect values default to {@link KafkaDefaults}. */
 export interface IKafkaConsumeStartOptions {
   topics: string[];
   mode?: MessagesStreamModeValue;

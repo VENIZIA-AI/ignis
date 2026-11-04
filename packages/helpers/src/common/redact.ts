@@ -30,6 +30,7 @@ const SECRET_KEY_PATTERN = new RegExp(
   'i',
 );
 
+/** The placeholder that replaces a secret value in redacted output. */
 export const REDACTED = '[REDACTED]';
 
 /** Kill-switch for local debugging: only the literal `false` disables redaction (fail-closed); read per call so it can be flipped at runtime. Never disable in production. */
@@ -153,6 +154,7 @@ const deepSanitize = (value: unknown, context: TSanitizeContext): unknown => {
   return result;
 };
 
+/** Makes a log argument safe to print: masks secret-looking keys, breaks cycles, caps long strings and strips URL credentials. `APP_ENV_LOGGER_DO_REDACT=false` turns off the key masking only. */
 export class RedactUtility {
   /**
    * Redacts every secret-looking KEY (not value shape - buffers/typed arrays are summarized, not

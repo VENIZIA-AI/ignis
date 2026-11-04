@@ -3,6 +3,7 @@ import type winston from 'winston';
 import type Transport from 'winston-transport';
 import { type TLogLevel, type TLoggerFormat } from '../../common';
 
+/** Options of `DgramTransport`. Only lines whose level is in `levels` are sent, as UDP datagrams to `host:port`, tagged with `label`; `socketOptions` go to `dgram.createSocket`. */
 export interface IDgramTransportOptions extends Transport.TransportStreamOptions {
   label: string;
   host: string;
@@ -11,6 +12,7 @@ export interface IDgramTransportOptions extends Transport.TransportStreamOptions
   socketOptions: dgram.SocketOptions;
 }
 
+/** Daily-rotating log file written to `<folder>/<prefix>-<level>-%DATE%.log`. An unset `frequency`, `maxSize`, `maxFiles` or `datePattern` falls back to its `APP_ENV_LOGGER_FILE_*` setting. */
 export interface IFileTransportOptions {
   prefix: string;
   folder: string;
@@ -20,6 +22,7 @@ export interface IFileTransportOptions {
   datePattern?: string;
 }
 
+/** Options for building a winston logger; `transports.info` and `transports.error` each take an optional file and datagram transport. */
 export interface ICustomLoggerOptions {
   levels?: { [name: string | symbol]: number };
   colors?: { [name: string | symbol]: string };

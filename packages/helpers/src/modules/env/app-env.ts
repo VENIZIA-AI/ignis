@@ -21,6 +21,7 @@ export class Environment extends EnvironmentNames {
   }
 }
 
+/** Key-value store of the environment entries whose key starts with `prefix`; other keys are dropped at construction. `get` applies a default and an optional transform. Use the shared `applicationEnvironment` instance rather than constructing one. */
 export class ApplicationEnvironment extends BaseHelper implements IApplicationEnvironment {
   private prefix: string;
   private arguments: Record<string, any> = Object.create(null);
@@ -112,6 +113,8 @@ const resolveApplicationEnvironment = (): ApplicationEnvironment => {
   return created;
 };
 
+/** The process-wide environment store, built from `process.env` with the prefix in `APPLICATION_ENV_PREFIX` (`APP_ENV` when unset). One instance is shared by every copy of this module in the process. */
 export const applicationEnvironment = resolveApplicationEnvironment();
 
+/** Alias of `applicationEnvironment`. */
 export const AppEnvs = applicationEnvironment;

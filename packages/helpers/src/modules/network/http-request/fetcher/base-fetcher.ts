@@ -8,6 +8,7 @@ import { type TFetcherVariant } from '../common';
 /** What a fetcher calls on the logger it is handed, so a host logger with only these two (a browser app's) is accepted as is. */
 export type TFetcherLogger = Pick<ILogger, 'debug' | 'info'>;
 
+/** Options every fetcher accepts. `timeout` is in milliseconds; other keys pass through to the underlying client. */
 export interface IRequestOptions {
   url: string;
   method?: THttpMethod;
@@ -16,6 +17,7 @@ export interface IRequestOptions {
   [extra: symbol | string]: any;
 }
 
+/** Contract of an HTTP fetcher: `send` takes the method from the options, the verb methods fix it, and `getWorker` returns the underlying client (`W`). */
 export interface IFetchable<
   V extends TFetcherVariant,
   RQ extends IRequestOptions,

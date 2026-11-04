@@ -6,6 +6,7 @@ import { type TFetcherVariant } from './common';
 import { type IFetchable, type IRequestOptions } from './fetcher/base-fetcher';
 import { type TFetcherResponse, type TFetcherWorker } from './fetcher/common';
 
+/** Base of a client for one third-party HTTP API: holds the `baseUrl` and a fetcher, and builds request urls from path segments. `getRequestUrl` throws a 500 error when no base url is set. */
 export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
   protected baseUrl: string;
   protected fetcher: IFetchable<T, IRequestOptions, TFetcherResponse<T>, TFetcherWorker<T>>;

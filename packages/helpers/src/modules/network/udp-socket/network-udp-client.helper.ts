@@ -33,6 +33,10 @@ interface INetworkUdpClientProps {
   }) => ValueOrPromise<void>;
 }
 
+/**
+ * UDP (`udp4`) socket that binds to `host`/`port` and optionally joins multicast groups.
+ * Port `0` asks the OS for a port; a negative or non-integer port is logged and ignored. Without `onConnected`/`onData`/`onClosed`/`onError`, the built-in handlers log.
+ */
 export class NetworkUdpClient extends BaseHelper {
   private host?: string;
   private port: number;

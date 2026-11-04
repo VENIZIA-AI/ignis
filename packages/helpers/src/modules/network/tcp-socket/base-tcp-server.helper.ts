@@ -31,6 +31,7 @@ export class TcpClientStates {
 /** Valid TCP client state values. */
 export type TTcpClientState = TConstValue<typeof TcpClientStates>;
 
+/** A client connected to `BaseNetworkTcpServer`: its `id`, `socket`, authentication `state`, `subscriptions` and `storage` (connect and authenticate times, the pending authenticate timer). */
 export interface ITcpSocketClient<SocketClientType> {
   id: string;
   socket: SocketClientType;
@@ -44,6 +45,7 @@ export interface ITcpSocketClient<SocketClientType> {
   };
 }
 
+/** Options of `BaseNetworkTcpServer`. With `authenticateOptions.required`, `duration` (milliseconds, greater than 0) is how long a client has to authenticate before its socket is ended; the constructor throws without it. `createServerFn` builds the server, so one class serves plain and TLS. */
 export interface ITcpSocketServerOptions<
   SocketServerOptions extends ServerOpts = ServerOpts,
   SocketServerType extends SocketServer = SocketServer,
@@ -74,6 +76,7 @@ export interface ITcpSocketServerOptions<
   onServerError?: (opts: { server: SocketServerType; error: Error }) => void;
 }
 
+/** TCP or TLS server that tracks connected clients by id, with an optional authentication window, and reports connection events to the `onClient*` and `onServer*` callbacks. */
 export class BaseNetworkTcpServer<
   SocketServerOptions extends ServerOpts = ServerOpts,
   SocketServerType extends SocketServer = SocketServer,

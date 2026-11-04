@@ -24,11 +24,13 @@ interface IAESExtraOptions extends IAESDecryptOptions {
   iv?: Buffer;
 }
 
+/** One key in a keyring: `id` is written into the ciphertext so decrypt can pick the matching `secret`. */
 export interface IAESKeyringEntry {
   id: string;
   secret: string;
 }
 
+/** A single secret string, or a keyring. Encrypt uses the first keyring entry; decrypt uses the entry whose `id` matches the ciphertext. */
 export type TAESSecret = string | IAESKeyringEntry[];
 
 export { AESAlgorithms, type AESAlgorithmType };

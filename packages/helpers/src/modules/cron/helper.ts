@@ -4,6 +4,7 @@ import { PromiseUtility } from '@/utilities/promise.utility';
 import { CronJob, type CronOnCompleteCommand, CronTime } from 'cron';
 import { ApplicationError } from '../error';
 
+/** Options for `CronHelper`. `autoStart` defaults to `false`; `tz` is the time zone the schedule is read in. */
 export interface ICronHelperOptions {
   cronTime: string;
   onTick: () => void | Promise<void>;
@@ -13,6 +14,7 @@ export interface ICronHelperOptions {
   errorHandler?: (error: unknown) => void | null;
 }
 
+/** Wraps one cron job. The constructor throws an `ApplicationError` when `cronTime` is empty or not a valid cron expression. */
 export class CronHelper extends BaseHelper {
   private cronTime: string;
   private onTick: () => void | Promise<void>;

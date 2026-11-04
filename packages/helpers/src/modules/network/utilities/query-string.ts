@@ -17,6 +17,7 @@ export class QueryStringNullishModes {
   /** The pair is left out. */
   static readonly SKIP = 'skip';
 }
+/** What {@link QueryStringNullishModes} selects: `empty` or `skip`. */
 export type TQueryStringNullishMode = TConstValue<typeof QueryStringNullishModes>;
 
 /** What an object or an array value becomes. */
@@ -26,6 +27,7 @@ export class QueryStringNestedModes {
   /** One JSON-encoded parameter (`ids=[1,2]`, `filter={"where":{}}`), the shape a JSON filter travels in. */
   static readonly JSON = 'json';
 }
+/** What {@link QueryStringNestedModes} selects: `drop` or `json`. */
 export type TQueryStringNestedMode = TConstValue<typeof QueryStringNestedModes>;
 
 /** How {@link QueryStringUtility.toQueryString} treats the values `node:querystring` has no answer for. Both default to its behavior. */
@@ -34,6 +36,7 @@ export interface IQueryStringOptions {
   nested?: TQueryStringNestedMode;
 }
 
+/** Builds a query string without a node builtin, so the network layer stays browser-safe. */
 export class QueryStringUtility {
   /**
    * `node:querystring`'s `stringify`, written out so nothing on the HTTP path carries a node builtin -

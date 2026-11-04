@@ -6,6 +6,7 @@ import { ModuleUtility } from '@/utilities/module.utility';
 import type { Job, Processor, Queue, QueueOptions, Worker, WorkerOptions } from 'bullmq';
 import { HookUtility, type TBullQueueRole } from '../common';
 
+/** Options for {@link BullMQHelper}. `role` decides whether a `Queue` or a `Worker` is built. */
 export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
   queueName: string;
   identifier: string;
@@ -31,6 +32,10 @@ export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
   ) => Promise<void>;
 }
 
+/**
+ * Wraps a BullMQ `Queue` or `Worker` (per `role`) on one Redis connection.
+ * Worker concurrency is `numberOfWorker` (default 1) and `lockDuration` is in milliseconds (default 90 minutes).
+ */
 export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseHelper {
   protected queueName: string;
   protected role: TBullQueueRole;

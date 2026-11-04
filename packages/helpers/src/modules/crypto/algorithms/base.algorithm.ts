@@ -19,6 +19,7 @@ const KDF_HASH_NAMES: Record<string, string> = { sha256: 'SHA-256' };
 /** One entry per derivation. It holds the promise, so callers that arrive while it runs share it. */
 const DERIVED_KEY_CACHE = new Map<string, Promise<Buffer>>();
 
+/** Base for the symmetric algorithms: validates the algorithm name and derives a key of a given length from a secret with PBKDF2. */
 export abstract class BaseCryptoAlgorithm<
   AlgorithmType extends string,
   EncryptInputType = unknown,

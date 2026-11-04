@@ -11,6 +11,7 @@ export class UrlSchemes {
     return this.SCHEME_SET.has(value);
   }
 }
+/** A scheme a guarded fetch accepts: `http:` or `https:`. */
 export type TUrlScheme = TConstValue<typeof UrlSchemes>;
 
 /** Safe by default: https only, no private address, three hops, ten seconds. */

@@ -4,6 +4,7 @@ import { BaseLogger } from '../base';
 import { type ILogger, type TLogLevel } from '../common';
 import { defaultWinstonLogger } from './define';
 
+/** `ILogger` backed by winston, obtained with `get(scope)`; also exported as `Logger`. Lines below the winston logger level are skipped before formatting. */
 export class WinstonLogger extends BaseLogger {
   private static cache = new Map<string, WinstonLogger>();
   private readonly _logger: winston.Logger;

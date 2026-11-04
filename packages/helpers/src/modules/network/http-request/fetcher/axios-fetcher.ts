@@ -7,6 +7,7 @@ import { BaseNetworkRequest } from '../base-network-request.helper';
 import type { ILogger } from '@/modules/logger/common/types';
 import { AbstractNetworkFetchableHelper, type IRequestOptions } from './base-fetcher';
 
+/** Request accepted by `AxiosFetcher`: an axios config where `body` is sent as the axios `data`. `rejectUnauthorized` set here overrides the instance setting for this call. */
 export interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOptions {
   url: string;
   method?: THttpMethod;
@@ -21,6 +22,7 @@ export interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOption
   rejectUnauthorized?: boolean;
 }
 
+/** Fetcher over an axios instance (`getWorker()`). HTTPS calls share one keep-alive agent that verifies certificates unless `rejectUnauthorized` is `false`; an `httpsAgent` passed in the request wins. */
 export class AxiosFetcher extends AbstractNetworkFetchableHelper<
   'axios',
   IAxiosRequestOptions,
@@ -93,6 +95,7 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
   }
 }
 
+/** Options of `AxiosNetworkRequest`: an axios config with `baseUrl` in place of `baseURL`. */
 export interface IAxiosNetworkRequestOptions {
   name: string;
   networkOptions: Omit<AxiosRequestConfig, 'baseURL'> & {
@@ -100,6 +103,7 @@ export interface IAxiosNetworkRequestOptions {
   };
 }
 
+/** `BaseNetworkRequest` over an `AxiosFetcher`. Defaults: JSON content type, 60000 ms `timeout`, and no rejection for status below 500 (`validateStatus`). */
 export class AxiosNetworkRequest extends BaseNetworkRequest<'axios'> {
   constructor(opts: IAxiosNetworkRequestOptions) {
     const { name, networkOptions } = opts;

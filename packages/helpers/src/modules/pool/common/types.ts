@@ -1,5 +1,6 @@
 import { type TNullable, type ValueOrPromise } from '@/common/types';
 
+/** Snapshot of a pool: `size` is its configured cap, `available` counts idle resources, `borrowed` those handed out, `pending` the queued acquirers. */
 export interface IPoolStats {
   size: number;
   available: number;
