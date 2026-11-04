@@ -445,10 +445,10 @@ import {
   CoreBindings,
   inject,
   service,
-  SocketIOBindingKeys,
   BindingKeys,
   BindingNamespaces,
 } from '@venizia/ignis';
+import { SocketIOBindingKeys } from '@venizia/ignis/socket-io';
 import { getError } from '@venizia/ignis-helpers';
 import { ISocketIOClient, SocketIOServerHelper } from '@venizia/ignis-helpers/socket-io';
 import { Socket } from 'socket.io';
@@ -958,10 +958,9 @@ import {
   BindingNamespaces,
   IApplicationConfigs,
   IApplicationInfo,
-  SocketIOBindingKeys,
-  SocketIOComponent,
   ValueOrPromise,
 } from '@venizia/ignis';
+import { SocketIOBindingKeys, SocketIOComponent } from '@venizia/ignis/socket-io';
 import AutoArtifacts from '@venizia/ignis-boot/auto';
 import { applicationEnvironment, RedisSingleHelper } from '@venizia/ignis-helpers';
 // Socket.IO symbols are sub-path only - the root barrel does not re-export them.

@@ -47,7 +47,7 @@ constructor(opts: { scope: string; config: IApplicationConfigs })
 
 The constructor:
 1. Merges the provided config with defaults
-2. Resolves `asyncContext.enable` from `getDefaultAsyncContextEnabled()`
+2. Resolves `asyncContext.enable` from `getDefaultAsyncContextEnabled()`: `false` here, `true` in `ServerApplication` (see [The two constructor hooks](#the-two-constructor-hooks))
 3. Sets `projectRoot` from `getProjectRoot()`
 
 It resolves no host and no port. Both mean nothing to a host that binds no socket, so `ServerApplication` resolves them in its own constructor instead.
@@ -392,14 +392,16 @@ A component may register more components while it is configured, at any nesting 
 ```typescript
 interface IApplicationConfigs {
   path: { base: string; isStrict: boolean }; // Base path; isStrict: trailing-slash strictness (default true)
-  requestId?: { isStrict: boolean };      // Request ID validation
+  requestId?: { isStrict: boolean };      // Typed, but nothing in the framework reads it
   favicon?: string;                       // Favicon emoji (default: '🔥')
   error?: { rootKey?: string; environment?: string }; // Error envelope root key, ambient environment name
-  asyncContext?: { enable: boolean };     // Hono async context storage
+  asyncContext?: { enable: boolean };     // Hono async context storage (default: true on BaseApplication, false on Rest and Worker)
   middlewares?: IMiddlewareConfigs;       // Only bodyLimit is installed by the framework; see Middlewares Reference
   artifacts?: TArtifactIndexInput;        // Generated indexes registered before preConfigure
+  discoverArtifacts?: boolean;            // Register every decorated class the application imports (default: false)
   bootChecks?: {                          // Boot-time checks; absent means nothing is verified
     binding?: { doVerify: boolean; allowManual: boolean; allowOverride: boolean };
+    allowDerivedKeyCollision?: boolean;   // true turns a derived-binding-key collision into a warning (default: false)
   };
   debug?: { shouldShowRoutes?: boolean }; // Show registered routes on startup
   transports?: TControllerTransport[];    // Controller transports: 'rest' | 'grpc' (default: ['rest'])
@@ -408,7 +410,7 @@ interface IApplicationConfigs {
 }
 ```
 
-`error.environment` names the host's ambient environment. Set it where there is none to read - a browser Worker - so the error middleware can tell "no ambient environment" from "misconfigured". Leave it unset on a server, which reads `process.env.NODE_ENV`.
+`error.environment` names the host's ambient environment. Set it where there is none to read - a browser Worker - so the error middleware can tell "no ambient environment" from "misconfigured". `BaseApplication` ignores it and reads `process.env.NODE_ENV`; only `RestApplication` and `WorkerApplication` pass it to the error middleware.
 
 There is no `host` and no `port` here: a browser Worker has neither. `@venizia/ignis` widens the shape for hosts that bind a socket:
 

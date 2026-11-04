@@ -14,7 +14,7 @@ The recommended pattern is to define the schema and relations as **static proper
 **Example (`src/models/entities/user.model.ts`):**
 
 ```typescript
-import { BaseRelationalEntity, extraUserColumns, PostgresIdEnricher, model } from '@venizia/ignis';
+import { AuthModelColumns, BaseRelationalEntity, PostgresIdEnricher, model } from '@venizia/ignis';
 import { pgTable } from 'drizzle-orm/pg-core';
 
 @model()
@@ -22,7 +22,7 @@ export class User extends BaseRelationalEntity<typeof User.schema> {
   // 1. Define schema as a static property
   static override schema = pgTable('User', {
     ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
-    ...extraUserColumns({ idType: 'string' }),
+    ...AuthModelColumns.buildUser({ idType: 'string' }),
   });
 
   // 2. Define relations as a static method (return empty array if none)
@@ -45,7 +45,7 @@ Each enricher is a class with a static `generateColumnDefs` and `enrich` (SQLite
 | `PostgresTzEnricher.generateColumnDefs` | Adds timestamps | `createdAt`, `modifiedAt` (auto-updating); `deletedAt` via `{ deleted: { enable: true, ... } }` |
 | `PostgresUserAuditEnricher.generateColumnDefs` | Adds audit fields | `createdBy`, `modifiedBy` (supports `allowAnonymous` option) |
 | `PostgresDataTypeEnricher.generateColumnDefs` | Adds generic value fields | `dataType`, `nValue` (number), `tValue` (text), `bValue` (bytea), `jValue` (jsonb), `boValue` (boolean) |
-| `extraUserColumns` | Auth user fields | `realm`, `status`, `type`, `activatedAt`, `lastLoginAt`, `parentId` |
+| `AuthModelColumns.buildUser` | Auth user fields | `realm`, `status`, `type`, `activatedAt`, `lastLoginAt`, `parentId` |
 
 **Usage Example:**
 
@@ -310,7 +310,7 @@ DataSources automatically discover their schema from the repositories that bind 
 ```typescript
 // src/datasources/postgres.datasource.ts
 import { datasource, ValueOrPromise } from '@venizia/ignis';
-import { BaseRelationalDataSource } from '@venizia/ignis-connectors/postgres';
+import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
 
@@ -323,7 +323,7 @@ interface IDataSourceConfigs {
 }
 
 @datasource({ driver: NodePostgresDriver })
-export class PostgresDataSource extends BaseRelationalDataSource<IDataSourceConfigs> {
+export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,

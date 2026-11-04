@@ -392,7 +392,7 @@ class UserController {
 
 ## Request Context Access
 
-Access the current Hono request context from anywhere using `useRequestContext()`. This uses Hono's context storage middleware and requires `asyncContext.enable: true` in application config.
+Access the current Hono request context from anywhere using `useRequestContext()`. This uses Hono's context storage middleware and requires `asyncContext.enable: true` in application config. It is `true` by default on `BaseApplication` and `false` on `RestApplication` and `WorkerApplication`.
 
 ```typescript
 import { useRequestContext } from '@venizia/ignis';

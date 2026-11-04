@@ -83,7 +83,6 @@ import type {
 import { isClass } from '@venizia/ignis-helpers';
 // Resolver classes
 import { ResolverUtility, ClassResolver } from '@venizia/ignis-helpers';
-import { resolveValue, resolveValueAsync, ClassResolver } from '@venizia/ignis-helpers';
 
 // Constants
 import {

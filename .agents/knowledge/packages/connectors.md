@@ -469,8 +469,8 @@ method on the repository passing `dangerouslySkipScopeFilter`, never a flag in t
 
 **Declaring `access` where it cannot take effect now REFUSES TO BOOT** -
 `ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled })` in `src/common/scope-filter.ts`, called from
-core-server's `initialize()` after `postConfigure()` so component-contributed models are covered. It
-catches the two silent configurations, which fail in OPPOSITE directions: a search-backed model
+core-server's `BaseApplication` as its last boot step (`validateScopeFilterSupport`, after `verifyBindings`) so component-contributed models are covered, and by `ApplicationBootAssertion.assert`. It
+refuses four groups of configuration: a search-backed model, `asyncContext.enable: false`, an invalid `through` (neither or both of `resolve` and `through`, `onMissing`/`columns`/`write` beside `through`, a bad relation, a cycle, more than 5 hops, a parent without `access`) and an invalid write guard (`write.mode`, `columns`). The first two are silent at run time and fail in OPPOSITE directions: a search-backed model
 (`BaseSearchEntity` in the prototype chain) never reads the setting and returns MORE rows, while
 `asyncContext.enable: false` leaves `resolve()` with no ambient context so `onMissing` denies EVERY
 query - and nothing named the flag as the cause. Search is reported first: it needs a code change,
