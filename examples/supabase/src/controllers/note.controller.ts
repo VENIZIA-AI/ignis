@@ -113,6 +113,7 @@ export class NoteController extends BaseRestController {
   @get({ configs: RouteConfigs['/'] })
   async find(context: TRouteContext) {
     const data = await this.noteService.find({ claims: this.getClaims(context) });
+
     return context.json({ data, count: data.length }, HTTP.ResultCodes.RS_2.Ok);
   }
 
@@ -120,6 +121,7 @@ export class NoteController extends BaseRestController {
   async create(context: TRouteContext) {
     const body = context.req.valid<TCreateNoteRequest>('json');
     const data = await this.noteService.create({ claims: this.getClaims(context), data: body });
+
     return context.json(data, HTTP.ResultCodes.RS_2.Ok);
   }
 
@@ -127,6 +129,7 @@ export class NoteController extends BaseRestController {
   async deleteById(context: TRouteContext) {
     const { id } = context.req.valid<{ id: string }>('param');
     const rs = await this.noteService.deleteById({ claims: this.getClaims(context), id });
+
     return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
   }
 
@@ -134,6 +137,7 @@ export class NoteController extends BaseRestController {
   @get({ configs: RouteConfigs['/unscoped'] })
   async findUnscoped(context: TRouteContext) {
     const data = await this.noteService.findUnscoped();
+
     return context.json({ data, count: data.length }, HTTP.ResultCodes.RS_2.Ok);
   }
 }

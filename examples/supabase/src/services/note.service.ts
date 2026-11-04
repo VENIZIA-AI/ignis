@@ -42,6 +42,7 @@ export class NoteService extends BaseService {
       await SupabaseRls.withAuthContext({ transaction, claims });
       const result = await handler(transaction);
       await transaction.commit();
+
       return result;
     } catch (error) {
       // rollback() rethrows on failure, so it must not be the last thing standing between the caller
@@ -80,6 +81,7 @@ export class NoteService extends BaseService {
           data: opts.data,
           options: { transaction },
         });
+
         return rs.data;
       },
     });
@@ -96,6 +98,7 @@ export class NoteService extends BaseService {
           id: opts.id,
           options: { transaction },
         });
+
         return { count: rs.count };
       },
     });
