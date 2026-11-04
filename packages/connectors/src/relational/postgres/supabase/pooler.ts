@@ -14,13 +14,16 @@ export class PoolerModes {
   }
 }
 
+/** One of the {@link PoolerModes} values. */
 export type TPoolerMode = TConstValue<typeof PoolerModes>;
 
+/** postgres-js client options derived from a pooler mode; `prepare` is the server-side prepared-statements switch. */
 export interface IPostgresJsOptions {
   prepare: boolean;
   max?: number;
 }
 
+/** Derives postgres-js options for connecting to Supabase through its direct, session or transaction pooler. */
 export class SupabasePooler {
   /** Supavisor's TRANSACTION mode rebinds the backend connection per transaction, so server-side prepared statements do not survive - `prepare: false` is required there, not a tuning knob. `max` is forwarded only when supplied; postgres-js has its own default. */
   static buildPostgresJsOptions(opts: { mode: TPoolerMode; max?: number }): IPostgresJsOptions {

@@ -1,3 +1,4 @@
+/** Options of a search datasource: its `name` and the engine-specific `config` settings. */
 export interface ISearchDataSourceOptions<Settings extends object = {}> {
   name: string;
   config: Settings;

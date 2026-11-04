@@ -1,6 +1,7 @@
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { IRelationalDriver } from '../drivers';
 
+/** One migration to apply. `sql` may hold several statements separated by `--> statement-breakpoint`, as `drizzle-kit generate` writes them. */
 export interface IMigration {
   /** Ledger key. Never rewrite an applied one - see the hashing note on {@link RelationalMigrationRunner}. */
   name: string;

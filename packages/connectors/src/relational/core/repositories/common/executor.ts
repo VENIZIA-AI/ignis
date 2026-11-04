@@ -6,6 +6,7 @@ import type { TTableSchemaWithId } from '@/relational/core/models/common';
 /** Column subset for a projection, in Drizzle's own shape. `undefined` selects every column. */
 export type TColumnSelection = Record<string, unknown> | undefined;
 
+/** Input of a `select` call on the query executor; `connector` is the one resolved for the current operation or transaction. */
 export interface ISelectOptions<TConnector> {
   connector: TConnector;
   table: TTableSchemaWithId;
@@ -18,12 +19,14 @@ export interface ISelectOptions<TConnector> {
   lock?: TLockOptions;
 }
 
+/** Input of a `count` call on the query executor; `where` omitted counts every row. */
 export interface ICountOptions<TConnector> {
   connector: TConnector;
   table: TTableSchemaWithId;
   where?: SQL;
 }
 
+/** Input of a relational (`findMany`/`findFirst` style) query on the query executor, run through Drizzle's relational query interface. */
 export interface IRelationalQueryOptions<TConnector> {
   connector: TConnector;
   /** Schema registration key - the entity's `TABLE_NAME`, used to reach Drizzle's relational query interface. */
@@ -33,6 +36,7 @@ export interface IRelationalQueryOptions<TConnector> {
   scope?: string;
 }
 
+/** Input of an `insert` call on the query executor; `shouldReturn` selects whether inserted rows are read back. */
 export interface IInsertOptions<TConnector> {
   connector: TConnector;
   table: TTableSchemaWithId;
@@ -42,6 +46,7 @@ export interface IInsertOptions<TConnector> {
   shouldReturn: boolean;
 }
 
+/** Input of an `update` call on the query executor; `where` omitted updates every row. */
 export interface IUpdateOptions<TConnector> {
   connector: TConnector;
   table: TTableSchemaWithId;
@@ -51,6 +56,7 @@ export interface IUpdateOptions<TConnector> {
   shouldReturn: boolean;
 }
 
+/** Input of a `remove` call on the query executor; `where` omitted removes every row. */
 export interface IRemoveOptions<TConnector> {
   connector: TConnector;
   table: TTableSchemaWithId;

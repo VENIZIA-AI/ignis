@@ -25,6 +25,7 @@ export class MeilisearchTaskStatuses {
   }
 }
 
+/** Union of the `MeilisearchTaskStatuses` values. */
 export type TMeilisearchTaskStatus = TConstValue<typeof MeilisearchTaskStatuses>;
 
 /** Page size used when walking `documents/fetch` for ids during an emulated update-by-filter. */
@@ -33,6 +34,7 @@ export const MEILISEARCH_DEFAULT_FETCH_PAGE_SIZE = 1000;
 /** Documents per merge-PUT batch. Bounded by the server's payload limit, not by a document count. */
 export const MEILISEARCH_DEFAULT_UPDATE_BATCH_SIZE = 1000;
 
+/** Options of `MeilisearchConnector`. `taskTimeoutMs` defaults to 5 minutes and `taskIntervalMs` to 50 ms, the starting poll interval, which doubles up to a 1 s ceiling. */
 export interface IMeilisearchConnectorOptions {
   name: string;
   host: string;
@@ -50,6 +52,7 @@ export interface IMeilisearchConnectorOptions {
   onError?: (opts: { name: string; error: unknown }) => void;
 }
 
+/** Datasource `config` for Meilisearch; the fields are forwarded to `IMeilisearchConnectorOptions`. */
 export interface IMeilisearchDataSourceSettings {
   host: string;
   apiKey?: string;
@@ -57,6 +60,7 @@ export interface IMeilisearchDataSourceSettings {
   taskIntervalMs?: number;
 }
 
+/** A Meilisearch task as `getTask` and write calls return it; `status` is one of `MeilisearchTaskStatuses`. */
 export interface IMeilisearchTask {
   taskUid: number;
   status: string;
@@ -65,6 +69,7 @@ export interface IMeilisearchTask {
   details?: Record<string, unknown>;
 }
 
+/** One page of `getDocuments` results with the total number of matching documents. */
 export interface IMeilisearchDocumentsPage {
   results: unknown[];
   total: number;
@@ -86,6 +91,7 @@ export interface IMeilisearchIndexApi {
   resetSynonyms(): Promise<IMeilisearchTask>;
 }
 
+/** Narrow structural view of the Meilisearch client the connector needs, so a test fake can stand in for the real client. */
 export interface IMeilisearchClientLike {
   index(uid: string): IMeilisearchIndexApi;
   createIndex(uid: string, options?: unknown): Promise<IMeilisearchTask>;

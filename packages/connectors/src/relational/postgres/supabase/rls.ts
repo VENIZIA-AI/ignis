@@ -5,6 +5,7 @@ import { sql } from 'drizzle-orm';
 /** A bare Postgres role identifier. Anything else cannot be safely interpolated. */
 const ROLE_PATTERN = /^[a-z_][a-z0-9_]*$/;
 
+/** Row-level-security helpers for Supabase transactions. */
 export class SupabaseRls {
   /** Sets the Supabase auth context for THIS transaction so `auth.uid()` resolves in RLS policies. `SET LOCAL` only - plain `SET` would leak the identity to the connection's next borrower under a pooler. `role` defaults to the JWT's own `role` claim, the only default that cannot contradict `request.jwt.claims`. */
   static async withAuthContext(opts: {

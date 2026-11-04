@@ -6,6 +6,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 import type { TRelationalConnection, TRelationalDriver } from './driver';
 
+/** Driver over a `pg` `Pool`. Throws on construction if given anything without pool accounting, such as a bare `pg.Client`. */
 export class NodePostgresDriver<
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
 > implements TRelationalDriver<Schema, Pool> {

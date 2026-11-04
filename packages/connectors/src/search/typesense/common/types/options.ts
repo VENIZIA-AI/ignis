@@ -1,6 +1,7 @@
 import type { ISearchConnectorCallbacks } from '@/search/core';
 import type { ITypesenseClientLike, ITypesenseNode } from './client';
 
+/** Options of `TypesenseConnector`. `connectionTimeoutSeconds` defaults to 5 and applies to the whole client. */
 export interface ITypesenseConnectorOptions extends ISearchConnectorCallbacks {
   name: string;
   nodes: ITypesenseNode[];
@@ -28,6 +29,7 @@ export interface ITypesenseCallOptions {
   timeoutMs?: number;
 }
 
+/** Datasource `config` for Typesense: server nodes, API key, and the client's timeout and retry settings. */
 export interface ITypesenseDataSourceSettings {
   nodes: Array<{ host: string; port: number; protocol?: string }>;
   apiKey: string;

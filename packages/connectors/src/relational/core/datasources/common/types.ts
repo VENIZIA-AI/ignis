@@ -13,6 +13,7 @@ import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 /** Neutral SQL transaction options; each engine adds its own knobs. An alias, not an empty `interface ... extends`, which `@typescript-eslint/no-empty-object-type` rejects. */
 export type TRelationalTransactionOptions = ITransactionOptions;
 
+/** Transaction handle for a SQL datasource: `connector` runs queries inside the transaction, `commit()` and `rollback()` end it. */
 export interface IRelationalTransaction<TConnector> extends ITransaction {
   /** Bound to the transaction's own connection, whichever driver acquired it. */
   connector: TConnector;

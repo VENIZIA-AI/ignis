@@ -21,6 +21,7 @@ export type TDeletedAtColumn = AnyColumn<{
   data: Date | string | null;
 }>;
 
+/** A table schema with an `id` column and a nullable `deletedAt` column, as soft deletion requires. */
 export type TSoftDeletableTableSchema = TTableSchemaWithId & {
   deletedAt: TDeletedAtColumn;
 };

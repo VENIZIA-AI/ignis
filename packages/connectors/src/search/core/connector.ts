@@ -3,16 +3,19 @@ import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { SearchConnectorInternal } from './internal';
 
+/** Outcome of a bulk import: how many rows succeeded and failed, and the engine's per-row responses. */
 export interface IImportResult<TResponse = unknown> {
   count: { success: number; fail: number };
   responses: TResponse[];
 }
 
+/** An alias name and the physical collection it points to. */
 export interface IAliasInfo {
   name: string;
   collection: string;
 }
 
+/** Optional hooks a connector calls once its client is created (`onInitialized`) or creating it throws (`onError`). */
 export interface ISearchConnectorCallbacks {
   onInitialized?: (opts: { name: string }) => void;
   onError?: (opts: { name: string; error: unknown }) => void;
@@ -66,6 +69,7 @@ export interface ISearchResult<
 }
 
 // Schema/field types are engine-specific, not caller-owned - hence interface-level generics filled by the engine's connector, defaulting to `unknown` so `ISearchConnector` stays engine-agnostic.
+/** Collection management verbs of a search connector. The three generics are the engine's own create-schema, schema and field-schema types. */
 export interface ISearchCollectionScoped<
   CreateSchema = unknown,
   Schema = unknown,
@@ -92,6 +96,7 @@ export interface ISearchSwapScoped {
 }
 
 // Synonym SETS (Typesense v30+): a named item set linked to one or more collections; `ISynonym` is the item shape.
+/** Named synonym sets, available only on engines that have them; engines with a flat per-collection dictionary use `ISearchSynonymScoped`. */
 export interface ISearchSynonymSetScoped {
   upsert(opts: { name: string; items: ISynonym[] }): Promise<void>;
   get(opts: { name: string }): Promise<ISynonym[] | null>;
@@ -107,6 +112,7 @@ export interface ISearchSynonymScoped {
   reset(opts: { collection: string }): Promise<void>;
 }
 
+/** Document verbs of a search connector; every call names its target collection, and `id` addresses one document. */
 export interface ISearchDocumentScoped {
   get<T extends object>(opts: { collection: string; id: string }): Promise<T>;
 
@@ -169,6 +175,7 @@ export interface ISearchConnector {
   }): Promise<unknown>;
 }
 
+/** Base of every search connector: `ping()` answers from `getHealth()`, `assertNonEmpty` guards required string arguments, and `runEngineCall` turns raw engine failures into a sanitized 503. */
 export abstract class BaseSearchConnector extends BaseHelper implements ISearchConnector {
   constructor(opts: { scope: string; identifier: string }) {
     super(opts);

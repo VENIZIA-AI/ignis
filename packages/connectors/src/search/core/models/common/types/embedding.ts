@@ -16,6 +16,7 @@ export interface ISearchEmbedModelConfig {
   [key: string]: unknown;
 }
 
+/** Server-side auto-embedding for a `vector` field: the engine generates the vector from the `from` fields using `model`. */
 export interface ISearchEmbedConfig {
   from: string[];
   model: ISearchEmbedModelConfig;

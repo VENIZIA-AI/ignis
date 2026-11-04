@@ -7,6 +7,7 @@ import type { RelationalBaseRepository } from '@/relational/core/repositories/co
 export type TRepositoryWithTransactions<Repository extends object> = Repository &
   Pick<RelationalBaseRepository, 'runInTransaction'>;
 
+/** Test helper that gives a hand-made repository double the real transaction behaviour, without a database. */
 export class RepositoryDouble {
   /**
    * Gives a hand-made repository double the real `runInTransaction`, so a service that opens a transaction runs in a

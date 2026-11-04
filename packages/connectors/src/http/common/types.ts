@@ -1,5 +1,6 @@
 import type { TFilter } from '@venizia/ignis-filter';
 
+/** A credential the HTTP datasource attaches to a request: `Authorization: <type> <value>` (`type` defaults to `Bearer`), and `provider`, when set, as the `x-auth-provider` header. */
 export interface IAuthToken {
   value: string;
   type?: string;
@@ -40,6 +41,7 @@ export interface IHttpCallOptions {
   signal?: AbortSignal;
 }
 
+/** Settings of the HTTP datasource: where to send, which headers and token to attach, and what to do on a 401. */
 export interface IHttpDataSourceSettings {
   /** An absolute URL, or a path from the page origin (`/api`). A path-relative one is refused. */
   baseUrl: string;
@@ -88,6 +90,7 @@ export interface IHttpWriteResult<R> {
   extra?: Record<string, unknown>;
 }
 
+/** The query a repository call sends: an optional `filter` typed against the entity `E`. */
 export type THttpQuery<E extends object> = { filter?: TFilter<E> };
 
 /** Query parameters a route takes beside `filter` or `where` - a keyword, a scope. The filter and `where` win over a key of the same name. */

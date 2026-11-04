@@ -1,5 +1,6 @@
 import type { TIdSchemaType } from '@venizia/ignis-kernel';
 
+/** Options of `SqliteDataTypeEnricher`: per-column defaults for the generic typed-value columns. A default is applied when its key is present, so `0`, `''` and `false` count. */
 export type TDataTypeEnricherOptions = {
   defaultValue: Partial<{
     dataType: string;
@@ -22,6 +23,7 @@ export type TIdEnricherOptions = {
     | { dataType: 'number'; autoIncrement?: boolean };
 };
 
+/** Options of `SqlitePrincipalEnricher`: the discriminator name (default `principal`), the id column type, and whether the id and the type column are nullable. */
 export type TPrincipalEnricherOptions<
   Discriminator extends string = string,
   PolymorphicIdType extends TIdSchemaType = TIdSchemaType,
@@ -51,12 +53,14 @@ export type TTzEnricherOptions = {
   deleted?: { enable: false } | { enable?: true; columnName: string };
 };
 
+/** One audit column of `SqliteUserAuditEnricher`: its id type (`number` or `string`), its column name, and whether a missing user is allowed (`allowAnonymous`, true when omitted). */
 export type TUserAuditColumnOpts = {
   dataType: TIdSchemaType;
   columnName: string;
   allowAnonymous?: boolean;
 };
 
+/** Options of `SqliteUserAuditEnricher`: the `created` and `modified` user columns; an omitted one defaults to a nullable `number` column (`created_by`, `modified_by`). */
 export type TUserAuditEnricherOptions = {
   created?: TUserAuditColumnOpts;
   modified?: TUserAuditColumnOpts;

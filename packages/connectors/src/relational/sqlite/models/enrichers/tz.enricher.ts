@@ -10,6 +10,7 @@ type TIsoTimestampColumn = ReturnType<typeof isoTimestamp>;
 // resolve it to `undefined` here, because weak-type detection rejects a member with no `enable`.
 type TIsEnabled<T> = T extends { enable: false } ? false : T extends object ? true : undefined;
 
+/** The column definitions with `createdAt`, and `modifiedAt` and `deletedAt` when the options enable them. */
 export type TTzEnricherResult<Opts extends TTzEnricherOptions | undefined = undefined> = {
   createdAt: NotNull<HasDefault<TIsoTimestampColumn>>;
 } & (Opts extends TTzEnricherOptions
@@ -25,6 +26,7 @@ export type TTzEnricherResult<Opts extends TTzEnricherOptions | undefined = unde
       : {}
     : {}); // no deletedAt when opts is undefined
 
+/** Adds ISO 8601 UTC timestamp columns to a table: `created_at` and `modified_at` by default, `deleted_at` only when enabled. */
 export class SqliteTzEnricher {
   static generateColumnDefs<Opts extends TTzEnricherOptions | undefined>(
     opts?: Opts,

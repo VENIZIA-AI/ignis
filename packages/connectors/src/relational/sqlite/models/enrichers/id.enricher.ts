@@ -18,6 +18,7 @@ type TStringIdCol = HasRuntimeDefault<
 // Drizzle marks an integer primary key `HasDefault` because SQLite fills the rowid itself.
 type TNumberIdCol = IsPrimaryKey<HasDefault<NotNull<SQLiteIntegerBuilderInitial<'id'>>>>;
 
+/** The column definitions with an `id` primary key, text or integer, added. */
 export type TIdEnricherResult<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions> =
   ColumnDefinitions & {
     id: TStringIdCol | TNumberIdCol;
@@ -34,6 +35,7 @@ type TIdColumnDef<Opts extends TIdEnricherOptions | undefined = undefined> = Opt
 // Time-ordered, so a text primary key appends to its B-tree instead of splitting pages.
 const defaultStringId = (): string => UuidHelper.getInstance().v7();
 
+/** Adds an `id` primary key to a table's column definitions: an integer rowid (`AUTOINCREMENT` by default) or a text key from `generator`, a UUID v7 when none is given. Any other `dataType` throws. */
 export class SqliteIdEnricher {
   static generateColumnDefs<Opts extends TIdEnricherOptions | undefined>(
     opts?: Opts,

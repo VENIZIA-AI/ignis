@@ -19,6 +19,7 @@ import { getError } from '@venizia/ignis-helpers/core';
  */
 export type TTransactionDoubleHook = () => void | Promise<void>;
 
+/** Options shared by the transaction doubles: the `connector` to expose, errors to throw on the first commit or rollback, and hooks to observe them. */
 export interface ITransactionDoubleOptions<TConnector = never> {
   /**
    * What the `connector` getter returns, typed as `TConnector`. Without it the getter throws and is typed
@@ -40,12 +41,14 @@ export interface ITransactionDoubleOptions<TConnector = never> {
   onRollback?: TTransactionDoubleHook;
 }
 
+/** Options of `PostgresTransactionDouble`: the shared ones plus the `isolationLevel` it reports. */
 export interface IPostgresTransactionDoubleOptions<
   TConnector = never,
 > extends ITransactionDoubleOptions<TConnector> {
   isolationLevel?: TIsolationLevel;
 }
 
+/** Options of `SqliteTransactionDouble`: the shared ones plus the `beginMode` it reports. */
 export interface ISqliteTransactionDoubleOptions<
   TConnector = never,
 > extends ITransactionDoubleOptions<TConnector> {

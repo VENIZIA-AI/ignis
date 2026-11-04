@@ -27,6 +27,7 @@ export class SearchFieldTypes {
   }
 }
 
+/** Union of the `SearchFieldTypes` values. */
 export type TSearchFieldType = TConstValue<typeof SearchFieldTypes>;
 
 /** Distance metrics a `vector` field may declare. An engine that supports fewer rejects the rest in its compiler. */
@@ -42,4 +43,5 @@ export class VectorDistances {
   }
 }
 
+/** Union of the `VectorDistances` values: `'cosine'`, `'ip'` or `'l2'`. */
 export type TVectorDistance = TConstValue<typeof VectorDistances>;

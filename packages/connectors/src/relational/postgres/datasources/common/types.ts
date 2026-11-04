@@ -17,9 +17,11 @@ export type TRelationalConnector<
   DataSourceSchema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
 > = PgDatabase<PgQueryResultHKT, DataSourceSchema>;
 
+/** Alias of {@link TRelationalConnector}: a Drizzle connector for any Postgres driver. */
 export type TAnyConnector<DataSourceSchema extends TAnyDataSourceSchema = TAnyDataSourceSchema> =
   TRelationalConnector<DataSourceSchema>;
 
+/** Postgres transaction isolation levels accepted by `isolationLevel`. */
 export class IsolationLevels {
   static readonly READ_COMMITTED = 'READ COMMITTED';
   static readonly REPEATABLE_READ = 'REPEATABLE READ';
@@ -36,6 +38,7 @@ export class IsolationLevels {
   }
 }
 
+/** One of the {@link IsolationLevels} values. */
 export type TIsolationLevel = TConstValue<typeof IsolationLevels>;
 
 /** Postgres transaction options: a typed `isolationLevel` on top of the string-only neutral one. */

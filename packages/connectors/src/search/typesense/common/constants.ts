@@ -1,5 +1,6 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 
+/** Values of the import `action` option; `create` is used when none is given. */
 export class TypesenseImportActions {
   static readonly CREATE = 'create';
   static readonly UPSERT = 'upsert';
@@ -18,8 +19,10 @@ export class TypesenseImportActions {
   }
 }
 
+/** Union of the `TypesenseImportActions` values. */
 export type TTypesenseImportAction = TConstValue<typeof TypesenseImportActions>;
 
+/** Values of the import `dirtyValues` option, which selects how the engine treats a field value that does not match its declared type. */
 export class TypesenseDirtyValues {
   static readonly COERCE_OR_REJECT = 'coerce_or_reject';
   static readonly COERCE_OR_DROP = 'coerce_or_drop';
@@ -38,4 +41,5 @@ export class TypesenseDirtyValues {
   }
 }
 
+/** Union of the `TypesenseDirtyValues` values. */
 export type TTypesenseDirtyValue = TConstValue<typeof TypesenseDirtyValues>;

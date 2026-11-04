@@ -11,10 +11,13 @@ import type {
   TableConfig,
 } from 'drizzle-orm';
 
+/** A single Drizzle column builder, whatever the engine. */
 export type TColumnDefinition = ColumnBuilderBase;
+/** A map of field names to column builders. */
 export type TColumnDefinitions = {
   [field: string | symbol]: TColumnDefinition;
 };
+/** Marks the column builder `T` as a not-null primary key. */
 export type TPrimaryKey<T extends TColumnDefinition> = IsPrimaryKey<NotNull<T>>;
 
 /** Any Drizzle column whose runtime value is a valid entity id. Drizzle's root `AnyColumn<TPartial>` is the exact dialect-free twin of `AnyPgColumn<TPartial>`, so this does not widen the bound. */
@@ -25,10 +28,14 @@ export type TTableSchemaWithId<TC extends TableConfig = TableConfig> = Table<TC>
   id: TIdColumn;
 };
 
+/** The row shape a select returns for the table `T`. */
 export type TTableObject<T extends TTableSchemaWithId> = T['$inferSelect'];
+/** The row shape an insert takes for the table `T`. */
 export type TTableInsert<T extends TTableSchemaWithId> = T['$inferInsert'];
+/** The type of the `id` column of the table `T`. */
 export type TGetIdType<T extends TTableSchemaWithId> = TTableObject<T>['id'];
 
+/** Helpers for reading facts off an entity table schema. */
 export class RelationalEntityUtility {
   static getIdType<T extends TTableSchemaWithId>(opts: { entity: T }) {
     return opts.entity?.id?.dataType ?? 'unknown';
@@ -48,18 +55,21 @@ export type TRelationMetadata<Type extends TRelationConfig['type']> = Extract<
   { type: Type }
 >['metadata'];
 
+/** A to-many relation to `schema`, as built by `many()`; `metadata` is the Drizzle relation options. */
 export interface IManyRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId> {
   type: typeof RelationTypes.MANY;
   schema: Schema;
   metadata?: TRelationMetadata<typeof RelationTypes.MANY>;
 }
 
+/** A to-one relation to `schema`, as built by `one()`; `metadata` is the Drizzle relation options. */
 export interface IOneRelation<Schema extends TTableSchemaWithId = TTableSchemaWithId> {
   type: typeof RelationTypes.ONE;
   schema: Schema;
   metadata?: TRelationMetadata<typeof RelationTypes.ONE>;
 }
 
+/** A relation declared with `many()` or `one()`, before its name is attached. */
 export type TRelationDefinition = IManyRelation | IOneRelation;
 
 /**

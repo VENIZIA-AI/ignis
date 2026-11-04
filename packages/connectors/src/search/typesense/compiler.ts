@@ -224,6 +224,7 @@ const assertNestedFieldsEnabled = (opts: { schema: CollectionCreateSchema }): vo
   });
 };
 
+/** Compiles the engine-neutral collection DSL into a Typesense `CollectionCreateSchema`. Throws on an unsupported field type, a vector field with neither `dimensions` nor `embed`, a dotted field name without `enable_nested_fields`, and a `defaultSort` that is not a scalar numeric field of the collection. */
 export class TypesenseCollectionCompiler {
   /** Compiles an engine-neutral `ISearchCollectionDefinition` into a Typesense `CollectionCreateSchema`. */
   static compile(opts: { definition: ISearchCollectionDefinition }): CollectionCreateSchema {

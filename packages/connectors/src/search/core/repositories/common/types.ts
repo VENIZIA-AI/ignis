@@ -23,8 +23,10 @@ export class SearchFilterOutcomes {
     return this.SCHEME_SET.has(input);
   }
 }
+/** Union of the `SearchFilterOutcomes` values. */
 export type TSearchFilterOutcome = TConstValue<typeof SearchFilterOutcomes>;
 
+/** Result of compiling a `where` tree: `filterBy` is present only when `outcome` is `filter`; `matchAll` and `matchNone` carry no filter string. */
 export type TCompiledWhere =
   | { outcome: typeof SearchFilterOutcomes.FILTER; filterBy: string }
   | { outcome: typeof SearchFilterOutcomes.MATCH_ALL }
