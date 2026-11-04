@@ -42,6 +42,7 @@ import { AssetKeyScope } from './key-scope';
 import { AssetMetaLink } from './meta-link';
 import { AssetRouteOptions } from './route-options';
 
+/** Input of `AssetControllerFactory.defineAssetController`: one entry of `TStaticAssetsComponentOptions` with its storage type and helper. */
 export interface IAssetControllerOptions {
   controller: TStaticAssetsComponentOptions[string]['controller'];
   storage: TStaticAssetStorageType;
@@ -210,6 +211,7 @@ const applyMetadataHeaders: (opts: {
   });
 };
 
+/** Builds the REST controller class for a static asset entry. Static helpers also expose label checking, object link building and served content type resolution. */
 export class AssetControllerFactory extends BaseHelper {
   constructor() {
     super({ scope: AssetControllerFactory.name });

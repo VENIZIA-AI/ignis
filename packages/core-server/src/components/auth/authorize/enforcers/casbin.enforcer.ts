@@ -48,6 +48,7 @@ interface ICasbinRoleManagerWithDomainHierarchy {
 
 // Wraps casbin (optional peer dep). Each request borrows its own pooled enforcer; any error during use destroys it (fail-closed). Pooled enforcers carry no adapter - only extractUserLines uses one.
 
+/** Authorization enforcer backed by casbin (an optional peer dependency); `configure()` throws when `options.model` is missing. */
 export class CasbinAuthorizationEnforcer<
   E extends Env = Env,
   TAction extends string = string,

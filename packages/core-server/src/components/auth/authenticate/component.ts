@@ -39,6 +39,7 @@ import { ServiceAuthenticationStrategy } from './strategies/service.strategy';
 
 const DEFAULT_SECRET = 'unknown_secret';
 
+/** Registers the authentication services and strategies from the options bound under `AuthenticateBindingKeys`. Throws at binding time unless JWT, basic or service options are provided. */
 export class AuthenticateComponent extends BaseComponent {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,

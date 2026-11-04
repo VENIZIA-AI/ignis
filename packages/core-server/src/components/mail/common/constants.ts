@@ -1,6 +1,7 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { MessageCode } from '@venizia/ignis-helpers/core';
 
+/** Fallbacks for mail sending: the batch concurrency, the `from` address used when neither the message nor the options set one, and the attachment size cap. */
 export class MailDefaults {
   static readonly BATCH_CONCURRENCY = 5;
   static readonly FALLBACK_FROM = 'noreply@example.com';
@@ -44,10 +45,12 @@ export class MailErrorCodes {
   });
 }
 
+/** Messages thrown by the mail queue executors. */
 export class MailExecutorErrors {
   static readonly PROCESSOR_NOT_SET = 'Processor not set. Call setProcessor() first.';
 }
 
+/** Values of `IMailQueueExecutorConfig.type`, selecting how verification mails are queued: sent inline, held in process, or handed to BullMQ. */
 export class MailQueueExecutorTypes {
   static readonly DIRECT = 'direct';
   static readonly INTERNAL_QUEUE = 'internal-queue';
@@ -59,6 +62,7 @@ export class MailQueueExecutorTypes {
   }
 }
 
+/** Values of `IBullMQMailExecutorOpts.mode`: `queue-only` enqueues jobs without starting workers, `worker-only` starts workers without a queue, `both` does each. */
 export class BullMQExecutorModes {
   static readonly QUEUE_ONLY = 'queue-only';
   static readonly WORKER_ONLY = 'worker-only';
@@ -70,6 +74,7 @@ export class BullMQExecutorModes {
   }
 }
 
+/** Values of `TMailOptions.provider`, naming the transport the mail component builds. */
 export class MailProviders {
   static readonly NODEMAILER = 'nodemailer';
   static readonly MAILGUN = 'mailgun';
@@ -78,6 +83,7 @@ export class MailProviders {
   static readonly AMAZON_SES = 'amazon-ses';
 }
 
+/** Union of the `MailProviders` values. */
 export type TMailProvider = TConstValue<typeof MailProviders>;
 
 /** How the delay between two attempts to send a queued mail grows: FIXED stays the same, EXPONENTIAL doubles. */

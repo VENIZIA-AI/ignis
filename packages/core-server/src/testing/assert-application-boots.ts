@@ -16,6 +16,7 @@ import {
 /** A class (matched against the instance's constructor) or a string (matched against the binding key or the class name). */
 export type TBootProbeTarget = TClass<AnyType> | string;
 
+/** Options of `ApplicationBootAssertion.assert`; each field narrows or relaxes what the boot probe runs and verifies. */
 export interface IAssertApplicationBootsOptions {
   /**
    * Datasources whose real `configure()` runs. Every other datasource is bound and resolved but not

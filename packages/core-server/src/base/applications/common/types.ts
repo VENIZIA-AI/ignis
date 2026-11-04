@@ -43,6 +43,7 @@ export interface IShutdownSignalsOptions {
   exit?: (code: number) => void;
 }
 
+/** Contract of an application that listens on a socket: host, port and address accessors plus `start` and `stop`. */
 export interface IServerApplication<
   AppEnv extends Env = Env,
   AppSchema extends Schema = Schema,

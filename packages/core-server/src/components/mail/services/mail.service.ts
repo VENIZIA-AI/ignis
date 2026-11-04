@@ -16,6 +16,7 @@ import { PromiseUtility } from '@venizia/ignis-helpers';
 import { MailAttachmentUtility } from '../utilities/attachment.utility';
 import { MailBodyUtility } from '../utilities/body.utility';
 
+/** Sends mail through the bound transport. `send` validates the message, applies the attachment policy and defaults `from`; failures are thrown as application errors with a mail message code, except `sendBatch`, which reports each failure in its result. */
 export class MailService extends BaseService implements IMailService {
   constructor(
     @inject({ key: MailKeys.MAIL_OPTIONS })

@@ -16,6 +16,7 @@ import { readFile } from 'node:fs/promises';
 import { JoseLoader } from '../../jose-loader';
 import { AbstractJWKSTokenService } from './abstract.service';
 
+/** Signs tokens with a private key loaded from `IJWKSIssuerOptions` and exposes the matching public keys as a JWKS via `getJWKSAsync()`. */
 export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTokenService<E> {
   protected privateKey: TNullable<CryptoKey | Uint8Array> = null;
   protected publicKey: TNullable<CryptoKey | Uint8Array> = null;

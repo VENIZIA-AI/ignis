@@ -21,6 +21,7 @@ import {
 } from './common';
 import { SocketIOBunHandler } from './handlers';
 
+/** Starts a Socket.IO server on Bun after the application starts. Requires a Redis helper at `SocketIOBindingKeys.REDIS_CONNECTION` and an authenticate handler at `AUTHENTICATE_HANDLER`; binding throws without them. */
 export class SocketIOComponent extends BaseComponent {
   protected serverOptions: Partial<IServerOptions>;
 

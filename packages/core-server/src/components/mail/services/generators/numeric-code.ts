@@ -5,6 +5,7 @@ import type { IVerificationCodeGenerator } from '../../common';
 const DRAW_BYTES = 6;
 const DRAW_RANGE = 2 ** (DRAW_BYTES * 8);
 
+/** Generates zero-padded numeric codes from a cryptographic source, uniformly distributed. `generateCode` throws unless `10 ** length` is an integer up to 2 ** 48. */
 export class NumericCodeGenerator extends BaseHelper implements IVerificationCodeGenerator {
   constructor() {
     super({ scope: NumericCodeGenerator.name });

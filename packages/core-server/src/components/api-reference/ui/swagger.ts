@@ -2,6 +2,7 @@ import type { Context, Next } from 'hono';
 import type { IUIConfig, IUIProvider } from '../common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 
+/** Renders the Swagger UI. Needs the optional `@hono/swagger-ui` package, and throws on render when it is not installed. */
 export class SwaggerUIProvider extends BaseHelper implements IUIProvider {
   constructor() {
     super({ scope: SwaggerUIProvider.name });

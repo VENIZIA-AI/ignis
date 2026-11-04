@@ -10,6 +10,7 @@ import {
   type IAuthorizeOptions,
 } from '@venizia/ignis-kernel';
 
+/** Registers authorization from the options bound under `AuthorizeBindingKeys.OPTIONS`. Throws at binding time when no options are bound. */
 export class AuthorizeComponent extends BaseComponent {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,

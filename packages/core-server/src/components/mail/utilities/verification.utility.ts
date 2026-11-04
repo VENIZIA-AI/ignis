@@ -1,3 +1,4 @@
+/** Computes expiry timestamps for verification data from now. */
 export class MailVerificationUtility {
   static getExpiryTime(opts: { minutes: number }): Date {
     return new Date(Date.now() + opts.minutes * 60 * 1000);

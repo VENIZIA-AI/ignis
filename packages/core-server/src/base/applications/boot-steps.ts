@@ -20,4 +20,5 @@ export class ServerBootSteps extends BootSteps {
   ]);
 }
 
+/** Union of the step names in `ServerBootSteps`, accepted by `BootSequence.insertAfter` and `skipSteps`. */
 export type TServerBootStep = TConstValue<typeof ServerBootSteps>;

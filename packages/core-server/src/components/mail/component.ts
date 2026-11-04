@@ -18,6 +18,7 @@ import {
   TemplateEngineService,
 } from './services';
 
+/** Registers the mail transport, queue executor, template engine, `MailService` and verification generators under `MailKeys`. Options come from `MailKeys.MAIL_OPTIONS` or from the options passed to `application.component`; boot throws when they are missing or when `attachmentRoot` or `maxAttachmentBytes` is invalid. */
 export class MailComponent extends BaseComponent<TMailOptions> {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,

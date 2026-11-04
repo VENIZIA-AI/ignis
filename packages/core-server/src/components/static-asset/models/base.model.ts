@@ -49,7 +49,9 @@ export class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseMetaLinkM
   static override relations = () => [];
 }
 
+/** The table schema of `BaseMetaLinkModel`. */
 export type TMetaLinkSchema = typeof BaseMetaLinkModel.schema;
+/** A MetaLink row as selected from the table. */
 export type TMetaLink = TTableObject<TMetaLinkSchema>;
 
 /** Any table whose row carries the MetaLink fields. The component reads and writes the ROW, so the table is free to carry another name or to live in another Postgres schema. */

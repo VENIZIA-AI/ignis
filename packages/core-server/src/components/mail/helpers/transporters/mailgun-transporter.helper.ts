@@ -13,6 +13,7 @@ import type {
 import { MailErrorCodes } from '../../common';
 import { MailAttachmentUtility } from '../../utilities/attachment.utility';
 
+/** Mailgun transport (`mailgun.js`). The constructor throws when `username`, `key` or `domain` is missing. */
 export class MailgunTransportHelper extends BaseHelper implements IMailTransport {
   private client: AnyType; // IMessagesClient from mailgun.js
   private domain: string;

@@ -1,5 +1,6 @@
 import type { AnyType } from '@venizia/ignis-helpers/common';
 
+/** A registered mail template: `content` is the body, `subject` and `description` are optional. */
 export interface ITemplate {
   name: string;
   content?: string;
@@ -8,6 +9,7 @@ export interface ITemplate {
   description?: string;
 }
 
+/** Stores and renders mail templates. Render with a registered `templateName` or inline `templateData`. */
 export interface IMailTemplateEngine {
   render(opts: {
     templateData?: string;

@@ -4,6 +4,7 @@ import { MailErrors } from '../common';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 
+/** In-memory template store and renderer. Templates registered here are lost on restart. */
 export class TemplateEngineService extends BaseService implements IMailTemplateEngine {
   private templates: Map<string, ITemplate> = new Map();
 

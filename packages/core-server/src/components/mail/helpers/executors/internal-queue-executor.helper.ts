@@ -10,6 +10,7 @@ import type {
 } from '../../common';
 import { MailBackoffTypes, MailErrorCodes, MailExecutorErrors } from '../../common';
 
+/** In-process mail queue executor: jobs are lost on restart. Supports `delay`, `attempts` and `backoff`; call `close` to clear pending timers. */
 export class InternalQueueMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
   private queue: SequentialQueueHelper<IQueueJobPayload>;
   private jobIdCounter = 0;

@@ -18,6 +18,7 @@ import {
   type TDefineAuthControllerOpts,
 } from '@venizia/ignis-kernel';
 
+/** Zod schema of the JWT payload: `userId`, the `roles` (id, identifier, integer priority) and optional `clientId`, `provider` and `email`. */
 export const JWTTokenPayloadSchema = z.object({
   userId: z.string().or(z.number()),
   roles: z.array(

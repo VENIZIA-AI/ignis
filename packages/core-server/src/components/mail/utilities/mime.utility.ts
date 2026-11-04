@@ -365,6 +365,7 @@ function newBoundary(label: string): string {
   return `----=_${label}_${generateRandomHex({ bytes: 12 })}`;
 }
 
+/** Builds the MIME pieces the Amazon SES transport sends: the raw message and RFC 5322 address headers. */
 export class MailMimeUtility {
   /** Formats a `to`/`cc`/`from`/`replyTo` field as one RFC 5322 address list: splits a
    * comma-separated string or array into individual mailboxes, RFC 2047-encodes each display name,

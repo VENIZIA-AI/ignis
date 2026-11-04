@@ -12,6 +12,7 @@ import {
 } from '@venizia/ignis-kernel';
 import { JWKSVerifierTokenService } from '../../services';
 
+/** JWT authentication strategy that verifies the bearer token with `JWKSVerifierTokenService`, for an application that trusts a remote JWKS. */
 export class JWKSVerifierAuthenticationStrategy<E extends Env = Env>
   extends BaseHelper
   implements IAuthenticationStrategy<E>

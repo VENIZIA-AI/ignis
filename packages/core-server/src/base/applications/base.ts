@@ -71,6 +71,7 @@ const selectSecretEnvKeys = (opts: {
   return merged;
 };
 
+/** The IGNIS server application: a `ServerApplication` that adds secrets hydration, env validation, start-up info and the gRPC controller branch. Extend it to build an application. */
 export abstract class BaseApplication extends ServerApplication implements IRestApplication {
   protected secretsProvider?: ISecretsHelper;
   protected secretsRegistration?: ISecretsRegistration;

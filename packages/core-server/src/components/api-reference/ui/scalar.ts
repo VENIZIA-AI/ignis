@@ -2,6 +2,7 @@ import type { Context, Next } from 'hono';
 import type { IUIConfig, IUIProvider } from '../common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 
+/** Renders the Scalar UI. Needs the optional `@scalar/hono-api-reference` package, and throws on render when it is not installed. */
 export class ScalarUIProvider extends BaseHelper implements IUIProvider {
   constructor() {
     super({ scope: ScalarUIProvider.name });

@@ -6,6 +6,7 @@ import { BindingKeys } from '@venizia/ignis-inversion';
 import { JWKSIssuerTokenService } from '../../services';
 import { RouteConfigs } from './definitions';
 
+/** Serves the public JWKS from `JWKSIssuerTokenService` for external verifiers, with a one-hour `Cache-Control` max-age. Mounted at `/certs` unless the issuer options set `rest.path`. */
 export class JWKSController extends BaseRestController {
   constructor(
     @inject({
