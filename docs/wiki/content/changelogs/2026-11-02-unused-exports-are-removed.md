@@ -14,7 +14,7 @@ packages: ['@venizia/ignis-inversion', '@venizia/ignis-filter', '@venizia/ignis-
 
 ## What changed
 
-- **Types and a class with no reader are gone.** Nothing in IGNIS, ARDOR or the BANA code we checked imports them.
+- **Types and a class with no reader are gone.** Nothing in IGNIS, ARDOR or the downstream code we checked imports them.
 - **`ReactEslintConfigs` is gone.** `ReactOxlintConfigs` is the React lint preset; `reactNamingConventionConfigs` stays.
 - **`tsconfig.common.json` no longer carries a `ts-node` block.** `tsc` and Bun never read it.
 

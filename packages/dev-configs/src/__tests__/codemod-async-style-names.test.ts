@@ -31,7 +31,7 @@ const run = async (opts: { source: string; stubs: Record<string, unknown> }): Pr
   return log;
 };
 
-const BANA = `class Svc {
+const DOWNSTREAM_SOURCE = `class Svc {
   async main(): Promise<string> {
     try {
       if (!(await lock({ id: 1 }))) {
@@ -53,7 +53,7 @@ const declared = (text: string): string[] =>
 
 describe('async-style: the names the fixers hoist', () => {
   test('two rules in one pass hand out two different names, never the same one', () => {
-    const result = fix(BANA);
+    const result = fix(DOWNSTREAM_SOURCE);
     const names = declared(result.output);
 
     expect(result.reports).toEqual([]);
@@ -62,7 +62,7 @@ describe('async-style: the names the fixers hoist', () => {
   });
 
   test('each replaced expression uses exactly the name of its own hoisted const', () => {
-    const result = fix(BANA);
+    const result = fix(DOWNSTREAM_SOURCE);
     const [first, second] = declared(result.output);
 
     expect(result.output).toContain(`const ${first} = await lock({ id: 1 });`);
@@ -72,14 +72,14 @@ describe('async-style: the names the fixers hoist', () => {
   });
 
   test('the fixed program does what the original did', async () => {
-    const result = fix(BANA);
+    const result = fix(DOWNSTREAM_SOURCE);
 
     for (const locked of [true, false]) {
       const stubs = {
         lock: async () => locked,
         compact: async () => 'COMPACTED',
       };
-      const was = await run({ source: BANA, stubs });
+      const was = await run({ source: DOWNSTREAM_SOURCE, stubs });
       const now = await run({ source: result.output, stubs });
 
       expect(now).toEqual(was);
