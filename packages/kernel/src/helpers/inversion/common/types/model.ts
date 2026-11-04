@@ -3,6 +3,7 @@ import type {
   ScopeFilters,
   TFilter,
   TScopeFilterMissingBehavior,
+  TScopeOperation,
   TScopeWriteGuard,
   TWhere,
 } from '@/base/repositories';
@@ -54,8 +55,17 @@ export interface IModelAccessSettings {
    * Returns the scope `where`; `ScopeFilters.UNRESTRICTED` to apply no scope for THIS call (an
    * internal operator, a caller the application has decided sees everything); or null/undefined
    * when this caller's scope cannot be determined at all.
+   *
+   * Receives `{ operation }`: the one concrete operation the call performs (`ScopeOperations.READ`,
+   * `CREATE`, `UPDATE` or `DELETE`, never a group), so one function can answer a wide scope for a
+   * read and a narrow one for a write. A read, and an included relation, pass `READ`; a create passes
+   * `CREATE`; an update passes `UPDATE` for the payload check and for choosing the rows to update; a
+   * delete passes `DELETE`. A resolver that takes no argument keeps working. An `or` over different
+   * columns is still refused on a write, so return the narrow scope for a write operation.
    */
-  resolve: () => TNullable<TWhere> | typeof ScopeFilters.UNRESTRICTED;
+  resolve: (context: {
+    operation: TScopeOperation;
+  }) => TNullable<TWhere> | typeof ScopeFilters.UNRESTRICTED;
 
   /**
    * What `applyScopeFilter` does when `resolve()` returns null/undefined - no request context, no
