@@ -92,7 +92,7 @@ Marks a class as a database entity and configures its behavior.
 | `migration.use` | `boolean` | Default `true`. `false` marks the model as one your migration tooling leaves alone. IGNIS generates no migrations: this is a marker in the public registry, see [Migrations](/guides/core-concepts/persistent/models#migrations). |
 | `settings.hiddenProperties` | `string[]` | Property names excluded from all repository query results (at SQL level) |
 | `settings.query.filter` | `TFilter` | Filter automatically applied to all repository queries (see [Default Filter](/references/base/filter-system/default-filter)). |
-| `settings.access` | `IModelAccessSettings` | Row scope resolved per query, ANDed into every read and write. `resolve()` returns the scope `where`, `ScopeFilters.UNRESTRICTED` for no scope this call, or null to fall to `onMissing` (default `deny`, matching zero rows). Relational repositories only |
+| `settings.access` | `TModelAccessSettings` | Row scope resolved per query, ANDed into every read and write: a `resolve` (`IModelAccessSettings`) or a `through` (`IModelAccessThroughSettings`, see [Scope a child through its parent](/guides/core-concepts/persistent/model-settings#scope-a-child-through-its-parent)). `resolve()` returns the scope `where`, `ScopeFilters.UNRESTRICTED` for no scope this call, or null to fall to `onMissing` (default `deny`, matching zero rows). Relational repositories only |
 | `settings.query.limit.default` | `number` | Default row limit applied when a query omits `limit`. Must be a positive integer (validated at decoration time). Falls back to the global `DEFAULT_LIMIT` (10). See [Pagination](/references/base/filter-system/fields-order-pagination#default-limit-resolution) |
 | `settings.query.limit.max` | `number` | Largest `limit` a caller may ask for. Must be a positive integer (validated at decoration time). Falls back to `DEFAULT_MAX_LIMIT` (1000). An explicit `limit` above it throws before the query runs. See [Limit ceiling](/references/base/filter-system/fields-order-pagination#limit-ceiling-maxlimit) |
 | `settings.authorize` | `IModelAuthorizeSettings` | Authorization settings - declares the model's authorization principal (see [Authorization](/extensions/components/authorization/usage#model-based-resource-references)) |
@@ -104,9 +104,9 @@ Marks a class as a database entity and configures its behavior.
 
 | Setting | Meaning |
 |---|---|
-| `write.mode` | `'reject'` (default) or `'assign'`. `assign` fills a scope column that is absent from a created row when the scope is a single equality; a value that is present and disagrees is still refused |
-| `write.sharedRows` | `true` lets a restricted caller create rows with `null` (or no value) in the scope columns, move a row into that shared set, and update or delete rows that are already in it. Default `false`. Reading shared rows is a separate matter, see below |
-| `columns` | Optional list of property names. Checked at boot against the model; a resolved scope that constrains another column is refused |
+| `access.write.mode` | `'reject'` (default) or `'assign'`. `assign` fills a scope column that is absent from a created row when the scope is a single equality; a value that is present and disagrees is still refused |
+| `access.write.sharedRows` | `true` lets a restricted caller create rows with `null` (or no value) in the scope columns, move a row into that shared set, and update or delete rows that are already in it. Default `false`. Reading shared rows is a separate matter, see below |
+| `access.columns` | Optional list of property names. Checked at boot against the model; a resolved scope that constrains another column is refused |
 
 The columns and allowed values come from the resolved `where`: equality, `eq`, `inq` or `in`, an array, `and` of those, and an `or` whose branches all constrain the same column. Any other shape (an `or` over several columns, ranges, `like`, a nested path) cannot be checked, and the write is refused with a "cannot be verified" message instead of being skipped.
 
@@ -260,11 +260,11 @@ Declare the table, then build the class from it. The full contract is in [`Model
 
 ```typescript
 import { model } from '@venizia/ignis';
-import { generateIdColumnDefs, ModelFactory } from '@venizia/ignis-connectors/postgres';
+import { ModelFactory, PostgresIdEnricher } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   name: text('name').notNull(),
 });
 
@@ -278,12 +278,12 @@ Define schema and relations as static properties. Repositories auto-resolve them
 
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
-import { BaseEntity, model, generateIdColumnDefs, RelationTypes } from '@venizia/ignis';
+import { BaseEntity, model, PostgresIdEnricher, RelationTypes } from '@venizia/ignis';
 import type { TRelationConfig } from '@venizia/ignis-connectors/postgres';
 import { Comment } from './comment.model';
 
 export const userTable = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   name: text('name').notNull(),
   email: text('email').notNull(),
 });
@@ -348,7 +348,7 @@ It ships from `@venizia/ignis-connectors/postgres` and from `@venizia/ignis-conn
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `table` | `TTableSchemaWithId` | - | A plain drizzle table: `pgTable`, `pgSchema(...).table` or `sqliteTable`, with an `id` column - usually `...generateIdColumnDefs({ id: { dataType: 'string' } })` for a UUID v7 id |
+| `table` | `TTableSchemaWithId` | - | A plain drizzle table: `pgTable`, `pgSchema(...).table` or `sqliteTable`, with an `id` column - usually `...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } })` for a UUID v7 id |
 | `relations` | `() => TRelationDefinitions` | none | Relations keyed by name, built with `one()` and `many()`. Read on first use and once, so it may name a table declared later in the file |
 
 ### The returned class
@@ -403,11 +403,11 @@ The inverse side carries no columns. drizzle reads them off the `one()` on the t
 
 ```typescript
 export const userTable = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
 });
 
 export const profileTable = pgTable('Profile', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   userId: text('user_id').notNull().references((): AnyPgColumn => userTable.id),
 });
 
@@ -457,14 +457,14 @@ Hidden properties are excluded at the SQL level - they are never fetched from th
 
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
-import { BaseEntity, model, generateIdColumnDefs } from '@venizia/ignis';
+import { BaseEntity, model, PostgresIdEnricher } from '@venizia/ignis';
 
 @model({
   settings: { hiddenProperties: ['password', 'secret'] },
 })
 export class User extends BaseEntity<typeof User.schema> {
   static override schema = pgTable('User', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
     email: text('email').notNull(),
     password: text('password'),
     secret: text('secret'),
@@ -560,32 +560,34 @@ await postRepository.find({
 
 ## Schema enrichers
 
-- **What they are.** Helper functions in the PostgreSQL connector that return an object of Drizzle ORM column definitions.
-- **How to use them.** Spread a `generate*` result into a `pgTable` definition to add common, standardized fields.
-- **Convenience wrappers.** Each `enrich*` wrapper accepts an existing column definitions object as its first argument and merges the generated columns into it.
+- **What they are.** Helper classes in the PostgreSQL connector whose static methods return an object of Drizzle ORM column definitions.
+- **How to use them.** Spread a `generateColumnDefs` result into a `pgTable` definition to add common, standardized fields.
+- **Convenience wrappers.** Each `enrich` method takes one object, `{ baseColumns, opts }` for the id enricher and `{ baseSchema, opts }` for the others, and merges the generated columns into the column definitions it names.
 
-| Enricher function | Convenience wrapper | Purpose |
-| :--- | :--- | :--- |
-| `generateIdColumnDefs` | `enrichId` | Adds a primary key `id` column (string, integer, or big integer) |
-| `generateTzColumnDefs` | `enrichTz` | Adds `createdAt`, `modifiedAt`, and optional `deletedAt` timestamp columns |
-| `generateUserAuditColumnDefs` | `enrichUserAudit` | Adds `createdBy` and `modifiedBy` columns tracking user audit info |
-| `generatePrincipalColumnDefs` | `enrichPrincipal` | Adds polymorphic principal columns (`{discriminator}Id` and `{discriminator}Type`) |
-| `generateDataTypeColumnDefs` | `enrichDataTypes` | Adds generic value columns (`dataType`, `nValue`, `tValue`, `bValue`, `jValue`, `boValue`) |
+| Enricher class | Purpose |
+| :--- | :--- |
+| `PostgresIdEnricher` | Adds a primary key `id` column (string, integer, or big integer) |
+| `PostgresTzEnricher` | Adds `createdAt`, `modifiedAt`, and optional `deletedAt` timestamp columns |
+| `PostgresUserAuditEnricher` | Adds `createdBy` and `modifiedBy` columns tracking user audit info |
+| `PostgresPrincipalEnricher` | Adds polymorphic principal columns (`{discriminator}Id` and `{discriminator}Type`) |
+| `PostgresDataTypeEnricher` | Adds generic value columns (`dataType`, `nValue`, `tValue`, `bValue`, `jValue`, `boValue`) |
+
+Each class has a static `generateColumnDefs` and a static `enrich`. SQLite has the same classes under `Sqlite*` names.
 
 ### Combined example
 
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
-  generateUserAuditColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
+  PostgresUserAuditEnricher,
 } from '@venizia/ignis';
 
 export const myTable = pgTable('MyTable', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
-  ...generateUserAuditColumnDefs({
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
+  ...PostgresUserAuditEnricher.generateColumnDefs({
     created: { dataType: 'string', columnName: 'created_by' },
     modified: { dataType: 'string', columnName: 'modified_by' },
   }),
@@ -593,7 +595,7 @@ export const myTable = pgTable('MyTable', {
 });
 ```
 
-### `generateIdColumnDefs`
+### `PostgresIdEnricher.generateColumnDefs`
 
 Adds a primary key `id` column with full TypeScript type inference.
 
@@ -638,10 +640,10 @@ Notes:
 Convenience wrapper:
 
 ```typescript
-PostgresIdEnricher.enrich(baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions): TColumnDefinitions
+PostgresIdEnricher.enrich(opts: { baseColumns: TColumnDefinitions; opts?: TIdEnricherOptions }): TColumnDefinitions
 ```
 
-### `generateTzColumnDefs`
+### `PostgresTzEnricher.generateColumnDefs`
 
 Adds timestamp columns for creation, modification, and soft deletion.
 
@@ -691,7 +693,7 @@ A generated CRUD route never takes `createdAt` or `modifiedAt` from the request 
 Convenience wrapper:
 
 ```typescript
-PostgresTzEnricher.enrich(baseSchema: TColumnDefinitions, opts?: TTzEnricherOptions): TColumnDefinitions
+PostgresTzEnricher.enrich(opts: { baseSchema: TColumnDefinitions; opts?: TTzEnricherOptions }): TColumnDefinitions
 ```
 
 <details>
@@ -717,7 +719,7 @@ await db.update(myTable).set({ deletedAt: null }).where(eq(myTable.id, id));
 
 </details>
 
-### `generateUserAuditColumnDefs`
+### `PostgresUserAuditEnricher.generateColumnDefs`
 
 Adds `createdBy` and `modifiedBy` columns tracking which user created or modified a record.
 
@@ -782,13 +784,13 @@ The enricher validates `dataType` and throws for invalid values (only `'number'`
 Convenience wrapper:
 
 ```typescript
-PostgresUserAuditEnricher.enrich<ColumnDefinitions extends TColumnDefinitions>(
-  baseSchema: ColumnDefinitions,
-  opts?: TUserAuditEnricherOptions,
-): TUserAuditEnricherResult<ColumnDefinitions>
+PostgresUserAuditEnricher.enrich<ColumnDefinitions extends TColumnDefinitions>(opts: {
+  baseSchema: ColumnDefinitions;
+  opts?: TUserAuditEnricherOptions;
+}): TUserAuditEnricherResult<ColumnDefinitions>
 ```
 
-### `generatePrincipalColumnDefs`
+### `PostgresPrincipalEnricher.generateColumnDefs`
 
 Adds polymorphic principal columns for associating a record with different entity types (a comment can belong to a Post, User, or Product).
 
@@ -826,11 +828,11 @@ With a custom discriminator such as `'owner'`, columns become `ownerId` / `owner
 
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
-import { generateIdColumnDefs, generatePrincipalColumnDefs } from '@venizia/ignis';
+import { PostgresIdEnricher, PostgresPrincipalEnricher } from '@venizia/ignis';
 
 export const commentTable = pgTable('Comment', {
-  ...generateIdColumnDefs(),
-  ...generatePrincipalColumnDefs({ polymorphicIdType: 'number' }),
+  ...PostgresIdEnricher.generateColumnDefs(),
+  ...PostgresPrincipalEnricher.generateColumnDefs({ polymorphicIdType: 'number' }),
   content: text('content').notNull(),
 });
 // principalId: integer('principal_id').notNull()
@@ -840,13 +842,13 @@ export const commentTable = pgTable('Comment', {
 Convenience wrapper:
 
 ```typescript
-PostgresPrincipalEnricher.enrich<ColumnDefinitions extends TColumnDefinitions>(
-  baseSchema: ColumnDefinitions,
-  opts: TPrincipalEnricherOptions,
-): ColumnDefinitions & TPrincipalColumnDef
+PostgresPrincipalEnricher.enrich<ColumnDefinitions extends TColumnDefinitions>(opts: {
+  baseSchema: ColumnDefinitions;
+  opts: TPrincipalEnricherOptions;
+}): ColumnDefinitions & TPrincipalColumnDef
 ```
 
-### `generateDataTypeColumnDefs`
+### `PostgresDataTypeEnricher.generateColumnDefs`
 
 Adds polymorphic data storage columns for entities that store values of different types in a single table (key-value stores, settings tables).
 
@@ -893,13 +895,13 @@ All columns are nullable by default (no `NOT NULL`), since typically only one va
 
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
-import { BaseEntity, model, generateIdColumnDefs, generateDataTypeColumnDefs } from '@venizia/ignis';
+import { BaseEntity, model, PostgresIdEnricher, PostgresDataTypeEnricher } from '@venizia/ignis';
 
 @model()
 export class AppConfig extends BaseEntity<typeof AppConfig.schema> {
   static override schema = pgTable('AppConfig', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...generateDataTypeColumnDefs(),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresDataTypeEnricher.generateColumnDefs(),
     key: text('key').notNull().unique(),
   });
 }
@@ -910,7 +912,7 @@ export class AppConfig extends BaseEntity<typeof AppConfig.schema> {
 Convenience wrapper:
 
 ```typescript
-PostgresDataTypeEnricher.enrich(baseSchema: TColumnDefinitions, opts?: TDataTypeEnricherOptions): TColumnDefinitions
+PostgresDataTypeEnricher.enrich(opts: { baseSchema: TColumnDefinitions; opts?: TDataTypeEnricherOptions }): TColumnDefinitions
 ```
 
 ## Key types

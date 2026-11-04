@@ -55,7 +55,7 @@ export const productTable = pgTable('Product', {
 });
 ```
 
-The merchant of the current request comes from the authenticated user. This helper is used by the examples below; `RequestContextRegistry` reads the ambient request context, so turn on `asyncContext.enable` in the application config:
+The merchant of the current request comes from the authenticated user. This helper is used by the examples below; `RequestContextRegistry` reads the ambient request context, which needs `asyncContext.enable` (on by default in a `BaseApplication`):
 
 ```typescript
 // src/utilities/merchant.ts
@@ -94,7 +94,8 @@ export class ProductRepository extends DefaultCRUDRepository<typeof Product.sche
 | `query.filter` | none | A filter merged into every query for the model, usually a soft-delete `where` |
 | `query.limit.default` | `10` | Row limit for a query that names none |
 | `query.limit.max` | `1000` | Largest `limit` a caller may ask for |
-| `access.resolve` | required with `access` | Returns the row scope of the current caller, per query |
+| `access.resolve` | required unless `through` | Returns the row scope of the current caller, per query |
+| `access.through` | none | Scopes a child model by its parent's own `access`, instead of `resolve`. See [Scope a child through its parent](#scope-a-child-through-its-parent) |
 | `access.onMissing` | `'deny'` | What happens when `resolve()` returns `null` or `undefined` |
 | `access.columns` | none | Names the columns the write guard checks; validated at boot |
 | `access.write.mode` | `'reject'` | What a create or update does with a row outside the scope |
@@ -164,7 +165,7 @@ export const findIncludingDeleted = (opts: { repository: ProductRepository }) =>
 
 ### resolve
 
-`resolve()` runs on every query and returns the scope for the current caller. It reads the current request from the ambient request context (turn on `asyncContext.enable` in the application config). Its one argument, `{ operation }`, says what the call does: `ScopeOperations.READ`, `CREATE`, `UPDATE` or `DELETE`. A resolver that ignores the operation takes no parameter. It returns one of three outcomes:
+`resolve()` runs on every query and returns the scope for the current caller. It reads the current request from the ambient request context (`asyncContext.enable` is on by default in a `BaseApplication`). Its one argument, `{ operation }`, says what the call does: `ScopeOperations.READ`, `CREATE`, `UPDATE` or `DELETE`. A resolver that ignores the operation takes no parameter. It returns one of three outcomes:
 
 | `resolve()` returns | The query |
 |---|---|

@@ -564,8 +564,8 @@ Several middleware behaviors are configured through `IApplicationConfigs`:
 ```typescript
 interface IApplicationConfigs {
   favicon?: string;                    // Emoji for EmojiFaviconMiddleware.create (default: '🔥')
-  error?: { rootKey: string };         // Root key wrapper for AppErrorMiddleware
-  asyncContext?: { enable: boolean };  // Enable Hono contextStorage() middleware
+  error?: { rootKey?: string; environment?: string }; // Root key wrapper for AppErrorMiddleware; ambient environment name
+  asyncContext?: { enable: boolean };  // Enable Hono contextStorage() middleware (default: true on BaseApplication, false on Rest and Worker)
   middlewares?: IMiddlewareConfigs;    // Only bodyLimit is installed by the framework - see Body limit
   // ...
 }
@@ -607,7 +607,7 @@ Each option interface extends `IBaseMiddlewareOptions`:
 
 ```typescript
 interface IBaseMiddlewareOptions {
-  enable: boolean;
+  enable?: boolean; // Default true: only false switches the middleware off
   path?: string;
   [extra: string | symbol]: any;
 }

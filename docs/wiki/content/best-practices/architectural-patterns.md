@@ -223,7 +223,7 @@ IGNIS applications follow a predictable startup sequence with hooks for customiz
 │ 15. verifyBindings()       - Resolve every service and      │
 │                              repository once (opt-in)       │
 │ 16. validateScopeFilterSupport()                            │
-│                            - Refuse a dead scopeFilter      │
+│                            - Refuse a dead access setting   │
 └─────────────────────────────────────────────────────────────┘
 ```
 

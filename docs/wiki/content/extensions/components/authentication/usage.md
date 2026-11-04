@@ -405,10 +405,7 @@ Column helper functions return pre-configured Drizzle columns for auth-related t
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import {
-  extraUserColumns,
-  extraRoleColumns,
-  extraPermissionColumns,
-  extraPolicyDefinitionColumns,
+  AuthModelColumns,
   PostgresIdEnricher,
   PostgresTzEnricher,
 } from '@venizia/ignis';
@@ -416,14 +413,14 @@ import {
 export const users = pgTable('users', {
   ...PostgresIdEnricher.generateColumnDefs(),
   ...PostgresTzEnricher.generateColumnDefs(),
-  ...extraUserColumns(),
+  ...AuthModelColumns.buildUser(),
   username: text('username').unique().notNull(),
   passwordHash: text('password_hash').notNull(),
 });
 
-export const roles = pgTable('roles', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...extraRoleColumns() });
-export const permissions = pgTable('permissions', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...extraPermissionColumns() });
-export const policyDefinitions = pgTable('policy_definitions', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...extraPolicyDefinitionColumns() });
+export const roles = pgTable('roles', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...AuthModelColumns.buildRole() });
+export const permissions = pgTable('permissions', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...AuthModelColumns.buildPermission() });
+export const policyDefinitions = pgTable('policy_definitions', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...AuthModelColumns.buildPolicyDefinition() });
 ```
 
 The old function names of these methods are removed. `devz codemod namespace-functions` moves a call written with one to the class form.

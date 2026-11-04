@@ -146,15 +146,15 @@ Application configuration is passed to the `BaseApplication` constructor via an 
 | `host` | `string` | `'localhost'` | The host address. Falls back to `HOST` or `APP_ENV_SERVER_HOST` env vars. |
 | `port` | `number` | `3000` | The port to listen on. Falls back to `PORT` or `APP_ENV_SERVER_PORT` env vars; a value outside 0-65535 is skipped. `0` asks the OS for a free port, and `getServerPort()` returns the real one. |
 | `projectRoot` | `string` | `process.cwd()` | The directory that holds `node_modules` at run time. Never `__dirname` inside a compiled binary. |
-| `path.base`| `string` | `'/'` | The base path for all application routes (e.g., `/api`). |
-| `path.isStrict`| `boolean`| `true` | When `true`, `/users` and `/users/` are different routes. Set `false` to answer both, and declare routes without a trailing slash: under `false`, a route declared as `/users/` is unreachable. |
+| `path.base`| `string` | required | The base path for all application routes (e.g., `/api`). An empty string mounts the application at the root; a value that is not a string makes the constructor throw. |
+| `path.isStrict`| `boolean`| `true` | The type requires `path` to carry it; an omitted value at run time means `true`. When `true`, `/users` and `/users/` are different routes. Set `false` to answer both, and declare routes without a trailing slash: under `false`, a route declared as `/users/` is unreachable. |
 | `debug.shouldShowRoutes`| `boolean`| `false`| If `true`, prints all registered routes to the console on startup. |
 | `favicon` | `string` | `'🔥'` | An emoji to be used as the application's favicon. |
 | `artifacts` | `TArtifactIndexInput` | `undefined` | The generated artifact index (or several) to register before `preConfigure()`. See [Registering artifacts](./bootstrapping). |
-| `asyncContext.enable` | `boolean` | `true` | Enable Hono's async context storage (powered by `contextStorage()`). |
+| `asyncContext.enable` | `boolean` | `true` on `BaseApplication`, `false` on `RestApplication` and `WorkerApplication` | Enable Hono's async context storage (powered by `contextStorage()`). Only a server application reads it; a Worker has no async context store, so `true` there changes nothing. |
 | `transports` | `TControllerTransport[]` | `['rest']` | Controller transports to enable. Add `'grpc'` for gRPC support. |
 | `error.rootKey` | `string` | `undefined` | Optional root key for error response wrapping. |
-| `error.environment` | `string` | `process.env.NODE_ENV` | The ambient environment name. Set it where there is no `process.env`, such as a browser Worker. |
+| `error.environment` | `string` | `process.env.NODE_ENV` | The ambient environment name. Set it where there is no `process.env`, such as a browser Worker. `BaseApplication` ignores it and reads `process.env.NODE_ENV`. |
 | `middlewares.cors` | `object` | `undefined` | CORS options. Installed first, so early framework responses such as the body-limit 413 carry the headers. |
 | `middlewares.bodyLimit` | `object` | `undefined` | Request body limit. Installed right after the request id, ahead of every other middleware. |
 | `server.idleTimeout`, `server.maxRequestBodySize` | `number` | Bun's defaults | Socket options passed to `Bun.serve`. |
