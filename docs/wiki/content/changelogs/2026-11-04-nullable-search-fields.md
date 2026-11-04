@@ -18,7 +18,7 @@ packages: ['@venizia/ignis-connectors']
 - **Reads fill it.** `find`, `findOne`, `findById`, `search` hits and `suggest` return `null` for a nullable field whose key is absent. A plain `optional` field stays absent. A value, `0`, `''` and an explicit `null` are kept.
 - **Writes return the same shape.** `create`, `createAll` and `updateById` return documents with the nullable fields filled, so a created document and a found one match. What is sent to the engine does not change.
 - **Types and schemas.** `TSearchDocument` types the field `T | null`. `deriveDocumentSchema` gives the `select` schema `.nullable().default(null)`, and the `create` and `update` schemas `.nullable().optional()`.
-- **Selections and passthrough.** A field selection (`filter.fields`, `includeFields`) limits the fill to the selected fields. `mode: 'raw'` and `multiSearch` fill nothing.
+- **Selections and passthrough.** A field selection (`filter.fields`, `includeFields`) limits the fill to the selected fields; an empty selection sends no include list on either engine. A selection set only through `engineParams` is not seen by the fill, so select with `filter.fields`. `mode: 'raw'` and `multiSearch` fill nothing.
 - **Meilisearch.** The fill is engine-neutral, so a nullable field always reads as `T | null` there too: a stored `null` stays `null`, and a field that was never set also becomes `null`.
 
 ## Who is affected

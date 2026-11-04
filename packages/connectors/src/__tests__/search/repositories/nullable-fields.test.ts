@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { model } from '@venizia/ignis-kernel';
 import { BaseSearchEntity, field, SearchCollectionFactory } from '@/search/core/models';
 import { PersistableSearchRepository } from '@/search/typesense/repositories';
 import { MeilisearchDataSource } from '@/search/meilisearch';
-import type { MeilisearchConnector } from '@/search/meilisearch/connector';
+import { MeilisearchConnector } from '@/search/meilisearch/connector';
+import { FakeMeilisearchClient } from '../../meilisearch/connector/fake-client';
 import { ReadableSearchRepository } from '@/search/core/repositories';
-import { FakeSearchDataSource, FakeSearchEngineHelper } from './fake-search-connector';
+import { FakeSearchDataSource } from './fake-search-connector';
 
 /**
  * Typesense keeps no null: a field written as null comes back without its key. A field declared
@@ -43,7 +43,7 @@ const build = (opts: { hits?: Array<Record<string, unknown>> } = {}) => {
 
   const repository = new PersistableSearchRepository(dataSource, {
     entityClass: NullableDocument,
-  }) as AnyType;
+  });
 
   return { dataSource, repository };
 };
@@ -75,7 +75,7 @@ describe('a nullable field reads back as null when the engine dropped the key', 
 
     const result = await repository.search({ mode: 'keyword', query: 'lamp' });
 
-    expect(result.hits[0].document).toEqual({ id: '1', title: 'Lamp', note: null, rating: null });
+    expect(result.hits?.[0].document).toEqual({ id: '1', title: 'Lamp', note: null, rating: null });
   });
 
   test('suggest() fills the documents', async () => {
@@ -129,7 +129,7 @@ describe('a nullable field reads back as null when the engine dropped the key', 
 
     const result = await repository.search({ mode: 'raw', params: { q: '*' } });
 
-    expect(result.hits[0].document).toEqual(STORED);
+    expect(result.hits?.[0].document).toEqual(STORED);
   });
 });
 
@@ -157,7 +157,7 @@ describe('a field selection limits the fill to the selected fields', () => {
       filter: { fields: ['title', 'note'] },
     });
 
-    expect(result.hits[0].document).toEqual({ id: '1', title: 'Lamp', note: null });
+    expect(result.hits?.[0].document).toEqual({ id: '1', title: 'Lamp', note: null });
   });
 
   test('suggest() with includeFields does the same', async () => {
@@ -183,29 +183,25 @@ describe('a field selection limits the fill to the selected fields', () => {
 
 /** Meilisearch keeps nulls, but the fill lives in the engine-neutral repository: one behaviour on both engines, a nullable field always reads as `T | null`. */
 describe('on Meilisearch a nullable field also reads as null when it was never set', () => {
-  class FakeMeilisearchDataSource extends MeilisearchDataSource {
-    readonly fakeConnector = new FakeSearchEngineHelper();
-
-    constructor() {
-      super({ name: 'nullable-meili-ds', config: { host: 'http://localhost:7700' } });
-    }
-
-    override getConnector(): MeilisearchConnector {
-      // MeilisearchConnector is a concrete class, so no ISearchConnector implementer is assignable to it - the same boundary cast the Typesense fake makes.
-      return this.fakeConnector as any;
-    }
-  }
-
   test('find() fills note and rating, leaves the plain optional field absent', async () => {
-    const dataSource = new FakeMeilisearchDataSource();
-    dataSource.fakeConnector.searchResponse = {
-      found: 1,
-      isFoundExact: true,
-      hits: [{ document: { ...STORED } }],
-    };
-    const repository = new ReadableSearchRepository(dataSource, {
-      entityClass: NullableDocument,
+    const connector = new MeilisearchConnector({
+      name: 'nullable-meili',
+      host: 'http://localhost:7700',
+      taskIntervalMs: 1,
+      client: new FakeMeilisearchClient(),
     });
+    await connector.collection.ensure({
+      schema: { uid: 'nullable_documents', primaryKey: 'id', settings: {} },
+    });
+    await connector.document.create({ collection: 'nullable_documents', document: { ...STORED } });
+
+    const dataSource = new MeilisearchDataSource({
+      name: 'nullable-meili-ds',
+      config: { host: 'http://localhost:7700' },
+      connector,
+    });
+    await dataSource.configure();
+    const repository = new ReadableSearchRepository(dataSource, { entityClass: NullableDocument });
 
     const [row] = await repository.find({ filter: {} });
 

@@ -127,8 +127,7 @@ export abstract class SearchBaseRepository<
       return this.omitHiddenFields(document);
     }
 
-    const present = new Map(Object.entries(document));
-    const missing = nullable.filter((name) => present.get(name) == null);
+    const missing = nullable.filter((name) => Reflect.get(document, name) == null);
 
     return this.omitHiddenFields({
       ...document,

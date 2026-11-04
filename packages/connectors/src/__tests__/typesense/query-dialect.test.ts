@@ -891,3 +891,15 @@ describe('TypesenseQueryDialect.toWireParams - tuning inside engineParams', () =
     ).toThrow(/both set/);
   });
 });
+
+describe('TypesenseQueryDialect.build - an empty field selection', () => {
+  const dialect = new TypesenseQueryDialect();
+
+  test('[] and an object with no true key send no include_fields', () => {
+    expect(dialect.build({ filter: { fields: [] } })).not.toHaveProperty('includeFields');
+    expect(dialect.build({ filter: { fields: { title: false } } })).not.toHaveProperty(
+      'includeFields',
+    );
+    expect(dialect.build({ filter: { fields: ['title'] } }).includeFields).toBe('title');
+  });
+});

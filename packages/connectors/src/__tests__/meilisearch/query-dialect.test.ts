@@ -216,3 +216,21 @@ describe('MeilisearchQueryDialect.applySearchInput - keyword highlight', () => {
     expect(wire['attributesToHighlight']).toEqual(['title']);
   });
 });
+
+describe('MeilisearchQueryDialect.build - an empty field selection', () => {
+  const dialect = new MeilisearchQueryDialect();
+
+  test('[] and an object with no true key send no attributesToRetrieve', () => {
+    const emptyList = dialect.toWireParams({ query: dialect.build({ filter: { fields: [] } }) });
+    const noTrueKey = dialect.toWireParams({
+      query: dialect.build({ filter: { fields: { title: false } } }),
+    });
+    const selected = dialect.toWireParams({
+      query: dialect.build({ filter: { fields: ['title'] } }),
+    });
+
+    expect(emptyList).not.toHaveProperty('attributesToRetrieve');
+    expect(noTrueKey).not.toHaveProperty('attributesToRetrieve');
+    expect(selected['attributesToRetrieve']).toEqual(['title']);
+  });
+});

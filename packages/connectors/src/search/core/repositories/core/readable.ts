@@ -110,9 +110,15 @@ export class ReadableSearchRepository<
 
     // No round-trip for an absorbing where: with no filterBy the engine would happily return the
     // whole collection, which is the opposite of what the filter asked for.
-    let result: Pick<ISearchResult<TDocument>, 'hits' | 'found'> = { hits: [], found: 0 };
+    // The connector types its documents `object`; the row a caller selects is one.
+    type TRowDocument = TRow<TDocument, R, F> & object;
+
+    let result: Pick<ISearchResult<TRowDocument>, 'hits' | 'found'> = {
+      hits: [],
+      found: 0,
+    };
     if (!query.matchNone) {
-      const searched = await this.connector.search<TDocument>({
+      const searched = await this.connector.search<TRowDocument>({
         collection: this.collectionName,
         params: this.queryDialect.toWireParams({ query }),
       });
@@ -121,13 +127,12 @@ export class ReadableSearchRepository<
 
     const { hits, found } = result;
 
-    // The cast is the caller's own unchecked assertion when they pass an explicit `find<Other>()`.
     // Hidden fields are stripped in JS too, not only engine-side: Typesense honours
     // `exclude_fields`, Meilisearch has no per-query exclusion at all.
     const data = this.shapeDocuments(
       (hits ?? []).map((hit) => hit.document),
       { fields: filter?.fields },
-    ) as any;
+    );
 
     if (!options?.shouldQueryRange) {
       return data;

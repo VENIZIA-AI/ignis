@@ -117,7 +117,7 @@ field.string('nickname', { optional: true }),
 | `{ optional: true, nullable: true }` | `note?: string \| null` | `null` |
 | `{ optional: true }` | `nickname?: string` | absent |
 
-A read returns `null` for a nullable field whose key is absent: `find`, `findOne`, `findById`, `search` (keyword, semantic and hybrid hits) and `suggest`. So do the documents that `create`, `createAll` and `updateById` return, so a created document and a found one have the same shape. `mode: 'raw'` and the cross-collection `multiSearch` are passthrough and fill nothing. A field selection (`filter.fields`, `includeFields`) limits the fill to the selected fields, so a field you did not select stays absent. A hidden field stays hidden. Writes are unchanged: `nullable` is never sent to Typesense.
+A read returns `null` for a nullable field whose key is absent: `find`, `findOne`, `findById`, `search` (keyword, semantic and hybrid hits) and `suggest`. So do the documents that `create`, `createAll` and `updateById` return, so a created document and a found one have the same shape. `mode: 'raw'` and the cross-collection `multiSearch` are passthrough and fill nothing. A field selection (`filter.fields`, `includeFields`) limits the fill to the selected fields, so a field you did not select stays absent. Select with `filter.fields`: a selection set only through `engineParams` (`include_fields`, `exclude_fields`) is not seen by the fill, and neither is a dotted path, so a nullable field it leaves out still reads as `null`. A hidden field stays hidden. Writes are unchanged: `nullable` is never sent to Typesense.
 
 A stored `null` and a field that was never set look the same after a round trip: both come back `null`. If the two must differ, store a sentinel value instead.
 
