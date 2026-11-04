@@ -1,5 +1,6 @@
 import type {
   IExtraOptions,
+  IModelAccessThroughSettings,
   RelationTypes,
   ScopeFilters,
   TDrizzleQueryOptions,
@@ -9,6 +10,7 @@ import type {
   TWhere,
 } from '@venizia/ignis-kernel';
 import type { TNullable } from '@venizia/ignis-helpers/common';
+import type { ScopeThroughLink } from './scope-through';
 import type {
   IRelationalDataSource,
   IRelationalTransaction,
@@ -82,6 +84,16 @@ export interface IRelationalQueryDialect {
    * The scope of a model for one call: what its `resolve` answers, or, for a `through` model, a `where` on its
    * foreign key built from its parent's own scope (`UNRESTRICTED` or null when the parent's is).
    */
+  /** The foreign key link of a `through` model and the scope its parent resolves for `operation`: what a write must check its rows against. */
+  resolveThrough(opts: {
+    settings: IModelAccessThroughSettings;
+    schema: TTableSchemaWithId;
+    operation: TScopeOperation;
+  }): {
+    link: ReturnType<typeof ScopeThroughLink.of>;
+    scope: TNullable<TWhere> | typeof ScopeFilters.UNRESTRICTED;
+  };
+
   resolveAccessScope(opts: {
     settings: TModelAccessSettings;
     schema: TTableSchemaWithId;

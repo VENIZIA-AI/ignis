@@ -1,7 +1,7 @@
 import { PGlite } from '@electric-sql/pglite';
 import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { datasource, model, ScopeFilters, type TScopeOperation } from '@venizia/ignis-kernel';
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { integer, pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
@@ -280,47 +280,172 @@ describe('a child is scoped by its parent', () => {
   });
 });
 
-describe('a through model refuses every write in this release', () => {
-  const WRITE_REFUSED = /access\.through/;
+/** The text of the error a write raised, or '' when it went through. */
+const refusal = async (write: () => Promise<unknown>): Promise<string> => {
+  try {
+    await write();
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
 
-  test('create, update and delete are refused, and nothing is written', async () => {
-    const attempts = [
-      () => variants.create({ data: { productId: 1, name: 'new' } }),
-      () => variants.updateById({ id: 1, data: { name: 'renamed' } }),
-      () => variants.updateAll({ where: {}, data: { name: 'renamed' } }),
-      () => variants.deleteById({ id: 1 }),
-      () => variants.deleteAll({ where: {} }),
-    ];
+  return '';
+};
 
-    for (const attempt of attempts) {
-      let message = '';
+const variantNames = async (): Promise<string[]> => {
+  const { rows } = await client.query<{ name: string }>(
+    'SELECT name FROM through_variant ORDER BY id',
+  );
 
-      try {
-        await attempt();
-      } catch (error) {
-        message = error instanceof Error ? error.message : String(error);
-      }
+  return rows.map((row) => row.name);
+};
 
-      expect(message).toMatch(WRITE_REFUSED);
-    }
+describe('a write to a through model must name a parent the caller may reach', () => {
+  test('a create under an in-scope parent is written', async () => {
+    await variants.create({ data: { productId: 1, name: 'v-new' } });
 
-    const { rows } = await client.query<{ name: string }>(
-      'SELECT name FROM through_variant ORDER BY id',
-    );
-    expect(rows.map((row) => row.name)).toEqual(['v1', 'v2', 'v3']);
+    const afterCreate = await variantNames();
+    expect(afterCreate).toContain('v-new');
   });
 
-  test('even an UNRESTRICTED parent does not let a write through', async () => {
+  test('a foreign parent and a missing parent are refused with the same message', async () => {
+    const foreign = await refusal(() => variants.create({ data: { productId: 3, name: 'x' } }));
+    const missing = await refusal(() => variants.create({ data: { productId: 999, name: 'x' } }));
+
+    expect(foreign).toContain('write refused by the access scope');
+    expect(missing).toBe(foreign);
+    const afterForeignCreate = await variantNames();
+    expect(afterForeignCreate).toEqual(['v1', 'v2', 'v3']);
+  });
+
+  test('a batch with one foreign parent writes nothing', async () => {
+    const message = await refusal(() =>
+      variants.createAll({
+        data: [
+          { productId: 1, name: 'a' },
+          { productId: 3, name: 'b' },
+        ],
+      }),
+    );
+
+    expect(message).toContain('write refused by the access scope');
+    const afterBatch = await variantNames();
+    expect(afterBatch).toEqual(['v1', 'v2', 'v3']);
+  });
+
+  test('a null or absent foreign key is refused like a foreign parent', async () => {
+    const foreign = await refusal(() => variants.create({ data: { productId: 3, name: 'x' } }));
+    const absent = await refusal(() => variants.create({ data: { name: 'x' } as AnyType }));
+    const empty = await refusal(() =>
+      variants.create({ data: { productId: null, name: 'x' } as AnyType }),
+    );
+
+    expect(absent).toBe(foreign);
+    expect(empty).toBe(foreign);
+  });
+
+  test('an update reaches only the rows the parent scope allows', async () => {
+    await variants.updateAll({
+      where: {},
+      data: { name: 'renamed' },
+      options: { shouldReturn: false },
+    });
+
+    const afterUpdate = await variantNames();
+    expect(afterUpdate).toEqual(['renamed', 'renamed', 'v3']);
+  });
+
+  test('an update that moves a row to a foreign parent is refused; to an in-scope parent it works', async () => {
+    const toForeign = await refusal(() => variants.updateById({ id: 1, data: { productId: 3 } }));
+    const toNull = await refusal(() =>
+      variants.updateById({ id: 1, data: { productId: null } as AnyType }),
+    );
+
+    expect(toForeign).toContain('write refused by the access scope');
+    expect(toNull).toBe(toForeign);
+
+    await variants.updateById({ id: 1, data: { productId: 2 } });
+    const { rows } = await client.query<{ productId: number }>(
+      'SELECT product_id AS "productId" FROM through_variant WHERE id = 1',
+    );
+
+    expect(rows[0].productId).toBe(2);
+  });
+
+  test('a delete reaches only the rows the parent scope allows', async () => {
+    await client.exec('DELETE FROM through_option');
+    await variants.deleteAll({ where: {}, options: { shouldReturn: false, force: true } });
+
+    const afterDelete = await variantNames();
+    expect(afterDelete).toEqual(['v3']);
+  });
+
+  test('two hops: an option is created under a variant of the caller, not of another merchant', async () => {
+    await options.create({ data: { variantId: 1, name: 'o-new' } });
+    const foreign = await refusal(() => options.create({ data: { variantId: 3, name: 'x' } }));
+
+    expect(foreign).toContain('write refused by the access scope');
+  });
+
+  test('the parent resolver receives the operation of each write', async () => {
+    await client.exec('DELETE FROM through_option');
+    await variants.create({ data: { productId: 1, name: 'a' } });
+    await variants.updateById({ id: 1, data: { productId: 2 } });
+    await variants.deleteAll({ where: {}, options: { shouldReturn: false, force: true } });
+
+    // The update names a new parent, so its operation reaches the parent twice: for the new parent and for the rows to change.
+    expect(operations).toEqual(['create', 'update', 'update', 'delete']);
+  });
+
+  test('an UNRESTRICTED parent still refuses a parent that does not exist', async () => {
     merchant = ScopeFilters.UNRESTRICTED;
-    let message = '';
+    await variants.create({ data: { productId: 3, name: 'admin' } });
+    const missing = await refusal(() => variants.create({ data: { productId: 999, name: 'x' } }));
 
-    try {
-      await variants.create({ data: { productId: 1, name: 'new' } });
-    } catch (error) {
-      message = error instanceof Error ? error.message : String(error);
-    }
+    const afterAdminCreate = await variantNames();
+    expect(afterAdminCreate).toContain('admin');
+    expect(missing).toContain('write refused by the access scope');
+  });
 
-    expect(message).toMatch(WRITE_REFUSED);
+  test('a parent that resolves no scope refuses the write under the default onMissing', async () => {
+    merchant = null;
+
+    const message = await refusal(() => variants.create({ data: { productId: 1, name: 'x' } }));
+
+    expect(message).toContain('write refused by the access scope');
+  });
+
+  test('the check joins the caller transaction: a rollback leaves nothing', async () => {
+    const transaction = await variants.beginTransaction();
+
+    await variants.create({ data: { productId: 1, name: 'in-tx' }, options: { transaction } });
+    await transaction.rollback();
+
+    const afterRollback = await variantNames();
+    expect(afterRollback).toEqual(['v1', 'v2', 'v3']);
+  });
+
+  test('a write opens one transaction for the check and the write, unless the caller brings one', async () => {
+    const begin = spyOn(variants, 'beginTransaction');
+
+    await variants.create({ data: { productId: 1, name: 'owned' } });
+    expect(begin).toHaveBeenCalledTimes(1);
+
+    const transaction = await variants.beginTransaction();
+    begin.mockClear();
+    await variants.updateById({ id: 1, data: { productId: 2 }, options: { transaction } });
+    await transaction.commit();
+
+    expect(begin).not.toHaveBeenCalled();
+    begin.mockRestore();
+  });
+
+  test('on Postgres the checked parents are read with FOR SHARE', async () => {
+    const select = spyOn(variants['queryExecutor'], 'select');
+
+    await variants.create({ data: { productId: 1, name: 'locked' } });
+
+    expect(select.mock.calls.some(([opts]) => opts.lock?.strength === 'share')).toBe(true);
+    select.mockRestore();
   });
 });
 

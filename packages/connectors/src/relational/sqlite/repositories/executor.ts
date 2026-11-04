@@ -25,6 +25,8 @@ import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
  * `returning()`'s row type from the table schema, not from the caller-chosen R.
  */
 export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConnector> {
+  readonly supportsRowLock = false;
+
   private readonly logger: ILogger;
 
   constructor() {
