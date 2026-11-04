@@ -997,4 +997,33 @@ describe('TypesenseQueryDialect.toWireParams - sortBy for the sorts filter.order
 
     expect(dialect.toWireParams({ query: built })['sort_by']).toBe('createdAt:desc');
   });
+
+  test('every sortBy refusal is a 400, so a request body that carries it gets a 4xx', () => {
+    const built = dialect.build({ filter: { order: ['createdAt DESC'] } });
+    const calls = [
+      () => dialect.toWireParams({ query: { query: 'sho', engineParams: { sortBy: '' } } }),
+      () => dialect.toWireParams({ query: { query: 'sho', engineParams: { sortBy: 42 } } }),
+      () =>
+        dialect.toWireParams({
+          query: { query: 'sho', engineParams: { sortBy: 'a:asc,b:asc,c:asc,d:asc' } },
+        }),
+      () =>
+        dialect.toWireParams({
+          query: { query: 'sho', engineParams: { sortBy: EVAL_SORT, ['sort_by']: 'x:asc' } },
+        }),
+      () => dialect.toWireParams({ query: { ...built, engineParams: { sortBy: EVAL_SORT } } }),
+    ];
+
+    for (const call of calls) {
+      let status: unknown;
+
+      try {
+        call();
+      } catch (error) {
+        status = (error as { statusCode?: number }).statusCode;
+      }
+
+      expect(status).toBe(400);
+    }
+  });
 });
