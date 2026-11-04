@@ -19,6 +19,7 @@ export class BuildInfoStamp {
   /** The `define` record for a compile: resolves the stamp now and returns it under {@link BuildInfoStamp.GLOBAL_NAME}. */
   static async define(opts?: { root?: string }): Promise<Record<string, string>> {
     const stamp = await BuildInfoResolver.getInstance().resolve(opts);
+
     return { [BuildInfoStamp.GLOBAL_NAME]: JSON.stringify(stamp) };
   }
 
@@ -29,6 +30,7 @@ export class BuildInfoStamp {
    */
   static async register(): Promise<void> {
     let stamp: TBuildInfoRecord;
+
     if (typeof IGNIS_BUILD_INFO !== 'undefined') {
       stamp = IGNIS_BUILD_INFO;
     } else {

@@ -17,6 +17,7 @@ export class GroupArtifactsResolver {
     };
   }): Promise<TGeneratedArtifactIndex> {
     const { folder, site, ignore } = opts.group;
+
     if (!site) {
       throw getError({
         message: `[ArtifactGroup] '${folder ?? '<application>'}' has no call site to resolve from | Define it with ArtifactGroup.define in the shared package's own source`,
@@ -32,16 +33,20 @@ export class GroupArtifactsResolver {
     }
 
     const index: Record<string, Array<TClass<AnyType>>> = {};
+
     for (const artifact of ArtifactSources.folderArtifacts({ folder, site, ignore })) {
       const field = ArtifactStereotypes.EMIT_ORDER.find(
         (entry) => entry.type === artifact.type,
       )?.field;
+
       if (!field) {
         continue;
       }
+
       const loaded = await import(artifact.filePath);
       index[field] = [...(index[field] ?? []), loaded[artifact.className]];
     }
+
     return index;
   }
 

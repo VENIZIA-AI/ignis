@@ -25,6 +25,7 @@ export class ArtifactSources {
     if (ArtifactSources.scanner) {
       return;
     }
+
     const generatorModule = '../generator';
     const { ArtifactScanner } = await import(generatorModule);
     ArtifactSources.scanner = ArtifactScanner.getInstance();
@@ -35,30 +36,37 @@ export class ArtifactSources {
     if (ArtifactSources.scans.has(opts.packageSource)) {
       return true;
     }
+
     const cached = ArtifactScanCache.read({ root: opts.packageSource });
+
     if (cached) {
       ArtifactSources.scans.set(opts.packageSource, cached);
     }
+
     return cached !== undefined;
   }
 
   /** Every decorated class under `packageSource`: this process's scan, else the disk cache, else the scanner (which must be loaded), written back to the cache. */
   static scan(opts: { packageSource: string }): IScannedArtifact[] {
     const { packageSource } = opts;
+
     if (ArtifactSources.isCached({ packageSource })) {
       return ArtifactSources.scans.get(packageSource) ?? [];
     }
+
     if (!ArtifactSources.scanner) {
       throw getError({
         message: `[ArtifactSources] ${packageSource} is not cached and the scanner is not loaded | Call ArtifactSources.loadScanner() first`,
       });
     }
+
     const { artifacts } = ArtifactSources.scanner.scanWithReport({
       root: packageSource,
       followReexports: true,
     });
     ArtifactSources.scans.set(packageSource, artifacts);
     ArtifactScanCache.write({ root: packageSource, artifacts });
+
     return artifacts;
   }
 
@@ -71,13 +79,17 @@ export class ArtifactSources {
   static packageSource(opts: { from?: string } = {}): string {
     const start = resolve(opts.from ?? process.cwd());
     let directory = start;
+
     while (!existsSync(join(directory, 'package.json'))) {
       const parent = dirname(directory);
+
       if (parent === directory) {
         return join(start, 'src');
       }
+
       directory = parent;
     }
+
     return join(directory, 'src');
   }
 
@@ -95,11 +107,13 @@ export class ArtifactSources {
     const ignored = opts.ignore ?? [];
     const picked = artifacts.filter((artifact) => {
       const path = relative(packageSource, artifact.filePath);
+
       return (
         (folder === undefined || path.split(sep).slice(0, -1).includes(folder)) &&
         !ignored.some((pattern) => matchesGlob(path, pattern))
       );
     });
+
     return ArtifactSources.runningArtifacts({ artifacts: picked, from: opts.site });
   }
 
@@ -111,6 +125,7 @@ export class ArtifactSources {
     const from = resolve(opts.from);
     const packageSource = ArtifactSources.packageSource({ from: dirname(from) });
     const [probe] = opts.artifacts;
+
     if (!probe || from.startsWith(`${packageSource}${sep}`)) {
       return opts.artifacts;
     }
@@ -131,11 +146,13 @@ export class ArtifactSources {
 
     return opts.artifacts.map((artifact) => {
       const compiled = tree ? compiledPath({ tree, artifact }) : undefined;
+
       if (!compiled || !existsSync(compiled)) {
         throw getError({
           message: `[ArtifactSources] ${artifact.filePath} has no compiled copy beside ${from} | The package runs from a compiled tree that is older than its src - rebuild it (or run it from src)`,
         });
       }
+
       return { ...artifact, filePath: compiled };
     });
   }

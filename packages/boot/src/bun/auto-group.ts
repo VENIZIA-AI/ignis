@@ -22,11 +22,13 @@ export class AutoArtifactGroup {
     if (this.content) {
       return this.content;
     }
+
     if (!this.resolver) {
       throw getError({
         message: '[@venizia/ignis-boot/auto] The auto group has neither content nor a resolver',
       });
     }
+
     return this.resolver();
   }
 

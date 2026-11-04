@@ -35,19 +35,23 @@ export class IgnisArtifactsPlugin {
   /** The entry module's directory (`Bun.main`), so the root never depends on where the process was started; the working directory only when there is no entry file (`bun -e`, a REPL). */
   static entryDirectory(): string {
     const entry = ArtifactSources.entry();
+
     return entry ? dirname(entry) : process.cwd();
   }
 
   /** The index as module source: every import absolute, since a virtual module has no directory to resolve from. With `entry` in a compiled tree, each class is imported from that tree (`ArtifactSources.runningArtifacts`). */
   static render(opts: { root: string; entry?: string }): string {
     const root = resolve(opts.root);
+
     if (!existsSync(root)) {
       throw getError({
         message: `[IgnisArtifactsPlugin] ${dirname(root)} has no src directory (${root}) | Auto artifacts scan the src beside the package.json of the entry module; pass IgnisArtifactsPlugin.create({ root }), or use ArtifactGroup.application() in the application's own source`,
       });
     }
+
     const outFile = join(root, '__ignis_artifacts__.ts');
     const artifacts = ArtifactSources.scan({ packageSource: root });
+
     return ArtifactIndexEmitter.render({
       artifacts: opts.entry
         ? ArtifactSources.runningArtifacts({ artifacts, from: opts.entry })
@@ -64,10 +68,12 @@ export class IgnisArtifactsPlugin {
     const { filePath, source } = opts;
     const sourceFile = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true);
     const aliases = new Set<string>();
+
     for (const statement of sourceFile.statements) {
       const bindings = ts.isImportDeclaration(statement)
         ? statement.importClause?.namedBindings
         : undefined;
+
       for (const element of bindings && ts.isNamedImports(bindings) ? bindings.elements : []) {
         if (
           (element.propertyName ?? element.name).text === 'ArtifactGroup' &&
@@ -90,8 +96,10 @@ export class IgnisArtifactsPlugin {
     };
 
     const isCompiled = !ArtifactStereotypes.SOURCE_EXTENSION.test(filePath);
+
     const contentLiteral = (folder: string | undefined, ignore?: string[]): string => {
       const artifacts = ArtifactSources.folderArtifacts({ folder, site: filePath, ignore });
+
       if (artifacts.length === 0) {
         throw getError({
           message: `[IgnisArtifactsPlugin] ArtifactGroup '${folder ?? '<application>'}' resolved to no class | ${filePath} - check the folder name and that its classes carry a stereotype decorator`,
@@ -99,6 +107,7 @@ export class IgnisArtifactsPlugin {
       }
 
       const fields: string[] = [];
+
       for (const { type, field } of ArtifactStereotypes.EMIT_ORDER) {
         const locals = artifacts
           .filter((artifact) => artifact.type === type)
@@ -106,6 +115,7 @@ export class IgnisArtifactsPlugin {
             if (isCompiled) {
               return `require(${JSON.stringify(artifact.filePath)}).${artifact.className}`;
             }
+
             counter += 1;
             const local = `__ignis_group_${counter}`;
             const path = artifact.filePath
@@ -113,12 +123,15 @@ export class IgnisArtifactsPlugin {
               .join('/')
               .replace(ArtifactStereotypes.SOURCE_EXTENSION, '');
             imports.push(`import { ${artifact.className} as ${local} } from '${path}';`);
+
             return local;
           });
+
         if (locals.length > 0) {
           fields.push(`${field}: [${locals.join(', ')}]`);
         }
       }
+
       return `{ ${fields.join(', ')} }`;
     };
 
@@ -129,8 +142,10 @@ export class IgnisArtifactsPlugin {
         (ts.isIdentifier(node.expression.expression) ||
           ts.isPropertyAccessExpression(node.expression.expression)) &&
         (node.expression.name.text === 'define' || node.expression.name.text === 'application');
+
       if (!isGroupCall) {
         ts.forEachChild(node, visit);
+
         return;
       }
 
@@ -141,19 +156,25 @@ export class IgnisArtifactsPlugin {
         ? target.text
         : (target as ts.PropertyAccessExpression).name.text;
       const isApplication = access.name.text === 'application';
+
       if (ts.isIdentifier(target) && aliases.has(callee)) {
         refuse(call, `ArtifactGroup is imported as ${callee}`);
       }
+
       if (callee !== 'ArtifactGroup') {
         ts.forEachChild(node, visit);
+
         return;
       }
 
       const [argument] = call.arguments;
+
       if (isApplication && !argument) {
         edits.push({ at: call.arguments.pos, text: `{ content: ${contentLiteral(undefined)} }` });
+
         return;
       }
+
       if (!argument || !ts.isObjectLiteralExpression(argument)) {
         refuse(call, 'the argument is not an object literal');
       }
@@ -164,20 +185,24 @@ export class IgnisArtifactsPlugin {
           (entry) =>
             entry.name !== undefined && ts.isIdentifier(entry.name) && entry.name.text === name,
         );
+
       if (named('content')) {
         return;
       }
 
       const folderProperty = named('folder');
+
       if (isApplication && folderProperty) {
         refuse(call, 'ArtifactGroup.application() takes no folder');
       }
+
       const folderLiteral =
         folderProperty &&
         ts.isPropertyAssignment(folderProperty) &&
         ts.isStringLiteral(folderProperty.initializer)
           ? folderProperty.initializer.text
           : undefined;
+
       if (!isApplication && folderLiteral === undefined) {
         refuse(call, 'folder is not a string literal');
       }
@@ -190,6 +215,7 @@ export class IgnisArtifactsPlugin {
         ignoreProperty.initializer.elements.every((element) => ts.isStringLiteral(element))
           ? ignoreProperty.initializer.elements.map((element) => (element as ts.StringLiteral).text)
           : undefined;
+
       if (ignoreProperty && ignoreList === undefined) {
         refuse(call, 'ignore is not an array of string literals');
       }
@@ -200,12 +226,15 @@ export class IgnisArtifactsPlugin {
         text: `${last ? ', ' : ''}content: ${contentLiteral(folderLiteral, ignoreList)}`,
       });
     };
+
     visit(sourceFile);
 
     let rewritten = source;
+
     for (const edit of [...edits].sort((left, right) => right.at - left.at)) {
       rewritten = rewritten.slice(0, edit.at) + edit.text + rewritten.slice(edit.at);
     }
+
     return imports.length > 0 ? `${imports.join('\n')}\n${rewritten}` : rewritten;
   }
 
@@ -226,21 +255,27 @@ export class IgnisArtifactsPlugin {
       true,
     );
     const found: string[] = [];
+
     const visit = (node: ts.Node): void => {
       if (ts.isClassDeclaration(node) && node.name) {
         const isDecorated = (ts.getDecorators(node) ?? []).some((decorator) => {
           const expression = ts.isCallExpression(decorator.expression)
             ? decorator.expression.expression
             : decorator.expression;
+
           return ts.isIdentifier(expression) && names.has(expression.text);
         });
+
         if (isDecorated) {
           found.push(node.name.text);
         }
       }
+
       ts.forEachChild(node, visit);
     };
+
     visit(sourceFile);
+
     return found;
   }
 
@@ -257,19 +292,24 @@ export class IgnisArtifactsPlugin {
       true,
     );
     const positions: Array<{ at: number; name: string }> = [];
+
     const visit = (node: ts.Node): void => {
       if (ts.isClassDeclaration(node) && node.name && opts.classNames.has(node.name.text)) {
         positions.push({ at: node.members.pos, name: node.name.text });
       }
+
       ts.forEachChild(node, visit);
     };
+
     visit(sourceFile);
 
     let pinned = opts.source;
+
     for (const { at, name } of positions.sort((left, right) => right.at - left.at)) {
       const block = ` static { Object.defineProperty(this, 'name', { value: ${JSON.stringify(name)} }); }`;
       pinned = pinned.slice(0, at) + block + pinned.slice(at);
     }
+
     return pinned;
   }
 
@@ -280,22 +320,28 @@ export class IgnisArtifactsPlugin {
     entry?: string;
   }): Map<string, Set<string>> {
     const byFile = new Map<string, Set<string>>();
+
     const add = (artifacts: ReadonlyArray<{ filePath: string; className: string }>): void => {
       for (const { filePath, className } of artifacts) {
         byFile.set(filePath, (byFile.get(filePath) ?? new Set()).add(className));
       }
     };
+
     const own = ArtifactSources.scan({ packageSource: opts.root });
     add(opts.entry ? ArtifactSources.runningArtifacts({ artifacts: own, from: opts.entry }) : own);
+
     // Every class carrying an IGNIS decorator in the workspace sources: a class nothing scans (a library that defines no group) is still an injection target, and still renamed by a bundler when its name collides.
     for (const file of IgnisArtifactsPlugin.workspaceSourceFiles({ root: opts.root })) {
       if (!ArtifactStereotypes.SOURCE_EXTENSION.test(file)) {
         continue;
       }
+
       const source = readFileSync(file, 'utf8');
+
       if (!IgnisArtifactsPlugin.DECORATED.test(source)) {
         continue;
       }
+
       add(
         IgnisArtifactsPlugin.decoratedClasses({ filePath: file, source }).map((className) => ({
           filePath: file,
@@ -303,11 +349,14 @@ export class IgnisArtifactsPlugin {
         })),
       );
     }
+
     for (const groupFile of opts.groupFiles ?? []) {
       const packageSource = ArtifactSources.packageSource({ from: dirname(groupFile) });
+
       if (packageSource === opts.root || !existsSync(packageSource)) {
         continue;
       }
+
       add(
         ArtifactSources.runningArtifacts({
           artifacts: ArtifactSources.scan({ packageSource }),
@@ -315,6 +364,7 @@ export class IgnisArtifactsPlugin {
         }),
       );
     }
+
     return byFile;
   }
 
@@ -338,32 +388,43 @@ export class IgnisArtifactsPlugin {
     });
 
     const sources = new Set<string>([root]);
+
     for (const name of names) {
       let directory = packageDirectory;
+
       while (true) {
         const linked = join(directory, 'node_modules', name);
+
         if (existsSync(linked)) {
           const real = realpathSync(linked);
+
           if (!real.split(sep).includes('node_modules') && existsSync(join(real, 'src'))) {
             sources.add(join(real, 'src'));
           }
+
           break;
         }
+
         const parent = dirname(directory);
+
         if (parent === directory) {
           break;
         }
+
         directory = parent;
       }
     }
 
     // A package that runs from its compiled tree (`main` in dist) defines its groups there too.
     const trees: Array<{ directory: string; pattern: string }> = [];
+
     for (const source of sources) {
       if (!existsSync(source)) {
         continue;
       }
+
       trees.push({ directory: source, pattern: ArtifactStereotypes.SOURCE_GLOB });
+
       for (const entry of readdirSync(dirname(source), { withFileTypes: true })) {
         if (
           entry.isDirectory() &&
@@ -376,6 +437,7 @@ export class IgnisArtifactsPlugin {
     }
 
     const files: string[] = [];
+
     for (const { directory, pattern } of trees) {
       for (const relativePath of globSync(pattern, { cwd: directory })) {
         if (!relativePath.includes('__tests__')) {
@@ -383,6 +445,7 @@ export class IgnisArtifactsPlugin {
         }
       }
     }
+
     return files;
   }
 
@@ -407,6 +470,7 @@ export class IgnisArtifactsPlugin {
             contents: contents(),
             loader: 'ts',
           }));
+
           return;
         }
 
@@ -420,6 +484,7 @@ export class IgnisArtifactsPlugin {
         const groupFileSet = new Set(groupFiles);
         const pinned = IgnisArtifactsPlugin.pinnedClasses({ root, groupFiles, entry });
         const loaded = [...new Set([...groupFiles, ...pinned.keys()])];
+
         if (loaded.length > 0) {
           const escaped = loaded.map((file) => file.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&'));
           build.onLoad({ filter: new RegExp(`^(?:${escaped.join('|')})$`) }, (args) => {
@@ -428,6 +493,7 @@ export class IgnisArtifactsPlugin {
               ? IgnisArtifactsPlugin.rewriteGroups({ filePath: args.path, source })
               : source;
             const classNames = pinned.get(args.path);
+
             return {
               contents: classNames
                 ? IgnisArtifactsPlugin.pinClassNames({
@@ -440,6 +506,7 @@ export class IgnisArtifactsPlugin {
             };
           });
         }
+
         // Lazy (a dynamic import on the first resolve) for a server: a library importing this module must not evaluate the app's classes inside its own half-loaded graph. Eager for a browser bundle: a lazily evaluated graph is not tree-shaken, which doubled a measured frontend bundle.
         const isLazy = opts.lazyIndex ?? build.config.target !== 'browser';
         const autoModule = isLazy
@@ -458,6 +525,7 @@ export class IgnisArtifactsPlugin {
     if (Reflect.get(globalThis, IgnisArtifactsPlugin.RUNTIME_KEY) === true) {
       return;
     }
+
     await Bun.plugin(IgnisArtifactsPlugin.create({ ...opts, isRuntime: true }));
     Reflect.set(globalThis, IgnisArtifactsPlugin.RUNTIME_KEY, true);
   }

@@ -48,6 +48,7 @@ describe('ArtifactScanner', () => {
       'ForeignService',
       'IgnoredService',
     ];
+
     for (const excluded of excludeds) {
       expect(names).not.toContain(excluded);
     }
