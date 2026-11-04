@@ -95,11 +95,19 @@ export interface IRedisPubSub {
   unsubscribe(opts: { topic: string }): void;
 }
 
-/** RedisJSON commands (`JSON.SET`, `JSON.GET`, ...); the Redis server needs the JSON module. `path` defaults to `$` where it is optional. */
+/** RedisJSON commands (`JSON.SET`, `JSON.GET`, ...); the Redis server needs the JSON module. */
 export interface IRedisJson {
   jSet<T>(opts: { key: string; path: string; value: T }): Promise<string | null>;
-  jGet<T>(opts: { key: string; path?: string }): Promise<T | null>;
-  jDelete(opts: { key: string; path?: string }): Promise<number>;
+  jGet<T>(opts: {
+    key: string;
+    /** @default '$' */
+    path?: string;
+  }): Promise<T | null>;
+  jDelete(opts: {
+    key: string;
+    /** @default '$' */
+    path?: string;
+  }): Promise<number>;
   jNumberIncreaseBy(opts: { key: string; path: string; value: number }): Promise<string | null>;
   jStringAppend(opts: { key: string; path: string; value: string }): Promise<number[] | null>;
   jPush<T>(opts: { key: string; path: string; value: T }): Promise<number[] | null>;

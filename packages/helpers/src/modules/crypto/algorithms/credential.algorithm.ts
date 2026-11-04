@@ -16,8 +16,8 @@ const MAX_COST = 31;
 const DEFAULT_COST = 10;
 
 /**
- * Storing and checking a credential (a password) over `Bun.password`. `hash` writes an argon2id hash with
- * Bun's default parameters unless `algorithm: 'bcrypt'` asks for bcrypt (`$2b$`, 60 characters, the stored
+ * Storing and checking a credential (a password) over `Bun.password`. `hash` writes an argon2id hash (Bun's
+ * default parameters), or bcrypt when `algorithm: 'bcrypt'` asks for it (`$2b$`, 60 characters, the stored
  * format of the `bcrypt` package). `verify` reads every existing bcrypt and argon2 hash, whichever
  * algorithm `hash` wrote, so a stored password is never rehashed or migrated. Needs Bun: it throws on
  * another runtime.
@@ -37,13 +37,21 @@ const DEFAULT_COST = 10;
  */
 export class CredentialHelper {
   /**
-   * A hash of `password`: argon2id by default (Bun's default parameters), bcrypt with `algorithm: 'bcrypt'`.
-   * For bcrypt, `cost` (4 to 31, default 10) is the work factor, `2 ** cost` rounds. `cost` with argon2id
+   * A hash of `password`: argon2id (Bun's default parameters), or bcrypt with `algorithm: 'bcrypt'`.
+   * For bcrypt, `cost` (4 to 31) is the work factor, `2 ** cost` rounds. `cost` with argon2id
    * is refused rather than ignored: a caller who tuned a cost is told the default changed.
    */
   static async hash(opts: {
     password: string;
+    /**
+     * The hashing scheme.
+     * @default DEFAULT_CREDENTIAL_ALGORITHM
+     */
     algorithm?: TCredentialAlgorithm;
+    /**
+     * The bcrypt work factor; refused with argon2id.
+     * @default 10
+     */
     cost?: number;
   }): Promise<string> {
     const { password, algorithm = DEFAULT_CREDENTIAL_ALGORITHM, cost } = opts;

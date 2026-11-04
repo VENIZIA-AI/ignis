@@ -38,7 +38,10 @@ export interface IPoolControlOptions {
   acquireTimeoutMs?: number;
   /** Max queued acquirers; omitted → unlimited. Exceeded → acquire() rejects (load-shed). */
   maxWaitingClients?: number;
-  /** Logger scope; default 'BasePoolHelper'. */
+  /**
+   * Logger scope.
+   * @default 'BasePoolHelper'
+   */
   scope?: string;
 }
 

@@ -30,9 +30,17 @@ export class QueryStringNestedModes {
 /** What {@link QueryStringNestedModes} selects: `drop` or `json`. */
 export type TQueryStringNestedMode = TConstValue<typeof QueryStringNestedModes>;
 
-/** How {@link QueryStringUtility.toQueryString} treats the values `node:querystring` has no answer for. Both default to its behavior. */
+/** How {@link QueryStringUtility.toQueryString} treats the values `node:querystring` has no answer for. */
 export interface IQueryStringOptions {
+  /**
+   * What a `null` or `undefined` value becomes.
+   * @default QueryStringNullishModes.EMPTY
+   */
   nullish?: TQueryStringNullishMode;
+  /**
+   * What an object or an array value becomes.
+   * @default QueryStringNestedModes.DROP
+   */
   nested?: TQueryStringNestedMode;
 }
 
@@ -52,7 +60,7 @@ export class QueryStringUtility {
    *
    * `nullish: 'skip'` leaves a null or undefined pair out. `nested: 'json'` sends an object or an
    * array as ONE JSON parameter instead (an array does not repeat its key), so a filter object survives
-   * the trip. The defaults keep the behavior above.
+   * the trip. Without them the behavior is the one above.
    */
   static toQueryString(opts: { params: AnyObject } & IQueryStringOptions): string {
     const {

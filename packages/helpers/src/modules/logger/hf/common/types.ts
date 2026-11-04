@@ -13,9 +13,12 @@ export type THfSink = (batch: THfSinkBatch) => void;
 export interface IHfLogFlusherOptions {
   /** Full custom delivery. Overrides filePath. */
   sink?: THfSink;
-  /** Default sink appends here instead of writing to stdout. */
+  /** File the default sink appends to instead of writing to stdout. */
   filePath?: string;
-  /** Entries rendered per batch before yielding. Defaults to HF_DEFAULT_BATCH_SIZE. */
+  /**
+   * Entries rendered per batch before yielding.
+   * @default HF_DEFAULT_BATCH_SIZE
+   */
   batchSize?: number;
 }
 

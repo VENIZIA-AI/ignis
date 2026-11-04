@@ -47,7 +47,7 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
   constructor(opts: {
     name: string;
     defaultConfigs: RequestInit;
-    /** How `params` are written into the url; the defaults are `node:querystring`'s. */
+    /** How `params` are written into the url; unset fields behave as `node:querystring` does. */
     queryString?: IQueryStringOptions;
     logger?: TFetcherLogger;
   }) {

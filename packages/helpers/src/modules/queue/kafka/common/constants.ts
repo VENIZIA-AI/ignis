@@ -64,7 +64,7 @@ export class KafkaClientEvents {
   static readonly STREAM_ERROR = 'error';
 }
 
-/** Default option values of the Kafka helpers. Timeouts, delays and intervals are in milliseconds; `MAX_BYTES` is in bytes. */
+/** The option values the Kafka helpers use for a field the caller leaves unset. Timeouts, delays and intervals are in milliseconds; `MAX_BYTES` is in bytes. */
 export class KafkaDefaults {
   // Shared
   static readonly RETRIES = 3;

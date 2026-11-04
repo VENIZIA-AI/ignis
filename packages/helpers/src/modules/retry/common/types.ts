@@ -1,23 +1,35 @@
 import type { TRetryBackoffStrategy, TRetryJitterMode } from './constants';
 
-/** Retry delay settings; every field is optional and the defaults are noted per field. */
+/** Retry delay settings; every field is optional. */
 export interface IRetryBackoffOptions {
-  /** Default EXPONENTIAL. */
+  /** @default RetryBackoffStrategies.EXPONENTIAL */
   strategy?: TRetryBackoffStrategy;
 
-  /** First delay, default 250ms. LINEAR adds it per attempt; EXPONENTIAL multiplies from it. */
+  /**
+   * First delay in milliseconds. LINEAR adds it per attempt; EXPONENTIAL multiplies from it.
+   *
+   * @default 250
+   */
   initialDelayMs?: number;
 
-  /** EXPONENTIAL growth factor, default 2. Ignored by other strategies. */
+  /**
+   * EXPONENTIAL growth factor. Ignored by other strategies.
+   *
+   * @default 2
+   */
   multiplier?: number;
 
-  /** Upper cap applied BEFORE jitter, default 30000ms. */
+  /**
+   * Upper cap in milliseconds, applied BEFORE jitter.
+   *
+   * @default 30_000
+   */
   maxDelayMs?: number;
 
   /** Required when strategy is SCHEDULE; the last entry repeats for later attempts. */
   scheduleMs?: readonly number[];
 
-  /** Default FULL. */
+  /** @default RetryJitterModes.FULL */
   jitter?: TRetryJitterMode;
 }
 

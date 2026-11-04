@@ -14,7 +14,7 @@ export class UrlSchemes {
 /** A scheme a guarded fetch accepts: `http:` or `https:`. */
 export type TUrlScheme = TConstValue<typeof UrlSchemes>;
 
-/** Safe by default: https only, no private address, three hops, ten seconds. */
+/** The values `IUrlSafetyPolicy` uses for a field the caller leaves unset; each is the safe choice. */
 export class UrlSafetyDefaults {
   static readonly ALLOWED_SCHEMES: string[] = [UrlSchemes.HTTPS];
   static readonly ALLOW_PRIVATE_ADDRESS = false;

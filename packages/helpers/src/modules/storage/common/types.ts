@@ -69,10 +69,16 @@ export interface IObjectLocation {
   object: IObjectRef;
 }
 
-/** Filters for `listObjects`. `useRecursive` descends into folders (default `false`); `maxKeys` caps the result, and `0` returns nothing. */
+/** Filters for `listObjects`. `maxKeys` caps the result, and `0` returns nothing. */
 export interface IListObjectsOptions {
   bucket: IBucketRef;
   prefix?: string;
+
+  /**
+   * Whether the listing descends into folders.
+   *
+   * @default false
+   */
   useRecursive?: boolean;
   maxKeys?: number;
 }
@@ -127,7 +133,11 @@ export interface IStorageHelper {
     opts: IObjectLocation & {
       source: ReadableStream<Uint8Array> | Blob | Response | Request;
       contentType?: string;
-      /** Folder nesting the key may carry, as `upload` takes it. Omitted -> DEFAULT_MAX_FOLDER_DEPTH. */
+      /**
+       * Folder nesting the key may carry, as `upload` takes it.
+       *
+       * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
+       */
       maxFolderDepth?: number;
     },
   ): Promise<void>;

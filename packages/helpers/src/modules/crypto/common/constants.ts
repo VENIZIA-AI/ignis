@@ -69,7 +69,7 @@ export const DEFAULT_HASH_OUTPUT_ENCODING: THashOutputEncoding = HashOutputEncod
 
 /** Password-hash schemes `CredentialHelper` accepts. `isValid` narrows a string to `TCredentialAlgorithm`. */
 export class CredentialAlgorithms {
-  /** What `Bun.password` writes by default, with its default parameters. */
+  /** What `Bun.password` writes with its default parameters; the scheme `hash` uses unless told otherwise. */
   static readonly ARGON2ID = 'argon2id';
   static readonly BCRYPT = 'bcrypt';
 

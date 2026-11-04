@@ -39,22 +39,49 @@ export interface IBunWebSocketHandler extends IBunWebSocketConfig {
   drain: (socket: IWebSocket) => void;
 }
 
-/** Options for `WebSocketServerHelper`. Timeouts and intervals are milliseconds; unset values fall back to `WebSocketDefaults`. `handshakeFn` is required when `requireEncryption` is true. */
+/** Options for `WebSocketServerHelper`. Timeouts and intervals are milliseconds. `handshakeFn` is required when `requireEncryption` is true. */
 export interface IWebSocketServerOptions<
   AuthDataType extends Record<string, unknown> = Record<string, unknown>,
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
 > {
   identifier: string;
-  path?: string; // Default: '/ws'
+  /** @default '/ws' */
+  path?: string;
   redisConnection: IRedisHelper;
   server: IBunServer;
+  /** @default [WebSocketDefaults.ROOM, WebSocketDefaults.NOTIFICATION_ROOM] */
   defaultRooms?: string[];
   serverOptions?: IBunWebSocketConfig;
-  authTimeout?: number; // Default: 5_000 (5s to authenticate or disconnect)
-  heartbeatInterval?: number; // Default: 30_000 (30s between heartbeats)
-  heartbeatTimeout?: number; // Default: 90_000 (3x interval — disconnect after 3 missed heartbeats)
-  encryptedBatchLimit?: number; // Default: 10 (max concurrent encryption operations)
-  requireEncryption?: boolean; // Default: false — when true, clients must complete handshake during auth or get rejected (4004)
+  /**
+   * Time a client has to authenticate before it is disconnected.
+   *
+   * @default 5_000
+   */
+  authTimeout?: number;
+  /**
+   * Time between heartbeats.
+   *
+   * @default 30_000
+   */
+  heartbeatInterval?: number;
+  /**
+   * Time without a heartbeat before the client is disconnected (3 missed heartbeats at the default interval).
+   *
+   * @default 90_000
+   */
+  heartbeatTimeout?: number;
+  /**
+   * Maximum concurrent encryption operations.
+   *
+   * @default 10
+   */
+  encryptedBatchLimit?: number;
+  /**
+   * When true, clients must complete the handshake during authentication or are rejected (4004).
+   *
+   * @default false
+   */
+  requireEncryption?: boolean;
 
   authenticateFn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
   validateRoomFn?: TWebSocketValidateRoomFn;

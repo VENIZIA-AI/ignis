@@ -19,11 +19,21 @@ export interface ISecretsHelper extends IConfigurable {
   shutdown(): Promise<void>;
 }
 
-/** Constructor options of a secrets provider. `cacheTtlSeconds` defaults to 300 and `renewBeforeRatio` to 0.66; `clock` and `timers` can be replaced in tests. */
+/** Constructor options of a secrets provider. `clock` and `timers` can be replaced in tests. */
 export interface ISecretsHelperOptions {
   scope: string;
   identifier?: string;
+  /**
+   * TTL in seconds of the get/getBundle cache.
+   *
+   * @default 300
+   */
   cacheTtlSeconds?: number;
+  /**
+   * Renew a lease at ttl * ratio; must be within (0, 1].
+   *
+   * @default 0.66
+   */
   renewBeforeRatio?: number;
   clock?: IClock;
   timers?: ITimerAdapter;

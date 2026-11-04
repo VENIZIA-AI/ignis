@@ -13,7 +13,7 @@ import {
 
 const DEFAULT_MAX_RETRY = 5;
 
-/** Options of a TCP client. `reconnect` (default `false`) retries after a close up to `maxRetry` times (default 5); `encoding`, when set, makes `onData` receive strings. `createClientFn` opens the socket, so one client type serves plain and TLS. */
+/** Options of a TCP client. `createClientFn` opens the socket, so one client type serves plain and TLS. */
 export interface INetworkTcpClientProps<
   SocketClientOptions extends PlainConnectionOptions | TlsConnectionOptions,
   SocketClientType extends PlainSocketClient | TlsSocketClient,
@@ -22,8 +22,17 @@ export interface INetworkTcpClientProps<
   scope?: string;
 
   options: SocketClientOptions;
+  /**
+   * Retries after a close, up to `maxRetry` times.
+   * @default false
+   */
   reconnect?: boolean;
+  /**
+   * How many reconnects `reconnect` attempts.
+   * @default 5
+   */
   maxRetry?: number;
+  /** When set, `onData` receives strings in this encoding instead of buffers. */
   encoding?: BufferEncoding;
 
   createClientFn: (

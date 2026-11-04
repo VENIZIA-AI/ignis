@@ -4,11 +4,17 @@ import { ModuleUtility } from '@/utilities/module.utility';
 import { AbstractSecretsHelper } from '../base';
 import type { IClock, ISecretLease, ITimerAdapter } from '../common';
 
-/** Options for `DotenvVaultHelper`. `path` defaults to `.env.vault`; `dotenvKey` is the decryption key passed to dotenvx when set. */
+/** Options for `DotenvVaultHelper`. `dotenvKey` is the decryption key passed to dotenvx when set. */
 export interface IDotenvVaultHelperOptions {
+  /** @default '.env.vault' */
   path?: string;
   dotenvKey?: string;
   identifier?: string;
+  /**
+   * TTL in seconds of the get/getBundle cache.
+   *
+   * @default 300
+   */
   cacheTtlSeconds?: number;
   clock?: IClock;
   timers?: ITimerAdapter;

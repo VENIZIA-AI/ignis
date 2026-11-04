@@ -22,8 +22,16 @@ export interface ISecretsRegistration {
   config?: AnyObject;
   hydrate?: Array<ISecretHydrateEntry>;
   lease?: Array<ISecretLeaseEntry>;
-  /** Renew a lease at ttl * ratio. Default 0.66. */
+  /**
+   * Renew a lease at ttl * ratio.
+   *
+   * @default 0.66
+   */
   renewBeforeRatio?: number;
-  /** TTL (seconds) for the static get/getBundle cache. Default 300. */
+  /**
+   * TTL (seconds) for the static get/getBundle cache.
+   *
+   * @default 300
+   */
   cacheTtlSeconds?: number;
 }
