@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { Linter } from 'eslint';
-import { asyncStyleConfigs, houseConfigs } from '../linters/house';
+import { houseConfigs } from '../linters/house';
 import { PADDING_OFF } from './padding-off';
 
-const CONFIGS = [...houseConfigs, ...asyncStyleConfigs, PADDING_OFF];
+const CONFIGS = [...houseConfigs, PADDING_OFF];
 const INLINE = 'venizia/no-inline-await';
 const RETURN = 'venizia/no-return-await';
 
@@ -81,12 +81,12 @@ describe('venizia/no-inline-await: where an await is allowed', () => {
     expect(findings({ code, ruleId: INLINE, filename: 'src/x.test.ts' })).toHaveLength(1);
   });
 
-  test('is silent without the opt-in configs', () => {
+  test('is on in houseConfigs', () => {
     const messages = new Linter().verify('async function run() { g(await f()); }', houseConfigs, {
       filename: 'src/subject.ts',
     });
 
-    expect(messages.filter((message) => message.ruleId === INLINE)).toEqual([]);
+    expect(messages.filter((message) => message.ruleId === INLINE)).toHaveLength(1);
   });
 });
 
@@ -221,15 +221,13 @@ describe('venizia/no-return-await', () => {
     expect(findings({ code, ruleId: RETURN })).toEqual([]);
   });
 
-  test('is silent without the opt-in configs', () => {
+  test('is on in houseConfigs', () => {
     const messages = new Linter().verify(
       'async function run() { return await f(); }',
       houseConfigs,
-      {
-        filename: 'src/subject.ts',
-      },
+      { filename: 'src/subject.ts' },
     );
 
-    expect(messages.filter((message) => message.ruleId === RETURN)).toEqual([]);
+    expect(messages.filter((message) => message.ruleId === RETURN)).toHaveLength(1);
   });
 });

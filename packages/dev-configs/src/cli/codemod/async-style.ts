@@ -73,10 +73,10 @@ export interface IAsyncStyleResult {
 
 /** Runs the async-style rules, and only those, over source text with ESLint's own fixer loop. */
 export class AsyncStyle {
-  /** The `Linter` config: the TypeScript parser and the rules of `asyncStyleConfigs`, at error. */
+  /** The `Linter` config: the TypeScript parser and the rules of `asyncRuleConfigs`, at error. */
   static async createConfig(): Promise<Linter.Config[]> {
     const { default: tseslint } = await import('typescript-eslint');
-    const { asyncStyleConfigs } = await import('../../linters/house/index.js');
+    const { asyncRuleConfigs } = await import('../../linters/house/async-rules.js');
 
     return [
       {
@@ -86,7 +86,7 @@ export class AsyncStyle {
         // ESLint's fixer would delete it. A codemod never touches a directive.
         linterOptions: { reportUnusedDisableDirectives: 'off' },
       },
-      ...asyncStyleConfigs,
+      ...asyncRuleConfigs,
     ];
   }
 

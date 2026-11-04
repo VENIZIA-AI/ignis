@@ -133,14 +133,16 @@ useEffect(() => {
 
 ## Turning the rules on
 
+The rules are in `houseConfigs`, so one array turns them on:
+
 ```javascript
 // .configs/lints/eslint.config.mjs
-import { asyncStyleConfigs, houseConfigs } from '@venizia/dev-configs/linters';
+import { houseConfigs } from '@venizia/dev-configs/linters';
 
-export default [...houseConfigs, ...asyncStyleConfigs];
+export default houseConfigs;
 ```
 
-A React project spreads `reactHouseConfigs` and `reactAsyncStyleConfigs` the same way. Both arrays carry the chain rule (`venizia/no-await-promise-chain`) and the silent catch rule (`venizia/no-silent-catch`), so a project that already spreads them gets the two new rules with nothing to wire.
+A project that adds its own entries spreads the array: `[...houseConfigs, { ... }]`. A React project uses `reactHouseConfigs` the same way: it carries the four async rules and the two hook rules (`venizia/no-async-hook-callback`, `venizia/effect-cleanup-consistency`).
 
 To fix an existing codebase, run the codemod. It applies the safe fixes of `no-inline-await`, `no-return-await` and `no-await-promise-chain`, and lists the rest with file, line and rule, including every silent catch, which it never fixes:
 

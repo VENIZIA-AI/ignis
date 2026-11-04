@@ -3,16 +3,16 @@ import { Linter } from 'eslint';
 import ts from 'typescript';
 import {
   NoAwaitPromiseChainRule,
+  NoInlineAwaitRule,
+  NoReturnAwaitRule,
   NoSilentCatchRule,
-  asyncStyleConfigs,
   houseConfigs,
   houseEslintPlugin,
-  reactAsyncStyleConfigs,
   reactHouseConfigs,
 } from '../linters/house';
 import { PADDING_OFF } from './padding-off';
 
-const CONFIGS = [...houseConfigs, ...asyncStyleConfigs, PADDING_OFF];
+const CONFIGS = [...houseConfigs, PADDING_OFF];
 const CHAIN = NoAwaitPromiseChainRule.NAME;
 const SILENT = NoSilentCatchRule.NAME;
 
@@ -34,7 +34,16 @@ const findings = (opts: {
 const CHAIN_ONLY: Linter.Config[] = [
   ...houseConfigs,
   PADDING_OFF,
-  { files: ['**/*.ts'], plugins: { venizia: houseEslintPlugin }, rules: { [CHAIN]: 'error' } },
+  {
+    files: ['**/*.ts'],
+    plugins: { venizia: houseEslintPlugin },
+    rules: {
+      [CHAIN]: 'error',
+      [NoInlineAwaitRule.NAME]: 'off',
+      [NoReturnAwaitRule.NAME]: 'off',
+      [NoSilentCatchRule.NAME]: 'off',
+    },
+  },
 ];
 
 const fixChainOnly = (code: string) =>
@@ -169,17 +178,11 @@ describe('venizia/no-await-promise-chain: what is allowed', () => {
     expect(findings({ code, ruleId: CHAIN, filename: 'src/x.test.ts' })).toHaveLength(1);
   });
 
-  test('is silent without the opt-in configs, and is in both opt-in arrays', () => {
+  test('is on in both house arrays', () => {
     const code = wrap('await f().then(g);');
 
-    expect(findings({ code, ruleId: CHAIN, configs: houseConfigs })).toEqual([]);
-    expect(findings({ code, ruleId: CHAIN, configs: reactHouseConfigs })).toEqual([]);
-    expect(
-      findings({ code, ruleId: CHAIN, configs: [...houseConfigs, ...asyncStyleConfigs] }),
-    ).toHaveLength(1);
-    expect(
-      findings({ code, ruleId: CHAIN, configs: [...reactHouseConfigs, ...reactAsyncStyleConfigs] }),
-    ).toHaveLength(1);
+    expect(findings({ code, ruleId: CHAIN, configs: houseConfigs })).toHaveLength(1);
+    expect(findings({ code, ruleId: CHAIN, configs: reactHouseConfigs })).toHaveLength(1);
   });
 });
 
@@ -479,18 +482,10 @@ describe('venizia/no-silent-catch', () => {
     expect(out.messages.map((message) => message.ruleId)).toEqual([SILENT]);
   });
 
-  test('is silent without the opt-in configs, and is in both opt-in arrays', () => {
+  test('is on in both house arrays', () => {
     const code = 'f().catch(() => null);';
 
-    expect(findings({ code, ruleId: SILENT, configs: houseConfigs })).toEqual([]);
-    expect(findings({ code, ruleId: SILENT, configs: reactHouseConfigs })).toEqual([]);
-    expect(
-      findings({
-        code,
-        ruleId: SILENT,
-        configs: [...reactHouseConfigs, ...reactAsyncStyleConfigs],
-      }),
-    ).toHaveLength(1);
-    expect(findings({ code, ruleId: SILENT })).toHaveLength(1);
+    expect(findings({ code, ruleId: SILENT, configs: houseConfigs })).toHaveLength(1);
+    expect(findings({ code, ruleId: SILENT, configs: reactHouseConfigs })).toHaveLength(1);
   });
 });

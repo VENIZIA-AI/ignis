@@ -12,11 +12,10 @@ generated:
 
 ## dev-configs
 
-### `@venizia/dev-configs` (56)
+### `@venizia/dev-configs` (54)
 
 - `AstNode` class
 - `AstNodeTypes` class
-- `asyncStyleConfigs` const
 - `AwaitSupport` class
 - `BrowserOxlintConfigs` class
 - `BunCompiler` class
@@ -53,7 +52,6 @@ generated:
 - `PaddingLineBetweenStatementsRule` class
 - `PreferNullishCoalescingRule` class
 - `PromiseChainSupport` class
-- `reactAsyncStyleConfigs` const
 - `reactHouseConfigs` const
 - `reactNamingConventionConfigs` const
 - `ReactOxlintConfigs` class
@@ -75,11 +73,10 @@ generated:
 
 - `BunCompiler` class
 
-### `@venizia/dev-configs/linters` (55)
+### `@venizia/dev-configs/linters` (53)
 
 - `AstNode` class
 - `AstNodeTypes` class
-- `asyncStyleConfigs` const
 - `AwaitSupport` class
 - `BrowserOxlintConfigs` class
 - `ConstClassValuesRule` class
@@ -115,7 +112,6 @@ generated:
 - `PaddingLineBetweenStatementsRule` class
 - `PreferNullishCoalescingRule` class
 - `PromiseChainSupport` class
-- `reactAsyncStyleConfigs` const
 - `reactHouseConfigs` const
 - `reactNamingConventionConfigs` const
 - `ReactOxlintConfigs` class

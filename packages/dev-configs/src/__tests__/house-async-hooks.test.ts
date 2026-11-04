@@ -3,18 +3,16 @@ import { Linter } from 'eslint';
 import {
   EffectCleanupConsistencyRule,
   NoAsyncHookCallbackRule,
-  reactAsyncStyleConfigs,
+  houseConfigs,
   reactHouseConfigs,
 } from '../linters/house';
 
-const CONFIGS = [...reactHouseConfigs, ...reactAsyncStyleConfigs];
-
-/** Runs the React house configs with the async hook rules on `code`, and returns the findings of `ruleId`. */
+/** Runs the React house configs on `code`, and returns the findings of `ruleId`. */
 const findings = (opts: { code: string; ruleId: string; filename?: string }) => {
   const { code, ruleId, filename = 'src/subject.ts' } = opts;
 
   return new Linter()
-    .verify(code, CONFIGS, { filename })
+    .verify(code, reactHouseConfigs, { filename })
     .filter((message) => message.ruleId === ruleId);
 };
 
@@ -85,8 +83,8 @@ describe('venizia/no-async-hook-callback', () => {
     expect(result.length).toBe(1);
   });
 
-  test('is silent without reactAsyncStyleConfigs', () => {
-    const messages = new Linter().verify(`useEffect(async () => {}, []);`, reactHouseConfigs, {
+  test('is silent in houseConfigs: a hook rule belongs to React projects', () => {
+    const messages = new Linter().verify(`useEffect(async () => {}, []);`, houseConfigs, {
       filename: 'src/subject.ts',
     });
 
@@ -187,10 +185,10 @@ describe('venizia/effect-cleanup-consistency', () => {
     expect(flagged(`useMemo(() => { if (a) { return; } return 1; }, []);`).length).toBe(0);
   });
 
-  test('is silent without reactAsyncStyleConfigs', () => {
+  test('is silent in houseConfigs: a hook rule belongs to React projects', () => {
     const messages = new Linter().verify(
       `useEffect(() => { if (a) { return; } return () => {}; }, []);`,
-      reactHouseConfigs,
+      houseConfigs,
       { filename: 'src/subject.ts' },
     );
 
