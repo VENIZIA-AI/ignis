@@ -12,7 +12,7 @@ generated:
 
 ## dev-configs
 
-### `@venizia/dev-configs` (53)
+### `@venizia/dev-configs` (56)
 
 - `AstNode` class
 - `AstNodeTypes` class
@@ -32,6 +32,7 @@ generated:
 - `IOxlintPresetOptions` interface
 - `IRestrictedImportPath` interface
 - `IRestrictedProperty` interface
+- `LinesBetweenClassMembersRule` class
 - `LintIgnore` class
 - `MaxParamsOwnRule` class
 - `namingConventionConfigs` const
@@ -48,6 +49,8 @@ generated:
 - `NoUnusedVarsRule` class
 - `oxlintConfigs` const
 - `OxlintConfigs` class
+- `paddingConfigs` const
+- `PaddingLineBetweenStatementsRule` class
 - `PreferNullishCoalescingRule` class
 - `PromiseChainSupport` class
 - `reactAsyncStyleConfigs` const
@@ -72,7 +75,7 @@ generated:
 
 - `BunCompiler` class
 
-### `@venizia/dev-configs/linters` (52)
+### `@venizia/dev-configs/linters` (55)
 
 - `AstNode` class
 - `AstNodeTypes` class
@@ -91,6 +94,7 @@ generated:
 - `IOxlintPresetOptions` interface
 - `IRestrictedImportPath` interface
 - `IRestrictedProperty` interface
+- `LinesBetweenClassMembersRule` class
 - `LintIgnore` class
 - `MaxParamsOwnRule` class
 - `namingConventionConfigs` const
@@ -107,6 +111,8 @@ generated:
 - `NoUnusedVarsRule` class
 - `oxlintConfigs` const
 - `OxlintConfigs` class
+- `paddingConfigs` const
+- `PaddingLineBetweenStatementsRule` class
 - `PreferNullishCoalescingRule` class
 - `PromiseChainSupport` class
 - `reactAsyncStyleConfigs` const
@@ -127,7 +133,7 @@ generated:
 - `UnusedArgsModes` class
 - `UnusedVarsScopes` class
 
-### `@venizia/dev-configs/linters/oxlint` (28)
+### `@venizia/dev-configs/linters/oxlint` (30)
 
 - `BrowserOxlintConfigs` class
 - `EqeqeqModes` class
@@ -135,6 +141,7 @@ generated:
 - `IOxlintPresetOptions` interface
 - `IRestrictedImportPath` interface
 - `IRestrictedProperty` interface
+- `LinesBetweenClassMembersRule` class
 - `LintIgnore` class
 - `NamingConventionRule` class
 - `NoRestrictedImportsRule` class
@@ -142,6 +149,7 @@ generated:
 - `NoUnusedVarsRule` class
 - `oxlintConfigs` const
 - `OxlintConfigs` class
+- `PaddingLineBetweenStatementsRule` class
 - `PreferNullishCoalescingRule` class
 - `ReactOxlintConfigs` class
 - `RuleSeverities` class
