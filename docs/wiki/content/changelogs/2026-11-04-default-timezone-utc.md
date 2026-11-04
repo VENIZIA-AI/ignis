@@ -8,7 +8,7 @@ packages: ['@venizia/ignis']
 
 ## The default timezone in the startup log and the app preset is UTC
 
-<Badge type="tip" text="Enhancement" />
+<Badge type="warning" text="Behavior Change" />
 
 **In one line.** The startup banner prints `Timezone: UTC` when `APP_ENV_APPLICATION_TIMEZONE` is not set, and a new app's `.env.example` sets `UTC`, where both said `Asia/Ho_Chi_Minh`.
 

@@ -45,9 +45,9 @@ Dates and IDs need no peer at all:
 import { TemporalHelper } from '@venizia/ignis-helpers/temporal';
 import { UuidHelper } from '@venizia/ignis-helpers/uuid';
 
-const temporal = new TemporalHelper({ timeZone: 'UTC' });
+const temporal = new TemporalHelper({ tz: 'UTC' });
 const paidAt = temporal.parse({ value: '20260919120000', pattern: 'YYYYMMDDHHmmss' });
-paidAt.toISOString(); // '2026-09-19T05:00:00.000Z'
+paidAt.toISOString(); // '2026-09-19T12:00:00.000Z'
 
 UuidHelper.getInstance().v7(); // time-ordered, for a database key
 ```

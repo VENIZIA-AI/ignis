@@ -21,6 +21,7 @@ import type {
 } from '@venizia/ignis-helpers';
 import { ParseUtility, getError } from '@venizia/ignis-helpers/core';
 import { HTTP, ObjectUtility } from '@venizia/ignis-helpers/common';
+import { DEFAULT_TEMPORAL_TZ } from '@venizia/ignis-helpers/temporal';
 import {
   applicationEnvironment,
   SecretsHelperFactory,
@@ -328,7 +329,10 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     this.logger.for(scope).info('RunMode: %s', process.env.RUN_MODE);
     this.logger
       .for(scope)
-      .info('Timezone: %s', read(EnvironmentKeys.APP_ENV_APPLICATION_TIMEZONE, 'UTC'));
+      .info(
+        'Timezone: %s',
+        read(EnvironmentKeys.APP_ENV_APPLICATION_TIMEZONE, DEFAULT_TEMPORAL_TZ),
+      );
     this.logger
       .for(scope)
       .info('LogPath: %s', read(EnvironmentKeys.APP_ENV_LOGGER_FOLDER_PATH, './'));
