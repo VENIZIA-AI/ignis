@@ -36,7 +36,7 @@ export class SqlQueryOperators extends QueryOperators {
   }
 
   /** `scope` is the engine's operator class name: it prefixes the errors a handler throws. */
-  static common(config: { scope: string }) {
+  protected static common(config: { scope: string }) {
     const { scope } = config;
 
     return {

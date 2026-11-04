@@ -39,12 +39,10 @@ export class SqliteQueryOperators extends SqlQueryOperators {
       this.reject({ operator: this.OVERLAPS, reason: 'SQLite has no array storage class' }),
 
     /*
-     * SQLite's `LIKE` is ASCII case-INSENSITIVE, so `ilike` maps exactly and it is `like` that
+     * SQLite's `LIKE` (shared with Postgres) is ASCII case-INSENSITIVE here, so `ilike` maps exactly and it is `like` that
      * silently widens against its Postgres meaning. Refusing `ilike` would be theatre - renaming it
      * to `like` yields the same SQL. Residual gap: `'ÉCOLE' LIKE 'é%'` is false without ICU.
      */
-    [this.LIKE]: (opts: IQueryHandlerOptions) => like(opts.column, opts.value),
-    [this.NOT_LIKE]: (opts: IQueryHandlerOptions) => notLike(opts.column, opts.value),
     [this.ILIKE]: (opts: IQueryHandlerOptions) => like(opts.column, opts.value),
     [this.NOT_ILIKE]: (opts: IQueryHandlerOptions) => notLike(opts.column, opts.value),
 
