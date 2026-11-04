@@ -9,7 +9,7 @@ import {
   ScopeFilterMissingBehaviors,
   ScopeFilters,
 } from '@venizia/ignis-kernel';
-import { afterAll, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { BaseSqliteDataSource } from '@/relational/sqlite/datasources';
 import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
@@ -20,14 +20,8 @@ import {
 } from '@/relational/sqlite/repositories';
 
 /**
- * `access.resolve` on SQLite (libsql), the counterpart of the Postgres suites `pglite-scope-filter`
- * and `scope-write-guard`: read scoping, `onMissing`, `columns`, `write.mode` and `write.sharedRows`.
- *
- * Where SQLite differs from Postgres, and what this suite pins:
- * - It cannot lock a row, so the guard must never ask for one (the executor throws NotSupported on a lock).
- * - `contains` and `regexp` are refused by the dialect, so a scope that uses one fails loudly instead of
- *   returning rows from an approximate query.
- *
+ * `access.resolve` on SQLite (libsql): the counterpart of the Postgres suites `pglite-scope-filter` and
+ * `scope-write-guard`. The row lock SQLite lacks is pinned in `libsql-scope-through`, the only code that asks for one.
  * The model registry is keyed by table name for the whole process, so this table has its own name.
  */
 const TABLE_NAME = 'lite_resolve_items';
@@ -120,12 +114,12 @@ let dataSource: ResolveSqliteDataSource;
 
 /** The repository for an entity. */
 const build = (entityClass: AnyType): AnyType => {
-  return new DefaultSqliteRepository<typeof itemsTable>(dataSource as AnyType, { entityClass });
+  return new DefaultSqliteRepository<typeof itemsTable>(dataSource, { entityClass });
 };
 
 /** The repository for an entity that declares a `deletedAt` filter: it can soft delete and restore. */
 const buildSoft = (entityClass: AnyType): AnyType => {
-  return new SoftDeletableSqliteRepository<typeof itemsTable>(dataSource as AnyType, {
+  return new SoftDeletableSqliteRepository<typeof itemsTable>(dataSource, {
     entityClass,
   });
 };
@@ -388,8 +382,8 @@ describe("access.resolve on SQLite - onMissing: 'deny' (the default)", () => {
     );
 
     expect(error.message).toContain('no scope could be resolved');
-    const count = await names();
-    expect(count).toHaveLength(4);
+    const untouched = await names();
+    expect(untouched).toHaveLength(4);
   });
 
   test('an update under an unresolved scope is left to the scoped where, which matches no row', async () => {
@@ -398,8 +392,8 @@ describe("access.resolve on SQLite - onMissing: 'deny' (the default)", () => {
     const result = await build(RejectItem).updateById({ id: 1, data: { name: 'changed' } });
 
     expect(result.count).toBe(0);
-    const result2 = await names();
-    expect(result2[0]).toBe('a-active');
+    const untouched = await names();
+    expect(untouched[0]).toBe('a-active');
   });
 });
 
@@ -750,24 +744,349 @@ describe('access.resolve on SQLite - declared columns', () => {
   });
 });
 
+describe('access.resolve on SQLite - operators the guard reads as an equality', () => {
+  test('an eq operator, an array and an and-combination allow only their values', async () => {
+    scope = { and: [{ merchantId: { eq: 'm-a' } }, { merchantId: ['m-a', 'm-b'] }] };
+
+    await build(RejectItem).create({ data: { merchantId: 'm-a', name: 'ok' } });
+    await refusal(build(RejectItem).create({ data: { merchantId: 'm-b', name: 'bad' } }));
+
+    const result = await names();
+    expect(result).toEqual(['ok']);
+  });
+
+  test('an in and an inq list allow each of their values and refuse others', async () => {
+    for (const listed of [{ in: ['m-a', 'm-b'] }, { inq: ['m-a', 'm-b'] }]) {
+      scope = { merchantId: listed };
+      await build(RejectItem).createAll({
+        data: [
+          { merchantId: 'm-a', name: 'a' },
+          { merchantId: 'm-b', name: 'b' },
+        ],
+      });
+      await refusal(build(RejectItem).create({ data: { merchantId: 'm-c', name: 'c' } }));
+    }
+
+    const result = await names();
+    expect(result).toEqual(['a', 'b', 'a', 'b']);
+  });
+
+  test('createAll with every row inside the scope writes them all', async () => {
+    await build(RejectItem).createAll({
+      data: [
+        { merchantId: 'm-a', name: 'ok-1' },
+        { merchantId: 'm-a', name: 'ok-2' },
+      ],
+    });
+
+    const result = await names();
+    expect(result).toEqual(['ok-1', 'ok-2']);
+  });
+});
+
+describe('access.resolve on SQLite - a scope that cannot be verified, more shapes', () => {
+  test.each([
+    [
+      'an or with a range',
+      { or: [{ merchantId: 'm-a' }, { merchantId: { gt: 'm' } }] },
+      /operator 'gt'/,
+    ],
+    [
+      'an or branch with two conditions',
+      { or: [{ merchantId: 'm-a', name: 'one' }] },
+      /several conditions/,
+    ],
+    ['a nested path', { 'meta.merchant': 'm-a' }, /nested path/],
+  ])(
+    '%s refuses the write with its own message, never a skip',
+    async (_label, resolved, pattern) => {
+      scope = resolved;
+
+      const error = await refusal(
+        build(RejectItem).create({ data: { merchantId: 'm-a', name: 'one' } }),
+      );
+
+      expect(error.message).toMatch(/cannot be verified/);
+      expect(error.message).toMatch(pattern);
+      const result = await rows();
+      expect(result).toEqual([]);
+    },
+  );
+});
+
+describe('access.resolve on SQLite - UNRESTRICTED and an unresolved scope on a write', () => {
+  test('UNRESTRICTED stamps nothing on createAll, whatever the row carries', async () => {
+    scope = ScopeFilters.UNRESTRICTED;
+
+    await build(AssignItem).createAll({
+      data: [
+        { merchantId: 'm-other', name: 'explicit' },
+        { merchantId: null, name: 'shared' },
+        { name: 'absent' },
+      ],
+    });
+
+    const result = await rows();
+    expect(result).toEqual([
+      { merchantId: 'm-other', name: 'explicit' },
+      { merchantId: null, name: 'shared' },
+      { merchantId: null, name: 'absent' },
+    ]);
+  });
+
+  test('UNRESTRICTED lets an update move a row to another scope', async () => {
+    const repository = build(RejectItem);
+    const created = await repository.create({ data: { merchantId: 'm-a', name: 'one' } });
+    scope = ScopeFilters.UNRESTRICTED;
+
+    await repository.updateById({ id: created.data.id, data: { merchantId: 'm-b' } });
+
+    const result = await rows();
+    expect(result).toEqual([{ merchantId: 'm-b', name: 'one' }]);
+  });
+
+  test('updateBy and updateAll with a payload inside the scope touch only the scoped rows', async () => {
+    await seedTwoMerchants();
+    const repository = build(RejectItem);
+
+    await repository.updateAll({ where: {}, data: { name: 'renamed' }, options: { force: true } });
+    await repository.updateBy({
+      where: {},
+      data: { name: 'renamed-by' },
+      options: { force: true },
+    });
+
+    const result = await names();
+    expect(result).toEqual(['renamed-by', 'renamed-by', 'b-active', 'b-deleted']);
+  });
+
+  test('deleteBy only reaches rows inside the scope', async () => {
+    await seedTwoMerchants();
+    const repository = build(RejectItem);
+
+    const foreign = await repository.deleteBy({ where: { name: 'b-active' } });
+    const own = await repository.deleteBy({ where: {}, options: { force: true } });
+
+    expect(foreign.count).toBe(0);
+    expect(own.count).toBe(2);
+    const result = await names();
+    expect(result).toEqual(['b-active', 'b-deleted']);
+  });
+});
+
+describe('access.resolve on SQLite - a shared-rows scope: an or of the ids and null', () => {
+  const sharedScope = (ids: string[]) => ({
+    or: [{ merchantId: { in: ids } }, { merchantId: null }],
+  });
+
+  test.each([
+    ['RejectItem', RejectItem],
+    ['SharedItem', SharedItem],
+  ])(
+    '%s: an id in the list is accepted and an id outside the list is refused',
+    async (_name, entity) => {
+      scope = sharedScope(['m-a', 'm-b']);
+      const repository = build(entity);
+
+      await repository.create({ data: { merchantId: 'm-a', name: 'in-list' } });
+      await repository.create({ data: { merchantId: 'm-b', name: 'also-in-list' } });
+      await refusal(repository.create({ data: { merchantId: 'm-c', name: 'outside' } }));
+
+      const result = await names();
+      expect(result).toEqual(['in-list', 'also-in-list']);
+    },
+  );
+
+  test('createAll with a null row and no sharedRows writes nothing', async () => {
+    scope = sharedScope(['m-a']);
+
+    await refusal(
+      build(RejectItem).createAll({
+        data: [
+          { merchantId: 'm-a', name: 'ok' },
+          { merchantId: null, name: 'shared' },
+        ],
+      }),
+    );
+
+    const result = await rows();
+    expect(result).toEqual([]);
+  });
+
+  test('an update may move a row to another listed id; to null only with sharedRows; never outside the list', async () => {
+    scope = sharedScope(['m-a', 'm-b']);
+    const repository = build(RejectItem);
+    const created = await repository.create({ data: { merchantId: 'm-a', name: 'one' } });
+
+    await repository.updateById({ id: created.data.id, data: { merchantId: 'm-b' } });
+    await refusal(repository.updateById({ id: created.data.id, data: { merchantId: null } }));
+    await refusal(repository.updateById({ id: created.data.id, data: { merchantId: 'm-c' } }));
+    const kept = await rows();
+    expect(kept.map((row) => row.merchantId)).toEqual(['m-b']);
+
+    await build(SharedItem).updateById({ id: created.data.id, data: { merchantId: null } });
+    const moved = await rows();
+    expect(moved.map((row) => row.merchantId)).toEqual([null]);
+  });
+
+  test('UNRESTRICTED still bypasses it', async () => {
+    scope = ScopeFilters.UNRESTRICTED;
+
+    await build(RejectItem).create({ data: { merchantId: null, name: 'shared' } });
+
+    const result = await rows();
+    expect(result).toEqual([{ merchantId: null, name: 'shared' }]);
+  });
+
+  test('sharedRows also grants null when the scope has no null branch', async () => {
+    await refusal(build(RejectItem).create({ data: { merchantId: null, name: 'shared' } }));
+    await build(SharedItem).create({ data: { merchantId: null, name: 'shared' } });
+
+    const result = await names();
+    expect(result).toEqual(['shared']);
+  });
+});
+
+describe('access.resolve on SQLite - an empty list scope', () => {
+  test('refuses every create, including null and an absent column', async () => {
+    scope = { merchantId: { in: [] } };
+    const repository = build(RejectItem);
+
+    await refusal(repository.create({ data: { merchantId: 'm-a', name: 'a' } }));
+    await refusal(repository.create({ data: { merchantId: null, name: 'null' } }));
+    await refusal(repository.create({ data: { name: 'absent' } }));
+    await refusal(repository.createAll({ data: [{ merchantId: 'm-a', name: 'a' }] }));
+
+    const result = await rows();
+    expect(result).toEqual([]);
+  });
+
+  test('refuses every update that names the column, whatever the value', async () => {
+    const repository = build(RejectItem);
+    const created = await repository.create({ data: { merchantId: 'm-a', name: 'one' } });
+    scope = { merchantId: { in: [] } };
+
+    await refusal(repository.updateById({ id: created.data.id, data: { merchantId: 'm-a' } }));
+    await refusal(repository.updateById({ id: created.data.id, data: { merchantId: 'm-b' } }));
+    await refusal(repository.updateById({ id: created.data.id, data: { merchantId: null } }));
+
+    const result = await rows();
+    expect(result).toEqual([{ merchantId: 'm-a', name: 'one' }]);
+  });
+
+  test('an inq with no values behaves the same', async () => {
+    scope = { merchantId: { inq: [] } };
+
+    await refusal(build(RejectItem).create({ data: { merchantId: 'm-a', name: 'a' } }));
+
+    const result = await rows();
+    expect(result).toEqual([]);
+  });
+
+  test('an empty list inside an or-null scope accepts only through sharedRows', async () => {
+    scope = { or: [{ merchantId: { in: [] } }, { merchantId: null }] };
+
+    await refusal(build(RejectItem).create({ data: { merchantId: 'm-a', name: 'a' } }));
+    await refusal(build(RejectItem).create({ data: { merchantId: null, name: 'shared' } }));
+    await build(SharedItem).create({ data: { merchantId: null, name: 'shared' } });
+    await refusal(build(SharedItem).create({ data: { merchantId: 'm-a', name: 'a' } }));
+
+    const result = await names();
+    expect(result).toEqual(['shared']);
+  });
+});
+
+describe('access.resolve on SQLite - a shared row, more write paths', () => {
+  const sharedScope = { or: [{ merchantId: { in: ['m-a'] } }, { merchantId: null }] };
+
+  /** Three rows written without a scope: mine (m-a), shared (null) and theirs (m-b). */
+  beforeEach(async () => {
+    await insert([
+      { merchantId: 'm-a', name: 'mine' },
+      { merchantId: null, name: 'shared' },
+      { merchantId: 'm-b', name: 'theirs' },
+    ]);
+    scope = sharedScope;
+  });
+
+  test('updateBy and deleteBy touch only my rows', async () => {
+    const repository = build(RejectItem);
+
+    await repository.updateBy({ where: {}, data: { name: 'by' }, options: { force: true } });
+    const afterUpdate = await names();
+    const deleted = await repository.deleteBy({ where: {}, options: { force: true } });
+    const again = await repository.deleteBy({ where: {}, options: { force: true } });
+
+    expect(afterUpdate).toEqual(['by', 'shared', 'theirs']);
+    expect(deleted.count).toBe(1);
+    expect(again.count).toBe(0);
+    const result = await names();
+    expect(result).toEqual(['shared', 'theirs']);
+  });
+
+  test('a name filter cannot reach a shared row either', async () => {
+    const result = await build(RejectItem).updateAll({
+      where: { name: 'shared' },
+      data: { name: 'x' },
+    });
+
+    expect(result.count).toBe(0);
+    const untouched = await names();
+    expect(untouched).toEqual(['mine', 'shared', 'theirs']);
+  });
+
+  test('UNRESTRICTED still reaches every row', async () => {
+    const repository = build(RejectItem);
+    scope = ScopeFilters.UNRESTRICTED;
+
+    const updated = await repository.updateById({ id: 2, data: { name: 'a' } });
+    const deleted = await repository.deleteById({ id: 3 });
+
+    expect(updated.count).toBe(1);
+    expect(deleted.count).toBe(1);
+  });
+
+  test('a scope that only allows null matches no row for a write', async () => {
+    scope = { merchantId: null };
+    const repository = build(RejectItem);
+
+    const updated = await repository.updateById({ id: 2, data: { name: 'a' } });
+    const deleted = await repository.deleteById({ id: 2 });
+
+    expect(updated.count).toBe(0);
+    expect(deleted.count).toBe(0);
+    const untouched = await names();
+    expect(untouched).toEqual(['mine', 'shared', 'theirs']);
+  });
+
+  test('a null inside a list is dropped for a write and the other values stay', async () => {
+    scope = { merchantId: { inq: ['m-a', null] } };
+    const repository = build(RejectItem);
+
+    const shared = await repository.updateById({ id: 2, data: { name: 'a' } });
+    const mine = await repository.updateById({ id: 1, data: { name: 'b' } });
+
+    expect(shared.count).toBe(0);
+    expect(mine.count).toBe(1);
+  });
+
+  test('a shared row soft deleted under UNRESTRICTED is restored only with sharedRows', async () => {
+    const repository = buildSoft(SoftItem);
+    scope = ScopeFilters.UNRESTRICTED;
+    await repository.deleteById({ id: 2 });
+    scope = sharedScope;
+
+    const refused = await repository.restoreById({ id: 2 });
+    const granted = await buildSoft(SoftSharedItem).restoreById({ id: 2 });
+
+    expect(refused.count).toBe(0);
+    expect(granted.count).toBe(1);
+  });
+});
+
 describe('access.resolve on SQLite - where it differs from Postgres', () => {
   beforeEach(async () => {
     await seedTwoMerchants();
-  });
-
-  test('SQLite cannot lock a row, so no resolve read or write asks for a lock', async () => {
-    const repository = new DefaultSqliteRepository<typeof itemsTable>(dataSource as AnyType, {
-      entityClass: RejectItem as AnyType,
-    });
-    const select = spyOn(repository['queryExecutor'], 'select');
-
-    await repository.create({ data: { merchantId: 'm-a', name: 'new' } });
-    await repository.updateById({ id: 1, data: { merchantId: 'm-a', name: 'renamed' } });
-    await repository.find({ filter: {} });
-
-    expect(select.mock.calls.length).toBeGreaterThan(0);
-    expect(select.mock.calls.every(([opts]) => opts.lock === undefined)).toBe(true);
-    select.mockRestore();
   });
 
   test('a scope that uses regexp is refused as NotSupported, not answered by an approximate query', async () => {
@@ -786,20 +1105,21 @@ describe('access.resolve on SQLite - where it differs from Postgres', () => {
     expect(errorCode(caught)).toBe(NOT_SUPPORTED_CODE);
   });
 
-  test('a write under a regexp or contains scope is refused and writes nothing', async () => {
-    const before = await names();
-
-    for (const resolved of [{ merchantId: { regexp: '^m-a' } }, { tags: { contains: ['x'] } }]) {
+  test.each([
+    ['regexp', { merchantId: { regexp: '^m-a' } }],
+    ['contains', { tags: { contains: ['x'] } }],
+  ])(
+    'a write under a %s scope is refused by the guard, before any SQL, and writes nothing',
+    async (operator, resolved) => {
       scope = resolved;
 
-      const caught = await failure(() =>
+      const error = await refusal(
         build(RejectItem).create({ data: { merchantId: 'm-a', name: 'new' } }),
       );
 
-      expect(isApplicationError(caught)).toBe(true);
-    }
-
-    const after = await names();
-    expect(after).toEqual(before);
-  });
+      expect(error.message).toContain(`the operator '${operator}' cannot be checked on a write`);
+      const untouched = await names();
+      expect(untouched).toHaveLength(4);
+    },
+  );
 });
