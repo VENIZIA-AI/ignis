@@ -14,6 +14,8 @@ export default {
   rules: { 'V-W-01': 'on-user-word' },
   // Agents may not sign commits: vulcan sync prints the hook line that enforces it.
   commit: { message: { agent: { signature: 'deny' } } },
+  // A write outside the project is refused with a reason instead of prompting.
+  guard: { outside: 'deny' },
   // The session digest names the rules sessions drop most, then prints the minimap shape from .agents/rules.md.
   digest: { oftenDropped: ['P-09', 'P-10', 'B-03', 'B-05', 'P-05', 'P-15', 'W-02'] },
   // Release order. A rename keeps its old tag prefix and npm name as aliases.
