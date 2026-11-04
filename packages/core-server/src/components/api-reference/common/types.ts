@@ -5,7 +5,20 @@ import type { TConstValue } from '@venizia/ignis-helpers/common';
 /** One of the `DocumentUITypes` values. */
 export type TDocumentUIType = TConstValue<typeof DocumentUITypes>;
 
-/** Every field is optional: a partially-filled binding falls back to the component defaults. */
+/**
+ * Every field is optional: a partially-filled binding falls back to the component defaults.
+ *
+ * @example
+ * ```typescript
+ * import { ApiReferenceBindingKeys, type BaseApplication, type IApiReferenceOptions } from '@venizia/ignis';
+ *
+ * export const bindApiReference = (application: BaseApplication) => {
+ *   application
+ *     .bind<IApiReferenceOptions>({ key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS })
+ *     .toValue({ restOptions: { base: { path: '/docs' }, ui: { type: 'swagger' } } });
+ * };
+ * ```
+ */
 export interface IApiReferenceOptions {
   restOptions?: {
     base?: { path?: string };

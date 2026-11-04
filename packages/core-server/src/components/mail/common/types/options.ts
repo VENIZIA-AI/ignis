@@ -4,6 +4,11 @@ import type { IMailTransport } from './message';
 
 /** Options shared by every mail provider. */
 export interface IBaseMailOptions {
+  /**
+   * Sender used when a message sets none.
+   *
+   * @default MailDefaults.FALLBACK_FROM
+   */
   from?: string;
   fromName?: string;
   /**
@@ -11,7 +16,11 @@ export interface IBaseMailOptions {
    * refused if it lands outside, symlinks included. Unset, every `path` is refused.
    */
   attachmentRoot?: string;
-  /** Bytes of attachment content one message may carry, all attachments together. Default 25 MB. */
+  /**
+   * Bytes of attachment content one message may carry, all attachments together.
+   *
+   * @default MailDefaults.MAX_ATTACHMENT_BYTES
+   */
   maxAttachmentBytes?: number;
 }
 

@@ -42,7 +42,11 @@ export interface IIngestFromUrlOptions {
   /** Absent leaves IGNIS's own default: https only, no private address, 3 hops, 10s, 10 MB. */
   policy?: IUrlSafetyPolicy;
 
-  /** Folder nesting the key may carry. Absent uses `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH`. */
+  /**
+   * Folder nesting the key may carry.
+   *
+   * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
+   */
   maxFolderDepth?: number;
 
   /**

@@ -71,7 +71,25 @@ const selectSecretEnvKeys = (opts: {
   return merged;
 };
 
-/** The IGNIS server application: a `ServerApplication` that adds secrets hydration, env validation, start-up info and the gRPC controller branch. Extend it to build an application. */
+/**
+ * The IGNIS server application: a `ServerApplication` that adds secrets hydration, env validation, start-up info and the gRPC controller branch. Extend it to build an application.
+ *
+ * @example
+ * ```typescript
+ * import { BaseApplication, type IApplicationInfo } from '@venizia/ignis';
+ *
+ * class App extends BaseApplication {
+ *   getAppInfo(): IApplicationInfo { return { name: 'app', version: '1.0.0', description: 'Demo' }; }
+ *   staticConfigure(): void {}
+ *   preConfigure(): void {}
+ *   postConfigure(): void {}
+ *   setupMiddlewares(): void {}
+ * }
+ * const app = new App({ scope: 'App', config: { host: '0.0.0.0', port: 3000, path: { base: '/api', isStrict: true } } });
+ * app.init();
+ * await app.start();
+ * ```
+ */
 export abstract class BaseApplication extends ServerApplication implements IRestApplication {
   protected secretsProvider?: ISecretsHelper;
   protected secretsRegistration?: ISecretsRegistration;

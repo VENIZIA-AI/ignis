@@ -32,7 +32,11 @@ export type TStaticAssetExtraOptions = {
   normalizeNameFn?: (opts: { file: TUploadNaming }) => string;
   normalizeLinkFn?: (opts: IObjectLocation) => string;
 
-  /** Maximum folder nesting depth allowed in object paths. Default: 2 */
+  /**
+   * Maximum folder nesting depth allowed in object paths.
+   *
+   * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
+   */
   maxFolderDepth?: number;
 
   /** Largest file the UPLOAD route accepts. Absent means no ceiling. Checked against `content-length` before spooling, then per file after parsing. */
@@ -83,10 +87,18 @@ export type TDirectUploadOptions = {
   /** The ceiling the policy carries as `content-length-range`. A signed PUT cannot express this at all, which is why this is a POST policy. */
   maxBytes: number;
 
-  /** Where a policy may write. The final key is NEVER in a policy, so content cannot be replaced after the commit. Default: `pending/`. */
+  /**
+   * Where a policy may write. The final key is NEVER in a policy, so content cannot be replaced after the commit.
+   *
+   * @default 'pending/'
+   */
   pendingPrefix?: string;
 
-  /** How long a policy and its commit token stay good. Default: the helper's POST default. */
+  /**
+   * How long a policy and its commit token stay good.
+   *
+   * @default StoragePresignDefaults.POST_EXPIRES_IN
+   */
   expiresIn?: IDuration;
 
   /** Runs BEFORE the copy to the final key, so a hook that throws leaves the object under the pending prefix for a lifecycle rule to collect, rather than stranding it at the final key. */
@@ -118,11 +130,15 @@ export type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLink
 export type TStaticAssetRouteConfig = Partial<
   Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>
 > & {
-  /** Whether this route is registered. Defaults to true. */
+  /**
+   * Whether this route is registered.
+   *
+   * @default true
+   */
   enabled?: boolean;
 };
 
-/** Per-route overrides for the built-in routes of a generated asset controller. A key left out keeps that route at its defaults. */
+/** Per-route overrides for the built-in routes of a generated asset controller. A key left out keeps that route as built. */
 export type TStaticAssetRoutes = {
   getBuckets?: TStaticAssetRouteConfig;
   getBucketByName?: TStaticAssetRouteConfig;
@@ -149,9 +165,19 @@ export type TStaticAssetsComponentOptions<
     controller: {
       name: string;
       basePath: string;
+
+      /**
+       * Whether `/path` and `/path/` are different routes on this controller.
+       *
+       * @default true
+       */
       isStrict?: boolean;
 
-      /** `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`) - a URL shape change; a percent-encoded path keeps working either way. Default: `false`. */
+      /**
+       * `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`) - a URL shape change; a percent-encoded path keeps working either way.
+       *
+       * @default false
+       */
       rawObjectPath?: boolean;
 
       /** The single bucket every object route uses. It leaves the URL (`/objects/{objectName}`) and the four bucket-management routes are not registered. The function form is read per request, so an environment variable can be read lazily. */
@@ -162,7 +188,9 @@ export type TStaticAssetsComponentOptions<
        * as a 404 without calling the storage, `listObjects` lists only inside it, and an upload key
        * must land inside it: the default name is placed there, a `resolveObjectName` or
        * `extra.normalizeNameFn` key outside it is refused. `maxFolderDepth` counts the folders below
-       * it. Absent: every key in the bucket.
+       * it.
+       *
+       * @default every key in the bucket
        */
       keyPrefix?: string;
 
