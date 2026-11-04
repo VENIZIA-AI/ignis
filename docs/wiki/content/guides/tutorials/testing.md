@@ -66,7 +66,7 @@ The helper runs `init()` and `initialize()`, never `start()`: no socket opens an
 
 The first argument is a built application or a function that returns one. Pass a function when a test boots the same application more than once: a second call on the same instance is rejected, also after a failed first call.
 
-Verification runs after the last boot step, so if `validateScopeFilterSupport` also fails, that error comes first. What it catches: an unregistered injection, a missing binding, a bad component wiring, a duplicate route, an application with no controller. What it does not catch: a wrong database URL or password, a migration, anything `start()` does, or code of your own that opens a connection while it boots. `printStartUpInfo`, `validateEnvs` and `registerDefaultMiddlewares` still run, so a test supplies the environment variables its application needs.
+Verification runs after the last boot step, so if `validateScopeFilterSupport` also fails, that error comes first. What it catches: an unregistered injection, a missing binding, a bad component wiring, a duplicate route, an application with no controller, a model whose `access` cannot take effect (the `validateScopeFilterSupport` step; leave it out of `skipSteps`). What it does not catch: a wrong database URL or password, a migration, anything `start()` does, or code of your own that opens a connection while it boots. `printStartUpInfo`, `validateEnvs` and `registerDefaultMiddlewares` still run, so a test supplies the environment variables its application needs.
 
 ## Quick Examples with Popular Frameworks
 

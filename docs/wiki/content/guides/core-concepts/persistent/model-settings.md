@@ -255,6 +255,8 @@ Returning the `or` for a write operation is still refused, with the same "cannot
 | `'deny'` (default) | Matches zero rows. "I do not know who is asking" reads as "nothing" |
 | `'allow'` | Runs unscoped |
 
+The two values are also `ScopeFilterMissingBehaviors.DENY` and `ScopeFilterMissingBehaviors.ALLOW`, exported by `@venizia/ignis`.
+
 Keep `'deny'`. `'allow'` is declared once for the whole model, so it also unscopes every ordinary caller whose `resolve()` happens to return nothing. A background job has no request, so its `resolve()` finds no merchant. Give the job an explicit system scope instead of loosening the model:
 
 ```typescript
@@ -294,7 +296,7 @@ export class Product extends ModelFactory.defineEntity({ table: productTable }) 
 A scope on reads is not enough: a `create` has no `where` to AND into, so without a check a merchant could insert a product owned by someone else. The write guard holds every created row, and every update payload that names a scope column, to the resolved scope. `write.mode` chooses what happens to a row that is outside it:
 
 - `'reject'` (default): the write is refused and nothing is written.
-- `'assign'`: also fills a scope column that is missing from a created row, when the scope is a single equality such as `{ merchantId: 'm-1' }`. A value that is present and disagrees is still refused.
+- `'assign'` (`ScopeWriteGuards.ASSIGN`; `'reject'` is `ScopeWriteGuards.REJECT`): also fills a scope column that is missing from a created row, when the scope is a single equality such as `{ merchantId: 'm-1' }`. A value that is present and disagrees is still refused.
 
 The scope is `{ merchantId: 'm-1' }` for every row of this table:
 
@@ -434,6 +436,35 @@ const VariantBase = ModelFactory.defineEntity({
 })
 export class Variant extends VariantBase {}
 ```
+
+#### A hand-written entity
+
+`ScopeThrough.of` reads the entity's static `relationDefinitions` for its type only. `ModelFactory.defineEntity` supplies it. An entity you write by hand declares it next to `relations`, from one object, so the name is checked the same way:
+
+```typescript
+// src/models/variant.model.ts
+import { model, ScopeThrough } from '@venizia/ignis';
+import { BaseEntity, one, RelationDeclarations } from '@venizia/ignis-connectors/postgres';
+import { productTable } from './product.table';
+import { variantTable } from './variant.table';
+
+const relations = { product: one(productTable) };
+
+class VariantBase extends BaseEntity<typeof variantTable> {
+  static override schema = variantTable;
+  static readonly relationDefinitions = relations;
+  static override relations = () => RelationDeclarations.toRelationConfigs({ relations });
+}
+
+@model({
+  settings: {
+    access: { through: ScopeThrough.of({ entity: VariantBase, relation: 'product' }) },
+  },
+})
+export class Variant extends VariantBase {}
+```
+
+A to-many relation or a misspelled name does not compile. If you annotate the member, use a type alias such as `{ product: { type: typeof RelationTypes.ONE } }`; an `interface` is refused. An entity with no `relationDefinitions` cannot be passed to `ScopeThrough.of`.
 
 A read of `Variant` keeps the rows whose `productId` is in the set that `Product`'s own `access` allows:
 
@@ -588,7 +619,7 @@ This is a check in your code, not a scope: nothing stops another code path from 
 
 ### The errors you will see
 
-A refused write is an `ApplicationError` with HTTP status `403` and the code `core.repository.scope_write_denied`. The message names the entity and the column, never a value, because the caller may be a request.
+A refused write is an `ApplicationError` with HTTP status `403` and the code `core.repository.scope_write_denied`, held by `RepositoryErrorCodes.SCOPE_WRITE_DENIED` for code that matches on it. The message names the entity and the column, never a value, because the caller may be a request.
 
 | Message (after the leading `[create]` or `[update]`) | Cause |
 |---|---|
@@ -597,7 +628,14 @@ A refused write is an `ApplicationError` with HTTP status `403` and the code `co
 | `... \| the resolved scope cannot be verified on a write \| column 'merchantId': the operator 'gt' cannot be checked on a write` | The scope is an `or` over several columns, a range or another shape the guard cannot read |
 | `... \| no scope could be resolved for this caller` | `resolve()` returned `null` and `onMissing` is `'deny'`, on a create |
 
-At boot, `ScopeFilterUtility.assertScopeFilterSupported` refuses an `access` on a search-backed model, an `access` while `asyncContext.enable` is off (every query would match zero rows), a `write.mode` other than `reject` or `assign`, and `columns` that is empty or names a property the model does not have.
+At boot, `ScopeFilterUtility.assertScopeFilterSupported` runs as the last boot step of a `BaseApplication` and refuses four kinds of model:
+
+- **Search-backed.** An `access` on a model whose repository never reads it.
+- **No async context.** An `access` while `asyncContext.enable` is off (every query would match zero rows).
+- **Bad write guard.** A `write.mode` other than `reject` or `assign`, and `columns` that is empty or names a property the model does not have.
+- **Bad `through`.** A model with both or neither of `resolve` and `through`, `onMissing`, `columns` or `write` next to `through`, a relation that is not a `one` with a single-column key, a parent with no `access`, a cycle, or a chain longer than 5 hops.
+
+`ApplicationBootAssertion.assert` runs the same step, so a boot test catches them; `skipSteps` can leave it out. A `WorkerApplication` has no such step: nothing validates `access` there.
 
 ## 5. query.limit
 
