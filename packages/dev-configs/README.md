@@ -241,14 +241,13 @@ flavor = "oxfmt"
 
 `eslintConfigs` keeps its shape and resolves to the same rules as before, but is now owned here instead
 of wrapping `@minimaltech/eslint-node`: ESLint recommended, typescript-eslint, naming
-conventions, `curly`, `eslint-plugin-n`, plus these IGNIS rules:
+conventions, `curly`, plus these IGNIS rules (the node-protocol and switch-case-braces checks run in `oxlintConfigs`):
 
 | Rule | Setting |
 | :--- | :--- |
 | `@typescript-eslint/no-explicit-any` | `off` |
 | `@typescript-eslint/ban-ts-comment` | `error` - `@ts-expect-error` with a description is still allowed |
 | `@typescript-eslint/no-namespace` | `error` |
-| `unicorn/switch-case-braces` | `['error', 'always']` |
 
 ### BrowserOxlintConfigs
 
