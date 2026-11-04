@@ -20,6 +20,7 @@ import {
 } from './common';
 import { StorageUtility, StorageConcurrency, StorageErrors } from './common';
 
+/** Shared base for storage helpers: MIME lookup, name and path validation, and upload naming. Concrete helpers implement the backend calls. */
 export abstract class BaseStorageHelper extends BaseHelper implements IStorageHelper {
   constructor(opts: { scope: string; identifier: string }) {
     super(opts);

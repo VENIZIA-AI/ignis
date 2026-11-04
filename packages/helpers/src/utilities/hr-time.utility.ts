@@ -1,5 +1,6 @@
 import { ParseUtility } from './parse.utility';
 
+/** Elapsed-time measurement from the Node high-resolution clock. */
 export class HrTimeUtility {
   /**
    * Seconds from the process's high-resolution clock, to nine decimals - for measuring, not for dates.

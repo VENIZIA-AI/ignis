@@ -42,6 +42,7 @@ const BACKOFF_BASE_MS = 1_000;
 // Capped at 31 to keep 2 ** (attempt - 1) inside double range: past ~1024 it overflows to Infinity and clampDelayMs's non-finite branch returns the FLOOR, collapsing a long backoff into a 1/sec retry storm.
 const MAX_BACKOFF_ATTEMPT_EXPONENT = 31;
 
+/** Base for secrets providers: caches bundles for `cacheTtlSeconds`, tracks leases and renews them at `renewBeforeRatio` of their TTL, and notifies rotation handlers. Subclasses implement `fetchRaw`, `renewRaw` and `revokeRaw`. The constructor throws when `renewBeforeRatio` is outside (0, 1]. */
 export abstract class AbstractSecretsHelper extends BaseHelper implements ISecretsHelper {
   protected readonly clock: IClock;
   protected readonly timers: ITimerAdapter;

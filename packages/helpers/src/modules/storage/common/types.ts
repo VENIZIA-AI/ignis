@@ -1,6 +1,7 @@
 import { type IDuration } from '@/common';
 import { type Readable } from 'node:stream';
 
+/** One file handed to `upload`. `buffer` is the whole body; `folderPath`, when set, nests the object under that folder and is depth-checked. */
 export interface IUploadFile {
   originalName: string;
   mimetype: string;
@@ -25,6 +26,7 @@ export interface IObjectMetadata {
   [key: string]: any;
 }
 
+/** What `getStat` reports for one object. `size` is in bytes. */
 export interface IFileStat {
   size: number;
   metadata: IObjectMetadata;
@@ -33,11 +35,13 @@ export interface IFileStat {
   versionId?: string;
 }
 
+/** A bucket as `getBuckets`, `getBucket` and `createBucket` report it. */
 export interface IBucketInfo {
   name: string;
   creationDate: Date;
 }
 
+/** One entry of `listObjects`. `name` is the full object key. */
 export interface IObjectInfo {
   name?: string;
   size?: number;
@@ -65,6 +69,7 @@ export interface IObjectLocation {
   object: IObjectRef;
 }
 
+/** Filters for `listObjects`. `useRecursive` descends into folders (default `false`); `maxKeys` caps the result, and `0` returns nothing. */
 export interface IListObjectsOptions {
   bucket: IBucketRef;
   prefix?: string;
@@ -79,11 +84,13 @@ export interface IPostPolicy {
   expiresAt: string;
 }
 
+/** Logger `scope` and `identifier` for a storage helper. */
 export interface IStorageHelperOptions {
   scope?: string;
   identifier?: string;
 }
 
+/** The contract every storage backend (disk, in-memory, S3) implements. Buckets and objects are addressed by `IBucketRef` and `IObjectRef`. */
 export interface IStorageHelper {
   isValidSegment(opts: { segment: string }): boolean;
   isValidBucketName(opts: { bucket: IBucketRef }): boolean;

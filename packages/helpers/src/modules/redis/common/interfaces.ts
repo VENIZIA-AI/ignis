@@ -1,5 +1,6 @@
 import type { TRedisClient } from './types';
 
+/** Client access and connection lifecycle of a Redis helper. `connect` and `disconnect` resolve `false` when the client status makes the call a no-op. */
 export interface IRedisConnection {
   getClient(): TRedisClient;
   duplicateClient(): TRedisClient;
@@ -8,6 +9,7 @@ export interface IRedisConnection {
   disconnect(): Promise<boolean>;
 }
 
+/** Key-level commands: existence, expiry, TTL and counters. */
 export interface IRedisKey {
   exists(opts: { keys: Array<string> }): Promise<number>;
   expire(opts: { key: string; seconds: number }): Promise<boolean>;
@@ -20,6 +22,7 @@ export interface IRedisKey {
   decrBy(opts: { key: string; value: number }): Promise<number>;
 }
 
+/** String value commands, including JSON-serialised object reads and batch get and set. `set` `expiresIn` is in milliseconds. */
 export interface IRedisKeyValue {
   set<T>(opts: {
     key: string;
@@ -49,6 +52,7 @@ export interface IRedisKeyValue {
   }): Promise<(T | null)[]>;
 }
 
+/** Hash commands (`HSET`, `HGET`, ...) on one key. */
 export interface IRedisHash {
   hSet<T extends Record<string, unknown>>(opts: {
     key: string;
@@ -65,6 +69,7 @@ export interface IRedisHash {
   hLen(opts: { key: string }): Promise<number>;
 }
 
+/** Set commands (`SADD`, `SMEMBERS`, ...) on one key. */
 export interface IRedisSet {
   sAdd(opts: { key: string; members: Array<string | number> }): Promise<number>;
   sRem(opts: { key: string; members: Array<string | number> }): Promise<number>;
@@ -73,6 +78,7 @@ export interface IRedisSet {
   sCard(opts: { key: string }): Promise<number>;
 }
 
+/** List commands (`LPUSH`, `LRANGE`, ...) on one key. */
 export interface IRedisList {
   lPush(opts: { key: string; values: Array<string | number> }): Promise<number>;
   rPush(opts: { key: string; values: Array<string | number> }): Promise<number>;
@@ -82,12 +88,14 @@ export interface IRedisList {
   lLen(opts: { key: string }): Promise<number>;
 }
 
+/** Publish to many topics and subscribe on the helper client. `publish` serialises the payload as JSON and deflates it when `useCompress` is set. */
 export interface IRedisPubSub {
   publish<T>(opts: { topics: Array<string>; payload: T; useCompress?: boolean }): Promise<void>;
   subscribe(opts: { topic: string }): void;
   unsubscribe(opts: { topic: string }): void;
 }
 
+/** RedisJSON commands (`JSON.SET`, `JSON.GET`, ...); the Redis server needs the JSON module. `path` defaults to `$` where it is optional. */
 export interface IRedisJson {
   jSet<T>(opts: { key: string; path: string; value: T }): Promise<string | null>;
   jGet<T>(opts: { key: string; path?: string }): Promise<T | null>;
@@ -98,10 +106,12 @@ export interface IRedisJson {
   jPop<T>(opts: { key: string; path: string }): Promise<T | null>;
 }
 
+/** Escape hatch to run any Redis command by name. */
 export interface IRedisCommand {
   execute<R>(command: string, parameters?: Array<string | number | Buffer>): Promise<R>;
 }
 
+/** Full surface of a Redis helper, composed from the command-group interfaces; `name` is the identifier it was created with. */
 export interface IRedisHelper
   extends
     IRedisConnection,

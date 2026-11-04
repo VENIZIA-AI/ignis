@@ -2,6 +2,7 @@ import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { type IWorkerMessageBusHandler } from '../../common';
 
+/** Base for the callbacks a worker bus invokes: `onMessage`, `onClose`, `onError` and `onExit`. */
 export abstract class AbstractWorkerMessageBusHandlerHelper<IConsumePayload>
   extends BaseHelper
   implements IWorkerMessageBusHandler<IConsumePayload>

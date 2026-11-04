@@ -7,6 +7,7 @@ export const COMBINING_MARKS_PATTERN = /[\u0300-\u036f]/g;
 /** Any run of characters outside the slug alphabet collapses to one hyphen. */
 export const NON_SLUG_CHARACTERS_PATTERN = /[^a-z0-9]+/g;
 
+/** Matches hyphens at the start or end of a string, so replacing it with an empty string trims them. */
 export const LEADING_OR_TRAILING_HYPHENS_PATTERN = /^-+|-+$/g;
 
 /**

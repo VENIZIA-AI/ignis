@@ -2,6 +2,7 @@ import { type ValueOrPromise } from '@/common';
 import { getError } from '@/modules/error';
 import type { ILogger } from '@/modules/logger';
 
+/** An async task as `executeWithLimit` takes it. */
 export type TTask<T> = (...args: any[]) => Promise<T>;
 
 /** Check if a value is a promise. */

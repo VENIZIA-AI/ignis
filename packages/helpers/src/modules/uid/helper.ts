@@ -21,11 +21,13 @@ export class SnowflakeConfig {
   static readonly WARNING_THRESHOLD_MS = BigInt(Math.floor(8909 * 365.25 * 24 * 60 * 60 * 1000)); // ~8,909 years
 }
 
+/** Options for `SnowflakeUidHelper`. `workerId` is 0-1023 (default `199`); `epoch` is in milliseconds since the Unix epoch (default `SnowflakeConfig.DEFAULT_EPOCH`). */
 export interface IIdGeneratorOptions {
   workerId?: number;
   epoch?: bigint;
 }
 
+/** The fields of a Snowflake id, as decoded from its raw `bigint`. */
 export interface ISnowflakeParsedId {
   raw: bigint;
   timestamp: Date;

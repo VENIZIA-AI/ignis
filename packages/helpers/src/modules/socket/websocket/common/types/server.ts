@@ -10,6 +10,7 @@ import {
   type TWebSocketValidateRoomFn,
 } from './hooks';
 
+/** The subset of a Bun server the WebSocket helper uses to publish to topics. */
 export interface IBunServer {
   readonly pendingWebSockets: number;
   publish(
@@ -38,6 +39,7 @@ export interface IBunWebSocketHandler extends IBunWebSocketConfig {
   drain: (socket: IWebSocket) => void;
 }
 
+/** Options for `WebSocketServerHelper`. Timeouts and intervals are milliseconds; unset values fall back to `WebSocketDefaults`. `handshakeFn` is required when `requireEncryption` is true. */
 export interface IWebSocketServerOptions<
   AuthDataType extends Record<string, unknown> = Record<string, unknown>,
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
@@ -63,6 +65,7 @@ export interface IWebSocketServerOptions<
   handshakeFn?: TWebSocketHandshakeFn<AuthDataType>; // Required when requireEncryption is true
 }
 
+/** Options for `WebSocketEmitter`. */
 export interface IWebSocketEmitterOptions {
   identifier?: string;
   redisConnection: IRedisHelper;

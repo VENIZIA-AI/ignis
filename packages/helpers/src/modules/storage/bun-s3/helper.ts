@@ -20,6 +20,7 @@ import { S3Audiences, StorageUtility, StoragePresignDefaults } from '../common';
 import type { TS3Audience } from '../common';
 import { S3SignatureUtility } from './utility';
 
+/** Options for `BunS3Helper`. `region` defaults to `us-east-1`; `endpoint.public` defaults to `endpoint.default`; unset `partSize`, `queueSize` and `retry` leave Bun defaults in force. */
 export interface IBunS3HelperOptions extends IStorageHelperOptions {
   accessKey: string;
   secretKey: string;
@@ -37,6 +38,7 @@ export interface IBunS3HelperOptions extends IStorageHelperOptions {
   retry?: number;
 }
 
+/** Storage helper for S3-compatible object stores through Bun's `S3Client`. Uses separate hosts for calls this process makes and for URLs handed to browsers. */
 export class BunS3Helper extends BaseStorageHelper {
   private client: S3Client;
   private credentials: {

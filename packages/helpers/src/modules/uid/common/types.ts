@@ -13,6 +13,7 @@ export interface IUidSegment {
   value?: string;
 }
 
+/** Options for generating an opaque id. Every field is optional and falls back to the default noted on it. */
 export interface IOpaqueUidOptions {
   /** Defaults to disabled. */
   prefix?: IUidSegment;

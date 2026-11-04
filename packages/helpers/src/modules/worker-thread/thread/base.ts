@@ -3,6 +3,7 @@ import { isMainThread } from 'node:worker_threads';
 import { type IWorkerBus } from '../common';
 import { AbstractWorkerThreadHelper } from './abstract';
 
+/** Holds the message buses of a worker thread by key. Throws when constructed on the main thread. */
 export class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
   constructor(opts: { scope: string }) {
     const { scope } = opts;

@@ -2,8 +2,10 @@ import type { Cluster, ClusterOptions, Redis, RedisOptions } from 'ioredis';
 import type { TRedisSentinelRole } from './constants';
 import type { IRedisHelper } from './interfaces';
 
+/** The ioredis client a helper wraps: a single or Sentinel `Redis`, or a `Cluster`. */
 export type TRedisClient = Redis | Cluster;
 
+/** Connection settings for a single Redis node. `database` and `maxRetry` default to 0 in the helper; `autoConnect` defaults to true. */
 export interface IRedisSingleHelperProps {
   name: string;
   host: string;
@@ -16,6 +18,7 @@ export interface IRedisSingleHelperProps {
   maxRetry?: number;
 }
 
+/** Connection settings for a Redis Cluster: the startup `nodes`, plus raw ioredis `clusterOptions` that override the helper defaults. */
 export interface IRedisClusterHelperProps {
   name: string;
   nodes: Array<{ host: string; port: string | number; password?: string }>;
@@ -24,6 +27,7 @@ export interface IRedisClusterHelperProps {
   clusterOptions?: ClusterOptions;
 }
 
+/** Connection settings for Redis behind Sentinel. Sentinel `port` defaults to 26379, `role` to master, `database` and `maxRetry` to 0, `autoConnect` to true; `redisOptions` overrides the helper defaults. */
 export interface IRedisSentinelHelperProps {
   name: string;
   sentinels: Array<{ host: string; port?: string | number }>;
@@ -38,6 +42,7 @@ export interface IRedisSentinelHelperProps {
   redisOptions?: Partial<RedisOptions>;
 }
 
+/** Lifecycle hooks a Redis helper calls; each receives the helper name and the helper itself. */
 export interface IRedisHelperCallbacks {
   onInitialized?: (opts: { name: string; helper: IRedisHelper }) => void;
   onConnected?: (opts: { name: string; helper: IRedisHelper }) => void;
@@ -54,11 +59,14 @@ export interface IRedisModuleOption {
   module?: typeof import('ioredis');
 }
 
+/** Options for `RedisSingleHelper`: connection props, lifecycle callbacks and an optional `ioredis` module. */
 export interface IRedisSingleHelperOptions
   extends IRedisSingleHelperProps, IRedisHelperCallbacks, IRedisModuleOption {}
 
+/** Options for `RedisClusterHelper`: connection props, lifecycle callbacks and an optional `ioredis` module. */
 export interface IRedisClusterHelperOptions
   extends IRedisClusterHelperProps, IRedisHelperCallbacks, IRedisModuleOption {}
 
+/** Options for `RedisSentinelHelper`: connection props, lifecycle callbacks and an optional `ioredis` module. */
 export interface IRedisSentinelHelperOptions
   extends IRedisSentinelHelperProps, IRedisHelperCallbacks, IRedisModuleOption {}

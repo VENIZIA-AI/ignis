@@ -1,5 +1,6 @@
 import { getError } from '@/modules/error';
 
+/** Helpers for values caught in `catch` blocks. */
 export class ErrorUtility {
   /** Normalize an unknown thrown value into an Error instance - an ApplicationError when it was not one. */
   static toError(opts: { error: unknown }): Error {

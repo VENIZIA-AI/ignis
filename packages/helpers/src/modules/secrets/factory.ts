@@ -8,6 +8,7 @@ import { SystemEnvsHelper } from './system-envs';
 
 // node-vault / @dotenvx/dotenvx are optional peers reached only via `ModuleUtility.load`: never eagerly loaded, invisible to bundlers. Compiled apps that use a provider must ship the peer in node_modules, inject the client via options, or register it with `ModuleUtility.register`.
 // The providers are imported statically on purpose: a dynamic `import('./x')` of our own module makes bun wrap every module it reaches in a lazy initializer, and the root barrel then exports `undefined` for them.
+/** Builds the `ISecretsHelper` for a registration by its `provider`. Throws when the provider is unknown, or when the provider package is neither installed, registered, nor injected through the config. */
 export class SecretsHelperFactory {
   static async create(
     opts: ISecretsRegistration & { identifier?: string },

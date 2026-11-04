@@ -4,6 +4,7 @@ import type { Redis } from 'ioredis';
 import { AbstractRedisHelper } from './../base';
 import { type IRedisSentinelHelperOptions, RedisSentinelRoles } from './../common';
 
+/** Redis helper for a master and replicas behind Sentinel. `redisOptions` overrides the helper defaults; the first-class fields override `redisOptions`. */
 export class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
   constructor(opts: IRedisSentinelHelperOptions) {
     const {

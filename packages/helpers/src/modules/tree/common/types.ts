@@ -21,6 +21,7 @@ export type TOnVisit<T> = (node: ITreeNode<T>, depth: number) => void;
 /** Async counterpart of {@link TOnVisit} - awaited before the walk enqueues the node's children. */
 export type TOnVisitAsync<T> = (node: ITreeNode<T>, depth: number) => ValueOrPromise<void>;
 
+/** Options for a synchronous breadth-first walk from `root`. */
 export interface IWalkOptions<T> {
   root: ITreeNode<T>;
   onVisit: TOnVisit<T>;
@@ -28,17 +29,20 @@ export interface IWalkOptions<T> {
   shouldPrune?: TNodePredicate<T>;
 }
 
+/** Options for an asynchronous breadth-first walk from `root`; `onVisit` is awaited before the node's children are queued. */
 export interface IWalkAsyncOptions<T> {
   root: ITreeNode<T>;
   onVisit: TOnVisitAsync<T>;
   shouldPrune?: TNodePredicate<T>;
 }
 
+/** Options for `heightWhere`: the greatest depth of a node for which `predicate` holds (0 when none does). */
 export interface IHeightWhereOptions<T> {
   root: ITreeNode<T>;
   predicate: TNodePredicate<T>;
 }
 
+/** Options for building a tree from `rootValue` by repeatedly calling `getChildren`. */
 export interface IBuildOptions<T> {
   rootValue: T;
   getChildren: (value: T) => ValueOrPromise<T[]>;
@@ -49,11 +53,13 @@ export interface IBuildOptions<T> {
   getKey: (value: T) => unknown;
 }
 
+/** Options for collecting leaves or non-leaves. `includePath` pairs each node with its root-to-node chain of values. */
 export interface ILeavesOptions<T> {
   root: ITreeNode<T>;
   includePath?: boolean;
 }
 
+/** Options for printing a tree as text. `formatValue` renders one node's value. */
 export interface IPrintOptions<T> {
   root: ITreeNode<T>;
   formatValue?: (value: T) => string;

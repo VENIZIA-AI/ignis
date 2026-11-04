@@ -24,6 +24,7 @@ import {
 const CLIENT_AUTHENTICATE_TIMEOUT = 10_000;
 const CLIENT_PING_INTERVAL = 30_000;
 
+/** Socket.IO server over a Redis adapter. Clients must authenticate through `authenticateFn` within `authenticateTimeout` and are pinged every `pingInterval`. */
 export class SocketIOServerHelper extends BaseHelper {
   private runtime: TRuntimeModule;
   private bunEngine?: any;

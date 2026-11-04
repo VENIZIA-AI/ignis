@@ -1,5 +1,6 @@
 import type { TConstValue } from '@/common/types';
 
+/** Deployment modes a Redis helper can be built for; selects the helper in `RedisHelperFactory.create`. */
 export class RedisModes {
   static readonly SINGLE = 'single';
   static readonly CLUSTER = 'cluster';
@@ -12,8 +13,10 @@ export class RedisModes {
   }
 }
 
+/** Union of the `RedisModes` values. */
 export type TRedisMode = TConstValue<typeof RedisModes>;
 
+/** Role of the node a Sentinel-backed client connects to. */
 export class RedisSentinelRoles {
   static readonly MASTER = 'master';
   static readonly SLAVE = 'slave';
@@ -25,6 +28,7 @@ export class RedisSentinelRoles {
   }
 }
 
+/** Union of the `RedisSentinelRoles` values. */
 export type TRedisSentinelRole = TConstValue<typeof RedisSentinelRoles>;
 
 /** Ceiling on a caller-sized fan-out over one connection; a burst larger than this queues rather than piles up. */

@@ -3,6 +3,7 @@ export interface IClock {
   now(): number;
 }
 
+/** Opaque handle returned by `ITimerAdapter.set`. */
 export type TTimerHandle = ReturnType<typeof setTimeout> | number | object;
 
 /** Injectable timer seam so tests fire renewals without real waits. */

@@ -29,6 +29,7 @@ import {
 } from '../common';
 import { WebSocketDeliveryHelper } from './delivery';
 
+/** WebSocket server for Bun with authentication, rooms, heartbeats, optional encrypted sessions, and Redis fan-out across instances. Clients must authenticate through `authenticateFn` within `authTimeout`. */
 export class WebSocketServerHelper<
   AuthDataType extends Record<string, unknown> = Record<string, unknown>,
   MetadataType extends Record<string, unknown> = Record<string, unknown>,

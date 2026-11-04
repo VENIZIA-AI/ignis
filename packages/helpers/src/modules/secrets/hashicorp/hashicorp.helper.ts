@@ -17,6 +17,7 @@ interface TVaultClient {
   tokenLookupSelf(): Promise<AnyType>;
 }
 
+/** Options for `HashiCorpVaultHelper`. `auth` is validated on construction; `client` replaces the `node-vault` client the helper would otherwise create. */
 export interface IHashiCorpVaultHelperOptions {
   endpoint: string;
   auth: TVaultAuth;
@@ -29,6 +30,7 @@ export interface IHashiCorpVaultHelperOptions {
   client?: TVaultClient;
 }
 
+/** Secrets provider backed by HashiCorp Vault via `node-vault`. `configure()` must run before use; it logs in and schedules renewal of the Vault token when the token is renewable. */
 export class HashiCorpVaultHelper extends AbstractSecretsHelper {
   private static readonly TOKEN_RENEWAL_RETRY_BASE_SECONDS = 1;
   private static readonly TOKEN_RENEWAL_RETRY_CAP_SECONDS = 60;

@@ -34,4 +34,5 @@ export class S3Audiences {
   }
 }
 
+/** The host a signed artifact names: `server` (the host this process talks to) or `browser` (the host a browser is handed). */
 export type TS3Audience = TConstValue<typeof S3Audiences>;

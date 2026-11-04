@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { VaultAuthMethods } from '../common';
 
+/** Validates the Vault login config; `method` selects the token, AppRole or Kubernetes shape. */
 export const vaultAuthSchema = z.discriminatedUnion('method', [
   z.object({ method: z.literal(VaultAuthMethods.TOKEN), token: z.string() }),
   z.object({
@@ -17,4 +18,5 @@ export const vaultAuthSchema = z.discriminatedUnion('method', [
   }),
 ]);
 
+/** A validated Vault login config, discriminated by `method`. */
 export type TVaultAuth = z.infer<typeof vaultAuthSchema>;

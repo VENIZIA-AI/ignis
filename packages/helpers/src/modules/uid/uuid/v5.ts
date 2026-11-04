@@ -7,6 +7,7 @@ import { Sha1Digest } from './sha1';
 /** Fits a namespace plus a ~160-character name; a longer one allocates for its own call. */
 const INPUT_SIZE = 512;
 
+/** Deterministic UUID v5 generator: the same `namespace` and `name` always give the same id. Use `generate()` for the shared instance or `create()` for one with its own cache. */
 export class UuidV5Generator {
   /** Builds a v5 generator with its own namespace cache and buffer. */
   static create(): (opts: { namespace: string; name: string }) => string {
