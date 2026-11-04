@@ -12,7 +12,6 @@ export interface ITestWeightInput {
   xml: string;
 }
 
-/** Time and counts of one test file from a JUnit report. */
 export interface ITestFileWeight {
   label: string;
   file: string;
@@ -24,7 +23,6 @@ export interface ITestFileWeight {
   slowestMilliseconds: number;
 }
 
-/** Result of `TestWeightCheck.analyseJunit`: totals, per-package sums, the heaviest files and the suspect ones. */
 export interface ITestWeightReport {
   files: ITestFileWeight[];
   totalMilliseconds: number;
@@ -73,7 +71,6 @@ const CASE = /<testcase name="([^"]*)" classname="([^"]*)" time="([\d.eE+-]+)" f
 const LIGHT_FILE_MILLISECONDS = 100;
 const HEAVY_SHARE = 0.8;
 
-/** Reads JUnit reports of `bun test` and shows where the test time and the test count are. */
 export class TestWeightCheck {
   /** Reads the JUnit reports of a test run into one weight report: which files carry the time, and what looks wrong. */
   static analyseJunit(opts: { reports: ITestWeightInput[] }): ITestWeightReport {

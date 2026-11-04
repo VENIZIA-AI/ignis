@@ -12,7 +12,12 @@ export interface IScannedArtifact {
 /** Options for one scan of a source tree. */
 export interface IScanOptions {
   root: string;
-  /** Glob patterns relative to `root`; defaults to `ArtifactStereotypes.DEFAULT_IGNORE`. */
+  /**
+   * Glob patterns relative to `root`, ignored in addition to `ArtifactStereotypes.DEFAULT_IGNORE`,
+   * which always apply.
+   *
+   * @default []
+   */
   ignore?: string[];
   /** Module specifiers, matched exactly, whose stereotype imports also count - a package that re-exports the decorators. Adds to `ArtifactStereotypes.SOURCE_MODULES`. */
   sourceModules?: string[];

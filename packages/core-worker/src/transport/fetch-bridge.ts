@@ -23,7 +23,7 @@ export interface IInstallBffFetchOptions {
    * Unset, only the path decides, so a call to ANY origin under `basePath` is claimed.
    */
   origin?: string | Array<string>;
-  /** Defaults to `globalThis`. */
+  /** @default globalThis */
   carrier?: IFetchCarrier;
 }
 

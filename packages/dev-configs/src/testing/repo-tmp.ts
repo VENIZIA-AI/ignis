@@ -14,7 +14,6 @@ export const REPO_TMP_DIRECTORY = join('.agents', 'local', 'tmp', 'tests');
 
 type TSpawn = (...args: unknown[]) => unknown;
 
-/** Routes test temp folders into the repository: `apply` sets `TMPDIR` and `GIT_CEILING_DIRECTORIES` and makes `Bun.spawn` children inherit them. */
 export class RepoTmp {
   /** The nearest ancestor of `start` that holds a `.git` (folder or file); `start` itself when there is none. */
   static findRoot(opts: { start?: string } = {}): string {

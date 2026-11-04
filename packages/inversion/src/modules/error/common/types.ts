@@ -64,7 +64,8 @@ type TErrorCommon = {
   cause?: unknown;
   extra?: Record<string, unknown>;
   transform?: TErrorNormalizeTransformFn;
-  logLevel?: TErrorLogLevel; // Default: error
+  /** @default 'error' */
+  logLevel?: TErrorLogLevel;
 };
 
 /** Catalogued form - `message` and `statusCode` override the definition's defaults; the object form is partial, so `{ message: { args } }` amends the args and keeps the definition's text and code. */

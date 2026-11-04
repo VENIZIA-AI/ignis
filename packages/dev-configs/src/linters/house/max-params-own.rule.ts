@@ -65,7 +65,7 @@ const hasDeclaredShape = (object: unknown): boolean => {
 };
 
 /**
- * `venizia/max-params-own`. A function we write takes at most `max` (default 5) positional parameters;
+ * `venizia/max-params-own`. A function we write takes at most `max` positional parameters;
  * beyond that it takes one options object. A signature that belongs to someone else is not counted: an
  * inline callback handed to a call (map, reduce, sort, a library handler) or to a JSX prop, a function a
  * declared type fixes (`const x: TFn = (...)`, a member of a typed or `satisfies` object), and a
@@ -169,7 +169,14 @@ export class MaxParamsOwnRule {
     },
   };
 
-  static build(opts: { severity?: TRuleSeverity; max?: number } = {}): Linter.RuleEntry {
+  static build(
+    opts: {
+      /** @default 'error' */
+      severity?: TRuleSeverity;
+      /** @default 5 */
+      max?: number;
+    } = {},
+  ): Linter.RuleEntry {
     const { severity = 'error', max = MaxParamsOwnRule.DEFAULT_MAX } = opts;
 
     return [severity, max];

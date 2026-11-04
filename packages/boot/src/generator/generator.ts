@@ -9,7 +9,11 @@ export interface IGenerateOptions {
   root: string;
   out: string;
   ignore?: string[];
-  /** Name of the exported constant; default `GeneratedArtifacts`. */
+  /**
+   * Name of the exported constant.
+   *
+   * @default 'GeneratedArtifacts'
+   */
   exportName?: string;
   /** Extra module specifiers whose stereotype imports count; see `IScanOptions.sourceModules`. */
   sourceModules?: string[];

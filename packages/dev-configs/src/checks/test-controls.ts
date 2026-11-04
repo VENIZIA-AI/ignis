@@ -13,31 +13,34 @@ export interface IControlEntry {
   /** Repository-relative path of the test file. */
   file: string;
   /**
-   * `test` (default): `file` is a test file and `titlePattern` is matched against its titles.
+   * `test`: `file` is a test file and `titlePattern` is matched against its titles.
    * `file`: `file` is a NEGATIVE FIXTURE, a file a test needs to be absent from the result (a class the
    * scanner must ignore). It only has to exist: without it the test's "not found" assertion passes for the
    * wrong reason.
+   *
+   * @default 'test'
    */
   kind?: 'test' | 'file';
   /** A regular expression matched against the TITLES (suite and case) in that file. Not used by `file` entries. */
   titlePattern?: string;
-  /** At least this many titles must match. Default 1. */
+  /**
+   * At least this many titles must match.
+   *
+   * @default 1
+   */
   min?: number;
 }
 
-/** One registry entry that failed its check, with the reason. */
 export interface IControlProblem {
   entry: IControlEntry;
   message: string;
 }
 
-/** Result of `TestControlsCheck.run`: how many registry entries were checked and which failed. */
 export interface IControlsReport {
   checked: number;
   problems: IControlProblem[];
 }
 
-/** Verifies that every positive control in the registry still exists: its file is present and, for a test entry, enough test titles match its pattern. */
 export class TestControlsCheck {
   /**
    * The titles in a test file: the first string argument of `test`, `it`, `describe` and of the
