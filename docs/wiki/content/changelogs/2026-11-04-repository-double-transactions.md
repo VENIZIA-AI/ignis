@@ -27,7 +27,7 @@ packages: ['@venizia/ignis-connectors', '@venizia/ignis']
 ## Details
 
 ```typescript
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 import { PostgresTransactionDouble, RepositoryDouble } from '@venizia/ignis/testing';
 
 const transaction = new PostgresTransactionDouble();

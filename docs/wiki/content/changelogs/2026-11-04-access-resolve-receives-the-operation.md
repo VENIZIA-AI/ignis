@@ -25,6 +25,7 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis-connectors', '@venizia/ignis
 - **Code that imports `ScopeWriteOperations` or `TScopeWriteOperation` from `@venizia/ignis-connectors` or `@venizia/ignis-connectors/relational`.** Import `ScopeOperations` and `TScopeOperation` from `@venizia/ignis-kernel` or `@venizia/ignis`.
 - **A repository subclass or test probe that calls `applyScopeFilter`, `applyDefaultFilter` or `guardScopedWrite`.** Type its `mutation` or `operation` as `TScopeOperation`, not `string`.
 - **Code that calls `access.resolve()` directly.** Pass `{ operation }`.
+- **A repository subclass that overrides `updateById` or `updateAll` and relies on seeing every soft delete.** A soft delete (`deleteById`, `deleteAll`, `deleteBy` on a soft-deletable repository) now calls the protected `_update` directly, with `ScopeOperations.DELETE`, so those overrides no longer run for it. Put the logic in `_update`, or override the `delete*` method.
 
 ## Breaking changes
 
