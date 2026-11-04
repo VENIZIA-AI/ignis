@@ -45,6 +45,7 @@ export class AuthenticationService
     const existing = await this.userRepository.findOne({
       filter: { where: { username: opts.username } },
     });
+
     if (existing) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Conflict,
@@ -58,6 +59,7 @@ export class AuthenticationService
     const { data: user } = await this.userRepository.create({
       data: { username: opts.username, password: passwordHash },
     });
+
     return { id: user.id, username: user.username };
   }
 
@@ -66,10 +68,12 @@ export class AuthenticationService
       filter: { where: { username: opts.identifier.value } },
     });
     let isPasswordValid = false;
+
     if (user) {
       const passwordMatches = await Bun.password.verify(opts.credential.value, user.password);
       isPasswordValid = passwordMatches;
     }
+
     if (!user || !isPasswordValid) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
@@ -78,6 +82,7 @@ export class AuthenticationService
     }
 
     const token = await this.tokenService.generate({ payload: { userId: user.id, roles: [] } });
+
     return { token };
   }
 
@@ -90,10 +95,12 @@ export class AuthenticationService
     const user = await this.userRepository.findById({ id: String(userId) });
 
     let isPasswordValid = false;
+
     if (user) {
       const passwordMatches = await Bun.password.verify(opts.oldCredential, user.password);
       isPasswordValid = passwordMatches;
     }
+
     if (!user || !isPasswordValid) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
@@ -106,6 +113,7 @@ export class AuthenticationService
       id: user.id,
       data: { password: passwordHash },
     });
+
     return { id: user.id };
   }
 }
