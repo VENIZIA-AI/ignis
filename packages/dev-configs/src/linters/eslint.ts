@@ -1,16 +1,9 @@
 import js from '@eslint/js';
 import type { Linter } from 'eslint';
 import { defineConfig } from 'eslint/config';
-import n from 'eslint-plugin-n';
-import unicorn from 'eslint-plugin-unicorn';
 import tseslint from 'typescript-eslint';
 import { paddingConfigs } from './padding';
-import {
-  NamingConventionRule,
-  NoRestrictedImportsRule,
-  NoUnusedVarsRule,
-  SwitchCaseBracesRule,
-} from './rules';
+import { NamingConventionRule, NoRestrictedImportsRule, NoUnusedVarsRule } from './rules';
 
 /** Every file the preset lints. */
 const SOURCE_FILES = [
@@ -68,7 +61,6 @@ const STRICT_RULES: Linter.RulesRecord = {
   'no-void': 'error',
   'no-useless-escape': 'warn',
   'no-caller': 'error',
-  'n/prefer-node-protocol': ['error'],
   '@typescript-eslint/adjacent-overload-signatures': 'error',
   '@typescript-eslint/prefer-for-of': 'error',
   '@typescript-eslint/unified-signatures': 'error',
@@ -103,13 +95,11 @@ export const eslintConfigs: Linter.Config[] = defineConfig([
         projectService: { allowDefaultProject: ['*.js', '*.cjs', '*.mjs', '.*.js'] },
       },
     },
-    plugins: { n, unicorn },
     rules: {
       ...OFF_RULES,
       ...STRICT_RULES,
       '@typescript-eslint/no-unused-vars': NoUnusedVarsRule.build() as Linter.RuleEntry,
       [NoRestrictedImportsRule.NAME]: NoRestrictedImportsRule.build() as Linter.RuleEntry,
-      [SwitchCaseBracesRule.NAME]: SwitchCaseBracesRule.build() as Linter.RuleEntry,
       [NamingConventionRule.NAME]: NamingConventionRule.build(),
     },
   },

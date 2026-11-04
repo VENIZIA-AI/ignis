@@ -18,7 +18,6 @@
     "eslint",
     "eslint-config",
     "eslint-flat-config",
-    "eslint-plugin-unicorn",
     "eslint-v9",
     "experimental-decorators",
     "format",
@@ -111,8 +110,6 @@
   "dependencies": {
     "@eslint/js": "^10.0.1",
     "@stylistic/eslint-plugin": "catalog:",
-    "eslint-plugin-n": "^18.5.0",
-    "eslint-plugin-unicorn": "^78.0.0",
     "typescript-eslint": "catalog:"
   },
   "devDependencies": {
