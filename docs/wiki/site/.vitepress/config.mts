@@ -1,7 +1,28 @@
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig, type DefaultTheme } from 'vitepress';
 import { withMermaid } from 'vitepress-plugin-mermaid';
 import { writeChangelogFeed } from './theme/shared/changelog-loader.ts';
 import { venziaCodeTheme } from './theme/shared/code-theme.ts';
+
+// ── API reference pages: written by `vulcan x atlas api gen`, one per package entry; none before the first run ──
+const apiReferenceItems = (): DefaultTheme.SidebarItem[] => {
+  const directory = join(dirname(fileURLToPath(import.meta.url)), '../../content/references/api');
+
+  if (!existsSync(directory)) {
+    return [];
+  }
+
+  return readdirSync(directory)
+    .filter((file) => file.endsWith('.md') && file !== 'index.md')
+    .map((file) => {
+      const title = readFileSync(join(directory, file), 'utf8').match(/^title: "?([^"\n]+)"?$/m)?.[1];
+
+      return { text: title ?? file.replace(/\.md$/, ''), link: `/references/api/${file.replace(/\.md$/, '')}` };
+    })
+    .sort((a, b) => a.text.localeCompare(b.text));
+};
 
 // ── Sidebar: Core API ──
 // Shown for: /references/, /references/base/*, /references/configuration/*, /references/utilities/*
@@ -12,6 +33,11 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Overview', link: '/references/' },
       { text: '⚡ Quick Reference', link: '/references/quick-reference' },
     ],
+  },
+  {
+    text: 'Exports by package',
+    collapsed: true,
+    items: [{ text: 'Overview', link: '/references/api/' }, ...apiReferenceItems()],
   },
   {
     text: 'Configuration',

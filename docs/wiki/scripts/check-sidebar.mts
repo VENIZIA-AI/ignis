@@ -19,6 +19,8 @@ const UNLISTED = [
   /^changelogs\/\d{4}-\d{2}-\d{2}-/,
   // The author skeleton, reached from no menu.
   /^changelogs\/template$/,
+  // Written by `vulcan x atlas api gen`; the sidebar group in config.mts lists them from the folder.
+  /^references\/api\/(?!index$)/,
 ];
 
 const config = await Bun.file(CONFIG).text();
