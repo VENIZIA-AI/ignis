@@ -173,7 +173,7 @@ Source: `packages/core-server/src/components/api-reference/common/keys.ts`
 
 Serves the OpenAPI document and an interactive UI for it. Paths and UI type come from `IApiReferenceOptions` bound at `ApiReferenceBindingKeys.API_REFERENCE_OPTIONS`; `info` is always taken from the application info.
 
-@example
+**Example**
 ```typescript
 import { ApiReferenceComponent, BaseApplication } from '@venizia/ignis';
 
@@ -503,7 +503,7 @@ Source: `packages/core-server/src/components/auth/authorize/component.ts`
 
 The IGNIS server application: a `ServerApplication` that adds secrets hydration, env validation, start-up info and the gRPC controller branch. Extend it to build an application.
 
-@example
+**Example**
 ```typescript
 import { BaseApplication, type IApplicationInfo } from '@venizia/ignis';
 
@@ -1077,7 +1077,7 @@ Source: `packages/core-server/src/components/health-check/common/keys.ts`
 
 Mounts the health check controller (liveness root, `/ping`, and the gated `/stats`).
 
-@example
+**Example**
 ```typescript
 import { BaseApplication, HealthCheckComponent, type IHealthCheckOptions } from '@venizia/ignis';
 
@@ -1266,7 +1266,7 @@ Source: `packages/core-server/src/components/health-check/common/rest-paths.ts`
 
 Every field is optional: a partially-filled binding falls back to the component defaults.
 
-@example
+**Example**
 ```typescript
 import { ApiReferenceBindingKeys, type BaseApplication, type IApiReferenceOptions } from '@venizia/ignis';
 
@@ -1479,7 +1479,7 @@ Source: `packages/core-server/src/base/controllers/grpc/common/types.ts`
 
 Options of `HealthCheckComponent`, bound at `HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS`.
 
-@example
+**Example**
 ```typescript
 import { HealthCheckBindingKeys, type BaseApplication, type IHealthCheckOptions } from '@venizia/ignis';
 

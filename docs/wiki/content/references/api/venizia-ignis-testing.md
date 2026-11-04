@@ -27,7 +27,7 @@ a failed boot leaves a half-booted instance, so build a new one rather than reus
 It wraps `registerDynamicBindings` and `getBootSequence` on THIS instance only (an application's
 own override of either still runs) and restores them whatever happens.
 
-@example
+**Example**
 ```typescript
 import { ApplicationBootAssertion } from '@venizia/ignis/testing';
 import { test } from 'bun:test';

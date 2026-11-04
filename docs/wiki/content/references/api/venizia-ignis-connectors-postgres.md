@@ -36,7 +36,7 @@ Postgres's half of the transaction seam: supplies the BEGIN statement the inheri
 `beginTransaction()` delegates to, then attaches `isolationLevel` - a Postgres-only field the
 neutral `IRelationalTransaction` has no concept of.
 
-@example
+**Example**
 ```typescript
 import { BasePostgresDataSource, datasource } from '@venizia/ignis';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
@@ -107,7 +107,7 @@ Postgres's half of the transaction seam: supplies the BEGIN statement the inheri
 `beginTransaction()` delegates to, then attaches `isolationLevel` - a Postgres-only field the
 neutral `IRelationalTransaction` has no concept of.
 
-@example
+**Example**
 ```typescript
 import { BasePostgresDataSource, datasource } from '@venizia/ignis';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
