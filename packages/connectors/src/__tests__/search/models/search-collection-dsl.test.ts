@@ -129,6 +129,32 @@ describe('search-collection DSL', () => {
       expect(collection.fields).toHaveLength(2);
     });
 
+    test('nullable is accepted with optional and refused without it', () => {
+      const collection = SearchCollectionFactory.define({
+        name: 'products',
+        fields: [field.string('note', { optional: true, nullable: true })],
+      });
+
+      expect(collection.fields.find((item) => item.name === 'note')).toEqual({
+        name: 'note',
+        type: 'string',
+        optional: true,
+        nullable: true,
+      });
+      expect(() =>
+        SearchCollectionFactory.define({
+          name: 'products',
+          fields: [field.string('note', { nullable: true })],
+        }),
+      ).toThrow(/nullable.*optional/);
+      expect(() =>
+        SearchCollectionFactory.define({
+          name: 'products',
+          fields: [field.string('note', { optional: false, nullable: true })],
+        }),
+      ).toThrow(/note/);
+    });
+
     test('keeps an explicit id field as-is', () => {
       const collection = SearchCollectionFactory.define({
         name: 'products',
@@ -346,6 +372,57 @@ describe('search-collection DSL', () => {
       const result = schema.safeParse({ price: 'nope' });
 
       expect(result.success).toBe(false);
+    });
+
+    describe('a nullable field', () => {
+      const withNullable = SearchCollectionFactory.define({
+        name: 'products',
+        fields: [
+          field.string('title'),
+          field.string('note', { optional: true, nullable: true }),
+          field.string('nickname', { optional: true }),
+        ],
+      });
+
+      test('SELECT accepts null and an absent key, and fills the absent key with null', () => {
+        const schema = SearchCollectionFactory.deriveDocumentSchema({
+          definition: withNullable,
+          type: 'select',
+        });
+
+        expect(schema.parse({ id: '1', title: 'a', note: null })).toEqual({
+          id: '1',
+          title: 'a',
+          note: null,
+        });
+        expect(schema.parse({ id: '1', title: 'a' })).toEqual({ id: '1', title: 'a', note: null });
+        expect(schema.parse({ id: '1', title: 'a', note: 'x' })).toMatchObject({ note: 'x' });
+      });
+
+      test('a plain optional field still rejects null and stays absent', () => {
+        const schema = SearchCollectionFactory.deriveDocumentSchema({
+          definition: withNullable,
+          type: 'select',
+        });
+
+        expect(schema.safeParse({ id: '1', title: 'a', nickname: null }).success).toBe(false);
+        expect(schema.parse({ id: '1', title: 'a' })).not.toHaveProperty('nickname');
+      });
+
+      test('CREATE and UPDATE accept null, an absent key, and a value', () => {
+        for (const type of ['create', 'update'] as const) {
+          const schema = SearchCollectionFactory.deriveDocumentSchema({
+            definition: withNullable,
+            type,
+          });
+          const document = { id: '1', title: 'a' };
+
+          expect(schema.safeParse({ ...document, note: null }).success).toBe(true);
+          expect(schema.safeParse({ ...document, note: 'x' }).success).toBe(true);
+          expect(schema.safeParse(document).success).toBe(true);
+          expect(schema.parse(document)).not.toHaveProperty('note');
+        }
+      });
     });
 
     test('throws for an invalid schema type', () => {

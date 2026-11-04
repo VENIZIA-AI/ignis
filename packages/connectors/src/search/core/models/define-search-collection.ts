@@ -126,6 +126,12 @@ export class SearchCollectionFactory {
       }
 
       seenNames.add(definitionField.name);
+
+      if (definitionField.nullable && !definitionField.optional) {
+        throw getError({
+          message: `[defineSearchCollection] Invalid nullable field | nullable needs optional: true | name: ${name} | field: ${definitionField.name}`,
+        });
+      }
     }
 
     const idField = fields.find((item) => item.name === 'id');
@@ -191,7 +197,10 @@ export class SearchCollectionFactory {
     type: TSchemaType;
   }): z.ZodType {
     const { definition, type } = opts;
-    const shape = buildShape(definition.fields);
+    // A read fills a nullable field the engine dropped; a write leaves it absent.
+    const shape = buildShape(definition.fields, {
+      shouldFillNullable: type === SchemaTypes.SELECT,
+    });
 
     switch (type) {
       case SchemaTypes.SELECT: {

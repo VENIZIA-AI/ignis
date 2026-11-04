@@ -26,6 +26,28 @@ describe('TSearchDocument', () => {
     expect(withTags.tags).toEqual(['a']);
   });
 
+  test('a nullable field is T | null and still optional; a plain optional field takes no null', () => {
+    const nullable = SearchCollectionFactory.define({
+      name: 'notes',
+      fields: [
+        field.string('note', { optional: true, nullable: true }),
+        field.string('nickname', { optional: true }),
+      ],
+    });
+    type TNote = TSearchDocument<typeof nullable>;
+
+    const empty: TNote = { id: '1' };
+    const withNull: TNote = { id: '1', note: null };
+    const withValue: TNote = { id: '1', note: 'x', nickname: 'n' };
+    // @ts-expect-error - a plain optional field is absent or a value, never null
+    const badNickname: TNote = { id: '1', nickname: null };
+
+    expect(empty.note).toBeUndefined();
+    expect(withNull.note).toBeNull();
+    expect(withValue.note).toBe('x');
+    expect(badNickname.nickname).toBeNull();
+  });
+
   test('field types are inferred precisely (string/number/geopoint/string[])', () => {
     const doc: TProductDocument = { id: '1', title: 'x', price: 9.99, location: [10.5, 20.5] };
 

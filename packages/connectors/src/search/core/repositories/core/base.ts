@@ -80,6 +80,40 @@ export abstract class SearchBaseRepository<
     return visible as R;
   }
 
+  private _nullableFields?: readonly string[];
+
+  /** Names of the fields declared `nullable`: the engine keeps no null, so a read puts it back. Memoized per repository instance, like `collectionFields`. */
+  protected get nullableFields(): readonly string[] {
+    this._nullableFields ??= (this.entity?.schema?.fields ?? [])
+      .filter((item) => item.nullable)
+      .map((item) => item.name);
+
+    return this._nullableFields;
+  }
+
+  /** A document as it leaves the repository: a nullable field the engine dropped is `null` again, a hidden field is gone. The engine's own object is not changed. */
+  protected shapeDocument<R>(document: R): R {
+    if (this.nullableFields.length === 0 || document === null || typeof document !== 'object') {
+      return this.omitHiddenFields(document);
+    }
+
+    const filled: Record<string, unknown> = { ...(document as Record<string, unknown>) };
+
+    for (const name of this.nullableFields) {
+      filled[name] ??= null;
+    }
+
+    return this.omitHiddenFields(filled as R);
+  }
+
+  protected shapeDocuments<R>(documents: R[]): R[] {
+    if (this.hiddenFields.length === 0 && this.nullableFields.length === 0) {
+      return documents;
+    }
+
+    return documents.map((document) => this.shapeDocument(document));
+  }
+
   protected omitHiddenFieldsAll<R>(documents: R[]): R[] {
     if (this.hiddenFields.length === 0) {
       return documents;
