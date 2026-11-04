@@ -54,6 +54,7 @@ const buildStack = async (opts: { resolvePrincipal: IServiceAuthOptions['resolve
     port: 0,
     fetch: async () => {
       const jwks = await signer.getPublicJWKS();
+
       return Response.json(jwks);
     },
   });
@@ -102,6 +103,7 @@ describe('the strategy validates what the application hands back', () => {
     const { signer, strategy, server } = await buildStack({
       resolvePrincipal: async ({ issuer }) => {
         seen.push(issuer);
+
         return { userId: 1 };
       },
     });

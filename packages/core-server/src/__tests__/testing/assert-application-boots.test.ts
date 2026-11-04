@@ -221,6 +221,7 @@ const recordLogs = (application: BaseApplication): Array<{ level: string; messag
     for: () => recorder,
     log: () => {},
   };
+
   for (const level of ['debug', 'info', 'warn', 'error']) {
     recorder[level] = (...args: unknown[]) => {
       lines.push({ level, message: args.map(String).join(' ') });
@@ -228,6 +229,7 @@ const recordLogs = (application: BaseApplication): Array<{ level: string; messag
   }
 
   application.logger = recorder;
+
   return lines;
 };
 
@@ -308,6 +310,7 @@ describe('ApplicationBootAssertion.assert - the boot path', () => {
     const boot = application.initialize.bind(application);
     application.init();
     let original: unknown;
+
     try {
       await boot();
     } catch (error) {
@@ -316,6 +319,7 @@ describe('ApplicationBootAssertion.assert - the boot path', () => {
 
     const fresh = new PlannedApplication({ controllers: [BrokenController] });
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({ application: fresh });
     } catch (caught) {
@@ -333,6 +337,7 @@ describe('ApplicationBootAssertion.assert - the boot path', () => {
     const application = new PlannedApplication({ controllers: [BrokenController] });
     const seen: unknown[] = [];
     const original = application.initialize.bind(application);
+
     application.initialize = async () => {
       try {
         await original();
@@ -343,6 +348,7 @@ describe('ApplicationBootAssertion.assert - the boot path', () => {
     };
 
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({ application });
     } catch (caught) {
@@ -386,6 +392,7 @@ describe('ApplicationBootAssertion.assert - the boot path', () => {
 
   test('C5 a service injecting an unregistered key fails even though no controller references it', async () => {
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application: new PlannedApplication({ ...FULL, services: [AccountService, OrphanService] }),
@@ -420,6 +427,7 @@ describe('ApplicationBootAssertion.assert - the shared verification core', () =>
 
   test('I3 the rejection is the core error: it says what is missing and who needs it', async () => {
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application: new PlannedApplication(ORPHANED),
@@ -448,6 +456,7 @@ describe('ApplicationBootAssertion.assert - the shared verification core', () =>
 
   test('I5 a skipBindings name that matches nothing rejects, naming it', async () => {
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application: new PlannedApplication(FULL),
@@ -495,6 +504,7 @@ describe('ApplicationBootAssertion.assert - the shared verification core', () =>
     }
 
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application: new ScopeFilterFailingApplication(ORPHANED),
@@ -513,6 +523,7 @@ describe('ApplicationBootAssertion.assert - datasources and components', () => {
     application.init();
 
     let error: unknown;
+
     try {
       await application.initialize();
     } catch (caught) {
@@ -540,6 +551,7 @@ describe('ApplicationBootAssertion.assert - datasources and components', () => {
     ['its binding key', () => 'datasources.FailingDataSource'],
   ])('C8 a datasource kept by %s runs its real configure()', async (_form, target) => {
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application: new PlannedApplication(FULL),
@@ -601,6 +613,7 @@ describe('ApplicationBootAssertion.assert - datasources and components', () => {
         opts: Parameters<PlannedApplication['registerDynamicBindings']>[0],
       ): Promise<void> {
         calls.override += 1;
+
         return super.registerDynamicBindings(opts);
       }
     }
@@ -620,11 +633,13 @@ describe('ApplicationBootAssertion.assert - a failing component names the way ou
     const lines = recordLogs(application);
 
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({ application });
     } catch (caught) {
       error = caught;
     }
+
     const hints = lines.filter((line) => line.message.includes('skipComponents'));
 
     expect(error).toBe(BINDING_FAILURE);
@@ -640,6 +655,7 @@ describe('ApplicationBootAssertion.assert - a failing component names the way ou
     const lines = recordLogs(application);
 
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application,
@@ -650,6 +666,7 @@ describe('ApplicationBootAssertion.assert - a failing component names the way ou
     } catch (caught) {
       error = caught;
     }
+
     const hints = lines.filter((line) => line.message.includes('skipComponents'));
 
     expect(error).toBe(BINDING_FAILURE);
@@ -728,6 +745,7 @@ describe('ApplicationBootAssertion.assert - steps and secrets', () => {
     const application = new PlannedApplication(FULL);
 
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application,
@@ -749,6 +767,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
     const good = new PlannedApplication(FULL);
     await ApplicationBootAssertion.assert({ application: good });
     const bad = new PlannedApplication({ controllers: [BrokenController] });
+
     try {
       await ApplicationBootAssertion.assert({ application: bad });
       // eslint-disable-next-line venizia/no-silent-catch -- the first call fails on purpose; the test asserts the second call, not this error
@@ -758,6 +777,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
 
     for (const application of [good, bad]) {
       let error: unknown;
+
       try {
         await ApplicationBootAssertion.assert({ application });
       } catch (caught) {
@@ -771,6 +791,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
   test('C17 an application booted outside the helper is refused too', async () => {
     const application = new PlannedApplication(FULL);
     application.init();
+
     try {
       await application.initialize();
       // eslint-disable-next-line venizia/no-silent-catch -- this boot only marks the application as booted (it fails at the datasource); the test asserts the helper's refusal, not this error
@@ -779,6 +800,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
     }
 
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({ application });
     } catch (caught) {
@@ -790,6 +812,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
 
   test('C18 an application with no controller is rejected', async () => {
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application: new PlannedApplication({ dataSources: [FailingDataSource] }),
@@ -822,6 +845,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
     const configureBefore = FailingDataSource.prototype.configure;
 
     await ApplicationBootAssertion.assert({ application: passed });
+
     try {
       await ApplicationBootAssertion.assert({ application: failed });
       // eslint-disable-next-line venizia/no-silent-catch -- the failing call is on purpose; the test asserts what is restored afterwards, not this error
@@ -836,6 +860,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
       expect(application['getBootSequence' as never]).toBe(original.sequence);
       expect(application['configs'].bootChecks).toBeUndefined();
     }
+
     expect(FailingDataSource.prototype.configure).toBe(configureBefore);
     const dataSource = passed.get<FailingDataSource>({ key: 'datasources.FailingDataSource' });
     expect(Object.hasOwn(dataSource, 'configure')).toBe(false);
@@ -846,6 +871,7 @@ describe('ApplicationBootAssertion.assert - guards', () => {
     Object.defineProperty(application, 'registerDynamicBindings', { value: undefined });
 
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({ application });
     } catch (caught) {
@@ -862,6 +888,7 @@ describe("ApplicationBootAssertion.assert - duplicate routes (the helper's own c
 
   test('C27 the same method and path mounted twice rejects, naming both controllers', async () => {
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application: new PlannedApplication(DUPLICATES),
@@ -896,6 +923,7 @@ describe("ApplicationBootAssertion.assert - duplicate routes (the helper's own c
 
   test('one controller declaring the same method and path twice is a duplicate, reported once', async () => {
     let error: unknown;
+
     try {
       await ApplicationBootAssertion.assert({
         application: new PlannedApplication({ controllers: [SelfDuplicateController] }),
@@ -903,6 +931,7 @@ describe("ApplicationBootAssertion.assert - duplicate routes (the helper's own c
     } catch (caught) {
       error = caught;
     }
+
     const message = String(error);
 
     expect(message).toContain('1 route(s) are mounted more than once');

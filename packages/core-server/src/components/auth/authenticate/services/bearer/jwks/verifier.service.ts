@@ -50,6 +50,7 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
       this.jwksVerifier!,
       this.options.verify,
     );
+
     return this.decryptPayload({ result });
   }
 

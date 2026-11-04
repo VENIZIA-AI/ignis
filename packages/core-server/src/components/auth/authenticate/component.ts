@@ -117,6 +117,7 @@ export class AuthenticateComponent extends BaseComponent {
    */
   private async preloadJose(opts: { options: IAuthenticateOptions }): Promise<void> {
     const { jwtOptions, serviceOptions } = opts.options;
+
     if (!jwtOptions && !serviceOptions) {
       return;
     }
@@ -246,6 +247,7 @@ export class AuthenticateComponent extends BaseComponent {
       this.logger
         .for(this.defineServiceAuth.name)
         .debug('serviceOptions not provided, skipping service authentication');
+
       return;
     }
 
@@ -302,6 +304,7 @@ export class AuthenticateComponent extends BaseComponent {
       this.logger
         .for(this.defineBasicAuth.name)
         .debug('basicOptions not provided, skipping Basic configuration');
+
       return;
     }
 
@@ -324,6 +327,7 @@ export class AuthenticateComponent extends BaseComponent {
 
     if (!restOptions?.useAuthController) {
       this.logger.for(this.defineControllers.name).debug('Auth controller disabled');
+
       return;
     }
 

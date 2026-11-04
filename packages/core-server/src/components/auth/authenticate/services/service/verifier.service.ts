@@ -82,6 +82,7 @@ export class ServiceAssertionVerifierService extends BaseService {
     const { issuer, jose } = opts;
 
     const cached = this.keySets.get(issuer);
+
     if (cached) {
       return cached;
     }
@@ -116,6 +117,7 @@ export class ServiceAssertionVerifierService extends BaseService {
     });
 
     this.keySets.set(issuer, keySet);
+
     return keySet;
   }
 

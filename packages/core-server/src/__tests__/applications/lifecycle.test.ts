@@ -117,6 +117,7 @@ describe('BaseApplication - lifecycle order', () => {
     application.init();
 
     let startResult: unknown;
+
     try {
       await application.start();
     } catch (error) {
@@ -240,6 +241,7 @@ describe('BaseApplication - post-start hooks', () => {
     });
 
     let startResult: unknown;
+
     try {
       await application.start();
     } catch (error) {
@@ -290,6 +292,7 @@ describe('BaseApplication - stop()', () => {
     } as AnyType;
 
     let stopResult: unknown;
+
     try {
       await application.stop();
     } catch (error) {
@@ -326,9 +329,11 @@ describe('BaseApplication - server port resolution', () => {
 
     process.env.PORT = originalPort;
     process.env.APP_ENV_SERVER_PORT = originalAppEnvPort;
+
     if (originalPort === undefined) {
       delete process.env.PORT;
     }
+
     if (originalAppEnvPort === undefined) {
       delete process.env.APP_ENV_SERVER_PORT;
     }
@@ -462,6 +467,7 @@ describe('BaseApplication - bootChecks.binding.allowManual', () => {
     application.init();
 
     let failure: unknown;
+
     try {
       await application.initialize();
     } catch (error) {

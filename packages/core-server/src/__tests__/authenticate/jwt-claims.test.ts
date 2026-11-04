@@ -87,6 +87,7 @@ describe('criterion 2 - a verifier configured for one audience rejects another',
     });
 
     let caught: AnyType;
+
     try {
       await buildService({ verify: { audience: 'inventory' } }).verify({ type: 'Bearer', token });
     } catch (error) {

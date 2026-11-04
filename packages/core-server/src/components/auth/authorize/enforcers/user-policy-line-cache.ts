@@ -35,6 +35,7 @@ export class UserPolicyLineCache extends BaseHelper {
 
     // Cache hit - Redis owns expiry (PX on write), so a present key is fresh; an entry that does not decode (corrupted, or not an array of policy lines) must NOT 500 the request, so it is discarded and refetched.
     const raw = await this.cached.options.connection.get({ key: cacheKey });
+
     if (raw) {
       const lines = this.parseLines({ raw, cacheKey });
 
@@ -44,6 +45,7 @@ export class UserPolicyLineCache extends BaseHelper {
     }
 
     const existing = this.pendingLineFetches.get(cacheKey);
+
     if (existing) {
       return existing;
     }
@@ -52,6 +54,7 @@ export class UserPolicyLineCache extends BaseHelper {
     const task = async () => {
       const lines = await this.loadLines({ user: opts.user });
       await this.writeLines({ cacheKey, lines });
+
       return lines;
     };
 
@@ -60,6 +63,7 @@ export class UserPolicyLineCache extends BaseHelper {
     });
 
     this.pendingLineFetches.set(cacheKey, promise);
+
     return promise;
   }
 
@@ -89,6 +93,7 @@ export class UserPolicyLineCache extends BaseHelper {
   /** Compute the user's cache key and reject an empty result - consistent with the read path. */
   private async resolveCacheKey(opts: { user: IAuthorizationUser }): Promise<string> {
     const cacheKey = await this.cached.options.keyFn({ user: opts.user });
+
     if (!cacheKey) {
       throw getError({
         error: AuthorizationErrors.CACHE_KEY_INVALID,
@@ -124,6 +129,7 @@ export class UserPolicyLineCache extends BaseHelper {
       this.logger
         .for(this.parseLines.name)
         .warn('Discarding corrupted authz cache entry | key: %s | error: %s', opts.cacheKey, error);
+
       return null;
     }
   }

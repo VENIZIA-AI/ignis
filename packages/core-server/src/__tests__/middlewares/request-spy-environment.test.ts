@@ -62,12 +62,15 @@ describe('RequestSpyMiddleware body logging', () => {
   afterEach(() => {
     if (ORIGINAL_NODE_ENV === undefined) {
       delete process.env.NODE_ENV;
+
       return;
     }
+
     process.env.NODE_ENV = ORIGINAL_NODE_ENV;
   });
 
   const quietEnvironments = ['staging', 'uat', 'alpha', 'beta', 'prod', 'production'];
+
   for (const environment of quietEnvironments) {
     test(`does NOT log the body in '${environment}'`, async () => {
       const logged = await captureLoggedLines({ environment });
@@ -82,6 +85,7 @@ describe('RequestSpyMiddleware body logging', () => {
   });
 
   const loggingEnvironments = ['local', 'development', 'dev', 'debug', 'sit'];
+
   for (const environment of loggingEnvironments) {
     test(`logs the body in '${environment}', which is what the flag is for`, async () => {
       const logged = await captureLoggedLines({ environment });

@@ -73,6 +73,7 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
 
   removeTemplate(name: string): boolean {
     this.logger.for(this.removeTemplate.name).info('Removing template: %s', name);
+
     return this.templates.delete(name);
   }
 
@@ -92,8 +93,10 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
     const missingKeys: string[] = [];
 
     let match: RegExpExecArray | null;
+
     while ((match = placeholderRegex.exec(template)) !== null) {
       const key = match[1].trim();
+
       if (allKeys.includes(key)) {
         continue;
       }
@@ -101,6 +104,7 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
       allKeys.push(key);
 
       const value = this.getNestedValue(data, key);
+
       if (value === undefined || value === null) {
         missingKeys.push(key);
       }
@@ -124,6 +128,7 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
   ): string {
     if (opts?.requireValidate) {
       const validation = this.validateTemplateData({ template, data });
+
       if (!validation.isValid) {
         throw getError({
           error: MailErrors.INVALID_CONFIGURATION,
@@ -140,6 +145,7 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
         this.logger
           .for(this.renderSimpleTemplate.name)
           .warn('Missing value for key: %s', trimmedKey);
+
         return match;
       }
 

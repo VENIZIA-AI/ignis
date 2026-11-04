@@ -7,6 +7,7 @@ describe('@model - query.limit validation', () => {
   const decorate = (settings: IModelSettings) => () => {
     @model({ type: 'entity', settings })
     class M {}
+
     return M;
   };
 

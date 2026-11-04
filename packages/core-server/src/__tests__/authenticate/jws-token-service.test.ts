@@ -88,6 +88,7 @@ describe('JWSTokenService - generate', () => {
     const service = buildService();
 
     let caught: unknown;
+
     try {
       await service.generate({ payload: undefined as unknown as IJWTTokenPayload });
     } catch (error) {
@@ -103,6 +104,7 @@ describe('JWSTokenService - verify rejects every bad token', () => {
     const service = buildService();
 
     let caught: unknown;
+
     try {
       await service.verify({ type: 'Bearer', token: '' });
     } catch (error) {
@@ -119,6 +121,7 @@ describe('JWSTokenService - verify rejects every bad token', () => {
     const forged = await issuer.generate({ payload: buildPayload() });
 
     let caught: unknown;
+
     try {
       await verifier.verify({ type: 'Bearer', token: forged });
     } catch (error) {
@@ -139,6 +142,7 @@ describe('JWSTokenService - verify rejects every bad token', () => {
     const forged = [header, forgedClaims, signature].join('.');
 
     let caught: unknown;
+
     try {
       await service.verify({ type: 'Bearer', token: forged });
     } catch (error) {
@@ -154,6 +158,7 @@ describe('JWSTokenService - verify rejects every bad token', () => {
     const token = await service.generate({ payload: buildPayload() });
 
     let caught: unknown;
+
     try {
       await service.verify({ type: 'Bearer', token });
     } catch (error) {
@@ -174,6 +179,7 @@ describe('JWSTokenService - verify rejects every bad token', () => {
     ).toString('base64url');
 
     let caught: unknown;
+
     try {
       await service.verify({ type: 'Bearer', token: [header, forgedClaims, signature].join('.') });
     } catch (error) {
@@ -187,6 +193,7 @@ describe('JWSTokenService - verify rejects every bad token', () => {
     const service = buildService();
 
     let caught: unknown;
+
     try {
       await service.verify({ type: 'Bearer', token: 'not-a-jwt' });
     } catch (error) {
@@ -230,6 +237,7 @@ describe('JWSTokenService - payload encryption', () => {
 
     let caught: unknown;
     let verified: IJWTTokenPayload | undefined;
+
     try {
       const result = await verifier.verify({ type: 'Bearer', token });
       verified = result;

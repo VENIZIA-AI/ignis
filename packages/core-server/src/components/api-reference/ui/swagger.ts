@@ -26,6 +26,7 @@ export class SwaggerUIProvider extends BaseHelper implements IUIProvider {
 
     const { swaggerUI } = swaggerModule;
     const { title, url, ...customConfig } = config;
+
     return swaggerUI({ title, url, ...customConfig })(context, next);
   }
 }

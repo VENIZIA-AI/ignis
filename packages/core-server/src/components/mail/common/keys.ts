@@ -14,8 +14,10 @@ export class MailKeys {
   // Generators
   static readonly MAIL_VERIFICATION_CODE_GENERATOR =
     '@app/components/mail/verification/code-generator';
+
   static readonly MAIL_VERIFICATION_TOKEN_GENERATOR =
     '@app/components/mail/verification/token-generator';
+
   static readonly MAIL_VERIFICATION_DATA_GENERATOR =
     '@app/components/mail/verification/data-generator';
 

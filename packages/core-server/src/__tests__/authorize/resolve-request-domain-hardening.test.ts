@@ -30,6 +30,7 @@ const SW = AuthorizationDomainScopes.SYSTEM_WIDE;
 async function captureError(run: () => Promise<unknown>): Promise<TNullable<Error>> {
   try {
     await run();
+
     return null;
   } catch (error) {
     return error as Error;
@@ -91,6 +92,7 @@ describe('declarative sources — every `from`', () => {
 
   test('each `from` ABSENT → SYSTEM_WIDE', async () => {
     const froms = ['param', 'header', 'query', 'context'] as const;
+
     for (const from of froms) {
       const dom = await RequestDomainResolver.resolveRequestDomain({
         spec: { action: 'read', resource: 'Order', domain: { from, key: 'k', type: 'Merchant' } },
@@ -243,6 +245,7 @@ describe('method resolver (spec.domain as function)', () => {
     const boom: TAuthorizationDomainResolver = async () => {
       throw new Error('resolver exploded');
     };
+
     const spec: IAuthorizationSpec = { action: 'read', resource: 'Order', domain: boom };
     const error = await captureError(() =>
       RequestDomainResolver.resolveRequestDomain({
@@ -258,6 +261,7 @@ describe('method resolver (spec.domain as function)', () => {
     const boom: TAuthorizationDomainResolver = () => {
       throw new Error('sync explode');
     };
+
     const spec: IAuthorizationSpec = { action: 'read', resource: 'Order', domain: boom };
     const error = await captureError(() =>
       RequestDomainResolver.resolveRequestDomain({

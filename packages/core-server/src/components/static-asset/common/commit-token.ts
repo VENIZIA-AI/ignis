@@ -29,6 +29,7 @@ export class AssetCommitToken {
   /** Signs `{ bucket, key, expiresAt }` so the commit route can trust the key it is handed. */
   static build(opts: { payload: ICommitTokenPayload; secretKey: string }): string {
     const body = AssetCommitToken.encode(opts.payload);
+
     return `${body}.${AssetCommitToken.sign({ body, secretKey: opts.secretKey })}`;
   }
 
@@ -57,6 +58,7 @@ export class AssetCommitToken {
     const payload: ICommitTokenPayload = JSON.parse(
       Buffer.from(body, 'base64url').toString('utf8'),
     );
+
     if (payload.expiresAt <= now) {
       throw getError(StaticAssetErrors.EXPIRED_COMMIT_TOKEN);
     }

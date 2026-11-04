@@ -67,6 +67,7 @@ const bootStaticAssetApplication = async (opts: {
   const server = application.getServer() as OpenAPIHono;
   server.onError(new AppErrorMiddleware({ logger: application.logger }).value());
   server.route(TEST_CONFIGS.path.base, application.getRootRouter());
+
   return server;
 };
 

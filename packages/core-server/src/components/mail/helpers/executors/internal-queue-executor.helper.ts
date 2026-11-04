@@ -100,6 +100,7 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
     const pendingCount = this.delayedJobs.size;
 
     const delayedJobsValues = this.delayedJobs.values();
+
     for (const timeout of delayedJobsValues) {
       clearTimeout(timeout);
     }
@@ -112,6 +113,7 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
   private async processJob(job: IQueueJobPayload): Promise<void> {
     if (!this.processor) {
       this.logger.for(this.processJob.name).error('Processor not set | jobId: %s', job.id);
+
       return;
     }
 

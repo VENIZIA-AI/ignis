@@ -120,6 +120,7 @@ class MixedRoutesController extends BaseRestController {
     }).to({
       handler: (context: TRouteContext) => {
         const body = context.req.valid<{ id: string }>('json');
+
         return context.json({ hit: `fluent:${body.id}` }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
@@ -249,6 +250,7 @@ describe('Route registration - decorator, imperative, fluent', () => {
     }) as AnyType;
 
     const handler = function tc39Handler() {};
+
     decorate(handler, { kind: 'method', name: 'tc39Handler' });
 
     // The config must never be attached to the method function: nothing reads metadata from there.

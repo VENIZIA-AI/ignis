@@ -16,6 +16,7 @@ export class JoseLoader {
       JoseLoader.module = null;
       throw error;
     });
+
     return JoseLoader.module;
   }
 }

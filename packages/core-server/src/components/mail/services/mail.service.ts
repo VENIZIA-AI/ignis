@@ -94,6 +94,7 @@ export class MailService extends BaseService implements IMailService {
       const tasks = messages.map((message) => async () => {
         try {
           const result = await this.send(message);
+
           return result;
         } catch (error) {
           return {
@@ -171,6 +172,7 @@ export class MailService extends BaseService implements IMailService {
       };
 
       const result = await this.send(message);
+
       return result;
     } catch (error) {
       this.logger.for(this.sendTemplate.name).error('Error sending template email: %s', error);
@@ -183,6 +185,7 @@ export class MailService extends BaseService implements IMailService {
       this.logger.for(this.verify.name).debug('Verifying mail transport connection');
       const isValid = await this.transport.verify();
       this.logger.for(this.verify.name).debug('Verification result: %s', isValid);
+
       return isValid;
     } catch (error) {
       this.logger.for(this.verify.name).error('Verification failed: %s', error);

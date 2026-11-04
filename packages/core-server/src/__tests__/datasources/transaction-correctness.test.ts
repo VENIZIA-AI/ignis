@@ -28,6 +28,7 @@ const buildDataSource = (failOn?: string) => {
   const pool = new FakePool({ failOn });
   const dataSource = new ProbeDataSource(pool);
   dataSource.configure();
+
   return { pool, dataSource };
 };
 
@@ -69,6 +70,7 @@ describe('beginTransaction - failure paths', () => {
     const transaction = await dataSource.beginTransaction();
 
     let caught: unknown;
+
     try {
       await transaction.commit();
     } catch (error) {
@@ -101,6 +103,7 @@ describe('beginTransaction - failure paths', () => {
     const transaction = await dataSource.beginTransaction();
 
     let caught: unknown;
+
     try {
       await transaction.rollback();
     } catch (error) {
@@ -133,6 +136,7 @@ describe('beginTransaction - already-ended guard', () => {
     await transaction.commit();
 
     let caught: unknown;
+
     try {
       await transaction.commit();
     } catch (error) {
@@ -148,6 +152,7 @@ describe('beginTransaction - already-ended guard', () => {
     await transaction.commit();
 
     let caught: unknown;
+
     try {
       await transaction.rollback();
     } catch (error) {
@@ -171,6 +176,7 @@ describe('getClient', () => {
       configure(): void {
         // assigns no pool
       }
+
       getConnectionString(): string {
         return '';
       }
@@ -179,6 +185,7 @@ describe('getClient', () => {
     const dataSource = new UnconfiguredDataSource({ name: 'unconfigured', config: {} });
 
     let caught: unknown;
+
     try {
       dataSource.getClient();
     } catch (error) {
@@ -195,11 +202,13 @@ describe('beginTransaction - rollback after a failure-ended transaction', () => 
     const transaction = await dataSource.beginTransaction();
 
     let caught: unknown;
+
     try {
       await transaction.commit();
     } catch (error) {
       caught = error;
     }
+
     expect((caught as Error).message).toBe('COMMIT exploded');
 
     // In the canonical `catch { await tx.rollback(); throw error; }`, a rollback throwing 'already
@@ -219,11 +228,13 @@ describe('beginTransaction - rollback after a failure-ended transaction', () => 
     const transaction = await dataSource.beginTransaction();
 
     let caught: unknown;
+
     try {
       await transaction.rollback();
     } catch (error) {
       caught = error;
     }
+
     expect(caught).toBeDefined();
 
     await transaction.rollback();
@@ -243,6 +254,7 @@ describe('beginTransaction - rollback after a failure-ended transaction', () => 
     }
 
     let caught: unknown;
+
     try {
       await transaction.commit();
     } catch (error) {
@@ -258,6 +270,7 @@ describe('beginTransaction - acquisition and concurrency', () => {
     const { pool, dataSource } = buildDataSource('BEGIN');
 
     let caught: unknown;
+
     try {
       await dataSource.beginTransaction();
     } catch (error) {
@@ -399,6 +412,7 @@ describe('beginTransaction - driver wiring', () => {
             connector: {} as AnyType,
             execute: async (opts: { statement: string }) => {
               acquired.push(opts.statement);
+
               return undefined;
             },
             release: () => undefined,
@@ -430,6 +444,7 @@ describe('beginTransaction - driver wiring', () => {
       configure(): void {
         // deliberately assigns neither this.client nor this.driver
       }
+
       getConnectionString(): string {
         return '';
       }
@@ -438,6 +453,7 @@ describe('beginTransaction - driver wiring', () => {
     const dataSource = new BareDataSource({ name: 'bare', config: {} });
 
     let caught: unknown;
+
     try {
       await dataSource.beginTransaction();
     } catch (error) {
@@ -464,6 +480,7 @@ describe('beginTransaction - driver wiring', () => {
     dataSource.configure();
 
     let caught: unknown;
+
     try {
       await dataSource.beginTransaction();
     } catch (error) {
@@ -493,6 +510,7 @@ describe('beginTransaction - driver wiring', () => {
               connector: fakeConnector,
               execute: async (executeOpts: { statement: string }) => {
                 executed.push(executeOpts.statement);
+
                 return { count: 0 };
               },
               release: () => undefined,
@@ -527,6 +545,7 @@ runTransactionContract({
   probe: {
     begin: async (opts?: { failOn?: 'COMMIT' | 'ROLLBACK' }) => {
       const { dataSource } = buildDataSource(opts?.failOn);
+
       return dataSource.beginTransaction();
     },
   },

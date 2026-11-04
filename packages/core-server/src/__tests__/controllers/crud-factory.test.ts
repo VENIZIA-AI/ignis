@@ -294,10 +294,12 @@ describe('ControllerFactory.defineCrudController - bulk where in the query or th
       ...fakeCrudRepository({ records: [] }),
       updateBy: async (updateOpts: { where: unknown; data: unknown }) => {
         calls.push({ verb: 'updateBy', where: updateOpts.where, data: updateOpts.data });
+
         return { count: 1, data: [] };
       },
       deleteBy: async (deleteOpts: { where: unknown }) => {
         calls.push({ verb: 'deleteBy', where: deleteOpts.where });
+
         return { count: 1, data: [] };
       },
     };

@@ -45,6 +45,7 @@ class RetryProbeRepository extends ReadRetryProbeBase {
   protected override async findWithCoreAPI<R = AnyType>(): Promise<Array<R>> {
     const index = Math.min(this.calls, this.responses.length - 1);
     this.calls += 1;
+
     return this.responses[index] as Array<R>;
   }
 }
@@ -53,6 +54,7 @@ class RetryProbeRepository extends ReadRetryProbeBase {
 class LockAwareRetryProbeRepository extends ReadRetryProbeBase {
   protected override async findWithCoreAPI<R = AnyType>(): Promise<Array<R>> {
     this.calls += 1;
+
     return [] as Array<R>;
   }
 }

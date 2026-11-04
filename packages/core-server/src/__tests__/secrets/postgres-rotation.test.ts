@@ -13,9 +13,11 @@ class FakePool {
   async connect() {
     return { query: async () => ({}), release: () => {} };
   }
+
   async query() {
     return {};
   }
+
   async end() {
     this.ended = true;
   }
@@ -27,11 +29,13 @@ class RotatingDataSource extends BasePostgresDataSource<{ user?: string; passwor
   constructor() {
     super({ name: 'rotating', config: { user: 'old', password: 'old-pass' } });
   }
+
   configure(): void {
     const pool = new FakePool(this.getSettings()) as AnyType;
     this.builds.push(pool);
     this.client = pool;
   }
+
   getConnectionString(): string {
     return 'postgres://fake';
   }
@@ -47,14 +51,17 @@ class FailingRotatingDataSource extends BasePostgresDataSource<{
   constructor() {
     super({ name: 'failing-rotating', config: { user: 'old', password: 'old-pass' } });
   }
+
   configure(): void {
     const pool = new FakePool(this.getSettings()) as AnyType;
     this.builds.push(pool);
     this.client = pool;
+
     if (this.failNext) {
       throw new Error('bad rotated creds');
     }
   }
+
   getConnectionString(): string {
     return 'postgres://fake';
   }
@@ -84,6 +91,7 @@ describe('Postgres onSecretRotated', () => {
 
     ds.failNext = true;
     let caught: unknown;
+
     try {
       await ds.onSecretRotated({
         key: 'datasources.postgres',
@@ -92,6 +100,7 @@ describe('Postgres onSecretRotated', () => {
     } catch (error) {
       caught = error;
     }
+
     expect(caught).toBeInstanceOf(Error);
     expect((caught as Error).message).toContain('bad rotated creds');
 

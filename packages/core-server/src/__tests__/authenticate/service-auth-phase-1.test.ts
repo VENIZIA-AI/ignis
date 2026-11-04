@@ -25,6 +25,7 @@ class ServiceStrategy implements IAuthenticationStrategy {
 const freshRegistry = (): AuthenticationStrategyRegistry => {
   const registry = AuthenticationStrategyRegistry.getInstance();
   registry.reset();
+
   return registry;
 };
 
@@ -165,6 +166,7 @@ describe('a route naming an unregistered strategy still builds', () => {
       constructor() {
         super({ scope: 'ProbeController', path: '/probe' });
       }
+
       async binding(): Promise<void> {}
     }
 

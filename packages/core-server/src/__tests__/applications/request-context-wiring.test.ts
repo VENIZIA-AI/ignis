@@ -54,6 +54,7 @@ class AuditContextApplication extends BaseApplication {
 
     server.get('/audit-with-user', (context) => {
       context.set(Authentication.AUDIT_USER_ID, AUDIT_USER_ID);
+
       return context.json({ stamped: stampCreatedBy() });
     });
 

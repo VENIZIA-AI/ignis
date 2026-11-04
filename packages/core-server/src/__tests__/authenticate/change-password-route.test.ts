@@ -73,6 +73,7 @@ class RecordingAuthService implements IAuthService {
 
   async changePassword(_context: TContext, opts: TChangePasswordRequest): Promise<AnyObject> {
     this.received.push(opts);
+
     return { isChanged: true };
   }
 }
@@ -101,6 +102,7 @@ const mountAuthController = async (opts: {
   const server = application.getServer();
   server.onError(new AppErrorMiddleware({ logger: application.logger }).value());
   server.route(CONFIGS.path.base, application.getRootRouter());
+
   return server;
 };
 
@@ -165,6 +167,7 @@ describe('ChangePasswordRequestSchema documents what it validates', () => {
       const withoutField = Object.fromEntries(
         Object.entries(VALID_BODY).filter(([key]) => key !== field),
       );
+
       return !ChangePasswordRequestSchema.safeParse(withoutField).success;
     });
 
@@ -178,6 +181,7 @@ describe('ChangePasswordRequestSchema documents what it validates', () => {
     const schema = documentBody().content['application/json'].schema;
 
     expect(schema.examples.length).toBeGreaterThan(0);
+
     for (const example of schema.examples) {
       expect(ChangePasswordRequestSchema.safeParse(example).success).toBe(true);
     }

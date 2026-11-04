@@ -129,6 +129,7 @@ export class FakeStorageHelper extends BaseStorageHelper {
     // A real copy makes the destination readable. Recording the call alone left every
     // post-copy getStat in a test answering 404.
     const source = this.objects.get(`${opts.bucket.name}/${opts.source.key}`);
+
     if (!source) {
       throw getError({
         statusCode: 404,
@@ -141,16 +142,19 @@ export class FakeStorageHelper extends BaseStorageHelper {
 
   async hasBucket(opts: { bucket: IBucketRef }): Promise<boolean> {
     this.calls.push({ method: 'hasBucket', args: { bucket: opts.bucket.name } });
+
     return this.buckets.has(opts.bucket.name);
   }
 
   async getBuckets(): Promise<IBucketInfo[]> {
     this.calls.push({ method: 'getBuckets', args: {} });
+
     return [...this.buckets.values()];
   }
 
   async getBucket(opts: { bucket: IBucketRef }): Promise<IBucketInfo | null> {
     this.calls.push({ method: 'getBucket', args: { bucket: opts.bucket.name } });
+
     return this.buckets.get(opts.bucket.name) ?? null;
   }
 
@@ -161,11 +165,13 @@ export class FakeStorageHelper extends BaseStorageHelper {
       creationDate: new Date('2024-01-01T00:00:00Z'),
     };
     this.buckets.set(opts.bucket.name, created);
+
     return created;
   }
 
   async removeBucket(opts: { bucket: IBucketRef }): Promise<boolean> {
     this.calls.push({ method: 'removeBucket', args: { bucket: opts.bucket.name } });
+
     return this.buckets.delete(opts.bucket.name);
   }
 
@@ -234,12 +240,14 @@ export class FakeStorageHelper extends BaseStorageHelper {
     const results: IObjectInfo[] = [];
 
     const objectsEntries = this.objects.entries();
+
     for (const [key, value] of objectsEntries) {
       if (!key.startsWith(`${opts.bucket.name}/`)) {
         continue;
       }
 
       const name = key.slice(opts.bucket.name.length + 1);
+
       if (opts.prefix && !name.startsWith(opts.prefix)) {
         continue;
       }

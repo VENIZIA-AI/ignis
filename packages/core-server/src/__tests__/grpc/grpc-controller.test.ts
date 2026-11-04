@@ -10,6 +10,7 @@ import { BaseGrpcController } from '@/base/controllers/grpc/base';
 import type { IConnectRpcModule } from '@/base/controllers/grpc/common/types';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { GRPC } from '@venizia/ignis-helpers/common';
+
 describe('BaseGrpcController', () => {
   const registry = MetadataRegistry.getInstance();
 
@@ -321,6 +322,7 @@ describe('BaseGrpcController - ConnectRPC module handed over through the options
         createConnectRouter: (opts) => {
           calls.push('createConnectRouter');
           routerOpts.push(opts);
+
           return { service: () => calls.push('service'), handlers: [] } as AnyType;
         },
       },
@@ -380,6 +382,7 @@ describe('BaseGrpcController - interceptors from the component options', () => {
       connect: {
         createConnectRouter: (opts) => {
           routerOpts.push(opts);
+
           return { service: () => {}, handlers: [] } as AnyType;
         },
       },
@@ -396,6 +399,7 @@ describe('BaseGrpcController - interceptors from the component options', () => {
 
   test('reaches createConnectRouter', async () => {
     const first = () => {};
+
     const second = () => {};
 
     const result = await buildController([first, second]);
@@ -426,6 +430,7 @@ describe('BaseGrpcController - ConnectRPC peers registered through ModuleUtility
       globalThis,
       Symbol.for('ignis:module-registry'),
     );
+
     for (const peer of PEERS) {
       registry.delete(peer);
     }
@@ -452,6 +457,7 @@ describe('BaseGrpcController - ConnectRPC peers registered through ModuleUtility
         '@connectrpc/connect': {
           createConnectRouter: () => {
             calls.push('createConnectRouter');
+
             return { service: () => calls.push('service'), handlers: [] } as AnyType;
           },
         },
@@ -478,6 +484,7 @@ describe('BaseGrpcController - ConnectRPC peers registered through ModuleUtility
     ModuleUtility.setProjectRoot({ projectRoot: root });
     const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
     let error: unknown;
+
     try {
       await ctrl.configure();
     } catch (caught) {

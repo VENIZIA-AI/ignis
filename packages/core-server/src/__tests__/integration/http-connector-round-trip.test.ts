@@ -157,6 +157,7 @@ describe('HttpRepository writes through a real IGNIS CRUD controller', () => {
 
   test('a server validation error comes back with the server status and message', async () => {
     let caught: unknown;
+
     try {
       // `title` is required by the generated create schema, so the server refuses the body.
       await notes.create({ data: {} });
@@ -178,6 +179,7 @@ describe('HttpRepository writes through a real IGNIS CRUD controller', () => {
 
   test("a 422's per-field issues are the error's cause, naming the field", async () => {
     let caught: unknown;
+
     try {
       await notes.create({ data: {} });
     } catch (error) {
@@ -194,6 +196,7 @@ describe('HttpRepository writes through a real IGNIS CRUD controller', () => {
 
   test("an envelope under the server's rootKey keeps the server's code and text", async () => {
     let caught: unknown;
+
     try {
       await wrappedNotes.create({ data: {} });
     } catch (error) {

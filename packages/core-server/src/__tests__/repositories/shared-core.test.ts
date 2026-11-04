@@ -77,6 +77,7 @@ describe('shared AbstractRepository core helpers', () => {
       const denialCodeOf = (repository: AnyType): string | undefined => {
         try {
           repository.create({ data: {} });
+
           return undefined;
         } catch (error) {
           return (error as { normalized?: { code?: string } }).normalized?.code;

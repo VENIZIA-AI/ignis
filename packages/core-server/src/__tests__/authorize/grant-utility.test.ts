@@ -180,6 +180,7 @@ describe('AuthModelColumns.buildPolicyDefinition', () => {
       'subjectId',
       'targetId',
     ];
+
     for (const name of names) {
       expect(columns).toHaveProperty(name);
     }

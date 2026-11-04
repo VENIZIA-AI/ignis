@@ -77,6 +77,7 @@ export class TestAuthorizationEnforcer
         if (!request.conditions) {
           return false;
         }
+
         return Object.entries(rule.conditions).every(
           ([key, value]) => request.conditions![key] === value,
         );
@@ -119,9 +120,11 @@ export const createMockContext = (overrides?: {
     const user = { principalType: 'user', ...overrides.user };
     store.set(Authentication.CURRENT_USER, user);
   }
+
   if (overrides?.isSkipAuthorize) {
     store.set(Authorization.SKIP_AUTHORIZATION, true);
   }
+
   if (overrides?.rules !== undefined) {
     // The slot holds a Map keyed by enforcer name, so one request carrying two `authorize()` calls
     // against different enforcers cannot evaluate one enforcer's request against the other's rules.
@@ -166,6 +169,7 @@ export const createFreshRegistry = (): AuthorizationEnforcerRegistry => {
   TestAuthorizationEnforcer.reset();
   // Re-register inject metadata in case clearAll was called
   registerTestEnforcerInjectMetadata();
+
   return registry;
 };
 

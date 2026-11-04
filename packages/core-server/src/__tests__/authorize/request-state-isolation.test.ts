@@ -69,6 +69,7 @@ const createRecordingEnforcer = (opts: {
 
     async buildRules(): Promise<AnyType> {
       state.buildRulesCalls += 1;
+
       // A rule set that names its owner, so borrowing another enforcer's is visible.
       return { ownedBy: opts.name };
     }
@@ -80,6 +81,7 @@ const createRecordingEnforcer = (opts: {
     }): Promise<TAuthorizationDecision> {
       state.seenDomains.push(evaluateOpts.request.domain);
       state.seenRules.push(evaluateOpts.rules);
+
       return opts.decision;
     }
   }
@@ -114,6 +116,7 @@ const createContext = (user: IAuthUser & { principalType?: string }) => {
 const run = async (middleware: AnyType, context: AnyType): Promise<{ error?: unknown }> => {
   try {
     await middleware(context, async () => {});
+
     return {};
   } catch (error) {
     return { error };
@@ -310,6 +313,7 @@ describe('AuthorizationEnforcerRegistry warms an enforcer once', () => {
       async configure(): Promise<void> {
         attempts += 1;
         await new Promise((resolve) => setTimeout(resolve, 1));
+
         if (attempts === 1) {
           throw new Error('warmup failed');
         }
@@ -338,11 +342,13 @@ describe('AuthorizationEnforcerRegistry warms an enforcer once', () => {
     });
 
     let caught: unknown;
+
     try {
       await registry.resolveEnforcer({ name: 'flaky' });
     } catch (error) {
       caught = error;
     }
+
     expect(String(caught)).toContain('warmup failed');
 
     // The second call configures again rather than inheriting a poisoned entry.

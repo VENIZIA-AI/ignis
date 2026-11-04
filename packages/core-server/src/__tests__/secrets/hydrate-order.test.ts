@@ -9,9 +9,11 @@ class OrderApp extends BaseApplication {
   override getProjectRoot() {
     return process.cwd();
   }
+
   override getAppInfo() {
     return { name: 'probe', version: '0', description: '' } as AnyType;
   }
+
   override staticConfigure() {}
   override preConfigure() {}
   override postConfigure() {}
@@ -19,12 +21,14 @@ class OrderApp extends BaseApplication {
 
   override registerSecrets(): ISecretsRegistration {
     this.order.push('hydrate');
+
     return { provider: SecretProviders.SYSTEM_ENVS };
   }
 
   override async registerDataSources() {
     this.order.push('datasources');
   }
+
   override async registerComponents() {}
   override async registerControllers() {}
   override async registerDefaultMiddlewares() {}

@@ -31,6 +31,7 @@ export abstract class BaseRoleManager extends BaseHelper {
     if (this.graphReported) {
       return;
     }
+
     this.graphReported = true;
 
     const { message, args } = build();
@@ -48,6 +49,7 @@ export abstract class BaseRoleManager extends BaseHelper {
 
     let edgeCount = 0;
     const overlayValues = overlay.values();
+
     for (const parents of overlayValues) {
       edgeCount += parents.size;
     }
@@ -68,11 +70,13 @@ export abstract class BaseRoleManager extends BaseHelper {
     const queue: string[] = [node];
 
     let head = 0;
+
     while (head < queue.length) {
       const current = queue[head];
       head += 1;
 
       const parents = overlay?.get(current);
+
       if (!parents) {
         continue;
       }
@@ -81,6 +85,7 @@ export abstract class BaseRoleManager extends BaseHelper {
         if (visited.has(parent)) {
           continue;
         }
+
         visited.add(parent);
         result.push(parent);
         queue.push(parent);

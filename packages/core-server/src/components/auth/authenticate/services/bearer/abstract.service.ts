@@ -64,6 +64,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     const request = context.req;
 
     const authHeaderValue = request.header('Authorization');
+
     if (!authHeaderValue) {
       throw getError({
         error: AuthenticationErrors.HEADER_MISSING,
@@ -79,6 +80,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     }
 
     const parts = authHeaderValue.split(' ');
+
     if (parts.length !== 2) {
       throw getError({
         error: AuthenticationErrors.HEADER_MALFORMED,
@@ -87,11 +89,13 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     }
 
     const [tokenType, tokenValue] = parts;
+
     return { type: tokenType, token: tokenValue };
   }
 
   async verify(opts: { type: string; token: string }): Promise<IJWTTokenPayload> {
     const { token } = opts;
+
     if (!token) {
       this.logger.for(this.verify.name).error('Missing token for validating request!');
       throw getError({
@@ -102,6 +106,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
 
     try {
       const result = await this.doVerify(token);
+
       return result;
     } catch (error) {
       // No log here - `cause` carries the reason (JWTExpired, signature mismatch) to the error handler, which logs the request once. An expired token is the caller's problem, hence `warn`.
@@ -134,6 +139,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     try {
       const result = await this.getSigningKey();
       const rs = await signer.sign(result);
+
       return rs;
     } catch (error) {
       this.logger.for(this.generate.name).error('Failed to generate token | Error: %s', error);
@@ -163,6 +169,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     const rs: Record<string, string> = {};
 
     const keys = Object.keys(payload);
+
     for (const key of keys) {
       const value = payload[key];
 
@@ -273,6 +280,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
       .debug('JWT Token | payload: %j | header: %j', payload, protectedHeader);
 
     const rs: any = {};
+
     for (const key in payload) {
       if (AbstractBearerTokenService.JWT_COMMON_FIELDS.has(key)) {
         rs[key] = payload[key];

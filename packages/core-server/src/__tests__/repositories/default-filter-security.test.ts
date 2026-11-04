@@ -66,6 +66,7 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
     const sqlInjectionPayloadEntries = Object.entries(SQL_INJECTION_PAYLOADS);
+
     for (const [name, payload] of sqlInjectionPayloadEntries) {
       const userFilter: AnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
@@ -98,6 +99,7 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
     const xssPayloadEntries = Object.entries(XSS_PAYLOADS);
+
     for (const [name, payload] of xssPayloadEntries) {
       const userFilter: AnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
@@ -111,6 +113,7 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
     const commandInjectionPayloadEntries = Object.entries(COMMAND_INJECTION_PAYLOADS);
+
     for (const [name, payload] of commandInjectionPayloadEntries) {
       const userFilter: AnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
@@ -124,6 +127,7 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
     const pathTraversalPayloadEntries = Object.entries(PATH_TRAVERSAL_PAYLOADS);
+
     for (const [name, payload] of pathTraversalPayloadEntries) {
       const userFilter: AnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
@@ -188,6 +192,7 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
     const nosqlInjectionPayloadEntries = Object.entries(NOSQL_INJECTION_PAYLOADS);
+
     for (const [name, payload] of nosqlInjectionPayloadEntries) {
       const userFilter: AnyFilter = { where: { [name]: payload } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
@@ -201,6 +206,7 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
     const unicodeEdgeCaseEntries = Object.entries(UNICODE_EDGE_CASES);
+
     for (const [name, value] of unicodeEdgeCaseEntries) {
       const userFilter: AnyFilter = { where: { [name]: value } };
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
@@ -214,6 +220,7 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
     const defaultFilter: AnyFilter = { where: { isDeleted: false } };
 
     const redosPayloadValues = Object.values(REDOS_PAYLOADS);
+
     for (const payload of redosPayloadValues) {
       const userFilter: AnyFilter = { where: { pattern: payload } };
 

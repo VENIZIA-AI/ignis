@@ -144,6 +144,7 @@ export class ApiReferenceComponent extends BaseComponent {
 
     const securitySchemes = boundOptions?.securitySchemes ?? {};
     const securitySchemesEntries = Object.entries(securitySchemes);
+
     for (const [name, scheme] of securitySchemesEntries) {
       rootRouter.openAPIRegistry.registerComponent('securitySchemes', name, scheme as AnyType);
     }

@@ -25,6 +25,7 @@ const probeJose = (opts: { body: string }): string => {
   });
 
   const stdout = result.stdout.toString();
+
   if (!stdout.includes('JOSE_LOADED') && !stdout.includes('JOSE_ABSENT')) {
     throw getError({
       message: `[jose-lazy-load] probe failed | stdout: ${stdout} | stderr: ${result.stderr.toString()}`,

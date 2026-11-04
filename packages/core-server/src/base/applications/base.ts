@@ -48,6 +48,7 @@ const selectSecretEnvKeys = (opts: {
 
   if (!entry.keys) {
     const bundleEntries = Object.entries(bundle);
+
     for (const [rawKey, value] of bundleEntries) {
       merged[`${entry.prefix ?? ''}${rawKey}`] = value;
     }
@@ -56,8 +57,10 @@ const selectSecretEnvKeys = (opts: {
   }
 
   const entryKeysEntries = Object.entries(entry.keys);
+
   for (const [rawKey, envKey] of entryKeysEntries) {
     const value = bundle[rawKey];
+
     if (value === undefined) {
       continue;
     }
@@ -74,6 +77,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
 
   protected normalizePath(...segments: string[]): string {
     const joined = segments.join('/').replace(/\/+/g, '/').replace(/\/$/, '');
+
     return joined || '/';
   }
 
@@ -110,13 +114,16 @@ export abstract class BaseApplication extends ServerApplication implements IRest
         }
 
         const allBindings = this.findByTag({ tag: BindingNamespaces.CONTROLLER });
+
         for (const binding of allBindings) {
           const target = binding.getBindingMeta({ type: BindingValueTypes.CLASS });
+
           if (!target) {
             continue;
           }
 
           const metadata = MetadataRegistry.getInstance().getControllerMetadata({ target });
+
           if (metadata?.transport !== ControllerTransports.GRPC) {
             continue;
           }
@@ -143,6 +150,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
 
     let provider: ISecretsHelper | undefined;
     const emptyHydrations: string[] = [];
+
     try {
       const result = await SecretsHelperFactory.create({ ...registration, identifier: 'app' });
       provider = result;
@@ -151,16 +159,19 @@ export abstract class BaseApplication extends ServerApplication implements IRest
       await this.hydrateSecretEntries({ provider, registration, emptyHydrations, logger });
 
       const registrationLease = registration.lease ?? [];
+
       for (const entry of registrationLease) {
         await provider.lease({ path: entry.path, key: entry.key });
       }
     } catch (error) {
       const env = Environment.current;
+
       if (!Environment.DEVELOPMENT_ENVS.has(env.toLowerCase())) {
         throw getError({
           message: `[hydrateSecrets] Secret provider failed in non-development environment | env: ${env}`,
         });
       }
+
       logger.warn(
         'Secret provider failed; falling back to system-envs | env: %s | error: %s',
         env,
@@ -177,6 +188,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
           );
         }
       }
+
       const result2 = await SecretsHelperFactory.create({
         provider: SecretProviders.SYSTEM_ENVS,
         identifier: 'app',
@@ -190,11 +202,13 @@ export abstract class BaseApplication extends ServerApplication implements IRest
 
     if (emptyHydrations.length > 0) {
       const env = Environment.current;
+
       if (!Environment.DEVELOPMENT_ENVS.has(env.toLowerCase())) {
         throw getError({
           message: `[hydrateSecrets] Hydrate entries resolved to an empty secret bundle in non-development environment | env: ${env} | paths: ${emptyHydrations.join(', ')}`,
         });
       }
+
       logger.warn(
         'Hydrate entries resolved to an empty secret bundle; continuing in development | env: %s | paths: %s',
         env,
@@ -221,9 +235,11 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     const { provider, registration, emptyHydrations, logger } = opts;
 
     const registrationHydrate = registration.hydrate ?? [];
+
     for (const entry of registrationHydrate) {
       const bundle = await provider.getBundle({ path: entry.path });
       const merged = this.mergeSecretsIntoEnv({ bundle, entry });
+
       if (Object.keys(merged).length > 0) {
         continue;
       }
@@ -248,19 +264,24 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     const merged = selectSecretEnvKeys({ bundle, entry });
 
     const mergedEntries = Object.entries(merged);
+
     for (const [key, value] of mergedEntries) {
       process.env[key] = value;
     }
+
     applicationEnvironment.merge({ envs: merged });
+
     return merged;
   }
 
   /** A hydrate entry declares an expectation only via explicit `keys` or a non-empty `prefix`; such an entry resolving to zero env values is a misconfiguration boot must not silently absorb. */
   protected hydrateEntryDeclaresExpectation(opts: { entry: ISecretHydrateEntry }): boolean {
     const { entry } = opts;
+
     if (entry.keys && Object.keys(entry.keys).length > 0) {
       return true;
     }
+
     return typeof entry.prefix === 'string' && entry.prefix.length > 0;
   }
 
@@ -268,16 +289,20 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     const logger = this.logger.for(this.wireSecretRotatables.name);
     const provider = this.secretsProvider;
     const registration = this.secretsRegistration;
+
     if (!provider || !registration?.lease?.length) {
       return;
     }
+
     for (const entry of registration.lease) {
       const instance = this.get<ISecretRotatable>({ key: entry.key, isOptional: true });
+
       if (instance && typeof instance.onSecretRotated === 'function') {
         provider.registerRotatable({ key: entry.key, target: instance });
         logger.info('Wired rotatable | key: %s', entry.key);
         continue;
       }
+
       logger.debug('Lease key has no rotatable consumer | key: %s', entry.key);
     }
   }
@@ -296,6 +321,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
         restPath,
         folderPath,
       );
+
     return this;
   }
 
@@ -404,6 +430,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
           'Envs: %s | SKIPPED - set ALLOW_EMPTY_ENV_VALUE=false to reject empty values',
           envKeys.length,
         );
+
       return;
     }
 

@@ -5,23 +5,29 @@ import { RandomTokenGenerator } from '@/components/mail/services/generators/rand
 
 /** The values of `crypto.getRandomValues` the next calls return, one array of bytes per call; real bytes after that. */
 const realGetRandomValues = crypto.getRandomValues.bind(crypto);
+
 const scriptDraws = (draws: ReadonlyArray<ReadonlyArray<number>>): { calls: () => number } => {
   let call = 0;
+
   const patched = <T extends ArrayBufferView | null>(array: T): T => {
     const scripted = draws[call];
     call += 1;
+
     if (!scripted || array === null) {
       return realGetRandomValues(array);
     }
 
     new Uint8Array(array.buffer, array.byteOffset, array.byteLength).set(scripted);
+
     return array;
   };
+
   Object.defineProperty(crypto, 'getRandomValues', {
     value: patched,
     configurable: true,
     writable: true,
   });
+
   return { calls: () => call };
 };
 
@@ -86,6 +92,7 @@ describe('NumericCodeGenerator', () => {
   test('every digit comes up about equally often (chi-square, 9 degrees of freedom)', () => {
     const counts = new Array<number>(10).fill(0);
     const draws = 30_000;
+
     for (let i = 0; i < draws; i++) {
       counts[Number(generator.generateCode(1))] += 1;
     }
@@ -136,6 +143,7 @@ describe('RandomTokenGenerator', () => {
     const bytes = Buffer.from(generator.generateToken(150_000), 'base64url');
 
     expect(bytes).toHaveLength(150_000);
+
     for (const start of [0, 65_536, 131_072]) {
       expect(bytes.subarray(start, start + 1_000).some((byte) => byte !== 0)).toBe(true);
     }
@@ -153,6 +161,7 @@ describe('the MIME message ids', () => {
         html: '<p>html</p>',
       },
     });
+
     return raw.toString('utf-8');
   };
 

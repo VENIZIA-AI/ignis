@@ -26,6 +26,7 @@ describe('BaseFilteredAdapter - connector resolution', () => {
     const dataSource = {
       getConnector: () => {
         callCount += 1;
+
         return connector;
       },
     } as ICasbinPolicySource;

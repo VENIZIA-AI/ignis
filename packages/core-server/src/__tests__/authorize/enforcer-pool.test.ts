@@ -51,6 +51,7 @@ async function decide(e: CasbinAuthorizationEnforcer, userId: string, obj: strin
     user: { principalType: 'User', userId },
     context: ContextUtility.asTypedContext({ context: {} }),
   });
+
   return e.evaluate({
     rules,
     request: { resource: obj, action: 'read', domain: 'SYSTEM_WIDE' },
@@ -101,6 +102,7 @@ class FailOncePoolEnforcer extends CasbinAuthorizationEnforcer {
       this.failsRemaining -= 1;
       throw new Error('forced one-time load failure');
     }
+
     return super.loadPolicyLinesIntoModel(opts);
   }
 }
@@ -122,11 +124,13 @@ describe('CasbinAuthorizationEnforcer — discard recovery', () => {
 
     // First request: load step throws inside pool.use → enforcer discarded, error rethrown (fail-closed).
     let error: unknown;
+
     try {
       await decide(e, 'A', 'A_secret');
     } catch (err) {
       error = err;
     }
+
     expect(error).toBeDefined();
 
     // Pool must have re-created capacity: a later valid request resolves correctly, with no stale state from the failed borrow.
@@ -148,6 +152,7 @@ describe('CasbinAuthorizationEnforcer — fail-closed', () => {
     e.destroy();
     await new Promise((resolve) => setTimeout(resolve, 0));
     let error: unknown;
+
     try {
       await e.evaluate({
         rules,
@@ -157,6 +162,7 @@ describe('CasbinAuthorizationEnforcer — fail-closed', () => {
     } catch (err) {
       error = err;
     }
+
     expect(error).toBeDefined();
   });
 });

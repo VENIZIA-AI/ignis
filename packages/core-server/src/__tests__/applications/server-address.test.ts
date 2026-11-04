@@ -36,6 +36,7 @@ let savedEnv: Record<string, string | undefined> = {};
 
 beforeEach(() => {
   savedEnv = {};
+
   for (const key of ADDRESS_ENV_KEYS) {
     savedEnv[key] = process.env[key];
     delete process.env[key];
@@ -48,6 +49,7 @@ afterEach(() => {
       delete process.env[key];
       continue;
     }
+
     process.env[key] = savedEnv[key];
   }
 });

@@ -39,6 +39,7 @@ export class ResourceRoleManager extends BaseRoleManager implements RoleManager 
     this.reportGraphOnce(() => {
       const nodeCount = this.parents.size;
       const edgeCount = Array.from(this.parents.values()).reduce((sum, set) => sum + set.size, 0);
+
       return {
         message: 'resource-role initialized | nodes: %d | edges: %d',
         args: [nodeCount, edgeCount],
@@ -50,6 +51,7 @@ export class ResourceRoleManager extends BaseRoleManager implements RoleManager 
     }
 
     const seeds = this.collectStoredAncestors({ name: name1 });
+
     if (seeds.length === 0) {
       return false;
     }
@@ -59,6 +61,7 @@ export class ResourceRoleManager extends BaseRoleManager implements RoleManager 
 
     // Index cursor rather than shift(): shift() is O(n) and would make the walk quadratic.
     let head = 0;
+
     while (head < queue.length) {
       const current = queue[head];
       head += 1;
@@ -70,9 +73,11 @@ export class ResourceRoleManager extends BaseRoleManager implements RoleManager 
       if (visited.has(current)) {
         continue;
       }
+
       visited.add(current);
 
       const parents = this.parents.get(current);
+
       if (parents) {
         queue.push(...parents);
       }
@@ -106,13 +111,16 @@ export class ResourceRoleManager extends BaseRoleManager implements RoleManager 
     }
 
     let current = opts.name;
+
     for (;;) {
       const index = current.lastIndexOf('.');
+
       if (index === -1) {
         break;
       }
 
       current = current.slice(0, index);
+
       if (this.parents.has(current)) {
         ancestors.push(current);
       }

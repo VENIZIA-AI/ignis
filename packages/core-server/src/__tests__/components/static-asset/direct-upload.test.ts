@@ -34,6 +34,7 @@ class DirectUploadApplication extends BaseApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'direct-upload-app', version: '0.0.0', description: '' };
   }
+
   staticConfigure() {}
   preConfigure() {}
   postConfigure() {}
@@ -72,6 +73,7 @@ const mount = async (opts: {
   const server = application.getServer() as OpenAPIHono;
   server.onError(new AppErrorMiddleware({ logger: application.logger }).value());
   server.route(TEST_CONFIGS.path.base, application.getRootRouter());
+
   return server;
 };
 
@@ -232,6 +234,7 @@ describe('a direct upload lands a MetaLink row, like every other upload', () => 
         repository: {
           create: async (opts: { data: Record<string, unknown> }) => {
             created.push(opts.data);
+
             return { count: 1, data: { id: 'meta-1', ...opts.data } };
           },
         } as never,
@@ -269,6 +272,7 @@ describe('a direct upload lands a MetaLink row, like every other upload', () => 
         repository: {
           create: async (opts: { data: Record<string, unknown> }) => {
             created.push(opts.data);
+
             return { count: 1, data: { id: 'meta-1', ...opts.data } };
           },
         } as never,
@@ -304,6 +308,7 @@ describe('a direct upload lands a MetaLink row, like every other upload', () => 
         repository: {
           create: async (opts: { data: Record<string, unknown> }) => {
             created.push(opts.data);
+
             return { count: 1, data: { id: 'meta-1', ...opts.data } };
           },
         } as never,

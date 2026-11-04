@@ -36,11 +36,13 @@ export class HealthCheckReporter {
     environment?: () => string | undefined;
   }): boolean {
     const { enable } = opts.options.stats ?? {};
+
     if (typeof enable === 'boolean') {
       return enable;
     }
 
     const ambient = opts.environment ? opts.environment() : Environment.ambient;
+
     if (ambient === undefined) {
       return false;
     }
@@ -80,6 +82,7 @@ export class HealthCheckReporter {
     }
 
     const ambient = opts.environment ? opts.environment() : Environment.ambient;
+
     if (ambient === undefined) {
       return true;
     }
@@ -89,6 +92,7 @@ export class HealthCheckReporter {
 
   static isStatsAuthorized(opts: { options: IHealthCheckOptions; header?: string }): boolean {
     const secretKey = opts.options.stats?.secretKey;
+
     if (secretKey === undefined) {
       return true;
     }

@@ -11,6 +11,7 @@ const withoutCasbin: BunPlugin = {
   setup: (build) => {
     build.onLoad({ filter: /[\\/]authorize[\\/].*\.ts$/ }, async (args) => {
       const source = await Bun.file(args.path).text();
+
       return {
         contents: source.replaceAll("'casbin'", `'${ABSENT}'`),
         loader: 'ts',

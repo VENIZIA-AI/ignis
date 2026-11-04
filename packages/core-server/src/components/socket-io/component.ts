@@ -66,6 +66,7 @@ export class SocketIOComponent extends BaseComponent {
     const redisConnection = this.application.get<AbstractRedisHelper>({
       key: SocketIOBindingKeys.REDIS_CONNECTION,
     });
+
     if (!isRedisHelper(redisConnection)) {
       throw getError({
         message:
@@ -76,6 +77,7 @@ export class SocketIOComponent extends BaseComponent {
     const authenticateFn = this.application.get<TSocketIOAuthenticateFn>({
       key: SocketIOBindingKeys.AUTHENTICATE_HANDLER,
     });
+
     if (!authenticateFn) {
       throw getError({
         message: '[DANGER][SocketIOComponent] Invalid authenticateFn to setup io socket server!',

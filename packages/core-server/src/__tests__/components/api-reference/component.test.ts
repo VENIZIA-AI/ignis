@@ -52,6 +52,7 @@ const bootApiReferenceApplication = async (opts?: {
 
   const component = new ApiReferenceComponent(application);
   await component.configure();
+
   return application;
 };
 
@@ -62,6 +63,7 @@ const readDocument = async (opts: {
   const response = await opts.application.getRootRouter().request(opts.path ?? '/doc/openapi.json');
   expect(response.status).toBe(200);
   const result = await response.json();
+
   return result as Record<string, AnyType>;
 };
 

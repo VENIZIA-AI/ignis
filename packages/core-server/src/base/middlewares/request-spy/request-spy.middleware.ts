@@ -41,6 +41,7 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
 
     // Only an explicit zero short-circuits: a CHUNKED request carries no Content-Length, so gating on the header's presence would skip every streamed body and let a malformed one detonate deeper as a 500.
     const contentLength = opts.req.header(HTTP.Headers.CONTENT_LENGTH);
+
     if (contentLength === '0' || !opts.req.raw.body) {
       return null;
     }
@@ -48,6 +49,7 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
     try {
       if (contentType.includes(HTTP.HeaderValues.APPLICATION_JSON)) {
         const rs = await opts.req.json();
+
         return rs;
       }
 
@@ -56,6 +58,7 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
         contentType.includes(HTTP.HeaderValues.APPLICATION_FORM_URLENCODED)
       ) {
         const rs = await opts.req.parseBody();
+
         return rs;
       }
 
@@ -67,6 +70,7 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
       // A body an earlier middleware read cannot be cloned; Hono's cache serves it instead.
       if (contentType.startsWith(TEXT_CONTENT_TYPE_PREFIX)) {
         let rs: string;
+
         if (opts.req.raw.bodyUsed) {
           const cached = await opts.req.text();
           rs = cached;
@@ -74,6 +78,7 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
           const cloned = await opts.req.raw.clone().text();
           rs = cloned;
         }
+
         return rs;
       }
 

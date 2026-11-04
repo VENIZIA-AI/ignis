@@ -84,10 +84,12 @@ const buildScopedAdapter = (opts: {
   const connector = {
     execute: async (query: SQL) => {
       const { sql: text } = dialect.sqlToQuery(query);
+
       return { rows: text.includes('WITH RECURSIVE') ? opts.rows : [] };
     },
   };
   const dataSource = { connector } as ICasbinPolicySource;
+
   return new ScopedCasbinAdapter({
     dataSource,
     entities: entities(),
@@ -104,6 +106,7 @@ const decide = async (opts: {
     user: { principalType: 'User', userId: 1 },
     context: ContextUtility.asTypedContext({ context: {} }),
   });
+
   return enforcer.evaluate({
     rules,
     request: { resource: 'Activation', action: 'read', domain },

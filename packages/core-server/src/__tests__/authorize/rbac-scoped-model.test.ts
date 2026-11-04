@@ -83,10 +83,13 @@ async function buildScopedEnforcer(lines: string[]) {
   enforcer.setNamedRoleManager('g4', new ResourceRoleManager());
 
   const m = enforcer.getModel();
+
   for (const line of lines) {
     Helper.loadPolicyLine(line, m);
   }
+
   await enforcer.buildRoleLinks();
+
   return enforcer;
 }
 

@@ -34,6 +34,7 @@ const buildServer = (opts: {
   }
 
   const server = new Hono();
+
   // Registered ahead of the spy, as a webhook signature check is: it reads through Hono's cache.
   if (opts.readsBodyFirst) {
     server.use(async (context, next) => {
@@ -41,19 +42,23 @@ const buildServer = (opts: {
       await next();
     });
   }
+
   server.use(middleware.value());
   // Reads the RAW stream, as a proxy does.
   server.put('/upload', async (context) => {
     const result = await new Response(context.req.raw.body).arrayBuffer();
     const bytes = new Uint8Array(result);
+
     return context.json({ bytes: Array.from(bytes) });
   });
   server.post('/text', async (context) => {
     const text = await context.req.raw.text();
+
     return context.json({ text });
   });
   server.post('/signed', async (context) => {
     const text = await context.req.text();
+
     return context.json({ text });
   });
 
@@ -64,8 +69,10 @@ describe('RequestSpyMiddleware - bodies it does not parse reach the handler unto
   afterEach(() => {
     if (ORIGINAL_NODE_ENV === undefined) {
       delete process.env.NODE_ENV;
+
       return;
     }
+
     process.env.NODE_ENV = ORIGINAL_NODE_ENV;
   });
 

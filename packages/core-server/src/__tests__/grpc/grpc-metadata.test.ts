@@ -128,6 +128,7 @@ describe('GrpcControllerMetadataMixin', () => {
 
       expect(result).toBeDefined();
       expect(Array.isArray(result!.authorize)).toBe(true);
+
       if (Array.isArray(result!.authorize)) {
         expect(result!.authorize.length).toBe(2);
       }

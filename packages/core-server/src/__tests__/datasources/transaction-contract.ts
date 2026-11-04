@@ -15,6 +15,7 @@ export const runTransactionContract = (opts: { connector: string; probe: ITransa
       const transaction = await probe.begin({ failOn: 'COMMIT' });
 
       let caught: unknown;
+
       try {
         await transaction.commit();
       } catch (error) {
@@ -29,6 +30,7 @@ export const runTransactionContract = (opts: { connector: string; probe: ITransa
       const transaction = await probe.begin({ failOn: 'ROLLBACK' });
 
       let caught: unknown;
+
       try {
         await transaction.rollback();
       } catch (error) {
@@ -43,6 +45,7 @@ export const runTransactionContract = (opts: { connector: string; probe: ITransa
       await transaction.commit();
 
       let caught: unknown;
+
       try {
         await transaction.commit();
       } catch (error) {
@@ -57,6 +60,7 @@ export const runTransactionContract = (opts: { connector: string; probe: ITransa
       await transaction.commit();
 
       let caught: unknown;
+
       try {
         await transaction.rollback();
       } catch (error) {
@@ -70,11 +74,13 @@ export const runTransactionContract = (opts: { connector: string; probe: ITransa
       const transaction = await probe.begin({ failOn: 'COMMIT' });
 
       let commitError: unknown;
+
       try {
         await transaction.commit();
       } catch (error) {
         commitError = error;
       }
+
       expect(commitError).toBeDefined();
 
       // The canonical caller shape is `catch (error) { await transaction.rollback(); throw error; }`, where a throw here would replace `commitError` with a meaningless "already ended".
@@ -85,11 +91,13 @@ export const runTransactionContract = (opts: { connector: string; probe: ITransa
       const transaction = await probe.begin({ failOn: 'ROLLBACK' });
 
       let rollbackError: unknown;
+
       try {
         await transaction.rollback();
       } catch (error) {
         rollbackError = error;
       }
+
       expect(rollbackError).toBeDefined();
 
       await transaction.rollback();

@@ -10,6 +10,7 @@ export class AssetRouteOptions {
     override: Omit<TStaticAssetRouteConfig, 'enabled'>;
   } {
     const { enabled, ...override } = opts.route ?? {};
+
     return { isEnabled: enabled !== false, override };
   }
 

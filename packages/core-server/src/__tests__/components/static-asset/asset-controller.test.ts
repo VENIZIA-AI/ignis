@@ -45,6 +45,7 @@ class TestApplication extends BaseApplication {
 
 const readJson = async (response: Response): Promise<Record<string, any>> => {
   const result = await response.json();
+
   return result as Record<string, any>;
 };
 
@@ -57,11 +58,13 @@ class FakeMetaLinkRepository {
     this.sequence += 1;
     const row = { id: String(this.sequence), ...opts.data };
     this.rows.push(row);
+
     return { count: 1, data: row };
   }
 
   async findOne(opts: { filter?: { where?: Record<string, AnyType> } }) {
     const where = opts.filter?.where ?? {};
+
     return (
       this.rows.find((row) => Object.entries(where).every(([key, value]) => row[key] === value)) ??
       null
@@ -80,6 +83,7 @@ class FakeMetaLinkRepository {
     }
 
     Object.assign(row, opts.data);
+
     return { count: 1, data: row };
   }
 
@@ -88,9 +92,11 @@ class FakeMetaLinkRepository {
     const matched = this.rows.filter((row) =>
       Object.entries(opts.where).every(([key, value]) => row[key] === value),
     );
+
     for (const row of matched) {
       Object.assign(row, opts.data);
     }
+
     return { count: matched.length, data: matched };
   }
 
@@ -102,6 +108,7 @@ class FakeMetaLinkRepository {
     const count = this.rows.length - kept.length;
     this.rows.length = 0;
     this.rows.push(...kept);
+
     return { count, data: null };
   }
 }
@@ -158,6 +165,7 @@ const mountAssetController = async (opts: {
   const server = application.getServer() as OpenAPIHono;
   server.onError(new AppErrorMiddleware({ logger: application.logger }).value());
   server.route(TEST_CONFIGS.path.base, application.getRootRouter());
+
   return server;
 };
 
@@ -182,7 +190,9 @@ const uploadFiles = async (opts: {
   for (const file of files) {
     formData.append(fieldName, file);
   }
+
   const labelsEntries = Object.entries(labels ?? {});
+
   for (const [key, value] of labelsEntries) {
     formData.append(key, value);
   }
@@ -334,6 +344,7 @@ describe('StaticAsset controller - a missing object is a 404, and only a missing
   test('a storage failure that is not a missing object still answers 500', async () => {
     const helper = new FakeStorageHelper();
     const router = await mountAssetController({ helper });
+
     helper.getStat = async () => {
       throw new Error('connection reset by peer');
     };
@@ -477,6 +488,7 @@ describe('StaticAsset controller — multipart upload edge cases', () => {
       options: {
         normalizeNameFn: ({ file }) => {
           seen.push({ originalName: file.originalName, folderPath: file.folderPath });
+
           return file.folderPath ? `${file.folderPath}/${file.originalName}` : file.originalName;
         },
       },
@@ -689,6 +701,7 @@ describe('StaticAsset controller — resolveObjectName hook', () => {
       helper,
       resolveObjectName: (hookOptions) => {
         seen.push({ ...hookOptions });
+
         return hookOptions.file.originalName;
       },
     });
@@ -731,6 +744,7 @@ describe('StaticAsset controller — resolveObjectName hook', () => {
       options: { normalizeNameFn: ({ file }) => `custom-${file.originalName}` },
       resolveObjectName: (hookOptions) => {
         seen.push(hookOptions.defaultKey);
+
         return hookOptions.defaultKey;
       },
     });
@@ -788,6 +802,7 @@ describe('StaticAsset controller — defineExtraRoutes hook', () => {
           },
           handler: async (context) => {
             const buckets = await hookHelper.getBuckets();
+
             return context.json({ buckets: buckets.length }, HTTP.ResultCodes.RS_2.Ok);
           },
         });
@@ -875,6 +890,7 @@ describe('StaticAsset controller — a configured bucket', () => {
       helper,
       bucket: () => {
         bucketCalls += 1;
+
         return 'images';
       },
     });
@@ -1047,6 +1063,7 @@ describe('StaticAsset controller — the OpenAPI document', () => {
       expect(responses['4XX']).toMatchObject({ content: errorContent });
       expect(responses['5XX']).toMatchObject({ content: errorContent });
     }
+
     expect(document.components?.schemas?.ErrorResponse).toMatchObject({ type: 'object' });
   });
 });
@@ -1304,6 +1321,7 @@ describe('the upload query carries a display order', () => {
         repository: {
           create: async (opts: { data: Record<string, unknown> }) => {
             created.push(opts.data);
+
             return { count: 1, data: { id: 'meta-1', ...opts.data } };
           },
         } as never,
@@ -1330,6 +1348,7 @@ describe('the upload query carries a display order', () => {
         repository: {
           create: async (opts: { data: Record<string, unknown> }) => {
             created.push(opts.data);
+
             return { count: 1, data: { id: 'meta-1', ...opts.data } };
           },
         } as never,
@@ -1386,6 +1405,7 @@ describe('labels in the query are refused, before the body is read', () => {
     ({
       create: async (opts: { data: Record<string, unknown> }) => {
         created.push(opts.data);
+
         return { count: 1, data: { id: 'meta-1', ...opts.data } };
       },
     }) as never;

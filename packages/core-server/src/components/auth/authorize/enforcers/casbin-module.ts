@@ -5,6 +5,7 @@ export class CasbinModule {
   static async load(): Promise<typeof import('casbin')> {
     try {
       const result = await import('casbin');
+
       return result;
     } catch {
       throw getError({

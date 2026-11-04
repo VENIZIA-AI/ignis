@@ -36,6 +36,7 @@ export class ServiceAssertionSignerService extends BaseService {
   /** `<name>_<rest path without its slash>`, so a rotated mount changes the kid rather than colliding. */
   getKeyId(): string {
     const restPath = this.options.rest?.path ?? ServiceAssertion.DEFAULT_REST_PATH;
+
     return this.options.keys?.kid ?? `${this.options.name}_${restPath.replace(/^\//, '')}`;
   }
 
@@ -70,6 +71,7 @@ export class ServiceAssertionSignerService extends BaseService {
       .setExpirationTime(now + lifetime);
 
     const privateKey = await this.resolvePrivateKey();
+
     return assertion.sign(privateKey);
   }
 
@@ -116,6 +118,7 @@ export class ServiceAssertionSignerService extends BaseService {
     const raw = await this.readKey({ source: this.options.keys!.private });
     const result = await importPKCS8(raw, ServiceAssertion.ALGORITHM);
     this.privateKey = result;
+
     return this.privateKey;
   }
 

@@ -117,6 +117,7 @@ export class HealthCheckController extends BaseRestController {
       this.logger
         .for(this.binding.name)
         .debug('Stats route disabled | path: %s', HealthCheckRestPaths.STATS);
+
       return;
     }
 

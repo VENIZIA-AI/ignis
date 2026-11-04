@@ -29,6 +29,7 @@ class BannerApplication extends BaseApplication {
 const captureBanner = (): string[] => {
   const application = new BannerApplication({ scope: 'BannerApp', config: TEST_CONFIGS });
   const lines: string[] = [];
+
   const record = (message: string, ...args: unknown[]) => {
     lines.push(args.reduce<string>((text, value) => text.replace('%s', String(value)), message));
   };

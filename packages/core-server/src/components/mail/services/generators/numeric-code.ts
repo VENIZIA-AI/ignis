@@ -13,6 +13,7 @@ export class NumericCodeGenerator extends BaseHelper implements IVerificationCod
   generateCode(length: number): string {
     const max = Math.pow(10, length);
     const code = NumericCodeGenerator.getRandomBelow({ max });
+
     return code.toString().padStart(length, '0');
   }
 
@@ -30,9 +31,11 @@ export class NumericCodeGenerator extends BaseHelper implements IVerificationCod
     }
 
     const limit = DRAW_RANGE - (DRAW_RANGE % max);
+
     for (;;) {
       const bytes = crypto.getRandomValues(new Uint8Array(DRAW_BYTES));
       let value = 0;
+
       for (const byte of bytes) {
         value = value * 256 + byte;
       }

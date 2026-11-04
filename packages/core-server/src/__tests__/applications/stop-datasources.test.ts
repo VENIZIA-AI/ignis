@@ -90,6 +90,7 @@ const CONFIGS: IApplicationConfigs = {
 const buildApplication = (): StopApplication => {
   const application = new StopApplication({ scope: StopApplication.name, config: CONFIGS });
   application.init();
+
   return application;
 };
 
@@ -144,6 +145,7 @@ describe('stop() closes the datasources the application configured', () => {
     } as AnyType;
 
     let stopResult: unknown;
+
     try {
       await application.stop();
     } catch (error) {
