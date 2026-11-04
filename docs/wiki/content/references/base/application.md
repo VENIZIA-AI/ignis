@@ -410,7 +410,7 @@ interface IApplicationConfigs {
 }
 ```
 
-`error.environment` names the host's ambient environment. Set it where there is none to read - a browser Worker - so the error middleware can tell "no ambient environment" from "misconfigured". `BaseApplication` ignores it and reads `process.env.NODE_ENV`; only `RestApplication` and `WorkerApplication` pass it to the error middleware.
+`error.environment` names the host's ambient environment. Set it where there is none to read - a browser Worker - so the error middleware can tell "no ambient environment" from "misconfigured". `BaseApplication` ignores it and reads `process.env.NODE_ENV`; every other application class passes it to the error middleware.
 
 There is no `host` and no `port` here: a browser Worker has neither. `@venizia/ignis` widens the shape for hosts that bind a socket:
 

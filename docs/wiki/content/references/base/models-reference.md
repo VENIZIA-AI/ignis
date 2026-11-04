@@ -562,7 +562,7 @@ await postRepository.find({
 
 - **What they are.** Helper classes in the PostgreSQL connector whose static methods return an object of Drizzle ORM column definitions.
 - **How to use them.** Spread a `generateColumnDefs` result into a `pgTable` definition to add common, standardized fields.
-- **Convenience wrappers.** Each `enrich` method takes an existing column definitions object (as `baseColumns` or `baseSchema`) and merges the generated columns into it.
+- **Convenience wrappers.** Each `enrich` method takes one object, `{ baseColumns, opts }` for the id enricher and `{ baseSchema, opts }` for the others, and merges the generated columns into the column definitions it names.
 
 | Enricher class | Purpose |
 | :--- | :--- |
@@ -640,7 +640,7 @@ Notes:
 Convenience wrapper:
 
 ```typescript
-PostgresIdEnricher.enrich(baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions): TColumnDefinitions
+PostgresIdEnricher.enrich(opts: { baseColumns: TColumnDefinitions; opts?: TIdEnricherOptions }): TColumnDefinitions
 ```
 
 ### `PostgresTzEnricher.generateColumnDefs`
@@ -693,7 +693,7 @@ A generated CRUD route never takes `createdAt` or `modifiedAt` from the request 
 Convenience wrapper:
 
 ```typescript
-PostgresTzEnricher.enrich(baseSchema: TColumnDefinitions, opts?: TTzEnricherOptions): TColumnDefinitions
+PostgresTzEnricher.enrich(opts: { baseSchema: TColumnDefinitions; opts?: TTzEnricherOptions }): TColumnDefinitions
 ```
 
 <details>
@@ -784,10 +784,10 @@ The enricher validates `dataType` and throws for invalid values (only `'number'`
 Convenience wrapper:
 
 ```typescript
-PostgresUserAuditEnricher.enrich<ColumnDefinitions extends TColumnDefinitions>(
-  baseSchema: ColumnDefinitions,
-  opts?: TUserAuditEnricherOptions,
-): TUserAuditEnricherResult<ColumnDefinitions>
+PostgresUserAuditEnricher.enrich<ColumnDefinitions extends TColumnDefinitions>(opts: {
+  baseSchema: ColumnDefinitions;
+  opts?: TUserAuditEnricherOptions;
+}): TUserAuditEnricherResult<ColumnDefinitions>
 ```
 
 ### `PostgresPrincipalEnricher.generateColumnDefs`
@@ -842,10 +842,10 @@ export const commentTable = pgTable('Comment', {
 Convenience wrapper:
 
 ```typescript
-PostgresPrincipalEnricher.enrich<ColumnDefinitions extends TColumnDefinitions>(
-  baseSchema: ColumnDefinitions,
-  opts: TPrincipalEnricherOptions,
-): ColumnDefinitions & TPrincipalColumnDef
+PostgresPrincipalEnricher.enrich<ColumnDefinitions extends TColumnDefinitions>(opts: {
+  baseSchema: ColumnDefinitions;
+  opts: TPrincipalEnricherOptions;
+}): ColumnDefinitions & TPrincipalColumnDef
 ```
 
 ### `PostgresDataTypeEnricher.generateColumnDefs`
@@ -912,7 +912,7 @@ export class AppConfig extends BaseEntity<typeof AppConfig.schema> {
 Convenience wrapper:
 
 ```typescript
-PostgresDataTypeEnricher.enrich(baseSchema: TColumnDefinitions, opts?: TDataTypeEnricherOptions): TColumnDefinitions
+PostgresDataTypeEnricher.enrich(opts: { baseSchema: TColumnDefinitions; opts?: TDataTypeEnricherOptions }): TColumnDefinitions
 ```
 
 ## Key types
