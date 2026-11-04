@@ -4,6 +4,7 @@ import type { IScanReport, IScannedArtifact } from './common';
 import { ArtifactIndexEmitter } from './emitter';
 import { ArtifactScanner } from './scanner';
 
+/** Options for writing or checking the artifact index file. */
 export interface IGenerateOptions {
   root: string;
   out: string;

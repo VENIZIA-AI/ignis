@@ -1,6 +1,7 @@
 import type { AnyType, TClass } from '@venizia/ignis-helpers';
 import type { TArtifactIndexField, TArtifactType, TScanSkipReason } from './constants';
 
+/** A decorated class the scanner put in the index. */
 export interface IScannedArtifact {
   className: string;
   /** Absolute path of the declaring file. */
@@ -8,6 +9,7 @@ export interface IScannedArtifact {
   type: TArtifactType;
 }
 
+/** Options for one scan of a source tree. */
 export interface IScanOptions {
   root: string;
   /** Glob patterns relative to `root`; defaults to `ArtifactStereotypes.DEFAULT_IGNORE`. */
