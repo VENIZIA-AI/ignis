@@ -64,7 +64,11 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   protected findOnePath?: string;
   /** The page size `find` asks for when its filter names no limit. Absent, the server's own default applies. */
   protected defaultLimit?: number;
-  /** The segment after the resource that names the IGNIS search route. */
+  /**
+   * The segment after the resource that names the IGNIS search route.
+   *
+   * @default 'search'
+   */
   protected searchPath: string;
 
   constructor(opts: {

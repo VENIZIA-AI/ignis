@@ -57,7 +57,7 @@ const buildUserAuditColumn = (opts: {
   }
 };
 
-/** Adds `createdBy` and `modifiedBy` columns filled from the current audit user; both default to integer columns and allow anonymous callers. */
+/** Adds `createdBy` and `modifiedBy` columns filled from the current audit user. */
 export class PostgresUserAuditEnricher {
   static generateColumnDefs(opts?: TUserAuditEnricherOptions) {
     const {

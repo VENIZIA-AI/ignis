@@ -31,6 +31,20 @@ export interface ITypesenseTuning {
   /**
    * Typesense's own `sort_by`, for the sorts `filter.order` cannot name: `_text_match:desc,_eval([(status:=ACTIVATED):1]):desc,createdAt:desc`.
    * At most three top-level entries, `_eval(...)` counted as one; field names are Typesense's to check. Give it instead of `filter.order`, never with it.
+   *
+   * @example
+   * ```typescript
+   * import { DefaultSearchRepository } from '@venizia/ignis-connectors/typesense';
+   *
+   * declare const repository: DefaultSearchRepository<{ name: string }>;
+   *
+   * await repository.search({
+   *   mode: 'keyword',
+   *   query: 'shoes',
+   *   queryBy: ['name'],
+   *   engineParams: { sortBy: '_text_match:desc,createdAt:desc' },
+   * });
+   * ```
    */
   sortBy?: string;
 }

@@ -1,11 +1,16 @@
 import type { ISearchConnectorCallbacks } from '@/search/core';
 import type { ITypesenseClientLike, ITypesenseNode } from './client';
 
-/** Options of `TypesenseConnector`. `connectionTimeoutSeconds` defaults to 5 and applies to the whole client. */
+/** Options of `TypesenseConnector`. */
 export interface ITypesenseConnectorOptions extends ISearchConnectorCallbacks {
   name: string;
   nodes: ITypesenseNode[];
   apiKey: string;
+  /**
+   * Timeout of the whole client, in seconds.
+   *
+   * @default 5
+   */
   connectionTimeoutSeconds?: number;
   numRetries?: number;
   scope?: string;
@@ -21,7 +26,7 @@ export interface ITypesenseConnectorOptions extends ISearchConnectorCallbacks {
 /** What a call can say about itself. */
 export interface ITypesenseCallOptions {
   /**
-   * Overrides the client's `connectionTimeoutSeconds` (5 s by default) for this call: a positive integer of milliseconds.
+   * Overrides the client's `connectionTimeoutSeconds` for this call: a positive integer of milliseconds.
    * It is how long to wait for the engine's answer and, once a body is arriving, the longest silence before the call fails;
    * it is not a deadline for the whole transfer. A call that answers late (an import, a schema change) needs it; a stream
    * whose reader pauses (an import of each batch, a slow disk) needs it larger than the longest pause.

@@ -1,8 +1,13 @@
 import type { TFilter } from '@venizia/ignis-filter';
 
-/** A credential the HTTP datasource attaches to a request: `Authorization: <type> <value>` (`type` defaults to `Bearer`), and `provider`, when set, as the `x-auth-provider` header. */
+/** A credential the HTTP datasource attaches to a request: `Authorization: <type> <value>`, and `provider`, when set, as the `x-auth-provider` header. */
 export interface IAuthToken {
   value: string;
+  /**
+   * The authorization scheme.
+   *
+   * @default 'Bearer'
+   */
   type?: string;
   provider?: string;
 }

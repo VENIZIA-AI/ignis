@@ -10,6 +10,27 @@ import { IsolationLevels } from './common';
  * Postgres's half of the transaction seam: supplies the BEGIN statement the inherited
  * `beginTransaction()` delegates to, then attaches `isolationLevel` - a Postgres-only field the
  * neutral `IRelationalTransaction` has no concept of.
+ *
+ * @example
+ * ```typescript
+ * import { BasePostgresDataSource, datasource } from '@venizia/ignis';
+ * import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
+ * import { Pool } from 'pg';
+ *
+ * export @datasource({ driver: NodePostgresDriver }) class AppDataSource extends BasePostgresDataSource<{ host: string }> {
+ *   constructor() {
+ *     super({ name: 'AppDataSource', config: { host: 'localhost' } });
+ *   }
+ *
+ *   override configure() {
+ *     this.client = new Pool(this.settings);
+ *   }
+ *
+ *   override getConnectionString() {
+ *     return `postgresql://${this.settings.host}/app`;
+ *   }
+ * }
+ * ```
  */
 export abstract class BasePostgresDataSource<
   Settings extends object = {},

@@ -18,26 +18,43 @@ export type TDataTypeEnricherOptions = {
  * deleted row's id, matching Postgres `generatedAlwaysAsIdentity`.
  */
 export type TIdEnricherOptions = {
+  /** @default { dataType: 'number' } */
   id?:
-    | { dataType: 'string'; generator?: () => string }
-    | { dataType: 'number'; autoIncrement?: boolean };
+    | {
+        dataType: 'string';
+        /**
+         * Builds each new id.
+         *
+         * @default a UUID v7
+         */
+        generator?: () => string;
+      }
+    | {
+        dataType: 'number';
+        /** @default true */
+        autoIncrement?: boolean;
+      };
 };
 
-/** Options of `SqlitePrincipalEnricher`: the discriminator name (default `principal`), the id column type, and whether the id and the type column are nullable. */
+/** Options of `SqlitePrincipalEnricher`: the discriminator name, the id column type, and whether the id and the type column are nullable. */
 export type TPrincipalEnricherOptions<
   Discriminator extends string = string,
   PolymorphicIdType extends TIdSchemaType = TIdSchemaType,
   Nullable extends boolean = false,
   NullableDiscriminator extends boolean = true,
 > = {
+  /** @default 'principal' */
   discriminator?: Discriminator;
   defaultPolymorphic?: string;
   polymorphicIdType: PolymorphicIdType;
+  /** @default false */
   isNullableId?: Nullable;
   /**
-   * `true` (default) leaves the `{discriminator}Type` column nullable with a `''` default. `false`
+   * `true` leaves the `{discriminator}Type` column nullable with a `''` default. `false`
    * makes it `NOT NULL` with no default, so an insert must give the type; a `defaultPolymorphic`
    * keeps that default.
+   *
+   * @default true
    */
   isNullableDiscriminator?: NullableDiscriminator;
 };
@@ -45,23 +62,29 @@ export type TPrincipalEnricherOptions<
 /**
  * No `withTimezone` twin of the Postgres options: with no `timestamptz`, every timestamp is an ISO
  * 8601 UTC string carrying its own offset. Omitting `enable` opts the column IN - only
- * `enable: false` drops it. Omitting the key keeps the default: `modified` on, `deleted` off.
+ * `enable: false` drops it.
  */
 export type TTzEnricherOptions = {
+  /** @default { columnName: 'created_at' } */
   created?: { columnName: string };
+  /** @default { enable: true, columnName: 'modified_at' } */
   modified?: { enable: false } | { enable?: true; columnName: string };
+  /** @default { enable: false } */
   deleted?: { enable: false } | { enable?: true; columnName: string };
 };
 
-/** One audit column of `SqliteUserAuditEnricher`: its id type (`number` or `string`), its column name, and whether a missing user is allowed (`allowAnonymous`, true when omitted). */
+/** One audit column of `SqliteUserAuditEnricher`: its id type (`number` or `string`), its column name, and whether a missing user is allowed (`allowAnonymous`). */
 export type TUserAuditColumnOpts = {
   dataType: TIdSchemaType;
   columnName: string;
+  /** @default true */
   allowAnonymous?: boolean;
 };
 
-/** Options of `SqliteUserAuditEnricher`: the `created` and `modified` user columns; an omitted one defaults to a nullable `number` column (`created_by`, `modified_by`). */
+/** Options of `SqliteUserAuditEnricher`: the `created` and `modified` user columns. */
 export type TUserAuditEnricherOptions = {
+  /** @default { dataType: 'number', columnName: 'created_by', allowAnonymous: true } */
   created?: TUserAuditColumnOpts;
+  /** @default { dataType: 'number', columnName: 'modified_by', allowAnonymous: true } */
   modified?: TUserAuditColumnOpts;
 };

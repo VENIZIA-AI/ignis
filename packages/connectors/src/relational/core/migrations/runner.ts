@@ -49,7 +49,11 @@ export class RelationalMigrationRunner extends BaseHelper {
 
   constructor(opts: {
     driver: IRelationalDriver<unknown>;
-    /** Defaults to `ignis_migrations`. Validated like a migration name. */
+    /**
+     * The table that records applied migrations. Validated like a migration name.
+     *
+     * @default 'ignis_migrations'
+     */
     ledgerTable?: string;
     scope?: string;
   }) {

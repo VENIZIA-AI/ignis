@@ -34,16 +34,23 @@ export const MEILISEARCH_DEFAULT_FETCH_PAGE_SIZE = 1000;
 /** Documents per merge-PUT batch. Bounded by the server's payload limit, not by a document count. */
 export const MEILISEARCH_DEFAULT_UPDATE_BATCH_SIZE = 1000;
 
-/** Options of `MeilisearchConnector`. `taskTimeoutMs` defaults to 5 minutes and `taskIntervalMs` to 50 ms, the starting poll interval, which doubles up to a 1 s ceiling. */
+/** Options of `MeilisearchConnector`. */
 export interface IMeilisearchConnectorOptions {
   name: string;
   host: string;
   apiKey?: string;
 
-  /** Ceiling for awaiting a write task. The SDK's own `waitForTask` defaults to 5000 ms, far too short for a bulk import, so this connector never relies on that default. */
+  /** Ceiling for awaiting a write task. The SDK's own `waitForTask` defaults to 5000 ms, far too short for a bulk import, so this connector never relies on that default.
+   *
+   * @default 300_000
+   */
   taskTimeoutMs?: number;
 
-  /** Poll interval while awaiting a task. */
+  /**
+   * Starting poll interval while awaiting a task; it doubles up to a 1 s ceiling.
+   *
+   * @default 50
+   */
   taskIntervalMs?: number;
 
   scope?: string;

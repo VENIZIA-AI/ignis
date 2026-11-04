@@ -724,8 +724,10 @@ export class TypesenseConnector extends BaseSearchConnector {
       dirtyValues?: TTypesenseDirtyValue;
       /**
        * Opt-in. When some rows are rejected, throw `422` after the last batch, with the counts in `extra.details` and
-       * every per-row response on the error's `responses`. The default stays: a rejected row is in `count.fail` and
+       * every per-row response on the error's `responses`. Off, a rejected row is in `count.fail` and
        * `responses` of the result and nothing throws.
+       *
+       * @default false
        */
       throwOnFail?: boolean;
     } & ITypesenseCallOptions,
