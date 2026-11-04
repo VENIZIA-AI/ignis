@@ -40,7 +40,6 @@
     "middleware",
     "mixin",
     "model",
-    "nodejs",
     "nodemailer",
     "openapi",
     "orm",
