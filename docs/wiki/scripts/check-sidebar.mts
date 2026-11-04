@@ -30,6 +30,7 @@ const linked = new Set(
 );
 
 const pages: Array<string> = [];
+
 for await (const file of new Glob('**/*.md').scan(CONTENT)) {
   pages.push(file.replace(/\.md$/, ''));
 }
@@ -38,18 +39,22 @@ const orphans = pages
   .filter((page) => !UNLISTED.some((pattern) => pattern.test(page)))
   .filter((page) => {
     const asDirectory = page.endsWith('/index') ? page.slice(0, -'/index'.length) : null;
+
     return !linked.has(page) && !(asDirectory !== null && linked.has(asDirectory));
   });
 
 const dead = [...new Set([...linked])].filter((link) => {
   const candidates = [link, `${link}/index`, link.replace(/\/index$/, '')];
+
   return !candidates.some((candidate) => pages.includes(candidate));
 });
 
 const problems: Array<string> = [];
+
 if (orphans.length > 0) {
   problems.push(`${orphans.length} page(s) no menu links to:\n  ${orphans.sort().join('\n  ')}`);
 }
+
 if (dead.length > 0) {
   problems.push(`${dead.length} menu link(s) with no page:\n  ${dead.sort().join('\n  ')}`);
 }
