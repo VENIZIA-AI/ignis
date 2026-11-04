@@ -1,4 +1,3 @@
-import type { TScopeWriteOperation } from '../common/constants';
 import type {
   IdType,
   IExtraOptions,
@@ -17,12 +16,14 @@ import type {
   TLockOptions,
   TRepositoryOperationScope,
   TRow,
+  TScopeOperation,
   TWhere,
 } from '@venizia/ignis-kernel';
 import {
   AbstractRepository,
   ScopeFilterMissingBehaviors,
   ScopeFilters,
+  ScopeOperations,
 } from '@venizia/ignis-kernel';
 // Deep import, not the `@/relational/core/datasources` barrel: the barrel pulls the datasource classes, which import the engine branch's dialect and executor - an init cycle back into this tier.
 import type { IRelationalDataSource } from '@/relational/core/datasources/common';
@@ -192,7 +193,7 @@ export abstract class RelationalBaseRepository<
    */
   protected guardScopedWrite<Row extends Record<string, unknown>>(opts: {
     rows: Row[];
-    operation: TScopeWriteOperation;
+    operation: TScopeOperation;
   }): Row[] {
     const settings = this.getAccessSettings();
     if (!settings) {
@@ -220,7 +221,7 @@ export abstract class RelationalBaseRepository<
   protected applyScopeFilter<DO = any>(opts: {
     userFilter?: TFilter<DO>;
     dangerouslySkipScopeFilter?: boolean;
-    mutation?: string;
+    mutation?: TScopeOperation;
   }): TFilter<DO> {
     const { userFilter, dangerouslySkipScopeFilter, mutation } = opts;
 
@@ -233,7 +234,7 @@ export abstract class RelationalBaseRepository<
       return userFilter ?? {};
     }
 
-    const scopeWhere = scopeFilterSettings.resolve();
+    const scopeWhere = scopeFilterSettings.resolve({ operation: mutation ?? ScopeOperations.READ });
 
     // Checked by exact symbol identity, before the null/undefined branch below: only this literal
     // value can skip scoping. A resolver that forgets a `return` on some branch produces
@@ -278,7 +279,7 @@ export abstract class RelationalBaseRepository<
     shouldSkipDefaultFilter?: boolean;
     dangerouslySkipScopeFilter?: boolean;
     /** The name of the write (`update`, `delete`) when the filter selects rows to change: the row scope then leaves out the shared rows unless `write.sharedRows`. */
-    mutation?: string;
+    mutation?: TScopeOperation;
   }): TFilter<DO> {
     const { userFilter, shouldSkipDefaultFilter, dangerouslySkipScopeFilter, mutation } = opts;
 

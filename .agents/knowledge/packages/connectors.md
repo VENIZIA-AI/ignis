@@ -428,6 +428,19 @@ also unscope every ordinary user whose `resolve()` happens to return nothing. `U
 object, so no request body, query string, or header can ever produce it - the bypass can only come
 from code the application wrote and reviewed.
 
+**`resolve({ operation })` receives ONE concrete operation, never a group.** `ScopeOperations`
+(`base/repositories/common/constants.ts`, kernel) holds the concrete `READ`/`CREATE`/`UPDATE`/`DELETE`
+and the groups `WRITE` (the three writes) and `ALL`; `TScopeOperation` is the four concrete values and
+`TScopeOperationGroup` all six. `includes({ group, operation })` is the only membership check (no
+`isWrite`). `applyScopeFilter` passes `mutation ?? READ`; `persistable.ts` passes `CREATE`, `UPDATE`
+(payload check and row selection; `restore` too) and `DELETE` (a hard delete AND a soft delete: `SoftDeletableRepository`
+calls `_update({ operation: DELETE })`, so the stored update is a delete to the resolver); a `findOne` with a row `lock` passes `READ`;
+`applyRelationScopeFilter` (`dialect/filter.ts`) passes `READ`. One resolver can return a wide `or`
+for `READ` and a narrow scope for a write; an `or` over two columns on a write is still refused.
+`ScopeWriteGuard.apply` and `mutationWhere` throw a plain error when handed a `READ` (caller bug). Any operation but `CREATE` is a partial payload to `apply`. `mutationWhere` refuses a scope shape the guard cannot read even with `write.sharedRows` (which only keeps the null branch).
+No string literal of the six values may appear in the row-scope files - `scope-operation-literals.test.ts`
+greps for them. `AuthorizationActions` is a different domain and is deliberately not reused.
+
 **The write guard covers `create` and an update payload that names a scope column.** Scope is a
 `where` AND-ed into the query and an `INSERT` has no `where`, so the guard is a separate check
 (`relational/core/repositories/common/scope-write-guard.ts`, called from `_create` and `_update`

@@ -5,6 +5,7 @@ import {
   model,
   RelationTypes,
   ScopeFilterMissingBehaviors,
+  ScopeOperations,
 } from '@venizia/ignis-kernel';
 import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
 import type { TRelationConfig } from '@/relational/core/repositories/common';
@@ -142,6 +143,9 @@ let currentProductTenant: TTenantState = 'tenant-a';
 let currentAllowProductTenant: TNullable<string> = null;
 let currentReviewTenant: TTenantState = 'tenant-a';
 
+/** What the product and review resolvers were called with: an included relation is a READ. */
+let includeCalls: Array<unknown> = [];
+
 @model({
   type: 'entity',
   settings: {
@@ -167,7 +171,8 @@ class ScopeIncludeMerchantEntity extends BasePostgresEntity {
   type: 'entity',
   settings: {
     access: {
-      resolve: () => {
+      resolve: (context) => {
+        includeCalls.push(context);
         if (currentProductTenant === '__throw__') {
           throw new ScopeResolutionError('product scope resolution blew up');
         }
@@ -398,6 +403,7 @@ beforeEach(async () => {
   currentProductTenant = 'tenant-a';
   currentAllowProductTenant = null;
   currentReviewTenant = 'tenant-a';
+  includeCalls = [];
   await seed();
 });
 
@@ -443,6 +449,19 @@ describe('toInclude - the leak, proven closed', () => {
     });
 
     expect(merchant.products?.map((row) => row.name)).toEqual(['a-product']);
+  });
+});
+
+describe('toInclude - the included relation resolves its scope for a READ', () => {
+  test('the child resolver receives { operation: read }, and only that', async () => {
+    await merchantRepository.find<IMerchantRow>({
+      filter: { where: { id: 1 }, include: [{ relation: 'products' }] },
+    });
+
+    expect(includeCalls.length).toBeGreaterThan(0);
+    for (const context of includeCalls) {
+      expect(context).toEqual({ operation: ScopeOperations.READ });
+    }
   });
 });
 

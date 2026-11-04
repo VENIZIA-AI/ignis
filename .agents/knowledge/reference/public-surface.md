@@ -1220,7 +1220,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (411)
+### `@venizia/ignis-kernel` (414)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1482,6 +1482,7 @@ generated:
 - `SchemaTypes` class
 - `ScopeFilterMissingBehaviors` class
 - `ScopeFilters` class
+- `ScopeOperations` class
 - `ScopeWriteGuards` class
 - `SearchErrorCodes` class
 - `SecFetchSiteValues` const
@@ -1614,6 +1615,8 @@ generated:
 - `TRow` type
 - `TSchemaType` type
 - `TScopeFilterMissingBehavior` type
+- `TScopeOperation` type
+- `TScopeOperationGroup` type
 - `TScopeWriteGuard` type
 - `TSearchErrorCode` type
 - `TSecFetchSite` type
@@ -1702,7 +1705,7 @@ generated:
 
 ## connectors
 
-### `@venizia/ignis-connectors` (130)
+### `@venizia/ignis-connectors` (128)
 
 - `AbstractDriverDataSource` class
 - `AbstractRelationalDataSource` class
@@ -1785,7 +1788,6 @@ generated:
 - `RelationsFactory` class
 - `ScopeFilterDenial` class
 - `ScopeFilterUtility` class
-- `ScopeWriteOperations` class
 - `SearchBaseRepository` class
 - `SearchCollectionFactory` class
 - `SearchErrors` const
@@ -1818,7 +1820,6 @@ generated:
 - `TRelationDefinition` type
 - `TRelationDefinitions` type
 - `TRelationMetadata` type
-- `TScopeWriteOperation` type
 - `TSearchDocument` type
 - `TSearchFieldTsType` type
 - `TSearchFieldType` type
@@ -1871,7 +1872,7 @@ generated:
 - `TRawSqlQuery` type
 - `TRawSqlSchema` type
 
-### `@venizia/ignis-connectors/relational` (72)
+### `@venizia/ignis-connectors/relational` (70)
 
 - `AbstractRelationalDataSource` class
 - `AuditUserResolver` class
@@ -1918,7 +1919,6 @@ generated:
 - `RelationDeclarations` class
 - `RelationsFactory` class
 - `ScopeFilterDenial` class
-- `ScopeWriteOperations` class
 - `SoftDeletableRelationalRepository` class
 - `TableColumnCache` class
 - `TColumnDefinition` type
@@ -1939,7 +1939,6 @@ generated:
 - `TRelationDefinition` type
 - `TRelationDefinitions` type
 - `TRelationMetadata` type
-- `TScopeWriteOperation` type
 - `TSoftDeletableTableSchema` type
 - `TTableColumns` type
 - `TTableInsert` type
@@ -2352,7 +2351,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1002)
+### `@venizia/ignis` (1005)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2993,6 +2992,7 @@ generated:
 - `ScopedCasbinAdapter` class
 - `ScopeFilterMissingBehaviors` class
 - `ScopeFilters` class
+- `ScopeOperations` class
 - `ScopeWriteGuards` class
 - `SearchErrorCodes` class
 - `SecFetchSiteValues` const
@@ -3266,6 +3266,8 @@ generated:
 - `TS3Audience` type
 - `TSchemaType` type
 - `TScopeFilterMissingBehavior` type
+- `TScopeOperation` type
+- `TScopeOperationGroup` type
 - `TScopeWriteGuard` type
 - `TSearchErrorCode` type
 - `TSecFetchSite` type

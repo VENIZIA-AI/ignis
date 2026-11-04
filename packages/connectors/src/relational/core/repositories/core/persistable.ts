@@ -8,7 +8,7 @@ import type {
 import type { AnyType, TClass, TNullable } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IExtraOptions, TCount, TRepositoryLogOptions, TWhere } from '@venizia/ignis-kernel';
-import { RepositoryOperationScopes } from '@venizia/ignis-kernel';
+import { RepositoryOperationScopes, ScopeOperations } from '@venizia/ignis-kernel';
 import type { SQL } from 'drizzle-orm';
 import type { IRelationalExtraOptions } from '../common';
 import { ReadableRelationalRepository } from './readable';
@@ -85,7 +85,7 @@ export class PersistableRelationalRepository<
 
     const values = this.guardScopedWrite({
       rows: opts.data as Array<Record<string, unknown>>,
-      operation: 'create',
+      operation: ScopeOperations.CREATE,
     }) as Array<PersistObject>;
 
     const rs = await this.queryExecutor.insert<R>({
@@ -146,6 +146,10 @@ export class PersistableRelationalRepository<
     return this._create<R>({ data: opts.data, options });
   }
 
+  /**
+   * `operation` is what the row scope sees: UPDATE for an update (and a restore), DELETE for a
+   * soft delete, which is a delete to the caller even though it is stored as an update.
+   */
   protected async _update<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
@@ -153,7 +157,10 @@ export class PersistableRelationalRepository<
       shouldReturn?: boolean;
       force?: boolean;
     };
+    operation?: typeof ScopeOperations.UPDATE | typeof ScopeOperations.DELETE;
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
+    const { operation = ScopeOperations.UPDATE } = opts;
+
     const {
       shouldReturn = true,
       force = false,
@@ -166,12 +173,15 @@ export class PersistableRelationalRepository<
       this.logger.for('_update').log(log.level ?? 'info', 'Executing with opts: %j', opts);
     }
 
-    this.guardScopedWrite({ rows: [opts.data as Record<string, unknown>], operation: 'update' });
+    this.guardScopedWrite({
+      rows: [opts.data as Record<string, unknown>],
+      operation,
+    });
 
     const mergedFilter = this.applyDefaultFilter({
       userFilter: { where: opts.where },
       shouldSkipDefaultFilter,
-      mutation: 'update',
+      mutation: operation,
     });
     const mergedWhere = mergedFilter.where ?? opts.where;
 
@@ -282,7 +292,7 @@ export class PersistableRelationalRepository<
     const mergedFilter = this.applyDefaultFilter({
       userFilter: { where: opts.where },
       shouldSkipDefaultFilter,
-      mutation: 'delete',
+      mutation: ScopeOperations.DELETE,
     });
     const mergedWhere = mergedFilter.where ?? opts.where;
 

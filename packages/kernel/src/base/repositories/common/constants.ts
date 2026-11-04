@@ -148,3 +148,71 @@ export class LockStrengths {
 
 /** Valid lock strength values. */
 export type TLockStrength = TConstValue<typeof LockStrengths>;
+
+/**
+ * What a repository call does to rows, as the row scope (`@model` settings.access) sees it.
+ * `access.resolve` receives one CONCRETE operation (READ, CREATE, UPDATE or DELETE), never a group,
+ * so one function can answer a wide scope for a read and a narrow one for a write. WRITE and ALL
+ * are groups of concrete operations, for application code that asks "is this a write?".
+ */
+export class ScopeOperations {
+  // concrete: what a repository call is
+  static readonly READ = 'read';
+  static readonly CREATE = 'create';
+  static readonly UPDATE = 'update';
+  static readonly DELETE = 'delete';
+
+  // groups: sets of concrete operations
+  /** CREATE, UPDATE and DELETE. */
+  static readonly WRITE = 'write';
+  /** Every concrete operation. */
+  static readonly ALL = 'all';
+
+  /** All six values: the four concrete operations and the two groups. */
+  static readonly SCHEME_SET = new Set<string>([
+    this.READ,
+    this.CREATE,
+    this.UPDATE,
+    this.DELETE,
+    this.WRITE,
+    this.ALL,
+  ]);
+
+  /** The concrete operations: what `access.resolve` can receive. */
+  static readonly OPERATION_SET = new Set<string>([
+    this.READ,
+    this.CREATE,
+    this.UPDATE,
+    this.DELETE,
+  ]);
+
+  /** Which concrete operations each group holds. */
+  static readonly GROUP_MAP: ReadonlyMap<string, ReadonlySet<string>> = new Map([
+    [this.WRITE, new Set<string>([this.CREATE, this.UPDATE, this.DELETE])],
+    [this.ALL, this.OPERATION_SET],
+  ]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+
+  /**
+   * Whether `operation` belongs to `group`. A concrete operation includes itself and nothing else;
+   * WRITE includes CREATE, UPDATE and DELETE; ALL includes all four.
+   */
+  static includes(opts: { group: TScopeOperationGroup; operation: TScopeOperation }): boolean {
+    const { group, operation } = opts;
+
+    return group === operation || (this.GROUP_MAP.get(group)?.has(operation) ?? false);
+  }
+}
+
+/** The four concrete operations: what `access.resolve` receives. Never WRITE or ALL. */
+export type TScopeOperation =
+  | typeof ScopeOperations.READ
+  | typeof ScopeOperations.CREATE
+  | typeof ScopeOperations.UPDATE
+  | typeof ScopeOperations.DELETE;
+
+/** All six values: a concrete operation or a group. What `ScopeOperations.includes` takes as its group. */
+export type TScopeOperationGroup = TConstValue<typeof ScopeOperations>;
