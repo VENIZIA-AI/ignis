@@ -113,7 +113,7 @@ What the numbers say, honestly:
 
 - The whole saving is one file. `event-bus.test.ts` waited out its retry backoffs in real time (17.06 s alone); on Bun's fake clock it takes 0.16 s. That is about 16 s of a CI job whose own run-to-run spread is 140 s (the Build step alone ranges 72 to 120 s with no change to it), so the job median moved by 15 s and no single run proves it. The kernel step, which does not depend on the runner's mood, did.
 - Deleting duplicates saves no measurable time. 22 cases went (7 core-server, 2 kernel, 6 helpers, 4 connectors, 3 core-server); each ran in milliseconds. The value is maintenance: fewer places to change when a behaviour changes, and a ledger line that says which test still pins it.
-- The case count went UP by 14 because the work added what it needed: the four `devz check` tools (21 cases), the release-workflow guard test, the run watcher and tarball wait tests, the hint tests, two regression tests for BANA's findings. A trim is not a net deletion.
+- The case count went UP by 14 because the work added what it needed: the four `devz check` tools (21 cases), the release-workflow guard test, the run watcher and tarball wait tests, the hint tests, two regression tests for a downstream project's findings. A trim is not a net deletion.
 
 What was deleted, in the order of the slices: T1 rewrote two flaky tests (a wall-clock guard became a count of work; a memory test now waits for the collector), T2 put the event bus on a fake clock, T3 deleted nothing (see above), T4 deleted 22 duplicate cases, each with a named survivor that goes red under the same break.
 

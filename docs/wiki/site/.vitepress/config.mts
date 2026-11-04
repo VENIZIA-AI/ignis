@@ -651,7 +651,7 @@ const config = defineConfig({
           collapsed: true,
           items: [
             {
-              text: 'Unified Connectors (BANA)',
+              text: 'Unified Connectors (downstream upgrade)',
               link: '/guides/migrations/unified-connectors-migration',
             },
             {
@@ -663,7 +663,7 @@ const config = defineConfig({
               link: '/guides/migrations/redis-helpers-migration',
             },
             {
-              text: 'Boot API removal (BANA upgrade)',
+              text: 'Boot API removal (downstream upgrade)',
               link: '/guides/migrations/boot-api-removal-migration',
             },
           ],
