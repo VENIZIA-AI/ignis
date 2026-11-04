@@ -44,7 +44,9 @@ const NAME_LENGTHS: Record<keyof ITemporalLocaleNames, number> = {
   meridiem: 2,
 };
 
-const OUT_OF_RANGE = `outside the years ${TemporalCalendar.MIN_YEAR}-${TemporalCalendar.MAX_YEAR}`; /**
+const OUT_OF_RANGE = `outside the years ${TemporalCalendar.MIN_YEAR}-${TemporalCalendar.MAX_YEAR}`;
+
+/**
  * The machinery every temporal helper shares: the adapter, the zone and locale it holds, reading a
  * zone's offset, turning wall clocks into instants across daylight-saving gaps and repeats, and the
  * input checks. A helper extends this and supplies the operations in `ITemporalHelper`.
