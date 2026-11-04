@@ -28,7 +28,10 @@ export class NoUnbracedCaseRule {
         const [first] = statements;
         const last = statements[statements.length - 1];
 
-        if (statements.length === 1 && AstNode.getType({ node: first }) === 'BlockStatement') {
+        if (
+          statements.length === 1 &&
+          AstNode.getType({ node: first }) === AstNodeTypes.BLOCK_STATEMENT
+        ) {
           return;
         }
 
