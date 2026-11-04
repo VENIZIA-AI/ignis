@@ -1,10 +1,22 @@
 import { type TConstValue } from '../types';
 
-/** Application-wide defaults. `APPLICATION_NAME` reads `APP_ENV_APPLICATION_NAME` and falls back to `APP`; `QUERY_LIMIT` and `QUERY_OFFSET` are the paging defaults for a list query. */
+/** Application-wide defaults: the application name and the paging values of a list query. */
 export class Defaults {
+  /**
+   * The application name; reads `APP_ENV_APPLICATION_NAME`.
+   * @default 'APP'
+   */
   static readonly APPLICATION_NAME = globalThis.process?.env?.APP_ENV_APPLICATION_NAME ?? 'APP';
 
+  /**
+   * Rows a list query returns.
+   * @default 50
+   */
   static readonly QUERY_LIMIT = 50;
+  /**
+   * Rows a list query skips.
+   * @default 0
+   */
   static readonly QUERY_OFFSET = 0;
 }
 

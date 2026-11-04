@@ -4,12 +4,17 @@ import { PromiseUtility } from '@/utilities/promise.utility';
 import { CronJob, type CronOnCompleteCommand, CronTime } from 'cron';
 import { ApplicationError } from '../error';
 
-/** Options for `CronHelper`. `autoStart` defaults to `false`; `tz` is the time zone the schedule is read in. */
+/** Options for `CronHelper`. */
 export interface ICronHelperOptions {
   cronTime: string;
   onTick: () => void | Promise<void>;
   onCompleted?: CronOnCompleteCommand | null;
+  /**
+   * Starts the job on construction.
+   * @default false
+   */
   autoStart?: boolean;
+  /** The time zone the schedule is read in. */
   tz?: string;
   errorHandler?: (error: unknown) => void | null;
 }

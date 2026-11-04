@@ -16,7 +16,15 @@ export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
   /** `bullmq` itself, for a `bun build --compile` binary that has no `node_modules` to load it from. Omitted, it is loaded when a queue or worker is built. */
   module?: typeof import('bullmq');
 
+  /**
+   * Worker concurrency.
+   * @default 1
+   */
   numberOfWorker?: number;
+  /**
+   * How long a worker holds a job's lock, in milliseconds.
+   * @default 90 * 60 * 1000
+   */
   lockDuration?: number;
 
   /** Merged over the framework defaults, under the fields the helper owns (`connection`) - see `queueOptionsFor`. */
@@ -34,7 +42,7 @@ export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
 
 /**
  * Wraps a BullMQ `Queue` or `Worker` (per `role`) on one Redis connection.
- * Worker concurrency is `numberOfWorker` (default 1) and `lockDuration` is in milliseconds (default 90 minutes).
+ * Worker concurrency is `numberOfWorker`; `lockDuration` is in milliseconds.
  */
 export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseHelper {
   protected queueName: string;

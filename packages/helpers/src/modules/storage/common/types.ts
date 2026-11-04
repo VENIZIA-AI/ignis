@@ -127,7 +127,11 @@ export interface IStorageHelper {
     opts: IObjectLocation & {
       source: ReadableStream<Uint8Array> | Blob | Response | Request;
       contentType?: string;
-      /** Folder nesting the key may carry, as `upload` takes it. Omitted -> DEFAULT_MAX_FOLDER_DEPTH. */
+      /**
+       * Folder nesting the key may carry, as `upload` takes it.
+       *
+       * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
+       */
       maxFolderDepth?: number;
     },
   ): Promise<void>;

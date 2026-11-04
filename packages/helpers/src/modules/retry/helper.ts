@@ -260,13 +260,13 @@ export class RetryHelper extends BaseHelper {
     logger?: ILogger;
     operation: string;
 
-    /** Default 3. */
+    /** @default 3 */
     maxAttempts?: number;
 
-    /** Total budget across attempts AND sleeps. Default: unlimited. */
+    /** Total budget across attempts AND sleeps. Unlimited when omitted. */
     maxTotalMs?: number;
 
-    /** Per-attempt race. Default: no per-attempt timeout. */
+    /** Per-attempt race. No per-attempt timeout when omitted. */
     perAttemptTimeoutMs?: number;
 
     backoff?: IRetryBackoffOptions;
@@ -366,7 +366,7 @@ export class RetryHelper extends BaseHelper {
     logger?: ILogger;
     operation: string;
 
-    /** Default 3. */
+    /** @default 3 */
     maxAttempts?: number;
 
     /** Bounds when a NEW attempt may start; it never interrupts an attempt already in flight, so the first execution always runs to completion - a budget of 0 just means "no retries". */

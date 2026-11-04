@@ -14,11 +14,7 @@ export interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOption
   params?: AnyObject;
   body?: AnyObject;
   headers?: AnyObject;
-  /**
-   * Declared so the opt-out is TYPED. It used to reach the agent only through the
-   * `[extra: string]: any` index signature on {@link IRequestOptions}, which meant nothing told a
-   * caller the option existed, and nothing stopped a typo from silently doing nothing.
-   */
+  /** Whether this call rejects an HTTPS server whose certificate fails verification; `false` turns verification off for this call. */
   rejectUnauthorized?: boolean;
 }
 
@@ -44,9 +40,9 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
     defaultConfigs: AxiosRequestConfig;
     logger?: ILogger;
     /**
-     * Turns OFF certificate verification for this instance. Node's own default is `true` and so is
-     * this one; the previous code defaulted it to `false`, which silently accepted any certificate
-     * on every HTTPS request the framework made.
+     * Whether this instance rejects an HTTPS server whose certificate fails verification.
+     * `false` turns verification off.
+     * @default true
      */
     rejectUnauthorized?: boolean;
   }) {

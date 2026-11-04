@@ -303,7 +303,11 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     files: IUploadFile[];
     normalizeNameFn?: (opts: { file: TUploadNaming }) => string;
     normalizeLinkFn?: (opts: IObjectLocation) => string;
-    /** Folder nesting allowed. Omitted -> DEFAULT_MAX_FOLDER_DEPTH. */
+    /**
+     * Folder nesting allowed.
+     *
+     * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
+     */
     maxFolderDepth?: number;
   }): Promise<IUploadResult[]> {
     const { bucket, files, normalizeNameFn, normalizeLinkFn, maxFolderDepth } = opts;

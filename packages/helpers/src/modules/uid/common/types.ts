@@ -13,24 +13,40 @@ export interface IUidSegment {
   value?: string;
 }
 
-/** Options for generating an opaque id. Every field is optional and falls back to the default noted on it. */
+/** Options for generating an opaque id. Every field is optional. */
 export interface IOpaqueUidOptions {
-  /** Defaults to disabled. */
+  /** @default { enable: false } */
   prefix?: IUidSegment;
 
-  /** Defaults to disabled, with `_` ready. Meaningless without a prefix, and refused there. */
+  /**
+   * Meaningless without a prefix, and refused there. Enabled without a `value`, it is {@link DEFAULT_UID_DELIMITER}.
+   *
+   * @default { enable: false }
+   */
   delimiter?: IUidSegment;
 
-  /** Characters in the BODY. The prefix and the delimiter are not counted. */
+  /**
+   * Characters in the BODY. The prefix and the delimiter are not counted.
+   *
+   * @default DEFAULT_UID_LENGTH
+   */
   length?: number;
 
-  /** Defaults to `upper` - the alphabet default is uppercase-only, so anything else would widen it. */
+  /**
+   * Upper is the default because the default alphabet is uppercase-only, so anything else would widen it.
+   *
+   * @default UidCaseForms.UPPER
+   */
   caseForm?: TUidCaseForm;
 
-  /** Defaults to `UidAlphabets.CROCKFORD`. */
+  /** @default UidAlphabets.CROCKFORD */
   alphabet?: string;
 
-  /** Removed from `alphabet` on top of whatever the set already drops. */
+  /**
+   * Removed from `alphabet` on top of whatever the set already drops.
+   *
+   * @default ''
+   */
   exclude?: string;
 }
 
@@ -58,6 +74,10 @@ export interface INextOpaqueUidOptions<
    */
   isAvailable?: (id: string) => TVerdict;
 
-  /** Draws before giving up, when `isAvailable` is supplied. Defaults to {@link DEFAULT_UID_MAX_ATTEMPTS}. */
+  /**
+   * Draws before giving up, when `isAvailable` is supplied.
+   *
+   * @default DEFAULT_UID_MAX_ATTEMPTS
+   */
   maxAttempts?: number;
 }

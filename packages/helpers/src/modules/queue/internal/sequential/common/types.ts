@@ -19,8 +19,12 @@ export type TQueueStatus = ValueOf<Omit<typeof QueueStatuses, 'isValid' | 'SCHEM
 /** One queued item: `payload`, plus `isLocked` while a handler holds it. */
 export type TQueueElement<T> = { isLocked: boolean; payload: T };
 
-/** Hooks of a sequential queue. `autoDispatch` defaults to `true` in {@link SequentialQueueHelper}. */
+/** Hooks of a sequential queue. */
 export interface IQueueCallback<TElementPayload> {
+  /**
+   * Whether {@link SequentialQueueHelper} dispatches an element on its own.
+   * @default true
+   */
   autoDispatch?: boolean;
 
   onMessage?: (opts: {

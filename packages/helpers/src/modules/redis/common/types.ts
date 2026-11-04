@@ -5,7 +5,7 @@ import type { IRedisHelper } from './interfaces';
 /** The ioredis client a helper wraps: a single or Sentinel `Redis`, or a `Cluster`. */
 export type TRedisClient = Redis | Cluster;
 
-/** Connection settings for a single Redis node. `database` and `maxRetry` default to 0 in the helper; `autoConnect` defaults to true. */
+/** Connection settings for a single Redis node. */
 export interface IRedisSingleHelperProps {
   name: string;
   host: string;
@@ -13,8 +13,11 @@ export interface IRedisSingleHelperProps {
   user?: string;
   /** Omit it for a Redis with no password. */
   password?: string;
+  /** @default 0 */
   database?: number;
+  /** @default true */
   autoConnect?: boolean;
+  /** @default 0 */
   maxRetry?: number;
 }
 
@@ -22,22 +25,34 @@ export interface IRedisSingleHelperProps {
 export interface IRedisClusterHelperProps {
   name: string;
   nodes: Array<{ host: string; port: string | number; password?: string }>;
-  /** Same meaning as on single and sentinel: `false` holds the client open for a later `connect()`. */
+  /**
+   * Same meaning as on single and sentinel: `false` holds the client open for a later `connect()`.
+   *
+   * @default true
+   */
   autoConnect?: boolean;
   clusterOptions?: ClusterOptions;
 }
 
-/** Connection settings for Redis behind Sentinel. Sentinel `port` defaults to 26379, `role` to master, `database` and `maxRetry` to 0, `autoConnect` to true; `redisOptions` overrides the helper defaults. */
+/** Connection settings for Redis behind Sentinel. `redisOptions` overrides the helper defaults. */
 export interface IRedisSentinelHelperProps {
   name: string;
-  sentinels: Array<{ host: string; port?: string | number }>;
+  sentinels: Array<{
+    host: string;
+    /** @default 26379 */
+    port?: string | number;
+  }>;
   masterName: string;
+  /** @default RedisSentinelRoles.MASTER */
   role?: TRedisSentinelRole;
   password?: string;
   sentinelPassword?: string;
   sentinelUsername?: string;
+  /** @default 0 */
   database?: number;
+  /** @default true */
   autoConnect?: boolean;
+  /** @default 0 */
   maxRetry?: number;
   redisOptions?: Partial<RedisOptions>;
 }

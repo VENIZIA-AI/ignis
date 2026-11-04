@@ -20,16 +20,25 @@ import { S3Audiences, StorageUtility, StoragePresignDefaults } from '../common';
 import type { TS3Audience } from '../common';
 import { S3SignatureUtility } from './utility';
 
-/** Options for `BunS3Helper`. `region` defaults to `us-east-1`; `endpoint.public` defaults to `endpoint.default`; unset `partSize`, `queueSize` and `retry` leave Bun defaults in force. */
+/** Options for `BunS3Helper`. Unset `partSize`, `queueSize` and `retry` leave Bun defaults in force. */
 export interface IBunS3HelperOptions extends IStorageHelperOptions {
   accessKey: string;
   secretKey: string;
+  /** @default 'us-east-1' */
   region?: string;
   sessionToken?: string;
   /** `default` is the host THIS process talks to; `public` is the host a browser is handed. `host` is inside every SigV4 signature, so a URL signed against an internal name cannot be rewritten later - which is why the two are separate rather than one value patched afterwards. */
-  endpoint: { default: string; public?: string };
+  endpoint: {
+    default: string;
+    /** @default endpoint.default */
+    public?: string;
+  };
 
-  /** `https://<bucket>.<endpoint>/<key>` instead of `<endpoint>/<bucket>/<key>`. AWS requires it; MinIO and R2 do not. */
+  /**
+   * `https://<bucket>.<endpoint>/<key>` instead of `<endpoint>/<bucket>/<key>`. AWS requires it; MinIO and R2 do not.
+   *
+   * @default false
+   */
   virtualHostedStyle?: boolean;
   partSize?: number;
   queueSize?: number;

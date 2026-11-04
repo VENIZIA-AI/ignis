@@ -7,13 +7,16 @@ import {
   type TSocketIOValidateRoomFn,
 } from './hooks';
 
-/** Options shared by every Socket.IO server runtime. `authenticateTimeout` and `pingInterval` are milliseconds, defaulting to 10_000 and 30_000. */
+/** Options shared by every Socket.IO server runtime. `authenticateTimeout` and `pingInterval` are milliseconds. */
 export interface ISocketIOServerBaseOptions {
   identifier: string;
   serverOptions: Partial<ServerOptions>;
   redisConnection: IRedisHelper;
+  /** @default [SocketIOConstants.ROOM_DEFAULT, SocketIOConstants.ROOM_NOTIFICATION] */
   defaultRooms?: string[];
+  /** @default 10_000 */
   authenticateTimeout?: number;
+  /** @default 30_000 */
   pingInterval?: number;
 
   authenticateFn: TSocketIOAuthenticateFn;
