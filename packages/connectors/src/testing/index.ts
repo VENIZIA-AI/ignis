@@ -2,3 +2,4 @@
 export { TransactionStates } from '@/relational/core/datasources/transaction-lifecycle';
 export type { TTransactionState } from '@/relational/core/datasources/transaction-lifecycle';
 export * from './transaction-double';
+export * from './repository-double';

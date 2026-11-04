@@ -24,6 +24,7 @@ const TESTING_EXPORTS = [
   'PostgresTransactionDouble',
   'SqliteTransactionDouble',
   'TransactionStates',
+  'RepositoryDoubles',
 ];
 
 /** What the entry adds beside the connectors' doubles. */
