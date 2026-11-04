@@ -537,11 +537,14 @@ export class ScopeWriteGuard {
     });
   }
 
-  /** A model scoped through its parent is read through its parent: its writes are refused, so none is ever wider than its parent allows. */
-  static throughDenied(opts: { model: string; operation: TScopeOperation }) {
+  /**
+   * A write to a `through` model named no parent, a parent that does not exist, or one outside the caller's scope. One
+   * message for all three, so a foreign parent's existence does not leak.
+   */
+  static parentDenied(opts: { model: string; operation: TScopeOperation; column: string }) {
     return ScopeWriteGuard.denied({
       ...opts,
-      detail: 'access.through does not support writes',
+      detail: "the parent is missing or outside the caller's scope",
     });
   }
 

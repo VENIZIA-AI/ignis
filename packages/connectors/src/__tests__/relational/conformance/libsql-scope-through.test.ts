@@ -2,7 +2,7 @@ import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
 import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { datasource, model, ScopeFilters, ScopeThrough } from '@venizia/ignis-kernel';
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
 import { BaseSqliteDataSource } from '@/relational/sqlite/datasources';
@@ -213,5 +213,84 @@ describe('access.through on SQLite', () => {
     expect(scoped.map((row) => (row as AnyType).options.map((item: AnyType) => item.name))).toEqual(
       [['o1'], ['o2']],
     );
+  });
+});
+
+/** The text of the error a write raised, or '' when it went through. */
+const refusal = async (write: () => Promise<unknown>): Promise<string> => {
+  try {
+    await write();
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+
+  return '';
+};
+
+const variantNames = async (): Promise<string[]> => {
+  const { rows } = await client.execute(`SELECT name FROM ${VARIANT_TABLE} ORDER BY id`);
+
+  return rows.map((row) => String(row.name));
+};
+
+describe('a write to a through model on SQLite', () => {
+  test('a create names a parent the caller may reach; a foreign and a missing parent give the same refusal', async () => {
+    await variants.create({ data: { productId: 1, name: 'v-new' } });
+    const foreign = await refusal(() => variants.create({ data: { productId: 3, name: 'x' } }));
+    const missing = await refusal(() => variants.create({ data: { productId: 999, name: 'x' } }));
+    const nameless = await refusal(() => variants.create({ data: { name: 'x' } as AnyType }));
+
+    const result = await variantNames();
+    expect(result).toEqual(['v1', 'v2', 'v3', 'v-new']);
+    expect(foreign).toContain('write refused by the access scope');
+    expect(missing).toBe(foreign);
+    expect(nameless).toBe(foreign);
+  });
+
+  test('a batch with one foreign parent writes nothing', async () => {
+    const message = await refusal(() =>
+      variants.createAll({
+        data: [
+          { productId: 1, name: 'a' },
+          { productId: 3, name: 'b' },
+        ],
+      }),
+    );
+
+    expect(message).toContain('write refused by the access scope');
+    const result2 = await variantNames();
+    expect(result2).toEqual(['v1', 'v2', 'v3']);
+  });
+
+  test('an update and a delete reach only the rows the parent scope allows', async () => {
+    await variants.updateAll({
+      where: {},
+      data: { name: 'renamed' },
+      options: { shouldReturn: false },
+    });
+    const afterUpdate = await variantNames();
+
+    await client.execute(`DELETE FROM ${OPTION_TABLE}`);
+    await variants.deleteAll({ where: {}, options: { shouldReturn: false, force: true } });
+    const afterDelete = await variantNames();
+
+    expect(afterUpdate).toEqual(['renamed', 'renamed', 'v3']);
+    expect(afterDelete).toEqual(['v3']);
+  });
+
+  test('moving a row to a foreign parent is refused', async () => {
+    const message = await refusal(() => variants.updateById({ id: 1, data: { productId: 3 } }));
+
+    expect(message).toContain('write refused by the access scope');
+  });
+
+  test('SQLite cannot lock a row, so the check asks for no lock', async () => {
+    const select = spyOn(variants['queryExecutor'], 'select');
+
+    await variants.create({ data: { productId: 1, name: 'unlocked' } });
+
+    expect(select.mock.calls.length).toBeGreaterThan(0);
+    expect(select.mock.calls.every(([opts]) => opts.lock === undefined)).toBe(true);
+    select.mockRestore();
   });
 });

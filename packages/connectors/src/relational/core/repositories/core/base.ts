@@ -2,6 +2,7 @@ import type {
   IdType,
   IExtraOptions,
   IPersistableRepository,
+  IModelAccessThroughSettings,
   TModelAccessSettings,
   ITransaction,
   TCount,
@@ -21,6 +22,7 @@ import type {
 } from '@venizia/ignis-kernel';
 import {
   AbstractRepository,
+  LockStrengths,
   ScopeFilterMissingBehaviors,
   ScopeFilters,
   ScopeOperations,
@@ -37,7 +39,7 @@ import type {
 } from '@/relational/core/models';
 import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import { getTableColumns } from 'drizzle-orm';
+import { and, getTableColumns, inArray } from 'drizzle-orm';
 import type {
   IRelationalExtraOptions,
   IRelationalQueryDialect,
@@ -195,10 +197,11 @@ export abstract class RelationalBaseRepository<
    * throws. Like the read scope, it is not skippable by `shouldSkipDefaultFilter`; a caller that is
    * trusted to write across scopes resolves to `ScopeFilters.UNRESTRICTED`.
    */
-  protected guardScopedWrite<Row extends Record<string, unknown>>(opts: {
+  protected async guardScopedWrite<Row extends Record<string, unknown>>(opts: {
     rows: Row[];
     operation: TScopeOperation;
-  }): Row[] {
+    transaction?: ITransaction;
+  }): Promise<Row[]> {
     const settings = this.getAccessSettings();
 
     if (!settings) {
@@ -206,7 +209,9 @@ export abstract class RelationalBaseRepository<
     }
 
     if (settings.through) {
-      throw ScopeWriteGuard.throughDenied({ model: this.entity.name, operation: opts.operation });
+      await this.assertParentsInScope({ ...opts, settings });
+
+      return opts.rows;
     }
 
     return ScopeWriteGuard.apply({
@@ -215,6 +220,68 @@ export abstract class RelationalBaseRepository<
       rows: opts.rows,
       operation: opts.operation,
     });
+  }
+
+  /**
+   * A write to a model scoped through its parent: every parent key the rows name must be one the parent's own scope
+   * allows for this operation. One query for the batch, read in the write's transaction (with `FOR SHARE` where the
+   * engine can lock a row, so a parent that moves tenant after the check cannot be missed). A key that is null, absent,
+   * missing from the parent table or outside the scope is the same refusal. An update names a key only to move the
+   * row, so a payload without it checks nothing.
+   */
+  protected async assertParentsInScope(opts: {
+    settings: IModelAccessThroughSettings;
+    rows: Array<Record<string, unknown>>;
+    operation: TScopeOperation;
+    transaction?: ITransaction;
+  }): Promise<void> {
+    const { settings, operation, transaction } = opts;
+    const { link, scope } = this.queryDialect.resolveThrough({
+      settings,
+      schema: this.entity.schema,
+      operation,
+    });
+    const property = link.childProperty;
+    const named =
+      operation === ScopeOperations.CREATE ? opts.rows : opts.rows.filter((row) => property in row);
+
+    if (named.length === 0) {
+      return;
+    }
+
+    const denied = ScopeWriteGuard.parentDenied({
+      model: this.entity.name,
+      operation,
+      column: property,
+    });
+    const keys = [...new Set(named.map((row) => row[property]))];
+    const isUnresolved = scope === null || scope === undefined;
+
+    if (keys.some((key) => key === null || key === undefined)) {
+      throw denied;
+    }
+
+    // A parent that resolves no scope always denies its child: there is no onMissing to open it.
+    if (isUnresolved) {
+      throw denied;
+    }
+
+    const parentScope =
+      scope === ScopeFilters.UNRESTRICTED
+        ? undefined
+        : this.queryDialect.toParentWhere({ link, scope });
+    const found = await this.queryExecutor.select<{ key: unknown }>({
+      connector: this.resolveConnector({ transaction }),
+      table: link.parentSchema,
+      columns: { key: link.parentColumn },
+      where: and(inArray(link.parentColumn, keys), parentScope),
+      lock: this.queryExecutor.supportsRowLock ? { strength: LockStrengths.SHARE } : undefined,
+    });
+
+    // Distinct keys, not rows: a parent column that is not unique can return two rows for one key and hide a missing one.
+    if (new Set(found.map((row) => row.key)).size !== keys.length) {
+      throw denied;
+    }
   }
 
   /**
@@ -244,11 +311,6 @@ export abstract class RelationalBaseRepository<
       return userFilter ?? {};
     }
 
-    // A model scoped through its parent is read-only: every write is refused, whatever the parent resolves.
-    if (scopeFilterSettings.through && mutation !== undefined) {
-      throw ScopeWriteGuard.throughDenied({ model: this.entity.name, operation: mutation });
-    }
-
     const scopeWhere = this.queryDialect.resolveAccessScope({
       settings: scopeFilterSettings,
       schema: this.entity.schema,
@@ -264,8 +326,9 @@ export abstract class RelationalBaseRepository<
 
     if (scopeWhere !== null && scopeWhere !== undefined) {
       // A write reaches only the rows it may write: the shared (null) rows a read scope allows need `write.sharedRows`.
+      // A `through` scope is one foreign key set, with no null branch for `sharedRows` to open, so it needs no narrowing.
       const effectiveWhere =
-        mutation === undefined
+        mutation === undefined || scopeFilterSettings.through
           ? scopeWhere
           : ScopeWriteGuard.mutationWhere({
               settings: scopeFilterSettings,

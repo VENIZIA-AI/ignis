@@ -5,6 +5,7 @@ import type {
   TFields,
   TFilter,
   TInclusion,
+  IModelAccessThroughSettings,
   TModelAccessSettings,
   TParsedOrderEntry,
   TQueryOperatorHandlers,
@@ -260,26 +261,23 @@ export abstract class FilterBuilder extends BaseHelper {
   }
 
   /**
-   * The scope of a model for one call. A `through` model reads its parent's own scope (the same operation, at every
-   * hop) and keeps the child rows whose foreign key is in the set of parent keys that scope allows:
-   * `child.fk IN (SELECT parent.pk FROM parent WHERE <parent scope>)`, built with the existing `inSql` operator.
-   * The parent's default filter is not applied: scope only.
+   * The foreign key link of a `through` model and the scope its parent resolves for `operation` (the same operation
+   * at every hop). The parent's default filter is not applied: scope only.
    */
-  resolveAccessScope(opts: {
-    settings: TModelAccessSettings;
+  resolveThrough(opts: {
+    settings: IModelAccessThroughSettings;
     schema: TTableSchemaWithId;
     operation: TScopeOperation;
     depth?: number;
-  }): TNullable<TWhere> | typeof ScopeFilters.UNRESTRICTED {
+  }): {
+    link: ReturnType<typeof ScopeThroughLink.of>;
+    scope: TNullable<TWhere> | typeof ScopeFilters.UNRESTRICTED;
+  } {
     const { settings, schema, operation, depth = 1 } = opts;
-
-    if (!settings.through) {
-      return settings.resolve({ operation });
-    }
 
     if (depth > ScopeThroughLink.MAX_DEPTH) {
       throw getError({
-        message: `[resolveAccessScope] access.through is deeper than ${ScopeThroughLink.MAX_DEPTH} hops at ${getTableName(schema)}`,
+        message: `[resolveThrough] access.through is deeper than ${ScopeThroughLink.MAX_DEPTH} hops at ${getTableName(schema)}`,
       });
     }
 
@@ -292,32 +290,56 @@ export abstract class FilterBuilder extends BaseHelper {
 
     if (!parentSettings) {
       throw getError({
-        message: `[resolveAccessScope] ${getTableName(link.parentSchema)} has no access setting, so ${getTableName(schema)} cannot be scoped through it`,
+        message: `[resolveThrough] ${getTableName(link.parentSchema)} has no access setting, so ${getTableName(schema)} cannot be scoped through it`,
       });
     }
 
-    const parentScope = this.resolveAccessScope({
+    const scope = this.resolveAccessScope({
       settings: parentSettings,
       schema: link.parentSchema,
       operation,
       depth: depth + 1,
     });
 
-    if (
-      parentScope === ScopeFilters.UNRESTRICTED ||
-      parentScope === null ||
-      parentScope === undefined
-    ) {
-      return parentScope;
-    }
+    return { link, scope };
+  }
 
-    const where = this.toWhere({
+  /** The parent's scope as a `where` on the parent table: the part both the read subquery and the write check build. */
+  toParentWhere(opts: { link: ReturnType<typeof ScopeThroughLink.of>; scope: TWhere }) {
+    const { link, scope } = opts;
+
+    return this.toWhere({
       tableName: getTableName(link.parentSchema),
       schema: link.parentSchema,
-      where: parentScope,
+      where: scope,
     });
-    const keys = sql`select ${link.parentColumn} from ${link.parentSchema}`;
+  }
 
+  /**
+   * The scope of a model for one call. A `through` model keeps the child rows whose foreign key is in the set of
+   * parent keys the parent's scope allows: `child.fk IN (SELECT parent.pk FROM parent WHERE <parent scope>)`, built with
+   * the existing `inSql` operator.
+   */
+  resolveAccessScope(opts: {
+    settings: TModelAccessSettings;
+    schema: TTableSchemaWithId;
+    operation: TScopeOperation;
+    depth?: number;
+  }): TNullable<TWhere> | typeof ScopeFilters.UNRESTRICTED {
+    const { settings, schema, operation, depth } = opts;
+
+    if (!settings.through) {
+      return settings.resolve({ operation });
+    }
+
+    const { link, scope } = this.resolveThrough({ settings, schema, operation, depth });
+
+    if (scope === ScopeFilters.UNRESTRICTED || scope === null || scope === undefined) {
+      return scope;
+    }
+
+    const where = this.toParentWhere({ link, scope });
+    const keys = sql`select ${link.parentColumn} from ${link.parentSchema}`;
     const subquery = where ? sql`${keys} where ${where}` : keys;
 
     // Opaque on purpose: drizzle's relational query rewrites every column it finds in a `where` to the relation's alias,

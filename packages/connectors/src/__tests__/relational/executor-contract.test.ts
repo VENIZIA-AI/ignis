@@ -1,8 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import type { IRelationalQueryExecutor } from '@/relational/core/repositories/common';
+import { PostgresQueryExecutor } from '@/relational/postgres/repositories/executor';
+import { SqliteQueryExecutor } from '@/relational/sqlite/repositories/executor';
 
 /** The port's own verb set, read off the interface rather than kept by hand. */
-type TExecutorVerb = keyof IRelationalQueryExecutor<unknown>;
+type TExecutorVerb = Exclude<keyof IRelationalQueryExecutor<unknown>, 'supportsRowLock'>;
 
 /**
  * Exhaustive BY CONSTRUCTION, and the only reason the verb test below has teeth:
@@ -26,6 +28,7 @@ const createFakeExecutor = (): IRelationalQueryExecutor<unknown> & { calls: stri
 
   return {
     calls,
+    supportsRowLock: false,
     select: async () => {
       calls.push('select');
 
@@ -87,7 +90,7 @@ describe('IRelationalQueryExecutor', () => {
     ]);
 
     const implementedVerbs = Object.keys(createFakeExecutor())
-      .filter((key) => key !== 'calls')
+      .filter((key) => key !== 'calls' && key !== 'supportsRowLock')
       .sort();
     expect(implementedVerbs).toEqual(declaredVerbs);
   });
@@ -104,5 +107,12 @@ describe('IRelationalQueryExecutor', () => {
     expect(result.rows).toEqual([]);
     expect(typeof result.count).toBe('number');
     expect(result.count).toBe(1);
+  });
+});
+
+describe('supportsRowLock', () => {
+  test('Postgres can lock a row and SQLite cannot, so a lock is never asked of SQLite', () => {
+    expect(new PostgresQueryExecutor().supportsRowLock).toBe(true);
+    expect(new SqliteQueryExecutor().supportsRowLock).toBe(false);
   });
 });

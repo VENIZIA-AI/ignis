@@ -22,6 +22,8 @@ import type { PgTable } from 'drizzle-orm/pg-core';
  * `returning()`'s row type from the table schema, not from the caller-chosen R.
  */
 export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelationalConnector> {
+  readonly supportsRowLock = true;
+
   async select<R>(opts: ISelectOptions<TRelationalConnector>): Promise<Array<R>> {
     const { connector, table, columns, where, orderBy, limit, offset, lock } = opts;
 
