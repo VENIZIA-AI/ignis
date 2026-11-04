@@ -5,6 +5,7 @@ import type { Env } from 'hono';
 import type { IAuthUser } from '../../../authenticate/common/types';
 import type { TAuthorizationDomainSource } from '../constants';
 
+/** A role with a numeric `priority` (higher outranks lower) and a string `identifier`. */
 export interface IAuthorizationRole {
   readonly name: string;
   readonly priority: number;
@@ -17,6 +18,7 @@ export type TAuthorizationConditions<
   ValueType = string | number | boolean | null,
 > = Record<KeyType, ValueType>;
 
+/** What an enforcer evaluates: an action on a resource, with optional attribute conditions and domain. */
 export interface IAuthorizationRequest<TAction = string, TResource = string> {
   action: TAction;
   resource: TResource;
@@ -25,6 +27,7 @@ export interface IAuthorizationRequest<TAction = string, TResource = string> {
   domain?: string;
 }
 
+/** An authenticated user whose `principalType` is set; enforcer-based authorization requires it. */
 export interface IAuthorizationUser extends IAuthUser {
   principalType: string;
 }

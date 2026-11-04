@@ -3,6 +3,7 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import type { NotFoundHandler } from 'hono/types';
 import { REQUEST_ID_KEY } from '../common';
 
+/** Builds the application not-found handler: logs the miss at warn level on `logger` (console when omitted) and returns a 404 JSON body carrying the request id, path and url. */
 export const notFoundHandler = (opts: { logger?: ILogger }) => {
   const { logger = console } = opts;
 

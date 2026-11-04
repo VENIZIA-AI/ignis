@@ -66,10 +66,12 @@ export type TResponseHeaders = Record<string, TResponseHeaderObject>;
 
 // Response body types derived from route definitions; a distributive conditional applies z.infer to each schema of the union separately.
 type TInferDistributive<S> = S extends z.ZodType ? z.infer<S> : never;
+/** The JSON response body type of a route config `R`: the union of the schemas under `application/json` across all its response codes. */
 export type TResponseBodyOf<R extends { responses: AnyType }> = TInferDistributive<
   R['responses'][keyof R['responses']]['content']['application/json']['schema']
 >;
 
+/** What a CRUD route lets a caller override: auth, `enabled`, the request schemas (params, query, body, headers) and the response schema and headers. */
 export type TCustomizableRouteConfig = TRouteAuthConfig & {
   /** Whether this route is registered. Defaults to true. */
   enabled?: boolean;

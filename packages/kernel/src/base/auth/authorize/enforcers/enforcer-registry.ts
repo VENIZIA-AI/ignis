@@ -13,6 +13,7 @@ import type {
 } from '../common';
 import { Authorization, AuthorizeBindingKeys } from '../common';
 
+/** Singleton registry of named authorization enforcers. An enforcer is configured once, on first resolve; concurrent first resolves share one `configure()` call. */
 export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthorizationEnforcer> {
   static readonly SINGLETON_REAL_KEY = 'authorization-enforcer-registry';
 

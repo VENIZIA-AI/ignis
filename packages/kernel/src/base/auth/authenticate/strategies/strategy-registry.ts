@@ -6,6 +6,7 @@ import { AbstractAuthRegistry } from '../../base';
 import type { IAuthenticationStrategy } from '../common';
 import { Authentication } from '../common';
 
+/** Registry of authentication strategies by name. Use `getInstance()` for the shared one; register application strategies before controllers are bound. */
 export class AuthenticationStrategyRegistry extends AbstractAuthRegistry<IAuthenticationStrategy> {
   static readonly SINGLETON_REAL_KEY = 'authentication-strategy-registry';
 

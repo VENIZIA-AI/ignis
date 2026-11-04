@@ -2,6 +2,7 @@ import type { Context } from 'hono';
 import type { IPRestrictionRules as IIPRestrictionRules } from 'hono/ip-restriction';
 import { type SecFetchSiteValues, type TCompressEncoding } from '../constants';
 
+/** Options shared by every configurable middleware. Extra keys are allowed. */
 export interface IBaseMiddlewareOptions {
   /** Default `true`: only `false` switches the middleware off. */
   enable?: boolean;
@@ -9,11 +10,13 @@ export interface IBaseMiddlewareOptions {
   [extra: string | symbol]: any;
 }
 
+/** Options of the compress middleware. Typed only: the framework does not install it. */
 export interface ICompressOptions extends IBaseMiddlewareOptions {
   encoding: TCompressEncoding;
   threshold?: number;
 }
 
+/** Allowed origin for CORS: one origin, a list of origins, or a function that returns the origin to echo (or nothing to reject). */
 export type TOrigin =
   | string
   | string[]
@@ -21,6 +24,7 @@ export type TOrigin =
       origin: string,
       c: Context,
     ) => Promise<string | undefined | null> | string | undefined | null);
+/** Options of the CORS middleware the framework installs first. `origin` is required. */
 export interface ICORSOptions extends IBaseMiddlewareOptions {
   origin: TOrigin;
   allowMethods?: string[] | ((origin: string, c: Context) => Promise<string[]> | string[]);
@@ -30,25 +34,32 @@ export interface ICORSOptions extends IBaseMiddlewareOptions {
   exposeHeaders?: string[];
 }
 
+/** Decides whether the request `Origin` is allowed for the CSRF check. */
 export type TIsAllowedOriginHandler = (origin: string, context: Context) => boolean;
+/** One value of the `Sec-Fetch-Site` header, taken from `SecFetchSiteValues`. */
 export type TSecFetchSite = (typeof SecFetchSiteValues)[number];
+/** Decides whether the request `Sec-Fetch-Site` value is allowed for the CSRF check. */
 export type TIsAllowedSecFetchSiteHandler = (
   secFetchSite: TSecFetchSite,
   context: Context,
 ) => boolean;
 
+/** Options of the CSRF middleware. Typed only: the framework does not install it. */
 export interface ICSRFOptions extends IBaseMiddlewareOptions {
   origin?: string | string[] | TIsAllowedOriginHandler;
   secFetchSite?: TSecFetchSite | TSecFetchSite[] | TIsAllowedSecFetchSiteHandler;
 }
 
+/** Options of the body limit middleware the framework installs right after the request id. `maxSize` is in bytes. */
 export interface IBodyLimitOptions extends IBaseMiddlewareOptions {
   maxSize: number;
   onError?: (c: Context) => Response | Promise<Response>;
 }
 
+/** Options of the request id middleware. Only the shared options apply. */
 export interface IRequestIdOptions extends IBaseMiddlewareOptions {}
 
+/** The `configs.middlewares` shape: which framework middleware to switch off or configure. Extra keys are allowed. */
 export interface IMiddlewareConfigs {
   requestId?: IRequestIdOptions;
   /** Typed only: the framework installs no compress middleware. Wire it in `setupMiddlewares()`. */

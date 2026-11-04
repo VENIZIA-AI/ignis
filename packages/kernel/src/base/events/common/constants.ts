@@ -1,5 +1,6 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 
+/** Defaults and ceilings of event dispatch retry. `MAX_ATTEMPTS` and `BASE_DELAY_MS` (ms) apply when `register` gives no `retry`; the `*_CEILING` and `*_WINDOW_MS` values cap what it may ask for. */
 export class EventDispatchRetry {
   static readonly MAX_ATTEMPTS = 3;
   static readonly BASE_DELAY_MS = 100;
@@ -43,4 +44,5 @@ export class EventHandlerTypes {
   }
 }
 
+/** Union of the `EventHandlerTypes` values. */
 export type TEventHandlerType = TConstValue<typeof EventHandlerTypes>;

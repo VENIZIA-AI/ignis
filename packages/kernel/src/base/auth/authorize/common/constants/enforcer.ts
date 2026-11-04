@@ -1,5 +1,6 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 
+/** Kinds of enforcer a registration can declare; `casbin` takes `ICasbinEnforcerOptions`, `custom` takes untyped options. */
 export class AuthorizationEnforcerTypes {
   static readonly CASBIN = 'casbin';
   static readonly CUSTOM = 'custom';
@@ -11,8 +12,10 @@ export class AuthorizationEnforcerTypes {
   }
 }
 
+/** Union of the `AuthorizationEnforcerTypes` values. */
 export type TAuthorizationEnforcerType = TConstValue<typeof AuthorizationEnforcerTypes>;
 
+/** Cache backends for a Casbin enforcer's per-user policy lines. */
 export class CasbinEnforcerCachedDrivers {
   static readonly REDIS = 'redis';
 
@@ -23,8 +26,10 @@ export class CasbinEnforcerCachedDrivers {
   }
 }
 
+/** Union of the `CasbinEnforcerCachedDrivers` values. */
 export type TCasbinEnforcerCachedDriver = TConstValue<typeof CasbinEnforcerCachedDrivers>;
 
+/** Where a Casbin enforcer reads its model from: a `file` path or inline `text`. */
 export class CasbinEnforcerModelDrivers {
   static readonly FILE = 'file';
   static readonly TEXT = 'text';
@@ -36,8 +41,10 @@ export class CasbinEnforcerModelDrivers {
   }
 }
 
+/** Union of the `CasbinEnforcerModelDrivers` values. */
 export type TCasbinEnforcerModelDriver = TConstValue<typeof CasbinEnforcerModelDrivers>;
 
+/** Casbin matching functions selectable for the domain match in `ICasbinEnforcerOptions.domainMatching`. */
 export class CasbinDomainMatchingFunctions {
   /** `*` is the only wildcard; exact compare otherwise. Safest for `Merchant_<uuid>` domains. */
   static readonly KEY_MATCH = 'keyMatch';
@@ -67,6 +74,7 @@ export class CasbinDomainMatchingFunctions {
   }
 }
 
+/** Union of the `CasbinDomainMatchingFunctions` values. */
 export type TCasbinDomainMatchingFunction = TConstValue<typeof CasbinDomainMatchingFunctions>;
 
 /** Relation prefixes the Casbin MODEL declares (`p` + `g`..`g5`), which {@link AuthorizationPolicyVariants} maps onto (many app edge-types -> one rule). Keep in sync with the model's `[role_definition]`. */
@@ -92,4 +100,5 @@ export class CasbinRuleVariants {
   static readonly G5 = 'g5';
 }
 
+/** Union of the `CasbinRuleVariants` values. */
 export type TCasbinRuleVariant = TConstValue<typeof CasbinRuleVariants>;

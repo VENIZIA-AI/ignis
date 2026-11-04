@@ -16,6 +16,7 @@ export type TMixinOpts<Options extends object = {}> = {
   options?: Options;
 };
 
+/** Mixin contract for registering configuration classes on the application. */
 export interface IConfigurationMixin {
   configuration<Base extends BaseConfiguration<Options>, Options extends object = {}>(
     target: TClass<Base>,
@@ -24,6 +25,7 @@ export interface IConfigurationMixin {
   registerConfigurations(): ValueOrPromise<void>;
 }
 
+/** Mixin contract for registering components on the application. */
 export interface IComponentMixin {
   component<Base extends BaseComponent<Options>, Options extends object = {}>(
     target: TClass<Base>,
@@ -32,6 +34,7 @@ export interface IComponentMixin {
   registerComponents(): ValueOrPromise<void>;
 }
 
+/** Mixin contract for the application lifecycle hooks of a server and its reported version. */
 export interface IServerConfigMixin {
   staticConfigure(): ValueOrPromise<void>;
   preConfigure(): ValueOrPromise<void>;
@@ -39,11 +42,13 @@ export interface IServerConfigMixin {
   getApplicationVersion(): ValueOrPromise<string>;
 }
 
+/** Mixin contract for registering controllers on the application. */
 export interface IControllerMixin {
   controller<Base>(target: TClass<Base>, opts?: TMixinOpts): Binding<Base>;
   registerControllers(): ValueOrPromise<void>;
 }
 
+/** Mixin contract for registering datasources and repositories on the application. */
 export interface IRepositoryMixin {
   dataSource<Base extends IDataSource<Options>, Options extends object = {}>(
     target: TClass<Base>,
@@ -51,14 +56,17 @@ export interface IRepositoryMixin {
   ): Binding<Base>;
   repository<Base extends IRepository>(target: TClass<Base>, opts?: TMixinOpts): Binding<Base>;
 }
+/** Mixin contract for registering services on the application. */
 export interface IServiceMixin {
   service<Base extends IService>(target: TClass<Base>, opts?: TMixinOpts): Binding<Base>;
 }
 
+/** Mixin contract for registering every discovered artifact from an artifact index in one call. */
 export interface IArtifactRegistrationMixin {
   registerArtifacts(index: TArtifactIndexInput): Promise<void>;
 }
 
+/** Mixin contract for serving a static folder; `restPath` is the URL path it is served under. */
 export interface IStaticServeMixin {
   static(opts: { restPath?: string; folderPath: string }): IApplication;
 }

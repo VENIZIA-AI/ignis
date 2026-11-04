@@ -9,6 +9,7 @@ import type {
 import type { TClass, TValueOrResolver } from '@venizia/ignis-helpers/common';
 import type { IArtifactRegistrationOptions, TDecoratorTarget } from './artifact';
 
+/** Metadata accepted by `@datasource`. `autoDiscovery` is stored as true unless the metadata sets it; `false` stops model schema discovery for the datasource. */
 export interface IDataSourceMetadata extends IArtifactRegistrationOptions {
   driver?: TDataSourceDriverClass;
   autoDiscovery?: boolean;
@@ -56,6 +57,7 @@ export interface IResolvedRepositoryMetadata<
   operationScope?: TRepositoryOperationScope;
 }
 
+/** Links a model to the repository and datasource that serve it, each given as a value or a resolver. */
 export interface IRepositoryBinding<
   Model extends AbstractEntity = AbstractEntity,
   DataSource extends IDataSource = IDataSource,

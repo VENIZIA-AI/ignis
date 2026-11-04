@@ -10,6 +10,7 @@ import { Authorization, AuthorizationDecisions, AuthorizationErrors } from '../c
 import { AuthorizationEnforcerRegistry } from '../enforcers/enforcer-registry';
 import { RequestDomainResolver } from './request-domain';
 
+/** Provides the `TAuthorizeFn` that builds the per-route authorization middleware: skip flag, always-allow and allowed roles, voters, then the enforcer decision. */
 export class AuthorizationProvider extends BaseHelper implements IProvider<TAuthorizeFn> {
   constructor() {
     super({ scope: AuthorizationProvider.name });

@@ -4,6 +4,7 @@ import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inver
 import { Container as DIContainer } from '@venizia/ignis-inversion';
 import { MetadataRegistry } from './registry';
 
+/** Dependency injection container whose metadata registry is the IGNIS `MetadataRegistry`. */
 export class Container extends DIContainer {
   logger: ILogger;
 

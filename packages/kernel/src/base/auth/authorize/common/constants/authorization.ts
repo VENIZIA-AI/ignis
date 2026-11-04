@@ -2,6 +2,7 @@ import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { AuthorizationRole } from '../../models/authorization-role.model';
 import { CasbinRuleVariants } from './enforcer';
 
+/** Keys of the authorization state on the Hono context (`RULES`, `SKIP_AUTHORIZATION`, `DOMAIN`) and the binding prefix for registered enforcers (`ENFORCER`). */
 export class Authorization {
   static readonly RULES = 'authorization.rules';
   static readonly SKIP_AUTHORIZATION = 'authorization.skip';
@@ -9,6 +10,7 @@ export class Authorization {
   static readonly DOMAIN = 'authorization.domain';
 }
 
+/** Actions a grant or request can name. `manage` covers `read`/`write`/`execute`, and `write` covers `create`/`update`/`delete` (see `LATTICE`). */
 export class AuthorizationActions {
   static readonly CREATE = 'create';
   static readonly UPDATE = 'update';
@@ -51,8 +53,10 @@ export class AuthorizationActions {
     return this.SCHEME_SET.has(input);
   }
 }
+/** Union of the `AuthorizationActions` values. */
 export type TAuthorizationAction = TConstValue<typeof AuthorizationActions>;
 
+/** Outcome of a voter or enforcer. The `isAllow`/`isDeny`/`isAbstain` helpers also accept a number: positive allows, negative denies, zero abstains. */
 export class AuthorizationDecisions {
   static readonly ALLOW = 'allow';
   static readonly DENY = 'deny';
@@ -88,8 +92,10 @@ export class AuthorizationDecisions {
     return input.toLowerCase() === this.ABSTAIN;
   }
 }
+/** Union of the `AuthorizationDecisions` values. */
 export type TAuthorizationDecision = TConstValue<typeof AuthorizationDecisions>;
 
+/** Built-in roles ordered by priority (`super-admin` 999, `admin` 900, `user` 10, `guest` 1, `unknown-user` 0). `SCHEME_SET` and `isValid` work on the role `identifier` (e.g. `010_user`), not the bare name. */
 export class AuthorizationRoles {
   static readonly SUPER_ADMIN = AuthorizationRole.build({
     name: 'super-admin',
@@ -129,6 +135,7 @@ export class AuthorizationRoles {
   }
 }
 
+/** Scope literals a grant can carry instead of a concrete domain. */
 export class AuthorizationDomainScopes {
   /** Grant applies in EVERY domain the subject is a member of (checked via join_domain / g2). */
   static readonly ANY_MEMBER = 'ANY_MEMBER';
@@ -142,6 +149,7 @@ export class AuthorizationDomainScopes {
     return this.SCHEME_SET.has(input);
   }
 }
+/** Union of the `AuthorizationDomainScopes` values. */
 export type TAuthorizationDomainScope = TConstValue<typeof AuthorizationDomainScopes>;
 
 /** Edge kinds in the `PolicyDefinition` table (each row: subject -> target, `variant` = kind), carrying `action` (DB `variant` value) + `rule` (casbin prefix emitted per edge). Per-USER edges: GRANT, ASSIGN_ROLE, JOIN_DOMAIN; shared org-structure edges: the *_INHERITS ones. */
