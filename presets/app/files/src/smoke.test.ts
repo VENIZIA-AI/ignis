@@ -18,6 +18,7 @@ const findFreePort = async () => {
 
 const waitForServer = async (opts: { url: string; process: Bun.Subprocess }) => {
   const deadline = Date.now() + START_TIMEOUT_MS;
+  let lastError: unknown;
 
   while (Date.now() < deadline) {
     if (opts.process.exitCode !== null) {
@@ -26,20 +27,22 @@ const waitForServer = async (opts: { url: string; process: Bun.Subprocess }) => 
       });
     }
 
-    const isUp = await fetch(opts.url).then(
-      (response) => response.ok,
-      () => false,
-    );
+    try {
+      const response = await fetch(opts.url);
 
-    if (isUp) {
-      return;
+      if (response.ok) {
+        return;
+      }
+    } catch (error) {
+      // The server is not listening yet: poll again until the deadline.
+      lastError = error;
     }
 
     await Bun.sleep(POLL_INTERVAL_MS);
   }
 
   throw getError({
-    message: `[smoke] server did not answer within ${START_TIMEOUT_MS} ms | Url: ${opts.url}`,
+    message: `[smoke] server did not answer within ${START_TIMEOUT_MS} ms | Url: ${opts.url} | Last error: ${lastError}`,
   });
 };
 
@@ -69,8 +72,10 @@ describe('{{app}}', () => {
   test('GET /hello says hello', async () => {
     const response = await fetch(`${baseUrl}/hello`);
 
+    const body = await response.json();
+
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ message: 'Hello from IGNIS!' });
+    expect(body).toEqual({ message: 'Hello from IGNIS!' });
   });
 
   test('GET /doc/explorer serves the API reference', async () => {
