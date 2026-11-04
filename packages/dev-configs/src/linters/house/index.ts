@@ -11,6 +11,7 @@ export * from './no-leaked-render.rule';
 export * from './no-new-error.rule';
 export * from './no-return-await.rule';
 export * from './no-silent-catch.rule';
+export * from './no-unbraced-case.rule';
 export * from './plugin';
 export * from './promise-chain-support';
 export * from './configs';

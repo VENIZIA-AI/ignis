@@ -12,7 +12,7 @@ generated:
 
 ## dev-configs
 
-### `@venizia/dev-configs` (54)
+### `@venizia/dev-configs` (55)
 
 - `AstNode` class
 - `AstNodeTypes` class
@@ -45,6 +45,7 @@ generated:
 - `NoRestrictedPropertiesRule` class
 - `NoReturnAwaitRule` class
 - `NoSilentCatchRule` class
+- `NoUnbracedCaseRule` class
 - `NoUnusedVarsRule` class
 - `oxlintConfigs` const
 - `OxlintConfigs` class
@@ -73,7 +74,7 @@ generated:
 
 - `BunCompiler` class
 
-### `@venizia/dev-configs/linters` (53)
+### `@venizia/dev-configs/linters` (54)
 
 - `AstNode` class
 - `AstNodeTypes` class
@@ -105,6 +106,7 @@ generated:
 - `NoRestrictedPropertiesRule` class
 - `NoReturnAwaitRule` class
 - `NoSilentCatchRule` class
+- `NoUnbracedCaseRule` class
 - `NoUnusedVarsRule` class
 - `oxlintConfigs` const
 - `OxlintConfigs` class

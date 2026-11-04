@@ -2,6 +2,9 @@ import js from '@eslint/js';
 import type { Linter } from 'eslint';
 import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
+import { HOUSE_PLUGIN_NAMESPACE } from './house/common';
+import { NoUnbracedCaseRule } from './house/no-unbraced-case.rule';
+import { houseEslintPlugin } from './house/plugin';
 import { paddingConfigs } from './padding';
 import { NamingConventionRule, NoRestrictedImportsRule, NoUnusedVarsRule } from './rules';
 
@@ -95,9 +98,11 @@ export const eslintConfigs: Linter.Config[] = defineConfig([
         projectService: { allowDefaultProject: ['*.js', '*.cjs', '*.mjs', '.*.js'] },
       },
     },
+    plugins: { [HOUSE_PLUGIN_NAMESPACE]: houseEslintPlugin },
     rules: {
       ...OFF_RULES,
       ...STRICT_RULES,
+      [NoUnbracedCaseRule.NAME]: NoUnbracedCaseRule.build(),
       '@typescript-eslint/no-unused-vars': NoUnusedVarsRule.build() as Linter.RuleEntry,
       [NoRestrictedImportsRule.NAME]: NoRestrictedImportsRule.build() as Linter.RuleEntry,
       [NamingConventionRule.NAME]: NamingConventionRule.build(),

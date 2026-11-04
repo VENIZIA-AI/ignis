@@ -10,6 +10,7 @@ import { NoLeakedRenderRule } from './no-leaked-render.rule';
 import { NoNewErrorRule } from './no-new-error.rule';
 import { NoReturnAwaitRule } from './no-return-await.rule';
 import { NoSilentCatchRule } from './no-silent-catch.rule';
+import { NoUnbracedCaseRule } from './no-unbraced-case.rule';
 
 /** The ESLint plugin that carries the house rules oxlint cannot express, registered as `venizia`. */
 export const houseEslintPlugin: ESLint.Plugin = {
@@ -25,5 +26,6 @@ export const houseEslintPlugin: ESLint.Plugin = {
     'no-new-error': NoNewErrorRule.RULE,
     'no-return-await': NoReturnAwaitRule.RULE,
     'no-silent-catch': NoSilentCatchRule.RULE,
+    'no-unbraced-case': NoUnbracedCaseRule.RULE,
   },
 };
