@@ -207,6 +207,11 @@ const METHODS: Array<{
     run: (repo) => repo.updateById({ id: 1, data: { name: 'renamed' } }),
   },
   {
+    name: 'updateEach',
+    expected: 'update',
+    run: (repo) => repo.updateEach({ rows: [{ id: 1, data: { name: 'renamed-each' } }] }),
+  },
+  {
     name: 'updateAll',
     expected: 'update',
     run: (repo) => repo.updateAll({ where: {}, data: { name: 'renamed-all' } }),

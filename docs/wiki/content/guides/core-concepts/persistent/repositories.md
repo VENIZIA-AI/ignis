@@ -82,7 +82,7 @@ PostgresBaseRepository (postgres connector - filter building, hidden-column excl
   ↓
 ReadableRepository (read-only: find, findOne, findById, count, existsWith)
   ↓
-PersistableRepository (+ create, createAll, updateById, updateAll, deleteById, deleteAll)
+PersistableRepository (+ create, createAll, updateById, updateEach, updateAll, deleteById, deleteAll)
   ↓
 DefaultCRUDRepository (no additional methods - recommended default)
   ↓
@@ -152,6 +152,21 @@ const { data: updatedConfig } = await repo.updateById({
 // Delete by ID - also returns { count, data }
 await repo.deleteById({ id: 'uuid-here' });
 ```
+
+### Different data for each row with `updateEach`
+
+`updateAll` writes one `data` to every row it matches. `updateEach` gives each row its own:
+
+```typescript
+const { count, data } = await repo.updateEach({
+  rows: [
+    { id: 'uuid-1', data: { description: 'First' } },
+    { id: 'uuid-2', data: { description: 'Second' } },
+  ],
+});
+```
+
+It runs one update per row, in the order given, inside one transaction: a refused payload or a failed statement writes nothing. Pass `options: { transaction }` to join yours, and the repository leaves the commit to you. Each row goes through the same rules as `updateById` - the default filter, the row scope, hidden fields and the audit stamps - so `data[i]` is `null` and the row adds 0 to `count` when it does not match (missing, outside the scope, soft deleted). `updateEach` is N statements, not one; `shouldReturn: false` returns `data: null`, and empty `rows` return `{ count: 0, data: [] }` without opening a transaction. Relational repositories only.
 
 ## Extra Options
 

@@ -10,7 +10,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import type { IExtraOptions, TCount, TRepositoryLogOptions, TWhere } from '@venizia/ignis-kernel';
 import { RepositoryOperationScopes, ScopeOperations } from '@venizia/ignis-kernel';
 import type { SQL } from 'drizzle-orm';
-import type { IRelationalExtraOptions } from '../common';
+import type { IRelationalExtraOptions, TRelationalTransactionOf } from '../common';
 import { ReadableRelationalRepository } from './readable';
 
 /** Full CRUD repository extending ReadableRelationalRepository with create, update, and delete. */
@@ -157,7 +157,7 @@ export class PersistableRelationalRepository<
   protected async _update<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
-    options?: ExtraOptions & {
+    options?: IExtraOptions & {
       shouldReturn?: boolean;
       force?: boolean;
     };
@@ -259,6 +259,44 @@ export class PersistableRelationalRepository<
     });
 
     return { count: rs.count, data: rs.data?.[0] ?? null };
+  }
+
+  /** Gives each row its own `data`: one update per row, all in one transaction. A row that matches nothing (missing, outside the scope, soft deleted) is `null` in `data` and adds 0 to `count`. */
+  async updateEach<R = DataObject>(opts: {
+    rows: Array<{ id: DataObject['id']; data: Partial<PersistObject> }>;
+    options?: ExtraOptions & {
+      shouldReturn?: boolean;
+      transaction?: TRelationalTransactionOf<TDataSource>;
+    };
+  }): Promise<TCount & { data: TNullable<Array<TNullable<R>>> }> {
+    const { rows, options } = opts;
+
+    if (rows.length === 0) {
+      return { count: 0, data: [] };
+    }
+
+    return this.runInTransaction({
+      transaction: options?.transaction,
+      execute: async ({ transaction }) => {
+        let count = 0;
+        const data: Array<TNullable<R>> = [];
+
+        for (const { id, data: values } of rows) {
+          this.validateId({ id, operationName: 'updateEach' });
+
+          const rs = await this._update<R>({
+            where: this.whereById({ id }),
+            data: values,
+            options: { ...options, transaction },
+          });
+
+          count += rs.count;
+          data.push(rs.data?.[0] ?? null);
+        }
+
+        return { count, data: options?.shouldReturn === false ? null : data };
+      },
+    });
   }
 
   override updateAll(opts: {

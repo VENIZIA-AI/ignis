@@ -203,7 +203,7 @@ an inactive handle throws before `execute` runs. Passing none OWNS one: it begin
 `transactionOptions`, commits after `execute` resolves, and rolls back on failure in its own
 try/catch, always rethrowing the ORIGINAL error - a rollback failure is only logged. It is declared
 only on `RelationalBaseRepository`, never on `IRelationalDataSource` or any kernel interface: a
-repository-level convenience over `beginTransaction()`, not a new capability.
+repository-level convenience over `beginTransaction()`, not a new capability. `PersistableRelationalRepository.updateEach` is built on it: one `_update` per row inside one join-or-own transaction, so a caller's handle is never committed by it.
 
 **If `execute` ends the owned transaction itself**, `runInTransaction` never ends it a second time.
 It tells the outcome apart through `TRANSACTION_STATE_KEY` (`transaction-lifecycle.ts`), a
