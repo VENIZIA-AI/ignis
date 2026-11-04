@@ -32,6 +32,7 @@ describe('isClass', () => {
     class User {}
 
     const arrowResolver = () => User;
+
     function functionResolver() {
       return User;
     }

@@ -29,6 +29,7 @@ const buildContainer = () => {
   const container = new Container({ scope: 'inherited-inject-test' });
   container.bind({ key: 'values.base' }).toValue('base');
   container.bind({ key: 'values.explicit' }).toValue('explicit');
+
   return container;
 };
 

@@ -30,6 +30,7 @@ export class Binding<T = any> extends BaseHelper implements IBinding<T> {
     this.key = opts.key;
 
     const keyParts = this.key.split('.');
+
     if (keyParts.length > 1) {
       const [namespace] = keyParts;
       this.setTags(namespace);
@@ -42,16 +43,19 @@ export class Binding<T = any> extends BaseHelper implements IBinding<T> {
 
   toClass(value: TClass<T>): this {
     this.resolver = { type: BindingValueTypes.CLASS, value };
+
     return this;
   }
 
   toValue(value: T): this {
     this.resolver = { type: BindingValueTypes.VALUE, value };
+
     return this;
   }
 
   toProvider(value: TBindingProvider<T>): this {
     this.resolver = { type: BindingValueTypes.PROVIDER, value };
+
     return this;
   }
 
@@ -72,11 +76,13 @@ export class Binding<T = any> extends BaseHelper implements IBinding<T> {
 
   setScope(scope: TBindingScope): this {
     this.bindScope = scope;
+
     return this;
   }
 
   setTags(...tags: string[]): this {
     tags.forEach((t) => this.tags.add(t));
+
     return this;
   }
 
@@ -108,6 +114,7 @@ export class Binding<T = any> extends BaseHelper implements IBinding<T> {
     let instance: T;
 
     const { type: resolverType } = this.resolver;
+
     switch (resolverType) {
       case BindingValueTypes.VALUE: {
         instance = this.resolver.value;
