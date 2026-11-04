@@ -21,6 +21,7 @@ export interface IMutant {
   replace: string;
 }
 
+/** One ledger line: a candidate test that the survivor test makes redundant, or one that proves nothing (`vacuous`). */
 export interface ILedgerLine {
   id: string;
   /** Repository-relative test file that is deleted. */
@@ -50,10 +51,12 @@ export interface ILedgerLine {
   secondMutant?: IMutant | IMutant[];
 }
 
+/** The mutation ledger: every line to replay. */
 export interface ILedger {
   mutants: ILedgerLine[];
 }
 
+/** Result of replaying one ledger line; `ok` is false when the claim does not hold, with the reason in `problem`. */
 export interface ILedgerResult {
   id: string;
   survivorRed: boolean;
@@ -205,6 +208,7 @@ const withMutants = <T>(opts: {
   return apply(0);
 };
 
+/** Replays the mutation ledger of the trim-tests method: applies each break, runs the survivor and candidate tests, and restores the file. */
 export class TestMutateCheck {
   /** Replays every line; never throws for a green survivor (that is a result), only for an unusable ledger. */
   static replayLedger(opts: { root: string; ledger: ILedger; scratch?: string }): ILedgerResult[] {

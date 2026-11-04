@@ -188,6 +188,7 @@ export const oxlintConfigs: OxlintConfig = {
   ],
 };
 
+/** Options of `OxlintConfigs.create`. */
 export interface IOxlintPresetOptions {
   /**
    * Allow `||` / `||=` where the left side is a string or a number, so `name || 'guest'` and

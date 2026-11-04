@@ -11,6 +11,7 @@ import { parseArgs } from 'node:util';
 // whitespace), ignoring matches inside comments or string literals.
 const IMPORT_PATTERN = /^\s*(?:import|export)\s[^;]*?from\s+'([^']+)'|^\s*import\s+'([^']+)'/gm;
 
+/** The relative-import graph of a built ESM directory; build it with `fromDirectory` and read its import cycles with `cycles()`. */
 export class ModuleGraph {
   private constructor(
     private readonly root: string,
@@ -135,6 +136,7 @@ export class ModuleGraph {
   }
 }
 
+/** The `devz check module-cycles` command: prints the import cycles of a built ESM directory and returns the exit code. */
 export class ModuleCyclesCheck {
   /**
    * `devz check module-cycles <dir> [--max <n>]`: prints the cycles of a built ESM directory and
