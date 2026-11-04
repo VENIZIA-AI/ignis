@@ -366,6 +366,55 @@ describe('ReadableSearchRepository - searchCount, facets and suggest', () => {
       expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
     });
 
+    describe('sortBy', () => {
+      const sortBy = '_text_match:desc,_eval([(status:=ACTIVATED):1]):desc,title:asc';
+
+      test('search, searchCount, facets and suggest send it as sort_by', async () => {
+        const runs = [
+          () =>
+            repository.search({
+              mode: 'keyword',
+              query: 'cafe',
+              queryBy: ['title'],
+              engineParams: { sortBy },
+            }),
+          () =>
+            repository.searchCount({ query: 'cafe', queryBy: ['title'], engineParams: { sortBy } }),
+          () => repository.facets({ facetBy: ['status'], query: 'cafe', engineParams: { sortBy } }),
+          () => repository.suggest({ query: 'cafe', queryBy: ['title'], engineParams: { sortBy } }),
+        ];
+
+        for (const run of runs) {
+          dataSource.fakeConnector.searchCalls.length = 0;
+          await run();
+          expect(wireOf(dataSource)['sort_by']).toBe(sortBy);
+          expect(wireOf(dataSource)).not.toHaveProperty('sortBy');
+        }
+      });
+
+      test('a sortBy with four top-level entries is refused before any request, on all four', async () => {
+        const engineParams = { sortBy: 'a:asc,b:asc,c:asc,d:asc' };
+        const runs = [
+          () =>
+            repository.search({
+              mode: 'keyword',
+              query: 'x',
+              queryBy: ['title'],
+              engineParams,
+            }),
+          () => repository.searchCount({ query: 'x', queryBy: ['title'], engineParams }),
+          () => repository.facets({ facetBy: ['status'], engineParams }),
+          () => repository.suggest({ query: 'x', queryBy: ['title'], engineParams }),
+        ];
+
+        for (const run of runs) {
+          const message = await failureOf(run);
+          expect(message).toMatch(/at most 3 fields/);
+        }
+        expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
+      });
+    });
+
     test('no engineParams leaves the wire untuned', async () => {
       await repository.suggest({ query: 'cafe', queryBy: ['title'] });
 

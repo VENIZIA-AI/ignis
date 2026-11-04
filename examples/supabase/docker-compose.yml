@@ -6,6 +6,7 @@ services:
     restart: on-failure
     environment:
       POSTGRES_USER: postgres
+      # Local demo value, not a secret.
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
     ports:

@@ -8,6 +8,7 @@ services:
       - '15434:5432'
     environment:
       POSTGRES_USER: postgres
+      # Local demo value, not a secret.
       POSTGRES_PASSWORD: password
       POSTGRES_DB: vert
     volumes:

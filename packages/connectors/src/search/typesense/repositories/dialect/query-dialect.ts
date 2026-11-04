@@ -89,6 +89,60 @@ const CAN_EXPRESS: Record<string, boolean> = {
   [QueryOperators.OR]: true,
 };
 
+/** Names a tuning key that sat in the query (a built `filter.order`, a multi-search entry), as `query.<key>` in a refusal, to tell it from the same key in `engineParams`. */
+const QUERY_SOURCE = 'query';
+
+/** The checks on a `sort_by` string, shared by `order` (counted as entries) and a caller's own `sortBy`. */
+class SortByWire {
+  static assertFieldCount(opts: { count: number; method: string }): void {
+    const { count, method } = opts;
+
+    if (count > MAX_SORT_FIELDS) {
+      throw getError({
+        message: `[TypesenseQueryDialect][${method}] search() sort_by supports at most ${MAX_SORT_FIELDS} fields | got: ${count}`,
+      });
+    }
+  }
+
+  /** A non-empty string, balanced, whose top-level entries fit the limit. Commas inside `(...)`, `[...]` or a backtick string are not separators. Field names are Typesense's to check. */
+  static assert(opts: { key: string; value: unknown }): void {
+    const { key, value } = opts;
+
+    if (typeof value !== 'string' || value.trim() === '') {
+      throw getError({
+        message: `[TypesenseQueryDialect][toWireParams] Invalid '${key}' | Expected a non-empty string | Got: ${JSON.stringify(value)}`,
+      });
+    }
+
+    const owed: string[] = [];
+    let isInString = false;
+    let isUnbalanced = false;
+    let count = 1;
+
+    for (const character of value) {
+      if (character === '`') {
+        isInString = !isInString;
+      } else if (!isInString && character === '(') {
+        owed.push(')');
+      } else if (!isInString && character === '[') {
+        owed.push(']');
+      } else if (!isInString && (character === ')' || character === ']')) {
+        isUnbalanced ||= owed.pop() !== character;
+      } else if (!isInString && owed.length === 0 && character === ',') {
+        count += 1;
+      }
+    }
+
+    if (isUnbalanced || owed.length > 0 || isInString) {
+      throw getError({
+        message: `[TypesenseQueryDialect][toWireParams] Invalid '${key}' | Unbalanced brackets or backticks | Got: ${JSON.stringify(value)}`,
+      });
+    }
+
+    SortByWire.assertFieldCount({ count, method: 'toWireParams' });
+  }
+}
+
 /** camelCase `ITypesenseTuning` field -> Typesense wire name, and how its value is checked and shaped. The snake_case strings are values only, never identifiers. */
 class TuningWireKeys {
   /** Fields that must be a non-negative integer. */
@@ -118,6 +172,7 @@ class TuningWireKeys {
     useCache: 'use_cache',
     cacheTtl: 'cache_ttl',
     maxCandidates: 'max_candidates',
+    sortBy: 'sort_by',
   };
 
   private static readonly FIELD_BY_WIRE: Record<string, string> = Object.fromEntries(
@@ -161,6 +216,10 @@ class TuningWireKeys {
       });
     }
 
+    if (field === 'sortBy') {
+      SortByWire.assert({ key, value });
+    }
+
     if (TuningWireKeys.LIST_FIELDS.has(field) && Array.isArray(value)) {
       return [wireKey, value.join(',')];
     }
@@ -173,7 +232,6 @@ class TuningWireKeys {
 class SearchWireKeys {
   static readonly QUERY = { from: 'query', to: 'q' };
   static readonly FILTER_BY = { from: 'filterBy', to: 'filter_by' };
-  static readonly SORT_BY = { from: 'sortBy', to: 'sort_by' };
   static readonly PER_PAGE = { from: 'perPage', to: 'per_page' };
   static readonly INCLUDE_FIELDS = { from: 'includeFields', to: 'include_fields' };
   static readonly EXCLUDE_FIELDS = { from: 'excludeFields', to: 'exclude_fields' };
@@ -201,7 +259,6 @@ class SearchWireKeys {
   private static readonly ENTRIES = [
     SearchWireKeys.QUERY,
     SearchWireKeys.FILTER_BY,
-    SearchWireKeys.SORT_BY,
     SearchWireKeys.PER_PAGE,
     SearchWireKeys.INCLUDE_FIELDS,
     SearchWireKeys.EXCLUDE_FIELDS,
@@ -269,7 +326,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
       }
     }
 
-    if (order) {
+    if (order && order.length > 0) {
       query.sortBy = this.toOrderBy({ order, capabilities });
     }
 
@@ -319,18 +376,19 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
     const wire: Record<string, unknown> = {};
     const tuned = new Map<string, string>();
 
-    // One param may be given once, in either spelling: two spellings would leave the winner to the order they were written in.
-    const setTuning = (key: string, value: unknown) => {
+    // One param may be given once, in either spelling: two spellings would leave the winner to the order they were written in. `source` names where a key sat when it was not `engineParams`, so 'query.sortBy' (what `filter.order` compiles into) is told apart from the 'sortBy' of `engineParams`.
+    const setTuning = (key: string, value: unknown, source?: string) => {
       const [wireKey, wireValue] = TuningWireKeys.toWireEntry({ key, value });
+      const label = source ? `${source}.${key}` : key;
       const earlier = tuned.get(wireKey);
 
       if (earlier !== undefined) {
         throw getError({
-          message: `[TypesenseQueryDialect][toWireParams] '${earlier}' and '${key}' both set '${wireKey}' | Give it once`,
+          message: `[TypesenseQueryDialect][toWireParams] '${earlier}' and '${label}' both set '${wireKey}' | Give it once`,
         });
       }
 
-      tuned.set(wireKey, key);
+      tuned.set(wireKey, label);
       wire[wireKey] = wireValue;
     };
 
@@ -341,7 +399,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
       }
 
       if (TuningWireKeys.fieldOf(key) !== undefined) {
-        setTuning(key, value);
+        setTuning(key, value, QUERY_SOURCE);
         continue;
       }
 
@@ -354,6 +412,11 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
 
     // engineParams keys are wire names, passed verbatim; the camelCase tuning names are also accepted and mapped, so a caller can type them with ITypesenseTuning.
     for (const [key, value] of Object.entries(engineParams)) {
+      // `{ sortBy: condition ? sort : undefined }` is "no sort", as an undefined field of the query is skipped above.
+      if (value === undefined && TuningWireKeys.fieldOf(key) === 'sortBy') {
+        continue;
+      }
+
       if (TuningWireKeys.fieldOf(key) !== undefined) {
         setTuning(key, value);
         continue;
@@ -605,11 +668,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
   private toOrderBy(opts: { order: string[]; capabilities?: ISearchCompileCapabilities }): string {
     const { order, capabilities } = opts;
 
-    if (order.length > MAX_SORT_FIELDS) {
-      throw getError({
-        message: `[TypesenseQueryDialect][build] search() sort_by supports at most ${MAX_SORT_FIELDS} fields | got: ${order.length}`,
-      });
-    }
+    SortByWire.assertFieldCount({ count: order.length, method: 'build' });
 
     return order
       .map((entry) => {
