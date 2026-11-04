@@ -564,6 +564,7 @@ const makeScratch = (prefix: string) => {
   const root = mkdtempSync(join(scratch, prefix));
   execFileSync('git', ['init', '-q'], { cwd: root });
   mkdirSync(join(root, 'src'), { recursive: true });
+
   return root;
 };
 
@@ -727,6 +728,7 @@ describe('devz codemod namespace-functions - the CLI end to end', () => {
 
   const devz = (args: string[]) => {
     const result = SpawnHelper.spawnSyncBounded({ cmd: ['bun', CLI, ...args], cwd: root });
+
     return {
       exitCode: result.exitCode,
       stdout: result.stdout.toString(),

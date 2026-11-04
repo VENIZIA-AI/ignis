@@ -12,6 +12,7 @@ const isArrayContaining = (opts: { list: unknown; item: unknown }) =>
 const isHookCall = (call: unknown) => {
   const callee = AstNode.readField({ node: call, key: 'callee' });
   const name = AstNode.readField({ node: callee, key: 'name' });
+
   return (
     AstNode.getType({ node: callee }) === 'Identifier' &&
     typeof name === 'string' &&
@@ -94,17 +95,20 @@ export class MaxParamsOwnRule {
           AstNode.getType({ node: parent }) === 'JSXExpressionContainer' &&
           AstNode.getType({ node: AstNode.readField({ node: parent, key: 'parent' }) }) ===
             'JSXAttribute';
+
         return isJsxProp || isLibraryArgument({ node, parent });
       };
 
       const isInjectedConstructor = (opts: { node: Rule.Node; params: unknown[] }) => {
         const parent = opts.node.parent;
+
         const isDecorated = (param: unknown) => {
           const own = AstNode.readField({ node: param, key: 'decorators' });
           const property = AstNode.readField({
             node: AstNode.readField({ node: param, key: 'parameter' }),
             key: 'decorators',
           });
+
           return (
             (Array.isArray(own) && own.length > 0) ||
             (Array.isArray(property) && property.length > 0)
@@ -141,6 +145,7 @@ export class MaxParamsOwnRule {
 
       const check = (node: Rule.Node) => {
         const params = AstNode.readField({ node, key: 'params' });
+
         if (!Array.isArray(params) || params.length <= max) {
           return;
         }
@@ -166,6 +171,7 @@ export class MaxParamsOwnRule {
 
   static build(opts: { severity?: TRuleSeverity; max?: number } = {}): Linter.RuleEntry {
     const { severity = 'error', max = MaxParamsOwnRule.DEFAULT_MAX } = opts;
+
     return [severity, max];
   }
 }

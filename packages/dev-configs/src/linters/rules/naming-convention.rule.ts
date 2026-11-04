@@ -71,6 +71,7 @@ export class NamingConventionRule {
     opts: { severity?: TRuleSeverity; extraSelectors?: TNamingSelector[] } = {},
   ): Linter.RuleEntry {
     const { severity = 'error', extraSelectors = [] } = opts;
+
     return [severity, ...NamingConventionRule.SELECTORS, ...extraSelectors];
   }
 }

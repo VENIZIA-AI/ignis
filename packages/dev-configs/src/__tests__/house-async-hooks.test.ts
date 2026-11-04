@@ -12,6 +12,7 @@ const CONFIGS = [...reactHouseConfigs, ...reactAsyncStyleConfigs];
 /** Runs the React house configs with the async hook rules on `code`, and returns the findings of `ruleId`. */
 const findings = (opts: { code: string; ruleId: string; filename?: string }) => {
   const { code, ruleId, filename = 'src/subject.ts' } = opts;
+
   return new Linter()
     .verify(code, CONFIGS, { filename })
     .filter((message) => message.ruleId === ruleId);

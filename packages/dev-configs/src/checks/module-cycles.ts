@@ -26,15 +26,18 @@ export class ModuleGraph {
       const text = readFileSync(file, 'utf8');
       const targets = new Set<string>();
       const matches = text.matchAll(IMPORT_PATTERN);
+
       for (const match of matches) {
         const target = ModuleGraph.resolveRelative({
           from: file,
           specifier: match[1] ?? match[2],
         });
+
         if (target) {
           targets.add(target);
         }
       }
+
       edges.set(file, [...targets]);
     }
 
@@ -58,6 +61,7 @@ export class ModuleGraph {
       onStack.add(node);
 
       const nexts = this.edges.get(node) ?? [];
+
       for (const next of nexts) {
         if (!indices.has(next)) {
           visit(next);
@@ -70,19 +74,23 @@ export class ModuleGraph {
       if (lowLinks.get(node) !== indices.get(node)) {
         return;
       }
+
       const component: string[] = [];
       let member: string;
+
       do {
         member = stack.pop()!;
         onStack.delete(member);
         component.push(relative(this.root, member));
       } while (member !== node);
+
       if (component.length > 1) {
         found.push(component.sort());
       }
     };
 
     const edgesKeys = this.edges.keys();
+
     for (const node of edgesKeys) {
       if (!indices.has(node)) {
         visit(node);
@@ -95,14 +103,17 @@ export class ModuleGraph {
   private static walk(opts: { dir: string }): string[] {
     const out: string[] = [];
     const dirEntries = readdirSync(opts.dir);
+
     for (const name of dirEntries) {
       const full = join(opts.dir, name);
+
       if (statSync(full).isDirectory()) {
         out.push(...ModuleGraph.walk({ dir: full }));
       } else if (full.endsWith('.js')) {
         out.push(full);
       }
     }
+
     return out;
   }
 
@@ -110,13 +121,16 @@ export class ModuleGraph {
     if (!opts.specifier.startsWith('.')) {
       return undefined;
     }
+
     const base = resolve(dirname(opts.from), opts.specifier);
     const candidates = [base, `${base}.js`, join(base, 'index.js')];
+
     for (const candidate of candidates) {
       if (existsSync(candidate) && statSync(candidate).isFile()) {
         return candidate;
       }
     }
+
     return undefined;
   }
 }
@@ -139,22 +153,28 @@ export class ModuleCyclesCheck {
     });
     const dir = values.dist ?? positionals[0];
     const usage = 'usage: devz check module-cycles <built ESM dir> [--max <n>]';
+
     if (!dir) {
       printError(usage);
+
       return 2;
     }
 
     let max = Number.POSITIVE_INFINITY;
+
     if (values.max !== undefined) {
       if (!/^\d+$/.test(values.max)) {
         printError(usage);
+
         return 2;
       }
+
       max = Number(values.max);
     }
 
     const cycles = ModuleGraph.fromDirectory({ dir }).cycles();
     print(`${dir}: ${cycles.length} cycle(s)`);
+
     for (const cycle of cycles) {
       print(`  - ${cycle.join(' <-> ')}`);
     }

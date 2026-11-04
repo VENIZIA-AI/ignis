@@ -137,6 +137,7 @@ const BUILTIN_MODULE_NAMES = new Set(builtinModules);
 
 const isBuiltinSpecifier = (specifier: string): boolean => {
   const bareName = specifier.startsWith('node:') ? specifier.slice('node:'.length) : specifier;
+
   return BUILTIN_MODULE_NAMES.has(bareName);
 };
 
@@ -151,6 +152,7 @@ const findBuiltinSpecifiers = (metafile: IMetafile): string[] => {
   const builtins = new Set<string>();
 
   const metafileInputsEntries = Object.entries(metafile.inputs);
+
   for (const [inputPath, input] of metafileInputsEntries) {
     if (isBuiltinSpecifier(inputPath)) {
       builtins.add(inputPath);
@@ -158,6 +160,7 @@ const findBuiltinSpecifiers = (metafile: IMetafile): string[] => {
 
     for (const dependency of input.imports) {
       const specifier = dependency.original ?? dependency.path;
+
       if (isBuiltinSpecifier(specifier)) {
         builtins.add(specifier);
       }
@@ -203,10 +206,12 @@ const findUnresolvedExternalSpecifiers = (opts: {
         return true;
       }
     }
+
     return false;
   };
 
   const metafileInputsValues = Object.values(metafile.inputs);
+
   for (const input of metafileInputsValues) {
     for (const dependency of input.imports) {
       if (!dependency.external) {
@@ -214,6 +219,7 @@ const findUnresolvedExternalSpecifiers = (opts: {
       }
 
       const specifier = dependency.original ?? dependency.path;
+
       if (
         isRelativeSpecifier(specifier) ||
         builtins.has(specifier) ||
@@ -236,10 +242,12 @@ const findUnresolvedExternalSpecifiers = (opts: {
 const readMetafile = async (path: string): Promise<IMetafile | undefined> => {
   try {
     const result = await Bun.file(path).text();
+
     return JSON.parse(result) as IMetafile;
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     console.error(`[purity] Failed to read the build metafile at ${path}: ${reason}`);
+
     return undefined;
   } finally {
     await rm(path, { force: true });
@@ -298,6 +306,7 @@ export class PurityProbe {
 
     if (exitCode !== 0) {
       await rm(metafilePath, { force: true });
+
       return {
         entry,
         ok: false,
@@ -311,6 +320,7 @@ export class PurityProbe {
     }
 
     const metafile = await readMetafile(metafilePath);
+
     if (!metafile) {
       return {
         entry,
@@ -342,14 +352,17 @@ export class PurityProbe {
 
     if (builtins.length > 0 || unresolvedExternals.length > 0 || reachesDevConfigs) {
       const reasons: string[] = [];
+
       if (reachesDevConfigs) {
         reasons.push(
           'reaches @venizia/dev-configs, which is Bun-only tooling and never a browser dependency',
         );
       }
+
       if (builtins.length > 0) {
         reasons.push(`node builtin import(s): ${builtins.join(', ')}`);
       }
+
       if (unresolvedExternals.length > 0) {
         reasons.push(`unresolved external import(s): ${unresolvedExternals.join(', ')}`);
       }

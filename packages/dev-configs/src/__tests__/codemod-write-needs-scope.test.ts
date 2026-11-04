@@ -41,6 +41,7 @@ describe('devz codemod --write without a path', () => {
     for (const [path, content] of Object.entries(files)) {
       writeFileSync(join(root, path), content);
     }
+
     execFileSync('git', ['add', '-A'], { cwd: root });
     execFileSync(
       'git',
@@ -57,6 +58,7 @@ describe('devz codemod --write without a path', () => {
       { cwd: root },
     );
   };
+
   const read = (path: string) => readFileSync(join(root, path), 'utf8');
   const run = (args: string[]) => CodemodCommand.run({ root, args });
 

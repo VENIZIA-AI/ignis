@@ -111,6 +111,7 @@ describe('async-style: the names the fixers hoist', () => {
 
     expect(names.length).toBe(3);
     expect(new Set(names).size).toBe(3);
+
     for (const name of names) {
       expect(['result', 'result2', 'result3']).not.toContain(name);
     }

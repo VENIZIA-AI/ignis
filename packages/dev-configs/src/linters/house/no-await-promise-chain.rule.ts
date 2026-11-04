@@ -36,6 +36,7 @@ const collectValue = (opts: {
     }
     case 'Identifier': {
       identifiers.push(node);
+
       return true;
     }
     case 'TemplateLiteral': {
@@ -62,12 +63,14 @@ const collectValue = (opts: {
     }
     case 'ArrayExpression': {
       const elements = AstNode.readField({ node, key: 'elements' });
+
       return (
         Array.isArray(elements) && elements.every((element) => element === null || value(element))
       );
     }
     case 'ObjectExpression': {
       const properties = AstNode.readField({ node, key: 'properties' });
+
       return (
         Array.isArray(properties) &&
         properties.every(
@@ -146,6 +149,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
   }
 
   const receiver = AstNode.readField({ node: callee, key: 'object' });
+
   if (
     !AwaitSupport.isNode(receiver) ||
     !AwaitSupport.isNode(body) ||
@@ -186,16 +190,20 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
   // `let x;` with no annotation takes its type from the assignments that follow, so TypeScript must see every
   // read in the same function: a read from a nested function, an export or a `typeof` makes it an implicit any.
   const variable = sourceCode.getDeclaredVariables(declarator).find((entry) => entry.name === name);
+
   if (!variable) {
     return undefined;
   }
+
   for (const reference of variable.references) {
     if (reference.identifier === id) {
       continue;
     }
+
     const parentType = AstNode.getType({
       node: AwaitSupport.parentOf({ node: reference.identifier }),
     });
+
     if (
       reference.isWrite() ||
       (annotation === '' &&
@@ -212,12 +220,14 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
       ? undefined
       : String(AstNode.readField({ node: parameter, key: 'name' }));
   const identifiers: unknown[] = [];
+
   if (!collectValue({ node: body, parameter: parameterName, identifiers })) {
     return undefined;
   }
 
   // `x = []` on a `let x;` with no annotation makes an evolving `any[]`, looser than the `never[]` it was.
   const elements = AstNode.readField({ node: body, key: 'elements' });
+
   if (
     annotation === '' &&
     AstNode.getType({ node: body }) === 'ArrayExpression' &&
@@ -251,6 +261,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
     (candidate !== parameterName && isDeclaredAround({ scope, name: candidate }));
   const base = parameterName ?? CATCH_NAME;
   let catchName = base;
+
   for (let index = 2; isTaken(catchName); index += 1) {
     catchName = `${base}${index}`;
   }
@@ -258,6 +269,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
   const comments = sourceCode.getCommentsInside(declaration);
   const isInside = (range: [number, number] | undefined, inner: [number, number] | undefined) =>
     range !== undefined && inner !== undefined && range[0] <= inner[0] && inner[1] <= range[1];
+
   if (
     comments.some(
       (comment) => !isInside(receiver.range, comment.range) && !isInside(body.range, comment.range),
@@ -268,6 +280,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
 
   const bodyStart = body.range?.[0] ?? 0;
   let valueText = sourceCode.getText(body);
+
   if (catchName !== parameterName && errorReads.size > 0) {
     const edits = [...errorReads]
       .filter(AwaitSupport.isNode)
@@ -341,6 +354,7 @@ export class NoAwaitPromiseChainRule {
           const method = PromiseChainSupport.chainMethodOf({
             node: AstNode.readField({ node, key: 'argument' }),
           });
+
           if (method === undefined) {
             return;
           }

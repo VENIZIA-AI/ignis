@@ -27,6 +27,7 @@ export class CleanCommand {
 
     if (args.includes('--help') || args.includes('-h')) {
       console.log(USAGE);
+
       return 0;
     }
 
@@ -34,6 +35,7 @@ export class CleanCommand {
       console.error(
         `devz clean: unexpected argument ${args.map((arg) => `"${arg}"`).join(', ')}\n${USAGE}`,
       );
+
       return USAGE_ERROR_CODE;
     }
 

@@ -31,16 +31,19 @@ export class PromiseChainSupport {
 
     if (AstNode.readField({ node: member, key: 'computed' }) !== true) {
       const name = AstNode.readField({ node: property, key: 'name' });
+
       return typeof name === 'string' ? name : undefined;
     }
 
     if (AstNode.getType({ node: property }) === 'Literal') {
       const value = AstNode.readField({ node: property, key: 'value' });
+
       return typeof value === 'string' ? value : undefined;
     }
 
     const expressions = AstNode.readField({ node: property, key: 'expressions' });
     const quasis = AstNode.readField({ node: property, key: 'quasis' });
+
     if (
       AstNode.getType({ node: property }) === 'TemplateLiteral' &&
       Array.isArray(expressions) &&
@@ -51,6 +54,7 @@ export class PromiseChainSupport {
         node: AstNode.readField({ node: quasis[0], key: 'value' }),
         key: 'cooked',
       });
+
       return typeof cooked === 'string' ? cooked : undefined;
     }
 
@@ -63,6 +67,7 @@ export class PromiseChainSupport {
    */
   static chainMethodOf(opts: { node: unknown }): string | undefined {
     const call = PromiseChainSupport.unwrap({ node: opts.node });
+
     if (AstNode.getType({ node: call }) !== 'CallExpression') {
       return undefined;
     }
@@ -70,11 +75,13 @@ export class PromiseChainSupport {
     const callee = PromiseChainSupport.unwrap({
       node: AstNode.readField({ node: call, key: 'callee' }),
     });
+
     if (AstNode.getType({ node: callee }) !== 'MemberExpression') {
       return undefined;
     }
 
     const name = PromiseChainSupport.memberName({ member: callee });
+
     return name !== undefined && CHAIN_METHODS.has(name) ? name : undefined;
   }
 
@@ -92,6 +99,7 @@ export class PromiseChainSupport {
         if (PromiseChainSupport.chainMethodOf({ node: current }) !== undefined) {
           return true;
         }
+
         current = PromiseChainSupport.unwrap({
           node: AstNode.readField({ node: current, key: 'callee' }),
         });
@@ -127,6 +135,7 @@ export class PromiseChainSupport {
       }
       case 'TemplateLiteral': {
         const expressions = AstNode.readField({ node, key: 'expressions' });
+
         return Array.isArray(expressions) && expressions.length === 0;
       }
       case 'UnaryExpression': {
@@ -137,6 +146,7 @@ export class PromiseChainSupport {
       }
       case 'ArrayExpression': {
         const elements = AstNode.readField({ node, key: 'elements' });
+
         return (
           Array.isArray(elements) &&
           elements.every((element) => element === null || constant(element))
@@ -144,6 +154,7 @@ export class PromiseChainSupport {
       }
       case 'ObjectExpression': {
         const properties = AstNode.readField({ node, key: 'properties' });
+
         return (
           Array.isArray(properties) &&
           properties.every(
@@ -181,10 +192,12 @@ export class PromiseChainSupport {
 
         if (type === 'ReturnStatement') {
           const argument = AstNode.readField({ node: statement, key: 'argument' });
+
           return argument === null || PromiseChainSupport.isConstant({ node: argument });
         }
 
         const expression = AstNode.readField({ node: statement, key: 'expression' });
+
         return (
           type === 'ExpressionStatement' &&
           AstNode.getType({ node: expression }) === 'AssignmentExpression' &&

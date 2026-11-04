@@ -32,6 +32,7 @@ export class NoUnusedVarsRule {
       varsIgnorePattern = '^_',
       ...patterns
     } = opts;
+
     return [severity, { vars, args, ignoreRestSiblings, varsIgnorePattern, ...patterns }];
   }
 }

@@ -59,6 +59,7 @@ export class NoSilentCatchRule {
           const args = AstNode.readField({ node, key: 'arguments' });
           const handler: unknown = Array.isArray(args) ? args[0] : undefined;
           const handlerType = AstNode.getType({ node: handler });
+
           if (
             !AwaitSupport.isNode(handler) ||
             (handlerType !== 'ArrowFunctionExpression' && handlerType !== 'FunctionExpression')
@@ -67,6 +68,7 @@ export class NoSilentCatchRule {
           }
 
           const params = AstNode.readField({ node: handler, key: 'params' });
+
           if (
             !Array.isArray(params) ||
             !params.every((parameter) => isPlainParameter({ parameter })) ||
@@ -96,6 +98,7 @@ export class NoSilentCatchRule {
           }
 
           const body = AstNode.readField({ node, key: 'body' });
+
           if (
             PromiseChainSupport.isSilentBlock({
               statements: AstNode.readField({ node: body, key: 'body' }),

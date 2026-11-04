@@ -126,8 +126,10 @@ export class AsyncStyle {
     filename: string;
   }): string[] {
     const { linter, checks, source, output, filename } = opts;
+
     const count = (text: string): Map<string, number> => {
       const found = new Map<string, number>();
+
       for (const message of linter.verify(text, checks, { filename })) {
         const key = message.ruleId ?? 'parse error';
         found.set(key, (found.get(key) ?? 0) + 1);
@@ -135,6 +137,7 @@ export class AsyncStyle {
 
       return found;
     };
+
     const was = count(source);
     const now = count(output);
 
@@ -218,6 +221,7 @@ export class AsyncStyleCommand {
 
     if (args.includes(AsyncStyleFlags.HELP) || args.includes(AsyncStyleFlags.HELP_SHORT)) {
       console.log(USAGE);
+
       return 0;
     }
 
@@ -225,10 +229,12 @@ export class AsyncStyleCommand {
     const paths = args.filter((argument) => !argument.startsWith('-'));
 
     const unknown = flags.filter((flag) => !AsyncStyleFlags.isValid(flag));
+
     if (unknown.length > 0) {
       console.error(
         `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${USAGE}`,
       );
+
       return USAGE_ERROR_CODE;
     }
 
@@ -239,6 +245,7 @@ export class AsyncStyleCommand {
       console.error(
         `devz codemod: ${AsyncStyleFlags.WRITE} and ${AsyncStyleFlags.CHECK} contradict each other\n${USAGE}`,
       );
+
       return USAGE_ERROR_CODE;
     }
 
@@ -248,17 +255,21 @@ export class AsyncStyleCommand {
       isAll: flags.includes(AsyncStyleFlags.ALL),
       paths,
     });
+
     if (refusal) {
       console.error(`${refusal}\n${USAGE}`);
+
       return USAGE_ERROR_CODE;
     }
 
     let linter: Linter;
+
     try {
       const { Linter: EslintLinter } = await import('eslint');
       linter = new EslintLinter({ cwd: root });
     } catch {
       console.error('devz codemod: the "eslint" package is required to run the lint fixers');
+
       return 1;
     }
 

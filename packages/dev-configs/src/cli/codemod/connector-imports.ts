@@ -111,6 +111,7 @@ export class ConnectorImports {
       }
 
       const moved = ConnectorSpecifiers.MOVES.get(literal.text);
+
       if (moved === undefined) {
         return;
       }
@@ -174,6 +175,7 @@ export class ConnectorImports {
     }
 
     let output = source;
+
     for (const edit of edits.sort((a, b) => b.start - a.start)) {
       output = output.slice(0, edit.start) + edit.text + output.slice(edit.end);
     }
@@ -197,12 +199,14 @@ export class ConnectorImports {
 
       if (existsSync(candidate)) {
         let manifest: unknown;
+
         try {
           manifest = JSON.parse(readFileSync(candidate, 'utf8'));
         } catch (error) {
           console.warn(
             `${candidate}  is not valid JSON, so its dependencies were not checked | ${error instanceof Error ? error.message : String(error)}`,
           );
+
           return undefined;
         }
 
@@ -211,6 +215,7 @@ export class ConnectorImports {
           manifest !== null &&
           ['dependencies', 'devDependencies', 'peerDependencies'].some((field) => {
             const group: unknown = Reflect.get(manifest, field);
+
             return typeof group === 'object' && group !== null && CONNECTORS_PACKAGE in group;
           });
 
@@ -242,6 +247,7 @@ export class ConnectorImportsCommand {
       args.includes(ConnectorImportsFlags.HELP_SHORT)
     ) {
       console.log(USAGE);
+
       return 0;
     }
 
@@ -249,10 +255,12 @@ export class ConnectorImportsCommand {
     const paths = args.filter((argument) => !argument.startsWith('-'));
 
     const unknown = flags.filter((flag) => !ConnectorImportsFlags.isValid(flag));
+
     if (unknown.length > 0) {
       console.error(
         `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${USAGE}`,
       );
+
       return USAGE_ERROR_CODE;
     }
 
@@ -263,15 +271,18 @@ export class ConnectorImportsCommand {
       console.error(
         `devz codemod: ${ConnectorImportsFlags.WRITE} and ${ConnectorImportsFlags.CHECK} contradict each other\n${USAGE}`,
       );
+
       return USAGE_ERROR_CODE;
     }
 
     let typescript: typeof import('typescript');
+
     try {
       const loaded = await import('typescript');
       typescript = loaded.default;
     } catch {
       console.error('devz codemod: the "typescript" package is required to read your sources');
+
       return 1;
     }
 
@@ -321,6 +332,7 @@ export class ConnectorImportsCommand {
         );
 
         const manifest = ConnectorImports.findManifest({ file, root });
+
         if (manifest && !manifest.hasConnectors) {
           missing.add(relative(root, manifest.path).split('\\').join('/') || manifest.path);
         }

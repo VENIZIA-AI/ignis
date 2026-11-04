@@ -24,6 +24,7 @@ const findings = (opts: {
   filename?: string;
 }) => {
   const { code, ruleId, configs = CONFIGS, filename = 'src/subject.ts' } = opts;
+
   return new Linter()
     .verify(code, configs, { filename })
     .filter((message) => message.ruleId === ruleId);

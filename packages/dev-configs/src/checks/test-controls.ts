@@ -99,6 +99,7 @@ export class TestControlsCheck {
 
     for (const entry of opts.controls) {
       const path = join(opts.root, entry.file);
+
       if (!existsSync(path)) {
         problems.push({
           entry,

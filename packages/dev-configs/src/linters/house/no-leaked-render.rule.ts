@@ -32,6 +32,7 @@ export class NoLeakedRenderRule {
 
         const source = context.sourceCode;
         const operator = source.getTokenAfter(node.left, (token) => token.value === '&&');
+
         if (!operator) {
           return;
         }

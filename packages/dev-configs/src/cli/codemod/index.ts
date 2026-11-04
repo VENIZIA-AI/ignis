@@ -52,12 +52,14 @@ export class CodemodCommand {
 
     if (args.includes('--help') || args.includes('-h')) {
       console.log(USAGE);
+
       return 0;
     }
 
     console.error(
       `devz codemod: unknown codemod "${name ?? ''}" | the codemods are: ${NAMES}\n\n${USAGE}`,
     );
+
     return USAGE_ERROR_CODE;
   }
 }

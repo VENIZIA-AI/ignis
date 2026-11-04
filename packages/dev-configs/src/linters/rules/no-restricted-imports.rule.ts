@@ -23,6 +23,7 @@ export class NoRestrictedImportsRule {
     opts: { severity?: TRuleSeverity; extraPaths?: IRestrictedImportPath[] } = {},
   ): TOxlintRuleEntry<'no-restricted-imports'> {
     const { severity = 'error', extraPaths = [] } = opts;
+
     return [severity, { paths: [...NoRestrictedImportsRule.PATHS, ...extraPaths] }];
   }
 }

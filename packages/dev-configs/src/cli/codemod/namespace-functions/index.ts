@@ -81,6 +81,7 @@ export class NamespaceFunctionsCommand {
       args.includes(NamespaceFunctionsFlags.HELP_SHORT)
     ) {
       console.log(USAGE);
+
       return 0;
     }
 
@@ -88,10 +89,12 @@ export class NamespaceFunctionsCommand {
     const paths = args.filter((argument) => !argument.startsWith('-'));
 
     const unknown = flags.filter((flag) => !NamespaceFunctionsFlags.isValid(flag));
+
     if (unknown.length > 0) {
       console.error(
         `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${USAGE}`,
       );
+
       return USAGE_ERROR_CODE;
     }
 
@@ -102,14 +105,17 @@ export class NamespaceFunctionsCommand {
       console.error(
         `devz codemod: ${NamespaceFunctionsFlags.WRITE} and ${NamespaceFunctionsFlags.CHECK} contradict each other\n${USAGE}`,
       );
+
       return USAGE_ERROR_CODE;
     }
 
     const problems = NamespaceMappings.validate({ mappings });
+
     if (problems.length > 0) {
       console.error(
         `devz codemod namespace-functions: the mapping table is broken:\n${problems.map((problem) => `  ${problem}`).join('\n')}`,
       );
+
       return 1;
     }
 
@@ -117,15 +123,18 @@ export class NamespaceFunctionsCommand {
       console.log(
         'devz codemod namespace-functions: the mapping table of this version is empty, so there is nothing to rewrite',
       );
+
       return 0;
     }
 
     let typescript: typeof import('typescript');
+
     try {
       const result2 = await import('typescript');
       typescript = result2.default;
     } catch {
       console.error('devz codemod: the "typescript" package is required to read your sources');
+
       return 1;
     }
 

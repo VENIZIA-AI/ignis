@@ -25,12 +25,14 @@ const git = (opts: { root: string; args: string[] }): { status: number; stdout: 
     encoding: 'utf8',
     maxBuffer: 256 * 1024 * 1024,
   });
+
   return { status: result.status ?? 1, stdout: result.stdout ?? '' };
 };
 
 /** Files other than `self` whose text contains `needle` (a fixed string). */
 const referencedElsewhere = (opts: { root: string; needle: string; self: string }): boolean => {
   const result = git({ root: opts.root, args: ['grep', '-l', '-I', '-F', '-e', opts.needle] });
+
   return result.stdout.split('\n').some((line) => line !== '' && line !== opts.self);
 };
 
@@ -40,6 +42,7 @@ const escapeForRegex = (text: string): string => text.replace(/[.*+?^${}()|[\]\\
 const nameReferencedElsewhere = (opts: { root: string; stem: string; self: string }): boolean => {
   const pattern = `[/'"\`]${escapeForRegex(opts.stem)}(\\.|'|"|\`|$)`;
   const result = git({ root: opts.root, args: ['grep', '-l', '-I', '-E', '-e', pattern] });
+
   return result.stdout.split('\n').some((line) => line !== '' && line !== opts.self);
 };
 

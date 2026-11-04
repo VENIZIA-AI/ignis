@@ -19,6 +19,7 @@ export class LintIgnore {
   /** A project path such as `src/gen/**`, as an override glob: it is matched from anywhere under the project. */
   static toGlob(opts: { pattern: string }): string {
     const pattern = opts.pattern.replace(/^\.?\//, '');
+
     return pattern.startsWith('**/') ? pattern : `**/${pattern}`;
   }
 
@@ -28,6 +29,7 @@ export class LintIgnore {
 
   static oxlint(opts: { config: OxlintConfig; patterns: string[] }): OxlintConfig {
     const { config, patterns } = opts;
+
     if (patterns.length === 0) {
       return config;
     }

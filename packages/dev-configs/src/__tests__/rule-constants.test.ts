@@ -26,6 +26,7 @@ describe('rule option const classes', () => {
       for (const value of values) {
         expect(domain.isValid(value)).toBe(true);
       }
+
       expect(domain.isValid('nope')).toBe(false);
     });
   }

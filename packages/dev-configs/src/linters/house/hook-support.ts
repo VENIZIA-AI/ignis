@@ -13,6 +13,7 @@ export class HookSupport {
 
     if (type === 'Identifier') {
       const name = AstNode.readField({ node: callee, key: 'name' });
+
       return typeof name === 'string' ? name : undefined;
     }
 
@@ -22,6 +23,7 @@ export class HookSupport {
     ) {
       const property = AstNode.readField({ node: callee, key: 'property' });
       const name = AstNode.readField({ node: property, key: 'name' });
+
       return AstNode.getType({ node: property }) === 'Identifier' && typeof name === 'string'
         ? name
         : undefined;

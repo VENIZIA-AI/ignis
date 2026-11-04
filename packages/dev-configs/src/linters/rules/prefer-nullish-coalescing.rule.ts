@@ -20,6 +20,7 @@ export class PreferNullishCoalescingRule {
     } = {},
   ): TOxlintRuleEntry<'typescript/prefer-nullish-coalescing'> {
     const { severity = 'error', ...options } = opts;
+
     return Object.keys(options).length === 0 ? severity : [severity, options];
   }
 }

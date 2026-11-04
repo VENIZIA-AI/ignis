@@ -72,6 +72,7 @@ const packageDirectoryOf = (opts: { root: string; file: string }): string => {
     }
 
     const parent = dirname(current);
+
     if (parent === current || parent.length < opts.root.length) {
       return opts.root;
     }
@@ -133,6 +134,7 @@ const withMutant = <T>(opts: {
 
   mkdirSync(opts.scratch, { recursive: true });
   const backup = join(opts.scratch, `test-mutate-${opts.id.replace(/[^\w.-]/g, '_')}.orig`);
+
   if (existsSync(backup)) {
     throw replayError(
       `[test-mutate][${opts.id}] a backup from an interrupted run exists: ${backup} | restore ${opts.mutant.file} from it, then delete it`,

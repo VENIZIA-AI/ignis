@@ -18,6 +18,7 @@ const isInTry = (node: unknown): boolean => {
     if (AstNode.getType({ node: current }) === 'TryStatement') {
       return true;
     }
+
     current = AwaitSupport.parentOf({ node: current });
   }
 
@@ -69,6 +70,7 @@ export class NoReturnAwaitRule {
                   }
 
                   const outer = AwaitSupport.parentOf({ node: opts.statement });
+
                   if (!STATEMENT_LISTS.has(AstNode.getType({ node: outer }) ?? '')) {
                     return null;
                   }
@@ -91,6 +93,7 @@ export class NoReturnAwaitRule {
       return {
         [AstNodeTypes.RETURN_STATEMENT]: (node: Rule.Node) => {
           const argument = AstNode.readField({ node, key: 'argument' });
+
           if (
             AwaitSupport.isNode(argument) &&
             AstNode.getType({ node: argument }) === 'AwaitExpression'
@@ -100,6 +103,7 @@ export class NoReturnAwaitRule {
         },
         [AstNodeTypes.ARROW_FUNCTION_EXPRESSION]: (node: Rule.Node) => {
           const body = AstNode.readField({ node, key: 'body' });
+
           if (AwaitSupport.isNode(body) && AstNode.getType({ node: body }) === 'AwaitExpression') {
             reportAwait({ reported: node, awaitNode: body });
           }

@@ -22,6 +22,7 @@ const isKeySet = (opts: { node: unknown }): boolean => {
     node: AstNode.readField({ node: reference, key: 'typeName' }),
     key: 'name',
   });
+
   return (
     AstNode.getType({ node: reference }) === 'TSTypeReference' && KEY_SET_TYPES.has(String(name))
   );
@@ -33,9 +34,11 @@ const topLevelStatement = (opts: { node: unknown }): unknown => {
 
   while (current) {
     const parent = AstNode.readField({ node: current, key: 'parent' });
+
     if (AstNode.getType({ node: parent }) === 'Program') {
       return current;
     }
+
     current = parent;
   }
 
@@ -44,6 +47,7 @@ const topLevelStatement = (opts: { node: unknown }): unknown => {
 
 const isStringLiteral = (opts: { member: unknown }): boolean => {
   const { member } = opts;
+
   return (
     AstNode.getType({ node: member }) === 'TSLiteralType' &&
     typeof AstNode.readField({
@@ -55,6 +59,7 @@ const isStringLiteral = (opts: { member: unknown }): boolean => {
 
 const isNullish = (opts: { member: unknown }): boolean => {
   const type = AstNode.getType({ node: opts.member });
+
   return type === 'TSNullKeyword' || type === 'TSUndefinedKeyword';
 };
 
@@ -105,11 +110,13 @@ export class ConstClassValuesRule {
       return {
         [AstNodeTypes.UNION_TYPE]: (node: Rule.Node) => {
           const members = AstNode.readField({ node, key: 'types' });
+
           if (!Array.isArray(members)) {
             return;
           }
 
           const values = members.filter((member) => !isNullish({ member }));
+
           if (values.length < 2 || !values.every((member) => isStringLiteral({ member }))) {
             return;
           }
@@ -132,6 +139,7 @@ export class ConstClassValuesRule {
 
   static build(opts: { severity?: TRuleSeverity; namePattern?: string } = {}): Linter.RuleEntry {
     const { severity = 'error', namePattern } = opts;
+
     return namePattern === undefined ? [severity] : [severity, { namePattern }];
   }
 }
