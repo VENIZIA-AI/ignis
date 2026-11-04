@@ -661,8 +661,8 @@ same Postgres connector type, so `PostgresTransactionDouble` is the PGlite doubl
 `isolationLevel` - both default to what the real `BEGIN` would have used.
 
 A service that opens a transaction through `repository.runInTransaction` runs against a hand-made repository double too:
-`RepositoryDoubles.withTransactions({ repository, transaction })` gives the double the repository's own
-`runInTransaction`, so it commits, rolls back and joins as a real repository does. Pass a fresh transaction double per test.
+`RepositoryDoubles.withTransactions({ repository, transaction, source })` (`source` is a repository class such as
+`DefaultCRUDRepository`) gives the double the repository's own `runInTransaction`, so it commits, rolls back and joins as a real repository does. Pass a fresh transaction double per test.
 
 > [!WARNING] A double proves control flow, not SQL atomicity
 > `TransactionDouble` tells you whether your code called commit or rollback on the right branch. It

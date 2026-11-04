@@ -1,4 +1,5 @@
 import type { ITransaction } from '@venizia/ignis-kernel';
+import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 import { PostgresTransactionDouble, RepositoryDoubles, TransactionStates } from '@/testing';
 import { getError } from '@venizia/ignis-helpers/core';
 import { describe, expect, mock, test } from 'bun:test';
@@ -12,7 +13,11 @@ const buildRepository = () => {
   const create = mock(
     async (opts: { data: { name: string }; options?: { transaction?: ITransaction } }) => opts.data,
   );
-  const repository = RepositoryDoubles.withTransactions({ repository: { create }, transaction });
+  const repository = RepositoryDoubles.withTransactions({
+    repository: { create },
+    transaction,
+    source: DefaultCRUDRepository,
+  });
 
   return { repository, transaction, create };
 };

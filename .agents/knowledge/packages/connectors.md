@@ -169,7 +169,7 @@ named: `new PostgresTransactionDouble<TRelationalConnector>(...)`); without it t
 `never`, as before. `onCommit` and `onRollback` run awaited when the end statement is reached: after the
 count goes up, before `commitError`/`rollbackError`; a throw from a hook fails the end. PGlite has no double
 of its own: its connector is the Postgres `TRelationalConnector`, so `PostgresTransactionDouble` is its double.
-`RepositoryDoubles.withTransactions({ repository, transaction, logger? })` gives a hand-made repository double the real `runInTransaction`, `rollbackOwnedTransaction` and `resolveEndedByExecute` read off `RelationalBaseRepository.prototype` (never reimplemented), plus a `beginTransaction` that returns `transaction` and a logger.
+`RepositoryDoubles.withTransactions({ repository, transaction, source, logger? })` gives a hand-made repository double the real `runInTransaction`, `rollbackOwnedTransaction` and `resolveEndedByExecute` read off `source.prototype`, a repository class the caller passes (never reimplemented, and the testing entry imports no repository code: the clean-install check loads it without `drizzle-orm`), plus a `beginTransaction` that returns `transaction` and a logger.
 
 ## The 15 published sub-paths
 
