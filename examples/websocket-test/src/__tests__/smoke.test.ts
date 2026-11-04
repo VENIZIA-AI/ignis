@@ -56,6 +56,7 @@ const connectAuthenticated = (opts: { wsUrl: string; token: string }) =>
     });
     socket.addEventListener('message', (event) => {
       const message = parseMessage(event.data);
+
       if (message.event === 'connected') {
         resolve(socket);
       }
@@ -73,6 +74,7 @@ const connectRejected = (opts: { wsUrl: string }) =>
     });
     socket.addEventListener('message', (event) => {
       const message = parseMessage(event.data);
+
       if (message.event === 'connected') {
         reject(new Error('expected authentication to fail'));
       }
@@ -112,6 +114,7 @@ describe('websocket-test', () => {
     if (!redisReachable) {
       return;
     }
+
     await application.stop();
   });
 
@@ -129,6 +132,7 @@ describe('websocket-test', () => {
         const received = new Promise<{ message: string }>((resolve) => {
           socket.addEventListener('message', (event) => {
             const message = parseMessage(event.data);
+
             if (message.event === 'chat:message') {
               resolve(ChatMessageDataSchema.parse(message.data));
             }
