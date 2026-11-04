@@ -188,18 +188,21 @@ export const oxlintConfigs: OxlintConfig = {
   ],
 };
 
-/** Options of `OxlintConfigs.create`. */
 export interface IOxlintPresetOptions {
   /**
    * Allow `||` / `||=` where the left side is a string or a number, so `name || 'guest'` and
-   * `limit || 20` pass: `''` and `0` fall back on purpose. Off by default - the base catches a real
+   * `limit || 20` pass: `''` and `0` fall back on purpose. Left off, the base catches a real
    * `''` or `0` swallowed by `||`.
+   *
+   * @default false
    */
   lenientFallback?: boolean;
   /**
    * Project paths to skip - generated files, vendored code - as in `--ignore-pattern`: `src/gen/**`.
    * Every rule is turned off for them (oxlint cannot ignore a project path from `.configs/`).
    * Share the list with ESLint through `LintIgnore`.
+   *
+   * @default []
    */
   ignore?: string[];
 }

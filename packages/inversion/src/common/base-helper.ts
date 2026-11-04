@@ -1,6 +1,8 @@
-/** Base for classes that carry a logging `scope` and an optional `identifier`; both default to `''` when omitted. */
+/** Base for classes that carry a logging `scope` and an optional `identifier`. */
 export class BaseHelper {
   scope: string;
+
+  /** @default '' */
   identifier: string;
 
   constructor(opts: { scope: string; identifier?: string }) {

@@ -15,7 +15,12 @@ export abstract class BaseContainer extends AbstractContainer {
   /** How often each bound key has been handed out since counting started. */
   protected resolutionCounts = new Map<string, number>();
 
-  /** Off by default: the counter sits on the hottest path in the container, and an application that never reads the report should not pay for it. */
+  /**
+   * Whether resolutions are counted. The counter sits on the hottest path in the container, and an
+   * application that never reads the report should not pay for it.
+   *
+   * @default false
+   */
   protected isCountingResolutions = false;
 
   /** Whether `startResolutionCounting` has ever run. A report read without it would name every binding, which is a wrong answer rather than an empty one. */

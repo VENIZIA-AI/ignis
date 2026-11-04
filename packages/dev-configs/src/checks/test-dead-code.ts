@@ -46,7 +46,6 @@ const nameReferencedElsewhere = (opts: { root: string; stem: string; self: strin
   return result.stdout.split('\n').some((line) => line !== '' && line !== opts.self);
 };
 
-/** Finds support files under `__tests__` (fixtures, helpers) that no tracked file refers to, using `git grep` in the given repository. */
 export class DeadTestCodeCheck {
   static find(opts: { root: string }): IDeadTestCodeCandidate[] {
     const tracked = git({ root: opts.root, args: ['ls-files'] }).stdout.split('\n');

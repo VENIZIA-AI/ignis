@@ -18,8 +18,9 @@ const KNOWN_KEYS = [
   'name',
 ] as const;
 
-/** The error type the framework throws. `statusCode` defaults to 400; `normalized` holds the resolved text, code and args a client renders. */
+/** The error type the framework throws; `normalized` holds the resolved text, code and args a client renders. */
 export class ApplicationError extends Error {
+  /** @default 400 */
   statusCode: number;
   normalized: TErrorNormalized;
   extra?: Record<string, unknown>;

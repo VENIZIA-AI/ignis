@@ -26,7 +26,6 @@ export class PurityVerdicts {
   }
 }
 
-/** One of the `PurityVerdicts` values: `pass`, `fail`, `waived`, `missing` or `stale-waiver`. */
 export type TPurityVerdict = Extract<(typeof PurityVerdicts)[keyof typeof PurityVerdicts], string>;
 
 /** One row of the `--json` verdict: nothing machine- or time-specific, so two runs on one commit diff empty. */
@@ -42,7 +41,6 @@ export interface IPurityRowVerdict {
   buildError?: string;
 }
 
-/** Result of `PurityCheck.run`: the verdict rows and how many were checked, failed and waived. */
 export interface IPurityReport {
   rows: IPurityRowVerdict[];
   failed: number;
@@ -52,7 +50,6 @@ export interface IPurityReport {
 
 const formatList = (values: string[]): string => values.join(', ') || 'none';
 
-/** The `devz check purity` command: probes every published entry of the claimed packages and reports a verdict per row. */
 export class PurityCheck {
   /**
    * Probes every row of the claims and returns the report. `print` receives the human report line by

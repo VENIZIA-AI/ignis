@@ -7,18 +7,23 @@ import {
   type TUnusedVarsScope,
 } from './common';
 
-/** `no-unused-vars`. Unused arguments pass by default: an override keeps its signature. A `_name` variable is an omitted value (`{ page: _page, ...rest }`) and passes too. */
+/** `no-unused-vars`. Unused arguments pass: an override keeps its signature. A `_name` variable is an omitted value (`{ page: _page, ...rest }`) and passes too. */
 export class NoUnusedVarsRule {
   static readonly NAME = 'no-unused-vars';
 
   static build(
     opts: {
+      /** @default 'error' */
       severity?: TRuleSeverity;
+      /** @default 'all' */
       vars?: TUnusedVarsScope;
+      /** @default 'none' */
       args?: TUnusedArgsMode;
+      /** @default false */
       ignoreRestSiblings?: boolean;
       /** Names that may stay unused, e.g. `^_` - a placeholder a signature needs. */
       argsIgnorePattern?: string;
+      /** @default '^_' */
       varsIgnorePattern?: string;
       caughtErrorsIgnorePattern?: string;
       destructuredArrayIgnorePattern?: string;
