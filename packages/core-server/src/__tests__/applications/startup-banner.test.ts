@@ -64,7 +64,7 @@ describe('the startup banner reads the env names the framework publishes', () =>
   });
 
   test('an unset variable reports the default', () => {
-    expect(captureBanner()).toContain('Timezone: Asia/Ho_Chi_Minh');
+    expect(captureBanner()).toContain('Timezone: UTC');
   });
 
   /**
@@ -74,13 +74,13 @@ describe('the startup banner reads the env names the framework publishes', () =>
   test('a present-but-empty variable reports the default, not a blank', () => {
     process.env[EnvironmentKeys.APP_ENV_APPLICATION_TIMEZONE] = '';
 
-    expect(captureBanner()).toContain('Timezone: Asia/Ho_Chi_Minh');
+    expect(captureBanner()).toContain('Timezone: UTC');
   });
 
   test('a whitespace-only variable reports the default too', () => {
     process.env[EnvironmentKeys.APP_ENV_APPLICATION_TIMEZONE] = '   ';
 
-    expect(captureBanner()).toContain('Timezone: Asia/Ho_Chi_Minh');
+    expect(captureBanner()).toContain('Timezone: UTC');
   });
 
   /**

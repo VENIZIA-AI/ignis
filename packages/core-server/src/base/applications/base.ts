@@ -328,7 +328,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     this.logger.for(scope).info('RunMode: %s', process.env.RUN_MODE);
     this.logger
       .for(scope)
-      .info('Timezone: %s', read(EnvironmentKeys.APP_ENV_APPLICATION_TIMEZONE, 'Asia/Ho_Chi_Minh'));
+      .info('Timezone: %s', read(EnvironmentKeys.APP_ENV_APPLICATION_TIMEZONE, 'UTC'));
     this.logger
       .for(scope)
       .info('LogPath: %s', read(EnvironmentKeys.APP_ENV_LOGGER_FOLDER_PATH, './'));

@@ -74,7 +74,7 @@ keys instead of re-implementing `startBunModule`.
 framework reads (`APP_ENV_APPLICATION_NAME`, `APP_ENV_APPLICATION_TIMEZONE`,
 `APP_ENV_LOGGER_FOLDER_PATH`, `APP_ENV_SERVER_HOST`, `APP_ENV_SERVER_PORT`) and what is a
 convention an application reads for itself (the rest - setting them changes nothing).
-`APP_ENV_APPLICATION_TIMEZONE` feeds the startup banner line and nothing else: no date operation
+`APP_ENV_APPLICATION_TIMEZONE` feeds the startup banner line and nothing else (unset, the banner prints `UTC`; the preset `.env.example` sets `UTC` too): no date operation
 reads it, since `@venizia/ignis-helpers` stopped setting a dayjs default zone from it (dates take
 their zone from `TemporalHelper`'s `timeZone` - see [helpers](/packages/helpers.md)).
 `printStartUpInfo` reads every value through those constants at CALL time, not at module load, so
