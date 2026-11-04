@@ -1,10 +1,14 @@
 import type {
   IExtraOptions,
   RelationTypes,
+  ScopeFilters,
   TDrizzleQueryOptions,
   TFilter,
+  TModelAccessSettings,
+  TScopeOperation,
   TWhere,
 } from '@venizia/ignis-kernel';
+import type { TNullable } from '@venizia/ignis-helpers/common';
 import type {
   IRelationalDataSource,
   IRelationalTransaction,
@@ -73,6 +77,16 @@ export interface IRelationalQueryDialect {
 
   /** Flattens a transform result into the object handed to the driver's `set()`. */
   toUpdateData(opts: { transformed: ITransformedUpdateData }): Record<string, unknown>;
+
+  /**
+   * The scope of a model for one call: what its `resolve` answers, or, for a `through` model, a `where` on its
+   * foreign key built from its parent's own scope (`UNRESTRICTED` or null when the parent's is).
+   */
+  resolveAccessScope(opts: {
+    settings: TModelAccessSettings;
+    schema: TTableSchemaWithId;
+    operation: TScopeOperation;
+  }): TNullable<TWhere> | typeof ScopeFilters.UNRESTRICTED;
 }
 
 /** The SQL branch's `IExtraOptions`: narrows `transaction` to a connector-bearing SQL handle so `options.transaction.connector` needs no cast. An engine binds `TConnector` to keep that access typed; unbound it is `unknown`, which is all neutral code can know. */

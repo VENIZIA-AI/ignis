@@ -1,6 +1,7 @@
 import type { AbstractEntity, TModelType } from '@/base/models';
 import type {
   ScopeFilters,
+  ScopeThrough,
   TFilter,
   TScopeFilterMissingBehavior,
   TScopeOperation,
@@ -51,6 +52,9 @@ export interface IModelAccessWriteSettings {
  * removing this setting from the model turns scoping off.
  */
 export interface IModelAccessSettings {
+  /** A model declares a resolver or a `through`, never both. */
+  through?: never;
+
   /**
    * Returns the scope `where`; `ScopeFilters.UNRESTRICTED` to apply no scope for THIS call (an
    * internal operator, a caller the application has decided sees everything); or null/undefined
@@ -86,6 +90,22 @@ export interface IModelAccessSettings {
   /** What a restricted caller may write to the scope columns. See {@link IModelAccessWriteSettings}. */
   write?: IModelAccessWriteSettings;
 }
+
+/**
+ * Row access for a child model that has no scope columns of its own: it inherits the scope of the parent a `one`
+ * relation points at. A parent that resolves no scope always denies the child: `onMissing` is not offered here, because
+ * `'allow'` would show the child's rows of every tenant while the parent shows none.
+ */
+export interface IModelAccessThroughSettings {
+  through: ScopeThrough;
+  onMissing?: never;
+  resolve?: never;
+  columns?: never;
+  write?: never;
+}
+
+/** The two shapes of `@model` settings.access: a resolver, or a `through`. */
+export type TModelAccessSettings = IModelAccessSettings | IModelAccessThroughSettings;
 
 /** What a query runs with when it names nothing (`@model` settings.query). */
 export interface IModelQuerySettings {
@@ -124,7 +144,7 @@ export interface IModelSettings {
    * Relational repositories only - a search-backed model (Typesense, Meilisearch) never reads
    * this setting, so mirroring a scoped entity into a search index needs its own query-time scope.
    */
-  access?: IModelAccessSettings;
+  access?: TModelAccessSettings;
 
   /** Authorization settings for this model (principal name, etc.). */
   authorize?: IModelAuthorizeSettings;

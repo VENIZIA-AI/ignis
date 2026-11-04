@@ -7,7 +7,12 @@ import {
   ScopeOperations,
   ScopeWriteGuards,
 } from '@venizia/ignis-kernel';
-import type { IModelAccessSettings, TScopeOperation, TWhere } from '@venizia/ignis-kernel';
+import type {
+  IModelAccessSettings,
+  TModelAccessSettings,
+  TScopeOperation,
+  TWhere,
+} from '@venizia/ignis-kernel';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { ScopeFilterDenial } from './scope-filter';
 
@@ -235,7 +240,7 @@ export class ScopeWriteGuard {
    * the shared rows, so the mutation is refused, as an update with a payload already is.
    */
   static mutationWhere(opts: {
-    settings: IModelAccessSettings;
+    settings: TModelAccessSettings;
     model: string;
     operation: TScopeOperation;
     scopeWhere: TWhere;
@@ -529,6 +534,14 @@ export class ScopeWriteGuard {
 
     throw getError({
       message: `[ScopeWriteGuard] the write guard runs for a write operation only | entity: ${model} | operation: ${operation}`,
+    });
+  }
+
+  /** A model scoped through its parent is read through its parent: its writes are refused, so none is ever wider than its parent allows. */
+  static throughDenied(opts: { model: string; operation: TScopeOperation }) {
+    return ScopeWriteGuard.denied({
+      ...opts,
+      detail: 'access.through does not support writes',
     });
   }
 

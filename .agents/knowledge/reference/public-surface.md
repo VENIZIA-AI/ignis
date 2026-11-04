@@ -1228,7 +1228,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (414)
+### `@venizia/ignis-kernel` (418)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1391,6 +1391,7 @@ generated:
 - `IJWTVerifyOptions` interface
 - `IMiddlewareConfigs` interface
 - `IModelAccessSettings` interface
+- `IModelAccessThroughSettings` interface
 - `IModelAccessWriteSettings` interface
 - `IModelAuthorizeSettings` interface
 - `IModelMetadata` interface
@@ -1491,6 +1492,7 @@ generated:
 - `ScopeFilterMissingBehaviors` class
 - `ScopeFilters` class
 - `ScopeOperations` class
+- `ScopeThrough` class
 - `ScopeWriteGuards` class
 - `SearchErrorCodes` class
 - `SecFetchSiteValues` const
@@ -1591,8 +1593,10 @@ generated:
 - `TLockOptions` type
 - `TLockStrength` type
 - `TMixinOpts` type
+- `TModelAccessSettings` type
 - `TModelClass` type
 - `TModelType` type
+- `TOneRelationNameOf` type
 - `TOrderEntry` type
 - `TOrigin` type
 - `TParsedOrderEntry` type
@@ -2359,7 +2363,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1005)
+### `@venizia/ignis` (1009)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2701,6 +2705,7 @@ generated:
 - `IManyRelation` interface
 - `IMiddlewareConfigs` interface
 - `IModelAccessSettings` interface
+- `IModelAccessThroughSettings` interface
 - `IModelAccessWriteSettings` interface
 - `IModelAuthorizeSettings` interface
 - `IModelMetadata` interface
@@ -3001,6 +3006,7 @@ generated:
 - `ScopeFilterMissingBehaviors` class
 - `ScopeFilters` class
 - `ScopeOperations` class
+- `ScopeThrough` class
 - `ScopeWriteGuards` class
 - `SearchErrorCodes` class
 - `SecFetchSiteValues` const
@@ -3197,6 +3203,7 @@ generated:
 - `TMimeTypes` type
 - `TMixinOpts` type
 - `TMixinTarget` type
+- `TModelAccessSettings` type
 - `TModelClass` type
 - `TModelType` type
 - `TMultipartStorage` type
@@ -3204,6 +3211,7 @@ generated:
 - `TNullable` type
 - `TNumberConstValue` type
 - `TObjectFromFieldMappings` type
+- `TOneRelationNameOf` type
 - `TOnVisit` type
 - `TOnVisitAsync` type
 - `TOptions` type

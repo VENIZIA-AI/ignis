@@ -512,6 +512,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
   protected validateScopeFilterSupport(): void {
     ScopeFilterUtility.assertScopeFilterSupported({
       asyncContextEnabled: this.configs.asyncContext?.enable ?? false,
+      logger: this.logger,
     });
   }
 }
