@@ -28,6 +28,7 @@ const isRawBody = (body: unknown): boolean => {
 
   return ['Blob', 'FormData', 'URLSearchParams', 'ReadableStream'].some((name) => {
     const ctor = Reflect.get(globalThis, name);
+
     return typeof ctor === 'function' && body instanceof ctor;
   });
 };
@@ -140,6 +141,7 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
 
     try {
       const rs = await fetch(requestUrl, requestConfigs);
+
       return rs;
     } finally {
       if (timeoutId) {

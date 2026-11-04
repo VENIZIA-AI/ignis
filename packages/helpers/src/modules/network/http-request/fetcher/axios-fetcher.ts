@@ -73,6 +73,7 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
     };
 
     const protocol = this.getProtocol(url);
+
     if (protocol === HTTP.Protocols.HTTPS) {
       // A caller's own agent WINS. The previous code assigned after the `...rest` spread, so a
       // hardened agent - custom CA, pinning, mTLS - was overwritten and the secure path was
@@ -87,6 +88,7 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
     logger
       ?.for(this.send.name)
       .info('URL: %s | Props: %s', url, RedactUtility.redactSecrets({ value: props }));
+
     return this.worker.request<T>(props);
   }
 }

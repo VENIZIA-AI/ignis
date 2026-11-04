@@ -6,6 +6,7 @@ const loadTwice = () => {
   const first = require(modulePath);
   delete require.cache[modulePath];
   const second = require(modulePath);
+
   return { first, second };
 };
 

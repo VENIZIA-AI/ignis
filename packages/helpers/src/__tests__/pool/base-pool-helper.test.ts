@@ -12,6 +12,7 @@ function counterPool(size: number) {
       destroyed.push(r);
     },
   });
+
   return { pool, destroyed, createdCount: () => n };
 }
 
@@ -105,11 +106,13 @@ describe('BasePoolHelper — waiting, timeout, load-shed', () => {
     const pool = new BasePoolHelper<number>({ size: 1, create: () => 1, acquireTimeoutMs: 20 });
     await pool.acquire(); // exhaust
     let error: unknown;
+
     try {
       await pool.acquire();
     } catch (err) {
       error = err;
     }
+
     expect(error).toBeDefined();
     expect(pool.getStats().pending).toBe(0); // timed-out waiter removed
   });
@@ -119,11 +122,13 @@ describe('BasePoolHelper — waiting, timeout, load-shed', () => {
     await pool.acquire(); // exhaust
     const w1 = pool.acquire(); // queued (pending = 1)
     let error: unknown;
+
     try {
       await pool.acquire(); // queue full → reject
     } catch (err) {
       error = err;
     }
+
     expect(error).toBeDefined();
     // cleanup so the test process doesn't hang on the still-pending w1
     // eslint-disable-next-line venizia/no-silent-catch -- the pending waiter's rejection is irrelevant to this test; only an unhandled-rejection warning is lost
@@ -136,18 +141,22 @@ describe('BasePoolHelper — waiting, timeout, load-shed', () => {
       size: 1,
       create: () => {
         attempt += 1;
+
         if (attempt === 1) {
           throw new Error('factory down');
         }
+
         return attempt;
       },
     });
     let error: unknown;
+
     try {
       await pool.acquire();
     } catch (err) {
       error = err;
     }
+
     expect(error).toBeDefined();
     expect(pool.getStats()).toEqual({ size: 1, available: 0, borrowed: 0, pending: 0 }); // no leaked total
     const r = await pool.acquire(); // recovers
@@ -215,6 +224,7 @@ describe('BasePoolHelper — use()', () => {
       },
     });
     let error: unknown;
+
     try {
       await pool.use({
         execution: async () => {
@@ -224,6 +234,7 @@ describe('BasePoolHelper — use()', () => {
     } catch (err) {
       error = err;
     }
+
     expect(error).toBeDefined();
     expect(destroyed).toEqual([1]); // the borrowed resource was destroyed, not returned dirty
     expect(pool.getStats().available).toBe(0);
@@ -249,11 +260,13 @@ describe('BasePoolHelper — destroy()', () => {
     const waiting = pool.acquire(); // pending waiter
     await pool.destroy();
     let waitErr: unknown;
+
     try {
       await waiting;
     } catch (err) {
       waitErr = err;
     }
+
     expect(waitErr).toBeDefined(); // pending waiter rejected
 
     // releasing a borrowed resource after destroy() destroys it
@@ -262,11 +275,13 @@ describe('BasePoolHelper — destroy()', () => {
     expect(destroyed).toContain(a);
 
     let acqErr: unknown;
+
     try {
       await pool.acquire();
     } catch (err) {
       acqErr = err;
     }
+
     expect(acqErr).toBeDefined(); // acquire after destroy throws
   });
 });

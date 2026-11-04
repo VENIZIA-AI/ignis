@@ -14,6 +14,7 @@ export class PinoLogger extends BaseLogger {
 
   static get(scope: string): PinoLogger {
     let cached = this.cache.get(scope);
+
     if (!cached) {
       cached = new PinoLogger(scope);
       this.cache.set(scope, cached);

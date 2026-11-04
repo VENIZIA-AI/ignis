@@ -37,6 +37,7 @@ export class DotenvVaultHelper extends AbstractSecretsHelper {
     if (this.decode) {
       return { value: this.decode({ path: this.path, dotenvKey: this.dotenvKey }) };
     }
+
     const dotenvx = await ModuleUtility.load<AnyType>({ module: '@dotenvx/dotenvx' });
     const result = dotenvx.config({
       path: this.path,
@@ -44,6 +45,7 @@ export class DotenvVaultHelper extends AbstractSecretsHelper {
       overload: true,
     });
     const parsed = (result?.parsed ?? {}) as Record<string, string>;
+
     return { value: parsed };
   }
 

@@ -46,6 +46,7 @@ export class PinoDestination {
           value,
           PinoDestination.DEFAULT_FREQUENCY,
         );
+
         return PinoDestination.DEFAULT_FREQUENCY;
       }
     }
@@ -54,12 +55,15 @@ export class PinoDestination {
   /** `null` means "not a recognized shape" - the caller decides what default to fall back to. */
   private static parseMaxFilesValue(value: string, frequency: TFrequency): number | null {
     const dayMatch = /^(\d+)d$/i.exec(value);
+
     if (dayMatch) {
       const days = Number.parseInt(dayMatch[1], 10);
+
       return frequency === 'hourly' ? days * 24 : days;
     }
 
     const bareMatch = /^\d+$/.exec(value);
+
     if (bareMatch) {
       return Number.parseInt(value, 10);
     }
@@ -74,6 +78,7 @@ export class PinoDestination {
 
     if (normalized) {
       const parsed = PinoDestination.parseMaxFilesValue(normalized, frequency);
+
       if (parsed !== null) {
         return parsed;
       }
@@ -143,6 +148,7 @@ export class PinoDestination {
         // Only a decision is forwarded. Left alone, pino-pretty's own `isColorSupported` still
         // suppresses color when stdout is not a terminal - a check winston has no equivalent of.
         const colorize = LoggerConfigUtility.resolveColorize();
+
         return pino.transport({
           target: 'pino-pretty',
           ...(colorize === undefined ? {} : { options: { colorize } }),
@@ -150,6 +156,7 @@ export class PinoDestination {
       }
       case 'roll': {
         ModuleUtility.assertInstalled({ scope: 'PinoLogger', modules: ['pino-roll'] });
+
         return pino.transport({ target: 'pino-roll', options: plan.options });
       }
       default: {

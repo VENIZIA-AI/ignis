@@ -38,6 +38,7 @@ describe('HTTP method case - every method, both spellings, both clients', () => 
         });
 
         const spellings = [lower, upper] as THttpMethod[];
+
         for (const spelling of spellings) {
           const response = await client
             .getNetworkService()
@@ -56,6 +57,7 @@ describe('HTTP method case - every method, both spellings, both clients', () => 
         });
 
         const spellings = [lower, upper] as THttpMethod[];
+
         for (const spelling of spellings) {
           const response = await client
             .getNetworkService()

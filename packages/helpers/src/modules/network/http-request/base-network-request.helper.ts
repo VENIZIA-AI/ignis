@@ -52,6 +52,7 @@ export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
     }
 
     const joined = this.getRequestPath({ paths });
+
     return `${baseUrl ?? this.baseUrl}${joined}`;
   }
 

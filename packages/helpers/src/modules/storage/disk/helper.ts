@@ -75,6 +75,7 @@ export class DiskHelper extends BaseStorageHelper {
 
     try {
       const result = await fsp.stat(target);
+
       return result;
     } catch (error) {
       if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
@@ -91,6 +92,7 @@ export class DiskHelper extends BaseStorageHelper {
 
   private async exists(opts: { target: string }): Promise<boolean> {
     const result = await this.statOrNull(opts);
+
     return result !== null;
   }
 
@@ -101,11 +103,13 @@ export class DiskHelper extends BaseStorageHelper {
     }
 
     const stat = await this.statOrNull({ target: this.getBucketPath(opts) });
+
     return stat?.isDirectory() ?? false;
   }
 
   async getBuckets(): Promise<IBucketInfo[]> {
     const result = await this.exists({ target: this.basePath });
+
     if (!result) {
       return [];
     }
@@ -155,6 +159,7 @@ export class DiskHelper extends BaseStorageHelper {
     const bucketPath = this.getBucketPath(opts);
 
     const result = await this.exists({ target: bucketPath });
+
     if (result) {
       throw getError({
         message: `[createBucket] Bucket already exists | name: ${name}`,
@@ -162,6 +167,7 @@ export class DiskHelper extends BaseStorageHelper {
     }
 
     await fsp.mkdir(bucketPath, { recursive: true });
+
     return this.getBucket(opts);
   }
 
@@ -177,6 +183,7 @@ export class DiskHelper extends BaseStorageHelper {
     const bucketPath = this.getBucketPath(opts);
 
     const result = await this.exists({ target: bucketPath });
+
     if (!result) {
       throw getError({
         message: `[removeBucket] Bucket does not exist | name: ${name}`,
@@ -184,6 +191,7 @@ export class DiskHelper extends BaseStorageHelper {
     }
 
     const files = await fsp.readdir(bucketPath);
+
     if (files.length > 0) {
       throw getError({
         message: `[removeBucket] Bucket is not empty | name: ${name}`,
@@ -191,6 +199,7 @@ export class DiskHelper extends BaseStorageHelper {
     }
 
     await fsp.rmdir(bucketPath);
+
     return true;
   }
 
@@ -212,6 +221,7 @@ export class DiskHelper extends BaseStorageHelper {
     const objectPath = this.resolveObjectPath({ bucket, object });
 
     const result = await this.exists({ target: objectPath });
+
     if (!result) {
       throw getError({
         error: StorageErrors.OBJECT_NOT_FOUND,
@@ -230,6 +240,7 @@ export class DiskHelper extends BaseStorageHelper {
     const objectPath = this.resolveObjectPath({ bucket, object });
 
     const result = await this.exists({ target: objectPath });
+
     if (!result) {
       throw getError({
         error: StorageErrors.OBJECT_NOT_FOUND,
@@ -271,6 +282,7 @@ export class DiskHelper extends BaseStorageHelper {
     const objectPath = this.resolveObjectPath({ bucket, object });
 
     const result = await this.exists({ target: objectPath });
+
     if (!result) {
       throw getError({
         error: StorageErrors.OBJECT_NOT_FOUND,
@@ -300,12 +312,14 @@ export class DiskHelper extends BaseStorageHelper {
 
     // `maxKeys: 0` means zero, not unlimited.
     const limit = maxKeys ?? Number.POSITIVE_INFINITY;
+
     if (limit <= 0) {
       return [];
     }
 
     const bucketPath = this.getBucketPath({ bucket });
     const result = await this.exists({ target: bucketPath });
+
     if (!result) {
       return [];
     }
@@ -335,9 +349,11 @@ export class DiskHelper extends BaseStorageHelper {
         if (entry.isDirectory()) {
           // A prefix that cannot match below here makes descending pointless.
           const canMatch = !prefix || prefix.startsWith(entryKey) || entryKey.startsWith(prefix);
+
           if (useRecursive && canMatch) {
             await scanDirectory({ directory: { path: entryPath, prefix: entryKey } });
           }
+
           continue;
         }
 
@@ -346,6 +362,7 @@ export class DiskHelper extends BaseStorageHelper {
         }
 
         const stat = await this.statOrNull({ target: entryPath });
+
         if (!stat) {
           continue;
         }
@@ -355,6 +372,7 @@ export class DiskHelper extends BaseStorageHelper {
     };
 
     await scanDirectory({ directory: { path: bucketPath } });
+
     return objects;
   }
 }

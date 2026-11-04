@@ -7,6 +7,7 @@ export class HrTimeUtility {
    */
   static getSeconds() {
     const current = process.hrtime();
+
     return ParseUtility.toFloat({ input: current[0] + current[1] / 10 ** 9, digit: 9 });
   }
 }

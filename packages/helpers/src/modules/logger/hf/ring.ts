@@ -15,6 +15,7 @@ export class HfLogRing {
       f64: new Float64Array(buffer),
       writeIndex: 0,
     };
+
     return HfLogRing.state;
   }
 }

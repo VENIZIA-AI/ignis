@@ -28,6 +28,7 @@ const buildFile = (name: string): IUploadFile => ({
 
 afterEach(() => {
   const rootsList = roots.splice(0);
+
   for (const root of rootsList) {
     rmSync(root, { recursive: true, force: true });
   }
@@ -48,6 +49,7 @@ describe('upload runs with bounded concurrency', () => {
       await Promise.resolve();
       const result = await originalWrite(opts);
       inFlight -= 1;
+
       return result;
     });
 
@@ -84,6 +86,7 @@ describe('listObjects treats maxKeys as a number, not a truthiness', () => {
   test('maxKeys caps the result', async () => {
     const { root, helper } = buildDisk();
     const names = ['a.png', 'b.png', 'c.png'];
+
     for (const name of names) {
       writeFileSync(join(root, 'images', name), 'x');
     }
@@ -96,6 +99,7 @@ describe('listObjects treats maxKeys as a number, not a truthiness', () => {
   test('an omitted maxKeys still returns everything', async () => {
     const { root, helper } = buildDisk();
     const names = ['a.png', 'b.png', 'c.png'];
+
     for (const name of names) {
       writeFileSync(join(root, 'images', name), 'x');
     }

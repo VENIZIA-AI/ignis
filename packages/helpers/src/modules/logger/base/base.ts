@@ -21,6 +21,7 @@ export abstract class BaseLogger extends AbstractLogger {
     if (!LoggerDebugGate.isOpen()) {
       return;
     }
+
     this.write({ level: LogLevels.DEBUG, message, args });
   }
 
@@ -44,6 +45,7 @@ export abstract class BaseLogger extends AbstractLogger {
     if (level === LogLevels.DEBUG && !LoggerDebugGate.isOpen()) {
       return;
     }
+
     this.write({ level, message, args });
   }
 

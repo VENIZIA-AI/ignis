@@ -18,6 +18,7 @@ const captureNodeFetchMethod = async (method?: THttpMethod): Promise<string | un
 
   globalThis.fetch = ((_input: AnyType, init?: RequestInit) => {
     captured = init?.method;
+
     return Promise.resolve(new Response(null, { status: 204 }));
   }) as AnyType;
 
@@ -32,8 +33,10 @@ const captureAxiosMethod = async (method?: THttpMethod): Promise<string | undefi
 
   let captured: string | undefined;
   const worker = fetcher.getWorker() as AnyType;
+
   worker.request = (props: { method?: string }) => {
     captured = props.method;
+
     return Promise.resolve({ data: null });
   };
 

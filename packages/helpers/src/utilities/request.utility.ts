@@ -83,6 +83,7 @@ export class RequestUtility {
     const fields: Record<string, string> = {};
 
     const entries = formData.entries();
+
     for (const [fieldname, value] of entries) {
       if (typeof value === 'string') {
         // Last one wins, like a repeated query parameter.
@@ -141,9 +142,11 @@ export class RequestUtility {
     sanitized = sanitized.replace(/^\.+/, '');
     sanitized = sanitized.replace(/\.{2,}/g, '.');
     sanitized = sanitized.replace(/\.\./g, '.');
+
     if (!sanitized || sanitized === '.' || sanitized.includes('..')) {
       sanitized = 'download';
     }
+
     return sanitized;
   }
 
@@ -193,6 +196,7 @@ export class RequestUtility {
 
     // `filename*` wins when both are present - it is the one that can carry a non-ASCII name.
     const extended = header.match(/filename\*\s*=\s*([^;]+)/i);
+
     if (extended) {
       const value = extended[1].trim();
       // `UTF-8''name` or `UTF-8'lang'name`; anything before the last quote is charset and language.
@@ -207,11 +211,13 @@ export class RequestUtility {
     }
 
     const quoted = header.match(/filename\s*=\s*"([^"]*)"/i);
+
     if (quoted) {
       return { type, filename: quoted[1] };
     }
 
     const bare = header.match(/filename\s*=\s*([^;]+)/i);
+
     return { type, filename: bare ? bare[1].trim() : undefined };
   }
 }

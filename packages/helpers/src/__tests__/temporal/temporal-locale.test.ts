@@ -22,6 +22,7 @@ const statusOf = (run: () => unknown): unknown => {
   } catch (error) {
     return error instanceof Error ? Reflect.get(error, 'statusCode') : error;
   }
+
   return undefined;
 };
 
@@ -324,6 +325,7 @@ const wallClockFields = (opts: {
   value: string;
 }): [number, number, number, number, number, number, number] => {
   const parts = opts.helper.parts({ value: opts.value });
+
   return [
     parts.year,
     parts.month - 1,
@@ -393,6 +395,7 @@ describe('review cases', () => {
         }).format(new Date(value)),
       );
     }
+
     expect(helper.format({ value, pattern: 'L', locale: 'th-TH' })).toContain('2026');
   });
 

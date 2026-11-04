@@ -87,6 +87,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
   duplicateClient(): TRedisClient {
     // ioredis 6 types `duplicate` per client; the `Redis | Cluster` union has no callable signature.
     const duplicable: { duplicate: () => TRedisClient } = this.client;
+
     return duplicable.duplicate();
   }
 
@@ -108,6 +109,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
           .info('status: %s | Invalid redis status to invoke connect', this.client.status);
 
         resolve(false);
+
         return;
       }
 
@@ -123,11 +125,13 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
   disconnect() {
     return new Promise<boolean>((resolve, reject) => {
       const invalidStatuses: (typeof this.client.status)[] = ['end', 'close'];
+
       if (invalidStatuses.includes(this.client.status)) {
         this.logger
           .for(this.disconnect.name)
           .info('status: %s | Invalid redis status to invoke disconnect', this.client.status);
         resolve(false);
+
         return;
       }
 
@@ -144,52 +148,62 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
 
   exists(opts: { keys: Array<string> }): Promise<number> {
     const { keys } = opts;
+
     if (!keys.length) {
       return Promise.resolve(0);
     }
+
     return this.client.exists(...keys);
   }
 
   async expire(opts: { key: string; seconds: number }): Promise<boolean> {
     const { key, seconds } = opts;
     const result = await this.client.expire(key, seconds);
+
     return result === 1;
   }
 
   async expireAt(opts: { key: string; atEpochSeconds: number }): Promise<boolean> {
     const { key, atEpochSeconds } = opts;
     const result = await this.client.expireat(key, atEpochSeconds);
+
     return result === 1;
   }
 
   ttl(opts: { key: string }): Promise<number> {
     const { key } = opts;
+
     return this.client.ttl(key);
   }
 
   async persist(opts: { key: string }): Promise<boolean> {
     const { key } = opts;
     const result = await this.client.persist(key);
+
     return result === 1;
   }
 
   incr(opts: { key: string }): Promise<number> {
     const { key } = opts;
+
     return this.client.incr(key);
   }
 
   decr(opts: { key: string }): Promise<number> {
     const { key } = opts;
+
     return this.client.decr(key);
   }
 
   incrBy(opts: { key: string; value: number }): Promise<number> {
     const { key, value } = opts;
+
     return this.client.incrby(key, value);
   }
 
   decrBy(opts: { key: string; value: number }): Promise<number> {
     const { key, value } = opts;
+
     return this.client.decrby(key, value);
   }
 
@@ -203,6 +217,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     const { key, value, options } = opts;
 
     const serialized = JSON.stringify(value);
+
     if (typeof options?.expiresIn === 'number' && options.expiresIn > 0) {
       await this.client.set(key, serialized, 'PX', options.expiresIn);
     } else {
@@ -223,6 +238,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     const { key, transform } = opts;
 
     const value = await this.client.get(key);
+
     if (!value) {
       return null;
     }
@@ -232,9 +248,11 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
 
   del(opts: { keys: Array<string> }): Promise<number> {
     const { keys } = opts;
+
     if (!keys.length) {
       return Promise.resolve(0);
     }
+
     return this.client.del(keys);
   }
 
@@ -265,6 +283,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     options?: { log?: boolean };
   }): Promise<void> {
     const { payload, options } = opts;
+
     if (!payload.length) {
       return;
     }
@@ -273,9 +292,11 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     // accumulated on EVERY element, which is O(n^2). Measured at 10k keys: 2.2s of blocked event
     // loop, against 1.5ms for this.
     const serialized: Record<string, string> = {};
+
     for (const { key, value } of payload) {
       serialized[key] = JSON.stringify(value);
     }
+
     await this.client.mset(serialized);
 
     if (!options?.log) {
@@ -290,11 +311,13 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     transform?: (input: string) => T;
   }): Promise<(T | null)[]> {
     const { keys, transform } = opts;
+
     if (!keys.length) {
       return [];
     }
 
     const values = await this.client.mget(keys);
+
     if (!values?.length) {
       return [];
     }
@@ -304,6 +327,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
 
   keys(opts: { key: string }): Promise<string[]> {
     const { key } = opts;
+
     return this.client.keys(key);
   }
 
@@ -322,12 +346,14 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     }
 
     this.logger.for(this.hSet.name).info('Result: %j', result);
+
     return result;
   }
 
   async hGetAll(opts: { key: string; transform?: <T, R>(input: T) => R }) {
     const { key, transform } = opts;
     const value = await this.client.hgetall(key);
+
     if (!transform || !value) {
       return value;
     }
@@ -337,40 +363,48 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
 
   hGet(opts: { key: string; field: string }): Promise<string | null> {
     const { key, field } = opts;
+
     return this.client.hget(key, field);
   }
 
   hDel(opts: { key: string; fields: Array<string> }): Promise<number> {
     const { key, fields } = opts;
+
     if (!fields.length) {
       return Promise.resolve(0);
     }
+
     return this.client.hdel(key, ...fields);
   }
 
   async hExists(opts: { key: string; field: string }): Promise<boolean> {
     const { key, field } = opts;
     const result = await this.client.hexists(key, field);
+
     return result === 1;
   }
 
   hKeys(opts: { key: string }): Promise<string[]> {
     const { key } = opts;
+
     return this.client.hkeys(key);
   }
 
   hVals(opts: { key: string }): Promise<string[]> {
     const { key } = opts;
+
     return this.client.hvals(key);
   }
 
   hIncrBy(opts: { key: string; field: string; value: number }): Promise<number> {
     const { key, field, value } = opts;
+
     return this.client.hincrby(key, field, value);
   }
 
   hLen(opts: { key: string }): Promise<number> {
     const { key } = opts;
+
     return this.client.hlen(key);
   }
 
@@ -378,33 +412,40 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
 
   sAdd(opts: { key: string; members: Array<string | number> }): Promise<number> {
     const { key, members } = opts;
+
     if (!members.length) {
       return Promise.resolve(0);
     }
+
     return this.client.sadd(key, ...members);
   }
 
   sRem(opts: { key: string; members: Array<string | number> }): Promise<number> {
     const { key, members } = opts;
+
     if (!members.length) {
       return Promise.resolve(0);
     }
+
     return this.client.srem(key, ...members);
   }
 
   sMembers(opts: { key: string }): Promise<string[]> {
     const { key } = opts;
+
     return this.client.smembers(key);
   }
 
   async sIsMember(opts: { key: string; member: string | number }): Promise<boolean> {
     const { key, member } = opts;
     const result = await this.client.sismember(key, member);
+
     return result === 1;
   }
 
   sCard(opts: { key: string }): Promise<number> {
     const { key } = opts;
+
     return this.client.scard(key);
   }
 
@@ -412,37 +453,45 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
 
   lPush(opts: { key: string; values: Array<string | number> }): Promise<number> {
     const { key, values } = opts;
+
     if (!values.length) {
       return Promise.resolve(0);
     }
+
     return this.client.lpush(key, ...values);
   }
 
   rPush(opts: { key: string; values: Array<string | number> }): Promise<number> {
     const { key, values } = opts;
+
     if (!values.length) {
       return Promise.resolve(0);
     }
+
     return this.client.rpush(key, ...values);
   }
 
   lPop(opts: { key: string }): Promise<string | null> {
     const { key } = opts;
+
     return this.client.lpop(key);
   }
 
   rPop(opts: { key: string }): Promise<string | null> {
     const { key } = opts;
+
     return this.client.rpop(key);
   }
 
   lRange(opts: { key: string; start: number; stop: number }): Promise<string[]> {
     const { key, start, stop } = opts;
+
     return this.client.lrange(key, start, stop);
   }
 
   lLen(opts: { key: string }): Promise<number> {
     const { key } = opts;
+
     return this.client.llen(key);
   }
 
@@ -450,36 +499,43 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
 
   jSet<T>(opts: { key: string; path: string; value: T }): Promise<string | null> {
     const { key, path, value } = opts;
+
     return this.execute<string | null>('JSON.SET', [key, path, JSON.stringify(value)]);
   }
 
   jGet<T>(opts: { key: string; path?: string }): Promise<T | null> {
     const { key, path = '$' } = opts;
+
     return this.execute<T | null>('JSON.GET', [key, path]);
   }
 
   jDelete(opts: { key: string; path?: string }): Promise<number> {
     const { key, path = '$' } = opts;
+
     return this.execute<number>('JSON.DEL', [key, path]);
   }
 
   jNumberIncreaseBy(opts: { key: string; path: string; value: number }): Promise<string | null> {
     const { key, path, value } = opts;
+
     return this.execute<string | null>('JSON.NUMINCRBY', [key, path, value]);
   }
 
   jStringAppend(opts: { key: string; path: string; value: string }): Promise<number[] | null> {
     const { key, path, value } = opts;
+
     return this.execute<number[] | null>('JSON.STRAPPEND', [key, path, value]);
   }
 
   jPush<T>(opts: { key: string; path: string; value: T }): Promise<number[] | null> {
     const { key, path, value } = opts;
+
     return this.execute<number[] | null>('JSON.ARRAPPEND', [key, path, JSON.stringify(value)]);
   }
 
   jPop<T>(opts: { key: string; path: string }): Promise<T | null> {
     const { key, path } = opts;
+
     return this.execute<T | null>('JSON.ARRPOP', [key, path]);
   }
 
@@ -504,13 +560,16 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     const { topics, payload, useCompress = false } = opts;
 
     const validTopics = topics?.filter((topic) => !ObjectUtility.isEmpty({ value: topic }));
+
     if (!validTopics?.length) {
       logger.error('No topic(s) to publish!');
+
       return;
     }
 
     if (!payload) {
       logger.error('Invalid payload to publish!');
+
       return;
     }
 
@@ -530,6 +589,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
 
     if (!topic || ObjectUtility.isEmpty({ value: topic })) {
       logger.error('No topic to subscribe!');
+
       return;
     }
 
@@ -539,6 +599,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
       execution: this.client.subscribe(topic, (error, count) => {
         if (error) {
           logger.error('Failed to subscribe to topic: %s | Error: %s', topic, error);
+
           return;
         }
 
@@ -553,6 +614,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
 
     if (!topic || ObjectUtility.isEmpty({ value: topic })) {
       logger.error('No topic to unsubscribe!');
+
       return;
     }
 
@@ -562,6 +624,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
       execution: this.client.unsubscribe(topic, (error, count) => {
         if (error) {
           logger.error('Failed to unsubscribe from topic: %s | Error: %s', topic, error);
+
           return;
         }
 

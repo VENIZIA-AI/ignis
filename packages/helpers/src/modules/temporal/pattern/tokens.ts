@@ -50,6 +50,7 @@ export class TemporalTokens {
       TemporalTokens.pad({ value: Math.floor(totalSeconds / 3600), width: 2 }) +
       separator +
       TemporalTokens.pad({ value: Math.floor((totalSeconds % 3600) / 60), width: 2 });
+
     return seconds === 0
       ? text
       : text + separator + TemporalTokens.pad({ value: seconds, width: 2 });
@@ -138,6 +139,7 @@ export class TemporalTokens {
 
   static isLetter(opts: { code: number }): boolean {
     const { code } = opts;
+
     return (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
   }
 
@@ -155,6 +157,7 @@ export class TemporalTokens {
     const { value, position, min, max } = opts;
     let next = position;
     let number = 0;
+
     while (
       next < value.length &&
       next - position < max &&
@@ -163,6 +166,7 @@ export class TemporalTokens {
       number = number * 10 + (value.charCodeAt(next) - 48);
       next += 1;
     }
+
     return next - position < min ? undefined : { number, next };
   }
 
@@ -173,9 +177,11 @@ export class TemporalTokens {
     separator: boolean;
   }): { number: number; next: number } | undefined {
     const { value, position, separator } = opts;
+
     if (separator && value[position] !== ':') {
       return undefined;
     }
+
     return TemporalTokens.readDigits({
       value,
       position: separator ? position + 1 : position,
@@ -195,21 +201,27 @@ export class TemporalTokens {
   }): { milliseconds: number; next: number } | undefined {
     const { value, position, separator } = opts;
     const sign = value[position];
+
     if (sign === 'Z') {
       return { milliseconds: 0, next: position + 1 };
     }
+
     if (sign !== '+' && sign !== '-') {
       return undefined;
     }
 
     const hours = TemporalTokens.readDigits({ value, position: position + 1, min: 2, max: 2 });
+
     if (!hours) {
       return undefined;
     }
+
     const minutes = TemporalTokens.readOffsetField({ value, position: hours.next, separator });
+
     if (!minutes) {
       return undefined;
     }
+
     const seconds = TemporalTokens.readOffsetField({ value, position: minutes.next, separator });
 
     if (hours.number > 23 || minutes.number > 59 || (seconds && seconds.number > 59)) {
@@ -217,6 +229,7 @@ export class TemporalTokens {
     }
 
     const total = ((hours.number * 60 + minutes.number) * 60 + (seconds?.number ?? 0)) * 1000;
+
     return { milliseconds: sign === '-' ? -total : total, next: (seconds ?? minutes).next };
   }
 

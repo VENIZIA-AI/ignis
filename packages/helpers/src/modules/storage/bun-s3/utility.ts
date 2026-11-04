@@ -17,6 +17,7 @@ export class S3SignatureUtility {
       ['sign'],
     );
     const signature = await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(data));
+
     return new Uint8Array(signature);
   }
 
@@ -28,6 +29,7 @@ export class S3SignatureUtility {
 
   private static async sha256Hex(opts: { data: string }): Promise<string> {
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(opts.data));
+
     return S3SignatureUtility.toHex({ bytes: new Uint8Array(digest) });
   }
 
@@ -55,11 +57,13 @@ export class S3SignatureUtility {
   /** Empty or absent query must sign identically to today - callers of getBuckets/createBucket/removeBucket depend on it. */
   private static buildCanonicalQueryString(opts: { query?: Record<string, string> }): string {
     const { query } = opts;
+
     if (!query) {
       return '';
     }
 
     const keys = Object.keys(query);
+
     if (keys.length === 0) {
       return '';
     }
@@ -86,6 +90,7 @@ export class S3SignatureUtility {
     });
     const regionKey = await S3SignatureUtility.hmacSHA256({ key: dateKey, data: region });
     const serviceKey = await S3SignatureUtility.hmacSHA256({ key: regionKey, data: 's3' });
+
     return S3SignatureUtility.hmacSHA256({ key: serviceKey, data: 'aws4_request' });
   }
 
@@ -139,11 +144,13 @@ export class S3SignatureUtility {
       'x-amz-content-sha256': payloadHash,
       'x-amz-date': amzDate,
     };
+
     if (sessionToken) {
       canonicalHeadersMap['x-amz-security-token'] = sessionToken;
     }
 
     const extraHeadersEntries = Object.entries(extraHeaders ?? {});
+
     for (const [key, value] of extraHeadersEntries) {
       canonicalHeadersMap[key.toLowerCase()] = value;
     }
@@ -233,6 +240,7 @@ export class S3SignatureUtility {
     }
 
     const tagSetMatch = trimmed.match(/<TagSet>([\s\S]*?)<\/TagSet>/);
+
     if (!tagSetMatch) {
       throw getError({ message: `[parseTaggingXml] Malformed tagging response | body: ${xml}` });
     }
@@ -316,6 +324,7 @@ export class S3SignatureUtility {
     const signingKey = await S3SignatureUtility.deriveSigningKey({ secretKey, dateStamp, region });
 
     const result = await S3SignatureUtility.hmacSHA256({ key: signingKey, data: policy });
+
     return {
       formData: {
         ...fields,
@@ -370,6 +379,7 @@ export class S3SignatureUtility {
     // SigV4 compares header values after trimming, so signing an untrimmed one answers 403.
     const canonicalHeadersMap: Record<string, string> = { host: new URL(origin).host };
     const signedEntries = Object.entries(headers ?? {});
+
     for (const [key, value] of signedEntries) {
       canonicalHeadersMap[key.toLowerCase()] = String(value).trim();
     }

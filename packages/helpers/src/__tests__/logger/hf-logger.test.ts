@@ -14,6 +14,7 @@ const collectingFlusher = async () => {
   await flusher.flush();
   batches.length = 0;
   const lines = () => batches.flatMap((batch) => batch.lines);
+
   return { flusher, batches, lines };
 };
 
@@ -57,9 +58,11 @@ describe('HfLogger ring semantics', () => {
 
     const logger = HfLogger.get('WrapTest');
     logger.log('info', HfLogger.encodeMessage('A'.repeat(40)));
+
     for (let index = 0; index < 65536; index++) {
       logger.log('info', HfLogger.encodeMessage('short'));
     }
+
     await flusher.flush();
 
     const last = lines()[lines().length - 1];
@@ -71,9 +74,11 @@ describe('HfLogger ring semantics', () => {
     const { flusher, batches, lines } = await collectingFlusher();
     const logger = HfLogger.get('LapTest');
     const message = HfLogger.encodeMessage('lap');
+
     for (let index = 0; index < 65536 + 4464; index++) {
       logger.log('info', message);
     }
+
     await flusher.flush();
 
     const droppedTotal = batches.reduce((sum, batch) => sum + batch.dropped, 0);
@@ -134,9 +139,11 @@ describe('HfLogger implements ILogger', () => {
   test('encodeMessage identity is stable until FIFO eviction', () => {
     const first = HfLogger.encodeMessage('stable-identity-check');
     expect(HfLogger.encodeMessage('stable-identity-check')).toBe(first);
+
     for (let index = 0; index < 4096; index++) {
       HfLogger.encodeMessage(`evictor-${index}`);
     }
+
     expect(HfLogger.encodeMessage('stable-identity-check')).not.toBe(first);
   });
 });
@@ -153,9 +160,11 @@ describe('HfLogFlusher lifecycle and sinks', () => {
   test('flush() while draining returns the in-flight promise', async () => {
     const flusher = new HfLogFlusher({ sink: () => {}, batchSize: 8 });
     HfLogger.get('Reentrant');
+
     for (let index = 0; index < 64; index++) {
       HfLogger.get('Reentrant').log('info', HfLogger.encodeMessage('spin'));
     }
+
     const first = flusher.flush();
     const second = flusher.flush();
     expect(second).toBe(first);
@@ -182,9 +191,11 @@ describe('HfLogFlusher lifecycle and sinks', () => {
 
     const logger = HfLogger.get('LapMarker');
     const message = HfLogger.encodeMessage('lap-marker');
+
     for (let index = 0; index < 65536 + 100; index++) {
       logger.log('info', message);
     }
+
     await flusher.flush();
 
     const content = fs.readFileSync(filePath, 'utf8');
@@ -196,9 +207,11 @@ describe('HfLogFlusher lifecycle and sinks', () => {
   test('a throwing sink is logged and does not abort the drain', async () => {
     const errors: Array<string> = [];
     const originalError = console.error;
+
     console.error = (...parts: Array<unknown>) => {
       errors.push(String(parts[0]));
     };
+
     const flusher = new HfLogFlusher({
       sink: () => {
         throw new Error('sink boom'); // test-only throw site
@@ -213,9 +226,11 @@ describe('HfLogFlusher lifecycle and sinks', () => {
   test('invalid batchSize falls back with a warning', () => {
     const warnings: Array<string> = [];
     const originalWarn = console.warn;
+
     console.warn = (...parts: Array<unknown>) => {
       warnings.push(String(parts[0]));
     };
+
     const flusher = new HfLogFlusher({ sink: () => {}, batchSize: 0 });
     console.warn = originalWarn;
     expect(flusher['batchSize']).toBe(1024);

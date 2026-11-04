@@ -37,6 +37,7 @@ const PUBLIC = [
 const captureMessage = (task: () => unknown): string => {
   try {
     task();
+
     return '';
   } catch (error) {
     return (error as Error).message;

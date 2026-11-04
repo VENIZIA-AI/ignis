@@ -57,6 +57,7 @@ export class OpaqueUidHelper extends BaseHelper {
     });
 
     this.length = opts?.length ?? DEFAULT_UID_LENGTH;
+
     if (!Number.isInteger(this.length) || this.length < 1) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
@@ -90,6 +91,7 @@ export class OpaqueUidHelper extends BaseHelper {
     const head = this.resolveHead({ prefix: opts?.prefix });
 
     const isAvailable = opts?.isAvailable;
+
     if (!isAvailable) {
       // Refused rather than ignored: without a check there is exactly ONE draw, so a caller who set
       // `maxAttempts` has configured a retry that cannot happen and has no way to notice.
@@ -135,6 +137,7 @@ export class OpaqueUidHelper extends BaseHelper {
     const { head, isAvailable, maxAttempts, attempt, id, verdict } = opts;
 
     const result = await verdict;
+
     if (result) {
       return id;
     }
@@ -143,6 +146,7 @@ export class OpaqueUidHelper extends BaseHelper {
       const candidate = `${head}${this.randomBody()}`;
 
       const result2 = await isAvailable(candidate);
+
       if (result2) {
         return candidate;
       }
@@ -162,6 +166,7 @@ export class OpaqueUidHelper extends BaseHelper {
     }
 
     const prefix = override ?? this.prefix;
+
     return prefix.length > 0 ? `${prefix}${this.delimiter}` : '';
   }
 
@@ -210,6 +215,7 @@ export class OpaqueUidHelper extends BaseHelper {
         }
 
         body += this.alphabet[index];
+
         if (body.length === this.length) {
           break;
         }
@@ -316,6 +322,7 @@ export class OpaqueUidHelper extends BaseHelper {
     }
 
     const value = prefix.value ?? '';
+
     if (value.length === 0) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
@@ -364,6 +371,7 @@ export class OpaqueUidHelper extends BaseHelper {
     }
 
     const value = delimiter.value ?? DEFAULT_UID_DELIMITER;
+
     if (value.length === 0) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
@@ -372,6 +380,7 @@ export class OpaqueUidHelper extends BaseHelper {
     }
 
     const shared = [...new Set(value)].filter((character) => alphabet.includes(character));
+
     if (shared.length > 0) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,

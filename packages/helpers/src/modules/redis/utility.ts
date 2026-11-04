@@ -15,6 +15,7 @@ export class RedisUtility {
     return new Promise<void>((resolve, reject) => {
       if (client.status === 'ready') {
         resolve();
+
         return;
       }
 
@@ -22,6 +23,7 @@ export class RedisUtility {
 
       /** Run by every terminal branch: clients are long-lived and re-`configure()`d, so an unbound listener leaks (EventEmitter warns) and could fire on an already-settled promise. */
       const cleanups: Array<() => void> = [];
+
       const detach = () => {
         for (const cleanup of cleanups) {
           cleanup();

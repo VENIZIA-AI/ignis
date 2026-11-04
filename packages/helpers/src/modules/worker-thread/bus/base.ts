@@ -61,6 +61,7 @@ export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends Abstr
       this.logger
         .for(this.postMessage.name)
         .error('Failed to post message to main | Invalid parentPort!');
+
       return;
     }
 

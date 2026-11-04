@@ -13,6 +13,7 @@ export class ClassResolver {
     ref: TClass<T> | TResolver<TClass<T>> | string;
   }): TClass<T> | string {
     const { ref } = opts;
+
     if (typeof ref === 'string') {
       return ref;
     }

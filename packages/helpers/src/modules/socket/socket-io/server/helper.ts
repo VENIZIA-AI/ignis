@@ -77,6 +77,7 @@ export class SocketIOServerHelper extends BaseHelper {
               '[SocketIOServerHelper] Invalid @socket.io/bun-engine instance for Bun runtime!',
           });
         }
+
         this.bunEngine = opts.engine;
         break;
       }
@@ -123,9 +124,11 @@ export class SocketIOServerHelper extends BaseHelper {
 
   getClients(opts?: { id?: string }): ISocketIOClient | Map<string, ISocketIOClient> | undefined {
     const { id } = opts ?? {};
+
     if (id) {
       return this.clients.get(id);
     }
+
     return this.clients;
   }
 
@@ -134,6 +137,7 @@ export class SocketIOServerHelper extends BaseHelper {
     handler: (...args: HandlerArgsType) => ValueOrPromise<HanderReturnType>;
   }) {
     const { topic, handler } = opts;
+
     if (!topic) {
       throw getError({ message: '[on] Invalid topic to start binding handler' });
     }
@@ -206,6 +210,7 @@ export class SocketIOServerHelper extends BaseHelper {
             message: '[DANGER] Invalid @socket.io/bun-engine instance to init Socket.io server!',
           });
         }
+
         this.io = new IOServer();
         this.io.bind(this.bunEngine);
         break;
@@ -225,12 +230,15 @@ export class SocketIOServerHelper extends BaseHelper {
 
     if (!socket) {
       logger.info('Invalid new socket connection!');
+
       return;
     }
 
     const { id, handshake } = socket;
+
     if (this.clients.has(id)) {
       logger.info('Socket client already existed | id: %s', id);
+
       return;
     }
 
@@ -242,9 +250,11 @@ export class SocketIOServerHelper extends BaseHelper {
       state: SocketIOClientStates.UNAUTHORIZED,
       authenticateTimeout: setTimeout(() => {
         const currentClient = this.clients.get(id);
+
         if (currentClient?.state === SocketIOClientStates.AUTHENTICATED) {
           return;
         }
+
         this.disconnect({ socket });
       }, this.authenticateTimeout),
     };
@@ -263,8 +273,10 @@ export class SocketIOServerHelper extends BaseHelper {
 
     socket.on(SocketIOConstants.EVENT_AUTHENTICATE, () => {
       const currentClient = this.clients.get(id);
+
       if (!currentClient) {
         authLogger.warn('Client no longer exists during auth | id: %s', id);
+
         return;
       }
 
@@ -274,6 +286,7 @@ export class SocketIOServerHelper extends BaseHelper {
           id,
           currentClient.state,
         );
+
         return;
       }
 
@@ -284,6 +297,7 @@ export class SocketIOServerHelper extends BaseHelper {
         .then((rs: boolean) => {
           if (!this.clients.has(id)) {
             authLogger.info('Client disconnected during authentication | id: %s', id);
+
             return;
           }
 
@@ -291,10 +305,12 @@ export class SocketIOServerHelper extends BaseHelper {
 
           if (rs) {
             this.onClientAuthenticated({ socket });
+
             return;
           }
 
           const failedClient = this.clients.get(id);
+
           if (failedClient) {
             failedClient.state = SocketIOClientStates.UNAUTHORIZED;
           }
@@ -306,6 +322,7 @@ export class SocketIOServerHelper extends BaseHelper {
         })
         .catch((error: Error) => {
           const errorClient = this.clients.get(id);
+
           if (errorClient) {
             errorClient.state = SocketIOClientStates.UNAUTHORIZED;
           }
@@ -337,14 +354,17 @@ export class SocketIOServerHelper extends BaseHelper {
 
     if (!socket) {
       logger.info('Invalid new socket connection!');
+
       return;
     }
 
     const { id } = socket;
     const client = this.clients.get(id);
+
     if (!client) {
       logger.info('Unknown client | id: %s', id);
       this.disconnect({ socket });
+
       return;
     }
 
@@ -412,6 +432,7 @@ export class SocketIOServerHelper extends BaseHelper {
    */
   private static toRoomList(payload: unknown): string[] {
     const rooms = (payload as { rooms?: unknown } | null | undefined)?.rooms;
+
     return Array.isArray(rooms)
       ? rooms.filter((room): room is string => typeof room === 'string')
       : [];
@@ -423,17 +444,20 @@ export class SocketIOServerHelper extends BaseHelper {
     const joinLogger = this.logger.for(SocketIOConstants.EVENT_JOIN);
     socket.on(SocketIOConstants.EVENT_JOIN, (payload: any) => {
       const rooms = SocketIOServerHelper.toRoomList(payload);
+
       if (!rooms.length) {
         return;
       }
 
       const validateRoomFn = this.validateRoomFn;
+
       if (!validateRoomFn) {
         joinLogger.warn(
           'Join rejected | id: %s | rooms: %j | reason: no validateRoomFn configured',
           id,
           rooms,
         );
+
         return;
       }
 
@@ -446,6 +470,7 @@ export class SocketIOServerHelper extends BaseHelper {
               id,
               rooms,
             );
+
             return;
           }
 
@@ -474,6 +499,7 @@ export class SocketIOServerHelper extends BaseHelper {
     const leaveLogger = this.logger.for(SocketIOConstants.EVENT_LEAVE);
     socket.on(SocketIOConstants.EVENT_LEAVE, (payload: any) => {
       const rooms = SocketIOServerHelper.toRoomList(payload);
+
       if (!rooms.length) {
         return;
       }
@@ -504,18 +530,22 @@ export class SocketIOServerHelper extends BaseHelper {
 
     if (!socket) {
       logger.info('Socket is undefined to PING!');
+
       return;
     }
 
     const client = this.clients.get(socket.id);
+
     if (!client) {
       logger.info('Client not found | socketId: %s', socket.id);
+
       return;
     }
 
     if (!doIgnoreAuth && client.state !== SocketIOClientStates.AUTHENTICATED) {
       logger.info('Socket client is not authenticated | state: %s', client.state);
       this.disconnect({ socket });
+
       return;
     }
 
@@ -525,6 +555,7 @@ export class SocketIOServerHelper extends BaseHelper {
   disconnect(opts: { socket: IOSocket }) {
     const logger = this.logger.for(this.disconnect.name);
     const { socket } = opts;
+
     if (!socket) {
       return;
     }
@@ -563,6 +594,7 @@ export class SocketIOServerHelper extends BaseHelper {
     }
 
     const { topic, data } = payload;
+
     if (!topic || !data) {
       return;
     }
@@ -572,6 +604,7 @@ export class SocketIOServerHelper extends BaseHelper {
         'Cannot emit | Redis emitter is not initialized | call configure() first | topic: %s',
         topic,
       );
+
       return;
     }
 
@@ -603,6 +636,7 @@ export class SocketIOServerHelper extends BaseHelper {
       if (!this.io) {
         this.logger.for('close').info('SKIP close | IOServer was never initialized');
         resolve();
+
         return;
       }
 
@@ -612,6 +646,7 @@ export class SocketIOServerHelper extends BaseHelper {
         execution: this.io.close((error) => {
           if (error) {
             reject(error);
+
             return;
           }
 
@@ -636,6 +671,7 @@ export class SocketIOServerHelper extends BaseHelper {
 
       client.socket.disconnect();
     }
+
     this.clients.clear();
 
     try {

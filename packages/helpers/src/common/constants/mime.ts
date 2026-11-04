@@ -107,6 +107,7 @@ export class ContentTypes {
   static readonly DOC = 'application/msword';
   static readonly PPTX =
     'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+
   static readonly PPT = 'application/vnd.ms-powerpoint';
   static readonly ODT = 'application/vnd.oasis.opendocument.text';
   static readonly ODS = 'application/vnd.oasis.opendocument.spreadsheet';

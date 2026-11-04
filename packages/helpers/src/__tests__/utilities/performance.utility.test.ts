@@ -18,6 +18,7 @@ const captureRejection = async (execution: Promise<unknown>): Promise<Error> => 
 
 const buildLogger = () => {
   const lines: Array<{ level: string; args: unknown[] }> = [];
+
   const record = (level: string) => {
     return (...args: unknown[]) => {
       lines.push({ level, args });
@@ -63,6 +64,7 @@ describe('executeWithPerformanceMeasure', () => {
       description: 'doing work',
       task: async () => {
         await new Promise((resolve) => setTimeout(resolve, 5));
+
         return 'done-value';
       },
     });

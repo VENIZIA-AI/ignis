@@ -19,6 +19,7 @@ const captureRequest = (): ICapturedRequest => {
   globalThis.fetch = ((input: AnyType, init?: RequestInit) => {
     captured.url = String(input);
     captured.signal = init?.signal ?? undefined;
+
     return Promise.resolve(new Response(null, { status: 204 }));
   }) as AnyType;
 
@@ -100,6 +101,7 @@ describe('NodeFetcher - abort signal', () => {
     let capturedSignal: AbortSignal | undefined;
     globalThis.fetch = ((_input: AnyType, init?: RequestInit) => {
       capturedSignal = init?.signal ?? undefined;
+
       return new Promise<Response>((_resolve, reject) => {
         capturedSignal?.addEventListener('abort', () => reject(new Error('aborted')), {
           once: true,
@@ -108,6 +110,7 @@ describe('NodeFetcher - abort signal', () => {
     }) as AnyType;
 
     let caught: unknown;
+
     try {
       await buildFetcher().send({ url: 'http://example.test/a', timeout: 5 });
     } catch (error) {

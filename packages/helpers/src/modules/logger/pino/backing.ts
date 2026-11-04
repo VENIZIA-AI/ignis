@@ -31,6 +31,7 @@ export class PinoBackingLogger {
       ) as TPinoInstance;
       PinoBackingLogger.transport = destination;
     }
+
     return PinoBackingLogger.instance;
   }
 

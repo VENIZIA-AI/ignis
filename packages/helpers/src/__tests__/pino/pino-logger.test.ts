@@ -42,6 +42,7 @@ describe('PinoLogger - behavioral, via an injected in-memory backing', () => {
 
   const lastParsed = (): IParsedLine => {
     expect(lines.length).toBeGreaterThan(0);
+
     return JSON.parse(lines[lines.length - 1]) as IParsedLine;
   };
 
@@ -88,8 +89,10 @@ describe('pino level floor parity with npm ordering', () => {
   afterEach(() => {
     if (savedLevel === undefined) {
       delete process.env[ENV_KEY];
+
       return;
     }
+
     process.env[ENV_KEY] = savedLevel;
   });
 

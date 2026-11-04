@@ -59,6 +59,7 @@ const settleQuietly = async (opts: {
   label: string;
 }): Promise<void> => {
   const { pending, ms, label } = opts;
+
   try {
     await withTimeout(pending, ms, label);
   } catch (error) {
@@ -68,10 +69,12 @@ const settleQuietly = async (opts: {
 
 const createdTopics: string[] = [];
 let topicSeq = 0;
+
 const freshTopicName = (): string => {
   topicSeq += 1;
   const name = `ignis-it-${RUN}-${topicSeq}`;
   createdTopics.push(name);
+
   return name;
 };
 
@@ -90,6 +93,7 @@ beforeAll(async () => {
   if (!isLive) {
     return;
   }
+
   admin = KafkaAdminHelper.newInstance({ ...baseConn(), identifier: 'it-admin' });
   producer = KafkaProducerHelper.newInstance({
     ...baseConn(),
@@ -112,6 +116,7 @@ afterAll(async () => {
   if (!isLive) {
     return;
   }
+
   if (createdTopics.length) {
     await settleQuietly({
       pending: admin.getAdmin().deleteTopics({ topics: createdTopics }),
@@ -119,6 +124,7 @@ afterAll(async () => {
       label: 'afterAll deleteTopics',
     });
   }
+
   await settleQuietly({
     pending: producer.close({ isForce: true }),
     ms: 10_000,
@@ -220,10 +226,12 @@ describe('KafkaProducerHelper (live)', () => {
         acks: -1,
         autocreateTopics: true,
       });
+
       try {
         const result = await withTimeout(
           txProducer.runInTransaction(async ({ send }) => {
             await send({ messages: [{ topic, key: 'tx', value: 'committed' }] });
+
             return 'ok';
           }),
           30_000,
@@ -255,8 +263,10 @@ describe('KafkaProducerHelper (live)', () => {
         acks: -1,
         autocreateTopics: true,
       });
+
       try {
         let didThrow = false;
+
         try {
           await withTimeout(
             txProducer.runInTransaction(async ({ send }) => {
@@ -270,6 +280,7 @@ describe('KafkaProducerHelper (live)', () => {
           didThrow = true;
           expect((error as Error).message).toBe('force-abort');
         }
+
         expect(didThrow).toBe(true);
       } finally {
         await settleQuietly({
@@ -324,6 +335,7 @@ describe('KafkaConsumerHelper (live)', () => {
       });
       const consumer = makeConsumer(async ({ message }) => {
         got.add(String(message.value));
+
         if (got.size >= N) {
           resolveAll();
         }
@@ -336,6 +348,7 @@ describe('KafkaConsumerHelper (live)', () => {
           'start',
         );
         await withTimeout(allReceived, 25_000, 'receive-all');
+
         for (const value of values) {
           expect(got.has(value)).toBe(true);
         }
@@ -469,6 +482,7 @@ describe('KafkaConsumerHelper (live)', () => {
           resolveFirst();
         },
       });
+
       try {
         await withTimeout(
           first.start({ topics: [topic], fallbackMode: 'earliest' }),
@@ -494,6 +508,7 @@ describe('KafkaConsumerHelper (live)', () => {
           didRedeliver = true;
         },
       });
+
       try {
         await withTimeout(
           second.start({ topics: [topic], mode: 'committed', fallbackMode: 'latest' }),
@@ -518,6 +533,7 @@ describe('KafkaConsumerHelper (live)', () => {
       const consumer = makeConsumer(async () => {
         /* noop */
       });
+
       try {
         await withTimeout(
           consumer.start({ topics: [topic], fallbackMode: 'latest' }),
@@ -569,6 +585,7 @@ describe('KafkaConsumerHelper (live)', () => {
       const consumer = makeConsumer(async () => {
         /* noop */
       });
+
       try {
         await withTimeout(
           consumer.start({ topics: [topic], fallbackMode: 'latest' }),
@@ -606,6 +623,7 @@ describe('KafkaConsumerHelper (live)', () => {
           /* absorb */
         },
       });
+
       try {
         await withTimeout(
           consumer.start({ topics: [topic], fallbackMode: 'latest' }),
@@ -655,12 +673,14 @@ describe('Kafka resilience (live config, bad endpoint)', () => {
         retries: 0,
       });
       let didFail = false;
+
       try {
         await withTimeout(badAdmin.getAdmin().listTopics({}), 12_000, 'bad-listTopics');
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
         didFail = true;
       }
+
       expect(didFail).toBe(true);
       expect(badAdmin.isHealthy()).toBe(false);
       await settleQuietly({

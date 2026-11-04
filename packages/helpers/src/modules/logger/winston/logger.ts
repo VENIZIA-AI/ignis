@@ -20,6 +20,7 @@ export class WinstonLogger extends BaseLogger {
     }
 
     let cached = this.cache.get(scope);
+
     if (!cached) {
       cached = new WinstonLogger(scope, defaultWinstonLogger);
       this.cache.set(scope, cached);

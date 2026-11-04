@@ -50,6 +50,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     job: Job<TQueueElement, TQueueResult>,
     result: any,
   ) => Promise<void>;
+
   protected onWorkerDataFail?: (
     job: Job<TQueueElement, TQueueResult> | undefined,
     error: Error,
@@ -120,6 +121,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
       this.logger
         .for(this.configureQueue.name)
         .error('Invalid queue name | ID: %s', this.identifier);
+
       return;
     }
 
@@ -182,6 +184,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
   /** Client factory seam - overridden in tests to run the helper without Redis. */
   protected buildQueue(opts: { queueName: string }): Queue<TQueueElement, TQueueResult> {
     const bullmq = this.loadBullMQ();
+
     return new bullmq.Queue<TQueueElement, TQueueResult>(
       opts.queueName,
       this.queueOptionsFor(opts),
@@ -194,6 +197,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     processor: Processor<TQueueElement, TQueueResult>;
   }): Worker<TQueueElement, TQueueResult> {
     const bullmq = this.loadBullMQ();
+
     return new bullmq.Worker<TQueueElement, TQueueResult>(
       opts.queueName,
       opts.processor,
@@ -206,6 +210,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
       this.logger
         .for(this.configureWorker.name)
         .error('Invalid worker name | ID: %s', this.identifier);
+
       return;
     }
 
@@ -215,6 +220,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
       processor: async (job) => {
         if (this.onWorkerData) {
           const result = await this.onWorkerData(job);
+
           return result;
         }
 
@@ -271,6 +277,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
           'Invalid client role to configure | Valid roles: [queue|worker] | ID: %s',
           this.identifier,
         );
+
       return;
     }
 

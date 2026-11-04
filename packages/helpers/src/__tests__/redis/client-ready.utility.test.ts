@@ -9,6 +9,7 @@ class FakeRedisClient extends EventEmitter {
 
   connect(): Promise<void> {
     this.connectCallCount++;
+
     return Promise.resolve();
   }
 }
@@ -22,6 +23,7 @@ describe('waitForRedisReady', () => {
     const client = new FakeRedisClient();
 
     let caught: unknown;
+
     try {
       await RedisUtility.waitForReady({ client: asRedisClient(client), timeoutMs: 50 });
     } catch (error) {

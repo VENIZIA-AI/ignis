@@ -24,6 +24,7 @@ const captureErrorMessage = async (opts: { task: Promise<unknown> }): Promise<st
 
   try {
     await task;
+
     return '';
   } catch (error) {
     return (error as Error).message;

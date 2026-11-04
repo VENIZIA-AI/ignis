@@ -65,6 +65,7 @@ export class SnowflakeUidHelper extends BaseHelper {
   /** Generate next unique ID as Base62 string. */
   nextId(): string {
     const snowflake = this.nextSnowflake();
+
     return this.encodeBase62(snowflake);
   }
 
@@ -143,12 +144,14 @@ export class SnowflakeUidHelper extends BaseHelper {
 
     for (const char of str) {
       const index = BASE62_CHARS.indexOf(char);
+
       if (index === -1) {
         throw getError({
           statusCode: HTTP.ResultCodes.RS_4.BadRequest,
           message: `[IdGenerator][decodeBase62] Invalid Base62 character: ${char}`,
         });
       }
+
       result = result * base + BigInt(index);
     }
 
@@ -158,6 +161,7 @@ export class SnowflakeUidHelper extends BaseHelper {
   /** Extract timestamp from a Snowflake ID. */
   extractTimestamp(id: bigint): Date {
     const timestamp = (id >> SnowflakeConfig.TIMESTAMP_SHIFT) + this.epoch;
+
     return new Date(Number(timestamp));
   }
 
@@ -165,6 +169,7 @@ export class SnowflakeUidHelper extends BaseHelper {
   extractWorkerId(id: bigint): number {
     const extractedWorkerId =
       (id >> SnowflakeConfig.WORKER_ID_SHIFT) & SnowflakeConfig.MAX_WORKER_ID;
+
     return Number(extractedWorkerId);
   }
 
@@ -176,6 +181,7 @@ export class SnowflakeUidHelper extends BaseHelper {
   /** Parse a Base62 ID and extract its components. */
   parseId(base62Id: string): ISnowflakeParsedId {
     const raw = this.decodeBase62(base62Id);
+
     return {
       raw,
       timestamp: this.extractTimestamp(raw),
@@ -195,9 +201,11 @@ export class SnowflakeUidHelper extends BaseHelper {
 
   private waitForNextMs(lastTimestamp: bigint): bigint {
     let timestamp = this.currentTimestamp();
+
     while (timestamp <= lastTimestamp) {
       timestamp = this.currentTimestamp();
     }
+
     return timestamp;
   }
 

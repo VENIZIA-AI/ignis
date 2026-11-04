@@ -53,6 +53,7 @@ export class PerformanceUtility {
         .catch(reject)
         .finally(() => {
           const took = performance.now() - t;
+
           if (args) {
             log('[%s] DONE | %s | Args: %j | Took: %s (ms)', scope, description, args, took);
           } else {

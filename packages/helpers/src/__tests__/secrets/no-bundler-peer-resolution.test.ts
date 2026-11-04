@@ -31,6 +31,7 @@ const buildProbeScript = (opts: { entryPath: string; outdirName: string; withSpy
         },
       },
     ],`;
+
   return `
     const resolutionAttempts = [];
     const result = await Bun.build({
@@ -60,11 +61,13 @@ const runProbe = async (opts: { name: string; script: string }): Promise<IProbeR
   });
   const stdout = result.stdout.toString();
   const marker = stdout.split('\n').find((line) => line.startsWith('PROBE_REPORT:'));
+
   if (!marker) {
     throw new Error(
       `[no-bundler-peer-resolution] probe emitted no report | stdout: ${stdout} | stderr: ${result.stderr.toString()}`,
     );
   }
+
   return JSON.parse(marker.slice('PROBE_REPORT:'.length)) as IProbeReport;
 };
 

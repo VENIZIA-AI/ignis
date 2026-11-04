@@ -81,6 +81,7 @@ function buildHelper() {
   });
   // Inject mock client via bracket access (client is a public field on AbstractRedisHelper)
   (helper as AnyType as { client: MockRedisClient }).client = mockClient;
+
   return { helper, mockClient };
 }
 

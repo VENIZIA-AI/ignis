@@ -15,6 +15,7 @@ describe('RedisSentinelHelper', () => {
       autoConnect: false,
       ...overrides,
     });
+
     return helper;
   };
 

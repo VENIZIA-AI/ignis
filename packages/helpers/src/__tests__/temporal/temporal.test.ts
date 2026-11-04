@@ -39,6 +39,7 @@ const statusOf = (run: () => unknown): unknown => {
   } catch (error) {
     return error instanceof Error ? Reflect.get(error, 'statusCode') : error;
   }
+
   return undefined;
 };
 
@@ -302,6 +303,7 @@ for (const { name, build } of adapters) {
       test('the earlier pass is chosen whatever today is', () => {
         // Libraries guess an offset from today first: in winter a naive guess lands on EST.
         setSystemTime(new Date('2027-01-15T12:00:00Z'));
+
         try {
           expect(
             iso(newYork.parse({ value: '2026-11-01 01:30', pattern: 'YYYY-MM-DD HH:mm' })),
@@ -365,6 +367,7 @@ describe('adapters refuse a library they cannot drive', () => {
   test('native Temporal missing names the way out', () => {
     const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'Temporal');
     Reflect.deleteProperty(globalThis, 'Temporal');
+
     try {
       expect(() => new NativeTemporalAdapter()).toThrow(/Temporal is not available/);
     } finally {

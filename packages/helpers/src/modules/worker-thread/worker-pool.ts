@@ -55,14 +55,17 @@ export class WorkerPoolHelper extends BaseHelper {
           this.numberOfCPUs,
           this.ignoreMaxWarning,
         );
+
       return false;
     }
 
     const { key, worker } = opts;
+
     if (this.registry.has(key)) {
       this.logger
         .for(this.register.name)
         .error('SKIP register worker | Worker key existed in pool | key: %s', key);
+
       return false;
     }
 
@@ -81,6 +84,7 @@ export class WorkerPoolHelper extends BaseHelper {
       this.logger
         .for(this.unregister.name)
         .warn('SKIP unregister worker | Worker not existed | key: %s', key);
+
       return;
     }
 

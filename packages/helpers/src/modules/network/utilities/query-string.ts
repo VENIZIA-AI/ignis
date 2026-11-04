@@ -70,6 +70,7 @@ export class QueryStringUtility {
         : encodeURIComponent(String(value));
 
     const entries = Object.entries(params);
+
     for (const [key, value] of entries) {
       const name = encodeURIComponent(key);
 

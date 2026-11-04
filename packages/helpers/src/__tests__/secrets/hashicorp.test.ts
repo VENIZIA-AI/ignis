@@ -10,9 +10,11 @@ const formatLogArgs = ([message, ...args]: unknown[]) =>
 
 const makeCapturingLogger = () => {
   const messages: string[] = [];
+
   const record = (...args: unknown[]) => {
     messages.push(formatLogArgs(args));
   };
+
   const sink: Record<string, unknown> = {
     debug: record,
     info: record,
@@ -21,6 +23,7 @@ const makeCapturingLogger = () => {
     fatal: record,
   };
   sink['for'] = () => sink;
+
   return { messages, sink };
 };
 
@@ -28,6 +31,7 @@ const makeCapturingLogger = () => {
 const leakyTransportError = () => {
   const data: Record<string, unknown> = {};
   data['secret_id'] = 'secret-approle';
+
   return Object.assign(new Error('transport failed'), {
     config: {
       headers: { 'X-Vault-Token': 'secret-tok' },
@@ -50,20 +54,26 @@ class ManualTimers implements ITimerAdapter {
   set(handler: () => void): TTimerHandle {
     const handle = ++this.seq;
     this.handlers.set(handle, handler);
+
     return handle;
   }
+
   clear(handle: TTimerHandle) {
     this.handlers.delete(handle);
   }
+
   get pendingCount() {
     return this.handlers.size;
   }
+
   async fireAll() {
     const pending = [...this.handlers.values()];
     this.handlers.clear();
+
     for (const handler of pending) {
       handler();
     }
+
     await Promise.resolve();
     await Promise.resolve();
   }
@@ -99,6 +109,7 @@ const fakeClient = (opts?: { tokenRenewSelfBehavior?: 'succeed' | 'fail' }) => {
     async write() {
       const result: Record<string, unknown> = {};
       result['lease_duration'] = 30;
+
       return result;
     },
     async approleLogin() {
@@ -107,6 +118,7 @@ const fakeClient = (opts?: { tokenRenewSelfBehavior?: 'succeed' | 'fail' }) => {
       auth['client_token'] = 't1';
       auth['lease_duration'] = 100;
       auth['renewable'] = true;
+
       return { auth };
     },
     async tokenLookupSelf() {
@@ -115,19 +127,24 @@ const fakeClient = (opts?: { tokenRenewSelfBehavior?: 'succeed' | 'fail' }) => {
       const data: Record<string, unknown> = {};
       data['ttl'] = 0;
       data['renewable'] = false;
+
       return { data };
     },
     async tokenRenewSelf() {
       calls.tokenRenewSelf += 1;
+
       if (tokenRenewSelfBehavior === 'fail') {
         throw new Error('renew rejected');
       }
+
       const auth: Record<string, unknown> = {};
       auth['lease_duration'] = 100;
       auth['renewable'] = true;
+
       return { auth };
     },
   };
+
   return client;
 };
 
@@ -220,13 +237,16 @@ describe('HashiCorpVaultHelper', () => {
         },
         async approleLogin() {
           approleCalls += 1;
+
           if (approleCalls === 1) {
             const auth: Record<string, unknown> = {};
             auth['client_token'] = 't1';
             auth['lease_duration'] = 100;
             auth['renewable'] = true;
+
             return { auth };
           }
+
           throw leaky; // re-auth during the failed renewal also fails with a leaky error
         },
         async tokenRenewSelf() {
@@ -259,13 +279,16 @@ describe('HashiCorpVaultHelper', () => {
       const timers = new ManualTimers();
       let approleCalls = 0;
       let renewCalls = 0;
+
       const okAuth = () => {
         const auth: Record<string, unknown> = {};
         auth['client_token'] = 't1';
         auth['lease_duration'] = 100;
         auth['renewable'] = true;
+
         return { auth };
       };
+
       const client = {
         token: '',
         async read() {
@@ -276,20 +299,25 @@ describe('HashiCorpVaultHelper', () => {
         },
         async approleLogin() {
           approleCalls += 1;
+
           // #1 = configure login (ok); #2 = re-auth during the first failed renewal (transient blip).
           if (approleCalls === 2) {
             throw new Error('re-auth blip');
           }
+
           return okAuth();
         },
         async tokenRenewSelf() {
           renewCalls += 1;
+
           if (renewCalls === 1) {
             throw new Error('renew blip');
           }
+
           const auth: Record<string, unknown> = {};
           auth['lease_duration'] = 100;
           auth['renewable'] = true;
+
           return { auth };
         },
         async tokenLookupSelf() {

@@ -23,10 +23,12 @@ class RecordingProviderLogger extends AbstractLogger {
 
   static get(scope: string): RecordingProviderLogger {
     let logger = this.cache.get(scope);
+
     if (!logger) {
       logger = new RecordingProviderLogger(scope);
       this.cache.set(scope, logger);
     }
+
     return logger;
   }
 
@@ -37,21 +39,27 @@ class RecordingProviderLogger extends AbstractLogger {
   debug(message: string) {
     this.record('debug', message);
   }
+
   info(message: string) {
     this.record('info', message);
   }
+
   warn(message: string) {
     this.record('warn', message);
   }
+
   error(message: string) {
     this.record('error', message);
   }
+
   emerg(message: string) {
     this.record('emerg', message);
   }
+
   log(level: TLogLevel, message: string) {
     this.record(level, message);
   }
+
   for(methodName: string): ILogger {
     return RecordingProviderLogger.get(`${this.scope}-${methodName}`);
   }
@@ -81,12 +89,14 @@ const buildCountingProvider = () => {
   const provider: ILoggerProvider = {
     get: (scope: string) => {
       state.scopes.push(scope);
+
       return {
         info: (message: string) => state.seen.push(`${scope}|${message}`),
       } as unknown as ILogger;
     },
   };
   const getsFor = (scope: string) => state.scopes.filter((seen) => seen === scope).length;
+
   return { state, provider, getsFor };
 };
 

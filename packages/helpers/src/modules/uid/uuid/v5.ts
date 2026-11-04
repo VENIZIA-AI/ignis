@@ -22,6 +22,7 @@ export class UuidV5Generator {
       const { namespace } = opts;
 
       const cached = namespaces.get(namespace);
+
       if (cached) {
         return cached;
       }
@@ -35,6 +36,7 @@ export class UuidV5Generator {
 
       const bytes = new Uint8Array(16);
       const hex = namespace.replaceAll('-', '');
+
       for (let index = 0; index < 16; index++) {
         bytes[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
       }

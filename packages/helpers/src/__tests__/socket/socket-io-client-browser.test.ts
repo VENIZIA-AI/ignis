@@ -10,6 +10,7 @@ const buildModule = () => {
   const module = {
     io: (host: string) => {
       calls.push({ host });
+
       return socket;
     },
   } as AnyType;

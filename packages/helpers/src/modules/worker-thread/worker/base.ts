@@ -45,6 +45,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
         scope: this.onOnline.name,
         execution: () => this.eventHandlers?.onOnline?.(),
       });
+
       return;
     }
 
@@ -57,6 +58,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
         scope: this.onExit.name,
         execution: () => this.eventHandlers?.onExit?.({ code: opts.code }),
       });
+
       return;
     }
 
@@ -69,6 +71,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
         scope: this.onError.name,
         execution: () => this.eventHandlers?.onError?.({ error: opts.error }),
       });
+
       return;
     }
 
@@ -81,6 +84,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
         scope: this.onMessage.name,
         execution: () => this.eventHandlers?.onMessage?.({ message: opts.message }),
       });
+
       return;
     }
 
@@ -93,6 +97,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
         scope: this.onMessageError.name,
         execution: () => this.eventHandlers?.onMessageError?.({ error: opts.error }),
       });
+
       return;
     }
 

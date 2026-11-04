@@ -38,6 +38,7 @@ const probe = async (): Promise<void> => {
           hasInlinedModule: code.includes(INLINED_MARKER),
         }),
       );
+
       return;
     }
 

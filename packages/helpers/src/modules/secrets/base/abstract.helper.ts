@@ -64,11 +64,13 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
     this.cacheTtlSeconds = opts.cacheTtlSeconds ?? DEFAULT_CACHE_TTL_SECONDS;
 
     const ratio = opts.renewBeforeRatio ?? DEFAULT_RENEW_BEFORE_RATIO;
+
     if (!Number.isFinite(ratio) || ratio <= 0 || ratio > 1) {
       throw getError({
         message: `[constructor] renewBeforeRatio must be within (0, 1] | received: ${ratio}`,
       });
     }
+
     this.renewBeforeRatio = ratio;
   }
 
@@ -87,15 +89,20 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
   async getBundle(opts: { path: string }): Promise<Record<string, string>> {
     this.evictExpiredCache();
     const cached = this.cache.get(opts.path);
+
     if (cached && cached.expiresAt > this.clock.now()) {
       return cached.value;
     }
+
     const fresh = await this.fetchRaw({ path: opts.path });
+
     // A shutdown that ran while fetchRaw was in flight already cleared `cache` - honor that and hand back the fetched value uncached rather than resurrecting a map shutdown just emptied.
     if (this.closed) {
       return fresh.value;
     }
+
     this.writeCache({ path: opts.path, value: fresh.value });
+
     return fresh.value;
   }
 
@@ -108,26 +115,31 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
         ? bundle[opts.key]
         : undefined
       : (bundle as AnyType);
+
     return (raw ?? opts.defaultValue) as TValue;
   }
 
   async lease(opts: { path: string; key: string }): Promise<ISecretLease> {
     const fresh = await this.fetchRaw({ path: opts.path });
+
     // A shutdown that ran while fetchRaw was in flight already revoked/cleared every lease - committing this one now would resurrect leases/leasePaths with a lease no live provider will ever renew or revoke, so surface the shutdown instead of silently leaking it back in.
     if (this.closed) {
       throw getError({
         message: `[lease] Provider is shut down | path: ${opts.path} | key: ${opts.key}`,
       });
     }
+
     if (!fresh.lease) {
       throw getError({
         message: `[lease] Path returned no lease | path: ${opts.path} | key: ${opts.key}`,
       });
     }
+
     const lease: ISecretLease = { value: fresh.value, ...fresh.lease };
     this.leases.set(opts.key, lease);
     this.leasePaths.set(opts.key, opts.path);
     this.scheduleRenewal({ key: opts.key, lease });
+
     return lease;
   }
 
@@ -146,9 +158,11 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
     this.closed = true;
 
     const timerHandlesValues = this.timerHandles.values();
+
     for (const handle of timerHandlesValues) {
       this.timers.clear(handle);
     }
+
     this.timerHandles.clear();
     this.backoffAttempts.clear();
 
@@ -164,6 +178,7 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
         );
       }
     }
+
     this.leases.clear();
     this.leasePaths.clear();
     this.cache.clear();
@@ -178,6 +193,7 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
 
   private evictExpiredCache(): void {
     const now = this.clock.now();
+
     for (const [path, entry] of this.cache) {
       if (entry.expiresAt <= now) {
         this.cache.delete(path);
@@ -189,14 +205,17 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
     if (!Number.isFinite(opts.delayMs) || opts.delayMs <= 0) {
       return MIN_RENEW_DELAY_MS;
     }
+
     return Math.min(Math.max(opts.delayMs, MIN_RENEW_DELAY_MS), TIMEOUT_MAX_MS);
   }
 
   private armTimer(opts: { key: string; delayMs: number }): void {
     const existing = this.timerHandles.get(opts.key);
+
     if (existing) {
       this.timers.clear(existing);
     }
+
     const handle = this.timers.set(() => {
       this.handleRenewal({ key: opts.key }).catch((error) => {
         this.logger
@@ -211,6 +230,7 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
     if (this.closed) {
       return;
     }
+
     this.backoffAttempts.delete(opts.key);
     const delayMs = this.clampDelayMs({
       delayMs: opts.lease.ttlSeconds * this.renewBeforeRatio * 1000,
@@ -223,6 +243,7 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
     if (this.closed) {
       return;
     }
+
     const attempt = (this.backoffAttempts.get(opts.key) ?? 0) + 1;
     this.backoffAttempts.set(opts.key, attempt);
     const cappedAttempt = Math.min(attempt, MAX_BACKOFF_ATTEMPT_EXPONENT);
@@ -234,15 +255,20 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
     if (this.closed) {
       return;
     }
+
     const logger = this.logger.for(this.handleRenewal.name);
     const lease = this.leases.get(opts.key);
+
     if (!lease) {
       logger.debug('No lease to renew | key: %s', opts.key);
+
       return;
     }
+
     try {
       if (!lease.renewable) {
         await this.rotate({ key: opts.key });
+
         return;
       }
 
@@ -250,12 +276,14 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
         leaseId: lease.leaseId,
         ttlSeconds: lease.ttlSeconds,
       });
+
       if (this.closed) {
         return;
       }
 
       if (!renewed) {
         await this.rotate({ key: opts.key });
+
         return;
       }
 
@@ -266,6 +294,7 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
       if (this.closed) {
         return;
       }
+
       logger.error(
         'Renewal cycle failed; scheduling backoff retry | key: %s | error: %s',
         opts.key,
@@ -277,16 +306,21 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
 
   private async rotate(opts: { key: string }): Promise<void> {
     const path = this.leasePaths.get(opts.key);
+
     if (!path) {
       throw getError({ message: `[rotate] No lease path registered | key: ${opts.key}` });
     }
+
     const fresh = await this.fetchRaw({ path });
+
     if (this.closed) {
       return;
     }
+
     if (!fresh.lease) {
       throw getError({ message: `[rotate] Path returned no lease on rotation | key: ${opts.key}` });
     }
+
     const lease: ISecretLease = { value: fresh.value, ...fresh.lease };
     this.leases.set(opts.key, lease);
     this.writeCache({ path, value: fresh.value });
@@ -297,6 +331,7 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
 
   private async dispatchRotation(event: ISecretRotationEvent): Promise<void> {
     const logger = this.logger.for(this.dispatchRotation.name);
+
     for (const handler of this.rotateHandlers) {
       try {
         await handler(event);
@@ -304,7 +339,9 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
         logger.error('onRotate handler failed | key: %s | error: %s', event.key, error);
       }
     }
+
     const targets = this.rotatables.get(event.key) ?? [];
+
     for (const target of targets) {
       try {
         await target.onSecretRotated({ key: event.key, secret: event.lease.value });

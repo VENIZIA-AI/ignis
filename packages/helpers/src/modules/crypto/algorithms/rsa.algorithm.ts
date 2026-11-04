@@ -87,6 +87,7 @@ export class RSA extends BaseCryptoAlgorithm<
         key,
         Buffer.from(message, inputEncoding.message),
       );
+
       return Buffer.from(cipherBytes).toString(outputEncoding);
     } catch (error) {
       if (doThrow) {
@@ -122,6 +123,7 @@ export class RSA extends BaseCryptoAlgorithm<
         key,
         Buffer.from(message, inputEncoding.message),
       );
+
       return Buffer.from(plainBytes).toString(outputEncoding);
     } catch (error) {
       if (doThrow) {

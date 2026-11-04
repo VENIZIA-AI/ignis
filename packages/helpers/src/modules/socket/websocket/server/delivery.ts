@@ -47,12 +47,14 @@ export class WebSocketDeliveryHelper<
     const logger = this.logger.for(this.sendToClient.name);
     const { clientId, event, data, doLog } = opts;
     const client = this.clients.get(clientId);
+
     if (!client) {
       return;
     }
 
     // Async path - transformer intercepts before socket.send()
     const outboundTransformer = this.outboundTransformer;
+
     if (outboundTransformer && client.encrypted) {
       Promise.resolve()
         .then(() => outboundTransformer({ client, event, data }))
@@ -69,6 +71,7 @@ export class WebSocketDeliveryHelper<
         .catch((error) => {
           logger.error('Outbound transformer error | id: %s | error: %s', clientId, error);
         });
+
       return;
     }
 
@@ -79,12 +82,14 @@ export class WebSocketDeliveryHelper<
   private async sendToClientAsync(opts: { clientId: string; event: string; data: unknown }) {
     const { clientId, event, data } = opts;
     const client = this.clients.get(clientId);
+
     if (!client) {
       return Promise.resolve();
     }
 
     if (!this.outboundTransformer || !client.encrypted) {
       this.deliverToSocket({ client, payload: JSON.stringify({ event, data }), event, data });
+
       return Promise.resolve();
     }
 
@@ -132,6 +137,7 @@ export class WebSocketDeliveryHelper<
   sendToUser(opts: { userId: string; event: string; data: unknown }) {
     const { userId, event, data } = opts;
     const clientIds = this.users.get(userId);
+
     if (!clientIds) {
       return;
     }
@@ -151,6 +157,7 @@ export class WebSocketDeliveryHelper<
 
     const excludeSet = new Set(exclude);
     const roomClientIds = this.rooms.get(room);
+
     if (!roomClientIds) {
       return;
     }
@@ -168,6 +175,7 @@ export class WebSocketDeliveryHelper<
         }
 
         const client = this.clients.get(clientId);
+
         if (client) {
           this.deliverToSocket({ client, payload, event, data });
         }
@@ -180,6 +188,7 @@ export class WebSocketDeliveryHelper<
       if (excludeSet.has(clientId)) {
         continue;
       }
+
       this.sendToClient({ clientId, event, data });
     }
   }
@@ -190,6 +199,7 @@ export class WebSocketDeliveryHelper<
     // When exclude is present, must iterate - can't exclude from Bun native pub/sub
     if (exclude?.length) {
       this.sendToRoomExcluding({ room, event, data, exclude });
+
       return;
     }
 
@@ -197,16 +207,19 @@ export class WebSocketDeliveryHelper<
     if (!this.outboundTransformer) {
       const payload = JSON.stringify({ event, data } satisfies IWebSocketMessage);
       this.server.publish(room, payload);
+
       return;
     }
 
     // Encryption enabled - iterate all clients individually with concurrency limit
     const roomClientIds = this.rooms.get(room);
+
     if (!roomClientIds) {
       return;
     }
 
     const tasks: Array<() => Promise<void>> = [];
+
     for (const clientId of roomClientIds) {
       tasks.push(() => this.sendToClientAsync({ clientId, event, data }));
     }
@@ -224,10 +237,12 @@ export class WebSocketDeliveryHelper<
     const { event, data, exclude } = opts;
 
     const excludeSet = new Set(exclude);
+
     for (const [clientId, client] of this.clients) {
       if (excludeSet.has(clientId)) {
         continue;
       }
+
       // Only broadcast to authenticated clients (consistent with non-exclude path which uses BROADCAST_TOPIC)
       if (client.state !== WebSocketClientStates.AUTHENTICATED) {
         continue;
@@ -243,6 +258,7 @@ export class WebSocketDeliveryHelper<
     // When exclude is present, must iterate - can't exclude from Bun native pub/sub
     if (exclude?.length) {
       this.broadcastExcluding({ event, data, exclude });
+
       return;
     }
 
@@ -250,15 +266,18 @@ export class WebSocketDeliveryHelper<
     if (!this.outboundTransformer) {
       const payload = JSON.stringify({ event, data } satisfies IWebSocketMessage);
       this.server.publish(WebSocketDefaults.BROADCAST_TOPIC, payload);
+
       return;
     }
 
     // Encryption enabled - iterate all clients individually with concurrency limit
     const tasks: Array<() => Promise<void>> = [];
+
     for (const [clientId, client] of this.clients) {
       if (client.state !== WebSocketClientStates.AUTHENTICATED) {
         continue;
       }
+
       tasks.push(() => this.sendToClientAsync({ clientId, event, data }));
     }
 

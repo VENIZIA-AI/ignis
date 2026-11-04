@@ -146,11 +146,14 @@ describe('SnowflakeUidHelper', () => {
       expect(timestamps.size).toBeGreaterThanOrEqual(3);
 
       const perTimestamp = new Map<number, number>();
+
       for (const id of ids) {
         const key = helper.extractTimestamp(id).getTime();
         perTimestamp.set(key, (perTimestamp.get(key) ?? 0) + 1);
       }
+
       const perTimestampValues = perTimestamp.values();
+
       for (const count of perTimestampValues) {
         expect(count).toBeLessThanOrEqual(4096);
       }
@@ -165,6 +168,7 @@ describe('SnowflakeUidHelper', () => {
       const helper = new SnowflakeUidHelper({ workerId: 11 });
 
       const before: bigint[] = [];
+
       for (let index = 0; index < 100; index += 1) {
         clock.beginGeneration();
         before.push(helper.nextSnowflake());
@@ -174,6 +178,7 @@ describe('SnowflakeUidHelper', () => {
 
       const after: bigint[] = [];
       let previous = before[before.length - 1];
+
       for (let index = 0; index < 100; index += 1) {
         clock.beginGeneration();
         const id = helper.nextSnowflake();

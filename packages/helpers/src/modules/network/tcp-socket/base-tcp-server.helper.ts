@@ -103,6 +103,7 @@ export class BaseNetworkTcpServer<
     socket: SocketClientType;
     data: Buffer | string;
   }) => void;
+
   protected onClientClose?: (opts: { id: string; socket: SocketClientType }) => void;
   protected onClientError?: (opts: { id: string; socket: SocketClientType; error: Error }) => void;
   protected onServerError?: (opts: { server: SocketServerType; error: Error }) => void;
@@ -230,6 +231,7 @@ export class BaseNetworkTcpServer<
       });
 
       const authenticateTimeout = this.getClient({ id })?.storage?.authenticateTimeout;
+
       if (authenticateTimeout) {
         clearTimeout(authenticateTimeout);
       }
@@ -286,6 +288,7 @@ export class BaseNetworkTcpServer<
     ) {
       const authenticateTimeout = setTimeout(() => {
         const client = this.getClient({ id });
+
         if (!client) {
           return;
         }
@@ -301,8 +304,10 @@ export class BaseNetworkTcpServer<
       }, this.authenticateOptions.duration);
 
       const client = this.getClient({ id });
+
       if (!client) {
         clearTimeout(authenticateTimeout);
+
         return;
       }
 
@@ -325,8 +330,10 @@ export class BaseNetworkTcpServer<
   /** Clears timers and destroys all client sockets before closing the listener - `server.close()` alone never settles while a socket stays attached. Idempotent; safe if never listened. */
   async shutdown(): Promise<void> {
     const clientsValues = Object.values(this.clients);
+
     for (const client of clientsValues) {
       const { authenticateTimeout } = client.storage;
+
       if (authenticateTimeout) {
         clearTimeout(authenticateTimeout);
         client.storage.authenticateTimeout = null;
@@ -338,6 +345,7 @@ export class BaseNetworkTcpServer<
     this.clients = Object.create(null);
 
     const server = this.server;
+
     if (!server) {
       return;
     }
@@ -361,8 +369,10 @@ export class BaseNetworkTcpServer<
     const { id, state } = opts;
 
     const client = this.getClient({ id });
+
     if (!client) {
       this.logger.for('authenticateClient').error('Client NOT FOUND | ID: %s', id);
+
       return;
     }
 
@@ -381,6 +391,7 @@ export class BaseNetworkTcpServer<
           clearTimeout(client.storage.authenticateTimeout);
           client.storage.authenticateTimeout = null;
         }
+
         break;
       }
       default: {
@@ -395,12 +406,15 @@ export class BaseNetworkTcpServer<
 
     if (!client) {
       this.logger.for(this.emit.name).error('Client NOT FOUND | ID: %s', clientId);
+
       return;
     }
 
     const { socket } = client;
+
     if (!socket.writable) {
       this.logger.for(this.emit.name).error('Client NOT WRITABLE | ID: %s', clientId);
+
       return;
     }
 
@@ -412,6 +426,7 @@ export class BaseNetworkTcpServer<
           this.identifier,
           clientId,
         );
+
       return;
     }
 

@@ -15,6 +15,7 @@ describe('hf constants', () => {
     for (const level of LogLevels.SCHEME_SET) {
       expect(HF_LEVEL_CODES[level as keyof typeof HF_LEVEL_CODES]).toBeNumber();
     }
+
     expect(HF_LEVEL_CODES.debug).toBe(0);
     expect(HF_LEVEL_CODES.info).toBe(1);
     expect(HF_LEVEL_CODES.warn).toBe(2);
@@ -24,6 +25,7 @@ describe('hf constants', () => {
 
   test('codes and names are mutual inverses', () => {
     const hfLevelCodeEntries = Object.entries(HF_LEVEL_CODES);
+
     for (const [name, code] of hfLevelCodeEntries) {
       expect(HF_LEVEL_NAMES[code as number]).toBe(name as (typeof HF_LEVEL_NAMES)[number]);
     }

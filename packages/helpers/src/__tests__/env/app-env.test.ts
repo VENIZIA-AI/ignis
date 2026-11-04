@@ -77,6 +77,7 @@ describe('ApplicationEnvironment.get - a present-but-empty value', () => {
       defaultValue: 'fallback',
       transform: (raw) => {
         seen.push(raw);
+
         return raw as AnyType;
       },
     });

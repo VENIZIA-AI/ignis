@@ -41,6 +41,7 @@ const DEFAULT_MAX_STRING_LENGTH = 2048;
 
 const resolveMaxStringLength = (): number => {
   const configured = Number(globalThis.process?.env?.APP_ENV_LOGGER_MAX_STRING_LENGTH);
+
   return Number.isFinite(configured) && configured >= 0 ? configured : DEFAULT_MAX_STRING_LENGTH;
 };
 
@@ -210,6 +211,7 @@ export class RedactUtility {
     }
 
     parsed.password = REDACTED;
+
     return decodeURIComponent(parsed.toString());
   }
 }

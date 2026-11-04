@@ -30,6 +30,7 @@ export class UuidV7Generator {
 
       const seed = ((pool[offset] << 8) | pool[offset + 1]) & 0x7ff;
       offset += 2;
+
       return seed;
     };
 
@@ -99,6 +100,7 @@ export class UuidV7Generator {
   private static resolveShared(): () => string {
     const shared: (() => string) | undefined = Reflect.get(globalThis, SHARED_SLOT);
     const resolved = shared ?? UuidV7Generator.create();
+
     if (!shared) {
       Reflect.set(globalThis, SHARED_SLOT, resolved);
     }

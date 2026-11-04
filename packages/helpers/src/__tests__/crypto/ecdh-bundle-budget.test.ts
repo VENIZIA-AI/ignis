@@ -28,11 +28,13 @@ const bundle = async (opts: { name: string; source: string }) => {
     stdout: 'pipe',
     stderr: 'pipe',
   });
+
   if (build.exitCode !== 0) {
     throw new Error(`[ecdh-bundle-budget] bun build failed | stderr: ${build.stderr.toString()}`);
   }
 
   const bytes = await Bun.file(outfile).bytes();
+
   return { text: new TextDecoder().decode(bytes), gzip: Bun.gzipSync(bytes, { level: 9 }).length };
 };
 

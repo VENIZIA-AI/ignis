@@ -18,6 +18,7 @@ export class NativeTemporalAdapter implements ITemporalAdapter {
     }
 
     const instant = value.Instant;
+
     return (
       (typeof instant === 'function' || (typeof instant === 'object' && instant !== null)) &&
       typeof Reflect.get(instant, 'fromEpochMilliseconds') === 'function'
@@ -45,6 +46,7 @@ export class NativeTemporalAdapter implements ITemporalAdapter {
       const zoned = this.temporal.Instant.fromEpochMilliseconds(value.getTime()).toZonedDateTimeISO(
         tz,
       );
+
       return zoned.offsetNanoseconds / NANOSECONDS_PER_MILLISECOND;
     } catch (error) {
       throw getError({

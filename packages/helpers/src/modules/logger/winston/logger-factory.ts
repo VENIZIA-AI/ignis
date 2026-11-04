@@ -92,6 +92,7 @@ export class WinstonLoggerFactory {
 
     if (infoTransportOptions.dgram) {
       const transport = DgramTransport.fromPartial(infoTransportOptions.dgram);
+
       if (transport) {
         transports.general.push(transport);
       }
@@ -100,6 +101,7 @@ export class WinstonLoggerFactory {
     // Deliberate asymmetry with the file pair: error.dgram registers ONLY as an exception handler - ordinary error-level lines already ship over info.dgram's transport, and adding it to general would double-send every error line.
     if (errorTransportOptions.dgram) {
       const transport = DgramTransport.fromPartial(errorTransportOptions.dgram);
+
       if (transport) {
         transports.exception.push(transport);
       }

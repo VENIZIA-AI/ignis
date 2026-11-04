@@ -48,9 +48,11 @@ describe('AES: what is stored still reads, and the same input writes the same by
 
   test('a keyring decrypts a ciphertext by its key id, whatever the order of the entries', async () => {
     const fixture = aesFixtures.find((entry) => entry.name === 'aes-256-gcm keyring');
+
     if (!fixture) {
       throw new Error('the keyring fixture is missing');
     }
+
     const reversed = [...(fixture.secret as Array<{ id: string; secret: string }>)].reverse();
 
     const result2 = await AES.withAlgorithm('aes-256-gcm').decrypt({
@@ -69,9 +71,11 @@ describe('AES: what is stored still reads, and the same input writes the same by
 
   test('a flipped bit in a GCM ciphertext is refused, and doThrow: false hands the message back', async () => {
     const fixture = aesFixtures.find((entry) => entry.name === 'aes-256-gcm short plain');
+
     if (!fixture) {
       throw new Error('the gcm fixture is missing');
     }
+
     const bytes = Buffer.from(fixture.stored, 'base64');
     bytes[bytes.length - 1] = (bytes[bytes.length - 1] ?? 0) ^ 0x01;
     const tampered = bytes.toString('base64');
@@ -91,6 +95,7 @@ describe('AES: what is stored still reads, and the same input writes the same by
 
   test('a wrong secret never returns the plaintext', async () => {
     const fixture = aesFixtures.find((entry) => entry.name === 'aes-256-gcm short plain');
+
     if (!fixture) {
       throw new Error('the gcm fixture is missing');
     }

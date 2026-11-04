@@ -27,6 +27,7 @@ export class RetryHelper extends BaseHelper {
       message: `[runWithTimeout][${opts.operation}] Timed out after ${opts.timeoutMs}ms`,
     });
     Object.defineProperty(error, RetryHelper.RETRY_TIMEOUT_MARKER, { value: true });
+
     return error;
   }
 
@@ -48,6 +49,7 @@ export class RetryHelper extends BaseHelper {
 
     if (!signal) {
       await PromiseUtility.sleep({ ms });
+
       return;
     }
 
@@ -98,6 +100,7 @@ export class RetryHelper extends BaseHelper {
 
     try {
       const result = await Promise.race([Promise.resolve().then(execution), timeoutPromise]);
+
       return result;
     } finally {
       clearTimeout(timer);
@@ -117,6 +120,7 @@ export class RetryHelper extends BaseHelper {
     } = opts.backoff ?? {};
 
     let delayMs: number;
+
     switch (strategy) {
       case RetryBackoffStrategies.FIXED: {
         delayMs = initialDelayMs;
@@ -137,6 +141,7 @@ export class RetryHelper extends BaseHelper {
               '[computeBackoffDelayMs] strategy SCHEDULE requires a non-empty backoff.scheduleMs',
           });
         }
+
         delayMs = scheduleMs[Math.min(attempt - 1, scheduleMs.length - 1)];
         break;
       }
@@ -162,6 +167,7 @@ export class RetryHelper extends BaseHelper {
       }
       case RetryJitterModes.EQUAL: {
         const half = delayMs / 2;
+
         return Math.floor(half + Math.random() * half);
       }
       default: {
@@ -208,6 +214,7 @@ export class RetryHelper extends BaseHelper {
         timeoutMs: attemptTimeoutMs,
         execution: () => execution({ attempt, signal }),
       });
+
       return { isResolved: true, value };
     } catch (error) {
       const elapsedMs = Date.now() - startedAt;
@@ -221,6 +228,7 @@ export class RetryHelper extends BaseHelper {
       }
 
       const nextDelayMs = RetryHelper.computeBackoffDelayMs({ attempt, backoff });
+
       if (deadline && Date.now() + nextDelayMs >= deadline) {
         return { isResolved: false, error, isRetryAllowed: false };
       }
@@ -299,11 +307,13 @@ export class RetryHelper extends BaseHelper {
       RetryHelper.throwIfAborted({ operation, signal });
 
       const remainingMs = deadline ? deadline - Date.now() : undefined;
+
       if (remainingMs !== undefined && remainingMs <= 0) {
         break;
       }
 
       let attemptTimeoutMs = perAttemptTimeoutMs;
+
       if (remainingMs !== undefined) {
         attemptTimeoutMs = attemptTimeoutMs ? Math.min(attemptTimeoutMs, remainingMs) : remainingMs;
       }
@@ -328,6 +338,7 @@ export class RetryHelper extends BaseHelper {
       }
 
       lastError = outcome.error;
+
       if (!outcome.isRetryAllowed) {
         break;
       }
@@ -396,11 +407,13 @@ export class RetryHelper extends BaseHelper {
 
       const result2 = await execution({ attempt, signal });
       lastResult = result2;
+
       if (until(lastResult)) {
         return lastResult;
       }
 
       const elapsedMs = Date.now() - startedAt;
+
       if (attempt >= maxAttempts || (maxTotalMs !== undefined && elapsedMs >= maxTotalMs)) {
         break;
       }
@@ -410,6 +423,7 @@ export class RetryHelper extends BaseHelper {
         .debug('[%s] until condition not met | Attempt: %d', operation, attempt);
 
       const nextDelayMs = RetryHelper.computeBackoffDelayMs({ attempt, backoff });
+
       if (nextDelayMs > 0) {
         await RetryHelper.sleepWithSignal({ ms: nextDelayMs, operation, signal });
       }
@@ -418,6 +432,7 @@ export class RetryHelper extends BaseHelper {
     logger
       ?.for('executeWithRetryUntil')
       .warn('[%s] Exhausted retries - returning last (stale) result', operation);
+
     return lastResult as T;
   }
 }

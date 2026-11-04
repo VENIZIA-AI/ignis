@@ -48,6 +48,7 @@ export class BaseNetworkTcpClient<
     maxReconnect: DEFAULT_MAX_RETRY,
     currentReconnect: 0,
   };
+
   protected reconnectTimeout: any;
   protected encoding?: BufferEncoding;
 
@@ -130,6 +131,7 @@ export class BaseNetworkTcpClient<
     }
 
     const { currentReconnect, maxReconnect } = this.retry;
+
     if (maxReconnect > -1 && currentReconnect >= maxReconnect) {
       this.logger
         .for(this.handleData.name)
@@ -138,6 +140,7 @@ export class BaseNetworkTcpClient<
           maxReconnect,
           currentReconnect,
         );
+
       return;
     }
 
@@ -163,6 +166,7 @@ export class BaseNetworkTcpClient<
       this.logger
         .for(this.connect.name)
         .info('[%s] NetworkTcpClient is already initialized!', this.identifier);
+
       return;
     }
 
@@ -170,6 +174,7 @@ export class BaseNetworkTcpClient<
       this.logger
         .for(this.connect.name)
         .info('[%s] Cannot init TCP Client with null options', this.identifier);
+
       return;
     }
 
@@ -219,6 +224,7 @@ export class BaseNetworkTcpClient<
       this.logger
         .for(this.disconnect.name)
         .info('[%s] NetworkTcpClient is not initialized yet!', this.identifier);
+
       return;
     }
 
@@ -246,14 +252,17 @@ export class BaseNetworkTcpClient<
       this.logger
         .for(this.emit.name)
         .info('[%s] TPC Client is not configured yet!', this.identifier);
+
       return;
     }
 
     const { payload } = opts;
+
     if (!payload?.length) {
       this.logger
         .for(this.emit.name)
         .info('[%s] Invalid payload to write to TCP Socket!', this.identifier);
+
       return;
     }
 

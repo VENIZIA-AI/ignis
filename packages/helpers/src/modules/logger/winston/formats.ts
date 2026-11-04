@@ -35,6 +35,7 @@ export class WinstonFormatFactory {
       }
 
       info.message = LogFormatUtility.formatMessage({ message: info.message, args });
+
       return info;
     })();
   }

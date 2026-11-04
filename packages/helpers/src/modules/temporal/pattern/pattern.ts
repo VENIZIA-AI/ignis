@@ -17,6 +17,7 @@ export class TemporalPattern {
   private static compile(opts: { pattern: string }): Array<TPatternSegment> {
     const { pattern } = opts;
     const cached = TemporalPattern.compiled.get(pattern);
+
     if (cached) {
       return cached;
     }
@@ -30,12 +31,14 @@ export class TemporalPattern {
 
       if (character === '[') {
         const close = pattern.indexOf(']', position + 1);
+
         if (close < 0) {
           throw getError({
             statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
             message: `[TemporalPattern] unclosed [ in pattern '${pattern}'`,
           });
         }
+
         literal += pattern.slice(position + 1, close);
         position = close + 1;
         continue;
@@ -49,11 +52,13 @@ export class TemporalPattern {
       }
 
       let runEnd = position + 1;
+
       while (pattern[runEnd] === character) {
         runEnd += 1;
       }
 
       const run = pattern.slice(position, runEnd);
+
       if (!TemporalTokens.isToken(run)) {
         throw getError({
           statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
@@ -65,6 +70,7 @@ export class TemporalPattern {
         segments.push({ literal });
         literal = '';
       }
+
       segments.push({ token: run });
       position = runEnd;
     }
@@ -76,6 +82,7 @@ export class TemporalPattern {
     if (TemporalPattern.compiled.size < TemporalTokens.MAX_COMPILED_PATTERNS) {
       TemporalPattern.compiled.set(pattern, segments);
     }
+
     return segments;
   }
 
@@ -95,12 +102,14 @@ export class TemporalPattern {
     };
 
     let text = '';
+
     for (const segment of segments) {
       text +=
         'literal' in segment
           ? segment.literal
           : (TemporalTokens.WRITERS.get(segment.token)?.(input) ?? '');
     }
+
     return text;
   }
 
@@ -128,11 +137,13 @@ export class TemporalPattern {
         if (!value.startsWith(segment.literal, position)) {
           return undefined;
         }
+
         position += segment.literal.length;
         continue;
       }
 
       const { token } = segment;
+
       // A pattern is code, not input: a write-only token here is a bug, as an unknown token is.
       if (TemporalTokens.isWriteOnlyToken(token)) {
         throw getError({
@@ -143,9 +154,11 @@ export class TemporalPattern {
 
       if (token === 'Z' || token === 'ZZ') {
         const offset = TemporalTokens.readOffset({ value, position, separator: token === 'Z' });
+
         if (!offset) {
           return undefined;
         }
+
         offsetMilliseconds = offset.milliseconds;
         position = offset.next;
         continue;
@@ -153,9 +166,11 @@ export class TemporalPattern {
 
       if (token === 'YY') {
         const read = TemporalTokens.readDigits({ value, position, min: 2, max: 2 });
+
         if (!read) {
           return undefined;
         }
+
         parts.year =
           read.number + (read.number > TemporalTokens.TWO_DIGIT_YEAR_PIVOT ? 1900 : 2000);
         position = read.next;
@@ -164,9 +179,11 @@ export class TemporalPattern {
 
       const [min, max, field] = TemporalTokens.NUMERIC_TOKENS[token];
       const read = TemporalTokens.readDigits({ value, position, min, max });
+
       if (!read) {
         return undefined;
       }
+
       parts[field] = read.number;
       position = read.next;
     }

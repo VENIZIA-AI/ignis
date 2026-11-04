@@ -41,42 +41,52 @@ export class HfLogger extends AbstractLogger {
 
   private static encodeScope(scope: string): Uint8Array {
     let bytes = HfLogger.scopeCache.get(scope);
+
     if (!bytes) {
       bytes = HfLogger.textEncoder.encode(scope).subarray(0, HF_SCOPE_MAX_BYTES);
       HfLogger.scopeCache.set(scope, bytes);
     }
+
     return bytes;
   }
 
   static get(scope: string): HfLogger {
     let logger = this.cache.get(scope);
+
     if (!logger) {
       logger = new HfLogger(scope); // first logger allocates the ring - never at import
       this.cache.set(scope, logger);
     }
+
     return logger;
   }
 
   /** Pre-encode a message at initialization time; the cache is FIFO-bounded so dynamic strings can't grow it without limit. */
   static encodeMessage(message: string): Uint8Array {
     const cached = this.messageCache.get(message);
+
     if (cached) {
       return cached;
     }
 
     const bytes = HfLogger.textEncoder.encode(message);
+
     if (this.messageCache.size >= MESSAGE_CACHE_CAP) {
       this.evictOldestMessage();
     }
+
     this.messageCache.set(message, bytes);
+
     return bytes;
   }
 
   private static evictOldestMessage(): void {
     const oldest = this.messageCache.keys().next().value;
+
     if (oldest === undefined) {
       return;
     }
+
     this.messageCache.delete(oldest);
   }
 
@@ -107,8 +117,10 @@ export class HfLogger extends AbstractLogger {
         levelCode,
         HfLogger.textEncoder.encode(LogFormatUtility.formatMessage({ message, args })),
       );
+
       return;
     }
+
     this.writeEntry(levelCode, HfLogger.encodeMessage(message));
   }
 
@@ -116,6 +128,7 @@ export class HfLogger extends AbstractLogger {
     if (!LoggerDebugGate.isOpen()) {
       return;
     }
+
     this.writeString(HF_LEVEL_CODES.debug, message, args);
   }
 
@@ -141,13 +154,17 @@ export class HfLogger extends AbstractLogger {
     if (level === LogLevels.DEBUG && !LoggerDebugGate.isOpen()) {
       return;
     }
+
     const levelCode = Object.hasOwn(HF_LEVEL_CODES, level)
       ? HF_LEVEL_CODES[level]
       : HF_LEVEL_CODES.info;
+
     if (typeof message === 'string') {
       this.writeString(levelCode, message, args);
+
       return;
     }
+
     this.writeEntry(levelCode, message);
   }
 

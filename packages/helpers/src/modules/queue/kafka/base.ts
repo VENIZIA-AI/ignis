@@ -160,6 +160,7 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
       client.close(true, (error?: Error | null) => {
         if (error) {
           reject(error);
+
           return;
         }
 

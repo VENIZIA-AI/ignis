@@ -35,11 +35,13 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
     if (typeof name !== 'string') {
       this.logger.for(this.isValidSegment.name).error('Invalid name provided: %j', name);
+
       return false;
     }
 
     if (!name || ObjectUtility.isEmpty({ value: name })) {
       this.logger.for(this.isValidSegment.name).error('Empty name provided');
+
       return false;
     }
 
@@ -47,19 +49,23 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       this.logger
         .for(this.isValidSegment.name)
         .error('Name contains invalid path characters: %s', name);
+
       return false;
     }
 
     if (name.startsWith('.')) {
       this.logger.for(this.isValidSegment.name).error('Name cannot start with a dot: %s', name);
+
       return false;
     }
 
     const dangerousChars = /[;|&$`<>{}[\]!#]/;
+
     if (dangerousChars.test(name)) {
       this.logger
         .for(this.isValidSegment.name)
         .error('Name contains dangerous characters: %s', name);
+
       return false;
     }
 
@@ -67,6 +73,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       this.logger
         .for(this.isValidSegment.name)
         .error('Name contains invalid control characters: %s', name);
+
       return false;
     }
 
@@ -74,6 +81,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       this.logger
         .for(this.isValidSegment.name)
         .error('Name is too long (%d characters): %s', name.length, name);
+
       return false;
     }
 
@@ -81,6 +89,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       this.logger
         .for(this.isValidSegment.name)
         .error('Name cannot be empty or whitespace only: "%s"', name);
+
       return false;
     }
 
@@ -109,14 +118,17 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
     if (typeof pathStr !== 'string' || !pathStr || ObjectUtility.isEmpty({ value: pathStr })) {
       this.logger.for(this.isValidKeyPath.name).error('Empty or invalid path provided');
+
       return false;
     }
 
     const normalized = pathStr.replace(/^\/+|\/+$/g, '');
+
     if (!normalized) {
       this.logger
         .for(this.isValidKeyPath.name)
         .error('Path resolved to empty after trimming slashes');
+
       return false;
     }
 
@@ -126,11 +138,13 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       this.logger
         .for(this.isValidKeyPath.name)
         .error('Path contains empty segments (double slashes): %s', pathStr);
+
       return false;
     }
 
     // segments include the filename, so depth is one less.
     const folderDepth = segments.length - 1;
+
     if (folderDepth > maxDepth) {
       this.logger
         .for(this.isValidKeyPath.name)
@@ -140,6 +154,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
           pathStr,
           folderDepth,
         );
+
       return false;
     }
 
@@ -148,6 +163,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
         this.logger
           .for(this.isValidKeyPath.name)
           .error('Path segment failed validation: %s (in path: %s)', segment, pathStr);
+
         return false;
       }
     }
@@ -156,6 +172,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       this.logger
         .for(this.isValidKeyPath.name)
         .error('Path is too long (%d characters): %s', normalized.length, pathStr);
+
       return false;
     }
 
@@ -164,6 +181,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
   getMediaType(opts: { mimeType: string }): string {
     const { mimeType } = opts;
+
     if (mimeType?.toLowerCase()?.startsWith(MimeTypes.IMAGE)) {
       return MimeTypes.IMAGE;
     }
@@ -212,6 +230,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
     if (typeof name !== 'string' || name.trim().length === 0 || name.length > 255) {
       this.logger.for(this.isValidOriginalName.name).error('Invalid original name: %j', name);
+
       return false;
     }
 
@@ -219,6 +238,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       this.logger
         .for(this.isValidOriginalName.name)
         .error('Original name contains a control character or a lone surrogate: %j', name);
+
       return false;
     }
 
@@ -292,6 +312,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     }
 
     const isExists = await this.hasBucket({ bucket });
+
     if (!isExists) {
       throw getError({
         message: `[upload] Bucket does not exist | name: ${bucket.name}`,
@@ -378,6 +399,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
           if (next.done) {
             controller.close();
+
             return;
           }
 
@@ -397,6 +419,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
           if (end !== undefined && offset > end) {
             source.destroy();
             controller.close();
+
             return;
           }
 

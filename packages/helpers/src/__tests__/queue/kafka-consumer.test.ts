@@ -28,6 +28,7 @@ class FakeMessagesStream extends EventEmitter {
   async *[Symbol.asyncIterator](): AsyncGenerator<AnyType> {
     while (!this.isClosed) {
       const next = this.pending.shift();
+
       if (next !== undefined) {
         yield next;
         continue;
@@ -37,6 +38,7 @@ class FakeMessagesStream extends EventEmitter {
         this.wakeUp = resolve;
       });
     }
+
     if (this.destroyedWith) {
       throw this.destroyedWith;
     }
@@ -85,6 +87,7 @@ class FakeConsumerClient extends EventEmitter {
 
     const stream = new FakeMessagesStream();
     this.streams.push(stream);
+
     return stream;
   }
 
@@ -105,6 +108,7 @@ class FakeConsumerClient extends EventEmitter {
 
     if (callback) {
       callback(null);
+
       return;
     }
 
@@ -126,6 +130,7 @@ const buildHelper = (opts: {
 
   // The Consumer is built inside the constructor; swapClient is the supported seam for replacing it (it is what the reconnect path itself uses), so the fake gets the exact production wiring.
   helper['swapClient'](opts.client as AnyType);
+
   return helper;
 };
 
@@ -139,6 +144,7 @@ const flush = async (): Promise<void> => {
 
 describe('KafkaConsumerHelper — lifecycle, hooks, shutdown', () => {
   const unhandledRejections: unknown[] = [];
+
   const onUnhandledRejection = (reason: unknown) => {
     unhandledRejections.push(reason);
   };

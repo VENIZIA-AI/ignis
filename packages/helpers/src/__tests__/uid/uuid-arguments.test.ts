@@ -141,13 +141,17 @@ describe('the native v4 path never forwards an argument', () => {
 
   test('a strict randomUUID that throws on any argument is never handed one', () => {
     const received: Array<number> = [];
+
     const strict = (...args: Array<unknown>): string => {
       received.push(args.length);
+
       if (args.length > 0) {
         throw new TypeError('The "options" argument must be of type object');
       }
+
       return '00000000-0000-4000-8000-000000000000';
     };
+
     Object.defineProperty(crypto, 'randomUUID', { value: strict, configurable: true });
 
     const generate = UuidV4Generator.create();

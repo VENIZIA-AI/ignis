@@ -28,6 +28,7 @@ export class LoggerConfigUtility {
     }
 
     const normalized = configured.trim().toLowerCase();
+
     if (!LogLevels.isValid(normalized)) {
       // console, not Logger: the logger is being built - routing this warning through it would re-enter the very pipeline that is not configured yet.
       console.warn(
@@ -36,6 +37,7 @@ export class LoggerConfigUtility {
         [...LogLevels.SCHEME_SET],
         LogLevels.DEBUG,
       );
+
       return LogLevels.DEBUG;
     }
 
@@ -60,16 +62,19 @@ export class LoggerConfigUtility {
     environment?: string;
   }): boolean | undefined {
     const configured = opts?.configured ?? process.env.APP_ENV_LOGGER_COLOR;
+
     if (configured !== undefined && configured.trim() !== '') {
       return ParseUtility.toBoolean({ input: configured.trim().toLowerCase() });
     }
 
     const noColor = process.env.NO_COLOR;
+
     if (noColor !== undefined && noColor !== '') {
       return false;
     }
 
     const environment = opts?.environment ?? Environment.current;
+
     if (!Environment.DEVELOPMENT_ENVS.has(environment)) {
       return false;
     }

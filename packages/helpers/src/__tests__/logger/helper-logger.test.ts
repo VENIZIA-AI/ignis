@@ -23,6 +23,7 @@ const buildRecorder = (): { lines: Array<string>; provider: ILoggerProvider } =>
     const record = (level: string) => (message: string) => {
       lines.push(`${scope}|${level}|${message}`);
     };
+
     return {
       debug: record('debug'),
       info: record('info'),
@@ -51,6 +52,7 @@ describe('BaseHelper.logger', () => {
 
   afterEach(() => {
     LoggerFactory.reset();
+
     for (const spy of spies.splice(0)) {
       spy.mockRestore();
     }
