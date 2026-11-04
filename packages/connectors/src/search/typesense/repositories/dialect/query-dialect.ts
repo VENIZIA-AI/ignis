@@ -89,6 +89,9 @@ const CAN_EXPRESS: Record<string, boolean> = {
   [QueryOperators.OR]: true,
 };
 
+/** Names a tuning key that sat in the query (a built `filter.order`, a multi-search entry), as `query.<key>` in a refusal, to tell it from the same key in `engineParams`. */
+const QUERY_SOURCE = 'query';
+
 /** The checks on a `sort_by` string, shared by `order` (counted as entries) and a caller's own `sortBy`. */
 class SortByWire {
   static assertFieldCount(opts: { count: number; method: string }): void {
@@ -111,25 +114,26 @@ class SortByWire {
       });
     }
 
-    let depth = 0;
+    const owed: string[] = [];
     let isInString = false;
-    let count = 1;
     let isUnbalanced = false;
+    let count = 1;
 
     for (const character of value) {
       if (character === '`') {
         isInString = !isInString;
-      } else if (!isInString && (character === '(' || character === '[')) {
-        depth += 1;
+      } else if (!isInString && character === '(') {
+        owed.push(')');
+      } else if (!isInString && character === '[') {
+        owed.push(']');
       } else if (!isInString && (character === ')' || character === ']')) {
-        depth -= 1;
-        isUnbalanced ||= depth < 0;
-      } else if (!isInString && depth === 0 && character === ',') {
+        isUnbalanced ||= owed.pop() !== character;
+      } else if (!isInString && owed.length === 0 && character === ',') {
         count += 1;
       }
     }
 
-    if (isUnbalanced || depth !== 0 || isInString) {
+    if (isUnbalanced || owed.length > 0 || isInString) {
       throw getError({
         message: `[TypesenseQueryDialect][toWireParams] Invalid '${key}' | Unbalanced brackets or backticks | Got: ${JSON.stringify(value)}`,
       });
@@ -228,7 +232,6 @@ class TuningWireKeys {
 class SearchWireKeys {
   static readonly QUERY = { from: 'query', to: 'q' };
   static readonly FILTER_BY = { from: 'filterBy', to: 'filter_by' };
-  static readonly SORT_BY = { from: 'sortBy', to: 'sort_by' };
   static readonly PER_PAGE = { from: 'perPage', to: 'per_page' };
   static readonly INCLUDE_FIELDS = { from: 'includeFields', to: 'include_fields' };
   static readonly EXCLUDE_FIELDS = { from: 'excludeFields', to: 'exclude_fields' };
@@ -256,7 +259,6 @@ class SearchWireKeys {
   private static readonly ENTRIES = [
     SearchWireKeys.QUERY,
     SearchWireKeys.FILTER_BY,
-    SearchWireKeys.SORT_BY,
     SearchWireKeys.PER_PAGE,
     SearchWireKeys.INCLUDE_FIELDS,
     SearchWireKeys.EXCLUDE_FIELDS,
@@ -394,7 +396,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
       }
 
       if (TuningWireKeys.fieldOf(key) !== undefined) {
-        setTuning(key, value, SearchWireKeys.QUERY.from);
+        setTuning(key, value, QUERY_SOURCE);
         continue;
       }
 

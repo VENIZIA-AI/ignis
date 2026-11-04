@@ -33,6 +33,8 @@ packages: ['@venizia/ignis-connectors']
 
 **After:** the same call throws `'query.sortBy' and 'sort_by' both set 'sort_by' | Give it once` (`query.sortBy` is what `filter.order` compiles into). Drop one of them. A `sort_by` that is empty, not a string, unbalanced (a stray bracket or backtick), or has more than three top-level entries also throws now. `engineParams: { sortBy: undefined }` is skipped, not refused.
 
+Two smaller changes ride along. A refusal for a tuning key given twice now names the one in the query as `query.<key>` (for example `query.numTypos`, where it said `numTypos`), so it is told apart from the same key in `engineParams`. And `order: []` no longer sends `sort_by: ''`; the search behaves the same, because Typesense treated an empty `sort_by` as no sort.
+
 ## Details
 
 ```typescript

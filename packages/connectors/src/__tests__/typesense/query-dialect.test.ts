@@ -949,10 +949,27 @@ describe('TypesenseQueryDialect.toWireParams - sortBy for the sorts filter.order
     ['a),b,c,d'],
     ['_eval(`x):1'],
     ['a`'],
+    ['(a]'],
+    ['[a)'],
   ])('unbalanced input %p is refused, never counted', (bad) => {
     expect(() =>
       dialect.toWireParams({ query: { query: 'sho', engineParams: { sortBy: bad } } }),
     ).toThrow(/Unbalanced/);
+  });
+
+  test('an empty order builds no sort_by, and a clash in another tuning key reads query.<key>', () => {
+    const wire = dialect.toWireParams({ query: dialect.build({ filter: { order: [] } }) });
+
+    expect(wire).not.toHaveProperty('sort_by');
+    const clashing: ITypesenseSearchQuery = {
+      query: 'sho',
+      numTypos: 1,
+      engineParams: { ['num_typos']: 2 },
+    };
+
+    expect(() => dialect.toWireParams({ query: clashing })).toThrow(
+      /'query\.numTypos' and 'num_typos' both set 'num_typos'/,
+    );
   });
 
   test('an undefined sortBy is skipped, as an undefined field of the query is', () => {
