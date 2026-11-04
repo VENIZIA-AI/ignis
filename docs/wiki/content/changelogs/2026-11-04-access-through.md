@@ -28,8 +28,8 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis-connectors', '@venizia/ignis
 - **Code that implements `IRelationalQueryExecutor`.** Add `readonly supportsRowLock: boolean`.
 - **Code that implements `IRelationalQueryDialect` without extending the engine's filter builder.** Add `resolveThrough`, `toParentWhere` and `resolveAccessScope`. `PostgresQueryDialect` and `SqliteQueryDialect` have them.
 - **A repository subclass that overrides or calls `guardScopedWrite`.** It is `async` now: it returns a `Promise` of the rows and takes an optional `transaction`. `await` it.
-- **Apps with a `through` model.** A create, an update, a soft delete or a restore that is not given a transaction opens its own, so it runs a `BEGIN` and a `COMMIT`; on SQLite that `BEGIN` takes the write lock.
-- **A model whose `access` has neither `resolve` nor `through`.** The application no longer starts. The types already refuse it; this reaches only a model typed loosely.
+- **Apps with a `through` model.** A create, an update, a soft delete or a restore that is given no transaction opens one: an extra transaction per write, and on SQLite it takes the write lock. It opens even when an update does not change the foreign key, although no parent is checked then.
+- **A model whose `access` declares both or neither of `resolve` and `through`.** The application no longer starts. The types already refuse both cases; this reaches only a model cast past them.
 
 ## Breaking changes
 
