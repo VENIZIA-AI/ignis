@@ -1918,7 +1918,7 @@ Source: `packages/kernel/src/base/controllers/context.ts`
 
 Class decorator that registers the class as a controller artifact and stores its `path`, tags and transport (REST by default, or gRPC with a `service`).
 
-@example
+**Example**
 ```typescript
 import { BaseRestController, controller } from '@venizia/ignis';
 
@@ -3918,7 +3918,7 @@ Row access for `@model` settings.access - resolved per query, so it can depend o
 request (tenant, org, membership). Framework-internal escape hatches aside, nothing short of
 removing this setting from the model turns scoping off.
 
-@example
+**Example**
 ```typescript
 import { model, ScopeWriteGuards } from '@venizia/ignis';
 import { ModelFactory } from '@venizia/ignis-connectors/postgres';
@@ -3983,7 +3983,7 @@ Row access for a child model that has no scope columns of its own: it inherits t
 relation points at. A parent that resolves no scope always denies the child: `onMissing` is not offered here, because
 `'allow'` would show the child's rows of every tenant while the parent shows none.
 
-@example
+**Example**
 ```typescript
 import { model, ScopeThrough } from '@venizia/ignis';
 import { ModelFactory, one } from '@venizia/ignis-connectors/postgres';
@@ -3998,7 +3998,7 @@ export @model({ settings: { access: { through: ScopeThrough.of({ entity: Variant
 class Variant extends VariantBase {}
 ```
 
-@example
+**Example**
 ```typescript
 // A hand-written entity declares the same relation by hand.
 import { ScopeThrough } from '@venizia/ignis';

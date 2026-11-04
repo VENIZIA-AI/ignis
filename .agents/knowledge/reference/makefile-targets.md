@@ -10,16 +10,19 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**118 targets.**
+**121 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
 | `make all` | `build` | Rebuilds all packages (alias for 'build-all'). |
+| `make api-check` | - | Gate: the API reference pages are fresh. Needs a build. |
+| `make api-gen` | - | Write the API reference pages (docs/wiki/content/references/api) from the built .d.ts. |
+| `make api-undocumented` | - | Gate: every export has TSDoc. Needs a build. |
 | `make atlas-releases` | - | Print the releases atlas computes from the git tags. |
 | `make atlas-symbols` | - | Print the symbols atlas reads from the built .d.ts. |
 | `make boot` | `helpers` | Rebuild one package, after its dependencies. |
 | `make build` | `build-all` | Rebuilds all packages (alias for 'build-all'). |
-| `make build-all` | `core core-worker boot docs surface-check wiki-links-check wiki-anchors-check` | Rebuilds all packages in order, then the wiki and its checks. |
+| `make build-all` | `core core-worker boot docs surface-check wiki-links-check wiki-anchors-check api-check api-undocumented` | Rebuilds all packages in order, then the wiki and its checks. |
 | `make build-checks` | - | Gate: the built output - self-contained sourcemaps, the oxlint subpath loads no ESLint. Needs a build. |
 | `make catalog-check` | - | Gate: every catalogued dep is referenced as "catalog:", none drifted. |
 | `make clean` | - | Clean build artifacts from all packages. |

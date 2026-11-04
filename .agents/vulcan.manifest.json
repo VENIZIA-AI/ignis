@@ -118,9 +118,9 @@
       "V-P-10": "4738a534",
       "V-P-11": "9c9be499",
       "V-P-12": "4c7def12",
-      "V-P-13": "a249524f",
+      "V-P-13": "46369daf",
       "V-B-01": "1fb02376",
-      "V-B-02": "807709f8",
+      "V-B-02": "dd299607",
       "V-B-03": "da8e7490",
       "V-B-04": "6acb67ab",
       "V-B-05": "0fb5ac40",
@@ -134,7 +134,7 @@
       "V-C-06": "9e678dd5",
       "V-C-07": "096e2cb4",
       "V-C-08": "4e163f9e",
-      "V-C-09": "1e6e1d94",
+      "V-C-09": "dc038165",
       "V-C-10": "0555ce83",
       "V-C-11": "31caca1c",
       "V-C-12": "5fd38b0d",
@@ -151,6 +151,59 @@
     "index": {
       "keys": ["sdcWZqtQ/X7Rb7IExhpLzX/YFQoPscMPQSEdGcGc77Q="]
     }
+  },
+  "guard": {
+    "outside": "deny"
+  },
+  "theme": {
+    "preset": "venizia",
+    "tokens": {
+      "light": {
+        "ground": "#f5f5f5",
+        "bg": "#ffffff",
+        "line": "#0000001a",
+        "line-strong": "#101010",
+        "ink": "#000000",
+        "body": "#4b4b4b",
+        "muted": "#6b6b6b",
+        "ok": "#067647",
+        "ok-soft": "#e7f5ee",
+        "wait": "#8a4b00",
+        "wait-soft": "#fdf1dc",
+        "fail": "#b42318",
+        "fail-soft": "#fdecea",
+        "info": "#175cd3",
+        "info-soft": "#eff8ff",
+        "accent": "#8a5a20",
+        "accent-ink": "#ffffff",
+        "accent-soft": "#f5ecdf",
+        "accent-text": "#8a5a20"
+      },
+      "dark": {
+        "ground": "#121214",
+        "bg": "#1b1b1b",
+        "line": "#ffffff1a",
+        "line-strong": "#ffffff4d",
+        "ink": "#ffffff",
+        "body": "#ffffffb3",
+        "muted": "#ffffff8c",
+        "ok": "#47cd89",
+        "ok-soft": "#14291f",
+        "wait": "#fdb022",
+        "wait-soft": "#33270f",
+        "fail": "#f97066",
+        "fail-soft": "#3a1d1a",
+        "info": "#84caff",
+        "info-soft": "#102a43",
+        "accent": "#dead6a",
+        "accent-ink": "#1a1200",
+        "accent-soft": "#33281a",
+        "accent-text": "#dead6a"
+      }
+    },
+    "font": "'Inter Display', system-ui, -apple-system, 'Segoe UI', sans-serif",
+    "mono": "'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace",
+    "radius": "4px"
   },
   "commit": {
     "message": {

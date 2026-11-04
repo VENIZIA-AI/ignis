@@ -225,7 +225,7 @@ Source: `packages/kernel/src/common/bindings.ts`
 
 Class decorator that registers the class as a component artifact; accepts the same registration options as `injectable`.
 
-@example
+**Example**
 ```typescript
 import { BaseComponent, component } from '@venizia/ignis';
 
@@ -251,7 +251,7 @@ Source: `packages/kernel/src/base/metadata/injectable.ts`
 
 Class decorator that registers the class as a configuration artifact; `after` orders it behind other configuration classes.
 
-@example
+**Example**
 ```typescript
 import { BaseConfiguration, configuration } from '@venizia/ignis';
 
@@ -274,7 +274,7 @@ Source: `packages/kernel/src/base/metadata/injectable.ts`
 
 Registers a datasource with driver and auto-discovery settings.
 
-@example
+**Example**
 ```typescript
 import { datasource } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
@@ -1023,7 +1023,7 @@ Source: `packages/kernel/src/helpers/inversion/registry.ts`
 
 Registers a model class with its static schema and relations.
 
-@example
+**Example**
 ```typescript
 import { model } from '@venizia/ignis';
 import { ModelFactory } from '@venizia/ignis-connectors/postgres';
@@ -1062,7 +1062,7 @@ Source: `packages/kernel/src/base/metadata/injectable.ts`
 
 Class decorator that registers a repository and binds it to a model (or, for a remote repository, only a datasource). Called without arguments on a subclass it reuses the type, model and datasource of its nearest decorated parent; registration options are not inherited.
 
-@example
+**Example**
 ```typescript
 import { repository } from '@venizia/ignis';
 import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
@@ -1085,7 +1085,7 @@ Source: `packages/kernel/src/base/metadata/persistents.ts`
 
 Class decorator that registers the class as a service artifact; accepts the same registration options as `injectable`.
 
-@example
+**Example**
 ```typescript
 import { BaseService, service } from '@venizia/ignis';
 
