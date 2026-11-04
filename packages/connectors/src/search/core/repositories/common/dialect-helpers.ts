@@ -51,12 +51,12 @@ export class SearchDialectHelper {
     return Math.floor(skip / limit) + 1;
   }
 
-  /** `fields` (array form, or object form keeping only `true` keys) -> comma-joined include list. */
-  static toFieldsCsv(opts: { fields: TFields }): string {
+  /** `fields` (array form, or object form keeping only `true` keys) -> the field names it selects. */
+  static toFieldNames(opts: { fields: TFields }): string[] {
     const { fields } = opts;
 
     if (Array.isArray(fields)) {
-      return fields.join(',');
+      return fields.map(String);
     }
 
     const included: string[] = [];
@@ -66,7 +66,12 @@ export class SearchDialectHelper {
       }
     }
 
-    return included.join(',');
+    return included;
+  }
+
+  /** `fields` -> comma-joined include list. */
+  static toFieldsCsv(opts: { fields: TFields }): string {
+    return SearchDialectHelper.toFieldNames(opts).join(',');
   }
 
   /**

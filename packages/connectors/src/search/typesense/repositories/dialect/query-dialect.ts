@@ -350,8 +350,11 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
       }
     }
 
-    if (fields) {
-      query.includeFields = SearchDialectHelper.toFieldsCsv({ fields });
+    // An empty selection (`[]`, or an object with no `true`) selects nothing in particular: the engine returns whole documents, so no include list is sent.
+    const included = fields ? SearchDialectHelper.toFieldsCsv({ fields }) : '';
+
+    if (included) {
+      query.includeFields = included;
     }
 
     if (hiddenFields && hiddenFields.length > 0) {

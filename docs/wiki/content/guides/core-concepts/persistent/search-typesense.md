@@ -78,9 +78,9 @@ The same `@model` settings you use with Drizzle entities - `hiddenProperties`, `
 | `field.geopoint(name, flags?)` | `geopoint` (`[number, number]`) |                                                                                                                                                                                       |
 | `field.vector(name, opts)`     | `float[]`                       | Embedding vector for semantic/hybrid search. Its `opts` carry `dimensions`/`distance`/`embed` rather than the shared flags - see [Vector Fields](#vector-fields-for-semantic-search). |
 
-Each `flags` object may set `searchable`, `filterable`, `facet`, `sortable`, `optional` (all `boolean`). Note: `searchable`/`filterable` have no direct Typesense wire equivalent - Typesense indexes every field by default - so they're dropped at compile time. Only `facet`, `optional`, and `sortable` (mapped to Typesense's `sort`) actually reach the compiled collection schema. They're still worth setting for documentation/intent and for future engines that do distinguish them.
+Each `flags` object may set `searchable`, `filterable`, `facet`, `sortable`, `optional` and `nullable` (all `boolean`; `nullable` needs `optional: true`, see [Nullable fields](#nullable-fields)). Note: `searchable`/`filterable` have no direct Typesense wire equivalent - Typesense indexes every field by default - so they're dropped at compile time. Only `facet`, `optional`, and `sortable` (mapped to Typesense's `sort`) actually reach the compiled collection schema. They're still worth setting for documentation/intent and for future engines that do distinguish them.
 
-`SearchCollectionFactory.define` validates at call time: throws on an empty `name`, empty `fields`, duplicate field names, a non-`string` `id` field, or an unknown `defaultSort` field reference.
+`SearchCollectionFactory.define` validates at call time: throws on an empty `name`, empty `fields`, duplicate field names, a non-`string` `id` field, an unknown `defaultSort` field reference, or a `nullable` field that is not `optional`.
 
 ### `TSearchDocument<T>`
 
@@ -102,6 +102,28 @@ export type TArticleDocument = TSearchDocument<typeof ArticleDocument.schema>;
 ```
 
 `id` is always `string` and required. Every non-`optional` field is required; every `optional: true` field becomes an optional property.
+
+### Nullable fields
+
+Typesense keeps no null. A document written with `note: null` comes back without the `note` key, so a schema that says `note` is `string | null` rejects the row. Declare the field `nullable`:
+
+```typescript
+field.string('note', { optional: true, nullable: true }),
+field.string('nickname', { optional: true }),
+```
+
+| Field | Document type | Read when the key is absent |
+|---|---|---|
+| `{ optional: true, nullable: true }` | `note?: string \| null` | `null` |
+| `{ optional: true }` | `nickname?: string` | absent |
+
+A read returns `null` for a nullable field whose key is absent: `find`, `findOne`, `findById`, `search` (keyword, semantic and hybrid hits) and `suggest`. So do the documents that `create`, `createAll` and `updateById` return, so a created document and a found one have the same shape. `mode: 'raw'` and the cross-collection `multiSearch` are passthrough and fill nothing. A field selection (`filter.fields`, `includeFields`) limits the fill to the selected fields, so a field you did not select stays absent. Select with `filter.fields`: a selection set only through `engineParams` (`include_fields`, `exclude_fields`) is not seen by the fill, and neither is a dotted path, so a nullable field it leaves out still reads as `null`. A hidden field stays hidden. Writes are unchanged: `nullable` is never sent to Typesense.
+
+A stored `null` and a field that was never set look the same after a round trip: both come back `null`. If the two must differ, store a sentinel value instead.
+
+`SearchCollectionFactory.deriveDocumentSchema` follows the flag. The `select` schema accepts `null` or an absent key and gives `null` for an absent one. The `create` and `update` schemas accept `null`, a value or an absent key, and leave an absent key absent.
+
+The fill lives in the engine-neutral repository, so it applies on Meilisearch too: a nullable field always reads as `T | null`, never absent. Meilisearch keeps nulls, so a stored `null` stays `null`, and a field that was never set also becomes `null`. The compiled index is the same with or without the flag.
 
 ## Vector Fields for Semantic Search
 

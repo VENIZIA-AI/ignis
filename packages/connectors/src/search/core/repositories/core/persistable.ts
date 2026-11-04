@@ -46,7 +46,7 @@ export class PersistableSearchRepository<
       return { count: 1, data: null };
     }
 
-    return { count: 1, data: this.omitHiddenFields(created as R) };
+    return { count: 1, data: this.shapeDocument(created as R) };
   }
 
   override createAll(opts: {
@@ -80,7 +80,7 @@ export class PersistableSearchRepository<
     });
 
     // `created` is the caller's own input rows (bulk import echoes nothing back), so R is the caller's unchecked assertion, as on the non-hidden path.
-    return { count: rs.count.success, data: this.omitHiddenFieldsAll(created) as any };
+    return { count: rs.count.success, data: this.shapeDocuments(created) as any };
   }
 
   override updateById(opts: {
@@ -127,7 +127,7 @@ export class PersistableSearchRepository<
       return { count: 1, data: null };
     }
 
-    return { count: 1, data: this.omitHiddenFields(updated as R) };
+    return { count: 1, data: this.shapeDocument(updated as R) };
   }
 
   /** Count-only: search engines have no RETURNING and no extra read is bolted on, so `data` is always `null` and `shouldReturn` is rejected at the type level - callers wanting the affected documents read them before updating. */
