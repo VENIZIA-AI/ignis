@@ -21,7 +21,7 @@ import { PostgresDataSource } from '../datasources/postgres.datasource';
 export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {}
 ```
 
-That's it - `UserRepository` already has `find`, `findOne`, `findById`, `create`, `createAll`, `updateById`, `updateAll`, `deleteById`, `deleteAll`, `count`, and `existsWith`.
+That's it - `UserRepository` already has `find`, `findOne`, `findById`, `create`, `createAll`, `updateById`, `updateEach`, `updateAll`, `deleteById`, `deleteAll`, `count`, and `existsWith`.
 
 ## How it works
 
