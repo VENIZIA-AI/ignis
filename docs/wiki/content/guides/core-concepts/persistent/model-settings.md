@@ -164,7 +164,7 @@ export const findIncludingDeleted = (opts: { repository: ProductRepository }) =>
 
 ### resolve
 
-`resolve()` runs on every query and returns the scope for the current caller. It takes no arguments, so it reads the current request from the ambient request context (turn on `asyncContext.enable` in the application config). It returns one of three outcomes:
+`resolve()` runs on every query and returns the scope for the current caller. It reads the current request from the ambient request context (turn on `asyncContext.enable` in the application config). Its one argument, `{ operation }`, says what the call does: `ScopeOperations.READ`, `CREATE`, `UPDATE` or `DELETE`. A resolver that ignores the operation takes no parameter. It returns one of three outcomes:
 
 | `resolve()` returns | The query |
 |---|---|
@@ -197,6 +197,51 @@ export class Product extends ModelFactory.defineEntity({ table: productTable }) 
 ```
 
 `UNRESTRICTED` is a symbol, not a string, so no request body, query string or header can produce it: the decision stays in code you wrote. A resolver that forgets a `return` produces `undefined`, which falls to `onMissing`, never to `UNRESTRICTED`.
+
+### Read wider than you write
+
+A marketplace order is visible to its merchant and to the counterpart merchant. Only the merchant may change it. One scope cannot say both, so `resolve` receives the operation and answers each one:
+
+```typescript
+// src/models/order.model.ts
+import { model, ScopeOperations } from '@venizia/ignis';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
+import { currentMerchantId } from '@/utilities/merchant';
+import { orderTable } from './order.table';
+
+@model({
+  settings: {
+    access: {
+      resolve: ({ operation }) => {
+        const merchantId = currentMerchantId();
+        if (!merchantId) {
+          return null;
+        }
+
+        return ScopeOperations.includes({ group: ScopeOperations.WRITE, operation })
+          ? { merchantId }
+          : { or: [{ merchantId }, { counterpartMerchantId: merchantId }] };
+      },
+    },
+  },
+})
+export class Order extends ModelFactory.defineEntity({ table: orderTable }) {}
+```
+
+A read sees both columns. A create, an update and a delete are held to `merchantId` alone, and an update or delete reaches only the caller's own rows.
+
+`operation` is always one of four values. Every repository call passes one:
+
+| Call | `operation` |
+|---|---|
+| `find`, `findOne`, `findById`, `count`, `existsWith`, and a relation loaded through `include` | `READ` |
+| `create`, `createAll` | `CREATE` |
+| `updateById`, `updateAll`, and the soft delete and `restore` that run as updates | `UPDATE` |
+| `deleteById`, `deleteAll` with `shouldHardDelete` | `DELETE` |
+
+`ScopeOperations.WRITE` and `ScopeOperations.ALL` are groups, never an `operation`. Ask `includes({ group, operation })` whether an operation belongs to one.
+
+Returning the `or` for a write operation is still refused, with the same "cannot be verified" message. Return the narrow scope for that operation instead.
 
 ### onMissing
 
@@ -260,7 +305,7 @@ The scope is `{ merchantId: 'm-1' }` for every row of this table:
 | `createAll([own, own, other])`, one bad row | Refused, nothing written | Refused, nothing written |
 | Any of the above under `ScopeFilters.UNRESTRICTED` (an admin, a system job) | Written as given | Written as given, nothing stamped |
 
-The guard reads the allowed values from the resolved `where`: an equality, `eq`, `inq` or `in`, an array, `and` of those, and an `or` whose branches all constrain the same column. Any other shape (an `or` over two columns, a range, `like`) cannot be checked, so the write is refused with a message that says so. It is never skipped.
+The guard reads the allowed values from the resolved `where`: an equality, `eq`, `inq` or `in`, an array, `and` of those, and an `or` whose branches all constrain the same column. Any other shape (an `or` over two columns, a range, `like`) cannot be checked, so the write is refused with a message that says so. It is never skipped. To read two columns and write one, [return the narrow scope for a write operation](#read-wider-than-you-write).
 
 ```typescript
 // src/models/product.model.ts
