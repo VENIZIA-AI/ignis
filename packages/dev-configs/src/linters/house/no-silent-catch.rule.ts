@@ -79,7 +79,7 @@ export class NoSilentCatchRule {
 
           const body = AstNode.readField({ node: handler, key: 'body' });
           const isSilent =
-            AstNode.getType({ node: body }) === 'BlockStatement'
+            AstNode.getType({ node: body }) === AstNodeTypes.BLOCK_STATEMENT
               ? PromiseChainSupport.isSilentBlock({
                   statements: AstNode.readField({ node: body, key: 'body' }),
                 })

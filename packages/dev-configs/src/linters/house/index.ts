@@ -1,4 +1,4 @@
-export * from './await-support';
+export { AwaitSupport } from './await-support';
 export * from './common';
 export * from './const-class-values.rule';
 export * from './effect-cleanup-consistency.rule';

@@ -1,14 +1,7 @@
 import type { Rule } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
-import { AwaitSupport } from './await-support';
+import { AwaitSupport, FUNCTION_TYPES, STATEMENT_LISTS } from './await-support';
 import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
-
-const FUNCTION_TYPES = new Set([
-  'FunctionDeclaration',
-  'FunctionExpression',
-  'ArrowFunctionExpression',
-]);
-const STATEMENT_LISTS = new Set(['BlockStatement', 'Program', 'StaticBlock', 'SwitchCase']);
 
 /** `node` sits inside a `try`, `catch` or `finally` of its own function. */
 const isInTry = (node: unknown): boolean => {

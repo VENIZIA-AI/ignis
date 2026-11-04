@@ -1,10 +1,9 @@
 import type { Rule, Scope, SourceCode } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
-import { AwaitSupport } from './await-support';
+import { AwaitSupport, STATEMENT_LISTS } from './await-support';
 import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 import { PromiseChainSupport } from './promise-chain-support';
 
-const STATEMENT_LISTS = new Set(['BlockStatement', 'Program', 'StaticBlock', 'SwitchCase']);
 /** The catch variable the fix writes when the handler has no parameter. */
 const CATCH_NAME = 'error';
 
@@ -135,7 +134,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
   if (
     AstNode.getType({ node: handler }) !== 'ArrowFunctionExpression' ||
     AstNode.readField({ node: handler, key: 'async' }) === true ||
-    AstNode.getType({ node: body }) === 'BlockStatement' ||
+    AstNode.getType({ node: body }) === AstNodeTypes.BLOCK_STATEMENT ||
     AstNode.readField({ node: handler, key: 'returnType' }) ||
     AstNode.readField({ node: handler, key: 'typeParameters' }) ||
     !Array.isArray(params) ||

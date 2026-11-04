@@ -1,11 +1,16 @@
 import type { Rule, SourceCode } from 'eslint';
-import { AstNode } from './common';
+import { AstNode, AstNodeTypes } from './common';
 
-const STATEMENT_LISTS = new Set(['BlockStatement', 'Program', 'StaticBlock', 'SwitchCase']);
-const FUNCTION_TYPES = new Set([
-  'FunctionDeclaration',
-  'FunctionExpression',
-  'ArrowFunctionExpression',
+export const STATEMENT_LISTS = new Set<string>([
+  AstNodeTypes.BLOCK_STATEMENT,
+  'Program',
+  'StaticBlock',
+  AstNodeTypes.SWITCH_CASE,
+]);
+export const FUNCTION_TYPES = new Set<string>([
+  AstNodeTypes.FUNCTION_DECLARATION,
+  AstNodeTypes.FUNCTION_EXPRESSION,
+  AstNodeTypes.ARROW_FUNCTION_EXPRESSION,
 ]);
 /** The child of a statement that runs exactly once, before anything else of that statement. */
 const HEAD_FIELD: Record<string, string> = {
