@@ -236,8 +236,10 @@ A read sees both columns. A create, an update and a delete are held to `merchant
 |---|---|
 | `find`, `findOne`, `findById`, `count`, `existsWith`, and a relation loaded through `include` | `READ` |
 | `create`, `createAll` | `CREATE` |
-| `updateById`, `updateAll`, and the soft delete and `restore` that run as updates | `UPDATE` |
-| `deleteById`, `deleteAll` with `shouldHardDelete` | `DELETE` |
+| `updateById`, `updateAll`, and `restore` | `UPDATE` |
+| `deleteById`, `deleteAll`, `deleteBy`, a soft delete included | `DELETE` |
+
+A soft delete is stored as an update of the row, but the resolver sees `DELETE`: a caller who may update a row is not thereby allowed to delete it. A read with a row `lock` (`findOne` with `lock`) still passes `READ`, so it can lock rows the caller may only read.
 
 `ScopeOperations.WRITE` and `ScopeOperations.ALL` are groups, never an `operation`. Ask `includes({ group, operation })` whether an operation belongs to one.
 
@@ -375,7 +377,7 @@ The `null` branch lets the caller read shared rows. Changing a shared row is a d
 
 If your resolver lists `null`, restricted callers still cannot create, change or delete shared rows unless `sharedRows` is `true`. That is true for `updateById`, `updateAll`, `updateBy`, `deleteById`, `deleteAll`, `deleteBy`, soft delete and restore alike: the scope they run under has the `null` branch removed. Set `sharedRows` only on a model where every merchant may write platform-wide rows that all merchants then see. Platform-defined data (a fare policy, a tax type, a promotion) stays `false`; platform staff who manage it use `ScopeFilters.UNRESTRICTED`.
 
-A scope the guard cannot read (an `or` over several columns, a range) cannot be narrowed this way, so an update or a delete under it is refused with a "cannot be verified" message, as a create already was.
+A scope the guard cannot read (an `or` over several columns, a range) cannot be narrowed this way, so an update or a delete under it is refused with a "cannot be verified" message, as a create already was. This holds with `sharedRows: true` too: it lets the `null` rows through, not a shape the guard cannot read.
 
 ### columns
 

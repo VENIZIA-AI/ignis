@@ -60,7 +60,8 @@ export interface IModelAccessSettings {
    * `CREATE`, `UPDATE` or `DELETE`, never a group), so one function can answer a wide scope for a
    * read and a narrow one for a write. A read, and an included relation, pass `READ`; a create passes
    * `CREATE`; an update passes `UPDATE` for the payload check and for choosing the rows to update; a
-   * delete passes `DELETE`. A resolver that takes no argument keeps working. An `or` over different
+   * delete, a soft delete included, passes `DELETE` for both; a restore passes `UPDATE`. A read with a
+   * row `lock` passes `READ`. A resolver that takes no argument keeps working. An `or` over different
    * columns is still refused on a write, so return the narrow scope for a write operation.
    */
   resolve: (context: {
