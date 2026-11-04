@@ -23,7 +23,7 @@ generated:
 | `vite/` | 2 |
 | `clis/` | 1 |
 
-## connectors  (237 source files)
+## connectors  (238 source files)
 
 | Subsystem | Files |
 |---|---|
@@ -32,7 +32,7 @@ generated:
 | `common/` | 7 |
 | `http/` | 7 |
 | `raw-sql/` | 5 |
-| `testing/` | 2 |
+| `testing/` | 3 |
 
 ## core-server  (193 source files)
 

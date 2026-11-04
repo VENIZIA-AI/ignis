@@ -2322,15 +2322,17 @@ generated:
 - `MeilisearchTaskStatuses` class
 - `TMeilisearchTaskStatus` type
 
-### `@venizia/ignis-connectors/testing` (9)
+### `@venizia/ignis-connectors/testing` (11)
 
 - `IPostgresTransactionDoubleOptions` interface
 - `ISqliteTransactionDoubleOptions` interface
 - `ITransactionDoubleOptions` interface
 - `PostgresTransactionDouble` class
+- `RepositoryDouble` class
 - `SqliteTransactionDouble` class
 - `TransactionDouble` class
 - `TransactionStates` class
+- `TRepositoryWithTransactions` type
 - `TTransactionDoubleHook` type
 - `TTransactionState` type
 
@@ -3495,7 +3497,7 @@ generated:
 - `WebSocketBindingKeys` class
 - `WebSocketComponent` class
 
-### `@venizia/ignis/testing` (12)
+### `@venizia/ignis/testing` (14)
 
 - `ApplicationBootAssertion` class
 - `IAssertApplicationBootsOptions` interface
@@ -3503,10 +3505,12 @@ generated:
 - `ISqliteTransactionDoubleOptions` interface
 - `ITransactionDoubleOptions` interface
 - `PostgresTransactionDouble` class
+- `RepositoryDouble` class
 - `SqliteTransactionDouble` class
 - `TBootProbeTarget` type
 - `TransactionDouble` class
 - `TransactionStates` class
+- `TRepositoryWithTransactions` type
 - `TTransactionDoubleHook` type
 - `TTransactionState` type
 
