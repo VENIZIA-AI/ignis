@@ -891,3 +891,110 @@ describe('TypesenseQueryDialect.toWireParams - tuning inside engineParams', () =
     ).toThrow(/both set/);
   });
 });
+
+describe('TypesenseQueryDialect.toWireParams - sortBy for the sorts filter.order cannot name', () => {
+  const dialect = new TypesenseQueryDialect();
+  const EVAL_SORT = '_text_match:desc,_eval([(status:=ACTIVATED):1]):desc,createdAt:desc';
+
+  test('sortBy in engineParams is sent as sort_by, special forms untouched', () => {
+    const wire = dialect.toWireParams({
+      query: { query: 'sho', engineParams: { sortBy: EVAL_SORT } },
+    });
+
+    expect(wire['sort_by']).toBe(EVAL_SORT);
+  });
+
+  test('the wire name sort_by takes the same checks', () => {
+    const wire = dialect.toWireParams({
+      query: { query: 'sho', engineParams: { ['sort_by']: EVAL_SORT } },
+    });
+
+    expect(wire['sort_by']).toBe(EVAL_SORT);
+    expect(() =>
+      dialect.toWireParams({
+        query: { query: 'sho', engineParams: { ['sort_by']: 'a:asc,b:asc,c:asc,d:asc' } },
+      }),
+    ).toThrow(/at most 3/);
+  });
+
+  test('sortBy is a field of the query as well as a key of engineParams', () => {
+    const wire = dialect.toWireParams({
+      query: { query: 'sho', sortBy: EVAL_SORT } as ITypesenseSearchQuery,
+    });
+
+    expect(wire['sort_by']).toBe(EVAL_SORT);
+  });
+
+  test('commas inside an _eval expression do not count as sort fields', () => {
+    const sort = '_eval([(a:=X):2, (b:=Y):1]):desc,_text_match:desc,createdAt:desc';
+    const wire = dialect.toWireParams({ query: { query: 'sho', engineParams: { sortBy: sort } } });
+
+    expect(wire['sort_by']).toBe(sort);
+  });
+
+  test('a comma inside a backtick string does not count either', () => {
+    const sort = '_eval([(name:=`a,b`):1]):desc,createdAt:desc';
+    const wire = dialect.toWireParams({ query: { query: 'sho', engineParams: { sortBy: sort } } });
+
+    expect(wire['sort_by']).toBe(sort);
+  });
+
+  test('more than three top-level entries are refused, _eval included', () => {
+    expect(() =>
+      dialect.toWireParams({
+        query: {
+          query: 'sho',
+          engineParams: { sortBy: '_eval([(a:=X):1]):desc,_text_match:desc,b:asc,c:asc' },
+        },
+      }),
+    ).toThrow(/at most 3 fields \| got: 4/);
+  });
+
+  test.each([[''], ['   '], [42], [null], [['a:asc']]])('%p is refused', (bad) => {
+    expect(() =>
+      dialect.toWireParams({ query: { query: 'sho', engineParams: { sortBy: bad } } }),
+    ).toThrow(/sortBy/);
+  });
+
+  test('sortBy with filter.order is refused, not silently won by one', () => {
+    const built = dialect.build({ filter: { order: ['createdAt DESC'] } });
+
+    expect(() =>
+      dialect.toWireParams({ query: { ...built, engineParams: { sortBy: EVAL_SORT } } }),
+    ).toThrow(/both set 'sort_by'/);
+  });
+
+  test('sort_by with filter.order is refused too: it used to override order silently', () => {
+    const built = dialect.build({ filter: { order: ['createdAt DESC'] } });
+
+    expect(() =>
+      dialect.toWireParams({ query: { ...built, engineParams: { ['sort_by']: EVAL_SORT } } }),
+    ).toThrow(/both set 'sort_by'/);
+  });
+
+  test('sortBy and sort_by together are refused', () => {
+    expect(() =>
+      dialect.toWireParams({
+        query: {
+          query: 'sho',
+          engineParams: { sortBy: EVAL_SORT, ['sort_by']: 'createdAt:desc' },
+        },
+      }),
+    ).toThrow(/both set 'sort_by'/);
+  });
+
+  test('an empty order does not count as a sort: sortBy still applies', () => {
+    const built = dialect.build({ filter: { order: [] } });
+    const wire = dialect.toWireParams({
+      query: { ...built, engineParams: { sortBy: EVAL_SORT } },
+    });
+
+    expect(wire['sort_by']).toBe(EVAL_SORT);
+  });
+
+  test('filter.order alone is unchanged', () => {
+    const built = dialect.build({ filter: { order: ['createdAt DESC'] } });
+
+    expect(dialect.toWireParams({ query: built })['sort_by']).toBe('createdAt:desc');
+  });
+});

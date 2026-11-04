@@ -331,6 +331,22 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
       wire[wireKey] = wireValue;
     };
 
+    // The sort the dialect built from `filter.order` (an empty one is no sort). A caller's own `sortBy` may not join it.
+    let sortSource: string | undefined = rest.sortBy ? 'filter.order' : undefined;
+
+    const setSortBy = (key: string, value: unknown) => {
+      TypesenseQueryDialect.assertSortBy({ key, value });
+
+      if (sortSource !== undefined) {
+        throw getError({
+          message: `[TypesenseQueryDialect][toWireParams] '${sortSource}' and '${key}' both set '${SearchWireKeys.SORT_BY.to}' | Give it once`,
+        });
+      }
+
+      sortSource = key;
+      wire[SearchWireKeys.SORT_BY.to] = value;
+    };
+
     const restEntries = Object.entries(rest);
     for (const [key, value] of restEntries) {
       if (value === undefined) {
@@ -351,6 +367,11 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
 
     // engineParams keys are wire names, passed verbatim; the camelCase tuning names are also accepted and mapped, so a caller can type them with ITypesenseTuning.
     for (const [key, value] of Object.entries(engineParams)) {
+      if (key === SearchWireKeys.SORT_BY.from || key === SearchWireKeys.SORT_BY.to) {
+        setSortBy(key, value);
+        continue;
+      }
+
       if (TuningWireKeys.fieldOf(key) !== undefined) {
         setTuning(key, value);
         continue;
@@ -599,14 +620,49 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
       : combined;
   }
 
+  private static assertSortFieldCount(opts: { count: number; method: string }): void {
+    const { count, method } = opts;
+
+    if (count > MAX_SORT_FIELDS) {
+      throw getError({
+        message: `[TypesenseQueryDialect][${method}] search() sort_by supports at most ${MAX_SORT_FIELDS} fields | got: ${count}`,
+      });
+    }
+  }
+
+  /** A caller's own `sort_by`: a non-empty string whose top-level entries (commas inside `(...)`, `[...]` or a backtick string are not separators) fit the limit. Field names are Typesense's to check. */
+  private static assertSortBy(opts: { key: string; value: unknown }): void {
+    const { key, value } = opts;
+
+    if (typeof value !== 'string' || value.trim() === '') {
+      throw getError({
+        message: `[TypesenseQueryDialect][toWireParams] Invalid '${key}' | Expected a non-empty string | Got: ${JSON.stringify(value)}`,
+      });
+    }
+
+    let depth = 0;
+    let isInString = false;
+    let count = 1;
+
+    for (const character of value) {
+      if (character === '`') {
+        isInString = !isInString;
+      } else if (!isInString && (character === '(' || character === '[')) {
+        depth += 1;
+      } else if (!isInString && (character === ')' || character === ']')) {
+        depth -= 1;
+      } else if (!isInString && depth === 0 && character === ',') {
+        count += 1;
+      }
+    }
+
+    TypesenseQueryDialect.assertSortFieldCount({ count, method: 'toWireParams' });
+  }
+
   private toOrderBy(opts: { order: string[]; capabilities?: ISearchCompileCapabilities }): string {
     const { order, capabilities } = opts;
 
-    if (order.length > MAX_SORT_FIELDS) {
-      throw getError({
-        message: `[TypesenseQueryDialect][build] search() sort_by supports at most ${MAX_SORT_FIELDS} fields | got: ${order.length}`,
-      });
-    }
+    TypesenseQueryDialect.assertSortFieldCount({ count: order.length, method: 'build' });
 
     return order
       .map((entry) => {
