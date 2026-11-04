@@ -2,6 +2,7 @@ import type { AnyType } from '@venizia/ignis-helpers/common';
 import { blob, integer, real, text } from 'drizzle-orm/sqlite-core';
 import type { TColumnDefinitions, TDataTypeEnricherOptions } from '../common/types';
 
+/** Adds the generic typed-value columns (`data_type`, `n_value`, `t_value`, `b_value`, `j_value`, `bo_value`) to a table's column definitions. */
 export class SqliteDataTypeEnricher {
   /**
    * Storage-class mapping of the Postgres twin: `double precision` -> `real`, `bytea` -> `blob`,

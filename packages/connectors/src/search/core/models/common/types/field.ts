@@ -1,6 +1,7 @@
 import type { TSearchFieldType, TVectorDistance } from '../constants';
 import type { ISearchEmbedConfig } from './embedding';
 
+/** One field of a search collection; the flags say how the engine may index it, and `vector` applies to fields of type `vector`. */
 export interface ISearchFieldDefinition {
   name: string;
   type: TSearchFieldType;

@@ -41,6 +41,7 @@ const makeFieldBuilder =
     return buildField({ name, type, flags: opts });
   };
 
+/** Builders for `ISearchFieldDefinition` entries: `id()` is the reserved `id` string field, the rest set the field type and accept `TFieldFlags`; `vector` takes `dimensions`, `distance` and `embed` instead. */
 export const field = {
   id: (): { name: 'id'; type: 'string' } => {
     return { name: 'id', type: SearchFieldTypes.STRING };
@@ -81,6 +82,7 @@ export const field = {
   },
 };
 
+/** `define()` validates a collection definition and returns it with its field literals preserved. It throws on an empty name or two synonyms with one id. */
 export class SearchCollectionFactory {
   /** @throws when two synonym sets in the same collection share an id. */
   private static assertUniqueSynonymIds(opts: {

@@ -7,6 +7,7 @@ import { ScopeThroughLink } from '@/relational/core/repositories/common/scope-th
 import { BaseSearchEntity } from '@/search/core/models';
 import { getTableColumns, getTableName, is, Table } from 'drizzle-orm';
 
+/** Boot-time checks for models that declare `settings.access` (scope filtering). */
 export class ScopeFilterUtility {
   /**
    * Why a `through` chain cannot work, or undefined. Walks from `name` toward the model that holds a resolver: every

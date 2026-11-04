@@ -36,6 +36,7 @@ type TPrincipalColumnDef<
     : NotNull<TSQLiteTextColumn>;
 };
 
+/** Adds a polymorphic reference pair to a table: `{discriminator}Id` and `{discriminator}Type` columns, `principal` by default. Any other `polymorphicIdType` than `number` or `string` throws. */
 export class SqlitePrincipalEnricher {
   static generateColumnDefs<
     Discriminator extends string = 'principal',

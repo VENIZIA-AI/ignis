@@ -2,6 +2,7 @@ import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { ITransaction } from '@venizia/ignis-kernel';
 
+/** Lifecycle states of a transaction handle: `ACTIVE` until it ends as `COMMITTED`, `ROLLED_BACK` or `FAILED`. */
 export class TransactionStates {
   static readonly ACTIVE = 'ACTIVE';
   static readonly COMMITTED = 'COMMITTED';
@@ -20,6 +21,7 @@ export class TransactionStates {
   }
 }
 
+/** One of the {@link TransactionStates} values. */
 export type TTransactionState = TConstValue<typeof TransactionStates>;
 
 /** Registry symbol, not a module-private one: two installed copies of this package (two versions in one tree) each load their own copy of this class, and a handle from one must still be read by the other. */

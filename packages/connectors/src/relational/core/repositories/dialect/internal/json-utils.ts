@@ -4,6 +4,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 /** Regex for validating JSON path components (identifiers, kebab-case, array indices). */
 export const JSON_PATH_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_-]*$|^\d+$/;
 
+/** Parses and validates JSON-path keys such as `meta.tags[0]` used in update data and filters. */
 export class JsonPathUtility {
   static isJsonPath(opts: { key: string }): boolean {
     return opts.key.includes('.') || opts.key.includes('[');

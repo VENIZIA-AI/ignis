@@ -10,6 +10,7 @@ type TIsoTimestampColumn = ReturnType<typeof isoTimestamp>;
 // resolve it to `undefined` here, because weak-type detection rejects a member with no `enable`.
 type TIsEnabled<T> = T extends { enable: false } ? false : T extends object ? true : undefined;
 
+/** The column definitions with `createdAt`, and `modifiedAt` and `deletedAt` when the options enable them. */
 export type TTzEnricherResult<Opts extends TTzEnricherOptions | undefined = undefined> = {
   createdAt: NotNull<HasDefault<TIsoTimestampColumn>>;
 } & (Opts extends TTzEnricherOptions
@@ -25,6 +26,7 @@ export type TTzEnricherResult<Opts extends TTzEnricherOptions | undefined = unde
       : {}
     : {}); // no deletedAt when opts is undefined
 
+/** Adds `createdAt` (default `NOW()`), `modifiedAt` (default `NOW()`, refreshed on update) and, when enabled, a nullable `deletedAt`. `deletedAt` is off by default. */
 export class PostgresTzEnricher {
   static generateColumnDefs<Opts extends TTzEnricherOptions | undefined>(
     opts?: Opts,

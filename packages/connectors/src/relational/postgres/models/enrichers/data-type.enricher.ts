@@ -8,6 +8,7 @@ const byteaType = customType<{ data: Buffer }>({
   },
 });
 
+/** Adds the typed value columns `data_type`, `n_value`, `t_value`, `b_value`, `j_value` and `bo_value`; `defaultValue` sets a column default only when the key is present. */
 export class PostgresDataTypeEnricher {
   static generateColumnDefs(opts?: TDataTypeEnricherOptions) {
     const { defaultValue } = opts ?? {};

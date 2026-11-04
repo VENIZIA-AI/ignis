@@ -6,6 +6,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import type { Sql } from 'postgres';
 import type { TRelationalConnection, TRelationalDriver } from './driver';
 
+/** Driver over a `postgres` (postgres-js) `Sql` client. Throws on construction if the client lacks `reserve()` or `unsafe()`, such as a `pg.Pool`. */
 export class PostgresJsDriver<
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
 > implements TRelationalDriver<Schema, Sql> {

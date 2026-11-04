@@ -47,6 +47,7 @@ export type TRelationConfig = {
     }
 );
 
+/** The column map of a table, as returned by Drizzle's `getTableColumns`. */
 export type TTableColumns = ReturnType<typeof getTableColumns>;
 
 /** The engine-neutral query-dialect surface a repository consumes via `dataSource.getQueryDialect()`, never constructed inside the repository. */
@@ -127,6 +128,7 @@ export type TRelationalTransactionOf<TDataSource extends IRelationalDataSource> 
   ReturnType<TDataSource['beginTransaction']>
 >;
 
+/** Update data split into plain column values and JSON-path updates that need SQL expressions. */
 export interface ITransformedUpdateData {
   /** Regular field updates (non-JSON-path keys) */
   regularFields: Record<string, any>;

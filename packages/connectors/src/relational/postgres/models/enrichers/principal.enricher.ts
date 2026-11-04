@@ -29,6 +29,7 @@ type TPrincipalColumnDef<
     : NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
 };
 
+/** Adds the polymorphic `{discriminator}Type` and `{discriminator}Id` columns; `discriminator` defaults to `principal`. Throws on a `polymorphicIdType` other than `number` or `string`. */
 export class PostgresPrincipalEnricher {
   static generateColumnDefs<
     Discriminator extends string = 'principal',

@@ -12,6 +12,7 @@ const MULTI_SEARCH_LIST_FIELDS = new Set([
   'queryByWeights',
 ]);
 
+/** Static helpers that convert friendly (camelCase) search params into the connector's query shape. */
 export class SearchQueryParamsUtility {
   /** Friendly multi-search params -> `ISearchQuery`: list fields comma-joined, the rest pass through; keeps `search()`, `multiSearch()` and `commonParams` on one friendly-to-wire path. */
   static toSearchQueryParams(opts: { input: Record<string, unknown> }): Partial<ISearchQuery> {
