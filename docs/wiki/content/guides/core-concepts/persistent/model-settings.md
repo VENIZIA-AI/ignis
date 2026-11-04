@@ -410,11 +410,64 @@ Declaring `columns` moves a failure from write time to boot. The application ref
 - **Search-backed models.** They never read `access`.
 - **Ownership that lives elsewhere.** A row owned through another table, or by a `principalType` plus `principalId` pair, cannot be written as a `where`. See [Ownership through a parent](#ownership-through-a-parent).
 
+### Scope a child through its parent
+
+A model that has only a foreign key to its parent can inherit the parent's scope instead of copying a tenant column. Declare it with `ScopeThrough.of`, which checks the relation name against the model:
+
+```typescript
+// src/models/variant.model.ts
+import { model } from '@venizia/ignis';
+import { many, ModelFactory, one, ScopeThrough } from '@venizia/ignis-connectors/postgres';
+import { productTable } from './product.table';
+import { variantTable } from './variant.table';
+
+const VariantBase = ModelFactory.defineEntity({
+  table: variantTable,
+  relations: () => ({ product: one(productTable) }),
+});
+
+@model({
+  settings: {
+    access: { through: ScopeThrough.of({ entity: VariantBase, relation: 'product' }) },
+  },
+})
+export class Variant extends VariantBase {}
+```
+
+A read of `Variant` keeps the rows whose `productId` is in the set that `Product`'s own `access` allows:
+
+```sql
+variant.product_id IN (SELECT product.id FROM product WHERE <Product's scope>)
+```
+
+- **The parent decides.** `Product` keeps its `access.resolve`. A change to its scope reaches every child with no edit. The `operation` the child call passes (`READ`) is the one `Product`'s `resolve` receives.
+- **Several hops.** Each model declares its own one hop: an `Option` through `Variant`, `Variant` through `Product`. A chain is at most 5 hops, and the application refuses to start on a longer one or on a cycle.
+- **`UNRESTRICTED` and `null`** come from the parent: an unrestricted parent leaves the child unrestricted for that call, and a parent that cannot resolve a scope follows the child's `onMissing` (`'deny'` by default).
+- **A row with a null foreign key** matches no parent, so it is invisible.
+- **`include`** applies the included model's own scope, so a `through` child loaded through any relation is scoped too.
+- **Reads only, in this release.** Every create, update and delete on a `through` model is refused with a message that names `access.through`, so a scope is never wider than the parent allows. Write a child through the patterns below until writes ship.
+- **`through` replaces `resolve`.** A model declares one of them; `columns` and `write` belong to `resolve` only. At boot the application checks that the relation is a `one` with a single-column key, that the parent has an `access`, and warns when the foreign key has no index.
+
+Index the child's foreign key: without it every scoped list or count scans the child table.
+
+#### `through` or a copied column
+
+Measured on Postgres 17 with 372,000 parents, 389,000 children and 200 tenants of very uneven size (warm cache, medians):
+
+| Case | `through` | Copied column |
+|---|---|---|
+| Reads, updates and deletes by id | +0.01 to +0.3 ms per 100 ids | none |
+| The query already joins the parent | +1.3 ms on a small tenant, +3 to +4 ms (+7 to 9%) on the largest | +0.3 ms or less |
+| A page sorted by a child column, or a count, for the largest tenant | about 70 ms and 68 ms | 0.02 ms and 15 ms, with a `(tenant, created_at desc, id desc)` index |
+| The same for a small tenant | about 2 ms | under 0.1 ms |
+
+Use `through` for the many child tables where this cost does not show and one source of truth matters. Copy the column only for a hot list, sorted or counted, under a very large tenant. Both need the child foreign key indexed.
+
 ### Ownership through a parent
 
 A product variant has a `productId` and no merchant. The merchant lives on the `Product`. `access.resolve` returns a plain `where` over the model's own columns, with no relation path, so it cannot say "the variants of my products". Code can return an `inSql` subquery, such as ``{ productId: { inSql: sql`select id from "Product" where merchant_id = ${merchantId}` } }``. That scopes reads, but the write guard refuses every create, update and delete under it ("the operator 'inSql' cannot be checked on a write"). An `include` does not help either: an included model applies its own `access`, never its parent's.
 
-Two patterns are safe for writes.
+For reads, declare [`access.through`](#scope-a-child-through-its-parent). For writes, two patterns are safe.
 
 #### Copy the tenant column onto the child
 

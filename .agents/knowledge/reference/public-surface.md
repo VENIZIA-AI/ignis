@@ -1228,7 +1228,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (414)
+### `@venizia/ignis-kernel` (418)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1391,6 +1391,7 @@ generated:
 - `IJWTVerifyOptions` interface
 - `IMiddlewareConfigs` interface
 - `IModelAccessSettings` interface
+- `IModelAccessThroughSettings` interface
 - `IModelAccessWriteSettings` interface
 - `IModelAuthorizeSettings` interface
 - `IModelMetadata` interface
@@ -1424,6 +1425,7 @@ generated:
 - `IRpcMetadata` interface
 - `isClass` const
 - `isClassProvider` const
+- `IScopeThrough` interface
 - `isDataSourceClass` const
 - `ISearchableDataSourceCapabilities` interface
 - `IServerConfigMixin` interface
@@ -1491,6 +1493,7 @@ generated:
 - `ScopeFilterMissingBehaviors` class
 - `ScopeFilters` class
 - `ScopeOperations` class
+- `ScopeThroughBrand` class
 - `ScopeWriteGuards` class
 - `SearchErrorCodes` class
 - `SecFetchSiteValues` const
@@ -1591,6 +1594,7 @@ generated:
 - `TLockOptions` type
 - `TLockStrength` type
 - `TMixinOpts` type
+- `TModelAccessSettings` type
 - `TModelClass` type
 - `TModelType` type
 - `TOrderEntry` type
@@ -1713,7 +1717,7 @@ generated:
 
 ## connectors
 
-### `@venizia/ignis-connectors` (128)
+### `@venizia/ignis-connectors` (130)
 
 - `AbstractDriverDataSource` class
 - `AbstractRelationalDataSource` class
@@ -1796,6 +1800,7 @@ generated:
 - `RelationsFactory` class
 - `ScopeFilterDenial` class
 - `ScopeFilterUtility` class
+- `ScopeThrough` class
 - `SearchBaseRepository` class
 - `SearchCollectionFactory` class
 - `SearchErrors` const
@@ -1818,6 +1823,7 @@ generated:
 - `TIdColumn` type
 - `TMultiSearchEntry` type
 - `TMultiSearchInput` type
+- `TOneRelationNameOf` type
 - `TPrimaryKey` type
 - `TRecursiveTreeDirection` type
 - `TRelationalConnectorOf` type
@@ -1880,7 +1886,7 @@ generated:
 - `TRawSqlQuery` type
 - `TRawSqlSchema` type
 
-### `@venizia/ignis-connectors/relational` (70)
+### `@venizia/ignis-connectors/relational` (72)
 
 - `AbstractRelationalDataSource` class
 - `AuditUserResolver` class
@@ -1927,6 +1933,7 @@ generated:
 - `RelationDeclarations` class
 - `RelationsFactory` class
 - `ScopeFilterDenial` class
+- `ScopeThrough` class
 - `SoftDeletableRelationalRepository` class
 - `TableColumnCache` class
 - `TColumnDefinition` type
@@ -1937,6 +1944,7 @@ generated:
 - `TEntityObject` type
 - `TGetIdType` type
 - `TIdColumn` type
+- `TOneRelationNameOf` type
 - `TPrimaryKey` type
 - `TRecursiveTreeDirection` type
 - `TRelationalConnectorOf` type
@@ -1953,7 +1961,7 @@ generated:
 - `TTableObject` type
 - `TTableSchemaWithId` type
 
-### `@venizia/ignis-connectors/postgres` (79)
+### `@venizia/ignis-connectors/postgres` (81)
 
 - `AbstractPostgresDataSource` class
 - `BaseDataSource` class
@@ -1998,6 +2006,7 @@ generated:
 - `RelationalEntityUtility` class
 - `RelationDeclarations` class
 - `RelationsFactory` class
+- `ScopeThrough` class
 - `SoftDeletableRepository` class
 - `TableColumnCache` class
 - `TAnyConnector` type
@@ -2013,6 +2022,7 @@ generated:
 - `TIdEnricherOptions` type
 - `TIdEnricherResult` type
 - `TIsolationLevel` type
+- `TOneRelationNameOf` type
 - `TPrimaryKey` type
 - `TPrincipalEnricherOptions` type
 - `TRecursiveTreeDirection` type
@@ -2065,7 +2075,7 @@ generated:
 - `SupabaseRls` class
 - `TPoolerMode` type
 
-### `@venizia/ignis-connectors/sqlite` (71)
+### `@venizia/ignis-connectors/sqlite` (73)
 
 - `AbstractSqliteDataSource` class
 - `BaseSqliteDataSource` class
@@ -2095,6 +2105,7 @@ generated:
 - `RecursiveTreeSql` class
 - `RelationalEntityUtility` class
 - `RelationDeclarations` class
+- `ScopeThrough` class
 - `SoftDeletableSqliteRepository` class
 - `SqliteBaseRepository` class
 - `SqliteBeginModes` class
@@ -2118,6 +2129,7 @@ generated:
 - `TIdColumn` type
 - `TIdEnricherOptions` type
 - `TIdEnricherResult` type
+- `TOneRelationNameOf` type
 - `TPrimaryKey` type
 - `TPrincipalEnricherOptions` type
 - `TRecursiveTreeDirection` type
@@ -2359,7 +2371,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1005)
+### `@venizia/ignis` (1011)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2701,6 +2713,7 @@ generated:
 - `IManyRelation` interface
 - `IMiddlewareConfigs` interface
 - `IModelAccessSettings` interface
+- `IModelAccessThroughSettings` interface
 - `IModelAccessWriteSettings` interface
 - `IModelAuthorizeSettings` interface
 - `IModelMetadata` interface
@@ -2788,6 +2801,7 @@ generated:
 - `IScopedCasbinEntities` interface
 - `IScopedCasbinPolicyFilter` interface
 - `IScopedCasbinTable` interface
+- `IScopeThrough` interface
 - `isDatabaseTransaction` const
 - `isDataSourceClass` const
 - `ISearchableDataSourceCapabilities` interface
@@ -3001,6 +3015,8 @@ generated:
 - `ScopeFilterMissingBehaviors` class
 - `ScopeFilters` class
 - `ScopeOperations` class
+- `ScopeThrough` class
+- `ScopeThroughBrand` class
 - `ScopeWriteGuards` class
 - `SearchErrorCodes` class
 - `SecFetchSiteValues` const
@@ -3197,6 +3213,7 @@ generated:
 - `TMimeTypes` type
 - `TMixinOpts` type
 - `TMixinTarget` type
+- `TModelAccessSettings` type
 - `TModelClass` type
 - `TModelType` type
 - `TMultipartStorage` type
@@ -3204,6 +3221,7 @@ generated:
 - `TNullable` type
 - `TNumberConstValue` type
 - `TObjectFromFieldMappings` type
+- `TOneRelationNameOf` type
 - `TOnVisit` type
 - `TOnVisitAsync` type
 - `TOptions` type
