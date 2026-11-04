@@ -20,12 +20,14 @@ const withBaseWhere = <TDataObject extends object>(opts: {
 
   // `Pick` resolves the one key: a literal cannot be checked against `TWhere` over an unresolved type parameter.
   const scoped: Pick<TWhere<TDataObject>, 'and'> = { and: [baseWhere, where] };
+
   return scoped;
 };
 
 /** `id` is the primary key every entity family reads by; built at the default `TWhere` for the same unresolved-parameter reason. */
 const whereById = <TDataObject extends object>(opts: { id: IdType }): TWhere<TDataObject> => {
   const where: TWhere = { id: opts.id };
+
   return where;
 };
 
@@ -147,6 +149,7 @@ export abstract class ReadableCrudController<
       args: scopedFilter,
       task: async () => {
         const record = await this.repository.findOne({ filter: scopedFilter });
+
         return this.respond<TDataObject>({
           context,
           format: ResponseFormats.OBJECT,

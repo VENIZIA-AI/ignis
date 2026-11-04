@@ -75,6 +75,7 @@ const toDocumentedBody = (opts: { route: TRouteWithBody }) => {
     openapi: '3.1.0',
     info: { title: 'crud-write-body-probe', version: '1' },
   });
+
   return document.paths?.['/probe']?.post?.requestBody;
 };
 
@@ -141,6 +142,7 @@ describe('the CRUD factory default write bodies leave out what the entity stamps
     );
 
     expect(bodies).toHaveLength(3);
+
     for (const body of bodies) {
       expect(body).toBe(auditedSchema);
     }
@@ -279,6 +281,7 @@ class RecordingRepository {
 
   async create(opts: { data: object }) {
     this.created.push(opts.data);
+
     return { count: 1, data: opts.data };
   }
 }

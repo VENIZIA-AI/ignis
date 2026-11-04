@@ -38,6 +38,7 @@ describe('string domains as const classes', () => {
       for (const value of values) {
         expect(domain.isValid(value)).toBe(true);
       }
+
       expect(domain.isValid('nope')).toBe(false);
       expect(domain.isValid('')).toBe(false);
     });

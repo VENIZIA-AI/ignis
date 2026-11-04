@@ -70,6 +70,7 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
 
     const names = enforcers.map((e) => e.name);
     const duplicateNames = names.filter((n, i) => names.indexOf(n) !== i);
+
     if (duplicateNames.length) {
       throw getError({
         message: `[AuthorizationEnforcerRegistry] Duplicate enforcer name(s): ${[...new Set(duplicateNames)].join(', ')}`,
@@ -117,8 +118,10 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
     }
 
     const inFlight = this.pendingConfigurations.get(opts.name);
+
     if (inFlight) {
       await inFlight;
+
       return enforcer;
     }
 
@@ -135,6 +138,7 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
     this.pendingConfigurations.set(opts.name, pending);
 
     await pending;
+
     return enforcer;
   }
 
@@ -189,10 +193,12 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
         key: AuthorizeBindingKeys.OPTIONS,
         isOptional: true,
       });
+
       if (options) {
         return options;
       }
     }
+
     return undefined;
   }
 }

@@ -31,6 +31,7 @@ class HostedApplication extends KernelApplication {
   override getProjectRoot(): string {
     const projectRoot = '/srv/app';
     this.bind<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT }).toValue(projectRoot);
+
     return projectRoot;
   }
 }

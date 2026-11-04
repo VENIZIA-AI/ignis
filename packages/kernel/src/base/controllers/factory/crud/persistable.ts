@@ -38,6 +38,7 @@ export abstract class PersistableCrudController<
       args: data,
       task: async () => {
         const payload = await this.repository.create({ data });
+
         return this.respond<TDataObject>({
           context,
           format: ResponseFormats.OBJECT,
@@ -77,6 +78,7 @@ export abstract class PersistableCrudController<
       args: { id, data },
       task: async () => {
         const payload = await this.repository.updateById({ id, data });
+
         return this.respond<TDataObject>({
           context,
           format: ResponseFormats.OBJECT,
@@ -103,6 +105,7 @@ export abstract class PersistableCrudController<
       context,
       where: { fromQuery: queryWhere, fromBody: bodyWhere },
     });
+
     if (resolved.error !== undefined) {
       return resolved.error;
     }
@@ -114,6 +117,7 @@ export abstract class PersistableCrudController<
       args: { where, data },
       task: async () => {
         const payload = await this.repository.updateBy({ where, data });
+
         return this.respond<Array<TDataObject>>({
           context,
           format: ResponseFormats.ARRAY,
@@ -135,6 +139,7 @@ export abstract class PersistableCrudController<
       args: { id },
       task: async () => {
         const payload = await this.repository.deleteById({ id });
+
         return this.respond<TDataObject>({
           context,
           format: ResponseFormats.OBJECT,
@@ -153,6 +158,7 @@ export abstract class PersistableCrudController<
     // Read, never validated: a declared body schema would gate the media type and answer 400 to a
     // client that sends a content-type and no body. A body that is not JSON is simply not a `where`.
     let body;
+
     try {
       const result = await context.req.json<{ where?: TWhere<TDataObject> }>();
       body = result;
@@ -165,6 +171,7 @@ export abstract class PersistableCrudController<
       context,
       where: { fromQuery: queryWhere, fromBody: body?.where },
     });
+
     if (resolved.error !== undefined) {
       return resolved.error;
     }
@@ -176,6 +183,7 @@ export abstract class PersistableCrudController<
       args: { where },
       task: async () => {
         const payload = await this.repository.deleteBy({ where });
+
         return this.respond<Array<TDataObject>>({
           context,
           format: ResponseFormats.ARRAY,

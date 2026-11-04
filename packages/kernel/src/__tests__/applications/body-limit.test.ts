@@ -8,6 +8,7 @@ class BodyLimitApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'body-limit-app', version: '0.0.0', description: '' };
   }
+
   preConfigure(): void {}
   postConfigure(): void {}
   staticConfigure(): void {}
@@ -28,10 +29,12 @@ const buildServer = async (opts: { middlewares?: IApplicationConfigs['middleware
   const server = application.getServer();
   server.post('/echo', async (context) => {
     const text = await context.req.text();
+
     return context.json({ length: text.length });
   });
   server.post('/upload/file', async (context) => {
     const text = await context.req.text();
+
     return context.json({ length: text.length });
   });
 
@@ -164,6 +167,7 @@ describe('configs.middlewares.bodyLimit', () => {
 
   test('a maxSize that is not a non-negative number is refused at boot, naming the key', async () => {
     let refusal: unknown;
+
     try {
       await buildServer({
         middlewares: { bodyLimit: { enable: true, maxSize: Number('ten') } },
@@ -213,6 +217,7 @@ const bootApplication = async (opts: {
   const server = application.getServer();
   server.post('/echo', async (context) => {
     const text = await context.req.text();
+
     return context.json({ length: text.length });
   });
 
@@ -268,9 +273,11 @@ describe('configs.middlewares.bodyLimit is read once, before staticConfigure()',
       scope: LateBodyLimitApplication.name,
       config: { path: { base: '/', isStrict: true }, middlewares },
     });
+
     application.staticConfigure = () => {
       middlewares.bodyLimit.maxSize = 10;
     };
+
     await application['registerDefaultMiddlewares']();
 
     const result = await toRefusal(application.initialize());

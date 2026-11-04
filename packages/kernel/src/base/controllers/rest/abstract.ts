@@ -91,6 +91,7 @@ export abstract class AbstractRestController<
     }
 
     const routeDefs = routes.entries();
+
     for (const [methodName, routeConfigs] of routeDefs) {
       if (
         paths !== RoutePathScopes.ALL &&
@@ -101,6 +102,7 @@ export abstract class AbstractRestController<
 
       // Dynamic dispatch by decorator-recorded method name - the controller class has no static index signature, so this read cannot be typed narrower than `unknown`.
       const handler = (this as Record<string | symbol, unknown>)[methodName];
+
       if (typeof handler !== 'function') {
         logger.warn('Route method "%s" not found on controller', String(methodName));
         continue;
@@ -133,6 +135,7 @@ export abstract class AbstractRestController<
 
     this.isConfigured = true;
     logger.info('DONE | Binding controller | Took: %s (ms)', performance.now() - t);
+
     return this.router;
   }
 
@@ -161,6 +164,7 @@ export abstract class AbstractRestController<
     // Inject authorize middleware AFTER authenticate
     if (authorize) {
       const specs: IAuthorizationSpec[] = Array.isArray(authorize) ? authorize : [authorize];
+
       for (const spec of specs) {
         mws.push(authorizeFn({ spec }));
       }

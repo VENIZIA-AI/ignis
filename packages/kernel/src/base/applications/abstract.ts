@@ -55,6 +55,7 @@ export abstract class AbstractApplication extends Container {
   getProjectRoot(): string {
     const projectRoot = '';
     this.bind<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT }).toValue(projectRoot);
+
     return projectRoot;
   }
 
@@ -115,6 +116,7 @@ export abstract class AbstractApplication extends Container {
 
   protected async executePostStopHooks() {
     const logger = this.logger.for(this.executePostStopHooks.name);
+
     for (const { identifier, hook } of this.postStopHooks) {
       try {
         await hook();

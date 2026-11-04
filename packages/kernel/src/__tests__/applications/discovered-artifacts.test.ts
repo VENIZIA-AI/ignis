@@ -11,6 +11,7 @@ class DiscoveringApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'discovering-app', version: '0.0.0', description: '' };
   }
+
   preConfigure(): void {}
   postConfigure(): void {}
   staticConfigure(): void {}
@@ -31,6 +32,7 @@ class DiscoveredComponent extends BaseComponent {
   constructor() {
     super({ scope: DiscoveredComponent.name });
   }
+
   override binding(): void {}
 }
 
@@ -53,6 +55,7 @@ const buildApplication = <ApplicationType extends DiscoveringApplication>(opts: 
     config: { path: { base: '/', isStrict: false }, ...opts.configs } as IApplicationConfigs,
   });
   application.init();
+
   return application;
 };
 

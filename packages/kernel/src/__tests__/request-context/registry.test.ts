@@ -65,6 +65,7 @@ describe('RequestContextRegistry - the three states a caller must be able to tel
       resolver: () => {
         const context = contexts[calls];
         calls += 1;
+
         return context;
       },
     });

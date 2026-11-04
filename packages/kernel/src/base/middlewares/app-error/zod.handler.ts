@@ -29,6 +29,7 @@ export class ZodErrorHandler {
     const statusCode = HTTP.ResultCodes.RS_4.UnprocessableEntity;
 
     let validationErrors: unknown;
+
     try {
       validationErrors = JSON.parse(error.message);
     } catch {

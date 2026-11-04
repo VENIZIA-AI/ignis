@@ -102,6 +102,7 @@ export abstract class AbstractRepository<
   /** Auto-resolves from @repository metadata if not explicitly set. */
   get entity(): AbstractEntity {
     this._entity ??= this.resolveEntity();
+
     return this._entity;
   }
 
@@ -218,8 +219,10 @@ export abstract class AbstractRepository<
 
     const walk = (inclusions: TInclusion[] | undefined, path: string): void => {
       const inclusionsList = inclusions ?? [];
+
       for (const inclusion of inclusionsList) {
         const relationScope = inclusion.scope;
+
         if (!relationScope) {
           continue;
         }
@@ -259,6 +262,7 @@ export abstract class AbstractRepository<
     const ModelClass = ResolverUtility.resolveValue({
       value: binding.model,
     }) as TClass<AbstractEntity>;
+
     return new ModelClass();
   }
 
@@ -288,6 +292,7 @@ export abstract class AbstractRepository<
 
     if (options.transaction) {
       this.logger.for(operation).debug('Read retry skipped inside transaction');
+
       return execution();
     }
 
@@ -321,6 +326,7 @@ export abstract class AbstractRepository<
   ): TReadOptions {
     const rest = { ...options };
     delete rest.retry;
+
     return rest;
   }
 

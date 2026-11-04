@@ -10,6 +10,7 @@ class CheckedApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'boot-checks-app', version: '0.0.0', description: '' };
   }
+
   preConfigure(): void {}
   postConfigure(): void {}
   staticConfigure(): void {}
@@ -49,6 +50,7 @@ const buildApplication = <ApplicationType extends CheckedApplication>(opts: {
     config: opts.configs,
   });
   application.init();
+
   return application;
 };
 
@@ -72,6 +74,7 @@ describe('bootChecks.binding.doVerify', () => {
     });
 
     let failure: unknown;
+
     try {
       await application.initialize();
     } catch (error) {
@@ -94,6 +97,7 @@ describe('bootChecks.binding.doVerify', () => {
     });
 
     let failure: unknown;
+
     try {
       await application.initialize();
     } catch (error) {
@@ -140,6 +144,7 @@ describe('bootChecks.binding.allowManual', () => {
     });
 
     let failure: unknown;
+
     try {
       await application.initialize();
     } catch (error) {
@@ -247,6 +252,7 @@ describe('bootChecks.binding.allowOverride', () => {
     });
 
     let failure: unknown;
+
     try {
       await application.initialize();
     } catch (error) {

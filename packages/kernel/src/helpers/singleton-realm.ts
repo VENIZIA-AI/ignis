@@ -45,6 +45,7 @@ export class SingletonRealm {
     const { key } = opts;
 
     const cached = this.anchors.get(key);
+
     if (cached) {
       return cached;
     }

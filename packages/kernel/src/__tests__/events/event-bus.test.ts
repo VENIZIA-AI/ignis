@@ -102,6 +102,7 @@ const buildBus = (): {
   const bus = new EventBus<TestEventPayloadMap>({ scope: 'event-bus-test', container });
   const logger = new RecordingLogger();
   bus.logger = logger;
+
   return { bus, container, logger };
 };
 
@@ -462,6 +463,7 @@ describe('EventBus - jitter is always applied, never a knob', () => {
       if (typeof delay === 'number') {
         observedDelaysMs.push(delay);
       }
+
       return originalSetTimeout(callback, delay, ...args);
     }) as AnyType;
 
@@ -556,6 +558,7 @@ describe('EventBus - handler shapes: binding key vs function', () => {
 
     const inlineHandler = async (fnOpts: { event: IDomainEvent }): Promise<void> => {
       calls.push({ event: fnOpts.event });
+
       if (!hasFailedOnce) {
         hasFailedOnce = true;
         throw getError({ message: '[inlineHandler] Forced failure' });

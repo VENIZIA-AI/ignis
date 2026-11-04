@@ -11,6 +11,7 @@ export class FormBodyMiddleware {
   /** Whether a route declares a form body, so its validator will parse one. */
   static hasFormBody(opts: { content?: Record<string, unknown> }): boolean {
     const { content } = opts;
+
     return (
       content !== undefined &&
       FormBodyMiddleware.FORM_CONTENT_TYPES.some((contentType) => contentType in content)

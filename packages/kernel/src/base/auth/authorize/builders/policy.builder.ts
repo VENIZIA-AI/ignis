@@ -211,6 +211,7 @@ export class AuthorizationPolicyBuilder {
 
     for (const grant of opts.grants) {
       const permissionId = opts.permission.idByCode.get(grant.resourceCode);
+
       if (!permissionId) {
         continue;
       }

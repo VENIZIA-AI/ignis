@@ -37,17 +37,20 @@ export class ResponseExtras {
   /** The entries of the header, in the order written. Malformed input is a 400 naming it. */
   static parse(opts: { header?: string | null }): Array<IRequestedExtra> {
     const header = opts.header?.trim() ?? '';
+
     if (header === '') {
       return [];
     }
 
     const entries: Array<IRequestedExtra> = [];
+
     for (const raw of ResponseExtras.splitTopLevel({ header })) {
       const match = raw.trim().match(ENTRY);
       const name = match?.[2];
 
       const isAllDefaultsOff =
         match?.[1] === '-' && name === ALL_DEFAULTS && match[3] === undefined;
+
       if (!match || !name || (!isAllDefaultsOff && !IDENTIFIER.test(name))) {
         throw ResponseExtras.badRequest({ message: `Malformed extra '${raw.trim()}'` });
       }
@@ -127,6 +130,7 @@ export class ResponseExtras {
       }
 
       const unknown = entry.keys.filter((key) => !definition.keys.includes(key));
+
       if (unknown.length > 0) {
         throw ResponseExtras.badRequest({
           message: `Unknown key for extra '${entry.name}': ${unknown.join(', ')} | It offers: ${definition.keys.join(', ')}`,
@@ -142,6 +146,7 @@ export class ResponseExtras {
         typeof definition !== 'function' &&
         definition.keys === undefined &&
         definition.isDefault === true;
+
       if (isDefault && !isEveryDefaultOff && !plan.has(name)) {
         plan.set(name, undefined);
       }
@@ -206,6 +211,7 @@ export class ResponseExtras {
     }
 
     parts.push(current);
+
     return parts.filter((part) => part.trim().length > 0);
   }
 

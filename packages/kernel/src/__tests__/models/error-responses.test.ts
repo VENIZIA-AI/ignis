@@ -24,6 +24,7 @@ const toDocument = (opts: { routes: Record<string, TRouteResponses> }) => {
 
 const toResponses = (opts: { responses: TRouteResponses }) => {
   const document = toDocument({ routes: { '/probe': opts.responses } });
+
   return document.paths?.['/probe']?.get?.responses ?? {};
 };
 
@@ -32,6 +33,7 @@ describe('error responses use the OpenAPI range keys', () => {
     const responses = OpenApiResponses.errorResponses();
 
     expect(Object.keys(responses).sort()).toEqual(['4XX', '5XX']);
+
     for (const response of Object.values(responses)) {
       expect(response.description).toBe('Error Response');
       expect(response.content['application/json'].schema).toBe(ErrorSchema);
@@ -44,6 +46,7 @@ describe('error responses use the OpenAPI range keys', () => {
     });
 
     expect(Object.keys(responses).sort()).toEqual(['200', '4XX', '5XX']);
+
     for (const key of ['4XX', '5XX']) {
       expect(responses[key]).toMatchObject({
         description: 'Error Response',
@@ -58,6 +61,7 @@ describe('error responses use the OpenAPI range keys', () => {
     });
 
     expect(Object.keys(responses).sort()).toEqual(['200', '4XX', '5XX']);
+
     for (const key of ['4XX', '5XX']) {
       expect(responses[key]).toMatchObject({
         description: 'Error Response',

@@ -30,12 +30,15 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       const options = registry.resolveOptions();
 
       const isSkipAuthorize = context.get(Authorization.SKIP_AUTHORIZATION);
+
       if (isSkipAuthorize) {
         logger.warn('SKIP checking authorization | path: %s', context.req.path);
+
         return next();
       }
 
       const user = context.get(Authentication.CURRENT_USER) as IAuthUser | undefined;
+
       if (!user) {
         throw getError({
           error: AuthorizationErrors.UNAUTHENTICATED,
@@ -45,6 +48,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
 
       const needsRoleCheck =
         Boolean(options?.alwaysAllowRoles?.length) || Boolean(spec.allowedRoles?.length);
+
       if (needsRoleCheck) {
         const userRoles = this.extractUserRoles({ user });
 
@@ -56,16 +60,19 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
             'SKIP checking authorization | User has always-allow role | userRoles: %s',
             userRoles,
           );
+
           return next();
         }
 
         if (spec.allowedRoles?.length && userRoles.some((r) => spec.allowedRoles!.includes(r))) {
           logger.warn('GRANT access | User has allowed role for route | userRoles: %s', userRoles);
+
           return next();
         }
       }
 
       const votersList = spec.voters ?? [];
+
       for (const voter of votersList) {
         const decision = await voter({
           user,
@@ -84,6 +91,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
 
         if (decision === AuthorizationDecisions.ALLOW) {
           await next();
+
           return;
         }
 
@@ -98,6 +106,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
             'ALLOW checking authorization | No enforcers registered | path: %s',
             context.req.path,
           );
+
           return next();
         }
 
@@ -118,6 +127,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       // widening a check that should have run at SYSTEM_WIDE. The context is still set, for
       // observability, but nothing decides on it.
       let domainScope: string | undefined;
+
       if (spec.domain || options?.domainResolver) {
         const resolvedDomain = await RequestDomainResolver.resolveRequestDomain({
           spec,
@@ -126,6 +136,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         });
         domainScope = resolvedDomain;
       }
+
       context.set(Authorization.DOMAIN, domainScope);
 
       // Keyed by enforcer. The slot used to hold one rule set for the whole request, so a second
@@ -197,6 +208,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       if (typeof r === 'string') {
         return r;
       }
+
       return r.identifier ?? r.name ?? String(r.id ?? '');
     });
   }

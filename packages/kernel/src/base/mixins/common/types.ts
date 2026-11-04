@@ -6,6 +6,7 @@ import type { BaseConfiguration } from '../../configurations';
 import type { IDataSource } from '../../datasources';
 import type { IRepository } from '../../repositories';
 import type { IService } from '../../services';
+
 /** Options of the registration itself, never of the artifact - what the artifact needs goes on its class. */
 export type TMixinOpts<Options extends object = {}> = {
   binding?: { namespace: string; key: string };

@@ -58,6 +58,7 @@ describe('@repository() on a subclass inherits the parent metadata', () => {
     expect(() => {
       @repository()
       class Orphan {}
+
       return Orphan;
     }).toThrow(
       '[@repository][Orphan] No metadata given and no decorated repository above it in the prototype chain',

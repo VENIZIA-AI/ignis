@@ -43,6 +43,7 @@ const buildContainer = () => {
   container
     .bind({ key: repositoryKey({ name: 'ExplicitProbeRepository' }) })
     .toValue(new CountingRepository('explicit-one'));
+
   return container;
 };
 
@@ -73,6 +74,7 @@ const countThrough = async (opts: { controller: ItemController }) => {
   const router = await opts.controller.configure();
   const response = await router.request(`/count?where=${encodeURIComponent('{}')}`);
   const result = await response.json();
+
   return { status: response.status, body: result };
 };
 
