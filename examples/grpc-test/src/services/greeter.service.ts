@@ -9,6 +9,7 @@ export class GreeterService extends BaseService {
 
   async sayHello(opts: { request: SayHelloRequest }): Promise<string> {
     const name = opts.request.name || 'World';
+
     return `Hello, ${name}!`;
   }
 }
