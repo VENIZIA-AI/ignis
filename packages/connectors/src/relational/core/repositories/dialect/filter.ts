@@ -1,12 +1,14 @@
 import { EchoUtility } from '@/common/internal';
+import { ScopeThroughLink } from '../common/scope-through';
 import type {
-  IModelAccessSettings,
   TDrizzleQueryOptions,
   TFields,
   TFilter,
   TInclusion,
+  TModelAccessSettings,
   TParsedOrderEntry,
   TQueryOperatorHandlers,
+  TScopeOperation,
   TSortDirection,
   TWhere,
 } from '@venizia/ignis-kernel';
@@ -21,9 +23,9 @@ import {
 } from '@venizia/ignis-kernel';
 import type { TTableObject, TTableSchemaWithId } from '@/relational/core/models/common';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
-import type { TConstValue } from '@venizia/ignis-helpers/common';
+import type { TConstValue, TNullable } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
-import { ObjectUtility, ResolverUtility } from '@venizia/ignis-helpers/common';
+import { ObjectUtility } from '@venizia/ignis-helpers/common';
 import {
   and,
   asc,
@@ -255,12 +257,78 @@ export abstract class FilterBuilder extends BaseHelper {
   resolveScopeFilter(opts: {
     schema: TTableSchemaWithId;
     modelEntry?: TResolvedModelEntry;
-  }): IModelAccessSettings | undefined {
+  }): TModelAccessSettings | undefined {
     const modelEntry =
       opts.modelEntry ??
       this.resolveModelEntry({ schema: opts.schema, methodName: 'resolveScopeFilter' });
 
     return modelEntry?.metadata?.settings?.access;
+  }
+
+  /**
+   * The scope of a model for one call. A `through` model reads its parent's own scope (the same operation, at every
+   * hop) and keeps the child rows whose foreign key is in the set of parent keys that scope allows:
+   * `child.fk IN (SELECT parent.pk FROM parent WHERE <parent scope>)`, built with the existing `inSql` operator.
+   * The parent's default filter is not applied: scope only.
+   */
+  resolveAccessScope(opts: {
+    settings: TModelAccessSettings;
+    schema: TTableSchemaWithId;
+    operation: TScopeOperation;
+    depth?: number;
+  }): TNullable<TWhere> | typeof ScopeFilters.UNRESTRICTED {
+    const { settings, schema, operation, depth = 1 } = opts;
+
+    if (!settings.through) {
+      return settings.resolve({ operation });
+    }
+
+    if (depth > ScopeThroughLink.MAX_DEPTH) {
+      throw getError({
+        message: `[resolveAccessScope] access.through is deeper than ${ScopeThroughLink.MAX_DEPTH} hops at ${getTableName(schema)}`,
+      });
+    }
+
+    const link = ScopeThroughLink.of({
+      schema,
+      relation: settings.through.relation,
+      relations: this.resolveRelations({ schema }),
+    });
+    const parentSettings = this.resolveScopeFilter({ schema: link.parentSchema });
+
+    if (!parentSettings) {
+      throw getError({
+        message: `[resolveAccessScope] ${getTableName(link.parentSchema)} has no access setting, so ${getTableName(schema)} cannot be scoped through it`,
+      });
+    }
+
+    const parentScope = this.resolveAccessScope({
+      settings: parentSettings,
+      schema: link.parentSchema,
+      operation,
+      depth: depth + 1,
+    });
+
+    if (
+      parentScope === ScopeFilters.UNRESTRICTED ||
+      parentScope === null ||
+      parentScope === undefined
+    ) {
+      return parentScope;
+    }
+
+    const where = this.toWhere({
+      tableName: getTableName(link.parentSchema),
+      schema: link.parentSchema,
+      where: parentScope,
+    });
+    const keys = sql`select ${link.parentColumn} from ${link.parentSchema}`;
+
+    const subquery = where ? sql`${keys} where ${where}` : keys;
+
+    // Opaque on purpose: drizzle's relational query rewrites every column it finds in a `where` to the relation's alias,
+    // the parent's columns inside this subquery included. A wrapper it does not look into keeps them qualified.
+    return { [link.childProperty]: { inSql: { getSQL: () => subquery } } };
   }
 
   /**
@@ -271,15 +339,20 @@ export abstract class FilterBuilder extends BaseHelper {
    */
   private applyRelationScopeFilter(opts: {
     userFilter?: TFilter;
-    scopeFilterSettings?: IModelAccessSettings;
+    scopeFilterSettings?: TModelAccessSettings;
+    schema: TTableSchemaWithId;
   }): TFilter {
-    const { userFilter, scopeFilterSettings } = opts;
+    const { userFilter, scopeFilterSettings, schema } = opts;
 
     if (!scopeFilterSettings) {
       return userFilter ?? {};
     }
 
-    const scopeWhere = scopeFilterSettings.resolve({ operation: ScopeOperations.READ });
+    const scopeWhere = this.resolveAccessScope({
+      settings: scopeFilterSettings,
+      schema,
+      operation: ScopeOperations.READ,
+    });
 
     // Same ordering as the repository tier's `applyScopeFilter`: exact symbol identity, checked
     // before null/undefined, so a forgotten `return` (which produces `undefined`) still denies
@@ -339,16 +412,7 @@ export abstract class FilterBuilder extends BaseHelper {
     }
 
     try {
-      const relationsArray = ResolverUtility.resolveValue({
-        value: modelEntry.relationsResolver,
-      }) as Array<TRelationConfig>;
-      const relationsRecord: Record<string, TRelationConfig> = {};
-
-      for (const relation of relationsArray) {
-        relationsRecord[relation.name] = relation;
-      }
-
-      return relationsRecord;
+      return ScopeThroughLink.relationsOf({ entry: modelEntry });
     } catch (error) {
       this.logger.warn(
         '[resolveRelationsUncached] Relations resolver failed - continuing without relations | %s',
@@ -626,6 +690,7 @@ export abstract class FilterBuilder extends BaseHelper {
       const scopedUserFilter = this.applyRelationScopeFilter({
         userFilter: scope,
         scopeFilterSettings,
+        schema: relationConfig.schema,
       });
 
       const defaultFilter = shouldSkipDefaultFilter

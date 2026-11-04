@@ -2,7 +2,7 @@ import type {
   IdType,
   IExtraOptions,
   IPersistableRepository,
-  IModelAccessSettings,
+  TModelAccessSettings,
   ITransaction,
   TCount,
   TByIdFilter,
@@ -185,7 +185,7 @@ export abstract class RelationalBaseRepository<
    * resolvable `@model` entity (a synthetic test double, a hand-built stub) overrides this to avoid
    * touching `modelSettings`/`entity` at all.
    */
-  getAccessSettings(): IModelAccessSettings | undefined {
+  getAccessSettings(): TModelAccessSettings | undefined {
     return this.modelSettings?.access;
   }
 
@@ -203,6 +203,10 @@ export abstract class RelationalBaseRepository<
 
     if (!settings) {
       return opts.rows;
+    }
+
+    if (settings.through) {
+      throw ScopeWriteGuard.throughDenied({ model: this.entity.name, operation: opts.operation });
     }
 
     return ScopeWriteGuard.apply({
@@ -240,7 +244,16 @@ export abstract class RelationalBaseRepository<
       return userFilter ?? {};
     }
 
-    const scopeWhere = scopeFilterSettings.resolve({ operation: mutation ?? ScopeOperations.READ });
+    // A model scoped through its parent reads only, in this release: every write is refused, whatever the parent resolves.
+    if (scopeFilterSettings.through && mutation !== undefined) {
+      throw ScopeWriteGuard.throughDenied({ model: this.entity.name, operation: mutation });
+    }
+
+    const scopeWhere = this.queryDialect.resolveAccessScope({
+      settings: scopeFilterSettings,
+      schema: this.entity.schema,
+      operation: mutation ?? ScopeOperations.READ,
+    });
 
     // Checked by exact symbol identity, before the null/undefined branch below: only this literal
     // value can skip scoping. A resolver that forgets a `return` on some branch produces
