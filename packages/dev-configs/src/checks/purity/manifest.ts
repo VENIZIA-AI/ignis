@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+/** One built entry file that the browser-purity gate probes; rows are derived from the package `exports` map, not written by hand. */
 export interface IPurityEntry {
   label: string;
   package: string;

@@ -14,6 +14,7 @@ export interface ICatalogProblem {
   message: string;
 }
 
+/** Options of `CatalogCheck.find`: which manifests to check besides the workspace packages' `package.json`, and how presets and pinned files are treated. */
 export interface ICatalogOptions {
   /**
    * The repository root: where the root `package.json` and the globs resolve.
@@ -46,6 +47,7 @@ export interface ICatalogOptions {
   pinned?: string[];
 }
 
+/** Result of `CatalogCheck.find`: every problem found, how many catalog entries exist and how many a manifest references. */
 export interface ICatalogReport {
   problems: ICatalogProblem[];
   entries: number;
@@ -67,6 +69,7 @@ interface IManifest {
   peerDependencies?: Record<string, string>;
 }
 
+/** Checks that `catalog:` references and version ranges in package manifests agree with the root `workspaces.catalog`. */
 export class CatalogCheck {
   /** Reads the root catalog and every manifest the options name, and reports everything wrong with their ranges. */
   static async find(opts: ICatalogOptions = {}): Promise<ICatalogReport> {

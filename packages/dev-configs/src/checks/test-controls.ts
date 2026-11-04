@@ -31,16 +31,19 @@ export interface IControlEntry {
   min?: number;
 }
 
+/** One registry entry that failed its check, with the reason. */
 export interface IControlProblem {
   entry: IControlEntry;
   message: string;
 }
 
+/** Result of `TestControlsCheck.run`: how many registry entries were checked and which failed. */
 export interface IControlsReport {
   checked: number;
   problems: IControlProblem[];
 }
 
+/** Verifies that every positive control in the registry still exists: its file is present and, for a test entry, enough test titles match its pattern. */
 export class TestControlsCheck {
   /**
    * The titles in a test file: the first string argument of `test`, `it`, `describe` and of the
