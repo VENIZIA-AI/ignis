@@ -150,6 +150,14 @@ export class LockStrengths {
 export type TLockStrength = TConstValue<typeof LockStrengths>;
 
 /**
+ * The brand of an `access.through` value. Only `ScopeThrough.of` (connectors) makes one, so a hand-written
+ * `{ relation: 'x' }` does not compile and the relation name is always checked against the model.
+ */
+export class ScopeThroughBrand {
+  static readonly KEY: unique symbol = Symbol.for('@venizia/ignis-kernel:scope-through');
+}
+
+/**
  * What a repository call does to rows, as the row scope (`@model` settings.access) sees it.
  * `access.resolve` receives one CONCRETE operation (READ, CREATE, UPDATE or DELETE), never a group,
  * so one function can answer a wide scope for a read and a narrow one for a write. WRITE and ALL

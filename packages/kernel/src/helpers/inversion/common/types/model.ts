@@ -1,6 +1,7 @@
 import type { AbstractEntity, TModelType } from '@/base/models';
 import type {
   ScopeFilters,
+  ScopeThroughBrand,
   TFilter,
   TScopeFilterMissingBehavior,
   TScopeOperation,
@@ -46,11 +47,23 @@ export interface IModelAccessWriteSettings {
 }
 
 /**
+ * A model scoped through its parent: the name of a `one` relation, branded so only `ScopeThrough.of` makes one.
+ * The relation name is checked against the model's own relations when the value is built, and again at boot.
+ */
+export interface IScopeThrough<RelationName extends string = string> {
+  readonly [ScopeThroughBrand.KEY]: true;
+  readonly relation: RelationName;
+}
+
+/**
  * Row access for `@model` settings.access - resolved per query, so it can depend on the current
  * request (tenant, org, membership). Framework-internal escape hatches aside, nothing short of
  * removing this setting from the model turns scoping off.
  */
 export interface IModelAccessSettings {
+  /** A model declares a resolver or a `through`, never both. */
+  through?: never;
+
   /**
    * Returns the scope `where`; `ScopeFilters.UNRESTRICTED` to apply no scope for THIS call (an
    * internal operator, a caller the application has decided sees everything); or null/undefined
@@ -86,6 +99,24 @@ export interface IModelAccessSettings {
   /** What a restricted caller may write to the scope columns. See {@link IModelAccessWriteSettings}. */
   write?: IModelAccessWriteSettings;
 }
+
+/**
+ * Row access for a child model that has no scope columns of its own: it inherits the scope of the parent a `one`
+ * relation points at. Reads only in this release; every write to the model is refused.
+ */
+export interface IModelAccessThroughSettings {
+  through: IScopeThrough;
+
+  /** What an unresolved scope of the parent does to a query on this model. Same meaning as on `IModelAccessSettings`. */
+  onMissing?: TScopeFilterMissingBehavior;
+
+  resolve?: never;
+  columns?: never;
+  write?: never;
+}
+
+/** The two shapes of `@model` settings.access: a resolver, or a `through`. */
+export type TModelAccessSettings = IModelAccessSettings | IModelAccessThroughSettings;
 
 /** What a query runs with when it names nothing (`@model` settings.query). */
 export interface IModelQuerySettings {
@@ -124,7 +155,7 @@ export interface IModelSettings {
    * Relational repositories only - a search-backed model (Typesense, Meilisearch) never reads
    * this setting, so mirroring a scoped entity into a search index needs its own query-time scope.
    */
-  access?: IModelAccessSettings;
+  access?: TModelAccessSettings;
 
   /** Authorization settings for this model (principal name, etc.). */
   authorize?: IModelAuthorizeSettings;
