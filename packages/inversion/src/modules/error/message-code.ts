@@ -3,6 +3,7 @@ import type { TError } from './common';
 
 type TErrorFactory = (opts: TError) => Error;
 
+/** Message codes: dot-separated lower snake_case segments, at least two (`namespace.reason`). */
 export class MessageCode {
   static readonly SEPARATOR = '.';
   static readonly SEGMENT_PATTERN = /^[a-z0-9]+(_[a-z0-9]+)*$/;

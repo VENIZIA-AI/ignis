@@ -34,6 +34,7 @@ export type TErrorMessage = string | TErrorMessageInput;
 /** The catalogued form's override - every field optional, since the definition supplies the rest. */
 export type TErrorMessageOverride = string | Partial<TErrorMessageInput>;
 
+/** A catalogued error: a message with a required code, an HTTP status code, and an optional scope and description. */
 export type TErrorDefinition = {
   message: TErrorDefinitionMessage;
   statusCode: number;
@@ -44,6 +45,7 @@ export type TErrorDefinition = {
 /** Augmented per-package via declaration merging, driving `messageCode` autocomplete. */
 export interface IErrorKeyRegistry {}
 
+/** A registered message code when `IErrorKeyRegistry` is augmented, otherwise any `string`. */
 export type TErrorKey = [keyof IErrorKeyRegistry] extends [never]
   ? string
   : Extract<keyof IErrorKeyRegistry, string>;
@@ -81,6 +83,7 @@ export type TErrorByField = TErrorCommon & {
   [key: string]: unknown;
 };
 
+/** The input of `ApplicationError` and `getError`: a catalogued definition or free-form fields. */
 export type TError = TErrorByDefinition | TErrorByField;
 
 /** Registers a catalog's keys with {@link IErrorKeyRegistry}, via `declare module '@venizia/ignis-helpers' { interface IErrorKeyRegistry extends TRegisterErrors<typeof CategoryErrors> {} }`. */

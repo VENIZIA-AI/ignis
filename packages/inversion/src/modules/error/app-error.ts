@@ -18,6 +18,7 @@ const KNOWN_KEYS = [
   'name',
 ] as const;
 
+/** The error type the framework throws. `statusCode` defaults to 400; `normalized` holds the resolved text, code and args a client renders. */
 export class ApplicationError extends Error {
   statusCode: number;
   normalized: TErrorNormalized;
@@ -96,8 +97,10 @@ export class ApplicationError extends Error {
   }
 }
 
+/** Builds an `ApplicationError`; same as `ApplicationError.getError`. */
 export const getError = (opts: TError): ApplicationError => ApplicationError.getError(opts);
 
+/** Rebuilds an `ApplicationError` from the wire payload a client received; same as `ApplicationError.fromError`. */
 export const fromError = (opts: { error: TResponsedError }): ApplicationError =>
   ApplicationError.fromError(opts);
 

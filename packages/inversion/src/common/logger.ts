@@ -1,3 +1,4 @@
+/** Static console logger with `[INFO]`, `[WARN]`, `[ERROR]` and `[DEBUG]` prefixes. `debug` prints only when enabled through `enableDebug` or when the `DEBUG` environment variable is set at load time. */
 export class Logger {
   private static debugEnabled = Boolean(globalThis.process?.env?.DEBUG);
 
