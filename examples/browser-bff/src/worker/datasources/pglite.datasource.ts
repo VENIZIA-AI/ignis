@@ -55,6 +55,7 @@ export class PGliteDataSource extends BasePostgresDataSource<
       } catch (closeError: unknown) {
         this.logger.error('[configure] Failed to close PGlite | error: %s', closeError);
       }
+
       throw error;
     }
   }
