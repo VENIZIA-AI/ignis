@@ -25,7 +25,7 @@ export type TSoftDeletableTableSchema = TTableSchemaWithId & {
   deletedAt: TDeletedAtColumn;
 };
 
-/** Repository that soft-deletes (sets `deletedAt`) instead of physically removing rows; models need a `deletedAt` column and `defaultFilter: { where: { deletedAt: null } }` in `@model` settings. */
+/** Repository that soft-deletes (sets `deletedAt`) instead of physically removing rows; models need a `deletedAt` column and `query: { filter: { where: { deletedAt: null } } }` in `@model` settings. */
 export class SoftDeletableRelationalRepository<
   EntitySchema extends TSoftDeletableTableSchema = TSoftDeletableTableSchema,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,

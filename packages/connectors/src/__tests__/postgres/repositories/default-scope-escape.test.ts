@@ -5,7 +5,7 @@ import type { AnyType } from '@venizia/ignis-helpers/common';
 import { PostgresFilterBuilder } from '@/relational/postgres/repositories/dialect/filter';
 
 /**
- * A `@model` `defaultFilter` is a SCOPE (soft-delete, tenant, ownership): a caller filter may only
+ * A `@model` `settings.query.filter` is a SCOPE (soft-delete, tenant, ownership): a caller filter may only
  * NARROW it - dropping a default condition is a data-leak primitive.
  */
 const mergeWhere = (defaultWhere: AnyType, userWhere: AnyType): AnyType => {

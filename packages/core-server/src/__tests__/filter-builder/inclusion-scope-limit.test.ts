@@ -111,7 +111,7 @@ describe('ReadableRepository.find - default limit application', () => {
   });
 });
 
-/** find() prefers the model's `settings.defaultLimit` over the global DEFAULT_LIMIT when the query omits an explicit limit. An explicit limit always wins. */
+/** find() prefers the model's `settings.query.limit.default` over the global DEFAULT_LIMIT when the query omits an explicit limit. An explicit limit always wins. */
 class ModelLimitRepository extends CapturingRepository {
   override getDefaultLimit() {
     return 25;

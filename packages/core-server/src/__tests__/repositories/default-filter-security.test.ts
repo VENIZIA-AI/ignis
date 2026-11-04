@@ -323,7 +323,7 @@ const scopedFixtureTable = pgTable('security_fixture_scoped_entities', {
   isDeleted: boolean('is_deleted'),
 });
 
-/** Fixture entity carrying a real @model `defaultFilter` (soft-delete style), so `applyDefaultFilter` is exercised through its actual `getDefaultFilter()`/`modelSettings` resolution path, not a mocked registry. */
+/** Fixture entity carrying a real @model `settings.query.filter` (soft-delete style), so `applyDefaultFilter` is exercised through its actual `getDefaultFilter()`/`modelSettings` resolution path, not a mocked registry. */
 @model({
   type: 'entity',
   settings: { query: { filter: { where: { isDeleted: false }, limit: 100 } } },

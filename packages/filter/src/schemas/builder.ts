@@ -110,7 +110,7 @@ export class QuerySchemaFactory {
             // `shouldSkipDefaultFilter` is deliberately NOT on the wire schema. It stays on the
             // internal `TInclusion` type, so server-side callers keep it, but a client could
             // otherwise send `include[].shouldSkipDefaultFilter` and the relation would be emitted
-            // with no where clause at all - erasing the `@model` defaultFilter that implements
+            // with no where clause at all - erasing the `@model` `settings.query.filter` that implements
             // soft-delete and the static visibility scopes.
           }),
         )

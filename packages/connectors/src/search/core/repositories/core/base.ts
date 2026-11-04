@@ -188,7 +188,7 @@ export abstract class SearchBaseRepository<
    * combined after, rather than merged into one tree first. Merging first makes the two
    * indistinguishable, and the repository's own clause would then have to satisfy the
    * caller-facing field check: `SprocketDocument` in integration-wiring.test.ts declares
-   * [title, secretCode] but carries `defaultFilter: { where: { isActive: true } }`, so every
+   * [title, secretCode] but carries `query.filter: { where: { isActive: true } }`, so every
    * request through it would 400 ITSELF. Compiling separately makes the trust boundary a matter
    * of WHICH CALL IS MADE, which - unlike a flag threaded through the recursion - cannot be wrong
    * at a nested level.
@@ -269,7 +269,7 @@ export abstract class SearchBaseRepository<
 
     throw getError({
       error: SearchErrors.PAGE_TOO_LARGE,
-      message: `[${this.constructor.name}][buildQuery] Requested page exceeds this model's limit | collection: '${this.collectionName}' | requested: ${limit} | maximum: ${ceiling} | raise it with @model settings.maxLimit if larger pages are genuinely needed`,
+      message: `[${this.constructor.name}][buildQuery] Requested page exceeds this model's limit | collection: '${this.collectionName}' | requested: ${limit} | maximum: ${ceiling} | raise it with @model settings.query.limit.max if larger pages are genuinely needed`,
     });
   }
 

@@ -97,7 +97,7 @@ export class ReadableSearchRepository<
     this.assertNoTransaction(options);
     this.assertNoLock(options);
 
-    // An omitted limit falls back to @model settings.defaultLimit then DEFAULT_LIMIT - leaving
+    // An omitted limit falls back to @model settings.query.limit.default then DEFAULT_LIMIT - leaving
     // `per_page` unset would be an unbounded query.
     const effectiveFilter: TFilter = {
       ...filter,
@@ -174,7 +174,7 @@ export class ReadableSearchRepository<
 
   /**
    * Delegates to findOne with id in where - routing through buildQuery is what makes
-   * hiddenFields/defaultFilter apply, so a soft-deleted document resolves to null. `where` is spread
+   * hiddenFields/settings.query.filter apply, so a soft-deleted document resolves to null. `where` is spread
    * away last so a projection can never widen the id lookup.
    */
   findById<R = unknown, const F extends TFields<TDocument> = TFields<TDocument>>(opts: {
@@ -189,7 +189,7 @@ export class ReadableSearchRepository<
 
   /**
    * Unified search entry discriminated by `mode`: `raw` is a full passthrough - no dialect, no
-   * defaultFilter, no hiddenFields - while keyword/semantic/hybrid translate through the dialect
+   * settings.query.filter, no hiddenFields - while keyword/semantic/hybrid translate through the dialect
    * like `find()`. Nothing engine-specific lives here; `ISearchQueryDialect.applySearchInput`
    * owns it.
    */
@@ -461,7 +461,7 @@ export class ReadableSearchRepository<
 
   /**
    * @throws Error - disabled in a read-only repository. `where` is optional where the base contract
-   * requires it: the `@model` defaultFilter alone can supply the effective filter, and Persistable
+   * requires it: the `@model` `settings.query.filter` alone can supply the effective filter, and Persistable
    * refuses the write outright when neither is present.
    */
   updateAll(_opts: {

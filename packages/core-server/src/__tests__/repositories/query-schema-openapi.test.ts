@@ -73,7 +73,7 @@ describe('the query schemas reach OpenAPI with their documentation intact', () =
   /**
    * `shouldSkipDefaultFilter` is a SERVER-side option and must never be on the wire schema: a
    * client that could send it would have the relation emitted with no where clause, erasing the
-   * `@model` defaultFilter that implements soft-delete and the static visibility scopes.
+   * `@model` `settings.query.filter` that implements soft-delete and the static visibility scopes.
    */
   test('the inclusion schema does not expose shouldSkipDefaultFilter to callers', () => {
     const document = documentForBody(z.object({ include: InclusionSchema }));
