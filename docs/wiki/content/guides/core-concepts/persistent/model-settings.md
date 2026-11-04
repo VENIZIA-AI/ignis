@@ -412,9 +412,9 @@ Declaring `columns` moves a failure from write time to boot. The application ref
 
 ### Ownership through a parent
 
-A product variant has a `productId` and no merchant. The merchant lives on the `Product`. `access.resolve` returns a plain `where` over the model's own columns, with no relation path and no subquery, so it cannot say "the variants of my products". An `include` does not help either: an included model applies its own `access`, never its parent's.
+A product variant has a `productId` and no merchant. The merchant lives on the `Product`. `access.resolve` returns a plain `where` over the model's own columns, with no relation path, so it cannot say "the variants of my products". Code can return an `inSql` subquery, such as ``{ productId: { inSql: sql`select id from "Product" where merchant_id = ${merchantId}` } }``. That scopes reads, but the write guard refuses every create, update and delete under it ("the operator 'inSql' cannot be checked on a write"). An `include` does not help either: an included model applies its own `access`, never its parent's.
 
-Two patterns cover it.
+Two patterns are safe for writes.
 
 #### Copy the tenant column onto the child
 
@@ -452,6 +452,8 @@ import { variantTable } from './variant.table';
 })
 export class Variant extends ModelFactory.defineEntity({ table: variantTable }) {}
 ```
+
+A request with no merchant returns `null`, which falls to `onMissing`: it denies by default.
 
 The service reads the product through the scoped `ProductRepository`, so a product outside the caller's scope comes back as `null`. It copies the merchant from that row:
 
