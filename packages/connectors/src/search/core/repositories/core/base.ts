@@ -1,5 +1,5 @@
 import type { ITransaction } from '@venizia/ignis-kernel';
-import type { TFilter, TLockOptions, TWhere } from '@venizia/ignis-kernel';
+import type { TFields, TFilter, TLockOptions, TWhere } from '@venizia/ignis-kernel';
 import { AbstractRepository } from '@venizia/ignis-kernel/repository';
 import { DEFAULT_MAX_LIMIT } from '@venizia/ignis-kernel/repository';
 import { SearchErrors } from '@/search/core/common';
@@ -14,6 +14,7 @@ import type {
   TCompiledWhere,
 } from '@/search/core/repositories/common';
 import { SearchFilterOutcomes } from '@/search/core/repositories/common';
+import { SearchDialectHelper } from '@/search/core/repositories/common/dialect-helpers';
 
 /** Search-repository plumbing on `AbstractRepository`. `TDataSource` carries the concrete connector type through `this.connector`, so a concretely-bound repository reaches its engine's verbs uncast while an engine-agnostic one is forced to write `connector.alias?.…`. */
 export abstract class SearchBaseRepository<
@@ -71,13 +72,13 @@ export abstract class SearchBaseRepository<
       return document;
     }
 
-    const visible: Record<string, unknown> = { ...(document as Record<string, unknown>) };
+    const visible = { ...document };
 
     for (const field of hiddenFields) {
-      delete visible[field];
+      Reflect.deleteProperty(visible, field);
     }
 
-    return visible as R;
+    return visible;
   }
 
   private _nullableFields?: readonly string[];
@@ -91,35 +92,48 @@ export abstract class SearchBaseRepository<
     return this._nullableFields;
   }
 
-  /** A document as it leaves the repository: a nullable field the engine dropped is `null` again, a hidden field is gone. The engine's own object is not changed. */
-  protected shapeDocument<R>(document: R): R {
-    if (this.nullableFields.length === 0 || document === null || typeof document !== 'object') {
-      return this.omitHiddenFields(document);
-    }
+  /**
+   * The nullable fields a read fills: with a selection (`filter.fields`, which becomes the engine's
+   * include list) only the selected ones, because every other key is absent by the caller's own
+   * choice and `TRow` says so. No selection, or an empty one the engine reads as none: all of them.
+   */
+  protected selectedNullableFields(opts: { fields?: TFields }): readonly string[] {
+    const names = opts.fields ? SearchDialectHelper.toFieldNames({ fields: opts.fields }) : [];
 
-    const filled: Record<string, unknown> = { ...(document as Record<string, unknown>) };
-
-    for (const name of this.nullableFields) {
-      filled[name] ??= null;
-    }
-
-    return this.omitHiddenFields(filled as R);
+    return names.length === 0
+      ? this.nullableFields
+      : this.nullableFields.filter((name) => names.includes(name));
   }
 
-  protected shapeDocuments<R>(documents: R[]): R[] {
+  /** A document as it leaves the repository: a nullable field the engine dropped is `null` again, a hidden field is gone. The engine's own object is not changed. Writes have no selection. */
+  protected shapeDocument<R>(document: R, opts: { fields?: TFields } = {}): R {
+    return this.shapeWith({ document, nullable: this.selectedNullableFields(opts) });
+  }
+
+  protected shapeDocuments<R>(documents: R[], opts: { fields?: TFields } = {}): R[] {
     if (this.hiddenFields.length === 0 && this.nullableFields.length === 0) {
       return documents;
     }
 
-    return documents.map((document) => this.shapeDocument(document));
+    const nullable = this.selectedNullableFields(opts);
+
+    return documents.map((document) => this.shapeWith({ document, nullable }));
   }
 
-  protected omitHiddenFieldsAll<R>(documents: R[]): R[] {
-    if (this.hiddenFields.length === 0) {
-      return documents;
+  private shapeWith<R>(opts: { document: R; nullable: readonly string[] }): R {
+    const { document, nullable } = opts;
+
+    if (nullable.length === 0 || document === null || typeof document !== 'object') {
+      return this.omitHiddenFields(document);
     }
 
-    return documents.map((document) => this.omitHiddenFields(document));
+    const present = new Map(Object.entries(document));
+    const missing = nullable.filter((name) => present.get(name) == null);
+
+    return this.omitHiddenFields({
+      ...document,
+      ...Object.fromEntries(missing.map((name) => [name, null])),
+    });
   }
 
   /** No search engine here has a transaction primitive (this tier is engine-neutral - Typesense and Meilisearch both inherit it) - a caller-supplied options.transaction is rejected loudly instead of silently running outside the transaction the caller expects. */

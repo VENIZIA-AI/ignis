@@ -3,7 +3,10 @@ import type { AnyType } from '@venizia/ignis-helpers/common';
 import { model } from '@venizia/ignis-kernel';
 import { BaseSearchEntity, field, SearchCollectionFactory } from '@/search/core/models';
 import { PersistableSearchRepository } from '@/search/typesense/repositories';
-import { FakeSearchDataSource } from './fake-search-connector';
+import { MeilisearchDataSource } from '@/search/meilisearch';
+import type { MeilisearchConnector } from '@/search/meilisearch/connector';
+import { ReadableSearchRepository } from '@/search/core/repositories';
+import { FakeSearchDataSource, FakeSearchEngineHelper } from './fake-search-connector';
 
 /**
  * Typesense keeps no null: a field written as null comes back without its key. A field declared
@@ -127,6 +130,87 @@ describe('a nullable field reads back as null when the engine dropped the key', 
     const result = await repository.search({ mode: 'raw', params: { q: '*' } });
 
     expect(result.hits[0].document).toEqual(STORED);
+  });
+});
+
+describe('a field selection limits the fill to the selected fields', () => {
+  test('find() with fields fills only the nullable fields in the selection', async () => {
+    const { repository } = build({ hits: [STORED] });
+
+    const [onlyTitle] = await repository.find({ filter: { fields: ['title'] } });
+    const [withNote] = await repository.find({ filter: { fields: ['title', 'note'] } });
+    const [objectForm] = await repository.find({
+      filter: { fields: { title: true, rating: true } },
+    });
+
+    expect(onlyTitle).toEqual({ id: '1', title: 'Lamp' });
+    expect(withNote).toEqual({ id: '1', title: 'Lamp', note: null });
+    expect(objectForm).toEqual({ id: '1', title: 'Lamp', rating: null });
+  });
+
+  test('search() with fields does the same for its hits', async () => {
+    const { repository } = build({ hits: [STORED] });
+
+    const result = await repository.search({
+      mode: 'keyword',
+      query: 'lamp',
+      filter: { fields: ['title', 'note'] },
+    });
+
+    expect(result.hits[0].document).toEqual({ id: '1', title: 'Lamp', note: null });
+  });
+
+  test('suggest() with includeFields does the same', async () => {
+    const { repository } = build({ hits: [STORED] });
+
+    const documents = await repository.suggest({
+      query: 'la',
+      queryBy: ['title'],
+      includeFields: ['title'],
+    });
+
+    expect(documents[0]).toEqual({ id: '1', title: 'Lamp' });
+  });
+
+  test('an empty selection is no selection, as the engine reads it', async () => {
+    const { repository } = build({ hits: [STORED] });
+
+    const [row] = await repository.find({ filter: { fields: [] } });
+
+    expect(row).toMatchObject({ note: null, rating: null });
+  });
+});
+
+/** Meilisearch keeps nulls, but the fill lives in the engine-neutral repository: one behaviour on both engines, a nullable field always reads as `T | null`. */
+describe('on Meilisearch a nullable field also reads as null when it was never set', () => {
+  class FakeMeilisearchDataSource extends MeilisearchDataSource {
+    readonly fakeConnector = new FakeSearchEngineHelper();
+
+    constructor() {
+      super({ name: 'nullable-meili-ds', config: { host: 'http://localhost:7700' } });
+    }
+
+    override getConnector(): MeilisearchConnector {
+      // MeilisearchConnector is a concrete class, so no ISearchConnector implementer is assignable to it - the same boundary cast the Typesense fake makes.
+      return this.fakeConnector as any;
+    }
+  }
+
+  test('find() fills note and rating, leaves the plain optional field absent', async () => {
+    const dataSource = new FakeMeilisearchDataSource();
+    dataSource.fakeConnector.searchResponse = {
+      found: 1,
+      isFoundExact: true,
+      hits: [{ document: { ...STORED } }],
+    };
+    const repository = new ReadableSearchRepository(dataSource, {
+      entityClass: NullableDocument,
+    });
+
+    const [row] = await repository.find({ filter: {} });
+
+    expect(row).toEqual({ id: '1', title: 'Lamp', note: null, rating: null });
+    expect(row).not.toHaveProperty('nickname');
   });
 });
 

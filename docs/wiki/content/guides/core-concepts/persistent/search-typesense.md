@@ -112,18 +112,18 @@ field.string('note', { optional: true, nullable: true }),
 field.string('nickname', { optional: true }),
 ```
 
-| Field | Document type | Read when Typesense dropped the key |
+| Field | Document type | Read when the key is absent |
 |---|---|---|
 | `{ optional: true, nullable: true }` | `note?: string \| null` | `null` |
 | `{ optional: true }` | `nickname?: string` | absent |
 
-A read returns `null` for a nullable field whose key is absent: `find`, `findOne`, `findById`, `search` (keyword, semantic and hybrid hits) and `suggest`. So do the documents that `create`, `createAll` and `updateById` return, so a created document and a found one have the same shape. `mode: 'raw'` is a passthrough and fills nothing. A hidden field stays hidden. Writes are unchanged: `nullable` is never sent to Typesense.
+A read returns `null` for a nullable field whose key is absent: `find`, `findOne`, `findById`, `search` (keyword, semantic and hybrid hits) and `suggest`. So do the documents that `create`, `createAll` and `updateById` return, so a created document and a found one have the same shape. `mode: 'raw'` and the cross-collection `multiSearch` are passthrough and fill nothing. A field selection (`filter.fields`, `includeFields`) limits the fill to the selected fields, so a field you did not select stays absent. A hidden field stays hidden. Writes are unchanged: `nullable` is never sent to Typesense.
 
 A stored `null` and a field that was never set look the same after a round trip: both come back `null`. If the two must differ, store a sentinel value instead.
 
 `SearchCollectionFactory.deriveDocumentSchema` follows the flag. The `select` schema accepts `null` or an absent key and gives `null` for an absent one. The `create` and `update` schemas accept `null`, a value or an absent key, and leave an absent key absent.
 
-On Meilisearch the flag is accepted and changes nothing: its dialect has real null predicates (`IS NULL`), and the compiled index is the same with or without it.
+The fill lives in the engine-neutral repository, so it applies on Meilisearch too: a nullable field always reads as `T | null`, never absent. Meilisearch keeps nulls, so a stored `null` stays `null`, and a field that was never set also becomes `null`. The compiled index is the same with or without the flag.
 
 ## Vector Fields for Semantic Search
 

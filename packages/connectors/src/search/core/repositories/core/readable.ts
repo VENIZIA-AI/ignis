@@ -124,7 +124,10 @@ export class ReadableSearchRepository<
     // The cast is the caller's own unchecked assertion when they pass an explicit `find<Other>()`.
     // Hidden fields are stripped in JS too, not only engine-side: Typesense honours
     // `exclude_fields`, Meilisearch has no per-query exclusion at all.
-    const data = this.shapeDocuments((hits ?? []).map((hit) => hit.document)) as any;
+    const data = this.shapeDocuments(
+      (hits ?? []).map((hit) => hit.document),
+      { fields: filter?.fields },
+    ) as any;
 
     if (!options?.shouldQueryRange) {
       return data;
@@ -221,7 +224,7 @@ export class ReadableSearchRepository<
       ...result,
       hits: (result.hits ?? []).map((hit) => ({
         ...hit,
-        document: this.shapeDocument(hit.document),
+        document: this.shapeDocument(hit.document, { fields: opts.filter?.fields }),
       })),
     };
   }
