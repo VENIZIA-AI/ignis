@@ -4,6 +4,7 @@ import type { Cluster, ClusterOptions } from 'ioredis';
 import { AbstractRedisHelper } from './../base';
 import { type IRedisClusterHelperOptions } from './../common';
 
+/** Redis helper over an ioredis `Cluster`. `autoConnect: false` creates the client with `lazyConnect`; `clusterOptions` is applied last and overrides the defaults. */
 export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
   private startupNodes: Array<{ host: string; port: number; password?: string }>;
   private clusterOpts: ClusterOptions;

@@ -10,11 +10,13 @@ import type {
 import { RedisSentinelHelper } from './sentinel';
 import { RedisSingleHelper } from './single';
 
+/** Options for `RedisHelperFactory.create`: the helper options of one mode, discriminated by `mode`. */
 export type TCreateRedisHelperOptions =
   | ({ mode: typeof RedisModes.SINGLE } & IRedisSingleHelperOptions)
   | ({ mode: typeof RedisModes.CLUSTER } & IRedisClusterHelperOptions)
   | ({ mode: typeof RedisModes.SENTINEL } & IRedisSentinelHelperOptions);
 
+/** Creates the Redis helper for a `mode`; the overloads return the concrete helper type. Throws on an unsupported mode. */
 export class RedisHelperFactory {
   static create(
     opts: { mode: typeof RedisModes.SINGLE } & IRedisSingleHelperOptions,

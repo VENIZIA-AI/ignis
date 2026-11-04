@@ -10,6 +10,7 @@ export const RequestBodyErrors = {
   },
 } as const satisfies Record<string, TErrorDefinition>;
 
+/** Reads request form bodies so that a malformed body is a 400. */
 export class FormBodyUtility {
   /**
    * Reads a form body through the request's own cache, so every later reader gets the same

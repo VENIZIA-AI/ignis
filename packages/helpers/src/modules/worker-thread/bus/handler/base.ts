@@ -1,6 +1,7 @@
 import { type ValueOrPromise } from '@/common/types';
 import { AbstractWorkerMessageBusHandlerHelper } from './abstract';
 
+/** Bus handler built from callbacks. Only `onMessage` is required; a missing `onClose` does nothing, a missing `onExit` or `onError` logs. */
 export class BaseWorkerMessageBusHandlerHelper<
   IConsumePayload,
 > extends AbstractWorkerMessageBusHandlerHelper<IConsumePayload> {

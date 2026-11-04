@@ -4,6 +4,7 @@ import { FormBodyUtility } from './form-body.utility';
 import fs from 'node:fs';
 import path from 'node:path';
 
+/** A request remark: `id`, `url` and `method`, plus any extra keys. */
 export interface IRequestedRemark {
   id: string;
   url: string;
@@ -68,6 +69,7 @@ export class ContentDispositionTypes {
 /** Valid Content-Disposition type values. */
 export type TContentDispositionType = TConstValue<typeof ContentDispositionTypes>;
 
+/** Multipart body parsing and `Content-Disposition` header building and parsing for requests and uploads. */
 export class RequestUtility {
   static async parseMultipartBody<C extends { req: any } = { req: any }>(
     opts: IParseMultipartOptions<C>,

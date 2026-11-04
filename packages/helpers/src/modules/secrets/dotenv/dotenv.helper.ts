@@ -4,6 +4,7 @@ import { ModuleUtility } from '@/utilities/module.utility';
 import { AbstractSecretsHelper } from '../base';
 import type { IClock, ISecretLease, ITimerAdapter } from '../common';
 
+/** Options for `DotenvVaultHelper`. `path` defaults to `.env.vault`; `dotenvKey` is the decryption key passed to dotenvx when set. */
 export interface IDotenvVaultHelperOptions {
   path?: string;
   dotenvKey?: string;
@@ -15,6 +16,7 @@ export interface IDotenvVaultHelperOptions {
   decode?: (opts: { path: string; dotenvKey?: string }) => Record<string, string>;
 }
 
+/** Secrets provider that decrypts a dotenv vault file with `@dotenvx/dotenvx` and serves its entries. Dynamic leases are not supported: `lease()` throws. */
 export class DotenvVaultHelper extends AbstractSecretsHelper {
   private readonly path: string;
   private readonly dotenvKey?: string;

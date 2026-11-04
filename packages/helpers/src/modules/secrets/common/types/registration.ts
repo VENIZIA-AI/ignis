@@ -1,6 +1,7 @@
 import type { AnyObject } from '@/common/types';
 import type { TSecretProvider } from '../constants';
 
+/** A bundle at `path` to copy into environment variables; keys map by `prefix` or by explicit `keys`. */
 export interface ISecretHydrateEntry {
   path: string;
   prefix?: string;
@@ -8,12 +9,14 @@ export interface ISecretHydrateEntry {
   keys?: Record<string, string>;
 }
 
+/** A leased secret at `path`, registered under the consumer binding `key`. */
 export interface ISecretLeaseEntry {
   /** Logical/binding key of the consuming datasource, e.g. 'datasources.postgres'. */
   key: string;
   path: string;
 }
 
+/** Declares a secrets provider with the bundles to hydrate and the secrets to lease. */
 export interface ISecretsRegistration {
   provider: TSecretProvider;
   config?: AnyObject;

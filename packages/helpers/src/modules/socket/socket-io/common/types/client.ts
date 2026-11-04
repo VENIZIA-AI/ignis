@@ -5,6 +5,7 @@ import type { Socket as IOSocket } from 'socket.io';
 import type { SocketOptions } from 'socket.io-client';
 import { type SocketIOClientStates } from '../constants';
 
+/** Handshake data of a connecting Socket.IO client; passed to the authenticate hook. */
 export interface IHandshake {
   headers: IncomingHttpHeaders;
   time: string;
@@ -19,8 +20,10 @@ export interface IHandshake {
   };
 }
 
+/** One of the `SocketIOClientStates` values. */
 export type TSocketIOClientState = TConstValue<typeof SocketIOClientStates>;
 
+/** A connected Socket.IO client as tracked by the server helper, with its authentication state and timers. */
 export interface ISocketIOClient {
   id: string;
   socket: IOSocket;
@@ -29,11 +32,13 @@ export interface ISocketIOClient {
   authenticateTimeout?: NodeJS.Timeout;
 }
 
+/** Connection options for the Socket.IO client helper: the `socket.io-client` options plus a required `path` and `extraHeaders`. */
 export interface IOptions extends SocketOptions {
   path: string;
   extraHeaders: Record<string | symbol | number, any>;
 }
 
+/** Options for the Socket.IO client helper. The `on*` callbacks fire on the matching connection or authentication event. */
 export interface ISocketIOClientOptions {
   identifier: string;
   host: string;

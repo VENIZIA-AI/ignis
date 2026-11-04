@@ -4,6 +4,7 @@ import { type MessagePort, type Transferable } from 'node:worker_threads';
 import { type IWorkerMessageBusHandler } from '../common';
 import { AbstractWorkerBusHelper } from './abstract';
 
+/** A `MessagePort` bus that forwards the port's message, error, exit and close events to a handler. A throwing hook is logged, not rethrown. */
 export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends AbstractWorkerBusHelper<
   IConsumePayload,
   IPublishPayload

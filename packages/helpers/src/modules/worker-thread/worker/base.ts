@@ -7,6 +7,7 @@ import { getError } from '@/modules/error';
 import { type IWorker } from '../common';
 import { AbstractWorkerHelper } from './abstract';
 
+/** Starts a `Worker` from `path` and routes its events to `eventHandlers`, or logs them when no handler is given. A throwing handler is logged, not rethrown. */
 export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageType> {
   protected eventHandlers?: Partial<
     Pick<IWorker<MessageType>, 'onOnline' | 'onExit' | 'onError' | 'onMessage' | 'onMessageError'>

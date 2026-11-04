@@ -1,5 +1,6 @@
 import type { TRetryBackoffStrategy, TRetryJitterMode } from './constants';
 
+/** Retry delay settings; every field is optional and the defaults are noted per field. */
 export interface IRetryBackoffOptions {
   /** Default EXPONENTIAL. */
   strategy?: TRetryBackoffStrategy;
@@ -20,6 +21,7 @@ export interface IRetryBackoffOptions {
   jitter?: TRetryJitterMode;
 }
 
+/** State passed to retry callbacks: the attempt number, the error that triggered the retry and the elapsed time in milliseconds. */
 export interface IRetryContext {
   attempt: number;
   error: unknown;

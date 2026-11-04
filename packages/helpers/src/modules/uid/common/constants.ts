@@ -39,6 +39,7 @@ export class UidCaseForms {
   }
 }
 
+/** A value of {@link UidCaseForms}. */
 export type TUidCaseForm = TConstValue<typeof UidCaseForms>;
 
 // -------------------------------------------------------------

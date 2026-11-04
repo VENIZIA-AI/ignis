@@ -7,6 +7,7 @@ import {
   type TSocketIOValidateRoomFn,
 } from './hooks';
 
+/** Options shared by every Socket.IO server runtime. `authenticateTimeout` and `pingInterval` are milliseconds, defaulting to 10_000 and 30_000. */
 export interface ISocketIOServerBaseOptions {
   identifier: string;
   serverOptions: Partial<ServerOptions>;
@@ -20,9 +21,11 @@ export interface ISocketIOServerBaseOptions {
   clientConnectedFn?: TSocketIOClientConnectedFn;
 }
 
+/** Socket.IO server options for the Bun runtime; `engine` is a `@socket.io/bun-engine` server instance. */
 export interface ISocketIOServerBunOptions extends ISocketIOServerBaseOptions {
   runtime: typeof RuntimeModules.BUN;
   engine: any; // @socket.io/bun-engine Server instance — typed as any since it's an optional peer dep
 }
 
+/** Options accepted by `SocketIOServerHelper`. */
 export type TSocketIOServerOptions = ISocketIOServerBunOptions;

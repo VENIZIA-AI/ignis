@@ -3,6 +3,7 @@ import { getError } from '@/modules/error';
 import os from 'node:os';
 import { type IWorker } from './common';
 
+/** Registry of workers by key. `register` refuses a worker once the pool holds one per CPU core, unless `ignoreMaxWarning` is set, and refuses a duplicate key; `getInstance()` returns the shared pool. */
 export class WorkerPoolHelper extends BaseHelper {
   private static instance: WorkerPoolHelper;
   protected registry: Map<string | symbol, IWorker<any>>;

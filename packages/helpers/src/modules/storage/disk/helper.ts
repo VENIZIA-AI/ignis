@@ -19,11 +19,13 @@ import {
   StorageErrors,
 } from '../common';
 
+/** Options for `DiskHelper`; `basePath` is created when missing. */
 export interface IDiskHelperOptions extends IStorageHelperOptions {
   /** Base directory every bucket lives under. */
   basePath: string;
 }
 
+/** Storage backed by the local filesystem: each bucket is a directory under `basePath`, each object a file whose key is its relative path. Names are validated and resolved paths must stay inside the bucket. */
 export class DiskHelper extends BaseStorageHelper {
   private basePath: string;
 

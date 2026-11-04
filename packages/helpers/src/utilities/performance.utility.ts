@@ -6,6 +6,7 @@ const DEFAULT_PERFORMANCE_DECIMAL = 6;
 
 type TLogMethod = (message: string, ...args: Array<AnyType>) => void;
 
+/** Timing helpers on `performance.now()`: checkpoints, elapsed milliseconds and a measured task runner. */
 export class PerformanceUtility {
   static getCheckpoint() {
     return performance.now();

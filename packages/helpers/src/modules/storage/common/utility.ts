@@ -3,6 +3,7 @@ import { HTTP } from '@/common/constants';
 import { getError } from '@/modules/error';
 import { StoragePresignLimits } from './constants';
 
+/** Backend-neutral checks shared by storage helpers: recognising a "not found" error and turning an `IDuration` into presign seconds. */
 export class StorageUtility {
   /** "Not there", across SDKs. Both minio and Bun report `S3Error` in `name`, so `code` and status decide. */
   static isNotFoundError(opts: { error: unknown }): boolean {

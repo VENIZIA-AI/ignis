@@ -7,6 +7,7 @@ import type { TRedisClient } from './common';
 
 const REDIS_READY_TIMEOUT = 30_000;
 
+/** Static helpers for working with ioredis clients. */
 export class RedisUtility {
   /** Resolves once the client reaches `ready`; rejects on the first client error or when `timeoutMs` elapses. */
   static waitForReady(opts: { client: TRedisClient; timeoutMs?: number }): Promise<void> {

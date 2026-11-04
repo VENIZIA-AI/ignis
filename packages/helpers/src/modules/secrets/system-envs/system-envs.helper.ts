@@ -2,6 +2,7 @@ import { getError } from '@/modules/error';
 import { AbstractSecretsHelper } from '../base';
 import type { IClock, ISecretLease, ITimerAdapter } from '../common';
 
+/** Secrets provider that serves the current `process.env` entries. Dynamic leases are not supported: `lease()` throws. */
 export class SystemEnvsHelper extends AbstractSecretsHelper {
   constructor(opts: { identifier?: string; clock?: IClock; timers?: ITimerAdapter }) {
     super({
