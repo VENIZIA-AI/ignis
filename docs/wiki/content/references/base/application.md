@@ -419,7 +419,7 @@ interface IServerApplicationConfigs extends IApplicationConfigs {
   host?: string;                          // Default: process.env.HOST, then APP_ENV_SERVER_HOST, then 'localhost'
   port?: number;                          // Default: process.env.PORT, then APP_ENV_SERVER_PORT, then 3000
   projectRoot?: string;                   // Bound as APPLICATION_PROJECT_ROOT (default: process.cwd())
-  server?: { idleTimeout?: number; maxRequestBodySize?: number }; // Bun.serve options, Bun runtime only
+  server?: { idleTimeout?: number; maxRequestBodySize?: number }; // Bun.serve options, Bun runtime only; idleTimeout in seconds (Bun caps it at 255), maxRequestBodySize in bytes
 }
 ```
 

@@ -157,7 +157,8 @@ Application configuration is passed to the `BaseApplication` constructor via an 
 | `error.environment` | `string` | `process.env.NODE_ENV` | The ambient environment name. Set it where there is no `process.env`, such as a browser Worker. `BaseApplication` ignores it and reads `process.env.NODE_ENV`. |
 | `middlewares.cors` | `object` | `undefined` | CORS options. Installed first, so early framework responses such as the body-limit 413 carry the headers. |
 | `middlewares.bodyLimit` | `object` | `undefined` | Request body limit. Installed right after the request id, ahead of every other middleware. |
-| `server.idleTimeout`, `server.maxRequestBodySize` | `number` | Bun's defaults | Socket options passed to `Bun.serve`. |
+| `server.idleTimeout` | `number` | Bun's default | Seconds a connection may sit idle before Bun closes it. Bun caps it at 255. Passed to `Bun.serve`. |
+| `server.maxRequestBodySize` | `number` | Bun's default | Largest request body, in bytes. Passed to `Bun.serve`. |
 | `discoverArtifacts` | `boolean` | `false` | Registers every decorated class the application imports, with no index. With `artifacts` too, the union registers. |
 | `bootChecks` | `object` | `undefined` | Boot-time checks: `binding.{ doVerify, allowManual, allowOverride }` and `allowDerivedKeyCollision`. Without `binding`, nothing is verified. See [Registering artifacts](./bootstrapping). |
 | `dataSourceCloseTimeoutMs` | `number` | `10_000` | How long `stop()` waits for one datasource to close. `0` waits without limit. |

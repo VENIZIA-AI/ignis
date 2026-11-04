@@ -82,6 +82,19 @@ Run `vite build`. Point `lib.entry` at `src/main.ts` for the main-thread entry. 
 > [!NOTE] Install `BffFetchBridge` before the application boots
 > `BffFetchBridge.install({ transport, basePath })` answers the page's global `fetch` for requests under its `basePath` and returns the uninstall function. A request sent before it is installed leaves the page and 404s against whatever serves it. The old function `installBffFetch` is gone; `devz codemod namespace-functions` moves its callers.
 
+## Configuration
+
+`WorkerApplication` reads `IWorkerApplicationConfigs`, the kernel's `IApplicationConfigs` plus one key:
+
+| Option | Default | Meaning |
+| :--- | :--- | :--- |
+| `path.base` | required | The base path the controllers mount under. An empty string mounts at the root. |
+| `path.isStrict` | `true` | When `true`, `/users` and `/users/` are different routes. |
+| `error.environment` | none | The ambient environment name. A Worker has no `process.env`, so set it yourself. |
+| `projectRoot` | `globalThis.process?.cwd?.() ?? ''` | Bound as `CoreBindings.APPLICATION_PROJECT_ROOT`. A Worker has no filesystem, so the default is usually `''`. |
+
+A Worker has no host and no port, so `host` and `port` mean nothing here. `asyncContext.enable` defaults to `false` and nothing in a Worker reads it.
+
 ## When `define: { global: 'globalThis' }` helps
 
 `reflect-metadata` is a dependency of the inversion, helpers, kernel and worker packages. It picks its root object with `typeof globalThis === "object" ? globalThis : typeof global === "object" ? global : ...`. It tests `globalThis` first, so a browser never reaches `global`, and it needs no `define`.
