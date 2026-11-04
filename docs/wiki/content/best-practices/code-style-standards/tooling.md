@@ -140,6 +140,8 @@ import { houseConfigs } from '@venizia/dev-configs/linters';
 export default houseConfigs;
 ```
 
+`houseConfigs` also carries the four [async style rules](./async-style.md) (`reactHouseConfigs`: those and the two hook rules). A project that adds its own entries spreads it: `export default [...houseConfigs, { ... }];`.
+
 The two warnings never fail `make lint`: oxlint is the one that runs with `--deny-warnings`, and these two rules run in ESLint. `const-class-values` skips key sets (`Pick`, `Omit`, `Extract`, `Exclude`, `Record` arguments and mapped-type keys). Both are off in tests.
 
 `max-params-own` does not count a signature that belongs to someone else: a callback passed inline to a call (`map`, `sort`, a library handler) or to a JSX prop, a function a declared type fixes, or a constructor whose parameters are all `@inject`. A hook callback (`useCallback(...)`) is yours, so it counts. Tests are exempt from `no-new-error`, because a test throws a plain `Error` to stand in for a driver. For a bootstrap that cannot import `getError`, disable the rule on that line and give the reason.

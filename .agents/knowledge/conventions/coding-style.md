@@ -41,7 +41,7 @@ downstream repository, where `assert` alone appears 141 times. Do not force thos
 
 ## No silent catch
 
-Every `catch` block logs. `venizia/no-silent-catch` (opt-in, in `asyncStyleConfigs`; see
+Every `catch` block logs. `venizia/no-silent-catch` (in `houseConfigs`; see
 [async style](/conventions/async-style.md#no-silent-catch)) reports a `catch` or `.catch` handler that leaves no
 trace. `BullMQHelper.close`
 (`packages/helpers/src/modules/queue/bullmq/helper.ts`) shows the pattern: close both connections

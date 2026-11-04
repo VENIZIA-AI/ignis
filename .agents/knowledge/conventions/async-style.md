@@ -18,7 +18,7 @@ tags: [conventions, async, lint]
 <!-- okf:generated:contents end -->
 
 How IGNIS, ARDOR and VULCAN write asynchronous code. The lint rules that enforce it are in
-[dev-configs](/packages/dev-configs.md#the-async-style-rules-opt-in).
+[dev-configs](/packages/dev-configs.md#the-async-style-rules).
 
 ## Await stands alone
 

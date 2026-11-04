@@ -12,11 +12,10 @@ generated:
 
 ## dev-configs
 
-### `@venizia/dev-configs` (56)
+### `@venizia/dev-configs` (54)
 
 - `AstNode` class
 - `AstNodeTypes` class
-- `asyncStyleConfigs` const
 - `AwaitSupport` class
 - `BrowserOxlintConfigs` class
 - `BunCompiler` class
@@ -53,7 +52,6 @@ generated:
 - `PaddingLineBetweenStatementsRule` class
 - `PreferNullishCoalescingRule` class
 - `PromiseChainSupport` class
-- `reactAsyncStyleConfigs` const
 - `reactHouseConfigs` const
 - `reactNamingConventionConfigs` const
 - `ReactOxlintConfigs` class
@@ -75,11 +73,10 @@ generated:
 
 - `BunCompiler` class
 
-### `@venizia/dev-configs/linters` (55)
+### `@venizia/dev-configs/linters` (53)
 
 - `AstNode` class
 - `AstNodeTypes` class
-- `asyncStyleConfigs` const
 - `AwaitSupport` class
 - `BrowserOxlintConfigs` class
 - `ConstClassValuesRule` class
@@ -115,7 +112,6 @@ generated:
 - `PaddingLineBetweenStatementsRule` class
 - `PreferNullishCoalescingRule` class
 - `PromiseChainSupport` class
-- `reactAsyncStyleConfigs` const
 - `reactHouseConfigs` const
 - `reactNamingConventionConfigs` const
 - `ReactOxlintConfigs` class
@@ -2326,15 +2322,17 @@ generated:
 - `MeilisearchTaskStatuses` class
 - `TMeilisearchTaskStatus` type
 
-### `@venizia/ignis-connectors/testing` (9)
+### `@venizia/ignis-connectors/testing` (11)
 
 - `IPostgresTransactionDoubleOptions` interface
 - `ISqliteTransactionDoubleOptions` interface
 - `ITransactionDoubleOptions` interface
 - `PostgresTransactionDouble` class
+- `RepositoryDoubles` class
 - `SqliteTransactionDouble` class
 - `TransactionDouble` class
 - `TransactionStates` class
+- `TRepositoryWithTransactions` type
 - `TTransactionDoubleHook` type
 - `TTransactionState` type
 
@@ -3499,7 +3497,7 @@ generated:
 - `WebSocketBindingKeys` class
 - `WebSocketComponent` class
 
-### `@venizia/ignis/testing` (12)
+### `@venizia/ignis/testing` (14)
 
 - `ApplicationBootAssertion` class
 - `IAssertApplicationBootsOptions` interface
@@ -3507,10 +3505,12 @@ generated:
 - `ISqliteTransactionDoubleOptions` interface
 - `ITransactionDoubleOptions` interface
 - `PostgresTransactionDouble` class
+- `RepositoryDoubles` class
 - `SqliteTransactionDouble` class
 - `TBootProbeTarget` type
 - `TransactionDouble` class
 - `TransactionStates` class
+- `TRepositoryWithTransactions` type
 - `TTransactionDoubleHook` type
 - `TTransactionState` type
 

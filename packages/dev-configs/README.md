@@ -160,7 +160,7 @@ booleans. `BrowserOxlintConfigs.create()` and `ReactOxlintConfigs.create()` take
 
 ### houseConfigs and the house rules
 
-`houseConfigs` is `namingConventionConfigs` plus the house rules oxlint cannot express;
+`houseConfigs` is `namingConventionConfigs` plus the house rules oxlint cannot express and the four async style rules;
 `reactHouseConfigs` is the same over `reactNamingConventionConfigs`. The rules ship as the ESLint plugin
 `houseEslintPlugin`, registered as `venizia`:
 
