@@ -336,7 +336,7 @@ await repository.search({
 
 All non-`raw` modes accept the same optional camelCase tuning fields, mapped to Typesense's snake_case at the dialect boundary. That covers faceting (`facetBy`, `facetQuery`, `maxFacetValues`), highlighting (`highlightFields`, `highlightFullFields`, `highlightStartTag`/`highlightEndTag`, `snippetThreshold`), grouping (`groupBy`, `groupLimit`, `groupMissingValues`), and `queryByWeights`. These are the ENGINE-NEUTRAL fields - every search engine supports them.
 
-Typesense-specific tuning goes through `engineParams`, because the neutral input schema carries no knob that only one engine understands. Twelve of those knobs have a camelCase name, typed by `ITypesenseTuning`: `numTypos`, `dropTokensThreshold`, `typoTokensThreshold`, `infix`, `prioritizeExactMatch`, `prioritizeTokenPosition`, `prioritizeNumMatchingFields`, `textMatchType`, `rerankHybridMatches`, `useCache`, `cacheTtl` and `maxCandidates`. A list sets `numTypos` or `infix` per `queryBy` field. The numeric ones must be non-negative integers (`maxCandidates` a positive one), under either spelling; anything else throws before a request, and so does giving one param twice (`numTypos` and `num_typos`). `useCache` and `cacheTtl` are sent as multi-search query parameters, where Typesense reads them. Every other knob (`prefix`, `exhaustive_search`, `pinned_hits`, `hidden_hits`, `preset`, ...) keeps its wire name, and wire names are passed verbatim:
+Typesense-specific tuning goes through `engineParams`, because the neutral input schema carries no knob that only one engine understands. Thirteen of those knobs have a camelCase name, typed by `ITypesenseTuning`: `numTypos`, `dropTokensThreshold`, `typoTokensThreshold`, `infix`, `prioritizeExactMatch`, `prioritizeTokenPosition`, `prioritizeNumMatchingFields`, `textMatchType`, `rerankHybridMatches`, `useCache`, `cacheTtl`, `maxCandidates` and `sortBy` (see [Sorts `filter.order` cannot name](#sorts-filter-order-cannot-name)). A list sets `numTypos` or `infix` per `queryBy` field. The numeric ones must be non-negative integers (`maxCandidates` a positive one), under either spelling; anything else throws before a request, and so does giving one param twice (`numTypos` and `num_typos`). `useCache` and `cacheTtl` are sent as multi-search query parameters, where Typesense reads them. Every other knob (`prefix`, `exhaustive_search`, `pinned_hits`, `hidden_hits`, `preset`, ...) keeps its wire name, and wire names are passed verbatim:
 
 ```typescript
 import type { ITypesenseTuning } from '@venizia/ignis-connectors/typesense';
@@ -353,7 +353,32 @@ await repository.search({
 
 `engineParams` is still the one door to the engine's own parameters, so a scoped search controller refuses it, the camelCase names included.
 
-Sorting is not a tuning knob: it is `filter.order` in the neutral input, and the dialect sends it as `sort_by` (at most three fields, each one the collection declares; a string field also needs `sortable: true`, which Typesense checks). `suggest()` takes no `order`, so its documents come back in relevance order.
+Sorting by a declared field is `filter.order` in the neutral input, and the dialect sends it as `sort_by` (at most three fields, each one the collection declares; a string field also needs `sortable: true`, which Typesense checks). `suggest()` takes no `order`, so its documents come back in relevance order unless you pass `sortBy`.
+
+### Sorts `filter.order` cannot name
+
+`filter.order` accepts declared fields only, so `_text_match` and `_eval(...)` get a `400`. Give Typesense's own `sort_by` string as `sortBy` in `engineParams`:
+
+```typescript
+await repository.search({
+  mode: 'keyword',
+  query: 'shoes',
+  queryBy: ['name'],
+  engineParams: {
+    sortBy: '_text_match:desc,_eval([(status:=ACTIVATED):1]):desc,createdAt:desc',
+  },
+});
+```
+
+`search()`, `searchCount()`, `facets()` and `suggest()` take it. The dialect checks three things before a request, and nothing else:
+
+| Rule | Why |
+|---|---|
+| A non-empty, balanced string | An empty `sort_by` is a mistake, not "no sort"; a stray bracket or backtick would hide the entry count |
+| At most three top-level entries | Typesense's limit; `_eval(...)` counts as one, however many commas it holds |
+| Given once | `sortBy` with `filter.order`, or with `sort_by`, throws instead of letting one win |
+
+Field names and the inside of an `_eval` expression are Typesense's to check. A scoped search controller refuses `engineParams`, `sortBy` included. Meilisearch has no equivalent, so its neutral `order` is unchanged.
 
 `searchCount()`, `facets()` and `suggest()` take the same `engineParams`, checked and sent the same way, so they match what a `search()` with that tuning matches. Without it, a count, a facet or a suggestion can differ from the search beside it (an accented query that finds unaccented names in `search()` finds none in `suggest()`). Repository methods are not routes, so the scoped-controller refusal is unchanged: a search controller's routes call `search()` and `multiSearch()` only, and a scoped one still answers `400` to `engineParams` on `/search`.
 
