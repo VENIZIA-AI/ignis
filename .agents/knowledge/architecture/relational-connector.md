@@ -267,6 +267,7 @@ A consumer's `ReportDataSource` shape. Falsified by `__tests__/relational/dataso
 | `isoTimestamp`, `PgSequenceOptions` | pg-core column/sequence concepts with no SQLite equivalent |
 | `IsolationLevels` (`READ COMMITTED`/`REPEATABLE READ`/`SERIALIZABLE`) | SQLite has no isolation levels - its BEGIN axis is a locking mode, not a level |
 | `PostgresQueryOperators` (`repositories/dialect/query.ts`) | Drizzle root exports (`ilike`, `arrayContains`, `arrayContained`, `arrayOverlaps`) that compile to literal Postgres SQL and fail on SQLite at the database |
+| `SqlQueryOperators.common` (`core/repositories/dialect/query-operators.ts`) | The handlers both SQL engines share (comparisons, null and presence, `in`/`nin`, `between`, `like`, subqueries): `PostgresQueryOperators` and `SqliteQueryOperators` spread it into their `FNS` with their own class name as `scope` (it prefixes the `between` error) and add or replace only what they differ on. Not exported from a barrel |
 | `UpdateBuilder.composeJsonSet()` (`repositories/dialect/update.ts`) | Chained `jsonb_set(...)` and `::jsonb` casts. Only that one method: the split, the validation and `toUpdateData` sit in the neutral `RelationalUpdateBuilder` |
 | `PostgresFilterBuilder` (`repositories/dialect/filter.ts`) | Binds the neutral `FilterBuilder`'s abstract `operators` to `PostgresQueryOperators.FNS`, and owns the `#>>`/`#>` JSON extractions and the `::numeric` guard cast |
 

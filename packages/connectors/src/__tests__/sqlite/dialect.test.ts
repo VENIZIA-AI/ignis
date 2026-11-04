@@ -242,3 +242,14 @@ describe('SqliteFilterBuilder - the neutral walk is inherited, not reimplemented
     expect(compile(built.orderBy?.[0]).sql).toContain('json_extract');
   });
 });
+
+describe('SqliteQueryOperators - the between message', () => {
+  test('names the SQLite operator class and the operator, with the value', () => {
+    expect(() => toWhere({ score: { between: [1] } })).toThrow(
+      '[SqliteQueryOperators][BETWEEN] Invalid value: expected array of 2 elements, got [1]',
+    );
+    expect(() => toWhere({ score: { notBetween: 5 } })).toThrow(
+      '[SqliteQueryOperators][NOT_BETWEEN] Invalid value: expected array of 2 elements, got 5',
+    );
+  });
+});
