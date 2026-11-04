@@ -10,7 +10,12 @@ import type { IService } from '../../services';
 /** Options of the registration itself, never of the artifact - what the artifact needs goes on its class. */
 export type TMixinOpts<Options extends object = {}> = {
   binding?: { namespace: string; key: string };
-  /** Default true, matching `bind()`'s overwrite behavior; false makes a same-key re-registration throw. */
+  /**
+   * Matches `bind()`'s overwrite behavior; false makes a same-key re-registration throw. Unset, it
+   * follows `bootChecks.binding.allowOverride`.
+   *
+   * @default true
+   */
   allowOverride?: boolean;
   /** Options passed directly to `instance.configure(options)` during initialization. */
   options?: Options;

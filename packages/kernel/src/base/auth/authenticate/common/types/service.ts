@@ -57,11 +57,16 @@ export interface IServiceAuthOptions<E extends Env = Env> {
    */
   callers?: Record<string, TServiceCallerEntry>;
 
-  /** Where the certs route is mounted. Defaults to `ServiceAssertion.DEFAULT_REST_PATH`. */
-  rest?: { path: string };
+  /** Where the certs route is mounted. */
+  rest?: {
+    /** @default '/svc-certs' */
+    path: string;
+  };
 
   /**
    * How long the assertions this service MINTS stay valid. Only meaningful where `keys` is set.
+   *
+   * @default 60
    */
   signLifetimeSeconds?: number;
 
@@ -74,6 +79,8 @@ export interface IServiceAuthOptions<E extends Env = Env> {
    * assertion.
    *
    * Composes with `clockToleranceSeconds`: the real acceptance window is the sum of the two.
+   *
+   * @default 60
    */
   acceptMaxAgeSeconds?: number;
 
@@ -85,10 +92,18 @@ export interface IServiceAuthOptions<E extends Env = Env> {
    * callee accepting an `iat` 5s in its own future keeps accepting that token for the rest of the
    * window too. Measured at the defaults: 65s accepted on our clock, 70s of wall-clock life for a
    * capture minted by a caller running the full tolerance fast.
+   *
+   * @default 5
    */
   clockToleranceSeconds?: number;
 
-  jwks?: { cacheMaxAgeMs?: number; cooldownMs?: number };
+  jwks?: {
+    /** @default 600_000 */
+    cacheMaxAgeMs?: number;
+
+    /** @default 30_000 */
+    cooldownMs?: number;
+  };
 
   /**
    * WHO a verified assertion acts as. The framework has already proven the caller; this only maps a

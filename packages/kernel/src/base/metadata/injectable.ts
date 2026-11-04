@@ -48,21 +48,64 @@ export const injectable = <ApplicationType = unknown>(
   };
 };
 
-/** Class decorator that registers the class as a service artifact; accepts the same registration options as `injectable`. */
+/**
+ * Class decorator that registers the class as a service artifact; accepts the same registration options as `injectable`.
+ *
+ * @example
+ * ```typescript
+ * import { BaseService, service } from '@venizia/ignis';
+ *
+ * export @service()
+ * class MailService extends BaseService {
+ *   constructor() {
+ *     super({ scope: MailService.name });
+ *   }
+ * }
+ * ```
+ */
 export const service = <ApplicationType = unknown>(
   opts?: IArtifactRegistrationOptions<ApplicationType>,
 ): ClassDecorator => {
   return injectable<ApplicationType>({ type: ArtifactTypes.SERVICE, ...opts });
 };
 
-/** Class decorator that registers the class as a component artifact; accepts the same registration options as `injectable`. */
+/**
+ * Class decorator that registers the class as a component artifact; accepts the same registration options as `injectable`.
+ *
+ * @example
+ * ```typescript
+ * import { BaseComponent, component } from '@venizia/ignis';
+ *
+ * export @component()
+ * class AuditComponent extends BaseComponent {
+ *   constructor() {
+ *     super({ scope: AuditComponent.name });
+ *   }
+ *
+ *   override binding(): void {}
+ * }
+ * ```
+ */
 export const component = <ApplicationType = unknown>(
   opts?: IArtifactRegistrationOptions<ApplicationType>,
 ): ClassDecorator => {
   return injectable<ApplicationType>({ type: ArtifactTypes.COMPONENT, ...opts });
 };
 
-/** Class decorator that registers the class as a configuration artifact; `after` orders it behind other configuration classes. */
+/**
+ * Class decorator that registers the class as a configuration artifact; `after` orders it behind other configuration classes.
+ *
+ * @example
+ * ```typescript
+ * import { BaseConfiguration, configuration } from '@venizia/ignis';
+ *
+ * export @configuration()
+ * class SeedConfiguration extends BaseConfiguration {}
+ *
+ * export @configuration({ after: [SeedConfiguration] })
+ * class IndexConfiguration extends BaseConfiguration {}
+ * ```
+ */
 export const configuration = <ApplicationType = unknown>(
   opts?: IArtifactRegistrationOptions<ApplicationType>,
 ): ClassDecorator => {

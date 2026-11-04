@@ -23,7 +23,7 @@ export interface IModelAuthorizeSettings {
 export interface IModelAccessWriteSettings {
   /**
    * What a create, createAll or an update payload that names a scope column does when its value
-   * disagrees with the resolved scope. `reject` (default) refuses the write and writes nothing - for
+   * disagrees with the resolved scope. `reject` refuses the write and writes nothing - for
    * `createAll` not even the valid rows. `assign` also fills a scope column that is ABSENT from a
    * created row, when the scope is a single equality; a value that is present and disagrees is
    * still refused.
@@ -35,14 +35,18 @@ export interface IModelAccessWriteSettings {
    *
    * Not checked: an update that does not name the scope column (the row was already selected through
    * the scoped `where`), and raw statements that bypass the repository.
+   *
+   * @default 'reject'
    */
   mode?: TScopeWriteGuard;
 
   /**
    * `true` lets a restricted caller write `null` to a scope column, or leave it out on create: the
-   * row has no owner and is shared. Default `false`, so `null` is refused like any other value
+   * row has no owner and is shared. Without it, `null` is refused like any other value
    * outside the scope, even when the resolved scope has a `null` branch (that branch lets the caller
    * READ shared rows, a separate permission). Reads are scoped as before.
+   *
+   * @default false
    */
   sharedRows?: boolean;
 }
@@ -51,6 +55,21 @@ export interface IModelAccessWriteSettings {
  * Row access for `@model` settings.access - resolved per query, so it can depend on the current
  * request (tenant, org, membership). Framework-internal escape hatches aside, nothing short of
  * removing this setting from the model turns scoping off.
+ *
+ * @example
+ * ```typescript
+ * import { model, ScopeWriteGuards } from '@venizia/ignis';
+ * import { ModelFactory } from '@venizia/ignis-connectors/postgres';
+ * import { pgTable, serial, text } from 'drizzle-orm/pg-core';
+ *
+ * const productTable = pgTable('Product', { id: serial('id').primaryKey(), merchantId: text('merchant_id') });
+ *
+ * export @model({ settings: { access: {
+ *   resolve: () => ({ merchantId: 'm-1' }),
+ *   write: { mode: ScopeWriteGuards.ASSIGN },
+ * } } })
+ * class Product extends ModelFactory.defineEntity({ table: productTable }) {}
+ * ```
  */
 export interface IModelAccessSettings {
   /** A model declares a resolver or a `through`, never both. */
@@ -75,9 +94,11 @@ export interface IModelAccessSettings {
 
   /**
    * What `applyScopeFilter` does when `resolve()` returns null/undefined - no request context, no
-   * tenant, a background job. Defaults to `deny`: an unresolved scope matches zero rows, never
+   * tenant, a background job. With `deny`, an unresolved scope matches zero rows, never
    * every row. `allow` is an explicit, reviewed opt-out for migrations and background jobs, declared
    * per MODEL - it cannot express a per-USER bypass; use `ScopeFilters.UNRESTRICTED` for that.
+   *
+   * @default 'deny'
    */
   onMissing?: TScopeFilterMissingBehavior;
 
@@ -96,6 +117,38 @@ export interface IModelAccessSettings {
  * Row access for a child model that has no scope columns of its own: it inherits the scope of the parent a `one`
  * relation points at. A parent that resolves no scope always denies the child: `onMissing` is not offered here, because
  * `'allow'` would show the child's rows of every tenant while the parent shows none.
+ *
+ * @example
+ * ```typescript
+ * import { model, ScopeThrough } from '@venizia/ignis';
+ * import { ModelFactory, one } from '@venizia/ignis-connectors/postgres';
+ * import { integer, pgTable, serial } from 'drizzle-orm/pg-core';
+ * const productTable = pgTable('Product', { id: serial('id').primaryKey() });
+ * const variantTable = pgTable('Variant', {
+ *   id: serial('id').primaryKey(),
+ *   productId: integer('product_id').references(() => productTable.id),
+ * });
+ * const VariantBase = ModelFactory.defineEntity({ table: variantTable, relations: () => ({ product: one(productTable) }) });
+ * export @model({ settings: { access: { through: ScopeThrough.of({ entity: VariantBase, relation: 'product' }) } } })
+ * class Variant extends VariantBase {}
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // A hand-written entity declares the same relation by hand.
+ * import { ScopeThrough } from '@venizia/ignis';
+ * import { BaseEntity, one, RelationDeclarations } from '@venizia/ignis-connectors/postgres';
+ * import { integer, pgTable, serial } from 'drizzle-orm/pg-core';
+ * const productTable = pgTable('Product', { id: serial('id').primaryKey() });
+ * const variantTable = pgTable('Variant', { id: serial('id').primaryKey(), productId: integer('product_id').references(() => productTable.id) });
+ * const relations = { product: one(productTable) };
+ * class VariantBase extends BaseEntity<typeof variantTable> {
+ *   static override schema = variantTable;
+ *   static readonly relationDefinitions = relations;
+ *   static override relations = () => RelationDeclarations.toRelationConfigs({ relations });
+ * }
+ * const through = ScopeThrough.of({ entity: VariantBase, relation: 'product' });
+ * ```
  */
 export interface IModelAccessThroughSettings {
   through: ScopeThrough;
@@ -114,16 +167,21 @@ export interface IModelQuerySettings {
   filter?: TFilter;
 
   limit?: {
-    /** Default row limit when a query omits `limit`. Must be a positive integer. Falls back to DEFAULT_LIMIT (10). */
+    /**
+     * Row limit when a query omits `limit`. Must be a positive integer.
+     *
+     * @default DEFAULT_LIMIT
+     */
     default?: number;
 
     /**
-     * Largest `limit` a CALLER may ask for. Must be a positive integer. Falls back to
-     * DEFAULT_MAX_LIMIT (1000).
+     * Largest `limit` a CALLER may ask for. Must be a positive integer.
      *
      * Policy, not capacity - the engine's own ceiling sits far above it. The number is chosen so
      * that reaching it means the caller is doing something unusual, and raising it is how a model
      * says so deliberately.
+     *
+     * @default DEFAULT_MAX_LIMIT
      */
     max?: number;
   };
@@ -154,13 +212,21 @@ export interface IModelSettings {
 
 /** Whether tooling that reads the model registry should migrate this model (`@model({ migration })`). */
 export interface IModelMigrationSettings {
-  /** Default `true`. `false` marks the model as one a migration tool leaves alone. IGNIS generates no migrations itself. */
+  /**
+   * `false` marks the model as one a migration tool leaves alone. IGNIS generates no migrations itself.
+   *
+   * @default true
+   */
   use?: boolean;
 }
 
 /** Metadata accepted by `@model`. */
 export interface IModelMetadata extends IArtifactRegistrationOptions {
-  /** Optional: `ModelTypes.ENTITY` is the only value and the default. */
+  /**
+   * `ModelTypes.ENTITY` is the only value.
+   *
+   * @default ModelTypes.ENTITY
+   */
   type?: TModelType;
   tableName?: string;
 

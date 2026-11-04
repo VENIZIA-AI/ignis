@@ -1,9 +1,15 @@
 import type { IAuthorizationRole } from '../common';
 
-/** Role with a numeric priority. `identifier` is the zero-padded (3 digits) priority joined to the name by `delimiter` (default `_`), e.g. `010_user`. */
+/** Role with a numeric priority. `identifier` is the zero-padded (3 digits) priority joined to the name by `delimiter`, e.g. `010_user`. */
 export class AuthorizationRole implements IAuthorizationRole {
   readonly name: string;
   readonly priority: number;
+
+  /**
+   * Joins the padded priority to the name in `identifier`.
+   *
+   * @default '_'
+   */
   readonly delimiter: string;
 
   static build(opts: { name: string; priority: number; delimiter?: string }): AuthorizationRole {

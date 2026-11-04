@@ -15,10 +15,18 @@ export interface IDomainEvent<TPayload = unknown> {
  * outside either throws at `register()`, never clamps.
  */
 export interface IEventHandlerRetryOptions {
-  /** Default `EventDispatchRetry.MAX_ATTEMPTS`. */
+  /**
+   * Attempts per dispatch.
+   *
+   * @default 3
+   */
   maxAttempts?: number;
 
-  /** First backoff delay in ms; exponential growth is computed from it. Default `EventDispatchRetry.BASE_DELAY_MS`. */
+  /**
+   * First backoff delay in ms; exponential growth is computed from it.
+   *
+   * @default 100
+   */
   baseDelayMs?: number;
 }
 

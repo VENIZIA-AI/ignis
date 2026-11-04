@@ -124,13 +124,25 @@ export interface ICasbinEnforcerOptions<
     domain?: string;
   };
 
-  /** Domain-scoped RBAC model: requests become 4-token `(subject, domain, object, action)` and the enforcer registers the domain matcher (`keyMatch` on `g`) + resource matcher (`objectMatch`). A role assignment or grant declared at a parent domain (via a `g3` policy line, e.g. `Merchant_7 -> Organizer_3`) applies to every child domain - the adapter is what decides whether those edges exist. */
+  /**
+   * Domain-scoped RBAC model: requests become 4-token `(subject, domain, object, action)` and the enforcer registers the domain matcher (`keyMatch` on `g`) + resource matcher (`objectMatch`). A role assignment or grant declared at a parent domain (via a `g3` policy line, e.g. `Merchant_7 -> Organizer_3`) applies to every child domain - the adapter is what decides whether those edges exist.
+   *
+   * @default false
+   */
   isScoped?: boolean;
 
-  /** Number of pooled enforcers (each request enforces on its own). Default 16. */
+  /**
+   * Number of pooled enforcers (each request enforces on its own).
+   *
+   * @default 16
+   */
   poolSize?: number;
 
-  /** Max ms to wait for a free pooled enforcer before failing closed. Default 5000. */
+  /**
+   * Max ms to wait for a free pooled enforcer before failing closed.
+   *
+   * @default 5000
+   */
   poolAcquireTimeoutMs?: number;
 }
 
