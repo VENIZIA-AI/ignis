@@ -68,6 +68,11 @@ export interface IJWTIssueClaims {
   jwtId?: string;
 }
 
+/**
+ * Options of the JWS token service, which signs with the shared `jwtSecret`.
+ *
+ * `getTokenExpiresFn` is required. `headerAlgorithm` is the JWS `alg` header and falls back to `HS256`. AES payload encryption is active only when `applicationSecret` is set.
+ */
 export interface IJWSTokenServiceOptions {
   headerAlgorithm?: string;
   jwtSecret: string;
@@ -83,6 +88,7 @@ export interface IJWSTokenServiceOptions {
   sign?: IJWTSignOptions;
 }
 
+/** Options of a JWKS issuer, which signs tokens with its own key pair. `keys.private` and `keys.public` hold content or a file path according to `keys.driver`. `rest.path` sets where the public key set is served. */
 export interface IJWKSIssuerOptions {
   mode: typeof JWKSModes.ISSUER;
   algorithm: TJWKSAlgorithm;
@@ -106,6 +112,7 @@ export interface IJWKSIssuerOptions {
   sign?: IJWTSignOptions;
 }
 
+/** Options of a JWKS verifier, which checks tokens against the key set served at `jwksUrl`. */
 export interface IJWKSVerifierOptions {
   mode: typeof JWKSModes.VERIFIER;
   jwksUrl: string;
@@ -119,8 +126,10 @@ export interface IJWKSVerifierOptions {
   verify?: IJWTVerifyOptions;
 }
 
+/** Options of the JWKS token service, selected by `mode`. */
 export type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions;
 
+/** Options of the JWT token service, selected by `standard` (`JWS` or `JWKS`). */
 export type TJWTTokenServiceOptions =
   | { standard: typeof JOSEStandards.JWS; options: IJWSTokenServiceOptions }
   | { standard: typeof JOSEStandards.JWKS; options: TJWKSTokenServiceOptions };
@@ -144,10 +153,12 @@ export interface IJWTTokenPayload extends JWTPayload, IAuthUser {
   [extra: string | symbol]: any;
 }
 
+/** Converts one payload field, found under `key`, to a string and back around the AES envelope. */
 export interface IPayloadFieldCodec<T = unknown> {
   key: string;
   serialize(opts: { value: T }): string;
   deserialize(opts: { raw: string }): T;
 }
 
+/** Returns the lifetime of a token to issue, in seconds from now. */
 export type TGetTokenExpiresFn = () => ValueOrPromise<number>;

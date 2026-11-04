@@ -8,16 +8,31 @@ const openApiDecorator: TSchemaDecorator = (schema, metadata) => {
   return (schema as any).openapi(metadata);
 };
 
-export const {
-  FieldsSchema,
-  FilterSchema,
-  InclusionSchema,
-  LimitSchema,
-  OffsetSchema,
-  OrderBySchema,
-  SkipSchema,
-  WhereSchema,
-} = QuerySchemaFactory.build({ decorate: openApiDecorator });
+const schemas = QuerySchemaFactory.build({ decorate: openApiDecorator });
+
+/** Selected fields: an array of names to include, or a name-to-boolean map. */
+export const FieldsSchema = schemas.FieldsSchema;
+
+/** The whole `filter` query: an object of where, fields, include, order, limit, offset and skip, or a JSON string of one. */
+export const FilterSchema = schemas.FilterSchema;
+
+/** Relations to include: an array of `{ relation, scope? }` where `scope` is a nested filter. */
+export const InclusionSchema = schemas.InclusionSchema;
+
+/** Maximum number of rows; a non-negative integer. */
+export const LimitSchema = schemas.LimitSchema;
+
+/** Number of rows to offset; a non-negative integer. */
+export const OffsetSchema = schemas.OffsetSchema;
+
+/** Sort order: an array of strings such as `'createdAt ASC'`. */
+export const OrderBySchema = schemas.OrderBySchema;
+
+/** Number of rows to skip; a non-negative integer. */
+export const SkipSchema = schemas.SkipSchema;
+
+/** Query conditions, with nested AND/OR. */
+export const WhereSchema = schemas.WhereSchema;
 
 /**
  * The query shape of a route that accepts a `filter`. The framework's own `find`, `findById` and

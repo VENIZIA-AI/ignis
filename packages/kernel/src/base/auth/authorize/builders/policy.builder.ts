@@ -44,6 +44,7 @@ type TBuilderCustomGrantRow = Omit<TBuilderGrantRow, 'action'> & {
   metadata: TSubsetGrantMetadata;
 };
 
+/** Static factories for the `PolicyDefinition` rows behind each edge kind in `AuthorizationPolicyVariants` (grant, role assignment, domain join, inheritance). Returns plain row objects; nothing is persisted. */
 export class AuthorizationPolicyBuilder {
   static readonly ACTION_PRINCIPAL = 'Action';
 

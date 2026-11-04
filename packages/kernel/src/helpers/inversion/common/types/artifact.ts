@@ -5,6 +5,7 @@ import { type ArtifactTypes } from '../constants';
 /** Decorator target for any constructable class (includes Function for ClassDecorator). */
 export type TDecoratorTarget<T = unknown> = TClass<T> | Function;
 
+/** Valid `ArtifactTypes` values. */
 export type TArtifactType = TConstValue<typeof ArtifactTypes>;
 
 /** Decides at registration time whether the class is registered at all. Sync or async; runs before `preConfigure`, so it may read config and env, never another artifact's binding. */
@@ -24,6 +25,7 @@ export interface IArtifactRegistrationOptions<ApplicationType = unknown> {
   after?: ReadonlyArray<TClass<unknown>>;
 }
 
+/** Registration options of an artifact plus its `type`. */
 export interface IArtifactMetadata<
   ApplicationType = unknown,
 > extends IArtifactRegistrationOptions<ApplicationType> {

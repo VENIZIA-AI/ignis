@@ -1,5 +1,6 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 
+/** The schema variants an entity can produce (`getSchema({ type })`): select, create, update and execute. */
 export class SchemaTypes {
   static readonly SELECT = 'select';
   static readonly UPDATE = 'update';
@@ -13,6 +14,7 @@ export class SchemaTypes {
   }
 }
 
+/** Valid `SchemaTypes` values. */
 export type TSchemaType = TConstValue<typeof SchemaTypes>;
 
 /** What `@model` declares. Only ENTITY (a table-backed model) exists; `type` may be left out. */

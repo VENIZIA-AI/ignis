@@ -5,6 +5,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { IApplicationConfigs, IApplicationInfo } from './common';
 
+/** Runtime-neutral base of every application: a DI container that holds the configs, the post-start and post-stop hooks and the core bindings. Server hosting lives in the `@venizia/ignis` subclass. */
 export abstract class AbstractApplication extends Container {
   protected configs: IApplicationConfigs;
   protected projectRoot: string;

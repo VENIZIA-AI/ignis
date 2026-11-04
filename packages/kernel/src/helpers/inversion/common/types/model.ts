@@ -11,6 +11,7 @@ import type {
 import type { TClass, TNullable, TValueOrResolver } from '@venizia/ignis-helpers/common';
 import type { IArtifactRegistrationOptions } from './artifact';
 
+/** The `authorize` settings of a model. */
 export interface IModelAuthorizeSettings {
   /** The authorization principal name (resource/subject) for this model. */
   principal: string;
@@ -128,6 +129,7 @@ export interface IModelQuerySettings {
   };
 }
 
+/** Per-model settings passed to `@model` as `settings`. */
 export interface IModelSettings {
   /** Properties excluded from all query results at SQL level. */
   hiddenProperties?: string[];
@@ -156,6 +158,7 @@ export interface IModelMigrationSettings {
   use?: boolean;
 }
 
+/** Metadata accepted by `@model`. */
 export interface IModelMetadata extends IArtifactRegistrationOptions {
   /** Optional: `ModelTypes.ENTITY` is the only value and the default. */
   type?: TModelType;
@@ -167,11 +170,13 @@ export interface IModelMetadata extends IArtifactRegistrationOptions {
   settings?: IModelSettings;
 }
 
+/** Static members an entity class carries: its `schema` and its `relations` (value or resolver). */
 export interface IEntityStatics {
   schema?: unknown;
   relations?: TValueOrResolver<Array<unknown>>;
 }
 
+/** A model class together with its entity statics. */
 export type TModelClass<Model extends AbstractEntity = AbstractEntity> = TClass<Model> &
   IEntityStatics;
 
@@ -180,6 +185,7 @@ export type TDecoratorModelTarget<Model extends AbstractEntity = AbstractEntity>
   | TModelClass<Model>
   | (Function & IEntityStatics);
 
+/** One model as stored in the metadata registry: class, metadata and schema, with lazily resolved relations. */
 export interface IModelRegistryEntry<Model extends AbstractEntity = AbstractEntity> {
   target: TValueOrResolver<TClass<Model>>;
   metadata: IModelMetadata;

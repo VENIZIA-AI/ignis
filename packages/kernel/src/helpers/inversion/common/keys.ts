@@ -1,5 +1,6 @@
 import { MetadataKeys as _MetadataKeys } from '@venizia/ignis-inversion';
 
+/** Reflect metadata keys: the inversion package keys plus the IGNIS keys for controllers, routes, models, datasources, repositories, artifacts and `@provide` methods. */
 export const MetadataKeys = Object.assign({}, _MetadataKeys, {
   CONTROLLER: Symbol.for('ignis:controller'),
   CONTROLLER_REST_ROUTE: Symbol.for('ignis:controller:rest:route'),

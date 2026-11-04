@@ -14,6 +14,7 @@ export class ControllerTransports {
   static readonly GRPC = 'grpc';
 }
 
+/** Union of the `ControllerTransports` values. */
 export type TControllerTransport = TConstValue<typeof ControllerTransports>;
 
 /** Shape of `data` in a `{ count, data }` response, echoed in the `X-Response-Format` header. */
@@ -28,6 +29,7 @@ export class ResponseFormats {
   }
 }
 
+/** Union of the `ResponseFormats` values. */
 export type TResponseFormat = TConstValue<typeof ResponseFormats>;
 
 /** Standard REST API path constants for CRUD controllers. */
@@ -37,6 +39,7 @@ export class RestPaths {
   static readonly FIND_ONE = '/find-one';
 }
 
+/** OpenAPI response headers every CRUD route documents: the request tracing id, the record count and the response format. */
 export const commonResponseHeaders: TResponseHeaders = {
   [HTTP.Headers.REQUEST_TRACING_ID]: {
     description: 'Echo of the request tracing ID',
@@ -52,6 +55,7 @@ export const commonResponseHeaders: TResponseHeaders = {
   },
 };
 
+/** OpenAPI response headers of a list route: `commonResponseHeaders` plus `Content-Range` for pagination. */
 export const findResponseHeaders: TResponseHeaders = {
   ...commonResponseHeaders,
   [HTTP.Headers.CONTENT_RANGE]: {

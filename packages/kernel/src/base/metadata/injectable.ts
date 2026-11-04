@@ -48,18 +48,21 @@ export const injectable = <ApplicationType = unknown>(
   };
 };
 
+/** Class decorator that registers the class as a service artifact; accepts the same registration options as `injectable`. */
 export const service = <ApplicationType = unknown>(
   opts?: IArtifactRegistrationOptions<ApplicationType>,
 ): ClassDecorator => {
   return injectable<ApplicationType>({ type: ArtifactTypes.SERVICE, ...opts });
 };
 
+/** Class decorator that registers the class as a component artifact; accepts the same registration options as `injectable`. */
 export const component = <ApplicationType = unknown>(
   opts?: IArtifactRegistrationOptions<ApplicationType>,
 ): ClassDecorator => {
   return injectable<ApplicationType>({ type: ArtifactTypes.COMPONENT, ...opts });
 };
 
+/** Class decorator that registers the class as a configuration artifact; `after` orders it behind other configuration classes. */
 export const configuration = <ApplicationType = unknown>(
   opts?: IArtifactRegistrationOptions<ApplicationType>,
 ): ClassDecorator => {

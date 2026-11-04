@@ -16,6 +16,7 @@ interface IResolverSlot {
   resolver: TRequestContextResolver | undefined;
 }
 
+/** Process-wide holder of the function that returns the current request context. `resolve()` is `undefined` when no resolver is installed or no request is active. */
 export class RequestContextRegistry {
   static readonly SINGLETON_REAL_KEY = 'request-context-resolver';
 

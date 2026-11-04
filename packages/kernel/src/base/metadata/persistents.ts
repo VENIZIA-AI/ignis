@@ -326,6 +326,7 @@ const applyRepositoryMetadata = <
   registry.setRepositoryMetadata({ target, metadata: { ...metadata, _resolved: resolved } });
 };
 
+/** Class decorator that registers a repository and binds it to a model (or, for a remote repository, only a datasource). Called without arguments on a subclass it reuses the type, model and datasource of its nearest decorated parent; registration options are not inherited. */
 export const repository = <
   Model extends AbstractEntity = AbstractEntity,
   DataSource extends IDataSource = IDataSource,

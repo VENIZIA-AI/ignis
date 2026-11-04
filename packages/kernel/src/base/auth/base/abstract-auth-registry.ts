@@ -4,11 +4,13 @@ import type { Container } from '@/helpers/inversion/container';
 import type { TClass } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 
+/** A registered item: its class and the container that resolves it. */
 export type TRegistryDescriptor<TItem> = {
   container: Container;
   targetClass: TClass<TItem>;
 };
 
+/** Base of the auth registries. Registers classes under a name as singletons in a container and resolves them by name. Subclasses supply the binding key prefix. */
 export abstract class AbstractAuthRegistry<TItem> extends BaseHelper {
   protected descriptors: Map<string, TRegistryDescriptor<TItem>>;
 

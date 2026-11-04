@@ -1,5 +1,6 @@
 import type { AnyType, IConfigurable, TClass, TConstValue } from '@venizia/ignis-helpers/common';
 
+/** Names of the supported datasource drivers, split into relational and search sets. `isValid` checks a value against all of them. */
 export class DataSourceDrivers {
   // Relational - PGlite is a Postgres DRIVER (Postgres compiled to WASM), not a separate engine.
   static readonly NODE_POSTGRES = 'node-postgres';
@@ -39,6 +40,7 @@ export class DataSourceDrivers {
 
 // `(string & {})` keeps autocomplete for the known values
 // while still accepting any other engine-driver string.
+/** A driver name: one of `DataSourceDrivers`, or any other string for an unlisted engine. */
 export type TDataSourceDriver = TConstValue<typeof DataSourceDrivers> | (string & {});
 
 /**
@@ -48,6 +50,7 @@ export type TDataSourceDriver = TConstValue<typeof DataSourceDrivers> | (string 
  */
 export type TDataSourceDriverClass = TClass<AnyType>;
 
+/** Loose schema record of a datasource; the default `Schema` type argument of `IDataSource`. */
 export type TAnyDataSourceSchema = Record<string, any>;
 
 /** Engine-neutral datasource contract - the root every connector family implements. */
@@ -82,10 +85,12 @@ export interface ITransaction {
   rollback(): Promise<void>;
 }
 
+/** What a datasource supports. `transactions` tells whether it can open transactions. */
 export interface IDataSourceCapabilities {
   transactions: boolean;
 }
 
+/** Capabilities of a search datasource. Each `search` flag tells whether the engine supports that feature. */
 export interface ISearchableDataSourceCapabilities extends IDataSourceCapabilities {
   search?: {
     /** Vector / semantic / hybrid search (search engines). */

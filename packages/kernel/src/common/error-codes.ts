@@ -12,6 +12,7 @@ export class CoreErrorCodes {
   static readonly DATABASE_CONFLICT = build(['database', 'conflict']);
 }
 
+/** Valid `CoreErrorCodes` values. */
 export type TCoreErrorCode = TConstValue<typeof CoreErrorCodes>;
 
 /** Failures raised by the search connectors (Typesense, Meilisearch) and the neutral search tier. */
@@ -26,4 +27,5 @@ export class SearchErrorCodes {
   ]);
 }
 
+/** Valid `SearchErrorCodes` values. */
 export type TSearchErrorCode = TConstValue<typeof SearchErrorCodes>;

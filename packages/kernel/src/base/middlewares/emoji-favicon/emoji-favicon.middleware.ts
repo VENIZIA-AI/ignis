@@ -1,6 +1,7 @@
 import type { MiddlewareHandler } from 'hono';
 import { createMiddleware } from 'hono/factory';
 
+/** Factory for a middleware that answers `/favicon.ico` with an emoji rendered as SVG. */
 export class EmojiFaviconMiddleware {
   /** Serves an emoji as an SVG favicon on /favicon.ico. */
   static create(opts: { icon: string }): MiddlewareHandler {

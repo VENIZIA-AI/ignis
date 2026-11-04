@@ -1,6 +1,7 @@
 import { ParseUtility } from '@venizia/ignis-helpers/core';
 import type { IPayloadFieldCodec, TJWTTokenRole } from './types';
 
+/** Ready-made payload field codecs, plus `build` to define one. A codec turns one JWT payload field into a string and back so it can ride through the encrypted payload envelope. */
 export class AuthenticationFieldCodecs {
   static readonly ROLES_CODEC: IPayloadFieldCodec<TJWTTokenRole[]> = {
     key: 'roles',

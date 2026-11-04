@@ -8,6 +8,11 @@ import type { IAuthUser, TAuthenticateFn, TAuthMode } from '../common';
 import { Authentication, AuthenticationErrors, AuthenticationModes } from '../common';
 import { AuthenticationStrategyRegistry } from '../strategies/strategy-registry';
 
+/**
+ * Provides the `authenticate` middleware factory. Strategies resolve from `AuthenticationStrategyRegistry`.
+ *
+ * The middleware skips a request flagged `Authentication.SKIP_AUTHENTICATION` or already holding a current user. On success it stores the user and its audit user id in the request context.
+ */
 export class AuthenticationProvider<RouteEnv extends Env = Env>
   extends BaseHelper
   implements IProvider<TAuthenticateFn<RouteEnv>>

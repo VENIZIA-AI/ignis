@@ -59,6 +59,7 @@ export interface IApplicationConfigs {
   [key: string]: any;
 }
 
+/** Identity of an application, returned by `getAppInfo()`. Extra keys are allowed. */
 export interface IApplicationInfo {
   name: string;
   version: string;
@@ -83,6 +84,7 @@ export interface IApplication<
   initialize(): ValueOrPromise<void>;
 }
 
+/** The REST application contract: `IApplication` plus the component, controller, repository, service and static-serve registration mixins. */
 export interface IRestApplication
   extends
     IApplication,

@@ -29,6 +29,7 @@ const expandCoveredActions = (opts: { covered: Set<string> }): boolean => {
   return grew;
 };
 
+/** Pure planner for grant rows: validates and shapes grant intents (tier or per-operation) into `PolicyDefinition` rows. Persisting and the operation catalog stay with the caller. */
 export class GrantBuilder extends BaseHelper {
   static readonly SINGLETON_REAL_KEY = 'grant-builder';
 

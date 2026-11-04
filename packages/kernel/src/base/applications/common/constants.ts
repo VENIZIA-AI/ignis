@@ -23,8 +23,10 @@ export class ArtifactIndexFields {
   }
 }
 
+/** Union of the `ArtifactIndexFields` values. */
 export type TArtifactIndexField = TConstValue<typeof ArtifactIndexFields>;
 
+/** The values of the `Sec-Fetch-Site` request header, the vocabulary of `TSecFetchSite`. */
 export const SecFetchSiteValues = ['same-origin', 'same-site', 'none', 'cross-site'] as const;
 
 /** The `encoding` of `ICompressOptions`. */

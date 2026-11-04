@@ -1,6 +1,7 @@
 import { OpenApiSchemas } from '@/base/models/common';
 import { z } from '@hono/zod-openapi';
 
+/** Validates a change-password body: `scheme`, `oldCredential` and `newCredential` (each at least 8 characters) and the `userId`. */
 export const ChangePasswordRequestSchema = z
   .object({
     scheme: z.string(),
@@ -19,4 +20,5 @@ export const ChangePasswordRequestSchema = z
     ],
   });
 
+/** Parsed body of `ChangePasswordRequestSchema`. */
 export type TChangePasswordRequest = z.infer<typeof ChangePasswordRequestSchema>;
