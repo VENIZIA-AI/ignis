@@ -36,6 +36,7 @@ export class RelationsCases extends BaseTestCases {
 
       if (!testUser) {
         this.context.logger.warn('[CASE 21] SKIPPED | Could not create test user');
+
         return;
       }
 
@@ -54,6 +55,7 @@ export class RelationsCases extends BaseTestCases {
 
       if (!createdConfig.data) {
         this.context.logger.error('[CASE 21] FAILED | Could not create test configuration');
+
         return;
       }
 
@@ -72,12 +74,15 @@ export class RelationsCases extends BaseTestCases {
 
       if (!configWithCreator) {
         this.context.logger.error('[CASE 21] FAILED | Could not find configuration with creator');
+
         return;
       }
 
       const creator = (configWithCreator as any).creator;
+
       if (!creator) {
         this.context.logger.error('[CASE 21] FAILED | Creator relation not included in result');
+
         return;
       }
 

@@ -15,6 +15,7 @@ import { Authentication, RequestContextRegistry } from '@venizia/ignis-kernel';
 export class AuditUserResolver {
   static resolveAuditUserId<T>(opts: { allowAnonymous: boolean; columnField: string }): T | null {
     const context = RequestContextRegistry.resolve();
+
     if (!context) {
       if (!opts.allowAnonymous) {
         throw getError({
@@ -26,6 +27,7 @@ export class AuditUserResolver {
     }
 
     const userId = context.get(Authentication.AUDIT_USER_ID);
+
     if (!userId && !opts.allowAnonymous) {
       throw getError({
         message: `[getCurrentUserId] No AUDIT_USER_ID found in request context | columnName: ${opts.columnField} | allowAnonymous: ${opts.allowAnonymous} | userId: ${userId}`,

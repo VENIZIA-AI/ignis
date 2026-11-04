@@ -26,6 +26,7 @@ export class ScalarUIProvider extends BaseHelper implements IUIProvider {
 
     const { Scalar } = scalarModule;
     const { title, url, ...customConfig } = config;
+
     return Scalar({ url, pageTitle: title, ...customConfig })(context, next);
   }
 }

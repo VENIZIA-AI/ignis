@@ -27,6 +27,7 @@ const buildInstrumentedTasks = (opts: { count: number; delayMs?: number }) => {
       state.peak = Math.max(state.peak, state.inFlight);
       await new Promise((resolve) => setTimeout(resolve, delayMs));
       state.inFlight -= 1;
+
       return index;
     };
   });
@@ -36,6 +37,7 @@ const buildInstrumentedTasks = (opts: { count: number; delayMs?: number }) => {
 
 describe('executePromiseWithLimit', () => {
   const unhandled: unknown[] = [];
+
   const onUnhandled = (reason: unknown) => {
     unhandled.push(reason);
   };
@@ -56,14 +58,17 @@ describe('executePromiseWithLimit', () => {
     const tasks = [
       async () => {
         await new Promise((resolve) => setTimeout(resolve, 30));
+
         return 'slow-first';
       },
       async () => {
         await new Promise((resolve) => setTimeout(resolve, 1));
+
         return 'fast-second';
       },
       async () => {
         await new Promise((resolve) => setTimeout(resolve, 15));
+
         return 'medium-third';
       },
     ];
@@ -150,6 +155,7 @@ describe('executePromiseWithLimit', () => {
     ];
 
     let caught: unknown;
+
     try {
       await PromiseUtility.executeWithLimit({ tasks, limit: 2 });
     } catch (error) {

@@ -35,6 +35,7 @@ class HelloController extends BaseRestController {
       },
       handler: (context) => {
         helloHandlerRunCount += 1;
+
         return context.json({ message: 'hello from the worker' }, 200);
       },
     });
@@ -69,6 +70,7 @@ class FakeWorkerScope implements IWorkerMessageScope {
 
   dispatch(envelope: unknown): void {
     const listenersList = [...this.listeners];
+
     for (const listener of listenersList) {
       listener({ data: envelope } as MessageEvent);
     }
@@ -86,6 +88,7 @@ const waitFor = async (opts: { condition: () => boolean; timeoutMs: number }): P
     if (condition()) {
       return true;
     }
+
     await sleep(5);
   }
 
@@ -222,6 +225,7 @@ describe('WorkerApplication.listen() - the boot window', () => {
     ]);
 
     const listening = app.listen({ scope });
+
     for (const envelope of envelopes) {
       scope.dispatch(envelope);
     }
@@ -256,6 +260,7 @@ describe('WorkerApplication.listen() - the boot window', () => {
     scope.dispatch(envelope);
 
     let caught: unknown;
+
     try {
       await listening;
     } catch (error) {

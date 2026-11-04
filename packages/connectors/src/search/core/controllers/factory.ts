@@ -137,6 +137,7 @@ export class SearchControllerFactory extends BaseHelper {
     const { controller, entity, authenticate, authorize, routes, scope } = defOpts;
 
     const { name, basePath = 'unknown_path', isStrict = true } = controller;
+
     if (!basePath || basePath === 'unknown_path') {
       throw getError({
         message: `[defineSearchController] Invalid controller basePath | name: ${name} | basePath: ${basePath}`,
@@ -207,6 +208,7 @@ export class SearchControllerFactory extends BaseHelper {
       controllerName: name,
       repositoryName: defOpts.repository.name,
     });
+
     return controllerClass;
   }
 }

@@ -37,6 +37,7 @@ describe('BaseLogger - level dispatch to the single write() sink', () => {
   test('every LogLevels entry has a direct ILogger method', () => {
     const logger: ILogger = new RecordingLogger({ scope: 'FullSurface' });
     const levelNames = ['debug', 'info', 'warn', 'error', 'emerg'] as const;
+
     for (const level of levelNames) {
       expect(typeof logger[level]).toBe('function');
     }

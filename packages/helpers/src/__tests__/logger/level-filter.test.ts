@@ -54,21 +54,27 @@ class FakeProviderLogger extends AbstractLogger {
   debug(message: string) {
     FakeProviderLogger.messages.push(message);
   }
+
   info(message: string) {
     FakeProviderLogger.messages.push(message);
   }
+
   warn(message: string) {
     FakeProviderLogger.messages.push(message);
   }
+
   error(message: string) {
     FakeProviderLogger.messages.push(message);
   }
+
   emerg(message: string) {
     FakeProviderLogger.messages.push(message);
   }
+
   log(_level: TLogLevel, message: string) {
     FakeProviderLogger.messages.push(message);
   }
+
   for(): ILogger {
     return this;
   }
@@ -109,6 +115,7 @@ const winstonFixture = (): IObservedProvider & { restore(): void } => {
   expect(backing.level).toBe(LogLevels.DEBUG);
   const spy = spyOn(backing, 'log').mockImplementation(((_level: string, line: string) => {
     lines.push(stripPrefix(line));
+
     return backing;
   }) as AnyType);
 
@@ -224,6 +231,7 @@ describe('LoggerFactory level filtering - a level dropped by the wrapper never r
       provider: {
         get: (scope) => {
           scopes.push(scope);
+
           return FakeProviderLogger.get(scope);
         },
       },

@@ -58,14 +58,19 @@ const buildRecordingConnector = () => {
   chain.limit = () => chain;
   chain.offset = () => chain;
   chain.values = () => chain;
+
   chain.set = (payload: Record<string, AnyType>) => {
     captured.setPayload = payload;
+
     return chain;
   };
+
   chain.returning = (projection?: AnyType) => {
     captured.returningProjection = projection;
+
     return Promise.resolve([]);
   };
+
   // Every non-`returning()` terminal resolves to an empty row set; no test here takes the
   // `shouldReturn: false` branch that would read a driver result instead.
   chain.then = (resolve: (value: unknown) => void) => resolve([]);
@@ -77,18 +82,22 @@ const buildRecordingConnector = () => {
       select: (projection?: AnyType) => {
         trail.push('select');
         captured.selectProjection = projection;
+
         return chain;
       },
       insert: () => {
         trail.push('insert');
+
         return chain;
       },
       update: () => {
         trail.push('update');
+
         return chain;
       },
       delete: () => {
         trail.push('delete');
+
         return chain;
       },
       $count: async () => 0,

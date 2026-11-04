@@ -152,6 +152,7 @@ function foldHeaderLine(line: string): string {
   }
 
   lines.push(remaining);
+
   return lines.join(CRLF);
 }
 
@@ -221,6 +222,7 @@ function assertNoAddressListInjection(opts: { field: string; value: string | str
 
 function extractDomain(address: string | undefined): string {
   const match = address ? /@([^@>\s]+)>?\s*$/.exec(address) : null;
+
   return match ? match[1] : 'localhost';
 }
 
@@ -264,6 +266,7 @@ function buildHeaders(message: IMailMessage): string[] {
 
   if (message.headers) {
     const messageHeadersEntries = Object.entries(message.headers);
+
     for (const [key, value] of messageHeadersEntries) {
       assertNoHeaderInjection({ field: `headers.${key}`, value: key });
       assertNoHeaderInjection({ field: `headers.${key}`, value });
@@ -314,6 +317,7 @@ function attachmentNameParams(attribute: 'name' | 'filename', value: string): st
   }
 
   const asciiFallback = value.replace(/[^\x20-\x7E]/g, '_');
+
   return (
     `; ${attribute}="${escapeQuotedString(asciiFallback)}"` +
     `; ${attribute}*=UTF-8''${encodeRfc2231(value)}`
@@ -397,6 +401,7 @@ export class MailMimeUtility {
       }
 
       const altBoundary = newBoundary('Alt');
+
       return [
         `--${boundary}`,
         `Content-Type: multipart/alternative; boundary="${altBoundary}"`,
@@ -412,6 +417,7 @@ export class MailMimeUtility {
     if (attachments.length === 0 && !hasBothBodies) {
       headers.push(`Content-Type: ${singleContentType}; charset=UTF-8`);
       headers.push('Content-Transfer-Encoding: base64');
+
       return Buffer.from([...headers, '', encodeTextBase64(singleContent)].join(CRLF), 'utf-8');
     }
 
@@ -423,6 +429,7 @@ export class MailMimeUtility {
         textPart(boundary, 'text/html', message.html ?? ''),
         `--${boundary}--`,
       ];
+
       return Buffer.from([...headers, '', parts.join(CRLF)].join(CRLF), 'utf-8');
     }
 
@@ -456,6 +463,7 @@ export class MailMimeUtility {
 
       parts.push(`--${relatedBoundary}--`);
       headers.push(`Content-Type: multipart/related; boundary="${relatedBoundary}"`);
+
       return Buffer.from([...headers, '', parts.join(CRLF)].join(CRLF), 'utf-8');
     }
 

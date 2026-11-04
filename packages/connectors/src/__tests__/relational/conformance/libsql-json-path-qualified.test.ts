@@ -166,6 +166,7 @@ const selectJoinedOrderIds = async (opts: {
       : filtered.orderBy(orderTable.id);
 
     const rows = await ordered;
+
     return { ids: rows.map((row) => row.id) };
   } catch (error) {
     // Drizzle wraps the driver error; the database's own refusal is its cause.

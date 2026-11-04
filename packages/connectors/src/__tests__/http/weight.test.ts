@@ -30,6 +30,7 @@ describe('the http connector stays free of the SQL stack', () => {
   });
 
   const forbiddens = ['drizzle', 'ZodObject'] as const;
+
   for (const forbidden of forbiddens) {
     test(`no ${forbidden} reaches it`, async () => {
       const text = await bundle();

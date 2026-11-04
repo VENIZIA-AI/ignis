@@ -18,6 +18,7 @@ const compile = (where: any): string => {
     schema: table,
     where,
   }) as SQL;
+
   return dialect.sqlToQuery(condition).sql;
 };
 

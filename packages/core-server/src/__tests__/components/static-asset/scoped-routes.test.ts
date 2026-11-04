@@ -32,6 +32,7 @@ class ScopedAssetApplication extends BaseApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'scoped-asset-app', version: '0.0.0', description: '' };
   }
+
   staticConfigure() {}
   preConfigure() {}
   postConfigure() {}
@@ -54,6 +55,7 @@ class FakeMetaLinkRepository {
   async create(opts: { data: TMetaLinkRow }) {
     const row = { id: String(this.rows.length + 1), ...opts.data };
     this.rows.push(row);
+
     return { count: 1, data: row };
   }
 
@@ -61,15 +63,18 @@ class FakeMetaLinkRepository {
     this.updateCalls.push('updateById');
     const [row] = this.matchRows({ where: { id: opts.id } });
     Object.assign(row, opts.data);
+
     return { count: 1, data: row };
   }
 
   async updateAll(opts: { data: TMetaLinkRow; where: TMetaLinkRow }) {
     this.updateCalls.push('updateAll');
     const matched = this.matchRows({ where: opts.where });
+
     for (const row of matched) {
       Object.assign(row, opts.data);
     }
+
     return { count: matched.length, data: matched };
   }
 }
@@ -79,6 +84,7 @@ const toRepositoryResolver = (opts: {
   repository: FakeMetaLinkRepository;
 }): TMetaLinkConfig<AnyType>['repository'] => {
   const resolveRepository = (): AnyType => opts.repository;
+
   return resolveRepository;
 };
 
@@ -127,6 +133,7 @@ const mount = async (opts: {
   const server = application.getServer() as OpenAPIHono;
   server.onError(new AppErrorMiddleware({ logger: application.logger }).value());
   server.route(TEST_CONFIGS.path.base, application.getRootRouter());
+
   return server;
 };
 
@@ -137,6 +144,7 @@ const upload = (opts: {
 }) => {
   const form = new FormData();
   form.append('files', new File(['hello'], opts.fileName ?? 'photo.jpg', { type: 'image/jpeg' }));
+
   for (const [key, value] of Object.entries(opts.labels ?? {})) {
     form.append(key, value);
   }
@@ -348,6 +356,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
       controller: { keyPrefix: 'tenant-a' },
       resolveObjectName: ({ defaultKey }) => {
         offered.push(defaultKey);
+
         return 'tenant-a/generated.jpg';
       },
     });
@@ -571,6 +580,7 @@ describe('extra.maxBytes refuses a declared length before the body is read', () 
       },
       { highWaterMark: 0 },
     );
+
     return { state, body };
   };
 
@@ -660,6 +670,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
       count: 2,
     });
     expect(body.metaLinks).toHaveLength(2);
+
     for (const row of repository.rows) {
       expect(row).toMatchObject({
         link: '/assets/objects/photo.jpg',
@@ -673,6 +684,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
         sequence: 3,
       });
     }
+
     expect(repository.rows.map((row) => row.principalId)).toEqual(['product-1', 'variant-7']);
   });
 
@@ -700,6 +712,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
         repository,
         createMetaLink: async (hookOptions) => {
           hookCalls.push(hookOptions);
+
           return repository.create({
             data: { objectName: hookOptions.uploadResult.object.key, storageType: 's3' },
           });
@@ -734,10 +747,12 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
     helper.seedObject({ bucket: 'images', key: 'photo.jpg', mimetype: 'image/jpeg' });
     const repository = new FakeMetaLinkRepository();
     seedRows(repository);
+
     for (const row of repository.rows) {
       row.link = 'https://cdn.example.com/photo.jpg';
       row.metadata = { width: 640, height: 480, placeholder: 'LKO2?U%2Tw=w' };
     }
+
     const router = await mount({
       helper,
       metaLink: toMetaLinkConfig({
@@ -751,6 +766,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
 
     expect(response.status).toBe(200);
     expect(repository.updateCalls).toEqual(['updateAll']);
+
     for (const row of repository.rows) {
       expect(row).toMatchObject({
         link: 'https://cdn.example.com/photo.jpg',

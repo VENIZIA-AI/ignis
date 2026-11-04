@@ -64,6 +64,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
       this.logger
         .for(this.createNodemailerTransport.name)
         .info('Initializing Nodemailer transport');
+
       return new NodemailerTransportHelper({ config: options.config, module: options.module });
     }
 
@@ -77,6 +78,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
   private createMailgunTransport(options: TMailOptions): MailgunTransportHelper {
     if (this.isMailgunOptions(options)) {
       this.logger.for(this.createMailgunTransport.name).info('Initializing Mailgun transport');
+
       return new MailgunTransportHelper({ config: options.config, module: options.module });
     }
 
@@ -90,6 +92,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
   private createAmazonSesTransport(options: TMailOptions): AmazonSesTransportHelper {
     if (this.isAmazonSesOptions(options)) {
       this.logger.for(this.createAmazonSesTransport.name).info('Initializing Amazon SES transport');
+
       return new AmazonSesTransportHelper({ config: options.config, module: options.module });
     }
 
@@ -129,6 +132,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
     }
 
     this.logger.for(this.createCustomTransport.name).info('Using custom mail transport');
+
     return options.config;
   }
 

@@ -57,6 +57,7 @@ export class LogicalCases extends BaseTestCases {
 
       // Should find nValue=10 (0<10<15) and nValue=50 (45<50<100)
       const values = results.map((r) => r.nValue);
+
       if (results.length === 2 && values.includes(10) && values.includes(50)) {
         this.context.logger.info('[DEEP-NESTED] PASSED | Found records with nValue 10 and 50');
       } else {

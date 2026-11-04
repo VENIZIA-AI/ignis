@@ -21,6 +21,7 @@ export class MessageTemplate {
 
       if (value === undefined) {
         missing.add(key);
+
         return placeholder;
       }
 

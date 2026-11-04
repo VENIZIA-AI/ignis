@@ -20,6 +20,7 @@ class StoppableApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'close-datasources-app', version: '0.0.0', description: '' };
   }
+
   preConfigure(): void {}
   postConfigure(): void {}
   staticConfigure(): void {}
@@ -70,6 +71,7 @@ class AuditDataSource extends JournalDataSource {
 class HangingDataSource extends JournalDataSource {
   override close(): Promise<void> {
     DataSourceJournal.entries.push(`close:${this.name}`);
+
     return new Promise<void>(() => {});
   }
 }

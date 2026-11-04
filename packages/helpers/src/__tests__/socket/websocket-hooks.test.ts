@@ -30,6 +30,7 @@ const createMockRedisHelper = () => {
     duplicateClient: () => {
       const client = new MockRedisClient();
       clients.push(client);
+
       return client;
     },
   } as AnyType as IRedisHelper;
@@ -65,6 +66,7 @@ const createHelper = (opts?: Partial<IWebSocketServerOptions>) => {
   } as IWebSocketServerOptions);
 
   helpers.push(helper);
+
   return { helper, redisClients: clients };
 };
 
@@ -153,6 +155,7 @@ describe('WebSocketServerHelper | synchronously throwing hooks', () => {
     helpers.pop();
 
     expect((helper.getClients() as Map<string, IWebSocketClient>).size).toBe(0);
+
     for (const client of redisClients) {
       expect(client.quit).toHaveBeenCalledTimes(1);
     }

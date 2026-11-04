@@ -14,6 +14,7 @@ logger.log = () => undefined;
 /** Reads a Hono Response body as a loosely-typed JSON object (Response.json() is `unknown`). */
 const readJson = async (res: Response): Promise<Record<string, any>> => {
   const result = await res.json();
+
   return result as Record<string, any>;
 };
 
@@ -26,18 +27,22 @@ const mount = (opts: { rootKey?: string; thrower: () => void }) => {
   });
   app.get('/x', () => {
     opts.thrower();
+
     return new Response('unreachable');
   });
   app.onError(new AppErrorMiddleware({ logger, rootKey: opts.rootKey }).value());
+
   return app;
 };
 
 /** Builds a thrower that parses `input` with `schema` and throws the resulting ZodError. */
 const zodThrower = (schema: z.ZodType, input: unknown) => () => {
   const r = schema.safeParse(input);
+
   if (r.success) {
     throw new Error('expected validation to fail');
   }
+
   throw r.error;
 };
 
@@ -145,12 +150,15 @@ describe('isDatabaseClientError — DB constraint errors map to HTTP 400', () =>
         code?: string;
         cause?: unknown;
       };
+
       if (opts.code) {
         e.code = opts.code;
       }
+
       if (opts.cause) {
         e.cause = opts.cause;
       }
+
       throw e;
     };
   };
@@ -417,6 +425,7 @@ describe('AppErrorMiddleware — the NODE_ENV leak boundary', () => {
     const res = await mount({ thrower: leakyDatabaseThrower }).request('/x', undefined, {
       NODE_ENV: nodeEnv,
     });
+
     return readJson(res);
   };
 
@@ -451,6 +460,7 @@ describe('AppErrorMiddleware — the NODE_ENV leak boundary', () => {
 
   test('the env name is matched case-insensitively (DEV, Development)', async () => {
     const nodeEnvs = ['DEV', 'Development', 'LOCAL'];
+
     for (const nodeEnv of nodeEnvs) {
       const body = await requestUnder(nodeEnv);
       expect(body.message).toContain('a@b.com');
@@ -565,6 +575,7 @@ describe('AppErrorMiddleware - every branch emits normalized', () => {
     );
     app.get('/', () => {
       thrower();
+
       return new Response('unreachable');
     });
 
@@ -623,10 +634,12 @@ describe('AppErrorMiddleware - the thrown error picks its own log level', () => 
     app.onError(new AppErrorMiddleware({ logger: recordingLogger }).value());
     app.get('/', () => {
       thrower();
+
       return new Response('unreachable');
     });
 
     await app.request('/', undefined, { NODE_ENV: 'development' });
+
     return levels;
   };
 

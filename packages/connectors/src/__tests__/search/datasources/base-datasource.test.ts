@@ -276,6 +276,7 @@ describe('BaseSearchDataSource - multiSearch injects @model hidden fields into e
     /** Counts the registry/model walk so memoization is observable across requests. */
     protected override discoverHiddenFieldsByCollection(): Record<string, string[]> {
       this.discoverHiddenFieldsCalls += 1;
+
       return super.discoverHiddenFieldsByCollection();
     }
 
@@ -301,6 +302,7 @@ describe('BaseSearchDataSource - multiSearch injects @model hidden fields into e
       return {
         multiSearch: async (opts: { searches: Array<Record<string, unknown>> }) => {
           capture(opts.searches);
+
           return {};
         },
       } as AnyType;
@@ -411,6 +413,7 @@ describe('BaseSearchDataSource - connector lifecycle (shared by every engine dat
 
     protected override createConnector(): ISearchConnector {
       this.createConnectorCalls += 1;
+
       return { name: 'built-connector' } as AnyType;
     }
   }
@@ -464,6 +467,7 @@ const listTsFiles = (dir: string): string[] => {
   const files: string[] = [];
 
   const dirEntries = readdirSync(dir);
+
   for (const entry of dirEntries) {
     const fullPath = join(dir, entry);
 
@@ -483,6 +487,7 @@ const listTsFiles = (dir: string): string[] => {
 describe('BaseSearchDataSource - paradigm seam (search/core imports no engine)', () => {
   test('no file under src/search/core imports typesense or meilisearch', async () => {
     const tsFiles = listTsFiles('src/search/core');
+
     for (const file of tsFiles) {
       const content = await Bun.file(file).text();
 

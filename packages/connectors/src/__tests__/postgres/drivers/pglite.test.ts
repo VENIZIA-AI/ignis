@@ -21,6 +21,7 @@ const executeRows = async (opts: {
   statement: SQL;
 }): Promise<Array<AnyType>> => {
   const result = await opts.connector.execute(opts.statement);
+
   return result.rows;
 };
 
@@ -150,6 +151,7 @@ describe('PGliteDriver - against a real PGlite instance', () => {
 
     const secondPromise = driver.acquire({ schema: {} }).then((connection) => {
       order.push('second acquired');
+
       return connection;
     });
 
@@ -260,6 +262,7 @@ describe('PGliteDriver - acquire timeout', () => {
     // The leak the timeout exists for: nothing releases
     // `held`, so without a timeout this would never settle.
     let failure: unknown;
+
     try {
       const starved = await driver.acquire({ schema: {} });
       starved.release();

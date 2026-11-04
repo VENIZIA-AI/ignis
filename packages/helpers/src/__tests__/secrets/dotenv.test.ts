@@ -17,6 +17,7 @@ describe('DotenvVaultHelper', () => {
 
   test('lease throws NotSupported', async () => {
     const provider = new DotenvVaultHelper({ decode: () => ({}) });
+
     return expect(provider.lease({ path: 'db', key: 'k' })).rejects.toThrow(/not supported/i);
   });
 });

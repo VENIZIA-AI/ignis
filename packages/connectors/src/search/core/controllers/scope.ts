@@ -42,6 +42,7 @@ export class SearchControllerScope {
     const { resolve, context, input } = opts;
 
     let scope: Awaited<ReturnType<TSearchScopeResolver<RouteEnv>>>;
+
     try {
       const result = await resolve({ context });
       scope = result;

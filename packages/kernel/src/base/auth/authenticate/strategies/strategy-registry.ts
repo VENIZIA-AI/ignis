@@ -74,6 +74,7 @@ export class AuthenticationStrategyRegistry extends AbstractAuthRegistry<IAuthen
     const { names, scope = 'route' } = opts;
 
     const unregistered = this.findUnregistered({ names });
+
     if (unregistered.length === 0) {
       return;
     }
@@ -94,6 +95,7 @@ export class AuthenticationStrategyRegistry extends AbstractAuthRegistry<IAuthen
     const { names, scope = 'route' } = opts;
 
     const unregistered = this.findUnregistered({ names });
+
     if (unregistered.length === 0) {
       return;
     }

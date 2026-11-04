@@ -65,6 +65,7 @@ export class EdgeCases extends BaseTestCases {
 
       if (results.length === 2) {
         const allAdmin = results.every((r) => (r.jValue as any)?.role === 'admin');
+
         if (allAdmin) {
           this.context.logger.info(
             '[CASE 18] PASSED | Plain object key "role" works (found 2 admins)',
@@ -83,6 +84,7 @@ export class EdgeCases extends BaseTestCases {
       await repo.deleteAll({ where: { group } });
     } catch (error) {
       this.context.logger.error('[CASE 18] FAILED | Error: %s', (error as Error).message);
+
       try {
         await repo.deleteAll({ where: { group } });
       } catch (cleanupError) {
@@ -137,6 +139,7 @@ export class EdgeCases extends BaseTestCases {
       if (results.length === 1) {
         const metadata = (results[0].jValue as any)?.metadata;
         const isEmpty = metadata && Object.keys(metadata).length === 0;
+
         if (isEmpty) {
           this.context.logger.info('[CASE 19] PASSED | Record with empty metadata found correctly');
         } else {
@@ -150,6 +153,7 @@ export class EdgeCases extends BaseTestCases {
       await repo.deleteAll({ where: { group } });
     } catch (error) {
       this.context.logger.error('[CASE 19] FAILED | Error: %s', (error as Error).message);
+
       try {
         await repo.deleteAll({ where: { group } });
       } catch (cleanupError) {
@@ -220,6 +224,7 @@ export class EdgeCases extends BaseTestCases {
       if (results.length === 2) {
         const priorities = results.map((r) => (r.jValue as any)?.priority);
         const allNumericAndGreater = priorities.every((p) => typeof p === 'number' && p > 3);
+
         if (allNumericAndGreater) {
           this.context.logger.info(
             '[CASE 20] PASSED | Numeric operator safe on mixed types (found %d)',
@@ -247,6 +252,7 @@ export class EdgeCases extends BaseTestCases {
       this.context.logger.error(
         '[CASE 20] This likely means numeric casting crashed on non-numeric values',
       );
+
       try {
         await repo.deleteAll({ where: { group } });
       } catch (cleanupError) {

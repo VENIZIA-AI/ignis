@@ -82,6 +82,7 @@ export class ControllerFactory extends BaseHelper {
       basePath = 'unknown_path',
       isStrict = { path: true, requestSchema: true },
     } = controller;
+
     if (!basePath || basePath === 'unknown_path') {
       throw getError({
         message: `[defineCrudController] Invalid controller basePath | name: ${name} | basePath: ${basePath}`,
@@ -139,6 +140,7 @@ export class ControllerFactory extends BaseHelper {
           if (controller.enabledRoutes) {
             return controller.enabledRoutes.includes(routeKey);
           }
+
           return routes?.[routeKey]?.enabled !== false;
         };
 
@@ -220,11 +222,13 @@ export class ControllerFactory extends BaseHelper {
       controllerName: name,
       repositoryName: defOpts.repository.name,
     });
+
     return controllerClass;
   }
 
   private static describeSpec(opts: { spec: IAuthorizationSpec }): string {
     const { spec } = opts;
+
     return `{ action: ${String(spec.action)}, resource: ${String(spec.resource)} }`;
   }
 
@@ -262,11 +266,13 @@ export class ControllerFactory extends BaseHelper {
       const isEnabled = enabledRoutes
         ? enabledRoutes.includes(verb)
         : routes?.[verb]?.enabled !== false;
+
       if (!isEnabled) {
         return false;
       }
 
       const route = routes?.[verb];
+
       return route?.authenticate?.skip !== true && route?.authorize == null;
     });
 

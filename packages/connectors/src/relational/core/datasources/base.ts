@@ -85,6 +85,7 @@ export abstract class BaseRelationalDataSource<
   /** Auto-discovers schema from repositories if not manually provided. */
   override getSchema(): Schema {
     this.schema ??= this.discoverSchema();
+
     return this.schema;
   }
 
@@ -94,6 +95,7 @@ export abstract class BaseRelationalDataSource<
 
     if (metadata?.autoDiscovery === false) {
       this.logger.for(this.discoverSchema.name).debug('Auto-discovery disabled for %s', this.name);
+
       return {} as Schema;
     }
 
@@ -122,14 +124,17 @@ export abstract class BaseRelationalDataSource<
     const fatal = unpaired.find((item) =>
       RelationPairing.isInverseOne({ relation: item.relation }),
     );
+
     if (fatal) {
       throw getError({ message: fatal.message });
     }
 
     const logger = this.logger.for(this.discoverSchema.name);
+
     for (const item of unpaired) {
       logger.warn(item.message);
     }
+
     if (outside.length > 0) {
       logger.debug(RelationPairing.describeOutside({ outside }));
     }
@@ -140,6 +145,7 @@ export abstract class BaseRelationalDataSource<
 
   hasDiscoverableModels(): boolean {
     const registry = MetadataRegistry.getInstance();
+
     return registry.hasModels({ dataSource: this.constructor as TClass<IDataSource> });
   }
 

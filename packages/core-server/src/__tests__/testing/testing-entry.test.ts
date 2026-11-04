@@ -33,6 +33,7 @@ const PACKAGE_ROOT = path.resolve(import.meta.dir, '../../..');
 
 const importEntry = async (opts: { specifier: string }): Promise<Record<string, unknown>> => {
   const entry: Record<string, unknown> = await import(opts.specifier);
+
   return entry;
 };
 

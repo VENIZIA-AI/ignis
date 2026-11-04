@@ -22,6 +22,7 @@ export const isOperatorObject = (value: unknown): value is Record<string, unknow
   }
 
   const keys = Object.keys(value);
+
   if (keys.length === 0) {
     return false;
   }
@@ -60,6 +61,7 @@ export class SearchDialectHelper {
     }
 
     const included: string[] = [];
+
     for (const key in fields) {
       if (fields[key] === true) {
         included.push(key);

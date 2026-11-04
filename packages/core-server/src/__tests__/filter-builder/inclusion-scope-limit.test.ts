@@ -75,11 +75,13 @@ class CapturingRepository extends ReadableRepository<any> {
 
   protected override findWithCoreAPI<R = any>(opts: { filter: TFilter<any> }): Promise<Array<R>> {
     this.captured = opts.filter;
+
     return Promise.resolve([] as Array<R>);
   }
 
   protected override findWithQueryAPI<R = any>(opts: { filter: TFilter<any> }): Promise<Array<R>> {
     this.captured = opts.filter;
+
     return Promise.resolve([] as Array<R>);
   }
 }

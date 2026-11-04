@@ -11,6 +11,7 @@ describe('SearchInputSchema', () => {
     });
 
     expect(result.success).toBe(true);
+
     if (result.success) {
       expect(result.data.mode).toBe(SearchModes.SEMANTIC);
     }
@@ -20,6 +21,7 @@ describe('SearchInputSchema', () => {
     const result = SearchInputSchema.safeParse({ mode: SearchModes.KEYWORD });
 
     expect(result.success).toBe(true);
+
     if (result.success && result.data.mode === SearchModes.KEYWORD) {
       expect(result.data.query).toBeUndefined();
       expect(result.data.queryBy).toBeUndefined();
@@ -55,6 +57,7 @@ describe('SearchInputSchema', () => {
     });
 
     expect(result.success).toBe(true);
+
     if (result.success && result.data.mode === SearchModes.KEYWORD) {
       expect(result.data.engineParams).toEqual({ ['num_typos']: 2, ['pinned_hits']: '1:1' });
     }
@@ -71,6 +74,7 @@ describe('SearchInputSchema', () => {
     });
 
     expect(result.success).toBe(true);
+
     if (result.success) {
       expect(result.data).not.toHaveProperty('numTypos');
       expect(result.data).not.toHaveProperty('preset');
@@ -88,6 +92,7 @@ describe('SearchInputSchema - keyword highlight', () => {
     });
 
     expect(result.success).toBe(true);
+
     if (result.success && result.data.mode === SearchModes.KEYWORD) {
       expect(result.data.highlight).toBe(false);
     }

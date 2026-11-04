@@ -18,6 +18,7 @@ class RecordingApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'register-artifacts-app', version: '0.0.0', description: '' };
   }
+
   preConfigure(): void {}
   postConfigure(): void {}
   staticConfigure(): void {}
@@ -26,22 +27,31 @@ class RecordingApplication extends RestApplication {
 
   override dataSource<Base extends IDataSource>(target: TClass<Base>) {
     this.calls.push(`dataSource:${target.name}`);
+
     return super.dataSource(target);
   }
+
   override component<Base extends BaseComponent>(target: TClass<Base>) {
     this.calls.push(`component:${target.name}`);
+
     return super.component(target);
   }
+
   override repository<Base extends IRepository>(target: TClass<Base>) {
     this.calls.push(`repository:${target.name}`);
+
     return super.repository(target);
   }
+
   override service<Base extends IService>(target: TClass<Base>) {
     this.calls.push(`service:${target.name}`);
+
     return super.service(target);
   }
+
   override controller<Base>(target: TClass<Base>) {
     this.calls.push(`controller:${target.name}`);
+
     return super.controller(target);
   }
 }
@@ -58,6 +68,7 @@ class Cmp extends BaseComponent {
   constructor() {
     super({ scope: Cmp.name });
   }
+
   override binding(): ValueOrPromise<void> {}
 }
 class Svc {}
@@ -148,6 +159,7 @@ describe('RestApplication.registerArtifacts', () => {
       @provide({ key: 'options.greeting' })
       greeting(): { text: string } {
         OptionsComponent.built += 1;
+
         return { text: 'hello' };
       }
 

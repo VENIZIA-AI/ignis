@@ -439,10 +439,12 @@ const config = defineConfig({
               ) {
                 return 'mermaid';
               }
+
               // Split search functionality
               if (id.includes('minisearch') || id.includes('mark.js')) {
                 return 'search';
               }
+
               // Split Vue core
               if (id.includes('@vue/')) {
                 return 'vue-vendor';

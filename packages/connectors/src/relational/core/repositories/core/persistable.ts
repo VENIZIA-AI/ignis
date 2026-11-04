@@ -100,10 +100,12 @@ export class PersistableRelationalRepository<
       this.logger
         .for('_create')
         .debug('INSERT result | shouldReturn: %s | rs: %j', shouldReturn, rs);
+
       return { count: rs.count, data: null };
     }
 
     this.logger.for('_create').debug('INSERT result | shouldReturn: %s | rs: %j', shouldReturn, rs);
+
     return { count: rs.count, data: rs.rows };
   }
 
@@ -124,6 +126,7 @@ export class PersistableRelationalRepository<
       shouldReturn: boolean;
     };
     const rs = await this._create<R>({ data: [opts.data], options });
+
     return { count: rs.count, data: rs.data?.[0] ?? null };
   }
 
@@ -143,6 +146,7 @@ export class PersistableRelationalRepository<
     const options = { shouldReturn: true, ...opts.options } as ExtraOptions & {
       shouldReturn: boolean;
     };
+
     return this._create<R>({ data: opts.data, options });
   }
 
@@ -222,10 +226,12 @@ export class PersistableRelationalRepository<
       this.logger
         .for('_update')
         .debug('UPDATE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
+
       return { count: rs.count, data: null };
     }
 
     this.logger.for('_update').debug('UPDATE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
+
     return { count: rs.count, data: rs.rows };
   }
 
@@ -320,10 +326,12 @@ export class PersistableRelationalRepository<
       this.logger
         .for('_delete')
         .debug('DELETE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
+
       return { count: rs.count, data: null };
     }
 
     this.logger.for('_delete').debug('DELETE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
+
     return { count: rs.count, data: rs.rows };
   }
 

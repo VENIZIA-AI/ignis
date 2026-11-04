@@ -33,6 +33,7 @@ export class Hash extends BaseHelper {
 
   static withAlgorithm(algorithm: THashAlgorithm) {
     const cached = Hash.instances.get(algorithm);
+
     if (cached) {
       return cached;
     }

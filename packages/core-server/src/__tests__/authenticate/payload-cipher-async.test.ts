@@ -43,6 +43,7 @@ const sealWithReference = (opts: { message: string; algorithm: 'aes-256-cbc' | '
   if (opts.algorithm === 'aes-256-gcm') {
     parts.push((cipher as C.CipherGCM).getAuthTag());
   }
+
   parts.push(cipherText);
 
   return Buffer.concat(parts).toString('base64');
@@ -93,6 +94,7 @@ describe('bearer token service - encryption is awaited, never leaked as a Promis
     );
 
     expect(custom.length).toBe(2);
+
     for (const [name, value] of custom) {
       expect(name).not.toContain('object Promise');
       expect(value).toBeString();

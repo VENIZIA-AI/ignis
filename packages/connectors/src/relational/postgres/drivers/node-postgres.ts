@@ -44,6 +44,7 @@ export class NodePostgresDriver<
     }
 
     let connector: TRelationalConnector<Schema>;
+
     try {
       connector = drizzle({ client, schema: opts.schema }) as TRelationalConnector<Schema>;
     } catch (error) {
@@ -55,10 +56,12 @@ export class NodePostgresDriver<
       connector,
       execute: async (executeOpts: { statement: string }) => {
         const result = await client.query(executeOpts.statement);
+
         return { count: result.rowCount ?? 0 };
       },
       query: async <R>(queryOpts: { statement: string }) => {
         const result = await client.query(queryOpts.statement);
+
         return (result.rows ?? []) as Array<R>;
       },
       release: (releaseOpts?: { destroy?: boolean }) => {

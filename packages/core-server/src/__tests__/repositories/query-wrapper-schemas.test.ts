@@ -41,6 +41,7 @@ describe('FilterQuerySchema', () => {
     const handWritten = z.object({ filter: FilterSchema.optional() }).partial();
 
     const inputs = [{}, { filter: {} }, { filter: { limit: 5 } }, { filter: '{"limit":5}' }];
+
     for (const input of inputs) {
       expect(FilterQuerySchema.safeParse(input).success).toBe(handWritten.safeParse(input).success);
     }
@@ -68,6 +69,7 @@ describe('WhereQuerySchema', () => {
     const handWritten = z.object({ where: WhereSchema.optional() }).partial();
 
     const inputs = [{}, { where: {} }, { where: { status: 'active' } }];
+
     for (const input of inputs) {
       expect(WhereQuerySchema.safeParse(input).success).toBe(handWritten.safeParse(input).success);
     }

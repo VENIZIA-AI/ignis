@@ -17,6 +17,7 @@ export class DataSourceDrivers {
     this.PGLITE,
     this.LIBSQL,
   ]);
+
   static readonly SEARCH_SCHEME_SET = new Set([this.TYPESENSE, this.MEILISEARCH]);
 
   static readonly SCHEME_SET = new Set([

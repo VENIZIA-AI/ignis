@@ -96,6 +96,7 @@ describe('computing the plan', () => {
         offered: throwing,
       });
       let failure: string | undefined;
+
       try {
         await ResponseExtras.compute({ plan, offered: throwing });
       } catch (error) {

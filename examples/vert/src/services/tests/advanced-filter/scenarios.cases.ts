@@ -66,11 +66,14 @@ export class ScenariosCases extends BaseTestCases {
 
       if (results.length === 2) {
         const codes = results.map((r) => r.code);
+
         if (codes.some((c) => c.includes('C_ADV_1')) && codes.some((c) => c.includes('C_ADV_2'))) {
           this.context.logger.info('[SCENARIO] PASSED | Correctly filtered date strings in JSON');
+
           return;
         }
       }
+
       this.context.logger.error('[SCENARIO] FAILED | Expected 2 records (2025)');
       this.context.logger.error(
         'Results: %j',
@@ -132,15 +135,18 @@ export class ScenariosCases extends BaseTestCases {
 
       if (!result) {
         this.context.logger.error('[RELATION] FAILED | Product not found');
+
         return;
       }
 
       const scp = (result as any).saleChannelProducts;
+
       if (scp && scp.length > 0) {
         // Check if the nested relation applied the filter
         // In some ORMs, if the child filter doesn't match, the parent relation array is empty or the specific child is null.
         // Here we look for presence.
         const hasChannel = scp.some((rel: any) => rel.saleChannel?.name === 'AdvChannel');
+
         if (hasChannel) {
           this.context.logger.info('[RELATION] PASSED | Scoped include filter applied');
         } else {

@@ -38,12 +38,14 @@ export abstract class AbstractCrudController<
   /** 400 when a bulk operation is missing its `where` filter; undefined when it is present. */
   bulkWhereError(opts: { context: TRouteContext<RouteEnv>; where?: object }) {
     const { context, where } = opts;
+
     if (!where || Object.keys(where).length === 0) {
       return context.json(
         { message: 'where filter is required for bulk operations' },
         HTTP.ResultCodes.RS_4.BadRequest,
       );
     }
+
     return undefined;
   }
 
@@ -68,6 +70,7 @@ export abstract class AbstractCrudController<
     }
 
     const where = fromQuery ?? fromBody;
+
     if (!where || Object.keys(where).length === 0) {
       return {
         error: context.json(

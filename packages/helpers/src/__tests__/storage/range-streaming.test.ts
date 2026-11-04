@@ -43,33 +43,43 @@ class CountingHelper extends BaseStorageHelper {
   protected get defaultLinkPrefix(): string {
     return '/counting/';
   }
+
   protected writeObject(_opts: IObjectLocation & { file: IUploadFile }): Promise<void> {
     throw new Error('not used');
   }
+
   hasBucket(_opts: { bucket: IBucketRef }): Promise<boolean> {
     throw new Error('not used');
   }
+
   getBuckets(): Promise<IBucketInfo[]> {
     throw new Error('not used');
   }
+
   getBucket(_opts: { bucket: IBucketRef }): Promise<IBucketInfo | null> {
     throw new Error('not used');
   }
+
   createBucket(_opts: { bucket: IBucketRef }): Promise<IBucketInfo | null> {
     throw new Error('not used');
   }
+
   removeBucket(_opts: { bucket: IBucketRef }): Promise<boolean> {
     throw new Error('not used');
   }
+
   getStat(_opts: IObjectLocation): Promise<IFileStat> {
     throw new Error('not used');
   }
+
   removeObject(_opts: IObjectLocation): Promise<void> {
     throw new Error('not used');
   }
+
   removeObjects(_opts: { bucket: IBucketRef; objects: IObjectRef[] }): Promise<void> {
     throw new Error('not used');
   }
+
   listObjects(_opts: IListObjectsOptions): Promise<IObjectInfo[]> {
     throw new Error('not used');
   }
@@ -83,9 +93,11 @@ const readAll = async (stream: ReadableStream<Uint8Array>): Promise<string> => {
 
   while (true) {
     const { done, value } = await reader.read();
+
     if (done) {
       break;
     }
+
     parts.push(value);
   }
 

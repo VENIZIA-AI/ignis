@@ -18,6 +18,7 @@ export class BindingKeys {
   static build(opts: { namespace: string; key: string }) {
     const { namespace, key } = opts;
     const keyParts: Array<string> = [];
+
     if (namespace) {
       keyParts.push(namespace);
     }
@@ -29,6 +30,7 @@ export class BindingKeys {
     }
 
     keyParts.push(key);
+
     return keyParts.join('.');
   }
 }

@@ -69,6 +69,7 @@ export class WriteCases extends BaseTestCases {
 
       if (!anyUser) {
         this.context.logger.warn('[CASE 5] SKIPPED | No test user found');
+
         return;
       }
 
@@ -132,10 +133,12 @@ export class WriteCases extends BaseTestCases {
 
       if (created.count !== 2 || created.data?.length !== 2) {
         this.context.logger.error('[CASE 8] FAILED | Expected 2 records created');
+
         return;
       }
 
       let hasFailed = false;
+
       for (const user of created.data) {
         const userKeys = Object.keys(user);
         const hasPassword = userKeys.includes('password');
@@ -183,15 +186,18 @@ export class WriteCases extends BaseTestCases {
 
       if (updated.count === 0) {
         this.context.logger.warn('[CASE 9] SKIPPED | No test users to update');
+
         return;
       }
 
       if (!updated.data || updated.data.length === 0) {
         this.context.logger.warn('[CASE 9] SKIPPED | No data returned (shouldReturn may be false)');
+
         return;
       }
 
       let hasFailed = false;
+
       for (const user of updated.data) {
         const userKeys = Object.keys(user);
         const hasPassword = userKeys.includes('password');
@@ -241,6 +247,7 @@ export class WriteCases extends BaseTestCases {
 
       if (deleted.count !== 1 || !deleted.data) {
         this.context.logger.error('[CASE 10] FAILED | Expected 1 record deleted');
+
         return;
       }
 
@@ -304,11 +311,13 @@ export class WriteCases extends BaseTestCases {
 
       if (hasPassword || hasSecret) {
         this.context.logger.error('[CASE 19] FAILED | Update response has hidden fields');
+
         return;
       }
 
       if (updated.data.realm !== originalRealm) {
         this.context.logger.error('[CASE 19] FAILED | Non-hidden field changed unexpectedly');
+
         return;
       }
 
@@ -320,10 +329,12 @@ export class WriteCases extends BaseTestCases {
 
       if (directResult.length === 0) {
         this.context.logger.error('[CASE 19] FAILED | User not found via connector');
+
         return;
       }
 
       const dbUser = directResult[0];
+
       if (dbUser.password === 'new_password_only' && dbUser.secret === 'new_secret_only') {
         this.context.logger.info(
           '[CASE 19] PASSED | Hidden fields updated but excluded from response',

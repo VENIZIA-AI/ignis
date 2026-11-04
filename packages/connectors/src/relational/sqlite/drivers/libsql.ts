@@ -117,6 +117,7 @@ export class LibSqlDriver<
     }
 
     let connector: TSqliteConnector<Schema>;
+
     try {
       connector = drizzle({ client, schema: opts.schema });
     } catch (error) {
@@ -133,11 +134,13 @@ export class LibSqlDriver<
 
       execute: async (executeOpts: { statement: string }) => {
         const result = await client.execute(executeOpts.statement);
+
         return { count: result.rowsAffected ?? 0 };
       },
 
       query: async <R>(queryOpts: { statement: string }) => {
         const result = await client.execute(queryOpts.statement);
+
         return (result.rows ?? []) as Array<R>;
       },
 
@@ -145,10 +148,12 @@ export class LibSqlDriver<
         if (isReleased) {
           return;
         }
+
         isReleased = true;
 
         if (releaseOpts?.destroy !== true) {
           this.slot.release({ resource: client });
+
           return;
         }
 
@@ -190,6 +195,7 @@ export class LibSqlDriver<
 
       if (message.includes(NO_ACTIVE_TRANSACTION)) {
         this.logger.for(this.scrubSession.name).debug('Nothing to scrub | %s', message);
+
         return;
       }
 

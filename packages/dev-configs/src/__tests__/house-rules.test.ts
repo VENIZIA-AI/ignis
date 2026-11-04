@@ -10,6 +10,7 @@ const CAST_RULE = '@typescript-eslint/consistent-type-assertions';
 const findings = (opts: { code: string; ruleId: string; filename?: string }) => {
   const { code, ruleId, filename = 'src/subject.ts' } = opts;
   const messages = new Linter().verify(code, houseConfigs, { filename });
+
   return messages.filter((message) => message.ruleId === ruleId);
 };
 

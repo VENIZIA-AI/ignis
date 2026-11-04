@@ -73,6 +73,7 @@ export class ErrorPrettier {
 
     // Hand-rolled over split+filter+slice: it stops at maxFrames instead of walking the whole stack.
     const lines = stack.split('\n');
+
     for (const line of lines) {
       if (!this.FRAME_PATTERN.test(line)) {
         continue;
@@ -158,6 +159,7 @@ export class ErrorPrettier {
     if (seen.has(value)) {
       return { message: '[Circular]' };
     }
+
     seen.add(value);
 
     const source = value as Record<string, unknown>;
@@ -191,6 +193,7 @@ export class ErrorPrettier {
     // Root only: a cause's frames point into the same libraries and add no location the root lacks.
     if (isRoot && includeStack) {
       const frames = this.extractFrames({ stack: source.stack, maxFrames: maxStackFrames });
+
       if (frames !== undefined) {
         summary.stack = frames;
       }
@@ -198,6 +201,7 @@ export class ErrorPrettier {
 
     for (const key of this.DIAGNOSTIC_KEYS) {
       const diagnostic = source[key];
+
       if (typeof diagnostic === 'string' && diagnostic.length > 0) {
         summary[key] = diagnostic;
       }
@@ -206,6 +210,7 @@ export class ErrorPrettier {
     // Root only: the args fill the ROOT's message; a cause's belong to a message this block does not print.
     if (isRoot && typeof normalized?.args === 'object' && normalized.args !== null) {
       const args = normalized.args as Record<string, unknown>;
+
       if (Object.keys(args).length > 0) {
         summary.args = args;
       }
@@ -214,6 +219,7 @@ export class ErrorPrettier {
     // Root only: `extra` is what a throw site deliberately attached, so a direct log call keeps it.
     if (isRoot && typeof source.extra === 'object' && source.extra !== null) {
       const extra = source.extra as Record<string, unknown>;
+
       if (Object.keys(extra).length > 0) {
         summary.extra = extra;
       }
@@ -244,6 +250,7 @@ export class ErrorPrettier {
       );
 
       const remaining = source.errors.length - members.length;
+
       if (remaining > 0) {
         members.push({ message: `... and ${remaining} more` });
       }
@@ -266,6 +273,7 @@ export class ErrorPrettier {
 
     for (const key of this.DIAGNOSTIC_KEYS) {
       const diagnostic = node[key];
+
       if (diagnostic !== undefined) {
         lines.push(`${key}: ${diagnostic}`);
       }
@@ -333,6 +341,7 @@ export class ErrorPrettier {
       }
 
       seen.add(value);
+
       return value;
     });
   }
@@ -360,6 +369,7 @@ export class ErrorPrettier {
       messageCode !== undefined && messageCode !== ''
         ? messageCode
         : (summary.messageCode ?? summary.code);
+
     if (code !== undefined) {
       payload.code = code;
     }
@@ -376,6 +386,7 @@ export class ErrorPrettier {
     }
 
     const context = extra ?? summary.extra;
+
     if (context !== undefined && Object.keys(context).length > 0) {
       payload.extra = RedactUtility.redactSecrets({ value: context });
     }
@@ -421,6 +432,7 @@ export class ErrorPrettier {
     this.pushAggregatedErrors({ node: summary, lines });
 
     let cause = summary.cause;
+
     while (cause !== undefined) {
       const causeCode = cause.code ?? cause.messageCode;
       const code = causeCode === undefined ? '' : ` (code ${causeCode})`;
@@ -442,6 +454,7 @@ export class ErrorPrettier {
     // The caller's code wins; otherwise the error's own, so a direct log call keeps its identifier too.
     const code =
       messageCode !== undefined && messageCode !== '' ? messageCode : summary.messageCode;
+
     if (code !== undefined) {
       lines.push(`code: ${code}`);
     }

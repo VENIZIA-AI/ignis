@@ -16,6 +16,7 @@ export class RequestDomainResolver {
     context: TContext<Env, string>;
   }): TNullable<string> {
     const { source, context } = opts;
+
     switch (source.from) {
       case AuthorizationDomainSources.PARAM: {
         return context.req.param(source.key) ?? null;
@@ -28,6 +29,7 @@ export class RequestDomainResolver {
       }
       case AuthorizationDomainSources.CONTEXT: {
         const value = context.get(source.key as any);
+
         return value == null ? null : String(value);
       }
       default: {
@@ -46,6 +48,7 @@ export class RequestDomainResolver {
 
     if (typeof spec.domain === 'function') {
       const resolved = await spec.domain({ context });
+
       return resolved
         ? [resolved.type, resolved.id].join('_')
         : AuthorizationDomainScopes.SYSTEM_WIDE;
@@ -53,12 +56,15 @@ export class RequestDomainResolver {
 
     if (spec.domain) {
       const id = RequestDomainResolver.readDeclarative({ source: spec.domain, context });
+
       return id ? [spec.domain.type, id].join('_') : AuthorizationDomainScopes.SYSTEM_WIDE;
     }
 
     const globalResolver = options?.domainResolver ?? null;
+
     if (globalResolver) {
       const resolved = await globalResolver({ context });
+
       return resolved
         ? [resolved.type, resolved.id].join('_')
         : AuthorizationDomainScopes.SYSTEM_WIDE;

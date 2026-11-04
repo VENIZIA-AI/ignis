@@ -36,6 +36,7 @@ export class RollbackCases extends BaseTestCases {
       );
 
       const result = await repo.findOne({ filter: { where: { code: code1 } } });
+
       if (!result) {
         this.context.logger.info('[CASE 2] PASSED - Record NOT persisted after rollback');
       } else {
@@ -65,6 +66,7 @@ export class RollbackCases extends BaseTestCases {
       this.context.logger.info('[CASE 3] Transaction rolled back explicitly');
 
       const result = await repo.findOne({ filter: { where: { code } } });
+
       if (!result) {
         this.context.logger.info('[CASE 3] PASSED - Record NOT persisted after explicit rollback');
       } else {
@@ -109,6 +111,7 @@ export class RollbackCases extends BaseTestCases {
           withinTx.length,
         );
         await transaction.rollback();
+
         return;
       }
 
@@ -117,6 +120,7 @@ export class RollbackCases extends BaseTestCases {
 
       // Verify no records exist outside transaction
       const afterRollback = await repo.find({ filter: { where: { group } } });
+
       if (afterRollback.length === 0) {
         this.context.logger.info('[CASE 16] PASSED | No data persisted after rollback');
       } else {
@@ -132,6 +136,7 @@ export class RollbackCases extends BaseTestCases {
       } catch (rollbackError) {
         this.context.logger.error('Rollback failed: %s', (rollbackError as Error).message);
       }
+
       this.context.logger.error('[CASE 16] FAILED with error: %o', error);
     }
   }

@@ -16,6 +16,7 @@ export class DroppedRouteDecorators {
 
     const methodName = (propertyKey as { name?: string })?.name ?? 'unknown';
     DroppedRouteDecorators.dropped.push(`@${decorator} ${methodName}`);
+
     return false;
   }
 

@@ -70,6 +70,7 @@ const flush = async (): Promise<void> => {
 /** Awaits a rejection explicitly: bun's `expect(...).rejects` is typed as non-thenable in this repo. */
 const captureRejection = async (opts: { promise: Promise<unknown> }): Promise<Error> => {
   let outcome: Error | null = null;
+
   try {
     await opts.promise;
   } catch (error) {
@@ -85,6 +86,7 @@ const captureRejection = async (opts: { promise: Promise<unknown> }): Promise<Er
 
 describe('MQTTClientHelper — hooks, subscribe/publish guards, teardown', () => {
   const unhandledRejections: unknown[] = [];
+
   const onUnhandledRejection = (reason: unknown) => {
     unhandledRejections.push(reason);
   };

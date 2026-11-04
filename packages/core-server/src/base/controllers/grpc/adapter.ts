@@ -43,6 +43,7 @@ export class GrpcRequestAdapter<
     ServiceType,
     ConfigurableOptions
   >;
+
   private interceptors?: unknown[];
 
   private constructor(opts: {
@@ -91,6 +92,7 @@ export class GrpcRequestAdapter<
 
       handlers[name] = async (request: unknown, _connectContext: HandlerContext) => {
         const context = opts.storage.getStore();
+
         if (!context) {
           throw getError({
             statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
@@ -137,6 +139,7 @@ export class GrpcRequestAdapter<
       }
 
       const handler = handlerMap.get(pathname);
+
       if (!handler) {
         return next();
       }
@@ -153,6 +156,7 @@ export class GrpcRequestAdapter<
 
           const uReq = universalServerRequestFromFetch(freshRequest, {});
           const uRes = await handler(uReq);
+
           return universalServerResponseToFetch(uRes);
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Internal gRPC error';
@@ -201,6 +205,7 @@ export class GrpcRequestAdapter<
     module?: IConnectRpcModule;
   }): Promise<IConnectAdapterResult<RouteEnv, BasePath>> {
     let module = opts.module;
+
     if (!module) {
       const loaded = await GrpcRequestAdapter.loadModule();
       module = loaded;
@@ -215,6 +220,7 @@ export class GrpcRequestAdapter<
     >({ ...opts, module });
 
     const routerOpts: Record<string, unknown> = {};
+
     if (adapter.interceptors?.length) {
       routerOpts.interceptors = adapter.interceptors;
     }

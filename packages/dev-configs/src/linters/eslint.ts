@@ -4,6 +4,7 @@ import { defineConfig } from 'eslint/config';
 import n from 'eslint-plugin-n';
 import unicorn from 'eslint-plugin-unicorn';
 import tseslint from 'typescript-eslint';
+import { paddingConfigs } from './padding';
 import {
   NamingConventionRule,
   NoRestrictedImportsRule,
@@ -112,6 +113,7 @@ export const eslintConfigs: Linter.Config[] = defineConfig([
       [NamingConventionRule.NAME]: NamingConventionRule.build(),
     },
   },
+  ...paddingConfigs,
   {
     ignores: [
       '**/node_modules/',

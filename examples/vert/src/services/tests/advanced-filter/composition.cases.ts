@@ -74,6 +74,7 @@ export class CompositionCases extends BaseTestCases {
     // Construct a deeply nested AND chain: AND(AND(AND(...)))
 
     let nestedFilter: any = { nValue: { gt: 0 } };
+
     for (let i = 0; i < 15; i++) {
       nestedFilter = { and: [nestedFilter] };
     }

@@ -40,6 +40,7 @@ export class EdgeCases extends BaseTestCases {
 
       // Delete only junction records that reference our test products
       let deletedJunctionCount = 0;
+
       if (testProductIds.length > 0) {
         const deletedJunction = await saleChannelProductRepo.deleteAll({
           where: { productId: { inq: testProductIds } },
@@ -50,6 +51,7 @@ export class EdgeCases extends BaseTestCases {
 
       // Delete only test products
       let deletedProductsCount = 0;
+
       if (testProductIds.length > 0) {
         const deletedProducts = await productRepo.deleteAll({
           where: { id: { inq: testProductIds } },
@@ -60,6 +62,7 @@ export class EdgeCases extends BaseTestCases {
 
       // Delete only test channels
       let deletedChannelsCount = 0;
+
       if (testChannelIds.length > 0) {
         const deletedChannels = await saleChannelRepo.deleteAll({
           where: { id: { inq: testChannelIds } },
@@ -107,6 +110,7 @@ export class EdgeCases extends BaseTestCases {
       });
 
       const saleChannelProducts = (productWithEmpty as any)?.saleChannelProducts;
+
       if (Array.isArray(saleChannelProducts) && saleChannelProducts.length === 0) {
         this.context.logger.info('[CASE 10] PASSED | Empty relations returned as empty array');
       } else if (saleChannelProducts === undefined || saleChannelProducts === null) {
@@ -250,6 +254,7 @@ export class EdgeCases extends BaseTestCases {
 
       // Cleanup
       const productsData = products.data!;
+
       for (const p of productsData) {
         await junctionRepo.deleteAll({ where: { productId: p.id }, options: { force: true } });
         await productRepo.deleteAll({
@@ -257,6 +262,7 @@ export class EdgeCases extends BaseTestCases {
           options: { force: true, shouldSkipDefaultFilter: true },
         });
       }
+
       await saleChannelRepo.deleteAll({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {
       this.context.logger.error('[CASE 14] FAILED | Error: %s', (error as Error).message);

@@ -33,6 +33,7 @@ class StatsTestApplication extends BaseApplication {
   postConfigure() {}
   setupMiddlewares() {}
 }
+
 const boot = async (opts?: {
   /** Deliberately wide: the real binding is env/config driven, so a test may hand it a wrong-typed value. */
   options?: IHealthCheckOptions | Record<string, unknown>;
@@ -56,6 +57,7 @@ const boot = async (opts?: {
   // Mirrors `RestApplication.registerDefaultMiddlewares`: the refusal has to meet the real handler.
   server.notFound(notFoundHandler({ logger: application.logger }));
   server.route(TEST_CONFIGS.path.base, application.getRootRouter());
+
   return server;
 };
 
@@ -116,6 +118,7 @@ describe('GET /health/stats is off unless a host opts in', () => {
    */
   test('with no explicit enable the default is closed outside the development environments', () => {
     const closedEnvironments = ['staging', 'uat', 'production', 'preprod', 'PRODUCTION'];
+
     for (const name of closedEnvironments) {
       const enabled = HealthCheckReporter.isStatsEnabled({
         options: {},
@@ -125,6 +128,7 @@ describe('GET /health/stats is off unless a host opts in', () => {
     }
 
     const openEnvironments = ['development', 'local', 'debug', 'dev', 'sit', 'DEVELOPMENT'];
+
     for (const name of openEnvironments) {
       const enabled = HealthCheckReporter.isStatsEnabled({
         options: {},
@@ -216,11 +220,14 @@ describe('the stats gate', () => {
     const absent = await unmounted.request('/health/stats');
 
     expect(refused.status).toBe(absent.status);
+
     // `requestId` and `path` differ per request; the KEY SET and the message are what would leak.
     const shapeOf = (body: unknown): { keys: string[]; message: unknown } => {
       const record = Object(body);
+
       return { keys: Object.keys(record).sort(), message: record.message };
     };
+
     const result = await refused.json();
     const absentBody = await absent.json();
     expect(shapeOf(result)).toEqual(shapeOf(absentBody));
@@ -238,6 +245,7 @@ describe('the stats gate', () => {
     const numeric: IHealthCheckOptions = JSON.parse('{"stats":{"enable":true,"secretKey":42}}');
 
     const optionses = [blank, empty, nulled, numeric];
+
     for (const options of optionses) {
       expect(HealthCheckReporter.isStatsAuthorized({ options, header: '   ' })).toBe(false);
       expect(HealthCheckReporter.isStatsAuthorized({ options, header: undefined })).toBe(false);

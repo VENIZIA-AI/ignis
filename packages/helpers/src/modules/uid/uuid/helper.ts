@@ -35,6 +35,7 @@ export class UuidHelper extends BaseHelper {
 
   static getInstance(): UuidHelper {
     UuidHelper.instance ??= new UuidHelper();
+
     return UuidHelper.instance;
   }
 
@@ -52,11 +53,13 @@ export class UuidHelper extends BaseHelper {
     }
 
     const version = Number.parseInt(value[14], 16);
+
     if (version !== 7) {
       return { version };
     }
 
     const milliseconds = Number.parseInt(value.slice(0, 8) + value.slice(9, 13), 16);
+
     return { version, createdAt: new Date(milliseconds) };
   }
 }

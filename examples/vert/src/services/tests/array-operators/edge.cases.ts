@@ -54,6 +54,7 @@ export class EdgeCases extends BaseTestCases {
       });
 
       const found = results.find((r) => r.name === 'Large Array Product');
+
       if (found && found.tags?.length === 101) {
         this.context.logger.info('[CASE 13] PASSED | Found product with 101 tags');
       } else {
@@ -107,6 +108,7 @@ export class EdgeCases extends BaseTestCases {
       });
 
       const found = results.find((r) => r.name === 'Special Chars Product');
+
       if (found) {
         this.context.logger.info('[CASE 14] PASSED | Found product with unicode tag');
       } else {
@@ -124,6 +126,7 @@ export class EdgeCases extends BaseTestCases {
       });
 
       const foundSpaces = spacesResults.find((r) => r.name === 'Special Chars Product');
+
       if (foundSpaces) {
         this.context.logger.info('[CASE 14] PASSED | Found product with spaces in tag');
       } else {
@@ -182,6 +185,7 @@ export class EdgeCases extends BaseTestCases {
       });
 
       const containsResult = results.find((r) => r.name === 'Duplicate Tags Product');
+
       if (containsResult) {
         this.context.logger.info('[CASE 15] PASSED | Contains works with duplicate elements');
       }
@@ -271,6 +275,7 @@ export class EdgeCases extends BaseTestCases {
       });
 
       const found = results.find((r) => r.name === 'Empty String Product');
+
       if (found) {
         this.context.logger.info('[CASE 17] PASSED | Can search for empty string in array');
       } else {
@@ -280,6 +285,7 @@ export class EdgeCases extends BaseTestCases {
       // Verify empty string is stored
       const fetched = await repo.findById({ id: product.data.id });
       const hasEmpty = fetched?.tags?.includes('');
+
       if (hasEmpty) {
         this.context.logger.info('[CASE 17] PASSED | Empty string is stored in array');
       } else {
@@ -319,6 +325,7 @@ export class EdgeCases extends BaseTestCases {
       });
 
       const found = results.find((r) => r.name === 'Numeric Strings Product');
+
       if (found) {
         this.context.logger.info('[CASE 19] PASSED | Numeric-like strings work in array');
       } else {
@@ -327,6 +334,7 @@ export class EdgeCases extends BaseTestCases {
 
       // Verify all numeric strings stored correctly
       const fetched = await repo.findById({ id: product.data.id });
+
       if (fetched?.tags?.length === 5) {
         this.context.logger.info('[CASE 19] PASSED | All numeric-like strings stored');
       }
@@ -356,6 +364,7 @@ export class EdgeCases extends BaseTestCases {
 
       // Verify null is stored
       const fetched = await repo.findById({ id: product.data.id });
+
       if (fetched?.tags === null) {
         this.context.logger.info('[CASE 21] PASSED | Null array column stored correctly');
       } else if (Array.isArray(fetched?.tags) && fetched.tags.length === 0) {

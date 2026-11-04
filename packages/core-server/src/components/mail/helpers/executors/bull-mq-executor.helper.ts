@@ -97,6 +97,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
       this.logger
         .for(this.setProcessor.name)
         .warn('Skipping worker creation in queue-only mode. Workers will not be started.');
+
       return;
     }
 
@@ -229,6 +230,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
   async removeWorker(index: number): Promise<boolean> {
     if (index < 0 || index >= this.workerHelpers.length) {
       this.logger.for(this.removeWorker.name).warn('Invalid worker index: %d', index);
+
       return false;
     }
 

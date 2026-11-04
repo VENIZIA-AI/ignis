@@ -8,6 +8,7 @@ class ReportingApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'unresolved-bindings-app', version: '0.0.0', description: '' };
   }
+
   preConfigure(): void {}
   postConfigure(): void {}
   staticConfigure(): void {}

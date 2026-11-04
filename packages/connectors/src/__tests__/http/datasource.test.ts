@@ -104,6 +104,7 @@ describe('an explicit token is never overridden by a lookup', () => {
       authToken: { value: 'explicit' },
       authTokenResolver: () => {
         resolverCalls += 1;
+
         return { value: 'from-resolver' };
       },
     });
@@ -133,6 +134,7 @@ describe('the recovery hook decides, not the transport', () => {
       baseUrl: 'https://api.example.com',
       onUnauthorized: () => {
         asked += 1;
+
         return false;
       },
     });
@@ -171,6 +173,7 @@ describe('the recovery hook decides, not the transport', () => {
       authTokenResolver: () => ({ value: stored }),
       onUnauthorized: () => {
         stored = 'refreshed';
+
         return true;
       },
     });
@@ -293,6 +296,7 @@ describe('headersResolver runs on every send', () => {
       headersResolver: () => ({ 'x-merchant-id': merchant }),
       onUnauthorized: () => {
         merchant = 'after';
+
         return true;
       },
     });
@@ -362,14 +366,17 @@ describe('the hooks are told which request they serve', () => {
       baseUrl: 'https://api.example.com',
       headersResolver: (context) => {
         seen.push({ hook: 'headers', context });
+
         return undefined;
       },
       authTokenResolver: (context) => {
         seen.push({ hook: 'token', context });
+
         return undefined;
       },
       onUnauthorized: (context) => {
         seen.push({ hook: 'unauthorized', context });
+
         return false;
       },
     });
@@ -382,6 +389,7 @@ describe('the hooks are told which request they serve', () => {
       url: 'https://api.example.com/auth/sign-in?a=1',
     };
     expect(seen.map((entry) => entry.hook)).toEqual(['token', 'headers', 'unauthorized']);
+
     for (const entry of seen) {
       expect(entry.context).toEqual(expected);
     }
@@ -401,6 +409,7 @@ describe('the hooks are told which request they serve', () => {
         }
 
         refreshes += 1;
+
         return true;
       },
     });
@@ -509,6 +518,7 @@ describe('a failed read names the path, never the host or the query', () => {
       message: /431 \| \/tickets \(\d+ chars\) \| The URL is too long for a GET/,
     });
     let error: unknown;
+
     try {
       await task;
     } catch (rejected) {
@@ -590,6 +600,7 @@ describe('a relative baseUrl resolves against the page or worker that runs it', 
   afterEach(() => {
     if (originalLocation) {
       Object.defineProperty(globalThis, 'location', originalLocation);
+
       return;
     }
 

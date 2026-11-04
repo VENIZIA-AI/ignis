@@ -46,6 +46,7 @@ export class ServiceAuthenticationStrategy<E extends Env = Env>
 
   async authenticate(context: TContext<E, string>): Promise<IAuthUser> {
     const token = context.req.header(ServiceAssertion.HEADER);
+
     if (!token) {
       throw getError({ error: AuthenticationErrors.ASSERTION_MISSING });
     }

@@ -62,6 +62,7 @@ export class ReadableSearchRepository<
 
   async existsWith(opts: { where: TWhere; options?: IExtraOptions }): Promise<boolean> {
     const { count } = await this.count(opts);
+
     return count > 0;
   }
 
@@ -117,6 +118,7 @@ export class ReadableSearchRepository<
       hits: [],
       found: 0,
     };
+
     if (!query.matchNone) {
       const searched = await this.connector.search<TRowDocument>({
         collection: this.collectionName,

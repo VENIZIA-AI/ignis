@@ -70,31 +70,37 @@ export abstract class AbstractNetworkFetchableHelper<
 
   get(opts: RQ, logger?: TFetcherLogger) {
     const { ...rest } = opts;
+
     return this.send({ ...rest, method: HTTP.Methods.GET }, logger);
   }
 
   post(opts: RQ, logger?: TFetcherLogger) {
     const { ...rest } = opts;
+
     return this.send({ ...rest, method: HTTP.Methods.POST }, logger);
   }
 
   put(opts: RQ, logger?: TFetcherLogger) {
     const { ...rest } = opts;
+
     return this.send({ ...rest, method: HTTP.Methods.PUT }, logger);
   }
 
   patch(opts: RQ, logger?: TFetcherLogger) {
     const { ...rest } = opts;
+
     return this.send({ ...rest, method: HTTP.Methods.PATCH }, logger);
   }
 
   delete(opts: RQ, logger?: TFetcherLogger) {
     const { ...rest } = opts;
+
     return this.send({ ...rest, method: HTTP.Methods.DELETE }, logger);
   }
 
   query(opts: RQ, logger?: TFetcherLogger) {
     const { ...rest } = opts;
+
     return this.send({ ...rest, method: HTTP.Methods.QUERY }, logger);
   }
 }

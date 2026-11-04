@@ -1,6 +1,7 @@
 import type { Linter } from 'eslint';
 import { namingConventionConfigs } from '../eslint';
 import { JSX_FILES } from '../jsx-files';
+import { paddingConfigs } from '../padding';
 import { reactNamingConventionConfigs } from '../react-eslint';
 import { HOUSE_PLUGIN_NAMESPACE } from './common';
 import { ConstClassValuesRule } from './const-class-values.rule';
@@ -65,7 +66,11 @@ const houseRuleConfigs: Linter.Config[] = [
  * export default houseConfigs;
  * ```
  */
-export const houseConfigs: Linter.Config[] = [...namingConventionConfigs, ...houseRuleConfigs];
+export const houseConfigs: Linter.Config[] = [
+  ...namingConventionConfigs,
+  ...houseRuleConfigs,
+  ...paddingConfigs,
+];
 
 /**
  * The React house rule: a JSX child is drawn with `cond ? <X /> : null`, never `cond && <X />`, which
@@ -83,6 +88,7 @@ const reactRuleConfigs: Linter.Config[] = [
 export const reactHouseConfigs: Linter.Config[] = [
   ...reactNamingConventionConfigs,
   ...houseRuleConfigs,
+  ...paddingConfigs,
   ...reactRuleConfigs,
 ];
 

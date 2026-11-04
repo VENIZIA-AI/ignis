@@ -77,6 +77,7 @@ export class RouteConfigResolver {
     }
 
     const mask: Record<string, true> = {};
+
     for (const key of omittedKeys) {
       mask[key] = true;
     }
@@ -89,6 +90,7 @@ export class RouteConfigResolver {
     C extends { request?: { params?: TAnyObjectSchema } } | undefined,
   >(opts: { config: C; idType: TIdSchemaType }) {
     const { config, idType } = opts;
+
     return config?.request?.params ?? RouteConfigResolver.idPathParamsSchema({ idType });
   }
 
@@ -110,6 +112,7 @@ export class RouteConfigResolver {
     D extends z.ZodType,
   >(opts: { config: C; defaultSchema: D }): TResolvedResponseSchema<C, D> {
     const { config, defaultSchema } = opts;
+
     return (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<C, D>;
   }
 
@@ -253,6 +256,7 @@ export class RouteConfigResolver {
   }) {
     const { config, selectSchema, updateSchema, idType, serverStampedKeys } = opts;
     const defaultSchema = RouteConfigResolver.conditionalCountResponse(selectSchema);
+
     return {
       request: {
         params: RouteConfigResolver.resolveIdParams({ config, idType }),
@@ -288,6 +292,7 @@ export class RouteConfigResolver {
       description:
         'Where condition selecting the records to update - here or in the body, not both',
     });
+
     // Built only without a custom body: a custom body must not trip the entity schema's checks.
     const buildDefaultBody = () => {
       const writableSchema = RouteConfigResolver.toWriteBodySchema({
@@ -295,13 +300,16 @@ export class RouteConfigResolver {
         route: 'updateBy',
         serverStampedKeys,
       });
+
       // A model with a real `where` column keeps it: the body reserves the name only when it is
       // free, and the handler then simply finds no `where` there.
       return 'where' in writableSchema.shape
         ? writableSchema
         : writableSchema.extend({ where: WhereSchema.optional() });
     };
+
     const defaultSchema = RouteConfigResolver.conditionalCountResponse(z.array(selectSchema));
+
     return {
       request: {
         query: config?.request?.query ?? defaultQuery,
@@ -322,6 +330,7 @@ export class RouteConfigResolver {
   >(opts: { idType: TIdSchemaType; config: C; selectSchema: SelectSchema }) {
     const { config, selectSchema, idType } = opts;
     const defaultSchema = RouteConfigResolver.conditionalCountResponse(selectSchema);
+
     return {
       request: {
         params: RouteConfigResolver.resolveIdParams({ config, idType }),
@@ -345,6 +354,7 @@ export class RouteConfigResolver {
         'Where condition selecting the records to delete - here or in the body, not both',
     });
     const defaultSchema = RouteConfigResolver.conditionalCountResponse(z.array(selectSchema));
+
     return {
       request: {
         query: config?.request?.query ?? defaultQuery,

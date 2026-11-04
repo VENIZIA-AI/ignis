@@ -26,6 +26,7 @@ class SearchFactoryDataSource extends FakeSearchDataSource {
       commonParams?: unknown;
     }) => {
       this.multiSearchCalls.push(searchOpts);
+
       return this.multiSearchResponse;
     };
   }
@@ -52,6 +53,7 @@ const fakeContext = <TInput>(input: TInput, requestHeaders: Record<string, strin
     json: (body: unknown, status?: number) => {
       jsonBody = body;
       jsonStatus = status;
+
       return body;
     },
   };
@@ -192,6 +194,7 @@ describe('AbstractSearchController list headers', () => {
       repository: { name: SearchFactoryProductRepository.name },
       controller: { name: `${opts.name}-controller`, basePath: '/products' },
     });
+
     return new Controller(new SearchFactoryProductRepository(dataSource));
   };
 

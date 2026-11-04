@@ -33,22 +33,26 @@ class RecordingRepository {
 
   async count(opts: { where?: TWhere<TRow> }) {
     this.calls.push({ method: 'count', args: { ...opts } });
+
     return { count: this.rows.filter((row) => matches({ row, where: opts.where })).length };
   }
 
   async find(opts: { filter?: TFilter<TRow> }) {
     this.calls.push({ method: 'find', args: { ...opts } });
     const data = this.rows.filter((row) => matches({ row, where: opts.filter?.where }));
+
     return { data, range: { start: 0, end: Math.max(data.length - 1, 0), total: data.length } };
   }
 
   async findOne(opts: { filter?: TFilter<TRow> }) {
     this.calls.push({ method: 'findOne', args: { ...opts } });
+
     return this.rows.find((row) => matches({ row, where: opts.filter?.where })) ?? null;
   }
 
   async findById(opts: { id: string }) {
     this.calls.push({ method: 'findById', args: { ...opts } });
+
     return this.rows.find((row) => row.id === opts.id) ?? null;
   }
 }
@@ -95,6 +99,7 @@ const fakeContext = (opts: { query?: unknown; param?: unknown } = {}) => {
     header: () => undefined,
     json: (body: unknown) => {
       bodies.push(body);
+
       return body;
     },
   };

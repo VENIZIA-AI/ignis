@@ -138,6 +138,7 @@ describe('Hash', () => {
 
     test('never returns the plaintext message when the secret is missing', () => {
       let caught: unknown;
+
       try {
         Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({ message: MESSAGE, secret: '' });
       } catch (error) {

@@ -54,6 +54,7 @@ export class AwaitSupport {
 
   static rangeOf(opts: { node: unknown }): [number, number] | undefined {
     const range = AstNode.readField({ node: opts.node, key: 'range' });
+
     return Array.isArray(range) && typeof range[0] === 'number' && typeof range[1] === 'number'
       ? [range[0], range[1]]
       : undefined;
@@ -74,18 +75,21 @@ export class AwaitSupport {
       if (FUNCTION_TYPES.has(type) || type === 'ChainExpression') {
         return undefined;
       }
+
       if (
         type === 'ConditionalExpression' &&
         AstNode.readField({ node: ancestor, key: 'test' }) !== child
       ) {
         return undefined;
       }
+
       if (
         type === 'LogicalExpression' &&
         AstNode.readField({ node: ancestor, key: 'left' }) !== child
       ) {
         return undefined;
       }
+
       if (
         type === 'AssignmentExpression' &&
         ['??=', '||=', '&&='].includes(
@@ -95,6 +99,7 @@ export class AwaitSupport {
       ) {
         return undefined;
       }
+
       if (type.endsWith('Statement') || type === 'VariableDeclaration') {
         const head = HEAD_FIELD[type];
         const isHead =
@@ -121,8 +126,10 @@ export class AwaitSupport {
     const type = AstNode.getType({ node }) ?? '';
     const pure = (child: unknown) => AwaitSupport.isPure({ node: child });
     const field = (key: string) => AstNode.readField({ node, key });
+
     const all = (key: string) => {
       const list = AstNode.readField({ node, key });
+
       return Array.isArray(list) && list.every((entry) => entry === null || pure(entry));
     };
 
@@ -166,15 +173,18 @@ export class AwaitSupport {
     sourceCode: SourceCode;
   }): boolean {
     const target = AwaitSupport.rangeOf({ node: opts.awaitNode });
+
     if (!target) {
       return true;
     }
 
     const visit = (node: unknown): boolean => {
       const range = AwaitSupport.rangeOf({ node });
+
       if (!range) {
         return false;
       }
+
       if (range[0] <= target[0] && target[1] <= range[1]) {
         const keys = opts.sourceCode.visitorKeys[AstNode.getType({ node }) ?? ''] ?? [];
 
@@ -195,6 +205,7 @@ export class AwaitSupport {
   /** The leading whitespace of the line a node starts on. */
   static indentOf(opts: { node: Rule.Node; sourceCode: SourceCode }): string {
     const line = opts.sourceCode.lines[(opts.node.loc?.start.line ?? 1) - 1] ?? '';
+
     return /^\s*/.exec(line)?.[0] ?? '';
   }
 
@@ -207,6 +218,7 @@ export class AwaitSupport {
       if (!AwaitSupport.isNode(parent)) {
         break;
       }
+
       current = parent;
       parent = AwaitSupport.parentOf({ node: current });
     }
@@ -227,6 +239,7 @@ export class AwaitSupport {
       if (FUNCTION_TYPES.has(AstNode.getType({ node: current }) ?? '')) {
         outermost = current;
       }
+
       current = AwaitSupport.parentOf({ node: current });
     }
 
@@ -255,6 +268,7 @@ export class AwaitSupport {
 
     for (let index = 1; ; index += 1) {
       const candidate = index === 1 ? opts.base : `${opts.base}${index}`;
+
       if (!reserved.has(candidate) && !new RegExp(`\\b${candidate}\\b`).test(text)) {
         reserved.add(candidate);
         pass.set(scope, reserved);

@@ -12,12 +12,15 @@ class StubConnector extends BaseSearchConnector {
   constructor() {
     super({ scope: 'StubConnector', identifier: 'stub' });
   }
+
   getHealth(): Promise<{ ok: boolean }> {
     return Promise.resolve({ ok: this.healthOk });
   }
+
   protected isNotFoundError(): boolean {
     return false;
   }
+
   collection = {
     create: nyi,
     ensure: nyi,
@@ -27,6 +30,7 @@ class StubConnector extends BaseSearchConnector {
     patchSchema: nyi,
     delete: nyi,
   };
+
   document = {
     create: nyi,
     get: nyi,
@@ -40,9 +44,11 @@ class StubConnector extends BaseSearchConnector {
     deleteAll: nyi,
     export: nyi,
   };
+
   search<TDocument extends object = object>(): Promise<ISearchResult<TDocument>> {
     throw new Error('nyi');
   }
+
   multiSearch(): Promise<unknown> {
     throw new Error('nyi');
   }

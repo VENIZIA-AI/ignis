@@ -33,11 +33,13 @@ export class HttpResponseReader {
     }
 
     const range = header.match(/(\d+)\s*-\s*(\d+)\s*\/\s*(\d+)/);
+
     if (range) {
       return { skip: Number(range[1]), total: Number(range[3]) };
     }
 
     const unsatisfied = header.match(/\*\s*\/\s*(\d+)/);
+
     if (unsatisfied) {
       return { total: Number(unsatisfied[1]) };
     }
@@ -85,6 +87,7 @@ export class HttpResponseReader {
   /** A failed response's envelope. A body that is not JSON yields `{}`, and the status alone still describes it. */
   static async readError(opts: { response: Response; rootKey?: string }): Promise<TResponsedError> {
     let text;
+
     try {
       const result = await opts.response.text();
       text = result;
@@ -94,6 +97,7 @@ export class HttpResponseReader {
     }
 
     let body: unknown;
+
     try {
       body = text ? JSON.parse(text) : undefined;
       // eslint-disable-next-line venizia/no-silent-catch -- a body that is not JSON yields `{}`; the status alone still describes the failure
@@ -125,6 +129,7 @@ export class HttpResponseReader {
     const displayText = serverText ?? `HTTP ${response.status}`;
 
     const extra: Record<string, unknown> = { ...server.extra };
+
     if (server.requestId) {
       const upstreamRequestId = extra.requestId;
       extra.requestId = server.requestId;
@@ -168,6 +173,7 @@ export class HttpResponseReader {
     }
 
     const { extra, ...envelope } = body;
+
     return { body: 'count' in envelope ? envelope : envelope.data, extra: { ...extra } };
   }
 }

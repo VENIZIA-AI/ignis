@@ -32,6 +32,7 @@ export class HttpWire {
           : Object.entries(headers);
 
     const merged = new Map<string, string>();
+
     for (const [name, value] of source) {
       merged.set(name.toLowerCase(), value);
     }
@@ -152,6 +153,7 @@ export class HttpWire {
     }
 
     const extraHeader: [string, string] = [HttpExtraRequest.HEADER, value];
+
     return [...HttpWire.toHeaderEntries({ headers }), extraHeader];
   }
 

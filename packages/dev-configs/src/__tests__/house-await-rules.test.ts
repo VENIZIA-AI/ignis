@@ -1,14 +1,16 @@
 import { describe, expect, test } from 'bun:test';
 import { Linter } from 'eslint';
 import { asyncStyleConfigs, houseConfigs } from '../linters/house';
+import { PADDING_OFF } from './padding-off';
 
-const CONFIGS = [...houseConfigs, ...asyncStyleConfigs];
+const CONFIGS = [...houseConfigs, ...asyncStyleConfigs, PADDING_OFF];
 const INLINE = 'venizia/no-inline-await';
 const RETURN = 'venizia/no-return-await';
 
 /** The findings of `ruleId` on `code`, as if it lived in `filename`. */
 const findings = (opts: { code: string; ruleId: string; filename?: string }) => {
   const { code, ruleId, filename = 'src/subject.ts' } = opts;
+
   return new Linter()
     .verify(code, CONFIGS, { filename })
     .filter((message) => message.ruleId === ruleId);

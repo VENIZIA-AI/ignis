@@ -16,6 +16,7 @@ const buildRepository = () => {
 const messageOf = async (task: Promise<unknown>): Promise<string> => {
   try {
     await task;
+
     return 'DID NOT THROW';
   } catch (error) {
     return (error as Error).message;

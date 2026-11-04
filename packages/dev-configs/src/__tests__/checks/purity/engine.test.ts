@@ -33,9 +33,11 @@ const makeRepository = (opts: {
 };
 
 const roots: string[] = [];
+
 const repository = (packages: Parameters<typeof makeRepository>[0]['packages']): string => {
   const root = makeRepository({ packages });
   roots.push(root);
+
   return root;
 };
 

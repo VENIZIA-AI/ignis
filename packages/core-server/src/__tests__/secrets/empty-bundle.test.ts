@@ -14,9 +14,11 @@ class EmptyHydrateApp extends BaseApplication {
   override getProjectRoot() {
     return process.cwd();
   }
+
   override getAppInfo() {
     return { name: 'probe', version: '0', description: '' } as AnyType;
   }
+
   override staticConfigure() {}
   override preConfigure() {}
   override postConfigure() {}

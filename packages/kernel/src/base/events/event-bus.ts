@@ -98,6 +98,7 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
     }
 
     const totalWindowMs = EventBus.computeTotalWindowMs({ maxAttempts, baseDelayMs });
+
     if (totalWindowMs > EventDispatchRetry.MAX_TOTAL_WINDOW_MS) {
       throw getError({
         message: `[EventBus][register] retry window exceeds the ceiling | name: ${name} | Got: ${totalWindowMs}ms | Ceiling: ${EventDispatchRetry.MAX_TOTAL_WINDOW_MS}ms | Lower retry.maxAttempts or retry.baseDelayMs`,
@@ -128,6 +129,7 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
     switch (handler.type) {
       case EventHandlerTypes.BINDING_KEY: {
         const { key } = handler;
+
         if (ObjectUtility.isEmpty({ value: key })) {
           throw getError({
             message: `[EventBus][register] Invalid handler.key | name: ${name} | Got: ${key}`,
@@ -142,6 +144,7 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
 
       case EventHandlerTypes.FUNCTION: {
         const { fn } = handler;
+
         if (typeof fn !== 'function') {
           throw getError({
             message: `[EventBus][register] Invalid handler.fn | name: ${name} | Expected a function | Got: ${typeof fn}`,
@@ -204,8 +207,10 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
     };
 
     const existing = this.registrationsByName.get(name);
+
     if (existing) {
       existing.push(registration);
+
       return;
     }
 
@@ -232,10 +237,12 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
     };
 
     const registrations = this.registrationsByName.get(name);
+
     if (!registrations?.length) {
       // A typo is already a compile error, so at runtime this only means nobody is listening yet -
       // a legitimate state on a fire-and-forget bus, not an incident.
       this.logger.debug('[publish] No handler registered | name: %s | traceId: %s', name, traceId);
+
       return;
     }
 

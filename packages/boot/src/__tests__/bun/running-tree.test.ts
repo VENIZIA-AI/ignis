@@ -17,6 +17,7 @@ const buildPackage = (opts: { fixture: string; into: string }): string => {
     recursive: true,
     filter: (path) => !path.includes('dist') && !path.includes('app_data'),
   });
+
   for (const relativePath of new Bun.Glob('**/*.ts').scanSync({ cwd: join(root, 'src') })) {
     const output = ts.transpileModule(
       require('node:fs').readFileSync(join(root, 'src', relativePath), 'utf8'),
@@ -32,6 +33,7 @@ const buildPackage = (opts: { fixture: string; into: string }): string => {
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, output);
   }
+
   return root;
 };
 

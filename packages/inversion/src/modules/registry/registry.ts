@@ -38,21 +38,25 @@ export class MetadataRegistry extends BaseHelper {
     key: TBindingKey;
   }): Value | undefined {
     const { target, key } = opts;
+
     return Reflect.getMetadata(key, target);
   }
 
   has<Target extends object = object>(opts: { target: Target; key: TBindingKey }): boolean {
     const { target, key } = opts;
+
     return Reflect.hasMetadata(key, target);
   }
 
   delete<Target extends object = object>(opts: { target: Target; key: TBindingKey }): boolean {
     const { target, key } = opts;
+
     return Reflect.deleteMetadata(key, target);
   }
 
   getKeys<Target extends object = object>(opts: { target: Target }): TBindingKey[] {
     const { target } = opts;
+
     return (
       Reflect.getMetadataKeys(target)?.filter((key) => {
         return typeof key === 'symbol' || typeof key === 'string';
@@ -66,6 +70,7 @@ export class MetadataRegistry extends BaseHelper {
     const methods = Object.getOwnPropertyNames(prototype).filter(
       (name) => name !== 'constructor' && typeof prototype[name] === 'function',
     );
+
     return methods;
   }
 
@@ -101,6 +106,7 @@ export class MetadataRegistry extends BaseHelper {
     target: T;
   }): Map<string | symbol, IPropertyMetadata> | undefined {
     const { target } = opts;
+
     return Reflect.getMetadata(MetadataKeys.PROPERTIES, target.constructor);
   }
 
@@ -110,6 +116,7 @@ export class MetadataRegistry extends BaseHelper {
   }): IPropertyMetadata | undefined {
     const { target, propertyName } = opts;
     const properties = this.getPropertiesMetadata({ target });
+
     return properties?.get(propertyName);
   }
 
@@ -128,6 +135,7 @@ export class MetadataRegistry extends BaseHelper {
 
   getInjectMetadata<T extends object = object>(opts: { target: T }): IInjectMetadata[] | undefined {
     const { target } = opts;
+
     return Reflect.getMetadata(MetadataKeys.INJECT, target);
   }
 
@@ -163,6 +171,7 @@ export class MetadataRegistry extends BaseHelper {
       MetadataKeys.BINDING_KEY,
       target,
     );
+
     return record?.key;
   }
 }

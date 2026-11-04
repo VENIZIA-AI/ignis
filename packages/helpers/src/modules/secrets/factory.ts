@@ -33,6 +33,7 @@ export class SecretsHelperFactory {
             allowRegistered: true,
           });
         }
+
         return new HashiCorpVaultHelper({ ...config, ...shared });
       }
       case SecretProviders.DOTENV_VAULT: {
@@ -44,6 +45,7 @@ export class SecretsHelperFactory {
             allowRegistered: true,
           });
         }
+
         return new DotenvVaultHelper({ ...config, ...shared });
       }
       default: {

@@ -33,6 +33,7 @@ export const inject = (opts: TInjectOptions) => {
           isOptional: opts.isOptional ?? false,
         },
       });
+
       return;
     }
 
@@ -45,6 +46,7 @@ export const inject = (opts: TInjectOptions) => {
           isOptional: opts.isOptional ?? false,
         },
       });
+
       return;
     }
 

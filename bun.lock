@@ -351,7 +351,7 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.4.7-6",
+      "version": "0.4.7",
       "bin": {
         "ignis-artifacts": "./dist/esm/clis/artifacts.js",
       },
@@ -374,7 +374,7 @@
     },
     "packages/connectors": {
       "name": "@venizia/ignis-connectors",
-      "version": "0.4.7-5",
+      "version": "0.4.7",
       "dependencies": {
         "@venizia/ignis-filter": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
@@ -419,7 +419,7 @@
     },
     "packages/core-server": {
       "name": "@venizia/ignis",
-      "version": "0.4.7-6",
+      "version": "0.4.7",
       "dependencies": {
         "@venizia/ignis-connectors": "workspace:*",
         "@venizia/ignis-filter": "workspace:*",
@@ -489,7 +489,7 @@
     },
     "packages/core-worker": {
       "name": "@venizia/ignis-worker",
-      "version": "0.4.7-5",
+      "version": "0.4.7",
       "dependencies": {
         "@venizia/ignis-helpers": "workspace:*",
         "@venizia/ignis-inversion": "workspace:*",
@@ -512,12 +512,13 @@
     },
     "packages/dev-configs": {
       "name": "@venizia/dev-configs",
-      "version": "0.4.7-5",
+      "version": "0.4.7",
       "bin": {
         "devz": "./dist/cli/index.js",
       },
       "dependencies": {
         "@eslint/js": "^10.0.1",
+        "@stylistic/eslint-plugin": "catalog:",
         "eslint-plugin-n": "^18.5.0",
         "eslint-plugin-unicorn": "^78.0.0",
         "typescript-eslint": "catalog:",
@@ -544,7 +545,7 @@
     },
     "packages/filter": {
       "name": "@venizia/ignis-filter",
-      "version": "0.4.6-2",
+      "version": "0.4.6",
       "dependencies": {
         "@venizia/ignis-inversion": "workspace:*",
         "zod": "catalog:",
@@ -561,7 +562,7 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.4.7-5",
+      "version": "0.4.7",
       "dependencies": {
         "@venizia/ignis-inversion": "workspace:*",
         "reflect-metadata": "catalog:",
@@ -644,7 +645,7 @@
     },
     "packages/inversion": {
       "name": "@venizia/ignis-inversion",
-      "version": "0.4.6-2",
+      "version": "0.4.6",
       "dependencies": {
         "reflect-metadata": "catalog:",
       },
@@ -660,7 +661,7 @@
     },
     "packages/kernel": {
       "name": "@venizia/ignis-kernel",
-      "version": "0.4.7-5",
+      "version": "0.4.7",
       "dependencies": {
         "@venizia/ignis-filter": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
@@ -703,6 +704,7 @@
     "@socket.io/bun-engine": "^0.1.2",
     "@socket.io/redis-adapter": "^8.3.0",
     "@socket.io/redis-emitter": "^5.1.0",
+    "@stylistic/eslint-plugin": "^5.10.0",
     "@types/bun": "^1.4.3",
     "@types/pg": "^8.23.1",
     "bullmq": "^6.4.0",
@@ -1265,6 +1267,8 @@
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 
     "@standard-schema/utils": ["@standard-schema/utils@0.3.0", "", {}, "sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g=="],
+
+    "@stylistic/eslint-plugin": ["@stylistic/eslint-plugin@5.10.0", "", { "dependencies": { "@eslint-community/eslint-utils": "^4.9.1", "@typescript-eslint/types": "^8.56.0", "eslint-visitor-keys": "^4.2.1", "espree": "^10.4.0", "estraverse": "^5.3.0", "picomatch": "^4.0.3" }, "peerDependencies": { "eslint": "^9.0.0 || ^10.0.0" } }, "sha512-nPK52ZHvot8Ju/0A4ucSX1dcPV2/1clx0kLcH5wDmrE4naKso7TUC/voUyU1O9OTKTrR6MYip6LP0ogEMQ9jPQ=="],
 
     "@tailwindcss/node": ["@tailwindcss/node@4.3.3", "", { "dependencies": { "@jridgewell/remapping": "^2.3.5", "enhanced-resolve": "^5.24.1", "jiti": "^2.7.0", "lightningcss": "1.32.0", "magic-string": "^0.30.21", "source-map-js": "^1.2.1", "tailwindcss": "4.3.3" } }, "sha512-/T8IKEsf9VTU6tLjgC7+sv2mOPtQxzE2jMw7u4Tt40Tx+QSZxpzh95/H6cMKoja9XuW7iMdLJYBB0o9G1CaAgg=="],
 
@@ -2661,6 +2665,10 @@
     "@socket.io/redis-adapter/debug": ["debug@4.3.7", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-Er2nc/H7RrMXZBFCEim6TCmMk02Z8vLC2Rbi1KEBggpo0fS6l0S1nnapwmIi3yW/+GOJap1Krg4w0Hg80oCqgQ=="],
 
     "@socket.io/redis-emitter/debug": ["debug@4.3.7", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-Er2nc/H7RrMXZBFCEim6TCmMk02Z8vLC2Rbi1KEBggpo0fS6l0S1nnapwmIi3yW/+GOJap1Krg4w0Hg80oCqgQ=="],
+
+    "@stylistic/eslint-plugin/eslint-visitor-keys": ["eslint-visitor-keys@4.2.1", "", {}, "sha512-Uhdk5sfqcee/9H/rCOJikYz67o0a2Tw2hGRPOG2Y1R2dg7brRe1uG0yaNQDHu+TO/uQPF/5eCapvYSmHUjt7JQ=="],
+
+    "@stylistic/eslint-plugin/espree": ["espree@10.4.0", "", { "dependencies": { "acorn": "^8.15.0", "acorn-jsx": "^5.3.2", "eslint-visitor-keys": "^4.2.1" } }, "sha512-j6PAQ2uUr79PZhBjP5C5fhl8e39FmRnOjsD5lGnWrFU8i2G776tBK7+nP8KuQUTTyAZUwfQqXAgrVH5MbH9CYQ=="],
 
     "@tailwindcss/node/lightningcss": ["lightningcss@1.32.0", "", { "dependencies": { "detect-libc": "^2.0.3" }, "optionalDependencies": { "lightningcss-android-arm64": "1.32.0", "lightningcss-darwin-arm64": "1.32.0", "lightningcss-darwin-x64": "1.32.0", "lightningcss-freebsd-x64": "1.32.0", "lightningcss-linux-arm-gnueabihf": "1.32.0", "lightningcss-linux-arm64-gnu": "1.32.0", "lightningcss-linux-arm64-musl": "1.32.0", "lightningcss-linux-x64-gnu": "1.32.0", "lightningcss-linux-x64-musl": "1.32.0", "lightningcss-win32-arm64-msvc": "1.32.0", "lightningcss-win32-x64-msvc": "1.32.0" } }, "sha512-NXYBzinNrblfraPGyrbPoD19C1h9lfI/1mzgWYvXUTe414Gz/X1FD2XBZSZM7rRTrMA8JL3OtAaGifrIKhQ5yQ=="],
 

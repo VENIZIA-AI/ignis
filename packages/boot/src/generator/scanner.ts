@@ -50,6 +50,7 @@ export class ArtifactScanner extends BaseHelper {
     const ignored = this.sortArtifacts(
       hidden.flatMap((filePath) => this.scanHiddenFile({ filePath, sourceModules, resolver })),
     );
+
     for (const artifact of ignored) {
       skipped.push({
         className: artifact.className,
@@ -72,6 +73,7 @@ export class ArtifactScanner extends BaseHelper {
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       this.logger.for('scanHiddenFile').warn('Skipped hidden file %s | %s', opts.filePath, reason);
+
       return [];
     }
   }
@@ -92,6 +94,7 @@ export class ArtifactScanner extends BaseHelper {
     const hidden: string[] = [];
 
     const sources = globSync(ArtifactStereotypes.SOURCE_GLOB, { cwd: opts.root });
+
     for (const relative of sources) {
       if (
         relative.endsWith('.d.ts') ||
@@ -99,6 +102,7 @@ export class ArtifactScanner extends BaseHelper {
       ) {
         continue;
       }
+
       const target = opts.userGlobs.some((pattern) => matchesGlob(relative, pattern))
         ? hidden
         : kept;
@@ -128,6 +132,7 @@ export class ArtifactScanner extends BaseHelper {
       sourceModules,
       resolver,
     });
+
     if (stereotypeByLocalName.size === 0) {
       return [];
     }
@@ -147,9 +152,11 @@ export class ArtifactScanner extends BaseHelper {
         filePath,
         className,
       });
+
       if (types.length === 0) {
         return;
       }
+
       if (types.length > 1) {
         throw getError({
           message: `[ArtifactScanner] ${filePath} | class ${className} carries ${types.length} stereotypes (${types.join(', ')}) - one class is one artifact`,
@@ -179,6 +186,7 @@ export class ArtifactScanner extends BaseHelper {
               isAbstract ? 'abstract' : 'not a named export',
             );
         }
+
         return;
       }
 
@@ -204,32 +212,40 @@ export class ArtifactScanner extends BaseHelper {
       if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
         continue;
       }
+
       const specifier = statement.moduleSpecifier.text;
       const isSourceModule =
         ArtifactStereotypes.SOURCE_MODULES.test(specifier) || opts.sourceModules.has(specifier);
+
       if (!isSourceModule && !opts.resolver) {
         continue;
       }
 
       const bindings = statement.importClause?.namedBindings;
+
       if (!bindings || !ts.isNamedImports(bindings)) {
         continue;
       }
 
       for (const element of bindings.elements) {
         const name = (element.propertyName ?? element.name).text;
+
         if (!isSourceModule && !decoratorNames.has(element.name.text)) {
           continue;
         }
+
         const imported = isSourceModule
           ? name
           : opts.resolver?.originOf({ fromFile: opts.source.fileName, specifier, name });
+
         if (!imported) {
           continue;
         }
+
         const isStereotype =
           imported in ArtifactStereotypes.BY_DECORATOR ||
           imported === ArtifactStereotypes.ROOT_DECORATOR;
+
         if (isStereotype) {
           result.set(element.name.text, imported);
         }
@@ -242,17 +258,21 @@ export class ArtifactScanner extends BaseHelper {
   /** The identifiers called as decorators on the file's top-level classes (`@service()`, `@kit.service()` is not followed). */
   private collectClassDecoratorNames(opts: { source: ts.SourceFile }): Set<string> {
     const names = new Set<string>();
+
     for (const statement of opts.source.statements) {
       if (!ts.isClassDeclaration(statement)) {
         continue;
       }
+
       for (const decorator of ts.getDecorators(statement) ?? []) {
         const expression = decorator.expression;
+
         if (ts.isCallExpression(expression) && ts.isIdentifier(expression.expression)) {
           names.add(expression.expression.text);
         }
       }
     }
+
     return names;
   }
 
@@ -284,22 +304,27 @@ export class ArtifactScanner extends BaseHelper {
     const types: TArtifactType[] = [];
 
     const decorators = ts.getDecorators(node) ?? [];
+
     for (const decorator of decorators) {
       const expression = decorator.expression;
+
       if (!ts.isCallExpression(expression) || !ts.isIdentifier(expression.expression)) {
         continue;
       }
 
       const stereotype = stereotypeByLocalName.get(expression.expression.text);
+
       if (!stereotype) {
         continue;
       }
+
       if (stereotype !== ArtifactStereotypes.ROOT_DECORATOR) {
         types.push(ArtifactStereotypes.BY_DECORATOR[stereotype]);
         continue;
       }
 
       const type = this.typeOfInjectableCall({ call: expression });
+
       if (!type) {
         this.logger
           .for('artifactTypesOf')
@@ -310,6 +335,7 @@ export class ArtifactScanner extends BaseHelper {
           );
         continue;
       }
+
       types.push(type);
     }
 
@@ -318,6 +344,7 @@ export class ArtifactScanner extends BaseHelper {
 
   private typeOfInjectableCall(opts: { call: ts.CallExpression }): TArtifactType | undefined {
     const [argument] = opts.call.arguments;
+
     if (!argument || !ts.isObjectLiteralExpression(argument)) {
       return undefined;
     }
@@ -326,14 +353,17 @@ export class ArtifactScanner extends BaseHelper {
       (entry): entry is ts.PropertyAssignment =>
         ts.isPropertyAssignment(entry) && ts.isIdentifier(entry.name) && entry.name.text === 'type',
     );
+
     if (!property) {
       return undefined;
     }
 
     const value = property.initializer;
+
     if (ts.isStringLiteral(value)) {
       return this.asArtifactType({ raw: value.text });
     }
+
     if (
       ts.isPropertyAccessExpression(value) &&
       ts.isIdentifier(value.expression) &&
@@ -347,6 +377,7 @@ export class ArtifactScanner extends BaseHelper {
 
   private asArtifactType(opts: { raw: string }): TArtifactType | undefined {
     const { raw } = opts;
+
     return ArtifactStereotypes.EMIT_ORDER.map((entry) => entry.type)
       .concat(ArtifactTypes.MODEL)
       .find((type) => type === raw);

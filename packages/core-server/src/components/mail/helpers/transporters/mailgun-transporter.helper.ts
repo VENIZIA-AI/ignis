@@ -106,6 +106,7 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
     } catch (error) {
       this.logger.for(this.send.name).error('Mailgun send failed: %s', error);
       MailAttachmentUtility.release({ attachments: message.attachments });
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -126,9 +127,11 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
       });
 
       this.logger.for(this.verify.name).info('Mailgun API connection verified successfully');
+
       return true;
     } catch (error) {
       this.logger.for(this.verify.name).error('Mailgun API verification failed: %s', error);
+
       return false;
     }
   }

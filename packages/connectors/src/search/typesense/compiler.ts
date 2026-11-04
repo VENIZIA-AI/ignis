@@ -72,6 +72,7 @@ const buildEmbedModelConfig = (opts: {
   const modelConfig: Record<string, unknown> = {};
 
   const modelEntries = Object.entries(model);
+
   for (const [key, value] of modelEntries) {
     if (value === undefined) {
       continue;
@@ -104,6 +105,7 @@ const applyVectorConfig = (opts: {
 
     compiled.num_dim = vector.dimensions;
     compiled.vec_dist = vector.distance ?? VectorDistances.COSINE;
+
     return;
   }
 
@@ -158,6 +160,7 @@ const mergeFields = (opts: {
 
   const merged = base.map((baseField) => {
     const match = overrideByName.get(baseField.name);
+
     return match ? { ...baseField, ...match } : baseField;
   });
 
@@ -257,6 +260,7 @@ export class TypesenseCollectionCompiler {
     }
 
     const typesenseOverride = engineOverrides?.typesense;
+
     if (typesenseOverride) {
       schema = mergeOverride({ schema, override: typesenseOverride });
     }

@@ -26,6 +26,7 @@ const bundle = async (entrypoint: string) => {
   const [output] = built.outputs;
   const result = await output.arrayBuffer();
   const result2 = await output.text();
+
   return { bytes: result.byteLength, text: result2 };
 };
 

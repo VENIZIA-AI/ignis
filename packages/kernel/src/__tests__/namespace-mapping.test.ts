@@ -21,13 +21,17 @@ interface IMappingEntry {
 /** The repository root: the nearest parent that holds the dev-configs package (tests run from the package or from the root). */
 const findRoot = (): string => {
   let current = process.cwd();
+
   while (!existsSync(join(current, 'packages/dev-configs/package.json'))) {
     const parent = dirname(current);
+
     if (parent === current) {
       throw new Error(`[namespace-mapping] Repository root not found from ${process.cwd()}`);
     }
+
     current = parent;
   }
+
   return current;
 };
 
@@ -74,9 +78,11 @@ describe('the kernel entries of the namespace-functions table', () => {
     for (const entry of KERNEL_MAPPINGS) {
       for (const specifier of entry.modules) {
         const key = `${specifier}#${entry.oldName}`;
+
         if (seen.has(key)) {
           repeated.push(key);
         }
+
         seen.add(key);
       }
     }

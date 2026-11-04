@@ -107,11 +107,13 @@ describe('scopeFilter write guard', () => {
     }>(
       'SELECT merchant_id AS "merchantId", name, deleted_at AS "deletedAt" FROM write_guard_items ORDER BY id',
     );
+
     return result.rows;
   };
 
   const rows = async () => {
     const all = await allRows();
+
     return all.map(({ merchantId, name }) => ({ merchantId, name }));
   };
 
@@ -661,6 +663,7 @@ describe('scopeFilter write guard', () => {
 
     const names = async () => {
       const found = await rows();
+
       return found.map((row) => row.name);
     };
 

@@ -68,11 +68,13 @@ const runBinary = (opts: { mode: string }): string => {
     timeout: BINARY_TIMEOUT_MS,
     killSignal: KILL_SIGNAL,
   });
+
   if (run.exitedDueToTimeout) {
     throw new Error(
       `probe did not exit within ${BINARY_TIMEOUT_MS} ms | mode: ${opts.mode} | ${run.stderr.toString().slice(0, 300)}`,
     );
   }
+
   return (
     run.stdout
       .toString()
@@ -93,6 +95,7 @@ describe('optional peers inside a compiled binary', () => {
     binary = path.join(workDirectory, 'probe');
 
     await writeFile(entry, PROBE);
+
     try {
       // A child process, not `Bun.build` in this one: a compile that stalls here would block the
       // thread, and with it the hook's own timeout. The child is killed at the limit instead.
@@ -104,6 +107,7 @@ describe('optional peers inside a compiled binary', () => {
         timeout: BUILD_TIMEOUT_MS,
         killSignal: KILL_SIGNAL,
       });
+
       if (built.exitedDueToTimeout || built.exitCode !== 0) {
         throw new Error(
           `probe build failed | timed out: ${built.exitedDueToTimeout} | ${built.stderr.toString().slice(0, 500)}`,

@@ -71,6 +71,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
   /** Re-run on every send, so a header the app changed since the last request is the one sent. */
   protected resolveHeaders(opts: { context: IHttpRequestContext }): Array<[string, string]> {
     const resolver = this.settings.headersResolver;
+
     if (!resolver) {
       return [];
     }
@@ -124,6 +125,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
   /** The browser global `location` is not declared for a server build, so it is probed, not assumed. */
   protected resolveLocationOrigin(): string | undefined {
     const location: unknown = Reflect.get(globalThis, 'location');
+
     if (typeof location !== 'object' || location === null || !('origin' in location)) {
       return undefined;
     }
@@ -137,6 +139,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
 
     // A page or a Web Worker has an origin to resolve '/api' against; a server has none.
     const origin = this.isRelativeBaseUrl ? this.resolveLocationOrigin() : undefined;
+
     if (this.isRelativeBaseUrl && !origin) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
@@ -147,6 +150,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     const url = new URL(requestUrl, origin);
 
     const parameters = Object.entries(query ?? {});
+
     for (const [key, value] of parameters) {
       if (value === undefined) {
         continue;

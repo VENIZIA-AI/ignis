@@ -224,6 +224,7 @@ describe('APP_ENV_LOGGER_DO_REDACT=false - the reveal kill-switch', () => {
 
   test('any value other than the literal false keeps redaction ON (fail-closed)', () => {
     const items = ['true', 'FALSE', '0', 'no', ''];
+
     for (const value of items) {
       flip(value, () => {
         const redacted = RedactUtility.redactSecrets({ value: { token: 'tok_live' } }) as {

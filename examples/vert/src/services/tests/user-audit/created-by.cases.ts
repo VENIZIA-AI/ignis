@@ -32,6 +32,7 @@ export class CreatedByCases extends UserAuditCases {
 
       if (!created.data) {
         this.context.logger.error('[CASE 1] FAILED | No data returned from create');
+
         return;
       }
 
@@ -95,6 +96,7 @@ export class CreatedByCases extends UserAuditCases {
 
       if (!created.data) {
         this.context.logger.error('[CASE 2] FAILED | No data returned from create');
+
         return;
       }
 
@@ -107,6 +109,7 @@ export class CreatedByCases extends UserAuditCases {
 
       if (directResults.length === 0) {
         this.context.logger.error('[CASE 2] FAILED | Record not found in database');
+
         return;
       }
 
@@ -177,6 +180,7 @@ export class CreatedByCases extends UserAuditCases {
           '[CASE 3] FAILED | Expected 3 records created | count: %d',
           created.count,
         );
+
         return;
       }
 
@@ -199,6 +203,7 @@ export class CreatedByCases extends UserAuditCases {
             record.createdBy,
           );
         }
+
         if (record.createdBy !== record.modifiedBy) {
           allCorrect = false;
           this.context.logger.error(
@@ -250,6 +255,7 @@ export class CreatedByCases extends UserAuditCases {
 
       if (!created.data) {
         this.context.logger.error('[CASE 5] FAILED | No data returned from create');
+
         return;
       }
 
@@ -278,6 +284,7 @@ export class CreatedByCases extends UserAuditCases {
 
         if (!dbRecord) {
           this.context.logger.error('[CASE 5] FAILED | Record not found after update');
+
           return;
         }
 

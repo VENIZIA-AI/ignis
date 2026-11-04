@@ -65,11 +65,13 @@ const openSockets: Array<dgram.Socket> = [];
 
 afterEach(() => {
   const clients = openClients.splice(0);
+
   for (const client of clients) {
     client.disconnect();
   }
 
   const sockets = openSockets.splice(0);
+
   for (const socket of sockets) {
     try {
       socket.close();

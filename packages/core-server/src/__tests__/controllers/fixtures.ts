@@ -10,6 +10,7 @@ export const applyMethodDecorator = (opts: {
   const { decorator, target, methodName } = opts;
 
   const descriptor = Object.getOwnPropertyDescriptor(target, methodName);
+
   if (!descriptor) {
     throw getError({
       message: `[applyMethodDecorator] Method not found on target | methodName: ${methodName}`,

@@ -28,12 +28,14 @@ const isDatabaseReachable = async (opts: { url: string }): Promise<boolean> => {
 
   try {
     await client`select 1`;
+
     return true;
   } catch (error) {
     LoggerFactory.getLogger(['smoke']).warn(
       'Database unreachable, RLS suite skipped | Error: %o',
       error,
     );
+
     return false;
   } finally {
     await client.end({ timeout: 1 });

@@ -194,6 +194,7 @@ describe('PersistableRepository.updateAll - the transform result reaches set()',
         update: () => ({
           set: (data: Record<string, AnyType>) => {
             captured.setArgument = data;
+
             return { where: () => Promise.resolve({ rows: [], rowCount: 1 }) };
           },
         }),

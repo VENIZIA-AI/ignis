@@ -130,6 +130,7 @@ export abstract class RelationalBaseRepository<
   /** Hidden fields as a memoized Set, derived from the base's class-keyed `hiddenFields` array. */
   getHiddenProperties(): Set<string> {
     this._hiddenPropertySet ??= new Set(this.hiddenFields);
+
     return this._hiddenPropertySet;
   }
 
@@ -147,6 +148,7 @@ export abstract class RelationalBaseRepository<
 
     if (hiddenProps.size === 0) {
       this._visibleColumns = undefined;
+
       return undefined;
     }
 
@@ -160,6 +162,7 @@ export abstract class RelationalBaseRepository<
     }
 
     this._visibleColumns = visibleProperties;
+
     return this._visibleColumns;
   }
 
@@ -173,6 +176,7 @@ export abstract class RelationalBaseRepository<
 
   hasDefaultFilter(): boolean {
     const defaultFilter = this.getDefaultFilter();
+
     return defaultFilter !== undefined && Object.keys(defaultFilter).length > 0;
   }
 
@@ -196,6 +200,7 @@ export abstract class RelationalBaseRepository<
     operation: TScopeOperation;
   }): Row[] {
     const settings = this.getAccessSettings();
+
     if (!settings) {
       return opts.rows;
     }
@@ -230,6 +235,7 @@ export abstract class RelationalBaseRepository<
     }
 
     const scopeFilterSettings = this.getAccessSettings();
+
     if (!scopeFilterSettings) {
       return userFilter ?? {};
     }
@@ -294,6 +300,7 @@ export abstract class RelationalBaseRepository<
     }
 
     const defaultFilter = this.getDefaultFilter();
+
     if (!defaultFilter) {
       return scopedFilter;
     }
@@ -339,6 +346,7 @@ export abstract class RelationalBaseRepository<
     const ownedTransaction = await this.beginTransaction(transactionOptions);
 
     let result: ResultType;
+
     try {
       const result2 = await execute({ transaction: ownedTransaction });
       result = result2;
@@ -375,6 +383,7 @@ export abstract class RelationalBaseRepository<
       this.logger
         .for('runInTransaction')
         .warn('execute committed the owned transaction itself | Skipped the commit');
+
       return result;
     }
 
@@ -414,15 +423,19 @@ export abstract class RelationalBaseRepository<
 
     if (result.columns) {
       result.columns = this.omitHiddenColumns({ columns: result.columns, hiddenProps });
+
       return result;
     }
 
     const visibleProps = this.getVisibleProperties();
+
     if (visibleProps) {
       const filteredColumns: Record<string, boolean> = {};
+
       for (const key in visibleProps) {
         filteredColumns[key] = true;
       }
+
       result.columns = filteredColumns;
     }
 

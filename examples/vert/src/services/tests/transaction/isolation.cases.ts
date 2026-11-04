@@ -70,6 +70,7 @@ export class IsolationCases extends BaseTestCases {
           transaction.isolationLevel,
         );
       }
+
       await transaction.rollback();
     } catch (error) {
       await transaction.rollback();
@@ -104,6 +105,7 @@ export class IsolationCases extends BaseTestCases {
       await transaction.commit();
 
       const result = await repo.findOne({ filter: { where: { code } } });
+
       if (result) {
         this.context.logger.info(
           '[CASE 9] PASSED - SERIALIZABLE transaction committed successfully',
@@ -159,6 +161,7 @@ export class IsolationCases extends BaseTestCases {
 
         // TX2 might fail or succeed depending on isolation level
         let tx2Committed = false;
+
         try {
           await repo.updateAll({
             where: { code },
@@ -202,17 +205,20 @@ export class IsolationCases extends BaseTestCases {
         } catch (rollbackError) {
           this.context.logger.error('tx1 rollback failed: %s', (rollbackError as Error).message);
         }
+
         try {
           await tx2.rollback();
         } catch (rollbackError) {
           this.context.logger.error('tx2 rollback failed: %s', (rollbackError as Error).message);
         }
+
         throw error;
       }
 
       await repo.deleteAll({ where: { code } });
     } catch (error) {
       this.context.logger.error('[CASE 12] FAILED with error: %o', error);
+
       try {
         await repo.deleteAll({ where: { group: 'TX_CONCURRENT_TEST' } });
       } catch (cleanupError) {
@@ -316,6 +322,7 @@ export class IsolationCases extends BaseTestCases {
       } catch (rollbackError) {
         this.context.logger.error('Rollback failed: %s', (rollbackError as Error).message);
       }
+
       this.context.logger.error('[CASE 19] FAILED with error: %o', error);
     }
   }

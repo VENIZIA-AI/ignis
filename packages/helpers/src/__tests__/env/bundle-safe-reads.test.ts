@@ -34,6 +34,7 @@ const runBundled = async (opts: {
     stdout: 'pipe',
     stderr: 'pipe',
   });
+
   if (build.exitCode !== 0) {
     throw new Error(`[bundle-safe-reads] bun build failed | stderr: ${build.stderr.toString()}`);
   }
@@ -52,11 +53,13 @@ const runBundled = async (opts: {
     .toString()
     .split('\n')
     .find((text) => text.startsWith('RESULT:'));
+
   if (!line) {
     throw new Error(
       `[bundle-safe-reads] bundle emitted no result | stderr: ${run.stderr.toString()}`,
     );
   }
+
   return line.slice('RESULT:'.length);
 };
 

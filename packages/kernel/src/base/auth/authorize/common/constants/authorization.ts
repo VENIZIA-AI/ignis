@@ -68,6 +68,7 @@ export class AuthorizationDecisions {
     if (typeof input === 'number') {
       return input > 0;
     }
+
     return input.toLowerCase() === this.ALLOW;
   }
 
@@ -75,6 +76,7 @@ export class AuthorizationDecisions {
     if (typeof input === 'number') {
       return input < 0;
     }
+
     return input.toLowerCase() === this.DENY;
   }
 
@@ -82,6 +84,7 @@ export class AuthorizationDecisions {
     if (typeof input === 'number') {
       return input === 0;
     }
+
     return input.toLowerCase() === this.ABSTAIN;
   }
 }
@@ -92,18 +95,22 @@ export class AuthorizationRoles {
     name: 'super-admin',
     priority: 999,
   });
+
   static readonly ADMIN = AuthorizationRole.build({
     name: 'admin',
     priority: 900,
   });
+
   static readonly USER = AuthorizationRole.build({
     name: 'user',
     priority: 10,
   });
+
   static readonly GUEST = AuthorizationRole.build({
     name: 'guest',
     priority: 1,
   });
+
   static readonly UNKNOWN_USER = AuthorizationRole.build({
     name: 'unknown-user',
     priority: 0,

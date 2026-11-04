@@ -139,6 +139,7 @@ describe('a bundle compiled with BuildInfoStamp.define', () => {
     });
     // The entry prints the registry as its last line; a debug log from the resolver may come before it.
     const lines = result.stdout.toString().trim().split('\n');
+
     return JSON.parse(lines[lines.length - 1] ?? '');
   };
 

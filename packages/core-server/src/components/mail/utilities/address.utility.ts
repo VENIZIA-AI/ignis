@@ -24,6 +24,7 @@ export class MailAddressUtility {
           if (current.trim()) {
             addresses.push(current.trim());
           }
+
           current = '';
           continue;
         }

@@ -52,11 +52,13 @@ export class UrlPolicy {
     // unwrapped: `new URL` rewrites `::ffff:169.254.169.254` into the hex form `::ffff:a9fe:a9fe`,
     // so a dotted-quad-only check is green on a value the parser never actually produces.
     const dottedMapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(normalized)?.[1];
+
     if (dottedMapped) {
       return UrlPolicy.isNonPublicIPv4({ address: dottedMapped });
     }
 
     const hexMapped = /^::ffff:([\da-f]{1,4}):([\da-f]{1,4})$/.exec(normalized);
+
     if (hexMapped) {
       const high = Number.parseInt(hexMapped[1], 16);
       const low = Number.parseInt(hexMapped[2], 16);
@@ -80,6 +82,7 @@ export class UrlPolicy {
   /** A bracketed IPv6 literal arrives as `[::1]`; the brackets are not part of the address. */
   static readHostAddress(opts: { hostname: string }): string {
     const { hostname } = opts;
+
     return hostname.startsWith('[') && hostname.endsWith(']') ? hostname.slice(1, -1) : hostname;
   }
 
@@ -94,6 +97,7 @@ export class UrlPolicy {
       policy?.allowPrivateAddress ?? UrlSafetyDefaults.ALLOW_PRIVATE_ADDRESS;
 
     let parsed: URL;
+
     try {
       parsed = new URL(url);
     } catch {
@@ -139,6 +143,7 @@ export class UrlPolicy {
    */
   static isRefusedError(opts: { error: unknown }): boolean {
     const source = opts.error as { normalized?: { code?: string } };
+
     return source?.normalized?.code === UrlSafetyErrors.URL_REFUSED.message.code;
   }
 }

@@ -23,8 +23,10 @@ export class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
     }
 
     const { key, bus } = opts;
+
     if (this.buses[key]) {
       this.logger.for(this.bindWorkerBus.name).warn('Worker Bus existed | key: %s', key);
+
       return;
     }
 
@@ -37,8 +39,10 @@ export class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
     }
 
     const { key } = opts;
+
     if (!(key in this.buses)) {
       this.logger.for(this.unbindWorkerBus.name).warn('Worker Bus not existed | key: %s', key);
+
       return;
     }
 
@@ -48,6 +52,7 @@ export class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
 
   getWorkerBus<IC, IP>(opts: { key: string }) {
     const rs = this.buses[opts.key];
+
     if (!rs) {
       throw getError({
         message: `[getWorkerBus] Not found worker bus | key: ${opts.key}`,

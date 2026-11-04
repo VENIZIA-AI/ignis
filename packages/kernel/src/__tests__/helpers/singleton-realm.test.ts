@@ -27,6 +27,7 @@ const installCopy = async (opts: { name: string }): Promise<TKernelModule> => {
   cpSync(DIST_ROOT, target, { recursive: true });
 
   const result = await import(join(target, 'index.js'));
+
   return result as TKernelModule;
 };
 
@@ -72,6 +73,7 @@ describe('a second copy of the kernel is harmless, not forbidden', () => {
       'RequestContextRegistry',
       'AbstractDataSource',
     ];
+
     for (const name of names) {
       expect(typeof copyA[name]).toBe('function');
       expect(copyA[name]).not.toBe(copyB[name]);

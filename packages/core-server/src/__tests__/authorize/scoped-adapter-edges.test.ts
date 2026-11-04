@@ -30,12 +30,14 @@ function makeAdapter(
       const { sql: text, params } = dialect.sqlToQuery(query);
       captured.push(text);
       const rows = await rowsFor(text, params);
+
       return { rows };
     },
   };
   // The adapter only ever calls `.execute`, so the stub implements only that out of drizzle's full generated node-postgres type.
   const dataSource = { connector } as ICasbinPolicySource;
   const adapter = new ScopedCasbinAdapter({ dataSource, entities: entities() });
+
   return { adapter, captured, getExecuteCalls: () => executeCalls };
 }
 
@@ -102,7 +104,9 @@ describe('scoped-adapter-edges — buildGrantLines', () => {
   it('logs and skips a grant row with no action rather than dropping it silently', async () => {
     const messages: string[] = [];
     const { adapter } = makeAdapter();
+
     const noop = (): void => {};
+
     // Fully implements ILogger (rather than a `.for()`-only partial) so no cast is needed to assign it.
     const errorLogger: ILogger = {
       debug: noop,

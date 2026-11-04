@@ -37,8 +37,10 @@ describe('RequestSpyMiddleware - form bodies are parsed only where they are logg
   afterEach(() => {
     if (ORIGINAL_NODE_ENV === undefined) {
       delete process.env.NODE_ENV;
+
       return;
     }
+
     process.env.NODE_ENV = ORIGINAL_NODE_ENV;
   });
 
@@ -106,6 +108,7 @@ describe('RequestSpyMiddleware - form bodies are parsed only where they are logg
     const server = new OpenAPIHono();
     server.post('/parse', async (context) => {
       const parsed = await spy.parseBody({ req: context.req });
+
       return context.json(parsed);
     });
 

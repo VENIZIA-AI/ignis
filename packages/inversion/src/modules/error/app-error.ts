@@ -114,6 +114,7 @@ export const isApplicationError = (error: unknown): error is ApplicationError =>
   }
 
   const { statusCode, normalized } = error;
+
   return (
     typeof statusCode === 'number' &&
     typeof normalized === 'object' &&

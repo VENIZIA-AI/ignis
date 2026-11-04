@@ -30,11 +30,13 @@ export abstract class AbstractSqliteDataSource<
 
   override getQueryDialect(): IRelationalQueryDialect {
     AbstractSqliteDataSource.queryDialect ??= new SqliteQueryDialect();
+
     return AbstractSqliteDataSource.queryDialect;
   }
 
   override getQueryExecutor(): IRelationalQueryExecutor<TSqliteConnector<Schema>> {
     AbstractSqliteDataSource.queryExecutor ??= new SqliteQueryExecutor();
+
     return AbstractSqliteDataSource.queryExecutor as IRelationalQueryExecutor<
       TSqliteConnector<Schema>
     >;

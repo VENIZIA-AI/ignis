@@ -92,6 +92,7 @@ export class ScopeWriteGuard {
             where: part as Record<string, unknown>,
             constraints,
           });
+
           if (reason !== undefined) {
             return reason;
           }
@@ -102,6 +103,7 @@ export class ScopeWriteGuard {
 
       if (key === 'or') {
         const union = ScopeWriteGuard.unionOfBranches({ branches: value });
+
         if (typeof union === 'string') {
           return union;
         }
@@ -119,6 +121,7 @@ export class ScopeWriteGuard {
       }
 
       const allowed = ScopeWriteGuard.allowedValues({ value });
+
       if (typeof allowed === 'string') {
         return `column '${key}': ${allowed}`;
       }
@@ -150,11 +153,13 @@ export class ScopeWriteGuard {
 
     for (const branch of branches) {
       const entries = Object.entries((branch ?? {}) as Record<string, unknown>);
+
       if (entries.length !== 1) {
         return "an 'or' branch with several conditions cannot be checked on a write";
       }
 
       const [key, value] = entries[0];
+
       if (key === 'and' || key === 'or' || key.includes('.')) {
         return `an 'or' branch over '${key}' cannot be checked on a write`;
       }
@@ -165,6 +170,7 @@ export class ScopeWriteGuard {
 
       column = key;
       const values = ScopeWriteGuard.allowedValues({ value });
+
       if (typeof values === 'string') {
         return `column '${key}': ${values}`;
       }
@@ -194,6 +200,7 @@ export class ScopeWriteGuard {
     }
 
     const operators = Object.keys(value as object);
+
     if (operators.length !== 1) {
       return `a condition with ${operators.length} operators cannot be checked on a write`;
     }
@@ -269,12 +276,14 @@ export class ScopeWriteGuard {
         // could match a shared row without a null in sight.
         if (key === 'or') {
           const union = ScopeWriteGuard.unionOfBranches({ branches: value });
+
           if (typeof union === 'string') {
             return { kind: 'unverifiable', reason: union };
           }
         }
 
         const kept: TWhere[] = [];
+
         for (const part of value) {
           const narrowed = ScopeWriteGuard.withoutShared({ where: isRecord(part) ? part : {} });
 
@@ -287,6 +296,7 @@ export class ScopeWriteGuard {
             if (key === 'and') {
               return narrowed;
             }
+
             continue;
           }
 
@@ -309,6 +319,7 @@ export class ScopeWriteGuard {
       }
 
       const narrowed = ScopeWriteGuard.conditionWithoutNull({ value });
+
       if (narrowed.kind !== 'condition') {
         return narrowed.kind === 'none'
           ? { kind: 'none' }
@@ -336,6 +347,7 @@ export class ScopeWriteGuard {
       }
 
       const kept = entries.filter((entry) => entry !== null);
+
       return kept.length === 0
         ? { kind: 'none' as const }
         : { kind: 'condition' as const, value: kept };
@@ -354,6 +366,7 @@ export class ScopeWriteGuard {
     }
 
     const operators = Object.keys(value);
+
     if (operators.length !== 1) {
       return {
         kind: 'unverifiable',
@@ -373,6 +386,7 @@ export class ScopeWriteGuard {
       Array.isArray(operand)
     ) {
       const narrowed = list(operand);
+
       return narrowed.kind === 'condition'
         ? { kind: 'condition', value: { [operator]: narrowed.value } }
         : narrowed;
@@ -423,6 +437,7 @@ export class ScopeWriteGuard {
     }
 
     const extraction = ScopeWriteGuard.extractConstraints({ where: scope });
+
     if (!extraction.isVerifiable) {
       throw ScopeWriteGuard.denied({
         model,
@@ -436,6 +451,7 @@ export class ScopeWriteGuard {
 
     if (declared) {
       const undeclared = [...constraints.keys()].find((column) => !declared.includes(column));
+
       if (undeclared !== undefined) {
         throw ScopeWriteGuard.denied({
           model,
@@ -462,6 +478,7 @@ export class ScopeWriteGuard {
 
           // `assign` first: stamping gives the row an owner, which is safer than leaving it shared.
           const only = allowed.size === 1 ? [...allowed][0] : undefined;
+
           if (isAssign && only !== undefined && only !== null) {
             result = { ...result, [column]: only };
             continue;

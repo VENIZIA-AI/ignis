@@ -69,6 +69,7 @@ const buildJob = (opts?: { id?: string }): AnyType => {
 /** Awaits a rejection explicitly: bun's `expect(...).rejects` is typed as non-thenable in this repo. */
 const captureRejection = async (opts: { promise: Promise<unknown> }): Promise<Error> => {
   let outcome: Error | null = null;
+
   try {
     await opts.promise;
   } catch (error) {
@@ -84,6 +85,7 @@ const captureRejection = async (opts: { promise: Promise<unknown> }): Promise<Er
 
 describe('BullMQHelper — role dispatch, worker hooks, close', () => {
   const unhandledRejections: unknown[] = [];
+
   const onUnhandledRejection = (reason: unknown) => {
     unhandledRejections.push(reason);
   };
@@ -244,6 +246,7 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
       redisConnection: buildRedisConnection(),
       onWorkerData: async (job) => {
         processed.push(job);
+
         return { ok: true };
       },
     });

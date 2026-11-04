@@ -13,6 +13,7 @@ const ENV_KEYS = [
 ] as const;
 
 const saved: Record<string, string | undefined> = {};
+
 for (const key of ENV_KEYS) {
   saved[key] = process.env[key];
 }
@@ -23,6 +24,7 @@ const restoreEnv = () => {
       delete process.env[key];
       continue;
     }
+
     process.env[key] = saved[key];
   }
 };
@@ -30,9 +32,11 @@ const restoreEnv = () => {
 const withConsoleWarn = (): { warnings: Array<string>; restore: () => void } => {
   const warnings: Array<string> = [];
   const original = console.warn;
+
   console.warn = (...parts: Array<unknown>) => {
     warnings.push(parts.map((part) => String(part)).join(' '));
   };
+
   return {
     warnings,
     restore: () => {
@@ -53,9 +57,11 @@ describe('resolveDestinationPlan', () => {
     const plan = PinoDestination.resolvePlan();
 
     expect(plan.kind).toBe('roll');
+
     if (plan.kind !== 'roll') {
       throw new Error('unreachable');
     }
+
     expect(plan.options.file).toBe(path.join('./app_data/logs', Defaults.APPLICATION_NAME));
     expect(plan.options.frequency).toBe('hourly');
     expect(plan.options.size).toBe('100m');
@@ -69,6 +75,7 @@ describe('resolveDestinationPlan', () => {
 
     const plan = PinoDestination.resolvePlan();
     expect(plan.kind).toBe('roll');
+
     if (plan.kind === 'roll') {
       expect(plan.options.frequency).toBe('hourly');
     }
@@ -80,6 +87,7 @@ describe('resolveDestinationPlan', () => {
 
     const plan = PinoDestination.resolvePlan();
     expect(plan.kind).toBe('roll');
+
     if (plan.kind === 'roll') {
       expect(plan.options.frequency).toBe('daily');
     }
@@ -91,6 +99,7 @@ describe('resolveDestinationPlan', () => {
 
     const plan = PinoDestination.resolvePlan();
     expect(plan.kind).toBe('roll');
+
     if (plan.kind === 'roll') {
       expect(plan.options.frequency).toBe('daily');
     }
@@ -105,9 +114,11 @@ describe('resolveDestinationPlan', () => {
     restore();
 
     expect(plan.kind).toBe('roll');
+
     if (plan.kind === 'roll') {
       expect(plan.options.frequency).toBe('hourly');
     }
+
     expect(warnings.some((entry) => entry.includes('[mapFrequency]'))).toBe(true);
   });
 

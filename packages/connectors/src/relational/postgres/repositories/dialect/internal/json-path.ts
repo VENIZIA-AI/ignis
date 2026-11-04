@@ -6,6 +6,7 @@ export class PostgresJsonPathUtility {
    */
   static toPostgresJsonPathElements(opts: { path: string[] }): string {
     const { path } = opts;
+
     return path.length === 0 ? '' : `"${path.join('","')}"`;
   }
 }

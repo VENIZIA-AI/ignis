@@ -56,6 +56,7 @@ export const RepositoryMetadataMixin = <
       target: Target;
     }): (TRepositoryMetadata & { _resolved?: IResolvedRepositoryMetadata }) | undefined {
       const { target } = opts;
+
       return Reflect.getMetadata(MetadataKeys.REPOSITORY, target);
     }
 
@@ -95,6 +96,7 @@ export const RepositoryMetadataMixin = <
         current = Object.getPrototypeOf(current)
       ) {
         const binding = this.repositoryBindingsByClass.get(current);
+
         if (binding) {
           return binding;
         }
@@ -152,6 +154,7 @@ export const RepositoryMetadataMixin = <
       const builtRelations = builder({ source: modelMeta.schema, relations });
 
       modelMeta._builtRelations = builtRelations?.relations;
+
       return modelMeta._builtRelations;
     }
 

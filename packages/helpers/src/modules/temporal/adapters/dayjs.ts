@@ -38,6 +38,7 @@ export class DayjsTemporalAdapter implements ITemporalAdapter {
     const { value, tz } = opts;
 
     let epoch = value.getTime();
+
     while (epoch < FIRST_SAFE_EPOCH) {
       epoch += GREGORIAN_CYCLE_MILLISECONDS;
     }

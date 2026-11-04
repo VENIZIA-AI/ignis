@@ -18,6 +18,7 @@ const createFakeApplication = (opts: {
       if (getOpts.key === AuthorizeBindingKeys.OPTIONS) {
         return opts.options as T;
       }
+
       return undefined;
     },
     bind<T>(bindOpts: { key: string }) {

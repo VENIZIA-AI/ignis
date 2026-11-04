@@ -115,6 +115,7 @@ const patchProperty = (opts: { object: AnyType; name: string; value: unknown }):
     restore: () => {
       if (descriptor) {
         Object.defineProperty(object, name, descriptor);
+
         return;
       }
 
@@ -125,6 +126,7 @@ const patchProperty = (opts: { object: AnyType; name: string; value: unknown }):
 
 const normalizePath = (path: string): string => {
   const withParams = path.replace(/:[A-Za-z0-9_]+/g, ':param').replace(/\/{2,}/g, '/');
+
   return withParams.length > 1 ? withParams.replace(/\/$/, '') : withParams;
 };
 
@@ -133,6 +135,7 @@ const assertNoDuplicateRoutes = (opts: { application: BaseApplication }): void =
   const { application } = opts;
   // signature -> controller key -> how many times that controller declares it
   const mounted = new Map<string, Map<string, number>>();
+
   const record = (signature: string, key: string, declarations: number): void => {
     const owners = mounted.get(signature) ?? new Map<string, number>();
     owners.set(key, Math.max(owners.get(key) ?? 0, declarations));
@@ -155,6 +158,7 @@ const assertNoDuplicateRoutes = (opts: { application: BaseApplication }): void =
       key: binding.key,
       isOptional: true,
     });
+
     // Hono's `routes` has one entry PER HANDLER (a validator, an authenticate and the handler of one route are three
     // entries with the same method and path), so an entry is not a declaration: a controller counts once per signature.
     for (const route of instance?.getRouter().routes ?? []) {
@@ -168,12 +172,14 @@ const assertNoDuplicateRoutes = (opts: { application: BaseApplication }): void =
     // What the router cannot show: one controller declaring a method and path twice. Decorated routes are one
     // metadata entry per declaration, so those are counted there.
     const declared = new Map<string, number>();
+
     for (const route of MetadataRegistry.getInstance()
       .getRoutes({ target: (target as TClass<AnyType>).prototype })
       ?.values() ?? []) {
       const signature = `${String(route.method).toUpperCase()} ${normalizePath(`${metadata.path}/${route.path}`)}`;
       declared.set(signature, (declared.get(signature) ?? 0) + 1);
     }
+
     for (const [signature, declarations] of declared) {
       record(signature, binding.key, declarations);
     }
@@ -183,6 +189,7 @@ const assertNoDuplicateRoutes = (opts: { application: BaseApplication }): void =
     ([, owners]) =>
       owners.size > 1 || [...owners.values()].some((declarations) => declarations > 1),
   );
+
   if (duplicates.length === 0) {
     return;
   }
@@ -240,6 +247,7 @@ export class ApplicationBootAssertion {
     }
 
     let target: Application;
+
     if (typeof application === 'function') {
       const built = await application();
       target = built;
@@ -255,6 +263,7 @@ export class ApplicationBootAssertion {
         `This application instance was already booted | A failed or finished boot leaves registrations behind, so build a new instance (pass a factory) for each call`,
       );
     }
+
     bootedApplications.add(target);
 
     for (const name of WRAPPED_METHODS) {
@@ -278,11 +287,13 @@ export class ApplicationBootAssertion {
       const { namespace, binding } = entry;
       const isDataSource = namespace === BindingNamespaces.DATASOURCE;
       const isComponent = namespace === BindingNamespaces.COMPONENT;
+
       if (!isDataSource && !isComponent) {
         return;
       }
 
       const instance = target.get<AnyType>({ key: binding.key, isOptional: false });
+
       if (typeof instance?.configure !== 'function') {
         return;
       }
@@ -290,6 +301,7 @@ export class ApplicationBootAssertion {
       const shouldRun = isDataSource
         ? matchesTarget({ targets: keepDataSources, binding, instance })
         : !matchesTarget({ targets: skipComponents, binding, instance });
+
       if (shouldRun) {
         return;
       }
@@ -313,16 +325,19 @@ export class ApplicationBootAssertion {
         ...sweepOptions,
         onBeforeConfigure: async ({ binding }) => {
           await neutralise({ namespace: sweepOptions.namespace, binding });
+
           if (sweepOptions.namespace === BindingNamespaces.COMPONENT) {
             const instance = target.get<AnyType>({ key: binding.key, isOptional: true });
             configuringComponents.push(String(instance?.constructor?.name ?? binding.key));
           }
+
           await userBefore?.({ binding });
         },
         onAfterConfigure: async ({ binding, instance }) => {
           if (sweepOptions.namespace === BindingNamespaces.COMPONENT) {
             configuringComponents.pop();
           }
+
           await userAfter?.({ binding, instance });
         },
       });
@@ -371,6 +386,7 @@ export class ApplicationBootAssertion {
         ServerBootSteps.REGISTER_COMPONENTS,
         ServerBootSteps.REGISTER_CONTRIBUTED_DATA_SOURCES,
       ].some((step) => !skippedSteps.has(step));
+
       if (sweepsExpected && sweepsSeen === 0) {
         fail(
           `The boot never went through 'registerDynamicBindings' | The wrap did not take effect, so datasources may have been configured`,
@@ -402,6 +418,7 @@ export class ApplicationBootAssertion {
       return target;
     } catch (error) {
       const failing = configuringComponents.at(-1);
+
       if (failing) {
         target.logger
           .for('ApplicationBootAssertion.assert')

@@ -27,6 +27,7 @@ function buildTop(filter: any): TDrizzleQueryOptions {
 /** Builds the `with[relation]` Drizzle options for a relation scope. */
 function buildScope(relation: string, scope: any): true | TDrizzleQueryOptions {
   const result = builder.toInclude({ include: [{ relation, scope }], relations });
+
   return result[relation];
 }
 

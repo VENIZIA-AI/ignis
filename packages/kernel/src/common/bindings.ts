@@ -28,6 +28,7 @@ export class BindingNamespaces {
    */
   static isValid(opts: { name: string }): boolean {
     const { name } = opts;
+
     return typeof name === 'string' && BindingNamespaces.NAME_PATTERN.test(name);
   }
 

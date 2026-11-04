@@ -40,9 +40,11 @@ describe('Enforcer Registry Middleware Flow', () => {
     if (opts.options?.rules) {
       TestAuthorizationEnforcer.rules = opts.options.rules;
     }
+
     if (opts.options?.loadRulesFn) {
       TestAuthorizationEnforcer.loadRulesFn = opts.options.loadRulesFn;
     }
+
     if (opts.options?.onBuildRules) {
       TestAuthorizationEnforcer.onBuildRules = opts.options.onBuildRules;
     }
@@ -80,12 +82,14 @@ describe('Enforcer Registry Middleware Flow', () => {
     context: ReturnType<typeof createMockContext>,
   ): Promise<{ hasCalledNext: boolean; error?: any }> => {
     let hasCalledNext = false;
+
     const next = async () => {
       hasCalledNext = true;
     };
 
     try {
       await middleware(context, next);
+
       return { hasCalledNext };
     } catch (error) {
       return { hasCalledNext, error };
@@ -435,14 +439,19 @@ describe('Enforcer Registry Middleware Flow', () => {
 
       const voter1: TAuthorizationVoter = async () => {
         callOrder.push('voter1');
+
         return AuthorizationDecisions.ABSTAIN as TAuthorizationDecision;
       };
+
       const voter2: TAuthorizationVoter = async () => {
         callOrder.push('voter2');
+
         return AuthorizationDecisions.DENY as TAuthorizationDecision;
       };
+
       const voter3: TAuthorizationVoter = async () => {
         callOrder.push('voter3');
+
         return AuthorizationDecisions.ALLOW as TAuthorizationDecision;
       };
 
@@ -470,14 +479,19 @@ describe('Enforcer Registry Middleware Flow', () => {
 
       const voter1: TAuthorizationVoter = async () => {
         callOrder.push('voter1');
+
         return AuthorizationDecisions.ABSTAIN as TAuthorizationDecision;
       };
+
       const voter2: TAuthorizationVoter = async () => {
         callOrder.push('voter2');
+
         return AuthorizationDecisions.ALLOW as TAuthorizationDecision;
       };
+
       const voter3: TAuthorizationVoter = async () => {
         callOrder.push('voter3');
+
         return AuthorizationDecisions.DENY as TAuthorizationDecision;
       };
 
@@ -509,6 +523,7 @@ describe('Enforcer Registry Middleware Flow', () => {
         capturedUser = user;
         capturedAction = action;
         capturedResource = resource;
+
         return AuthorizationDecisions.ALLOW as TAuthorizationDecision;
       };
 
@@ -731,6 +746,7 @@ describe('Enforcer Registry Middleware Flow', () => {
 
       expect(hasCalledNext).toBe(false);
       expect(isApplicationError(error)).toBe(true);
+
       if (isApplicationError(error)) {
         expect(error.normalized.code).toBe('core.authorization.enforcer_not_registered');
       }

@@ -17,6 +17,7 @@ const dialect = new PgDialect();
 const compile = (where: any): { text: string; params: unknown[] } => {
   const condition = builder.toWhere({ tableName: 'exists_fixture', schema: table, where }) as SQL;
   const { sql, params } = dialect.sqlToQuery(condition);
+
   return { text: sql, params };
 };
 

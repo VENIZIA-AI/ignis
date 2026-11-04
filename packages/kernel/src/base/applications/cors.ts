@@ -22,6 +22,7 @@ export class CorsUtility {
 
     const hasOrigin =
       typeof origin === 'function' || (Array.isArray(origin) ? origin.length > 0 : !!origin);
+
     if (!hasOrigin) {
       throw getError({
         message:
@@ -30,6 +31,7 @@ export class CorsUtility {
     }
 
     const origins = Array.isArray(origin) ? origin : [origin];
+
     if (credentials && origins.includes('*')) {
       throw getError({
         message:

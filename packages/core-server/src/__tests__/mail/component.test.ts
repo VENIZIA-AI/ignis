@@ -63,6 +63,7 @@ describe('MailComponent - wiring', () => {
       MailKeys.MAIL_TRANSPORT_PROVIDER,
       MailKeys.MAIL_QUEUE_EXECUTOR_PROVIDER,
     ];
+
     for (const key of keys) {
       expect(container.isBound({ key })).toBe(true);
     }
@@ -87,11 +88,13 @@ describe('MailComponent - wiring', () => {
     const { component } = buildComponent({ mailOptions: null });
 
     let error: AnyType;
+
     try {
       await component.configure();
     } catch (caught) {
       error = caught;
     }
+
     expect(error.message).toContain('Mail options not configured');
   });
 

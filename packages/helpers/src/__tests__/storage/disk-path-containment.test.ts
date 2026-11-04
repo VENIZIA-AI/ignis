@@ -24,6 +24,7 @@ const buildStorage = (): { root: string; helper: DiskHelper } => {
 const captureError = async (opts: { task: Promise<unknown> }): Promise<string> => {
   try {
     await opts.task;
+
     return '';
   } catch (error) {
     return (error as Error).message;
@@ -32,6 +33,7 @@ const captureError = async (opts: { task: Promise<unknown> }): Promise<string> =
 
 afterEach(() => {
   const rootsList = roots.splice(0);
+
   for (const root of rootsList) {
     rmSync(root, { recursive: true, force: true });
   }

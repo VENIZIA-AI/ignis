@@ -21,6 +21,7 @@ const captureRequest = (): ICaptured => {
   globalThis.fetch = ((input: AnyType, init?: RequestInit) => {
     captured.url = String(input);
     captured.init = init;
+
     return Promise.resolve(new Response(null, { status: 204 }));
   }) as AnyType;
 
@@ -174,6 +175,7 @@ describe('NodeFetcher - logging', () => {
       provider: {
         get: () => {
           resolved += 1;
+
           return {
             debug: record,
             info: record,

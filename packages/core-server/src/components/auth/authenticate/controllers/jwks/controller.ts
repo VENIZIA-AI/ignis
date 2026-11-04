@@ -29,6 +29,7 @@ export class JWKSController extends BaseRestController {
       handler: async (context) => {
         const jwks = await this.jwksService.getJWKSAsync();
         context.header('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+
         return context.json(jwks, HTTP.ResultCodes.RS_2.Ok);
       },
     });

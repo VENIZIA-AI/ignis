@@ -60,6 +60,7 @@ const closeSocket = (opts: { socket: Socket }): Promise<void> => {
   return new Promise((resolve) => {
     if (opts.socket.destroyed) {
       resolve();
+
       return;
     }
 
@@ -115,8 +116,10 @@ afterEach(async () => {
   await Promise.all(openSockets.splice(0).map((socket) => closeSocket({ socket })));
 
   const servers = openServers.splice(0);
+
   for (const server of servers) {
     const clientsValues = Object.values(server.getClients());
+
     for (const client of clientsValues) {
       client.socket.destroy();
     }
@@ -333,6 +336,7 @@ describe('NetworkTcpServer - authentication flow', () => {
 
     globalThis.clearTimeout = ((handle: AnyType) => {
       cleared.push(handle);
+
       return originalClearTimeout(handle);
     }) as AnyType;
 

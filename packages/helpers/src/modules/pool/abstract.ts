@@ -90,6 +90,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
     });
 
     this.safeDispatch({ action: 'acquire' });
+
     return promise;
   }
 
@@ -99,14 +100,17 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
 
     if (!this.borrowed.has(resource)) {
       logger.warn('Called with a foreign/already-released resource; ignoring.');
+
       return;
     }
+
     this.borrowed.delete(resource);
 
     if (this.isDestroyed) {
       this.destroyResource({ resource }).catch((error) => {
         logger.warn('destroyResource error on release: %s', error);
       });
+
       return;
     }
 
@@ -134,6 +138,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
     try {
       const result = await opts.execution(resource);
       this.release({ resource });
+
       return result;
     } catch (error) {
       this.logger
@@ -149,6 +154,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
 
     if (!this.borrowed.delete(resource)) {
       this.logger.for(this.discard.name).warn('Called with a non-borrowed resource; ignoring.');
+
       return;
     }
 
@@ -161,6 +167,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
 
     const error = getError({ message: '[destroy] Pool destroyed while awaiting a resource.' });
     const draineds = this.waiterQueue.drain();
+
     for (const waiter of draineds) {
       this.clearWaiterTimer({ waiter });
       waiter.reject(error);
@@ -177,6 +184,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
 
     try {
       const resource = await this.create();
+
       return resource;
     } catch (error) {
       this.total -= 1;
@@ -221,6 +229,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
         // Prefer a warm idle resource (LIFO) over creating a new one.
         if (this.idle.length > 0) {
           const resource = await this.takeIdleResource();
+
           if (resource === null) {
             continue; // bad idle resource was discarded → try the next one
           }
@@ -228,6 +237,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
           if (!this.handToWaiter({ resource })) {
             return;
           }
+
           continue;
         }
 
@@ -253,6 +263,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
     const logger = this.logger.for(this.takeIdleResource.name);
 
     let isValid: boolean;
+
     try {
       const result = await this.validateResource({ resource });
       isValid = result;
@@ -260,11 +271,13 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
       // A throwing validate must NOT leak the popped candidate (it would corrupt `total` and can permanently starve the pool); treat it like an invalid resource - discard and retry.
       logger.warn('validate hook threw; discarding resource: %s', error);
       await this.destroyResource({ resource });
+
       return null;
     }
 
     if (!isValid) {
       await this.destroyResource({ resource });
+
       return null;
     }
 
@@ -273,6 +286,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
     } catch (error) {
       logger.warn('reset hook threw; discarding resource: %s', error);
       await this.destroyResource({ resource });
+
       return null;
     }
 
@@ -282,11 +296,13 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
   /** Create a fresh resource and hand it to the next waiter; on create failure, reject that waiter. */
   private async createAndHand(): Promise<void> {
     let resource: T;
+
     try {
       const result = await this.createResource();
       resource = result;
     } catch (error) {
       this.takeNextWaiter()?.reject(error);
+
       return;
     }
 
@@ -304,31 +320,38 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
           .for(this.handToWaiter.name)
           .warn('destroyResource error on a resource created after destroy(): %s', error);
       });
+
       return false;
     }
 
     const waiter = this.takeNextWaiter();
+
     if (!waiter) {
       this.idle.push(resource);
+
       return false;
     }
 
     this.borrowed.add(resource);
     waiter.resolve(resource);
+
     return true;
   }
 
   /** Dequeue the next live waiter and disarm its acquire-timeout so it cannot fire after settlement. */
   private takeNextWaiter(): TNullable<IPoolWaiter<T>> {
     const waiter = this.waiterQueue.dequeue();
+
     if (waiter) {
       this.clearWaiterTimer({ waiter });
     }
+
     return waiter;
   }
 
   private clearWaiterTimer(opts: { waiter: IPoolWaiter<T> }): void {
     const { waiter } = opts;
+
     if (waiter.timer) {
       clearTimeout(waiter.timer);
       waiter.timer = null;

@@ -109,6 +109,7 @@ const listConditionTargets = (
   const targets: Array<{ condition: string; file: string }> = [];
 
   const targetEntries = Object.entries(target);
+
   for (const [condition, file] of targetEntries) {
     if (condition === NON_RUNTIME_CONDITION || seen.has(file)) {
       continue;
@@ -153,6 +154,7 @@ export class PurityManifest {
 
     for (const row of manifest) {
       const specifiers = row.external ?? [];
+
       for (const specifier of specifiers) {
         if (!specifier.startsWith(workspaceScope)) {
           continue;
@@ -180,6 +182,7 @@ export class PurityManifest {
     const published = Object.keys(exportsMap).filter((subpath) => subpath !== NON_CODE_SUBPATH);
 
     const subpathsList = claim.subpaths ?? [];
+
     for (const subpath of subpathsList) {
       if (published.includes(subpath)) {
         continue;
@@ -192,6 +195,7 @@ export class PurityManifest {
     }
 
     const claimExternalKeys = Object.keys(claim.external ?? {});
+
     for (const subpath of claimExternalKeys) {
       if (published.includes(subpath)) {
         continue;
@@ -207,6 +211,7 @@ export class PurityManifest {
     const claimed = claim.subpaths ?? published;
 
     const claimImpureKeys = Object.keys(claim.impure ?? {});
+
     for (const subpath of claimImpureKeys) {
       if (claimed.includes(subpath)) {
         continue;
@@ -224,6 +229,7 @@ export class PurityManifest {
       const targets = listConditionTargets(exportsMap[subpath]!);
 
       const conditions = claim.impure?.[subpath] ?? [];
+
       for (const condition of conditions) {
         if (targets.some((target) => target.condition === condition)) {
           continue;

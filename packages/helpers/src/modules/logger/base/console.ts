@@ -59,15 +59,18 @@ export class ConsoleLogger extends AbstractLogger {
     switch (level) {
       case LogLevels.DEBUG: {
         this.debug(message, ...args);
+
         return;
       }
       case LogLevels.WARN: {
         this.warn(message, ...args);
+
         return;
       }
       case LogLevels.ERROR:
       case LogLevels.EMERG: {
         this.error(message, ...args);
+
         return;
       }
       default: {
@@ -78,6 +81,7 @@ export class ConsoleLogger extends AbstractLogger {
 
   for(methodName: string): ILogger {
     const childScope = this.scope !== '' ? `${this.scope}-${methodName}` : methodName;
+
     return ConsoleLogger.get(childScope);
   }
 }

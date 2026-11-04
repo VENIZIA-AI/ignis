@@ -27,6 +27,7 @@ class BetaService {
 const makeTwin = () => {
   class Twin {}
   Object.defineProperty(Twin, 'name', { value: AlphaService.name });
+
   return Twin;
 };
 
@@ -91,6 +92,7 @@ describe('verifyBindings - what it finds', () => {
     container.bind({ key: 'services.NeedsMissingKey' }).toClass(NeedsMissingKey);
 
     let thrown: unknown;
+
     try {
       BindingVerifier.assertResolve({ container, namespaces: NAMESPACES, scope: 'verifyBindings' });
     } catch (error) {
@@ -144,6 +146,7 @@ describe('verifyBindings - what it finds', () => {
       } catch (caught) {
         return caught as ApplicationError;
       }
+
       throw new Error('expected the assertion to throw');
     })();
     expect(error.extra?.missing).toEqual({
@@ -309,6 +312,7 @@ describe('Container errors carry what is missing', () => {
       } catch (error) {
         return error as ApplicationError;
       }
+
       throw new Error('expected a throw');
     })();
     const objectKey = (() => {
@@ -317,6 +321,7 @@ describe('Container errors carry what is missing', () => {
       } catch (error) {
         return error as ApplicationError;
       }
+
       throw new Error('expected a throw');
     })();
 
@@ -334,6 +339,7 @@ describe('Container errors carry what is missing', () => {
       } catch (caught) {
         return caught as ApplicationError;
       }
+
       throw new Error('expected a throw');
     })();
 
@@ -348,9 +354,11 @@ describe('the core stays portable', () => {
     const specifiers = [...source.matchAll(/from '([^']+)'/g)].map((match) => match[1]);
 
     expect(specifiers.length).toBeGreaterThan(0);
+
     for (const specifier of specifiers) {
       expect(specifier.startsWith('.') || specifier.startsWith('@/')).toBe(true);
     }
+
     expect(source).not.toMatch(/\b(process|Bun|console|window|document|globalThis)\b/);
   });
 

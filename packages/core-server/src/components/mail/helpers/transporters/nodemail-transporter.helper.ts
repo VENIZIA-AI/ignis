@@ -29,6 +29,7 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
   /** Client factory seam - overridden in tests to run the helper without a real SMTP client. */
   protected buildTransporter(config: TNodemailerConfig): AnyType {
     const nodemailer = this.module ?? ModuleUtility.loadSync<AnyType>({ module: 'nodemailer' });
+
     return nodemailer.createTransport(config);
   }
 
@@ -38,6 +39,7 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
 
       // No root: MailService resolved paths already; one that reaches here is refused, not read.
       let attachments: Awaited<ReturnType<typeof MailAttachmentUtility.resolve>> | undefined;
+
       if (message.attachments) {
         const resolved = await MailAttachmentUtility.resolve({ attachments: message.attachments });
         attachments = resolved;
@@ -70,6 +72,7 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
     } catch (error) {
       this.logger.for(this.send.name).error('Nodemailer send failed: %s', error);
       MailAttachmentUtility.release({ attachments: message.attachments });
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -82,9 +85,11 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
       this.logger.for(this.verify.name).info('Verifying SMTP connection');
       await this.transporter.verify();
       this.logger.for(this.verify.name).info('SMTP connection verified successfully');
+
       return true;
     } catch (error) {
       this.logger.for(this.verify.name).error('SMTP verification failed: %s', error);
+
       return false;
     }
   }

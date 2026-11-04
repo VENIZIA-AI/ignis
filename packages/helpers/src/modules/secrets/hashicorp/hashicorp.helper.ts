@@ -49,6 +49,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
       timers: opts.timers,
     });
     this.endpoint = opts.endpoint;
+
     try {
       this.auth = vaultAuthSchema.parse(opts.auth);
     } catch (error) {
@@ -58,20 +59,25 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
         }`,
       });
     }
+
     this.client = opts.client;
   }
 
   override async configure(): Promise<void> {
     const logger = this.logger.for(this.configure.name);
+
     if (!this.client) {
       const result = await ModuleUtility.load<AnyType>({ module: 'node-vault' });
       const factory = result.default;
       this.client = factory({ endpoint: this.endpoint, apiVersion: 'v1' }) as TVaultClient;
     }
+
     const { ttlSeconds, renewable } = await this.login();
+
     if (renewable && ttlSeconds > 0) {
       this.scheduleTokenRenewal({ ttlSeconds });
     }
+
     logger.info('Vault authenticated | endpoint: %s | method: %s', this.endpoint, this.auth.method);
   }
 
@@ -80,6 +86,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
       this.timers.clear(this.tokenTimer);
       this.tokenTimer = undefined;
     }
+
     await super.shutdown();
   }
 
@@ -87,6 +94,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
     if (!this.client) {
       throw getError({ message: '[HashiCorpVaultHelper] configure() must run before use' });
     }
+
     return this.client;
   }
 
@@ -98,6 +106,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
       case VaultAuthMethods.TOKEN: {
         client.token = this.auth.token;
         const res = await client.tokenLookupSelf();
+
         return {
           ttlSeconds: Number(res?.data?.['ttl'] ?? 0),
           renewable: Boolean(res?.data?.['renewable']),
@@ -110,6 +119,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
         payload['mount_point'] = this.auth.mountPath ?? 'approle';
         const res = await client.approleLogin(payload);
         client.token = res.auth['client_token'];
+
         return {
           ttlSeconds: Number(res.auth['lease_duration'] ?? 0),
           renewable: Boolean(res.auth['renewable']),
@@ -121,6 +131,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
             message: '[HashiCorpVaultHelper.login] node-vault client lacks kubernetesLogin',
           });
         }
+
         const result = await readFile(
           this.auth.jwtPath ?? '/var/run/secrets/kubernetes.io/serviceaccount/token',
           'utf8',
@@ -130,6 +141,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
         payload['mount_point'] = this.auth.mountPath ?? 'kubernetes';
         const res = await client.kubernetesLogin(payload);
         client.token = res.auth['client_token'];
+
         return {
           ttlSeconds: Number(res.auth['lease_duration'] ?? 0),
           renewable: Boolean(res.auth['renewable']),
@@ -145,6 +157,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
     if (this.tokenTimer) {
       this.timers.clear(this.tokenTimer);
     }
+
     const delayMs = Math.max(0, opts.ttlSeconds * this.renewBeforeRatio * 1000);
     this.tokenTimer = this.timers.set(() => {
       this.handleTokenRenewal().catch((error) => {
@@ -160,6 +173,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
     if (this.tokenTimer) {
       this.timers.clear(this.tokenTimer);
     }
+
     this.tokenRenewalRetryCount += 1;
     const backoffSeconds = Math.min(
       HashiCorpVaultHelper.TOKEN_RENEWAL_RETRY_CAP_SECONDS,
@@ -182,11 +196,14 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
       const res = await this.requireClient().tokenRenewSelf();
       const ttlSeconds = Number(res?.auth?.['lease_duration'] ?? 0);
       const renewable = Boolean(res?.auth?.['renewable']);
+
       if (renewable && ttlSeconds > 0) {
         this.tokenRenewalRetryCount = 0;
         this.scheduleTokenRenewal({ ttlSeconds });
+
         return;
       }
+
       logger.warn('Token renewal returned a non-renewable/expired token; re-authenticating');
     } catch (error) {
       logger.warn('Token renewal failed; re-authenticating | error: %s', error);
@@ -195,6 +212,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
     try {
       const { ttlSeconds, renewable } = await this.login();
       this.tokenRenewalRetryCount = 0;
+
       if (renewable && ttlSeconds > 0) {
         this.scheduleTokenRenewal({ ttlSeconds });
       }
@@ -210,10 +228,13 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
     const inner = nested && typeof nested === 'object' ? nested : res?.['data'];
     const value: Record<string, string> = {};
     const innerEntries = Object.entries(inner ?? {});
+
     for (const [key, raw] of innerEntries) {
       value[key] = typeof raw === 'string' ? raw : JSON.stringify(raw);
     }
+
     const leaseId = res?.['lease_id'];
+
     if (leaseId) {
       return {
         value,
@@ -224,18 +245,22 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
         },
       };
     }
+
     return { value };
   }
 
   protected async renewRaw(opts: { leaseId: string; ttlSeconds: number }) {
     const logger = this.logger.for(this.renewRaw.name);
+
     try {
       const payload: AnyObject = { increment: opts.ttlSeconds };
       payload['lease_id'] = opts.leaseId;
       const res = await this.requireClient().write('sys/leases/renew', payload);
+
       return { ttlSeconds: res['lease_duration'] ?? opts.ttlSeconds };
     } catch (error) {
       logger.warn('Renew rejected | leaseId: %s | error: %s', opts.leaseId, error);
+
       return null;
     }
   }

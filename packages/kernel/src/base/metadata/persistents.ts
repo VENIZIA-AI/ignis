@@ -33,6 +33,7 @@ export const model = (input: IModelMetadata = {}): ClassDecorator => {
     const { settings } = metadata;
 
     const defaultLimit = settings?.query?.limit?.default;
+
     if (defaultLimit !== undefined && (!Number.isInteger(defaultLimit) || defaultLimit <= 0)) {
       throw getError({
         message: `[model][${target.name}] Invalid 'query.limit.default' | Expected a positive integer | Got: ${defaultLimit}`,
@@ -42,6 +43,7 @@ export const model = (input: IModelMetadata = {}): ClassDecorator => {
     // Validated at DECORATION time, like the default limit: a bad ceiling is a wiring mistake, and
     // catching it at boot beats catching it on the one request that happens to reach the limit.
     const maxLimit = settings?.query?.limit?.max;
+
     if (maxLimit !== undefined && (!Number.isInteger(maxLimit) || maxLimit <= 0)) {
       throw getError({
         message: `[model][${target.name}] Invalid 'query.limit.max' | Expected a positive integer | Got: ${maxLimit}`,
@@ -50,6 +52,7 @@ export const model = (input: IModelMetadata = {}): ClassDecorator => {
 
     // Auto-populate AUTHORIZATION_SUBJECT from authorize.principal if not already set
     const principal = settings?.authorize?.principal;
+
     if (principal && !Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {
       (target as Record<string, unknown>).AUTHORIZATION_SUBJECT = principal;
     }
@@ -186,6 +189,7 @@ const registerDataSourceInjection = (opts: {
   // An interface emits `Object` and a type-only class import emits `Function` under tsc (`Object`
   // under bun); neither names the class, so neither is judged.
   const firstParamType = Reflect.getMetadata('design:paramtypes', target)?.[0];
+
   if (firstParamType && firstParamType !== Object && firstParamType !== Function) {
     validateFirstConstructorParameter({ target, firstParamType, resolvedDataSource });
   }
@@ -231,6 +235,7 @@ const resolveRepositoryMetadata = <
   validateRepositoryMetadata({ metadata, target });
 
   const resolvedDataSource = ClassResolver.resolveClass({ ref: metadata.dataSource });
+
   if (!resolvedDataSource) {
     throw getError({
       message: `[@repository][${target.name}] The dataSource resolver returned nothing at decoration time | An import cycle leaves the datasource class undefined here; import it without the cycle, or name it as a string`,
@@ -245,6 +250,7 @@ const resolveRepositoryMetadata = <
       dataSourceRef: metadata.dataSource,
       resolvedDataSource,
     });
+
     return {
       type: RepositoryTypes.REMOTE,
       dataSource: resolvedDataSource,
@@ -282,6 +288,7 @@ const inheritRepositoryMetadata = (opts: {
 }): TRepositoryMetadata => {
   // Own metadata does not exist yet at decoration time, so this read walks the prototype chain.
   const inherited = opts.registry.getRepositoryMetadata({ target: opts.target });
+
   if (!inherited) {
     throw getError({
       message: `[@repository][${opts.target.name}] No metadata given and no decorated repository above it in the prototype chain | pass { model, dataSource } or decorate the parent`,
@@ -290,10 +297,12 @@ const inheritRepositoryMetadata = (opts: {
 
   if (inherited.type === RepositoryTypes.REMOTE) {
     const { type, dataSource, operationScope } = inherited;
+
     return { type, dataSource, operationScope };
   }
 
   const { type, model: parentModel, dataSource, operationScope } = inherited;
+
   return { type, model: parentModel, dataSource, operationScope };
 };
 
@@ -325,6 +334,7 @@ export const repository = <
 ): ClassDecorator => {
   return (target) => {
     const registry = MetadataRegistry.getInstance();
+
     if (!metadata) {
       applyRepositoryMetadata({
         metadata: inheritRepositoryMetadata({ target, registry }),
@@ -332,6 +342,7 @@ export const repository = <
         target,
         registry,
       });
+
       return;
     }
 

@@ -31,6 +31,7 @@ export class BaseHelper {
     if (Object.hasOwn(this, 'scope')) {
       pinLogger({ helper: this, logger });
     }
+
     return logger;
   }
 

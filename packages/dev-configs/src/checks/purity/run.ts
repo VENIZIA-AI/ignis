@@ -81,6 +81,7 @@ export class PurityCheck {
         `[purity] No manifest entry matches "${filter}" | Known packages: ${known} - a filter that ` +
           `matches nothing is a broken gate, not an empty one.`,
       );
+
       return undefined;
     }
 
@@ -167,9 +168,11 @@ export class PurityCheck {
       print(
         `  ✗ ${row.label.padEnd(labelWidth)} builtins: ${formatList(result.builtins)} | globals: ${formatList(result.globals)}${guarded}${external}`,
       );
+
       if (result.buildError) {
         print(`    ${result.buildError.split('\n')[0]}`);
       }
+
       verdicts.push({ ...detail, verdict: PurityVerdicts.FAIL });
     }
 

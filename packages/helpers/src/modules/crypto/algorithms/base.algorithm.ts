@@ -81,6 +81,7 @@ export abstract class BaseCryptoAlgorithm<
         message: `[BaseCryptoAlgorithm][normalizeSecretKey] kdfIterations must be an integer from 1 to ${MAXIMUM_KDF_ITERATIONS}, got ${iterations}`,
       });
     }
+
     const cacheKey = `${DEFAULT_KDF_DIGEST}:${iterations}:${length}:${salt}:${secret}`;
 
     return this.deriveOnce({
@@ -151,6 +152,7 @@ export abstract class BaseCryptoAlgorithm<
 
   getAlgorithmKeySize() {
     const b = ParseUtility.toInt({ input: this.algorithm?.split('-')?.[1] ?? DEFAULT_CIPHER_BITS });
+
     return ParseUtility.toInt({ input: b / 8 });
   }
 }

@@ -10,8 +10,10 @@ export class UuidV4Generator {
    */
   static create(): () => string {
     const randomUuid = globalThis.crypto?.randomUUID;
+
     if (typeof randomUuid === 'function') {
       const native = randomUuid.bind(globalThis.crypto);
+
       return () => native();
     }
 

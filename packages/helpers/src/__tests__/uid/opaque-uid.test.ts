@@ -22,6 +22,7 @@ describe('UidAlphabets', () => {
 
   test('BASE58 drops exactly the four look-alikes', () => {
     const characters = ['0', 'O', 'I', 'l'];
+
     for (const character of characters) {
       expect(UidAlphabets.BASE58).not.toContain(character);
     }
@@ -31,6 +32,7 @@ describe('UidAlphabets', () => {
     expect(UidAlphabets.CROCKFORD).toBe(UidAlphabets.CROCKFORD.toUpperCase());
 
     const characters = ['I', 'L', 'O', 'U'];
+
     for (const character of characters) {
       expect(UidAlphabets.CROCKFORD).not.toContain(character);
     }
@@ -143,6 +145,7 @@ describe('OpaqueUidHelper - isAvailable', () => {
     const id = new OpaqueUidHelper().nextId({
       isAvailable: (candidate) => {
         seen.push(candidate);
+
         return true;
       },
     });
@@ -157,8 +160,10 @@ describe('OpaqueUidHelper - isAvailable', () => {
       isAvailable: (candidate) => {
         if (rejected.length < 3) {
           rejected.push(candidate);
+
           return false;
         }
+
         return true;
       },
     });
@@ -176,6 +181,7 @@ describe('OpaqueUidHelper - isAvailable', () => {
     }).nextId({
       isAvailable: (candidate) => {
         candidates.push(candidate);
+
         return true;
       },
     });
@@ -190,6 +196,7 @@ describe('OpaqueUidHelper - isAvailable', () => {
       new OpaqueUidHelper().nextId({
         isAvailable: () => {
           calls += 1;
+
           return false;
         },
         maxAttempts: 4,
@@ -228,8 +235,10 @@ describe('OpaqueUidHelper - isAvailable', () => {
       isAvailable: async (candidate) => {
         if (rejected.length < 3) {
           rejected.push(candidate);
+
           return false;
         }
+
         return true;
       },
     });
@@ -240,6 +249,7 @@ describe('OpaqueUidHelper - isAvailable', () => {
 
   test('an async check that never accepts rejects instead of looping forever', async () => {
     let failure: unknown;
+
     try {
       await new OpaqueUidHelper().nextId({ isAvailable: async () => false, maxAttempts: 3 });
     } catch (error) {
@@ -256,9 +266,11 @@ describe('OpaqueUidHelper - isAvailable', () => {
     const id = await new OpaqueUidHelper().nextId({
       isAvailable: () => {
         call += 1;
+
         if (call === 1) {
           return false;
         }
+
         return Promise.resolve(true);
       },
     });
@@ -358,8 +370,10 @@ describe('OpaqueUidHelper - sampling is unbiased', () => {
     const counts = new Map<string, number>(alphabet.split('').map((character) => [character, 0]));
 
     const draws = 2_000;
+
     for (let index = 0; index < draws; index++) {
       const characters = helper.nextId();
+
       for (const character of characters) {
         counts.set(character, (counts.get(character) ?? 0) + 1);
       }

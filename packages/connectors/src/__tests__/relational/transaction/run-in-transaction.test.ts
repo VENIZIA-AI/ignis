@@ -29,6 +29,7 @@ describe('runInTransaction - owned (no transaction passed)', () => {
     const execute = mock(async (opts: { transaction: ITransaction }) => {
       expect(opts.transaction).toBe(double);
       expect(opts.transaction.isActive).toBe(true);
+
       return 'execute-result';
     });
 
@@ -128,6 +129,7 @@ describe('runInTransaction - joined (a transaction passed)', () => {
     const joined = new PostgresTransactionDouble();
     const execute = mock(async (opts: { transaction: ITransaction }) => {
       expect(opts.transaction).toBe(joined);
+
       return 'joined-result';
     });
 
@@ -220,6 +222,7 @@ describe('runInTransaction - owned, when execute ends the transaction itself', (
     const result = await repository.runInTransaction({
       execute: async ({ transaction }) => {
         await transaction.commit();
+
         return 'execute-result';
       },
     });
@@ -240,6 +243,7 @@ describe('runInTransaction - owned, when execute ends the transaction itself', (
       task: repository.runInTransaction({
         execute: async ({ transaction }) => {
           await transaction.rollback();
+
           return 'execute-result';
         },
       }),
@@ -266,6 +270,7 @@ describe('runInTransaction - owned, when execute ends the transaction itself', (
       task: repository.runInTransaction({
         execute: async ({ transaction }) => {
           await captureRejection({ task: transaction.commit() });
+
           return 'execute-result';
         },
       }),

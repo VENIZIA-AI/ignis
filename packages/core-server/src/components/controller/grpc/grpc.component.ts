@@ -48,6 +48,7 @@ export class GrpcComponent extends BaseComponent {
         }
 
         const target = binding.getBindingMeta({ type: BindingValueTypes.CLASS });
+
         if (!target) {
           configured.add(binding.key);
           continue;

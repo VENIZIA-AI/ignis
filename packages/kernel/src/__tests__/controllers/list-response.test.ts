@@ -29,6 +29,7 @@ const fakeContext = (opts: { requestHeaders?: Record<string, string> } = {}) => 
     },
     json: (body: unknown) => body,
   };
+
   return { context: fake as unknown as TRouteContext, responseHeaders };
 };
 

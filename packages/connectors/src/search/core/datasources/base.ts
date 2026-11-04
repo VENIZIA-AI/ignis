@@ -55,6 +55,7 @@ export abstract class BaseSearchDataSource<
       this.logger
         .for(this.configure.name)
         .info('Already configured | Name: %s | Skipping re-provisioning', this.name);
+
       return;
     }
 
@@ -76,11 +77,13 @@ export abstract class BaseSearchDataSource<
   /** Auto-discovers collections from repositories if not manually provided. */
   override getSchema(): TSearchSchema {
     this.schema ??= this.discoverCollections();
+
     return this.schema;
   }
 
   hasDiscoverableModels(): boolean {
     const registry = MetadataRegistry.getInstance();
+
     return registry.hasModels({ dataSource: this.constructor as TClass<IDataSource> });
   }
 
@@ -142,6 +145,7 @@ export abstract class BaseSearchDataSource<
   /** Collection name -> `@model` hiddenProperties for cross-collection operations. Collections with none are omitted, so callers own exclusion for absent entries; memoized per instance and never invalidated because the metadata is frozen after boot. */
   protected hiddenFieldsByCollection(): Record<string, string[]> {
     this.hiddenFieldsByCollectionMap ??= this.discoverHiddenFieldsByCollection();
+
     return this.hiddenFieldsByCollectionMap;
   }
 
@@ -151,14 +155,17 @@ export abstract class BaseSearchDataSource<
     const result: Record<string, string[]> = {};
 
     const boundModelClasses = this.getBoundModelClasses();
+
     for (const modelClass of boundModelClasses) {
       const definition = this.readCollectionDefinition(modelClass);
+
       if (!definition) {
         continue;
       }
 
       const hiddenProperties = registry.getModelMetadata({ target: modelClass })?.settings
         ?.hiddenProperties;
+
       if (hiddenProperties && hiddenProperties.length > 0) {
         result[definition.name] = hiddenProperties;
       }
@@ -180,6 +187,7 @@ export abstract class BaseSearchDataSource<
     }
 
     const excludeFields = Array.from(new Set([...(entry.excludeFields ?? []), ...hiddenFields]));
+
     return { ...entry, excludeFields };
   }
 
@@ -192,6 +200,7 @@ export abstract class BaseSearchDataSource<
         'autoProvision disabled | Skipping collection provisioning | Name: %s',
         this.name,
       );
+
       return;
     }
 
@@ -228,11 +237,13 @@ export abstract class BaseSearchDataSource<
         collection: definition.name,
         synonymSets: [synonymSetName],
       });
+
       return;
     }
 
     if (connector.synonyms) {
       await connector.synonyms.set({ collection: definition.name, items });
+
       return;
     }
 

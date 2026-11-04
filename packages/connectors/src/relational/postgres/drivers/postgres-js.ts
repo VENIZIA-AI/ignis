@@ -37,6 +37,7 @@ export class PostgresJsDriver<
     reservedClient.options ??= (this.client as AnyType).options;
 
     let connector: TRelationalConnector<Schema>;
+
     try {
       connector = drizzle({
         client: reservedClient,
@@ -51,11 +52,13 @@ export class PostgresJsDriver<
       connector,
       execute: async (executeOpts: { statement: string }) => {
         const result = await reserved.unsafe(executeOpts.statement);
+
         return { count: result.count ?? 0 };
       },
       query: async <R>(queryOpts: { statement: string }) => {
         // postgres-js resolves an array-like result; spreading it gives the plain rows.
         const result = await reserved.unsafe(queryOpts.statement);
+
         return [...result] as Array<R>;
       },
       release: () => {

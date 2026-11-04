@@ -21,6 +21,7 @@ export class FormBodyUtility {
   }): Promise<FormData> {
     try {
       const result = await opts.req.formData();
+
       return result;
     } catch (error) {
       throw getError({

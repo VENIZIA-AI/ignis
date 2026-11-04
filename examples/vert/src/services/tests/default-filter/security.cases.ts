@@ -36,6 +36,7 @@ export class SecurityCases extends BaseTestCases {
         } catch (error) {
           // If error occurs, it should NOT be a SQL syntax error
           const errMsg = (error as Error).message;
+
           if (errMsg.includes('syntax') || errMsg.includes('SQL')) {
             this.context.logger.error('[CASE 14] FAILED | SQL error with payload: %s', payload);
             passedAll = false;
@@ -301,6 +302,7 @@ export class SecurityCases extends BaseTestCases {
             },
             options: { shouldSkipDefaultFilter: true },
           });
+
           // If query succeeds, verify only safe columns returned
           if (results.length > 0) {
             const keys = Object.keys(results[0]);

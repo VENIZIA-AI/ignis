@@ -26,6 +26,7 @@ export class LoggerDebugGate {
    */
   private static isTruthy(opts: { input: string | undefined }): boolean {
     const { input } = opts;
+
     return input !== undefined && input !== '' && input !== 'false' && input !== '0';
   }
 
@@ -42,11 +43,13 @@ export class LoggerDebugGate {
   /** Whether `debug` is written now: the override when `use` set one, else the rule on the host's environment, read once. */
   static isOpen(): boolean {
     const forced: boolean | undefined = Reflect.get(globalThis, this.FORCED_SLOT);
+
     if (forced !== undefined) {
       return forced;
     }
 
     this.resolved ??= this.evaluate({ env: this.readEnvironment() });
+
     return this.resolved;
   }
 
@@ -54,6 +57,7 @@ export class LoggerDebugGate {
   static force(opts: { isOpen: boolean | undefined }): void {
     if (opts.isOpen === undefined) {
       Reflect.deleteProperty(globalThis, this.FORCED_SLOT);
+
       return;
     }
 

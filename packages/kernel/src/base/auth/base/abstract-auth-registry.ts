@@ -43,11 +43,13 @@ export abstract class AbstractAuthRegistry<TItem> extends BaseHelper {
 
   getDefaultName(): string {
     const firstName = this.descriptors.keys().next().value;
+
     if (!firstName) {
       throw getError({
         message: `[${this.constructor.name}] No items registered`,
       });
     }
+
     return firstName;
   }
 

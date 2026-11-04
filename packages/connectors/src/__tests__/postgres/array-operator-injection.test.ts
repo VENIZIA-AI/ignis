@@ -46,6 +46,7 @@ const render = (fragment: AnyType): { sql: string; params: unknown[] } => {
 
 const applyOperator = (operator: string, value: unknown) => {
   const handler = (PostgresQueryOperators.FNS as AnyType)[operator];
+
   return handler({ column: table.tags, value });
 };
 
@@ -53,6 +54,7 @@ describe('array operators - the operand must never reach the statement text', ()
   const injection = '1); DROP TABLE users; --';
 
   const operators = ['contains', 'containedBy', 'overlaps'];
+
   for (const operator of operators) {
     test(`${operator}: a NUMERIC-looking array carrying a SQL payload is parameterized, not concatenated`, () => {
       // The array type is sniffed from element[0], so a leading number used to select the "safe to interpolate" branch and every later element was join()-ed in raw.

@@ -1,4 +1,5 @@
 import { CoreErrorCodes } from '@/common/error-codes';
+
 /** PostgreSQL SQLSTATE codes representing a CLIENT error (HTTP 400) - caused by the request/data, not a server fault. @see https://www.postgresql.org/docs/current/errcodes-appendix.html */
 export const PostgresErrorCodes = {
   // Class 22 - Data Exception (malformed / out-of-range values)

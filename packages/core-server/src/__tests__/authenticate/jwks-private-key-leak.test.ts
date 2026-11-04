@@ -45,6 +45,7 @@ describe('a private key can never reach the JWKS document', () => {
     const privateJwk = await exportJWK(privateKey);
 
     let caught: AnyType;
+
     try {
       buildService().assertPublicJWK({ jwk: privateJwk });
     } catch (error) {

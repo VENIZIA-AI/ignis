@@ -48,6 +48,7 @@ export class KafkaConsumerHelper<
 > extends BaseKafkaHelper<Consumer<KeyType, ValueType, HeaderKeyType, HeaderValueType>> {
   protected stream: MessagesStream<KeyType, ValueType, HeaderKeyType, HeaderValueType> | null =
     null;
+
   protected consumeLoop: Promise<void> | null = null;
   protected consumeStartOptions: IKafkaConsumeStartOptions | null = null;
   protected lagMonitoringActive = false;
@@ -60,18 +61,21 @@ export class KafkaConsumerHelper<
     HeaderKeyType,
     HeaderValueType
   >;
+
   protected readonly onMessageDone?: TKafkaMessageDoneCallback<
     KeyType,
     ValueType,
     HeaderKeyType,
     HeaderValueType
   >;
+
   protected readonly onMessageError?: TKafkaMessageErrorCallback<
     KeyType,
     ValueType,
     HeaderKeyType,
     HeaderValueType
   >;
+
   protected readonly onStreamError?: TKafkaStreamErrorCallback;
   protected readonly onReconnectError?: TKafkaReconnectErrorCallback;
 
@@ -190,6 +194,7 @@ export class KafkaConsumerHelper<
   async start(opts: IKafkaConsumeStartOptions): Promise<void> {
     if (this.stream) {
       this.logger.warn('[start] Consumer already started, ignoring duplicate start call');
+
       return;
     }
 
@@ -237,6 +242,7 @@ export class KafkaConsumerHelper<
       this.logger.warn(
         '[startLagMonitoring] Lag monitoring already active, ignoring duplicate call',
       );
+
       return;
     }
 
@@ -304,6 +310,7 @@ export class KafkaConsumerHelper<
       maxReconnectAttempts,
       errorHandler,
     });
+
     for await (const message of messages) {
       try {
         await messageHandler({ message });
@@ -338,16 +345,19 @@ export class KafkaConsumerHelper<
 
       if (!this.consumeStartOptions) {
         this.logger.info('[consumeMessages] Shutdown requested, exiting consume loop');
+
         return;
       }
 
       consecutiveErrors++;
+
       if (consecutiveErrors > maxReconnectAttempts) {
         this.logger.error(
           '[consumeMessages] All %d reconnect attempts exhausted | Topics: %j',
           maxReconnectAttempts,
           this.consumeStartOptions?.topics,
         );
+
         return;
       }
 
@@ -362,6 +372,7 @@ export class KafkaConsumerHelper<
         this.logger.info(
           '[consumeMessages] Shutdown requested during reconnect, exiting consume loop',
         );
+
         return;
       }
 
@@ -470,6 +481,7 @@ export class KafkaConsumerHelper<
               ? this.onReconnectError({ error: normalizedError, attempt, maxAttempts })
               : errorHandler?.({ error: normalizedError }),
         });
+
         return;
       }
     }
@@ -536,6 +548,7 @@ export class KafkaConsumerHelper<
     if (this.lagMonitoringOptions) {
       const opts = this.lagMonitoringOptions;
       this.lagMonitoringActive = false; // reset so startLagMonitoring won't refuse
+
       try {
         this.startLagMonitoring(opts);
         this.logger.info(
@@ -562,6 +575,7 @@ export class KafkaConsumerHelper<
     oldClient: Consumer<KeyType, ValueType, HeaderKeyType, HeaderValueType>,
   ): Promise<void> {
     let timeoutHandle: NodeJS.Timeout | null = null;
+
     try {
       await Promise.race([
         new Promise<void>((resolve, reject) => {
@@ -588,7 +602,9 @@ export class KafkaConsumerHelper<
     if (this.getConnectedBrokerCount() !== 0) {
       return;
     }
+
     this.sessionLikelyStale = true;
+
     if (this.stream) {
       this.logger.warn(
         '[configureBrokerEvents] All brokers %s, destroying stream to trigger reconnect',

@@ -76,6 +76,7 @@ export class PersistableSearchRepository<
 
     const created = data.filter((_document, index) => {
       const response = rs.responses[index];
+
       return isImportRowLike(response) ? response.success !== false : true;
     });
 
@@ -207,6 +208,7 @@ export class PersistableSearchRepository<
 
     // Typesense's delete has no RETURNING equivalent - `data` is populated only when the defaultFilter guard above already read the document; no extra read is done for shouldReturn.
     const data = options?.shouldReturn === false ? null : ((found as R) ?? null);
+
     return { count: 1, data };
   }
 

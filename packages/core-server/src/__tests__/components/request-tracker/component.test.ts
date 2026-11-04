@@ -60,6 +60,7 @@ class EchoController extends BaseRestController {
     }).to({
       handler: (context: TRouteContext) => {
         const { name } = context.req.valid<{ name: string }>('json');
+
         return context.json({ name }, 200);
       },
     });
@@ -76,6 +77,7 @@ class EchoController extends BaseRestController {
     }).to({
       handler: async (context: TRouteContext) => {
         const { files } = await RequestUtility.parseMultipartBody({ context });
+
         return context.json({ names: files.map((file) => file.originalname) }, 200);
       },
     });
@@ -117,6 +119,7 @@ const bootTrackedApplication = async (opts?: {
   await application['registerControllers']();
 
   server.route(TEST_CONFIGS.path.base, application.getRootRouter());
+
   return server;
 };
 
@@ -249,8 +252,10 @@ describe('configs.middlewares.bodyLimit runs before the spy reads a body', () =>
   afterEach(() => {
     if (ORIGINAL_NODE_ENV === undefined) {
       delete process.env.NODE_ENV;
+
       return;
     }
+
     process.env.NODE_ENV = ORIGINAL_NODE_ENV;
   });
 

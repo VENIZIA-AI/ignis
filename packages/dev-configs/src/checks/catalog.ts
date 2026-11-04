@@ -74,6 +74,7 @@ export class CatalogCheck {
     const presentPinned = pinned.filter((file) => existsSync(join(root, file)));
 
     const files = new Set<string>();
+
     for (const pattern of [DEFAULT_GLOB, ...globs]) {
       for await (const file of new Glob(pattern).scan(root)) {
         files.add(file);
@@ -98,6 +99,7 @@ export class CatalogCheck {
 
       for (const block of CATALOGUED_BLOCKS) {
         const entriesList = Object.entries(json[block] ?? {});
+
         for (const [dep, range] of entriesList) {
           if (!(dep in catalog)) {
             continue;
@@ -133,6 +135,7 @@ export class CatalogCheck {
 
       // A peer resolved from the catalog would collapse to the exact install range, losing the looseness that makes it a peer.
       const peerEntries = Object.entries(json.peerDependencies ?? {});
+
       for (const [dep, range] of peerEntries) {
         if (range !== 'catalog:' || isPreset) {
           continue;
@@ -147,6 +150,7 @@ export class CatalogCheck {
 
     // A catalog entry nobody references is dead weight that will drift out of date unnoticed.
     const catalogKeys = Object.keys(catalog);
+
     for (const dep of catalogKeys) {
       if (referenced.has(dep)) {
         continue;

@@ -154,6 +154,7 @@ let includeCalls: Array<unknown> = [];
         if (currentMerchantTenant === '__throw__') {
           throw new ScopeResolutionError('merchant scope resolution blew up');
         }
+
         return currentMerchantTenant == null
           ? currentMerchantTenant
           : { tenant: currentMerchantTenant };
@@ -173,9 +174,11 @@ class ScopeIncludeMerchantEntity extends BasePostgresEntity {
     access: {
       resolve: (context) => {
         includeCalls.push(context);
+
         if (currentProductTenant === '__throw__') {
           throw new ScopeResolutionError('product scope resolution blew up');
         }
+
         return currentProductTenant == null
           ? currentProductTenant
           : { tenant: currentProductTenant };
@@ -225,6 +228,7 @@ class ScopeIncludeProductAllowEntity extends BasePostgresEntity {
         if (currentReviewTenant === '__throw__') {
           throw new ScopeResolutionError('review scope resolution blew up');
         }
+
         return currentReviewTenant == null ? currentReviewTenant : { tenant: currentReviewTenant };
       },
     },
@@ -459,6 +463,7 @@ describe('toInclude - the included relation resolves its scope for a READ', () =
     });
 
     expect(includeCalls.length).toBeGreaterThan(0);
+
     for (const context of includeCalls) {
       expect(context).toEqual({ operation: ScopeOperations.READ });
     }

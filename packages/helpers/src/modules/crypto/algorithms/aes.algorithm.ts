@@ -69,6 +69,7 @@ export class AES extends BaseCryptoAlgorithm<
       kdfSalt,
       kdfIterations,
     });
+
     return { id: entry.id, key };
   }
 
@@ -86,6 +87,7 @@ export class AES extends BaseCryptoAlgorithm<
     }
 
     const entry = secret.find((e) => e.id === id);
+
     if (!entry) {
       throw getError({
         message: `[AES][resolveDecryptKey] No key in keyring matches ciphertext key id "${id}"`,
@@ -125,6 +127,7 @@ export class AES extends BaseCryptoAlgorithm<
     try {
       const { id, key } = await this.resolveEncryptKey({ secret, kdfSalt, kdfIterations });
       const idBuffer = Buffer.from(id, 'utf-8');
+
       if (idBuffer.length > 0xff) {
         throw getError({ message: '[AES][encrypt] Key id too long (max 255 bytes)' });
       }
@@ -150,6 +153,7 @@ export class AES extends BaseCryptoAlgorithm<
       if (authTag !== null) {
         parts.push(authTag);
       }
+
       parts.push(cipherText);
 
       return Buffer.concat(parts).toString(outputEncoding);
@@ -171,6 +175,7 @@ export class AES extends BaseCryptoAlgorithm<
 
     const buffer = fs.readFileSync(absolutePath);
     const fileContent = buffer?.toString('utf-8');
+
     return this.encrypt({ message: fileContent, secret });
   }
 
@@ -192,6 +197,7 @@ export class AES extends BaseCryptoAlgorithm<
       const raw = Buffer.from(message, inputEncoding);
 
       const version = raw[0];
+
       if (version !== CIPHERTEXT_VERSION) {
         throw getError({ message: `[AES][decrypt] Unsupported ciphertext version: ${version}` });
       }
@@ -208,6 +214,7 @@ export class AES extends BaseCryptoAlgorithm<
       const key = await this.resolveDecryptKey({ secret, id, kdfSalt, kdfIterations });
 
       let authTag: Uint8Array | null = null;
+
       if (this.algorithm === AESAlgorithms.AES_256_GCM) {
         authTag = raw.subarray(cursor, cursor + DEFAULT_LENGTH);
         cursor += DEFAULT_LENGTH;
@@ -220,6 +227,7 @@ export class AES extends BaseCryptoAlgorithm<
         cipherText: raw.subarray(cursor),
         authTag,
       });
+
       return Buffer.from(plain).toString(outputEncoding);
     } catch (error) {
       if (doThrow) {
@@ -239,6 +247,7 @@ export class AES extends BaseCryptoAlgorithm<
 
     const buffer = fs.readFileSync(absolutePath);
     const fileContent = buffer?.toString('utf-8');
+
     return this.decrypt({ message: fileContent, secret });
   }
 }

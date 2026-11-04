@@ -34,6 +34,7 @@ export class UpdateBuilder extends RelationalUpdateBuilder {
     // parent, a missing parent read as `{}`. `target` is aliased once so a chained target is not
     // repeated per level.
     let composed = valueLiteral;
+
     for (let depth = path.length; depth > 0; depth--) {
       const parent = this.toParentNode({ path: path.slice(0, depth - 1) });
       const key = this.toPathLiteral({ path: [path[depth - 1]] });

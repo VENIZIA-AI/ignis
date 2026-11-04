@@ -48,6 +48,7 @@ describe('createCollection is idempotent - a second boot must not die', () => {
     const connector = buildConnector(client);
 
     let thrown: unknown;
+
     try {
       await connector.createCollection({ schema: plan });
     } catch (error) {

@@ -76,10 +76,12 @@ const buildAdapter = (opts: {
   const connector = {
     execute: async (query: SQL) => {
       const { sql: text } = dialect.sqlToQuery(query);
+
       return { rows: text.includes('WITH RECURSIVE') ? opts.rows : [] };
     },
   };
   const dataSource = { connector } as ICasbinPolicySource;
+
   return new ScopedCasbinAdapter({
     dataSource,
     entities: entities(),
@@ -89,12 +91,15 @@ const buildAdapter = (opts: {
 
 const capturedLinesFor = async (adapter: TScopedCasbinAdapter): Promise<string[]> => {
   let captured: string[] = [];
+
   adapter['loadLines'] = async (loadOpts: { model: Model; lines: string[] }): Promise<void> => {
     captured = loadOpts.lines;
   };
+
   const { newModelFromString } = await import('casbin');
   const model = newModelFromString(CASBIN_RBAC_DOMAIN_SCOPED_MODEL);
   await adapter.loadFilteredPolicy(model, { principal: { type: 'User', id: 'u1' } });
+
   return captured;
 };
 
@@ -128,6 +133,7 @@ describe('ScopedCasbinAdapter - resolveDomainEdges supplied', () => {
       resolveDomainEdges: async (hookOpts) => {
         receivedPrincipal = hookOpts.principal;
         receivedDomains = hookOpts.domains;
+
         return [];
       },
     });
@@ -144,7 +150,9 @@ describe('ScopedCasbinAdapter - resolveDomainEdges supplied', () => {
 
   it('a throwing hook is logged and does not abort the load - rows already gathered still produce their lines', async () => {
     const messages: string[] = [];
+
     const noop = (): void => {};
+
     const errorLogger: ILogger = {
       debug: noop,
       info: noop,

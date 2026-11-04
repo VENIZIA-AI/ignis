@@ -98,6 +98,7 @@ const probe = async (opts: {
   application.use('*', requestId({ generator: () => REQUEST_ID }));
   application.get(REQUEST_PATH, () => {
     opts.thrower();
+
     return new Response('unreachable');
   });
   application.onError(middleware.value());
@@ -139,6 +140,7 @@ const throwZod = () => {
   });
 
   const parsed = schema.safeParse({ quantity: 1.23456 });
+
   if (parsed.success) {
     throw getError({ message: 'expected the schema to reject this input' });
   }

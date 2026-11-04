@@ -63,13 +63,16 @@ afterAll(() => {
 
 afterEach(() => {
   const clients = openClients.splice(0);
+
   for (const client of clients) {
     client.disconnect();
   }
 
   const servers = openServers.splice(0);
+
   for (const server of servers) {
     const clientsValues = Object.values(server.getClients());
+
     for (const client of clientsValues) {
       client.socket.destroy();
     }

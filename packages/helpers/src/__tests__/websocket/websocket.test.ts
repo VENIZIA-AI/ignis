@@ -56,6 +56,7 @@ class MockRedisClient extends EventEmitter {
   duplicate = mock(() => {
     const dup = new MockRedisClient();
     dup.status = this.status;
+
     return dup;
   });
 
@@ -69,6 +70,7 @@ class MockRedisClient extends EventEmitter {
 
   publish = mock((channel: string, message: string) => {
     this.publishedMessages.push({ channel, message });
+
     return Promise.resolve(1);
   });
 
@@ -90,6 +92,7 @@ function createMockRedisHelper(): IRedisHelper & { mockClient: MockRedisClient }
     duplicateClient: () => mockClient.duplicate(),
     mockClient,
   } as AnyType as IRedisHelper & { mockClient: MockRedisClient };
+
   return helper;
 }
 
@@ -564,6 +567,7 @@ describe('WebSocketServerHelper', () => {
       const calls = socket.send.mock.calls as any[][];
       const connectedMsg = calls.find((call) => {
         const parsed = JSON.parse(call[0]);
+
         return parsed.event === WebSocketEvents.CONNECTED;
       });
       expect(connectedMsg).toBeDefined();
@@ -658,6 +662,7 @@ describe('WebSocketServerHelper', () => {
       const calls = socket.send.mock.calls as any[][];
       const errorMsg = calls.find((call) => {
         const parsed = JSON.parse(call[0]);
+
         return parsed.event === WebSocketEvents.ERROR;
       });
       expect(errorMsg).toBeDefined();
@@ -688,6 +693,7 @@ describe('WebSocketServerHelper', () => {
         ...opts,
         authenticateFn: mock(async () => {
           await wait(10);
+
           return { userId: 'async-user', metadata: { role: 'admin' } };
         }),
       });
@@ -741,6 +747,7 @@ describe('WebSocketServerHelper', () => {
       const calls = socket.send.mock.calls as any[][];
       const errorMsg = calls.find((call) => {
         const parsed = JSON.parse(call[0]);
+
         return parsed.event === WebSocketEvents.ERROR;
       });
       expect(errorMsg).toBeDefined();
@@ -1905,6 +1912,7 @@ describe('WebSocketServerHelper', () => {
           }),
         });
       }
+
       await wait(50);
 
       const clients = helper.getClients() as Map<string, unknown>;
@@ -2186,6 +2194,7 @@ describe('Heartbeat — Application-Level Liveness Check', () => {
     const heartbeatCall = publishCalls.find((c) => {
       try {
         const parsed = JSON.parse(c[1]);
+
         return parsed.event === WebSocketEvents.HEARTBEAT;
         // eslint-disable-next-line venizia/no-silent-catch -- a published payload that is not JSON cannot be a heartbeat event; skipping it loses nothing
       } catch {
@@ -2350,6 +2359,7 @@ describe('WebSocketEmitter', () => {
       await emitter.broadcast({ event: 'test', data: {} });
 
       const calls = redisPub.publish.mock.calls as any[][];
+
       for (const call of calls) {
         const msg: IRedisSocketMessage = JSON.parse(call[1]);
         expect(msg.serverId).toBe('emitter');

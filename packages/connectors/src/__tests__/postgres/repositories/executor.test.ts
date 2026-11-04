@@ -26,9 +26,11 @@ const createFakeConnector = () => {
     'set',
     'returning',
   ];
+
   for (const method of methods) {
     chain[method] = (...args: unknown[]) => {
       trail.push(`${method}(${args.length})`);
+
       return chain;
     };
   }
@@ -45,23 +47,28 @@ const createFakeConnector = () => {
     connector: {
       select: (...args: unknown[]) => {
         trail.push(`select(${args.length})`);
+
         return chain;
       },
       insert: () => {
         trail.push('insert');
+
         return chain;
       },
       update: () => {
         trail.push('update');
+
         return chain;
       },
       delete: () => {
         trail.push('delete');
+
         return chain;
       },
       $count: async (_table: unknown, where?: unknown) => {
         trail.push('$count');
         captured.countWhere = where;
+
         return 7;
       },
     },
@@ -78,14 +85,17 @@ const createFakeQueryConnector = (opts: {
   const query: Record<string, unknown> = {};
 
   const entriesKeys = Object.keys(opts.entries);
+
   for (const entityName of entriesKeys) {
     query[entityName] = {
       findMany: (config: unknown) => {
         calls.findMany = config;
+
         return Promise.resolve(opts.findManyResult ?? []);
       },
       findFirst: (config: unknown) => {
         calls.findFirst = config;
+
         return Promise.resolve(opts.findFirstResult ?? null);
       },
     };

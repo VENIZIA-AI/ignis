@@ -96,6 +96,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
           if (row.variant === AuthorizationPolicyVariants.JOIN_DOMAIN.action) {
             domainClosure.add(`${row.targetType}_${row.targetId}`);
           }
+
           this.collectDirectRow({ row, principal, lines, directGrants });
           break;
         }
@@ -177,6 +178,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     }
 
     let edges: TDomainHierarchyEdge[];
+
     try {
       const result = await this.resolveDomainEdges(opts);
       edges = result;
@@ -189,6 +191,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
           opts.principal.id,
           error,
         );
+
       return [];
     }
 
@@ -219,12 +222,14 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
   /** Schema-qualified table reference (`"<schema>"."<table>"`) for use after FROM/JOIN with an alias. */
   protected qualifiedTable(opts: { table: { schemaName?: string; tableName: string } }): SQL {
     const { table } = opts;
+
     return sql`${sql.identifier(this.schemaOf(table))}.${sql.identifier(table.tableName)}`;
   }
 
   /** `AND <alias>.<col> IS NULL` when soft-delete is on, else empty. The alias is emitted raw to match the unquoted FROM alias - quoting folds it to a different case and breaks the join. */
   protected softDeleteClause(opts: { alias: string }): SQL {
     const sd = this.entities.softDelete;
+
     if (!sd?.use) {
       return sql.empty();
     }
@@ -465,9 +470,11 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     }
 
     const expanded = await this.customGrantExpander.expandCustomGrants({ subjectType, customRows });
+
     for (const rejection of expanded.rejections) {
       this.logger.for(this.buildGrantLines.name).error(rejection);
     }
+
     lines.push(...expanded.lines);
 
     return lines;

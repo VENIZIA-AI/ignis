@@ -23,6 +23,7 @@ const buildProjectRoot = (opts: { name: string }): string => {
   );
   writeFileSync(join(packageDirectory, 'esm.mjs'), "export const flavour = 'esm';\n");
   writeFileSync(join(packageDirectory, 'cjs.cjs'), "exports.flavour = 'cjs';\n");
+
   return root;
 };
 
@@ -38,11 +39,13 @@ describe('ModuleUtility - a peer that ships an ES module and a CommonJS build', 
     const root = buildProjectRoot({ name });
     roots.push(root);
     ModuleUtility.setProjectRoot({ projectRoot: root });
+
     return root;
   };
 
   afterEach(() => {
     ModuleUtility.setProjectRoot({ projectRoot: process.cwd() });
+
     for (const root of roots.splice(0)) {
       rmSync(root, { recursive: true, force: true });
     }
@@ -83,6 +86,7 @@ describe('ModuleUtility - a peer that ships an ES module and a CommonJS build', 
     useRoot();
 
     let error: unknown;
+
     try {
       await ModuleUtility.preload({ modules: [name, '@definitely/not-installed'] });
     } catch (caught) {

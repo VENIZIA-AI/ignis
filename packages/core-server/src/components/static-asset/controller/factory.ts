@@ -84,6 +84,7 @@ const refuseLabelsInQuery = (opts: {
   reason?: string;
 }): void => {
   const names = listLabelsInQuery(opts);
+
   if (names.length > 0) {
     throw getError({
       error: StaticAssetErrors.LABELS_IN_QUERY,
@@ -100,8 +101,10 @@ const readUploadLabels = (opts: {
   fields: Partial<Record<(typeof UPLOAD_LABEL_NAMES)[number], string | number>>;
 }): TUploadQuery => {
   const { fields } = opts;
+
   const read = (name: (typeof UPLOAD_LABEL_NAMES)[number]) => {
     const value = fields[name];
+
     return value === undefined || value === '' ? undefined : String(value);
   };
 
@@ -165,6 +168,7 @@ const readByteRange = (opts: {
   }
 
   const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
+
   if (!match) {
     return null;
   }
@@ -174,6 +178,7 @@ const readByteRange = (opts: {
   // `bytes=-500` means the LAST 500 bytes, not "from 0 to 500".
   if (!rawStart) {
     const suffixLength = Number(rawEnd);
+
     if (!Number.isInteger(suffixLength) || suffixLength <= 0) {
       return null;
     }
@@ -200,6 +205,7 @@ const applyMetadataHeaders: (opts: {
     if (!WHITELIST_HEADERS.includes(key.toLowerCase() as (typeof WHITELIST_HEADERS)[number])) {
       return;
     }
+
     ctx.header(key.toLowerCase(), String(value).replace(/[\r\n]/g, ''));
   });
 };
@@ -334,12 +340,14 @@ export class AssetControllerFactory extends BaseHelper {
         // four bucket-management routes are not registered once `bucket` is configured.
         if (!hasConfiguredBucket) {
           const getBucketsRoute = AssetRouteOptions.readOverride({ route: routes?.getBuckets });
+
           if (getBucketsRoute.isEnabled) {
             this.bindRoute({
               configs: { ...definitions.GET_BUCKETS, ...getBucketsRoute.override },
             }).to({
               handler: async (ctx) => {
                 const buckets = await helper.getBuckets();
+
                 return ctx.json(buckets, HTTP.ResultCodes.RS_2.Ok);
               },
             });
@@ -348,6 +356,7 @@ export class AssetControllerFactory extends BaseHelper {
           const getBucketByNameRoute = AssetRouteOptions.readOverride({
             route: routes?.getBucketByName,
           });
+
           if (getBucketByNameRoute.isEnabled) {
             this.bindRoute({
               configs: { ...definitions.GET_BUCKET_BY_NAME, ...getBucketByNameRoute.override },
@@ -364,12 +373,14 @@ export class AssetControllerFactory extends BaseHelper {
                 }
 
                 const found = await helper.getBucket({ bucket: { name: bucketName } });
+
                 return ctx.json(found, HTTP.ResultCodes.RS_2.Ok);
               },
             });
           }
 
           const createBucketRoute = AssetRouteOptions.readOverride({ route: routes?.createBucket });
+
           if (createBucketRoute.isEnabled) {
             this.bindRoute({
               configs: { ...definitions.CREATE_BUCKET, ...createBucketRoute.override },
@@ -386,12 +397,14 @@ export class AssetControllerFactory extends BaseHelper {
                 }
 
                 const createdBucket = await helper.createBucket({ bucket: { name: bucketName } });
+
                 return ctx.json(createdBucket, HTTP.ResultCodes.RS_2.Ok);
               },
             });
           }
 
           const deleteBucketRoute = AssetRouteOptions.readOverride({ route: routes?.deleteBucket });
+
           if (deleteBucketRoute.isEnabled) {
             this.bindRoute({
               configs: { ...definitions.DELETE_BUCKET, ...deleteBucketRoute.override },
@@ -410,6 +423,7 @@ export class AssetControllerFactory extends BaseHelper {
                 const isRemovedBucket = await helper.removeBucket({
                   bucket: { name: bucketName },
                 });
+
                 return ctx.json({ isDeleted: isRemovedBucket }, HTTP.ResultCodes.RS_2.Ok);
               },
             });
@@ -419,6 +433,7 @@ export class AssetControllerFactory extends BaseHelper {
         const getObjectByNameRoute = AssetRouteOptions.readOverride({
           route: routes?.getObjectByName,
         });
+
         if (getObjectByNameRoute.isEnabled) {
           this.bindRoute({
             configs: { ...definitions.GET_OBJECT_BY_NAME, ...getObjectByNameRoute.override },
@@ -504,6 +519,7 @@ export class AssetControllerFactory extends BaseHelper {
         const downloadObjectByNameRoute = AssetRouteOptions.readOverride({
           route: routes?.downloadObjectByName,
         });
+
         if (downloadObjectByNameRoute.isEnabled) {
           this.bindRoute({
             configs: {
@@ -565,6 +581,7 @@ export class AssetControllerFactory extends BaseHelper {
                 bucket: { name: bucketName },
                 object: { key: objectName },
               });
+
               return new Response(stream, {
                 headers: ctx.res.headers,
                 status: HTTP.ResultCodes.RS_2.Ok,
@@ -574,6 +591,7 @@ export class AssetControllerFactory extends BaseHelper {
         }
 
         const uploadRoute = AssetRouteOptions.readOverride({ route: routes?.upload });
+
         if (uploadRoute.isEnabled) {
           const uploadMiddleware =
             maxBytes === undefined
@@ -603,20 +621,25 @@ export class AssetControllerFactory extends BaseHelper {
 
               const validateFolderPath = (folderPath: string) => {
                 const normalizedFolder = folderPath.replace(/^\/+|\/+$/g, '');
+
                 if (!normalizedFolder) {
                   throw getError({ error: StaticAssetErrors.FOLDER_PATH_INVALID });
                 }
+
                 // maxFolderDepth excludes the filename, so it is compared directly against segment count.
                 const folderSegments = normalizedFolder.split('/');
+
                 if (folderSegments.length > maxFolderDepth) {
                   throw getError({
                     error: StaticAssetErrors.FOLDER_DEPTH_EXCEEDED,
                     message: `Folder path exceeds max depth of ${maxFolderDepth}`,
                   });
                 }
+
                 const invalidSegmentIndex = folderSegments.findIndex(
                   (segment) => !helper.isValidSegment({ segment }),
                 );
+
                 if (invalidSegmentIndex !== -1) {
                   throw getError({
                     error: StaticAssetErrors.FOLDER_SEGMENT_INVALID,
@@ -637,6 +660,7 @@ export class AssetControllerFactory extends BaseHelper {
               const query = readUploadLabels({ fields });
 
               const folderPath = query.folderPath;
+
               if (folderPath) {
                 validateFolderPath(folderPath);
               }
@@ -646,6 +670,7 @@ export class AssetControllerFactory extends BaseHelper {
                 .filter((filePath): filePath is string => Boolean(filePath));
 
               let uploaded: IUploadResult[];
+
               try {
                 // `storage: 'disk'` spools the payload to `uploadDir` and returns `path` instead of `buffer`; the storage helpers only ever write `buffer`, so it must be read back.
                 const modifiedFiles: IUploadFile[] = filesArray.map((file) => {
@@ -731,6 +756,7 @@ export class AssetControllerFactory extends BaseHelper {
               }
 
               const results: IUploadResult[] = [];
+
               for (const uploadResult of uploaded) {
                 try {
                   const fileStat = await helper.getStat({
@@ -766,12 +792,14 @@ export class AssetControllerFactory extends BaseHelper {
                   });
                 }
               }
+
               return ctx.json(results, HTTP.ResultCodes.RS_2.Ok);
             },
           });
         }
 
         const deleteObjectRoute = AssetRouteOptions.readOverride({ route: routes?.deleteObject });
+
         if (deleteObjectRoute.isEnabled) {
           this.bindRoute({
             configs: { ...definitions.DELETE_OBJECT, ...deleteObjectRoute.override },
@@ -849,6 +877,7 @@ export class AssetControllerFactory extends BaseHelper {
         }
 
         const listObjectsRoute = AssetRouteOptions.readOverride({ route: routes?.listObjects });
+
         if (listObjectsRoute.isEnabled) {
           this.bindRoute({
             configs: { ...definitions.LIST_OBJECTS, ...listObjectsRoute.override },
@@ -867,6 +896,7 @@ export class AssetControllerFactory extends BaseHelper {
 
               // A NaN or 0 maxKeys is silently treated as "unlimited" by the storage backends, so an unparsable value must be rejected instead of forwarded.
               let resolvedMaxKeys: number | undefined;
+
               if (maxKeys !== undefined) {
                 resolvedMaxKeys = Number(maxKeys);
 
@@ -879,6 +909,7 @@ export class AssetControllerFactory extends BaseHelper {
               }
 
               const scoped = AssetKeyScope.resolveListPrefix({ prefix, keyPrefix });
+
               if (scoped.isOutOfScope) {
                 return ctx.json([], HTTP.ResultCodes.RS_2.Ok);
               }
@@ -907,12 +938,14 @@ export class AssetControllerFactory extends BaseHelper {
           const policyKeyPrefix = `${pendingPrefix}${keyPrefix ?? ''}`;
 
           const uploadPolicyRoute = AssetRouteOptions.readOverride({ route: routes?.uploadPolicy });
+
           if (uploadPolicyRoute.isEnabled) {
             this.bindRoute({
               configs: { ...definitions.UPLOAD_POLICY, ...uploadPolicyRoute.override },
             }).to({
               handler: async (ctx) => {
                 const result = await directUpload.authorize({ context: ctx });
+
                 if (!result) {
                   throw getError({ error: StaticAssetErrors.UPLOAD_NOT_AUTHORIZED });
                 }
@@ -922,6 +955,7 @@ export class AssetControllerFactory extends BaseHelper {
 
                 const policies: Array<IPostPolicy & { objectName: string; commitToken: string }> =
                   [];
+
                 for (const file of files) {
                   if (file.size !== undefined && file.size > directUpload.maxBytes) {
                     throw getError({
@@ -961,6 +995,7 @@ export class AssetControllerFactory extends BaseHelper {
           }
 
           const uploadCommitRoute = AssetRouteOptions.readOverride({ route: routes?.uploadCommit });
+
           if (uploadCommitRoute.isEnabled) {
             this.bindRoute({
               configs: { ...definitions.UPLOAD_COMMIT, ...uploadCommitRoute.override },
@@ -1006,6 +1041,7 @@ export class AssetControllerFactory extends BaseHelper {
                   source: pendingObject,
                   destination: object,
                 });
+
                 // The copy IS the commit; removing the temporary object is cleanup. A failure here
                 // leaves one object for the lifecycle rule, and failing the request would tell the
                 // caller their upload did not work when it did.
@@ -1032,6 +1068,7 @@ export class AssetControllerFactory extends BaseHelper {
                 // The two paths have to agree: without this a client reading `metaLink` off the
                 // response renders an empty state with no error - the failure nobody reports.
                 let metaLinkResult: IUploadResult['metaLink'];
+
                 if (useMetaLink && metaLink) {
                   try {
                     const fileStat = await helper.getStat({ bucket: bucketRef, object });
@@ -1083,6 +1120,7 @@ export class AssetControllerFactory extends BaseHelper {
           const recreateMetaLinkRoute = AssetRouteOptions.readOverride({
             route: routes?.recreateMetaLink,
           });
+
           if (recreateMetaLinkRoute.isEnabled) {
             this.bindRoute({
               configs: { ...definitions.RECREATE_METALINK, ...recreateMetaLinkRoute.override },
@@ -1195,6 +1233,7 @@ export class AssetControllerFactory extends BaseHelper {
       value: name,
       configurable: true,
     });
+
     return GeneratedStaticAssetController;
   }
 }

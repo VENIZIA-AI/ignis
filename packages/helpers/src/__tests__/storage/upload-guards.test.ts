@@ -9,6 +9,7 @@ import { DiskHelper } from '@/modules/storage/disk';
 const captureError = async (opts: { task: Promise<unknown> }): Promise<string> => {
   try {
     await opts.task;
+
     return '';
   } catch (error) {
     return (error as Error).message;

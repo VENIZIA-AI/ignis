@@ -37,11 +37,13 @@ const pools: WorkerPoolHelper[] = [];
 afterEach(async () => {
   while (pools.length) {
     const pool = pools.pop();
+
     if (!pool) {
       continue;
     }
 
     const keysList = [...pool['registry'].keys()];
+
     for (const key of keysList) {
       await pool.unregister({ key: key as string });
     }

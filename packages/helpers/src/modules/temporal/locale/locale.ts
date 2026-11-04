@@ -39,6 +39,7 @@ export class TemporalLocale {
   static of(opts: { locale: string }): TemporalLocale {
     const { locale } = opts;
     const cached = TemporalLocale.locales.get(locale);
+
     if (cached) {
       return cached;
     }
@@ -55,18 +56,22 @@ export class TemporalLocale {
     // Full: the oldest locale makes room, so the 33rd locale is not rebuilt on every call.
     if (TemporalLocale.locales.size >= MAX_CACHED_LOCALES) {
       const oldest = TemporalLocale.locales.keys().next().value;
+
       if (oldest !== undefined) {
         TemporalLocale.locales.delete(oldest);
       }
     }
+
     const created = new TemporalLocale({ locale });
     TemporalLocale.locales.set(locale, created);
+
     return created;
   }
 
   private formatterOf(opts: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
     const key = JSON.stringify(opts);
     const cached = this.formatters.get(key);
+
     if (cached) {
       return cached;
     }
@@ -78,6 +83,7 @@ export class TemporalLocale {
       timeZone: 'UTC',
     });
     this.formatters.set(key, formatter);
+
     return formatter;
   }
 
@@ -87,12 +93,14 @@ export class TemporalLocale {
     read: (index: number) => string;
   }): Array<string> {
     const cached = this.tables.get(opts.key);
+
     if (cached) {
       return cached;
     }
 
     const table = Array.from({ length: opts.size }, (_, index) => opts.read(index));
     this.tables.set(opts.key, table);
+
     return table;
   }
 
@@ -105,6 +113,7 @@ export class TemporalLocale {
       size: MONTHS,
       read: (index) => formatter.format(Date.UTC(2024, index, 15)),
     });
+
     return table[month - 1];
   }
 
@@ -117,6 +126,7 @@ export class TemporalLocale {
       size: WEEKDAYS,
       read: (index) => formatter.format(MONDAY + index * DAY_MILLISECONDS),
     });
+
     return table[dayOfWeek - 1];
   }
 
@@ -136,6 +146,7 @@ export class TemporalLocale {
           .find((part) => part.type === 'dayPeriod')?.value ?? (index === 0 ? 'AM' : 'PM'),
     });
     const marker = (opts.meridiem ?? table)[opts.hour < NOON ? 0 : 1];
+
     return opts.isLowerCase ? marker.toLocaleLowerCase(this.locale) : marker;
   }
 
@@ -149,6 +160,7 @@ export class TemporalLocale {
 
     const date = new Date(0);
     date.setUTCFullYear(parts.year, parts.month - 1, parts.day);
+
     return formatter.format(date);
   }
 }

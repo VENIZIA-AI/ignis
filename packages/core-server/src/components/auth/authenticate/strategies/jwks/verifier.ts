@@ -33,6 +33,7 @@ export class JWKSVerifierAuthenticationStrategy<E extends Env = Env>
 
   authenticate(context: TContext<E, string>): Promise<IAuthUser> {
     const token = this.service.extractCredentials(context);
+
     return this.service.verify(token);
   }
 }

@@ -30,6 +30,7 @@ function objectPool(
     create: () => {
       const r = { id: ++n };
       created.push(r);
+
       return r;
     },
     destroy: (r) => {
@@ -37,6 +38,7 @@ function objectPool(
     },
     ...extra,
   });
+
   return { pool, destroyed, created, createdCount: () => n };
 }
 
@@ -74,9 +76,11 @@ describe('BasePoolHelper — concurrency invariants (white-box)', () => {
 
     const tasks = Array.from({ length: 100 }, async () => {
       const r = await pool.acquire();
+
       if (currentlyBorrowed.has(r.id)) {
         isDoubleBorrow = true;
       }
+
       currentlyBorrowed.add(r.id);
       maxBorrowed = Math.max(maxBorrowed, currentlyBorrowed.size);
       await tick(Math.floor(Math.random() * 3));
@@ -100,6 +104,7 @@ describe('BasePoolHelper — concurrency invariants (white-box)', () => {
     const waiters = Array.from({ length: waiterCount }, (_, i) =>
       pool.acquire().then((r) => {
         resolvedOrder.push(i);
+
         return r;
       }),
     );
@@ -110,12 +115,14 @@ describe('BasePoolHelper — concurrency invariants (white-box)', () => {
     for (const r of held) {
       pool.release({ resource: r });
     }
+
     // As waiters resolve they must release too, to feed the rest.
     const got = await Promise.all(
       waiters.map(async (w) => {
         const r = await w;
         await tick(0);
         pool.release({ resource: r });
+
         return r;
       }),
     );
@@ -130,6 +137,7 @@ describe('BasePoolHelper — concurrency invariants (white-box)', () => {
     const { pool } = objectPool(size, {
       validate: async () => {
         await tick(1);
+
         return true;
       },
       reset: async () => {
@@ -146,11 +154,13 @@ describe('BasePoolHelper — concurrency invariants (white-box)', () => {
     for (const r of held) {
       pool.release({ resource: r });
     }
+
     const results = await Promise.all(
       waiters.map(async (w) => {
         const r = await w;
         await tick(0);
         pool.release({ resource: r });
+
         return r;
       }),
     );
@@ -169,17 +179,20 @@ describe('BasePoolHelper — concurrency invariants (white-box)', () => {
     const waiters = Array.from({ length: count }, (_, i) =>
       pool.acquire().then((r) => {
         order.push(i);
+
         return r;
       }),
     );
     await tick(5);
     // Release one at a time; each frees the single resource for the next FIFO waiter.
     let current = only;
+
     for (let i = 0; i < count; i++) {
       pool.release({ resource: current });
       const result = await waiters[i];
       current = result;
     }
+
     expect(order).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
   });
 
@@ -224,6 +237,7 @@ describe('BasePoolHelper — fault injection: create()', () => {
         if (mode === 'fail') {
           throw new Error('factory down');
         }
+
         return ++n;
       },
     });
@@ -243,9 +257,11 @@ describe('BasePoolHelper — fault injection: create()', () => {
       size: 2,
       create: () => {
         attempt += 1;
+
         if (attempt === 1) {
           throw new Error('transient');
         }
+
         return attempt;
       },
     });
@@ -277,6 +293,7 @@ describe('BasePoolHelper — fault injection: validate() THROWS', () => {
           shouldThrow = false;
           throw new Error('validate boom');
         }
+
         return true;
       },
       acquireTimeoutMs: 200, // generous; the waiter should be served well before this
@@ -372,6 +389,7 @@ describe('BasePoolHelper — fault injection: use() + destroy both throw', () =>
       },
     });
     let err: unknown;
+
     try {
       await pool.use({
         execution: async () => {
@@ -381,6 +399,7 @@ describe('BasePoolHelper — fault injection: use() + destroy both throw', () =>
     } catch (e) {
       err = e;
     }
+
     expect((err as Error).message).toBe('callback boom');
     expect(pool.getStats()).toEqual({ size: 1, available: 0, borrowed: 0, pending: 0 });
     // Pool recovers with a fresh resource.
@@ -407,11 +426,13 @@ describe('BasePoolHelper — degenerate size: 0', () => {
       acquireTimeoutMs: 30,
     });
     let err: unknown;
+
     try {
       await pool.acquire();
     } catch (e) {
       err = e;
     }
+
     expect(err).toBeDefined();
     expect(pool.getStats().pending).toBe(0);
   });
@@ -423,11 +444,13 @@ describe('BasePoolHelper — degenerate size: 0', () => {
       acquireTimeoutMs: 30,
     });
     let err: unknown;
+
     try {
       await pool.use({ execution: async (r) => r });
     } catch (e) {
       err = e;
     }
+
     expect(err).toBeDefined();
   });
 });
@@ -437,6 +460,7 @@ describe('BasePoolHelper — size: 1 heavy reuse', () => {
     let n = 0;
     const pool = new BasePoolHelper<number>({ size: 1, create: () => ++n });
     const seen: number[] = [];
+
     for (let i = 0; i < 25; i++) {
       await pool.use({
         execution: async (r) => {
@@ -444,6 +468,7 @@ describe('BasePoolHelper — size: 1 heavy reuse', () => {
         },
       });
     }
+
     expect(n).toBe(1); // created once
     expect(seen.every((x) => x === 1)).toBe(true);
   });
@@ -455,9 +480,11 @@ describe('BasePoolHelper — size: 1 heavy reuse', () => {
     await Promise.all(
       Array.from({ length: 30 }, async () => {
         const r = await pool.acquire();
+
         if (borrowed.has(r.id)) {
           isDoubled = true;
         }
+
         borrowed.add(r.id);
         await tick(1);
         borrowed.delete(r.id);
@@ -473,11 +500,13 @@ describe('BasePoolHelper — acquireTimeoutMs boundaries', () => {
     const pool = new BasePoolHelper<number>({ size: 1, create: () => 1, acquireTimeoutMs: 0 });
     await pool.acquire(); // exhaust
     let err: unknown;
+
     try {
       await pool.acquire();
     } catch (e) {
       err = e;
     }
+
     expect(err).toBeDefined();
     expect(pool.getStats().pending).toBe(0);
   });
@@ -504,11 +533,13 @@ describe('BasePoolHelper — maxWaitingClients boundaries', () => {
 
     // Pool now exhausted; a second acquire would have to wait → rejected (queue cap 0).
     let err: unknown;
+
     try {
       await pool.acquire();
     } catch (e) {
       err = e;
     }
+
     expect(err).toBeDefined();
     expect((err as Error).message).toContain('Too many waiting clients');
 
@@ -523,11 +554,13 @@ describe('BasePoolHelper — maxWaitingClients boundaries', () => {
     await pool.acquire(); // served immediately (waiters.length was 0 at gate)
     const w1 = pool.acquire(); // queued → pending=1 (gate saw 0 >= 1 false)
     let err: unknown;
+
     try {
       await pool.acquire(); // gate: 1 >= 1 → reject
     } catch (e) {
       err = e;
     }
+
     expect(err).toBeDefined();
     expect((err as Error).message).toContain('Too many waiting clients');
     // eslint-disable-next-line venizia/no-silent-catch -- the waiter's rejection is irrelevant to this test; only an unhandled-rejection warning is lost
@@ -544,6 +577,7 @@ describe('BasePoolHelper — nested acquire (re-entrancy from within use())', ()
         const inner = await pool.acquire();
         expect(inner).not.toBe(outer);
         pool.release({ resource: inner });
+
         return outer;
       },
     });
@@ -557,6 +591,7 @@ describe('BasePoolHelper — nested acquire (re-entrancy from within use())', ()
     let n = 0;
     const pool = new BasePoolHelper<number>({ size: 1, create: () => ++n, acquireTimeoutMs: 30 });
     let err: unknown;
+
     try {
       await pool.use({
         execution: async () => {
@@ -567,6 +602,7 @@ describe('BasePoolHelper — nested acquire (re-entrancy from within use())', ()
     } catch (e) {
       err = e;
     }
+
     expect(err).toBeDefined();
     expect((err as Error).message).toContain('timed out');
     // outer resource was discarded by use()'s catch path.
@@ -579,18 +615,22 @@ describe('BasePoolHelper — operations after destroy()', () => {
     const pool = new BasePoolHelper<number>({ size: 1, create: () => 1 });
     await pool.destroy();
     let acqErr: unknown;
+
     try {
       await pool.acquire();
     } catch (e) {
       acqErr = e;
     }
+
     expect(acqErr).toBeDefined();
     let warmErr: unknown;
+
     try {
       await pool.warmup();
     } catch (e) {
       warmErr = e;
     }
+
     expect(warmErr).toBeDefined();
   });
 
@@ -598,11 +638,13 @@ describe('BasePoolHelper — operations after destroy()', () => {
     const pool = new BasePoolHelper<number>({ size: 1, create: () => 1 });
     await pool.destroy();
     let err: unknown;
+
     try {
       await pool.use({ execution: async (r) => r });
     } catch (e) {
       err = e;
     }
+
     expect(err).toBeDefined();
   });
 
@@ -667,6 +709,7 @@ describe('BasePoolHelper — mixed-op stress', () => {
       size,
       create: () => {
         live += 1;
+
         return ++n;
       },
       destroy: () => {
@@ -677,8 +720,10 @@ describe('BasePoolHelper — mixed-op stress', () => {
     });
 
     const tasks: Promise<unknown>[] = [];
+
     for (let i = 0; i < 120; i++) {
       const mode = i % 3;
+
       if (mode === 0) {
         tasks.push(
           (async () => {
@@ -700,6 +745,7 @@ describe('BasePoolHelper — mixed-op stress', () => {
         );
       }
     }
+
     await Promise.all(tasks);
     await tick(10);
 
@@ -726,6 +772,7 @@ describe('BasePoolHelper — waiter queue (head-index) correctness', () => {
     const waiters = Array.from({ length: count }, (_, i) =>
       pool.acquire().then((r) => {
         order.push(i);
+
         return r;
       }),
     );
@@ -733,11 +780,13 @@ describe('BasePoolHelper — waiter queue (head-index) correctness', () => {
     expect(pool.getStats().pending).toBe(count);
 
     let current = only;
+
     for (let i = 0; i < count; i++) {
       pool.release({ resource: current });
       const result = await waiters[i];
       current = result;
     }
+
     pool.release({ resource: current });
 
     expect(order).toEqual(Array.from({ length: count }, (_, i) => i)); // strict arrival order
@@ -761,6 +810,7 @@ describe('BasePoolHelper — waiter queue (head-index) correctness', () => {
     let w2Resource: number | undefined;
     const w2 = pool.acquire().then((r) => {
       w2Resource = r;
+
       return r;
     }); // enqueued at t≈40 → times out at ≈120ms
 

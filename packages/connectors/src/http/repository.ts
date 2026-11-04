@@ -161,6 +161,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
       });
 
       const counted = rs.data?.count;
+
       if (typeof counted !== 'number' || !Number.isFinite(counted)) {
         throw getError({
           statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
@@ -315,6 +316,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
         isEveryDefaultOff: true,
         ...this.toCallOptions({ options: opts.options }),
       });
+
       return one.data ?? null;
     }
 
@@ -328,6 +330,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
       isEveryDefaultOff: true,
       ...this.toCallOptions({ options: opts.options }),
     });
+
     return rs.data?.[0] ?? null;
   }
 
@@ -372,6 +375,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     });
 
     const answer = rs.data;
+
     if (!answer || typeof answer.found !== 'number' || !Array.isArray(answer.hits)) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.BadGateway,
@@ -425,6 +429,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     options?: THttpRepositoryOptions & { shouldReturn?: boolean };
   }): TCount & { data: R | null } {
     const { result, options } = opts;
+
     return { count: result.count, data: options?.shouldReturn === false ? null : result.data };
   }
 

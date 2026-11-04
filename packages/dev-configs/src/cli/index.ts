@@ -24,6 +24,7 @@ const main = async (opts: { argv: string[] }): Promise<number> => {
 
   if (command === undefined || command === '--help' || command === '-h') {
     console.log(USAGE);
+
     return 0;
   }
 
@@ -44,6 +45,7 @@ const main = async (opts: { argv: string[] }): Promise<number> => {
   }
 
   console.error(`devz: unknown command "${command ?? ''}"\n${USAGE}`);
+
   return 1;
 };
 

@@ -91,6 +91,7 @@ export class WebSocketComponent extends BaseComponent {
     const redisConnection = this.application.get<AbstractRedisHelper>({
       key: WebSocketBindingKeys.REDIS_CONNECTION,
     });
+
     if (!isRedisHelper(redisConnection)) {
       throw getError({
         message:
@@ -101,6 +102,7 @@ export class WebSocketComponent extends BaseComponent {
     const authenticateFn = this.application.get<TWebSocketAuthenticateFn>({
       key: WebSocketBindingKeys.AUTHENTICATE_HANDLER,
     });
+
     if (!authenticateFn) {
       throw getError({
         message: '[WebSocketComponent] Invalid authenticateFn to setup WebSocket server!',

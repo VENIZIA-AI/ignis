@@ -133,6 +133,7 @@ for (const { engine, begin, dataSource } of ENGINES) {
     const installLogger = (): RecordingLogger => {
       const logger = new RecordingLogger();
       dataSource().logger = logger;
+
       return logger;
     };
 

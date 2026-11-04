@@ -32,6 +32,7 @@ export class DatabaseErrorHandler {
 
     // Non-production: append driver-provided context to aid debugging.
     const lines = [baseMessage];
+
     if (cause?.detail) {
       lines.push(`Detail: ${cause.detail}`);
     }
@@ -54,6 +55,7 @@ export class DatabaseErrorHandler {
   static isRetryableDatabaseError(opts: { error: Error }): boolean {
     const dbError = opts.error as IDatabaseError;
     const code = [dbError.code, dbError.cause?.code].find(Boolean);
+
     return typeof code === 'string' && POSTGRES_RETRYABLE_ERROR_CODES.includes(code);
   }
 }

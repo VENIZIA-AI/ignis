@@ -53,6 +53,7 @@ export class MQTTClientHelper extends BaseHelper {
           this.identifier,
           this.client.connected,
         );
+
       return;
     }
 

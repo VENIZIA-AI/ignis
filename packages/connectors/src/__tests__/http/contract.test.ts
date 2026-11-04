@@ -258,6 +258,7 @@ describe('a call adds its own headers and an abort signal', () => {
   test('an aborted signal rejects the call', async () => {
     globalThis.fetch = (async (_url: string, init?: RequestInit) => {
       init?.signal?.throwIfAborted();
+
       return new Response('[]');
     }) as never;
 
@@ -478,6 +479,7 @@ describe('review cases', () => {
       onUnauthorized: (context) => {
         seenSignal = context.signal;
         controller.abort();
+
         return true;
       },
     });

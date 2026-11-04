@@ -162,6 +162,7 @@ export class FilteredCases extends BaseTestCases {
       });
 
       const saleChannelProducts = (productWithOrdered as any)?.saleChannelProducts ?? [];
+
       if (saleChannelProducts.length === 3) {
         // Verify the order is actually DESC by saleChannelId
         const ids = saleChannelProducts.map((s: any) => s.saleChannelId);
@@ -251,6 +252,7 @@ export class FilteredCases extends BaseTestCases {
       });
 
       const saleChannelProducts = (productWithLimited as any)?.saleChannelProducts ?? [];
+
       if (saleChannelProducts.length === 2) {
         this.context.logger.info('[CASE 9] PASSED | Scoped limit returned only 2 channels');
       } else {
@@ -402,6 +404,7 @@ export class FilteredCases extends BaseTestCases {
 
       if (expensiveWithRelations.length === 1 && expensiveWithRelations[0].price === 1000) {
         const hasChannel = (expensiveWithRelations[0] as any).saleChannelProducts?.length === 1;
+
         if (hasChannel) {
           this.context.logger.info('[CASE 15] PASSED | Parent where filter works with include');
         } else {
@@ -413,6 +416,7 @@ export class FilteredCases extends BaseTestCases {
 
       // Cleanup
       const productsData = products.data!;
+
       for (const p of productsData) {
         await junctionRepo.deleteAll({ where: { productId: p.id }, options: { force: true } });
         await productRepo.deleteAll({
@@ -420,6 +424,7 @@ export class FilteredCases extends BaseTestCases {
           options: { force: true, shouldSkipDefaultFilter: true },
         });
       }
+
       await saleChannelRepo.deleteAll({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {
       this.context.logger.error('[CASE 15] FAILED | Error: %s', (error as Error).message);

@@ -21,6 +21,7 @@ class FakeSmtpTransporter {
     }
 
     this.sentMails.push(mailOptions);
+
     return { messageId: 'smtp-1', response: '250 OK' };
   }
 
@@ -48,6 +49,7 @@ class FakeMailgunMessagesClient {
     }
 
     this.createdMessages.push({ domain, payload });
+
     return { id: 'mailgun-1', message: 'Queued' };
   }
 }
@@ -73,6 +75,7 @@ class FakeSesClient {
       }
 
       this.sentCommands.push(command.input);
+
       return { MessageId: 'ses-1' };
     }
 
@@ -145,6 +148,7 @@ describe('MailgunTransportHelper - configuration', () => {
     const error = (() => {
       try {
         new TestableMailgunTransport({ config: { username: 'api', key: 'fake-key' } as AnyType });
+
         return undefined;
       } catch (caught) {
         return caught as AnyType;
@@ -162,6 +166,7 @@ describe('MailgunTransportHelper - configuration', () => {
     const error = (() => {
       try {
         new TestableMailgunTransport({ config: { domain: 'mail.test' } as AnyType });
+
         return undefined;
       } catch (caught) {
         return caught as AnyType;
@@ -182,6 +187,7 @@ describe('MailgunTransportHelper - configuration', () => {
         new TestableMailgunTransport({
           config: { username: 'api', key: 'super-secret-key' } as AnyType,
         });
+
         return undefined;
       } catch (caught) {
         return caught as AnyType;
@@ -274,6 +280,7 @@ describe('AmazonSesTransportHelper - configuration', () => {
     const error = (() => {
       try {
         new TestableAmazonSesTransport({ config: {} as AnyType });
+
         return undefined;
       } catch (caught) {
         return caught as AnyType;
@@ -295,6 +302,7 @@ describe('AmazonSesTransportHelper - configuration', () => {
             credentials: { accessKeyId: 'AKIA', secretAccessKey: 'super-secret' },
           } as AnyType,
         });
+
         return undefined;
       } catch (caught) {
         return caught as AnyType;
@@ -434,9 +442,11 @@ describe('AmazonSesTransportHelper - send', () => {
     const [sent] = fakeClient.sentCommands;
     const raw = (sent.Content.Raw.Data as Buffer).toString('utf-8');
     const lines = raw.split('\r\n');
+
     for (const line of lines) {
       expect(line.length).toBeLessThan(999);
     }
+
     // Folding must not drop or duplicate recipients - re-joining every continuation line of the
     // folded `To:` header must reproduce the exact original address list.
     expect(sent.Destination.ToAddresses).toEqual(recipients);
@@ -693,6 +703,7 @@ describe('AmazonSesTransportHelper - verify and close', () => {
 
   test('a failed verification resolves false instead of throwing', async () => {
     const { helper, fakeClient } = buildSesTransport();
+
     fakeClient.send = async () => {
       throw new Error('AccessDenied');
     };
@@ -722,6 +733,7 @@ describe('Transports - module handed over through the options', () => {
       module: {
         createTransport: (config: AnyType) => {
           calls.push(config);
+
           return fakeTransporter;
         },
       },
@@ -751,6 +763,7 @@ describe('Transports - module handed over through the options', () => {
     const error = (() => {
       try {
         new NodemailerTransportHelper({ config: { host: 'localhost', port: 1025 } });
+
         return undefined;
       } catch (caught) {
         return caught as AnyType;
@@ -772,6 +785,7 @@ describe('Transports - module handed over through the options', () => {
           constructor(config: AnyType) {
             calls.push(config);
           }
+
           send = fakeClient.send.bind(fakeClient);
         } as AnyType,
         SendEmailCommand: FakeSendEmailCommand as AnyType,
@@ -789,6 +803,7 @@ describe('Transports - module handed over through the options', () => {
     const error = (() => {
       try {
         new AmazonSesTransportHelper({ config: { region: 'us-east-1' } });
+
         return undefined;
       } catch (caught) {
         return caught as AnyType;

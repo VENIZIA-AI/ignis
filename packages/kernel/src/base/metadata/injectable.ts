@@ -65,6 +65,7 @@ export const configuration = <ApplicationType = unknown>(
 ): ClassDecorator => {
   return injectable<ApplicationType>({ type: ArtifactTypes.CONFIGURATION, ...opts });
 };
+
 /** Marks a component method as the provider of `key`. `registerArtifacts` binds the key to a lazy provider that resolves the component and calls the method; SINGLETON unless `scope` says otherwise. */
 export const provide = (opts: { key: string; scope?: TBindingScope }): MethodDecorator => {
   return (target, propertyKey) => {

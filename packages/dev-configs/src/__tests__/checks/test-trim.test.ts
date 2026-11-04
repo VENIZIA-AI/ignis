@@ -250,6 +250,7 @@ describe('test-dead-code', () => {
     const root = makeFolder(files);
     spawnSync('git', ['init', '-q'], { cwd: root });
     spawnSync('git', ['add', '-A'], { cwd: root });
+
     return root;
   };
 

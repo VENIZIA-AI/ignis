@@ -77,6 +77,7 @@ export class CronHelper extends BaseHelper {
   start() {
     if (!this.instance) {
       this.logger.for('start').error(' Invalid cron instance to start cronjob!');
+
       return;
     }
 
@@ -86,6 +87,7 @@ export class CronHelper extends BaseHelper {
   async stop() {
     if (!this.instance) {
       this.logger.for(this.stop.name).error('Invalid cron instance to stop cronjob!');
+
       return;
     }
 
@@ -96,6 +98,7 @@ export class CronHelper extends BaseHelper {
     const { cronTime, shouldFireOnTick = false } = opts;
 
     let nextCronTime: CronTime;
+
     try {
       nextCronTime = new CronTime(cronTime, this.tz);
     } catch (error) {

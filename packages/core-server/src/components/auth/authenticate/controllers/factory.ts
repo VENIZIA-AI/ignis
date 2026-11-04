@@ -84,6 +84,7 @@ export class AuthControllerFactory {
           handler: async (context) => {
             const body = await context.req.json();
             const rs = await this.service.signIn(context, body);
+
             return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
           },
         });
@@ -111,6 +112,7 @@ export class AuthControllerFactory {
           handler: async (context) => {
             const body = await context.req.json();
             const rs = await this.service.signUp(context, body);
+
             return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
           },
         });
@@ -136,6 +138,7 @@ export class AuthControllerFactory {
           handler: async (context) => {
             const body = await context.req.json();
             const rs = await this.service.changePassword(context, body);
+
             return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
           },
         });
@@ -162,6 +165,7 @@ export class AuthControllerFactory {
             }
 
             const rs = await this.service.refreshToken(context);
+
             return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
           },
         });
@@ -243,6 +247,7 @@ export class AuthControllerFactory {
             }
 
             const rs = await this.service.getUserInformation(context, {});
+
             return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
           },
         });

@@ -19,6 +19,7 @@ const buildService = (opts?: {
   } as TMailOptions;
 
   const service = new MailService(mailOptions, transport, opts?.templateEngine);
+
   return { service, transport };
 };
 
@@ -27,6 +28,7 @@ describe('MailService - validation errors', () => {
     const { service, transport } = buildService();
 
     let error: AnyType;
+
     try {
       await service.send({ to: '', subject: 'Hi', text: 'body' });
     } catch (caught) {
@@ -43,6 +45,7 @@ describe('MailService - validation errors', () => {
     const { service } = buildService();
 
     let error: AnyType;
+
     try {
       await service.send({ to: [], subject: 'Hi', text: 'body' });
     } catch (caught) {
@@ -57,6 +60,7 @@ describe('MailService - validation errors', () => {
     const { service } = buildService();
 
     let error: AnyType;
+
     try {
       await service.send({ to: 'a@b.com', subject: '', text: 'body' });
     } catch (caught) {
@@ -72,6 +76,7 @@ describe('MailService - validation errors', () => {
     const { service } = buildService({ transport });
 
     let error: AnyType;
+
     try {
       await service.send({ to: 'a@b.com', subject: 'Hi', text: 'body' });
     } catch (caught) {
@@ -162,6 +167,7 @@ describe('MailService - sendTemplate', () => {
     const { service } = buildService({ templateEngine: new TemplateEngineService() });
 
     let error: AnyType;
+
     try {
       await service.sendTemplate({ templateName: 'nope', data: {}, recipients: 'a@b.com' });
     } catch (caught) {
@@ -176,6 +182,7 @@ describe('MailService - sendTemplate', () => {
     const { service } = buildService();
 
     let error: AnyType;
+
     try {
       await service.sendTemplate({ templateName: 'welcome', data: {}, recipients: 'a@b.com' });
     } catch (caught) {
@@ -200,11 +207,13 @@ describe('MailService - verify', () => {
     const { service } = buildService({ transport });
 
     let error: AnyType;
+
     try {
       await service.verify();
     } catch (caught) {
       error = caught;
     }
+
     expect(error.statusCode).toBe(500);
     expect(error.normalized.code).toBe(MailErrorCodes.VERIFICATION_FAILED);
   });

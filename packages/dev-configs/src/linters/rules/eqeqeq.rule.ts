@@ -8,6 +8,7 @@ export class EqeqeqRule {
     opts: { severity?: TRuleSeverity; mode?: TEqeqeqMode } = {},
   ): TOxlintRuleEntry<'eqeqeq'> {
     const { severity = 'error', mode = EqeqeqModes.SMART } = opts;
+
     return [severity, mode];
   }
 }

@@ -75,6 +75,7 @@ export abstract class BaseContainer extends AbstractContainer {
     const { key } = opts;
 
     const known = this.symbolKeys.get(key);
+
     if (known !== undefined) {
       return known;
     }
@@ -85,6 +86,7 @@ export abstract class BaseContainer extends AbstractContainer {
 
     const keyStr = count === 1 ? description : `${description}#${count}`;
     this.symbolKeys.set(key, keyStr);
+
     return keyStr;
   }
 
@@ -93,11 +95,13 @@ export abstract class BaseContainer extends AbstractContainer {
     const keyStr = typeof key === 'symbol' ? this.bindSymbolKey({ key }) : key;
     const binding = new Binding<T>({ key: keyStr });
     this.bindings.set(keyStr, binding as Binding);
+
     return binding;
   }
 
   override isBound(opts: { key: TBindingKey }): boolean {
     const keyStr = this.toKeyString({ key: opts.key });
+
     return keyStr !== undefined && this.bindings.has(keyStr);
   }
 
@@ -105,6 +109,7 @@ export abstract class BaseContainer extends AbstractContainer {
     key: TBindingKey | { namespace: string; key: string };
   }): TNullable<Binding<T>> {
     const keyStr = this.toKeyString({ key: opts.key });
+
     return keyStr === undefined ? undefined : this.bindings.get(keyStr);
   }
 
@@ -139,6 +144,7 @@ export abstract class BaseContainer extends AbstractContainer {
     const { key, isOptional = false } = opts;
 
     const binding = this.getBinding<T>({ key });
+
     if (binding) {
       // Counted here and nowhere else: constructor injection, property injection, `application.get`
       // and `BindingVerifier.verify` all arrive through this one method. A miss below is not a resolution.
@@ -169,6 +175,7 @@ export abstract class BaseContainer extends AbstractContainer {
         return binding.getValue(this);
       } finally {
         this.resolutionDepth--;
+
         if (isTracked) {
           this.resolvingKeys.delete(binding.key);
         }
@@ -230,6 +237,7 @@ export abstract class BaseContainer extends AbstractContainer {
     const rs: Binding<T>[] = [];
 
     const bindings = this.bindings.values();
+
     for (const binding of bindings) {
       if (!binding.hasTag(tag)) {
         continue;
@@ -251,6 +259,7 @@ export abstract class BaseContainer extends AbstractContainer {
 
   override clear(): void {
     const bindings = this.bindings.values();
+
     for (const binding of bindings) {
       binding.clearCache();
     }

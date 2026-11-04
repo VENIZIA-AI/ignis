@@ -105,6 +105,7 @@ describe('BunS3Helper.getObjectTags / replaceObjectTags - stubbed fetch', () => 
       capturedMethod = init?.method ?? '';
       const xml =
         '<Tagging><TagSet><Tag><Key>temp</Key><Value>true</Value></Tag></TagSet></Tagging>';
+
       return Promise.resolve(new Response(xml, { status: 200 }));
     }) as AnyType;
 
@@ -135,6 +136,7 @@ describe('BunS3Helper.getObjectTags / replaceObjectTags - stubbed fetch', () => 
       Promise.resolve(new Response('internal error', { status: 500 }))) as AnyType;
 
     let error: unknown;
+
     try {
       await buildHelper().getObjectTags({
         bucket: { name: 'assets' },
@@ -158,6 +160,7 @@ describe('BunS3Helper.getObjectTags / replaceObjectTags - stubbed fetch', () => 
       capturedUrl = String(input);
       capturedMethod = init?.method ?? '';
       capturedBody = String(init?.body ?? '');
+
       return Promise.resolve(new Response('', { status: 200 }));
     }) as AnyType;
 
@@ -179,6 +182,7 @@ describe('BunS3Helper.getObjectTags / replaceObjectTags - stubbed fetch', () => 
     globalThis.fetch = (() => Promise.resolve(new Response('denied', { status: 403 }))) as AnyType;
 
     let error: unknown;
+
     try {
       await buildHelper().replaceObjectTags({
         bucket: { name: 'assets' },

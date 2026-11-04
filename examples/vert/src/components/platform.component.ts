@@ -148,9 +148,11 @@ export class PlatformComponent extends BaseComponent {
           const expiresIn = applicationEnvironment.get<string>(
             EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN,
           );
+
           if (!expiresIn) {
             throw getError({ message: '[getTokenExpiresFn] APP_ENV_JWT_EXPIRES_IN is not set' });
           }
+
           return ParseUtility.toInt({ input: expiresIn });
         },
       },
@@ -164,6 +166,7 @@ export class PlatformComponent extends BaseComponent {
         const authenticationService = this.application.get<AuthenticationService>({
           key: { namespace: BindingNamespaces.SERVICE, key: AuthenticationService.name },
         });
+
         return authenticationService.signIn(opts.context, {
           identifier: { scheme: 'username', value: opts.credentials.username },
           credential: { scheme: 'basic', value: opts.credentials.password },
@@ -180,6 +183,7 @@ export class PlatformComponent extends BaseComponent {
       // Scoped RBAC: the request domain is the authenticated user's organization.
       domainResolver: ({ context }) => {
         const organizationId = context.get(Authentication.CURRENT_USER)?.organizationId;
+
         return typeof organizationId === 'string'
           ? { type: Organization.name, id: organizationId }
           : null;

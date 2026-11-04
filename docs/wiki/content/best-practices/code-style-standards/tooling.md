@@ -162,6 +162,19 @@ export default [
 ];
 ```
 
+### Blank-line padding
+
+`houseConfigs`, `reactHouseConfigs` and `eslintConfigs` also carry `paddingConfigs`: two `@stylistic` rules that keep a statement list readable, both at `error` and both fixed by `devz lint --fix`.
+
+| Rule | A blank line |
+|---|---|
+| `@stylistic/padding-line-between-statements` | after the import block; before a `return` that follows other statements; after every block-like statement when another statement follows, and before one that follows other statements |
+| `@stylistic/lines-between-class-members` | between class members, except after a one-line member |
+
+Block-like means `if`, `for`, `while`, `do`, `switch`, `try`, a bare block, and a declaration whose value ends in a block, such as `const f = () => { ... }`. An `else` or `catch` chain is one statement, so the padding never splits it. Between `case` and `default` clauses the padding is left as written, because a blank line between stacked labels makes `no-fallthrough` read the empty one as a fall-through.
+
+The rules run in ESLint only. oxlint 1.89 has none of them, so a project that lints with oxlint alone gets no padding check. To turn one off, set it to `'off'` after `houseConfigs`.
+
 Because oxlint owns the other rules, ESLint does not report unused `eslint-disable` comments. A project that wants the full ESLint preset instead still has `eslintConfigs`.
 
 ## Formatting with `bun fmt`

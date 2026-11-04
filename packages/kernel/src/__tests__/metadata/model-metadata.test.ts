@@ -50,6 +50,7 @@ describe('@model - type', () => {
           return {} as T;
         }
       }
+
       return Bare;
     }).not.toThrow();
   });

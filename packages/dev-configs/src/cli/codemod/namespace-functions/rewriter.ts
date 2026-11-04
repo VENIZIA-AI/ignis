@@ -76,6 +76,7 @@ export class NamespaceFunctions {
       sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
 
     const byModule = new Map<string, INamespaceMapping[]>();
+
     for (const mapping of mappings) {
       for (const module of mapping.modules) {
         byModule.set(module, [...(byModule.get(module) ?? []), mapping]);
@@ -88,6 +89,7 @@ export class NamespaceFunctions {
       byModule,
       report,
     });
+
     if (bindings.length === 0) {
       return { output: source, changed: false, rewritten: 0, reports };
     }
@@ -111,6 +113,7 @@ export class NamespaceFunctions {
     for (const binding of bindings) {
       const { mapping } = binding;
       const uses = NamespaceFunctions.findUses({ typescript, binding, identifiers });
+
       if (uses.calls.length === 0 && uses.values.length === 0) {
         continue;
       }
@@ -131,6 +134,7 @@ export class NamespaceFunctions {
       const shadow = declarationsOf(binding.local).find(
         (identifier) => identifier !== binding.declarationName,
       );
+
       if (shadow) {
         report({
           node: shadow,
@@ -183,6 +187,7 @@ export class NamespaceFunctions {
 
       for (const call of uses.calls) {
         const problem = NamespaceFunctions.checkCall({ typescript, call, mapping });
+
         if (problem) {
           left += 1;
           report({ node: call, reason: `${problem}; rewrite it by hand as ${target}` });
@@ -202,6 +207,7 @@ export class NamespaceFunctions {
       }
 
       rewritten += count;
+
       if (count === 0) {
         continue;
       }
@@ -271,6 +277,7 @@ export class NamespaceFunctions {
     // At one position a replacement (the longer range) is applied before an insertion, so the
     // inserted key of an outer call lands in front of the rewritten callee of an inner one.
     let output = source;
+
     for (const edit of edits.sort((a, b) => b.start - a.start || b.end - a.end)) {
       output = output.slice(0, edit.start) + edit.text + output.slice(edit.end);
     }
@@ -297,9 +304,11 @@ export class NamespaceFunctions {
         typescript.isNamedExports(statement.exportClause)
       ) {
         const candidates = byModule.get(statement.moduleSpecifier.text) ?? [];
+
         for (const element of statement.exportClause.elements) {
           const name = (element.propertyName ?? element.name).text;
           const mapping = candidates.find((candidate) => candidate.oldName === name);
+
           if (mapping) {
             report({
               node: element,
@@ -307,6 +316,7 @@ export class NamespaceFunctions {
             });
           }
         }
+
         continue;
       }
 
@@ -322,6 +332,7 @@ export class NamespaceFunctions {
       const candidates = byModule.get(module);
       const clause = statement.importClause;
       const named = clause.namedBindings;
+
       if (!candidates || !named) {
         continue;
       }
@@ -340,12 +351,14 @@ export class NamespaceFunctions {
             declarationName: named.name,
           });
         }
+
         continue;
       }
 
       for (const element of named.elements) {
         const imported = (element.propertyName ?? element.name).text;
         const mapping = candidates.find((candidate) => candidate.oldName === imported);
+
         if (!mapping) {
           continue;
         }
@@ -389,6 +402,7 @@ export class NamespaceFunctions {
     };
 
     walk(sourceFile);
+
     return identifiers;
   }
 
@@ -418,11 +432,13 @@ export class NamespaceFunctions {
 
         if (isMember) {
           const call = parent.parent;
+
           if (typescript.isCallExpression(call) && call.expression === parent) {
             uses.calls.push(call);
           } else {
             uses.values.push(parent);
           }
+
           continue;
         }
 
@@ -433,10 +449,12 @@ export class NamespaceFunctions {
         ) {
           uses.values.push(parent);
         }
+
         continue;
       }
 
       const parent = identifier.parent;
+
       if (typescript.isCallExpression(parent) && parent.expression === identifier) {
         uses.calls.push(parent);
         continue;
@@ -564,6 +582,7 @@ export class NamespaceFunctions {
       (last, parameter, index) => (parameter.optional ? last : index + 1),
       0,
     );
+
     if (count < required) {
       return `this call of \`${oldName}\` passes ${count} argument(s), fewer than the ${required} it needs`;
     }
@@ -602,11 +621,13 @@ export class NamespaceFunctions {
     }
 
     const argumentList = [...call.arguments];
+
     if (argumentList.length === 0) {
       if (params.length > 0 || restKey !== undefined) {
         const text = restKey === undefined ? '{}' : `{ ${restKey}: [] }`;
         edits.push({ start: call.arguments.pos, end: call.arguments.pos, text });
       }
+
       return edits;
     }
 
@@ -643,6 +664,7 @@ export class NamespaceFunctions {
     }
 
     insert({ at: last?.end ?? call.arguments.end, text: suffix });
+
     return edits;
   }
 
@@ -658,6 +680,7 @@ export class NamespaceFunctions {
     for (const statement of sourceFile.statements) {
       const declaration = NamespaceFunctions.asValueImport({ typescript, statement, modules });
       const named = declaration?.importClause?.namedBindings;
+
       if (!named || !typescript.isNamedImports(named)) {
         continue;
       }
@@ -666,6 +689,7 @@ export class NamespaceFunctions {
         (candidate) =>
           !candidate.isTypeOnly && (candidate.propertyName ?? candidate.name).text === className,
       );
+
       if (element) {
         return element.name;
       }
@@ -685,6 +709,7 @@ export class NamespaceFunctions {
     for (const statement of sourceFile.statements) {
       const declaration = NamespaceFunctions.asValueImport({ typescript, statement, modules });
       const named = declaration?.importClause?.namedBindings;
+
       if (declaration && named && typescript.isNamedImports(named)) {
         return declaration;
       }
@@ -716,6 +741,7 @@ export class NamespaceFunctions {
 
   private static moduleOf(opts: { declaration: ts.ImportDeclaration }): string {
     const specifier = opts.declaration.moduleSpecifier;
+
     return 'text' in specifier && typeof specifier.text === 'string' ? specifier.text : '';
   }
 
@@ -735,6 +761,7 @@ export class NamespaceFunctions {
     const { typescript, sourceFile, declaration, removals, additions, report } = opts;
     const clause = declaration.importClause;
     const named = clause?.namedBindings;
+
     if (!clause || !named || !typescript.isNamedImports(named)) {
       return [];
     }
@@ -752,6 +779,7 @@ export class NamespaceFunctions {
       }
 
       const last = elements[elements.length - 1];
+
       if (!last || additions.length === 0) {
         return [];
       }
@@ -761,6 +789,7 @@ export class NamespaceFunctions {
 
     const items: string[] = [];
     let isPlaced = false;
+
     for (const element of elements) {
       if (!removals.has(element)) {
         items.push(element.getText(sourceFile));
@@ -794,6 +823,7 @@ export class NamespaceFunctions {
 
     const start = declaration.getStart(sourceFile);
     const newline = /^\r?\n/.exec(source.slice(declaration.end))?.[0] ?? '';
+
     return [{ start, end: declaration.end + newline.length, text: '' }];
   }
 
@@ -801,6 +831,7 @@ export class NamespaceFunctions {
   private static describeTarget(opts: { mapping: INamespaceMapping }): string {
     const { className, method, params, restKey } = opts.mapping;
     const keys = [...params.map((parameter) => parameter.key), ...(restKey ? [restKey] : [])];
+
     return keys.length === 0
       ? `${className}.${method}()`
       : `${className}.${method}({ ${keys.join(', ')} })`;

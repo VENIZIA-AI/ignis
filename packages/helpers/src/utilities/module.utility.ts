@@ -16,6 +16,7 @@ export class ModuleUtility {
   private static sharedRegistry(): Map<string, AnyType> {
     const slot = Symbol.for('ignis:module-registry');
     const shared: Map<string, AnyType> | undefined = Reflect.get(globalThis, slot);
+
     if (shared) {
       return shared;
     }
@@ -65,6 +66,7 @@ export class ModuleUtility {
    */
   static register(opts: { modules: Record<string, AnyType> }): void {
     const modulesEntries = Object.entries(opts.modules);
+
     for (const [module, value] of modulesEntries) {
       this.registered.set(module, value);
     }
@@ -82,6 +84,7 @@ export class ModuleUtility {
 
     try {
       const file = Bun.resolveSync(opts.module, this.getProjectRoot());
+
       return path.isAbsolute(file) ? file : undefined;
       // eslint-disable-next-line venizia/no-silent-catch -- documented contract: an unresolvable module is `undefined` and the caller falls back to a plain `import()`
     } catch {
@@ -105,6 +108,7 @@ export class ModuleUtility {
     try {
       const file = this.resolveEsmFile({ module });
       const result = await import(file === undefined ? module : pathToFileURL(file).href);
+
       return result as T;
     } catch (error) {
       throw this.fail({ method: 'load', module, error });

@@ -33,6 +33,7 @@ export class NestedCases extends BaseTestCases {
 
       if (testProducts.length === 3) {
         let totalChannels = 0;
+
         for (const product of testProducts) {
           const scp = (product as any).saleChannelProducts ?? [];
           totalChannels += scp.length;
@@ -141,15 +142,18 @@ export class NestedCases extends BaseTestCases {
 
       // Cleanup
       const productsData = products.data!;
+
       for (const p of productsData) {
         await junctionRepo.deleteAll({ where: { productId: p.id }, options: { force: true } });
       }
+
       for (const p of productsData) {
         await productRepo.deleteAll({
           where: { id: p.id },
           options: { force: true, shouldSkipDefaultFilter: true },
         });
       }
+
       await saleChannelRepo.deleteAll({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {
       this.context.logger.error('[CASE 13] FAILED | Error: %s', (error as Error).message);

@@ -43,14 +43,17 @@ const listForbiddenDirectories = (opts: { walkingFrom: string }): string[] => {
   const forbidden: string[] = [];
 
   const familyDirectories = listFamilyDirectories();
+
   for (const family of familyDirectories) {
     const familyEntries = readdirSync(family, { withFileTypes: true });
+
     for (const entry of familyEntries) {
       if (!entry.isDirectory()) {
         continue;
       }
 
       const directory = join(family, entry.name);
+
       if (directory === opts.walkingFrom) {
         continue;
       }
@@ -66,6 +69,7 @@ const listJsFiles = (dir: string): string[] => {
   const files: string[] = [];
 
   const dirEntries = readdirSync(dir, { withFileTypes: true });
+
   for (const entry of dirEntries) {
     const fullPath = join(dir, entry.name);
 
@@ -93,6 +97,7 @@ const resolveSpecifier = (opts: { fromFile: string; specifier: string }): string
   const base = resolve(dirname(fromFile), specifier);
 
   const candidates = [base, `${base}.js`, join(base, 'index.js')];
+
   for (const candidate of candidates) {
     try {
       if (statSync(candidate).isFile()) {
@@ -116,8 +121,10 @@ const outgoingEdges = (file: string): string[] => {
   const targets = new Set<string>();
 
   const patterns = [REQUIRE_PATTERN, FROM_PATTERN];
+
   for (const pattern of patterns) {
     const matches = source.matchAll(pattern);
+
     for (const match of matches) {
       const resolved = resolveSpecifier({ fromFile: file, specifier: match[1] ?? '' });
 
@@ -160,6 +167,7 @@ const walkFromNeutralTier = (opts: { family: string }): IWalkResult => {
     }
 
     const nexts = outgoingEdges(file);
+
     for (const next of nexts) {
       if (cameFrom.has(next)) {
         continue;
@@ -206,6 +214,7 @@ describe('no neutral tier reaches an engine adapter at runtime', () => {
       relational: ['core', 'postgres', 'sqlite'],
       search: ['core', 'meilisearch', 'typesense'],
     });
+
     for (const [family, engines] of entriesList) {
       for (const engine of engines) {
         const engineDist = join(DIST, family, engine);

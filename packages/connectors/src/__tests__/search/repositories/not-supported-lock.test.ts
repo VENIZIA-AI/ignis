@@ -27,56 +27,67 @@ describe('Typesense repository verbs reject options.lock (NotSupported)', () => 
 
   test('count', async () => {
     let caught: unknown;
+
     try {
       await repository.count({ where: {}, options: { lock: fakeLock } });
     } catch (error) {
       caught = error;
     }
+
     expectNotSupported(caught);
   });
 
   test('existsWith (delegates to count)', async () => {
     let caught: unknown;
+
     try {
       await repository.existsWith({ where: {}, options: { lock: fakeLock } });
     } catch (error) {
       caught = error;
     }
+
     expectNotSupported(caught);
   });
 
   test('find', async () => {
     let caught: unknown;
+
     try {
       await repository.find({ filter: {}, options: { lock: fakeLock } });
     } catch (error) {
       caught = error;
     }
+
     expectNotSupported(caught);
   });
 
   test('findOne (delegates to find)', async () => {
     let caught: unknown;
+
     try {
       await repository.findOne({ filter: {}, options: { lock: fakeLock } });
     } catch (error) {
       caught = error;
     }
+
     expectNotSupported(caught);
   });
 
   test('findById (delegates to findOne)', async () => {
     let caught: unknown;
+
     try {
       await repository.findById({ id: '1', options: { lock: fakeLock } });
     } catch (error) {
       caught = error;
     }
+
     expectNotSupported(caught);
   });
 
   test('create', async () => {
     let caught: unknown;
+
     try {
       await repository.create({
         data: { title: 'A' },
@@ -85,11 +96,13 @@ describe('Typesense repository verbs reject options.lock (NotSupported)', () => 
     } catch (error) {
       caught = error;
     }
+
     expectNotSupported(caught);
   });
 
   test('createAll', async () => {
     let caught: unknown;
+
     try {
       await repository.createAll({
         data: [{ title: 'A' }],
@@ -98,11 +111,13 @@ describe('Typesense repository verbs reject options.lock (NotSupported)', () => 
     } catch (error) {
       caught = error;
     }
+
     expectNotSupported(caught);
   });
 
   test('updateById', async () => {
     let caught: unknown;
+
     try {
       await repository.updateById({
         id: '1',
@@ -112,11 +127,13 @@ describe('Typesense repository verbs reject options.lock (NotSupported)', () => 
     } catch (error) {
       caught = error;
     }
+
     expectNotSupported(caught);
   });
 
   test('updateAll', async () => {
     let caught: unknown;
+
     try {
       await repository.updateAll({
         data: { title: 'A' },
@@ -126,21 +143,25 @@ describe('Typesense repository verbs reject options.lock (NotSupported)', () => 
     } catch (error) {
       caught = error;
     }
+
     expectNotSupported(caught);
   });
 
   test('deleteById', async () => {
     let caught: unknown;
+
     try {
       await repository.deleteById({ id: '1', options: { lock: fakeLock } });
     } catch (error) {
       caught = error;
     }
+
     expectNotSupported(caught);
   });
 
   test('deleteAll', async () => {
     let caught: unknown;
+
     try {
       await repository.deleteAll({
         where: { title: 'B' },
@@ -149,6 +170,7 @@ describe('Typesense repository verbs reject options.lock (NotSupported)', () => 
     } catch (error) {
       caught = error;
     }
+
     expectNotSupported(caught);
   });
 });

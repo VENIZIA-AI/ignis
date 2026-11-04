@@ -8,6 +8,7 @@ describe('DI registration helpers live on the kernel layer', () => {
     const baseSurface = Object.getOwnPropertyNames(BaseApplication.prototype);
 
     const methods = ['component', 'controller', 'service', 'repository', 'dataSource'];
+
     for (const method of methods) {
       expect(restSurface).toContain(method);
       // Guards against a future regression that copies these back onto BaseApplication - that
@@ -21,6 +22,7 @@ describe('DI registration helpers live on the kernel layer', () => {
     const app = BaseApplication.prototype as unknown as Record<string, unknown>;
 
     const methods = ['component', 'controller', 'service', 'repository', 'dataSource'];
+
     for (const method of methods) {
       expect(typeof app[method]).toBe('function');
     }

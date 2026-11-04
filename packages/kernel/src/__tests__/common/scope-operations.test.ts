@@ -36,6 +36,7 @@ describe('ScopeOperations', () => {
     for (const value of SIX) {
       expect(ScopeOperations.isValid(value)).toBe(true);
     }
+
     expect(ScopeOperations.isValid('nope')).toBe(false);
     expect(ScopeOperations.isValid('')).toBe(false);
     expect(ScopeOperations.isValid('READ')).toBe(false);

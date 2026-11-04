@@ -123,6 +123,7 @@ describe('TransactionDouble', () => {
     const readConnector = (): unknown => double.connector;
 
     let caught: unknown;
+
     try {
       readConnector();
     } catch (error) {

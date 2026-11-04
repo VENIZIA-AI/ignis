@@ -53,6 +53,7 @@ export class EdgeCases extends BaseTestCases {
 
       if (!repoUser) {
         this.context.logger.warn('[CASE 7] SKIPPED | No test user found');
+
         return;
       }
 
@@ -64,6 +65,7 @@ export class EdgeCases extends BaseTestCases {
 
       if (directResults.length === 0) {
         this.context.logger.error('[CASE 7] FAILED | Direct query returned no results');
+
         return;
       }
 
@@ -122,6 +124,7 @@ export class EdgeCases extends BaseTestCases {
 
       if (directResults.length === 0) {
         this.context.logger.error('[CASE 12] FAILED | No records found via connector');
+
         return;
       }
 
@@ -178,6 +181,7 @@ export class EdgeCases extends BaseTestCases {
       if (createHasPassword) {
         this.context.logger.error('[CASE 16] FAILED | Create in TX returned hidden field');
         await transaction.rollback();
+
         return;
       }
 
@@ -189,6 +193,7 @@ export class EdgeCases extends BaseTestCases {
       if (!found) {
         this.context.logger.error('[CASE 16] FAILED | Could not find created user in TX');
         await transaction.rollback();
+
         return;
       }
 
@@ -198,6 +203,7 @@ export class EdgeCases extends BaseTestCases {
       if (findHasPassword) {
         this.context.logger.error('[CASE 16] FAILED | Find in TX returned hidden field');
         await transaction.rollback();
+
         return;
       }
 
@@ -213,6 +219,7 @@ export class EdgeCases extends BaseTestCases {
       if (updateHasPassword) {
         this.context.logger.error('[CASE 16] FAILED | Update in TX returned hidden field');
         await transaction.rollback();
+
         return;
       }
 
@@ -285,10 +292,12 @@ export class EdgeCases extends BaseTestCases {
           '[CASE 18] FAILED | Expected at least 4 users | got: %d',
           users.length,
         );
+
         return;
       }
 
       let failedCount = 0;
+
       for (let i = 0; i < users.length; i++) {
         const user = users[i];
         const userKeys = Object.keys(user);
@@ -348,12 +357,15 @@ export class EdgeCases extends BaseTestCases {
 
       if (hasPassword || hasSecret) {
         this.context.logger.error('[CASE 20] FAILED | Null hidden fields should still be excluded');
+
         return;
       }
 
       const found = await repo.findById({ id: created.data.id });
+
       if (!found) {
         this.context.logger.error('[CASE 20] FAILED | User not found');
+
         return;
       }
 
@@ -363,6 +375,7 @@ export class EdgeCases extends BaseTestCases {
 
       if (findHasPassword || findHasSecret) {
         this.context.logger.error('[CASE 20] FAILED | Find returned null hidden fields');
+
         return;
       }
 
@@ -374,10 +387,12 @@ export class EdgeCases extends BaseTestCases {
 
       if (directResult.length === 0) {
         this.context.logger.error('[CASE 20] FAILED | User not found via connector');
+
         return;
       }
 
       const dbUser = directResult[0];
+
       if (dbUser.password === null && dbUser.secret === null) {
         this.context.logger.info(
           '[CASE 20] PASSED | Null hidden fields stored and excluded correctly',

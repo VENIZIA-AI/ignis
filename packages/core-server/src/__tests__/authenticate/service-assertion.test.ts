@@ -84,6 +84,7 @@ beforeAll(async () => {
     port: 0,
     fetch: async () => {
       const jwks = await signer.getPublicJWKS();
+
       return Response.json(jwks);
     },
   });
@@ -108,6 +109,7 @@ describe('the published key set', () => {
     const verifyOnly = buildSigner({ name: CALLEE, resolvePrincipal: async () => ({ userId: 1 }) });
 
     expect(verifyOnly.isEnabled()).toBe(false);
+
     return expect(verifyOnly.getPublicJWKS()).rejects.toThrow(/no signing keys/);
   });
 });
@@ -367,6 +369,7 @@ describe('the clock tolerance window', () => {
     expect(result).toMatchObject({ issuer: CALLER });
 
     const farToken = await mint({ iatOffsetSeconds: 6 });
+
     return expect(
       verifier().verify({
         token: farToken,
@@ -391,6 +394,7 @@ describe('the clock tolerance window', () => {
     expect(result).toMatchObject({ issuer: CALLER });
 
     const olderToken = await mint({ iatOffsetSeconds: -65 });
+
     return expect(
       verifier().verify({
         token: olderToken,
@@ -435,6 +439,7 @@ describe('the replay window is wider than the acceptance window', () => {
       await buildVerifier(
         calleeOptions({ acceptMaxAgeSeconds: 60, clockToleranceSeconds: 5 }),
       ).verify({ token, method: 'GET', path: '/v1/api/x' });
+
       return true;
       // eslint-disable-next-line venizia/no-silent-catch -- a refused token IS the answer this probe gives (false); the tests assert only accepted or refused, not why
     } catch {

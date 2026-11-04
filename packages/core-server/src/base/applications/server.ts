@@ -57,6 +57,7 @@ export class BunRuntimeGuard {
 
     if (runtime.bunVersion !== undefined) {
       const [major = 0, minor = 0] = runtime.bunVersion.split('.').map(Number);
+
       if (
         major > MINIMUM_BUN.major ||
         (major === MINIMUM_BUN.major && minor >= MINIMUM_BUN.minor)
@@ -91,11 +92,13 @@ const resolveServerPort = (opts: { candidates: Array<number | string | undefined
     }
 
     const normalized = typeof candidate === 'string' ? candidate.trim() : candidate;
+
     if (normalized === '') {
       continue;
     }
 
     const parsed = Number(normalized);
+
     if (!Number.isInteger(parsed) || parsed < 0 || parsed > MAX_SERVER_PORT) {
       continue;
     }
@@ -146,6 +149,7 @@ export abstract class ServerApplication<
   /** `configs.projectRoot` wins, else the process cwd. The value is bound AND handed to `ModuleUtility`, so every peer lookup (optional modules, the gRPC adapter) resolves under it - a compiled binary sets it to where its `node_modules` really is. */
   override getProjectRoot(): string {
     const projectRoot = this.configs.projectRoot ?? process.cwd();
+
     if (this.configs.projectRoot && !existsSync(path.join(projectRoot, 'node_modules'))) {
       this.logger
         .for(this.getProjectRoot.name)
@@ -154,8 +158,10 @@ export abstract class ServerApplication<
           projectRoot,
         );
     }
+
     this.bind<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT }).toValue(projectRoot);
     ModuleUtility.setProjectRoot({ projectRoot });
+
     return projectRoot;
   }
 
@@ -174,6 +180,7 @@ export abstract class ServerApplication<
   /** `configs.server` with unset keys dropped, so a missing option keeps Bun's default instead of passing `undefined`. */
   protected getServerRuntimeOptions(): IServerRuntimeConfigs {
     const { idleTimeout, maxRequestBodySize } = this.configs.server ?? {};
+
     return {
       ...(idleTimeout === undefined ? {} : { idleTimeout }),
       ...(maxRequestBodySize === undefined ? {} : { maxRequestBodySize }),
@@ -290,6 +297,7 @@ export abstract class ServerApplication<
     const onSignal = (signal: NodeJS.Signals) => {
       if (isShuttingDown) {
         log.warn('Signal %s ignored | shutdown already in progress', signal);
+
         return;
       }
 
@@ -319,25 +327,31 @@ export abstract class ServerApplication<
     const listeners = signals.map((signal) => {
       const listener = () => onSignal(signal);
       process.on(signal, listener);
+
       return { signal, listener };
     });
 
     const uninstall = () => {
       clearTimeout(timer);
+
       for (const { signal, listener } of listeners) {
         process.off(signal, listener);
       }
+
       this.shutdownSignals = undefined;
     };
 
     this.shutdownSignals = { uninstall };
+
     return uninstall;
   }
 
   protected async stopServer(): Promise<void> {
     const instance = this.serverInstance;
+
     if (!instance) {
       this.logger.for(this.stop.name).info('Server was not started | Nothing to stop');
+
       return;
     }
 

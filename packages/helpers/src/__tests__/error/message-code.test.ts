@@ -50,6 +50,7 @@ describe('MessageCode.build - the builder', () => {
   test('rejects anything but lower snake_case in a segment', () => {
     // These would each produce a code that looks fine but cannot be matched by a consumer that normalizes case, or that splits on '.'.
     const badCodes = ['Core', 'not-supported', 'has space', 'has.dot', ''];
+
     for (const bad of badCodes) {
       expect(() => MessageCode.build({ parts: ['core', bad] })).toThrow(/Invalid segment/);
     }

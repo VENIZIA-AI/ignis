@@ -27,11 +27,13 @@ export class NoAsyncHookCallbackRule {
     create: (context) => ({
       [AstNodeTypes.CALL_EXPRESSION]: (node: Rule.Node) => {
         const hook = HookSupport.calleeName({ call: node });
+
         if (hook === undefined || !HookSupport.isHook({ name: hook })) {
           return;
         }
 
         const args = AstNode.readField({ node, key: 'arguments' });
+
         if (!Array.isArray(args)) {
           return;
         }

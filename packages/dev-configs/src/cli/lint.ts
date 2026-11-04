@@ -41,6 +41,7 @@ export class LintCommand {
    */
   static readIgnore(opts: { root: string; file: string }): string[] {
     const path = join(opts.root, opts.file);
+
     if (!existsSync(path)) {
       return [];
     }
@@ -120,16 +121,20 @@ export class LintCommand {
   /** The tool's binary in the nearest `node_modules/.bin`, else its bare name for PATH to find. */
   static resolveTool(opts: { root: string; tool: string }): string {
     let dir = opts.root;
+
     while (true) {
       const candidate = join(dir, 'node_modules', '.bin', opts.tool);
+
       if (existsSync(candidate)) {
         return candidate;
       }
 
       const parent = dirname(dir);
+
       if (parent === dir) {
         return opts.tool;
       }
+
       dir = parent;
     }
   }

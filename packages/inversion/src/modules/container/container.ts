@@ -36,6 +36,7 @@ export class Container extends BaseContainer {
     }
 
     const target = ResolverUtility.resolveInjectTarget({ target: declared });
+
     if (target === undefined) {
       throw getError({
         message: `[${cls.name}] ${at} names a function that did not return a class`,
@@ -43,6 +44,7 @@ export class Container extends BaseContainer {
     }
 
     const recorded = this.getMetadataRegistry().getBindingKey({ target }) ?? key;
+
     if (recorded === undefined && isOptional) {
       return undefined;
     }
@@ -56,6 +58,7 @@ export class Container extends BaseContainer {
 
     // A same-name class records the same derived key (a library's own copy of a class the application registers): resolving it would hand back the OTHER class without a word.
     const bound = this.getBinding({ key: recorded })?.boundClass();
+
     if (bound && bound !== target && !(bound.prototype instanceof target)) {
       throw getError({
         message: `[${cls.name}] ${at} names '${target.name}', but '${String(recorded)}' is bound to a different class named '${bound.name}' | Two classes share one name and so one key - rename one, re-export the registered one, or inject by key`,
@@ -106,6 +109,7 @@ export class Container extends BaseContainer {
     }
 
     const properties = propertyMetadata.entries();
+
     for (const [propertyKey, metadata] of properties) {
       const isOptional = metadata.isOptional ?? false;
       const key = this.resolveBindingKey({

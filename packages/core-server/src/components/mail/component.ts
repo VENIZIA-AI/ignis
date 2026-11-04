@@ -103,6 +103,7 @@ export class MailComponent extends BaseComponent<TMailOptions> {
   /** A bad limit or root would otherwise surface on every send, as a 400 that blames the caller. */
   private validateAttachmentOptions(opts: { options: TMailOptions }): void {
     const { attachmentRoot, maxAttachmentBytes } = opts.options;
+
     const buildOptionError = (details: { message: string; cause?: unknown }) => {
       return getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,

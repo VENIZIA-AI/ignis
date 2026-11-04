@@ -33,6 +33,7 @@ const createMockRedisHelper = () => {
     duplicateClient: () => {
       const client = new MockRedisClient();
       clients.push(client);
+
       return client;
     },
   } as AnyType as IRedisHelper;
@@ -63,8 +64,10 @@ const createMockSocket = (id: string) => {
   socket.disconnect = mock(() => socket);
 
   const originalEmit = socket.emit.bind(socket);
+
   socket.emit = (topic: string, ...args: unknown[]) => {
     emitted.push({ topic, args });
+
     return originalEmit(topic, ...args);
   };
 
@@ -87,15 +90,18 @@ const createMockEmitter = () => {
   const target = {
     to: (value: string) => {
       destination = value;
+
       return target;
     },
     emit: (topic: string, data: unknown) => {
       const entry = { destination, topic, data };
       sent.push(entry);
       destination = undefined;
+
       for (const relay of relays) {
         relay(entry);
       }
+
       return true;
     },
   };
@@ -144,6 +150,7 @@ const createHelper = (opts?: Partial<TSocketIOServerOptions>) => {
   helper['emitter'] = emitter as AnyType;
 
   helpers.push(helper);
+
   return { helper, io, sent, relays, redisClients: clients };
 };
 
@@ -238,6 +245,7 @@ describe('SocketIOServerHelper | on', () => {
 
   test('binds the handler on the IO server', () => {
     const { helper, io } = createHelper();
+
     const handler = () => {};
 
     helper.on({ topic: 'a-topic', handler });
@@ -507,6 +515,7 @@ const startHttpServer = async () => {
   });
 
   const address = httpServer.address();
+
   if (!address || typeof address === 'string') {
     throw getError({ message: 'HTTP server has no TCP address' });
   }
@@ -525,6 +534,7 @@ describe('SocketIOServerHelper | rejection over a real transport', () => {
       setTimeout(() => {
         if (entry.destination) {
           ioServer.to(entry.destination).emit(entry.topic, entry.data);
+
           return;
         }
 
@@ -731,6 +741,7 @@ describe('SocketIOServerHelper | shutdown', () => {
     expect(socket.disconnect).toHaveBeenCalled();
     expect((helper.getClients() as Map<string, ISocketIOClient>).size).toBe(0);
     expect(io.close).toHaveBeenCalledTimes(1);
+
     for (const client of redisClients) {
       expect(client.quit).toHaveBeenCalledTimes(1);
     }

@@ -72,16 +72,19 @@ export class LoggerScopeRewriter {
     LoggerScopeRewriter.reportDeclarations({ typescript, sourceFile, report });
 
     const locals = LoggerScopeRewriter.findLocals({ typescript, sourceFile });
+
     if (locals.named.size === 0 && locals.namespaces.size === 0) {
       return unchanged;
     }
 
     const factory = LoggerScopeRewriter.findFactory({ typescript, sourceFile });
+
     if (factory.collision) {
       report(
         factory.collision,
         '`LoggerFactory` is already declared in this file (or imported from another module): rewrite `ApplicationLogger` by hand as `LoggerFactory.getLogger([scope])`',
       );
+
       return unchanged;
     }
 
@@ -110,6 +113,7 @@ export class LoggerScopeRewriter {
 
       typescript.forEachChild(node, visit);
     };
+
     visit(sourceFile);
 
     if (edits.length === 0) {
@@ -133,6 +137,7 @@ export class LoggerScopeRewriter {
     });
 
     let output = source;
+
     for (const edit of [...edits].sort((first, second) => second.start - first.start)) {
       output = output.slice(0, edit.start) + edit.text + output.slice(edit.end);
     }
@@ -154,6 +159,7 @@ export class LoggerScopeRewriter {
       }
 
       const bindings = statement.importClause?.namedBindings;
+
       if (!bindings || statement.importClause?.isTypeOnly) {
         continue;
       }
@@ -193,6 +199,7 @@ export class LoggerScopeRewriter {
     }
 
     const owner = callee.expression;
+
     if (typescript.isIdentifier(owner) && locals.named.has(owner.text)) {
       return owner;
     }
@@ -283,6 +290,7 @@ export class LoggerScopeRewriter {
 
     if ('reason' in scope) {
       report(call, scope.reason);
+
       return;
     }
 
@@ -337,6 +345,7 @@ export class LoggerScopeRewriter {
             text: `, ${LoggerScopeRewriter.TARGET_NAME}`,
           });
         }
+
         continue;
       }
 
@@ -418,6 +427,7 @@ export class LoggerScopeRewriter {
     for (const statement of sourceFile.statements) {
       if (typescript.isImportDeclaration(statement)) {
         const bindings = statement.importClause?.namedBindings;
+
         if (!bindings || !typescript.isNamedImports(bindings)) {
           continue;
         }
@@ -430,12 +440,14 @@ export class LoggerScopeRewriter {
           const isListed =
             typescript.isStringLiteral(statement.moduleSpecifier) &&
             LoggerScopeRewriter.MODULES.includes(statement.moduleSpecifier.text);
+
           if (isListed) {
             found.local = element.name.text;
           } else {
             found.collision = element;
           }
         }
+
         continue;
       }
 
@@ -501,6 +513,7 @@ export class LoggerScopeRewriter {
 
       typescript.forEachChild(node, visit);
     };
+
     visit(sourceFile);
   }
 
@@ -518,12 +531,15 @@ export class LoggerScopeRewriter {
         // A property name (`x.name`) is not a reference to the import.
         const parent = node.parent;
         const isProperty = typescript.isPropertyAccessExpression(parent) && parent.name === node;
+
         if (!isProperty) {
           count += 1;
         }
       }
+
       typescript.forEachChild(node, visit);
     };
+
     visit(sourceFile);
 
     return count;

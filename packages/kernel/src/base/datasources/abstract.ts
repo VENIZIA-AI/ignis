@@ -53,6 +53,7 @@ export abstract class AbstractDataSource<
         message: `[${this.constructor.name}] Schema not initialized. Override getSchema() or provide schema in constructor.`,
       });
     }
+
     return this.schema;
   }
 
@@ -92,8 +93,10 @@ export abstract class AbstractDataSource<
     const registry = MetadataRegistry.getInstance();
 
     const metadata = registry.getDataSourceMetadata({ target: this.constructor });
+
     if (metadata?.autoDiscovery === false) {
       logger.debug('Auto-discovery disabled for %s', this.name);
+
       return {};
     }
 
@@ -116,6 +119,7 @@ export abstract class AbstractDataSource<
       }
 
       const existingOwner = definitionOwners.get(definition.name);
+
       if (existingOwner !== undefined && existingOwner !== modelClass.name) {
         throw getError({
           message: `[${this.constructor.name}][discoverDefinitions] Duplicate ${kind} name '${definition.name}' | Name: ${this.name} | Classes: ${existingOwner}, ${modelClass.name}`,

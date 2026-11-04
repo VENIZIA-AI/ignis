@@ -26,6 +26,7 @@ export class RepoTmp {
       }
 
       const parent = dirname(current);
+
       if (parent === current) {
         return resolve(start);
       }

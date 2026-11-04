@@ -41,6 +41,7 @@ let resolver: (context: { operation: TScopeOperation }) => AnyType = () => ({ me
     access: {
       resolve: (context) => {
         calls.push(context);
+
         return resolver(context);
       },
     },
@@ -241,6 +242,7 @@ describe('access.resolve receives { operation }', () => {
       await run(repository);
 
       expect(calls.length).toBeGreaterThan(0);
+
       for (const context of calls) {
         expect(context).toEqual({ operation: expected });
       }
@@ -254,6 +256,7 @@ describe('access.resolve receives { operation }', () => {
     }
 
     expect(calls.length).toBeGreaterThan(0);
+
     for (const context of calls) {
       const { operation } = context as { operation: string };
 
@@ -304,6 +307,7 @@ describe('write.sharedRows keeps the refusal of a scope the guard cannot read', 
       const result = await refusal({ write });
       expect(result).toContain("an 'or' over different columns");
     }
+
     const result2 = await rawNames();
     expect(result2).toEqual(['mine', 'theirs-with-me', 'unrelated', 'mine-deleted']);
   });

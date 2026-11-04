@@ -25,6 +25,7 @@ export class UserAuditFixture extends BaseTestCases {
 
     const userId = result.data!.id;
     this.testUsers.set(name, userId);
+
     return userId;
   }
 }

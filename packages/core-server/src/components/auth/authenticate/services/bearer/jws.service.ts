@@ -54,6 +54,7 @@ export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenSer
       this.jwtSecret,
       this.options.verify,
     );
+
     return this.decryptPayload({ result: decodedToken });
   }
 

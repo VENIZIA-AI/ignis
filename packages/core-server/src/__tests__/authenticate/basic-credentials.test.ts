@@ -36,9 +36,11 @@ describe('BasicTokenService.extractCredentials - every rejection looks the same'
   const rejectionOf = (authorization?: string): { statusCode: number; message: string } => {
     try {
       buildService().extractCredentials(contextWith(authorization));
+
       return { statusCode: 0, message: 'DID NOT THROW' };
     } catch (error) {
       const { statusCode, message } = error as { statusCode: number; message: string };
+
       return { statusCode, message };
     }
   };

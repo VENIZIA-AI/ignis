@@ -520,6 +520,7 @@ describe('Crypto Algorithms', () => {
 
       test('TC-046b: the rejection names the size and the floor, so a caller can act on it', async () => {
         let caught: unknown;
+
         try {
           await rsa.generateDERKeyPair({ modulus: 512 });
         } catch (error) {
@@ -1148,6 +1149,7 @@ describe('AES contract after the envelope change', () => {
     });
 
     let caught: unknown;
+
     try {
       await aes.decrypt({ message: encrypted, secret: [{ id: '1', secret: '' }] });
     } catch (error) {

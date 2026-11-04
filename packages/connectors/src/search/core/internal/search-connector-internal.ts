@@ -11,6 +11,7 @@ export class SearchConnectorInternal {
   // Error/stack are non-enumerable, so `%j` on a raw Error yields `{}` - extract them so logs retain detail.
   static describeError(opts: { error: unknown }): unknown {
     const { error } = opts;
+
     return error instanceof Error ? (error.stack ?? error.message) : error;
   }
 
@@ -27,6 +28,7 @@ export class SearchConnectorInternal {
     }
 
     const response = error['response'];
+
     return RecordUtility.isRecord(response) && typeof response['status'] === 'number'
       ? response['status']
       : undefined;
@@ -41,12 +43,14 @@ export class SearchConnectorInternal {
     }
 
     const message = error['message'];
+
     if (typeof message === 'string' && message.trim() !== '') {
       return message;
     }
 
     const cause = error['cause'];
     const causeMessage = RecordUtility.isRecord(cause) ? cause['message'] : undefined;
+
     return typeof causeMessage === 'string' && causeMessage.trim() !== ''
       ? causeMessage
       : undefined;
@@ -115,6 +119,7 @@ export class SearchConnectorInternal {
       );
 
     const clientError = SearchConnectorInternal.getClientError({ method, error, details });
+
     if (clientError) {
       Reflect.set(clientError, 'cause', error);
       throw clientError;

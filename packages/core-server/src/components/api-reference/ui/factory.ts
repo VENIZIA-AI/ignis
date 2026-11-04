@@ -36,16 +36,19 @@ export class UIProviderFactory extends MemoryStorageHelper<{
       this.logger
         .for(this.register.name)
         .warn('Skip registering BOUNDED Document UI | type: %s', opts.type);
+
       return;
     }
 
     switch (opts.type) {
       case DocumentUITypes.SWAGGER: {
         this.set(opts.type, new SwaggerUIProvider());
+
         return;
       }
       case DocumentUITypes.SCALAR: {
         this.set(opts.type, new ScalarUIProvider());
+
         return;
       }
       default: {

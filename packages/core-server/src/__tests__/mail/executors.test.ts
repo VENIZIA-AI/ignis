@@ -17,6 +17,7 @@ describe('DirectMailExecutorHelper', () => {
     const executor = new DirectMailExecutorHelper();
 
     let error: AnyType;
+
     try {
       await executor.enqueueVerificationEmail('a@b.com');
     } catch (caught) {
@@ -32,6 +33,7 @@ describe('DirectMailExecutorHelper', () => {
 
     executor.setProcessor(async (email: string) => {
       tracker.record(email);
+
       return successProcessorResult;
     });
 
@@ -55,11 +57,13 @@ describe('DirectMailExecutorHelper', () => {
     }) as AnyType);
 
     let syncError: AnyType;
+
     try {
       await executor.enqueueVerificationEmail('a@b.com');
     } catch (caught) {
       syncError = caught;
     }
+
     expect(syncError.message).toBe('sync boom');
 
     shouldThrow = false;
@@ -73,6 +77,7 @@ describe('InternalQueueMailExecutorHelper', () => {
     const executor = new InternalQueueMailExecutorHelper({ identifier: 'mail-no-processor' });
 
     let error: AnyType;
+
     try {
       await executor.enqueueVerificationEmail('a@b.com');
     } catch (caught) {
@@ -89,6 +94,7 @@ describe('InternalQueueMailExecutorHelper', () => {
 
     executor.setProcessor(async (email: string) => {
       tracker.record(email);
+
       return successProcessorResult;
     });
 
@@ -128,6 +134,7 @@ describe('InternalQueueMailExecutorHelper', () => {
 
     executor.setProcessor(async (email: string) => {
       tracker.record(email);
+
       return { success: false, message: 'SMTP 535', expiresInMinutes: 0 };
     });
 
@@ -164,6 +171,7 @@ describe('InternalQueueMailExecutorHelper', () => {
     const survivor = new ProcessorCallTracker();
     executor.setProcessor(async (email: string) => {
       survivor.record(email);
+
       return successProcessorResult;
     });
 
@@ -180,6 +188,7 @@ describe('InternalQueueMailExecutorHelper', () => {
 
     executor.setProcessor(async (email: string) => {
       tracker.record(email);
+
       return successProcessorResult;
     });
 
@@ -219,6 +228,7 @@ class FakeQueueHelper {
   queue = {
     add: async (name: string, payload: IQueueJobPayload, options: AnyType) => {
       this.addedJobs.push({ name, payload, options });
+
       return { id: 'bull-1' };
     },
     close: async () => {
@@ -232,6 +242,7 @@ class FakeRedisConnection {
 
   async disconnect(): Promise<boolean> {
     this.isDisconnected = true;
+
     return true;
   }
 }
@@ -292,11 +303,13 @@ describe('BullMQMailExecutorHelper - teardown', () => {
     });
 
     let error: AnyType;
+
     try {
       await executor.removeWorker(0);
     } catch (caught) {
       error = caught;
     }
+
     expect(error.message).toBe('worker close failed');
     expect(executor.getWorkerCount()).toBe(0);
   });
@@ -324,11 +337,13 @@ describe('BullMQMailExecutorHelper - teardown', () => {
     });
 
     let error: AnyType;
+
     try {
       await executor.close();
     } catch (caught) {
       error = caught;
     }
+
     expect(error.message).toContain('worker close failed');
 
     expect(healthy.isClosed).toBe(true);
@@ -355,11 +370,13 @@ describe('BullMQMailExecutorHelper - enqueue', () => {
     const { executor } = buildBullMQExecutor({ mode: BullMQExecutorModes.WORKER_ONLY });
 
     let error: AnyType;
+
     try {
       await executor.enqueueVerificationEmail('a@b.com');
     } catch (caught) {
       error = caught;
     }
+
     expect(error.message).toContain('Cannot enqueue jobs in worker-only mode');
   });
 
@@ -367,6 +384,7 @@ describe('BullMQMailExecutorHelper - enqueue', () => {
     const { executor } = buildBullMQExecutor({ mode: BullMQExecutorModes.BOTH });
 
     let error: AnyType;
+
     try {
       await executor.enqueueVerificationEmail('a@b.com');
     } catch (caught) {

@@ -86,6 +86,7 @@ export class QuerySchemaFactory {
               return JSON.parse(val);
             } catch {
               ctx.addIssue({ code: 'custom', message: 'where must be valid JSON' });
+
               return z.NEVER;
             }
           })
@@ -152,6 +153,7 @@ export class QuerySchemaFactory {
                 return JSON.parse(val);
               } catch {
                 ctx.addIssue({ code: 'custom', message: 'filter must be valid JSON' });
+
                 return z.NEVER;
               }
             })

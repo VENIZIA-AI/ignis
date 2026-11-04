@@ -12,6 +12,7 @@ const directories: string[] = [];
 const outputFile = (name: string): string => {
   const directory = mkdtempSync(join(tmpdir(), 'ignis-artifacts-'));
   directories.push(directory);
+
   return join(directory, name);
 };
 
@@ -89,6 +90,7 @@ describe('generate / check report the decorated classes a user --ignore hides', 
       join(root, '__tests__', 'probe.service.ts'),
       fixture.replace('GreeterService', 'ProbeService'),
     );
+
     return root;
   };
 

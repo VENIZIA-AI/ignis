@@ -33,6 +33,7 @@ const deriveSigningKey = (opts: { dateStamp: string }): Buffer => {
   const dateKey = hmac({ key: `AWS4${CREDENTIALS.secretKey}`, data: opts.dateStamp });
   const regionKey = hmac({ key: dateKey, data: CREDENTIALS.region });
   const serviceKey = hmac({ key: regionKey, data: 's3' });
+
   return hmac({ key: serviceKey, data: 'aws4_request' });
 };
 
@@ -87,6 +88,7 @@ const isHeaderSignatureValid = (opts: { request: Request; url: URL }): boolean =
   const { request, url } = opts;
   const authorization = request.headers.get('authorization') ?? '';
   const match = /SignedHeaders=([^,]+), Signature=([0-9a-f]+)$/.exec(authorization);
+
   if (!match) {
     return false;
   }
@@ -150,6 +152,7 @@ beforeAll(() => {
 
       if (isPost) {
         const formData = await request.formData();
+
         for (const [name, value] of formData.entries()) {
           if (typeof value === 'string') {
             form[name] = value;
@@ -287,9 +290,11 @@ describe('BunS3Helper.presignPost - a non-ASCII key travels as a form field', ()
     });
 
     const form = new FormData();
+
     for (const [name, value] of Object.entries(policy.formData)) {
       form.append(name, value);
     }
+
     form.append('key', key);
     form.append('file', new Blob(['bytes']), 'upload.bin');
 

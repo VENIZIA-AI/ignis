@@ -33,6 +33,7 @@ export class GreeterController extends BaseGrpcController {
   @unary({ configs: { name: 'sayHello' } })
   async sayHello(opts: { request: SayHelloRequest }): Promise<SayHelloResponse> {
     const message = await this.greeterService.sayHello(opts);
+
     return create(SayHelloResponseSchema, { message });
   }
 }

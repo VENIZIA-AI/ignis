@@ -67,6 +67,7 @@ export class EdgeCases extends BaseTestCases {
     massiveArray.push(100);
 
     const start = Date.now();
+
     try {
       const results = await this.context.configurationRepository.find({
         filter: {

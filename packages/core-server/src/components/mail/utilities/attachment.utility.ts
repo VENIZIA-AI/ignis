@@ -132,6 +132,7 @@ const readConfinedFile = async (opts: {
 
   const filePath = await resolveConfinedPath({ path, attachmentRoot });
   let handle: FileHandle;
+
   try {
     const opened = await open(filePath, OPEN_FLAGS);
     handle = opened;
@@ -157,6 +158,7 @@ const readConfinedFile = async (opts: {
     });
 
     const result = await drainStream({ stream, usedBytes, maxBytes });
+
     return result;
   } finally {
     await handle.close();
@@ -187,11 +189,13 @@ export class MailAttachmentUtility {
           usedBytes,
           maxBytes,
         });
+
         return Buffer.from(content, encoding);
       }
 
       if (content instanceof Uint8Array) {
         assertWithinLimit({ byteLength: content.byteLength, usedBytes, maxBytes });
+
         return toBuffer(content);
       }
 

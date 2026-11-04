@@ -11,6 +11,7 @@ describe('auto artifacts across the kernel and boot', () => {
 
     GroupArtifactsResolver.install();
     const resolve = ArtifactGroup.getResolver();
+
     if (!resolve) {
       throw new Error('boot did not install the group resolver');
     }

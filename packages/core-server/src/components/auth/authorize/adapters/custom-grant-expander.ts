@@ -89,6 +89,7 @@ export class CustomGrantExpander extends BaseHelper {
 
     for (const candidate of candidates) {
       const key = `${candidate.subject}.${candidate.method}`;
+
       if (seen.has(key)) {
         continue;
       }
@@ -131,12 +132,14 @@ export class CustomGrantExpander extends BaseHelper {
   private qualifiedTable(opts: { table: { schemaName?: string; tableName: string } }): SQL {
     const { table } = opts;
     const schema = table.schemaName ?? DEFAULT_SCHEMA;
+
     return sql`${sql.identifier(schema)}.${sql.identifier(table.tableName)}`;
   }
 
   /** `AND <alias>.<col> IS NULL` when soft-delete is on, else empty. The alias is emitted raw to match the unquoted FROM alias - quoting folds it to a different case and breaks the join. */
   private softDeleteClause(opts: { alias: string }): SQL {
     const sd = this.softDelete;
+
     if (!sd?.use) {
       return sql.empty();
     }

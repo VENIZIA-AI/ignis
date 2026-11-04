@@ -32,6 +32,7 @@ export class BasicAuthenticationStrategy<E extends Env = Env>
 
   async authenticate(context: TContext<E, string>): Promise<IAuthUser> {
     const credentials = this.service.extractCredentials(context);
+
     return this.service.verify({ credentials, context });
   }
 }

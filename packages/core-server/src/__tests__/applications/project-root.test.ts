@@ -26,6 +26,7 @@ class OverridingApplication extends ProjectRootApplication {
   override getProjectRoot(): string {
     const projectRoot = join('/from', 'override');
     this.bind<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT }).toValue(projectRoot);
+
     return projectRoot;
   }
 }

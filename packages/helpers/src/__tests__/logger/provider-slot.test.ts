@@ -53,6 +53,7 @@ const runInFreshProcess = async (opts: {
   env?: Record<string, string | undefined>;
 }): Promise<string> => {
   const directory = await mkdtemp(path.join(tmpdir(), 'ignis-logger-slot-'));
+
   try {
     const script = path.join(directory, `${opts.name}.ts`);
     const factoryPath = path.resolve(PACKAGE_ROOT, 'src/modules/logger/factory.ts');
@@ -75,9 +76,11 @@ const runInFreshProcess = async (opts: {
       .toString()
       .split('\n')
       .find((text) => text.startsWith('RESULT:'));
+
     if (!line) {
       throw new Error(`[provider-slot] no result | stderr: ${result.stderr.toString()}`);
     }
+
     return line.slice('RESULT:'.length);
   } finally {
     await rm(directory, { recursive: true, force: true });

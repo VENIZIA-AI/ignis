@@ -10,8 +10,9 @@ import {
   reactAsyncStyleConfigs,
   reactHouseConfigs,
 } from '../linters/house';
+import { PADDING_OFF } from './padding-off';
 
-const CONFIGS = [...houseConfigs, ...asyncStyleConfigs];
+const CONFIGS = [...houseConfigs, ...asyncStyleConfigs, PADDING_OFF];
 const CHAIN = NoAwaitPromiseChainRule.NAME;
 const SILENT = NoSilentCatchRule.NAME;
 
@@ -23,6 +24,7 @@ const findings = (opts: {
   filename?: string;
 }) => {
   const { code, ruleId, configs = CONFIGS, filename = 'src/subject.ts' } = opts;
+
   return new Linter()
     .verify(code, configs, { filename })
     .filter((message) => message.ruleId === ruleId);
@@ -31,6 +33,7 @@ const findings = (opts: {
 /** Only `no-await-promise-chain`, at error: what its own fixer does, with no other rule fixing after it. */
 const CHAIN_ONLY: Linter.Config[] = [
   ...houseConfigs,
+  PADDING_OFF,
   { files: ['**/*.ts'], plugins: { venizia: houseEslintPlugin }, rules: { [CHAIN]: 'error' } },
 ];
 

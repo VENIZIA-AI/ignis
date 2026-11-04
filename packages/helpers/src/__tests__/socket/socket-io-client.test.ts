@@ -49,6 +49,7 @@ const createClient = (opts?: {
   });
 
   clients.push(client);
+
   return client;
 };
 
@@ -60,11 +61,13 @@ const waitFor = (predicate: () => boolean, opts?: { timeout?: number }) => {
     const poll = () => {
       if (predicate()) {
         resolve();
+
         return;
       }
 
       if (Date.now() > deadline) {
         reject(new Error('waitFor timed out'));
+
         return;
       }
 
@@ -101,6 +104,7 @@ beforeEach(async () => {
     socket.on(SocketIOConstants.EVENT_AUTHENTICATE, () => {
       if (!shouldAuthenticate) {
         socket.emit(SocketIOConstants.EVENT_UNAUTHENTICATE, { message: 'Invalid token!' });
+
         return;
       }
 

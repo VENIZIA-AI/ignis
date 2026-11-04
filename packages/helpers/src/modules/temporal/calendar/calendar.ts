@@ -27,6 +27,7 @@ export class TemporalCalendar {
   private static scratch(opts: { year: number; month: number; day: number }): Date {
     const date = new Date(0);
     date.setUTCFullYear(opts.year, opts.month - 1, opts.day);
+
     return date;
   }
 
@@ -72,6 +73,7 @@ export class TemporalCalendar {
       day: parts.day,
     });
     date.setUTCHours(parts.hour, parts.minute, parts.second, parts.millisecond);
+
     return date.getTime() - offsetMilliseconds;
   }
 
@@ -97,6 +99,7 @@ export class TemporalCalendar {
   /** The wall-clock fields alone, without the weekday and the offset. */
   static wallClockOf(opts: { parts: ITemporalParts }): ITemporalParts {
     const { year, month, day, hour, minute, second, millisecond } = opts.parts;
+
     return { year, month, day, hour, minute, second, millisecond };
   }
 
@@ -151,9 +154,11 @@ export class TemporalCalendar {
     const { parts, amount, unit } = opts;
 
     const exact = TemporalCalendar.EXACT_UNIT_MILLISECONDS[unit];
+
     if (exact !== undefined) {
       const epoch =
         TemporalCalendar.epochAtOffset({ parts, offsetMilliseconds: 0 }) + amount * exact;
+
       return TemporalCalendar.wallClockOf({
         parts: TemporalCalendar.wallClockAt({ epoch, offsetMilliseconds: 0 }),
       });
@@ -166,6 +171,7 @@ export class TemporalCalendar {
         month: parts.month,
         day: parts.day + days,
       });
+
       return {
         ...parts,
         year: date.getUTCFullYear(),

@@ -37,6 +37,7 @@ export class StaticAssetComponent<
       });
 
     const componentOptionsEntries = Object.entries(componentOptions);
+
     for (const [key, opt] of componentOptionsEntries) {
       const {
         storage,

@@ -65,6 +65,7 @@ export class AuthenticationService
     opts: TSignUpRequestSchema,
   ): Promise<TSignUpResponseSchema> {
     const existing = await this.userRepository.findByUsername({ username: opts.username });
+
     if (existing) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Conflict,
@@ -104,6 +105,7 @@ export class AuthenticationService
       .limit(1);
 
     let isValid = false;
+
     if (user?.password) {
       const isCredentialMatched = await CredentialHelper.verify({
         password: opts.credential.value,
@@ -111,6 +113,7 @@ export class AuthenticationService
       });
       isValid = isCredentialMatched;
     }
+
     if (!user || !isValid) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
@@ -169,6 +172,7 @@ export class AuthenticationService
       password: opts.oldCredential,
       hash: user.password,
     });
+
     if (!isOldCredentialValid) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,

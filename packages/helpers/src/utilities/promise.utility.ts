@@ -39,6 +39,7 @@ export class PromiseUtility {
     for (const task of tasks) {
       const promise = task().then((result) => {
         executing.delete(promise);
+
         return result;
       });
 
@@ -52,6 +53,7 @@ export class PromiseUtility {
     }
 
     await Promise.all(executing);
+
     return Promise.all(results);
   }
 
@@ -70,6 +72,7 @@ export class PromiseUtility {
     Promise.resolve(execution).catch((error: unknown) => {
       if (logger) {
         logger.for(scope).error('Unhandled error in fire-and-forget execution | Error: %s', error);
+
         return;
       }
 

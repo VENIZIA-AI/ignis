@@ -18,6 +18,7 @@ class CapturingFetcher extends AbstractNetworkFetchableHelper<'node-fetch', IReq
 
   override async send(opts: IRequestOptions) {
     this.lastOptions = opts;
+
     return opts as any;
   }
 }
@@ -29,6 +30,7 @@ describe('HTTP.Methods const-class', () => {
 
   test('every method token is lowercase - route definitions (@hono/zod-openapi) accept no other case', () => {
     const HTTPMethodsEntries = Object.entries(HTTP.Methods);
+
     for (const [name, token] of HTTPMethodsEntries) {
       expect(`${name}=${token}`).toBe(`${name}=${token.toLowerCase()}`);
     }
@@ -114,6 +116,7 @@ describe('QUERY wire integration against a live Bun.serve echo', () => {
       port: 0,
       async fetch(request) {
         const requestBody = await request.text();
+
         return new Response(
           JSON.stringify({
             method: request.method,

@@ -191,6 +191,7 @@ export const runConnectorConformance = (opts: {
       await seed([{ id: '1', title: 'first', score: 1 }]);
 
       let caught: unknown;
+
       try {
         await connector.document.create<IConformanceDocument>({
           collection,
@@ -217,6 +218,7 @@ export const runConnectorConformance = (opts: {
       await seed([{ id: '1', title: 'first', score: 1 }]);
 
       let caught: unknown;
+
       try {
         await connector.document.create<IConformanceDocument>({
           collection,

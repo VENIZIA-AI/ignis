@@ -471,6 +471,7 @@ describe('TypesenseQueryDialect.applySearchInput - vector clause', () => {
   ): ITypesenseSearchQuery => {
     const query = dialect.build({});
     dialect.applySearchInput({ query, input });
+
     return query;
   };
 
@@ -700,6 +701,7 @@ describe('TypesenseQueryDialect.applySearchInput - keyword highlight', () => {
       query,
       input: { mode: SearchModes.KEYWORD, query: 'sho', queryBy: ['title'], ...input },
     });
+
     return dialect.toWireParams({ query });
   };
 

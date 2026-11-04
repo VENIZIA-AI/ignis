@@ -10,12 +10,14 @@ import { PostgresFilterBuilder } from '@/relational/postgres/repositories/dialec
  */
 const mergeWhere = (defaultWhere: AnyType, userWhere: AnyType): AnyType => {
   const builder = new PostgresFilterBuilder() as AnyType;
+
   return builder.mergeWhere({ defaultWhere, userWhere });
 };
 
 /** Flattens the merge result into the set of conditions that must ALL hold. */
 const conjuncts = (merged: AnyType): AnyType[] => {
   const { and: andGroup, ...rest } = merged;
+
   return [...Object.entries(rest).map(([key, value]) => ({ [key]: value })), ...(andGroup ?? [])];
 };
 

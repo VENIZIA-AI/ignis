@@ -80,6 +80,7 @@ const buildApp = async (): Promise<InProcessTestApplication> => {
   };
   const app = new InProcessTestApplication({ scope: 'InProcessTransportTestApp', config: configs });
   await app.initialize();
+
   return app;
 };
 
@@ -125,6 +126,7 @@ describe('InProcessBffTransport mirrors what the envelope does', () => {
     const transport = new InProcessBffTransport({
       handler: async (request) => {
         seenUrls.push(request.url);
+
         return new Response('ok', { status: 200 });
       },
     });
@@ -152,6 +154,7 @@ describe('InProcessBffTransport mirrors what the envelope does', () => {
     // before anything is posted. In-process it must not resolve with a Response whose body only
     // fails later, when the caller is no longer in a position to retry.
     let caught: unknown;
+
     try {
       await transport.fetch({ request: new Request('http://ignis.internal/stream') });
     } catch (error) {
@@ -173,6 +176,7 @@ describe('InProcessBffTransport mirrors what the envelope does', () => {
     });
 
     let caught: unknown;
+
     try {
       await transport.fetch({ request: new Request('http://ignis.internal/hello') });
     } catch (error) {
@@ -198,6 +202,7 @@ describe('InProcessBffTransport mirrors what the envelope does', () => {
     });
 
     let caught: unknown;
+
     try {
       await transport.fetch({ request: new Request('http://ignis.internal/hello') });
     } catch (error) {

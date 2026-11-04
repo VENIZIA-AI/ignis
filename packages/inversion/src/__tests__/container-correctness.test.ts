@@ -200,6 +200,7 @@ describe('the singleton cache holds any value, falsy ones included', () => {
       .bind({ key: 'nothing' })
       .toProvider(() => {
         calls += 1;
+
         return undefined;
       })
       .setScope(BindingScopes.SINGLETON);
@@ -217,6 +218,7 @@ describe('the singleton cache holds any value, falsy ones included', () => {
       .bind({ key: 'config' })
       .toProvider(() => {
         calls += 1;
+
         return calls === 1 ? Promise.reject(new Error('offline')) : Promise.resolve('loaded');
       })
       .setScope(BindingScopes.SINGLETON);
@@ -241,6 +243,7 @@ describe('the singleton cache holds any value, falsy ones included', () => {
       .bind({ key: 'config' })
       .toProvider(() => {
         calls += 1;
+
         return Promise.resolve('loaded');
       })
       .setScope(BindingScopes.SINGLETON);

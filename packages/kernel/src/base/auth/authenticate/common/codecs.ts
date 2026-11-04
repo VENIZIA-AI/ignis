@@ -10,6 +10,7 @@ export class AuthenticationFieldCodecs {
     deserialize(opts) {
       return (JSON.parse(opts.raw) as string[]).map((el) => {
         const [id, identifier, priority] = el.split('|');
+
         return { id, identifier, priority: ParseUtility.toInt({ input: priority }) };
       });
     },

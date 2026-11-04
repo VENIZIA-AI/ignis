@@ -14,6 +14,7 @@ const baseRequest = {
 
 const extractSignature = (authorizationHeader: string): string => {
   const match = authorizationHeader.match(/Signature=([0-9a-f]+)/);
+
   if (!match) {
     throw new Error(`No signature found in header: ${authorizationHeader}`);
   }

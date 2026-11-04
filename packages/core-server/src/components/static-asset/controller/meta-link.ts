@@ -64,6 +64,7 @@ export class AssetMetaLink {
 
     if (metaLink.createMetaLink) {
       const created = await metaLink.createMetaLink({ uploadResult, fileStat, query });
+
       return created.data;
     }
 

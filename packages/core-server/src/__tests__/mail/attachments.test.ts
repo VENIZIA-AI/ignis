@@ -99,6 +99,7 @@ const buildService = (opts?: { attachmentRoot?: string; maxAttachmentBytes?: num
 const captureError = async (promise: Promise<unknown>) => {
   try {
     await promise;
+
     return undefined;
   } catch (error) {
     return error;
@@ -114,6 +115,7 @@ const expectRefusal = (opts: { error: AnyType; code: string; statusCode: number 
 /** Yields fixed-size chunks and counts how many were pulled, so a test can prove a drain stopped early. */
 const buildCountingStream = (opts: { chunkBytes: number; chunkCount: number }) => {
   const counter = { pulledChunks: 0 };
+
   const generate = function* () {
     for (let index = 0; index < opts.chunkCount; index++) {
       counter.pulledChunks++;
@@ -361,6 +363,7 @@ class RecordingSmtpTransporter {
 
   async sendMail(mailOptions: AnyType) {
     this.sentMails.push(mailOptions);
+
     return { messageId: 'smtp-1', response: '250 OK' };
   }
 
@@ -376,6 +379,7 @@ class RecordingMailgunClient {
 
   async create(_domain: string, payload: AnyType) {
     this.createdMessages.push(payload);
+
     return { id: 'mailgun-1' };
   }
 }
@@ -421,6 +425,7 @@ const buildTransports = (opts: { attachmentRoot?: string }): TTransportUnderTest
       SESv2Client: class {
         async send(command: RecordingSendEmailCommand) {
           sesCommands.push(command.input);
+
           return { MessageId: 'ses-1' };
         }
       },
@@ -477,6 +482,7 @@ describe('Mail attachments - every transport', () => {
     test(`${name}: the service refuses a path with no root, and the transport never sees it`, async () => {
       const underTest = noRootTransports().find((candidate) => candidate.name === name);
       expect(underTest).toBeDefined();
+
       if (!underTest) {
         return;
       }
@@ -495,6 +501,7 @@ describe('Mail attachments - every transport', () => {
         (candidate) => candidate.name === name,
       );
       expect(underTest).toBeDefined();
+
       if (!underTest) {
         return;
       }
@@ -511,6 +518,7 @@ describe('Mail attachments - every transport', () => {
     test(`${name}: called directly, the transport refuses a path instead of reading it`, async () => {
       const underTest = noRootTransports().find((candidate) => candidate.name === name);
       expect(underTest).toBeDefined();
+
       if (!underTest) {
         return;
       }
@@ -529,6 +537,7 @@ describe('Mail attachments - every transport', () => {
         (candidate) => candidate.name === name,
       );
       expect(underTest).toBeDefined();
+
       if (!underTest) {
         return;
       }
@@ -591,6 +600,7 @@ describe('Mail body - only strings reach a transport', () => {
     test(`${name}: the service refuses an object body, and the transport never sees it`, async () => {
       const underTest = buildTransports({}).find((candidate) => candidate.name === name);
       expect(underTest).toBeDefined();
+
       if (!underTest) {
         return;
       }
@@ -608,6 +618,7 @@ describe('Mail body - only strings reach a transport', () => {
   test('nodemailer called directly refuses an object body instead of reading it', async () => {
     const underTest = buildTransports({}).find((candidate) => candidate.name === 'nodemailer');
     expect(underTest).toBeDefined();
+
     if (!underTest) {
       return;
     }
@@ -626,6 +637,7 @@ const buildWebStream = (opts: { chunkBytes: number; chunkCount: number }) => {
     pull: (controller) => {
       if (state.pulledChunks >= opts.chunkCount) {
         controller.close();
+
         return;
       }
 
@@ -715,6 +727,7 @@ describe('Mail attachments - streams are released when a send is refused', () =>
   test('ses called directly releases the attachment stream it refused to send', async () => {
     const underTest = buildTransports({}).find((candidate) => candidate.name === 'amazon-ses');
     expect(underTest).toBeDefined();
+
     if (!underTest) {
       return;
     }
@@ -811,6 +824,7 @@ describe('Mail attachments - review fixes', () => {
       ...args: AnyType[]
     ) {
       const stats = await originalStat.apply(this, args);
+
       return { isFile: () => stats.isFile(), size: 1 };
     });
 
@@ -903,6 +917,7 @@ describe('Mail attachments - review fixes', () => {
   test('nodemailer is told to open no file and fetch no URL on its own', async () => {
     const underTest = buildTransports({}).find((candidate) => candidate.name === 'nodemailer');
     expect(underTest).toBeDefined();
+
     if (!underTest) {
       return;
     }

@@ -13,25 +13,32 @@ export class MailErrorCodes {
   static readonly INVALID_CONFIGURATION = MessageCode.build({
     parts: ['core', 'mail', 'invalid_configuration'],
   });
+
   static readonly SEND_FAILED = MessageCode.build({ parts: ['core', 'mail', 'send_failed'] });
   static readonly VERIFICATION_FAILED = MessageCode.build({
     parts: ['core', 'mail', 'verification_failed'],
   });
+
   static readonly INVALID_RECIPIENT = MessageCode.build({
     parts: ['core', 'mail', 'invalid_recipient'],
   });
+
   static readonly BATCH_SEND_FAILED = MessageCode.build({
     parts: ['core', 'mail', 'batch_send_failed'],
   });
+
   static readonly TEMPLATE_NOT_FOUND = MessageCode.build({
     parts: ['core', 'mail', 'template_not_found'],
   });
+
   static readonly ATTACHMENT_PATH_REFUSED = MessageCode.build({
     parts: ['core', 'mail', 'attachment_path_refused'],
   });
+
   static readonly ATTACHMENT_TOO_LARGE = MessageCode.build({
     parts: ['core', 'mail', 'attachment_too_large'],
   });
+
   static readonly BODY_SOURCE_REFUSED = MessageCode.build({
     parts: ['core', 'mail', 'body_source_refused'],
   });

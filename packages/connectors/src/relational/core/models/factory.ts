@@ -43,6 +43,7 @@ export class ModelFactory {
       if (definitions === undefined && relations) {
         definitions = relations();
       }
+
       return definitions;
     };
 
@@ -56,6 +57,7 @@ export class ModelFactory {
 
       static override readonly relations: TValueOrResolver<Array<TRelationConfig>> = () => {
         configs ??= RelationDeclarations.toRelationConfigs({ relations: readDefinitions() ?? {} });
+
         return configs;
       };
     }

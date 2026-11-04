@@ -27,6 +27,7 @@ describe('Security Tests', () => {
     if (opts?.rules) {
       TestAuthorizationEnforcer.rules = opts.rules;
     }
+
     if (opts?.loadRulesFn) {
       TestAuthorizationEnforcer.loadRulesFn = opts.loadRulesFn;
     }
@@ -107,6 +108,7 @@ describe('Security Tests', () => {
       });
 
       let rsError: any;
+
       try {
         await invokeMiddleware(middleware, context, async () => {});
       } catch (error) {
@@ -130,6 +132,7 @@ describe('Security Tests', () => {
       const context = createMockContext({});
 
       let rsError: any;
+
       try {
         await invokeMiddleware(middleware, context, async () => {});
       } catch (error) {
@@ -159,6 +162,7 @@ describe('Security Tests', () => {
       });
 
       let hasCalledNext = false;
+
       try {
         await invokeMiddleware(middleware, context, async () => {
           hasCalledNext = true;
@@ -186,6 +190,7 @@ describe('Security Tests', () => {
       });
 
       let hasCalledNext = false;
+
       try {
         await invokeMiddleware(middleware, context, async () => {
           hasCalledNext = true;
@@ -213,6 +218,7 @@ describe('Security Tests', () => {
       });
 
       let hasCalledNext = false;
+
       try {
         await invokeMiddleware(middleware, context, async () => {
           hasCalledNext = true;
@@ -240,6 +246,7 @@ describe('Security Tests', () => {
       });
 
       let hasCalledNext = false;
+
       try {
         await invokeMiddleware(middleware, context, async () => {
           hasCalledNext = true;
@@ -258,9 +265,11 @@ describe('Security Tests', () => {
       setupSecurityTest({
         loadRulesFn: async ({ user }) => {
           await new Promise((resolve) => setTimeout(resolve, Math.random() * 10));
+
           if (user.userId === 'admin') {
             return [{ action: 'delete', resource: 'User', effect: 'allow' as const }];
           }
+
           return [{ action: 'read', resource: 'User', effect: 'allow' as const }];
         },
       });
@@ -277,6 +286,7 @@ describe('Security Tests', () => {
 
         let hasCalledNext = false;
         let rsError: any;
+
         try {
           await invokeMiddleware(middleware, context, async () => {
             hasCalledNext = true;

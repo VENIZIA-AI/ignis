@@ -100,6 +100,7 @@ export class BunS3Helper extends BaseStorageHelper {
 
     const parsed = new URL(host);
     parsed.hostname = `${opts.bucket}.${parsed.hostname}`;
+
     return { endpoint: parsed.origin, pathPrefix: '' };
   }
 
@@ -124,12 +125,14 @@ export class BunS3Helper extends BaseStorageHelper {
 
   async hasBucket(opts: { bucket: IBucketRef }): Promise<boolean> {
     const { name } = opts.bucket;
+
     if (!this.isValidBucketName(opts)) {
       return false;
     }
 
     try {
       await this.client.list({ maxKeys: 1 }, { bucket: name });
+
       return true;
     } catch (error) {
       // A missing bucket is the answer; a credentials or network failure is not, and must not vanish.
@@ -185,16 +188,19 @@ export class BunS3Helper extends BaseStorageHelper {
   /** S3 exposes a creation date only through `ListBuckets`, so one full listing is the cheapest correct answer. */
   async getBucket(opts: { bucket: IBucketRef }): Promise<IBucketInfo | null> {
     const { name } = opts.bucket;
+
     if (!this.isValidBucketName(opts)) {
       return null;
     }
 
     const buckets = await this.getBuckets();
+
     return buckets.find((bucket) => bucket.name === name) ?? null;
   }
 
   async createBucket(opts: { bucket: IBucketRef }): Promise<IBucketInfo | null> {
     const { name } = opts.bucket;
+
     if (!this.isValidBucketName(opts)) {
       throw getError({ message: '[createBucket] Invalid name to create bucket!' });
     }
@@ -225,6 +231,7 @@ export class BunS3Helper extends BaseStorageHelper {
 
   async removeBucket(opts: { bucket: IBucketRef }): Promise<boolean> {
     const { name } = opts.bucket;
+
     if (!this.isValidBucketName(opts)) {
       throw getError({ message: '[removeBucket] Invalid name to remove bucket!' });
     }
@@ -284,6 +291,7 @@ export class BunS3Helper extends BaseStorageHelper {
     });
 
     const response = await fetch(request.url, { method: 'PUT', headers: request.headers });
+
     if (!response.ok) {
       throw getError({
         message: `[copyObject] Copy failed | bucket: ${bucket.name} | source: ${source.key} | status: ${response.status}`,
@@ -424,6 +432,7 @@ export class BunS3Helper extends BaseStorageHelper {
     }
 
     const body = await response.text();
+
     if (!response.ok) {
       throw getError({
         message: `[getObjectTags] S3 error | status: ${response.status} | body: ${body}`,
@@ -551,6 +560,7 @@ export class BunS3Helper extends BaseStorageHelper {
 
     try {
       const stat = await this.client.stat(key, { bucket: bucketName });
+
       return {
         size: stat.size,
         // One key, not two spellings. The served type comes from the object name; this is diagnostic.
@@ -600,6 +610,7 @@ export class BunS3Helper extends BaseStorageHelper {
 
     // `maxKeys: 0` means zero, not unlimited.
     const limit = maxKeys ?? Number.POSITIVE_INFINITY;
+
     if (limit <= 0) {
       return [];
     }
@@ -620,6 +631,7 @@ export class BunS3Helper extends BaseStorageHelper {
       );
 
       const responseContents = response.contents ?? [];
+
       for (const entry of responseContents) {
         objects.push({
           name: entry.key,

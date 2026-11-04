@@ -41,6 +41,7 @@ describe('KafkaConsumerHelper - dead stream reconnect', () => {
     const advancedPromise = new Promise<void>((resolve) => {
       markAdvanced = resolve;
     });
+
     helper['attemptReconnect'] = async () => {
       didAdvance = true;
       helper['consumeStartOptions'] = null; // break the loop cleanly
@@ -68,6 +69,7 @@ describe('KafkaConsumerHelper - dead stream reconnect', () => {
     const helper = newConsumer();
 
     let reconnectCalls = 0;
+
     // Reconnect always "fails" (never sets this.stream), so consecutiveErrors keeps climbing.
     helper['attemptReconnect'] = async () => {
       reconnectCalls += 1;
@@ -91,6 +93,7 @@ describe('KafkaConsumerHelper - dead stream reconnect', () => {
     const helper = newConsumer();
 
     let reconnectCalls = 0;
+
     helper['attemptReconnect'] = async () => {
       reconnectCalls += 1;
       helper['consumeStartOptions'] = null; // simulate close() during reconnect
@@ -120,6 +123,7 @@ describe('KafkaConsumerHelper - dead stream reconnect', () => {
     const advancedPromise = new Promise<void>((resolve) => {
       markAdvanced = resolve;
     });
+
     helper['attemptReconnect'] = async () => {
       didAdvance = true;
       helper['consumeStartOptions'] = null;
@@ -214,6 +218,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
 
     const beforeClient = helper.getConsumer();
     let didRebuild = false;
+
     helper['rebuildClient'] = async () => {
       didRebuild = true;
     };
@@ -259,6 +264,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     expect(helper.getConnectedBrokerCount()).toBe(1);
 
     let didRebuild = false;
+
     helper['rebuildClient'] = async () => {
       didRebuild = true;
     };
@@ -292,9 +298,11 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     });
 
     helper['consumeStartOptions'] = { topics: ['t'] };
+
     helper['rebuildClient'] = async () => {
       /* stub: don't touch the client for this test */
     };
+
     (
       helper.getConsumer() as AnyType as {
         consume: (opts: unknown) => Promise<unknown>;
@@ -324,9 +332,11 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     expect(helper['sessionLikelyStale']).toBe(false);
 
     let didRebuild = false;
+
     helper['rebuildClient'] = async () => {
       didRebuild = true;
     };
+
     helper['consumeStartOptions'] = { topics: ['t'] };
     (
       helper.getConsumer() as AnyType as {
@@ -357,10 +367,12 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
 
     // Stub the original client's lag-monitoring methods so calling startLagMonitoring() doesn't touch the network.
     let oldStartCalls = 0;
+
     (helper.getConsumer() as AnyType as { startLagMonitoring: () => void }).startLagMonitoring =
       () => {
         oldStartCalls += 1;
       };
+
     (helper.getConsumer() as AnyType as { stopLagMonitoring: () => void }).stopLagMonitoring =
       () => {};
 
@@ -375,15 +387,19 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     };
     const origFactory = KCH.buildConsumerClient;
     let newStartCalls = 0;
+
     KCH.buildConsumerClient = (opts: unknown) => {
       const client = origFactory.call(KafkaConsumerHelper, opts) as {
         startLagMonitoring: () => void;
         stopLagMonitoring: () => void;
       };
+
       client.startLagMonitoring = () => {
         newStartCalls += 1;
       };
+
       client.stopLagMonitoring = () => {};
+
       return client;
     };
 
@@ -416,6 +432,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     expect(helper['sessionLikelyStale']).toBe(true);
 
     let rebuildCalls = 0;
+
     helper['rebuildClient'] = async () => {
       rebuildCalls += 1;
       // Stub mimics production: rebuildClient clears the flag itself on success, so the invariant is verified end-to-end instead of passing because the stub forgot to clear it.
@@ -423,6 +440,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     };
 
     helper['consumeStartOptions'] = { topics: ['t'] };
+
     // consume() keeps failing - simulating brokers still being down.
     (
       helper.getConsumer() as AnyType as {
@@ -489,6 +507,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     });
 
     helper['consumeStartOptions'] = { topics: ['t'] };
+
     (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
       async () => {
         throw new Error('brokers still unreachable');
@@ -517,6 +536,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     const helper = newConsumer();
 
     helper['consumeStartOptions'] = { topics: ['t'] };
+
     (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
       async () => {
         throw new Error('brokers still unreachable');
@@ -616,6 +636,7 @@ describe('KafkaConsumerHelper - reconnect error routing, the other two sites', (
 
     helper['consumeStartOptions'] = { topics: ['t'] };
     helper['sessionLikelyStale'] = true;
+
     helper['rebuildClient'] = async () => {
       throw new Error('rebuild boom');
     };

@@ -193,6 +193,7 @@ export abstract class RestApplication<
     }
 
     const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+
     for (const key of keys) {
       if (!Object.is(left[key], right[key])) {
         return false;
@@ -284,6 +285,7 @@ export abstract class RestApplication<
     hook: () => ValueOrPromise<void>;
   }): Promise<void> {
     this.runningApplicationHook = opts.name;
+
     try {
       await opts.hook();
     } finally {
@@ -312,6 +314,7 @@ export abstract class RestApplication<
 
     for (const tag of tags) {
       const bindings = this.findByTag({ tag });
+
       for (const binding of bindings) {
         if (counts.has(binding.key)) {
           continue;
@@ -347,6 +350,7 @@ export abstract class RestApplication<
     const t = performance.now();
 
     const stepsEntries = steps.entries();
+
     for (const [index, step] of stepsEntries) {
       try {
         await PerformanceUtility.executeWithMeasure({
@@ -432,6 +436,7 @@ export abstract class RestApplication<
     if (!this.registeredBindings[namespace]) {
       this.registeredBindings[namespace] = new Set<string>();
     }
+
     const configured = this.registeredBindings[namespace];
 
     await this.drainByTag<T>({
@@ -443,8 +448,10 @@ export abstract class RestApplication<
         }
 
         const instance = this.get<T>({ key: binding.key, isOptional: false });
+
         if (!instance) {
           logger.debug('No binding instance | namespace: %s | key: %s', namespace, binding.key);
+
           return;
         }
 
@@ -608,6 +615,7 @@ export abstract class RestApplication<
       scope: this.registerControllers.name,
       task: async () => {
         const transports = this.configs.transports ?? [ControllerTransports.REST];
+
         if (!transports.includes(ControllerTransports.REST)) {
           return;
         }
@@ -761,6 +769,7 @@ export abstract class RestApplication<
     const { target } = opts;
     const registry = MetadataRegistry.getInstance();
     const provides = registry.getProvideMetadata({ target });
+
     if (provides.length === 0) {
       return;
     }
@@ -777,12 +786,14 @@ export abstract class RestApplication<
         namespace: defaultNamespace,
         binding: declared?.binding,
       }).key;
+
     for (const entry of provides) {
       this.bind({ key: entry.key })
         .toProvider((container) => {
           const instance = container.get<Record<string | symbol, () => unknown>>({
             key: componentKey,
           });
+
           return instance[entry.methodName]();
         })
         .setScope(entry.scope ?? BindingScopes.SINGLETON);
@@ -813,6 +824,7 @@ export abstract class RestApplication<
     for (const key of keys) {
       try {
         const dataSource = this.get<IDataSource>({ key, isOptional: true });
+
         if (!dataSource?.close) {
           logger.debug('Nothing to close | key: %s', key);
           continue;

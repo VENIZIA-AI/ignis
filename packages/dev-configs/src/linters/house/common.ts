@@ -20,6 +20,7 @@ export class AstNode {
   /** A field of an AST node. */
   static readField(opts: { node: unknown; key: string }): unknown {
     const { node, key } = opts;
+
     return typeof node === 'object' && node !== null && key in node
       ? Reflect.get(node, key)
       : undefined;
@@ -28,6 +29,7 @@ export class AstNode {
   /** The node's `type`, or `undefined` for anything that is not an AST node. */
   static getType(opts: { node: unknown }): string | undefined {
     const type = AstNode.readField({ node: opts.node, key: 'type' });
+
     return typeof type === 'string' ? type : undefined;
   }
 }

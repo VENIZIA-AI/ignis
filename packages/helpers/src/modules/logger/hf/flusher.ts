@@ -32,6 +32,7 @@ export class HfLogFlusher {
     this.sink = options?.sink ?? HfLogFlusher.buildDefaultSink(options?.filePath);
 
     const batchSize = options?.batchSize ?? HF_DEFAULT_BATCH_SIZE;
+
     if (!Number.isInteger(batchSize) || batchSize < 1) {
       // console, not the Logger: this IS the drain path - routing through a logger re-enters it.
       console.warn(
@@ -58,6 +59,7 @@ export class HfLogFlusher {
     const message = HfLogFlusher.textDecoder.decode(
       bytes.subarray(offset + OFFSET_MESSAGE, offset + OFFSET_MESSAGE + messageLength),
     );
+
     return `${iso} [${levelName}] ${scope} ${message}`;
   }
 
@@ -72,8 +74,10 @@ export class HfLogFlusher {
 
       if (filePath) {
         fs.appendFileSync(filePath, rendered);
+
         return;
       }
+
       process.stdout.write(rendered);
     };
   }
@@ -82,9 +86,11 @@ export class HfLogFlusher {
     if (this.inFlightDrain) {
       return this.inFlightDrain;
     }
+
     this.inFlightDrain = this.drain().finally(() => {
       this.inFlightDrain = null;
     });
+
     return this.inFlightDrain;
   }
 
@@ -95,6 +101,7 @@ export class HfLogFlusher {
       // Lap accounting, re-checked every batch: the producer may advance during yields.
       let dropped = 0;
       const backlog = ring.writeIndex - this.flushIndex;
+
       if (backlog > BUFFER_SIZE) {
         dropped = backlog - BUFFER_SIZE;
         this.flushIndex = ring.writeIndex - BUFFER_SIZE;
@@ -102,6 +109,7 @@ export class HfLogFlusher {
 
       const count = Math.min(this.batchSize, ring.writeIndex - this.flushIndex);
       const lines: Array<string> = [];
+
       for (let index = 0; index < count; index++) {
         lines.push(HfLogFlusher.renderEntry(ring, this.flushIndex++));
       }
@@ -118,6 +126,7 @@ export class HfLogFlusher {
     try {
       // THfSink is typed `=> void`, but an async sink still returns a thenable at runtime - await it inside the try so its rejection is caught here, never unhandled.
       const delivered = this.sink(opts) as AnyType;
+
       if (isPromiseLike(delivered)) {
         await delivered;
       }

@@ -80,6 +80,7 @@ describe('@inject({ target })', () => {
     }
 
     let thrown: Error | undefined;
+
     try {
       container.instantiate(OrphanController);
     } catch (error) {
@@ -145,6 +146,7 @@ describe('@inject({ target: () => Class })', () => {
         @inject({
           target: () => {
             calls += 1;
+
             return NoteService;
           },
         })
@@ -166,6 +168,7 @@ describe('@inject({ target: () => Class })', () => {
     }
 
     let thrown: Error | undefined;
+
     try {
       container.instantiate(BadController);
     } catch (error) {
@@ -197,6 +200,7 @@ const sameName = (): {
   const library = class MetaLinkRepository {
     kind = 'library';
   };
+
   return { Registered: registered, Library: library };
 };
 

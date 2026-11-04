@@ -30,9 +30,11 @@ export class SplitReport {
   static run(opts: { packageDir: string; distDir?: string; print?: (line: string) => void }): void {
     const { distDir = 'dist', print = console.log } = opts;
     const src = join(opts.packageDir, 'src');
+
     if (!existsSync(src)) {
       return;
     }
+
     const facts = SplitReport.walk({ dir: src }).map((file) => SplitReport.facts({ file }));
     const rel = (file: string) => relative(opts.packageDir, file);
 
@@ -90,6 +92,7 @@ export class SplitReport {
     print: (line: string) => void;
   }): void {
     opts.print(`- ${opts.title}: ${opts.rows.length}`);
+
     for (const row of opts.rows) {
       opts.print(`    ${row}`);
     }
@@ -97,6 +100,7 @@ export class SplitReport {
 
   private static facts(opts: { file: string }): IFileFacts {
     const text = readFileSync(opts.file, 'utf8');
+
     return {
       file: opts.file,
       lines: text.split('\n').length,
@@ -108,45 +112,57 @@ export class SplitReport {
   /** abstract.ts + base.ts pairs are the format; exactly one of each is one concept. */
   private static isAbstractBasePair(opts: { facts: IFileFacts }): boolean {
     const [first, second] = opts.facts.classes;
+
     return opts.facts.classes.length === 2 && /Abstract/.test(first) && /Base/.test(second);
   }
 
   private static walk(opts: { dir: string }): string[] {
     const out: string[] = [];
     const dirEntries = readdirSync(opts.dir);
+
     for (const name of dirEntries) {
       if (SKIP.has(name)) {
         continue;
       }
+
       const full = join(opts.dir, name);
+
       if (statSync(full).isDirectory()) {
         out.push(...SplitReport.walk({ dir: full }));
       } else if (full.endsWith('.ts') && !full.endsWith('.d.ts')) {
         out.push(full);
       }
     }
+
     return out;
   }
 
   private static foldersWithoutIndex(opts: { dir: string }): string[] {
     const out: string[] = [];
     const dirEntries = readdirSync(opts.dir);
+
     for (const name of dirEntries) {
       if (SKIP.has(name)) {
         continue;
       }
+
       const full = join(opts.dir, name);
+
       if (!statSync(full).isDirectory()) {
         continue;
       }
+
       const hasTs = readdirSync(full).some(
         (entry) => entry.endsWith('.ts') && entry !== 'index.ts',
       );
+
       if (hasTs && !existsSync(join(full, 'index.ts'))) {
         out.push(full);
       }
+
       out.push(...SplitReport.foldersWithoutIndex({ dir: full }));
     }
+
     return out;
   }
 }

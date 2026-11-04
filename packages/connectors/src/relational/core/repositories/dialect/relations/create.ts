@@ -23,6 +23,7 @@ export class RelationsFactory {
         }
 
         curr[def.name] = def;
+
         return curr;
       }, {}),
       relations: defineRelations(source, ({ one, many }) => {

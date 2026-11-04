@@ -101,6 +101,7 @@ const expectNotSupported = (caught: unknown): void => {
 const captureRejection = async (execution: () => Promise<unknown>): Promise<unknown> => {
   try {
     await execution();
+
     return undefined;
   } catch (error) {
     return error;
@@ -137,6 +138,7 @@ export const runRepositoryConformance = (opts: {
       const seeded = await repository.createAll<IConformanceRow>({ data: SEED });
 
       seededIds = {};
+
       for (const row of seeded.data) {
         seededIds[row.name] = row.id;
       }
@@ -336,6 +338,7 @@ export const runRepositoryConformance = (opts: {
       for (const row of rows) {
         expect('secret' in row).toBe(false);
       }
+
       expect('secret' in (found as object)).toBe(false);
     });
 
@@ -399,6 +402,7 @@ export const runRepositoryConformance = (opts: {
           if (!capabilities.rowLocking) {
             const result = await captureRejection(execution);
             expectNotSupported(result);
+
             return;
           }
 
@@ -421,6 +425,7 @@ export const runRepositoryConformance = (opts: {
         if (!capabilities.regexp) {
           const result = await captureRejection(execution);
           expectNotSupported(result);
+
           return;
         }
 
@@ -455,6 +460,7 @@ export const runRepositoryConformance = (opts: {
           // DROPS 'Alpha', which the caller asked to keep.
           expect(matchedNames).toEqual(['Alpha', 'alpha']);
           expect(rejectedNames).toEqual(['beta', 'gamma']);
+
           return;
         }
 
@@ -514,6 +520,7 @@ export const runRepositoryConformance = (opts: {
         if (capabilities.nullsSortHigh) {
           expect(ascendingIndex).toBe(ascending.length - 1);
           expect(descendingIndex).toBe(0);
+
           return;
         }
 
@@ -535,6 +542,7 @@ export const runRepositoryConformance = (opts: {
         if (!capabilities.arrayOperators) {
           const result = await captureRejection(execution);
           expectNotSupported(result);
+
           return;
         }
 
@@ -627,6 +635,7 @@ export const runRepositoryConformance = (opts: {
 
         if (capabilities.jsonPathAppendsPastArrayEnd) {
           expect(result.metadata).toEqual({ a: [{ x: 0 }, { x: 1 }] });
+
           return;
         }
 
@@ -647,6 +656,7 @@ export const runRepositoryConformance = (opts: {
           expect(result).toMatchObject({
             cause: { message: 'cannot set path in scalar' },
           });
+
           return;
         }
 

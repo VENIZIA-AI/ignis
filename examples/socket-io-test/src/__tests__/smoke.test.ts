@@ -109,6 +109,7 @@ describe('socket-io-test', () => {
     if (!redisReachable) {
       return;
     }
+
     await application.stop();
   });
 
@@ -151,6 +152,7 @@ describe('socket-io-test', () => {
     'an unauthenticated client receives the unauthenticated notice, then is disconnected',
     async () => {
       const { client, notices, reason } = await connectRejected({ baseUrl });
+
       try {
         expect(notices).toEqual(['Invalid token to authenticate! Please login again!']);
         expect(reason).toBe('io server disconnect');

@@ -28,14 +28,17 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
 
     return createMiddleware(async (context, next) => {
       const isSkipAuthenticate = context.get(Authentication.SKIP_AUTHENTICATION);
+
       if (isSkipAuthenticate) {
         this.logger
           .for(this.createAuthenticateMiddleware.name)
           .debug('SKIP checking authentication | path: %s', context.req.path);
+
         return next();
       }
 
       const isAuthenticated = context.get(Authentication.CURRENT_USER);
+
       if (isAuthenticated) {
         return next();
       }
@@ -48,6 +51,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
             registry,
             next,
           });
+
           return;
         }
         case AuthenticationModes.ALL: {
@@ -57,6 +61,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
             registry,
             next,
           });
+
           return;
         }
         default: {
@@ -95,6 +100,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
     }
 
     const currentUser = context.get(Authentication.CURRENT_USER);
+
     if (!currentUser) {
       throw getError({
         error: AuthenticationErrors.FAILED,

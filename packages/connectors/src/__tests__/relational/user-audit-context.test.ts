@@ -237,6 +237,7 @@ const ROUTE_TIERS: IRouteTier[] = [
       `);
 
       const dataSource = new PostgresRouteDataSource({ client });
+
       return {
         repository: new DefaultCRUDRepository<
           typeof postgresRouteTable,
@@ -266,6 +267,7 @@ const ROUTE_TIERS: IRouteTier[] = [
       `);
 
       const dataSource = new SqliteRouteDataSource({ client });
+
       return {
         repository: new DefaultSqliteRepository<AnyType>(dataSource, {
           entityClass: SqliteRouteRow,
@@ -320,11 +322,13 @@ describe.each(ROUTE_TIERS)('a generated CRUD route on $name stamps the signed-in
 
   const send = async (opts: { method: string; path: string; body: object }) => {
     const response = await request(opts);
+
     return response.status;
   };
 
   const readRow = async (opts: { id: string }) => {
     const row = await repository.findById({ id: opts.id });
+
     return row
       ? {
           id: row.id,

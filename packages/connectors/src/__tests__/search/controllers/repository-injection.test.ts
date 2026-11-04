@@ -34,6 +34,7 @@ const buildContainer = () => {
   container
     .bind({ key: repositoryKey({ name: 'ExplicitProbeSearchRepository' }) })
     .toValue(explicitRepository);
+
   return container;
 };
 

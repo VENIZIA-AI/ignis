@@ -8,6 +8,7 @@ export class Environment extends EnvironmentNames {
   /** `NODE_ENV` exactly as the host has it, `undefined` when unset. Destructured on purpose: `bun build` rewrites `process.env.NODE_ENV` to a literal at build time, a destructured read stays a runtime read. */
   static get ambient(): string | undefined {
     const { NODE_ENV } = process.env;
+
     return NODE_ENV;
   }
 
@@ -66,6 +67,7 @@ export class ApplicationEnvironment extends BaseHelper implements IApplicationEn
     }
 
     const transformed = opts.transform(rs);
+
     return (transformed ?? opts?.defaultValue) as ReturnType;
   }
 
@@ -75,6 +77,7 @@ export class ApplicationEnvironment extends BaseHelper implements IApplicationEn
 
   merge(opts: { envs: Record<string, string> }) {
     const envsEntries = Object.entries(opts.envs);
+
     for (const [key, value] of envsEntries) {
       this.arguments[key] = value;
     }
@@ -94,6 +97,7 @@ const INSTANCE_SLOT = Symbol.for('ignis:application-environment');
 
 const resolveApplicationEnvironment = (): ApplicationEnvironment => {
   const shared: ApplicationEnvironment | undefined = Reflect.get(globalThis, INSTANCE_SLOT);
+
   if (shared) {
     return shared;
   }

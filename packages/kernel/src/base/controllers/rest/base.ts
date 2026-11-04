@@ -130,6 +130,7 @@ export abstract class BaseRestController<
         DataRangeUtility.toContentRange({ range, count: payload.count }),
       );
     }
+
     context.header(HTTP.Headers.RESPONSE_FORMAT, format);
 
     if (!extra) {

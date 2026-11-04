@@ -57,12 +57,14 @@ export class UrlIngest {
   static async assertReachableUrl(opts: { url: string; policy?: IUrlSafetyPolicy }): Promise<URL> {
     const parsed = UrlPolicy.assertSafeUrl(opts);
     await UrlIngest.assertPublicHost({ hostname: parsed.hostname, policy: opts.policy });
+
     return parsed;
   }
 
   private static readTimeoutMilliseconds(opts: { policy?: IUrlSafetyPolicy }): number {
     const { timeout } = opts.policy ?? {};
     const milliseconds = timeout ? DurationMultipliers.toMilliseconds(timeout) : null;
+
     return milliseconds ?? UrlSafetyDefaults.TIMEOUT_MILLISECONDS;
   }
 
@@ -151,6 +153,7 @@ export class UrlIngest {
                 message: `[capStream] Body exceeds the cap | received: ${received} | max: ${maxBytes}`,
               }),
             );
+
             return;
           }
 
@@ -172,6 +175,7 @@ export class UrlIngest {
     const maxBytes = policy?.maxBytes ?? UrlSafetyDefaults.MAX_BYTES;
 
     const declaredLength = Number(response.headers.get('content-length') ?? 0);
+
     if (declaredLength > maxBytes) {
       await response.body?.cancel();
       // The same fact as the streaming branch below, so the same verdict: a caller must not retry an
@@ -183,6 +187,7 @@ export class UrlIngest {
     }
 
     const reader = response.body?.getReader();
+
     if (!reader) {
       throw getError({ message: '[readCappedBody] Response carried no body' });
     }
@@ -192,11 +197,13 @@ export class UrlIngest {
 
     for (;;) {
       const { done, value } = await reader.read();
+
       if (done) {
         break;
       }
 
       received += value.length;
+
       if (received > maxBytes) {
         await reader.cancel();
         throw getError({

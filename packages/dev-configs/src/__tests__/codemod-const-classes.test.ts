@@ -515,6 +515,7 @@ describe('ConstClasses.convert - a decorated class keeps its decorators', () => 
     );
     // The decorated class is still the first statement that follows its decorators.
     const decorated = Object.entries(decoratorsByClass(source)).filter(([, d]) => d.length > 0);
+
     for (const [className] of decorated) {
       expect(result.output).toMatch(new RegExp(`\\)\\s*\\n\\s*export class ${className} \\{`));
     }

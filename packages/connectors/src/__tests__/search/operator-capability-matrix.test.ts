@@ -126,9 +126,11 @@ type TProbe = { threw: false } | { threw: true; message: string; code?: string }
 const probe = (dialect: ISearchQueryDialect, where: TWhere): TProbe => {
   try {
     dialect.compileWhere({ where });
+
     return { threw: false };
   } catch (error) {
     const failure = error as Error & { normalized?: { code?: string } };
+
     return { threw: true, message: failure.message, code: failure.normalized?.code };
   }
 };
@@ -187,6 +189,7 @@ describe('operator capability matrix - the published table is what the engine do
             outcome,
             `[${name}] '${operator}' is classified expressible but compiling it threw`,
           ).toEqual({ threw: false });
+
           return;
         }
 
@@ -226,6 +229,7 @@ describe('operator capability matrix - value-level limits the operator table can
     const outcome = probe(typesense, { name: { is: null } });
 
     expect(outcome.threw).toBe(true);
+
     if (!outcome.threw) {
       return;
     }
@@ -239,6 +243,7 @@ describe('operator capability matrix - value-level limits the operator table can
     const outcome = probe(typesense, { name: { isn: null } });
 
     expect(outcome.threw).toBe(true);
+
     if (!outcome.threw) {
       return;
     }

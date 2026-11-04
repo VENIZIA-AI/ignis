@@ -207,6 +207,7 @@ export abstract class FilterBuilder extends BaseHelper {
     try {
       // By schema first: `@model` registers the class name unless TABLE_NAME matches the table.
       const registry = MetadataRegistry.getInstance();
+
       return (
         registry.getModelEntryBySchema({ schema }) ??
         registry.getModelEntry({ name: getTableName(schema) })
@@ -217,6 +218,7 @@ export abstract class FilterBuilder extends BaseHelper {
         methodName,
         error,
       );
+
       return undefined;
     }
   }
@@ -315,6 +317,7 @@ export abstract class FilterBuilder extends BaseHelper {
     const { schema } = opts;
 
     const cached = this._relationsCache.get(schema);
+
     if (cached) {
       return cached;
     }
@@ -351,6 +354,7 @@ export abstract class FilterBuilder extends BaseHelper {
         '[resolveRelationsUncached] Relations resolver failed - continuing without relations | %s',
         error,
       );
+
       return {};
     }
   }
@@ -459,6 +463,7 @@ export abstract class FilterBuilder extends BaseHelper {
 
     if (QueryOperators.LOGICAL_GROUP_OPERATORS.has(key)) {
       const condition = this.buildLogicalGroupCondition({ key, value, tableName, schema });
+
       return condition ? [condition] : [];
     }
 
@@ -467,6 +472,7 @@ export abstract class FilterBuilder extends BaseHelper {
     }
 
     const column = columns[key];
+
     if (!column) {
       throw getError({
         message: `[FilterBuilder][toWhere] Table: ${tableName} | Column NOT FOUND | key: '${EchoUtility.toSafeEcho({ value: key })}'`,
@@ -517,6 +523,7 @@ export abstract class FilterBuilder extends BaseHelper {
       }
 
       const column = columns[key];
+
       if (!column) {
         throw getError({
           message: `[FilterBuilder][toOrderBy] Table: ${tableName} | Column NOT FOUND | key: '${EchoUtility.toSafeEcho({ value: key })}'`,
@@ -547,6 +554,7 @@ export abstract class FilterBuilder extends BaseHelper {
         if (this._orderEntryCache.size >= ORDER_ENTRY_CACHE_CAP) {
           this._orderEntryCache.clear();
         }
+
         this._orderEntryCache.set(entry, parsed);
       }
     }
@@ -589,6 +597,7 @@ export abstract class FilterBuilder extends BaseHelper {
       }
 
       const relationConfig = relations[relationName];
+
       if (!relationConfig) {
         throw getError({
           message: `[FilterBuilder][toInclude] Relation NOT FOUND | relation: '${relationName}'`,
@@ -637,6 +646,7 @@ export abstract class FilterBuilder extends BaseHelper {
 
       const hasNoEffectiveFilter =
         ObjectUtility.isEmpty({ value: scopedFilter }) || Object.keys(scopedFilter).length === 0;
+
       if (hasNoEffectiveFilter && hiddenProps.size === 0) {
         result[relationName] = true;
         continue;
@@ -692,6 +702,7 @@ export abstract class FilterBuilder extends BaseHelper {
 
   private isPrimitiveValue(opts: { value: any }): boolean {
     const { value } = opts;
+
     return (
       value === null || Array.isArray(value) || value instanceof Date || typeof value !== 'object'
     );
@@ -709,6 +720,7 @@ export abstract class FilterBuilder extends BaseHelper {
     }
 
     const keys = Object.keys(value);
+
     if (keys.length === 0) {
       return false;
     }
@@ -748,6 +760,7 @@ export abstract class FilterBuilder extends BaseHelper {
       }
 
       const opFn = this.operators[op];
+
       if (!opFn) {
         throw getError({
           message: `[FilterBuilder][buildOperatorConditions] Invalid query operator | operator: '${op}'`,
@@ -755,6 +768,7 @@ export abstract class FilterBuilder extends BaseHelper {
       }
 
       const result = opFn({ column, value: value[op] });
+
       if (result) {
         conditions.push(result);
       }
@@ -773,6 +787,7 @@ export abstract class FilterBuilder extends BaseHelper {
     if (this.isOperatorObject({ value })) {
       const nested = this.buildOperatorConditions({ column, value });
       const combined = nested.length === 1 ? nested[0] : and(...nested)!;
+
       return not(combined);
     }
 
@@ -813,6 +828,7 @@ export abstract class FilterBuilder extends BaseHelper {
     const parsed = JsonPathUtility.parseJsonPath({ key });
 
     const column = columns[parsed.columnName];
+
     if (!column) {
       throw getError({
         message: `[FilterBuilder][${methodName}] Table: ${tableName} | Column NOT FOUND | key: '${EchoUtility.toSafeEcho({ value: parsed.columnName })}'`,
@@ -937,6 +953,7 @@ export abstract class FilterBuilder extends BaseHelper {
       }
 
       const opFn = this.operators[op];
+
       if (!opFn) {
         throw getError({
           message: `[FilterBuilder][buildJsonOperatorConditions] Invalid query operator | operator: '${op}'`,
@@ -948,6 +965,7 @@ export abstract class FilterBuilder extends BaseHelper {
         : jsonPath;
 
       const result = opFn({ column: extraction, value: operand });
+
       if (result) {
         conditions.push(result);
       }

@@ -27,6 +27,7 @@ const fakeContext = <TInput>(input: TInput) => {
     header: () => undefined,
     json: (body: unknown, status?: number) => {
       jsonStatus = status;
+
       return body;
     },
   };
@@ -72,6 +73,7 @@ const refusal = async (task: Promise<unknown>) => {
 const lastFilterBy = (dataSource: SearchScopeDataSource) => {
   const call = dataSource.fakeConnector.searchCalls.at(-1);
   const params = (call?.params ?? {}) as Record<string, unknown>;
+
   return params['filter_by'];
 };
 
@@ -150,6 +152,7 @@ describe('SearchControllerFactory - scope', () => {
     const { controller, dataSource } = build({
       scope: async ({ context }) => {
         seen = context;
+
         return { status: 'm-async' };
       },
     });

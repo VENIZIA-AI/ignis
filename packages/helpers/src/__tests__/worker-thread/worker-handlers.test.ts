@@ -28,6 +28,7 @@ const createWorkerHelper = (opts: {
   });
 
   workers.push(helper);
+
   return helper;
 };
 

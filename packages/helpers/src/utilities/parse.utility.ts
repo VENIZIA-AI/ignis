@@ -39,6 +39,7 @@ export class ParseUtility {
 
     const camelized: any = {};
     const valueKeys = Object.keys(value);
+
     for (const key of valueKeys) {
       camelized[ParseUtility.toCamel({ input: key })] = ParseUtility.camelizeValue({
         value: (value as Record<string, unknown>)[key],
@@ -74,6 +75,7 @@ export class ParseUtility {
 
   static isInt(opts: { input: any }) {
     const { input } = opts;
+
     if (isNaN(input)) {
       return false;
     }
@@ -85,6 +87,7 @@ export class ParseUtility {
 
   static isFloat(opts: { input: any }) {
     const { input } = opts;
+
     if (isNaN(input)) {
       return false;
     }
@@ -110,36 +113,43 @@ export class ParseUtility {
    */
   static toInt(opts: { input: any }) {
     const { input } = opts;
+
     if (!input) {
       return 0;
     }
 
     const normalized = input?.toString()?.replace(/,/g, '');
+
     if (isNaN(normalized)) {
       return 0;
     }
 
     const parsed = Number.parseInt(normalized, 10);
+
     return Number.isNaN(parsed) ? 0 : parsed;
   }
 
   static toFloat(opts: { input: any; digit?: number }) {
     const { input, digit = 2 } = opts;
+
     if (!input) {
       return 0;
     }
 
     const normalized = input?.toString()?.replace(/,/g, '');
+
     if (isNaN(normalized)) {
       return 0;
     }
 
     const parsed = ParseUtility.round({ value: Number.parseFloat(normalized), precision: digit });
+
     return Number.isNaN(parsed) ? 0 : parsed;
   }
 
   static toBoolean(opts: { input: any }): boolean {
     const { input } = opts;
+
     return (
       input !== '' &&
       input !== 'false' &&
@@ -169,6 +179,7 @@ export class ParseUtility {
           message: 'Invalid keyMap',
         });
       }
+
       resultMap.set(element[key], element);
     });
 
@@ -178,6 +189,7 @@ export class ParseUtility {
   /** Splits a delimited string into trimmed, non-empty entries - the transform for list-shaped env values (e.g. `applicationEnvironment.get(KEY, { transform: (input) => ParseUtility.toDelimitedArray({ input }) })`). */
   static toDelimitedArray(opts: { input: unknown; separator?: string }): string[] {
     const { input, separator = ',' } = opts;
+
     if (input == null) {
       return [];
     }
@@ -203,12 +215,14 @@ export class ParseUtility {
    */
   static blankToUndefined(opts: { input: string | undefined }): string | undefined {
     const trimmed = opts.input?.trim();
+
     return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
   }
 
   /** Trims a possibly-undefined env value to a clean string ('' when absent). */
   static toTrimmed(opts: { input: unknown }): string {
     const { input } = opts;
+
     if (input == null) {
       return '';
     }
@@ -225,6 +239,7 @@ export class ParseUtility {
       if (result == null) {
         throw getError({ message: `Cannot read property '${key}' of ${result}` });
       }
+
       result = result[key];
     }
 

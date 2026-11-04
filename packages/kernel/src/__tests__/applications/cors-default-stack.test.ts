@@ -7,6 +7,7 @@ class CorsApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'cors-app', version: '0.0.0', description: '' };
   }
+
   preConfigure(): void {}
   postConfigure(): void {}
   staticConfigure(): void {}
@@ -28,6 +29,7 @@ const buildServer = async (opts: { middlewares?: IApplicationConfigs['middleware
   const server = application.getServer();
   server.post('/echo', async (context) => {
     const text = await context.req.text();
+
     return context.json({ length: text.length });
   });
   server.get('/boom', () => {

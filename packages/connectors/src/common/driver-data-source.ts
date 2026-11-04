@@ -42,6 +42,7 @@ export abstract class AbstractDriverDataSource<
 
     if (this.driver) {
       this.connector = this.driver.createConnector({ schema: this.getSchema() });
+
       return;
     }
 
@@ -76,6 +77,7 @@ export abstract class AbstractDriverDataSource<
 
   protected resolveDriver(): TDriver {
     this.wireDriverFromMetadata();
+
     return this.driver as TDriver;
   }
 
@@ -91,6 +93,7 @@ export abstract class AbstractDriverDataSource<
   /** Wires the driver on first use, so a `configure()` that only builds `this.client` is enough. */
   getConnector(): TConnector {
     this.wireDriverFromMetadata();
+
     return this.connector;
   }
 
@@ -119,6 +122,7 @@ export abstract class AbstractDriverDataSource<
    */
   override close(): Promise<void> {
     this.closePromise ??= this.endConnection();
+
     return this.closePromise;
   }
 
@@ -128,6 +132,7 @@ export abstract class AbstractDriverDataSource<
     }
 
     let driver: TDriver;
+
     try {
       driver = this.resolveDriver();
     } catch (error) {
@@ -135,6 +140,7 @@ export abstract class AbstractDriverDataSource<
         .for(this.close.name)
         .warn('No driver to end the connection with | draining the client | error: %s', error);
       await this.drainClient({ client: this.client });
+
       return;
     }
 
@@ -142,6 +148,7 @@ export abstract class AbstractDriverDataSource<
     if (typeof driver.end !== 'function') {
       this.logger.for(this.close.name).warn('The driver has no end() | draining the client');
       await this.drainClient({ client: this.client });
+
       return;
     }
 
@@ -170,6 +177,7 @@ export abstract class AbstractDriverDataSource<
     // into a local and the old client restored at once - live fields
     // are never nulled and the old pool keeps serving until the swap.
     let newClient: Client;
+
     try {
       await this.configure();
       newClient = this.client as Client;
@@ -191,6 +199,7 @@ export abstract class AbstractDriverDataSource<
     // Wired into locals: live state must stay on the old pool until the swap below.
     let newDriver: TDriver;
     let newConnector: TConnector;
+
     try {
       const DriverClass = this.resolveDriverClass();
       newDriver = new DriverClass({ client: newClient as AnyType });
@@ -210,6 +219,7 @@ export abstract class AbstractDriverDataSource<
     this.connector = newConnector as AnyType;
 
     const isDrained = await this.drainClient({ client: oldClient });
+
     if (isDrained) {
       logger.info('Old pool drained after secret rotation | key: %s', opts.key);
     }
@@ -243,6 +253,7 @@ export abstract class AbstractDriverDataSource<
       this.logger
         .for(this.drainClient.name)
         .warn('Client exposes neither end() nor close(); nothing to drain');
+
       return false;
     }
 
@@ -259,6 +270,7 @@ export abstract class AbstractDriverDataSource<
     if (username !== undefined) {
       mapped.user = username;
     }
+
     if (password !== undefined) {
       mapped.password = password;
     }

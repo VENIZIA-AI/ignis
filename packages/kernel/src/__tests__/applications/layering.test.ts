@@ -128,6 +128,7 @@ describe('the kernel application layering - what left, not only what arrived', (
     });
 
     const members = ABSTRACT_APPLICATION_MEMBERS.filter((name) => name !== 'constructor');
+
     for (const member of members) {
       expect(typeof (application as unknown as Record<string, unknown>)[member]).toBe('function');
     }

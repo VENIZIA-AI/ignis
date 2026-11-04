@@ -110,6 +110,7 @@ export abstract class AbstractGrpcController<
       const specs: IAuthorizationSpec[] = Array.isArray(configs.authorize)
         ? configs.authorize
         : [configs.authorize];
+
       for (const spec of specs) {
         const authzMw = authorizeFn({ spec });
         // Same TRouteContext-vs-Context<Env> bridge as authMw above.
@@ -140,6 +141,7 @@ export abstract class AbstractGrpcController<
     for (const [methodName, rpcMetadata] of rpcs) {
       // Dynamic dispatch by decorator-recorded method name - the controller class has no static index signature, so this read cannot be typed narrower than `unknown`.
       const handler = (this as Record<string | symbol, unknown>)[methodName];
+
       if (typeof handler !== 'function') {
         logger.warn('RPC method "%s" not found on controller', String(methodName));
         continue;

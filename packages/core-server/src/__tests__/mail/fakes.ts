@@ -71,6 +71,7 @@ export class ProcessorCallTracker {
     this.calls.push(email);
 
     const waitersList = [...this.waiters];
+
     for (const waiter of waitersList) {
       if (this.calls.length < waiter.expected) {
         continue;

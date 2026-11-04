@@ -43,6 +43,7 @@ export class ArtifactIndexHelper extends BaseHelper {
     const index: Record<string, TClass<AnyType>[]> = {};
 
     const discoveredArtifacts = registry.getDiscoveredArtifacts();
+
     for (const target of discoveredArtifacts) {
       if (!isClass<AnyType>(target)) {
         continue;
@@ -50,6 +51,7 @@ export class ArtifactIndexHelper extends BaseHelper {
 
       const type = registry.getArtifactMetadata({ target })?.type;
       const field = type ? ArtifactIndexHelper.INDEX_FIELD_BY_TYPE[type] : undefined;
+
       if (!field) {
         continue;
       }
@@ -113,6 +115,7 @@ export class ArtifactIndexHelper extends BaseHelper {
    */
   sortConfigurationsTopologically(opts: { classes: ReadonlyArray<TClass<any>> }): TClass<any>[] {
     const { classes } = opts;
+
     if (classes.length === 0) {
       return [];
     }
@@ -165,6 +168,7 @@ export class ArtifactIndexHelper extends BaseHelper {
       for (const dependent of adjacency.get(current) ?? []) {
         const newDeg = inDegree.get(dependent)! - 1;
         inDegree.set(dependent, newDeg);
+
         if (newDeg === 0) {
           available.push(dependent);
           available.sort(byName);
@@ -190,6 +194,7 @@ export class ArtifactIndexHelper extends BaseHelper {
     classes: ReadonlyArray<unknown> | undefined;
   }): void {
     const position = (opts.classes ?? []).findIndex((target) => typeof target !== 'function');
+
     if (position >= 0) {
       throw getError({
         message: `[ArtifactIndex] '${opts.field}' lists an entry that is not a class (position ${position}) | Usually an import cycle: the index was read before that class's module finished loading. The module that imports the index (or @venizia/ignis-boot/auto) must not define decorated classes or be imported by them`,
@@ -203,21 +208,27 @@ export class ArtifactIndexHelper extends BaseHelper {
     application: unknown;
   }): Promise<IArtifactIndex[]> {
     const { input, application } = opts;
+
     if (ArtifactGroup.isGroup(input)) {
       const result = await this.contentOf({ group: input });
+
       return this.flatten({ input: result, application });
     }
+
     if (Array.isArray(input)) {
       const nested = await Promise.all(
         input.map((entry) => this.flatten({ input: entry, application })),
       );
+
       return nested.flat();
     }
 
     if (this.isConditional(input)) {
       const isSelected = await input.when({ application });
+
       if (!isSelected) {
         this.logger.debug('Skipped by condition | conditional index entry');
+
         return [];
       }
 
@@ -236,14 +247,18 @@ export class ArtifactIndexHelper extends BaseHelper {
     for (const [field, classes] of Object.entries(content)) {
       this.assertClasses({ field, classes });
     }
+
     const kinds: Array<ReadonlyArray<TClass<unknown>> | undefined> = Object.values(content);
     const names = kinds.flatMap((classes) => (classes ?? []).map((target) => target.name));
+
     if (names.length === 0 && !group.kinds) {
       throw getError({
         message: `[ArtifactGroup] '${group.folder ?? '<application>'}' resolved to no class | Defined in ${group.site ?? 'an unknown module'} - check the folder name and that its classes carry a stereotype decorator`,
       });
     }
+
     this.logger.info('[ArtifactGroup] %s -> %s', group.folder ?? '<application>', names.join(', '));
+
     return content;
   }
 
@@ -277,6 +292,7 @@ export class ArtifactIndexHelper extends BaseHelper {
       }
 
       this.logger.debug('Skipped by condition | kind: %s | class: %s', field, target.name);
+
       return false;
     });
 
@@ -296,9 +312,11 @@ export class ArtifactIndexHelper extends BaseHelper {
   }): Promise<boolean> {
     const { target, application } = opts;
     const when = MetadataRegistry.getInstance().getArtifactMetadata({ target })?.when;
+
     if (!when) {
       return true;
     }
+
     return when({ application });
   }
 }

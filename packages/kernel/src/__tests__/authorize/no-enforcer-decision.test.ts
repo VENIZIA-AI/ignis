@@ -118,6 +118,7 @@ const run = async (opts: {
   const middleware = opts.provider.value()({ spec: opts.spec });
 
   let hasCalledNext = false;
+
   const next = async () => {
     hasCalledNext = true;
   };
@@ -126,6 +127,7 @@ const run = async (opts: {
     // Partial fake cast to the real Hono Context the middleware expects, matching the existing
     // provider test style rather than reimplementing the full Context shape.
     await middleware(opts.context as AnyType, next);
+
     return { hasCalledNext };
   } catch (error) {
     return { hasCalledNext, error };
@@ -157,6 +159,7 @@ describe('AuthorizationProvider - no-enforcer branch honours defaultDecision', (
 
     expect(hasCalledNext).toBe(false);
     expect(isApplicationError(error)).toBe(true);
+
     if (isApplicationError(error)) {
       expect(error.statusCode).toBe(403);
       expect(error.normalized.code).toBe('core.authorization.enforcer_not_registered');
@@ -279,6 +282,7 @@ describe('AuthorizationProvider - no-enforcer branch honours defaultDecision', (
 
     expect(hasCalledNext).toBe(false);
     expect(isApplicationError(error)).toBe(true);
+
     if (isApplicationError(error)) {
       expect(error.normalized.code).toBe('core.authorization.denied');
     }

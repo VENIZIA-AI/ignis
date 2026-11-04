@@ -51,6 +51,7 @@ export class DgramTransport extends Transport {
 
   private formatMessage(opts: { [extra: string | symbol]: any }) {
     const { timestamp, label, message, ...rest } = opts;
+
     return [timestamp, `[${this.label ?? label}]`, rest[Symbol.for('level')], message].join(' ');
   }
 
@@ -69,8 +70,10 @@ export class DgramTransport extends Transport {
     });
 
     const logLevel = opts[Symbol.for('level')];
+
     if (!this.triggerLevels.has(logLevel)) {
       callback();
+
       return;
     }
 
