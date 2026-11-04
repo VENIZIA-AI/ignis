@@ -607,7 +607,7 @@ export class BunS3Helper extends BaseStorageHelper {
 
   /** S3 caps a call at 1000 keys and continues through `nextContinuationToken`. `useRecursive: false` maps to `delimiter: '/'`. */
   async listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]> {
-    const { prefix, useRecursive = true, maxKeys } = opts;
+    const { prefix, useRecursive = false, maxKeys } = opts;
     const bucketName = opts.bucket.name;
 
     // `maxKeys: 0` means zero, not unlimited.
