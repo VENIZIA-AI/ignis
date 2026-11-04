@@ -2,6 +2,7 @@ import { mkdir, rm } from 'node:fs/promises';
 import { builtinModules } from 'node:module';
 import { join } from 'node:path';
 
+/** Outcome of probing one entry: `ok` is the verdict, `builtins` and `globals` are what made it fail, `sizeBytes` is the bundle size. */
 export interface IPurityResult {
   entry: string;
   ok: boolean;
@@ -41,6 +42,7 @@ export class ProbeSeverities {
   }
 }
 
+/** `error` or `guarded`: whether a matched Node global fails the probe or is only reported. */
 export type TProbeSeverity = Extract<
   (typeof ProbeSeverities)[keyof typeof ProbeSeverities],
   string
@@ -254,6 +256,7 @@ const readMetafile = async (path: string): Promise<IMetafile | undefined> => {
   }
 };
 
+/** Bundles a built entry for the browser with `bun build` and reports the Node builtins and Node globals that reach the bundle. */
 export class PurityProbe {
   /**
    * Public so `probe.test.ts` can assert against the literal collision string directly, without

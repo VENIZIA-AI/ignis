@@ -25,6 +25,7 @@ interface IFileFacts {
   classes: string[];
 }
 
+/** The `devz check split-report` command: prints the file-splitting report for one package, or every package that has a `src/` folder. */
 export class SplitReport {
   /** `distDir` is the built ESM folder inside a package (`dist/esm`, or `dist` where one build is published); `print` takes the report line by line. */
   static run(opts: { packageDir: string; distDir?: string; print?: (line: string) => void }): void {
