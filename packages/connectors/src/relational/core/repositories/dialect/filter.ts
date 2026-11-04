@@ -304,6 +304,17 @@ export abstract class FilterBuilder extends BaseHelper {
     return { link, scope };
   }
 
+  /** The parent's scope as a `where` on the parent table: the part both the read subquery and the write check build. */
+  toParentWhere(opts: { link: ReturnType<typeof ScopeThroughLink.of>; scope: TWhere }) {
+    const { link, scope } = opts;
+
+    return this.toWhere({
+      tableName: getTableName(link.parentSchema),
+      schema: link.parentSchema,
+      where: scope,
+    });
+  }
+
   /**
    * The scope of a model for one call. A `through` model keeps the child rows whose foreign key is in the set of
    * parent keys the parent's scope allows: `child.fk IN (SELECT parent.pk FROM parent WHERE <parent scope>)`, built with
@@ -327,11 +338,7 @@ export abstract class FilterBuilder extends BaseHelper {
       return scope;
     }
 
-    const where = this.toWhere({
-      tableName: getTableName(link.parentSchema),
-      schema: link.parentSchema,
-      where: scope,
-    });
+    const where = this.toParentWhere({ link, scope });
     const keys = sql`select ${link.parentColumn} from ${link.parentSchema}`;
     const subquery = where ? sql`${keys} where ${where}` : keys;
 

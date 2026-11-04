@@ -463,6 +463,8 @@ SELECT parent.pk FROM parent WHERE parent.pk IN (<the keys the rows name>) AND <
 - **Update and delete** select the rows with the child's scope, built from the parent's scope for `UPDATE` or `DELETE`. A payload that does not name the foreign key checks no parent. A soft delete counts as a delete.
 - **One transaction.** The check and the write run in the same transaction: the caller's, or one the repository opens and commits. On Postgres the checked parents are read `FOR SHARE`, so a parent that moves to another tenant after the check cannot be missed. SQLite has no row lock; its transactions begin `IMMEDIATE`, which excludes every other writer. A caller who opens a deferred SQLite transaction on purpose weakens that.
 - **`UNRESTRICTED`** from the parent skips the scope and still requires the parent to exist. A parent that resolves `null` refuses the write.
+- **The parent column should be unique.** The relation normally points at the parent's primary key. If it points at another column, make it unique: the check counts distinct keys, so a key that matches two parent rows still counts once, but a non-unique column can make one child belong to several parents.
+- **A parent can read wide and write narrow.** The check asks the parent for the write's own operation, so the parent's write scope governs the child's writes, and its read scope only the child's reads.
 - **A model with `through` cannot use `write.sharedRows` or `write.mode`:** there is no scope column on the child to fill or to leave null.
 
 #### `through` or a copied column

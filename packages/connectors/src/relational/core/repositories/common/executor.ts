@@ -66,8 +66,8 @@ export interface IWriteResult<R> {
 }
 
 /** Every Drizzle call the shared repository tier makes, behind one engine-supplied port obtained via `dataSource.getQueryExecutor()`. Stateless: the connector is passed per call because the repository resolves a transaction-bound connector per operation. */
-/** Whether `select` takes a row lock. SQLite locks the whole database, so it does not, and a lock there throws. */
 export interface IRelationalQueryExecutor<TConnector> {
+  /** Whether `select` takes a row lock. SQLite locks the whole database, so it does not, and a lock there throws. */
   readonly supportsRowLock: boolean;
   select<R>(opts: ISelectOptions<TConnector>): Promise<Array<R>>;
   count(opts: ICountOptions<TConnector>): Promise<number>;

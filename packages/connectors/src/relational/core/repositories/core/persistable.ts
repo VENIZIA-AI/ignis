@@ -82,7 +82,8 @@ export class PersistableRelationalRepository<
     // A `through` model checks its parents and writes in one transaction, so the lock on the checked parents lasts until the write.
     if (this.getAccessSettings()?.through && !transaction) {
       return this.runInTransaction({
-        execute: (owned) => this._create<R>({ ...opts, options: { ...opts.options, ...owned } }),
+        execute: (owned) =>
+          this._create<R>({ ...opts, options: Object.assign({}, opts.options, owned) }),
       });
     }
 
@@ -90,12 +91,12 @@ export class PersistableRelationalRepository<
       this.logger.for('_create').log(log.level ?? 'info', 'Executing with opts: %j', opts);
     }
 
-    const result2 = await this.guardScopedWrite({
+    const scoped = await this.guardScopedWrite({
       rows: opts.data as Array<Record<string, unknown>>,
       operation: ScopeOperations.CREATE,
       transaction,
     });
-    const values = result2 as Array<PersistObject>;
+    const values = scoped as Array<PersistObject>;
 
     const rs = await this.queryExecutor.insert<R>({
       connector: this.resolveConnector({ transaction }),

@@ -80,10 +80,6 @@ export interface IRelationalQueryDialect {
   /** Flattens a transform result into the object handed to the driver's `set()`. */
   toUpdateData(opts: { transformed: ITransformedUpdateData }): Record<string, unknown>;
 
-  /**
-   * The scope of a model for one call: what its `resolve` answers, or, for a `through` model, a `where` on its
-   * foreign key built from its parent's own scope (`UNRESTRICTED` or null when the parent's is).
-   */
   /** The foreign key link of a `through` model and the scope its parent resolves for `operation`: what a write must check its rows against. */
   resolveThrough(opts: {
     settings: IModelAccessThroughSettings;
@@ -94,6 +90,16 @@ export interface IRelationalQueryDialect {
     scope: TNullable<TWhere> | typeof ScopeFilters.UNRESTRICTED;
   };
 
+  /** The parent's scope as a `where` on the parent table. */
+  toParentWhere(opts: {
+    link: ReturnType<typeof ScopeThroughLink.of>;
+    scope: TWhere;
+  }): ReturnType<IRelationalQueryDialect['toWhere']>;
+
+  /**
+   * The scope of a model for one call: what its `resolve` answers, or, for a `through` model, a `where` on its
+   * foreign key built from its parent's own scope (`UNRESTRICTED` or null when the parent's is).
+   */
   resolveAccessScope(opts: {
     settings: TModelAccessSettings;
     schema: TTableSchemaWithId;

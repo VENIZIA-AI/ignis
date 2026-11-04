@@ -39,7 +39,7 @@ import type {
 } from '@/relational/core/models';
 import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import { and, getTableColumns, getTableName, inArray } from 'drizzle-orm';
+import { and, getTableColumns, inArray } from 'drizzle-orm';
 import type {
   IRelationalExtraOptions,
   IRelationalQueryDialect,
@@ -269,12 +269,8 @@ export abstract class RelationalBaseRepository<
     const parentScope =
       scope === ScopeFilters.UNRESTRICTED
         ? undefined
-        : this.queryDialect.toWhere({
-            tableName: getTableName(link.parentSchema),
-            schema: link.parentSchema,
-            where: scope,
-          });
-    const found = await this.queryExecutor.select({
+        : this.queryDialect.toParentWhere({ link, scope });
+    const found = await this.queryExecutor.select<{ key: unknown }>({
       connector: this.resolveConnector({ transaction }),
       table: link.parentSchema,
       columns: { key: link.parentColumn },
@@ -282,7 +278,8 @@ export abstract class RelationalBaseRepository<
       lock: this.queryExecutor.supportsRowLock ? { strength: LockStrengths.SHARE } : undefined,
     });
 
-    if (found.length !== keys.length) {
+    // Distinct keys, not rows: a parent column that is not unique can return two rows for one key and hide a missing one.
+    if (new Set(found.map((row) => row.key)).size !== keys.length) {
       throw denied;
     }
   }
