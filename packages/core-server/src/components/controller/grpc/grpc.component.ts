@@ -11,6 +11,7 @@ import { GrpcBindingKeys } from './common/types';
 
 const DEFAULT_OPTIONS: IGrpcComponentConfig = {};
 
+/** Mounts every controller declared with the gRPC transport onto the root router at its metadata `path`, and hands each the `IGrpcComponentConfig` interceptors and ConnectRPC module. A gRPC controller without a service definition is skipped with a warning. */
 export class GrpcComponent extends BaseComponent {
   constructor(private application: BaseApplication) {
     super({

@@ -1,3 +1,4 @@
+/** Helpers for mailbox address strings. */
 export class MailAddressUtility {
   /**
    * Splits one or more RFC 5322 mailbox strings into individual addresses. A caller-supplied `to`

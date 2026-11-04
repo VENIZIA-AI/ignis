@@ -2,6 +2,7 @@ import type { AnyType } from '@venizia/ignis-helpers/common';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 import type { IMailTransport } from './message';
 
+/** Options shared by every mail provider. */
 export interface IBaseMailOptions {
   from?: string;
   fromName?: string;
@@ -14,34 +15,40 @@ export interface IBaseMailOptions {
   maxAttachmentBytes?: number;
 }
 
+/** Mail options for the `nodemailer` provider; `module` hands over the `nodemailer` module instead of loading it by name. */
 export interface INodemailerMailOptions extends IBaseMailOptions {
   provider: 'nodemailer';
   config: TNodemailerConfig;
   module?: TNodemailerModule;
 }
 
+/** Mail options for the `mailgun` provider; `config` needs `username`, `key` and `domain`, and `module` hands over the `mailgun.js` module. */
 export interface IMailgunMailOptions extends IBaseMailOptions {
   provider: 'mailgun';
   config: TMailgunConfig;
   module?: TMailgunModule;
 }
 
+/** Mail options for the `amazon-ses` provider (SES HTTPS API); use `nodemailer` for SES over SMTP. */
 export interface IAmazonSesMailOptions extends IBaseMailOptions {
   provider: 'amazon-ses';
   config: TAmazonSesConfig;
   module?: TAmazonSesModule;
 }
 
+/** Mail options for the `custom` provider; `config` is the transport to use as is. */
 export interface ICustomMailOptions extends IBaseMailOptions {
   provider: 'custom';
   config: IMailTransport;
 }
 
+/** Mail options with an arbitrary provider name and config; accepted by the type, but the transport provider throws on a name it does not support. */
 export interface IGenericMailOptions extends IBaseMailOptions {
   provider: string;
   config: Record<string, AnyType>;
 }
 
+/** Options passed to the mail component, discriminated by `provider`. */
 export type TMailOptions =
   | INodemailerMailOptions
   | IAmazonSesMailOptions
@@ -49,9 +56,11 @@ export type TMailOptions =
   | ICustomMailOptions
   | IGenericMailOptions;
 
+/** Nodemailer `createTransport` argument: a transport instance, SMTP options or a connection URL. */
 export type TNodemailerConfig = SMTPTransport | SMTPTransport.Options | string;
 
 // MailgunClientOptions & {domain: string}
+/** Mailgun client options (`mailgun.js`) plus the sending `domain`. */
 export type TMailgunConfig = AnyType & { domain: string };
 
 /**
@@ -65,8 +74,10 @@ export type TNodemailerModule = {
   createTransport: (config: AnyType, defaults?: AnyType) => AnyType;
 };
 
+/** The `mailgun.js` class, as a constructor taking the form-data implementation. */
 export type TMailgunModule = new (formData: AnyType) => AnyType;
 
+/** Amazon SES client configuration: `region` is required; `credentials` and `endpoint` are optional. */
 export type TAmazonSesConfig = {
   region: string;
   credentials?: { accessKeyId: string; secretAccessKey: string; sessionToken?: string };
@@ -83,6 +94,7 @@ export type TAmazonSesModule<
   GetAccountCommand: new (input?: AnyType) => AnyType;
 };
 
+/** An Amazon SES client with the command classes the transport sends and verifies with. */
 export type TAmazonSesClient = Pick<TAmazonSesModule, 'SendEmailCommand' | 'GetAccountCommand'> & {
   client: AnyType;
 };

@@ -32,6 +32,7 @@ export const RENDERABLE_CONTENT_TYPES = new Set<string>([
   'text/csv',
 ]);
 
+/** Storage backends a static asset controller can serve from. `isValid` checks a string against them. */
 export class StaticAssetStorageTypes {
   static readonly DISK = 'disk';
   static readonly BUN_S3 = 'bun-s3';
@@ -43,6 +44,7 @@ export class StaticAssetStorageTypes {
   }
 }
 
+/** One of the `StaticAssetStorageTypes` values. */
 export type TStaticAssetStorageType = TConstValue<typeof StaticAssetStorageTypes>;
 
 /** What `recreate-metalink` did: refreshed the rows of an object, or created its first one. */
@@ -57,6 +59,7 @@ export class MetaLinkRecreateActions {
   }
 }
 
+/** One of the `MetaLinkRecreateActions` values. */
 export type TMetaLinkRecreateAction = TConstValue<typeof MetaLinkRecreateActions>;
 
 /** Where a signed policy may write. The final key is never inside it, so content cannot be replaced after the commit. */

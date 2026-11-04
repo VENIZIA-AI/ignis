@@ -11,6 +11,7 @@ import type {
 import { MailKeys } from '../../common';
 import { MailVerificationUtility } from '../../utilities';
 
+/** Builds `IVerificationData` from the bound code and token generators, with every timestamp taken at call time. */
 export class DefaultVerificationDataGenerator
   extends BaseHelper
   implements IVerificationDataGenerator

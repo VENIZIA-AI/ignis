@@ -18,8 +18,10 @@ import {
 } from '../helpers';
 import { MailTypeUtility } from '../utilities';
 
+/** Builds the transport for the given mail options; throws on an unsupported provider. */
 export type TGetMailTransportFn = (options: TMailOptions) => IMailTransport;
 
+/** Provides the `TGetMailTransportFn` factory bound at `MailKeys.MAIL_TRANSPORT_PROVIDER`. */
 export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
   constructor() {
     super({ scope: MailTransportProvider.name });

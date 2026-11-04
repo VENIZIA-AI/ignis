@@ -12,6 +12,7 @@ import type { createRemoteJWKSet, SignJWT } from 'jose';
 import { JoseLoader } from '../../jose-loader';
 import { AbstractJWKSTokenService } from './abstract.service';
 
+/** Verifies tokens against a remote JWKS fetched from `jwksUrl`. The key set is cached for `cacheTtlMs` (default 43_200_000 ms) with a `cooldownMs` refetch cooldown (default 30_000 ms). */
 export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKSTokenService<E> {
   protected jwksVerifier: ReturnType<typeof createRemoteJWKSet> | null = null;
 

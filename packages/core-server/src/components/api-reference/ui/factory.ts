@@ -5,6 +5,7 @@ import { MemoryStorageHelper } from '@venizia/ignis-helpers';
 import { ScalarUIProvider } from './scalar';
 import { SwaggerUIProvider } from './swagger';
 
+/** Process-wide registry of UI providers by type; obtain it with `getInstance()`. `register` creates the built-in `swagger` and `scalar` providers and throws for any other type. */
 export class UIProviderFactory extends MemoryStorageHelper<{
   [key: string | symbol]: IUIProvider;
 }> {

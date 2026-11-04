@@ -9,8 +9,10 @@ import {
   InternalQueueMailExecutorHelper,
 } from '../helpers';
 
+/** Builds the queue executor for a config; throws when the config for its `type` is missing or the type is unknown. */
 export type TGetMailQueueExecutorFn = (config: IMailQueueExecutorConfig) => IMailQueueExecutor;
 
+/** Provides the `TGetMailQueueExecutorFn` factory bound at `MailKeys.MAIL_QUEUE_EXECUTOR_PROVIDER`. */
 export class MailQueueExecutorProvider extends BaseProvider<TGetMailQueueExecutorFn> {
   constructor() {
     super({ scope: MailQueueExecutorProvider.name });

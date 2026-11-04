@@ -37,6 +37,7 @@ const joinRestPath = (segments: Array<string | undefined>): string => {
   return joined.startsWith('/') ? joined : `/${joined}`;
 };
 
+/** Serves the OpenAPI document and an interactive UI for it. Paths and UI type come from `IApiReferenceOptions` bound at `ApiReferenceBindingKeys.API_REFERENCE_OPTIONS`; `info` is always taken from the application info. */
 export class ApiReferenceComponent extends BaseComponent {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,

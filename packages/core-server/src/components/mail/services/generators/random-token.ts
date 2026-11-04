@@ -1,6 +1,7 @@
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { IVerificationTokenGenerator } from '../../common';
 
+/** Generates base64url tokens from random bytes; `generateToken` throws unless `bytes` is a non-negative integer. */
 export class RandomTokenGenerator extends BaseHelper implements IVerificationTokenGenerator {
   constructor() {
     super({ scope: RandomTokenGenerator.name });

@@ -11,6 +11,7 @@ import type {
 import { MailAttachmentUtility } from '../../utilities/attachment.utility';
 import { MailBodyUtility } from '../../utilities/body.utility';
 
+/** SMTP transport on `nodemailer`, with its file and URL access switched off. */
 export class NodemailerTransportHelper extends BaseHelper implements IMailTransport {
   private transporter: AnyType;
   private module?: TNodemailerModule;

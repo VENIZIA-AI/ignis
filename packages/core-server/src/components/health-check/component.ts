@@ -14,6 +14,7 @@ const DEFAULT_OPTIONS: IHealthCheckOptions = {
   restOptions: { path: DEFAULT_REST_PATH },
 };
 
+/** Mounts the health check controller (liveness root, `/ping`, and the gated `/stats`). The base path defaults to `/health`. */
 export class HealthCheckComponent extends BaseComponent<IHealthCheckOptions> {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,

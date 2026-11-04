@@ -1,3 +1,4 @@
+/** Container keys of the Socket.IO component: the server instance, its options, the Redis connection and the handlers an application binds. */
 export class SocketIOBindingKeys {
   static readonly SOCKET_IO_INSTANCE = '@app/socket-io/instance';
 

@@ -7,6 +7,7 @@ import type {
 } from '../../common';
 import { MailExecutorErrors } from '../../common';
 
+/** Mail queue executor with no queue: runs the processor inline and returns its result. `options` are ignored. */
 export class DirectMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
   private processor?: (email: string) => Promise<IMailProcessorResult>;
 

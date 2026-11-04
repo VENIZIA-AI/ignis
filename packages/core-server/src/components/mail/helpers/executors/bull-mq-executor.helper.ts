@@ -18,6 +18,7 @@ import {
 } from '../../common';
 import type { Job } from 'bullmq';
 
+/** Mail queue executor backed by BullMQ. The `mode` option decides whether this process holds the queue, the workers, or both; a processor returning `success: false` fails the job so BullMQ retries it. */
 export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
   private queueIdentifier: string;
   private queueName: string;

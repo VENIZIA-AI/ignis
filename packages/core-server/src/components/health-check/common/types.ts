@@ -1,5 +1,6 @@
 import type { IBuildInfo } from '@venizia/ignis-helpers/core';
 
+/** Options of `HealthCheckComponent`, bound at `HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS`. */
 export interface IHealthCheckOptions {
   /** Partially-filled bindings are accepted; every missing field falls back to its default. */
   restOptions?: { path?: string };

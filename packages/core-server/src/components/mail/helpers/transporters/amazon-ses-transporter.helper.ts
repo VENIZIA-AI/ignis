@@ -13,6 +13,7 @@ import {
 import { MailAddressUtility, MailMimeUtility } from '../../utilities';
 import { MailAttachmentUtility } from '../../utilities/attachment.utility';
 
+/** Amazon SES transport over the HTTPS API (`@aws-sdk/client-sesv2`), sending each message as a raw MIME body. */
 export class AmazonSesTransportHelper extends BaseHelper implements IMailTransport {
   private client: AnyType;
   private sendEmailCommandConstructor: AnyType;

@@ -21,6 +21,7 @@ import type { TMultipartStorage } from '@venizia/ignis-helpers';
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../models';
 import type { StaticAssetStorageTypes } from './constants';
 
+/** Per-controller upload tuning: multipart parsing, name and link normalization, folder depth and size ceiling. */
 export type TStaticAssetExtraOptions = {
   parseMultipartBody?: {
     storage?: TMultipartStorage;
@@ -55,8 +56,11 @@ export type TDefineExtraRoutes = (opts: {
 }) => void;
 
 // Declared by hand rather than inferred: RouteHandler inference here is heavy.
+/** Path parameters of the bucket routes. */
 export type TBucketParams = { bucketName: string };
+/** Path parameters of the object routes. */
 export type TObjectParams = { bucketName: string; objectName: string };
+/** Labels recorded on the MetaLink row of an uploaded object. */
 export type TUploadQuery = {
   principalType?: string;
   principalId?: string;
@@ -65,8 +69,10 @@ export type TUploadQuery = {
   sequence?: number;
   folderPath?: string;
 };
+/** Query of the list objects route. Every value arrives as a string. */
 export type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string };
 
+/** Enables the signed-policy upload flow, where the client posts bytes straight to the storage and IGNIS only signs the permission and verifies the commit. */
 export type TDirectUploadOptions = {
   /** Who may ask for a policy. REQUIRED, not defaulted: this route hands out a write credential, and there is no safe default for that. */
   authorize: (opts: { context: TRouteContext }) => ValueOrPromise<boolean>;
@@ -91,6 +97,7 @@ export type TDirectUploadOptions = {
   }) => ValueOrPromise<void>;
 };
 
+/** Body of the upload policy route: the files the client intends to upload. */
 export type TUploadPolicyRequest = {
   files: Array<{ fileName: string; contentType?: string; size?: number }>;
 };
@@ -115,6 +122,7 @@ export type TStaticAssetRouteConfig = Partial<
   enabled?: boolean;
 };
 
+/** Per-route overrides for the built-in routes of a generated asset controller. A key left out keeps that route at its defaults. */
 export type TStaticAssetRoutes = {
   getBuckets?: TStaticAssetRouteConfig;
   getBucketByName?: TStaticAssetRouteConfig;
@@ -133,6 +141,7 @@ export type TStaticAssetRoutes = {
   recreateMetaLink?: TStaticAssetRouteConfig;
 };
 
+/** Static asset controllers keyed by an application-chosen name. Each entry pairs a storage type with its matching helper, and `useMetaLink: true` requires a `metaLink` config. */
 export type TStaticAssetsComponentOptions<
   Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema,
 > = {

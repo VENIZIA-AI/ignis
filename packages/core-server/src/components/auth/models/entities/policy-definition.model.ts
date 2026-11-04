@@ -1,5 +1,6 @@
 import type { TIdSchemaType } from '@venizia/ignis-kernel';
 
+/** Options of the policy-definition table builder; `idType` selects the key type and `extraVariants` declares app-defined variants. */
 export type TPolicyDefinitionOptions<ExtraVariant extends string = never> = {
   idType?: TIdSchemaType;
   /**
