@@ -445,10 +445,25 @@ variant.product_id IN (SELECT product.id FROM product WHERE <Product's scope>)
 - **`UNRESTRICTED` and `null`** come from the parent: an unrestricted parent leaves the child unrestricted for that call, and a parent that cannot resolve a scope follows the child's `onMissing` (`'deny'` by default).
 - **A row with a null foreign key** matches no parent, so it is invisible.
 - **`include`** applies the included model's own scope, so a `through` child loaded through any relation is scoped too.
-- **Reads only, in this release.** Every create, update and delete on a `through` model is refused with a message that names `access.through`, so a scope is never wider than the parent allows. Write a child through the patterns below until writes ship.
+- **Writes name a parent the caller may reach.** See [Writes through a parent](#writes-through-a-parent).
 - **`through` replaces `resolve`.** A model declares one of them; `columns` and `write` belong to `resolve` only. At boot the application checks that the relation is a `one` with a single-column key, that the parent has an `access`, and warns when the foreign key has no index.
 
 Index the child's foreign key: without it every scoped list or count scans the child table.
+
+#### Writes through a parent
+
+A create must name a parent the caller may reach, and an update that moves a row must name its new parent the same way. One query checks the whole batch, using the parent's own scope for the write's `operation` (`CREATE` for a create, `UPDATE` for a move):
+
+```sql
+SELECT parent.pk FROM parent WHERE parent.pk IN (<the keys the rows name>) AND <parent's scope>
+```
+
+- **One refusal.** A parent that does not exist, a parent outside the caller's scope, a null key and a missing key all give the same `403` (`core.repository.scope_write_denied`). The message names the model and the foreign key column, so it does not tell a caller whether a foreign parent exists.
+- **A batch is all or nothing.** `createAll` with one foreign parent writes nothing.
+- **Update and delete** select the rows with the child's scope, built from the parent's scope for `UPDATE` or `DELETE`. A payload that does not name the foreign key checks no parent. A soft delete counts as a delete.
+- **One transaction.** The check and the write run in the same transaction: the caller's, or one the repository opens and commits. On Postgres the checked parents are read `FOR SHARE`, so a parent that moves to another tenant after the check cannot be missed. SQLite has no row lock; its transactions begin `IMMEDIATE`, which excludes every other writer. A caller who opens a deferred SQLite transaction on purpose weakens that.
+- **`UNRESTRICTED`** from the parent skips the scope and still requires the parent to exist. A parent that resolves `null` refuses the write unless the model's `onMissing` is `'allow'`.
+- **A model with `through` cannot use `write.sharedRows` or `write.mode`:** there is no scope column on the child to fill or to leave null.
 
 #### `through` or a copied column
 
@@ -467,7 +482,7 @@ Use `through` for the many child tables where this cost does not show and one so
 
 A product variant has a `productId` and no merchant. The merchant lives on the `Product`. `access.resolve` returns a plain `where` over the model's own columns, with no relation path, so it cannot say "the variants of my products". Code can return an `inSql` subquery, such as ``{ productId: { inSql: sql`select id from "Product" where merchant_id = ${merchantId}` } }``. That scopes reads, but the write guard refuses every create, update and delete under it ("the operator 'inSql' cannot be checked on a write"). An `include` does not help either: an included model applies its own `access`, never its parent's.
 
-For reads, declare [`access.through`](#scope-a-child-through-its-parent). For writes, two patterns are safe.
+Declare [`access.through`](#scope-a-child-through-its-parent) for reads and writes. When the check cannot be a scope, two patterns remain.
 
 #### Copy the tenant column onto the child
 
