@@ -16,11 +16,12 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis-connectors', '@venizia/ignis
 
 - **`resolve({ operation })`.** `operation` is `ScopeOperations.READ`, `CREATE`, `UPDATE` or `DELETE`, never a group. A read and an `include`d relation pass `READ`. An update passes `UPDATE` for the payload check and for the rows it selects. A delete, a soft delete included, passes `DELETE` for both. A restore passes `UPDATE`.
 - **`ScopeOperations`.** It lists the four operations and two groups, `WRITE` and `ALL`. `ScopeOperations.includes({ group, operation })` answers whether an operation belongs to a group, and `isValid` checks a value. `TScopeOperation` is the four concrete values, and `TScopeOperationGroup` is all six.
-- **The `or` over two columns is still refused on a write.** Return the narrow scope for a write operation instead. The message is unchanged. The refusal now also applies to the rows an update or delete selects when `write.sharedRows` is `true`; before, that case accepted any shape.
+- **The `or` over two columns is still refused on a write.** Return the narrow scope for a write operation instead. The message is unchanged.
 
 ## Who is affected
 
-- **A model whose `resolve` takes no parameter.** No action needed. Nothing changes for it, except a model with `write.sharedRows: true` whose scope the guard cannot read: an update or delete under it is now refused.
+- **A model whose `resolve` takes no parameter.** No action needed. Nothing changes for it.
+- **A model with `write.sharedRows: true`.** Read the last point under Breaking changes.
 - **Code that imports `ScopeWriteOperations` or `TScopeWriteOperation` from `@venizia/ignis-connectors` or `@venizia/ignis-connectors/relational`.** Import `ScopeOperations` and `TScopeOperation` from `@venizia/ignis-kernel` or `@venizia/ignis`.
 - **A repository subclass or test probe that calls `applyScopeFilter`, `applyDefaultFilter` or `guardScopedWrite`.** Type its `mutation` or `operation` as `TScopeOperation`, not `string`.
 - **Code that calls `access.resolve()` directly.** Pass `{ operation }`.
@@ -51,6 +52,8 @@ scoped(opts: { where: TWhere; mutation?: TScopeOperation }) {
 ```
 
 `ScopeWriteOperations.CREATE` and `UPDATE` are now `ScopeOperations.CREATE` and `UPDATE`. `ScopeWriteOperations.SCHEME_SET` held two values. `ScopeOperations.SCHEME_SET` holds six, and `ScopeOperations.OPERATION_SET` holds the four concrete ones.
+
+With `write.sharedRows: true`, the rows an update or delete selects are now refused when the scope is one the guard cannot read, such as a range, a `like` or an `or` over two columns. Before, that case accepted any shape. Return a scope the guard can read.
 
 ## Details
 

@@ -239,7 +239,7 @@ A read sees both columns. A create, an update and a delete are held to `merchant
 | `updateById`, `updateAll`, and `restore` | `UPDATE` |
 | `deleteById`, `deleteAll`, `deleteBy`, a soft delete included | `DELETE` |
 
-A soft delete is stored as an update of the row, but the resolver sees `DELETE`: a caller who may update a row is not thereby allowed to delete it. A read with a row `lock` (`findOne` with `lock`) still passes `READ`, so it can lock rows the caller may only read.
+A soft delete is stored as an update of the row, but the resolver sees `DELETE`: a caller who may update a row is not thereby allowed to delete it. The soft-delete flag (`deletedAt`) is an ordinary column, though. An `updateAll` that writes it soft-deletes the row under the `UPDATE` scope, not the `DELETE` one. To keep `UPDATE` from deleting, do not let callers write that column, or check it in the service. A read with a row `lock` (`findOne` with `lock`) still passes `READ`, so it can lock rows the caller may only read.
 
 `ScopeOperations.WRITE` and `ScopeOperations.ALL` are groups, never an `operation`. Ask `includes({ group, operation })` whether an operation belongs to one.
 
