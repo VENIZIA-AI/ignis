@@ -165,6 +165,12 @@ export type TStaticAssetsComponentOptions<
     controller: {
       name: string;
       basePath: string;
+
+      /**
+       * Whether `/path` and `/path/` are different routes on this controller.
+       *
+       * @default true
+       */
       isStrict?: boolean;
 
       /**
