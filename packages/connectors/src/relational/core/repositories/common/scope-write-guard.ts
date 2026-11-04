@@ -1,13 +1,13 @@
-import { ScopeWriteOperations, type TScopeWriteOperation } from './constants';
 import { getError } from '@venizia/ignis-helpers/core';
 import {
   QueryOperators,
   RepositoryErrorCodes,
   ScopeFilterMissingBehaviors,
   ScopeFilters,
+  ScopeOperations,
   ScopeWriteGuards,
 } from '@venizia/ignis-kernel';
-import type { IModelAccessSettings, TWhere } from '@venizia/ignis-kernel';
+import type { IModelAccessSettings, TScopeOperation, TWhere } from '@venizia/ignis-kernel';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { ScopeFilterDenial } from './scope-filter';
 
@@ -230,10 +230,12 @@ export class ScopeWriteGuard {
   static mutationWhere(opts: {
     settings: IModelAccessSettings;
     model: string;
-    operation: string;
+    operation: TScopeOperation;
     scopeWhere: TWhere;
   }): TWhere {
     const { settings, model, operation, scopeWhere } = opts;
+
+    ScopeWriteGuard.assertWrite({ model, operation });
 
     if (settings.write?.sharedRows === true) {
       return scopeWhere;
@@ -390,10 +392,13 @@ export class ScopeWriteGuard {
     settings: IModelAccessSettings;
     model: string;
     rows: Row[];
-    operation: TScopeWriteOperation;
+    operation: TScopeOperation;
   }): Row[] {
     const { settings, model, rows, operation } = opts;
-    const scope = settings.resolve();
+
+    ScopeWriteGuard.assertWrite({ model, operation });
+
+    const scope = settings.resolve({ operation });
 
     if (scope === ScopeFilters.UNRESTRICTED) {
       return rows;
@@ -404,7 +409,7 @@ export class ScopeWriteGuard {
       // guard adds nothing there. A create has no such `where`, so an unresolved scope refuses it.
       if (
         settings.onMissing === ScopeFilterMissingBehaviors.ALLOW ||
-        operation === ScopeWriteOperations.UPDATE
+        operation === ScopeOperations.UPDATE
       ) {
         return rows;
       }
@@ -439,7 +444,8 @@ export class ScopeWriteGuard {
       }
     }
 
-    const isAssign = settings.write?.mode === ScopeWriteGuards.ASSIGN && operation === 'create';
+    const isAssign =
+      settings.write?.mode === ScopeWriteGuards.ASSIGN && operation === ScopeOperations.CREATE;
     const sharedRows = settings.write?.sharedRows === true;
 
     return rows.map((row) => {
@@ -449,7 +455,7 @@ export class ScopeWriteGuard {
         const value = (row as Record<string, unknown>)[column];
 
         if (value === undefined) {
-          if (operation === 'update') {
+          if (operation === ScopeOperations.UPDATE) {
             continue;
           }
 
@@ -492,10 +498,26 @@ export class ScopeWriteGuard {
     });
   }
 
+  /**
+   * The write guard runs for a write only. A READ reaching it is a bug in the caller, not a request,
+   * so it throws a plain error rather than a refusal the caller could map to a status.
+   */
+  private static assertWrite(opts: { model: string; operation: TScopeOperation }): void {
+    const { model, operation } = opts;
+
+    if (ScopeOperations.includes({ group: ScopeOperations.WRITE, operation })) {
+      return;
+    }
+
+    throw getError({
+      message: `[ScopeWriteGuard] the write guard runs for a write operation only | entity: ${model} | operation: ${operation}`,
+    });
+  }
+
   /** Names the model and the column, never a value: the caller may be a request. */
   private static denied(opts: {
     model: string;
-    operation: string;
+    operation: TScopeOperation;
     column?: string;
     detail: string;
   }) {

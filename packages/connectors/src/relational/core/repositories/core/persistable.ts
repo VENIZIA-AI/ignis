@@ -8,7 +8,7 @@ import type {
 import type { AnyType, TClass, TNullable } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IExtraOptions, TCount, TRepositoryLogOptions, TWhere } from '@venizia/ignis-kernel';
-import { RepositoryOperationScopes } from '@venizia/ignis-kernel';
+import { RepositoryOperationScopes, ScopeOperations } from '@venizia/ignis-kernel';
 import type { SQL } from 'drizzle-orm';
 import type { IRelationalExtraOptions } from '../common';
 import { ReadableRelationalRepository } from './readable';
@@ -85,7 +85,7 @@ export class PersistableRelationalRepository<
 
     const values = this.guardScopedWrite({
       rows: opts.data as Array<Record<string, unknown>>,
-      operation: 'create',
+      operation: ScopeOperations.CREATE,
     }) as Array<PersistObject>;
 
     const rs = await this.queryExecutor.insert<R>({
@@ -166,12 +166,15 @@ export class PersistableRelationalRepository<
       this.logger.for('_update').log(log.level ?? 'info', 'Executing with opts: %j', opts);
     }
 
-    this.guardScopedWrite({ rows: [opts.data as Record<string, unknown>], operation: 'update' });
+    this.guardScopedWrite({
+      rows: [opts.data as Record<string, unknown>],
+      operation: ScopeOperations.UPDATE,
+    });
 
     const mergedFilter = this.applyDefaultFilter({
       userFilter: { where: opts.where },
       shouldSkipDefaultFilter,
-      mutation: 'update',
+      mutation: ScopeOperations.UPDATE,
     });
     const mergedWhere = mergedFilter.where ?? opts.where;
 
@@ -282,7 +285,7 @@ export class PersistableRelationalRepository<
     const mergedFilter = this.applyDefaultFilter({
       userFilter: { where: opts.where },
       shouldSkipDefaultFilter,
-      mutation: 'delete',
+      mutation: ScopeOperations.DELETE,
     });
     const mergedWhere = mergedFilter.where ?? opts.where;
 

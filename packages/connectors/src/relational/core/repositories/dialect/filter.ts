@@ -16,6 +16,7 @@ import {
   RelationTypes,
   ScopeFilterMissingBehaviors,
   ScopeFilters,
+  ScopeOperations,
   Sorts,
 } from '@venizia/ignis-kernel';
 import type { TTableObject, TTableSchemaWithId } from '@/relational/core/models/common';
@@ -276,7 +277,7 @@ export abstract class FilterBuilder extends BaseHelper {
       return userFilter ?? {};
     }
 
-    const scopeWhere = scopeFilterSettings.resolve();
+    const scopeWhere = scopeFilterSettings.resolve({ operation: ScopeOperations.READ });
 
     // Same ordering as the repository tier's `applyScopeFilter`: exact symbol identity, checked
     // before null/undefined, so a forgotten `return` (which produces `undefined`) still denies

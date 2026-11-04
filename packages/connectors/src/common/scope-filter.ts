@@ -82,7 +82,7 @@ export class ScopeFilterUtility {
       throw getError({
         message: [
           `[assertScopeFilterSupported] settings.access declared while asyncContext.enable is false | models: ${withoutAmbientContext.join(', ')}`,
-          'access.resolve() takes no arguments, so the ambient request context is its only input.',
+          'access.resolve() reads the ambient request context; the operation is its only argument.',
           'With no context store every resolve() returns undefined, onMissing denies by default, and EVERY query on these models matches zero rows - with nothing naming the flag as the cause.',
           'Set asyncContext.enable to true, or remove settings.access.',
         ].join(' | '),

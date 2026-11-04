@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test';
 import { HttpReadShapes } from '@/http/common/constants';
-import { ScopeWriteOperations } from '@/relational/core/repositories/common/constants';
 import { BigIntModes } from '@/relational/postgres/models/common/constants';
 import type { TEnricherIdSample } from './string-domain-constants.types';
 
@@ -11,7 +10,6 @@ import type { TEnricherIdSample } from './string-domain-constants.types';
 describe('string domains as const classes', () => {
   const domains = [
     { name: 'HttpReadShapes', domain: HttpReadShapes, values: ['list', 'one'] },
-    { name: 'ScopeWriteOperations', domain: ScopeWriteOperations, values: ['create', 'update'] },
     { name: 'BigIntModes', domain: BigIntModes, values: ['number', 'bigint'] },
   ];
 
