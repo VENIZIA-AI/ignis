@@ -68,9 +68,11 @@ class FakeWorker {
   listenerCount(): number {
     let total = 0;
     const listenersValues = this.listeners.values();
+
     for (const listeners of listenersValues) {
       total += listeners.size;
     }
+
     return total;
   }
 
@@ -78,6 +80,7 @@ class FakeWorker {
   respond(data: IBffResponseEnvelope | IBffErrorEnvelope): void {
     const event = { data } as MessageEvent;
     const listenersList = this.listeners.get('message') ?? [];
+
     for (const listener of listenersList) {
       listener(event);
     }
@@ -87,6 +90,7 @@ class FakeWorker {
   crash(): void {
     const event = new Event('error');
     const listenersList = this.listeners.get('error') ?? [];
+
     for (const listener of listenersList) {
       listener(event as any);
     }
@@ -99,6 +103,7 @@ class FakeWorker {
   failOneMessageDeserialisation(): void {
     const event = new Event('messageerror');
     const listenersList = this.listeners.get('messageerror') ?? [];
+
     for (const listener of listenersList) {
       listener(event as any);
     }
@@ -190,6 +195,7 @@ describe('WorkerBffTransport', () => {
     worker.crash();
 
     let caught: unknown;
+
     try {
       await fetchPromise;
     } catch (error) {
@@ -206,6 +212,7 @@ describe('WorkerBffTransport', () => {
     const fetchPromise = transport.fetch({ request: new Request('http://example.test/hello') });
 
     let caught: unknown;
+
     try {
       await fetchPromise;
     } catch (error) {
@@ -234,6 +241,7 @@ describe('WorkerBffTransport', () => {
     });
 
     let caught: unknown;
+
     try {
       await fetchPromise;
     } catch (error) {
@@ -324,6 +332,7 @@ describe('WorkerBffTransport', () => {
     // shape a malformed header tuple gives. Teardown must not run before the settle, or the throw
     // leaves the promise with no timer, no listener and no answer.
     let dispatchError: unknown;
+
     try {
       worker.respond({ id: sentEnvelope.id, status: 999, headers: [] });
     } catch (error) {
@@ -474,9 +483,11 @@ describe('WorkerBffTransport outside a secure context', () => {
     );
 
     expect(report.ids).toHaveLength(2);
+
     for (const id of report.ids) {
       expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     }
+
     expect(report.ids[0]).not.toBe(report.ids[1]);
     expect(report.draws).toBeGreaterThan(0);
   });

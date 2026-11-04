@@ -41,6 +41,7 @@ class AnsweringWorker {
 
     const dispatch = (data: unknown): void => {
       const listenersList = this.listeners.get('message') ?? [];
+
       for (const listener of listenersList) {
         listener({ data } as MessageEvent);
       }
@@ -104,6 +105,7 @@ class LockManagerStub {
 
         options.signal?.addEventListener('abort', () => {
           const index = this.queue.indexOf(grant);
+
           if (index >= 0) {
             this.queue.splice(index, 1);
           }
@@ -137,6 +139,7 @@ const installLockManager = (): LockManagerStub => {
     configurable: true,
     writable: true,
   });
+
   return locks;
 };
 
@@ -178,6 +181,7 @@ describe('SharedBffTransport', () => {
     });
 
     opened.push(transport);
+
     return transport;
   };
 
@@ -185,6 +189,7 @@ describe('SharedBffTransport', () => {
     while (opened.length > 0) {
       opened.pop()?.close();
     }
+
     removeLockManager();
     AnsweringWorker.createdCount = 0;
     AnsweringWorker.terminatedCount = 0;

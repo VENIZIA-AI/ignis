@@ -84,6 +84,7 @@ export abstract class WorkerApplication<
     if (responseEnvelope) {
       try {
         scope.postMessage(responseEnvelope, responseEnvelope.body ? [responseEnvelope.body] : []);
+
         return;
       } catch (postError) {
         logger.error(
@@ -149,6 +150,7 @@ export abstract class WorkerApplication<
         error,
       );
       this.postErrorEnvelope({ scope, id: envelope.id, error });
+
       return;
     }
 
@@ -164,6 +166,7 @@ export abstract class WorkerApplication<
           message: `[WorkerApplication] The application was stopped before this request could run | id: ${envelope.id}`,
         }),
       });
+
       return;
     }
 
@@ -188,6 +191,7 @@ export abstract class WorkerApplication<
       // would otherwise escape this listener entirely, unlogged and unposted.
       if (!envelope?.id) {
         logger.debug('Ignoring worker message with no request id | data: %j', envelope);
+
         return;
       }
 
@@ -220,6 +224,7 @@ export abstract class WorkerApplication<
       this.logger
         .for(this.listen.name)
         .warn('Already listening - ignoring this call | one scope, one listener');
+
       return this.listenPromise;
     }
 

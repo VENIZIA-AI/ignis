@@ -117,6 +117,7 @@ const typeCheckProductionGraphWith = async ({
     );
 
     const result = await run({ command: [TSC, '--noEmit', '-p', configPath] });
+
     return result;
   } finally {
     rmSync(configPath, { force: true });
@@ -130,6 +131,7 @@ const purityFindingsFrom = ({ output }: { output: string }): string[] => {
 
   const messages = results[0]?.messages ?? [];
   const fatal = messages.filter((message) => message.ruleId === null);
+
   if (fatal.length > 0) {
     throw new Error(`ESLint could not parse the probe: ${fatal[0]?.message}`);
   }
@@ -164,6 +166,7 @@ const lintRealFile = async ({
     const { output } = await run({
       command: [ESLINT, '-c', ESLINT_CONFIG, relativePath, '--format', 'json'],
     });
+
     return purityFindingsFrom({ output });
   } finally {
     rmSync(filePath, { force: true });

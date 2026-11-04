@@ -38,6 +38,7 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
   private readonly requestIdGenerator = new RequestIdGenerator({
     scope: WorkerBffTransport.name,
   });
+
   private readonly pendingRequests = new Map<string, IPendingRequest>();
 
   /** Set by `close()`, so a later `fetch()` is refused instead of reaching a worker nothing listens to. */
@@ -60,12 +61,14 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
   /** Removes a pending request from the map and releases its timer and abort listener, so nothing can settle it twice. */
   private readonly takePending = (opts: { id: string }): IPendingRequest | undefined => {
     const pending = this.pendingRequests.get(opts.id);
+
     if (!pending) {
       return undefined;
     }
 
     this.pendingRequests.delete(opts.id);
     pending.release();
+
     return pending;
   };
 
@@ -74,17 +77,20 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
     // reasons too (a dev-server ping, a library handshake), and none of those carry an `id` this
     // transport is waiting on.
     const data = event.data as IBffResponseEnvelope | IBffErrorEnvelope | undefined;
+
     if (!data?.id) {
       return;
     }
 
     const pending = this.takePending({ id: data.id });
+
     if (!pending) {
       return;
     }
 
     if (isErrorEnvelope(data)) {
       pending.reject(BffEnvelope.decodeError({ envelope: data }));
+
       return;
     }
 
@@ -179,6 +185,7 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
           this.pendingRequests.size,
           String(event),
         );
+
       return;
     }
 
@@ -229,6 +236,7 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
       const handleAbort = (): void => {
         this.takePending({ id })?.reject(this.toAbortError({ signal }));
       };
+
       signal?.addEventListener('abort', handleAbort);
 
       this.pendingRequests.set(id, {
@@ -245,6 +253,7 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
       // the caller waits out the whole timeout.
       if (signal?.aborted) {
         handleAbort();
+
         return;
       }
 
@@ -257,6 +266,7 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
             message: `[WorkerBffTransport] The transport closed while the request was being encoded | id: ${id}`,
           }),
         );
+
         return;
       }
 
@@ -282,12 +292,14 @@ export class WorkerBffTransport extends BaseHelper implements IBffTransport {
     for (const timer of this.graceTimers) {
       clearTimeout(timer);
     }
+
     this.graceTimers.clear();
     this.worker.removeEventListener('message', this.handleMessage);
     this.worker.removeEventListener('error', this.handleWorkerError);
     this.worker.removeEventListener('messageerror', this.handleMessageError);
 
     const pendingRequestsKeys = [...this.pendingRequests.keys()];
+
     for (const id of pendingRequestsKeys) {
       this.takePending({ id })?.reject(
         getError({
