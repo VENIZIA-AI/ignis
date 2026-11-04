@@ -20,7 +20,7 @@ export interface IApplicationConfigs {
     /**
      * Whether `/users` and `/users/` are different routes; `false` answers both. Under `false`,
      * declare routes without a trailing slash: a route declared as `/users/` answers neither
-     * `/users` nor `/users/`.
+     * `/users` nor `/users/`. The type requires it; omitting it at run time means `true`.
      *
      * @default true
      */

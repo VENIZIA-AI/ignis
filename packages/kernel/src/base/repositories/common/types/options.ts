@@ -79,9 +79,7 @@ export interface IReadRetryOptions<TResult> {
   backoff?: IRetryBackoffOptions;
 
   /**
-   * Retry while false.
-   *
-   * @default A per-verb check: `findOne` and `findById` retry on a null row, `find` on an empty list.
+   * Retry while false. With none given, `findOne` and `findById` retry on a null row and `find` on an empty list.
    */
   until?: (result: TResult) => boolean;
 }

@@ -133,10 +133,9 @@ export interface IModelAccessSettings {
  * class Variant extends VariantBase {}
  * ```
  *
- * A hand-written entity declares the same relation by hand:
- *
  * @example
  * ```typescript
+ * // A hand-written entity declares the same relation by hand.
  * import { ScopeThrough } from '@venizia/ignis';
  * import { BaseEntity, one, RelationDeclarations } from '@venizia/ignis-connectors/postgres';
  * import { integer, pgTable, serial } from 'drizzle-orm/pg-core';
