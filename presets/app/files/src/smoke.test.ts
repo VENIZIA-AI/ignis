@@ -12,6 +12,7 @@ const findFreePort = async () => {
   const probe = Bun.serve({ hostname: HOST, port: 0, fetch: () => new Response() });
   const port = probe.port;
   await probe.stop(true);
+
   return port;
 };
 

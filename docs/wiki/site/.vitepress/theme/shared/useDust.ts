@@ -436,7 +436,6 @@ export const useDust = (canvas: Ref<HTMLCanvasElement | null>, options: TDustOpt
     pointerX = event.clientX;
     pointerY = event.clientY;
   };
-
   const onPress = (event: PointerEvent): void => {
     if (event.pointerType === 'touch' || isCalm()) {
       return;
@@ -446,18 +445,15 @@ export const useDust = (canvas: Ref<HTMLCanvasElement | null>, options: TDustOpt
     pressX = event.clientX;
     pressY = event.clientY;
   };
-
   const onLeave = (): void => {
     pointerX = null;
     pointerY = null;
   };
-
   const onVisibility = (): void => {
     if (!document.hidden && visible) {
       run();
     }
   };
-
   const onMotion = (): void => {
     if (isCalm()) {
       cancelAnimationFrame(frame);

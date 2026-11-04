@@ -15,7 +15,6 @@ const FADE_MS = 200;
 
 export const provideThemeSwitch = (): void => {
   const { isDark } = useData();
-
   const flip = (): void => {
     isDark.value = !isDark.value;
   };
