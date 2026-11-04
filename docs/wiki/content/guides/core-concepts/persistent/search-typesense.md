@@ -503,7 +503,7 @@ const articles = await articleRepository.suggest({
 });
 ```
 
-It is a keyword search, never semantic, with highlighting off and a small page. The last word matches as a prefix, which both engines do by default. A blank `query` answers `[]` without calling the engine. `limit` must be a positive integer and stays under the model's `maxLimit`.
+It is a keyword search, never semantic, with highlighting off and a small page. The last word matches as a prefix, which both engines do by default. A blank `query` answers `[]` without calling the engine. `limit` must be a positive integer and stays under the model's `settings.query.limit.max`.
 
 ### The result envelope
 

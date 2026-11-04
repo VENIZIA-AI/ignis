@@ -65,7 +65,7 @@ const buildRepository = (entityClass: AnyType) => {
 };
 
 describe('page-size ceiling - the framework default', () => {
-  test(`a model declaring no maxLimit gets ${DEFAULT_MAX_LIMIT}`, async () => {
+  test(`a model declaring no query.limit.max gets ${DEFAULT_MAX_LIMIT}`, async () => {
     const { repository, connector } = buildRepository(DefaultCeilingDocument);
 
     await RejectionHelper.expectRejection({

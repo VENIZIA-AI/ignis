@@ -5,7 +5,7 @@ import { MessageCode } from '@venizia/ignis-helpers/core';
 export const DEFAULT_LIMIT = 10;
 
 /**
- * Largest `limit` a caller may ask for when a model declares no `maxLimit`.
+ * Largest `limit` a caller may ask for when a model declares no `query.limit.max`.
  *
  * POLICY, not capacity - it sits far below what an engine can physically serve. It exists because
  * removing an accidental guardrail without replacing it would leave the framework less safe than

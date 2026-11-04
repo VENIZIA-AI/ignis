@@ -9,7 +9,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:tes
 import { pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 
 /**
- * End-to-end proof, against a real Postgres engine (PGlite), that `@model` settings.scopeFilter
+ * End-to-end proof, against a real Postgres engine (PGlite), that `@model` settings.access
  * reaches every read AND write verb - including `restore()`, the exact site that would leak a
  * soft-deleted row across tenants if scoping were bolted onto `defaultFilter` instead of kept
  * separate from `shouldSkipDefaultFilter`.

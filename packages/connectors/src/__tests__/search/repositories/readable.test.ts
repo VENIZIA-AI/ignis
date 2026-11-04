@@ -88,7 +88,7 @@ describe('ReadableSearchRepository', () => {
       expect((caught as Error).message).toMatch(/search\(\)/);
     });
 
-    describe('defaultLimit - postgres parity: limit ?? @model settings.defaultLimit ?? DEFAULT_LIMIT', () => {
+    describe('defaultLimit - postgres parity: limit ?? @model settings.query.limit.default ?? DEFAULT_LIMIT', () => {
       test('an omitted limit falls back to DEFAULT_LIMIT when the model has no defaultLimit', async () => {
         await repository.find({ filter: { where: { status: 'active' } } });
 
@@ -97,7 +97,7 @@ describe('ReadableSearchRepository', () => {
         expect(params['per_page']).toBe(DEFAULT_LIMIT);
       });
 
-      test('an omitted limit falls back to @model settings.defaultLimit when configured', async () => {
+      test('an omitted limit falls back to @model settings.query.limit.default when configured', async () => {
         const limitedRepository = new ReadableSearchRepository(dataSource, {
           entityClass: ProductDocumentWithDefaultLimit,
         });
@@ -109,7 +109,7 @@ describe('ReadableSearchRepository', () => {
         expect(params['per_page']).toBe(5);
       });
 
-      test('an explicit filter.limit always wins over @model settings.defaultLimit', async () => {
+      test('an explicit filter.limit always wins over @model settings.query.limit.default', async () => {
         const limitedRepository = new ReadableSearchRepository(dataSource, {
           entityClass: ProductDocumentWithDefaultLimit,
         });

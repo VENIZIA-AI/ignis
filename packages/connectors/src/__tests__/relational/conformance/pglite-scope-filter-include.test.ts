@@ -20,12 +20,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:tes
 import { integer, pgTable, serial, text } from 'drizzle-orm/pg-core';
 
 /**
- * `@model` settings.scopeFilter reaches every repository verb (see `pglite-scope-filter.test.ts`)
+ * `@model` settings.access reaches every repository verb (see `pglite-scope-filter.test.ts`)
  * but NEVER reached a relation loaded through `include` - `toInclude()` only ever read
  * `defaultFilter`. A tenant-scoped parent with `include: [...]` handed back every OTHER tenant's
  * child rows. This file proves the leak was real (the `openProducts` sibling relation below has no
  * `scopeFilter` and is the permanent positive control) and that `toInclude()` now closes it by
- * resolving each relation's OWN `scopeFilter` from its OWN `@model` settings.
+ * resolving each relation's OWN `access` from its OWN `@model` settings.
  */
 const MERCHANT_TABLE = 'scope_include_merchant';
 const PRODUCT_TABLE = 'scope_include_product';
@@ -194,7 +194,7 @@ class ScopeIncludeProductEntity extends BasePostgresEntity {
   static override relations = (): TRelationConfig[] => productRelationsConfig;
 }
 
-/** No `settings.scopeFilter` at all - the control group for "a child with no scopeFilter is unaffected". */
+/** No `settings.access` at all - the control group for "a child with no access is unaffected". */
 @model({ type: 'entity' })
 class ScopeIncludeProductOpenEntity extends BasePostgresEntity {
   static override TABLE_NAME = PRODUCT_OPEN_TABLE;

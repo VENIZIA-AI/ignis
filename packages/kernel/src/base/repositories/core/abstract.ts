@@ -159,8 +159,8 @@ export abstract class AbstractRepository<
   /**
    * Both bounds, in one place, for every tier.
    *
-   * The upper bound is the point: `@model({ settings: { maxLimit } })` is public and validated at
-   * decoration time, but the relational tier read it nowhere, so `maxLimit: 2` still issued
+   * The upper bound is the point: `@model({ settings: { query: { limit: { max } } } })` is public and validated at
+   * decoration time, but the relational tier read it nowhere, so `limit.max: 2` still issued
    * `LIMIT 50000000`.
    *
    * The lower bound matters just as much and is easy to miss: a NEGATIVE limit is not a smaller
@@ -182,7 +182,7 @@ export abstract class AbstractRepository<
       });
     }
 
-    // `maxLimit` reaches `modelSettings`, which resolves the entity - and THAT throws for a
+    // `limit.max` reaches `modelSettings`, which resolves the entity - and THAT throws for a
     // repository with no `@repository` model binding. Such a repository is a misconfiguration this
     // method has no business reporting, and the caller path that used to reach `getDefaultLimit()`
     // never touched it either, because `??` short-circuits when a limit is given. So the ceiling is
@@ -194,7 +194,7 @@ export abstract class AbstractRepository<
 
     if (limit > ceiling) {
       throw getError({
-        message: `[${this.constructor.name}][${scope}] Requested page exceeds this model's limit | requested: ${limit} | maximum: ${ceiling} | raise it with @model settings.maxLimit if larger pages are genuinely needed`,
+        message: `[${this.constructor.name}][${scope}] Requested page exceeds this model's limit | requested: ${limit} | maximum: ${ceiling} | raise it with @model settings.query.limit.max if larger pages are genuinely needed`,
       });
     }
   }
@@ -206,7 +206,7 @@ export abstract class AbstractRepository<
    *
    * A relation's limit gets the SHAPE check only, not a ceiling. The ceiling belongs to the
    * relation's own model, which this repository cannot resolve - claiming otherwise would enforce
-   * the parent's `maxLimit` on a different entity.
+   * the parent's `limit.max` on a different entity.
    */
   protected assertFilterLimits(opts: { filter?: TFilter; scope?: string }): void {
     const { filter, scope = 'find' } = opts;

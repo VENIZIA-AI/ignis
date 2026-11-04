@@ -154,7 +154,7 @@ export class PersistableSearchRepository<
 
     if (filterBy === undefined) {
       throw getError({
-        message: `[${this.constructor.name}][updateAll] DENY to perform | Collection: ${this.collectionName} | No effective where condition (no where and no @model defaultFilter) - refusing an unfiltered bulk update`,
+        message: `[${this.constructor.name}][updateAll] DENY to perform | Collection: ${this.collectionName} | No effective where condition (no where and no @model settings.query.filter) - refusing an unfiltered bulk update`,
       });
     }
 
@@ -206,13 +206,13 @@ export class PersistableSearchRepository<
       return { count: 0, data: null };
     }
 
-    // Typesense's delete has no RETURNING equivalent - `data` is populated only when the defaultFilter guard above already read the document; no extra read is done for shouldReturn.
+    // Typesense's delete has no RETURNING equivalent - `data` is populated only when the query.filter guard above already read the document; no extra read is done for shouldReturn.
     const data = options?.shouldReturn === false ? null : ((found as R) ?? null);
 
     return { count: 1, data };
   }
 
-  /** Count-only like updateAll: filter-delete when there is an effective where, truncating the whole collection only when neither where nor defaultFilter is present - truncate reports no per-document count, so that path returns { count: 0, data: null }. */
+  /** Count-only like updateAll: filter-delete when there is an effective where, truncating the whole collection only when neither where nor settings.query.filter is present - truncate reports no per-document count, so that path returns { count: 0, data: null }. */
   override async deleteAll(opts?: {
     where?: TWhere;
     options?: Omit<IExtraOptions, 'shouldReturn'> & { force?: boolean };
@@ -238,7 +238,7 @@ export class PersistableSearchRepository<
       // `where: {}` compiles to NO filter; wiping a collection must be asked for explicitly, exactly as Postgres demands `force` for an empty-where delete.
       if (!options?.force) {
         throw getError({
-          message: `[${this.constructor.name}][deleteAll] DENY to perform | Collection: ${this.collectionName} | No effective where condition (no where and no @model defaultFilter) - pass options.force to truncate the collection`,
+          message: `[${this.constructor.name}][deleteAll] DENY to perform | Collection: ${this.collectionName} | No effective where condition (no where and no @model settings.query.filter) - pass options.force to truncate the collection`,
         });
       }
 

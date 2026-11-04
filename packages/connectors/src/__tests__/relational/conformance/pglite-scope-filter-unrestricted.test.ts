@@ -25,7 +25,7 @@ const scopeTable = pgTable(TABLE_NAME, {
   deletedAt: timestamp('deleted_at'),
 });
 
-/** No `settings.scopeFilter` at all - the control proving `ScopeFilters.UNRESTRICTED` left this path untouched. */
+/** No `settings.access` at all - the control proving `ScopeFilters.UNRESTRICTED` left this path untouched. */
 const controlTable = pgTable(CONTROL_TABLE_NAME, {
   id: serial('id').primaryKey(),
   tenant: text('tenant').notNull(),

@@ -54,7 +54,7 @@ describe('query schema hardening', () => {
 
   /**
    * `shouldSkipDefaultFilter` stays on the internal `TInclusion` type and on repository options, so
-   * server-side callers keep it. On the wire it would erase the `@model` defaultFilter that
+   * server-side callers keep it. On the wire it would erase the `@model` `settings.query.filter` that
    * implements soft-delete and the static visibility scopes.
    */
   test('include[].shouldSkipDefaultFilter is not accepted from a client', () => {
