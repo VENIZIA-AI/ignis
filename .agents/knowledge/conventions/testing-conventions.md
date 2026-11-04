@@ -62,7 +62,7 @@ bun types `expect(task).rejects` / `.resolves` as `void`, so type-aware lint (`a
 refuses `await expect(task).rejects.toThrow()`, and casting it (`as AnyType`) breaks V-C-10. Await the
 task instead: `expect(await task).toMatchObject(...)` for a resolution, and for a rejection
 `await RejectionHelper.expectRejection({ task, message })` or `expect(await RejectionHelper.rejectionOf({ task })).toBeInstanceOf(Error)`
-from `@venizia/dev-configs/testing` - one copy for IGNIS, ARDOR and BANA (issue #187; the per-package
+from `@venizia/dev-configs/testing` - one copy for IGNIS, ARDOR and the projects that use them (issue #187; the per-package
 copies are gone). It imports `bun:test`, so clean-install loads it under Bun only. The same entry exports `SpawnHelper.spawnSyncBounded` (a `Bun.spawnSync` with a kill-on-timeout bound, 120 s by default: a sync spawn blocks the worker thread, so bun's own test timeout cannot fire) and `RepoTmp.apply`; `@venizia/dev-configs/testing/tmpdir-preload` is the `[test] preload` that points TMPDIR at `<repo>/.agents/local/tmp/tests` for a bare `bun test` (VULCAN uses it). A consumer passes it as `--preload @venizia/dev-configs/testing/tmpdir-preload` in a package's `test` script (the `ignis` presets do); a root `bunfig.toml` preload covers a run from the root only, because bun reads only the file of the folder it runs in. Packages here import `SpawnHelper` from it; the five `spawn.helper.ts` copies are gone. `RejectionHelper.rejectionOf` throws when the task resolves. `RejectionHelper.expectRejection` compares the
 message as a string on purpose: bun 1.4.2 `toMatchObject` with an asymmetric matcher
 (`expect.stringMatching`) overwrites the matched property on the object it checks, so a later
