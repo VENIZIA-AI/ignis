@@ -574,7 +574,7 @@ S3 caps one call at 1000 keys, so the helper loops on `nextContinuationToken` un
 |---|---|---|---|
 | `bucket` | `IBucketRef` | - | The bucket to list. |
 | `prefix` | `string` | `undefined` | Passed straight to S3. |
-| `useRecursive` | `boolean` | `true` | `false` sends `delimiter: '/'`, so only the top level comes back. |
+| `useRecursive` | `boolean` | `false` | `false` sends `delimiter: '/'`, so only the top level comes back. `true` lists the whole tree under `prefix`. |
 | `maxKeys` | `number` | `undefined` | Total cap across pages. `0` means zero, not unlimited. |
 
 ### AWS Signature V4 (S3SignatureUtility.buildSignedRequest)
@@ -1033,7 +1033,7 @@ interface IListObjectsOptions {
 }
 ```
 
-`useRecursive` defaults to `true` on `BunS3Helper` and `false` on `DiskHelper`. Pass it explicitly when the answer matters.
+`useRecursive` defaults to `false` on both `BunS3Helper` and `DiskHelper`: only the top level comes back. Pass `useRecursive: true` to list the whole tree.
 
 ### IDiskHelperOptions
 
@@ -1068,7 +1068,7 @@ interface IBunS3HelperOptions extends IStorageHelperOptions {
 | `getStat().versionId` | No | No |
 | Upload metadata persisted | Content type only | None (mimetype detected at read time) |
 | `removeObjects` concurrency | Bounded fan-out, limit `16` | Bounded fan-out, limit `16` |
-| `listObjects.useRecursive` default | `true`; `false` sends `delimiter: '/'` | `false` |
+| `listObjects.useRecursive` default | `false`, which sends `delimiter: '/'` | `false` |
 | `listObjects` pagination | Loops on `nextContinuationToken` | Full directory scan |
 | Missing object | Catalogued `core.storage.object_not_found` via `asStorageError` on `getStat` and `removeObject`. `getObject` is lazy, so its failure arrives on the stream | Catalogued `core.storage.object_not_found`, thrown directly by every read and by `removeObject` |
 | `writeStream` | Native streaming write to S3 | Inherits the buffering default |
