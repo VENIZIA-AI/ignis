@@ -408,7 +408,110 @@ Declaring `columns` moves a failure from write time to boot. The application ref
 - **An update that does not name the scope column.** `updateById(id, { name: 'Lamp' })` is not checked. The row was already selected through the scoped `where`, so it stays inside the scope.
 - **Raw drizzle.** A statement you run through the connector, bypassing the repository, is not scoped and not checked.
 - **Search-backed models.** They never read `access`.
-- **Ownership that lives elsewhere.** A row owned through another table, or by a `principalType` plus `principalId` pair, cannot be written as a `where`. Check it in your service before you write.
+- **Ownership that lives elsewhere.** A row owned through another table, or by a `principalType` plus `principalId` pair, cannot be written as a `where`. See [Ownership through a parent](#ownership-through-a-parent).
+
+### Ownership through a parent
+
+A product variant has a `productId` and no merchant. The merchant lives on the `Product`. `access.resolve` returns a plain `where` over the model's own columns, with no relation path and no subquery, so it cannot say "the variants of my products". An `include` does not help either: an included model applies its own `access`, never its parent's.
+
+Two patterns cover it.
+
+#### Copy the tenant column onto the child
+
+Give `Variant` its own `merchantId` and fill it from the product when you create the variant. `access` then works on `Variant` as it does on `Product`, including the write guard.
+
+```typescript
+// src/models/variant.table.ts
+import { PostgresIdEnricher } from '@venizia/ignis-connectors/postgres';
+import { pgTable, text } from 'drizzle-orm/pg-core';
+
+export const variantTable = pgTable('Variant', {
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  productId: text('product_id').notNull(),
+  merchantId: text('merchant_id').notNull(),
+  name: text('name').notNull(),
+});
+```
+
+```typescript
+// src/models/variant.model.ts
+import { model } from '@venizia/ignis';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
+import { currentMerchantId } from '@/utilities/merchant';
+import { variantTable } from './variant.table';
+
+@model({
+  settings: {
+    access: {
+      resolve: () => {
+        const merchantId = currentMerchantId();
+        return merchantId ? { merchantId } : null;
+      },
+    },
+  },
+})
+export class Variant extends ModelFactory.defineEntity({ table: variantTable }) {}
+```
+
+The service reads the product through the scoped `ProductRepository`, so a product outside the caller's scope comes back as `null`. It copies the merchant from that row:
+
+```typescript
+// src/services/variant.service.ts
+import { BaseService, inject, service } from '@venizia/ignis';
+import { getError, HTTP } from '@venizia/ignis-helpers';
+import { ProductRepository, VariantRepository } from '../repositories';
+
+@service()
+export class VariantService extends BaseService {
+  constructor(
+    @inject({ key: 'repositories.ProductRepository' })
+    private productRepository: ProductRepository,
+
+    @inject({ key: 'repositories.VariantRepository' })
+    private variantRepository: VariantRepository,
+  ) {
+    super({ scope: VariantService.name });
+  }
+
+  async createVariant(opts: { productId: string; name: string }) {
+    const product = await this.productRepository.findById({ id: opts.productId });
+    if (!product) {
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'Product not found' });
+    }
+
+    return this.variantRepository.create({
+      data: { productId: product.id, merchantId: product.merchantId, name: opts.name },
+    });
+  }
+}
+```
+
+The write guard still holds the variant to the caller's scope, so a copy that disagrees with the caller is refused.
+
+The cost: the copy must stay in step with the product. If a product can move to another merchant, update its variants in the same transaction.
+
+#### Check through the parent's scoped repository
+
+Some ownership `resolve` cannot express at all: a `principalType` plus `principalId` pair, or a parent chain with no column to copy. Before you read or write the child, ask the owner's scoped repository. It returns `null` for a row outside the caller's scope, and you refuse on `null`.
+
+```typescript
+// src/services/variant.service.ts (inside VariantService)
+async updateVariantName(opts: { id: string; name: string }) {
+  const variant = await this.variantRepository.findById({ id: opts.id });
+  if (!variant) {
+    throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'Variant not found' });
+  }
+
+  const owner = await this.productRepository.findById({ id: variant.productId });
+  if (!owner) {
+    throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'Variant not found' });
+  }
+
+  return this.variantRepository.updateById({ id: opts.id, data: { name: opts.name } });
+}
+```
+
+This is a check in your code, not a scope: nothing stops another code path from reading `Variant` directly, so route every read and write of the child through the service. Prefer the first pattern when a column can be copied, because the scope then holds for every caller.
 
 ### The errors you will see
 
