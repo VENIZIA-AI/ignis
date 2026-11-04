@@ -12,7 +12,11 @@ import type { Env, Schema } from 'hono';
 export interface IServerApplicationConfigs extends IKernelApplicationConfigs {
   host?: string;
   port?: number;
-  /** Bound as `CoreBindings.APPLICATION_PROJECT_ROOT` at construction and handed to `ModuleUtility`; default `process.cwd()`. Must be the directory holding `node_modules` at run time - never `__dirname` inside a compiled binary. */
+  /**
+   * Bound as `CoreBindings.APPLICATION_PROJECT_ROOT` at construction and handed to `ModuleUtility`. Must be the directory holding `node_modules` at run time - never `__dirname` inside a compiled binary.
+   *
+   * @default process.cwd()
+   */
   projectRoot?: string;
   /** Bun-only socket options passed straight to `Bun.serve`. Unset keys keep Bun's own defaults. */
   server?: IServerRuntimeConfigs;
@@ -33,13 +37,25 @@ export interface IServerRuntimeConfigs {
  */
 /** Options of `ServerApplication.installShutdownSignals`. */
 export interface IShutdownSignalsOptions {
-  /** The signals that stop the application. Default `['SIGTERM', 'SIGINT']`. */
+  /**
+   * The signals that stop the application.
+   *
+   * @default ['SIGTERM', 'SIGINT']
+   */
   signals?: NodeJS.Signals[];
 
-  /** How long a shutdown may take before the process is force-exited with code 1. Default `15_000`. */
+  /**
+   * How long a shutdown may take before the process is force-exited with code 1, in milliseconds.
+   *
+   * @default 15_000
+   */
   timeoutMs?: number;
 
-  /** What ends the process: `process.exit` by default. A seam for tests and for hosts that exit differently. */
+  /**
+   * What ends the process. A seam for tests and for hosts that exit differently.
+   *
+   * @default (code) => process.exit(code)
+   */
   exit?: (code: number) => void;
 }
 

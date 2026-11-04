@@ -12,8 +12,13 @@ export interface IMailAttachment {
   [key: string]: any;
 }
 
-/** A mail to send. `to` needs at least one recipient, `subject` is required, and at least one of `text` or `html` must be set; `from` falls back to the options' `from` (with `fromName`), then `MailDefaults.FALLBACK_FROM`. */
+/** A mail to send. `to` needs at least one recipient, `subject` is required, and at least one of `text` or `html` must be set; `from` falls back to the options' `from` (with `fromName`). */
 export interface IMailMessage {
+  /**
+   * Sender of this message.
+   *
+   * @default the mail options' `from` with `fromName`, else `MailDefaults.FALLBACK_FROM`
+   */
   from?: string;
   to: string | string[];
   cc?: string | string[];

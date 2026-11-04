@@ -21,40 +21,56 @@ export interface IAssertApplicationBootsOptions {
   /**
    * Datasources whose real `configure()` runs. Every other datasource is bound and resolved but not
    * configured, so no connection is made. Close a kept one with `await application.stop()`.
+   *
+   * @default []
    */
   keepDataSources?: TBootProbeTarget[];
 
   /**
    * Components whose `configure()` (and so their `binding()`) is skipped, for the few that need
-   * infrastructure. Components run by default. What a skipped component would have registered is
-   * not registered.
+   * infrastructure. What a skipped component would have registered is not registered.
+   *
+   * @default []
    */
   skipComponents?: TBootProbeTarget[];
 
   /**
-   * Boot steps that do not run. Default: `hydrateSecrets` and `wireSecretRotatables`, so a remote
-   * secrets provider is never contacted. A value REPLACES the default; an unknown name rejects
-   * before anything boots.
+   * Boot steps that do not run, so a remote secrets provider is never contacted. A value REPLACES
+   * the default; an unknown name rejects before anything boots.
+   *
+   * @default [ServerBootSteps.HYDRATE_SECRETS, ServerBootSteps.WIRE_SECRET_ROTATABLES]
    */
   skipSteps?: TServerBootStep[];
 
   /**
-   * Default `true`: after boot, resolves every service and repository with the shared core of
+   * After boot, resolves every service and repository with the shared core of
    * `@venizia/ignis-inversion`, so an injection nobody references at boot still fails. An explicit value
    * wins over the application's own `bootChecks`, whose boot step is off for the run.
+   *
+   * @default true
    */
   verifyBindings?: boolean;
 
   /**
    * Services or repositories the verification leaves unresolved, for one whose constructor needs
    * infrastructure. A class (exact), a class name or a binding key. A name that matches nothing rejects.
+   *
+   * @default []
    */
   skipBindings?: TBootProbeTarget[];
 
-  /** Default `false`: an application that registered no controller proves nothing, for example when the artifact index was empty. */
+  /**
+   * Whether an application that registered no controller passes. Off, it fails: it proves nothing, for example when the artifact index was empty.
+   *
+   * @default false
+   */
   allowNoControllers?: boolean;
 
-  /** Default `true`: this helper's own check that no method and path is mounted twice. IGNIS boot does not detect that. */
+  /**
+   * This helper's own check that no method and path is mounted twice. IGNIS boot does not detect that.
+   *
+   * @default true
+   */
   routes?: boolean;
 }
 
@@ -222,6 +238,20 @@ const assertNoDuplicateRoutes = (opts: { application: BaseApplication }): void =
  *
  * It wraps `registerDynamicBindings` and `getBootSequence` on THIS instance only (an application's
  * own override of either still runs) and restores them whatever happens.
+ *
+ * @example
+ * ```typescript
+ * import { ApplicationBootAssertion } from '@venizia/ignis/testing';
+ * import { test } from 'bun:test';
+ * import { Application } from './application';
+ *
+ * test('the application boots offline', async () => {
+ *   await ApplicationBootAssertion.assert({
+ *     application: () => new Application({ scope: 'Application', config: { host: '127.0.0.1', port: 0, path: { base: '/', isStrict: true } } }),
+ *     options: { skipComponents: ['MailComponent'], allowNoControllers: true },
+ *   });
+ * });
+ * ```
  */
 export class ApplicationBootAssertion {
   static async assert<Application extends BaseApplication>(opts: {

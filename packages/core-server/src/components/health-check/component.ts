@@ -14,7 +14,21 @@ const DEFAULT_OPTIONS: IHealthCheckOptions = {
   restOptions: { path: DEFAULT_REST_PATH },
 };
 
-/** Mounts the health check controller (liveness root, `/ping`, and the gated `/stats`). The base path defaults to `/health`. */
+/**
+ * Mounts the health check controller (liveness root, `/ping`, and the gated `/stats`).
+ *
+ * @example
+ * ```typescript
+ * import { BaseApplication, HealthCheckComponent, type IHealthCheckOptions } from '@venizia/ignis';
+ *
+ * abstract class App extends BaseApplication {
+ *   preConfigure(): void {
+ *     const options: IHealthCheckOptions = { restOptions: { path: '/status' } };
+ *     this.component(HealthCheckComponent, { options });
+ *   }
+ * }
+ * ```
+ */
 export class HealthCheckComponent extends BaseComponent<IHealthCheckOptions> {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
