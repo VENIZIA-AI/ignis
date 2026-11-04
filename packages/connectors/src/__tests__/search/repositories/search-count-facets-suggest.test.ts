@@ -10,6 +10,7 @@ import {
 
 const wireOf = (dataSource: FakeSearchDataSource): Record<string, unknown> => {
   const [call] = dataSource.fakeConnector.searchCalls;
+
   return call.params as Record<string, unknown>;
 };
 
@@ -20,6 +21,7 @@ const failureOf = async (run: () => Promise<unknown>): Promise<string> => {
   } catch (error) {
     return error instanceof Error ? error.message : String(error);
   }
+
   return '';
 };
 
@@ -156,6 +158,7 @@ describe('ReadableSearchRepository - searchCount, facets and suggest', () => {
         );
         expect(result4).toMatch(/maxFacetValues/);
       }
+
       expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
     });
 
@@ -237,6 +240,7 @@ describe('ReadableSearchRepository - searchCount, facets and suggest', () => {
         const result7 = await failureOf(() => repository.suggest({ query: 'sho', limit }));
         expect(result7).toMatch(/limit/);
       }
+
       expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
     });
   });
@@ -284,6 +288,7 @@ describe('ReadableSearchRepository - searchCount, facets and suggest', () => {
         );
         expect(result14).toMatch(new RegExp(param));
       }
+
       expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
     });
 
@@ -363,6 +368,7 @@ describe('ReadableSearchRepository - searchCount, facets and suggest', () => {
         const message = await failureOf(run);
         expect(message).toMatch(/numTypos/);
       }
+
       expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
     });
 
@@ -411,6 +417,7 @@ describe('ReadableSearchRepository - searchCount, facets and suggest', () => {
           const message = await failureOf(run);
           expect(message).toMatch(/at most 3 fields/);
         }
+
         expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
       });
     });

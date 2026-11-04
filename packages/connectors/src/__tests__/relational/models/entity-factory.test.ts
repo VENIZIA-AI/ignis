@@ -79,6 +79,7 @@ class EntityPolicy extends ModelFactory.defineEntity({
   table: PolicyTable,
   relations: () => {
     policyRelationCalls += 1;
+
     return {
       features: many(PolicyFeatureTable, { relationName: 'policy' }),
       // The inverse side of a one-to-one: the foreign key lives on the detail table.
@@ -595,6 +596,7 @@ describe('one() reads its columns off the table', () => {
       ...stringId(),
       targetId: text('target_id').references((): AnyPgColumn => {
         lookups += 1;
+
         return TargetTable.id;
       }),
     });

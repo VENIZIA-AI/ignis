@@ -23,34 +23,42 @@ const EXECUTOR_VERBS: Record<TExecutorVerb, true> = {
 /** Records calls instead of touching a database - the port must be satisfiable with no engine. */
 const createFakeExecutor = (): IRelationalQueryExecutor<unknown> & { calls: string[] } => {
   const calls: string[] = [];
+
   return {
     calls,
     select: async () => {
       calls.push('select');
+
       return [];
     },
     count: async () => {
       calls.push('count');
+
       return 0;
     },
     findMany: async () => {
       calls.push('findMany');
+
       return [];
     },
     findFirst: async () => {
       calls.push('findFirst');
+
       return null;
     },
     insert: async () => {
       calls.push('insert');
+
       return { count: 1, rows: [] };
     },
     update: async () => {
       calls.push('update');
+
       return { count: 1, rows: [] };
     },
     remove: async () => {
       calls.push('remove');
+
       return { count: 1, rows: [] };
     },
   };

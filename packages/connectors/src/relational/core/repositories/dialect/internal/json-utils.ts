@@ -12,6 +12,7 @@ export class JsonPathUtility {
   static parseJsonPath(opts: { key: string }): { columnName: string; path: string[] } {
     const parts = opts.key.split(/[.[\]]+/).filter(Boolean);
     const [columnName = opts.key, ...path] = parts;
+
     return { columnName, path };
   }
 
@@ -45,6 +46,7 @@ export class JsonPathUtility {
     const { column, columnName, tableName, methodName } = opts;
 
     const dataType = column.dataType.toLowerCase();
+
     if (dataType !== 'json' && dataType !== 'jsonb') {
       throw getError({
         message: `[${methodName}] Table: ${tableName} | Column '${columnName}' is not a JSON column | dataType: '${column.dataType}'`,

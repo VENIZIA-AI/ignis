@@ -93,6 +93,7 @@ export class PostgresPrincipalEnricher {
   }) {
     const { baseSchema, opts: enricherOpts } = opts;
     const defs = PostgresPrincipalEnricher.generateColumnDefs(enricherOpts);
+
     return { ...baseSchema, ...defs };
   }
 }

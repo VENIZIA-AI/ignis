@@ -62,6 +62,7 @@ describe('TypesenseConnector documents', () => {
   test('importDocuments rejects an invalid action', async () => {
     const { helper } = makeHelper();
     let caught: unknown;
+
     try {
       await helper.importDocuments({
         collection: 'products',
@@ -72,6 +73,7 @@ describe('TypesenseConnector documents', () => {
     } catch (e) {
       caught = e;
     }
+
     expect(caught).toBeInstanceOf(ApplicationError);
     expect((caught as ApplicationError).message).toContain('Invalid action');
   });
@@ -141,6 +143,7 @@ describe('TypesenseConnector documents', () => {
   test('importDocuments rejects an invalid dirtyValues', async () => {
     const { helper } = makeHelper();
     let caught: unknown;
+
     try {
       await helper.importDocuments({
         collection: 'products',
@@ -152,6 +155,7 @@ describe('TypesenseConnector documents', () => {
     } catch (e) {
       caught = e;
     }
+
     expect(caught).toBeInstanceOf(ApplicationError);
     expect((caught as ApplicationError).message).toContain('Invalid dirtyValues');
   });
@@ -179,11 +183,13 @@ describe('TypesenseConnector documents', () => {
   test('getDocument throws a sanitized 404 (not 503) when the document is missing', async () => {
     const { helper } = makeHelper({ throwOn: { 'documents.retrieve': { httpStatus: 404 } } });
     let caught: unknown;
+
     try {
       await helper.getDocument({ collection: 'products', id: 'missing' });
     } catch (e) {
       caught = e;
     }
+
     expect(caught).toBeInstanceOf(ApplicationError);
     expect((caught as ApplicationError).statusCode).toBe(404);
     expect((caught as ApplicationError).normalized.code).toBe('core.search_engine.not_found');
@@ -192,11 +198,13 @@ describe('TypesenseConnector documents', () => {
   test('updateDocument throws a sanitized 404 (not 503) when the document is missing', async () => {
     const { helper } = makeHelper({ throwOn: { 'documents.update': { httpStatus: 404 } } });
     let caught: unknown;
+
     try {
       await helper.updateDocument({ collection: 'products', id: 'missing', document: { t: 1 } });
     } catch (e) {
       caught = e;
     }
+
     expect(caught).toBeInstanceOf(ApplicationError);
     expect((caught as ApplicationError).statusCode).toBe(404);
   });
@@ -205,6 +213,7 @@ describe('TypesenseConnector documents', () => {
     const docs = Array.from({ length: 3 }, (_, i) => ({ id: String(i) }));
     const { helper } = makeHelper({ importBatchErrors: { 1: new Error('network blip') } });
     let caught: unknown;
+
     try {
       await helper.importDocuments({
         collection: 'products',
@@ -215,6 +224,7 @@ describe('TypesenseConnector documents', () => {
     } catch (e) {
       caught = e;
     }
+
     expect(caught).toBeInstanceOf(ApplicationError);
     const appError = caught as ApplicationError;
     expect(appError.statusCode).toBe(503);
@@ -238,6 +248,7 @@ describe('TypesenseConnector documents', () => {
     const { helper } = makeHelper({ importBatchErrors: { 0: appError } });
 
     let caught: unknown;
+
     try {
       await helper.importDocuments({
         collection: 'products',

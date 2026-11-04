@@ -195,6 +195,7 @@ describe('MeilisearchQueryDialect.applySearchInput - keyword highlight', () => {
       query,
       input: { mode: SearchModes.KEYWORD, query: 'sho', ...input },
     });
+
     return dialect.toWireParams({ query });
   };
 

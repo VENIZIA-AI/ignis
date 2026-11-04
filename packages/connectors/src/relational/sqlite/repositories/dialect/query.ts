@@ -75,12 +75,14 @@ export class SqliteQueryOperators extends QueryOperators {
       if (!Array.isArray(opts.value)) {
         return eq(opts.column, opts.value);
       }
+
       return opts.value.length === 0 ? sql`false` : inArray(opts.column, opts.value);
     },
     [this.INQ]: (opts: IQueryHandlerOptions) => {
       if (!Array.isArray(opts.value)) {
         return eq(opts.column, opts.value);
       }
+
       return opts.value.length === 0 ? sql`false` : inArray(opts.column, opts.value);
     },
     [this.IN_SQL]: (opts: IQueryHandlerOptions) =>
@@ -95,6 +97,7 @@ export class SqliteQueryOperators extends QueryOperators {
       if (!Array.isArray(opts.value)) {
         return ne(opts.column, opts.value);
       }
+
       return opts.value.length === 0 ? sql`true` : notInArray(opts.column, opts.value);
     },
     [this.BETWEEN]: (opts: IQueryHandlerOptions) => {
@@ -103,6 +106,7 @@ export class SqliteQueryOperators extends QueryOperators {
           message: `[SqliteQueryOperators][BETWEEN] Invalid value: expected array of 2 elements, got ${JSON.stringify(opts.value)}`,
         });
       }
+
       return between(opts.column, opts.value[0], opts.value[1]);
     },
     [this.NOT_BETWEEN]: (opts: IQueryHandlerOptions) => {
@@ -111,6 +115,7 @@ export class SqliteQueryOperators extends QueryOperators {
           message: `[SqliteQueryOperators][NOT_BETWEEN] Invalid value: expected array of 2 elements, got ${JSON.stringify(opts.value)}`,
         });
       }
+
       return not(between(opts.column, opts.value[0], opts.value[1]));
     },
 

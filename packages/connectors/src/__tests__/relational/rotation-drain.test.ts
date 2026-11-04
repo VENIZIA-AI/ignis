@@ -145,6 +145,7 @@ describe('Relational onSecretRotated - draining a client that has no end()', () 
     dataSource.getConnector();
 
     const rounds = [1, 2, 3];
+
     for (const round of rounds) {
       await dataSource.onSecretRotated({
         key: 'datasources.sqlite',
@@ -165,6 +166,7 @@ describe('Relational onSecretRotated - draining a client that has no end()', () 
     dataSource.failNextConfigure = true;
 
     let failure: unknown;
+
     try {
       await dataSource.onSecretRotated({
         key: 'datasources.sqlite',
@@ -186,6 +188,7 @@ describe('Relational onSecretRotated - draining a client that has no end()', () 
     const oldClient = dataSource.builds[0];
 
     let failure: unknown;
+
     try {
       await dataSource.onSecretRotated({
         key: 'datasources.sqlite',

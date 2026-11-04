@@ -73,6 +73,7 @@ const applyUpdate = async (opts: { document: string; data: Record<string, unknow
   });
 
   const result = await client.execute(`SELECT meta_data FROM ${TABLE_NAME} WHERE id = 99`);
+
   return String(result.rows[0].meta_data);
 };
 
@@ -188,6 +189,7 @@ describe('SQLite refuses a blob-mode json column instead of compiling it', () =>
     const hex = Buffer.from('[1,23]', 'utf8').toString('hex');
 
     let message = '';
+
     try {
       await client.execute(`SELECT json_extract(x'${hex}', '$[0]') AS v`);
     } catch (error) {

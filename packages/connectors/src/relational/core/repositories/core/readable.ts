@@ -254,6 +254,7 @@ export class ReadableRelationalRepository<
         isFindOne: true,
         options: opts?.options,
       });
+
       return results[0] ?? null;
     }
 
@@ -319,6 +320,7 @@ export class ReadableRelationalRepository<
     options?: ExtraOptions;
   }): Promise<boolean> {
     const rs = await this.count(opts);
+
     return rs.count > 0;
   }
 

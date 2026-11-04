@@ -232,6 +232,7 @@ describe('a write response has the same shape as a read', () => {
     const result = await repository.createAll({ data: [{ title: 'A' }, { title: 'B' }] });
 
     expect(result.data).toHaveLength(2);
+
     for (const document of result.data) {
       expect(document).toMatchObject({ note: null, rating: null });
     }

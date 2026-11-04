@@ -176,11 +176,13 @@ export abstract class BaseSearchConnector extends BaseHelper implements ISearchC
 
   async ping(): Promise<boolean> {
     const health = await this.getHealth();
+
     return health.ok;
   }
 
   protected assertNonEmpty(opts: { value?: string | null; name: string; method: string }): void {
     const { value, name, method } = opts;
+
     if (!value || value.trim().length === 0) {
       throw getError({ message: `[${method}] Missing or empty value | name: ${name}` });
     }
@@ -196,10 +198,12 @@ export abstract class BaseSearchConnector extends BaseHelper implements ISearchC
 
     try {
       const rs = await run();
+
       return rs;
     } catch (error) {
       if (tolerate?.when(error)) {
         const rs = await tolerate.handle(error);
+
         return rs;
       }
 
@@ -244,6 +248,7 @@ export abstract class BaseSearchConnector extends BaseHelper implements ISearchC
       when: (error) => this.isNotFoundError({ error }),
       handle: () => {
         this.logger.for(method).debug(message, ...(args ?? []));
+
         return fallback;
       },
     };

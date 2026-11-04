@@ -40,6 +40,7 @@ const responseWith = (opts: {
 
 const entriesOf = (fake: { calls: Array<{ op: string; args: unknown[] }> }) => {
   const call = fake.calls.find((entry) => entry.op === 'multiSearch.perform');
+
   return ((call?.args[0] as { searches?: Record<string, unknown>[] })?.searches ?? []) as Record<
     string,
     unknown
@@ -100,6 +101,7 @@ describe('search() - window splitting', () => {
     await helper.search({ collection: 'products', params: { q: '*', ['per_page']: 300, page: 2 } });
 
     const fakeEntries = entriesOf(fake);
+
     for (const entry of fakeEntries) {
       expect(entry['per_page']).toBeUndefined();
       expect(entry['page']).toBeUndefined();

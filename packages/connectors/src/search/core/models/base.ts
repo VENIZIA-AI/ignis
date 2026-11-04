@@ -54,12 +54,14 @@ export class BaseSearchEntity<
     }
 
     let byType = BaseSearchEntity._schemaCache.get(ctor);
+
     if (!byType) {
       byType = new Map<TSchemaType, z.ZodType>();
       BaseSearchEntity._schemaCache.set(ctor, byType);
     }
 
     const cached = byType.get(opts.type);
+
     if (cached) {
       return cached as T;
     }
@@ -69,6 +71,7 @@ export class BaseSearchEntity<
       type: opts.type,
     });
     byType.set(opts.type, derived);
+
     return derived as T;
   }
 }

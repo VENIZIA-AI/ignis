@@ -97,6 +97,7 @@ export abstract class TransactionLifecycle implements ITransaction {
       // After a FAILED end the transaction is already torn down, so rollback is satisfied by construction - throwing here would replace the caller's original error in `catch { await tx.rollback(); throw error; }`.
       if (this.#state === TransactionStates.FAILED && end === TransactionLifecycle.ROLLBACK) {
         this.onRollbackAfterFailure();
+
         return;
       }
 

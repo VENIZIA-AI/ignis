@@ -27,6 +27,7 @@ export class SqliteUpdateBuilder extends RelationalUpdateBuilder {
     // Checked on the way out: the base keys `jsonExpressions` by
     // schema property, which is what resolves back to a column.
     const columns = TableColumnCache.get(schema);
+
     for (const columnName in transformed.jsonExpressions) {
       SqliteJsonPathUtility.assertNotBlobJsonColumn({
         column: columns[columnName],

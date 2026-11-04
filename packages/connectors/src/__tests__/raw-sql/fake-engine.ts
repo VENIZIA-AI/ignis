@@ -16,6 +16,7 @@ export class FakeClient {
 
   async run(statement: string): Promise<Array<Record<string, unknown>>> {
     this.statements.push(statement);
+
     return [{ host: this.settings.host, statement }];
   }
 
@@ -31,6 +32,7 @@ export class FakeConnector implements IRawSqlConnector {
   async execute(query: TRawSqlQuery): Promise<IRawSqlResult> {
     const statement = typeof query === 'string' ? query : JSON.stringify(query);
     const result = await this.client.run(statement);
+
     return { rows: result };
   }
 

@@ -10,6 +10,7 @@ const settingsRecording = (opts: { calls: Array<unknown> }): IModelAccessSetting
   return {
     resolve: (context) => {
       opts.calls.push(context);
+
       return { merchantId: 'm1' };
     },
   };

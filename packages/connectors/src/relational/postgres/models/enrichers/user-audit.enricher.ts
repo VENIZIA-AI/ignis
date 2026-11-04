@@ -75,6 +75,7 @@ export class PostgresUserAuditEnricher {
   }): TUserAuditEnricherResult<ColumnDefinitions> {
     const { baseSchema, opts: enricherOpts } = opts;
     const defs = PostgresUserAuditEnricher.generateColumnDefs(enricherOpts);
+
     return { ...baseSchema, ...defs } as TUserAuditEnricherResult<ColumnDefinitions>;
   }
 }

@@ -16,18 +16,21 @@ runConnectorConformance({
     });
 
     await connector.collection.ensure({ schema: { name: 'articles', fields: [] } });
+
     return { connector, collection: 'articles' };
   },
   buildWithFailingHealth: async () => {
     const { helper: connector } = makeHelper({
       throwOn: { 'health.retrieve': new Error('probe down') },
     });
+
     return { connector };
   },
   buildWithFailingExistenceCheck: async () => {
     const { helper: connector } = makeHelper({
       throwOn: { 'collections.exists': new Error('existence check down') },
     });
+
     return { connector };
   },
 });

@@ -33,6 +33,7 @@ export class SqliteDataSourceFixture extends BaseSqliteDataSource<
 
   protected override buildBeginStatement(opts?: ISqliteTransactionOptions): string {
     this.beginStatementCalls.push(opts);
+
     return super.buildBeginStatement(opts);
   }
 

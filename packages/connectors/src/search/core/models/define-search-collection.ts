@@ -118,6 +118,7 @@ export class SearchCollectionFactory {
     }
 
     const seenNames = new Set<string>();
+
     for (const definitionField of fields) {
       if (seenNames.has(definitionField.name)) {
         throw getError({

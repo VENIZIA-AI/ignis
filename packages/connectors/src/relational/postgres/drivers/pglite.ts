@@ -79,6 +79,7 @@ export class PGliteDriver<
       scope: scope ?? PGliteDriver.name,
       create: async () => {
         await this.client.waitReady;
+
         return this.client;
       },
       destroy: (resource) => this.scrubSession({ resource }),
@@ -104,6 +105,7 @@ export class PGliteDriver<
     }
 
     let connector: TRelationalConnector<Schema>;
+
     try {
       connector = drizzle({ client, schema: opts.schema }) as TRelationalConnector<Schema>;
     } catch (error) {
@@ -120,11 +122,13 @@ export class PGliteDriver<
 
       execute: async (executeOpts: { statement: string }) => {
         const result = await client.query(executeOpts.statement);
+
         return { count: result.affectedRows ?? 0 };
       },
 
       query: async <R>(queryOpts: { statement: string }) => {
         const result = await client.query<R>(queryOpts.statement);
+
         return result.rows ?? [];
       },
 
@@ -132,10 +136,12 @@ export class PGliteDriver<
         if (isReleased) {
           return;
         }
+
         isReleased = true;
 
         if (releaseOpts?.destroy !== true) {
           this.slot.release({ resource: client });
+
           return;
         }
 

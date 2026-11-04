@@ -141,6 +141,7 @@ describe('TypesenseConnector search', () => {
   test('search rethrows sanitized 503 on real failure', async () => {
     const { helper } = makeHelper({ throwOn: { 'multiSearch.perform': new Error('boom') } });
     let status = 0;
+
     try {
       await helper.search({
         collection: 'products',
@@ -149,6 +150,7 @@ describe('TypesenseConnector search', () => {
     } catch (e) {
       status = (e as { statusCode: number }).statusCode;
     }
+
     expect(status).toBe(503);
   });
 
@@ -257,9 +259,11 @@ describe('TypesenseConnector search', () => {
       unknown,
     ];
     expect(request.searches.length).toBeGreaterThan(1);
+
     for (const entry of request.searches) {
       expect(entry).not.toHaveProperty('use_cache');
     }
+
     expect(common).toEqual({ ['use_cache']: true });
   });
 });

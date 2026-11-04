@@ -139,6 +139,7 @@ export const run = (opts: IConformanceOptions): void => {
       const connection = await driver.acquire({ schema: {} });
 
       let caught: unknown;
+
       try {
         await connection.execute({ statement: 'COMMIT' });
       } catch (error) {

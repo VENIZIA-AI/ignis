@@ -30,11 +30,13 @@ export class MeilisearchInternal {
     }
 
     const flatCode = (error as { code?: unknown }).code;
+
     if (typeof flatCode === 'string') {
       return flatCode;
     }
 
     const causeCode = (error as { cause?: { code?: unknown } }).cause?.code;
+
     return typeof causeCode === 'string' ? causeCode : undefined;
   }
 
@@ -47,11 +49,13 @@ export class MeilisearchInternal {
     }
 
     const responseStatus = (error as { response?: { status?: unknown } }).response?.status;
+
     if (typeof responseStatus === 'number') {
       return responseStatus;
     }
 
     const httpStatus = (error as { httpStatus?: unknown }).httpStatus;
+
     return typeof httpStatus === 'number' ? httpStatus : undefined;
   }
 
@@ -80,6 +84,7 @@ export class MeilisearchInternal {
     const document: Record<string, unknown> = {};
 
     const hitEntries = Object.entries(hit);
+
     for (const [key, value] of hitEntries) {
       if (MeilisearchInternal.RESERVED_HIT_KEYS.has(key)) {
         continue;
@@ -102,6 +107,7 @@ export class MeilisearchInternal {
       }
 
       const counts: ISearchFacetCount['counts'] = [];
+
       for (const [value, count] of Object.entries(values)) {
         if (typeof count === 'number') {
           counts.push({ value, count });
@@ -113,12 +119,15 @@ export class MeilisearchInternal {
 
       if (RecordUtility.isRecord(fieldStats)) {
         const facetStats: NonNullable<ISearchFacetCount['stats']> = {};
+
         if (typeof fieldStats['min'] === 'number') {
           facetStats.min = fieldStats['min'];
         }
+
         if (typeof fieldStats['max'] === 'number') {
           facetStats.max = fieldStats['max'];
         }
+
         if (Object.keys(facetStats).length > 0) {
           facet.stats = facetStats;
         }

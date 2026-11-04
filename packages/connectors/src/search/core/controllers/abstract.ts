@@ -24,16 +24,19 @@ const resolveSearchStart = (opts: { input: TSearchInput; hitCount: number }): nu
   // Engine wire names are read through string keys only; `params` is an untyped passthrough.
   const params = input.params;
   const offset = params['offset'];
+
   if (typeof offset === 'number') {
     return offset;
   }
 
   const page = params['page'];
+
   if (typeof page !== 'number' || page < 1) {
     return 0;
   }
 
   const pageSize = params['per_page'] ?? params['perPage'];
+
   return (page - 1) * (typeof pageSize === 'number' ? pageSize : hitCount);
 };
 
@@ -69,6 +72,7 @@ export abstract class AbstractSearchController<
     const { context } = opts;
     const body = context.req.valid<TSearchInput>('json');
     let input = body;
+
     if (this.searchScope) {
       const scoped = await SearchControllerScope.applySearchScope({
         resolve: this.searchScope,
@@ -84,6 +88,7 @@ export abstract class AbstractSearchController<
       task: async () => {
         // `isFoundExact` travels to the caller so an engine whose `found` is an estimate never looks exhaustive across the HTTP boundary.
         const { found, isFoundExact, hits } = await this.repository.search(input);
+
         return { found, isFoundExact, hits: hits ?? [] };
       },
     });
@@ -114,6 +119,7 @@ export abstract class AbstractSearchController<
         message: '[multiSearch] multi-search is not available on a scoped search controller',
       });
     }
+
     const input = context.req.valid<TMultiSearchInput>('json');
 
     const rs = await this.measure({

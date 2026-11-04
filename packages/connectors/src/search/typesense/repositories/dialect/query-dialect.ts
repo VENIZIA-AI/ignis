@@ -245,6 +245,7 @@ class SearchWireKeys {
     from: 'highlightFullFields',
     to: 'highlight_full_fields',
   };
+
   static readonly HIGHLIGHT_START_TAG = { from: 'highlightStartTag', to: 'highlight_start_tag' };
   static readonly HIGHLIGHT_END_TAG = { from: 'highlightEndTag', to: 'highlight_end_tag' };
   static readonly SNIPPET_THRESHOLD = { from: 'snippetThreshold', to: 'snippet_threshold' };
@@ -254,6 +255,7 @@ class SearchWireKeys {
     from: 'groupMissingValues',
     to: 'group_missing_values',
   };
+
   static readonly QUERY_BY_WEIGHTS = { from: 'queryByWeights', to: 'query_by_weights' };
 
   private static readonly ENTRIES = [
@@ -393,6 +395,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
     };
 
     const restEntries = Object.entries(rest);
+
     for (const [key, value] of restEntries) {
       if (value === undefined) {
         continue;
@@ -442,6 +445,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
         if (input.queryBy) {
           searchQuery.queryBy = input.queryBy.join(',');
         }
+
         break;
       }
       case SearchModes.SEMANTIC: {
@@ -782,6 +786,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
               ENGINE,
               NO_NULL_REASON,
             );
+
           return SearchDialectHelper.throwUnsupportedOperator({
             operator: op,
             field,
@@ -789,6 +794,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
             reason: NO_NULL_REASON,
           });
         }
+
         return SearchDialectHelper.toFilterClause({
           filterBy: `${field}:=${this.escapeValue({ field, value })}`,
         });
@@ -804,6 +810,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
               ENGINE,
               NO_NULL_REASON,
             );
+
           return SearchDialectHelper.throwUnsupportedOperator({
             operator: op,
             field,
@@ -811,6 +818,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
             reason: NO_NULL_REASON,
           });
         }
+
         return SearchDialectHelper.toFilterClause({
           filterBy: `${field}:!=${this.escapeValue({ field, value })}`,
         });
@@ -841,6 +849,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
         if (Array.isArray(value) && value.length === 0) {
           return { outcome: SearchFilterOutcomes.MATCH_NONE };
         }
+
         return SearchDialectHelper.toFilterClause({
           filterBy: `${field}:=[${this.escapeArray({ field, value })}]`,
         });
@@ -850,6 +859,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
         if (Array.isArray(value) && value.length === 0) {
           return { outcome: SearchFilterOutcomes.MATCH_ALL };
         }
+
         return SearchDialectHelper.toFilterClause({
           filterBy: `${field}:!=[${this.escapeArray({ field, value })}]`,
         });
@@ -863,6 +873,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
         // De Morgan: NOT (min <= x <= max) is (x < min) OR (x > max). Typesense has no negated
         // range, but the rewrite is exact for any field that HAS a value.
         const [min, max] = this.assertBetweenTuple({ field, value });
+
         return SearchDialectHelper.toFilterClause({
           filterBy: `(${field}:<${this.escapeValue({ field, value: min })} || ${field}:>${this.escapeValue({ field, value: max })})`,
         });
@@ -879,6 +890,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
             ENGINE,
             NO_NULL_REASON,
           );
+
         return SearchDialectHelper.throwUnsupportedOperator({
           operator: op,
           field,
@@ -890,6 +902,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
         this.logger
           .for(this.compileOperatorClause.name)
           .warn('Unsupported operator | operator: %s | field: %s | engine: %s', op, field, ENGINE);
+
         return SearchDialectHelper.throwUnsupportedOperator({
           operator: op,
           field,

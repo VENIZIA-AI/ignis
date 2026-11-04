@@ -17,6 +17,7 @@ export const isoTimestamp = (name: string, config?: { withTimezone?: boolean }) 
   }>({
     dataType() {
       const tz = config?.withTimezone ? ' with time zone' : '';
+
       return `timestamp${tz}`;
     },
     toDriver(value: string | Date): string {

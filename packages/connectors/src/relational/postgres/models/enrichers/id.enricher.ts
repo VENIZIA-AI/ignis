@@ -76,6 +76,7 @@ export class PostgresIdEnricher {
   static enrich(opts: { baseColumns: TColumnDefinitions; opts?: TIdEnricherOptions }) {
     const { baseColumns, opts: enricherOpts } = opts;
     const defs = PostgresIdEnricher.generateColumnDefs(enricherOpts);
+
     return { ...baseColumns, ...defs };
   }
 }

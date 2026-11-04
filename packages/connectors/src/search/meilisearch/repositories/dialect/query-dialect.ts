@@ -194,6 +194,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     }
 
     const effectiveSkip = skip ?? offset;
+
     if (effectiveSkip !== undefined) {
       query.page = SearchDialectHelper.toSearchPage({ skip: effectiveSkip, limit });
     }
@@ -220,12 +221,14 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     const wire: Record<string, unknown> = {};
 
     const restEntries = Object.entries(rest);
+
     for (const [key, value] of restEntries) {
       if (value === undefined) {
         continue;
       }
 
       const unsupported = UNSUPPORTED_QUERY_FIELDS[key];
+
       if (unsupported) {
         throw getError({
           message: `[MeilisearchQueryDialect][toWireParams] '${key}' is not supported | ${unsupported}`,
@@ -233,6 +236,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
       }
 
       const arrayKey = CSV_TO_ARRAY_KEYS[key];
+
       if (arrayKey) {
         wire[arrayKey] = String(value).split(',');
         continue;
@@ -260,6 +264,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
         if (input.queryBy) {
           searchQuery.queryBy = input.queryBy.join(',');
         }
+
         break;
       }
       case SearchModes.SEMANTIC: {
@@ -294,6 +299,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
         if (input.nearVector) {
           searchQuery.vector = input.nearVector;
         }
+
         break;
       }
       default: {
@@ -551,6 +557,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
         if (Array.isArray(value) && value.length === 0) {
           return { outcome: SearchFilterOutcomes.MATCH_NONE };
         }
+
         return SearchDialectHelper.toFilterClause({
           filterBy: `${field} IN [${this.escapeArray({ field, value })}]`,
         });
@@ -560,6 +567,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
         if (Array.isArray(value) && value.length === 0) {
           return { outcome: SearchFilterOutcomes.MATCH_ALL };
         }
+
         return SearchDialectHelper.toFilterClause({
           filterBy: `${field} NOT IN [${this.escapeArray({ field, value })}]`,
         });
@@ -573,6 +581,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
         // De Morgan: NOT (min <= x <= max) is (x < min) OR (x > max). Exact for any field that
         // HAS a value; see the missing-value note on the Typesense side.
         const [min, max] = this.assertBetweenTuple({ field, value });
+
         return SearchDialectHelper.toFilterClause({
           filterBy: `(${field} < ${this.escapeValue({ field, value: min })} OR ${field} > ${this.escapeValue({ field, value: max })})`,
         });
@@ -594,6 +603,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
             field,
             ENGINE,
           );
+
         return SearchDialectHelper.throwUnsupportedOperator({ operator, field, engine: ENGINE });
       }
     }

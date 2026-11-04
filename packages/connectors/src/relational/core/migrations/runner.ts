@@ -136,6 +136,7 @@ export class RelationalMigrationRunner extends BaseHelper {
       // One statement per call: only some clients accept a multi-statement string (PGlite's `exec`
       // does, its `query` does not), and `drizzle-kit` already marks the boundaries for us.
       const statements = RelationalMigrationRunner.splitStatements({ sql: migration.sql });
+
       for (const statement of statements) {
         await connection.execute({ statement });
       }

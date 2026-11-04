@@ -2,6 +2,7 @@ export class EchoUtility {
   /** C0 controls, DEL, C1 controls and the two Unicode line terminators - anything that can break a log line. */
   private static isUnsafeEchoCode(opts: { code: number }): boolean {
     const { code } = opts;
+
     return code < 0x20 || (code >= 0x7f && code <= 0x9f) || code === 0x2028 || code === 0x2029;
   }
 
@@ -13,6 +14,7 @@ export class EchoUtility {
 
     for (let index = 0; index < value.length; index++) {
       const code = value.charCodeAt(index);
+
       if (!EchoUtility.isUnsafeEchoCode({ code })) {
         continue;
       }

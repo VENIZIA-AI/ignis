@@ -47,6 +47,7 @@ export class RelationPairing {
     for (const [entity, table] of Object.entries(tables)) {
       for (const [name, relation] of Object.entries(table.relations)) {
         const target = tableNamesMap[getTableUniqueName(relation.referencedTable)];
+
         if (!target) {
           outside.push(`${entity}.${name} -> ${getTableName(relation.referencedTable)}`);
           continue;
@@ -76,6 +77,7 @@ export class RelationPairing {
   static describeOutside(opts: { outside: Array<string> }): string {
     const { outside } = opts;
     const count = outside.length === 1 ? '1 relation points' : `${outside.length} relations point`;
+
     return `${count} to a table outside this datasource: ${outside.join(', ')} | A query that includes one fails here; bind that model to this datasource if you need it`;
   }
 
@@ -90,6 +92,7 @@ export class RelationPairing {
     if (is(relation, Many)) {
       return `A many() pairs with the one() on '${target}' named '${relation.relationName}' - a one() is named by its key, or by its relationName if it sets one | Add that one() on '${target}', pointing back to '${entity}', or set relationName here to the name of the one() already there`;
     }
+
     return `'${target}' holds the foreign key, so this one() pairs with the one relation there that points back to '${entity}' - there must be exactly one | Add that one() on '${target}', or write fields and references on this side`;
   }
 }

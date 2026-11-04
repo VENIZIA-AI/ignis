@@ -49,6 +49,7 @@ export class TypesenseMapper {
     }
 
     const hybridInfo = hit['hybrid_search_info'];
+
     if (RecordUtility.isRecord(hybridInfo) && typeof hybridInfo['rank_fusion_score'] === 'number') {
       mapped.rankFusionScore = hybridInfo['rank_fusion_score'];
     }
@@ -80,9 +81,11 @@ export class TypesenseMapper {
         value: entry['value'],
         count: entry['count'],
       };
+
       if (typeof entry['highlighted'] === 'string') {
         facetValue.highlighted = entry['highlighted'];
       }
+
       counts.push(facetValue);
     }
 
@@ -101,6 +104,7 @@ export class TypesenseMapper {
           stats[key] = rawStats[key];
         }
       }
+
       if (typeof rawStats['total_values'] === 'number') {
         stats.totalValues = rawStats['total_values'];
       }
@@ -134,17 +138,21 @@ export class TypesenseMapper {
     if (typeof raw['out_of'] === 'number') {
       result.outOf = raw['out_of'];
     }
+
     if (typeof raw['search_time_ms'] === 'number') {
       result.searchTimeMs = raw['search_time_ms'];
     }
+
     if (Array.isArray(raw['facet_counts'])) {
       result.facetCounts = raw['facet_counts']
         .map((entry) => TypesenseMapper.mapFacetCount({ raw: entry }))
         .filter((facet): facet is ISearchFacetCount => facet !== null);
     }
+
     if (Array.isArray(raw['grouped_hits'])) {
       result.groupedHits = raw['grouped_hits'];
     }
+
     if (Array.isArray(raw['hits'])) {
       result.hits = raw['hits'].map((hit) => TypesenseMapper.mapSearchHit<TDocument>({ hit }));
     }
@@ -154,6 +162,7 @@ export class TypesenseMapper {
 
   static toSynonym(opts: { value: { id: string; synonyms: string[]; root?: string } }): ISynonym {
     const { id, synonyms, root } = opts.value;
+
     // Multi-way sets come back with root: "" - treat empty/absent alike so only one-way keeps a root.
     return root ? { id, synonyms, root } : { id, synonyms };
   }

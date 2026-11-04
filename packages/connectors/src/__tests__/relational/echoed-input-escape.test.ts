@@ -34,6 +34,7 @@ const UNSAFE: Array<{ label: string; raw: string; escaped: string }> = [
 const hasUnsafeCharacter = (message: string): boolean =>
   [...message].some((character) => {
     const code = character.charCodeAt(0);
+
     return code < 0x20 || (code >= 0x7f && code <= 0x9f) || code === 0x2028 || code === 0x2029;
   });
 
@@ -43,6 +44,7 @@ const messageOf = (run: () => unknown): string => {
   } catch (error) {
     return error instanceof Error ? error.message : String(error);
   }
+
   throw new Error('expected the call to throw');
 };
 

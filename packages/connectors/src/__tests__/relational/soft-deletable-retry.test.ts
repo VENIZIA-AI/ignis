@@ -59,6 +59,7 @@ const buildQueuedSelectConnector = (opts: { rowSets: Array<Array<AnyType>> }) =>
     chain.offset = () => chain;
     chain.for = () => chain;
     chain.then = (resolve: (value: unknown) => void) => resolve(rows);
+
     return chain;
   };
 
@@ -68,6 +69,7 @@ const buildQueuedSelectConnector = (opts: { rowSets: Array<Array<AnyType>> }) =>
       select: () => {
         const rows = pending.shift() ?? [];
         selectCalls.push(rows.length);
+
         return buildChain(rows);
       },
       $count: async () => 0,

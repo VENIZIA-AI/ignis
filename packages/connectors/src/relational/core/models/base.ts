@@ -55,6 +55,7 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
 
     return [...AuditFields.SCHEME_SET].filter((key) => {
       const column = columns[key];
+
       return column !== undefined && (column.hasDefault || column.onUpdateFn !== undefined);
     });
   }

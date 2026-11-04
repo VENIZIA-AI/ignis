@@ -87,6 +87,7 @@ describe('BaseSqliteDataSource - beginTransaction', () => {
     dataSource.configure();
 
     let failure: unknown;
+
     try {
       await dataSource.beginTransaction({ beginMode: 'CONCURRENT' as AnyType });
     } catch (error) {

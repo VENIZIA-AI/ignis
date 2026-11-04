@@ -20,6 +20,7 @@ const buildTransaction = () => {
       connector: {
         execute: async (statement: SQL) => {
           executed.push(statement);
+
           return undefined;
         },
       },
@@ -74,12 +75,14 @@ describe('SupabaseRls.withAuthContext', () => {
     'Authenticated',
     '',
   ];
+
   for (const role of rolesList) {
     test(`rejects the role ${JSON.stringify(role)} before any statement runs`, async () => {
       const { transaction, executed } = buildTransaction();
 
       // `set local role $1` is not valid SQL, so the role must be interpolated - an unvalidated role taken from a JWT would be a direct privilege-escalation vector.
       let caught: unknown;
+
       try {
         await SupabaseRls.withAuthContext({ transaction, claims: {}, role });
       } catch (error) {
@@ -118,10 +121,12 @@ describe('SupabaseRls.withAuthContext', () => {
 
   test('no role argument and no usable role claim throws before any statement runs', async () => {
     const claimses = [{}, { role: 42 }, { role: null }] as const;
+
     for (const claims of claimses) {
       const { transaction, executed } = buildTransaction();
 
       let caught: unknown;
+
       try {
         await SupabaseRls.withAuthContext({
           transaction,
@@ -140,6 +145,7 @@ describe('SupabaseRls.withAuthContext', () => {
     const { transaction, executed } = buildTransaction();
 
     let caught: unknown;
+
     try {
       await SupabaseRls.withAuthContext({
         transaction,
@@ -169,6 +175,7 @@ describe('SupabaseRls.withAuthContext', () => {
 
   test('accepts the Supabase roles it exists to serve', async () => {
     const roles = ['anon', 'authenticated', 'service_role', 'supabase_auth_admin'];
+
     for (const role of roles) {
       const { transaction } = buildTransaction();
 

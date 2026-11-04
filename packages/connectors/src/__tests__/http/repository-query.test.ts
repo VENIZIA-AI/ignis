@@ -85,6 +85,7 @@ describe('an extra query rides beside the filter', () => {
         params: Record<string, unknown>;
       }) {
         const { q, ...rest } = opts.query ?? {};
+
         return { ...rest, ...opts.params, search: { keyword: q, method: opts.method } };
       }
     }

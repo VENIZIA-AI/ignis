@@ -10,6 +10,7 @@ class RawSqlApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'raw-sql-app', version: '0.0.0', description: '' };
   }
+
   preConfigure(): void {}
   postConfigure(): void {}
   staticConfigure(): void {}
@@ -20,6 +21,7 @@ const buildApplication = () => {
   const config: IApplicationConfigs = { path: { base: '/', isStrict: false } };
   const application = new RawSqlApplication({ scope: RawSqlApplication.name, config });
   application.init();
+
   return application;
 };
 
@@ -31,6 +33,7 @@ class SalesReportRepository extends BaseRawSqlRepository<FakeConnector> {
     const host: string = this.connector.hostName();
     const result = await this.connector.execute(`select sum(total) from sales -- ${host}`);
     const first: Record<string, unknown> | undefined = result.rows[0];
+
     return { host, first };
   }
 

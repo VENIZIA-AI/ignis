@@ -469,11 +469,13 @@ describe('ReadableSearchRepository', () => {
 
       test('rejects semantic mode given neither nearVector nor queryText', async () => {
         let caught: unknown;
+
         try {
           await repository.search({ mode: SearchModes.SEMANTIC, vectorField: 'embedding' });
         } catch (error) {
           caught = error;
         }
+
         expect((caught as Error | undefined)?.message).toMatch(
           /requires 'nearVector' or 'queryText'/,
         );

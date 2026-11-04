@@ -44,6 +44,7 @@ export class PostgresDataTypeEnricher {
   static enrich(opts: { baseSchema: TColumnDefinitions; opts?: TDataTypeEnricherOptions }) {
     const { baseSchema, opts: enricherOpts } = opts;
     const defs = PostgresDataTypeEnricher.generateColumnDefs(enricherOpts);
+
     return { ...baseSchema, ...defs };
   }
 }

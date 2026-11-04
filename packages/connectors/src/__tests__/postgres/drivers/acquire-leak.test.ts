@@ -39,6 +39,7 @@ describe('acquire() must not leak the connection it checked out', () => {
     const driver = new NodePostgresDriver({ client: pool });
 
     let thrown: unknown;
+
     try {
       await driver.acquire({ schema: buildExplodingSchema() });
     } catch (error) {

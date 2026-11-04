@@ -10,6 +10,7 @@ const hasEnv = Boolean(rawNodes && apiKey);
 const parseNodes = (value: string) =>
   value.split(',').map((part) => {
     const [protocol, host, port] = part.split(':');
+
     return {
       protocol: protocol || 'http',
       host: host || 'localhost',

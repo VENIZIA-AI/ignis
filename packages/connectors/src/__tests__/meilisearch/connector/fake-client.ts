@@ -78,6 +78,7 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
     number,
     { statuses: string[]; error?: unknown; details?: Record<string, unknown> }
   >();
+
   private nextTaskUid = 1;
   private addDocumentsCallCount = 0;
 
@@ -114,6 +115,7 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
   private enqueue(details?: Record<string, unknown>): IFakeTask {
     const taskUid = this.nextTaskUid++;
     this.tasks.set(taskUid, { statuses: [...this.taskStatuses], error: this.taskError, details });
+
     return { taskUid, status: 'enqueued' };
   }
 
@@ -123,6 +125,7 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
       statuses: ['failed'],
       error: { code: 'internal', message: 'batch failed' },
     });
+
     return { taskUid, status: 'enqueued' };
   }
 
@@ -168,6 +171,7 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
 
     const primaryKey = (options as { primaryKey?: string } | undefined)?.primaryKey;
     this.indexes.set(uid, { uid, primaryKey, documents: new Map(), settings: {} });
+
     return this.enqueue();
   }
 
@@ -177,6 +181,7 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
     }
 
     const index = this.requireIndex(uid);
+
     return { uid: index.uid, primaryKey: index.primaryKey };
   }
 
@@ -187,6 +192,7 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
   async deleteIndex(uid: string): Promise<IFakeTask> {
     this.requireIndex(uid);
     this.indexes.delete(uid);
+
     return this.enqueue();
   }
 
@@ -213,6 +219,7 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
 
   async multiSearch(params: unknown): Promise<unknown> {
     this.multiSearchCalls.push(params);
+
     return { results: [] };
   }
 
@@ -319,6 +326,7 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
         let deletedDocuments = 0;
 
         const indexDocumentsEntries = [...index.documents.entries()];
+
         for (const [id, document] of indexDocumentsEntries) {
           if (!filter || matchesFilter({ document, filter })) {
             index.documents.delete(id);
@@ -331,6 +339,7 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
 
       async deleteAllDocuments(): Promise<IFakeTask> {
         self.requireIndex(uid).documents.clear();
+
         return self.enqueue();
       },
 
@@ -361,6 +370,7 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
 
         // hitsPerPage present => the exhaustive page mode, which reports `totalHits`.
         const base = { hits, processingTimeMs: 0 };
+
         return hitsPerPage === undefined
           ? { ...base, estimatedTotalHits: rows.length }
           : { ...base, totalHits: rows.length };
@@ -369,6 +379,7 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
       async updateSettings(settings: unknown): Promise<IFakeTask> {
         const index = self.requireIndex(uid);
         index.settings = { ...index.settings, ...(settings as Record<string, unknown>) };
+
         return self.enqueue();
       },
 
@@ -378,11 +389,13 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
 
       async updateSynonyms(synonyms: Record<string, string[]>): Promise<IFakeTask> {
         self.requireIndex(uid).settings['synonyms'] = synonyms;
+
         return self.enqueue();
       },
 
       async resetSynonyms(): Promise<IFakeTask> {
         delete self.requireIndex(uid).settings['synonyms'];
+
         return self.enqueue();
       },
     };

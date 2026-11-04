@@ -314,6 +314,7 @@ describe('toOrderBy - entries remembered between calls', () => {
     expect(run(`${longKey} DESC`)[0]).toBe(`${label} desc`);
 
     const unknown = `${longKey}Missing DESC`;
+
     for (let attempt = 0; attempt < 2; attempt++) {
       const error = captureError(() => run(unknown));
       expect(error.message).toContain(`Column NOT FOUND | key: '${longKey}Missing'`);

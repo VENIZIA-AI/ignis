@@ -19,6 +19,7 @@ export class SearchQueryParamsUtility {
     const params: Record<string, unknown> = {};
 
     const inputEntries = Object.entries(input);
+
     for (const [key, value] of inputEntries) {
       if (value === undefined || key === 'collection') {
         continue;

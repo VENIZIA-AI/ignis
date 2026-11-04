@@ -70,6 +70,7 @@ export class PostgresTzEnricher {
   static enrich(opts: { baseSchema: TColumnDefinitions; opts?: TTzEnricherOptions }) {
     const { baseSchema, opts: enricherOpts } = opts;
     const defs = PostgresTzEnricher.generateColumnDefs(enricherOpts);
+
     return { ...baseSchema, ...defs };
   }
 }

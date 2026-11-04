@@ -17,6 +17,7 @@ runConnectorConformance({
     await connector.collection.ensure({
       schema: { uid: 'articles', primaryKey: 'id', settings: {} },
     });
+
     return { connector, collection: 'articles' };
   },
   buildWithFailingHealth: async () => {
@@ -27,6 +28,7 @@ runConnectorConformance({
       taskIntervalMs: 1,
       client,
     });
+
     return { connector };
   },
   buildWithFailingExistenceCheck: async () => {
@@ -37,6 +39,7 @@ runConnectorConformance({
       taskIntervalMs: 1,
       client,
     });
+
     return { connector };
   },
 });

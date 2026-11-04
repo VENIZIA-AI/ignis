@@ -18,6 +18,7 @@ export class TableColumnCache {
    */
   static get<Schema extends TTableSchemaWithId>(schema: Schema): TTableColumns {
     let columns = TableColumnCache.columns.get(schema);
+
     if (!columns) {
       columns = Object.assign(Object.create(null), getTableColumns(schema)) as TTableColumns;
       TableColumnCache.columns.set(schema, columns);

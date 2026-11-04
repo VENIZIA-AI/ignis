@@ -101,6 +101,7 @@ describe('LibSqlDriver - against a real in-memory libsql database', () => {
 
     const secondPromise = driver.acquire({ schema: {} }).then((connection) => {
       order.push('second acquired');
+
       return connection;
     });
 
@@ -179,6 +180,7 @@ describe('LibSqlDriver - acquire timeout', () => {
     // The leak the timeout exists for: nothing releases
     // `held`, so without a timeout this would never settle.
     let failure: unknown;
+
     try {
       const starved = await driver.acquire({ schema: {} });
       starved.release();

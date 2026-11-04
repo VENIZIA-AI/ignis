@@ -29,6 +29,7 @@ const buildFakeDriver = (opts?: { applied?: Array<string>; failOn?: RegExp }) =>
       },
       query: async <R>(queryOpts: { statement: string }) => {
         statements.push(queryOpts.statement);
+
         return [...ledger].map((name) => ({ name })) as Array<R>;
       },
       release: () => {
@@ -83,6 +84,7 @@ describe('RelationalMigrationRunner', () => {
     const { driver, statements, releaseCount } = buildFakeDriver({ failOn: /CREATE TABLE notes/ });
 
     let failure: unknown;
+
     try {
       await new RelationalMigrationRunner({ driver }).run({ migrations: MIGRATIONS });
     } catch (error) {
@@ -103,6 +105,7 @@ describe('RelationalMigrationRunner', () => {
     const { driver, statements } = buildFakeDriver();
 
     let failure: unknown;
+
     try {
       await new RelationalMigrationRunner({ driver }).run({
         migrations: [{ name: `x'); DROP TABLE notes; --`, sql: 'SELECT 1' }],

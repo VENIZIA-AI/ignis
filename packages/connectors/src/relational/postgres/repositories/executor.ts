@@ -61,6 +61,7 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
 
   async count(opts: ICountOptions<TRelationalConnector>): Promise<number> {
     const { connector, table, where } = opts;
+
     return connector.$count(table as PgTable, where);
   }
 
@@ -90,11 +91,13 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
 
     if (!shouldReturn) {
       const result = await query;
+
       return { count: this.readAffectedRowCount({ result }), rows: [] };
     }
 
     const pending = returning ? query.returning(returning as AnyType) : query.returning();
     const rows = await pending;
+
     return { count: rows.length, rows: rows as Array<R> };
   }
 
@@ -107,11 +110,13 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
 
     if (!shouldReturn) {
       const result = await query;
+
       return { count: this.readAffectedRowCount({ result }), rows: [] };
     }
 
     const pending = returning ? query.returning(returning as AnyType) : query.returning();
     const rows = await pending;
+
     return { count: rows.length, rows: rows as Array<R> };
   }
 
@@ -121,11 +126,13 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
 
     if (!shouldReturn) {
       const result = await query;
+
       return { count: this.readAffectedRowCount({ result }), rows: [] };
     }
 
     const pending = returning ? query.returning(returning as AnyType) : query.returning();
     const rows = await pending;
+
     return { count: rows.length, rows: rows as Array<R> };
   }
 
@@ -144,6 +151,7 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
     }
 
     const queryInterface = connector.query[entityName];
+
     if (!queryInterface) {
       const availableKeys = Object.keys(connector.query);
       throw getError({
