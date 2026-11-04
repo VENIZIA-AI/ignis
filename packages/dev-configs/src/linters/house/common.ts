@@ -10,6 +10,7 @@ export class AstNodeTypes {
   static readonly AWAIT_EXPRESSION = 'AwaitExpression';
   static readonly RETURN_STATEMENT = 'ReturnStatement';
   static readonly CATCH_CLAUSE = 'CatchClause';
+  static readonly SWITCH_CASE = 'SwitchCase';
 }
 
 /** The ESLint namespace the house rules live under: `venizia/<rule>`. */

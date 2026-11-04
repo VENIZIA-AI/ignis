@@ -101,7 +101,7 @@ export default defineConfig(oxlintConfigs);
 
 **Includes:**
 - The ESLint recommended and typescript-eslint rules, ported
-- `unicorn/switch-case-braces: ['error', 'always']`
+- `unicorn/switch-case-braces: ['error', 'always']` and `curly: ['error', 'all']`; the ESLint-only `eslintConfigs` preset runs the same switch-case check as `venizia/no-unbraced-case`
 - `@typescript-eslint/no-explicit-any` off by default
 
 **Customization:** each rule has a class in `@venizia/dev-configs/linters`. A class exposes the rule's `NAME` and a `build()` that returns its entry with the IGNIS defaults. Pass only what you change:
