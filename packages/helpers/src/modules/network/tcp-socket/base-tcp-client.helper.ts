@@ -13,6 +13,7 @@ import {
 
 const DEFAULT_MAX_RETRY = 5;
 
+/** Options of a TCP client. `reconnect` (default `false`) retries after a close up to `maxRetry` times (default 5); `encoding`, when set, makes `onData` receive strings. `createClientFn` opens the socket, so one client type serves plain and TLS. */
 export interface INetworkTcpClientProps<
   SocketClientOptions extends PlainConnectionOptions | TlsConnectionOptions,
   SocketClientType extends PlainSocketClient | TlsSocketClient,
@@ -36,6 +37,7 @@ export interface INetworkTcpClientProps<
   onError?: (error: any) => void;
 }
 
+/** TCP or TLS client that opens its socket through `createClientFn`, reports connect, data, close and error to the `on*` callbacks, and reconnects when enabled. */
 export class BaseNetworkTcpClient<
   SocketClientOptions extends PlainConnectionOptions | TlsConnectionOptions,
   SocketClientType extends PlainSocketClient | TlsSocketClient,

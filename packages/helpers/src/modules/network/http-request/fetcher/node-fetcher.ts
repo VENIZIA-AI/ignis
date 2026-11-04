@@ -14,6 +14,7 @@ import {
   type TFetcherLogger,
 } from './base-fetcher';
 
+/** Request accepted by `NodeFetcher`: `RequestInit` plus `url`; `params` are written into the url query. */
 export interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
   url: string;
   method?: THttpMethod;
@@ -33,6 +34,7 @@ const isRawBody = (body: unknown): boolean => {
   });
 };
 
+/** Fetcher over the global `fetch` (`getWorker()`). `timeout` (milliseconds) aborts the request and is combined with a `signal` the caller passes. */
 export class NodeFetcher extends AbstractNetworkFetchableHelper<
   'node-fetch',
   INodeFetchRequestOptions,
@@ -151,6 +153,7 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
   }
 }
 
+/** Options of `NodeFetchNetworkRequest`: `RequestInit` plus `baseUrl` and `queryString`, which sets how `params` are written into every url. */
 export interface INodeFetchNetworkRequestOptions {
   name: string;
   networkOptions: RequestInit & {
@@ -160,6 +163,7 @@ export interface INodeFetchNetworkRequestOptions {
   };
 }
 
+/** `BaseNetworkRequest` over a `NodeFetcher`. Request headers default to a JSON content type, and the caller's headers win. */
 export class NodeFetchNetworkRequest extends BaseNetworkRequest<'node-fetch'> {
   constructor(opts: INodeFetchNetworkRequestOptions) {
     const { name, networkOptions } = opts;

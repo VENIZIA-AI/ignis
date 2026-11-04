@@ -1,5 +1,6 @@
 import { type ValueOf, type ValueOrPromise } from '@/common/types';
 
+/** Lifecycle states of a sequential queue; the numeric prefix orders them. */
 export class QueueStatuses {
   static readonly WAITING = '000_WAITING';
   static readonly PROCESSING = '100_PROCESSING';
@@ -13,9 +14,12 @@ export class QueueStatuses {
   }
 }
 
+/** A {@link QueueStatuses} value. */
 export type TQueueStatus = ValueOf<Omit<typeof QueueStatuses, 'isValid' | 'SCHEME_SET'>>;
+/** One queued item: `payload`, plus `isLocked` while a handler holds it. */
 export type TQueueElement<T> = { isLocked: boolean; payload: T };
 
+/** Hooks of a sequential queue. `autoDispatch` defaults to `true` in {@link SequentialQueueHelper}. */
 export interface IQueueCallback<TElementPayload> {
   autoDispatch?: boolean;
 

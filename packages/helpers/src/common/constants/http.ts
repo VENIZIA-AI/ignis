@@ -1,5 +1,6 @@
 import { type ValueOf } from '../types';
 
+/** HTTP constants: header names, CORS headers, header values, methods, protocols and status codes. Header names, methods and protocols are lowercase. */
 export class HTTP {
   /** Standard and common HTTP headers (lowercase per HTTP/2 convention). */
   static readonly Headers = {
@@ -227,8 +228,11 @@ export class HTTP {
   } as const;
 }
 
+/** An HTTP method from `HTTP.Methods`, in lowercase or uppercase. */
 export type THttpMethod = ValueOf<typeof HTTP.Methods> | Uppercase<ValueOf<typeof HTTP.Methods>>;
+/** An HTTP protocol from `HTTP.Protocols`, in lowercase or uppercase. */
 export type THttpProtocol =
   | ValueOf<typeof HTTP.Protocols>
   | Uppercase<ValueOf<typeof HTTP.Protocols>>;
+/** A numeric HTTP status code from any class in `HTTP.ResultCodes`. */
 export type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>;

@@ -9,6 +9,10 @@ import {
   type TQueueStatus,
 } from './common';
 
+/**
+ * In-memory FIFO queue that hands one element at a time to `onMessage`.
+ * A throwing handler is logged and its element dropped, so the queue keeps moving.
+ */
 export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
   public storage: Array<TQueueElement<TElementPayload>>;
   protected processingEvents: Set<TQueueElement<TElementPayload>>;

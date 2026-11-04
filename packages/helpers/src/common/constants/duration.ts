@@ -27,6 +27,7 @@ export class DurationUnits {
   }
 }
 
+/** One of the `DurationUnits` values, e.g. `'second'`. */
 export type TDurationUnit = TConstValue<typeof DurationUnits>;
 
 /**
@@ -108,6 +109,7 @@ const ALIAS_LOOKUP: Map<string, TDurationUnit> = new Map(
     ]),
 );
 
+/** A parsed duration: a `value` counted in `unit`. The value may be negative or fractional. */
 export interface IDuration {
   unit: TDurationUnit;
   value: number;

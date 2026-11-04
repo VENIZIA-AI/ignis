@@ -4,6 +4,7 @@ import { ParseUtility } from '@/utilities/parse.utility';
 import { LogLevels, type TLogLevel } from './types';
 
 // -------------------------------------------------------------
+/** Output shapes of a log line. `isValid` narrows a string to `TLoggerFormat`. */
 export class LoggerFormats {
   static readonly JSON = 'json';
   static readonly TEXT = 'text';
@@ -15,9 +16,11 @@ export class LoggerFormats {
   }
 }
 
+/** One of the `LoggerFormats` values. */
 export type TLoggerFormat = TConstValue<typeof LoggerFormats>;
 
 // -------------------------------------------------------------
+/** Resolves logger settings (level, color) from configured values and the environment. */
 export class LoggerConfigUtility {
   /** The logger's own level, below which a line never reaches ANY transport. Defaults to `debug` - level gating belongs to the wrapper and each transport, and a stricter default here would silently drop lines the wrapper already let through. */
   static resolveLevel(opts: { configured?: string }): TLogLevel {

@@ -24,17 +24,20 @@ export class FieldMappingDataTypes {
 /** Valid field mapping data type values. */
 export type TFieldMappingDataType = TConstValue<typeof FieldMappingDataTypes>;
 
+/** Describes one field to read: its `name`, its value `type`, and an optional `default`. */
 export interface IFieldMapping {
   name: string;
   type: TFieldMappingDataType;
   default?: string | number | Array<string> | Array<number> | boolean;
 }
 
+/** The union of `name` values in a list of field mappings. */
 export type TFieldMappingNames<T extends Array<IFieldMapping>> = Extract<
   T[number],
   { type: Exclude<T[number]['type'], undefined> }
 >['name'];
 
+/** The object a list of field mappings yields: one key per `name`, typed from its `type` (`string`, `number`, `boolean`, `strings` or `numbers`). Needs the list typed as a literal (`as const`) to narrow. */
 export type TObjectFromFieldMappings<
   T extends readonly {
     name: string;

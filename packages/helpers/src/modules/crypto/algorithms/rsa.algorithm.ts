@@ -8,6 +8,7 @@ interface IRSAExtraOptions {
   doThrow?: boolean;
 }
 
+/** The algorithm name `RSA` reports as its `algorithm`. */
 export type RSAAlgorithmType = 'rsa';
 
 /**

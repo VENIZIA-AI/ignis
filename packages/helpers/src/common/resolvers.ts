@@ -7,6 +7,7 @@ import type { TClass, TResolver } from './types';
 // package it already depends on, instead of each layer redeclaring them.
 export { isClass, ObjectUtility, ResolverUtility } from '@venizia/ignis-inversion';
 
+/** Resolves a class reference that may be given directly, lazily through a resolver function, or as a string binding key. */
 export class ClassResolver {
   /** Resolves a class reference, passing through string binding keys as-is. */
   static resolveClass<T>(opts: {

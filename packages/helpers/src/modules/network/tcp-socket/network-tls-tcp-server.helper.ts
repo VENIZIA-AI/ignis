@@ -11,6 +11,7 @@ type TTlsTcpServerOptions = Omit<
   'createServerFn'
 >;
 
+/** TLS TCP server (`node:tls`) on top of the shared base server; `serverOptions` are `tls.TlsOptions`. */
 export class NetworkTlsTcpServer extends BaseNetworkTcpServer<TlsOptions, Server, SocketClient> {
   constructor(opts: TTlsTcpServerOptions) {
     super({

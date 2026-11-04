@@ -2,6 +2,7 @@ import { type ValueOrPromise } from '@/common/types';
 import type { ILogger } from '@/modules/logger';
 import { PromiseUtility } from '@/utilities/promise.utility';
 
+/** Runs user-supplied hooks so a throw or rejection is logged and never breaks the caller. */
 export class HookUtility {
   /** Fire-and-forget a hook from inside an event listener. Takes a thunk because `PromiseUtility.voidExecution` takes a VALUE - a synchronous throw would escape the guard and, inside an emitter callback, take the process down. Rejections still route to the logger. */
   static invoke(opts: {

@@ -6,6 +6,7 @@ import { getError } from '@/modules/error';
 import mqtt from 'mqtt';
 import { HookUtility } from '../common';
 
+/** Options for {@link MQTTClientHelper}. `onMessage` is required; `options` go to the `mqtt` client as-is. */
 export interface IMQTTClientOptions {
   identifier: string;
   url: string;
@@ -17,6 +18,7 @@ export interface IMQTTClientOptions {
   onMessage: (opts: { topic: string; message: Buffer }) => void;
 }
 
+/** MQTT client that connects to `url` on construction and forwards messages to `onMessage`. */
 export class MQTTClientHelper extends BaseHelper {
   private url: string;
   private options: mqtt.IClientOptions;

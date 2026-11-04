@@ -10,13 +10,16 @@ const SALT_BYTES = 32;
 const TAG_BITS = 128;
 const BASE64_CHUNK = 0x8000;
 
+/** The algorithm name of `ECDH`. */
 export type ECDHAlgorithmType = 'ecdh-p256';
 
+/** An `ECDH` ciphertext: `iv` and `ct` (ciphertext) are both base64 strings. */
 export interface IECDHEncryptedPayload {
   iv: string;
   ct: string;
 }
 
+/** AES-GCM options for `ECDH` `encrypt` and `decrypt`. `additionalData` is authenticated but not encrypted; `decrypt` must receive the same string or it fails. An empty string is ignored. */
 export interface IECDHExtraOptions {
   additionalData?: string;
 }

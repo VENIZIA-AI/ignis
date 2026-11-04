@@ -8,6 +8,7 @@ const PLACEHOLDER_PATTERN = /%[sjdifoOc%]/g;
 /** How deep an object is inspected before it collapses to `[Object]`: Node's default of 2 hides nested data (e.g. wrapped `cause`), 5 reaches it while staying bounded. `APP_ENV_LOGGER_INSPECT_DEPTH` overrides with a NON-NEGATIVE number - no unlimited setting. */
 const DEFAULT_INSPECT_DEPTH = 5;
 
+/** Renders a log message and its arguments to one string, redacting secret keys and inspecting objects to a bounded depth (`APP_ENV_LOGGER_INSPECT_DEPTH`, default 5). */
 export class LogFormatUtility {
   private static resolveDepth(): number {
     const configured = process.env.APP_ENV_LOGGER_INSPECT_DEPTH;

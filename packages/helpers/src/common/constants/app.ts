@@ -1,5 +1,6 @@
 import { type TConstValue } from '../types';
 
+/** Application-wide defaults. `APPLICATION_NAME` reads `APP_ENV_APPLICATION_NAME` and falls back to `APP`; `QUERY_LIMIT` and `QUERY_OFFSET` are the paging defaults for a list query. */
 export class Defaults {
   static readonly APPLICATION_NAME = globalThis.process?.env?.APP_ENV_APPLICATION_NAME ?? 'APP';
 
@@ -19,8 +20,10 @@ export class RuntimeModules {
     return RuntimeModules.detect() === RuntimeModules.BUN;
   }
 }
+/** The runtime names `RuntimeModules` holds; only `bun` today. */
 export type TRuntimeModule = TConstValue<typeof RuntimeModules>;
 
+/** The value kinds a stored field can hold; `isValid` tests a string against them. */
 export class DataTypes {
   static readonly NUMBER = 'NUMBER';
   static readonly TEXT = 'TEXT';

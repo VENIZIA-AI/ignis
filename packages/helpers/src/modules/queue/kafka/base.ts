@@ -11,6 +11,7 @@ import {
 } from './common/constants';
 import type { TKafkaBrokerEventCallback } from './common/types';
 
+/** Options shared by the Kafka helpers. `shutdownTimeout` is in milliseconds and defaults to {@link KafkaDefaults.SHUTDOWN_TIMEOUT}. */
 export interface IKafkaBaseOptions<TClient extends Base<BaseOptions>> {
   scope: string;
   identifier: string;

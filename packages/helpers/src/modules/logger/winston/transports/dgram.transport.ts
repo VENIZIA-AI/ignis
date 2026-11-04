@@ -2,6 +2,7 @@ import dgram from 'node:dgram';
 import Transport from 'winston-transport';
 import { type IDgramTransportOptions } from '../common';
 
+/** Winston transport that sends the lines of the configured levels as UDP datagrams. A send failure is reported to the console and the socket is reopened on the next line; it never throws. `fromPartial` returns `null` when `label`, `host`, `port`, `levels` or `socketOptions` is missing. */
 export class DgramTransport extends Transport {
   private label: string;
   private host: string;
