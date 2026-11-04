@@ -4,18 +4,23 @@ import { AwaitSupport } from './await-support';
 import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 
 const FUNCTION_TYPES = new Set([
-  'FunctionDeclaration',
-  'FunctionExpression',
-  'ArrowFunctionExpression',
+  AstNodeTypes.FUNCTION_DECLARATION,
+  AstNodeTypes.FUNCTION_EXPRESSION,
+  AstNodeTypes.ARROW_FUNCTION_EXPRESSION,
 ]);
-const STATEMENT_LISTS = new Set(['BlockStatement', 'Program', 'StaticBlock', 'SwitchCase']);
+const STATEMENT_LISTS = new Set([
+  AstNodeTypes.BLOCK_STATEMENT,
+  AstNodeTypes.PROGRAM,
+  AstNodeTypes.STATIC_BLOCK,
+  AstNodeTypes.SWITCH_CASE,
+]);
 
 /** `node` sits inside a `try`, `catch` or `finally` of its own function. */
 const isInTry = (node: unknown): boolean => {
   let current = AwaitSupport.parentOf({ node });
 
   while (current && !FUNCTION_TYPES.has(AstNode.getType({ node: current }) ?? '')) {
-    if (AstNode.getType({ node: current }) === 'TryStatement') {
+    if (AstNode.getType({ node: current }) === AstNodeTypes.TRY_STATEMENT) {
       return true;
     }
 
@@ -54,7 +59,7 @@ export class NoReturnAwaitRule {
         const argument = AstNode.readField({ node: opts.awaitNode, key: 'argument' });
         const argumentText =
           AwaitSupport.isNode(argument) &&
-          AstNode.getType({ node: argument }) !== 'SequenceExpression'
+          AstNode.getType({ node: argument }) !== AstNodeTypes.SEQUENCE_EXPRESSION
             ? sourceCode.getText(argument)
             : undefined;
 
@@ -96,7 +101,7 @@ export class NoReturnAwaitRule {
 
           if (
             AwaitSupport.isNode(argument) &&
-            AstNode.getType({ node: argument }) === 'AwaitExpression'
+            AstNode.getType({ node: argument }) === AstNodeTypes.AWAIT_EXPRESSION
           ) {
             reportAwait({ reported: node, awaitNode: argument, statement: node });
           }
@@ -104,7 +109,10 @@ export class NoReturnAwaitRule {
         [AstNodeTypes.ARROW_FUNCTION_EXPRESSION]: (node: Rule.Node) => {
           const body = AstNode.readField({ node, key: 'body' });
 
-          if (AwaitSupport.isNode(body) && AstNode.getType({ node: body }) === 'AwaitExpression') {
+          if (
+            AwaitSupport.isNode(body) &&
+            AstNode.getType({ node: body }) === AstNodeTypes.AWAIT_EXPRESSION
+          ) {
             reportAwait({ reported: node, awaitNode: body });
           }
         },

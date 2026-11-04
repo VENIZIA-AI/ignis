@@ -24,7 +24,7 @@ export class NoNewErrorRule {
         context.report({ node: opts.node, messageId: 'newError', data: { form: opts.form } });
 
       const isErrorIdentifier = (callee: unknown) =>
-        AstNode.getType({ node: callee }) === 'Identifier' &&
+        AstNode.getType({ node: callee }) === AstNodeTypes.IDENTIFIER &&
         AstNode.readField({ node: callee, key: 'name' }) === 'Error';
 
       return {

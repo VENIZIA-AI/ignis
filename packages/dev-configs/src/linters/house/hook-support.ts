@@ -1,8 +1,11 @@
-import { AstNode } from './common';
+import { AstNode, AstNodeTypes } from './common';
 
 const HOOK_NAME = /^use[A-Z]/;
 const EFFECT_HOOKS = new Set(['useEffect', 'useLayoutEffect', 'useInsertionEffect']);
-const CALLBACK_TYPES = new Set(['ArrowFunctionExpression', 'FunctionExpression']);
+const CALLBACK_TYPES = new Set([
+  AstNodeTypes.ARROW_FUNCTION_EXPRESSION,
+  AstNodeTypes.FUNCTION_EXPRESSION,
+]);
 
 /** The shared parts of the two hook rules: which call is a hook, and which argument is a function. */
 export class HookSupport {
@@ -11,20 +14,21 @@ export class HookSupport {
     const callee = AstNode.readField({ node: opts.call, key: 'callee' });
     const type = AstNode.getType({ node: callee });
 
-    if (type === 'Identifier') {
+    if (type === AstNodeTypes.IDENTIFIER) {
       const name = AstNode.readField({ node: callee, key: 'name' });
 
       return typeof name === 'string' ? name : undefined;
     }
 
     if (
-      type === 'MemberExpression' &&
+      type === AstNodeTypes.MEMBER_EXPRESSION &&
       AstNode.readField({ node: callee, key: 'computed' }) === false
     ) {
       const property = AstNode.readField({ node: callee, key: 'property' });
       const name = AstNode.readField({ node: property, key: 'name' });
 
-      return AstNode.getType({ node: property }) === 'Identifier' && typeof name === 'string'
+      return AstNode.getType({ node: property }) === AstNodeTypes.IDENTIFIER &&
+        typeof name === 'string'
         ? name
         : undefined;
     }
@@ -64,12 +68,12 @@ export class HookSupport {
       return [node];
     }
 
-    if (type === 'ObjectExpression') {
+    if (type === AstNodeTypes.OBJECT_EXPRESSION) {
       const properties = AstNode.readField({ node, key: 'properties' });
 
       return Array.isArray(properties)
         ? properties.flatMap((property) =>
-            AstNode.getType({ node: property }) === 'Property'
+            AstNode.getType({ node: property }) === AstNodeTypes.PROPERTY
               ? HookSupport.asyncFunctionsIn({
                   node: AstNode.readField({ node: property, key: 'value' }),
                 })
@@ -78,7 +82,7 @@ export class HookSupport {
         : [];
     }
 
-    if (type === 'ArrayExpression') {
+    if (type === AstNodeTypes.ARRAY_EXPRESSION) {
       const elements = AstNode.readField({ node, key: 'elements' });
 
       return Array.isArray(elements)

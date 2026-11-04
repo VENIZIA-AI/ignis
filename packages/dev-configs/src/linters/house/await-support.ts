@@ -1,11 +1,16 @@
 import type { Rule, SourceCode } from 'eslint';
-import { AstNode } from './common';
+import { AstNode, AstNodeTypes } from './common';
 
-const STATEMENT_LISTS = new Set(['BlockStatement', 'Program', 'StaticBlock', 'SwitchCase']);
+const STATEMENT_LISTS = new Set([
+  AstNodeTypes.BLOCK_STATEMENT,
+  AstNodeTypes.PROGRAM,
+  AstNodeTypes.STATIC_BLOCK,
+  AstNodeTypes.SWITCH_CASE,
+]);
 const FUNCTION_TYPES = new Set([
-  'FunctionDeclaration',
-  'FunctionExpression',
-  'ArrowFunctionExpression',
+  AstNodeTypes.FUNCTION_DECLARATION,
+  AstNodeTypes.FUNCTION_EXPRESSION,
+  AstNodeTypes.ARROW_FUNCTION_EXPRESSION,
 ]);
 /** The child of a statement that runs exactly once, before anything else of that statement. */
 const HEAD_FIELD: Record<string, string> = {
@@ -19,23 +24,23 @@ const HEAD_FIELD: Record<string, string> = {
 };
 /** Nodes that evaluate to a value without doing anything else, so running them later or earlier changes nothing. */
 const PURE_LEAVES = new Set([
-  'Identifier',
-  'Literal',
-  'ThisExpression',
-  'ArrowFunctionExpression',
-  'FunctionExpression',
-  'PrivateIdentifier',
+  AstNodeTypes.IDENTIFIER,
+  AstNodeTypes.LITERAL,
+  AstNodeTypes.THIS_EXPRESSION,
+  AstNodeTypes.ARROW_FUNCTION_EXPRESSION,
+  AstNodeTypes.FUNCTION_EXPRESSION,
+  AstNodeTypes.PRIVATE_IDENTIFIER,
 ]);
 /** Wrappers whose parentheses around an `await` carry no meaning once the `await` is a name. */
 const GROUPING_PARENTS = new Set([
-  'MemberExpression',
-  'TSAsExpression',
-  'TSSatisfiesExpression',
-  'TSNonNullExpression',
-  'UnaryExpression',
-  'BinaryExpression',
-  'SpreadElement',
-  'ArrayExpression',
+  AstNodeTypes.MEMBER_EXPRESSION,
+  AstNodeTypes.AS_EXPRESSION,
+  AstNodeTypes.SATISFIES_EXPRESSION,
+  AstNodeTypes.NON_NULL_EXPRESSION,
+  AstNodeTypes.UNARY_EXPRESSION,
+  AstNodeTypes.BINARY_EXPRESSION,
+  AstNodeTypes.SPREAD_ELEMENT,
+  AstNodeTypes.ARRAY_EXPRESSION,
 ]);
 
 /** The shared parts of the two `await` rules: where a statement can go before another, what may run first, fresh names. */
@@ -72,26 +77,26 @@ export class AwaitSupport {
     while (ancestor) {
       const type = AstNode.getType({ node: ancestor }) ?? '';
 
-      if (FUNCTION_TYPES.has(type) || type === 'ChainExpression') {
+      if (FUNCTION_TYPES.has(type) || type === AstNodeTypes.CHAIN_EXPRESSION) {
         return undefined;
       }
 
       if (
-        type === 'ConditionalExpression' &&
+        type === AstNodeTypes.CONDITIONAL_EXPRESSION &&
         AstNode.readField({ node: ancestor, key: 'test' }) !== child
       ) {
         return undefined;
       }
 
       if (
-        type === 'LogicalExpression' &&
+        type === AstNodeTypes.LOGICAL_EXPRESSION &&
         AstNode.readField({ node: ancestor, key: 'left' }) !== child
       ) {
         return undefined;
       }
 
       if (
-        type === 'AssignmentExpression' &&
+        type === AstNodeTypes.ASSIGNMENT_EXPRESSION &&
         ['??=', '||=', '&&='].includes(
           String(AstNode.readField({ node: ancestor, key: 'operator' })),
         ) &&
@@ -100,16 +105,16 @@ export class AwaitSupport {
         return undefined;
       }
 
-      if (type.endsWith('Statement') || type === 'VariableDeclaration') {
+      if (type.endsWith('Statement') || type === AstNodeTypes.VARIABLE_DECLARATION) {
         const head = HEAD_FIELD[type];
         const isHead =
-          type === 'VariableDeclaration' ||
+          type === AstNodeTypes.VARIABLE_DECLARATION ||
           AstNode.readField({ node: ancestor, key: head }) === child;
         const outer = AwaitSupport.parentOf({ node: ancestor });
 
         const isListed =
           STATEMENT_LISTS.has(AstNode.getType({ node: outer }) ?? '') &&
-          (type === 'VariableDeclaration' || head !== undefined);
+          (type === AstNodeTypes.VARIABLE_DECLARATION || head !== undefined);
 
         return isHead && isListed && AwaitSupport.isNode(ancestor) ? ancestor : undefined;
       }
@@ -136,28 +141,35 @@ export class AwaitSupport {
     if (
       PURE_LEAVES.has(type) ||
       (type.startsWith('TS') &&
-        !['TSAsExpression', 'TSNonNullExpression', 'TSSatisfiesExpression'].includes(type))
+        ![
+          AstNodeTypes.AS_EXPRESSION,
+          AstNodeTypes.NON_NULL_EXPRESSION,
+          AstNodeTypes.SATISFIES_EXPRESSION,
+        ].includes(type))
     ) {
       return true;
     }
 
     const parts = new Map<string, () => boolean>([
-      ['TemplateLiteral', () => all('expressions')],
-      ['MemberExpression', () => pure(field('object')) && pure(field('property'))],
-      ['ArrayExpression', () => all('elements')],
-      ['ObjectExpression', () => all('properties')],
-      ['Property', () => pure(field('key')) && pure(field('value'))],
-      ['SpreadElement', () => pure(field('argument'))],
-      ['UnaryExpression', () => field('operator') !== 'delete' && pure(field('argument'))],
-      ['BinaryExpression', () => pure(field('left')) && pure(field('right'))],
-      ['LogicalExpression', () => pure(field('left')) && pure(field('right'))],
+      [AstNodeTypes.TEMPLATE_LITERAL, () => all('expressions')],
+      [AstNodeTypes.MEMBER_EXPRESSION, () => pure(field('object')) && pure(field('property'))],
+      [AstNodeTypes.ARRAY_EXPRESSION, () => all('elements')],
+      [AstNodeTypes.OBJECT_EXPRESSION, () => all('properties')],
+      [AstNodeTypes.PROPERTY, () => pure(field('key')) && pure(field('value'))],
+      [AstNodeTypes.SPREAD_ELEMENT, () => pure(field('argument'))],
       [
-        'ConditionalExpression',
+        AstNodeTypes.UNARY_EXPRESSION,
+        () => field('operator') !== 'delete' && pure(field('argument')),
+      ],
+      [AstNodeTypes.BINARY_EXPRESSION, () => pure(field('left')) && pure(field('right'))],
+      [AstNodeTypes.LOGICAL_EXPRESSION, () => pure(field('left')) && pure(field('right'))],
+      [
+        AstNodeTypes.CONDITIONAL_EXPRESSION,
         () => ['test', 'consequent', 'alternate'].every((key) => pure(field(key))),
       ],
-      ['TSAsExpression', () => pure(field('expression'))],
-      ['TSNonNullExpression', () => pure(field('expression'))],
-      ['TSSatisfiesExpression', () => pure(field('expression'))],
+      [AstNodeTypes.AS_EXPRESSION, () => pure(field('expression'))],
+      [AstNodeTypes.NON_NULL_EXPRESSION, () => pure(field('expression'))],
+      [AstNodeTypes.SATISFIES_EXPRESSION, () => pure(field('expression'))],
     ]);
 
     return parts.get(type)?.() ?? false;
@@ -288,7 +300,7 @@ export class AwaitSupport {
     const after = sourceCode.getTokenAfter(awaitNode);
     const parentType = AstNode.getType({ node: AwaitSupport.parentOf({ node: awaitNode }) }) ?? '';
     const callee =
-      parentType === 'CallExpression' &&
+      parentType === AstNodeTypes.CALL_EXPRESSION &&
       AstNode.readField({ node: AwaitSupport.parentOf({ node: awaitNode }), key: 'callee' }) ===
         awaitNode;
 

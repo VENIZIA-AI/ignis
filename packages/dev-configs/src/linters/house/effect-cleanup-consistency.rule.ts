@@ -40,7 +40,8 @@ export class EffectCleanupConsistencyRule {
 
         if (
           !current?.hook ||
-          AstNode.getType({ node: AstNode.readField({ node, key: 'body' }) }) !== 'BlockStatement'
+          AstNode.getType({ node: AstNode.readField({ node, key: 'body' }) }) !==
+            AstNodeTypes.BLOCK_STATEMENT
         ) {
           return;
         }
