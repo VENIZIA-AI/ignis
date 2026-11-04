@@ -19,7 +19,7 @@ const isParameterUsed = (opts: { owner: Rule.Node; sourceCode: SourceCode }): bo
 const isPlainParameter = (opts: { parameter: unknown }): boolean =>
   opts.parameter === null ||
   opts.parameter === undefined ||
-  AstNode.getType({ node: opts.parameter }) === AstNodeTypes.IDENTIFIER;
+  AstNode.getType({ node: opts.parameter }) === 'Identifier';
 
 /**
  * `venizia/no-silent-catch`. A handled error leaves a trace (V-C-06). Reported: a `.catch(h)` (also `?.catch`,
@@ -62,8 +62,7 @@ export class NoSilentCatchRule {
 
           if (
             !AwaitSupport.isNode(handler) ||
-            (handlerType !== AstNodeTypes.ARROW_FUNCTION_EXPRESSION &&
-              handlerType !== AstNodeTypes.FUNCTION_EXPRESSION)
+            (handlerType !== 'ArrowFunctionExpression' && handlerType !== 'FunctionExpression')
           ) {
             return;
           }

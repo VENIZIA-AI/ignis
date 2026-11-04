@@ -3,7 +3,7 @@ import type { TRuleSeverity } from '../rules/common';
 import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 
 const HOOK_NAME = /^use[A-Z]/;
-const CALL_TYPES = new Set([AstNodeTypes.CALL_EXPRESSION, AstNodeTypes.NEW_EXPRESSION]);
+const CALL_TYPES = new Set(['CallExpression', 'NewExpression']);
 
 const isArrayContaining = (opts: { list: unknown; item: unknown }) =>
   Array.isArray(opts.list) && opts.list.includes(opts.item);
@@ -14,7 +14,7 @@ const isHookCall = (call: unknown) => {
   const name = AstNode.readField({ node: callee, key: 'name' });
 
   return (
-    AstNode.getType({ node: callee }) === AstNodeTypes.IDENTIFIER &&
+    AstNode.getType({ node: callee }) === 'Identifier' &&
     typeof name === 'string' &&
     HOOK_NAME.test(name)
   );
@@ -40,7 +40,7 @@ const hasDeclaredShape = (object: unknown): boolean => {
     const parent = AstNode.readField({ node: current, key: 'parent' });
     const parentType = AstNode.getType({ node: parent });
     const isTypedVariable =
-      parentType === AstNodeTypes.VARIABLE_DECLARATOR &&
+      parentType === 'VariableDeclarator' &&
       Boolean(
         AstNode.readField({
           node: AstNode.readField({ node: parent, key: 'id' }),
@@ -50,15 +50,14 @@ const hasDeclaredShape = (object: unknown): boolean => {
 
     if (
       isTypedVariable ||
-      parentType === AstNodeTypes.SATISFIES_EXPRESSION ||
+      parentType === 'TSSatisfiesExpression' ||
       isLibraryArgument({ node: current, parent })
     ) {
       return true;
     }
 
     const isNestedValue =
-      parentType === AstNodeTypes.PROPERTY &&
-      AstNode.readField({ node: parent, key: 'value' }) === current;
+      parentType === 'Property' && AstNode.readField({ node: parent, key: 'value' }) === current;
     current = isNestedValue ? AstNode.readField({ node: parent, key: 'parent' }) : undefined;
   }
 
@@ -93,9 +92,9 @@ export class MaxParamsOwnRule {
       const isCallback = (node: Rule.Node) => {
         const parent = node.parent;
         const isJsxProp =
-          AstNode.getType({ node: parent }) === AstNodeTypes.JSX_EXPRESSION_CONTAINER &&
+          AstNode.getType({ node: parent }) === 'JSXExpressionContainer' &&
           AstNode.getType({ node: AstNode.readField({ node: parent, key: 'parent' }) }) ===
-            AstNodeTypes.JSX_ATTRIBUTE;
+            'JSXAttribute';
 
         return isJsxProp || isLibraryArgument({ node, parent });
       };
@@ -117,7 +116,7 @@ export class MaxParamsOwnRule {
         };
 
         return (
-          AstNode.getType({ node: parent }) === AstNodeTypes.METHOD_DEFINITION &&
+          AstNode.getType({ node: parent }) === 'MethodDefinition' &&
           AstNode.readField({ node: parent, key: 'kind' }) === 'constructor' &&
           opts.params.every(isDecorated)
         );
@@ -127,7 +126,7 @@ export class MaxParamsOwnRule {
         const parent = node.parent;
         const parentType = AstNode.getType({ node: parent });
         const isTypedInit =
-          parentType === AstNodeTypes.VARIABLE_DECLARATOR &&
+          parentType === 'VariableDeclarator' &&
           AstNode.readField({ node: parent, key: 'init' }) === node &&
           Boolean(
             AstNode.readField({
@@ -137,9 +136,9 @@ export class MaxParamsOwnRule {
           );
         const grandParent = AstNode.readField({ node: parent, key: 'parent' });
         const isMember =
-          parentType === AstNodeTypes.PROPERTY &&
+          parentType === 'Property' &&
           AstNode.readField({ node: parent, key: 'value' }) === node &&
-          AstNode.getType({ node: grandParent }) === AstNodeTypes.OBJECT_EXPRESSION;
+          AstNode.getType({ node: grandParent }) === 'ObjectExpression';
 
         return isTypedInit || (isMember && hasDeclaredShape(grandParent));
       };

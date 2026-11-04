@@ -1,13 +1,13 @@
 import type { Rule, SourceCode } from 'eslint';
 import { AstNode, AstNodeTypes } from './common';
 
-const STATEMENT_LISTS = new Set([
+export const STATEMENT_LISTS = new Set<string>([
   AstNodeTypes.BLOCK_STATEMENT,
-  AstNodeTypes.PROGRAM,
-  AstNodeTypes.STATIC_BLOCK,
+  'Program',
+  'StaticBlock',
   AstNodeTypes.SWITCH_CASE,
 ]);
-const FUNCTION_TYPES = new Set([
+export const FUNCTION_TYPES = new Set<string>([
   AstNodeTypes.FUNCTION_DECLARATION,
   AstNodeTypes.FUNCTION_EXPRESSION,
   AstNodeTypes.ARROW_FUNCTION_EXPRESSION,
@@ -24,23 +24,23 @@ const HEAD_FIELD: Record<string, string> = {
 };
 /** Nodes that evaluate to a value without doing anything else, so running them later or earlier changes nothing. */
 const PURE_LEAVES = new Set([
-  AstNodeTypes.IDENTIFIER,
-  AstNodeTypes.LITERAL,
-  AstNodeTypes.THIS_EXPRESSION,
-  AstNodeTypes.ARROW_FUNCTION_EXPRESSION,
-  AstNodeTypes.FUNCTION_EXPRESSION,
-  AstNodeTypes.PRIVATE_IDENTIFIER,
+  'Identifier',
+  'Literal',
+  'ThisExpression',
+  'ArrowFunctionExpression',
+  'FunctionExpression',
+  'PrivateIdentifier',
 ]);
 /** Wrappers whose parentheses around an `await` carry no meaning once the `await` is a name. */
 const GROUPING_PARENTS = new Set([
-  AstNodeTypes.MEMBER_EXPRESSION,
-  AstNodeTypes.AS_EXPRESSION,
-  AstNodeTypes.SATISFIES_EXPRESSION,
-  AstNodeTypes.NON_NULL_EXPRESSION,
-  AstNodeTypes.UNARY_EXPRESSION,
-  AstNodeTypes.BINARY_EXPRESSION,
-  AstNodeTypes.SPREAD_ELEMENT,
-  AstNodeTypes.ARRAY_EXPRESSION,
+  'MemberExpression',
+  'TSAsExpression',
+  'TSSatisfiesExpression',
+  'TSNonNullExpression',
+  'UnaryExpression',
+  'BinaryExpression',
+  'SpreadElement',
+  'ArrayExpression',
 ]);
 
 /** The shared parts of the two `await` rules: where a statement can go before another, what may run first, fresh names. */
@@ -77,26 +77,26 @@ export class AwaitSupport {
     while (ancestor) {
       const type = AstNode.getType({ node: ancestor }) ?? '';
 
-      if (FUNCTION_TYPES.has(type) || type === AstNodeTypes.CHAIN_EXPRESSION) {
+      if (FUNCTION_TYPES.has(type) || type === 'ChainExpression') {
         return undefined;
       }
 
       if (
-        type === AstNodeTypes.CONDITIONAL_EXPRESSION &&
+        type === 'ConditionalExpression' &&
         AstNode.readField({ node: ancestor, key: 'test' }) !== child
       ) {
         return undefined;
       }
 
       if (
-        type === AstNodeTypes.LOGICAL_EXPRESSION &&
+        type === 'LogicalExpression' &&
         AstNode.readField({ node: ancestor, key: 'left' }) !== child
       ) {
         return undefined;
       }
 
       if (
-        type === AstNodeTypes.ASSIGNMENT_EXPRESSION &&
+        type === 'AssignmentExpression' &&
         ['??=', '||=', '&&='].includes(
           String(AstNode.readField({ node: ancestor, key: 'operator' })),
         ) &&
@@ -105,16 +105,16 @@ export class AwaitSupport {
         return undefined;
       }
 
-      if (type.endsWith('Statement') || type === AstNodeTypes.VARIABLE_DECLARATION) {
+      if (type.endsWith('Statement') || type === 'VariableDeclaration') {
         const head = HEAD_FIELD[type];
         const isHead =
-          type === AstNodeTypes.VARIABLE_DECLARATION ||
+          type === 'VariableDeclaration' ||
           AstNode.readField({ node: ancestor, key: head }) === child;
         const outer = AwaitSupport.parentOf({ node: ancestor });
 
         const isListed =
           STATEMENT_LISTS.has(AstNode.getType({ node: outer }) ?? '') &&
-          (type === AstNodeTypes.VARIABLE_DECLARATION || head !== undefined);
+          (type === 'VariableDeclaration' || head !== undefined);
 
         return isHead && isListed && AwaitSupport.isNode(ancestor) ? ancestor : undefined;
       }
@@ -141,35 +141,28 @@ export class AwaitSupport {
     if (
       PURE_LEAVES.has(type) ||
       (type.startsWith('TS') &&
-        ![
-          AstNodeTypes.AS_EXPRESSION,
-          AstNodeTypes.NON_NULL_EXPRESSION,
-          AstNodeTypes.SATISFIES_EXPRESSION,
-        ].includes(type))
+        !['TSAsExpression', 'TSNonNullExpression', 'TSSatisfiesExpression'].includes(type))
     ) {
       return true;
     }
 
     const parts = new Map<string, () => boolean>([
-      [AstNodeTypes.TEMPLATE_LITERAL, () => all('expressions')],
-      [AstNodeTypes.MEMBER_EXPRESSION, () => pure(field('object')) && pure(field('property'))],
-      [AstNodeTypes.ARRAY_EXPRESSION, () => all('elements')],
-      [AstNodeTypes.OBJECT_EXPRESSION, () => all('properties')],
-      [AstNodeTypes.PROPERTY, () => pure(field('key')) && pure(field('value'))],
-      [AstNodeTypes.SPREAD_ELEMENT, () => pure(field('argument'))],
+      ['TemplateLiteral', () => all('expressions')],
+      ['MemberExpression', () => pure(field('object')) && pure(field('property'))],
+      ['ArrayExpression', () => all('elements')],
+      ['ObjectExpression', () => all('properties')],
+      ['Property', () => pure(field('key')) && pure(field('value'))],
+      ['SpreadElement', () => pure(field('argument'))],
+      ['UnaryExpression', () => field('operator') !== 'delete' && pure(field('argument'))],
+      ['BinaryExpression', () => pure(field('left')) && pure(field('right'))],
+      ['LogicalExpression', () => pure(field('left')) && pure(field('right'))],
       [
-        AstNodeTypes.UNARY_EXPRESSION,
-        () => field('operator') !== 'delete' && pure(field('argument')),
-      ],
-      [AstNodeTypes.BINARY_EXPRESSION, () => pure(field('left')) && pure(field('right'))],
-      [AstNodeTypes.LOGICAL_EXPRESSION, () => pure(field('left')) && pure(field('right'))],
-      [
-        AstNodeTypes.CONDITIONAL_EXPRESSION,
+        'ConditionalExpression',
         () => ['test', 'consequent', 'alternate'].every((key) => pure(field(key))),
       ],
-      [AstNodeTypes.AS_EXPRESSION, () => pure(field('expression'))],
-      [AstNodeTypes.NON_NULL_EXPRESSION, () => pure(field('expression'))],
-      [AstNodeTypes.SATISFIES_EXPRESSION, () => pure(field('expression'))],
+      ['TSAsExpression', () => pure(field('expression'))],
+      ['TSNonNullExpression', () => pure(field('expression'))],
+      ['TSSatisfiesExpression', () => pure(field('expression'))],
     ]);
 
     return parts.get(type)?.() ?? false;
@@ -300,7 +293,7 @@ export class AwaitSupport {
     const after = sourceCode.getTokenAfter(awaitNode);
     const parentType = AstNode.getType({ node: AwaitSupport.parentOf({ node: awaitNode }) }) ?? '';
     const callee =
-      parentType === AstNodeTypes.CALL_EXPRESSION &&
+      parentType === 'CallExpression' &&
       AstNode.readField({ node: AwaitSupport.parentOf({ node: awaitNode }), key: 'callee' }) ===
         awaitNode;
 

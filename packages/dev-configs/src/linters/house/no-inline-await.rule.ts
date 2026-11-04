@@ -34,13 +34,12 @@ export class NoInlineAwaitRule {
           const parent = AwaitSupport.parentOf({ node });
           const parentType = AstNode.getType({ node: parent });
           const isWhole =
-            (parentType === AstNodeTypes.EXPRESSION_STATEMENT &&
+            (parentType === 'ExpressionStatement' &&
               AstNode.readField({ node: parent, key: 'expression' }) === node) ||
-            (parentType === AstNodeTypes.VARIABLE_DECLARATOR &&
+            (parentType === 'VariableDeclarator' &&
               AstNode.readField({ node: parent, key: 'init' }) === node);
           const isReturned =
-            (parentType === AstNodeTypes.RETURN_STATEMENT ||
-              parentType === AstNodeTypes.ARROW_FUNCTION_EXPRESSION) &&
+            (parentType === 'ReturnStatement' || parentType === 'ArrowFunctionExpression') &&
             (AstNode.readField({ node: parent, key: 'argument' }) === node ||
               AstNode.readField({ node: parent, key: 'body' }) === node);
 
