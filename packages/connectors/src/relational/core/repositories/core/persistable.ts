@@ -119,6 +119,19 @@ export class PersistableRelationalRepository<
     return { count: rs.count, data: rs.rows };
   }
 
+  /**
+   * Inserts one row; `shouldReturn: false` skips reading it back.
+   * @example
+   * ```typescript
+   * import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
+   * import { pgTable, serial, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: serial('id').primaryKey(), status: text('status') });
+   * declare const repo: DefaultCRUDRepository<typeof users>;
+   * const { data } = await repo.create({ data: { status: 'ACTIVE' } });
+   * await repo.create({ data: { status: 'ACTIVE' }, options: { shouldReturn: false } });
+   * ```
+   */
   override create(opts: {
     data: PersistObject;
     options: ExtraOptions & { shouldReturn: false };
@@ -140,6 +153,18 @@ export class PersistableRelationalRepository<
     return { count: rs.count, data: rs.data?.[0] ?? null };
   }
 
+  /**
+   * Inserts many rows in one statement.
+   * @example
+   * ```typescript
+   * import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
+   * import { pgTable, serial, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: serial('id').primaryKey(), status: text('status') });
+   * declare const repo: DefaultCRUDRepository<typeof users>;
+   * const { count } = await repo.createAll({ data: [{ status: 'ACTIVE' }, { status: 'DONE' }] });
+   * ```
+   */
   override createAll(opts: {
     data: Array<PersistObject>;
     options: ExtraOptions & { shouldReturn: false };
@@ -253,6 +278,18 @@ export class PersistableRelationalRepository<
     return { count: rs.count, data: rs.rows };
   }
 
+  /**
+   * Updates the row with this `id`.
+   * @example
+   * ```typescript
+   * import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
+   * import { pgTable, serial, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: serial('id').primaryKey(), status: text('status') });
+   * declare const repo: DefaultCRUDRepository<typeof users>;
+   * const { data } = await repo.updateById({ id: 1, data: { status: 'DONE' } });
+   * ```
+   */
   override updateById(opts: {
     id: DataObject['id'];
     data: Partial<PersistObject>;
@@ -279,7 +316,19 @@ export class PersistableRelationalRepository<
     return { count: rs.count, data: rs.data?.[0] ?? null };
   }
 
-  /** Gives each row its own `data`: one update per row, all in one transaction. A row that matches nothing (missing, outside the scope, soft deleted) is `null` in `data` and adds 0 to `count`. */
+  /**
+   * Gives each row its own `data`: one update per row, all in one transaction. A row that matches nothing (missing, outside the scope, soft deleted) is `null` in `data` and adds 0 to `count`.
+   * @example
+   * ```typescript
+   * import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
+   * import { pgTable, serial, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: serial('id').primaryKey(), status: text('status') });
+   * declare const repo: DefaultCRUDRepository<typeof users>;
+   * const rows = [{ id: 1, data: { status: 'DONE' } }, { id: 2, data: { status: 'ACTIVE' } }];
+   * await repo.updateEach({ rows, options: { shouldReturn: false } });
+   * ```
+   */
   async updateEach<R = DataObject>(opts: {
     rows: Array<{ id: DataObject['id']; data: Partial<PersistObject> }>;
     options?: ExtraOptions & {
@@ -318,6 +367,19 @@ export class PersistableRelationalRepository<
     });
   }
 
+  /**
+   * Applies one `data` patch to every row matching `where`; an empty `where` needs `options.force`.
+   * @example
+   * ```typescript
+   * import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
+   * import { pgTable, serial, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: serial('id').primaryKey(), status: text('status') });
+   * declare const repo: DefaultCRUDRepository<typeof users>;
+   * await repo.updateAll({ where: { status: 'ACTIVE' }, data: { status: 'DONE' } });
+   * await repo.updateAll({ where: {}, data: { status: 'DONE' }, options: { force: true } });
+   * ```
+   */
   override updateAll(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
@@ -392,6 +454,18 @@ export class PersistableRelationalRepository<
     return { count: rs.count, data: rs.rows };
   }
 
+  /**
+   * Deletes the row with this `id`.
+   * @example
+   * ```typescript
+   * import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
+   * import { pgTable, serial, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: serial('id').primaryKey(), status: text('status') });
+   * declare const repo: DefaultCRUDRepository<typeof users>;
+   * const { count } = await repo.deleteById({ id: 1 });
+   * ```
+   */
   override deleteById(opts: {
     id: DataObject['id'];
     options: ExtraOptions & { shouldReturn: false };
@@ -414,6 +488,19 @@ export class PersistableRelationalRepository<
     return { count: rs.count, data: rs.data?.[0] ?? null };
   }
 
+  /**
+   * Deletes the rows matching `where`; without `where` it needs `options.force`.
+   * @example
+   * ```typescript
+   * import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
+   * import { pgTable, serial, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: serial('id').primaryKey(), status: text('status') });
+   * declare const repo: DefaultCRUDRepository<typeof users>;
+   * await repo.deleteAll({ where: { status: 'DONE' } });
+   * await repo.deleteAll({ options: { force: true } });
+   * ```
+   */
   override deleteAll(opts: {
     where?: TWhere<DataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };
@@ -429,6 +516,18 @@ export class PersistableRelationalRepository<
     return this._delete<R>({ where: opts.where ?? {}, options: opts.options });
   }
 
+  /**
+   * Deletes the rows matching `where`.
+   * @example
+   * ```typescript
+   * import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
+   * import { pgTable, serial, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: serial('id').primaryKey(), status: text('status') });
+   * declare const repo: DefaultCRUDRepository<typeof users>;
+   * const { count } = await repo.deleteBy({ where: { status: 'DONE' } });
+   * ```
+   */
   override deleteBy(opts: {
     where: TWhere<DataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };

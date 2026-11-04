@@ -123,6 +123,19 @@ export class ReadableRelationalRepository<
     });
   }
 
+  /**
+   * Returns the rows matching `filter`; `options.shouldQueryRange` returns them with their range.
+   * @example
+   * ```typescript
+   * import { ReadableRepository } from '@venizia/ignis-connectors/postgres';
+   * import { integer, pgTable, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: integer('id').primaryKey(), status: text('status') });
+   * declare const repo: ReadableRepository<typeof users>;
+   * const rows = await repo.find({ filter: { where: { status: 'ACTIVE' }, order: ['id DESC'], limit: 10 } });
+   * const page = await repo.find({ filter: { limit: 10 }, options: { shouldQueryRange: true } });
+   * ```
+   */
   override find<R = unknown, const F extends TFields<DataObject> = TFields<DataObject>>(opts: {
     filter: TFilter<DataObject, F>;
     options: TFindRangeOptions<ExtraOptions, TRow<DataObject, R, F>>;
@@ -224,7 +237,18 @@ export class ReadableRelationalRepository<
     };
   }
 
-  /** Auto-selects Core API or Query API based on filter complexity. */
+  /**
+   * Auto-selects Core API or Query API based on filter complexity.
+   * @example
+   * ```typescript
+   * import { ReadableRepository } from '@venizia/ignis-connectors/postgres';
+   * import { integer, pgTable, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: integer('id').primaryKey(), status: text('status') });
+   * declare const repo: ReadableRepository<typeof users>;
+   * const user = await repo.findOne({ filter: { where: { status: 'ACTIVE' } } });
+   * ```
+   */
   override async findOne<
     R = unknown,
     const F extends TFields<DataObject> = TFields<DataObject>,
@@ -276,7 +300,18 @@ export class ReadableRelationalRepository<
     });
   }
 
-  /** Delegates to findOne with id in the where clause. */
+  /**
+   * Delegates to findOne with id in the where clause.
+   * @example
+   * ```typescript
+   * import { ReadableRepository } from '@venizia/ignis-connectors/postgres';
+   * import { integer, pgTable, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: integer('id').primaryKey(), status: text('status') });
+   * declare const repo: ReadableRepository<typeof users>;
+   * const user = await repo.findById({ id: 1 });
+   * ```
+   */
   override findById<R = unknown, const F extends TFields<DataObject> = TFields<DataObject>>(opts: {
     id: DataObject['id'];
     filter?: TByIdFilter<DataObject, F>;
@@ -291,6 +326,18 @@ export class ReadableRelationalRepository<
     });
   }
 
+  /**
+   * Counts the rows matching `where`.
+   * @example
+   * ```typescript
+   * import { ReadableRepository } from '@venizia/ignis-connectors/postgres';
+   * import { integer, pgTable, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: integer('id').primaryKey(), status: text('status') });
+   * declare const repo: ReadableRepository<typeof users>;
+   * const { count } = await repo.count({ where: { status: 'ACTIVE' } });
+   * ```
+   */
   override async count(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions;
@@ -315,6 +362,18 @@ export class ReadableRelationalRepository<
     return { count };
   }
 
+  /**
+   * Tells whether at least one row matches `where`.
+   * @example
+   * ```typescript
+   * import { ReadableRepository } from '@venizia/ignis-connectors/postgres';
+   * import { integer, pgTable, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: integer('id').primaryKey(), status: text('status') });
+   * declare const repo: ReadableRepository<typeof users>;
+   * const found = await repo.existsWith({ where: { status: 'ACTIVE' } });
+   * ```
+   */
   override async existsWith(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions;

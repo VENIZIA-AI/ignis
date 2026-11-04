@@ -167,6 +167,18 @@ export class SoftDeletableRelationalRepository<
     });
   }
 
+  /**
+   * Clears `deletedAt` on the soft-deleted row with this `id`.
+   * @example
+   * ```typescript
+   * import { SoftDeletableRepository } from '@venizia/ignis-connectors/postgres';
+   * import { pgTable, serial, timestamp } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: serial('id').primaryKey(), deletedAt: timestamp('deleted_at') });
+   * declare const repo: SoftDeletableRepository<typeof users>;
+   * const { data } = await repo.restoreById({ id: 1 });
+   * ```
+   */
   async restoreById<R = DataObject>(opts: {
     id: DataObject['id'];
     options?: ExtraOptions & { shouldReturn?: boolean };
@@ -192,6 +204,19 @@ export class SoftDeletableRelationalRepository<
     return { count: rs.count, data: rs.data?.[0] ?? null };
   }
 
+  /**
+   * Clears `deletedAt` on the soft-deleted rows matching `where`; an empty `where` needs `options.force`.
+   * @example
+   * ```typescript
+   * import { SoftDeletableRepository } from '@venizia/ignis-connectors/postgres';
+   * import { pgTable, serial, timestamp } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: serial('id').primaryKey(), deletedAt: timestamp('deleted_at') });
+   * declare const repo: SoftDeletableRepository<typeof users>;
+   * await repo.restoreAll({ where: { id: { gt: 10 } } });
+   * await repo.restoreAll({ options: { force: true, shouldReturn: false } });
+   * ```
+   */
   async restoreAll<R = DataObject>(opts: {
     where?: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
@@ -212,6 +237,18 @@ export class SoftDeletableRelationalRepository<
     return this._update<R>({ where: opts.where ?? {}, data: this.softDeletePatch(null), options });
   }
 
+  /**
+   * Clears `deletedAt` on the soft-deleted rows matching `where`.
+   * @example
+   * ```typescript
+   * import { SoftDeletableRepository } from '@venizia/ignis-connectors/postgres';
+   * import { pgTable, serial, timestamp } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: serial('id').primaryKey(), deletedAt: timestamp('deleted_at') });
+   * declare const repo: SoftDeletableRepository<typeof users>;
+   * const { count } = await repo.restoreBy({ where: { id: { inq: [1, 2] } } });
+   * ```
+   */
   async restoreBy<R = DataObject>(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };

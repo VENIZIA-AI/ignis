@@ -42,6 +42,20 @@ const defaultStringId = (): string => UuidHelper.getInstance().v7();
 
 /** Adds the `id` primary key column. Without options it is an integer identity; string ids default to a time-ordered UUID v7. */
 export class PostgresIdEnricher {
+  /**
+   * Returns the `id` primary key column definition to spread into a table.
+   *
+   * @example
+   * ```typescript
+   * import { PostgresIdEnricher } from '@venizia/ignis-connectors/postgres';
+   * import { pgTable, text } from 'drizzle-orm/pg-core';
+   *
+   * export const tags = pgTable('Tag', {
+   *   ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+   *   name: text('name').notNull(),
+   * });
+   * ```
+   */
   static generateColumnDefs<Opts extends TIdEnricherOptions | undefined>(
     opts?: Opts,
   ): TIdColumnDef<Opts> {

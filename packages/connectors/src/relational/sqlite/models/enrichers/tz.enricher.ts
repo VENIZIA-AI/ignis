@@ -26,7 +26,7 @@ export type TTzEnricherResult<Opts extends TTzEnricherOptions | undefined = unde
       : {}
     : {}); // no deletedAt when opts is undefined
 
-/** Adds ISO 8601 UTC timestamp columns to a table: `created_at` and `modified_at` by default, `deleted_at` only when enabled. */
+/** Adds ISO 8601 UTC timestamp columns to a table: `created_at` and `modified_at`, plus `deleted_at` when enabled. */
 export class SqliteTzEnricher {
   static generateColumnDefs<Opts extends TTzEnricherOptions | undefined>(
     opts?: Opts,

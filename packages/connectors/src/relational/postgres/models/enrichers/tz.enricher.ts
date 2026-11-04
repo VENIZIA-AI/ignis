@@ -26,8 +26,24 @@ export type TTzEnricherResult<Opts extends TTzEnricherOptions | undefined = unde
       : {}
     : {}); // no deletedAt when opts is undefined
 
-/** Adds `createdAt` (default `NOW()`), `modifiedAt` (default `NOW()`, refreshed on update) and, when enabled, a nullable `deletedAt`. `deletedAt` is off by default. */
+/** Adds `createdAt` (default `NOW()`), `modifiedAt` (default `NOW()`, refreshed on update) and, when enabled, a nullable `deletedAt`. */
 export class PostgresTzEnricher {
+  /**
+   * Returns the `createdAt`, `modifiedAt` and optional `deletedAt` column definitions to spread into a table.
+   *
+   * @example
+   * ```typescript
+   * import { PostgresTzEnricher } from '@venizia/ignis-connectors/postgres';
+   * import { integer, pgTable } from 'drizzle-orm/pg-core';
+   *
+   * export const posts = pgTable('Post', {
+   *   id: integer('id').primaryKey(),
+   *   ...PostgresTzEnricher.generateColumnDefs({
+   *     deleted: { enable: true, columnName: 'deleted_at', withTimezone: true },
+   *   }),
+   * });
+   * ```
+   */
   static generateColumnDefs<Opts extends TTzEnricherOptions | undefined>(
     opts?: Opts,
   ): TTzEnricherResult<Opts> {
