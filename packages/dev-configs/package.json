@@ -64,6 +64,7 @@
     "dist",
     "src/tsconfig",
     "!**/__tests__",
+    "!**/*.d.ts.map",
     "!**/*.tsbuildinfo"
   ],
   "exports": {
