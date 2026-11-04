@@ -22,7 +22,7 @@ import {
   Sorts,
 } from '@venizia/ignis-kernel';
 import type { TTableObject, TTableSchemaWithId } from '@/relational/core/models/common';
-import { MetadataRegistry } from '@venizia/ignis-kernel';
+import { type MetadataRegistry } from '@venizia/ignis-kernel';
 import type { TConstValue, TNullable } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { ObjectUtility } from '@venizia/ignis-helpers/common';
@@ -207,13 +207,7 @@ export abstract class FilterBuilder extends BaseHelper {
     const { schema, methodName } = opts;
 
     try {
-      // By schema first: `@model` registers the class name unless TABLE_NAME matches the table.
-      const registry = MetadataRegistry.getInstance();
-
-      return (
-        registry.getModelEntryBySchema({ schema }) ??
-        registry.getModelEntry({ name: getTableName(schema) })
-      );
+      return ScopeThroughLink.entryOf({ schema });
     } catch (error) {
       this.logger.warn(
         '[%s] Model metadata lookup failed - continuing without model settings | %s',
@@ -294,7 +288,7 @@ export abstract class FilterBuilder extends BaseHelper {
       relation: settings.through.relation,
       relations: this.resolveRelations({ schema }),
     });
-    const parentSettings = this.resolveScopeFilter({ schema: link.parentSchema });
+    const parentSettings = link.parentEntry?.metadata?.settings?.access;
 
     if (!parentSettings) {
       throw getError({

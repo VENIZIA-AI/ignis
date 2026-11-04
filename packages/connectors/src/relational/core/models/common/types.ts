@@ -86,15 +86,6 @@ type TRowOf<Entity> = Entity extends new (...args: never) => { $inferData?: infe
 
 type TDefinitionsOf<Entity extends IDefinedEntity> = NonNullable<Entity['relationDefinitions']>;
 
-/** The names of the entity's `one` relations: the only ones a child can be scoped through. */
-export type TOneRelationNameOf<Entity extends IDefinedEntity> = {
-  [Name in keyof TDefinitionsOf<Entity> & string]: TDefinitionsOf<Entity>[Name] extends {
-    type: typeof RelationTypes.ONE;
-  }
-    ? Name
-    : never;
-}[keyof TDefinitionsOf<Entity> & string];
-
 /** A row of the entity plus its relations, so a relation is declared once instead of twice. */
 export type TEntityObject<Entity extends IDefinedEntity> = TRowOf<Entity> & {
   [Name in keyof TDefinitionsOf<Entity>]?: TDefinitionsOf<Entity>[Name] extends {

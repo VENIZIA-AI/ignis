@@ -537,11 +537,11 @@ export class ScopeWriteGuard {
     });
   }
 
-  /** A model scoped through its parent reads only in this release: its writes are refused, so none is ever wider than its parent allows. */
+  /** A model scoped through its parent is read through its parent: its writes are refused, so none is ever wider than its parent allows. */
   static throughDenied(opts: { model: string; operation: TScopeOperation }) {
     return ScopeWriteGuard.denied({
       ...opts,
-      detail: 'access.through supports reads only in this release',
+      detail: 'access.through does not support writes',
     });
   }
 

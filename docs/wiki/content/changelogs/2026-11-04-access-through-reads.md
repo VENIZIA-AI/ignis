@@ -14,9 +14,9 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis-connectors', '@venizia/ignis
 
 ## What changed
 
-- **`ScopeThrough.of({ entity, relation })`.** It returns the value of `access.through` and checks `relation` against the entity: a misspelled name, a to-many relation or a name held in a plain `string` does not compile. A hand-written `{ relation: 'x' }` does not compile either, because the value carries a brand (`ScopeThroughBrand`).
-- **How a read is scoped.** The child keeps the rows whose foreign key is in the set the parent's own scope allows, built with the `inSql` operator. The parent's `resolve` receives the same `operation`. `UNRESTRICTED` and `null` come from the parent. Several hops chain, up to 5.
-- **Checks at boot.** The relation exists and is a `one` with a single-column key, the parent has an `access`, there is no cycle and no chain longer than 5. A foreign key with no index is a warning.
+- **`ScopeThrough.of({ entity, relation })`.** It returns the value of `access.through` and checks `relation` against the entity: a misspelled name, a to-many relation or a name held in a plain `string` does not compile. `ScopeThrough` is a class with a private constructor, so a hand-written `{ relation: 'x' }` does not compile either. It is exported by `@venizia/ignis-kernel` and `@venizia/ignis`, with the `TOneRelationNameOf` type.
+- **How a read is scoped.** The child keeps the rows whose foreign key is in the set the parent's own scope allows, built with the `inSql` operator. The parent's `resolve` receives the same `operation`. `UNRESTRICTED` and `null` come from the parent: a parent that resolves no scope denies the child, and a `through` model has no `onMissing`. Several hops chain, up to 5. A row with a null foreign key is invisible under a restricting scope, and visible under `UNRESTRICTED`.
+- **Checks at boot.** The relation exists and is a `one` with a single-column key, the parent has an `access`, there is no cycle and no chain longer than 5, and the model declares no `onMissing`, `columns` or `write`. A foreign key with no index is a warning.
 - **Writes are refused.** Create, update, delete, soft delete and restore on a `through` model throw a 403 that names `access.through`, even when the parent is `UNRESTRICTED`.
 - **`TModelAccessSettings`** is a resolver (`IModelAccessSettings`) or a through (`IModelAccessThroughSettings`), never both. `columns` and `write` stay with the resolver.
 

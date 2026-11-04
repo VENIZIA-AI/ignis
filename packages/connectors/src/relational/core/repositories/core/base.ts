@@ -244,7 +244,7 @@ export abstract class RelationalBaseRepository<
       return userFilter ?? {};
     }
 
-    // A model scoped through its parent reads only, in this release: every write is refused, whatever the parent resolves.
+    // A model scoped through its parent is read-only: every write is refused, whatever the parent resolves.
     if (scopeFilterSettings.through && mutation !== undefined) {
       throw ScopeWriteGuard.throughDenied({ model: this.entity.name, operation: mutation });
     }

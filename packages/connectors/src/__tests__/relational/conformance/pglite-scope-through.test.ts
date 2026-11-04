@@ -1,19 +1,20 @@
 import { PGlite } from '@electric-sql/pglite';
+import { PgDialect } from 'drizzle-orm/pg-core';
 import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { datasource, model, ScopeFilters, type TScopeOperation } from '@venizia/ignis-kernel';
+import {
+  datasource,
+  model,
+  ScopeFilters,
+  ScopeThrough,
+  type TScopeOperation,
+} from '@venizia/ignis-kernel';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { integer, pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
-import {
-  many,
-  ModelFactory,
-  one,
-  RelationDeclarations,
-  ScopeThrough,
-} from '@/relational/postgres/models';
+import { many, ModelFactory, one, RelationDeclarations } from '@/relational/postgres/models';
 import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 
 /**
@@ -36,6 +37,8 @@ const variantTable = pgTable(VARIANT_TABLE, {
   productId: integer('product_id')
     .notNull()
     .references((): AnyPgColumn => productTable.id),
+  /** A stale copy of the tenant, deliberately wrong: the scope must never read it. */
+  merchantId: text('merchant_id'),
   name: text('name').notNull(),
 });
 
@@ -99,6 +102,7 @@ const OptionBase = ModelFactory.defineEntity({
   type: 'entity',
   settings: {
     access: { through: ScopeThrough.of({ entity: OptionBase, relation: 'variant' }) },
+    query: { filter: { where: { name: { neq: 'o-hidden' } } } },
   },
 })
 class Option extends OptionBase {}
@@ -161,7 +165,7 @@ beforeAll(async () => {
   await client.waitReady;
   await client.exec(`
     CREATE TABLE through_product (id serial primary key, merchant_id text not null, name text not null);
-    CREATE TABLE through_variant (id serial primary key, product_id integer not null references through_product(id), name text not null);
+    CREATE TABLE through_variant (id serial primary key, product_id integer not null references through_product(id), merchant_id text, name text not null);
     CREATE TABLE through_option (id serial primary key, variant_id integer not null references through_variant(id), name text not null);
   `);
 
@@ -188,8 +192,8 @@ beforeEach(async () => {
   await client.exec(`
     TRUNCATE through_option, through_variant, through_product RESTART IDENTITY;
     INSERT INTO through_product (merchant_id, name) VALUES ('m1', 'p1'), ('m1', 'p2'), ('m2', 'p3');
-    INSERT INTO through_variant (product_id, name) VALUES (1, 'v1'), (2, 'v2'), (3, 'v3');
-    INSERT INTO through_option (variant_id, name) VALUES (1, 'o1'), (2, 'o2'), (3, 'o3');
+    INSERT INTO through_variant (product_id, merchant_id, name) VALUES (1, 'm2', 'v1'), (2, 'm2', 'v2'), (3, 'm1', 'v3');
+    INSERT INTO through_option (variant_id, name) VALUES (1, 'o1'), (2, 'o2'), (3, 'o3'), (1, 'o-hidden');
   `);
 });
 
@@ -277,6 +281,60 @@ describe('a child is scoped by its parent', () => {
       ['o1'],
       ['o2'],
     ]);
+  });
+});
+
+describe('what the scope is built from', () => {
+  test('the SQL is qualified by table and parameterized, so the child columns cannot capture it', async () => {
+    const settings = variants.getAccessSettings();
+
+    if (!settings) {
+      throw new Error('expected the Variant model to declare access');
+    }
+
+    const scope = variants['queryDialect'].resolveAccessScope({
+      settings,
+      schema: variantTable,
+      operation: 'read',
+    });
+    const subquery = (scope as AnyType).productId.inSql.getSQL();
+    const { sql, params } = new PgDialect().sqlToQuery(subquery);
+
+    expect(sql).toBe(
+      'select "through_product"."id" from "through_product" where "through_product"."merchant_id" = $1',
+    );
+    expect(params).toEqual(['m1']);
+  });
+
+  test('a child column named like the parent scope column does not change the scope', async () => {
+    const listed = await variants.find({ filter: {} });
+
+    expect(names(listed)).toEqual(['v1', 'v2']);
+  });
+
+  test('a skipped default filter never lifts the scope', async () => {
+    const skipped = await options.find({ filter: {}, options: { shouldSkipDefaultFilter: true } });
+
+    expect(names(skipped)).toEqual(['o-hidden', 'o1', 'o2']);
+  });
+
+  test('an include skips the default filter of its relation and keeps the scope', async () => {
+    const [first] = await variants.find({
+      filter: {
+        where: { name: 'v1' },
+        include: [{ relation: 'options', shouldSkipDefaultFilter: true }],
+      },
+    });
+
+    expect(names((first as AnyType).options)).toEqual(['o-hidden', 'o1']);
+  });
+
+  test('children included from the parent are scoped through it', async () => {
+    const listed = await products.find({
+      filter: { include: [{ relation: 'variants' }], order: ['id asc'] },
+    });
+
+    expect(listed.map((row) => names((row as AnyType).variants))).toEqual([['v1'], ['v2']]);
   });
 });
 
