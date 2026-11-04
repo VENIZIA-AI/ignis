@@ -1,8 +1,11 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 
-/** Defaults and ceilings of event dispatch retry. `MAX_ATTEMPTS` and `BASE_DELAY_MS` (ms) apply when `register` gives no `retry`; the `*_CEILING` and `*_WINDOW_MS` values cap what it may ask for. */
+/** Defaults and ceilings of event dispatch retry: the `*_CEILING` and `*_WINDOW_MS` values cap what `register` may ask for. */
 export class EventDispatchRetry {
+  /** Attempts per dispatch when `register` gives no `retry.maxAttempts`. */
   static readonly MAX_ATTEMPTS = 3;
+
+  /** First backoff delay in ms when `register` gives no `retry.baseDelayMs`. */
   static readonly BASE_DELAY_MS = 100;
 
   /**

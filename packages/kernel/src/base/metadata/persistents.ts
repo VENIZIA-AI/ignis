@@ -17,7 +17,21 @@ import { RepositoryTypes } from '../repositories/common/constants';
 import { injectable, InjectableUtility } from './injectable';
 import { ModelMetadataUtility } from './model-metadata';
 
-/** Registers a model class with its static schema and relations. */
+/**
+ * Registers a model class with its static schema and relations.
+ *
+ * @example
+ * ```typescript
+ * import { model } from '@venizia/ignis';
+ * import { ModelFactory } from '@venizia/ignis-connectors/postgres';
+ * import { pgTable, serial, text } from 'drizzle-orm/pg-core';
+ *
+ * const noteTable = pgTable('Note', { id: serial('id').primaryKey(), body: text('body') });
+ *
+ * export @model({ settings: { query: { limit: { default: 20 } } } })
+ * class Note extends ModelFactory.defineEntity({ table: noteTable }) {}
+ * ```
+ */
 export const model = (input: IModelMetadata = {}): ClassDecorator => {
   return (target) => {
     injectable({
@@ -61,7 +75,24 @@ export const model = (input: IModelMetadata = {}): ClassDecorator => {
   };
 };
 
-/** Registers a datasource with driver and auto-discovery settings. */
+/**
+ * Registers a datasource with driver and auto-discovery settings.
+ *
+ * @example
+ * ```typescript
+ * import { datasource } from '@venizia/ignis';
+ * import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
+ * import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
+ * import { Pool } from 'pg';
+ *
+ * export @datasource({ driver: NodePostgresDriver })
+ * class AppDataSource extends BasePostgresDataSource<{ connectionString: string }> {
+ *   constructor() { super({ name: AppDataSource.name, config: { connectionString: 'postgres://localhost/app' } }); }
+ *   override configure(): void { this.client = new Pool(this.settings); }
+ *   override getConnectionString(): string { return this.settings.connectionString; }
+ * }
+ * ```
+ */
 export const datasource = (metadata?: IDataSourceMetadata): ClassDecorator => {
   return (target) => {
     injectable({
@@ -326,7 +357,20 @@ const applyRepositoryMetadata = <
   registry.setRepositoryMetadata({ target, metadata: { ...metadata, _resolved: resolved } });
 };
 
-/** Class decorator that registers a repository and binds it to a model (or, for a remote repository, only a datasource). Called without arguments on a subclass it reuses the type, model and datasource of its nearest decorated parent; registration options are not inherited. */
+/**
+ * Class decorator that registers a repository and binds it to a model (or, for a remote repository, only a datasource). Called without arguments on a subclass it reuses the type, model and datasource of its nearest decorated parent; registration options are not inherited.
+ *
+ * @example
+ * ```typescript
+ * import { repository } from '@venizia/ignis';
+ * import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
+ * import { AppDataSource } from './app.datasource';
+ * import { Note, noteTable } from './note.model';
+ *
+ * export @repository({ model: Note, dataSource: AppDataSource })
+ * class NoteRepository extends DefaultCRUDRepository<typeof noteTable> {}
+ * ```
+ */
 export const repository = <
   Model extends AbstractEntity = AbstractEntity,
   DataSource extends IDataSource = IDataSource,

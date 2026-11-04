@@ -43,7 +43,11 @@ export interface IControllerOptions {
   scope: string;
   /** Falls back to @controller decorator path if not provided. */
   path?: string;
-  /** When true (default), /users and /users/ are different routes. */
+  /**
+   * When true, /users and /users/ are different routes.
+   *
+   * @default true
+   */
   isStrict?: boolean;
 }
 

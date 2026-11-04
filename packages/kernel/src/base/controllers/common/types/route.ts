@@ -73,7 +73,11 @@ export type TResponseBodyOf<R extends { responses: AnyType }> = TInferDistributi
 
 /** What a CRUD route lets a caller override: auth, `enabled`, the request schemas (params, query, body, headers) and the response schema and headers. */
 export type TCustomizableRouteConfig = TRouteAuthConfig & {
-  /** Whether this route is registered. Defaults to true. */
+  /**
+   * Whether this route is registered.
+   *
+   * @default true
+   */
   enabled?: boolean;
   request?: {
     params?: TAnyObjectSchema;

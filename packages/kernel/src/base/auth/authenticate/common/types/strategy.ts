@@ -21,9 +21,11 @@ export interface IAuthenticationStrategy<E extends Env = Env> {
   authenticate(context: TContext<E, string>): Promise<IAuthUser>;
 }
 
-/** Builds the authentication middleware for the listed strategy names. `mode` defaults to `any`. */
+/** Builds the authentication middleware for the listed strategy names. */
 export type TAuthenticateFn<RouteEnv extends Env = Env> = (opts: {
   strategies: string[];
+
+  /** @default 'any' */
   mode?: TAuthMode;
 }) => MiddlewareHandler<RouteEnv>;
 

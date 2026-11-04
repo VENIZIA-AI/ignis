@@ -32,7 +32,7 @@ export class RepositoryOperationScopes {
 /** Valid repository operation scope values. */
 export type TRepositoryOperationScope = TConstValue<typeof RepositoryOperationScopes>;
 
-/** What `@repository` binds: MODEL, a model this application declares (the default); REMOTE, data behind another service's API, with no model. */
+/** What `@repository` binds: MODEL, a model this application declares; REMOTE, data behind another service's API, with no model. */
 export class RepositoryTypes {
   static readonly MODEL = 'model';
   static readonly REMOTE = 'remote';
@@ -68,7 +68,7 @@ export type TScopeFilterMissingBehavior = TConstValue<typeof ScopeFilterMissingB
  * passes either way.
  */
 export class ScopeWriteGuards {
-  /** Default. A row whose scope column disagrees, or is absent on create, is refused and nothing is written. */
+  /** A row whose scope column disagrees, or is absent on create, is refused and nothing is written. */
   static readonly REJECT = 'reject';
   /** An ABSENT scope column is filled from an equality scope; a value that disagrees is still refused. */
   static readonly ASSIGN = 'assign';

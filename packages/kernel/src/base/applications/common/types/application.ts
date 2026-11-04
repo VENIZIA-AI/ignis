@@ -14,12 +14,18 @@ import type { IMiddlewareConfigs } from './middlewares';
 
 /** No `host`/`port`: a browser Worker has neither, and carrying them here made one silently configured with `localhost:3000`. `@venizia/ignis` widens this shape with both - see its `IServerApplicationConfigs`. */
 export interface IApplicationConfigs {
-  /**
-   * `isStrict` (default `true`) makes `/users` and `/users/` different routes; `false` answers both.
-   * Under `false`, declare routes without a trailing slash: a route declared as `/users/` answers
-   * neither `/users` nor `/users/`.
-   */
-  path: { base: string; isStrict: boolean };
+  path: {
+    base: string;
+
+    /**
+     * Whether `/users` and `/users/` are different routes; `false` answers both. Under `false`,
+     * declare routes without a trailing slash: a route declared as `/users/` answers neither
+     * `/users` nor `/users/`.
+     *
+     * @default true
+     */
+    isStrict: boolean;
+  };
   requestId?: { isStrict: boolean };
   favicon?: string;
 
@@ -29,12 +35,25 @@ export interface IApplicationConfigs {
   /** Generated indexes to register before `preConfigure` - one, or an array composed from several packages. */
   artifacts?: TArtifactIndexInput;
 
-  /** Registers every class a stereotype decorated, so an application lists none of its own. Off by default: an absent `artifacts` keeps meaning "register nothing", never "register everything". Both together register the union, de-duplicated - which is how an application discovers its own classes and still composes a library index. */
+  /**
+   * Registers every class a stereotype decorated, so an application lists none of its own. An absent
+   * `artifacts` keeps meaning "register nothing", never "register everything". Both together
+   * register the union, de-duplicated - which is how an application discovers its own classes and
+   * still composes a library index.
+   *
+   * @default false
+   */
   discoverArtifacts?: boolean;
 
   /** Boot-time checks. Without `binding`, nothing is verified, and hand registration and same-key override stay allowed. */
   bootChecks?: {
-    binding?: { doVerify: boolean; allowManual: boolean; allowOverride: boolean };
+    binding?: {
+      doVerify: boolean;
+      allowManual: boolean;
+
+      /** @default true */
+      allowOverride: boolean;
+    };
 
     /**
      * Two different classes deriving one binding key from their class name fail registration: in a
@@ -45,16 +64,28 @@ export interface IApplicationConfigs {
     allowDerivedKeyCollision?: boolean;
   };
 
-  /** Controller transports to enable. Defaults to ['rest']. */
+  /**
+   * Controller transports to enable.
+   *
+   * @default ['rest']
+   */
   transports?: TControllerTransport[];
 
   asyncContext?: { enable: boolean };
-  debug?: { shouldShowRoutes?: boolean };
+  debug?: {
+    /** @default false */
+    shouldShowRoutes?: boolean;
+  };
 
   /** The framework installs `cors` (first) and `bodyLimit` (right after the request id). Every other key is typed only: wire it in `setupMiddlewares()`. */
   middlewares?: IMiddlewareConfigs;
 
-  /** How long `stop()` waits for one datasource's `close()` before it logs and moves on. Default `10_000`; `0` waits without limit. */
+  /**
+   * How long `stop()` waits, in ms, for one datasource's `close()` before it logs and moves on; `0`
+   * waits without limit.
+   *
+   * @default 10_000
+   */
   dataSourceCloseTimeoutMs?: number;
   [key: string]: any;
 }

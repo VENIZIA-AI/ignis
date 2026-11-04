@@ -30,7 +30,24 @@ export class ScopeThrough<RelationName extends string = string> {
 
   private constructor(readonly relation: RelationName) {}
 
-  /** `entity` is read for its type only: a misspelled relation, a to-many one or a name held in a plain `string` does not compile. */
+  /**
+   * `entity` is read for its type only: a misspelled relation, a to-many one or a name held in a plain `string` does not compile.
+   *
+   * @example
+   * ```typescript
+   * import { ScopeThrough } from '@venizia/ignis';
+   * import { ModelFactory, one } from '@venizia/ignis-connectors/postgres';
+   * import { integer, pgTable, serial } from 'drizzle-orm/pg-core';
+   *
+   * const productTable = pgTable('Product', { id: serial('id').primaryKey() });
+   * const variantTable = pgTable('Variant', {
+   *   id: serial('id').primaryKey(),
+   *   productId: integer('product_id').references(() => productTable.id),
+   * });
+   * const Variant = ModelFactory.defineEntity({ table: variantTable, relations: () => ({ product: one(productTable) }) });
+   * const through = ScopeThrough.of({ entity: Variant, relation: 'product' });
+   * ```
+   */
   static of<Entity extends IEntityWithRelations, Name extends TOneRelationNameOf<Entity>>(opts: {
     entity: Entity;
     relation: Name;

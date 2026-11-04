@@ -71,12 +71,23 @@ export interface IJWTIssueClaims {
 /**
  * Options of the JWS token service, which signs with the shared `jwtSecret`.
  *
- * `getTokenExpiresFn` is required. `headerAlgorithm` is the JWS `alg` header and falls back to `HS256`. AES payload encryption is active only when `applicationSecret` is set.
+ * `getTokenExpiresFn` is required. AES payload encryption is active only when `applicationSecret` is set.
  */
 export interface IJWSTokenServiceOptions {
+  /**
+   * The JWS `alg` header.
+   *
+   * @default 'HS256'
+   */
   headerAlgorithm?: string;
   jwtSecret: string;
   getTokenExpiresFn: TGetTokenExpiresFn;
+
+  /**
+   * The AES algorithm of payload encryption, used when `applicationSecret` is set.
+   *
+   * @default 'aes-256-cbc'
+   */
   aesAlgorithm?: AESAlgorithmType;
   applicationSecret?: string;
   fieldCodecs?: IPayloadFieldCodec[];
@@ -92,7 +103,10 @@ export interface IJWSTokenServiceOptions {
 export interface IJWKSIssuerOptions {
   mode: typeof JWKSModes.ISSUER;
   algorithm: TJWKSAlgorithm;
-  rest?: { path: string };
+  rest?: {
+    /** @default '/certs' */
+    path: string;
+  };
   keys: {
     driver: TJWKSKeyDriver;
     format: TJWKSKeyFormat;
@@ -101,6 +115,12 @@ export interface IJWKSIssuerOptions {
   };
   kid: string;
   getTokenExpiresFn: TGetTokenExpiresFn;
+
+  /**
+   * The AES algorithm of payload encryption, used when `applicationSecret` is set.
+   *
+   * @default 'aes-256-cbc'
+   */
   aesAlgorithm?: AESAlgorithmType;
   applicationSecret?: string;
   fieldCodecs?: IPayloadFieldCodec[];
@@ -116,8 +136,26 @@ export interface IJWKSIssuerOptions {
 export interface IJWKSVerifierOptions {
   mode: typeof JWKSModes.VERIFIER;
   jwksUrl: string;
-  cacheTtlMs?: number; // Default: 43_200_000 (12h)
-  cooldownMs?: number; // Default: 30_000 (30s)
+
+  /**
+   * How long the fetched key set stays cached, in ms (12 hours).
+   *
+   * @default 43_200_000
+   */
+  cacheTtlMs?: number;
+
+  /**
+   * Minimum wait between refetches of the key set, in ms (30 seconds).
+   *
+   * @default 30_000
+   */
+  cooldownMs?: number;
+
+  /**
+   * The AES algorithm of payload encryption, used when `applicationSecret` is set.
+   *
+   * @default 'aes-256-cbc'
+   */
   aesAlgorithm?: AESAlgorithmType;
   applicationSecret?: string;
   fieldCodecs?: IPayloadFieldCodec[];

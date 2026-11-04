@@ -4,7 +4,11 @@ import { type SecFetchSiteValues, type TCompressEncoding } from '../constants';
 
 /** Options shared by every configurable middleware. Extra keys are allowed. */
 export interface IBaseMiddlewareOptions {
-  /** Default `true`: only `false` switches the middleware off. */
+  /**
+   * Only `false` switches the middleware off.
+   *
+   * @default true
+   */
   enable?: boolean;
   path?: string;
   [extra: string | symbol]: any;
