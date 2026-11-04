@@ -46,7 +46,57 @@ describe('ScopeWriteGuard.apply - the operation', () => {
   });
 });
 
+describe('ScopeWriteGuard.apply - a delete payload', () => {
+  test('a soft-delete payload that omits the scope column is held like a partial update', () => {
+    const rows = ScopeWriteGuard.apply({
+      settings: settingsRecording({ calls: [] }),
+      model: 'Item',
+      rows: [{ deletedAt: new Date(0) }],
+      operation: ScopeOperations.DELETE,
+    });
+
+    expect(rows).toHaveLength(1);
+  });
+
+  test('a soft-delete payload that names another scope is refused', () => {
+    expect(() =>
+      ScopeWriteGuard.apply({
+        settings: settingsRecording({ calls: [] }),
+        model: 'Item',
+        rows: [{ merchantId: 'other', deletedAt: new Date(0) }],
+        operation: ScopeOperations.DELETE,
+      }),
+    ).toThrow(/write refused by the access scope/);
+  });
+});
+
 describe('ScopeWriteGuard.mutationWhere - the operation', () => {
+  test('sharedRows refuses an or over two columns and keeps the null branch otherwise', () => {
+    const settings: IModelAccessSettings = {
+      resolve: () => ({ merchantId: 'm1' }),
+      write: { sharedRows: true },
+    };
+
+    expect(() =>
+      ScopeWriteGuard.mutationWhere({
+        settings,
+        model: 'Item',
+        operation: ScopeOperations.DELETE,
+        scopeWhere: { or: [{ merchantId: 'm1' }, { counterpartMerchantId: 'm1' }] },
+      }),
+    ).toThrow(/an 'or' over different columns/);
+
+    const shared = { or: [{ merchantId: 'm1' }, { merchantId: null }] };
+    expect(
+      ScopeWriteGuard.mutationWhere({
+        settings,
+        model: 'Item',
+        operation: ScopeOperations.DELETE,
+        scopeWhere: shared,
+      }),
+    ).toEqual(shared);
+  });
+
   test('narrows the scope for UPDATE and DELETE', () => {
     for (const operation of [ScopeOperations.UPDATE, ScopeOperations.DELETE] as const) {
       expect(

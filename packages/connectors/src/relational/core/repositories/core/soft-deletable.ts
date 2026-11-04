@@ -7,7 +7,7 @@ import type {
   TRow,
   TWhere,
 } from '@venizia/ignis-kernel';
-import { RepositoryErrors } from '@venizia/ignis-kernel';
+import { RepositoryErrors, ScopeOperations } from '@venizia/ignis-kernel';
 import type { IRelationalDataSource } from '@/relational/core/datasources/common';
 import type { TTableInsert, TTableObject, TTableSchemaWithId } from '@/relational/core/models';
 import type { TNullable } from '@venizia/ignis-helpers/common';
@@ -97,11 +97,17 @@ export class SoftDeletableRelationalRepository<
       return super.deleteById<R>(opts);
     }
 
-    return this.updateById<R>({
-      id: opts.id,
+    this.validateId({ id: opts.id, operationName: 'deleteById' });
+
+    // A soft delete is a delete to the row scope: it passes DELETE, not UPDATE.
+    const rs = await this._update<R>({
+      where: this.whereById({ id: opts.id }),
       data: this.softDeletePatch(new Date()),
       options: opts.options,
+      operation: ScopeOperations.DELETE,
     });
+
+    return { count: rs.count, data: rs.data?.[0] ?? null };
   }
 
   override deleteAll(opts: {
@@ -124,10 +130,11 @@ export class SoftDeletableRelationalRepository<
       return super.deleteAll<R>(opts);
     }
 
-    return this.updateAll<R>({
+    return this._update<R>({
       where: opts.where ?? {},
       data: this.softDeletePatch(new Date()),
       options: opts.options,
+      operation: ScopeOperations.DELETE,
     });
   }
 
@@ -151,10 +158,11 @@ export class SoftDeletableRelationalRepository<
       return super.deleteBy<R>(opts);
     }
 
-    return this.updateAll<R>({
+    return this._update<R>({
       where: opts.where,
       data: this.softDeletePatch(new Date()),
       options: opts.options,
+      operation: ScopeOperations.DELETE,
     });
   }
 

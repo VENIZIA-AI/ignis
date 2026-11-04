@@ -146,6 +146,10 @@ export class PersistableRelationalRepository<
     return this._create<R>({ data: opts.data, options });
   }
 
+  /**
+   * `operation` is what the row scope sees: UPDATE for an update (and a restore), DELETE for a
+   * soft delete, which is a delete to the caller even though it is stored as an update.
+   */
   protected async _update<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
@@ -153,7 +157,10 @@ export class PersistableRelationalRepository<
       shouldReturn?: boolean;
       force?: boolean;
     };
+    operation?: typeof ScopeOperations.UPDATE | typeof ScopeOperations.DELETE;
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
+    const { operation = ScopeOperations.UPDATE } = opts;
+
     const {
       shouldReturn = true,
       force = false,
@@ -168,13 +175,13 @@ export class PersistableRelationalRepository<
 
     this.guardScopedWrite({
       rows: [opts.data as Record<string, unknown>],
-      operation: ScopeOperations.UPDATE,
+      operation,
     });
 
     const mergedFilter = this.applyDefaultFilter({
       userFilter: { where: opts.where },
       shouldSkipDefaultFilter,
-      mutation: ScopeOperations.UPDATE,
+      mutation: operation,
     });
     const mergedWhere = mergedFilter.where ?? opts.where;
 

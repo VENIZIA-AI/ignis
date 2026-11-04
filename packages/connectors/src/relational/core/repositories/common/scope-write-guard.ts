@@ -237,10 +237,7 @@ export class ScopeWriteGuard {
 
     ScopeWriteGuard.assertWrite({ model, operation });
 
-    if (settings.write?.sharedRows === true) {
-      return scopeWhere;
-    }
-
+    // Checked with `sharedRows` too: it lets the null branch through, not a shape the guard cannot read.
     const narrowed = ScopeWriteGuard.withoutShared({ where: scopeWhere });
 
     if (narrowed.kind === 'unverifiable') {
@@ -249,6 +246,10 @@ export class ScopeWriteGuard {
         operation,
         detail: `the resolved scope cannot be verified on a write | ${narrowed.reason}`,
       });
+    }
+
+    if (settings.write?.sharedRows === true) {
+      return scopeWhere;
     }
 
     return narrowed.kind === 'none' ? ScopeFilterDenial.where() : narrowed.where;
@@ -409,7 +410,7 @@ export class ScopeWriteGuard {
       // guard adds nothing there. A create has no such `where`, so an unresolved scope refuses it.
       if (
         settings.onMissing === ScopeFilterMissingBehaviors.ALLOW ||
-        operation === ScopeOperations.UPDATE
+        operation !== ScopeOperations.CREATE
       ) {
         return rows;
       }
@@ -455,7 +456,7 @@ export class ScopeWriteGuard {
         const value = (row as Record<string, unknown>)[column];
 
         if (value === undefined) {
-          if (operation === ScopeOperations.UPDATE) {
+          if (operation !== ScopeOperations.CREATE) {
             continue;
           }
 

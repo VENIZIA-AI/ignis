@@ -65,6 +65,22 @@ class ZeroArgEntity extends BasePostgresEntity {
   static override schema = scopeTable;
 }
 
+/** Shared rows are writable, so the scope is no longer narrowed on a write. */
+@model({
+  type: 'entity',
+  settings: {
+    access: {
+      resolve: (context) => resolver(context),
+      write: { sharedRows: true },
+    },
+    query: { filter: { where: { deletedAt: null } } },
+  },
+})
+class SharedRowsEntity extends BasePostgresEntity {
+  static override TABLE_NAME = TABLE_NAME;
+  static override schema = scopeTable;
+}
+
 @datasource({ driver: PGliteDriver })
 class OperationDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
   constructor(opts: { client: PGlite }) {
@@ -92,6 +108,7 @@ let client: PGlite;
 let dataSource: OperationDataSource;
 let repository: SoftDeletableRepository<typeof scopeTable>;
 let zeroArgRepository: SoftDeletableRepository<typeof scopeTable>;
+let sharedRowsRepository: SoftDeletableRepository<typeof scopeTable>;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -114,6 +131,9 @@ beforeAll(async () => {
   });
   zeroArgRepository = new SoftDeletableRepository<typeof scopeTable>(dataSource as AnyType, {
     entityClass: ZeroArgEntity as AnyType,
+  });
+  sharedRowsRepository = new SoftDeletableRepository<typeof scopeTable>(dataSource as AnyType, {
+    entityClass: SharedRowsEntity as AnyType,
   });
 });
 
@@ -200,9 +220,11 @@ const METHODS: Array<{
     expected: 'delete',
     run: (repo) => repo.deleteAll({ where: {}, options: { shouldHardDelete: true } }),
   },
-  // A soft delete and a restore are updates of the row: they pass UPDATE, as persistable.ts does.
-  { name: 'deleteById (soft)', expected: 'update', run: (repo) => repo.deleteById({ id: 1 }) },
-  { name: 'deleteAll (soft)', expected: 'update', run: (repo) => repo.deleteAll({ where: {} }) },
+  // A soft delete is stored as an update of the row but is a delete to the caller: it passes DELETE.
+  { name: 'deleteById (soft)', expected: 'delete', run: (repo) => repo.deleteById({ id: 1 }) },
+  { name: 'deleteAll (soft)', expected: 'delete', run: (repo) => repo.deleteAll({ where: {} }) },
+  { name: 'deleteBy (soft)', expected: 'delete', run: (repo) => repo.deleteBy({ where: {} }) },
+  // A restore brings a row back: it stays an update.
   { name: 'restoreById', expected: 'update', run: (repo) => repo.restoreById({ id: 4 }) },
   { name: 'restoreAll', expected: 'update', run: (repo) => repo.restoreAll({ where: {} }) },
 ];
@@ -266,6 +288,40 @@ describe('a zero-argument resolver is unchanged on every operation', () => {
   });
 });
 
+describe('write.sharedRows keeps the refusal of a scope the guard cannot read', () => {
+  const OR_OVER_TWO_COLUMNS = { or: [{ merchantId: ME }, { counterpartMerchantId: ME }] };
+
+  test('a delete and an update selection under an or over two columns are refused', async () => {
+    resolver = () => OR_OVER_TWO_COLUMNS;
+
+    const writes = [
+      sharedRowsRepository.deleteAll({ where: {}, options: { shouldHardDelete: true } }),
+      sharedRowsRepository.deleteAll({ where: {} }),
+      sharedRowsRepository.updateAll({ where: {}, data: { name: 'x' } }),
+    ];
+
+    for (const write of writes) {
+      const result = await refusal({ write });
+      expect(result).toContain("an 'or' over different columns");
+    }
+    const result2 = await rawNames();
+    expect(result2).toEqual(['mine', 'theirs-with-me', 'unrelated', 'mine-deleted']);
+  });
+
+  test('positive control: the shared-rows shape, an or on one column with null, still selects', async () => {
+    await client.exec(`UPDATE ${TABLE_NAME} SET merchant_id = '${ME}' WHERE id = 3`);
+    resolver = () => ({ or: [{ merchantId: ME }, { merchantId: 'm2' }] });
+
+    await sharedRowsRepository.deleteAll({
+      where: {},
+      options: { shouldReturn: false, shouldHardDelete: true },
+    });
+
+    const result3 = await rawNames();
+    expect(result3).toEqual(['mine-deleted']);
+  });
+});
+
 describe('one model reads wider than it writes', () => {
   beforeEach(() => {
     resolver = readWiderThanWrite;
@@ -325,6 +381,44 @@ describe('one model reads wider than it writes', () => {
       const result4 = await refusal({ write });
       expect(result4).toContain("an 'or' over different columns cannot be checked on a write");
     }
+  });
+
+  test('a soft delete is held to the DELETE scope, not the UPDATE scope', async () => {
+    // UPDATE may reach another merchant's rows (one column, so it is checkable); DELETE may not.
+    resolver = ({ operation }) => {
+      return operation === ScopeOperations.UPDATE
+        ? { merchantId: { inq: [ME, 'm2'] } }
+        : { merchantId: ME };
+    };
+
+    await repository.deleteAll({ where: {}, options: { shouldReturn: false } });
+    const { rows: afterSoftDelete } = await client.query<{ name: string; deletedAt: Date | null }>(
+      `SELECT name, deleted_at AS "deletedAt" FROM ${TABLE_NAME} ORDER BY id`,
+    );
+    expect(afterSoftDelete.map((row) => [row.name, row.deletedAt !== null])).toEqual([
+      ['mine', true],
+      ['theirs-with-me', false],
+      ['unrelated', false],
+      ['mine-deleted', true],
+    ]);
+
+    // The same resolver lets an update reach the other merchant's row: only the operation differs.
+    await repository.updateAll({
+      where: {},
+      data: { name: 'touched' },
+      options: { shouldReturn: false },
+    });
+    const result6 = await rawNames();
+    expect(result6).toEqual(['mine', 'touched', 'unrelated', 'mine-deleted']);
+  });
+
+  test('restore stays an update', async () => {
+    resolver = ({ operation }) => {
+      return operation === ScopeOperations.UPDATE ? { merchantId: ME } : { merchantId: 'nobody' };
+    };
+
+    const result = await repository.restoreById({ id: 4 });
+    expect(result.data?.name).toBe('mine-deleted');
   });
 
   test('UNRESTRICTED for one operation applies to that operation only', async () => {
