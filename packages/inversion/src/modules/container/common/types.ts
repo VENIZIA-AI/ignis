@@ -2,6 +2,7 @@ import type { IBinding } from '../../binding/common/types';
 import type { TBindingKey, TClass, TNullable } from '@/common/types';
 import type { MetadataRegistry } from '../../registry/registry';
 
+/** Binds keys, resolves them and instantiates classes with their injected dependencies. */
 export interface IContainer {
   getMetadataRegistry(): MetadataRegistry;
 

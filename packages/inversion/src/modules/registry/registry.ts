@@ -176,4 +176,5 @@ export class MetadataRegistry extends BaseHelper {
   }
 }
 
+/** The shared `MetadataRegistry` instance. */
 export const metadataRegistry = new MetadataRegistry();

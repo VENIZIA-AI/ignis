@@ -10,6 +10,7 @@ import {
   type TBindingResolverValue,
 } from './common/types';
 
+/** One container entry under `key`, resolved to a class, a value or a provider (set with `toClass`, `toValue`, `toProvider`). Scope is transient unless `setScope` selects singleton; a key with a dot gets its first segment as a tag. */
 export class Binding<T = any> extends BaseHelper implements IBinding<T> {
   key: string;
 
