@@ -8,6 +8,7 @@ interface IFetchCarrier {
   fetch: TFetch;
 }
 
+/** Options for replacing `fetch` so matching requests go to a BFF transport. */
 export interface IInstallBffFetchOptions {
   /** Anything implementing the transport contract, so an in-process transport works in a test. */
   transport: IBffTransport;

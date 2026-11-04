@@ -6,6 +6,7 @@ import type {
 } from '@/envelope/common';
 import { type BffRoles, type ChannelMessageKinds } from './constants';
 
+/** One of the `BffRoles` values: `electing`, `leader` or `follower`. */
 export type TBffRole = TConstValue<typeof BffRoles>;
 
 /**
@@ -26,6 +27,7 @@ export interface IPendingRequest {
   release: () => void;
 }
 
+/** Options for the transport that shares one worker across tabs through a leader election. */
 export interface ISharedBffTransportOptions {
   /** Builds the Worker. Called ONLY by whichever tab wins the election - the others never start one. */
   createWorker: () => Worker;
