@@ -77,7 +77,7 @@ export interface IListObjectsOptions {
   /**
    * Whether the listing descends into folders.
    *
-   * @default false on the disk helper, true on the Bun S3 helper
+   * @default false
    */
   useRecursive?: boolean;
   maxKeys?: number;
