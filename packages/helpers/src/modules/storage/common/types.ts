@@ -69,10 +69,16 @@ export interface IObjectLocation {
   object: IObjectRef;
 }
 
-/** Filters for `listObjects`. `useRecursive` descends into folders (default `false`); `maxKeys` caps the result, and `0` returns nothing. */
+/** Filters for `listObjects`. `maxKeys` caps the result, and `0` returns nothing. */
 export interface IListObjectsOptions {
   bucket: IBucketRef;
   prefix?: string;
+
+  /**
+   * Whether the listing descends into folders.
+   *
+   * @default false on the disk helper, true on the Bun S3 helper
+   */
   useRecursive?: boolean;
   maxKeys?: number;
 }
