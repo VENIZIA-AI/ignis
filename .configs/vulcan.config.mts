@@ -60,63 +60,11 @@ export default {
     regions: [
       { id: 'packages-table', file: 'overview/monorepo-layout.md', renderer: 'packages-table' },
     ],
-    sections: {
-      order: [
-        'overview',
-        'architecture',
-        'packages',
-        'conventions',
-        'process',
-        'examples',
-        'reference',
-      ],
-      labels: {
-        overview: 'Overview',
-        architecture: 'Architecture',
-        packages: 'Packages',
-        conventions: 'Conventions',
-        process: 'Process',
-        examples: 'Examples',
-        reference: 'Reference',
-      },
-    },
     coverage: [
       { name: 'packages', path: 'packages/*' },
       { name: 'examples', path: 'examples/*' },
     ],
-    viz: {
-      brand: 'IGNIS',
-      copy: {
-        en: {
-          heading: 'Understand IGNIS, one concept at a time.',
-          tagline:
-            'The IGNIS framework, end to end - packages, architecture, conventions, process and examples.',
-          sectionDescriptions: {
-            overview: 'Start here - what IGNIS is and how to work in it.',
-            architecture:
-              'How the pieces fit: DI, lifecycle, repositories, and cross-cutting design.',
-            packages: 'The published framework packages.',
-            conventions: 'How the code is written - patterns, style, and gotchas.',
-            process: 'How the team works - build, test, release, git.',
-            examples: 'Runnable apps that exercise the framework.',
-            reference: 'Look-ups - generated catalogs, glossary, key files.',
-          },
-        },
-        vi: {
-          heading: 'Hiểu IGNIS, từng khái niệm một.',
-          tagline: 'Toàn bộ framework IGNIS - package, kiến trúc, quy ước, quy trình và ví dụ.',
-          sectionDescriptions: {
-            overview: 'Bắt đầu ở đây - IGNIS là gì và cách làm việc.',
-            architecture: 'Cách các phần ghép lại: DI, vòng đời, repository, thiết kế xuyên suốt.',
-            packages: 'Các package của framework.',
-            conventions: 'Cách viết code - pattern, style, và các bẫy.',
-            process: 'Cách team làm việc - build, test, release, git.',
-            examples: 'Các app chạy được minh hoạ framework.',
-            reference: 'Tra cứu - catalog sinh tự động, glossary, file quan trọng.',
-          },
-        },
-      },
-    },
+    brand: 'IGNIS',
   },
   atlas: {
     tagPattern: '<dir>-v<version>',
