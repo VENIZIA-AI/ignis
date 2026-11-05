@@ -191,7 +191,8 @@ export declare abstract class FilterBuilder extends BaseHelper {
     }): TModelAccessSettings | undefined;
     /**
      * The foreign key link of a `through` model and the scope its parent resolves for `operation` (the same operation
-     * at every hop). The parent's default filter is not applied: scope only.
+     * at every hop). The parent's default filter is not applied: scope only. For a write the parent's scope is narrowed as a
+     * direct write to the parent is (`ScopeWriteGuard.mutationWhere`), so its `write.sharedRows` holds on the hop.
      */
     resolveThrough(opts: {
         settings: IModelAccessThroughSettings;

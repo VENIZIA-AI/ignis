@@ -497,7 +497,8 @@ SELECT parent.pk FROM parent WHERE parent.pk IN (<the keys the rows name>) AND <
 - **`UNRESTRICTED`** from the parent skips the scope and still requires the parent to exist. A parent that resolves `null` refuses the write.
 - **The parent column should be unique.** The relation normally points at the parent's primary key. If it points at another column, make it unique: the check counts distinct keys, so a key that matches two parent rows still counts once, but a non-unique column can make one child belong to several parents.
 - **A parent can read wide and write narrow.** The check asks the parent for the write's own operation, so the parent's write scope governs the child's writes, and its read scope only the child's reads.
-- **A model with `through` cannot use `write.sharedRows` or `write.mode`:** there is no scope column on the child to fill or to leave null.
+- **The parent's `write.sharedRows` holds on every hop.** A parent row whose scope column is `null` is shared: the read scope opens it, and only `write.sharedRows: true` on the parent lets a write reach it. Without it, the children of a shared parent are readable but cannot be updated or deleted, and a create or a move cannot name a shared parent. This is the narrowing a direct write to the parent gets, so a parent scope the write guard cannot verify refuses the child's write too. At two hops, `Option` through `Variant` through `Product` answers to `Product`'s `sharedRows`.
+- **A model with `through` cannot use `write.sharedRows` or `write.mode` itself:** there is no scope column on the child to fill or to leave null. It follows the parent's.
 
 #### `through` or a copied column
 
