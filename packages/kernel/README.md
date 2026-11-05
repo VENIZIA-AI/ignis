@@ -82,10 +82,11 @@ Use `./repository` to put another transport behind the repository contract. The 
 
 ## Logging
 
-With the kernel alone, loggers write to the console. To get the configured logger, import
-`LoggerFactory` from `@venizia/ignis-helpers` once at startup. A logger created before that import
-switches to the configured one on its next call - nothing needs rebuilding. `@venizia/ignis` does this
-for you.
+With the kernel alone, loggers write to the console. To choose another provider, call
+`LoggerFactory.use({ provider })` once at startup (`PinoLogger` from `@venizia/ignis-helpers/pino`,
+`WinstonLogger` from `@venizia/ignis-helpers/winston`). A logger created before that call switches to
+the chosen provider on its next call - nothing needs rebuilding. `@venizia/ignis` selects Winston at
+start when no provider was chosen and `winston` is installed.
 
 ## Where it sits
 

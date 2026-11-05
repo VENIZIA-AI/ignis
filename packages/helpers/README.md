@@ -72,6 +72,7 @@ A helper that imports an optional peer as a value lives only on its own sub-path
 | `./kafka` | `KafkaProducerHelper`, `KafkaConsumerHelper`, `KafkaAdminHelper`, schema registry, bundler plugins | `@platformatic/kafka` |
 | `./bun-s3` | `BunS3Helper` | none - Bun's native S3 client (Bun only) |
 | `./socket-io` | `SocketIOServerHelper`, `SocketIOClientHelper` | `socket.io`, `@socket.io/redis-adapter`, `@socket.io/redis-emitter`; `socket.io-client` for the client |
+| `./socket-io/client` | The browser-safe client: `SocketIOClientHelper` with nothing from node in its graph, and the event names and option types it speaks | none - you pass `{ io }` from `socket.io-client` |
 | `./axios` | `AxiosFetcher`, `AxiosNetworkRequest` | `axios` |
 | `./cron` | `CronHelper` | `cron` |
 | `./hashicorp-vault` | `HashiCorpVaultHelper` | `node-vault` |

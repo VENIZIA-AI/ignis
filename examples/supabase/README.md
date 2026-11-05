@@ -72,6 +72,36 @@ The smoke test boots the same `Application` on a free port against the docker da
 for two users the same way, and checks each sees only their own notes. It skips cleanly
 (`describe.skipIf`) when the database is unreachable, so it never runs in CI.
 
+## Configuration
+
+Copy `.env.example` to `.env`. The keys:
+
+| Variable | Meaning |
+|---|---|
+| `APP_ENV_SUPABASE_DATABASE_URL` | The Postgres connection string. Local docker maps the container to host port `15433` |
+| `APP_ENV_SUPABASE_POOLER_MODE` | `direct` (the default), `session` or `transaction` - see below |
+| `APP_ENV_SUPABASE_POOL_MAX` | Passed to postgres-js only when set. Blank keeps the postgres-js default |
+| `APP_ENV_JWT_SECRET` | The HS256 secret the app verifies tokens with, and mints test tokens with (`bun run token`). On a real Supabase project, the project's JWT secret |
+| `APP_ENV_JWT_EXPIRES_IN` | Lifetime of the tokens this app mints (`3600` in `.env.example`) |
+| `APP_ENV_APPLICATION_NAME` | The application name |
+| `APP_ENV_LOGGER_FOLDER_PATH` | Where file logs go. Unset: console only |
+| `PORT` | The HTTP port (`3000`) |
+
+## Choose a pooler mode
+
+`APP_ENV_SUPABASE_POOLER_MODE` decides whether postgres-js uses server-side prepared statements.
+
+| Mode | Port on Supabase | Prepared statements |
+|---|---|---|
+| `direct` | `5432` | on |
+| `session` | `5432` | on |
+| `transaction` | `6543` | off - postgres-js gets `prepare: false` |
+
+Transaction mode hands the backend connection to another client after each transaction, so a
+prepared statement from one transaction is gone on the next. There `prepare: false` is required, not
+a tuning knob. `SupabasePooler.buildPostgresJsOptions` sets it for you. A local Postgres has no pooler
+in front of it, so `.env.example` uses `direct`.
+
 ## Plain Postgres, not the Supabase image
 
 `docker-compose.yml` runs `postgres:16`, not `supabase/postgres`. `SupabaseRls.withAuthContext` needs exactly two

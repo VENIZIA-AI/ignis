@@ -23,8 +23,8 @@ The app listens on `http://localhost:3000` (set `PORT` to change it). Browse the
 
 ## Authentication
 
-A Socket.IO client sends its token as an `Authorization: Bearer <token>` header at connect time,
-then emits `authenticate`. The server checks it against `APP_ENV_AUTH_TOKEN` (`demo-token` by
+A Socket.IO client connects on the path `/io`. It sends its token as an
+`Authorization: Bearer <token>` header at connect time, then emits `authenticate`. The server checks it against `APP_ENV_AUTH_TOKEN` (`demo-token` by
 default) and either authenticates the client - joining it to the default rooms `io-default` and
 `io-notification` - or emits `unauthenticated` and disconnects the socket.
 

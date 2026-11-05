@@ -8,8 +8,6 @@ tags: [examples, postgres, supabase]
 
 `supabase-example` runs on `postgres-js` (`SupabaseDataSource`) with no `pg` anywhere in the directory, deliberately proving the connector-versus-driver distinction: Supabase is unmodified PostgreSQL, so it varies the driver, not the SQL dialect. The repository, filter syntax, transactions, and controllers are otherwise identical to `examples/vert`.
 
-> This example is currently being refreshed alongside the other examples (2026-09-23) - it is blocked on a framework defect and its working tree is uncommitted, so the description below may not match what lands.
-
 ## What it demonstrates
 
 - **The driver seam is real** - `src/datasources/supabase.datasource.ts` declares `@datasource({ driver: PostgresJsDriver })` and its `configure()` builds only the client, `this.client = postgres(url, SupabasePooler.buildPostgresJsOptions({ mode, max }))`. The framework constructs the `PostgresJsDriver` over that client and its pooled connector lazily on first use, through its own internal `useDriver()` call - no such call appears in the example. `getClient()` is typed as postgres-js's `Sql`, not `pg.Pool`.
@@ -18,19 +16,19 @@ tags: [examples, postgres, supabase]
 - **`SupabaseRls.withAuthContext` makes `auth.uid()` resolve** - every `NoteService` call opens a transaction and sets the caller's claims with `SET LOCAL`/`set_config(..., true)` inside it, which is transaction-scoped and therefore pooler-safe (a plain `SET` would leak identity to the next connection borrower).
 - **Ownership cannot be forged** - `ownerId` defaults to `auth.uid()` at the table level; the app never sends an owner in the request body.
 - **The control group** - `GET /notes/unscoped` runs the identical repository call with no auth context and returns every row, isolating `SupabaseRls.withAuthContext` as the only variable.
-- **Claims-shape reconciliation** - IGNIS's `IJWTTokenPayload` uses `userId`/`roles`; GoTrue issues `sub`/`role`. The controller's `getClaims` reconciles them at the boundary rather than assuming they coincide.
-- **Grants are hand-written** - drizzle-kit emits the table and policies but not the schema or `GRANT`s the policies depend on; `migration/0000_purple_calypso.sql` adds those by hand, because a policy is only consulted after the role clears table privileges.
+- **Claims are the verified payload** - GoTrue issues `sub` and `role`, IGNIS's own token shape is `userId` and `roles`. This app verifies a token shaped like Supabase's, so the controller's `getClaims` hands the payload on as it is and refuses a token with no `sub`, because `auth.uid()` would then resolve to null.
+- **Grants are hand-written** - drizzle-kit emits the table and policies but not the `GRANT`s they depend on; `migration/0000_first_garia.sql` adds those by hand, because a policy is only consulted after the role clears table privileges. `db/init/01-auth-shim.sql` stands in for the `authenticated` role and `auth.uid()` that a real Supabase project already has.
 
 ## How to run it
 
 ```bash
+docker compose up -d
 bun install
-bun run migrate:dev      # drizzle-kit migrate - schema, table, policies, grants
-bun run seed              # give two real auth.users rows some notes to own
+cp .env.example .env
 bun run server:dev
 ```
 
-Then, per the README's curl walkthrough: sign in via GoTrue (`POST /api/auth/sign-in`), call `GET /api/notes` (scoped, only the caller's notes) versus `GET /api/notes/unscoped` (every row, same repository, same table).
+The datasource applies the migration folder at boot, so there is no separate migrate step. `bun run token -- <user-uuid>` mints a test token with the app's own secret, standing in for one Supabase Auth would issue. Then, per the README's curl walkthrough: `GET /api/notes` with a token (only the caller's notes) versus `GET /api/notes/unscoped` (every row, same repository, same table). `bun test` runs a smoke test against the docker database and skips when it is unreachable.
 
 ## Notable / non-obvious
 
