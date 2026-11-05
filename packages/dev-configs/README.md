@@ -95,7 +95,7 @@ Every IGNIS package and example does.
 | Flag | Base value | Why |
 | :--- | :--- | :--- |
 | `experimentalDecorators` | `true` | `@inject`, `@controller`, `@repository` and the other decorators need it |
-| `emitDecoratorMetadata` | `true` | Optional - restate it only if your code reads `design:*` metadata. IGNIS reads `design:paramtypes` once, to validate a `@repository` constructor, and skips the check when the metadata is absent. Under Bun it turns an interface-typed constructor parameter into a runtime import (`Export named 'X' not found`), so import such names with `import type`; `bun check --isolatedModules` (TS1272) finds most of them, loading `src/index.ts` under Bun the rest |
+| `emitDecoratorMetadata` | `true` | Optional - restate it only if your code reads `design:*` metadata. IGNIS reads `design:paramtypes` once, to validate a `@repository` constructor, and skips the check when the metadata is absent. Under Bun it turns an interface-typed constructor parameter into a runtime import (`Export named 'X' not found`), so import such names with `import type`; `bun check` (TS1272; the base tsconfig sets `isolatedModules`) finds most of them, loading `src/index.ts` under Bun the rest |
 | `useDefineForClassFields` | `false` | Class fields are assigned, not defined, so a subclass field initializer does not shadow a value the base constructor set |
 
 ## Entry points
@@ -188,7 +188,7 @@ project that lints with oxlint alone gets no padding check. `devz lint --fix` wr
 
 | Rule | What it enforces |
 | :--- | :--- |
-| `@stylistic/padding-line-between-statements` | A blank line after the imports (none needed between two imports), before a `return`, and around a block-like statement (`if`, `for`, `while`, `switch`, `try`, a bare block). Stacked `case` and `default` labels stay together |
+| `@stylistic/padding-line-between-statements` | A blank line after the imports (none needed between two imports), before a `return`, and around a block-like statement (a statement that ends in a block, such as `if`, `for`, `while`, `switch`, `try`, a function declaration or a bare block). Stacked `case` and `default` labels stay together |
 | `@stylistic/lines-between-class-members` | A blank line between class members, except after a one-line member, so a run of one-line properties stays together |
 
 Turn one off after the preset with `'off'`. See the
@@ -386,7 +386,7 @@ await BunCompiler.compile({
 ## The devz command
 
 The package installs a `devz` binary. Run `devz --help` for the list, and `devz clean --help`,
-`devz check --help` or `devz codemod --help` for the options of one command. A usage error exits 2.
+`devz check --help` or `devz codemod --help` for the options of one command. A usage error in a command exits 2.
 
 | Command | What it does |
 | :--- | :--- |
