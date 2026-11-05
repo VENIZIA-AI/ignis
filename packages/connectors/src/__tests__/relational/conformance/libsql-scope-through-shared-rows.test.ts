@@ -41,9 +41,12 @@ const optionTable = sqliteTable(OPTION_TABLE, {
   name: text('name').notNull(),
 });
 
-/** The parent's `access`, held by reference so a test can flip `write.sharedRows`. */
+const SHARED_SCOPE = { or: [{ merchantId: { inq: ['m1'] } }, { merchantId: null }] };
+let productScope: AnyType = SHARED_SCOPE;
+
+/** The parent's `access`, held by reference so a test can flip `write.sharedRows` and the scope shape. */
 const productAccess = {
-  resolve: () => ({ or: [{ merchantId: { inq: ['m1'] } }, { merchantId: null }] }),
+  resolve: () => productScope,
   write: { sharedRows: false },
 };
 
@@ -154,6 +157,7 @@ afterAll(() => {
 /** Product 1 is m1's, product 2 is shared (merchant null), product 3 is m2's. Variant n sits under product n, option n under variant n. */
 beforeEach(async () => {
   productAccess.write.sharedRows = false;
+  productScope = SHARED_SCOPE;
   await client.executeMultiple(`
     DELETE FROM ${OPTION_TABLE};
     DELETE FROM ${VARIANT_TABLE};
@@ -309,5 +313,68 @@ describe('with write.sharedRows on the parent the same writes are allowed', () =
     const result4 = await tableNames(OPTION_TABLE);
     expect(result4).toEqual(['renamed', 'renamed', 'o3', 'renamed']);
     expect(foreign).toContain('write refused by the access scope');
+  });
+});
+
+describe('other shapes of the parent scope', () => {
+  test('a parent scope the write guard cannot read refuses the child write, and still reads', async () => {
+    productScope = { or: [{ merchantId: 'm1' }, { name: 'p2' }] };
+
+    const created = await refusal(() => variants.create({ data: { productId: 1, name: 'x' } }));
+    const updated = await refusal(() =>
+      variants.updateAll({
+        where: {},
+        data: { name: 'renamed' },
+        options: { shouldReturn: false },
+      }),
+    );
+    const listed = await variants.find({ filter: {} });
+
+    expect(created).toContain('cannot be verified');
+    expect(updated).toContain('cannot be verified');
+    expect(names(listed)).toEqual(['v1', 'v2']);
+    const result = await tableNames(VARIANT_TABLE);
+    expect(result).toEqual(['v1', 'v2', 'v3']);
+  });
+
+  test('a parent scope with no null branch is written as before', async () => {
+    productScope = { merchantId: 'm1' };
+
+    await variants.create({ data: { productId: 1, name: 'own' } });
+    const shared = await refusal(() => variants.create({ data: { productId: 2, name: 'x' } }));
+    await variants.updateAll({
+      where: {},
+      data: { name: 'renamed' },
+      options: { shouldReturn: false },
+    });
+
+    expect(shared).toContain('write refused by the access scope');
+    const result2 = await tableNames(VARIANT_TABLE);
+    expect(result2).toEqual(['renamed', 'v2', 'v3', 'renamed']);
+  });
+
+  test('a parent scope that allows only the shared rows leaves nothing writable without sharedRows', async () => {
+    productScope = { merchantId: null };
+
+    const created = await refusal(() => variants.create({ data: { productId: 2, name: 'x' } }));
+    await variants.updateAll({
+      where: {},
+      data: { name: 'renamed' },
+      options: { shouldReturn: false },
+    });
+
+    expect(created).toContain('write refused by the access scope');
+    const result3 = await tableNames(VARIANT_TABLE);
+    expect(result3).toEqual(['v1', 'v2', 'v3']);
+
+    productAccess.write.sharedRows = true;
+    await variants.updateAll({
+      where: {},
+      data: { name: 'renamed' },
+      options: { shouldReturn: false },
+    });
+
+    const result4 = await tableNames(VARIANT_TABLE);
+    expect(result4).toEqual(['v1', 'renamed', 'v3']);
   });
 });

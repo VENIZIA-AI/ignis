@@ -17,7 +17,7 @@ packages: ['@venizia/ignis-connectors', '@venizia/ignis']
 - **The hole.** A parent with `resolve` returning `{ or: [{ merchantId: { inq: ['m-1'] } }, { merchantId: null }] }` and `write: { sharedRows: false }` refuses a write to its shared rows. Its `through` children were not held to that: merchant `m-1` could update or delete the variants of a shared product, create a variant under it, or move a variant to it. The direct-write version of this was closed earlier; this is the same rule on the hop.
 - **The fix.** For `CREATE`, `UPDATE` and `DELETE`, the parent's scope is narrowed the way a direct write to the parent is, with the parent's own `write` settings. Update and delete select only the children of parents the caller may write, and a create or a move must name such a parent. Reads are unchanged: the children of a shared parent stay readable.
 - **Several hops.** Each hop narrows its own parent, so an `Option` through `Variant` through `Product` answers to `Product`'s `sharedRows`.
-- **A scope the write guard cannot verify.** A parent scope of a shape the guard cannot read on a write (an `or` over several columns, a range) now refuses the child's write, as it refuses a direct write to the parent.
+- **A scope the write guard cannot verify.** A parent scope of a shape the guard cannot read on a write (an `or` over several columns, a range) now refuses the child's write, as it refuses a direct write to the parent. This includes a child update that never names the foreign key, and a soft delete.
 
 ## Who is affected
 
