@@ -37,7 +37,7 @@ packages: ['@venizia/ignis-inversion', '@venizia/ignis-filter', '@venizia/ignis-
 | `TQueryOperator` | `@venizia/ignis-filter` | `TConstValue<typeof QueryOperators>` (`TConstValue` is from `@venizia/ignis-inversion`) |
 | `TQuerySchemas` | `@venizia/ignis-filter/schemas` | `ReturnType<typeof QuerySchemaFactory.build>` |
 | `App` (`APPLICATION_NAME`, `DEFAULT_QUERY_LIMIT`, `DEFAULT_QUERY_OFFSET`, `DS_POSTGRES`, `DS_MEMORY`, `DS_REDIS`) | `@venizia/ignis` | Nothing read it. Write the value you need (`50`, `0`, `'postgresql'`, `'memory'`, `'redis'`), or read the application name from `applicationEnvironment` |
-| `isSqliteTransaction` | `@venizia/ignis-connectors/sqlite`, `@venizia/ignis/sqlite` | `isRelationalTransaction(transaction)` from `@venizia/ignis-connectors`, which does the same check, with a cast to `ISqliteTransaction` where you need that type |
+| `isSqliteTransaction` | `@venizia/ignis-connectors/sqlite` | `isRelationalTransaction(transaction)` from `@venizia/ignis-connectors`, which does the same check, with a cast to `ISqliteTransaction` where you need that type |
 | `IInjectMetadata`, `IPropertyMetadata` | `@venizia/ignis-kernel`, `@venizia/ignis` | Import them from `@venizia/ignis-inversion`, which defines them |
 | `ReactEslintConfigs`, `IReactEslintPlugins` | `@venizia/dev-configs` | `ReactOxlintConfigs` (oxlint), or spread `eslintConfigs` and add the React rules in your own ESLint config |
 
