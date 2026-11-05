@@ -33,7 +33,7 @@ The datasource applies the migration folder at boot, so there is no separate mig
 ## Notable / non-obvious
 
 - `AuthenticateComponent` here uses `JOSEStandards.JWS` with `JWSAuthenticationStrategy`, not the JWKS-issuer strategy `vert` uses - because GoTrue signs HS256 tokens with a shared secret, IGNIS only needs the secret, not a JWKS endpoint.
-- `src/index.ts` passes `artifacts: AutoArtifacts` from `@venizia/ignis-boot/auto`, so every decorated class under `src` is registered by the scanner and `preConfigure()` registers only the two components (API reference, health check).
+- `src/index.ts` passes `artifacts: AutoArtifacts` from `@venizia/ignis-boot/auto`, so every decorated class under `src` is registered by the scanner and `preConfigure()` registers only the three components (API reference, health check, authentication).
 
 ## Related
 - [vert](/examples/vert.md)
