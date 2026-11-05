@@ -46,10 +46,11 @@ The fix lives in `SearchBaseRepository`:
 
 ```typescript
 protected omitHiddenFields<R>(document: R): R
-protected omitHiddenFieldsAll<R>(documents: R[]): R[]
+protected shapeDocument<R>(document: R, opts?: { fields?: TFields }): R
+protected shapeDocuments<R>(documents: R[], opts?: { fields?: TFields }): R[]
 ```
 
-`create()`, `createAll()`, and `updateById()` in `PersistableSearchRepository` pass their returned documents through it, and `ReadableSearchRepository.find()` / `search()` apply it to hits as a second line of defence. The result is that `hiddenProperties` holds on every path except the explicit `raw` escape hatch.
+`shapeDocument` and `shapeDocuments` strip the hidden fields through `omitHiddenFields` and put back the `nullable` fields the engine keeps no null for. `create()`, `createAll()`, and `updateById()` in `PersistableSearchRepository` pass their returned documents through them, and `ReadableSearchRepository.find()` / `search()` apply them to hits as a second line of defence. The result is that `hiddenProperties` holds on every path except the explicit `raw` escape hatch.
 
 ## Read-after-write is engine-specific
 

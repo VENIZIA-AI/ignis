@@ -14,7 +14,7 @@ packages: ['@venizia/ignis-connectors']
 
 ## What changed
 
-- **`nullable` flag.** `field.string('note', { optional: true, nullable: true })`, and the same for the other field helpers. It needs `optional: true`; `SearchCollectionFactory.define` throws without it. It is never sent to the engine.
+- **`nullable` flag.** `field.string('note', { optional: true, nullable: true })`, and the same for `strings`, `number`, `numbers`, `boolean`, `booleans` and `geopoint`; `vector` and `id` do not take it. It needs `optional: true`; `SearchCollectionFactory.define` throws without it. It is never sent to the engine.
 - **Reads fill it.** `find`, `findOne`, `findById`, `search` hits and `suggest` return `null` for a nullable field whose key is absent. A plain `optional` field stays absent. A value, `0`, `''` and an explicit `null` are kept.
 - **Writes return the same shape.** `create`, `createAll` and `updateById` return documents with the nullable fields filled, so a created document and a found one match. What is sent to the engine does not change.
 - **Types and schemas.** `TSearchDocument` types the field `T | null`. `deriveDocumentSchema` gives the `select` schema `.nullable().default(null)`, and the `create` and `update` schemas `.nullable().optional()`.
