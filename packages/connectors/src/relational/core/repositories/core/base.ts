@@ -326,7 +326,8 @@ export abstract class RelationalBaseRepository<
 
     if (scopeWhere !== null && scopeWhere !== undefined) {
       // A write reaches only the rows it may write: the shared (null) rows a read scope allows need `write.sharedRows`.
-      // A `through` scope is one foreign key set, with no null branch for `sharedRows` to open, so it needs no narrowing.
+      // A `through` scope is one foreign key set, but the parent's scope inside it can still carry a null branch: that is
+      // narrowed on the hop (`resolveThrough`), so this level has nothing left to narrow.
       const effectiveWhere =
         mutation === undefined || scopeFilterSettings.through
           ? scopeWhere

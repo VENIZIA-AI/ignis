@@ -1,5 +1,6 @@
 import { EchoUtility } from '@/common/internal';
 import { ScopeThroughLink } from '../common/scope-through';
+import { ScopeWriteGuard } from '../common/scope-write-guard';
 import type {
   TDrizzleQueryOptions,
   TFields,
@@ -262,7 +263,8 @@ export abstract class FilterBuilder extends BaseHelper {
 
   /**
    * The foreign key link of a `through` model and the scope its parent resolves for `operation` (the same operation
-   * at every hop). The parent's default filter is not applied: scope only.
+   * at every hop). The parent's default filter is not applied: scope only. For a write the parent's scope is narrowed as a
+   * direct write to the parent is (`ScopeWriteGuard.mutationWhere`), so its `write.sharedRows` holds on the hop.
    */
   resolveThrough(opts: {
     settings: IModelAccessThroughSettings;
@@ -294,12 +296,29 @@ export abstract class FilterBuilder extends BaseHelper {
       });
     }
 
-    const scope = this.resolveAccessScope({
+    const parentScope = this.resolveAccessScope({
       settings: parentSettings,
       schema: link.parentSchema,
       operation,
       depth: depth + 1,
     });
+
+    // A write to the child reaches the parent the way a write to the parent itself does: the shared (null) rows its read scope
+    // opens need the parent's `write.sharedRows`. A parent that is itself `through` narrowed its own parent on its hop.
+    const isNarrowed =
+      ScopeOperations.includes({ group: ScopeOperations.WRITE, operation }) &&
+      !parentSettings.through &&
+      parentScope !== ScopeFilters.UNRESTRICTED &&
+      parentScope !== null &&
+      parentScope !== undefined;
+    const scope = isNarrowed
+      ? ScopeWriteGuard.mutationWhere({
+          settings: parentSettings,
+          model: getTableName(link.parentSchema),
+          operation,
+          scopeWhere: parentScope,
+        })
+      : parentScope;
 
     return { link, scope };
   }
