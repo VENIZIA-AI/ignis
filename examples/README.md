@@ -15,7 +15,7 @@ Runnable projects for IGNIS. Each folder has its own README.
 | [socket-io-test](socket-io-test/) | Socket.IO with Redis-backed rooms behind a mandatory authentication handshake | Local (docker) |
 | [websocket-test](websocket-test/) | The same over Bun's native WebSocket, no Socket.IO protocol | Local (docker) |
 | [vert](vert/) | The production reference: PostgreSQL CRUD, JWT/JWKS authentication, scoped Casbin authorization, transactions, relations, a generated artifact index | Local (docker) |
-| [supabase](supabase/) | The postgres-js driver with Row Level Security driven by the request's user | Not done - blocked on a framework defect |
+| [supabase](supabase/) | The postgres-js driver with Row Level Security driven by the request's user | Local (docker) |
 
 The examples run against the local packages, so build those first:
 

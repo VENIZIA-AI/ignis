@@ -27,7 +27,7 @@ The app listens on `http://localhost:3000` (set `PORT` to change it). Browse the
 
 Every route sits under `/api`. `config.transports: [ControllerTransports.REST, ControllerTransports.GRPC]`
 in `src/index.ts` is what makes the gRPC branch exist at all - drop `GRPC` from that array and
-`GreeterController` boots with a warning instead of a route.
+`GreeterController` is not registered, and the application logs an error-level line naming the missing transport.
 
 | Transport | Method | Path | Does |
 |---|---|---|---|

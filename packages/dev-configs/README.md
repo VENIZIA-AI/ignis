@@ -9,7 +9,7 @@ it as a dev dependency in an application that wants the same rules.
 bun add -d @venizia/dev-configs oxlint oxlint-tsgolint eslint typescript
 ```
 
-`oxlint` (>=1.88.0), `oxlint-tsgolint` (>=7.0.2004), `eslint` (9 or 10),
+`oxlint` (>=1.89.0), `oxlint-tsgolint` (>=7.0.2004), `eslint` (9 or 10),
 `typescript` (5 or 6) are optional peers. Install only the tools you use. Formatting is `bun fmt` (Bun 1.4.4 or newer), set in `bunfig.toml`: see [Formatting](#formatting). Keep the
 ESLint config `.mjs`: a TypeScript one (`.mts`) makes ESLint require `jiti`, one more dependency. A
 project that only wants the full ESLint preset installs `eslint` and skips the oxc tools.
@@ -95,19 +95,21 @@ Every IGNIS package and example does.
 | Flag | Base value | Why |
 | :--- | :--- | :--- |
 | `experimentalDecorators` | `true` | `@inject`, `@controller`, `@repository` and the other decorators need it |
-| `emitDecoratorMetadata` | `true` | Optional - restate it only if your code reads `design:*` metadata. IGNIS reads `design:paramtypes` once, to validate a `@repository` constructor, and skips the check when the metadata is absent. Under Bun it turns an interface-typed constructor parameter into a runtime import (`Export named 'X' not found`), so import such names with `import type`; `tsc --noEmit --isolatedModules` (TS1272) finds most of them, loading `src/index.ts` under Bun the rest |
+| `emitDecoratorMetadata` | `true` | Optional - restate it only if your code reads `design:*` metadata. IGNIS reads `design:paramtypes` once, to validate a `@repository` constructor, and skips the check when the metadata is absent. Under Bun it turns an interface-typed constructor parameter into a runtime import (`Export named 'X' not found`), so import such names with `import type`; `bun check` (TS1272; the base tsconfig sets `isolatedModules`) finds most of them, loading `src/index.ts` under Bun the rest |
 | `useDefineForClassFields` | `false` | Class fields are assigned, not defined, so a subclass field initializer does not shadow a value the base constructor set |
 
 ## Entry points
 
 | Entry point | What it gives |
 | :--- | :--- |
-| `@venizia/dev-configs` | Everything below, re-exported |
+| `@venizia/dev-configs` | `/compilers` and `/linters`, re-exported. Not `/checks` or `/testing` |
 | `@venizia/dev-configs/compilers` | `BunCompiler` |
 | `@venizia/dev-configs/testing` | `RejectionHelper` (`rejectionOf`, `expectRejection`), `SpawnHelper` (`spawnSyncBounded`), `RepoTmp` (`findRoot`, `apply`) - test helpers (imports `bun:test`; tests only) |
-| `@venizia/dev-configs/linters` | `oxlintConfigs`, `OxlintConfigs`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `LintIgnore`, `namingConventionConfigs`, `reactNamingConventionConfigs`, `houseConfigs`, `reactHouseConfigs`, `eslintConfigs`, the rule classes and their types |
+| `@venizia/dev-configs/testing/tmpdir-preload` | A bunfig test preload: a bare `bun test` keeps its temp folders in the repository (calls `RepoTmp.apply()`) |
+| `@venizia/dev-configs/checks` | The engines behind `devz check <name>`: catalog, module cycles, purity, split report and the test-trimming checks. Bun-only tooling, never import it from browser code |
+| `@venizia/dev-configs/linters` | `oxlintConfigs`, `OxlintConfigs`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `LintIgnore`, `namingConventionConfigs`, `reactNamingConventionConfigs`, `houseConfigs`, `reactHouseConfigs`, `eslintConfigs`, `paddingConfigs`, the rule classes and their types |
 | `@venizia/dev-configs/linters/oxlint` | `oxlintConfigs`, `OxlintConfigs`, `IOxlintPresetOptions`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `LintIgnore`, the rule classes and their types: everything an oxlint config needs, and nothing that loads ESLint. Loads in milliseconds: `/linters` also loads ESLint and its plugins, which an oxlint config never uses |
-| `@venizia/dev-configs/tsconfig.base.json` | Target and lib ES2025, `module` Node16, strict mode (`noImplicitAny` and `useUnknownInCatchVariables` on) with `strictPropertyInitialization` off (DI-injected properties have no initializer), `noEmitOnError`, tests excluded |
+| `@venizia/dev-configs/tsconfig.base.json` | Target and lib ES2025, `module` esnext with `moduleResolution` bundler, strict mode (`noImplicitAny` and `useUnknownInCatchVariables` on) with `strictPropertyInitialization` off (DI-injected properties have no initializer), `noEmitOnError`, tests excluded |
 | `@venizia/dev-configs/tsconfig.common.json` | Extends the base and restates `module` as `esnext` and `moduleResolution` as `bundler` |
 | `@venizia/dev-configs/tsconfig.browser.json` | Extends the base for a browser library built with a bundler: `module` ESNext, `moduleResolution` bundler, lib ES2025 + `DOM` + `DOM.Iterable`, `types: []` so no Bun types reach `dist` |
 | `@venizia/dev-configs/tsconfig.react.json` | Extends `tsconfig.browser.json` and sets `jsx: react-jsx` |
@@ -123,7 +125,7 @@ Every IGNIS package and example does.
 becomes a runtime import when Bun runs a decorated class's source, and loading fails with
 `Export named 'X' not found`. `oxlint --fix` rewrites them.
 
-oxlint (1.88) does not read decorator metadata, so it also rewrites the import of a decorated
+oxlint does not read decorator metadata, so it also rewrites the import of a decorated
 constructor parameter's class to `import { type X }`. tsc then emits `Function` (or `Object` under Bun)
 as that parameter's `design:paramtypes` entry. IGNIS never injects by that entry - `@inject` names its
 key, and `@repository` skips `Object` and `Function` - so nothing breaks. Code that does read
@@ -160,8 +162,9 @@ booleans. `BrowserOxlintConfigs.create()` and `ReactOxlintConfigs.create()` take
 
 ### houseConfigs and the house rules
 
-`houseConfigs` is `namingConventionConfigs` plus the house rules oxlint cannot express and the four async style rules;
-`reactHouseConfigs` is the same over `reactNamingConventionConfigs`. The rules ship as the ESLint plugin
+`houseConfigs` is `namingConventionConfigs` plus the house rules oxlint cannot express, the four async style rules
+and the blank-line padding rules (`paddingConfigs`, below); `reactHouseConfigs` is the same over
+`reactNamingConventionConfigs`, plus the React rules. The house rules ship as the ESLint plugin
 `houseEslintPlugin`, registered as `venizia`:
 
 | Class | Rule | Default | What it enforces |
@@ -176,10 +179,25 @@ booleans. `BrowserOxlintConfigs.create()` and `ReactOxlintConfigs.create()` take
 with `[ConstClassValuesRule.NAME]: ConstClassValuesRule.build({ severity: 'error' })`. The 5-parameter
 limit (V-C-02) is `venizia/max-params-own`, an error.
 
+#### Blank-line padding
+
+`paddingConfigs` holds two `@stylistic` rules, both `error`, on `.ts`, `.tsx`, `.mts` and `.cts` files.
+`houseConfigs`, `reactHouseConfigs` and `eslintConfigs` carry it. It has no parser of its own: it rides on the
+TypeScript parser of `namingConventionConfigs` or `eslintConfigs`. oxlint has none of these rules, so a
+project that lints with oxlint alone gets no padding check. `devz lint --fix` writes the blank lines.
+
+| Rule | What it enforces |
+| :--- | :--- |
+| `@stylistic/padding-line-between-statements` | A blank line after the imports (none needed between two imports), before a `return`, and around a block-like statement (a statement that ends in a block, such as `if`, `for`, `while`, `switch`, `try`, a function declaration or a bare block). Stacked `case` and `default` labels stay together |
+| `@stylistic/lines-between-class-members` | A blank line between class members, except after a one-line member, so a run of one-line properties stays together |
+
+Turn one off after the preset with `'off'`. See the
+[changelog](https://ignis.venizia.ai/changelogs/2026-11-04-blank-line-padding-rules).
+
 ### namingConventionConfigs
 
 `namingConventionConfigs` (type `Linter.Config[]`) sets only `@typescript-eslint/naming-convention`, with
-its 15 selectors. It targets `.ts`, `.tsx`, `.mts` and `.cts`, and ignores `dist`, `build`,
+its 16 selectors. It targets `.ts`, `.tsx`, `.mts` and `.cts`, and ignores `dist`, `build`,
 `coverage`, `*.d.ts` and plain JavaScript. ESLint does not report unused disable comments in this
 config, because oxlint owns the other rules.
 
@@ -239,9 +257,8 @@ flavor = "oxfmt"
 
 ### eslintConfigs
 
-`eslintConfigs` keeps its shape and resolves to the same rules as before, but is now owned here instead
-of wrapping `@minimaltech/eslint-node`: ESLint recommended, typescript-eslint, naming
-conventions, `curly`, plus these IGNIS rules (the node-protocol check runs in `oxlintConfigs` only):
+`eslintConfigs` is the full ESLint preset: ESLint recommended, typescript-eslint, naming
+conventions, `curly`, the padding rules, plus these IGNIS rules (the node-protocol check runs in `oxlintConfigs` only):
 
 | Rule | Setting |
 | :--- | :--- |
@@ -289,7 +306,13 @@ table above, as strict as the base. `react/no-deprecated` is left out: oxlint ha
 Both React presets run the same fifteen `jsx-a11y` rules, including the six that need a human
 decision (`click-events-have-key-events`, `no-static-element-interactions`,
 `no-noninteractive-element-interactions`, `label-has-associated-control`, `heading-has-content`,
-`anchor-is-valid`). `reactHouseConfigs` adds `venizia/no-leaked-render`, which oxlint has no port of.
+`anchor-is-valid`). `reactHouseConfigs` adds three house rules oxlint has no port of:
+
+| Rule | What it enforces |
+| :--- | :--- |
+| `venizia/no-leaked-render` | See the table above. On JSX files |
+| `venizia/no-async-hook-callback` | A hook never gets an async function. On all source files |
+| `venizia/effect-cleanup-consistency` | An effect callback returns a cleanup on every path or on none. On all source files |
 
 The presets start strict. An application that wants less overrides the rule after the preset:
 
@@ -359,6 +382,30 @@ await BunCompiler.compile({
   workers: ['./src/image-reader.worker.ts'],
 });
 ```
+
+## The devz command
+
+The package installs a `devz` binary. Run `devz --help` for the list, and `devz clean --help`,
+`devz check --help` or `devz codemod --help` for the options of one command. A usage error in a command exits 2.
+
+| Command | What it does |
+| :--- | :--- |
+| `devz lint [--fix] [files]` | Runs oxlint, ESLint and `bun fmt` from `.configs/lints/` and `.configs/formatters/.ignore`, and stops at the first tool that fails. With no file it checks the project; with files it handles only those, as a pre-commit hook passes them. `--fix` writes |
+| `devz check purity --claims <file> [package] [--json]` | Probes every entry claimed browser-pure. Needs a build |
+| `devz check module-cycles <dir> [--max <n>]` | Lists the import cycles of a built ESM folder; exits 1 when there are more than `--max` |
+| `devz check split-report [--dist <dir>] [folder...]` | Reports hub files, stray types, missing barrels, long files and cycles. Never a gate |
+| `devz check catalog [--glob <pattern>]... [--pinned <file>]... [--preset-prefix <prefix>]` | Guards dependency ranges against the root `workspaces.catalog` |
+| `devz clean` | Removes `dist`, `node_modules/.cache` and the `*.tsbuildinfo` files next to the tsconfig. It takes no argument |
+| `devz codemod <name> [paths...]` | Rewrites source files. A dry run unless `--write`; `--check` exits 1 while a rewrite remains |
+
+`devz check` also runs the four tools of the test-trimming method: `test-weight`, `test-dead-code`,
+`test-mutate` and `test-controls`.
+
+The codemods are `drop-redundant-casts` (removes `as X` casts the compiler no longer needs),
+`const-classes` (turns a string-literal union into a const class), `async-style` (applies the async style
+fixers and lists the rest), `namespace-functions` (moves calls of a function that moved into a class to the
+class form) and `connector-imports` (moves `@venizia/ignis/<connector sub-path>` imports to
+`@venizia/ignis-connectors`).
 
 ## Where it sits
 

@@ -93,6 +93,7 @@ Every route sits under `/v1/api`.
 | `GET` | `/authz-example/admin/dashboard` | JWT + role `999_super-admin` or `900_admin` |
 | `GET`, `POST` | `/test/1` to `/test/5` | route examples, off in production |
 | `GET`, `POST`, `DELETE` | `/assets/...`, `/resources/...` | upload, list, download, delete |
+| `GET` | `/certs` | none; the public JWKS other services verify tokens with |
 | `GET` | `/doc/openapi.json`, `/doc/explorer` | none |
 
 ## Sign in and call a route
@@ -124,7 +125,7 @@ are rows in `PolicyDefinition`; `scripts/seed-authz-test-data.ts` and
 |---|---|---|
 | `bun test` | `src/__tests__/smoke.test.ts`: boots the app on a free port, signs in, creates and reads a configuration, and checks Casbin answers `200` for a granted user and `403` for another. Skips when Postgres or Redis is down | `docker compose up -d` |
 | `bun run test:authz` | `scripts/test-authorization.sh`: 25 authorization cases over HTTP, against a running server | a running `server:dev`, `jq` |
-| `APP_ENV_RUN_REPOSITORY_TESTS=true bun run server:dev` | The repository suites in `src/services/tests` (listed in `TEST_CASES.md`) at boot; each case logs `PASSED` or `FAILED` | `docker compose up -d`, `migrate:dev` |
+| `APP_ENV_RUN_REPOSITORY_TESTS=true bun run server:dev` | The repository suites in `src/services/tests` (listed in `src/services/tests/TEST_CASES.md`) at boot; each case logs `PASSED` or `FAILED` | `docker compose up -d`, `migrate:dev` |
 
 The smoke test applies the migrations itself and signs with a key pair it makes for the run, so it
 needs no `.env` and no `keys/`.
