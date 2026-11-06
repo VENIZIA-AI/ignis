@@ -1,4 +1,4 @@
-import { RecordUtility } from '@/common/internal';
+import { RecordUtility } from '@venizia/ignis-helpers/core';
 
 export interface IHttpLikeError {
   httpStatus?: number;

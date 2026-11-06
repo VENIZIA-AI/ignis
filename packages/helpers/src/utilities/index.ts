@@ -7,4 +7,5 @@ export * from './module.utility';
 export * from './parse.utility';
 export * from './performance.utility';
 export * from './promise.utility';
+export * from './record.utility';
 export * from './request.utility';

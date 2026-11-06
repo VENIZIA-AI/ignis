@@ -23,14 +23,14 @@ generated:
 | `vite/` | 2 |
 | `clis/` | 1 |
 
-## connectors  (239 source files)
+## connectors  (238 source files)
 
 | Subsystem | Files |
 |---|---|
 | `relational/` | 139 |
 | `search/` | 77 |
-| `common/` | 7 |
 | `http/` | 7 |
+| `common/` | 6 |
 | `raw-sql/` | 5 |
 | `testing/` | 3 |
 
@@ -71,13 +71,13 @@ generated:
 | `schemas/` | 4 |
 | `common/` | 3 |
 
-## helpers  (306 source files)
+## helpers  (307 source files)
 
 | Subsystem | Files |
 |---|---|
 | `modules/` | 274 |
 | `common/` | 17 |
-| `utilities/` | 11 |
+| `utilities/` | 12 |
 
 ## inversion  (35 source files)
 

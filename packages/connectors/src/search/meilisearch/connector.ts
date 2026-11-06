@@ -9,10 +9,9 @@ import type {
   ISearchSynonymScoped,
 } from '@/search/core';
 import { BaseSearchConnector } from '@/search/core';
-import { RecordUtility } from '@/common/internal';
 import { SearchConnectorInternal } from '@/search/core/internal';
 import type { ISynonym } from '@/search/core/models';
-import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
+import { getError, isApplicationError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { Meilisearch } from 'meilisearch';
 import type { IMeilisearchIndexPlan } from './compiler';

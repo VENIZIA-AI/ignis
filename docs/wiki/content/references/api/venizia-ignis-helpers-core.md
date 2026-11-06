@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-98 exports, 98 with TSDoc. 59 more are re-exported from other entries (listed at the end).
+99 exports, 99 with TSDoc. 59 more are re-exported from other entries (listed at the end).
 
 ## `AbstractCryptoAlgorithm`
 
@@ -1630,6 +1630,23 @@ export declare class QueryStringUtility {
 ```
 
 Source: `packages/helpers/src/modules/network/utilities/query-string.ts`
+
+## `RecordUtility`
+
+*class*
+
+Narrowing of an `unknown` value, such as a wire payload, to an object whose string keys can be read; no node import, so it ships on `/core`.
+
+```ts
+export declare class RecordUtility {
+    /** A non-null object, arrays included: the narrowest check before reading string keys off an `unknown`. A type guard, so it keeps its positional `value`. */
+    static isRecord(value: unknown): value is Record<string, unknown>;
+    /** A non-null object that is not an array: `isRecord` without the arrays. A class instance (an `Error`, a `Date`) still counts. */
+    static isPlainRecord(value: unknown): value is Record<string, unknown>;
+}
+```
+
+Source: `packages/helpers/src/utilities/record.utility.ts`
 
 ## `RequestBodyErrors`
 

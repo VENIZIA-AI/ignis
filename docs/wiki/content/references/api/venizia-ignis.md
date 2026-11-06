@@ -3419,6 +3419,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `QueueStatuses` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `ReadableCrudController` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `ReadableRepository` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
+- `RecordUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `RecursiveTreeDirections` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `RecursiveTreeSql` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `REDACTED` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
