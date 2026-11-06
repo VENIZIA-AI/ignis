@@ -153,6 +153,7 @@ above) and the value are still runtime-only, and it cannot tell a relation field
 
 - a user value of `undefined` never overrides a defined default, so a caller cannot blow away a tenant or soft-delete scope by passing `undefined`;
 - scalar-over-scalar on the same key is a plain override (`isDeleted: false` -> `true` is the long-standing opt-out);
+- the row scope of `access.resolve` is NOT merged by key: `composeScope({ scopeWhere, userFilter })` ANDs it with the caller's `where` (`{ and: [scope, userWhere] }`), so a caller can only narrow it, whatever shape the scope has. Only the model's default filter (`query.filter`) uses the key merge below;
 - **any other collision AND-composes** into the reserved `and` group, so a default scope can only ever be narrowed - `status: 'active'` plus `status: { neq: 'archived' }` keeps both;
 - an `and` collision concatenates the two conjunct lists (concatenating *is* the AND of the groups);
 - an `or` collision does **not** concatenate - that would union the disjunctions and widen the query. Each group becomes its own conjunct, so both must hold.

@@ -338,10 +338,7 @@ export abstract class RelationalBaseRepository<
               scopeWhere,
             });
 
-      return this.queryDialect.mergeFilter({
-        defaultFilter: { where: effectiveWhere },
-        userFilter,
-      });
+      return this.queryDialect.composeScope({ scopeWhere: effectiveWhere, userFilter });
     }
 
     if (scopeFilterSettings.onMissing === ScopeFilterMissingBehaviors.ALLOW) {
@@ -350,8 +347,8 @@ export abstract class RelationalBaseRepository<
 
     // 'deny' (default): an unresolved scope means the framework does not know what this caller may
     // see, and the safe reading of "I do not know" is "nothing" - never "everything".
-    return this.queryDialect.mergeFilter({
-      defaultFilter: { where: ScopeFilterDenial.where<DO>() },
+    return this.queryDialect.composeScope({
+      scopeWhere: ScopeFilterDenial.where<DO>(),
       userFilter,
     });
   }
