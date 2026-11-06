@@ -9,11 +9,10 @@ import type {
   ISearchSynonymSetScoped,
 } from '@/search/core';
 import { BaseSearchConnector } from '@/search/core';
-import { RecordUtility } from '@/common/internal';
 import { SearchConnectorInternal } from '@/search/core/internal';
 import type { ISynonym } from '@/search/core/models';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
+import { getError, isApplicationError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { Client } from 'typesense';
 import {
   EntryOutcomes,

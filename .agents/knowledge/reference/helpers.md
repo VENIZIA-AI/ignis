@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Package: [helpers](/packages/helpers.md).
 
-**46 helper classes across 18 modules, 10 utilities.**
+**46 helper classes across 18 modules, 11 utilities.**
 
 ## Modules
 
@@ -37,4 +37,4 @@ generated:
 
 ## Utilities
 
-`build-info` · `error` · `form-body` · `hr-time` · `module` · `parse` · `performance` · `project-root` · `promise` · `request`
+`build-info` · `error` · `form-body` · `hr-time` · `module` · `parse` · `performance` · `project-root` · `promise` · `record` · `request`

@@ -331,7 +331,7 @@ generated:
 
 ## helpers
 
-### `@venizia/ignis-helpers` (418)
+### `@venizia/ignis-helpers` (419)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -582,6 +582,7 @@ generated:
 - `QueryStringSeparators` class
 - `QueryStringUtility` class
 - `QueueStatuses` class
+- `RecordUtility` class
 - `REDACTED` const
 - `RedactUtility` class
 - `REDIS_HELPER_BRAND` const
@@ -814,7 +815,7 @@ generated:
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (157)
+### `@venizia/ignis-helpers/core` (158)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractNetworkFetchableHelper` class
@@ -910,6 +911,7 @@ generated:
 - `QueryStringNullishModes` class
 - `QueryStringSeparators` class
 - `QueryStringUtility` class
+- `RecordUtility` class
 - `RequestBodyErrors` const
 - `RequestIdGenerator` class
 - `RetryBackoffStrategies` class
@@ -2364,7 +2366,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1010)
+### `@venizia/ignis` (1011)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2953,6 +2955,7 @@ generated:
 - `QueueStatuses` class
 - `ReadableCrudController` class
 - `ReadableRepository` class
+- `RecordUtility` class
 - `RecursiveTreeDirections` class
 - `RecursiveTreeSql` class
 - `REDACTED` const

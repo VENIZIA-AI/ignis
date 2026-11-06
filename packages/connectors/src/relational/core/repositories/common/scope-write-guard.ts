@@ -1,4 +1,4 @@
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import {
   QueryOperators,
   RepositoryErrorCodes,
@@ -39,10 +39,6 @@ const isScalar = (value: unknown): value is TScalar => {
     value instanceof Date ||
     ['string', 'number', 'bigint', 'boolean'].includes(typeof value)
   );
-};
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 };
 
 const normalise = (value: TScalar): string | null => {
@@ -290,7 +286,9 @@ export class ScopeWriteGuard {
         const kept: TWhere[] = [];
 
         for (const part of value) {
-          const narrowed = ScopeWriteGuard.withoutShared({ where: isRecord(part) ? part : {} });
+          const narrowed = ScopeWriteGuard.withoutShared({
+            where: RecordUtility.isPlainRecord(part) ? part : {},
+          });
 
           if (narrowed.kind === 'unverifiable') {
             return narrowed;
@@ -366,7 +364,7 @@ export class ScopeWriteGuard {
       return list(value);
     }
 
-    if (!isRecord(value)) {
+    if (!RecordUtility.isPlainRecord(value)) {
       return { kind: 'unverifiable', reason: 'an unsupported condition' };
     }
 

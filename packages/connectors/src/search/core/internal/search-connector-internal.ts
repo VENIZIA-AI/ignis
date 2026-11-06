@@ -1,9 +1,8 @@
-import { RecordUtility } from '@/common/internal';
 import { SearchErrorCodes } from '@venizia/ignis-kernel/repository';
 import { SearchErrors } from '@/search/core/common';
 import type { ILogger } from '@venizia/ignis-helpers/core';
 import type { ApplicationError } from '@venizia/ignis-helpers/core';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 
 /** Engine-agnostic error plumbing shared by every search connector; backend-specific classification (what counts as 404/409) lives in each backend's own internal helper. */

@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-96 exports, 96 with TSDoc. 913 more are re-exported from other entries (listed at the end).
+96 exports, 96 with TSDoc. 914 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3419,6 +3419,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `QueueStatuses` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `ReadableCrudController` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `ReadableRepository` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
+- `RecordUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `RecursiveTreeDirections` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `RecursiveTreeSql` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `REDACTED` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)

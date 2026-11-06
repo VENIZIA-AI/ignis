@@ -1,4 +1,4 @@
-import { RecordUtility } from '@/common/internal';
+import { RecordUtility } from '@venizia/ignis-helpers/core';
 import type { ISearchFacetCount, ISearchResult } from '@/search/core';
 import { HTTP, type AnyType } from '@venizia/ignis-helpers/common';
 import { type Meilisearch } from 'meilisearch';

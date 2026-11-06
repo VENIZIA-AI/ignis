@@ -1,4 +1,4 @@
-import { RecordUtility } from '@/common/internal';
+import { RecordUtility } from '@venizia/ignis-helpers/core';
 import type { ISearchFacetCount, ISearchFacetStats, ISearchResult } from '@/search/core';
 import type { ISynonym } from '@/search/core/models';
 import { TypesensePayloadReader } from './guards';

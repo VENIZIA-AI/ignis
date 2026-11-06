@@ -54,6 +54,7 @@ export { BuildInfoRegistry } from './utilities/build-info.utility';
 export type { IBuildInfo, TBuildInfoRecord } from './utilities/build-info.utility';
 export { ParseUtility } from './utilities/parse.utility';
 export { PerformanceUtility } from './utilities/performance.utility';
+export { RecordUtility } from './utilities/record.utility';
 export { FormBodyUtility, RequestBodyErrors } from './utilities/form-body.utility';
 export { ProjectRootRegistry } from './utilities/project-root.utility';
 
