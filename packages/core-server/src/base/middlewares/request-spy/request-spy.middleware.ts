@@ -1,7 +1,7 @@
 import { NetworkUtility } from '@/utilities/network.utility';
 import { Environment } from '@venizia/ignis-helpers';
 import { BaseHelper, EnvironmentNames, getError } from '@venizia/ignis-helpers/core';
-import { HTTP } from '@venizia/ignis-helpers/common';
+import { HTTP, REDACTED } from '@venizia/ignis-helpers/common';
 import type { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
 import type { MiddlewareHandler } from 'hono/types';
@@ -12,6 +12,7 @@ const TEXT_CONTENT_TYPE_PREFIX = 'text/';
 /** Logs incoming/outgoing request details. The BODY is parsed and logged only in a recognised development environment - see the constructor for why that test is fail-closed; elsewhere only a JSON body is parsed, for its malformed-body 400. */
 export class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHandler> {
   static readonly REQUEST_ID_KEY = REQUEST_ID_KEY;
+  private static readonly CALLBACK_PARAMETERS = new Set(['code', 'state']);
 
   private isDebugMode: boolean;
 
@@ -106,7 +107,15 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
 
       // Best-effort, never fatal: a unix socket, some proxies and any in-process call yield no connection info - refusing to serve because the client IP is unknown turns a logging gap into an outage.
       const clientIp = incomingIp ?? forwardedIp ?? 'unknown';
-      const query = req.query() ?? {};
+      // `code` and `state` are credentials in an OAuth callback and too common as plain names to mask everywhere.
+      const query = Object.fromEntries(
+        Object.entries(req.query() ?? {}).map(([key, value]) => {
+          return [
+            key,
+            RequestSpyMiddleware.CALLBACK_PARAMETERS.has(key.toLowerCase()) ? REDACTED : value,
+          ];
+        }),
+      );
 
       if (this.isDebugMode) {
         const body = await this.parseBody({ req });

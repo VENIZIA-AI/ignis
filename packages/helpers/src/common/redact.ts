@@ -29,12 +29,54 @@ const SECRET_KEY_PATTERN = new RegExp(
     // HTTP HEADER spellings: header names are kebab-case and often `x-`-prefixed, none of which the camelCase list above matches; `vault` is included so `X-Vault-Token` (node-vault's auth header) is caught.
     '|^(x-)?(api|auth|access|secret|session|csrf|xsrf|vault)-(key|token|secret|id)$',
     '|^(cookie|set-cookie|proxy-authorization|www-authenticate)$',
+
+    // Named secrets that no suffix rule reaches. An explicit list, never a blanket `*Key` or `code`: those would mask
+    // `primaryKey`, `cacheKey` and every status `code`. Cloud and signing keys, session and one-time values, signatures,
+    // card and national-id numbers, and the kebab spellings of tokens and secrets (the suffix rules above need a letter or
+    // an underscore before the word).
+    '|^(secret_?access_?key|aws_?secret_?access_?key|signing_?key|encryption_?key|master_?key|hmac_?key|account_?key|storage_?key|license_?key|reset_?key|reset_?code|verification_?code|authorization_?code|auth_?code)$',
+    '|^(jwt|session_?id|sid|signature|sig|passwd|pwd|passcode|pass_phrase|secret_?answer|otp|totp|cvv|cvc|card_?number|ssn|national_?id)$',
+    '|^(redis_?url|mongo_?uri|mongo_?url|webhook_?url|private_?key_?pem|password_?hash|mfa_?code|otp_?code|x_?api_?key)$',
+    '|^(api_?keys|refresh_?tokens|access_?tokens|secrets|tokens)$',
+    '|^(x-amz-signature|x-amz-security-token|x-amz-credential)$',
+    '|^(id|refresh|access|bearer|auth|api|session|csrf|xsrf)-token$',
+    '|^(client|api|app|webhook)-secret$|^(private|signing|secret|api|access|encryption)-key$',
   ].join(''),
   'i',
 );
 
 /** The placeholder that replaces a secret value in redacted output. */
 export const REDACTED = '[REDACTED]';
+
+/**
+ * `://user:password@host`: the password of a url's userinfo, wherever the url sits inside a string. Anchored on `://`
+ * (not on the scheme, whose letters a pattern would rescan from every start) and every run is bounded, so the cost is
+ * linear in the string. The password runs to the LAST `@` before a space or slash, so one that holds an `@` is whole.
+ */
+const URL_USERINFO_PATTERN = /(:\/\/[^\s/:@]{0,256}):[^\s/]{1,256}@/g;
+
+/** `://token@host`: a userinfo with no password is the credential itself (`https://<token>@github.com`). */
+const URL_USER_ONLY_PATTERN = /:\/\/[^\s/:@]{1,256}@/g;
+
+/** `Bearer abc...` and `Basic abc...` credentials, as an `Authorization` header or a message quotes them. */
+const AUTH_SCHEME_PATTERN = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{8,}/gi;
+
+/** A credential-like `name=value` after a query, fragment, list or space: `?access_token=...`, `#id_token=...`, `, password=...`. */
+const QUERY_CREDENTIAL_PATTERN =
+  /([?&;,#\s])(access_token|refresh_token|id_token|token|api_key|apikey|x-api-key|key|auth|password|passwd|pwd|secret|client_secret|signature|sig|x-amz-signature|x-amz-security-token|jwt|session_id|sessionid|code)=([^&\s#,)]*)/gi;
+
+/** A string with the credentials it carries masked: a connection url's password, a bearer token, a credential query parameter. */
+const scrubString = (value: string): string => {
+  if (!value.includes('@') && !value.includes('=') && !/bearer|basic/i.test(value)) {
+    return value;
+  }
+
+  return value
+    .replace(URL_USERINFO_PATTERN, `$1:${'[REDACTED]'}@`)
+    .replace(URL_USER_ONLY_PATTERN, `://${'[REDACTED]'}@`)
+    .replace(AUTH_SCHEME_PATTERN, `$1 ${'[REDACTED]'}`)
+    .replace(QUERY_CREDENTIAL_PATTERN, `$1$2=${'[REDACTED]'}`);
+};
 
 /** Kill-switch for local debugging: only the literal `false` disables redaction (fail-closed); read per call so it can be flipped at runtime. Never disable in production. `force` is the caller opting out of the switch: it always masks. */
 const isRedactionEnabled = (force?: boolean): boolean =>
@@ -87,7 +129,9 @@ const deepSanitize = (value: unknown, context: TSanitizeContext): unknown => {
   const { seen, doRedact, depth } = context;
 
   if (typeof value === 'string') {
-    return capString({ value, key: context.key, limit: context.maxStringLength });
+    const text = doRedact ? scrubString(value) : value;
+
+    return capString({ value: text, key: context.key, limit: context.maxStringLength });
   }
 
   // A function is not data, and an own `toJSON` on an object would run after this walk, inside `JSON.stringify`, and
@@ -130,8 +174,8 @@ const deepSanitize = (value: unknown, context: TSanitizeContext): unknown => {
     const source = value;
     const result: AnyObject = {
       name: value.name,
-      message: value.message,
-      stack: value.stack,
+      message: doRedact ? scrubString(value.message) : value.message,
+      stack: doRedact && value.stack ? scrubString(value.stack) : value.stack,
     };
 
     for (const [key, entry] of Object.entries(source)) {
@@ -197,6 +241,11 @@ export class RedactUtility {
       depth,
       maxStringLength: resolveMaxStringLength(),
     });
+  }
+
+  /** Masks the credentials a plain string carries (a url's password, a bearer token, credential query parameters). For a log line's string argument; objects go through {@link RedactUtility.redactSecrets}. `force: true` scrubs even when `APP_ENV_LOGGER_DO_REDACT=false`. */
+  static scrubText(opts: { value: string; force?: boolean }): string {
+    return isRedactionEnabled(opts.force) ? scrubString(opts.value) : opts.value;
   }
 
   /** Projects a value into something `JSON.stringify` can render: it answers `[Circular]` for the WHOLE payload when one cycle sits anywhere inside it, so cycles must be broken per-branch first. `depth` bounds the walk the way `util.inspect` does - a log argument may hold a live connector or request context, whose graph is effectively unbounded. The projection itself is unconditional: `APP_ENV_LOGGER_DO_REDACT=false` turns off the key masking, never the structural pass. `force: true` keeps the key masking on whatever the switch says; the projection stays lossy, as in {@link RedactUtility.redactSecrets}. */

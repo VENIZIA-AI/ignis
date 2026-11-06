@@ -44,6 +44,9 @@ this.logger.info('[connect] Broker: %s', RedactUtility.redactUrlCredentials({ ur
 - Options-object spellings: `password`, `passphrase`, `secret`, `token`, `apiKey`, `privateKey`, `credential`, `credentials`, `authorization`, `connectionString`, ...
 - Any `*_token` / `*Token` key: `access_token`, `refresh_token`, `vaultToken`, ...
 - Any `*_credential` / `*Credential` key, singular or plural: `dbCredential`, `api_credentials`, ...
+- Named secrets: cloud and signing keys (`secretAccessKey`, `signingKey`, `encryptionKey`, `masterKey`, `hmacKey`, `licenseKey`), session and one-time values (`jwt`, `sessionId`, `sid`, `otp`, `totp`, `resetCode`, `verificationCode`, `authorization_code`), `signature` / `sig`, card and national-id numbers (`cvv`, `cardNumber`, `ssn`, `nationalId`), `passwd` / `pwd`, `redisUrl` / `mongoUri`, and the kebab spellings (`id-token`, `refresh-token`, `client-secret`, `private-key`). Plain names such as `primaryKey`, `cacheKey` and `code` stay visible.
+
+String values are scrubbed as well: the password of a url (`scheme://user:password@host`), a `Bearer` / `Basic` credential and credential-like query parameters (`access_token`, `signature`, `code`, ...) read `[REDACTED]` wherever they sit in a string, an `Error` message and stack included. The request log masks the OAuth callback `code` and `state` parameters.
 - Vault wire keys: `client_token`, `secret_id`, `role_id`
 - HTTP header spellings: `x-api-key`, `x-vault-token`, `cookie`, `set-cookie`, `proxy-authorization`, `www-authenticate`
 

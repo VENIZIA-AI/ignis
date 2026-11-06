@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { REDACTED, RedactUtility } from '@/common/redact';
+import { LogFormatUtility } from '@/modules/logger/formatting/deep-splat';
 
 /** Secrets in a log line ship to an aggregator and outlive the process; pins the two shapes a secret arrives in - a KEY in an options object, and the authority section of a URL. */
 describe('redactUrlCredentials', () => {
@@ -372,5 +373,189 @@ describe('APP_ENV_LOGGER_DO_REDACT=false - the reveal kill-switch', () => {
     const redacted = RedactUtility.redactSecrets({ value: { secret: 's' } }) as { secret: string };
 
     expect(redacted.secret).toBe(REDACTED);
+  });
+});
+
+describe('redactSecrets - more credential names and the credentials inside string values', () => {
+  const mask = (value: unknown) => RedactUtility.redactSecrets({ value, force: true });
+
+  test.each([
+    'secretAccessKey',
+    'awsSecretAccessKey',
+    'signingKey',
+    'signing_key',
+    'encryptionKey',
+    'masterKey',
+    'hmacKey',
+    'accountKey',
+    'storageKey',
+    'licenseKey',
+    'resetKey',
+    'resetCode',
+    'verificationCode',
+    'authorization_code',
+    'jwt',
+    'JWT',
+    'sessionId',
+    'session_id',
+    'sid',
+    'signature',
+    'sig',
+    'x-amz-signature',
+    'x-amz-security-token',
+    'id-token',
+    'refresh-token',
+    'client-secret',
+    'private-key',
+    'passwd',
+    'pwd',
+    'passcode',
+    'pass_phrase',
+    'secretAnswer',
+    'otp',
+    'totp',
+    'cvv',
+    'cvc',
+    'cardNumber',
+    'card_number',
+    'ssn',
+    'nationalId',
+    'redisUrl',
+    'mongoUri',
+  ])('the key %s is masked', (key) => {
+    const masked = mask({ [key]: 'VALUE' }) as Record<string, unknown>;
+
+    expect(masked[key]).toBe(REDACTED);
+  });
+
+  test.each(['primaryKey', 'cacheKey', 'code', 'statusCode', 'pin', 'identifier', 'description'])(
+    'the key %s stays visible',
+    (key) => {
+      const masked = mask({ [key]: 'VALUE' }) as Record<string, unknown>;
+
+      expect(masked[key]).toBe('VALUE');
+    },
+  );
+
+  test('a url with a password in a harmless key loses the password, keeps the rest', () => {
+    const masked = mask({ target: 'postgres://app:hunter2@db:5432/main' }) as Record<
+      string,
+      string
+    >;
+
+    expect(masked.target).toBe('postgres://app:[REDACTED]@db:5432/main');
+  });
+
+  test('a url inside a sentence is scrubbed, and so is an Authorization value', () => {
+    const masked = mask({
+      note: 'connect to redis://u:p4ss@cache:6379 failed, header Authorization: Bearer eyJhbGciOi.abc.def',
+    }) as Record<string, string>;
+
+    expect(masked.note).not.toContain('p4ss');
+    expect(masked.note).not.toContain('eyJhbGciOi');
+    expect(masked.note).toContain('redis://u:[REDACTED]@cache:6379');
+    expect(masked.note).toContain('Bearer [REDACTED]');
+  });
+
+  test('credential query parameters in a link are masked, the others are kept', () => {
+    const masked = mask({
+      link: 'https://x.test/cb?access_token=abc123&page=2&signature=zzz&code=AUTH',
+    }) as Record<string, string>;
+
+    expect(masked.link).toBe(
+      'https://x.test/cb?access_token=[REDACTED]&page=2&signature=[REDACTED]&code=[REDACTED]',
+    );
+  });
+
+  test('an Error message and stack are scrubbed too', () => {
+    const error = new Error('cannot reach mongodb://admin:s3cr3t@mongo:27017/app');
+    const masked = mask({ error }) as { error: { message: string; stack?: string } };
+
+    expect(masked.error.message).toBe('cannot reach mongodb://admin:[REDACTED]@mongo:27017/app');
+    expect(masked.error.stack ?? '').not.toContain('s3cr3t');
+  });
+
+  test('plain text is left alone', () => {
+    const masked = mask({ message: 'user a@b.com signed in, 3 items' }) as Record<string, string>;
+
+    expect(masked.message).toBe('user a@b.com signed in, 3 items');
+  });
+
+  test('with the switch off and no force, strings are not scrubbed', () => {
+    const previous = process.env.APP_ENV_LOGGER_DO_REDACT;
+    process.env.APP_ENV_LOGGER_DO_REDACT = 'false';
+
+    try {
+      const value = { target: 'postgres://app:hunter2@db/main' };
+
+      expect(RedactUtility.redactSecrets({ value })).toBe(value);
+    } finally {
+      if (previous === undefined) {
+        delete process.env.APP_ENV_LOGGER_DO_REDACT;
+      } else {
+        process.env.APP_ENV_LOGGER_DO_REDACT = previous;
+      }
+    }
+  });
+});
+
+describe('scrubbing strings - bounded cost and the forms a first pass missed', () => {
+  const scrub = (value: string) => RedactUtility.scrubText({ value, force: true });
+
+  test.each([
+    ['a long run of letters then @', `${'a'.repeat(1e6)}@`],
+    ['many scheme starts', `http://${'a:'.repeat(1e5)}`],
+    ['a long bearer value', `Bearer ${'a'.repeat(1e6)}`],
+    ['many query starts', '?token='.repeat(1e5)],
+    ['a long userinfo with no @', `://${'a'.repeat(1e6)}`],
+  ])('%s: a megabyte is scrubbed in well under a second', (_name, input) => {
+    const started = performance.now();
+    scrub(input);
+
+    expect(performance.now() - started).toBeLessThan(500);
+  });
+
+  test.each([
+    ['postgres://user:p@ss@host/db', 'postgres://user:[REDACTED]@host/db'],
+    ['https://ghp_TOKEN@github.com/x.git', 'https://[REDACTED]@github.com/x.git'],
+    ['x #access_token=abc&state=1', 'x #access_token=[REDACTED]&state=1'],
+    ['/cb?key=abc&auth=def', '/cb?key=[REDACTED]&auth=[REDACTED]'],
+    ['user=a, password=hunter2, ok=1', 'user=a, password=[REDACTED], ok=1'],
+    ['[link](https://x.y/?sig=1) text', '[link](https://x.y/?sig=[REDACTED]) text'],
+  ])('%s', (input, expected) => {
+    expect(scrub(input)).toBe(expected);
+  });
+
+  test.each([
+    'privateKeyPem',
+    'passwordHash',
+    'password_hash',
+    'mfaCode',
+    'otpCode',
+    'webhookUrl',
+    'apiKeys',
+    'refreshTokens',
+    'secrets',
+    'xApiKey',
+  ])('the key %s is masked', (key) => {
+    expect(
+      (
+        RedactUtility.redactSecrets({ value: { [key]: 'V' }, force: true }) as Record<
+          string,
+          string
+        >
+      )[key],
+    ).toBe(REDACTED);
+  });
+});
+
+describe('the logger scrubs a string argument', () => {
+  test('a url in a %s argument loses its password', () => {
+    const line = LogFormatUtility.formatMessage({
+      message: 'connecting to %s',
+      args: ['postgres://u:hunter2@h/db'],
+    });
+
+    expect(line).toBe('connecting to postgres://u:[REDACTED]@h/db');
   });
 });

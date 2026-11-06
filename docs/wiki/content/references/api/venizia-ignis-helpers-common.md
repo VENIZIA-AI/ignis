@@ -722,6 +722,11 @@ export declare class RedactUtility {
         depth?: number;
         force?: boolean;
     }): unknown;
+    /** Masks the credentials a plain string carries (a url's password, a bearer token, credential query parameters). For a log line's string argument; objects go through {@link RedactUtility.redactSecrets}. `force: true` scrubs even when `APP_ENV_LOGGER_DO_REDACT=false`. */
+    static scrubText(opts: {
+        value: string;
+        force?: boolean;
+    }): string;
     /** Projects a value into something `JSON.stringify` can render: it answers `[Circular]` for the WHOLE payload when one cycle sits anywhere inside it, so cycles must be broken per-branch first. `depth` bounds the walk the way `util.inspect` does - a log argument may hold a live connector or request context, whose graph is effectively unbounded. The projection itself is unconditional: `APP_ENV_LOGGER_DO_REDACT=false` turns off the key masking, never the structural pass. `force: true` keeps the key masking on whatever the switch says; the projection stays lossy, as in {@link RedactUtility.redactSecrets}. */
     static toJsonSafe(opts: {
         value: unknown;
