@@ -11,7 +11,8 @@ import {
   DefaultCRUDRepository,
   PostgresIdEnricher,
 } from '@venizia/ignis-connectors/postgres';
-import { PGliteCRUDRepository, PGliteDriver } from '@venizia/ignis-connectors/postgres/pglite';
+import { PGliteCRUDRepository } from '@venizia/ignis-connectors/postgres';
+import { PGliteDriver } from '@venizia/ignis-connectors/postgres/pglite';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   datasource,

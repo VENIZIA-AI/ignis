@@ -5,8 +5,7 @@ import type { Pool } from 'pg';
 import type { BaseSqliteDataSource } from '@/relational/sqlite/datasources';
 import { PostgresIdEnricher } from '@/relational/postgres/models';
 import type { BasePostgresDataSource } from '@/relational/postgres/datasources';
-import { PGliteCRUDRepository } from '@/relational/postgres/drivers/pglite';
-import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
+import { DefaultCRUDRepository, PGliteCRUDRepository } from '@/relational/postgres/repositories';
 
 /**
  * `tsc --noEmit` (`make typecheck`) is the real gate for this file: `bun test` strips types. The short form

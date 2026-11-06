@@ -1959,7 +1959,7 @@ generated:
 - `TTableObject` type
 - `TTableSchemaWithId` type
 
-### `@venizia/ignis-connectors/postgres` (79)
+### `@venizia/ignis-connectors/postgres` (81)
 
 - `AbstractPostgresDataSource` class
 - `BaseDataSource` class
@@ -1988,6 +1988,7 @@ generated:
 - `ModelFactory` class
 - `one` const
 - `PersistableRepository` class
+- `PGliteCRUDRepository` type
 - `PostgresBaseRepository` class
 - `PostgresDataTypeEnricher` class
 - `PostgresFilterBuilder` class
@@ -2019,6 +2020,7 @@ generated:
 - `TIdEnricherOptions` type
 - `TIdEnricherResult` type
 - `TIsolationLevel` type
+- `TPGliteDataSource` type
 - `TPrimaryKey` type
 - `TPrincipalEnricherOptions` type
 - `TRecursiveTreeDirection` type
@@ -2049,9 +2051,8 @@ generated:
 
 - `PostgresJsDriver` class
 
-### `@venizia/ignis-connectors/postgres/pglite` (4)
+### `@venizia/ignis-connectors/postgres/pglite` (3)
 
-- `PGliteCRUDRepository` type
 - `PGliteDriver` class
 - `TPGliteDataSource` type
 - `TPGliteDriverOptions` type
@@ -2369,7 +2370,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1011)
+### `@venizia/ignis` (1013)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2931,6 +2932,7 @@ generated:
 - `PerformanceUtility` class
 - `PersistableCrudController` class
 - `PersistableRepository` class
+- `PGliteCRUDRepository` type
 - `PolicyConnectorResolver` class
 - `PolicyLineCodec` class
 - `post` const
@@ -3228,6 +3230,7 @@ generated:
 - `TParsedOrderEntry` type
 - `TPermissionCommonColumns` type
 - `TPermissionOptions` type
+- `TPGliteDataSource` type
 - `TPlannedGrantRow` type
 - `TPolicyDefinitionCommonColumns` type
 - `TPolicyDefinitionOptions` type
