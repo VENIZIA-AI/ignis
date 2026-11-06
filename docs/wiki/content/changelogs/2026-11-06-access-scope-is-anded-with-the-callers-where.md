@@ -16,7 +16,7 @@ packages: ['@venizia/ignis-connectors', '@venizia/ignis']
 
 - **One composition.** Before, the scope was merged into the filter by key, and a scope written as a single value per column (`{ merchantId: 'm1' }`) could be replaced by a `where` on the same column. Scopes written with an operator (`inq`, `in`), an `or`, an `and` or a `through` were already combined by AND. All of them are ANDed now, in one place.
 - **Tests.** Both engines (PGlite and libsql) run every scope shape against every `where` shape on the same columns, for `find`, `findOne`, `count`, `updateBy`, `deleteBy`, an include with a scope, and a `through` child.
-- **The default filter is unchanged.** `query.filter` (soft delete, visibility) still merges by key, and a caller's value replaces the default's, as documented.
+- **The default filter is unchanged.** `query.filter` (soft delete, visibility) still merges by key, and a caller's value replaces the default's, as documented. It is resolved against the caller's filter first and the scope goes on last and outermost, so on a model that has both, the opt-out keeps working inside the scope.
 
 ## Who is affected
 

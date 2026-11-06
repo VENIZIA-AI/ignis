@@ -735,22 +735,22 @@ export abstract class FilterBuilder extends BaseHelper {
       });
 
       // Row scope is this relation's OWN `@model` setting - never the parent's - and is applied
-      // BEFORE `defaultFilter` so it survives `shouldSkipDefaultFilter` exactly like the parent.
+      // LAST and outermost, after the default filter, so it survives `shouldSkipDefaultFilter` exactly like the parent and
+      // the caller's `scope.where` (with the default filter's opt-out resolved) can only narrow it.
       const scopeFilterSettings = this.resolveScopeFilter({
         schema: relationConfig.schema,
         modelEntry,
-      });
-      const scopedUserFilter = this.applyRelationScopeFilter({
-        userFilter: scope,
-        scopeFilterSettings,
-        schema: relationConfig.schema,
       });
 
       const defaultFilter = shouldSkipDefaultFilter
         ? undefined
         : this.resolveDefaultFilter({ schema: relationConfig.schema, modelEntry });
 
-      const mergedScope = this.mergeFilter({ defaultFilter, userFilter: scopedUserFilter });
+      const mergedScope = this.applyRelationScopeFilter({
+        userFilter: this.mergeFilter({ defaultFilter, userFilter: scope }),
+        scopeFilterSettings,
+        schema: relationConfig.schema,
+      });
       const scopedFilter: TFilter =
         relationConfig.type === RelationTypes.MANY
           ? {

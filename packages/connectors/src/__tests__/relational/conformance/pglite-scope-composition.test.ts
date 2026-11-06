@@ -15,6 +15,7 @@ import { defineScopeCompositionCases, ROWS } from './scope-composition-cases';
 const PRODUCT_TABLE = 'comp_product';
 const VARIANT_TABLE = 'comp_variant';
 const NOTE_TABLE = 'comp_note';
+const ITEM_TABLE = 'comp_item';
 
 const productTable = pgTable(PRODUCT_TABLE, {
   id: serial('id').primaryKey(),
@@ -40,6 +41,14 @@ const noteTable = pgTable(NOTE_TABLE, {
   name: text('name').notNull(),
 });
 
+const itemTable = pgTable(ITEM_TABLE, {
+  id: serial('id').primaryKey(),
+  merchantId: text('merchant_id'),
+  status: text('status').notNull(),
+  name: text('name').notNull(),
+});
+
+let itemScope: AnyType = {};
 let productScope: AnyType = {};
 let noteScope: AnyType = {};
 
@@ -72,8 +81,25 @@ const NoteBase = ModelFactory.defineEntity({
   relations: () => ({ product: one(productTable) }),
 });
 
-@model({ type: 'entity', settings: { access: { resolve: () => noteScope } } })
+@model({
+  type: 'entity',
+  settings: {
+    access: { resolve: () => noteScope },
+    query: { filter: { where: { name: 'n1' } } },
+  },
+})
 class Note extends NoteBase {}
+
+const ItemBase = ModelFactory.defineEntity({ table: itemTable });
+
+@model({
+  type: 'entity',
+  settings: {
+    access: { resolve: () => itemScope },
+    query: { filter: { where: { status: 'live' } } },
+  },
+})
+class Item extends ItemBase {}
 
 const relationsOf = (opts: {
   source: typeof productTable | typeof variantTable | typeof noteTable;
@@ -101,6 +127,7 @@ class CompositionDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGli
         [PRODUCT_TABLE]: productTable,
         [VARIANT_TABLE]: variantTable,
         [NOTE_TABLE]: noteTable,
+        [ITEM_TABLE]: itemTable,
         productRelations: relationsOf({ source: productTable, entity: ProductBase }),
         variantRelations: relationsOf({ source: variantTable, entity: VariantBase }),
         noteRelations: relationsOf({ source: noteTable, entity: NoteBase }),
@@ -126,6 +153,7 @@ let dataSource: CompositionDataSource;
 let products: DefaultCRUDRepository<typeof productTable>;
 let variants: DefaultCRUDRepository<typeof variantTable>;
 let notes: DefaultCRUDRepository<typeof noteTable>;
+let items: DefaultCRUDRepository<typeof itemTable>;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -133,6 +161,7 @@ beforeAll(async () => {
   await client.exec(`
     CREATE TABLE ${PRODUCT_TABLE} (id serial primary key, merchant_id text, region text not null, name text not null);
     CREATE TABLE ${VARIANT_TABLE} (id serial primary key, product_id integer not null references ${PRODUCT_TABLE}(id) on delete cascade, name text not null);
+    CREATE TABLE ${ITEM_TABLE} (id serial primary key, merchant_id text, status text not null, name text not null);
     CREATE TABLE ${NOTE_TABLE} (id serial primary key, product_id integer not null references ${PRODUCT_TABLE}(id) on delete cascade, merchant_id text, name text not null);
   `);
 
@@ -146,6 +175,9 @@ beforeAll(async () => {
   notes = new DefaultCRUDRepository<typeof noteTable>(dataSource as AnyType, {
     entityClass: Note as AnyType,
   });
+  items = new DefaultCRUDRepository<typeof itemTable>(dataSource as AnyType, {
+    entityClass: Item as AnyType,
+  });
 }, 30_000);
 
 afterAll(async () => {
@@ -158,6 +190,17 @@ defineScopeCompositionCases(() => ({
   products,
   notes,
   variants,
+  items,
+  itemNames: async () => {
+    const result = await client.query<{ name: string }>(
+      `SELECT name FROM ${ITEM_TABLE} ORDER BY id`,
+    );
+
+    return result.rows.map((row) => row.name);
+  },
+  setItemScope: (scope) => {
+    itemScope = scope;
+  },
   setProductScope: (scope) => {
     productScope = scope;
   },
@@ -166,7 +209,10 @@ defineScopeCompositionCases(() => ({
   },
   reset: async () => {
     await client.exec(
-      `TRUNCATE ${NOTE_TABLE}, ${VARIANT_TABLE}, ${PRODUCT_TABLE} RESTART IDENTITY`,
+      `TRUNCATE ${NOTE_TABLE}, ${VARIANT_TABLE}, ${PRODUCT_TABLE}, ${ITEM_TABLE} RESTART IDENTITY`,
+    );
+    await client.exec(
+      `INSERT INTO ${ITEM_TABLE} (merchant_id, status, name) VALUES ('m1','live','a'), ('m1','archived','b'), ('m2','live','c'), ('m2','archived','d');`,
     );
     await client.exec(
       ROWS.map(

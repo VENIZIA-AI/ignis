@@ -363,23 +363,19 @@ export abstract class RelationalBaseRepository<
   }): TFilter<DO> {
     const { userFilter, shouldSkipDefaultFilter, dangerouslySkipScopeFilter, mutation } = opts;
 
-    const scopedFilter = this.applyScopeFilter<DO>({
-      userFilter,
+    const defaultFilter = shouldSkipDefaultFilter ? undefined : this.getDefaultFilter();
+
+    // The default filter is resolved against the caller's filter FIRST (its scalar opt-out, for one), and the row scope goes
+    // on LAST and outermost: whatever the caller asked for, it can only narrow the scope.
+    const defaulted = defaultFilter
+      ? this.queryDialect.mergeFilter({ defaultFilter, userFilter })
+      : userFilter;
+
+    return this.applyScopeFilter<DO>({
+      userFilter: defaulted,
       dangerouslySkipScopeFilter,
       mutation,
     });
-
-    if (shouldSkipDefaultFilter) {
-      return scopedFilter;
-    }
-
-    const defaultFilter = this.getDefaultFilter();
-
-    if (!defaultFilter) {
-      return scopedFilter;
-    }
-
-    return this.queryDialect.mergeFilter({ defaultFilter, userFilter: scopedFilter });
   }
 
   async beginTransaction(

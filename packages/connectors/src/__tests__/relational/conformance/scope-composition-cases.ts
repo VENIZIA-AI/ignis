@@ -136,8 +136,12 @@ export interface IScopeCompositionContext {
   products: AnyType;
   notes: AnyType;
   variants: AnyType;
+  /** A model with a scope AND a default filter (`status: 'live'`); rows (m1,live,a) (m1,archived,b) (m2,live,c) (m2,archived,d). */
+  items: AnyType;
+  itemNames: () => Promise<string[]>;
   setProductScope: (scope: AnyType) => void;
   setNoteScope: (scope: AnyType) => void;
+  setItemScope: (scope: AnyType) => void;
   /** Truncates and seeds `ROWS` into the product table, then two notes per product (merchant of the parent). */
   reset: () => Promise<void>;
   /** The product names still in the table, in id order. */
@@ -233,6 +237,81 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
       }
     });
   }
+
+  describe('a scoped model that also has a default filter', () => {
+    test('the caller can still opt out of the default filter, and still cannot leave the scope', async () => {
+      const ctx = context();
+      await ctx.reset();
+      ctx.setItemScope({ merchantId: 'm1' });
+
+      const find = async (where: AnyType) => {
+        const rows = await ctx.items.find({ filter: { where } });
+
+        return names(rows);
+      };
+
+      const result5 = await find({});
+      expect(result5).toEqual(['a']);
+      const result6 = await find({ status: 'archived' });
+      expect(result6).toEqual(['b']);
+      const result7 = await find({ merchantId: 'm2' });
+      expect(result7).toEqual([]);
+      const result8 = await find({ status: 'archived', merchantId: 'm2' });
+      expect(result8).toEqual([]);
+      const result9 = await ctx.items.count({ where: { status: 'archived' } });
+      expect(result9.count).toBe(1);
+      const result10 = await ctx.items.count({ where: { merchantId: 'm2' } });
+      expect(result10.count).toBe(0);
+    });
+
+    test('update and delete follow the same rule', async () => {
+      const ctx = context();
+      await ctx.reset();
+      ctx.setItemScope({ merchantId: 'm1' });
+
+      const updated = await ctx.items.updateBy({
+        where: { status: 'archived' },
+        data: { name: 'renamed' },
+        options: { shouldReturn: false },
+      });
+      const foreign = await ctx.items.deleteBy({
+        where: { status: 'archived', merchantId: 'm2' },
+        options: { shouldReturn: false },
+      });
+      const deleted = await ctx.items.deleteBy({
+        where: { status: 'archived' },
+        options: { shouldReturn: false },
+      });
+
+      expect(updated.count).toBe(1);
+      expect(foreign.count).toBe(0);
+      expect(deleted.count).toBe(1);
+      const result11 = await ctx.itemNames();
+      expect(result11.sort()).toEqual(['a', 'c', 'd']);
+    });
+
+    test("an include keeps the related model's opt-out and its scope", async () => {
+      const ctx = context();
+      await ctx.reset();
+      ctx.setProductScope(ScopeFilters.UNRESTRICTED);
+      ctx.setNoteScope({ merchantId: 'm1' });
+
+      const noteNames = (rows: AnyType[]) =>
+        rows.flatMap((row) => (row.notes ?? []).map((note: AnyType) => note.name)).sort();
+
+      const plain = await ctx.products.find({ filter: { include: [{ relation: 'notes' }] } });
+      const optedOut = await ctx.products.find({
+        filter: { include: [{ relation: 'notes', scope: { where: { name: 'n2' } } }] },
+      });
+      const foreign = await ctx.products.find({
+        filter: { include: [{ relation: 'notes', scope: { where: { name: 'n3' } } }] },
+      });
+
+      expect(noteNames(plain)).toEqual(['n1']);
+      expect(noteNames(optedOut)).toEqual(['n2']);
+      expect(noteNames(foreign)).toEqual([]);
+    });
+  });
 
   describe('an included relation with a bare-scalar scope', () => {
     test("include scope.where on the scope column cannot reach another merchant's children", async () => {
