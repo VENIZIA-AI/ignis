@@ -212,6 +212,80 @@ describe('APP_ENV_LOGGER_DO_REDACT=false - the reveal kill-switch', () => {
     });
   });
 
+  test('force: true masks redactSecrets even with the switch set to false', () => {
+    const options = { host: 'db', password: 'hunter2', nested: { token: 'tok_live' } };
+
+    flip('false', () => {
+      const masked = RedactUtility.redactSecrets({ value: options, force: true }) as {
+        host: string;
+        password: string;
+        nested: { token: string };
+      };
+
+      expect(masked).not.toBe(options);
+      expect(masked.host).toBe('db');
+      expect(masked.password).toBe(REDACTED);
+      expect(masked.nested.token).toBe(REDACTED);
+      // The logger path passes no force and still follows the switch.
+      expect(RedactUtility.redactSecrets({ value: options })).toBe(options);
+    });
+  });
+
+  test('force: true strips redactUrlCredentials and masks toJsonSafe with the switch set to false', () => {
+    const url = 'postgresql://app:s3cr3t@db:5432/main';
+
+    flip('false', () => {
+      expect(RedactUtility.redactUrlCredentials({ url, force: true })).not.toContain('s3cr3t');
+      expect(RedactUtility.redactUrlCredentials({ url })).toBe(url);
+
+      const safe = RedactUtility.toJsonSafe({ value: { apiKey: 'k-live' }, force: true }) as {
+        apiKey: string;
+      };
+
+      expect(safe.apiKey).toBe(REDACTED);
+      expect(
+        (RedactUtility.toJsonSafe({ value: { apiKey: 'k-live' } }) as { apiKey: string }).apiKey,
+      ).toBe('k-live');
+    });
+  });
+
+  test('force: true with the switch unset masks, as it does without force', () => {
+    flip(undefined, () => {
+      const masked = RedactUtility.redactSecrets({ value: { token: 'tok_live' }, force: true }) as {
+        token: string;
+      };
+
+      expect(masked.token).toBe(REDACTED);
+    });
+  });
+
+  test('force: true masks keys only - the projection still caps strings and breaks repeated references', () => {
+    const address = { city: 'Hanoi' };
+    const note = 'a'.repeat(3000);
+
+    flip('false', () => {
+      const out = RedactUtility.redactSecrets({
+        value: { billing: address, shipping: address, note, number: '4111', password: 'p' },
+        force: true,
+      }) as Record<string, unknown>;
+
+      expect(out.password).toBe(REDACTED);
+      // Not a faithful document: a card number under a non-secret key is kept, a long string is cut, and the
+      // second reference to the same object is a cycle marker.
+      expect(out.number).toBe('4111');
+      expect(String(out.note).length).toBeLessThan(note.length);
+      expect(out.shipping).toBe('[Circular]');
+    });
+  });
+
+  test('force: false or absent leaves the switch in charge', () => {
+    flip('false', () => {
+      const options = { password: 'hunter2' };
+
+      expect(RedactUtility.redactSecrets({ value: options, force: false })).toBe(options);
+    });
+  });
+
   test("unset keeps redaction ON - today's default behavior is unchanged", () => {
     flip(undefined, () => {
       const redacted = RedactUtility.redactSecrets({ value: { password: 'hunter2' } }) as {

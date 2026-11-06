@@ -53,6 +53,10 @@ These are the primitives the framework itself uses. Outbound HTTP request config
 > [!WARNING]
 > `APP_ENV_LOGGER_DO_REDACT=false` turns both functions into the identity function. It is a local-debugging kill-switch and must never be set in production. The check is fail-closed - only the literal string `false` disables redaction - and is read per call, so it can be flipped at runtime.
 
+To keep the key masking on whatever the switch says, pass `force: true`: `RedactUtility.redactSecrets({ value, force: true })`, and the same option on `redactUrlCredentials` and `toJsonSafe`. The logger never passes it, so the switch keeps working for log lines.
+
+`force` masks by key name only, so a card number under `number` or an email under `email` is not masked. Its output is also the log-shaped copy, not a faithful document: strings over `APP_ENV_LOGGER_MAX_STRING_LENGTH` (2048 by default) are cut, a second reference to the same object reads `[Circular]`, and binary and `Map` values are summarized. Use it for a copy that is logged or inspected, not as the payload you write to a file or send to a third party.
+
 ## 2. Input Validation
 
 **Always validate incoming data** with Zod schemas. IGNIS automatically rejects invalid requests.

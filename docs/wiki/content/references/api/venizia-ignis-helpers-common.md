@@ -710,20 +710,28 @@ export declare class RedactUtility {
      * `Infinity` for callers that really do want the whole graph, but the logger passes its own bound:
      * rendering only inspects a handful of levels, so walking to `Infinity` did work whose result was
      * thrown away - 12x on a deep graph, and a `RangeError` on a very deep chain.
+     *
+     * `force: true` masks secret-looking KEYS even when `APP_ENV_LOGGER_DO_REDACT=false`. The result is still the
+     * log-shaped copy: long strings are capped, a second reference to one object reads `[Circular]`, binary is
+     * summarized, and a key is masked by name only (a card number under `number` is not). It is not a faithful
+     * redacted document. The logger never sets it.
      */
     static redactSecrets(opts: {
         value: unknown;
         seen?: WeakSet<object>;
         depth?: number;
+        force?: boolean;
     }): unknown;
-    /** Projects a value into something `JSON.stringify` can render: it answers `[Circular]` for the WHOLE payload when one cycle sits anywhere inside it, so cycles must be broken per-branch first. `depth` bounds the walk the way `util.inspect` does - a log argument may hold a live connector or request context, whose graph is effectively unbounded. The projection itself is unconditional: `APP_ENV_LOGGER_DO_REDACT=false` turns off the key masking, never the structural pass. */
+    /** Projects a value into something `JSON.stringify` can render: it answers `[Circular]` for the WHOLE payload when one cycle sits anywhere inside it, so cycles must be broken per-branch first. `depth` bounds the walk the way `util.inspect` does - a log argument may hold a live connector or request context, whose graph is effectively unbounded. The projection itself is unconditional: `APP_ENV_LOGGER_DO_REDACT=false` turns off the key masking, never the structural pass. `force: true` keeps the key masking on whatever the switch says; the projection stays lossy, as in {@link RedactUtility.redactSecrets}. */
     static toJsonSafe(opts: {
         value: unknown;
         depth?: number;
+        force?: boolean;
     }): unknown;
-    /** Strips credentials from a connection URL's authority section (`user:hunter2@host` -> `user:[REDACTED]@host`) - {@link RedactUtility.redactSecrets} matches on KEY names and can't see them there. A value that fails to parse as a URL is returned unchanged. */
+    /** Strips credentials from a connection URL's authority section (`user:hunter2@host` -> `user:[REDACTED]@host`) - {@link RedactUtility.redactSecrets} matches on KEY names and can't see them there. A value that fails to parse as a URL is returned unchanged. `force: true` strips even when `APP_ENV_LOGGER_DO_REDACT=false`. */
     static redactUrlCredentials(opts: {
         url: string;
+        force?: boolean;
     }): string;
 }
 ```
