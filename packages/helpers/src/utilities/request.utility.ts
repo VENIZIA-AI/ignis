@@ -1,7 +1,6 @@
-import { HTTP } from '@/common/constants/http';
 import type { TConstValue } from '@/common/types';
 import { getError } from '@/modules/error';
-import { FormBodyUtility } from './form-body.utility';
+import { FormBodyUtility, RequestBodyErrors } from './form-body.utility';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -88,6 +87,12 @@ export class RequestUtility {
     const fields: Record<string, string> = {};
 
     if (maxFiles !== undefined) {
+      if (!Number.isInteger(maxFiles) || maxFiles < 0) {
+        throw getError({
+          message: `[parseMultipartBody] maxFiles must be a non-negative integer | received: ${maxFiles}`,
+        });
+      }
+
       let fileParts = 0;
 
       for (const [, value] of formData.entries()) {
@@ -98,7 +103,7 @@ export class RequestUtility {
 
       if (fileParts > maxFiles) {
         throw getError({
-          statusCode: HTTP.ResultCodes.RS_4.ContentTooLarge,
+          error: RequestBodyErrors.TOO_MANY_FILES,
           message: `[parseMultipartBody] Too many files in one request | received: ${fileParts} | max: ${maxFiles}`,
         });
       }
@@ -118,8 +123,15 @@ export class RequestUtility {
 
   private static removeSpooled(opts: { files: IParsedFile[] }): void {
     for (const file of opts.files) {
-      if (file.path) {
+      if (!file.path) {
+        continue;
+      }
+
+      try {
         fs.rmSync(file.path, { force: true });
+        // eslint-disable-next-line venizia/no-silent-catch -- cleanup of a failed request: one file that will not go must not hide the original error or stop the others
+      } catch {
+        continue;
       }
     }
   }
@@ -166,7 +178,14 @@ export class RequestUtility {
           const filename = `${timestamp}-${randomString}-${sanitizedName}`;
           const filepath = path.join(uploadDir, filename);
 
-          fs.writeFileSync(filepath, buffer);
+          try {
+            fs.writeFileSync(filepath, buffer);
+          } catch (error) {
+            // A write that dies midway (a full disk) leaves a partial file this part never got to list.
+            RequestUtility.removeSpooled({ files: [{ ...parsedFile, path: filepath }] });
+
+            throw error;
+          }
 
           parsedFile.filename = filename;
           parsedFile.path = filepath;

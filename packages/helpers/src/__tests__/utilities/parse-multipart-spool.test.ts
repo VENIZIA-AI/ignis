@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import fs, { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { RequestUtility } from '@/utilities/request.utility';
@@ -72,6 +72,38 @@ describe('RequestUtility.parseMultipartBody - maxFiles', () => {
   });
 });
 
+describe('RequestUtility.parseMultipartBody - the refusals are specific', () => {
+  test('the part limit answers with its own code', async () => {
+    let error: unknown;
+
+    try {
+      await RequestUtility.parseMultipartBody({ context: contextOf(filesOf(2)), maxFiles: 1 });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect((error as { statusCode?: number }).statusCode).toBe(413);
+    expect(JSON.stringify((error as { normalized?: unknown }).normalized)).toContain(
+      'core.request.too_many_files',
+    );
+  });
+
+  test.each([Number.NaN, -1, 1.5, Number.POSITIVE_INFINITY])(
+    'maxFiles %p is a configuration error, not a silent no-limit',
+    async (maxFiles) => {
+      let message = '';
+
+      try {
+        await RequestUtility.parseMultipartBody({ context: contextOf(filesOf(1)), maxFiles });
+      } catch (caught) {
+        message = (caught as Error).message;
+      }
+
+      expect(message).toContain('maxFiles must be a non-negative integer');
+    },
+  );
+});
+
 describe('RequestUtility.parseMultipartBody - a failure part-way removes what it spooled', () => {
   test('the files written before the failing part are removed', async () => {
     const uploadDir = spoolDir();
@@ -100,6 +132,91 @@ describe('RequestUtility.parseMultipartBody - a failure part-way removes what it
     }
 
     expect(message).toBe('read failed');
+    expect(readdirSync(uploadDir)).toEqual([]);
+  });
+
+  test('a failure to remove one file does not hide the original error or stop the others', async () => {
+    const uploadDir = spoolDir();
+    const broken = new File(['x'], 'broken.txt');
+    Object.defineProperty(broken, 'arrayBuffer', {
+      value: () => Promise.reject(new Error('read failed')),
+    });
+    const parts: Array<[string, File]> = [
+      ['files', new File(['one'], 'a.txt')],
+      ['files', new File(['two'], 'b.txt')],
+      ['files', broken],
+    ];
+    const formData = { entries: () => parts[Symbol.iterator]() } as unknown as FormData;
+    const original = fs.rmSync;
+    let calls = 0;
+
+    fs.rmSync = ((target: fs.PathLike, options?: fs.RmOptions) => {
+      calls += 1;
+
+      if (calls === 1) {
+        throw new Error('EBUSY');
+      }
+
+      return original(target, options);
+    }) as typeof fs.rmSync;
+
+    let message = '';
+
+    try {
+      await RequestUtility.parseMultipartBody({
+        context: contextOf(formData),
+        storage: 'disk',
+        uploadDir,
+      });
+    } catch (caught) {
+      message = (caught as Error).message;
+    } finally {
+      fs.rmSync = original;
+    }
+
+    expect(message).toBe('read failed');
+    expect(readdirSync(uploadDir)).toHaveLength(1);
+  });
+
+  test('a write that dies midway leaves no partial file', async () => {
+    const uploadDir = spoolDir();
+    const parts: Array<[string, File]> = [
+      ['files', new File(['one'], 'a.txt')],
+      ['files', new File(['two'], 'b.txt')],
+    ];
+    const formData = { entries: () => parts[Symbol.iterator]() } as unknown as FormData;
+    const original = fs.writeFileSync;
+    let calls = 0;
+
+    fs.writeFileSync = ((
+      target: fs.PathOrFileDescriptor,
+      data: string | NodeJS.ArrayBufferView,
+    ) => {
+      calls += 1;
+
+      if (calls === 2) {
+        original(target, 'xx');
+        throw new Error('ENOSPC');
+      }
+
+      return original(target, data);
+    }) as typeof fs.writeFileSync;
+
+    let message = '';
+
+    try {
+      await RequestUtility.parseMultipartBody({
+        context: contextOf(formData),
+        storage: 'disk',
+        uploadDir,
+      });
+    } catch (caught) {
+      message = (caught as Error).message;
+    } finally {
+      fs.writeFileSync = original;
+    }
+
+    expect(message).toBe('ENOSPC');
     expect(readdirSync(uploadDir)).toEqual([]);
   });
 });

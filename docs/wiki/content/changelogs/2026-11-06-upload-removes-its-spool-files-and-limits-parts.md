@@ -16,7 +16,8 @@ packages: ['@venizia/ignis-helpers', '@venizia/ignis']
 
 - **Cleanup on every exit.** The spool files are removed whether the upload succeeds or fails, including a refusal for the folder path, the folder depth or the size.
 - **A part limit.** One upload request may carry at most 20 file parts by default. More is refused with `413` before any file is written. Set `parseMultipartBody.maxFiles` on the controller to change it.
-- **A failing parse cleans up.** `RequestUtility.parseMultipartBody` removes the files it spooled when it fails part-way, and takes an optional `maxFiles` of its own (unset: no limit, as before).
+- **Its own error code.** The refusal is `core.request.too_many_files` (413). A `maxFiles` that is not a non-negative integer is a configuration error, not a silent no-limit.
+- **A failing parse cleans up.** `RequestUtility.parseMultipartBody` removes the files it spooled when it fails part-way (a write that dies midway included, and one file that cannot be removed does not stop the others), and takes an optional `maxFiles` of its own (unset: no limit, as before).
 
 ## Who is affected
 
