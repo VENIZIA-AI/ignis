@@ -150,9 +150,7 @@ describe('configs.middlewares.cors - wildcard origins end to end', () => {
     const server = await buildServer({ cors: { origin: 'https://*.example.com' } });
 
     const result = await allowedOrigin({ server, origin: 'https://app.example.com' });
-    expect(result).toBe(
-      'https://app.example.com',
-    );
+    expect(result).toBe('https://app.example.com');
     const result2 = await allowedOrigin({ server, origin: 'https://example.com' });
     expect(result2).toBeNull();
     const result3 = await allowedOrigin({ server, origin: 'https://example.com.evil.net' });
@@ -171,21 +169,24 @@ describe('configs.middlewares.cors - wildcard origins end to end', () => {
     });
 
     const result7 = await allowedOrigin({ server, origin: 'https://example.com' });
-    expect(result7).toBe(
-      'https://example.com',
-    );
+    expect(result7).toBe('https://example.com');
     const result8 = await allowedOrigin({ server, origin: 'https://app.example.com' });
-    expect(result8).toBe(
-      'https://app.example.com',
-    );
+    expect(result8).toBe('https://app.example.com');
     const result9 = await allowedOrigin({ server, origin: 'http://localhost:3000' });
-    expect(result9).toBe(
-      'http://localhost:3000',
-    );
+    expect(result9).toBe('http://localhost:3000');
     const result10 = await allowedOrigin({ server, origin: 'http://localhost:3001' });
     expect(result10).toBeNull();
     const result11 = await allowedOrigin({ server, origin: 'https://evil.net' });
     expect(result11).toBeNull();
+  });
+
+  test("a '*' in a list next to a pattern is a literal entry, as Hono treats it in a list: it allows no origin", async () => {
+    const server = await buildServer({ cors: { origin: ['*', 'https://*.example.com'] } });
+
+    expect(await allowedOrigin({ server, origin: 'https://other.net' })).toBeNull();
+    expect(await allowedOrigin({ server, origin: 'https://app.example.com' })).toBe(
+      'https://app.example.com',
+    );
   });
 
   test('a preflight is answered for a matching origin and is not for another', async () => {
