@@ -68,7 +68,7 @@ purity:
 
 # Checks that read the built dist, so they run after a build, never in test-scripts.
 build-checks:
-	@echo "🔍 Checking the build output: self-contained sourcemaps, the oxlint subpath loads no ESLint..."
+	@echo "🔍 Checking the build output: self-contained sourcemaps, the oxlint subpath loads no ESLint, every value typed in an entry exists at runtime..."
 	@bun test scripts/build/build-checks
 
 # Every example type-checks against the built packages, so a type a package forgot to export, or a

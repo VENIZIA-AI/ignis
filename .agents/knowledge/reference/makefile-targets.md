@@ -23,7 +23,7 @@ generated:
 | `make boot` | `helpers` | Rebuild one package, after its dependencies. |
 | `make build` | `build-all` | Rebuilds all packages (alias for 'build-all'). |
 | `make build-all` | `core core-worker boot docs surface-check wiki-links-check wiki-anchors-check api-check api-undocumented` | Rebuilds all packages in order, then the wiki and its checks. |
-| `make build-checks` | - | Gate: the built output - self-contained sourcemaps, the oxlint subpath loads no ESLint. Needs a build. |
+| `make build-checks` | - | Gate: the built output - self-contained sourcemaps, the oxlint subpath loads no ESLint, every value typed in an entry exists at runtime. Needs a build. |
 | `make catalog-check` | - | Gate: every catalogued dep is referenced as "catalog:", none drifted. |
 | `make clean` | - | Clean build artifacts from all packages. |
 | `make clean-install` | - | Load every published sub-path from packed tarballs in an empty project. |

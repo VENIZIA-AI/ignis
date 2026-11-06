@@ -49,7 +49,7 @@ help:
 	@$(HELP_ROW) "test-scripts" "Run the repository gate scripts' own regression tests."
 	@$(HELP_ROW) "controls-check" "Gate: every registered positive-control test still exists (scripts/checks/controls.json). Needs dev-configs built."
 	@$(HELP_ROW) "purity-test" "Run the purity probe's own regression tests."
-	@$(HELP_ROW) "build-checks" "Gate: the built output - self-contained sourcemaps, the oxlint subpath loads no ESLint. Needs a build."
+	@$(HELP_ROW) "build-checks" "Gate: the built output - self-contained sourcemaps, the oxlint subpath loads no ESLint, every value typed in an entry exists at runtime. Needs a build."
 	@echo ""
 	@echo "Knowledge bundle (.agents/knowledge) - okf, surface and atlas come from VULCAN:"
 	@$(HELP_ROW) "okf-check" "Gate: OKF v0.2 conformance."
