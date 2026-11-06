@@ -1128,12 +1128,14 @@ Every field is per call. An application that must reach plain `http` on one rout
 | Method | Signature | Does |
 |---|---|---|
 | `assertSafeUrl` | `(opts: { url: string; policy?: IUrlSafetyPolicy }): URL` | Parses and checks the url. Returns the parsed `URL`, or throws |
-| `isNonPublicAddress` | `(opts: { address: string }): boolean` | `true` for any address an untrusted url must never reach |
+| `isNonPublicAddress` | `(opts: { address: string }): boolean` | `true` for any address an untrusted url must never reach. Takes an IP literal only: a domain name answers `true` |
 | `readHostAddress` | `(opts: { hostname: string }): string` | Strips the brackets off an IPv6 literal - `[::1]` becomes `::1` |
 
-`assertSafeUrl` refuses, in this order: a malformed url, a scheme outside `allowedSchemes`, a host outside `allowedHosts`, and a literal address that is not public.
+`assertSafeUrl` refuses, in this order: a malformed url, a scheme outside `allowedSchemes`, a url that carries a username or a password (always, no policy flag), a host outside `allowedHosts`, and a literal address that is not public.
 
 `isNonPublicAddress` fails closed. An address it cannot parse counts as non-public, because a guard that fails open on a string it does not understand is not a guard. It covers loopback, the private v4 ranges, carrier-grade NAT, link-local (`169.254.0.0/16`, the metadata address), benchmarking, multicast, and the v6 equivalents. It also unwraps both spellings of an IPv4-mapped v6 address, because `new URL` rewrites `::ffff:169.254.169.254` into the hex form and a dotted-quad check alone would read green.
+
+An IPv6 literal is expanded to its eight 16-bit groups before it is classified, so `::1`, `0:0:0:0:0:0:0:1` and `0000:0000:0000:0000:0000:0000:0000:0001` get one answer. An address that carries an IPv4 one is judged by the IPv4 rules: v4-mapped (`::ffff:0:0/96`), v4-compatible (`::a.b.c.d`), NAT64 (`64:ff9b::/96`, so `64:ff9b::a9fe:a9fe` is the metadata address) and 6to4 (`2002::/16`). Multicast (`ff00::/8`), documentation (`2001:db8::/32`), Teredo (`2001::/32`), the rest of `64:ff9b::/32` and the reserved `::/8` are non-public.
 
 ### UrlIngest
 
