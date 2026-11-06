@@ -339,7 +339,8 @@ describe('SocketIOServerHelper | authentication', () => {
 
     const client = helper.getClients({ id: 'client-a' }) as ISocketIOClient;
     expect(client.state).toBe(SocketIOClientStates.AUTHENTICATED);
-    expect(socket.join).toHaveBeenCalledTimes(2);
+    expect(socket.join).toHaveBeenCalledTimes(3);
+    expect(socket.join).toHaveBeenCalledWith(SocketIOConstants.ROOM_AUTHENTICATED);
     expect(sent.map((entry) => entry.topic)).toContain(SocketIOConstants.EVENT_AUTHENTICATED);
   });
 
@@ -690,12 +691,22 @@ describe('SocketIOServerHelper | send', () => {
     expect(sent).toEqual([{ destination: 'client-a', topic: 'a-topic', data: { value: 1 } }]);
   });
 
-  test('broadcasts when no destination is given', () => {
+  test('with no destination, goes to the authenticated room and not to every socket', () => {
     const { helper, sent } = createHelper();
 
     helper.send({ payload: { topic: 'a-topic', data: { value: 1 } } });
 
-    expect(sent).toEqual([{ destination: undefined, topic: 'a-topic', data: { value: 1 } }]);
+    expect(sent).toEqual([
+      { destination: SocketIOConstants.ROOM_AUTHENTICATED, topic: 'a-topic', data: { value: 1 } },
+    ]);
+  });
+
+  test('an empty destination is the same as none', () => {
+    const { helper, sent } = createHelper();
+
+    helper.send({ destination: '', payload: { topic: 'a-topic', data: { value: 1 } } });
+
+    expect(sent[0].destination).toBe(SocketIOConstants.ROOM_AUTHENTICATED);
   });
 
   test('ignores an empty payload', () => {

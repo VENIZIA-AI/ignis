@@ -386,15 +386,19 @@ export class SocketIOServerHelper extends BaseHelper {
       new Date().toISOString(),
     );
 
-    Promise.all(this.defaultRooms.map((room: string) => Promise.resolve(socket.join(room))))
+    // The authenticated room first, and whatever `defaultRooms` the application configured: a broadcast must reach an
+    // authenticated socket even when the application replaced the defaults.
+    const rooms = [...new Set([SocketIOConstants.ROOM_AUTHENTICATED, ...this.defaultRooms])];
+
+    Promise.all(rooms.map((room: string) => Promise.resolve(socket.join(room))))
       .then(() => {
-        logger.info('Joined default rooms | id: %s | rooms: %s', id, this.defaultRooms);
+        logger.info('Joined default rooms | id: %s | rooms: %s', id, rooms);
       })
       .catch((error) => {
         logger.error(
           'Failed to join default rooms | id: %s | rooms: %s | error: %s',
           id,
-          this.defaultRooms,
+          rooms,
           error,
         );
       });
@@ -614,7 +618,8 @@ export class SocketIOServerHelper extends BaseHelper {
     if (destination && !ObjectUtility.isEmpty({ value: destination })) {
       sender.to(destination).emit(topic, data);
     } else {
-      sender.emit(topic, data);
+      // Not `sender.emit`: that reaches every connected socket, the ones that have not authenticated included.
+      sender.to(SocketIOConstants.ROOM_AUTHENTICATED).emit(topic, data);
     }
 
     if (callback) {
@@ -624,7 +629,7 @@ export class SocketIOServerHelper extends BaseHelper {
     if (doLog) {
       logger.info(
         'Message emitted | destination: %s | topic: %s | data: %j',
-        destination ?? 'all',
+        destination ?? SocketIOConstants.ROOM_AUTHENTICATED,
         topic,
         data,
       );

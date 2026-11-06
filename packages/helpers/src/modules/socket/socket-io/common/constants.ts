@@ -11,6 +11,8 @@ export class SocketIOConstants {
   static readonly EVENT_AUTHENTICATED = 'authenticated';
   static readonly EVENT_UNAUTHENTICATE = 'unauthenticated';
 
+  /** Every authenticated socket, and only those, is in this room: a send with no destination goes here, never to the whole server. */
+  static readonly ROOM_AUTHENTICATED = 'io-authenticated';
   static readonly ROOM_DEFAULT = 'io-default';
   static readonly ROOM_NOTIFICATION = 'io-notification';
 }
