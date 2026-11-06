@@ -88,6 +88,28 @@ envelope. `BaseApplication` calls `super.registerDefaultMiddlewares()` first, th
 
 After `registerDefaultMiddlewares()`, the application calls user-defined `staticConfigure()`, `preConfigure()`, and so on. The user's `setupMiddlewares()` hook runs after `initialize()` but before the server starts.
 
+## Set `configs.middlewares` in the constructor
+
+`registerDefaultMiddlewares()` reads `configs.middlewares` **before `staticConfigure()` runs** - it is one of the first steps in the boot sequence, ahead of every hook you override. So `cors` and `bodyLimit` must be passed to the application constructor; a value assigned inside `staticConfigure()` or a later hook is read too late to take effect, and the application refuses to boot when it detects a changed `bodyLimit`. Use a factory that builds the `config` object when the value depends on the environment.
+
+```typescript
+// Right: read before staticConfigure() runs.
+const application = new MyApplication({
+  scope: 'MyApp',
+  config: {
+    path: { base: '/api', isStrict: true },
+    middlewares: { cors: { origin: ['https://app.example.com'] } },
+  },
+});
+
+// Wrong: too late, the default stack is already installed.
+class MyApplication extends BaseApplication {
+  staticConfigure(): void {
+    this.configs.middlewares = { cors: { origin: ['https://app.example.com'] } };
+  }
+}
+```
+
 ## CORS (`configs.middlewares.cors`)
 
 `RestApplication.registerDefaultMiddlewares()` reads `configs.middlewares.cors` and, when it is set and `enable !== false`, installs Hono's `cors()` as the FIRST middleware, before the request id and the body limit. With no `cors` config nothing is installed.
@@ -186,10 +208,9 @@ const application = new MyApplication({
 });
 ```
 
-> [!IMPORTANT]
-> `registerDefaultMiddlewares()` reads `configs.middlewares` **before `staticConfigure()` runs** - it is one of the first steps in the boot sequence, ahead of every hook you override. Pass `middlewares` through the constructor's `config` (or an application-config factory that builds that object), never by assigning `this.configs.middlewares` inside `staticConfigure()` or a later hook: it is read too late to take effect, and the application refuses to boot when it detects the value changed after the fact.
+`bodyLimit` follows the same rule as `cors`: set it in the constructor, see [Set `configs.middlewares` in the constructor](#set-configs-middlewares-in-the-constructor).
 
-Over the limit, and with no `onError`, the request answers `413` with `core.request.body_too_large` (`RequestErrors.BODY_TOO_LARGE`). Every other `IMiddlewareConfigs` key - `compress`, `cors`, `csrf`, `ipRestriction` - is a type only; wire it yourself in `setupMiddlewares()`, as in [User-Defined Middlewares](#user-defined-middlewares).
+Over the limit, and with no `onError`, the request answers `413` with `core.request.body_too_large` (`RequestErrors.BODY_TOO_LARGE`). Every other `IMiddlewareConfigs` key - `compress`, `csrf`, `ipRestriction` - is a type only; wire it yourself in `setupMiddlewares()`, as in [User-Defined Middlewares](#user-defined-middlewares).
 
 > [!WARNING]
 > `extra.maxBytes` on a static-asset upload route only bounds a declared `Content-Length` - a chunked request with none skips it. Pair `extra.maxBytes` with `configs.middlewares.bodyLimit` for a ceiling nothing can skip. Raise `configs.server.maxRequestBodySize` above `bodyLimit.maxSize`, or Bun's own limit (default 128 MiB) answers `413` first, with no IGNIS envelope and no `core.request.body_too_large` code. Keep `bodyLimit.path` away from a route that streams a body through - the limiter buffers the whole body on any path it is scoped to, chunked or not.
