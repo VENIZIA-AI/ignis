@@ -94,6 +94,13 @@ export class DiskHelper extends BaseStorageHelper {
     return result !== null;
   }
 
+  /** An object is a regular file: a directory under the same path is not one, so it reads as not found. */
+  private async isFile(opts: { target: string }): Promise<boolean> {
+    const result = await this.statOrNull(opts);
+
+    return result?.isFile() ?? false;
+  }
+
   /** One `stat` answers existence and type. */
   async hasBucket(opts: { bucket: IBucketRef }): Promise<boolean> {
     if (!this.isValidBucketName(opts)) {
@@ -219,7 +226,7 @@ export class DiskHelper extends BaseStorageHelper {
     const { bucket, object } = opts;
     const objectPath = this.resolveObjectPath({ bucket, object });
 
-    const result = await this.exists({ target: objectPath });
+    const result = await this.isFile({ target: objectPath });
 
     if (!result) {
       throw getError({
@@ -238,7 +245,7 @@ export class DiskHelper extends BaseStorageHelper {
     const { bucket, object, range } = opts;
     const objectPath = this.resolveObjectPath({ bucket, object });
 
-    const result = await this.exists({ target: objectPath });
+    const result = await this.isFile({ target: objectPath });
 
     if (!result) {
       throw getError({
@@ -260,7 +267,7 @@ export class DiskHelper extends BaseStorageHelper {
     const objectPath = this.resolveObjectPath({ bucket, object });
     const stat = await this.statOrNull({ target: objectPath });
 
-    if (!stat) {
+    if (!stat?.isFile()) {
       throw getError({
         error: StorageErrors.OBJECT_NOT_FOUND,
         message: `[getStat] Object not found | bucket: ${bucket.name} | key: ${object.key}`,
@@ -280,7 +287,7 @@ export class DiskHelper extends BaseStorageHelper {
     const { bucket, object } = opts;
     const objectPath = this.resolveObjectPath({ bucket, object });
 
-    const result = await this.exists({ target: objectPath });
+    const result = await this.isFile({ target: objectPath });
 
     if (!result) {
       throw getError({
