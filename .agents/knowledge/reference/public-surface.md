@@ -815,7 +815,7 @@ generated:
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (158)
+### `@venizia/ignis-helpers/core` (159)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractNetworkFetchableHelper` class
@@ -907,6 +907,7 @@ generated:
 - `ParseUtility` class
 - `PerformanceUtility` class
 - `ProjectRootRegistry` class
+- `PromiseUtility` class
 - `QueryStringNestedModes` class
 - `QueryStringNullishModes` class
 - `QueryStringSeparators` class
