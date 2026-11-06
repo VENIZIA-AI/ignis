@@ -194,6 +194,20 @@ const NON_PUBLIC_IPV6 = [
   'FD00::1',
   '::2', // reserved ::/8
   'fe80::1%eth0', // a zone id is dropped, the address still counts
+  'fec0::1', // site-local, deprecated
+  'feff::1',
+  '3fff::1', // documentation 3fff::/20
+  '3fff:fff::1',
+  '2001:1::1', // IETF protocol assignments 2001::/23
+  '2001:2::1',
+  '2001:3::1',
+  '2001:4:112::1',
+  '2001:10::1',
+  '2001:1ff::1',
+  '100::1', // discard-only 100::/64
+  '100:0:0:0:1::1',
+  '5f00::1', // SRv6 segment identifiers
+  '::ffff:127.000.000.001', // leading zeros: octal to some parsers, so refused
 ];
 
 const MALFORMED_IPV6 = [
@@ -219,9 +233,44 @@ const PUBLIC_IPV6 = [
   '2002:808:808::1', // 6to4 of 8.8.8.8
   '::ffff:8.8.8.8',
   '::8.8.8.8', // IPv4-compatible of a public address
-  '2001:1::1', // not Teredo, not documentation
+  '2001:200::1', // just outside 2001::/23
+  '2001:db9::1', // next to documentation
+  '3ffe::1', // not 3fff::/20
+  '100:0:0:1::1', // only 100::/64 is discard
   '2003::1',
 ];
+
+const NON_CANONICAL_IPV4 = [
+  '0177.0.0.1',
+  '1e2.0.0.1',
+  '08.8.8.8',
+  '01.1.1.1',
+  '1.2.3.0000',
+  '1.2.3.',
+  '1.2.3',
+  '256.1.1.1',
+  '1.2.3.4.5',
+  ' 8.8.8.8',
+];
+
+describe('UrlPolicy.isNonPublicAddress - canonical text only (#939)', () => {
+  test.each(NON_CANONICAL_IPV4)('refuses the non-canonical IPv4 text %j', (address) => {
+    expect(UrlPolicy.isNonPublicAddress({ address })).toBe(true);
+  });
+
+  test('a canonical public IPv4 still passes', () => {
+    expect(UrlPolicy.isNonPublicAddress({ address: '8.8.8.8' })).toBe(false);
+    expect(UrlPolicy.isNonPublicAddress({ address: '203.0.113.10' })).toBe(false);
+  });
+
+  test('a string longer than any IPv6 text answers at once, however it is built', () => {
+    const started = performance.now();
+    const hostile = `::${'1'.repeat(160_000)}.1.1.1x`;
+
+    expect(UrlPolicy.isNonPublicAddress({ address: hostile })).toBe(true);
+    expect(performance.now() - started).toBeLessThan(100);
+  });
+});
 
 describe('UrlPolicy.isNonPublicAddress - IPv6 ranges and spellings (#939)', () => {
   test.each(NON_PUBLIC_IPV6)('rejects %s', (address) => {

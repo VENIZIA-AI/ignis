@@ -12,12 +12,17 @@ import type { IUrlSafetyPolicy } from './common/types';
 export class UrlPolicy {
   /** A dotted-quad that is not routable on the public internet. An unparseable input counts as non-public. */
   private static isNonPublicIPv4(opts: { address: string }): boolean {
-    const parts = opts.address.split('.').map(Number);
+    const texts = opts.address.split('.');
 
-    if (
-      parts.length !== 4 ||
-      parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)
-    ) {
+    // Canonical dotted decimal only: an octet with a leading zero (`0177`, which inet_aton reads as octal 127) or an
+    // exponent (`1e2`) is read differently by different parsers, so it is refused rather than guessed at.
+    if (texts.length !== 4 || !texts.every((text) => /^(0|[1-9]\d{0,2})$/.test(text))) {
+      return true;
+    }
+
+    const parts = texts.map(Number);
+
+    if (parts.some((part) => part > 255)) {
       return true;
     }
 
@@ -41,7 +46,7 @@ export class UrlPolicy {
   private static dottedToGroups(opts: { dotted: string }): number[] | null {
     const octets = opts.dotted.split('.');
 
-    if (octets.length !== 4 || !octets.every((octet) => /^\d{1,3}$/.test(octet))) {
+    if (octets.length !== 4 || !octets.every((octet) => /^(0|[1-9]\d{0,2})$/.test(octet))) {
       return null;
     }
 
@@ -110,20 +115,26 @@ export class UrlPolicy {
   /**
    * An address that must never be reached with an untrusted url. Anything unrecognised answers
    * `true`: a guard that fails open on a string it cannot parse is not a guard. Takes an IP literal
-   * only: a domain name is parsed as a bad IPv4 address and answers `true`.
+   * only, in canonical text (dotted decimal without leading zeros; any IPv6 spelling): a domain name or a non-canonical IPv4
+   * such as `0177.0.0.1` answers `true`.
    *
    * An IPv6 literal is expanded to its eight groups before it is classified, so every spelling of an
    * address gets the same answer. An address that carries an IPv4 one is judged by the IPv4 rules: v4-mapped
    * (`::ffff:0:0/96`), v4-compatible (`::a.b.c.d`), NAT64 (`64:ff9b::/96`) and 6to4 (`2002::/16`); a
    * `64:ff9b::` address reaches 169.254.169.254 through a NAT64 gateway just as the dotted form does.
    * Unspecified, loopback, unique local (`fc00::/7`), link-local (`fe80::/10`), multicast (`ff00::/8`),
-   * documentation (`2001:db8::/32`), Teredo (`2001::/32`), the rest of `64:ff9b::/32` and the reserved `::/8` are non-public.
+   * site-local (`fec0::/10`), documentation (`2001:db8::/32`, `3fff::/20`), the IETF protocol assignments `2001::/23` (Teredo among them), discard (`100::/64`), SRv6 (`5f00::/16`), the rest of `64:ff9b::/32` and the reserved `::/8` are non-public.
    */
   static isNonPublicAddress(opts: { address: string }): boolean {
     const normalized = opts.address.toLowerCase().split('%')[0];
 
     if (!normalized.includes(':')) {
       return UrlPolicy.isNonPublicIPv4({ address: normalized });
+    }
+
+    // The longest IPv6 text is 45 characters; a longer string is not an address, and the cap bounds the work below.
+    if (normalized.length > 45) {
+      return true;
     }
 
     const groups = UrlPolicy.expandIPv6({ address: normalized });
@@ -152,10 +163,14 @@ export class UrlPolicy {
     return g0 === 0x2002 // 6to4: the IPv4 address is groups 1 and 2
       ? UrlPolicy.isNonPublicEmbedded({ high: g1, low: g2 })
       : (g0 & 0xff00) === 0 || // 0000::/8, reserved by IETF: nothing a public host sits on
+          (g0 === 0x100 && g1 === 0 && g2 === 0 && g3 === 0) || // discard-only 100::/64
           (g0 & 0xfe00) === 0xfc00 || // unique local
           (g0 & 0xffc0) === 0xfe80 || // link-local
+          (g0 & 0xffc0) === 0xfec0 || // site-local, deprecated
           (g0 & 0xff00) === 0xff00 || // multicast
-          (g0 === 0x2001 && (g1 === 0xdb8 || g1 === 0)); // documentation and Teredo
+          g0 === 0x5f00 || // SRv6 segment identifiers
+          (g0 === 0x3fff && (g1 & 0xf000) === 0) || // documentation 3fff::/20
+          (g0 === 0x2001 && (g1 < 0x200 || g1 === 0xdb8)); // IETF protocol assignments 2001::/23 (Teredo, ORCHID, AMT, AS112, ...) and documentation
   }
 
   /** A bracketed IPv6 literal arrives as `[::1]`; the brackets are not part of the address. */

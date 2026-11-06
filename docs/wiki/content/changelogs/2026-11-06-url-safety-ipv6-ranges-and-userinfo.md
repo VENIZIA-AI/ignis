@@ -14,9 +14,10 @@ packages: ['@venizia/ignis-helpers']
 
 ## What changed
 
-- **IPv6 ranges.** `isNonPublicAddress` expands an address to its eight groups before it classifies it, so every spelling of an address gets one answer (`0:0:0:0:0:0:0:1` is loopback, as `::1` is). An address that carries an IPv4 one is judged by the IPv4 rules: NAT64 (`64:ff9b::/96`), 6to4 (`2002::/16`), IPv4-compatible (`::a.b.c.d`) and the v4-mapped forms. Multicast (`ff00::/8`), documentation (`2001:db8::/32`), Teredo (`2001::/32`), the rest of `64:ff9b::/32` and the reserved `::/8` are non-public. A string that is not an IPv6 literal fails closed.
+- **IPv6 ranges.** `isNonPublicAddress` expands an address to its eight groups before it classifies it, so every spelling of an address gets one answer (`0:0:0:0:0:0:0:1` is loopback, as `::1` is). An address that carries an IPv4 one is judged by the IPv4 rules: NAT64 (`64:ff9b::/96`), 6to4 (`2002::/16`), IPv4-compatible (`::a.b.c.d`) and the v4-mapped forms. Multicast (`ff00::/8`), site-local (`fec0::/10`), documentation (`2001:db8::/32`, `3fff::/20`), the IETF protocol assignments `2001::/23` (Teredo among them), discard (`100::/64`), SRv6 (`5f00::/16`), the rest of `64:ff9b::/32` and the reserved `::/8` are non-public. A string that is not an IPv6 literal fails closed, and so does a string longer than any IPv6 text.
 - **Userinfo.** `assertSafeUrl` refuses a url with a username or a password with `URL_REFUSED`. There is no policy flag to allow it: a credential in a url is a way to smuggle a different host past a reviewer or a log line, and a webhook url never needs one.
-- **Documented.** `isNonPublicAddress` takes an IP literal only; a domain name answers `true`.
+- **Canonical IPv4 text.** `isNonPublicAddress` reads dotted decimal without leading zeros. `0177.0.0.1` (octal to some parsers), `1e2.0.0.1` and `1.2.3.0000` answer `true` instead of being read as a number. A url never reaches this: `new URL` canonicalises it first.
+- **Documented.** `isNonPublicAddress` takes an IP literal only; a domain name answers `true`. An empty userinfo (`https://@host/`) carries no credentials and passes.
 
 ## Who is affected
 

@@ -2216,14 +2216,15 @@ export declare class UrlPolicy {
     /**
      * An address that must never be reached with an untrusted url. Anything unrecognised answers
      * `true`: a guard that fails open on a string it cannot parse is not a guard. Takes an IP literal
-     * only: a domain name is parsed as a bad IPv4 address and answers `true`.
+     * only, in canonical text (dotted decimal without leading zeros; any IPv6 spelling): a domain name or a non-canonical IPv4
+     * such as `0177.0.0.1` answers `true`.
      *
      * An IPv6 literal is expanded to its eight groups before it is classified, so every spelling of an
      * address gets the same answer. An address that carries an IPv4 one is judged by the IPv4 rules: v4-mapped
      * (`::ffff:0:0/96`), v4-compatible (`::a.b.c.d`), NAT64 (`64:ff9b::/96`) and 6to4 (`2002::/16`); a
      * `64:ff9b::` address reaches 169.254.169.254 through a NAT64 gateway just as the dotted form does.
      * Unspecified, loopback, unique local (`fc00::/7`), link-local (`fe80::/10`), multicast (`ff00::/8`),
-     * documentation (`2001:db8::/32`), Teredo (`2001::/32`), the rest of `64:ff9b::/32` and the reserved `::/8` are non-public.
+     * site-local (`fec0::/10`), documentation (`2001:db8::/32`, `3fff::/20`), the IETF protocol assignments `2001::/23` (Teredo among them), discard (`100::/64`), SRv6 (`5f00::/16`), the rest of `64:ff9b::/32` and the reserved `::/8` are non-public.
      */
     static isNonPublicAddress(opts: {
         address: string;
