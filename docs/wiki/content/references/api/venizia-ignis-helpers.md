@@ -1466,14 +1466,26 @@ export declare class Hash extends BaseHelper {
         opts?: IHashExtraOptions;
     }): string;
     /**
+     * Compares two strings exactly as given, in constant time: the byte length first, then `crypto.timingSafeEqual`. For
+     * two digests that are both already in hand, such as an idempotency fingerprint against a saved one, where
+     * {@link Hash.verify} has nothing to hash. `false` for any difference, never a throw, and `false` too for a value that
+     * is not a string. Two empty strings are equal. The text is compared, not the bytes it stands for: hex in upper case
+     * does not equal hex in lower case.
+     */
+    static equals(opts: {
+        value: string;
+        expected: string;
+    }): boolean;
+    /**
      * Checks a received digest against the one `value` produces, in constant time. Use it for a webhook signature or a
      * payment callback instead of `===`, which stops at the first differing character and so tells an attacker how many
      * leading characters of a forged value were right.
      *
      * `value` is hashed the way {@link Hash.digest} does, or keyed with `secret` the way {@link Hash.hmac} does, then
-     * written in `outputEncoding` (hex by default) and compared with `expected` as text. A different length answers
-     * `false` without comparing, and the answer is `false`, never a throw, for any mismatch. The text must match exactly:
-     * hex in upper case does not equal hex in lower case.
+     * written in `outputEncoding` (hex by default) and compared with `expected` by {@link Hash.equals}. A different length
+     * answers `false` without comparing, and the answer is `false`, never a throw, for any mismatch. `expected` is exact
+     * text: hex in upper case does not equal hex in lower case, and an unpadded or URL-safe form of the same base64 digest
+     * is refused. Pass the matching `outputEncoding` (`base64url`), or normalise the text first.
      */
     verify(opts: {
         value: THashInput;

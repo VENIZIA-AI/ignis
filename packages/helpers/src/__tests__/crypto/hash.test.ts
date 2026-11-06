@@ -416,3 +416,65 @@ describe('Hash.verify - constant-time comparison', () => {
     expect(() => sha256.verify({ value: MESSAGE, secret: '', expected })).toThrow();
   });
 });
+
+describe('Hash.equals - two strings in constant time', () => {
+  const DIGEST = C.createHash('sha256').update(MESSAGE).digest('hex');
+
+  test('equal strings are equal, and so are two empty ones', () => {
+    expect(Hash.equals({ value: DIGEST, expected: DIGEST })).toBe(true);
+    expect(Hash.equals({ value: '', expected: '' })).toBe(true);
+    expect(Hash.equals({ value: 'caf\u00e9', expected: 'caf\u00e9' })).toBe(true);
+  });
+
+  test('a different string of the same length is false', () => {
+    const other = `${DIGEST.slice(0, -1)}${DIGEST.endsWith('0') ? '1' : '0'}`;
+
+    expect(Hash.equals({ value: DIGEST, expected: other })).toBe(false);
+    expect(Hash.equals({ value: DIGEST, expected: DIGEST.toUpperCase() })).toBe(false);
+  });
+
+  test('a different length is false and never a throw, in either order', () => {
+    for (const other of ['', 'a', DIGEST.slice(0, -1), `${DIGEST}0`]) {
+      expect(() => Hash.equals({ value: DIGEST, expected: other })).not.toThrow();
+      expect(Hash.equals({ value: DIGEST, expected: other })).toBe(false);
+      expect(Hash.equals({ value: other, expected: DIGEST })).toBe(false);
+    }
+  });
+
+  test('length is counted in bytes: a multi-byte character cannot pad a short value', () => {
+    const expected = `${DIGEST.slice(0, -1)}\u00e9`;
+
+    expect(Buffer.byteLength(expected)).not.toBe(DIGEST.length);
+    expect(Hash.equals({ value: DIGEST, expected })).toBe(false);
+  });
+
+  test('a value that is not a string is false, not a throw', () => {
+    for (const bad of [undefined, null, 1, {}, [DIGEST], Buffer.from(DIGEST)]) {
+      const input = bad as unknown as string;
+
+      expect(() => Hash.equals({ value: input, expected: DIGEST })).not.toThrow();
+      expect(Hash.equals({ value: input, expected: DIGEST })).toBe(false);
+      expect(Hash.equals({ value: DIGEST, expected: input })).toBe(false);
+    }
+  });
+
+  test('verify answers through it: base64 is exact text, so the unpadded and URL-safe forms are refused', () => {
+    const sha256 = Hash.withAlgorithm(HashAlgorithms.SHA256);
+    const base64 = C.createHash('sha256').update('?>?').digest('base64');
+    const unpadded = base64.replace(/=+$/, '');
+    const urlSafe = base64.replace(/\+/g, '-').replace(/\//g, '_');
+    const opts = { outputEncoding: 'base64' as const };
+
+    expect(base64).toMatch(/[+/=]/);
+    expect(sha256.verify({ value: '?>?', expected: base64, opts })).toBe(true);
+    expect(sha256.verify({ value: '?>?', expected: unpadded, opts })).toBe(false);
+    expect(sha256.verify({ value: '?>?', expected: urlSafe, opts })).toBe(false);
+    expect(
+      sha256.verify({
+        value: '?>?',
+        expected: C.createHash('sha256').update('?>?').digest('base64url'),
+        opts: { outputEncoding: 'base64url' },
+      }),
+    ).toBe(true);
+  });
+});
