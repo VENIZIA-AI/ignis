@@ -115,6 +115,97 @@ describe('CorsUtility.matchOriginPattern', () => {
   });
 });
 
+describe('CorsUtility.matchOriginPattern - any port (:*)', () => {
+  const LOCALHOST = 'http://localhost:*';
+
+  test('an exact host matches on any port and with no port', () => {
+    for (const origin of [
+      'http://localhost',
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://localhost:80',
+      'http://localhost:65535',
+      'http://localhost:1',
+    ]) {
+      expect(matches(LOCALHOST, origin)).toBe(true);
+    }
+
+    expect(matches('http://127.0.0.1:*', 'http://127.0.0.1:8080')).toBe(true);
+    expect(matches('http://127.0.0.1:*', 'http://127.0.0.1')).toBe(true);
+  });
+
+  test('the scheme is still exact', () => {
+    expect(matches(LOCALHOST, 'https://localhost:3000')).toBe(false);
+    expect(matches(LOCALHOST, 'https://localhost')).toBe(false);
+    expect(matches(LOCALHOST, 'ws://localhost:3000')).toBe(false);
+    expect(matches(LOCALHOST, 'localhost:3000')).toBe(false);
+    expect(matches(LOCALHOST, '//localhost:3000')).toBe(false);
+  });
+
+  test('a host that only starts with or contains the exact host does not match', () => {
+    for (const origin of [
+      'http://localhost.evil.com:3000',
+      'http://localhost.evil.com',
+      'http://evil.com:3000',
+      'http://evillocalhost:3000',
+      'http://localhost.:3000',
+      'http://sub.localhost:3000',
+      'http://localhost-evil:3000',
+      'http://127.0.0.1.evil.com:3000',
+    ]) {
+      expect(matches(LOCALHOST, origin)).toBe(false);
+      expect(matches('http://127.0.0.1:*', origin)).toBe(false);
+    }
+  });
+
+  test('what follows the colon must be a port number', () => {
+    for (const origin of [
+      'http://localhost:',
+      'http://localhost:abc',
+      'http://localhost:3000x',
+      'http://localhost:0',
+      'http://localhost:03000',
+      'http://localhost:65536',
+      'http://localhost:123456',
+      'http://localhost:-1',
+      'http://localhost:3000:4000',
+      'http://localhost:3000/',
+      'http://localhost:3000/path',
+      'http://localhost:@evil.com',
+      'http://localhost:3000@evil.com',
+      'http://localhost:3000.evil.com',
+      'http://localhost:*',
+      'http://localhost: 3000',
+    ]) {
+      expect(matches(LOCALHOST, origin)).toBe(false);
+    }
+  });
+
+  test('userinfo and a path never match', () => {
+    expect(matches(LOCALHOST, 'http://evil.com@localhost:3000')).toBe(false);
+    expect(matches(LOCALHOST, 'http://evil.com:pw@localhost')).toBe(false);
+  });
+
+  test('on a subdomain pattern: any port, no port, the same host rules', () => {
+    const subdomain = 'https://*.example.com:*';
+
+    expect(matches(subdomain, 'https://app.example.com')).toBe(true);
+    expect(matches(subdomain, 'https://app.example.com:8443')).toBe(true);
+    expect(matches(subdomain, 'https://a.b.example.com:1')).toBe(true);
+    expect(matches(subdomain, 'https://example.com:8443')).toBe(false);
+    expect(matches(subdomain, 'https://example.com.evil.net:8443')).toBe(false);
+    expect(matches(subdomain, 'https://evilexample.com:8443')).toBe(false);
+    expect(matches(subdomain, 'http://app.example.com:8443')).toBe(false);
+    expect(matches(subdomain, 'https://app.example.com:99999')).toBe(false);
+    expect(matches(subdomain, 'https://evil.com@app.example.com:8443')).toBe(false);
+  });
+
+  test('a pattern with one port or none keeps matching exactly', () => {
+    expect(matches('https://*.example.com:8443', 'https://app.example.com:8444')).toBe(false);
+    expect(matches('https://*.example.com', 'https://app.example.com:8443')).toBe(false);
+  });
+});
+
 describe('CorsUtility.parseOriginPattern', () => {
   test('refuses a wildcard anywhere but the whole leftmost label', () => {
     for (const pattern of [
@@ -126,13 +217,25 @@ describe('CorsUtility.parseOriginPattern', () => {
       'https://*app.example.com',
       'https://*example.com',
       'https://example.*',
-      'https://*.example.com:*',
       'https://*.example.com/*',
       '*.example.com',
       '*://*.example.com',
       'https://*.Example.com',
       'https://*.example.com:0',
       'https://*.example.com:70000',
+      'https://*.example.com:**',
+      'https://*.example.com:*:*',
+      'https://*.example.com:*/',
+      'http://localhost:**',
+      'http://local*:*',
+      'http://*:*',
+      'http://*.localhost:*',
+      'http://[::1]:*',
+      'http://Localhost:*',
+      'http://localhost:*/path',
+      'http://user@localhost:*',
+      '*://localhost:*',
+      'localhost:*',
     ]) {
       expect(() => CorsUtility.parseOriginPattern({ pattern })).toThrow(/invalid wildcard/);
     }
@@ -188,6 +291,28 @@ describe('configs.middlewares.cors - wildcard origins end to end', () => {
 
     expect(other).toBeNull();
     expect(matching).toBe('https://app.example.com');
+  });
+
+  test('http://localhost:* allows a dev server on any port and refuses a lookalike', async () => {
+    const server = await buildServer({
+      cors: { origin: ['http://localhost:*', 'http://127.0.0.1:*', 'https://*.example.com:*'] },
+    });
+
+    const dev = await allowedOrigin({ server, origin: 'http://localhost:5173' });
+    const bare = await allowedOrigin({ server, origin: 'http://localhost' });
+    const loopback = await allowedOrigin({ server, origin: 'http://127.0.0.1:8080' });
+    const staging = await allowedOrigin({ server, origin: 'https://app.example.com:8443' });
+    const lookalike = await allowedOrigin({ server, origin: 'http://localhost.evil.com:3000' });
+    const secure = await allowedOrigin({ server, origin: 'https://localhost:5173' });
+    const apex = await allowedOrigin({ server, origin: 'https://example.com:8443' });
+
+    expect(dev).toBe('http://localhost:5173');
+    expect(bare).toBe('http://localhost');
+    expect(loopback).toBe('http://127.0.0.1:8080');
+    expect(staging).toBe('https://app.example.com:8443');
+    expect(lookalike).toBeNull();
+    expect(secure).toBeNull();
+    expect(apex).toBeNull();
   });
 
   test('a preflight is answered for a matching origin and is not for another', async () => {
