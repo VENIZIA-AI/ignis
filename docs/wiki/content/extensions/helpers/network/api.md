@@ -492,7 +492,7 @@ Whenever a logger is passed, IGNIS runs the assembled request config through `Re
 
 | Key group | Matched spellings |
 |-----------|--------------------|
-| Options-object (camelCase) | `pass`, `password`, `passphrase`, `secret`, `token`, `apiKey`, `accessKey`, `secretKey`, `privateKey`, `key`, `cert`, `ca`, `pfx`, `credentials`, `authorization`, `auth`, `jwtSecret`, `applicationSecret`, `connectionString` |
+| Options-object (camelCase) | `pass`, `password`, `passphrase`, `secret`, `token`, `apiKey`, `accessKey`, `secretKey`, `privateKey`, `key`, `cert`, `ca`, `pfx`, `credential`, `credentials`, `authorization`, `auth`, `jwtSecret`, `applicationSecret`, `connectionString` |
 | Options-object (snake_case) | `api_key`, `access_key`, `secret_key`, `private_key` |
 | HTTP header spellings | `cookie`, `set-cookie`, `proxy-authorization`, `www-authenticate`, and any `(x-)?(api\|auth\|access\|secret\|session\|csrf\|xsrf)-(key\|token\|secret\|id)` pattern (e.g. `x-api-key`, `x-auth-token`, `x-csrf-token`) |
 
