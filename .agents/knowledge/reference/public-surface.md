@@ -2366,7 +2366,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1010)
+### `@venizia/ignis` (1011)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class

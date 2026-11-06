@@ -5,7 +5,7 @@ export class RecordUtility {
     return typeof value === 'object' && value !== null;
   }
 
-  /** A non-null object that is not an array: `isRecord` without the arrays. A class instance (an `Error`, a `Date`) still counts. */
+  /** A non-null object that is not an array: `isRecord` without the arrays. A class instance (an `Error`, a `Date`) passes; there is no prototype check, so this is not lodash's `isPlainObject`. */
   static isPlainRecord(value: unknown): value is Record<string, unknown> {
     return RecordUtility.isRecord(value) && !Array.isArray(value);
   }

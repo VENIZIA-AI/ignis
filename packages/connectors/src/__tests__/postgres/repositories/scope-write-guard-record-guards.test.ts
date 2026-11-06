@@ -8,7 +8,7 @@ import { ScopeWriteGuard } from '@/relational/core/repositories/common/scope-wri
  */
 const narrow = (scopeWhere: Record<string, unknown>) => {
   return ScopeWriteGuard.mutationWhere({
-    settings: {},
+    settings: { resolve: () => scopeWhere },
     model: 'items',
     operation: ScopeOperations.UPDATE,
     scopeWhere,

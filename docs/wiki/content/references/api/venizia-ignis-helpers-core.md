@@ -1641,7 +1641,7 @@ Narrowing of an `unknown` value, such as a wire payload, to an object whose stri
 export declare class RecordUtility {
     /** A non-null object, arrays included: the narrowest check before reading string keys off an `unknown`. A type guard, so it keeps its positional `value`. */
     static isRecord(value: unknown): value is Record<string, unknown>;
-    /** A non-null object that is not an array: `isRecord` without the arrays. A class instance (an `Error`, a `Date`) still counts. */
+    /** A non-null object that is not an array: `isRecord` without the arrays. A class instance (an `Error`, a `Date`) passes; there is no prototype check, so this is not lodash's `isPlainObject`. */
     static isPlainRecord(value: unknown): value is Record<string, unknown>;
 }
 ```
