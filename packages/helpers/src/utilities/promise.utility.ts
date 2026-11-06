@@ -1,4 +1,5 @@
 import { type ValueOrPromise } from '@/common';
+import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
 import type { ILogger } from '@/modules/logger';
 
@@ -16,6 +17,9 @@ export const isPromiseLike = <T>(value: T | PromiseLike<T>): value is PromiseLik
 
 /** Waiting, bounded concurrency and fire-and-forget. `voidExecution` is not a `BaseHelper` member: TS cannot emit protected members on an exported ANONYMOUS class (TS4094), which is what factory-built controllers return; a static on a separate class has no such limit. */
 export class PromiseUtility {
+  /** The longest delay a timer takes (a signed 32-bit integer of milliseconds); a larger one fires after 1 ms. */
+  private static readonly MAX_TIMER_MS = 2_147_483_647;
+
   static sleep(opts: { ms: number }): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, opts.ms));
   }
@@ -24,8 +28,9 @@ export class PromiseUtility {
    * Runs `call` and resolves with its result, or rejects with an `ApplicationError` when `timeoutMs` passes first
    * (`message` is the error text; the default names the limit). The timer is cleared on every path - the call wins,
    * the timeout wins, the call throws - so none is left behind. The call's own rejection passes through unchanged.
-   * The losing call keeps running: a promise cannot be cancelled. `timeoutMs` must be a positive finite number, else
-   * this rejects without running `call`.
+   * The losing call keeps running: a promise cannot be cancelled. The timeout error carries status 504 (Gateway
+   * Timeout). `timeoutMs` must be a positive number no larger than `2_147_483_647` (the most a timer takes: a larger
+   * one fires at once), else this rejects without running `call`.
    */
   static async withTimeout<T>(opts: {
     call: () => ValueOrPromise<T>;
@@ -34,16 +39,21 @@ export class PromiseUtility {
   }): Promise<T> {
     const { call, timeoutMs, message } = opts;
 
-    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > PromiseUtility.MAX_TIMER_MS) {
       throw getError({
-        message: `[withTimeout] timeoutMs must be a positive finite number | received: ${timeoutMs}`,
+        message: `[withTimeout] timeoutMs must be positive and at most ${PromiseUtility.MAX_TIMER_MS} | received: ${timeoutMs}`,
       });
     }
 
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<never>((_resolve, reject) => {
       timer = setTimeout(() => {
-        reject(getError({ message: message ?? `[withTimeout] Timed out after ${timeoutMs}ms` }));
+        reject(
+          getError({
+            statusCode: HTTP.ResultCodes.RS_5.GatewayTimeout,
+            message: message ?? `[withTimeout] Timed out after ${timeoutMs}ms`,
+          }),
+        );
       }, timeoutMs);
     });
 

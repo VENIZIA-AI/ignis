@@ -1554,6 +1554,8 @@ Waiting, bounded concurrency and fire-and-forget. `voidExecution` is not a `Base
 
 ```ts
 export declare class PromiseUtility {
+    /** The longest delay a timer takes (a signed 32-bit integer of milliseconds); a larger one fires after 1 ms. */
+    private static readonly MAX_TIMER_MS;
     static sleep(opts: {
         ms: number;
     }): Promise<void>;
@@ -1561,8 +1563,9 @@ export declare class PromiseUtility {
      * Runs `call` and resolves with its result, or rejects with an `ApplicationError` when `timeoutMs` passes first
      * (`message` is the error text; the default names the limit). The timer is cleared on every path - the call wins,
      * the timeout wins, the call throws - so none is left behind. The call's own rejection passes through unchanged.
-     * The losing call keeps running: a promise cannot be cancelled. `timeoutMs` must be a positive finite number, else
-     * this rejects without running `call`.
+     * The losing call keeps running: a promise cannot be cancelled. The timeout error carries status 504 (Gateway
+     * Timeout). `timeoutMs` must be a positive number no larger than `2_147_483_647` (the most a timer takes: a larger
+     * one fires at once), else this rejects without running `call`.
      */
     static withTimeout<T>(opts: {
         call: () => ValueOrPromise<T>;

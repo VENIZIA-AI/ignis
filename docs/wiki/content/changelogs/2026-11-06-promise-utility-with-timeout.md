@@ -14,7 +14,7 @@ packages: ['@venizia/ignis-helpers']
 
 ## What changed
 
-- **`withTimeout`.** It runs `call` and resolves with its result, or rejects with an `ApplicationError` when `timeoutMs` passes first; `message` is the error text. The timer is cleared when the call wins, when the timeout wins and when the call throws, so none is left behind. The call's own rejection passes through unchanged. A `timeoutMs` that is not a positive finite number rejects without running the call. The call is not cancelled when it loses: pass your own signal for that.
+- **`withTimeout`.** It runs `call` and resolves with its result, or rejects with an `ApplicationError` when `timeoutMs` passes first; `message` is the error text. The timer is cleared when the call wins, when the timeout wins and when the call throws, so none is left behind. The call's own rejection passes through unchanged. The error carries status 504 (Gateway Timeout). A `timeoutMs` that is not positive, or is larger than `2_147_483_647` (the most a timer takes; a larger one would fire at once), rejects without running the call. The call is not cancelled when it loses: pass your own signal for that.
 - **`sleep`.** The return type was `Promise<unknown>`; it is `Promise<void>`. Code that read the resolved value gets a type error, and the value was always `undefined`.
 - **`/core`.** `PromiseUtility` is pure, so browser code can import it from `@venizia/ignis-helpers/core`. The root export is unchanged.
 

@@ -89,6 +89,19 @@ describe('PromiseUtility.withTimeout', () => {
     expect((error as Error).message).toContain('upstream too slow');
   });
 
+  test('the timeout error carries 504, the largest timer is accepted', async () => {
+    const error = await rejectionOf(
+      PromiseUtility.withTimeout({ call: () => new Promise<never>(() => {}), timeoutMs: 5 }),
+    );
+
+    expect((error as { statusCode?: number }).statusCode).toBe(504);
+    const result4 = await PromiseUtility.withTimeout({
+      call: () => 'ok',
+      timeoutMs: 2_147_483_647,
+    });
+    expect(result4).toBe('ok');
+  });
+
   test('the default message names the limit', async () => {
     const error = await rejectionOf(
       PromiseUtility.withTimeout({
@@ -161,7 +174,7 @@ describe('PromiseUtility.withTimeout', () => {
   test('a non-positive or non-finite timeoutMs rejects with an ApplicationError and never runs the call', async () => {
     let ran = false;
 
-    for (const timeoutMs of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+    for (const timeoutMs of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, 2 ** 31, 3_000_000_000]) {
       const error = await rejectionOf(
         PromiseUtility.withTimeout({
           call: () => {
