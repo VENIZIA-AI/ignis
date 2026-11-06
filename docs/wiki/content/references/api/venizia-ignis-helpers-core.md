@@ -2203,9 +2203,27 @@ Everything about a url that can be decided without touching the network.
 export declare class UrlPolicy {
     /** A dotted-quad that is not routable on the public internet. An unparseable input counts as non-public. */
     private static isNonPublicIPv4;
+    /** The four octets of a dotted quad as two IPv6 groups, or `null` when it is not one. */
+    private static dottedToGroups;
+    /**
+     * The eight 16-bit groups of an IPv6 literal, whatever its spelling: `::` compression, leading zeros,
+     * upper case and a trailing dotted quad (`::127.0.0.1`) all expand to the same groups. `null` for a
+     * string that is not an IPv6 literal.
+     */
+    private static expandIPv6;
+    /** The IPv4 rules applied to the address carried in two IPv6 groups. */
+    private static isNonPublicEmbedded;
     /**
      * An address that must never be reached with an untrusted url. Anything unrecognised answers
-     * `true`: a guard that fails open on a string it cannot parse is not a guard.
+     * `true`: a guard that fails open on a string it cannot parse is not a guard. Takes an IP literal
+     * only: a domain name is parsed as a bad IPv4 address and answers `true`.
+     *
+     * An IPv6 literal is expanded to its eight groups before it is classified, so every spelling of an
+     * address gets the same answer. An address that carries an IPv4 one is judged by the IPv4 rules: v4-mapped
+     * (`::ffff:0:0/96`), v4-compatible (`::a.b.c.d`), NAT64 (`64:ff9b::/96`) and 6to4 (`2002::/16`); a
+     * `64:ff9b::` address reaches 169.254.169.254 through a NAT64 gateway just as the dotted form does.
+     * Unspecified, loopback, unique local (`fc00::/7`), link-local (`fe80::/10`), multicast (`ff00::/8`),
+     * documentation (`2001:db8::/32`), Teredo (`2001::/32`), the rest of `64:ff9b::/32` and the reserved `::/8` are non-public.
      */
     static isNonPublicAddress(opts: {
         address: string;
