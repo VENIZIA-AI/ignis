@@ -477,7 +477,14 @@ export class WebSocketServerHelper<
       return;
     }
 
-    if (!message.event) {
+    // Any JSON parses: `null`, a number, a string or a list are not messages, and none of them has an `event` to read.
+    if (typeof message !== 'object' || message === null || Array.isArray(message)) {
+      logger.error('Invalid message payload | Not an object | clientId: %s', clientId);
+
+      return;
+    }
+
+    if (typeof message.event !== 'string' || !message.event) {
       logger.error('Invalid message payload | Missing event | raw: %s', raw);
 
       return;

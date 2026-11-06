@@ -481,6 +481,47 @@ describe('WebSocketServerHelper', () => {
     });
   });
 
+  describe('A frame that is not a message', () => {
+    test.each([
+      ['null', 'null'],
+      ['a number', '0'],
+      ['a string', '"authenticate"'],
+      ['true', 'true'],
+      ['a list', '[]'],
+      ['a list holding a message', '[{"event":"authenticate"}]'],
+      ['an event that is not a string', '{"event":{"a":1}}'],
+      ['an event that is null', '{"event":null}'],
+      ['an empty object', '{}'],
+    ])(
+      '%s is dropped without throwing, and the client stays connected and unauthenticated',
+      (_label, raw) => {
+        const socket = createMockSocket('client-1');
+        helper.onClientConnect({ clientId: 'client-1', socket });
+
+        expect(() => helper.onClientMessage({ clientId: 'client-1', raw })).not.toThrow();
+
+        const client = helper.getClients({ id: 'client-1' }) as any;
+        expect(client.state).toBe(WebSocketClientStates.UNAUTHORIZED);
+        expect(socket.close).not.toHaveBeenCalled();
+      },
+    );
+
+    test('a valid message still works after a bad frame', async () => {
+      const socket = createMockSocket('client-1');
+      helper.onClientConnect({ clientId: 'client-1', socket });
+
+      helper.onClientMessage({ clientId: 'client-1', raw: 'null' });
+      helper.onClientMessage({
+        clientId: 'client-1',
+        raw: JSON.stringify({ event: WebSocketEvents.AUTHENTICATE, data: { userId: 'user-1' } }),
+      });
+      await wait(10);
+
+      const client = helper.getClients({ id: 'client-1' }) as any;
+      expect(client.state).toBe(WebSocketClientStates.AUTHENTICATED);
+    });
+  });
+
   describe('Post-connection Authentication', () => {
     test('should authenticate and transition to AUTHENTICATED state', async () => {
       const socket = createMockSocket('client-1');
