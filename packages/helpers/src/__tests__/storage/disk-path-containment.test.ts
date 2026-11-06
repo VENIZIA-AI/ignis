@@ -96,3 +96,54 @@ describe('DiskHelper - an object name cannot leave its bucket', () => {
     expect(stat.size).toBe(2);
   });
 });
+
+describe('DiskHelper - a write cannot leave its bucket either', () => {
+  const body = () => new Blob(['payload']);
+
+  test.each([
+    '../outside.txt',
+    '../../escaped.txt',
+    'nested/../../escaped.txt',
+    '/etc/escaped.txt',
+  ])('writeStream rejects the key %s and writes nothing outside the base path', async (key) => {
+    const { root, helper } = buildStorage();
+
+    const message = await captureError({
+      task: helper.writeStream({ bucket: { name: 'images' }, object: { key }, source: body() }),
+    });
+
+    expect(message).toContain('Invalid object name');
+    expect(existsSync(join(root, '..', 'escaped.txt'))).toBe(false);
+    expect(existsSync(join(root, 'escaped.txt'))).toBe(false);
+  });
+
+  test.each(['../outside', '..', 'a/b', '.hidden/../x'])(
+    'writeStream rejects the bucket %s',
+    async (name) => {
+      const { root, helper } = buildStorage();
+
+      const message = await captureError({
+        task: helper.writeStream({
+          bucket: { name },
+          object: { key: 'file.txt' },
+          source: body(),
+        }),
+      });
+
+      expect(message).toContain('Invalid bucket name');
+      expect(existsSync(join(root, '..', 'outside'))).toBe(false);
+    },
+  );
+
+  test('a valid key still writes, folders included', async () => {
+    const { root, helper } = buildStorage();
+
+    await helper.writeStream({
+      bucket: { name: 'images' },
+      object: { key: 'a/b/file.txt' },
+      source: body(),
+    });
+
+    expect(existsSync(join(root, 'images', 'a', 'b', 'file.txt'))).toBe(true);
+  });
+});

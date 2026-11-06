@@ -45,10 +45,6 @@ export class DiskHelper extends BaseStorageHelper {
     return path.join(this.basePath, opts.bucket.name);
   }
 
-  private getObjectPath(opts: IObjectLocation): string {
-    return path.join(this.getBucketPath({ bucket: opts.bucket }), opts.object.key);
-  }
-
   /** Validates the name AND the resolved path: containment survives a naming rule we get wrong. */
   private resolveObjectPath(opts: IObjectLocation): string {
     const { bucket, object } = opts;
@@ -211,7 +207,8 @@ export class DiskHelper extends BaseStorageHelper {
 
   protected async writeObject(opts: IObjectLocation & { file: IUploadFile }): Promise<void> {
     const { bucket, object, file } = opts;
-    const objectPath = this.getObjectPath({ bucket, object });
+    // The same validated, contained path every other operation uses: `writeStream` reaches here without `upload`'s checks.
+    const objectPath = this.resolveObjectPath({ bucket, object });
 
     // `recursive` succeeds on an existing directory; probing first wastes a syscall per file.
     await fsp.mkdir(path.dirname(objectPath), { recursive: true });
