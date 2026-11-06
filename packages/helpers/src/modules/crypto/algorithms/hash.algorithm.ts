@@ -1,3 +1,5 @@
+import crypto from 'node:crypto';
+
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import {
@@ -90,5 +92,33 @@ export class Hash extends BaseHelper {
     }
 
     return new Bun.CryptoHasher(this.algorithm, secret).update(message).digest(outputEncoding);
+  }
+
+  /**
+   * Checks a received digest against the one `value` produces, in constant time. Use it for a webhook signature or a
+   * payment callback instead of `===`, which stops at the first differing character and so tells an attacker how many
+   * leading characters of a forged value were right.
+   *
+   * `value` is hashed the way {@link Hash.digest} does, or keyed with `secret` the way {@link Hash.hmac} does, then
+   * written in `outputEncoding` (hex by default) and compared with `expected` as text. A different length answers
+   * `false` without comparing, and the answer is `false`, never a throw, for any mismatch. The text must match exactly:
+   * hex in upper case does not equal hex in lower case.
+   */
+  verify(opts: {
+    value: THashInput;
+    expected: string;
+    secret?: THashInput;
+    opts?: IHashExtraOptions;
+  }): boolean {
+    const { value, expected, secret } = opts;
+    const computed = Buffer.from(
+      secret === undefined
+        ? this.digest({ message: value, opts: opts.opts })
+        : this.hmac({ message: value, secret, opts: opts.opts }),
+    );
+    const given = Buffer.from(expected);
+
+    // Length-checked first: `timingSafeEqual` throws on a length mismatch instead of answering false.
+    return computed.length === given.length && crypto.timingSafeEqual(computed, given);
   }
 }

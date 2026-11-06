@@ -328,3 +328,91 @@ describe('Hash - bytes and several parts', () => {
     });
   });
 });
+
+describe('Hash.verify - constant-time comparison', () => {
+  const sha256 = Hash.withAlgorithm(HashAlgorithms.SHA256);
+
+  test('equal: the digest of the value, in hex', () => {
+    const expected = C.createHash('sha256').update(MESSAGE).digest('hex');
+    expect(sha256.verify({ value: MESSAGE, expected })).toBe(true);
+  });
+
+  test('equal: a keyed signature when a secret is given', () => {
+    const expected = C.createHmac('sha256', SECRET).update(MESSAGE).digest('hex');
+    expect(sha256.verify({ value: MESSAGE, secret: SECRET, expected })).toBe(true);
+  });
+
+  test('different: same length, one character changed', () => {
+    const real = C.createHash('sha256').update(MESSAGE).digest('hex');
+    const expected = `${real.slice(0, -1)}${real.endsWith('0') ? '1' : '0'}`;
+    expect(expected).toHaveLength(real.length);
+    expect(sha256.verify({ value: MESSAGE, expected })).toBe(false);
+  });
+
+  test('different: a signature made with another secret', () => {
+    const expected = C.createHmac('sha256', 'other-secret').update(MESSAGE).digest('hex');
+    expect(sha256.verify({ value: MESSAGE, secret: SECRET, expected })).toBe(false);
+  });
+
+  test('different: a keyed signature does not verify as a plain digest, and the reverse', () => {
+    const keyed = C.createHmac('sha256', SECRET).update(MESSAGE).digest('hex');
+    const plain = C.createHash('sha256').update(MESSAGE).digest('hex');
+    expect(sha256.verify({ value: MESSAGE, expected: keyed })).toBe(false);
+    expect(sha256.verify({ value: MESSAGE, secret: SECRET, expected: plain })).toBe(false);
+  });
+
+  test('different length: false, never a throw', () => {
+    const real = C.createHash('sha256').update(MESSAGE).digest('hex');
+
+    for (const expected of ['', 'a', real.slice(0, -2), `${real}00`]) {
+      expect(() => sha256.verify({ value: MESSAGE, expected })).not.toThrow();
+      expect(sha256.verify({ value: MESSAGE, expected })).toBe(false);
+    }
+  });
+
+  test('length is counted in bytes: a multi-byte character cannot pad a short value', () => {
+    const real = C.createHash('sha256').update(MESSAGE).digest('hex');
+    const expected = `${real.slice(0, -1)}é`;
+    expect(Buffer.byteLength(expected)).not.toBe(real.length);
+    expect(sha256.verify({ value: MESSAGE, expected })).toBe(false);
+  });
+
+  for (const outputEncoding of [
+    HashOutputEncodings.HEX,
+    HashOutputEncodings.BASE64,
+    HashOutputEncodings.BASE64URL,
+  ] as THashOutputEncoding[]) {
+    test(`encoding ${outputEncoding}: verifies in the encoding it is told`, () => {
+      const digest = C.createHash('sha256').update(MESSAGE).digest(outputEncoding);
+      const signature = C.createHmac('sha256', SECRET).update(MESSAGE).digest(outputEncoding);
+      const opts = { outputEncoding };
+
+      expect(sha256.verify({ value: MESSAGE, expected: digest, opts })).toBe(true);
+      expect(sha256.verify({ value: MESSAGE, secret: SECRET, expected: signature, opts })).toBe(
+        true,
+      );
+    });
+  }
+
+  test('encoding: a hex digest does not verify as base64', () => {
+    const hex = C.createHash('sha256').update(MESSAGE).digest('hex');
+    expect(
+      sha256.verify({ value: MESSAGE, expected: hex, opts: { outputEncoding: 'base64' } }),
+    ).toBe(false);
+  });
+
+  test('hex in upper case is a different text', () => {
+    const hex = C.createHash('sha256').update(MESSAGE).digest('hex');
+    expect(sha256.verify({ value: MESSAGE, expected: hex.toUpperCase() })).toBe(false);
+  });
+
+  test('bytes verify like the text of the same bytes', () => {
+    const expected = C.createHash('sha256').update(MESSAGE).digest('hex');
+    expect(sha256.verify({ value: new TextEncoder().encode(MESSAGE), expected })).toBe(true);
+  });
+
+  test('an empty secret is refused, as hmac refuses it: a signature check never degrades to a plain digest', () => {
+    const expected = C.createHash('sha256').update(MESSAGE).digest('hex');
+    expect(() => sha256.verify({ value: MESSAGE, secret: '', expected })).toThrow();
+  });
+});
