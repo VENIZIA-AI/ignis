@@ -1957,7 +1957,7 @@ export type TStaticAssetExtraOptions = {
         storage?: TMultipartStorage;
         uploadDir?: string;
         /**
-         * The most file parts one upload request may carry; more is refused with 413 before anything is written.
+         * The most file parts one upload request may carry; more is refused with 413 before anything is written. The upload-policy request is bounded by the same number (more is a 422).
          *
          * @default DEFAULT_MAX_UPLOAD_FILES (20)
          */

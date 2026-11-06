@@ -292,7 +292,11 @@ export class AssetControllerFactory extends BaseHelper {
     // The component's own name under a scope: the original name must stay one segment, as without one.
     const isScopedDefaultNaming =
       keyPrefix !== undefined && !resolveObjectName && !options?.normalizeNameFn;
-    const definitions = AssetDefinitionBuilder.build({ hasConfiguredBucket, rawObjectPath });
+    const definitions = AssetDefinitionBuilder.build({
+      hasConfiguredBucket,
+      rawObjectPath,
+      maxPolicyFiles: options?.parseMultipartBody?.maxFiles ?? DEFAULT_MAX_UPLOAD_FILES,
+    });
 
     // The mount path may be declared with or without a leading slash; a link must carry exactly one.
     const normalizedBasePath = basePath.startsWith('/') ? basePath : `/${basePath}`;

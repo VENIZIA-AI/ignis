@@ -109,6 +109,27 @@ describe('the upload-policy route', () => {
     expect(policies[0].objectName).toStartWith('pending/');
   });
 
+  test('a request that names more files than the limit is refused before the storage is asked', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mount({ helper, directUpload: ALLOW });
+    const files = Array.from({ length: 21 }, (_, index) => ({ fileName: `f${index}.png` }));
+
+    const response = await askPolicy(router, files);
+
+    expect(response.status).toBe(422);
+    expect(helper.calls).toHaveLength(0);
+  });
+
+  test('exactly the limit is accepted', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mount({ helper, directUpload: ALLOW });
+    const files = Array.from({ length: 20 }, (_, index) => ({ fileName: `f${index}.png` }));
+
+    const response = await askPolicy(router, files);
+
+    expect(response.status).toBe(200);
+  });
+
   /** The key is generated, never taken from the caller - a key the caller picks is a key it can collide with. */
   test('the policy only ever authorizes the pending prefix', async () => {
     const helper = new FakeStorageHelper();
