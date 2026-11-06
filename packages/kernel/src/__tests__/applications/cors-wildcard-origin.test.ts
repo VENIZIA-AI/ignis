@@ -183,10 +183,11 @@ describe('configs.middlewares.cors - wildcard origins end to end', () => {
   test("a '*' in a list next to a pattern is a literal entry, as Hono treats it in a list: it allows no origin", async () => {
     const server = await buildServer({ cors: { origin: ['*', 'https://*.example.com'] } });
 
-    expect(await allowedOrigin({ server, origin: 'https://other.net' })).toBeNull();
-    expect(await allowedOrigin({ server, origin: 'https://app.example.com' })).toBe(
-      'https://app.example.com',
-    );
+    const other = await allowedOrigin({ server, origin: 'https://other.net' });
+    const matching = await allowedOrigin({ server, origin: 'https://app.example.com' });
+
+    expect(other).toBeNull();
+    expect(matching).toBe('https://app.example.com');
   });
 
   test('a preflight is answered for a matching origin and is not for another', async () => {
