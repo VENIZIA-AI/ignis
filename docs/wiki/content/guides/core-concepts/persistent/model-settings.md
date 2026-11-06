@@ -172,6 +172,7 @@ export const findIncludingDeleted = (opts: { repository: ProductRepository }) =>
 | A scope `where`, such as `{ merchantId: 'm-1' }` | Runs with that `where` ANDed in |
 | `ScopeFilters.UNRESTRICTED` | Runs with no scope, for this call only |
 | `null` or `undefined` | Follows `onMissing`: by default it matches zero rows |
+| Anything else that is not a usable `where`: `false`, `0`, `''`, a list, `{}`, an object with an `undefined` value (`{ merchantId: user.merchantId }` for a user without one), an empty `and` | The same as `null`: the scope was not resolved. An empty `or` matches nothing |
 
 ```typescript
 // src/models/product.model.ts

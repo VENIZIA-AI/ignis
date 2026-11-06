@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/relational, from the bui
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-70 exports, 70 with TSDoc.
+71 exports, 71 with TSDoc.
 
 ## `AbstractRelationalDataSource`
 
@@ -2064,6 +2064,29 @@ predicate everywhere rather than two copies of a security predicate that could d
 export declare class ScopeFilterDenial {
     /** The empty `inq` compiles to `sql\`false\`` in every dialect, deterministically matching zero rows. */
     static where<DataObject = any>(): TWhere<DataObject>;
+}
+```
+
+Source: `packages/connectors/src/relational/core/repositories/common/scope-filter.ts`
+
+## `ScopeResolution`
+
+*class*
+
+What a model's `access.resolve` returned, read once, the same way by the read path and the write guard.
+
+A scope is the symbol `ScopeFilters.UNRESTRICTED`, a usable `where`, or nothing (`null` / `undefined`). Anything else
+is a resolver that built something wrong, such as `false`, `0`, `''`, a list, `{}`, or an object with a key that is
+`undefined` (`{ merchantId: user.merchantId }` for a user without one). Reading it as "no restriction" would open
+every row, so it is nothing: the scope was not resolved, and `onMissing` decides (deny by default).
+
+```ts
+export declare class ScopeResolution {
+    /** A non-empty plain object whose every value is defined, and whose `and` / `or` branches are themselves usable (an `and` has at least one). */
+    private static isUsableWhere;
+    static normalize<DataObject = any>(opts: {
+        value: unknown;
+    }): TNullable<TWhere<DataObject>> | typeof ScopeFilters.UNRESTRICTED;
 }
 ```
 

@@ -1719,7 +1719,7 @@ generated:
 
 ## connectors
 
-### `@venizia/ignis-connectors` (128)
+### `@venizia/ignis-connectors` (129)
 
 - `AbstractDriverDataSource` class
 - `AbstractRelationalDataSource` class
@@ -1802,6 +1802,7 @@ generated:
 - `RelationsFactory` class
 - `ScopeFilterDenial` class
 - `ScopeFilterUtility` class
+- `ScopeResolution` class
 - `SearchBaseRepository` class
 - `SearchCollectionFactory` class
 - `SearchErrors` const
@@ -1886,7 +1887,7 @@ generated:
 - `TRawSqlQuery` type
 - `TRawSqlSchema` type
 
-### `@venizia/ignis-connectors/relational` (70)
+### `@venizia/ignis-connectors/relational` (71)
 
 - `AbstractRelationalDataSource` class
 - `AuditUserResolver` class
@@ -1933,6 +1934,7 @@ generated:
 - `RelationDeclarations` class
 - `RelationsFactory` class
 - `ScopeFilterDenial` class
+- `ScopeResolution` class
 - `SoftDeletableRelationalRepository` class
 - `TableColumnCache` class
 - `TColumnDefinition` type

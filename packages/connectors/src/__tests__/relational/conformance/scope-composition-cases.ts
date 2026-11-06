@@ -150,6 +150,17 @@ export interface IScopeCompositionContext {
   renamedNames: () => Promise<string[]>;
 }
 
+/** What the promise rejects with; fails the test when it resolves. */
+const rejectionOf = async (task: Promise<unknown>): Promise<unknown> => {
+  try {
+    await task;
+  } catch (error) {
+    return error;
+  }
+
+  throw new Error('Expected the call to reject, but it resolved');
+};
+
 const names = (rows: AnyType[]): string[] => rows.map((row) => row.name).sort();
 
 const expectedNames = (opts: { allowed: (row: IRow) => boolean; attack: IAttackCase }) => {
@@ -237,6 +248,81 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
       }
     });
   }
+
+  describe('a scope the resolver built wrong is unresolved, not "no restriction"', () => {
+    const UNUSABLE: Array<[string, AnyType]> = [
+      ['false', false],
+      ['0', 0],
+      ['an empty string', ''],
+      ['an empty list', []],
+      ['a list of scopes', [{ merchantId: 'm1' }]],
+      ['an empty object', {}],
+      ['an object whose value is undefined', { merchantId: undefined }],
+      ['one defined and one undefined value', { merchantId: 'm1', region: undefined }],
+      ['an and with an empty branch', { and: [{ merchantId: 'm1' }, {}] }],
+      ['an empty and', { and: [] }],
+      ['an and holding only an empty and', { and: [{ and: [] }] }],
+      [
+        'an and built from an empty list',
+        { and: ([] as string[]).map((value) => ({ merchantId: value })) },
+      ],
+      ['an or with an undefined branch value', { or: [{ merchantId: undefined }] }],
+    ];
+
+    test.each(UNUSABLE)(
+      '%s: reads, counts, updates and deletes match nothing',
+      async (_label, scope) => {
+        const ctx = context();
+        await ctx.reset();
+        ctx.setProductScope(scope);
+
+        const found = await ctx.products.find({ filter: {} });
+        const counted = await ctx.products.count({ where: {} });
+        const updated = await ctx.products.updateBy({
+          where: {},
+          data: { name: 'renamed' },
+          options: { shouldReturn: false },
+        });
+        const deleted = await ctx.products.deleteBy({
+          where: {},
+          options: { shouldReturn: false },
+        });
+
+        expect(found).toEqual([]);
+        expect(counted.count).toBe(0);
+        expect(updated.count).toBe(0);
+        expect(deleted.count).toBe(0);
+        const result12 = await ctx.productNames();
+        expect(result12).toHaveLength(ROWS.length);
+      },
+    );
+
+    test.each(UNUSABLE)('%s: a create is refused', async (_label, scope) => {
+      const ctx = context();
+      await ctx.reset();
+      ctx.setProductScope(scope);
+
+      const refusal = await rejectionOf(
+        ctx.products.create({ data: { merchantId: 'm1', region: 'east', name: 'new' } }),
+      );
+
+      expect(refusal).toBeInstanceOf(Error);
+      const result13 = await ctx.productNames();
+      expect(result13).toHaveLength(ROWS.length);
+    });
+
+    test('a usable scope, and UNRESTRICTED, still work', async () => {
+      const ctx = context();
+      await ctx.reset();
+      ctx.setProductScope({ merchantId: 'm1' });
+      const scoped = await ctx.products.find({ filter: {} });
+      ctx.setProductScope(ScopeFilters.UNRESTRICTED);
+      const everything = await ctx.products.find({ filter: {} });
+
+      expect(scoped).toHaveLength(2);
+      expect(everything).toHaveLength(ROWS.length);
+    });
+  });
 
   describe('a scoped model that also has a default filter', () => {
     test('the caller can still opt out of the default filter, and still cannot leave the scope', async () => {

@@ -44,7 +44,7 @@ import {
   type SQLWrapper,
 } from 'drizzle-orm';
 import type { TRelationConfig, TTableColumns } from '../common';
-import { ScopeFilterDenial, TableColumnCache } from '../common';
+import { ScopeFilterDenial, ScopeResolution, TableColumnCache } from '../common';
 import { JsonPathUtility } from './internal';
 
 /** Operators whose scalar operand determines the JSON numeric-cast need in jsonNeedsNumericCast. */
@@ -366,7 +366,7 @@ export abstract class FilterBuilder extends BaseHelper {
     const { settings, schema, operation, depth } = opts;
 
     if (!settings.through) {
-      return settings.resolve({ operation });
+      return ScopeResolution.normalize({ value: settings.resolve({ operation }) });
     }
 
     const { link, scope } = this.resolveThrough({ settings, schema, operation, depth });
