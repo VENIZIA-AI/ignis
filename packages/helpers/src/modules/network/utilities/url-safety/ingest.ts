@@ -104,10 +104,14 @@ export class UrlIngest {
     });
 
     try {
-      return await Promise.race([work, aborted]);
+      const settled = await Promise.race([work, aborted]);
+
+      return settled;
     } finally {
       signal.removeEventListener('abort', onAbort as () => void);
-      // The lookup that lost keeps running; its late answer or error must not surface as an unhandled rejection.
+      // The lookup that lost keeps running; its late answer or error must not surface as an unhandled rejection. Nothing
+      // is left to report: the caller already got the deadline's error.
+      // eslint-disable-next-line venizia/no-silent-catch -- the work lost the race; its outcome is irrelevant by now
       work.catch(() => undefined);
     }
   }
