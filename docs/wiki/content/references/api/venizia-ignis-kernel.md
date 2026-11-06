@@ -1406,20 +1406,6 @@ export declare class BaseAppErrorMiddleware extends BaseHelper implements IProvi
     private logError;
     /** Only an intentional error's message is a catalog template; every other branch writes its own text, so it passes through as is. */
     private renderMessage;
-    /**
-     * The `extra` a response carries. It is whatever a throw site attached, so it goes through the same redaction the log
-     * line uses (always masking in production, whatever the logger switch says), and a server error (5xx) in production
-     * carries none: the log has it, a client has no use for it.
-     */
-    private renderExtra;
-    /**
-     * What a production server error still carries from `extra`: the correlation ids support needs, `requestId` and
-     * `upstreamRequestIds`, and nothing else. Only short strings count (a list of them for the chain), so the allowance
-     * cannot carry anything but an id.
-     */
-    private pickCorrelationIds;
-    /** The `args` a throw site passes to its message template are data the client may see; secret-shaped keys in them are masked in production, whatever the logger switch says. */
-    private renderNormalized;
     value(): ErrorHandler;
 }
 ```
