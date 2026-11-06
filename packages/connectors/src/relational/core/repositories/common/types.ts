@@ -53,6 +53,7 @@ export type TTableColumns = ReturnType<typeof getTableColumns>;
 /** The engine-neutral query-dialect surface a repository consumes via `dataSource.getQueryDialect()`, never constructed inside the repository. */
 export interface IRelationalQueryDialect {
   mergeFilter<T = any>(opts: { defaultFilter?: TFilter<T>; userFilter?: TFilter<T> }): TFilter<T>;
+  composeScope<T = any>(opts: { scopeWhere: TWhere<T>; userFilter?: TFilter<T> }): TFilter<T>;
   build<Schema extends TTableSchemaWithId>(opts: {
     tableName: string;
     schema: Schema;

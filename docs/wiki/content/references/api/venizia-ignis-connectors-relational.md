@@ -151,6 +151,16 @@ export declare abstract class FilterBuilder extends BaseHelper {
     /** Handler table for `where` translation. Abstract so this class names no engine. */
     protected abstract get operators(): TQueryOperatorHandlers;
     /**
+     * Holds `userFilter` to the row scope: the scope and the caller's `where` are ANDed, never merged by key. A key merge
+     * treats a scalar on both sides as a replacement (that is the soft-delete opt-out), so a scope written as
+     * `{ tenantId: 'a' }` would lose to a caller's `where: { tenantId: 'b' }`. The caller can only narrow a scope.
+     * Every other part of the filter (order, limit, fields, include) is the caller's.
+     */
+    composeScope<T = any>(opts: {
+        scopeWhere: TWhere<T>;
+        userFilter?: TFilter<T>;
+    }): TFilter<T>;
+    /**
      * Merges default and user filters. `where` merges at the TOP KEY LEVEL, never index-wise - that
      * corrupts operator arrays. Operator-object collisions AND-compose, so a default scope can only
      * be narrowed, and a user `undefined` never overrides a defined default. Other parts user-wins.
@@ -653,6 +663,10 @@ The engine-neutral query-dialect surface a repository consumes via `dataSource.g
 export interface IRelationalQueryDialect {
     mergeFilter<T = any>(opts: {
         defaultFilter?: TFilter<T>;
+        userFilter?: TFilter<T>;
+    }): TFilter<T>;
+    composeScope<T = any>(opts: {
+        scopeWhere: TWhere<T>;
         userFilter?: TFilter<T>;
     }): TFilter<T>;
     build<Schema extends TTableSchemaWithId>(opts: {

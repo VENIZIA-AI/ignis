@@ -101,6 +101,24 @@ export abstract class FilterBuilder extends BaseHelper {
   protected abstract get operators(): TQueryOperatorHandlers;
 
   /**
+   * Holds `userFilter` to the row scope: the scope and the caller's `where` are ANDed, never merged by key. A key merge
+   * treats a scalar on both sides as a replacement (that is the soft-delete opt-out), so a scope written as
+   * `{ tenantId: 'a' }` would lose to a caller's `where: { tenantId: 'b' }`. The caller can only narrow a scope.
+   * Every other part of the filter (order, limit, fields, include) is the caller's.
+   */
+  composeScope<T = any>(opts: { scopeWhere: TWhere<T>; userFilter?: TFilter<T> }): TFilter<T> {
+    const { scopeWhere, userFilter } = opts;
+    const userWhere = userFilter?.where;
+    const anded: TWhere = { and: [scopeWhere, userWhere ?? {}] };
+    const hasUserWhere = !!userWhere && Object.keys(userWhere).length > 0;
+
+    return {
+      ...userFilter,
+      where: hasUserWhere ? anded : scopeWhere,
+    };
+  }
+
+  /**
    * Merges default and user filters. `where` merges at the TOP KEY LEVEL, never index-wise - that
    * corrupts operator arrays. Operator-object collisions AND-compose, so a default scope can only
    * be narrowed, and a user `undefined` never overrides a defined default. Other parts user-wins.
@@ -398,14 +416,14 @@ export abstract class FilterBuilder extends BaseHelper {
     }
 
     if (scopeWhere !== null && scopeWhere !== undefined) {
-      return this.mergeFilter({ defaultFilter: { where: scopeWhere }, userFilter });
+      return this.composeScope({ scopeWhere, userFilter });
     }
 
     if (scopeFilterSettings.onMissing === ScopeFilterMissingBehaviors.ALLOW) {
       return userFilter ?? {};
     }
 
-    return this.mergeFilter({ defaultFilter: { where: ScopeFilterDenial.where() }, userFilter });
+    return this.composeScope({ scopeWhere: ScopeFilterDenial.where(), userFilter });
   }
 
   /** Resolves default row limit for a schema from MetadataRegistry. */
@@ -717,22 +735,22 @@ export abstract class FilterBuilder extends BaseHelper {
       });
 
       // Row scope is this relation's OWN `@model` setting - never the parent's - and is applied
-      // BEFORE `defaultFilter` so it survives `shouldSkipDefaultFilter` exactly like the parent.
+      // LAST and outermost, after the default filter, so it survives `shouldSkipDefaultFilter` exactly like the parent and
+      // the caller's `scope.where` (with the default filter's opt-out resolved) can only narrow it.
       const scopeFilterSettings = this.resolveScopeFilter({
         schema: relationConfig.schema,
         modelEntry,
-      });
-      const scopedUserFilter = this.applyRelationScopeFilter({
-        userFilter: scope,
-        scopeFilterSettings,
-        schema: relationConfig.schema,
       });
 
       const defaultFilter = shouldSkipDefaultFilter
         ? undefined
         : this.resolveDefaultFilter({ schema: relationConfig.schema, modelEntry });
 
-      const mergedScope = this.mergeFilter({ defaultFilter, userFilter: scopedUserFilter });
+      const mergedScope = this.applyRelationScopeFilter({
+        userFilter: this.mergeFilter({ defaultFilter, userFilter: scope }),
+        scopeFilterSettings,
+        schema: relationConfig.schema,
+      });
       const scopedFilter: TFilter =
         relationConfig.type === RelationTypes.MANY
           ? {
