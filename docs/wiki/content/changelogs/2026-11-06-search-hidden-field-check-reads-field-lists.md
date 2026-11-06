@@ -15,6 +15,7 @@ packages: ['@venizia/ignis-connectors']
 ## What changed
 
 - **Every part.** `facetBy`, `groupBy`, `queryBy`, `highlightFields`, `highlightFullFields`, the field of a `facetQuery` and the `vectorField` are split on commas and trimmed; a hidden field named in any part is refused with the existing "names a hidden field" error, before anything is sent to the engine.
+- **Facet parameters and wildcards.** A name followed by facet parameters (`secret(sort_by:_alpha:asc)`) is read by its name, and a wildcard (`*`, `sec*`) in those lists is refused on a model with hidden fields, because it names fields the check cannot list. Name the fields instead.
 - **Visible lists are unchanged.** `queryBy: ['title', 'brand']` still goes out as `title,brand`.
 
 ## Who is affected

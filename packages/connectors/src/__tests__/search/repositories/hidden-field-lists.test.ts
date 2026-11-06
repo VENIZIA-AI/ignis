@@ -61,6 +61,45 @@ describe('the hidden-field check reads each part of a comma-joined list', () => 
     },
   );
 
+  test.each([
+    ['facetBy', { facetBy: ['secret(sort_by:_alpha:asc)'] }],
+    ['facetBy', { facetBy: ['title,secret(a:[0,9])'] }],
+    ['queryBy', { queryBy: ['secret (x)'] }],
+  ])('%s: a field name followed by facet parameters is read by its name', async (param, extra) => {
+    const message = await refusal(
+      repository.search({ mode: SearchModes.KEYWORD, query: 'a', ...extra }),
+    );
+
+    expect(message).toContain(`'${param}' names a hidden field`);
+  });
+
+  test.each([
+    ['facetBy', { facetBy: ['*'] }],
+    ['facetBy', { facetBy: ['sec*'] }],
+    ['queryBy', { queryBy: ['*'] }],
+    ['queryBy', { queryBy: ['title,secr*'] }],
+    ['groupBy', { groupBy: ['sec*'] }],
+    ['highlightFields', { highlightFields: ['*'] }],
+  ])('%s: a wildcard is refused on a model with hidden fields', async (param, extra) => {
+    const message = await refusal(
+      repository.search({ mode: SearchModes.KEYWORD, query: 'a', ...extra }),
+    );
+
+    expect(message).toContain(`'${param}' uses a wildcard`);
+    expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
+  });
+
+  test('facet parameters on a visible field still go through', async () => {
+    await repository.search({
+      mode: SearchModes.KEYWORD,
+      query: 'a',
+      facetBy: ['brand(sort_by:_alpha:asc)'],
+    });
+
+    const [call] = dataSource.fakeConnector.searchCalls;
+    expect((call.params as Record<string, unknown>)['facet_by']).toBe('brand(sort_by:_alpha:asc)');
+  });
+
   test('a facetQuery that names several fields is refused', async () => {
     const message = await refusal(
       repository.search({

@@ -357,12 +357,18 @@ export class ReadableSearchRepository<
       return;
     }
 
-    const named: Array<{ param: string; field: string }> = [];
+    const named: Array<{ param: string; field: string; isWildcard: boolean }> = [];
 
     // An engine reads a field list as a comma-joined string, so one element can name several fields: each part is checked.
+    // A part may carry facet parameters after the name (`secret(sort_by:_alpha:asc)`): the name is what comes before the
+    // parenthesis. A wildcard (`*`, `sec*`) names fields the check cannot list, hidden ones included, so it is refused.
     const addFields = (entry: { param: string; value: string }) => {
       for (const part of entry.value.split(',')) {
-        named.push({ param: entry.param, field: part.trim() });
+        named.push({
+          param: entry.param,
+          field: (part.split('(')[0] ?? '').trim(),
+          isWildcard: part.includes('*'),
+        });
       }
     };
 
@@ -385,6 +391,14 @@ export class ReadableSearchRepository<
     // The vector field of a semantic or hybrid search is a field name too.
     if ('vectorField' in input && typeof input.vectorField === 'string') {
       addFields({ param: 'vectorField', value: input.vectorField });
+    }
+
+    const wildcard = named.find(({ isWildcard }) => isWildcard);
+
+    if (wildcard) {
+      throw getError({
+        message: `[${this.constructor.name}][search] '${wildcard.param}' uses a wildcard | field: '${wildcard.field}' | a model with hidden fields must name the fields it searches, facets, groups and highlights`,
+      });
     }
 
     const hidden = named.find(({ field }) => this.hiddenFields.includes(field));
