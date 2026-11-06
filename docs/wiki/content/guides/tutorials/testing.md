@@ -52,6 +52,8 @@ describe('boot', () => {
 
 The helper runs `init()` and `initialize()`, never `start()`: no socket opens and no post-start hook runs. Datasources are bound and resolved but not configured, so no connection is made. Every other step and every component runs as in a real boot.
 
+`setupMiddlewares()` is the one thing the helper does not run: it is your own start-time method, which may open connections, so the probe cannot assume it is free of side effects. The framework's own middleware stack (CORS, body limit, request id) is a boot step of `initialize()`, so an invalid `configs.middlewares` value, such as a bad CORS pattern, does fail the probe. Call `setupMiddlewares()` yourself in the test if yours is cheap and offline.
+
 | Option | Default | Meaning |
 |--------|---------|---------|
 | `keepDataSources` | `[]` | Datasources whose real `configure()` runs. A class, a class name or a binding key (`datasources.Main`) selects one. Close a kept one with `await application.stop()` |
