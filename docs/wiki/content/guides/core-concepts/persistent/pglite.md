@@ -27,6 +27,15 @@ export class TestDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSch
 
 Your models, repositories and filters do not change. PGlite reports `PostgreSQL 18.3`, so every statement the filter builder emits works unchanged - `#>>` JSON paths, `ILIKE`, regex operators, arrays, `SELECT ... FOR UPDATE`.
 
+A repository on PGlite extends `PGliteCRUDRepository` from the same entry. It is `DefaultCRUDRepository` with the datasource typed as PGlite, so `new NoteRepository(dataSource)` takes your PGlite datasource and `this.dataSource.getClient()` is a `PGlite`, with no generics beyond the table. Under `@repository({ model, dataSource })` it behaves like any other repository; a `pg.Pool` datasource is a type error.
+
+```typescript
+import { PGliteCRUDRepository } from '@venizia/ignis-connectors/postgres/pglite';
+
+@repository({ model: Note, dataSource: TestDataSource })
+export class NoteRepository extends PGliteCRUDRepository<typeof noteTable> {}
+```
+
 > [!IMPORTANT] Optional peer dependency
 > `@electric-sql/pglite` is an optional peer. Only the driver class you import and name in `@datasource({ driver })` reaches your bundle.
 >

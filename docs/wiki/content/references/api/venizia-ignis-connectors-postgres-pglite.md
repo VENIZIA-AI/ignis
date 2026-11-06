@@ -7,7 +7,22 @@ description: "Every export of @venizia/ignis-connectors/postgres/pglite, from th
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-2 exports, 2 with TSDoc.
+4 exports, 4 with TSDoc.
+
+## `PGliteCRUDRepository`
+
+*type*
+
+`DefaultCRUDRepository` for a repository on PGlite, so `class NoteRepository extends PGliteCRUDRepository<typeof noteTable> {}`
+takes a PGlite datasource and types `this.dataSource.getClient()` as `PGlite`, without spelling the five generics. It is
+the same class at runtime, so `@repository({ model, dataSource })` and dependency injection work unchanged. A `pg.Pool`
+datasource is a type error here. As a type, it annotates a variable or a parameter.
+
+```ts
+export type PGliteCRUDRepository<EntitySchema extends TTableSchemaWithId = TTableSchemaWithId> = DefaultCRUDRepository<EntitySchema, TTableObject<EntitySchema>, TTableInsert<EntitySchema>, IDatabaseExtraOptions, TPGliteDataSource>;
+```
+
+Source: `packages/connectors/src/relational/postgres/repositories/core/pglite.ts`
 
 ## `PGliteDriver`
 
@@ -76,6 +91,18 @@ export declare class PGliteDriver<Schema extends TAnyDataSourceSchema = TAnyData
 ```
 
 Source: `packages/connectors/src/relational/postgres/drivers/pglite.ts`
+
+## `TPGliteDataSource`
+
+*type*
+
+A Postgres datasource whose client is PGlite: what `PGliteCRUDRepository` takes and what its `dataSource` is.
+
+```ts
+export type TPGliteDataSource = IPostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite>;
+```
+
+Source: `packages/connectors/src/relational/postgres/repositories/core/pglite.ts`
 
 ## `TPGliteDriverOptions`
 

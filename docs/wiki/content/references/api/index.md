@@ -27,7 +27,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-connectors/meilisearch`](/references/api/venizia-ignis-connectors-meilisearch) | 16 | 16 |
 | [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres) | 53 | 53 |
 | [`@venizia/ignis-connectors/postgres/node-postgres`](/references/api/venizia-ignis-connectors-postgres-node-postgres) | 1 | 1 |
-| [`@venizia/ignis-connectors/postgres/pglite`](/references/api/venizia-ignis-connectors-postgres-pglite) | 2 | 2 |
+| [`@venizia/ignis-connectors/postgres/pglite`](/references/api/venizia-ignis-connectors-postgres-pglite) | 4 | 4 |
 | [`@venizia/ignis-connectors/postgres/postgres-js`](/references/api/venizia-ignis-connectors-postgres-postgres-js) | 1 | 1 |
 | [`@venizia/ignis-connectors/postgres/supabase`](/references/api/venizia-ignis-connectors-postgres-supabase) | 14 | 14 |
 | [`@venizia/ignis-connectors/raw-sql`](/references/api/venizia-ignis-connectors-raw-sql) | 8 | 8 |

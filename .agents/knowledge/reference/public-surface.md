@@ -2049,9 +2049,11 @@ generated:
 
 - `PostgresJsDriver` class
 
-### `@venizia/ignis-connectors/postgres/pglite` (2)
+### `@venizia/ignis-connectors/postgres/pglite` (4)
 
+- `PGliteCRUDRepository` type
 - `PGliteDriver` class
+- `TPGliteDataSource` type
 - `TPGliteDriverOptions` type
 
 ### `@venizia/ignis-connectors/postgres/supabase` (14)
