@@ -44,6 +44,7 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
       spyOn(fsp, 'access').mockImplementation(async () => undefined),
       spyOn(fsp, 'stat').mockImplementation(async () => ({ isDirectory: () => true }) as AnyType),
       spyOn(fsp, 'mkdir').mockImplementation(async () => undefined),
+      spyOn(fsp, 'realpath').mockImplementation((async (target: string) => target) as never),
       spyOn(fsp, 'writeFile').mockImplementation(async (objectPath: AnyType) => {
         writtenPaths.push(String(objectPath));
       }),

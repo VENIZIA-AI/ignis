@@ -1274,6 +1274,18 @@ export declare class DiskHelper extends BaseStorageHelper {
     private basePath;
     constructor(options: IDiskHelperOptions);
     private getBucketPath;
+    /**
+     * Whether `target`, with every symbolic link followed, lies inside the real storage root. A target that does not exist
+     * yet is judged by its nearest existing parent (a write creates the rest beneath it); a link whose own target is
+     * missing is refused, because writing through it would create the file where the link points.
+     */
+    private isInsideRoot;
+    /** `null` when nothing is there (or it cannot be read): the caller walks up to the parent and judges that. */
+    private lstatOrNull;
+    /** A directory that exists AND lies inside the real root: a bucket that is a link leading outside is not one. */
+    private isReachableBucketPath;
+    /** The path of an object after the checks of {@link DiskHelper.resolveObjectPath} and the real-path containment check. */
+    private resolveContainedObjectPath;
     /** Validates the name AND the resolved path: containment survives a naming rule we get wrong. */
     private resolveObjectPath;
     /** `null` means not there. Anything but ENOENT is logged: it may exist and be unreadable. */
