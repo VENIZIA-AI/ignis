@@ -210,7 +210,7 @@ const application = new MyApplication({
 
 `bodyLimit` follows the same rule as `cors`: set it in the constructor, see [Set `configs.middlewares` in the constructor](#set-configs-middlewares-in-the-constructor).
 
-Over the limit, and with no `onError`, the request answers `413` with `core.request.body_too_large` (`RequestErrors.BODY_TOO_LARGE`). Every other `IMiddlewareConfigs` key - `compress`, `cors`, `csrf`, `ipRestriction` - is a type only; wire it yourself in `setupMiddlewares()`, as in [User-Defined Middlewares](#user-defined-middlewares).
+Over the limit, and with no `onError`, the request answers `413` with `core.request.body_too_large` (`RequestErrors.BODY_TOO_LARGE`). Every other `IMiddlewareConfigs` key - `compress`, `csrf`, `ipRestriction` - is a type only; wire it yourself in `setupMiddlewares()`, as in [User-Defined Middlewares](#user-defined-middlewares).
 
 > [!WARNING]
 > `extra.maxBytes` on a static-asset upload route only bounds a declared `Content-Length` - a chunked request with none skips it. Pair `extra.maxBytes` with `configs.middlewares.bodyLimit` for a ceiling nothing can skip. Raise `configs.server.maxRequestBodySize` above `bodyLimit.maxSize`, or Bun's own limit (default 128 MiB) answers `413` first, with no IGNIS envelope and no `core.request.body_too_large` code. Keep `bodyLimit.path` away from a route that streams a body through - the limiter buffers the whole body on any path it is scoped to, chunked or not.
