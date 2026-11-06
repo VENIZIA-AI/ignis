@@ -100,6 +100,31 @@ describe('Storage Path Validation', () => {
     });
   });
 
+  describe('control and bidirectional characters', () => {
+    test.each([
+      ['a tab', 'a\tb.png'],
+      ['a delete character', 'a\u007fb.png'],
+      ['a next-line character', 'a\u0085b.png'],
+      ['a lone surrogate', 'a\ud800b.png'],
+      ['a right-to-left override', 'photo\u202Egpj.exe'],
+      ['a left-to-right override', 'a\u202Db.png'],
+      ['an embedding mark', 'a\u202Ab.png'],
+      ['an isolate', 'a\u2066b.png'],
+      ['a directional mark', 'a\u200Fb.png'],
+      ['an arabic letter mark', 'a\u061Cb.png'],
+    ])('%s is refused in a segment, a key and a bucket name', (_name, value) => {
+      expect(helper.isValidSegment({ segment: value })).toBe(false);
+      expect(helper.isValidObjectKey({ object: { key: `folder/${value}` } })).toBe(false);
+      expect(helper.isValidBucketName({ bucket: { name: value } })).toBe(false);
+    });
+
+    test('ordinary non-ASCII names stay valid', () => {
+      expect(helper.isValidSegment({ segment: 'ảnh đẹp.png' })).toBe(true);
+      expect(helper.isValidSegment({ segment: 'файл.txt' })).toBe(true);
+      expect(helper.isValidSegment({ segment: '写真.jpg' })).toBe(true);
+    });
+  });
+
   describe('isValidPath', () => {
     describe('valid paths', () => {
       test('should accept simple filename (no folder)', () => {

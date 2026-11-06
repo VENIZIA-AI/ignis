@@ -70,10 +70,11 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       return false;
     }
 
-    if (name.includes('\n') || name.includes('\r') || name.includes('\0')) {
+    if (BaseStorageHelper.UNSAFE_NAME_CHARACTERS.test(name)) {
+      // The length, not the name: a control character in a log line is the line's own to forge.
       this.logger
         .for(this.isValidSegment.name)
-        .error('Name contains invalid control characters: %s', name);
+        .error('Name contains a control or bidirectional character | length: %d', name.length);
 
       return false;
     }
@@ -99,8 +100,9 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
   static readonly DEFAULT_MAX_FOLDER_DEPTH = 2;
 
-  /** Control characters and lone surrogates: never part of a file name, and not encodable into a header. */
-  private static readonly UNSAFE_NAME_CHARACTERS = /[\p{Cc}\p{Cs}]/u;
+  /** Control characters, lone surrogates and the bidirectional marks and overrides: never part of a file name or a key (the overrides make `gpj.exe` display as `exe.jpg`), and a control character or a surrogate cannot be encoded into a header. */
+  private static readonly UNSAFE_NAME_CHARACTERS =
+    /[\p{Cc}\p{Cs}\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/u;
 
   /** A bucket name is one segment; a separator in it would silently address a different bucket. */
   isValidBucketName(opts: { bucket: IBucketRef }): boolean {
