@@ -1281,6 +1281,8 @@ export declare class DiskHelper extends BaseStorageHelper {
     /** `null` means not there. Anything but ENOENT is logged: it may exist and be unreadable. */
     private statOrNull;
     private exists;
+    /** An object is a regular file: a directory under the same path is not one, so it reads as not found. */
+    private isFile;
     /** One `stat` answers existence and type. */
     hasBucket(opts: {
         bucket: IBucketRef;
