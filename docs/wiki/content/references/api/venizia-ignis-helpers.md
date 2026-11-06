@@ -4807,6 +4807,7 @@ export declare class UrlIngest {
     static resolvePublicAddresses(opts: {
         hostname: string;
         policy?: IUrlSafetyPolicy;
+        signal?: AbortSignal;
     }): Promise<string[]>;
     /**
      * Rejects when ANY resolved address is non-public.
@@ -4824,10 +4825,20 @@ export declare class UrlIngest {
         policy?: IUrlSafetyPolicy;
     }): Promise<URL>;
     private static readTimeoutMilliseconds;
+    /** Settles with `work`, or rejects with the signal's reason when the deadline passes first: a slow resolver must not outlive it. */
+    private static withDeadline;
     /** Request headers that name the body; they go when a redirect turns the request into a GET. */
     private static readonly BODY_HEADERS;
-    /** Request headers a cross-origin redirect must not carry along, as `fetch` itself drops them. */
-    private static readonly CREDENTIAL_HEADERS;
+    /**
+     * The only caller headers a cross-origin redirect keeps. Every other one is dropped: a tenant's webhook secret
+     * (`x-api-key`, a signature) must not follow a redirect to a host that tenant did not name.
+     */
+    private static readonly CROSS_ORIGIN_HEADERS;
+    /** The statuses that name a new location; a 304 or a 300 is an answer, not a redirect. */
+    private static readonly REDIRECT_STATUSES;
+    /** Connect-phase errors: nothing was sent, so trying the next vetted address cannot deliver a request twice. */
+    private static readonly CONNECT_ERROR_CODES;
+    private static onlyHeaders;
     private static withoutHeaders;
     /**
      * One request to `target`. With `addresses` it connects to those vetted addresses and nowhere else, in order, and
@@ -4850,7 +4861,7 @@ export declare class UrlIngest {
      * Redirects are followed by hand so every hop is re-checked and re-pinned - `redirect: 'follow'` would land on an
      * internal host with no second look. 301, 302 (for a POST) and 303 turn the request into a GET without a body. A 307 or
      * 308 repeats the request; with a body it is refused when it leaves the origin, so a signed payload is never replayed to
-     * a host a redirect chose. `authorization`, `cookie` and `proxy-authorization` are dropped when a hop changes origin.
+     * a host a redirect chose. When a hop changes origin every caller header is dropped except `accept`, `accept-language` and `user-agent`.
      *
      * The body is returned unread: the caller decides whether to stream it onward or cap it with
      * {@link UrlIngest.readCappedBody}. Nothing is buffered here.
