@@ -8,6 +8,7 @@ import {
   MINIMUM_KDF_SALT_BYTES,
 } from '../common';
 import { AbstractCryptoAlgorithm } from './abstract.algorithm';
+import { DerivedKeyCache } from './derived-key-cache';
 
 export { AbstractCryptoAlgorithm } from './abstract.algorithm';
 
@@ -16,8 +17,8 @@ const MAXIMUM_KDF_ITERATIONS = 2 ** 31 - 1;
 /** The Web Crypto name of each digest `DEFAULT_KDF_DIGEST` may hold. */
 const KDF_HASH_NAMES: Record<string, string> = { sha256: 'SHA-256' };
 
-/** One entry per derivation. It holds the promise, so callers that arrive while it runs share it. */
-const DERIVED_KEY_CACHE = new Map<string, Promise<Buffer>>();
+/** One entry per derivation, bounded. It holds the promise, so callers that arrive while it runs share it. */
+const DERIVED_KEY_CACHE = new DerivedKeyCache();
 
 /** Base for the symmetric algorithms: validates the algorithm name and derives a key of a given length from a secret with PBKDF2. */
 export abstract class BaseCryptoAlgorithm<
@@ -83,32 +84,14 @@ export abstract class BaseCryptoAlgorithm<
       });
     }
 
-    const cacheKey = `${DEFAULT_KDF_DIGEST}:${iterations}:${length}:${salt}:${secret}`;
+    const key = DerivedKeyCache.keyOf({
+      parts: [DEFAULT_KDF_DIGEST, iterations, length, salt, secret],
+    });
 
-    return this.deriveOnce({
-      cacheKey,
+    return DERIVED_KEY_CACHE.deriveOnce({
+      key,
       derive: () => this.derivePbkdf2({ secret, salt, iterations, length }),
     });
-  }
-
-  /** Runs `derive` once per `cacheKey`. A failed derivation leaves nothing behind, so the next call tries again. */
-  private deriveOnce(opts: { cacheKey: string; derive: () => Promise<Buffer> }): Promise<Buffer> {
-    const { cacheKey, derive } = opts;
-    const pending = DERIVED_KEY_CACHE.get(cacheKey);
-
-    if (pending) {
-      return pending;
-    }
-
-    const derived = derive();
-    DERIVED_KEY_CACHE.set(cacheKey, derived);
-    derived.catch(() => {
-      if (DERIVED_KEY_CACHE.get(cacheKey) === derived) {
-        DERIVED_KEY_CACHE.delete(cacheKey);
-      }
-    });
-
-    return derived;
   }
 
   private async derivePbkdf2(opts: {

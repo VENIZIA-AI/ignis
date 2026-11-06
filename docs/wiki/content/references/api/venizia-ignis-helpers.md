@@ -585,8 +585,6 @@ export declare abstract class BaseCryptoAlgorithm<AlgorithmType extends string, 
         kdfSalt?: string;
         kdfIterations?: number;
     }): Promise<Buffer>;
-    /** Runs `derive` once per `cacheKey`. A failed derivation leaves nothing behind, so the next call tries again. */
-    private deriveOnce;
     private derivePbkdf2;
     /** Rejects a `kdfSalt` short enough to look configured while giving up most of the protection a salt exists for (NIST SP 800-132: 128-bit minimum). */
     private validateKdfSalt;
