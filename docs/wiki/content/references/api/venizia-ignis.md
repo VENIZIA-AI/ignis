@@ -45,11 +45,19 @@ export declare abstract class AbstractBearerTokenService<E extends Env = Env> ex
         /** Per-token registered claims. The supported way to vary `aud` / `sub`; the payload is not. */
         claims?: IJWTIssueClaims;
     }): Promise<string>;
+    /** A `null` is written as `null` whatever the field's codec is: a codec converts a value, and `null` is none. */
     protected serializeField(opts: {
         key: string;
         value: any;
     }): string;
+    /**
+     * With `applicationSecret` set, AES-encrypts the key and the value of every claim outside `JWT_COMMON_FIELDS`;
+     * without it, returns the payload as is. A `null` claim is encrypted like any other value and decodes as `null`,
+     * so the token decodes to the same payload with encryption on or off and `null` stays distinct from absent. An
+     * `undefined` claim is skipped, as JSON drops it.
+     */
     encryptPayload(payload: IJWTTokenPayload): Promise<Record<string, any>>;
+    /** The text `null` reads as `null` before any codec sees it, the other half of {@link serializeField}. */
     protected deserializeField(opts: {
         key: string;
         value: string;

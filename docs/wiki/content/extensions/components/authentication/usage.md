@@ -316,7 +316,7 @@ AES payload encryption is off by default. It only activates when you set `applic
 |---|---|
 | Default | Off. Without `applicationSecret`, payloads stay standard plaintext JWT. |
 | Standard fields | `iss`, `sub`, `aud`, `jti`, `nbf`, `exp`, `iat` are never encrypted, on either side. |
-| Other fields | Both the key and the value are AES-encrypted. `null` and `undefined` values are skipped. |
+| Other fields | Both the key and the value are AES-encrypted. A `null` value is encrypted like any other and decodes as `null`, so an encrypted token decodes to the same payload as a plain one. An `undefined` value is skipped, as JSON drops it, and the claim is absent. A `null` never reaches a field codec. |
 | Serialization | `JSON.stringify` by default. Opt in to `AuthenticationFieldCodecs.ROLES_CODEC` for `roles` - it serializes as pipe-separated `id\|identifier\|priority` strings instead. |
 | Secret | Must stay constant. Changing `applicationSecret` invalidates every existing token. |
 | Issuer/verifier match | Both sides need the identical secret, and identical `fieldCodecs` if you use them. |
