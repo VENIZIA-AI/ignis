@@ -158,7 +158,7 @@ The middleware that executes strategies in the configured mode.
 
 | Message | Status | Method | Cause |
 |---------|--------|--------|-------|
-| `Authentication failed. Tried strategies: {strategies}` | 401 | `executeAnyMode` | Every strategy failed in `'any'` mode |
+| `Authentication failed. Tried strategies: {strategies}` | 401 | `executeAnyMode` | Every strategy failed in `'any'` mode, or answered without a `userId` |
 | `Failed to identify authenticated user` | 401 | `executeAllMode` | All strategies passed in `'all'` mode, but the first strategy's `userId` is falsy |
 | `Invalid authentication mode \| mode: {mode}` | 500 | `createAuthenticateMiddleware` | `mode` is not `'any'` or `'all'` |
 

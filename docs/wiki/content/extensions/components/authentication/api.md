@@ -281,7 +281,7 @@ type TRouteAuthenticateConfig =
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `authenticate.strategies` | `TAuthStrategy[]` | -- | Strategy names to try - for example, `['jwt']` or `['jwt', 'basic']`. Any name you register works too; `'jwt'` and `'basic'` are the ones the framework ships |
-| `authenticate.mode` | `'any' \| 'all'` | `'any'` | `'any'`: first success wins. `'all'`: every strategy must pass |
+| `authenticate.mode` | `'any' \| 'all'` | `'any'` | `'any'`: first success wins. `'all'`: every strategy must pass. A verified credential whose answer has no `userId` does not authenticate the request: in `any` mode that strategy counts as failed, in `all` mode the first strategy's answer must carry it |
 | `authenticate.skip` | `true` | -- | Skips authentication for this route entirely |
 
 ### IAuthUser / IJWTTokenPayload
@@ -431,7 +431,7 @@ export const authenticate = (opts: { strategies: string[]; mode?: TAuthMode }) =
 5. On failure, throws `401`
 
 > [!NOTE]
-> `'any'` mode logs each failing strategy at debug and discards the error. It only throws once every strategy is exhausted. `'all'` mode uses the **first** strategy's user payload as the identity source. If that payload has no `userId`, it throws `401` even though every strategy technically passed.
+> `'any'` mode logs each failing strategy at debug and discards the error, and a strategy whose answer has no `userId` counts as failed, so the next one gets its turn. It only throws once every strategy is exhausted. `'all'` mode uses the **first** strategy's user payload as the identity source. If that payload has no `userId`, it throws `401` even though every strategy technically passed.
 
 ## Service class hierarchy
 
