@@ -150,9 +150,10 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     }
   }
 
+  /** A `null` is written as `null` whatever the field's codec is: a codec converts a value, and `null` is none. */
   protected serializeField(opts: { key: string; value: any }): string {
     const { key, value } = opts;
-    const codec = this.fieldCodecs.get(key);
+    const codec = value === null ? undefined : this.fieldCodecs.get(key);
 
     if (codec) {
       return codec.serialize({ value });
@@ -161,6 +162,12 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     return JSON.stringify(value);
   }
 
+  /**
+   * With `applicationSecret` set, AES-encrypts the key and the value of every claim outside `JWT_COMMON_FIELDS`;
+   * without it, returns the payload as is. A `null` claim is encrypted like any other value and decodes as `null`,
+   * so the token decodes to the same payload with encryption on or off and `null` stays distinct from absent. An
+   * `undefined` claim is skipped, as JSON drops it.
+   */
   async encryptPayload(payload: IJWTTokenPayload): Promise<Record<string, any>> {
     if (!this.aes || !this.applicationSecret) {
       return payload;
@@ -178,8 +185,10 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
         continue;
       }
 
-      // NOTE: Skip undefined or null values because they cannot be encrypted
-      if (value === undefined || value === null) {
+      // Only `undefined` is skipped: JSON drops it too, so the claim is absent either way. `null` is a value, and
+      // `serializeField` writes it as `null`, which `deserializeField` reads back, so an encrypted token decodes the
+      // same payload as a plain one.
+      if (value === undefined) {
         continue;
       }
 
@@ -200,9 +209,10 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     return rs;
   }
 
+  /** The text `null` reads as `null` before any codec sees it, the other half of {@link serializeField}. */
   protected deserializeField(opts: { key: string; value: string }) {
     const { key, value } = opts;
-    const codec = this.fieldCodecs.get(key);
+    const codec = value === 'null' ? undefined : this.fieldCodecs.get(key);
 
     if (codec) {
       return codec.deserialize({ raw: value });
