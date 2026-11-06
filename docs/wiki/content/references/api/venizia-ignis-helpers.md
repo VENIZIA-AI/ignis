@@ -4800,12 +4800,19 @@ Fetching an untrusted url without letting it reach inside the network.
 ```ts
 export declare class UrlIngest {
     /**
-     * Rejects when ANY resolved address is non-public. Checking only the first walks straight into a
-     * host that publishes one public A record beside an internal one.
+     * Resolves `hostname` once and returns every address it answered, refusing the host when ANY of them is non-public.
+     * Checking only the first walks straight into a host that publishes one public A record beside an internal one.
+     * An IP literal answers itself. `allowPrivateAddress` skips the check and returns an empty list: nothing to pin to.
+     */
+    static resolvePublicAddresses(opts: {
+        hostname: string;
+        policy?: IUrlSafetyPolicy;
+    }): Promise<string[]>;
+    /**
+     * Rejects when ANY resolved address is non-public.
      *
-     * A rebinding window remains: the address can change between this check and the connect. Closing
-     * it means connecting to the resolved address and setting `Host` by hand, which no fetch API
-     * exposes.
+     * A rebinding window remains when this is called on its own: the address can change between this check and a
+     * later connect. {@link UrlIngest.fetchGuarded} closes it by connecting to the address it vetted.
      */
     static assertPublicHost(opts: {
         hostname: string;
@@ -4817,10 +4824,33 @@ export declare class UrlIngest {
         policy?: IUrlSafetyPolicy;
     }): Promise<URL>;
     private static readTimeoutMilliseconds;
+    /** Request headers that name the body; they go when a redirect turns the request into a GET. */
+    private static readonly BODY_HEADERS;
+    /** Request headers a cross-origin redirect must not carry along, as `fetch` itself drops them. */
+    private static readonly CREDENTIAL_HEADERS;
+    private static withoutHeaders;
     /**
-     * A GET that an untrusted url cannot steer inside the network. Redirects are followed by hand so
-     * every hop is re-checked - `redirect: 'follow'` would land on an internal host with no second
-     * look.
+     * One request to `target`. With `addresses` it connects to those vetted addresses and nowhere else, in order, and
+     * moves to the next one only when the connection itself fails: the url's host is set as the `Host` header, and for
+     * https as the TLS server name, so the certificate is still checked against the name the caller asked for.
+     */
+    private static send;
+    /**
+     * A request that an untrusted url cannot steer inside the network. GET by default; `method`, `headers` and `body`
+     * (text or bytes, so a redirect can replay it) make it a signed webhook dispatch.
+     *
+     * The host is resolved ONCE per hop, every answer is checked, and the request connects to those addresses and to no
+     * other, so a DNS answer that changes after the check (DNS rebinding) is never looked up again. The `Host` header and,
+     * for https, the TLS server name stay the url's own, so the certificate is verified for that name. A `Host` in
+     * `headers` is ignored. The environment's `HTTP_PROXY` / `HTTPS_PROXY` is ignored on a pinned
+     * connection, because a proxy would resolve the name itself and undo the pin. `policy.proxy` sends the request through a
+     * proxy on purpose; that connection is not pinned (see `IUrlSafetyPolicy.proxy`). `allowPrivateAddress` turns the guard,
+     * and so the pin, off.
+     *
+     * Redirects are followed by hand so every hop is re-checked and re-pinned - `redirect: 'follow'` would land on an
+     * internal host with no second look. 301, 302 (for a POST) and 303 turn the request into a GET without a body. A 307 or
+     * 308 repeats the request; with a body it is refused when it leaves the origin, so a signed payload is never replayed to
+     * a host a redirect chose. `authorization`, `cookie` and `proxy-authorization` are dropped when a hop changes origin.
      *
      * The body is returned unread: the caller decides whether to stream it onward or cap it with
      * {@link UrlIngest.readCappedBody}. Nothing is buffered here.
@@ -4828,7 +4858,9 @@ export declare class UrlIngest {
     static fetchGuarded(opts: {
         url: string;
         policy?: IUrlSafetyPolicy;
+        method?: string;
         headers?: Record<string, string>;
+        body?: string | Uint8Array;
     }): Promise<Response>;
     /**
      * Enforces `maxBytes` on a stream nothing reads into this process - the shape a caller wants when

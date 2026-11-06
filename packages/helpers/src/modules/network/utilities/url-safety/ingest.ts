@@ -12,21 +12,18 @@ import { UrlPolicy } from './policy';
 /** Fetching an untrusted url without letting it reach inside the network. */
 export class UrlIngest {
   /**
-   * Rejects when ANY resolved address is non-public. Checking only the first walks straight into a
-   * host that publishes one public A record beside an internal one.
-   *
-   * A rebinding window remains: the address can change between this check and the connect. Closing
-   * it means connecting to the resolved address and setting `Host` by hand, which no fetch API
-   * exposes.
+   * Resolves `hostname` once and returns every address it answered, refusing the host when ANY of them is non-public.
+   * Checking only the first walks straight into a host that publishes one public A record beside an internal one.
+   * An IP literal answers itself. `allowPrivateAddress` skips the check and returns an empty list: nothing to pin to.
    */
-  static async assertPublicHost(opts: {
+  static async resolvePublicAddresses(opts: {
     hostname: string;
     policy?: IUrlSafetyPolicy;
-  }): Promise<void> {
+  }): Promise<string[]> {
     const { hostname, policy } = opts;
 
     if (policy?.allowPrivateAddress ?? UrlSafetyDefaults.ALLOW_PRIVATE_ADDRESS) {
-      return;
+      return [];
     }
 
     // `URL.hostname` keeps the brackets on an IPv6 literal; `lookup` does not accept them, and the
@@ -51,6 +48,21 @@ export class UrlIngest {
         message: `[assertPublicHost] Host resolves to a non-public address | host: ${hostname} | address: ${offender.address}`,
       });
     }
+
+    return addresses.map((entry) => entry.address);
+  }
+
+  /**
+   * Rejects when ANY resolved address is non-public.
+   *
+   * A rebinding window remains when this is called on its own: the address can change between this check and a
+   * later connect. {@link UrlIngest.fetchGuarded} closes it by connecting to the address it vetted.
+   */
+  static async assertPublicHost(opts: {
+    hostname: string;
+    policy?: IUrlSafetyPolicy;
+  }): Promise<void> {
+    await UrlIngest.resolvePublicAddresses(opts);
   }
 
   /** Both halves, in the order they must run: shape first, then the network. */
@@ -68,10 +80,100 @@ export class UrlIngest {
     return milliseconds ?? UrlSafetyDefaults.TIMEOUT_MILLISECONDS;
   }
 
+  /** Request headers that name the body; they go when a redirect turns the request into a GET. */
+  private static readonly BODY_HEADERS = ['content-type', 'content-length', 'content-encoding'];
+
+  /** Request headers a cross-origin redirect must not carry along, as `fetch` itself drops them. */
+  private static readonly CREDENTIAL_HEADERS = ['authorization', 'cookie', 'proxy-authorization'];
+
+  private static withoutHeaders(opts: {
+    headers: Record<string, string>;
+    names: string[];
+  }): Record<string, string> {
+    const { headers, names } = opts;
+
+    return Object.fromEntries(
+      Object.entries(headers).filter(([name]) => !names.includes(name.toLowerCase())),
+    );
+  }
+
   /**
-   * A GET that an untrusted url cannot steer inside the network. Redirects are followed by hand so
-   * every hop is re-checked - `redirect: 'follow'` would land on an internal host with no second
-   * look.
+   * One request to `target`. With `addresses` it connects to those vetted addresses and nowhere else, in order, and
+   * moves to the next one only when the connection itself fails: the url's host is set as the `Host` header, and for
+   * https as the TLS server name, so the certificate is still checked against the name the caller asked for.
+   */
+  private static async send(opts: {
+    target: URL;
+    addresses: string[];
+    init: RequestInit;
+  }): Promise<Response> {
+    const { target, addresses, init } = opts;
+
+    if (!addresses.length) {
+      return fetch(target, init);
+    }
+
+    // `proxy: false` is Bun's way to ignore HTTP_PROXY / HTTPS_PROXY for this call (an empty string or undefined keeps
+    // the environment's proxy, which would resolve the name itself and undo the pin). A test pins it.
+    const noProxy = { proxy: false } as unknown as RequestInit;
+    const isHttps = target.protocol === 'https:';
+    const hasNameToVerify =
+      isHttps &&
+      !UrlPolicy.readHostAddress({ hostname: target.hostname }).includes(':') &&
+      !/^[\d.]+$/.test(target.hostname);
+    const headers = {
+      ...UrlIngest.withoutHeaders({
+        headers: (init.headers as Record<string, string> | undefined) ?? {},
+        names: ['host'],
+      }),
+      Host: target.host,
+    };
+    let lastError: unknown;
+
+    for (const address of addresses) {
+      const pinned = new URL(target);
+      pinned.hostname = address.includes(':') ? `[${address}]` : address;
+
+      try {
+        const result = await fetch(pinned, {
+          ...init,
+          ...noProxy,
+          headers,
+          ...(hasNameToVerify ? { tls: { serverName: target.hostname } } : {}),
+        });
+
+        return result;
+      } catch (error) {
+        const name = (error as Error | undefined)?.name;
+
+        // The deadline is not a reason to try another address: it is spent.
+        if (name === 'AbortError' || name === 'TimeoutError') {
+          throw error;
+        }
+
+        lastError = error;
+      }
+    }
+
+    throw lastError;
+  }
+
+  /**
+   * A request that an untrusted url cannot steer inside the network. GET by default; `method`, `headers` and `body`
+   * (text or bytes, so a redirect can replay it) make it a signed webhook dispatch.
+   *
+   * The host is resolved ONCE per hop, every answer is checked, and the request connects to those addresses and to no
+   * other, so a DNS answer that changes after the check (DNS rebinding) is never looked up again. The `Host` header and,
+   * for https, the TLS server name stay the url's own, so the certificate is verified for that name. A `Host` in
+   * `headers` is ignored. The environment's `HTTP_PROXY` / `HTTPS_PROXY` is ignored on a pinned
+   * connection, because a proxy would resolve the name itself and undo the pin. `policy.proxy` sends the request through a
+   * proxy on purpose; that connection is not pinned (see `IUrlSafetyPolicy.proxy`). `allowPrivateAddress` turns the guard,
+   * and so the pin, off.
+   *
+   * Redirects are followed by hand so every hop is re-checked and re-pinned - `redirect: 'follow'` would land on an
+   * internal host with no second look. 301, 302 (for a POST) and 303 turn the request into a GET without a body. A 307 or
+   * 308 repeats the request; with a body it is refused when it leaves the origin, so a signed payload is never replayed to
+   * a host a redirect chose. `authorization`, `cookie` and `proxy-authorization` are dropped when a hop changes origin.
    *
    * The body is returned unread: the caller decides whether to stream it onward or cap it with
    * {@link UrlIngest.readCappedBody}. Nothing is buffered here.
@@ -79,19 +181,44 @@ export class UrlIngest {
   static async fetchGuarded(opts: {
     url: string;
     policy?: IUrlSafetyPolicy;
+    method?: string;
     headers?: Record<string, string>;
+    body?: string | Uint8Array;
   }): Promise<Response> {
-    const { url, policy, headers } = opts;
+    const { url, policy } = opts;
     const maxRedirects = policy?.maxRedirects ?? UrlSafetyDefaults.MAX_REDIRECTS;
     const timeoutMilliseconds = UrlIngest.readTimeoutMilliseconds({ policy });
 
-    let target = await UrlIngest.assertReachableUrl({ url, policy });
+    let method = (opts.method ?? 'GET').toUpperCase();
+    let headers = opts.headers ?? {};
+    let body = opts.body;
+
+    if (body !== undefined && (method === 'GET' || method === 'HEAD')) {
+      throw getError({
+        message: `[fetchGuarded] A ${method} request cannot carry a body | url: ${url}`,
+      });
+    }
+
+    let target = UrlPolicy.assertSafeUrl({ url, policy });
 
     for (let hop = 0; hop <= maxRedirects; hop += 1) {
-      const response = await fetch(target, {
-        redirect: 'manual',
-        signal: AbortSignal.timeout(timeoutMilliseconds),
-        ...(headers ? { headers } : {}),
+      const addresses = await UrlIngest.resolvePublicAddresses({
+        hostname: target.hostname,
+        policy,
+      });
+
+      const response = await UrlIngest.send({
+        target,
+        // A proxy resolves the name itself, so there is nothing to pin: the caller chose it (`policy.proxy`).
+        addresses: policy?.proxy ? [] : addresses,
+        init: {
+          method,
+          ...(policy?.proxy ? ({ proxy: policy.proxy } as unknown as RequestInit) : {}),
+          redirect: 'manual',
+          signal: AbortSignal.timeout(timeoutMilliseconds),
+          ...(Object.keys(headers).length ? { headers } : {}),
+          ...(body === undefined ? {} : { body }),
+        },
       });
 
       if (response.status < 300 || response.status > 399) {
@@ -116,11 +243,28 @@ export class UrlIngest {
         });
       }
 
-      const result = await UrlIngest.assertReachableUrl({
-        url: new URL(location, target).toString(),
-        policy,
-      });
-      target = result;
+      const next = UrlPolicy.assertSafeUrl({ url: new URL(location, target).toString(), policy });
+      const isSameOrigin = next.origin === target.origin;
+      const becomesGet =
+        response.status === 303 ||
+        ((response.status === 301 || response.status === 302) && method === 'POST');
+
+      if (becomesGet) {
+        method = 'GET';
+        body = undefined;
+        headers = UrlIngest.withoutHeaders({ headers, names: UrlIngest.BODY_HEADERS });
+      } else if (body !== undefined && !isSameOrigin) {
+        throw getError({
+          error: UrlSafetyErrors.URL_REFUSED,
+          message: `[fetchGuarded] Redirect would replay the request body to another origin | from: ${target.origin} | to: ${next.origin}`,
+        });
+      }
+
+      if (!isSameOrigin) {
+        headers = UrlIngest.withoutHeaders({ headers, names: UrlIngest.CREDENTIAL_HEADERS });
+      }
+
+      target = next;
     }
 
     throw getError({

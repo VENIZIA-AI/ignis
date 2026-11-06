@@ -1120,6 +1120,7 @@ Every field is per call. An application that must reach plain `http` on one rout
 | `maxRedirects` | `number` | `3` | Hops allowed. Each one is re-checked |
 | `timeout` | `IDuration` | 10 seconds | A slow host holds a worker slot for exactly this long |
 | `maxBytes` | `number` | `10485760` (10 MB) | The read stops and cancels the moment the body crosses it |
+| `proxy` | `string` | - | `http://host:port` of a proxy `fetchGuarded` sends the request through. The address check still runs, the connection is NOT pinned: the proxy resolves the name. The environment proxy is never used |
 
 `timeout` takes an `IDuration`, not a number of milliseconds. `UrlSafetyDefaults` holds the raw values: `ALLOWED_SCHEMES`, `ALLOW_PRIVATE_ADDRESS`, `MAX_REDIRECTS`, `TIMEOUT_MILLISECONDS`, `MAX_BYTES`. `UrlSchemes` holds `HTTP` (`'http:'`) and `HTTPS` (`'https:'`), with the trailing colon that `URL.protocol` returns.
 
@@ -1143,13 +1144,17 @@ An IPv6 literal is expanded to its eight 16-bit groups before it is classified, 
 |---|---|---|
 | `assertPublicHost` | `(opts: { hostname: string; policy? }): Promise<void>` | Resolves the host and rejects if **any** address is non-public |
 | `assertReachableUrl` | `(opts: { url: string; policy? }): Promise<URL>` | Both halves, in the order they must run: shape, then network |
-| `fetchGuarded` | `(opts: { url: string; policy?; headers? }): Promise<Response>` | A GET an untrusted url cannot steer inside your network |
+| `fetchGuarded` | `(opts: { url: string; policy?; method?; headers?; body? }): Promise<Response>` | A request an untrusted url cannot steer inside your network. GET by default; `method`, `headers` and `body` (text or bytes) make it a signed webhook dispatch. Connects to the address it vetted |
 | `readCappedBody` | `(opts: { response: Response; policy? }): Promise<Buffer>` | Reads a body, cancelling the moment it crosses `maxBytes` |
 | `capStream` | `(opts: { source: ReadableStream<Uint8Array>; policy? }): ReadableStream<Uint8Array>` | Enforces `maxBytes` on a stream you pipe onward instead of buffering |
 
 `assertPublicHost` checks every resolved address, not the first. A host can publish one public A record beside an internal one.
 
-`fetchGuarded` follows redirects by hand, with `redirect: 'manual'`, so every hop goes back through `assertReachableUrl`. Letting `fetch` follow them would land on an internal host with no second look. It returns the body unread, so you choose between `readCappedBody` and `capStream`. Nothing is buffered for you.
+`fetchGuarded` resolves the host once per hop, checks every answer, and connects to those addresses and no other, so a DNS answer that changes after the check (DNS rebinding) is never looked up again. The `Host` header and, for https, the TLS server name stay the url's own: the certificate is still verified for the name you asked for. If the first address fails to connect it tries the next vetted one. A `Host` in `headers` is ignored.
+
+It follows redirects by hand, with `redirect: 'manual'`, so every hop is checked and pinned again. Letting `fetch` follow them would land on an internal host with no second look. A 301 or 302 on a POST, and a 303, become a GET without the body. A 307 or 308 repeats the request; with a body it is refused when it leaves the origin, so a signed payload is never replayed to a host a redirect chose. `authorization`, `cookie` and `proxy-authorization` are dropped when a hop changes origin.
+
+It returns the body unread, so you choose between `readCappedBody` and `capStream`. Nothing is buffered for you.
 
 `readCappedBody` checks `content-length` first because it is free, then counts anyway, because the header may be absent or may lie.
 
@@ -1162,8 +1167,18 @@ const response = await UrlIngest.fetchGuarded({
 const body = await UrlIngest.readCappedBody({ response, policy: { maxBytes: 2 * 1024 * 1024 } });
 ```
 
+```typescript
+// A signed webhook dispatch to a customer-supplied url.
+const response = await UrlIngest.fetchGuarded({
+  url: customerWebhookUrl,
+  method: 'POST',
+  headers: { 'content-type': 'application/json', 'x-signature': signature },
+  body: JSON.stringify(event),
+});
+```
+
 > [!WARNING]
-> One window stays open. The address can change between the DNS check and the connect - DNS rebinding. Closing it means connecting to the resolved address and setting `Host` by hand, which no `fetch` API exposes. Treat `fetchGuarded` as a strong barrier, not a proof.
+> Two windows remain, and both are on purpose. `assertPublicHost` and `assertReachableUrl` called on their own only check: the address can change before your own connect, so connect through `fetchGuarded`. And `policy.proxy` sends the request through a proxy you chose, which resolves the name itself: the address check still runs, the connection is not pinned. The environment's `HTTP_PROXY` / `HTTPS_PROXY` is ignored on a pinned connection, so it cannot undo the pin.
 
 ### Telling a refusal from a retryable failure
 
