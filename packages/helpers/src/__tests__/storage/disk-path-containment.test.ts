@@ -135,6 +135,22 @@ describe('DiskHelper - a write cannot leave its bucket either', () => {
     },
   );
 
+  test('writeStream applies the folder depth it is given, as upload does', async () => {
+    const { root, helper } = buildStorage();
+
+    const message = await captureError({
+      task: helper.writeStream({
+        bucket: { name: 'images' },
+        object: { key: 'd1/d2/d3/d4/file.txt' },
+        source: body(),
+        maxFolderDepth: 1,
+      }),
+    });
+
+    expect(message).toContain('Invalid object name');
+    expect(existsSync(join(root, 'images', 'd1'))).toBe(false);
+  });
+
   test('a valid key still writes, folders included', async () => {
     const { root, helper } = buildStorage();
 

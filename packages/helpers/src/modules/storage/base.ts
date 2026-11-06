@@ -453,6 +453,12 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     },
   ): Promise<void> {
     const { bucket, object, source, contentType } = opts;
+
+    // The same depth rule `upload` applies, as `BunS3Helper.writeStream` does: one object, two doors, one answer.
+    if (!this.isValidObjectKey({ object, maxDepth: opts.maxFolderDepth })) {
+      throw getError({ message: `[writeStream] Invalid object name | key: ${object.key}` });
+    }
+
     const body =
       source instanceof Response || source instanceof Request ? source : new Response(source);
     const result = await body.arrayBuffer();

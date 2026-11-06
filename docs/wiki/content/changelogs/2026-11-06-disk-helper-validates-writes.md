@@ -15,6 +15,7 @@ packages: ['@venizia/ignis-helpers']
 ## What changed
 
 - **One path rule for every operation.** The write path uses the same validated resolution as the reads: the bucket name and the key must be valid, and the resolved path must stay under the bucket directory.
+- **Folder depth.** `writeStream` applies the folder depth it is given (`maxFolderDepth`, the helper default when none), as `upload` and the S3 helper's `writeStream` do. A key nested deeper than the limit is refused where it was written before.
 - **Who is affected by a refusal.** A key such as `../x`, an absolute key, or a bucket such as `../other` now fails with `Invalid object name` or `Invalid bucket name`. `upload` already validated its keys, so it behaves as before.
 
 ## Who is affected
