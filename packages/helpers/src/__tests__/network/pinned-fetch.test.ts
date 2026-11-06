@@ -421,7 +421,7 @@ describe('UrlIngest.fetchGuarded - redirects are re-vetted, re-pinned and do not
     }
   });
 
-  test('credentials are dropped when a hop changes origin, kept on the same origin', async () => {
+  test('every caller header but accept, accept-language and user-agent is dropped when a hop changes origin', async () => {
     const { server, seen, port } = startServer({
       '/same': () => new Response(null, { status: 302, headers: { location: '/landed' } }),
       '/cross': () =>
@@ -435,7 +435,13 @@ describe('UrlIngest.fetchGuarded - redirects are re-vetted, re-pinned and do not
     try {
       treatLoopbackAsPublic();
       lookupMock.mockResolvedValue(answer('127.0.0.1'));
-      const headers = { authorization: 'Bearer secret', cookie: 'a=b', 'x-trace': '1' };
+      const headers = {
+        authorization: 'Bearer secret',
+        cookie: 'a=b',
+        'x-api-key': 'KEY',
+        'X-Webhook-Signature': 'sig',
+        accept: 'application/json',
+      };
 
       await UrlIngest.fetchGuarded({
         url: `http://hook.example.test:${port}/same`,
@@ -452,12 +458,143 @@ describe('UrlIngest.fetchGuarded - redirects are re-vetted, re-pinned and do not
       const crossHop = seen[3];
 
       expect(sameHop.headers.authorization).toBe('Bearer secret');
+      expect(sameHop.headers['x-api-key']).toBe('KEY');
       expect(crossHop.headers.authorization).toBeUndefined();
       expect(crossHop.headers.cookie).toBeUndefined();
-      expect(crossHop.headers['x-trace']).toBe('1');
+      expect(crossHop.headers['x-api-key']).toBeUndefined();
+      expect(crossHop.headers['x-webhook-signature']).toBeUndefined();
+      expect(crossHop.headers.accept).toBe('application/json');
       expect(crossHop.headers.host).toBe(`other.example.test:${port}`);
     } finally {
       await server.stop(true);
     }
+  });
+});
+
+describe('UrlIngest.fetchGuarded - replay, deadline and non-redirect 3xx', () => {
+  test('a POST that may have reached the server is not repeated on the next address; a refused connect is', async () => {
+    lookupMock.mockResolvedValue(answer('203.0.113.10', '203.0.113.11'));
+    const urls: string[] = [];
+
+    globalThis.fetch = (async (input: URL | string) => {
+      urls.push(String(input));
+
+      throw Object.assign(new TypeError('The socket connection was closed unexpectedly'), {
+        code: 'ECONNRESET',
+      });
+    }) as unknown as typeof fetch;
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'https://hook.example.test/',
+        policy,
+        method: 'POST',
+        body: 'payment-created',
+      }),
+    );
+
+    expect((error as { code?: string }).code).toBe('ECONNRESET');
+    expect(urls).toEqual(['https://203.0.113.10/']);
+
+    urls.length = 0;
+    globalThis.fetch = (async (input: URL | string) => {
+      urls.push(String(input));
+
+      if (urls.length === 1) {
+        throw Object.assign(new TypeError('Unable to connect'), { code: 'ECONNREFUSED' });
+      }
+
+      return new Response('ok');
+    }) as unknown as typeof fetch;
+
+    await UrlIngest.fetchGuarded({
+      url: 'https://hook.example.test/',
+      policy,
+      method: 'POST',
+      body: 'payment-created',
+    });
+
+    expect(urls).toEqual(['https://203.0.113.10/', 'https://203.0.113.11/']);
+  });
+
+  test('a GET moves to the next address after a reset', async () => {
+    lookupMock.mockResolvedValue(answer('203.0.113.10', '203.0.113.11'));
+    const urls: string[] = [];
+
+    globalThis.fetch = (async (input: URL | string) => {
+      urls.push(String(input));
+
+      if (urls.length === 1) {
+        throw Object.assign(new TypeError('closed'), { code: 'ECONNRESET' });
+      }
+
+      return new Response('ok');
+    }) as unknown as typeof fetch;
+
+    await UrlIngest.fetchGuarded({ url: 'https://hook.example.test/', policy });
+
+    expect(urls).toHaveLength(2);
+  });
+
+  test('the deadline covers the lookup: a resolver slower than the timeout does not outlive it', async () => {
+    lookupMock.mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve(answer('203.0.113.10')), 600)),
+    );
+    let fetched = false;
+
+    globalThis.fetch = (async () => {
+      fetched = true;
+
+      return new Response('ok');
+    }) as unknown as typeof fetch;
+
+    const started = performance.now();
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'https://hook.example.test/',
+        policy: { ...policy, timeout: { value: 100, unit: 'millisecond' } },
+      }),
+    );
+
+    expect(['TimeoutError', 'AbortError']).toContain(error.name);
+    expect(performance.now() - started).toBeLessThan(400);
+    expect(fetched).toBe(false);
+  });
+
+  test('the deadline is one for the whole call, not one per hop', async () => {
+    lookupMock.mockResolvedValue(answer('203.0.113.10'));
+    let calls = 0;
+
+    globalThis.fetch = (async (_input: URL | string, init: RequestInit) => {
+      calls += 1;
+      await new Promise((resolve) => setTimeout(resolve, 70));
+      init.signal?.throwIfAborted();
+
+      return new Response(null, { status: 302, headers: { location: '/again' } });
+    }) as unknown as typeof fetch;
+
+    const started = performance.now();
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({
+        url: 'https://hook.example.test/',
+        policy: { ...policy, maxRedirects: 10, timeout: { value: 200, unit: 'millisecond' } },
+      }),
+    );
+
+    expect(['TimeoutError', 'AbortError']).toContain(error.name);
+    expect(calls).toBeLessThan(5);
+    expect(performance.now() - started).toBeLessThan(450);
+  });
+
+  test('a 304 or a 300 is an answer, not a redirect', async () => {
+    lookupMock.mockResolvedValue(answer('203.0.113.10'));
+    globalThis.fetch = (async () => new Response(null, { status: 304 })) as unknown as typeof fetch;
+
+    const error = await rejectionOf(
+      UrlIngest.fetchGuarded({ url: 'https://hook.example.test/', policy }),
+    );
+
+    expect(error.message).toContain('Request failed | status: 304');
+    expect(UrlPolicy.isRefusedError({ error })).toBe(false);
   });
 });

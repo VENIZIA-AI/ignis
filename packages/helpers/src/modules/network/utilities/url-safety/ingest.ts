@@ -19,8 +19,9 @@ export class UrlIngest {
   static async resolvePublicAddresses(opts: {
     hostname: string;
     policy?: IUrlSafetyPolicy;
+    signal?: AbortSignal;
   }): Promise<string[]> {
-    const { hostname, policy } = opts;
+    const { hostname, policy, signal } = opts;
 
     if (policy?.allowPrivateAddress ?? UrlSafetyDefaults.ALLOW_PRIVATE_ADDRESS) {
       return [];
@@ -29,7 +30,10 @@ export class UrlIngest {
     // `URL.hostname` keeps the brackets on an IPv6 literal; `lookup` does not accept them, and the
     // ENOTFOUND that follows reads as a transient DNS failure rather than the refusal it should be.
     const address = UrlPolicy.readHostAddress({ hostname });
-    const addresses = await lookup(address, { all: true });
+    const addresses = await UrlIngest.withDeadline({
+      work: lookup(address, { all: true }),
+      signal,
+    });
 
     if (!addresses.length) {
       throw getError({
@@ -80,11 +84,64 @@ export class UrlIngest {
     return milliseconds ?? UrlSafetyDefaults.TIMEOUT_MILLISECONDS;
   }
 
+  /** Settles with `work`, or rejects with the signal's reason when the deadline passes first: a slow resolver must not outlive it. */
+  private static async withDeadline<T>(opts: {
+    work: Promise<T>;
+    signal?: AbortSignal;
+  }): Promise<T> {
+    const { work, signal } = opts;
+
+    if (!signal) {
+      return work;
+    }
+
+    signal.throwIfAborted();
+
+    let onAbort: (() => void) | undefined;
+    const aborted = new Promise<never>((_resolve, reject) => {
+      onAbort = () => reject(signal.reason);
+      signal.addEventListener('abort', onAbort, { once: true });
+    });
+
+    try {
+      return await Promise.race([work, aborted]);
+    } finally {
+      signal.removeEventListener('abort', onAbort as () => void);
+      // The lookup that lost keeps running; its late answer or error must not surface as an unhandled rejection.
+      work.catch(() => undefined);
+    }
+  }
+
   /** Request headers that name the body; they go when a redirect turns the request into a GET. */
   private static readonly BODY_HEADERS = ['content-type', 'content-length', 'content-encoding'];
 
-  /** Request headers a cross-origin redirect must not carry along, as `fetch` itself drops them. */
-  private static readonly CREDENTIAL_HEADERS = ['authorization', 'cookie', 'proxy-authorization'];
+  /**
+   * The only caller headers a cross-origin redirect keeps. Every other one is dropped: a tenant's webhook secret
+   * (`x-api-key`, a signature) must not follow a redirect to a host that tenant did not name.
+   */
+  private static readonly CROSS_ORIGIN_HEADERS = ['accept', 'accept-language', 'user-agent'];
+
+  /** The statuses that name a new location; a 304 or a 300 is an answer, not a redirect. */
+  private static readonly REDIRECT_STATUSES = [301, 302, 303, 307, 308];
+
+  /** Connect-phase errors: nothing was sent, so trying the next vetted address cannot deliver a request twice. */
+  private static readonly CONNECT_ERROR_CODES = [
+    'ECONNREFUSED',
+    'ENETUNREACH',
+    'EHOSTUNREACH',
+    'EADDRNOTAVAIL',
+  ];
+
+  private static onlyHeaders(opts: {
+    headers: Record<string, string>;
+    names: string[];
+  }): Record<string, string> {
+    const { headers, names } = opts;
+
+    return Object.fromEntries(
+      Object.entries(headers).filter(([name]) => names.includes(name.toLowerCase())),
+    );
+  }
 
   private static withoutHeaders(opts: {
     headers: Record<string, string>;
@@ -151,6 +208,19 @@ export class UrlIngest {
           throw error;
         }
 
+        // A request that may have reached the server (a reset after the body went out) is not repeated on another
+        // address unless it is safe to repeat: a webhook must not be delivered twice.
+        const code = (error as { code?: string } | undefined)?.code ?? '';
+        const method = (init.method ?? 'GET').toUpperCase();
+
+        if (
+          method !== 'GET' &&
+          method !== 'HEAD' &&
+          !UrlIngest.CONNECT_ERROR_CODES.includes(code)
+        ) {
+          throw error;
+        }
+
         lastError = error;
       }
     }
@@ -173,7 +243,7 @@ export class UrlIngest {
    * Redirects are followed by hand so every hop is re-checked and re-pinned - `redirect: 'follow'` would land on an
    * internal host with no second look. 301, 302 (for a POST) and 303 turn the request into a GET without a body. A 307 or
    * 308 repeats the request; with a body it is refused when it leaves the origin, so a signed payload is never replayed to
-   * a host a redirect chose. `authorization`, `cookie` and `proxy-authorization` are dropped when a hop changes origin.
+   * a host a redirect chose. When a hop changes origin every caller header is dropped except `accept`, `accept-language` and `user-agent`.
    *
    * The body is returned unread: the caller decides whether to stream it onward or cap it with
    * {@link UrlIngest.readCappedBody}. Nothing is buffered here.
@@ -200,11 +270,14 @@ export class UrlIngest {
     }
 
     let target = UrlPolicy.assertSafeUrl({ url, policy });
+    // ONE deadline for the whole call, every lookup and every hop included, not one per hop.
+    const signal = AbortSignal.timeout(timeoutMilliseconds);
 
     for (let hop = 0; hop <= maxRedirects; hop += 1) {
       const addresses = await UrlIngest.resolvePublicAddresses({
         hostname: target.hostname,
         policy,
+        signal,
       });
 
       const response = await UrlIngest.send({
@@ -215,13 +288,13 @@ export class UrlIngest {
           method,
           ...(policy?.proxy ? ({ proxy: policy.proxy } as unknown as RequestInit) : {}),
           redirect: 'manual',
-          signal: AbortSignal.timeout(timeoutMilliseconds),
+          signal,
           ...(Object.keys(headers).length ? { headers } : {}),
           ...(body === undefined ? {} : { body }),
         },
       });
 
-      if (response.status < 300 || response.status > 399) {
+      if (!UrlIngest.REDIRECT_STATUSES.includes(response.status)) {
         if (!response.ok) {
           // Cancelled, or the socket stays open on every 4xx and 5xx.
           await response.body?.cancel();
@@ -261,7 +334,7 @@ export class UrlIngest {
       }
 
       if (!isSameOrigin) {
-        headers = UrlIngest.withoutHeaders({ headers, names: UrlIngest.CREDENTIAL_HEADERS });
+        headers = UrlIngest.onlyHeaders({ headers, names: UrlIngest.CROSS_ORIGIN_HEADERS });
       }
 
       target = next;
