@@ -257,6 +257,20 @@ describe('the stats gate', () => {
     expect(HealthCheckReporter.isStatsAuthorized({ options: real, header: 'guessed' })).toBe(false);
   });
 
+  test('the stats secret is compared exactly: a prefix, a longer value, a different case and a non-string are refused', () => {
+    const options: IHealthCheckOptions = { stats: { enable: true, secretKey: 'shhh-Secret' } };
+    const check = (header: unknown) =>
+      HealthCheckReporter.isStatsAuthorized({ options, header: header as string });
+
+    expect(check('shhh-Secret')).toBe(true);
+    expect(check('shhh-Secre')).toBe(false);
+    expect(check('shhh-Secret!')).toBe(false);
+    expect(check('SHHH-SECRET')).toBe(false);
+    expect(check('')).toBe(false);
+    expect(check(undefined)).toBe(false);
+    expect(check(['shhh-Secret'])).toBe(false);
+  });
+
   /**
    * IGNIS runs nested applications in one process. The gate therefore has to be per-container: a
    * static field on the controller would let the last application to boot decide for every one
