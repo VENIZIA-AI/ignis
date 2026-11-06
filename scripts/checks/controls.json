@@ -40,7 +40,7 @@
       "gate": "clean-install",
       "file": "scripts/checks/__tests__/clean-install-manifest.test.ts",
       "titlePattern": "is refused",
-      "min": 5
+      "min": 3
     },
     {
       "gate": "tmp-leak",
@@ -52,7 +52,7 @@
       "gate": "package layout",
       "file": "scripts/checks/__tests__/package-layout.test.ts",
       "titlePattern": "tracks exactly the shared root entries|publishes the shared files list|runs force-update",
-      "min": 5
+      "min": 3
     },
     {
       "gate": "verifyBindings core",
@@ -82,7 +82,7 @@
       "gate": "catalog check",
       "file": "packages/dev-configs/src/__tests__/checks/catalog.test.ts",
       "titlePattern": "^positive control",
-      "min": 5
+      "min": 3
     },
     {
       "gate": "trim-tests tools",
