@@ -67,6 +67,66 @@ describe('BunS3Helper - bucket addressing per provider', () => {
   });
 });
 
+describe('BunS3Helper - a bucket that becomes part of a host', () => {
+  const refusal = async (promise: Promise<unknown>): Promise<string> => {
+    try {
+      await promise;
+    } catch (error) {
+      return (error as Error).message;
+    }
+
+    return '';
+  };
+
+  test.each([
+    'evil.example',
+    'a@evil',
+    'evil:8080',
+    'Assets',
+    '-assets',
+    'assets-',
+    'a_b',
+    'a b',
+    'a'.repeat(64),
+    '',
+  ])('virtual hosted: the bucket %p is refused', async (name) => {
+    const helper = buildHelper({
+      endpoint: 'https://s3.us-east-1.amazonaws.com',
+      virtualHostedStyle: true,
+    });
+
+    const message = await refusal(
+      helper.presignGet({ bucket: { name }, object: { key: 'photo.png' } }),
+    );
+
+    expect(message).not.toBe('');
+  });
+
+  test.each(['assets', 'a', 'my-bucket-01', 'a'.repeat(63)])(
+    'virtual hosted: the bucket %p is one label and goes into the host',
+    async (name) => {
+      const helper = buildHelper({
+        endpoint: 'https://s3.us-east-1.amazonaws.com',
+        virtualHostedStyle: true,
+      });
+
+      const url = await helper.presignGet({ bucket: { name }, object: { key: 'photo.png' } });
+
+      expect(new URL(url).host).toBe(`${name}.s3.us-east-1.amazonaws.com`);
+    },
+  );
+
+  test('path style keeps the bucket rules it had', async () => {
+    const helper = buildHelper({ endpoint: 'https://sgp1.digitaloceanspaces.com' });
+    const url = await helper.presignGet({
+      bucket: { name: 'My_Bucket' },
+      object: { key: 'photo.png' },
+    });
+
+    expect(new URL(url).pathname).toBe('/My_Bucket/photo.png');
+  });
+});
+
 describe('BunS3Helper - endpoint.public', () => {
   /** `host` is inside the signature, so a URL signed against an internal name cannot be rewritten later. */
   test('a signed URL carries the public host, not the internal one', async () => {

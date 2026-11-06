@@ -20,6 +20,9 @@ import { S3Audiences, StorageUtility, StoragePresignDefaults } from '../common';
 import type { TS3Audience } from '../common';
 import { S3SignatureUtility } from './utility';
 
+/** One lower-case DNS label: the only shape a bucket may have when it becomes part of a host. */
+const S3_HOST_LABEL_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
 /** Options for `BunS3Helper`. Unset `partSize`, `queueSize` and `retry` leave Bun defaults in force. */
 export interface IBunS3HelperOptions extends IStorageHelperOptions {
   accessKey: string;
@@ -107,6 +110,13 @@ export class BunS3Helper extends BaseStorageHelper {
 
     if (!virtualHostedStyle) {
       return { endpoint: host, pathPrefix: `/${opts.bucket}` };
+    }
+
+    // The bucket becomes a label of the host, so it must be one: anything else (a dot, a slash, an `@`, a port) would steer the request to another host.
+    if (!S3_HOST_LABEL_PATTERN.test(opts.bucket)) {
+      throw getError({
+        message: `[objectEndpoint] A bucket used in a host must be one lower-case DNS label (a-z, 0-9, hyphen; 1-63 characters) | bucket: '${opts.bucket}'`,
+      });
     }
 
     const parsed = new URL(host);
