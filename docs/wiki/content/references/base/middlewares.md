@@ -124,11 +124,11 @@ The application refuses to boot when `origin` is missing or empty, or when `cred
 
 ### Wildcard origins
 
-A string or a list entry may be a subdomain wildcard such as `https://*.example.com`. One matcher handles every pattern (`CorsUtility.matchOriginPattern`), so no app writes its own origin regex:
+A string or a list entry may be a subdomain wildcard such as `https://*.example.com`, or end in `:*` for any port, as in `http://localhost:*`. One matcher handles every pattern (`CorsUtility.matchOriginPattern`), so no app writes its own origin regex:
 
 ```typescript
 cors: {
-  origin: ['https://example.com', 'https://*.example.com', 'http://localhost:3000'],
+  origin: ['https://example.com', 'https://*.example.com', 'http://localhost:*', 'http://127.0.0.1:*'],
   credentials: true,
 },
 ```
@@ -139,9 +139,19 @@ cors: {
 | `https://example.com` (the apex) | no - list it next to the pattern |
 | `https://evilexample.com`, `https://example.com.evil.net` | no |
 | `http://app.example.com` | no - the scheme is matched exactly |
-| `https://app.example.com:8443` | no - the port is matched exactly; write `https://*.example.com:8443` for it |
+| `https://app.example.com:8443` | no - the port is matched exactly; write `https://*.example.com:8443` for that port, or `https://*.example.com:*` for any |
 
-The `*` stands for the whole leftmost host label and nothing else. The host must be lower case and have at least two labels after the `*.`; a pattern that breaks this (`https://*`, `https://*.com`, `https://app*.example.com`, `*.example.com` with no scheme) makes the application refuse to boot. A matching origin is echoed back, so `credentials: true` is allowed with a pattern; the bare `'*'` with `credentials: true` is still refused.
+| Request `Origin` | `http://localhost:*` |
+|---|---|
+| `http://localhost`, `http://localhost:3000`, `http://localhost:65535` | matches - any port, or none |
+| `https://localhost:3000` | no - the scheme is matched exactly |
+| `http://localhost.evil.com:3000`, `http://sub.localhost:3000` | no - the host is exact |
+| `http://localhost:abc`, `http://localhost:0`, `http://localhost:3000@evil.com` | no - what follows the colon must be a port number from 1 to 65535 |
+
+The `:*` port also works on a subdomain wildcard (`https://*.example.com:*` matches `https://app.example.com` and `https://app.example.com:8443`). The `*` of a subdomain wildcard stands for the whole leftmost host label and nothing else. The host must be lower case; a subdomain wildcard needs at least two labels after the `*.`, and an IPv6 host is not supported. A pattern that breaks this (`https://*`, `https://*.com`, `https://app*.example.com`, `http://*:*`, `http://local*:*`, `*.example.com` with no scheme) makes the application refuse to boot. A matching origin is echoed back, so `credentials: true` is allowed with a pattern; the bare `'*'` with `credentials: true` is still refused.
+
+> [!WARNING]
+> `http://localhost:*` lets any page served from any port on the visitor's own machine call your API. Use it for development only, and keep it out of a production configuration.
 
 > [!NOTE]
 > A `cors()` you add yourself in `setupMiddlewares()` still works, but it runs after the framework's early exits, so those responses carry no CORS headers. Move the policy into `configs.middlewares.cors`.
