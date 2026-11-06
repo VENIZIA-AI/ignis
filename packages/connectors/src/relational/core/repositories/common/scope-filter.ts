@@ -23,7 +23,7 @@ export class ScopeFilterDenial {
  * every row, so it is nothing: the scope was not resolved, and `onMissing` decides (deny by default).
  */
 export class ScopeResolution {
-  /** A non-empty plain object whose every value is defined, and whose `and` / `or` branches are themselves usable. */
+  /** A non-empty plain object whose every value is defined, and whose `and` / `or` branches are themselves usable (an `and` has at least one). */
   private static isUsableWhere(value: unknown): boolean {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
       return false;
@@ -40,7 +40,16 @@ export class ScopeResolution {
         return false;
       }
 
-      if (key === QueryOperators.AND || key === QueryOperators.OR) {
+      // An empty `and` is "all of nothing", true for every row, so it restricts nothing. An empty `or` matches nothing and stays.
+      if (key === QueryOperators.AND) {
+        return (
+          Array.isArray(entry) &&
+          entry.length > 0 &&
+          entry.every((branch) => ScopeResolution.isUsableWhere(branch))
+        );
+      }
+
+      if (key === QueryOperators.OR) {
         return (
           Array.isArray(entry) && entry.every((branch) => ScopeResolution.isUsableWhere(branch))
         );

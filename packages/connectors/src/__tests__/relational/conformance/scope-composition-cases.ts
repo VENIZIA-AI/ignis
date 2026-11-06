@@ -260,6 +260,12 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
       ['an object whose value is undefined', { merchantId: undefined }],
       ['one defined and one undefined value', { merchantId: 'm1', region: undefined }],
       ['an and with an empty branch', { and: [{ merchantId: 'm1' }, {}] }],
+      ['an empty and', { and: [] }],
+      ['an and holding only an empty and', { and: [{ and: [] }] }],
+      [
+        'an and built from an empty list',
+        { and: ([] as string[]).map((value) => ({ merchantId: value })) },
+      ],
       ['an or with an undefined branch value', { or: [{ merchantId: undefined }] }],
     ];
 

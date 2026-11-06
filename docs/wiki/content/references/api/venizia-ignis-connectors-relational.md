@@ -2082,7 +2082,7 @@ every row, so it is nothing: the scope was not resolved, and `onMissing` decides
 
 ```ts
 export declare class ScopeResolution {
-    /** A non-empty plain object whose every value is defined, and whose `and` / `or` branches are themselves usable. */
+    /** A non-empty plain object whose every value is defined, and whose `and` / `or` branches are themselves usable (an `and` has at least one). */
     private static isUsableWhere;
     static normalize<DataObject = any>(opts: {
         value: unknown;

@@ -14,7 +14,7 @@ packages: ['@venizia/ignis-connectors', '@venizia/ignis']
 
 ## What changed
 
-- **One reading of the resolver.** The read path and the write guard read the result the same way. A usable scope is a non-empty object whose values are all defined (and whose `and` / `or` branches are too). `ScopeFilters.UNRESTRICTED` and `null` / `undefined` keep their meaning.
+- **One reading of the resolver.** The read path and the write guard read the result the same way. A usable scope is a non-empty object whose values are all defined (and whose `and` / `or` branches are too; an `and` with no branch restricts nothing, so it is not usable, while an empty `or` matches nothing and stays). `ScopeFilters.UNRESTRICTED` and `null` / `undefined` keep their meaning.
 - **Unresolved follows `onMissing`.** With the default (`deny`) the call matches no row and a create is refused. A model that declared `onMissing: allow` keeps allowing it.
 - **The common case.** `resolve: () => ({ merchantId: user.merchantId })` for a user without a `merchantId` is `{ merchantId: undefined }`: it no longer reads as "no scope".
 
