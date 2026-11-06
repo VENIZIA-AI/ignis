@@ -94,6 +94,13 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
       try {
         const strategy = registry.resolveStrategy({ name: strategyName });
         const user = await strategy.authenticate(context);
+
+        // A verified credential is not yet a user: a token signed by the same key for another purpose verifies too. Both
+        // modes need an id, so a strategy that answers without one has not authenticated this request.
+        if (!user?.userId) {
+          throw getError({ error: AuthenticationErrors.USER_UNRESOLVED });
+        }
+
         this.setCurrentUser({ context, user });
         break;
       } catch (error) {
