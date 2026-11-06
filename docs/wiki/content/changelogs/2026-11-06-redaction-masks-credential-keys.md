@@ -20,7 +20,7 @@ packages: ['@venizia/ignis-helpers']
 
 ## Who is affected
 
-- **Code that logs or inspects an object holding a `credential`-style key.** The value now reads `[REDACTED]`. A key that only contains the word, such as `credentialType`, is not masked.
+- **Code that logs or inspects an object holding a `credential`-style key.** The value now reads `[REDACTED]`. A key that only contains the word, such as `credentialType`, is not masked, but any key that ENDS in it is, flags included (`hasCredential`), as with `Token` and `Secret`.
 - **Everyone else.** No action needed.
 
 ## Details

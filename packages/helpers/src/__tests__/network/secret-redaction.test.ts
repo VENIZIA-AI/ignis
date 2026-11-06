@@ -145,6 +145,15 @@ describe('redactSecrets - the Vault wire spellings the key list must now cover',
     }
   });
 
+  test('a key that ends in credential is redacted even as a flag, like *Token and *Secret', () => {
+    const redacted = RedactUtility.redactSecrets({
+      value: { hasCredential: 'yes', noCredentials: false },
+    }) as Record<string, unknown>;
+
+    expect(redacted['hasCredential']).toBe(REDACTED);
+    expect(redacted['noCredentials']).toBe(REDACTED);
+  });
+
   test('an ordinary key that only contains "credential" is NOT redacted', () => {
     const redacted = RedactUtility.redactSecrets({
       value: {

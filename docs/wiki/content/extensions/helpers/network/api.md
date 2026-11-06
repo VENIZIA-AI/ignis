@@ -494,6 +494,7 @@ Whenever a logger is passed, IGNIS runs the assembled request config through `Re
 |-----------|--------------------|
 | Options-object (camelCase) | `pass`, `password`, `passphrase`, `secret`, `token`, `apiKey`, `accessKey`, `secretKey`, `privateKey`, `key`, `cert`, `ca`, `pfx`, `credential`, `credentials`, `authorization`, `auth`, `jwtSecret`, `applicationSecret`, `connectionString` |
 | Options-object (snake_case) | `api_key`, `access_key`, `secret_key`, `private_key` |
+| Prefixed suffix rules | any key ending in `_token` / `Token`, `_secret` / `Secret`, `_password` / `Password`, or `_credential(s)` / `Credential(s)` (`dbCredential`, `webhookSecret`, `admin_password`) |
 | HTTP header spellings | `cookie`, `set-cookie`, `proxy-authorization`, `www-authenticate`, and any `(x-)?(api\|auth\|access\|secret\|session\|csrf\|xsrf)-(key\|token\|secret\|id)` pattern (e.g. `x-api-key`, `x-auth-token`, `x-csrf-token`) |
 
 Source: [`redact.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/redact.ts) `SECRET_KEY_PATTERN`.
