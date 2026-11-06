@@ -1226,7 +1226,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (418)
+### `@venizia/ignis-kernel` (419)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1460,6 +1460,7 @@ generated:
 - `patch` const
 - `PersistableCrudController` class
 - `post` const
+- `PostgresErrorCodes` const
 - `provide` const
 - `put` const
 - `QueryOperators` class
@@ -2363,7 +2364,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1009)
+### `@venizia/ignis` (1010)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2930,6 +2931,7 @@ generated:
 - `post` const
 - `PostgresBaseRepository` class
 - `PostgresDataTypeEnricher` class
+- `PostgresErrorCodes` const
 - `PostgresFilterBuilder` class
 - `PostgresIdEnricher` class
 - `PostgresPrincipalEnricher` class
