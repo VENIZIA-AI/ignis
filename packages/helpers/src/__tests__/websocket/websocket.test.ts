@@ -2420,3 +2420,95 @@ describe('WebSocketEmitter', () => {
     });
   });
 });
+
+describe('WebSocketServerHelper - the window of an encryption handshake', () => {
+  const build = (handshake: { resolve?: (value: unknown) => void }) => {
+    const messageHandler = mock(() => {});
+    const helper = new WebSocketServerHelper({
+      identifier: 'handshake-ws-server',
+      server: createMockBunServer(),
+      redisConnection: createMockRedisHelper(),
+      authenticateFn: () => ({ userId: 'user-1' }),
+      requireEncryption: true,
+      handshakeFn: () =>
+        new Promise((resolve) => {
+          handshake.resolve = resolve as (value: unknown) => void;
+        }) as never,
+      messageHandler,
+    } as IWebSocketServerOptions);
+
+    return { helper, messageHandler };
+  };
+
+  const send = (helper: WebSocketServerHelper, event: string, data?: unknown) => {
+    helper.onClientMessage({ clientId: 'c1', raw: JSON.stringify({ event, data }) });
+  };
+
+  test('until the handshake completes the client is not established: a room join and a message are refused', async () => {
+    const handshake: { resolve?: (value: unknown) => void } = {};
+    const { helper, messageHandler } = build(handshake);
+    const socket = createMockSocket('c1');
+
+    try {
+      helper.onClientConnect({ clientId: 'c1', socket });
+      send(helper, WebSocketEvents.AUTHENTICATE, {});
+      await wait(10);
+
+      const client = (
+        helper.getClients() as Map<string, { state: string; rooms: Set<string> }>
+      ).get('c1');
+      expect(client?.state).toBe(WebSocketClientStates.AUTHENTICATING);
+
+      send(helper, WebSocketEvents.JOIN, { rooms: ['private-room'] });
+      send(helper, 'custom-event', { x: 1 });
+      await wait(10);
+
+      expect(messageHandler).not.toHaveBeenCalled();
+      expect(client?.rooms.has('private-room')).toBe(false);
+
+      const replies = socket.send.mock.calls.map((call) => String((call as unknown[])[0]));
+      expect(replies.filter((reply) => reply.includes('Not authenticated')).length).toBe(2);
+    } finally {
+      await helper.shutdown();
+    }
+  });
+
+  test('a handshake that never completes leaves the client unestablished, and one that completes establishes it', async () => {
+    const handshake: { resolve?: (value: unknown) => void } = {};
+    const { helper } = build(handshake);
+    const socket = createMockSocket('c1');
+
+    try {
+      helper.onClientConnect({ clientId: 'c1', socket });
+      send(helper, WebSocketEvents.AUTHENTICATE, {});
+      await wait(10);
+
+      handshake.resolve?.({ serverPublicKey: 'pk', salt: 'salt' });
+      await wait(20);
+
+      const client = (helper.getClients() as Map<string, { state: string }>).get('c1');
+      expect(client?.state).toBe(WebSocketClientStates.AUTHENTICATED);
+    } finally {
+      await helper.shutdown();
+    }
+  });
+
+  test('a second authenticate frame while the handshake runs is refused', async () => {
+    const handshake: { resolve?: (value: unknown) => void } = {};
+    const { helper } = build(handshake);
+    const socket = createMockSocket('c1');
+
+    try {
+      helper.onClientConnect({ clientId: 'c1', socket });
+      send(helper, WebSocketEvents.AUTHENTICATE, {});
+      await wait(10);
+      send(helper, WebSocketEvents.AUTHENTICATE, {});
+      await wait(10);
+
+      const replies = socket.send.mock.calls.map((call) => String((call as unknown[])[0]));
+      expect(replies.some((reply) => reply.includes('Already authenticated'))).toBe(true);
+    } finally {
+      await helper.shutdown();
+    }
+  });
+});

@@ -708,7 +708,6 @@ export class WebSocketServerHelper<
 
         client.userId = result.userId;
         client.metadata = result.metadata;
-        client.state = WebSocketClientStates.AUTHENTICATED;
 
         if (this.requireEncryption) {
           if (!this.handshakeFn) {
@@ -752,6 +751,9 @@ export class WebSocketServerHelper<
           client.serverPublicKey = handshakeResult.serverPublicKey;
           client.salt = handshakeResult.salt;
         }
+
+        // Established only now: while an encryption handshake runs the client stays AUTHENTICATING, which refuses every message and room join.
+        client.state = WebSocketClientStates.AUTHENTICATED;
 
         if (client.userId) {
           if (!this.users.has(client.userId)) {
