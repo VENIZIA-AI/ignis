@@ -14,7 +14,7 @@ import type {
   TWhere,
 } from '@venizia/ignis-kernel';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { ScopeFilterDenial } from './scope-filter';
+import { ScopeFilterDenial, ScopeResolution } from './scope-filter';
 
 type TScalar = string | number | bigint | boolean | Date | null;
 
@@ -416,7 +416,7 @@ export class ScopeWriteGuard {
 
     ScopeWriteGuard.assertWrite({ model, operation });
 
-    const scope = settings.resolve({ operation });
+    const scope = ScopeResolution.normalize({ value: settings.resolve({ operation }) });
 
     if (scope === ScopeFilters.UNRESTRICTED) {
       return rows;
