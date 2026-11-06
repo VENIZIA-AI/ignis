@@ -8107,7 +8107,7 @@ Source: `packages/kernel/src/base/repositories/common/scope-through.ts`
 
 *type*
 
-Allowed origin for CORS: one origin, a list of origins, or a function that returns the origin to echo (or nothing to reject). A string or a list entry may be a subdomain wildcard such as `https://*.example.com`: the scheme and the port are matched exactly, the apex domain is not included, and the bare `'*'` still means any origin.
+Allowed origin for CORS: one origin, a list of origins, or a function that returns the origin to echo (or nothing to reject). A string or a list entry may be a subdomain wildcard such as `https://*.example.com`, or a pattern with `:*` for any port such as `http://localhost:*` or `https://*.example.com:*`: the scheme is matched exactly, so is the port unless it is `*`, the apex domain is not included by a subdomain wildcard, and the bare `'*'` still means any origin.
 
 ```ts
 export type TOrigin = string | string[] | ((origin: string, c: Context) => Promise<string | undefined | null> | string | undefined | null);
