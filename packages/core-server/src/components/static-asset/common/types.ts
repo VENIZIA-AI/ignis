@@ -26,6 +26,12 @@ export type TStaticAssetExtraOptions = {
   parseMultipartBody?: {
     storage?: TMultipartStorage;
     uploadDir?: string;
+    /**
+     * The most file parts one upload request may carry; more is refused with 413 before anything is written.
+     *
+     * @default DEFAULT_MAX_UPLOAD_FILES (20)
+     */
+    maxFiles?: number;
   };
 
   /** `folderPath` carries the upload query's target folder - dropping it flattens nested uploads. */

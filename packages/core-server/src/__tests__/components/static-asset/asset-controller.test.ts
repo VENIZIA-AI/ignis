@@ -19,7 +19,7 @@ import { MetadataRegistry } from '@venizia/ignis-kernel';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { FakeStorageHelper } from './fake-storage.helper';
@@ -645,6 +645,96 @@ describe('StaticAsset controller — disk-buffered multipart storage', () => {
 
       const writeCall = helper.calls.find((call) => call.method === 'writeObject');
       expect(writeCall?.args['bufferLength']).toBe('real-content'.length);
+    } finally {
+      rmSync(uploadDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('StaticAsset controller — disk spool cleanup and the part limit', () => {
+  const spooled = (uploadDir: string) => readdirSync(uploadDir);
+
+  const mountDisk = async (uploadDir: string, maxFiles?: number) => {
+    return mountAssetController({
+      helper: new FakeStorageHelper(),
+      options: { parseMultipartBody: { storage: 'disk', uploadDir, maxFiles } },
+    });
+  };
+
+  test('a request refused for its folder path leaves no spool file behind', async () => {
+    const uploadDir = mkdtempSync(join(tmpdir(), 'ignis-static-asset-'));
+
+    try {
+      const router = await mountDisk(uploadDir);
+      const response = await uploadFiles({
+        router,
+        files: [
+          new File(['one'], 'a.jpg', { type: 'image/jpeg' }),
+          new File(['two'], 'b.jpg', { type: 'image/jpeg' }),
+        ],
+        labels: { folderPath: '../escape' },
+      });
+
+      expect(response.status).toBeGreaterThanOrEqual(400);
+      expect(spooled(uploadDir)).toEqual([]);
+    } finally {
+      rmSync(uploadDir, { recursive: true, force: true });
+    }
+  });
+
+  test('a request refused for its folder depth leaves no spool file behind', async () => {
+    const uploadDir = mkdtempSync(join(tmpdir(), 'ignis-static-asset-'));
+
+    try {
+      const router = await mountDisk(uploadDir);
+      const response = await uploadFiles({
+        router,
+        files: [new File(['one'], 'a.jpg', { type: 'image/jpeg' })],
+        labels: { folderPath: 'a/b/c/d/e/f/g/h' },
+      });
+
+      expect(response.status).toBeGreaterThanOrEqual(400);
+      expect(spooled(uploadDir)).toEqual([]);
+    } finally {
+      rmSync(uploadDir, { recursive: true, force: true });
+    }
+  });
+
+  test('more files than the limit is refused with 413 and spools nothing', async () => {
+    const uploadDir = mkdtempSync(join(tmpdir(), 'ignis-static-asset-'));
+
+    try {
+      const router = await mountDisk(uploadDir, 3);
+      const response = await uploadFiles({
+        router,
+        files: Array.from({ length: 4 }, (_unused, index) => {
+          return new File([`file-${index}`], `f${index}.jpg`, { type: 'image/jpeg' });
+        }),
+      });
+
+      expect(response.status).toBe(413);
+      expect(spooled(uploadDir)).toEqual([]);
+    } finally {
+      rmSync(uploadDir, { recursive: true, force: true });
+    }
+  });
+
+  test('the default limit is 20 parts, and a request within it still uploads', async () => {
+    const uploadDir = mkdtempSync(join(tmpdir(), 'ignis-static-asset-'));
+
+    try {
+      const router = await mountDisk(uploadDir);
+      const make = (count: number) =>
+        Array.from({ length: count }, (_unused, index) => {
+          return new File([`file-${index}`], `f${index}.jpg`, { type: 'image/jpeg' });
+        });
+
+      const tooMany = await uploadFiles({ router, files: make(21) });
+      const allowed = await uploadFiles({ router, files: make(20) });
+
+      expect(tooMany.status).toBe(413);
+      expect(allowed.status).toBe(200);
+      expect(spooled(uploadDir)).toEqual([]);
     } finally {
       rmSync(uploadDir, { recursive: true, force: true });
     }

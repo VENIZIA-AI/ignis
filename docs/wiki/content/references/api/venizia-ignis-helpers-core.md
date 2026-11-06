@@ -1716,6 +1716,14 @@ export declare const RequestBodyErrors: {
         readonly statusCode: 400;
         readonly category: "validation";
     };
+    readonly TOO_MANY_FILES: {
+        readonly message: {
+            readonly text: "Too many files in one request";
+            readonly code: "core.request.too_many_files";
+        };
+        readonly statusCode: 413;
+        readonly category: "validation";
+    };
 };
 ```
 

@@ -3986,6 +3986,8 @@ export declare class RequestUtility {
     } = {
         req: any;
     }>(opts: IParseMultipartOptions<C>): Promise<IParsedMultipartBody>;
+    private static removeSpooled;
+    private static readParts;
     /** Sanitizes a filename by removing path components and dangerous characters. The result is printable ASCII. */
     static sanitizeFilename(opts: {
         filename: string;
@@ -4022,6 +4024,8 @@ interface IParseMultipartOptions<C extends {
 }> {
     storage?: TMultipartStorage;
     uploadDir?: string;
+    /** The most file parts one request may carry; more is refused (413) before anything is spooled. Unset: no limit. */
+    maxFiles?: number;
     context: C;
 }
 ```

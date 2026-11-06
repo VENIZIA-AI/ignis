@@ -36,7 +36,7 @@ import {
   type TUploadQuery,
   WHITELIST_HEADERS,
 } from '../common';
-import { AssetCommitToken, MetaLinkRecreateActions } from '../common';
+import { AssetCommitToken, DEFAULT_MAX_UPLOAD_FILES, MetaLinkRecreateActions } from '../common';
 import { AssetDefinitionBuilder } from './base.definition';
 import { AssetKeyScope } from './key-scope';
 import { AssetMetaLink } from './meta-link';
@@ -656,24 +656,27 @@ export class AssetControllerFactory extends BaseHelper {
                 context: ctx,
                 storage: options?.parseMultipartBody?.storage,
                 uploadDir: options?.parseMultipartBody?.uploadDir,
+                maxFiles: options?.parseMultipartBody?.maxFiles ?? DEFAULT_MAX_UPLOAD_FILES,
               });
-
-              // Labels travel with the payload, not the URL, so the folder check waits for the parse.
-              const query = readUploadLabels({ fields });
-
-              const folderPath = query.folderPath;
-
-              if (folderPath) {
-                validateFolderPath(folderPath);
-              }
 
               const spoolPaths = filesArray
                 .map((file) => file.path)
                 .filter((filePath): filePath is string => Boolean(filePath));
 
+              let query: ReturnType<typeof readUploadLabels>;
               let uploaded: IUploadResult[];
 
+              // From here every exit removes the spool files, the validation failures included.
               try {
+                // Labels travel with the payload, not the URL, so the folder check waits for the parse.
+                query = readUploadLabels({ fields });
+
+                const folderPath = query.folderPath;
+
+                if (folderPath) {
+                  validateFolderPath(folderPath);
+                }
+
                 // `storage: 'disk'` spools the payload to `uploadDir` and returns `path` instead of `buffer`; the storage helpers only ever write `buffer`, so it must be read back.
                 const modifiedFiles: IUploadFile[] = filesArray.map((file) => {
                   const buffer = file.buffer ?? (file.path ? readFileSync(file.path) : undefined);
