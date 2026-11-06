@@ -2,7 +2,7 @@ import type { IAuthRouteConfig } from '@/base';
 import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { MetaLinkRecreateActions } from '../common/constants';
+import { DEFAULT_MAX_UPLOAD_FILES, MetaLinkRecreateActions } from '../common/constants';
 
 type TRouteRequest = NonNullable<IAuthRouteConfig['request']>;
 
@@ -88,8 +88,14 @@ export class AssetDefinitionBuilder {
   static build(opts: {
     hasConfiguredBucket?: boolean;
     rawObjectPath?: boolean;
+    /** The most files one upload-policy request may name. */
+    maxPolicyFiles?: number;
   }): IAssetDefinitions {
-    const { hasConfiguredBucket = false, rawObjectPath = false } = opts;
+    const {
+      hasConfiguredBucket = false,
+      rawObjectPath = false,
+      maxPolicyFiles = DEFAULT_MAX_UPLOAD_FILES,
+    } = opts;
 
     const bucketPrefix = hasConfiguredBucket ? '' : '/buckets/{bucketName}';
 
@@ -182,13 +188,15 @@ export class AssetDefinitionBuilder {
             content: {
               'application/json': {
                 schema: z.object({
-                  files: z.array(
-                    z.object({
-                      fileName: z.string().min(1),
-                      contentType: z.string().optional(),
-                      size: z.number().int().nonnegative().optional(),
-                    }),
-                  ),
+                  files: z
+                    .array(
+                      z.object({
+                        fileName: z.string().min(1),
+                        contentType: z.string().optional(),
+                        size: z.number().int().nonnegative().optional(),
+                      }),
+                    )
+                    .max(maxPolicyFiles),
                 }),
               },
             },
