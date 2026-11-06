@@ -374,3 +374,126 @@ describe('APP_ENV_LOGGER_DO_REDACT=false - the reveal kill-switch', () => {
     expect(redacted.secret).toBe(REDACTED);
   });
 });
+
+describe('redactSecrets - more credential names and the credentials inside string values', () => {
+  const mask = (value: unknown) => RedactUtility.redactSecrets({ value, force: true });
+
+  test.each([
+    'secretAccessKey',
+    'awsSecretAccessKey',
+    'signingKey',
+    'signing_key',
+    'encryptionKey',
+    'masterKey',
+    'hmacKey',
+    'accountKey',
+    'storageKey',
+    'licenseKey',
+    'resetKey',
+    'resetCode',
+    'verificationCode',
+    'authorization_code',
+    'jwt',
+    'JWT',
+    'sessionId',
+    'session_id',
+    'sid',
+    'signature',
+    'sig',
+    'x-amz-signature',
+    'x-amz-security-token',
+    'id-token',
+    'refresh-token',
+    'client-secret',
+    'private-key',
+    'passwd',
+    'pwd',
+    'passcode',
+    'pass_phrase',
+    'secretAnswer',
+    'otp',
+    'totp',
+    'cvv',
+    'cvc',
+    'cardNumber',
+    'card_number',
+    'ssn',
+    'nationalId',
+    'redisUrl',
+    'mongoUri',
+  ])('the key %s is masked', (key) => {
+    const masked = mask({ [key]: 'VALUE' }) as Record<string, unknown>;
+
+    expect(masked[key]).toBe(REDACTED);
+  });
+
+  test.each(['primaryKey', 'cacheKey', 'code', 'statusCode', 'pin', 'identifier', 'description'])(
+    'the key %s stays visible',
+    (key) => {
+      const masked = mask({ [key]: 'VALUE' }) as Record<string, unknown>;
+
+      expect(masked[key]).toBe('VALUE');
+    },
+  );
+
+  test('a url with a password in a harmless key loses the password, keeps the rest', () => {
+    const masked = mask({ target: 'postgres://app:hunter2@db:5432/main' }) as Record<
+      string,
+      string
+    >;
+
+    expect(masked.target).toBe('postgres://app:[REDACTED]@db:5432/main');
+  });
+
+  test('a url inside a sentence is scrubbed, and so is an Authorization value', () => {
+    const masked = mask({
+      note: 'connect to redis://u:p4ss@cache:6379 failed, header Authorization: Bearer eyJhbGciOi.abc.def',
+    }) as Record<string, string>;
+
+    expect(masked.note).not.toContain('p4ss');
+    expect(masked.note).not.toContain('eyJhbGciOi');
+    expect(masked.note).toContain('redis://u:[REDACTED]@cache:6379');
+    expect(masked.note).toContain('Bearer [REDACTED]');
+  });
+
+  test('credential query parameters in a link are masked, the others are kept', () => {
+    const masked = mask({
+      link: 'https://x.test/cb?access_token=abc123&page=2&signature=zzz&code=AUTH',
+    }) as Record<string, string>;
+
+    expect(masked.link).toBe(
+      'https://x.test/cb?access_token=[REDACTED]&page=2&signature=[REDACTED]&code=[REDACTED]',
+    );
+  });
+
+  test('an Error message and stack are scrubbed too', () => {
+    const error = new Error('cannot reach mongodb://admin:s3cr3t@mongo:27017/app');
+    const masked = mask({ error }) as { error: { message: string; stack?: string } };
+
+    expect(masked.error.message).toBe('cannot reach mongodb://admin:[REDACTED]@mongo:27017/app');
+    expect(masked.error.stack ?? '').not.toContain('s3cr3t');
+  });
+
+  test('plain text is left alone', () => {
+    const masked = mask({ message: 'user a@b.com signed in, 3 items' }) as Record<string, string>;
+
+    expect(masked.message).toBe('user a@b.com signed in, 3 items');
+  });
+
+  test('with the switch off and no force, strings are not scrubbed', () => {
+    const previous = process.env.APP_ENV_LOGGER_DO_REDACT;
+    process.env.APP_ENV_LOGGER_DO_REDACT = 'false';
+
+    try {
+      const value = { target: 'postgres://app:hunter2@db/main' };
+
+      expect(RedactUtility.redactSecrets({ value })).toBe(value);
+    } finally {
+      if (previous === undefined) {
+        delete process.env.APP_ENV_LOGGER_DO_REDACT;
+      } else {
+        process.env.APP_ENV_LOGGER_DO_REDACT = previous;
+      }
+    }
+  });
+});
