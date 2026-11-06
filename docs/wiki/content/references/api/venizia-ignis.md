@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-96 exports, 96 with TSDoc. 914 more are re-exported from other entries (listed at the end).
+96 exports, 96 with TSDoc. 916 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3395,6 +3395,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `PerformanceUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `PersistableCrudController` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `PersistableRepository` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
+- `PGliteCRUDRepository` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `post` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `PostgresBaseRepository` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `PostgresDataTypeEnricher` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
@@ -3668,6 +3669,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TOrderEntry` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
 - `TOrigin` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TParsedOrderEntry` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
+- `TPGliteDataSource` from [`@venizia/ignis-connectors/postgres/pglite`](/references/api/venizia-ignis-connectors-postgres-pglite)
 - `TPlannedGrantRow` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TPolicyDomainInput` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TPrettify` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)

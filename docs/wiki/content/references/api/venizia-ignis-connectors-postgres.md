@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/postgres, from the built
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-53 exports, 53 with TSDoc. 26 more are re-exported from other entries (listed at the end).
+54 exports, 54 with TSDoc. 27 more are re-exported from other entries (listed at the end).
 
 ## `AbstractPostgresDataSource`
 
@@ -344,6 +344,21 @@ export declare class PersistableRepository<EntitySchema extends TTableSchemaWith
 ```
 
 Source: `packages/connectors/src/relational/postgres/repositories/core/persistable.ts`
+
+## `PGliteCRUDRepository`
+
+*type*
+
+`DefaultCRUDRepository` for a repository on PGlite, so `class NoteRepository extends PGliteCRUDRepository<typeof noteTable> {}`
+takes a PGlite datasource and types `this.dataSource.getClient()` as `PGlite`, without spelling the five generics. It is
+the same class at runtime, so `@repository({ model, dataSource })` and dependency injection work unchanged. A `pg.Pool`
+datasource is a type error here. As a type, it annotates a variable or a parameter.
+
+```ts
+export type PGliteCRUDRepository<EntitySchema extends TTableSchemaWithId = TTableSchemaWithId> = DefaultCRUDRepository<EntitySchema, TTableObject<EntitySchema>, TTableInsert<EntitySchema>, IDatabaseExtraOptions, TPGliteDataSource>;
+```
+
+Source: `packages/connectors/src/relational/postgres/repositories/core/pglite.ts`
 
 ## `PostgresBaseRepository`
 
@@ -1177,6 +1192,7 @@ Source: `packages/connectors/src/relational/postgres/repositories/dialect/update
 - `TDefinedEntityClass` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TDeletedAtColumn` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TEntityObject` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
+- `TPGliteDataSource` from [`@venizia/ignis-connectors/postgres/pglite`](/references/api/venizia-ignis-connectors-postgres-pglite)
 - `TRecursiveTreeDirection` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TRelationConfig` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TRelationDefinition` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)

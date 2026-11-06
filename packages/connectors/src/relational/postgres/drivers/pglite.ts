@@ -7,6 +7,9 @@ import { BaseHelper, BasePoolHelper, getError } from '@venizia/ignis-helpers/cor
 import { drizzle } from 'drizzle-orm/pglite';
 import type { TRelationalConnection, TRelationalDriver } from './driver';
 
+// A type only, erased at build time: the constant lives with the repositories, so this entry loads no kernel.
+export type { TPGliteDataSource } from '@/relational/postgres/repositories/core/pglite';
+
 /** Pool knobs the driver forwards, minus `size`: one slot IS the mutual exclusion PGlite lacks. */
 export type TPGliteDriverOptions = Omit<IPoolControlOptions, 'size'> & { client: PGlite };
 

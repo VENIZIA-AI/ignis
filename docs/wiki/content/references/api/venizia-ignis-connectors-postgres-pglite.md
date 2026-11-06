@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/postgres/pglite, from th
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-2 exports, 2 with TSDoc.
+3 exports, 3 with TSDoc.
 
 ## `PGliteDriver`
 
@@ -76,6 +76,18 @@ export declare class PGliteDriver<Schema extends TAnyDataSourceSchema = TAnyData
 ```
 
 Source: `packages/connectors/src/relational/postgres/drivers/pglite.ts`
+
+## `TPGliteDataSource`
+
+*type*
+
+A Postgres datasource whose client is PGlite: what `PGliteCRUDRepository` takes and what its `dataSource` is.
+
+```ts
+export type TPGliteDataSource = IPostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite>;
+```
+
+Source: `packages/connectors/src/relational/postgres/repositories/core/pglite.ts`
 
 ## `TPGliteDriverOptions`
 
