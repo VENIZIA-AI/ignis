@@ -1,4 +1,4 @@
-import { Environment } from '@venizia/ignis-helpers';
+import { Environment, Hash } from '@venizia/ignis-helpers';
 import { BuildInfoRegistry, type TBuildInfoRecord } from '@venizia/ignis-helpers/core';
 import type { IApplicationInfo } from '@venizia/ignis-kernel';
 import type { IHealthCheckOptions } from './common';
@@ -101,7 +101,7 @@ export class HealthCheckReporter {
       return false;
     }
 
-    return opts.header === secretKey;
+    return Hash.equals({ value: opts.header ?? '', expected: secretKey });
   }
 
   /** The slot is a process-wide `globalThis` entry any dependency can write, and `IBuildInfo` types it without checking - so a non-string never reaches the response schema, which declares `z.string()`. */
