@@ -90,6 +90,12 @@ const deepSanitize = (value: unknown, context: TSanitizeContext): unknown => {
     return capString({ value, key: context.key, limit: context.maxStringLength });
   }
 
+  // A function is not data, and an own `toJSON` on an object would run after this walk, inside `JSON.stringify`, and
+  // hand back keys the walk never saw. Naming it keeps the redacted copy free of code.
+  if (typeof value === 'function') {
+    return '[Function]';
+  }
+
   if (value === null || typeof value !== 'object') {
     return value;
   }
