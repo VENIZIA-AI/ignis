@@ -78,13 +78,13 @@ export class ExportsParity {
         );
       })
       .map((symbol) => symbol.name)
-      .filter((name) => name !== 'default' && /^[A-Za-z_$][\w$]*$/.test(name));
+      .filter((name) => /^[A-Za-z_$][\w$]*$/.test(name));
 
     // A named import, not `entry.name`: for a type-only export TypeScript answers a property read with "does not
     // exist" but a named import used as a value with TS1362, which says what is wrong.
     probeText = [
-      `import { ${names.join(', ')} } from '${dts.replace(/\.d\.ts$/, '.js')}';`,
-      ...names.map((name) => `void ${name};`),
+      `import { ${names.map((name) => (name === 'default' ? 'default as __default' : name)).join(', ')} } from '${dts.replace(/\.d\.ts$/, '.js')}';`,
+      ...names.map((name) => `void ${name === 'default' ? '__default' : name};`),
     ].join('\n');
 
     const typeOnly = new Set<string>();
@@ -96,33 +96,42 @@ export class ExportsParity {
         diagnostic.code === ExportsParity.TYPE_ONLY_EXPORT_CODE &&
         diagnostic.start !== undefined
       ) {
-        typeOnly.add(
-          probeText.slice(diagnostic.start, diagnostic.start + (diagnostic.length ?? 0)),
+        const local = probeText.slice(
+          diagnostic.start,
+          diagnostic.start + (diagnostic.length ?? 0),
         );
+
+        typeOnly.add(local === '__default' ? 'default' : local);
       }
     }
 
     return names.filter((name) => !typeOnly.has(name));
   }
 
-  /** The keys of the built module at `file`; bun adds a synthetic `default` to a CommonJS one, which is not an export. */
-  static async runtimeKeys(opts: { file: string }): Promise<string[]> {
+  /** The built module at `file`: its keys, and which of them hold `undefined` (a key that is there with nothing behind it is the symptom this gate exists for). */
+  static async load(opts: { file: string }): Promise<{ keys: string[]; undefinedKeys: string[] }> {
     const loaded: Record<string, unknown> = await import(opts.file);
+    const keys = Object.keys(loaded);
 
-    return Object.keys(loaded).filter((key) => key !== 'default');
+    return { keys, undefinedKeys: keys.filter((key) => loaded[key] === undefined) };
   }
 
-  /** Names typed but absent at runtime, and names present at runtime but untyped. */
-  static diff(opts: { typed: string[]; runtime: string[] }): {
+  /**
+   * Names typed but absent or `undefined` at runtime, and names present at runtime but untyped. A `default` the
+   * runtime has and the declaration lacks is not extra: bun adds one to a CommonJS module. A typed `default` is
+   * required to be defined.
+   */
+  static diff(opts: { typed: string[]; runtime: { keys: string[]; undefinedKeys: string[] } }): {
     missing: string[];
     extra: string[];
   } {
     const typed = new Set(opts.typed);
-    const runtime = new Set(opts.runtime);
+    const present = new Set(opts.runtime.keys);
+    const undefinedKeys = new Set(opts.runtime.undefinedKeys);
 
     return {
-      missing: opts.typed.filter((name) => !runtime.has(name)).sort(),
-      extra: opts.runtime.filter((name) => !typed.has(name)).sort(),
+      missing: opts.typed.filter((name) => !present.has(name) || undefinedKeys.has(name)).sort(),
+      extra: opts.runtime.keys.filter((name) => name !== 'default' && !typed.has(name)).sort(),
     };
   }
 }

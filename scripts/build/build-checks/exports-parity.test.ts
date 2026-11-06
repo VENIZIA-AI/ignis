@@ -41,7 +41,7 @@ const readEntries = (opts: { packageDir: string }): TEntry[] => {
 const compareEntry = async (opts: { dts: string; file: string }) => {
   return ExportsParity.diff({
     typed: ExportsParity.typedValues({ dts: opts.dts }),
-    runtime: await ExportsParity.runtimeKeys({ file: opts.file }),
+    runtime: await ExportsParity.load({ file: opts.file }),
   });
 };
 
@@ -49,9 +49,26 @@ const packageDirs = readdirSync(PACKAGES_DIR)
   .map((name) => join(PACKAGES_DIR, name))
   .filter((dir) => existsSync(join(dir, 'dist')) && existsSync(join(dir, 'package.json')));
 
+/** Fewer checked entries than this means the gate lost rows, not that the packages shrank (64 when it was written). */
+const MIN_ENTRIES = 60;
+
 describe('every value typed in an entry point exists at runtime', () => {
   test('at least one built package is present', () => {
     expect(packageDirs.length).toBeGreaterThan(0);
+  });
+
+  test('every built package with an exports map contributes entries, and the total does not shrink', () => {
+    const counts = packageDirs.map((dir) => ({
+      dir,
+      count: readEntries({ packageDir: dir }).length,
+    }));
+    const empty = counts
+      .filter(({ count }) => count === 0)
+      .map(({ dir }) => relative(REPO_ROOT, dir));
+    const total = counts.reduce((sum, { count }) => sum + count, 0);
+
+    expect(empty, `packages that contribute no entry: ${empty.join(', ')}`).toEqual([]);
+    expect(total).toBeGreaterThanOrEqual(MIN_ENTRIES);
   });
 
   for (const packageDir of packageDirs) {
@@ -85,6 +102,24 @@ describe('the parity check itself', () => {
     });
 
     expect(missing).toEqual(['AlsoMissing', 'missingAtRuntime']);
+  });
+
+  test('positive control: a typed value that exists as a key but holds undefined is reported', async () => {
+    const { missing } = await compareEntry({
+      dts: join(FIXTURES, 'undefined-value.d.ts'),
+      file: join(FIXTURES, 'undefined-value.js'),
+    });
+
+    expect(missing).toEqual(['hollow', 'hollowToo']);
+  });
+
+  test('positive control: a typed default that is missing at runtime is reported', async () => {
+    const { missing } = await compareEntry({
+      dts: join(FIXTURES, 'typed-default.d.ts'),
+      file: join(FIXTURES, 'typed-default.js'),
+    });
+
+    expect(missing).toEqual(['default']);
   });
 
   test('positive control: a runtime export with no declaration is reported', async () => {
