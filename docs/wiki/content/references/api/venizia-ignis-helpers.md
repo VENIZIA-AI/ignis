@@ -1465,6 +1465,22 @@ export declare class Hash extends BaseHelper {
         secret: THashInput;
         opts?: IHashExtraOptions;
     }): string;
+    /**
+     * Checks a received digest against the one `value` produces, in constant time. Use it for a webhook signature or a
+     * payment callback instead of `===`, which stops at the first differing character and so tells an attacker how many
+     * leading characters of a forged value were right.
+     *
+     * `value` is hashed the way {@link Hash.digest} does, or keyed with `secret` the way {@link Hash.hmac} does, then
+     * written in `outputEncoding` (hex by default) and compared with `expected` as text. A different length answers
+     * `false` without comparing, and the answer is `false`, never a throw, for any mismatch. The text must match exactly:
+     * hex in upper case does not equal hex in lower case.
+     */
+    verify(opts: {
+        value: THashInput;
+        expected: string;
+        secret?: THashInput;
+        opts?: IHashExtraOptions;
+    }): boolean;
 }
 
 /** Text is hashed as UTF-8, bytes as they are. */
