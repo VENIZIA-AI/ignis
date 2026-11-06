@@ -386,20 +386,14 @@ describe('the handler survives what a throw site can attach to an error', () => 
   };
 
   /**
-   * MEASURED, AND A KNOWN DEFECT rather than the intended behaviour. `extra` reaches the RESPONSE
-   * raw, so a value `JSON.stringify` refuses makes `context.json` throw; Hono re-enters `onError`
-   * with that TypeError, which classifies as unexpected. The client therefore gets a well-formed
-   * sanitized 500 instead of the authored 409 - degraded, never a dead channel or a non-JSON body,
-   * which is what these assertions exist to hold. The LOG fragment is unaffected: `renderValue`
-   * already guards it.
-   *
-   * Fixing it means deciding what a non-serializable `extra` should become in the response, which
-   * is a public-behaviour choice and not this test's to make. When it is made, this test fails.
+   * The response renders `extra` through the same redaction as the log, and a value JSON refuses becomes text (a BigInt)
+   * or a marker (a cycle reads `[Circular]`), so the authored status survives it: the client gets the 409 the
+   * throw site chose, with a well-formed body.
    */
-  const expectDegradedButWellFormed = (opts: { status: number; body: Record<string, AnyType> }) => {
-    expect(opts.status).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
+  const expectAuthoredStatus = (opts: { status: number; body: Record<string, AnyType> }) => {
+    expect(opts.status).toBe(HTTP.ResultCodes.RS_4.Conflict);
     expect(opts.body.requestId).toBe(REQUEST_ID);
-    expect(opts.body.statusCode).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
+    expect(opts.body.statusCode).toBe(HTTP.ResultCodes.RS_4.Conflict);
     expect(typeof opts.body.normalized.code).toBe('string');
   };
 
@@ -412,7 +406,11 @@ describe('the handler survives what a throw site can attach to an error', () => 
     expect(logger.rendered()).toContain('[Circular]');
     expect(logger.rendered()).not.toContain('[unrenderable]');
     expect(contentType).toContain(HTTP.HeaderValues.APPLICATION_JSON);
-    expectDegradedButWellFormed({ status, body });
+    expectAuthoredStatus({ status, body });
+    expect(body.extra).toEqual({
+      orderId: 'ord-991',
+      self: { orderId: 'ord-991', self: '[Circular]' },
+    });
   });
 
   test('a BigInt in `extra` is rendered in the log, not collapsed to the unrenderable marker', async () => {
@@ -423,7 +421,8 @@ describe('the handler survives what a throw site can attach to an error', () => 
     expect(logger.rendered()).toContain('9007199254740993');
     expect(logger.rendered()).not.toContain('[unrenderable]');
     expect(contentType).toContain(HTTP.HeaderValues.APPLICATION_JSON);
-    expectDegradedButWellFormed({ status, body });
+    expectAuthoredStatus({ status, body });
+    expect(body.extra).toEqual({ rows: '9007199254740993' });
   });
 
   /** `extra` is whatever a throw site chose to attach, and in a Worker this fragment lands in the browser console. */
@@ -436,6 +435,99 @@ describe('the handler survives what a throw site can attach to an error', () => 
 
     expect(logger.rendered()).toContain('[REDACTED]');
     expect(logger.rendered()).not.toContain('sk-live-must-not-appear');
+  });
+});
+
+describe('the `extra` a response carries', () => {
+  const throwWithStatus = (opts: { statusCode: number; extra: Record<string, unknown> }) => () => {
+    throw getError({ statusCode: opts.statusCode, message: 'upstream failed', extra: opts.extra });
+  };
+
+  const secrets = {
+    apiKey: 'sk_live_SECRET',
+    requestPayload: { card: 'visible-card', password: 'hunter2' },
+    dsn: 'postgres://app:hunter2@10.0.3.7/prod',
+  };
+
+  const production = () => new BaseAppErrorMiddleware({ logger: new RecordingLogger() });
+  const development = () =>
+    new BaseAppErrorMiddleware({ logger: new RecordingLogger(), environment: () => 'development' });
+
+  test('in production a client error carries it with secret-shaped keys masked', async () => {
+    const { status, body } = await probe({
+      middleware: production(),
+      thrower: throwWithStatus({ statusCode: HTTP.ResultCodes.RS_4.Conflict, extra: secrets }),
+    });
+
+    expect(status).toBe(HTTP.ResultCodes.RS_4.Conflict);
+    expect(body.extra.apiKey).toBe('[REDACTED]');
+    expect(body.extra.dsn).toBe('[REDACTED]');
+    expect(body.extra.requestPayload.password).toBe('[REDACTED]');
+    expect(body.extra.requestPayload.card).toBe('visible-card');
+    expect(JSON.stringify(body)).not.toContain('sk_live_SECRET');
+    expect(JSON.stringify(body)).not.toContain('hunter2');
+  });
+
+  test('in production a server error carries none', async () => {
+    const { status, body } = await probe({
+      middleware: production(),
+      thrower: throwWithStatus({
+        statusCode: HTTP.ResultCodes.RS_5.BadGateway,
+        extra: secrets,
+      }),
+    });
+
+    expect(status).toBe(HTTP.ResultCodes.RS_5.BadGateway);
+    expect(body.extra).toBeUndefined();
+    expect(JSON.stringify(body)).not.toContain('sk_live_SECRET');
+  });
+
+  test('in production the masking holds with the logger switch off', async () => {
+    const previous = process.env.APP_ENV_LOGGER_DO_REDACT;
+    process.env.APP_ENV_LOGGER_DO_REDACT = 'false';
+
+    try {
+      const { body } = await probe({
+        middleware: production(),
+        thrower: throwWithStatus({ statusCode: HTTP.ResultCodes.RS_4.Conflict, extra: secrets }),
+      });
+
+      expect(body.extra.apiKey).toBe('[REDACTED]');
+    } finally {
+      if (previous === undefined) {
+        delete process.env.APP_ENV_LOGGER_DO_REDACT;
+      } else {
+        process.env.APP_ENV_LOGGER_DO_REDACT = previous;
+      }
+    }
+  });
+
+  test('outside production a server error keeps it, masked', async () => {
+    const { status, body } = await probe({
+      middleware: development(),
+      thrower: throwWithStatus({
+        statusCode: HTTP.ResultCodes.RS_5.BadGateway,
+        extra: secrets,
+      }),
+    });
+
+    expect(status).toBe(HTTP.ResultCodes.RS_5.BadGateway);
+    expect(body.extra.apiKey).toBe('[REDACTED]');
+    expect(body.extra.requestPayload.card).toBe('visible-card');
+  });
+
+  test('an error without `extra` has none', async () => {
+    const { body } = await probe({ thrower: throwIntentional });
+
+    expect(body.extra).toEqual({ orderId: 'ord-991' });
+
+    const bare = await probe({
+      thrower: () => {
+        throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'gone' });
+      },
+    });
+
+    expect(bare.body.extra).toBeUndefined();
   });
 });
 

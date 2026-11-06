@@ -415,6 +415,37 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     return text;
   }
 
+  /**
+   * The `extra` a response carries. It is whatever a throw site attached, so it goes through the same redaction the log
+   * line uses (always masking in production, whatever the logger switch says), and a server error (5xx) in production
+   * carries none: the log has it, a client has no use for it.
+   */
+  private renderExtra(opts: { error: Error; statusCode: number; isProduction: boolean }): unknown {
+    const { error, statusCode, isProduction } = opts;
+
+    if (!('extra' in error) || error.extra === undefined) {
+      return undefined;
+    }
+
+    if (isProduction && statusCode >= 500) {
+      return undefined;
+    }
+
+    const safe = RedactUtility.toJsonSafe({ value: error.extra, force: isProduction });
+
+    // A value `context.json` would refuse (a BigInt) becomes text here, so the authored status survives it.
+    try {
+      const text = JSON.stringify(safe, (_key, entry: unknown) =>
+        typeof entry === 'bigint' ? entry.toString() : entry,
+      );
+
+      return text === undefined ? undefined : JSON.parse(text);
+      // eslint-disable-next-line venizia/no-silent-catch -- the marker returned below is the report: the response carries it where the value would have been
+    } catch {
+      return '[unrenderable]';
+    }
+  }
+
   value(): ErrorHandler {
     return async (error, context) => {
       const requestId = context.get(REQUEST_ID_KEY);
@@ -453,7 +484,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
         statusCode,
         normalized,
         requestId,
-        extra: 'extra' in error ? error?.extra : undefined,
+        extra: this.renderExtra({ error, statusCode, isProduction }),
         details: {
           url: context.req.url,
           path: context.req.path,
