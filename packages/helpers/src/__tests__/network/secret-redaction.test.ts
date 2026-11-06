@@ -127,6 +127,47 @@ describe('redactSecrets - the Vault wire spellings the key list must now cover',
     expect(redacted['vaultToken']).toBe(REDACTED);
   });
 
+  test('credential, credentials and any *_credential / *Credential key are redacted', () => {
+    const redacted = RedactUtility.redactSecrets({
+      value: {
+        credential: 'c-leak',
+        credentials: 'cs-leak',
+        dbCredential: 'db-leak',
+        ['api_credential']: 'api-leak',
+        dbCredentials: 'dbs-leak',
+        ['api_credentials']: 'apis-leak',
+        Credential: 'upper-leak',
+      },
+    }) as Record<string, unknown>;
+
+    for (const key of Object.keys(redacted)) {
+      expect(redacted[key]).toBe(REDACTED);
+    }
+  });
+
+  test('a key that ends in credential is redacted even as a flag, like *Token and *Secret', () => {
+    const redacted = RedactUtility.redactSecrets({
+      value: { hasCredential: 'yes', noCredentials: false },
+    }) as Record<string, unknown>;
+
+    expect(redacted['hasCredential']).toBe(REDACTED);
+    expect(redacted['noCredentials']).toBe(REDACTED);
+  });
+
+  test('an ordinary key that only contains "credential" is NOT redacted', () => {
+    const redacted = RedactUtility.redactSecrets({
+      value: {
+        credentialType: 'oauth2',
+        credentialed: true,
+        credentialsUrl: 'https://example.com/credentials',
+      },
+    }) as Record<string, unknown>;
+
+    expect(redacted['credentialType']).toBe('oauth2');
+    expect(redacted['credentialed']).toBe(true);
+    expect(redacted['credentialsUrl']).toBe('https://example.com/credentials');
+  });
+
   test('an innocent key that merely ends in "id" is NOT redacted', () => {
     // role_id/secret_id are named secrets; userId/orderId/id are not - the pattern must not swallow ordinary identifier fields.
     const redacted = RedactUtility.redactSecrets({

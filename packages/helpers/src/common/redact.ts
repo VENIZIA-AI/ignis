@@ -5,7 +5,7 @@ const SECRET_KEY_PATTERN = new RegExp(
   [
     // Options-object spellings (camelCase / snake_case).
     '^(pass|password|passphrase|secret|token|apiKey|api_key|accessKey|access_key',
-    '|secretKey|secret_key|privateKey|private_key|key|cert|ca|pfx|credentials',
+    '|secretKey|secret_key|privateKey|private_key|key|cert|ca|pfx|credential|credentials',
     '|authorization|auth|jwtSecret|applicationSecret|connectionString)$',
 
     // Vault wire spellings (snake_case): node-vault's AppRole login/response bodies carry these exact keys, and none are matched by the anchored options list above.
@@ -19,6 +19,9 @@ const SECRET_KEY_PATTERN = new RegExp(
 
     // Connection descriptors: `connectionString` was anchored above but its snake_case twin was not, and `dsn` is the third common spelling for the same thing.
     '|^(connection_string|dsn|database_url|databaseUrl)$',
+
+    // Any `*_credential` / `*Credential` key, singular or plural - `dbCredential`, `api_credentials`. The bare words are anchored above; this catches the prefixed forms, the way the `*Secret` rule does.
+    '|_credentials?$|[a-z0-9]credentials?$',
 
     // Any `*_password` / `*Password` key - `dbPassword`, `admin_password`. The bare word is anchored above; this catches the prefixed forms.
     '|_password$|[a-z0-9]password$',
