@@ -29,7 +29,7 @@ The whole filter: `where`, `fields`, `include`, `order`, `limit`, `offset` and `
 
 ```ts
 export declare const FilterSchema: import("zod").ZodOptional<import("zod").ZodUnion<readonly [import("zod").ZodObject<{
-    where: import("zod").ZodOptional<import("zod").ZodUnion<readonly [import("zod").ZodType<any, unknown, import("zod/v4/core").$ZodTypeInternals<any, unknown>>, import("zod").ZodPipe<import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<any, string>>, import("zod").ZodType<any, unknown, import("zod/v4/core").$ZodTypeInternals<any, unknown>>>]>>;
+    where: import("zod").ZodOptional<import("zod").ZodUnion<readonly [import("zod").ZodPipe<import("zod").ZodPipe<import("zod").ZodAny, import("zod").ZodTransform<any, any>>, import("zod").ZodType<any, unknown, import("zod/v4/core").$ZodTypeInternals<any, unknown>>>, import("zod").ZodPipe<import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<any, string>>, import("zod").ZodPipe<import("zod").ZodPipe<import("zod").ZodAny, import("zod").ZodTransform<any, any>>, import("zod").ZodType<any, unknown, import("zod/v4/core").$ZodTypeInternals<any, unknown>>>>]>>;
     fields: import("zod").ZodOptional<import("zod").ZodUnion<[import("zod").ZodRecord<import("zod").ZodString, import("zod").ZodBoolean>, import("zod").ZodArray<import("zod").ZodString>]>>;
     include: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
         relation: import("zod").ZodString;
@@ -40,7 +40,7 @@ export declare const FilterSchema: import("zod").ZodOptional<import("zod").ZodUn
     offset: import("zod").ZodOptional<import("zod").ZodNumber>;
     skip: import("zod").ZodOptional<import("zod").ZodNumber>;
 }, import("zod/v4/core").$strip>, import("zod").ZodPipe<import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<any, string>>, import("zod").ZodObject<{
-    where: import("zod").ZodOptional<import("zod").ZodUnion<readonly [import("zod").ZodType<any, unknown, import("zod/v4/core").$ZodTypeInternals<any, unknown>>, import("zod").ZodPipe<import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<any, string>>, import("zod").ZodType<any, unknown, import("zod/v4/core").$ZodTypeInternals<any, unknown>>>]>>;
+    where: import("zod").ZodOptional<import("zod").ZodUnion<readonly [import("zod").ZodPipe<import("zod").ZodPipe<import("zod").ZodAny, import("zod").ZodTransform<any, any>>, import("zod").ZodType<any, unknown, import("zod/v4/core").$ZodTypeInternals<any, unknown>>>, import("zod").ZodPipe<import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<any, string>>, import("zod").ZodPipe<import("zod").ZodPipe<import("zod").ZodAny, import("zod").ZodTransform<any, any>>, import("zod").ZodType<any, unknown, import("zod/v4/core").$ZodTypeInternals<any, unknown>>>>]>>;
     fields: import("zod").ZodOptional<import("zod").ZodUnion<[import("zod").ZodRecord<import("zod").ZodString, import("zod").ZodBoolean>, import("zod").ZodArray<import("zod").ZodString>]>>;
     include: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodObject<{
         relation: import("zod").ZodString;
@@ -117,12 +117,16 @@ Built with plain `zod`, never `@hono/zod-openapi`: the OpenAPI layer pulls in Ho
 ```ts
 export declare class QuerySchemaFactory {
     private static readonly identityDecorator;
+    /** `limits.whereDepth` is the deepest `and` / `or` nesting a `where` may have (default 20); a deeper one is a validation issue. */
     static build(opts?: {
         decorate?: TSchemaDecorator;
+        limits?: {
+            whereDepth?: number;
+        };
     }): {
         FieldsSchema: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
         FilterSchema: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
-            where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+            where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
             fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
             include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                 relation: z.ZodString;
@@ -133,7 +137,7 @@ export declare class QuerySchemaFactory {
             offset: z.ZodOptional<z.ZodNumber>;
             skip: z.ZodOptional<z.ZodNumber>;
         }, z.core.$strip>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
-            where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+            where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
             fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
             include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                 relation: z.ZodString;
@@ -152,7 +156,7 @@ export declare class QuerySchemaFactory {
         OffsetSchema: z.ZodOptional<z.ZodNumber>;
         OrderBySchema: z.ZodOptional<z.ZodArray<z.ZodString>>;
         SkipSchema: z.ZodOptional<z.ZodNumber>;
-        WhereSchema: z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>;
+        WhereSchema: z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>;
     };
 }
 ```
@@ -206,7 +210,7 @@ Source: `packages/filter/src/schemas/common/types.ts`
 Query conditions with nested `and` / `or`. Accepts an object or a JSON string; a malformed string becomes a validation issue.
 
 ```ts
-export declare const WhereSchema: import("zod").ZodUnion<readonly [import("zod").ZodType<any, unknown, import("zod/v4/core").$ZodTypeInternals<any, unknown>>, import("zod").ZodPipe<import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<any, string>>, import("zod").ZodType<any, unknown, import("zod/v4/core").$ZodTypeInternals<any, unknown>>>]>;
+export declare const WhereSchema: import("zod").ZodUnion<readonly [import("zod").ZodPipe<import("zod").ZodPipe<import("zod").ZodAny, import("zod").ZodTransform<any, any>>, import("zod").ZodType<any, unknown, import("zod/v4/core").$ZodTypeInternals<any, unknown>>>, import("zod").ZodPipe<import("zod").ZodPipe<import("zod").ZodString, import("zod").ZodTransform<any, string>>, import("zod").ZodPipe<import("zod").ZodPipe<import("zod").ZodAny, import("zod").ZodTransform<any, any>>, import("zod").ZodType<any, unknown, import("zod/v4/core").$ZodTypeInternals<any, unknown>>>>]>;
 ```
 
 Source: `packages/filter/src/schemas/index.ts`

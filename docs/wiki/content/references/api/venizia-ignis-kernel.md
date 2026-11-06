@@ -2539,7 +2539,7 @@ Extend it rather than rebuilding it when a route takes more than `filter`:
 ```ts
 export declare const FilterQuerySchema: z.ZodObject<{
     filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
-        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
         fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
         include: z.ZodOptional<z.ZodArray<z.ZodObject<{
             relation: z.ZodString;
@@ -2550,7 +2550,7 @@ export declare const FilterQuerySchema: z.ZodObject<{
         offset: z.ZodOptional<z.ZodNumber>;
         skip: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strip>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
-        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
         fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
         include: z.ZodOptional<z.ZodArray<z.ZodObject<{
             relation: z.ZodString;
@@ -2574,7 +2574,7 @@ The whole `filter` query: an object of where, fields, include, order, limit, off
 
 ```ts
 export declare const FilterSchema: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
-    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
     include: z.ZodOptional<z.ZodArray<z.ZodObject<{
         relation: z.ZodString;
@@ -2585,7 +2585,7 @@ export declare const FilterSchema: z.ZodOptional<z.ZodUnion<readonly [z.ZodObjec
     offset: z.ZodOptional<z.ZodNumber>;
     skip: z.ZodOptional<z.ZodNumber>;
 }, z.core.$strip>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
-    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
     include: z.ZodOptional<z.ZodArray<z.ZodObject<{
         relation: z.ZodString;
@@ -5907,7 +5907,7 @@ export declare class RouteConfigResolver {
     }): {
         request: {
             query: TAnyObjectSchema | z.ZodObject<{
-                where: z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]> | z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+                where: z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]> | z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
             }, z.core.$strip>;
             headers: TAnyObjectSchema | z.ZodObject<{
                 "x-request-id": z.ZodOptional<z.ZodString>;
@@ -5930,7 +5930,7 @@ export declare class RouteConfigResolver {
         request: {
             query: TAnyObjectSchema | z.ZodObject<{
                 filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
-                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                     include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                         relation: z.ZodString;
@@ -5941,7 +5941,7 @@ export declare class RouteConfigResolver {
                     offset: z.ZodOptional<z.ZodNumber>;
                     skip: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
-                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                     include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                         relation: z.ZodString;
@@ -5982,7 +5982,7 @@ export declare class RouteConfigResolver {
             }, z.core.$strip>;
             query: TAnyObjectSchema | z.ZodObject<{
                 filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
-                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                     include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                         relation: z.ZodString;
@@ -5993,7 +5993,7 @@ export declare class RouteConfigResolver {
                     offset: z.ZodOptional<z.ZodNumber>;
                     skip: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
-                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                     include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                         relation: z.ZodString;
@@ -6028,7 +6028,7 @@ export declare class RouteConfigResolver {
         request: {
             query: TAnyObjectSchema | z.ZodObject<{
                 filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
-                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                     include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                         relation: z.ZodString;
@@ -6039,7 +6039,7 @@ export declare class RouteConfigResolver {
                     offset: z.ZodOptional<z.ZodNumber>;
                     skip: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
-                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                     include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                         relation: z.ZodString;
@@ -6127,7 +6127,7 @@ export declare class RouteConfigResolver {
             readonly authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
             readonly request: {
                 query: TAnyObjectSchema | z.ZodObject<{
-                    where: z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]> | z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+                    where: z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]> | z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                 }, z.core.$strip>;
                 headers: TAnyObjectSchema | z.ZodObject<{
                     "x-request-id": z.ZodOptional<z.ZodString>;
@@ -6212,7 +6212,7 @@ export declare class RouteConfigResolver {
             readonly request: {
                 query: TAnyObjectSchema | z.ZodObject<{
                     filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
-                        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+                        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                         fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                         include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                             relation: z.ZodString;
@@ -6223,7 +6223,7 @@ export declare class RouteConfigResolver {
                         offset: z.ZodOptional<z.ZodNumber>;
                         skip: z.ZodOptional<z.ZodNumber>;
                     }, z.core.$strip>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
-                        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+                        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                         fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                         include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                             relation: z.ZodString;
@@ -6326,7 +6326,7 @@ export declare class RouteConfigResolver {
                 }, z.core.$strip>;
                 query: TAnyObjectSchema | z.ZodObject<{
                     filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
-                        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+                        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                         fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                         include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                             relation: z.ZodString;
@@ -6337,7 +6337,7 @@ export declare class RouteConfigResolver {
                         offset: z.ZodOptional<z.ZodNumber>;
                         skip: z.ZodOptional<z.ZodNumber>;
                     }, z.core.$strip>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
-                        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+                        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                         fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                         include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                             relation: z.ZodString;
@@ -6435,7 +6435,7 @@ export declare class RouteConfigResolver {
             readonly request: {
                 query: TAnyObjectSchema | z.ZodObject<{
                     filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
-                        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+                        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                         fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                         include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                             relation: z.ZodString;
@@ -6446,7 +6446,7 @@ export declare class RouteConfigResolver {
                         offset: z.ZodOptional<z.ZodNumber>;
                         skip: z.ZodOptional<z.ZodNumber>;
                     }, z.core.$strip>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
-                        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+                        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                         fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                         include: z.ZodOptional<z.ZodArray<z.ZodObject<{
                             relation: z.ZodString;
@@ -6538,42 +6538,6 @@ export declare class RouteConfigResolver {
             readonly description: "Create new record";
             readonly authenticate: {
                 strategies?: TAuthStrategy[];
-                mode?: TAuthMode;
-            };
-            readonly authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
-            readonly request: {
-                readonly body: {
-                    description: string;
-                    content: {
-                        'application/json': {
-                            schema: TAnyObjectSchema;
-                        };
-                    };
-                    required: boolean | undefined;
-                };
-                readonly headers: TAnyObjectSchema | z.ZodObject<{
-                    "x-request-id": z.ZodOptional<z.ZodString>;
-                    "x-request-channel": z.ZodOptional<z.ZodString>;
-                    "x-device-info": z.ZodOptional<z.ZodString>;
-                    "x-request-count": z.ZodOptional<z.ZodString>;
-                }, z.core.$strip>;
-            };
-            readonly responses: {
-                '4XX': {
-                    description: string;
-                    content: {
-                        'application/json': {
-                            schema: z.ZodObject<{
-                                statusCode: z.ZodOptional<z.ZodNumber>;
-                                message: z.ZodString;
-                                normalized: z.ZodOptional<z.ZodObject<{
-                                    text: z.ZodString;
-                                    code: z.ZodString;
-                                    args: z.ZodRecord<z.ZodString, z.ZodAny>;
-                                }, z.core.$strip>>;
-                                extra: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
-                                requestId: z.ZodOptional<z.ZodString>;
-                                details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
 // ... cut
 ```
 
@@ -8706,7 +8670,7 @@ place - a missing one there rewrites or deletes every row in the table.
 
 ```ts
 export declare const WhereQuerySchema: z.ZodObject<{
-    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
 }, z.core.$strip>;
 ```
 
@@ -8719,7 +8683,7 @@ Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`
 Query conditions, with nested AND/OR.
 
 ```ts
-export declare const WhereSchema: z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>;
+export declare const WhereSchema: z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>;
 ```
 
 Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`
