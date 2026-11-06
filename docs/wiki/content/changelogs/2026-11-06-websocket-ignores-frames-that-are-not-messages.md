@@ -15,6 +15,7 @@ packages: ['@venizia/ignis-helpers']
 ## What changed
 
 - **A message must be an object with a string `event`.** Anything else (`null`, a number, a string, a list, an `event` that is not a string) is logged and ignored; the client stays connected and unauthenticated, and a later valid message works as usual.
+- **The log line carries the length, not the frame.** A rejected frame is logged with the client id and its size, so a flood of large junk frames cannot flood the log.
 - **Nothing else changes.** A frame that is not JSON still gets the `Invalid message format` reply.
 
 ## Who is affected

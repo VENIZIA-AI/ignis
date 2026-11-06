@@ -485,7 +485,11 @@ export class WebSocketServerHelper<
     }
 
     if (typeof message.event !== 'string' || !message.event) {
-      logger.error('Invalid message payload | Missing event | raw: %s', raw);
+      logger.error(
+        'Invalid message payload | Missing event | clientId: %s | length: %d',
+        clientId,
+        raw.length,
+      );
 
       return;
     }
