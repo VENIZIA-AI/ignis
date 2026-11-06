@@ -17,7 +17,7 @@ packages: ['@venizia/ignis']
 - **`null` is a value.** `AbstractBearerTokenService.encryptPayload` encrypts a `null` claim like any other, and it decodes as `null`. An app can tell "null on purpose" from "claim absent", for example an older token.
 - **`undefined` is still skipped.** JSON drops it, so the claim is absent with encryption on or off.
 - **Same payload either way.** The encrypted and the plain mode decode the same payload to the same object.
-- **A `null` never reaches a field codec.** It is written and read as the text `null` before the codec for its key is consulted, so a codec that expects a value, such as a date codec, is not called with `null`.
+- **A `null` never reaches a field codec.** It is written and read as the text `null` before the codec for its key is consulted, so a codec that expects a value, such as a date codec, is not called with `null`. The one cost: a codec whose real output for a non-null value is exactly the text `null` would read back as `null`; none of the built-in codecs does that.
 
 ## Who is affected
 
