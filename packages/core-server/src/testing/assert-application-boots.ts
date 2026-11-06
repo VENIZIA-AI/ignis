@@ -5,6 +5,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import { BindingVerifier } from '@venizia/ignis-inversion';
 import {
   type AbstractRestController,
+  AuthorizationEnforcerRegistry,
   type Binding,
   BindingNamespaces,
   BindingValueTypes,
@@ -239,6 +240,12 @@ const assertNoDuplicateRoutes = (opts: { application: BaseApplication }): void =
  * It wraps `registerDynamicBindings` and `getBootSequence` on THIS instance only (an application's
  * own override of either still runs) and restores them whatever happens.
  *
+ * It owns the process-wide `AuthorizationEnforcerRegistry` for the duration of the check: it resets it before it
+ * boots, so a second boot in the same process (another probe, or a test boot after this one) does not fail with
+ * `Enforcer already registered`. An application still running in the same process loses its enforcer registrations
+ * and its authorize options, so its requests are then decided by the no-enforcer default (deny unless configured
+ * otherwise): do not run the probe in a process that serves an application.
+ *
  * @example
  * ```typescript
  * import { ApplicationBootAssertion } from '@venizia/ignis/testing';
@@ -404,6 +411,8 @@ export class ApplicationBootAssertion {
         doVerify: false,
       },
     };
+
+    AuthorizationEnforcerRegistry.getInstance().reset();
 
     try {
       if (!target.isBound({ key: CoreBindings.APPLICATION_INSTANCE })) {

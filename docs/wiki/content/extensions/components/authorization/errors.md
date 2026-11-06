@@ -235,6 +235,8 @@ AuthorizationEnforcerRegistry.getInstance().register({
 
 **Fix:** Register each name once. Call `AuthorizationEnforcerRegistry.getInstance().reset()` first if you genuinely need to re-register (typically only in tests).
 
+Two applications alive in one process hit this on purpose: the registry is process-wide and the authorization middleware reads it at request time, so a second `casbin` would otherwise answer the first application's requests. `ApplicationBootAssertion.assert` from `@venizia/ignis/testing` resets the registry before it boots, so booting in a test, once or many times, needs no reset of your own. It is meant for a process that is being booted for a check, not one serving an application.
+
 ### "[AuthorizationEnforcerRegistry] Descriptor not found: ..."
 
 **Cause:** `enforcerName` in an `authorize()` call doesn't match any registered enforcer name.
