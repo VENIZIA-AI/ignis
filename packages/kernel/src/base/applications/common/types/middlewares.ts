@@ -20,7 +20,7 @@ export interface ICompressOptions extends IBaseMiddlewareOptions {
   threshold?: number;
 }
 
-/** Allowed origin for CORS: one origin, a list of origins, or a function that returns the origin to echo (or nothing to reject). */
+/** Allowed origin for CORS: one origin, a list of origins, or a function that returns the origin to echo (or nothing to reject). A string or a list entry may be a subdomain wildcard such as `https://*.example.com`: the scheme and the port are matched exactly, the apex domain is not included, and the bare `'*'` still means any origin. */
 export type TOrigin =
   | string
   | string[]
