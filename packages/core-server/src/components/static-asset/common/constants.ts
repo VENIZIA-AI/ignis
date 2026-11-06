@@ -65,5 +65,8 @@ export type TMetaLinkRecreateAction = TConstValue<typeof MetaLinkRecreateActions
 /** Where a signed policy may write. The final key is never inside it, so content cannot be replaced after the commit. */
 export const DEFAULT_PENDING_PREFIX = 'pending/';
 
+/** The most file parts one upload request may carry unless `parseMultipartBody.maxFiles` says otherwise. */
+export const DEFAULT_MAX_UPLOAD_FILES = 20;
+
 /** Reported in the body, never thrown: the bytes are stored, only the row is not. A CODE, because a 200 bypasses the middleware that strips the driver's `detail`/`table`/`constraint`. */
 export const META_LINK_CREATE_FAILED = 'META_LINK_CREATE_FAILED';

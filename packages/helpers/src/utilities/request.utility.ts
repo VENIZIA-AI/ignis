@@ -1,3 +1,4 @@
+import { HTTP } from '@/common/constants/http';
 import type { TConstValue } from '@/common/types';
 import { getError } from '@/modules/error';
 import { FormBodyUtility } from './form-body.utility';
@@ -30,6 +31,8 @@ export type TMultipartStorage = TConstValue<typeof MultipartStorages>;
 interface IParseMultipartOptions<C extends { req: any } = { req: any }> {
   storage?: TMultipartStorage;
   uploadDir?: string;
+  /** The most file parts one request may carry; more is refused (413) before anything is spooled. Unset: no limit. */
+  maxFiles?: number;
   context: C;
 }
 
@@ -74,7 +77,7 @@ export class RequestUtility {
   static async parseMultipartBody<C extends { req: any } = { req: any }>(
     opts: IParseMultipartOptions<C>,
   ): Promise<IParsedMultipartBody> {
-    const { storage = MultipartStorages.MEMORY, uploadDir = './uploads', context } = opts;
+    const { storage = MultipartStorages.MEMORY, uploadDir = './uploads', context, maxFiles } = opts;
 
     if (storage === MultipartStorages.DISK && !fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
@@ -84,6 +87,51 @@ export class RequestUtility {
     const files: IParsedFile[] = [];
     const fields: Record<string, string> = {};
 
+    if (maxFiles !== undefined) {
+      let fileParts = 0;
+
+      for (const [, value] of formData.entries()) {
+        if (typeof value !== 'string') {
+          fileParts += 1;
+        }
+      }
+
+      if (fileParts > maxFiles) {
+        throw getError({
+          statusCode: HTTP.ResultCodes.RS_4.ContentTooLarge,
+          message: `[parseMultipartBody] Too many files in one request | received: ${fileParts} | max: ${maxFiles}`,
+        });
+      }
+    }
+
+    try {
+      await RequestUtility.readParts({ formData, storage, uploadDir, files, fields });
+    } catch (error) {
+      // Files already written to disk belong to a request that failed; nothing else knows their names.
+      RequestUtility.removeSpooled({ files });
+
+      throw error;
+    }
+
+    return { files, fields };
+  }
+
+  private static removeSpooled(opts: { files: IParsedFile[] }): void {
+    for (const file of opts.files) {
+      if (file.path) {
+        fs.rmSync(file.path, { force: true });
+      }
+    }
+  }
+
+  private static async readParts(opts: {
+    formData: FormData;
+    storage: TMultipartStorage;
+    uploadDir: string;
+    files: IParsedFile[];
+    fields: Record<string, string>;
+  }): Promise<void> {
+    const { formData, storage, uploadDir, files, fields } = opts;
     const entries = formData.entries();
 
     for (const [fieldname, value] of entries) {
@@ -133,8 +181,6 @@ export class RequestUtility {
 
       files.push(parsedFile);
     }
-
-    return { files, fields };
   }
 
   /** Sanitizes a filename by removing path components and dangerous characters. The result is printable ASCII. */

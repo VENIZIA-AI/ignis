@@ -243,6 +243,7 @@ type TStaticAssetExtraOptions = {
   parseMultipartBody?: {
     storage?: 'memory' | 'disk';
     uploadDir?: string;
+    maxFiles?: number;
   };
   normalizeNameFn?: (opts: { file: TUploadNaming }) => string;
   normalizeLinkFn?: (opts: IObjectLocation) => string;
@@ -261,6 +262,7 @@ type TStaticAssetExtraOptions = {
 |---|---|---|---|
 | `parseMultipartBody.storage` | `'memory' \| 'disk'` | `'memory'` | `'disk'` spools to `uploadDir`, then the controller reads the file back with `readFileSync` before handing it to the storage helper |
 | `parseMultipartBody.uploadDir` | `string` | `'./uploads'` | Created with <code v-pre>fs.mkdirSync({ recursive: true })</code> if missing |
+| `parseMultipartBody.maxFiles` | `number` | `20` | The most file parts one upload request may carry. More is refused with `413` before anything is written. Spool files are removed on every exit, a refused request included |
 | `normalizeNameFn` | `(opts: { file: TUploadNaming }) => string` | `BaseStorageHelper`'s lowercase + `_`-for-space normalizer | Runs before the file is written; its output is re-validated with `isValidObjectKey()` |
 | `normalizeLinkFn` | `(opts: IObjectLocation) => string` | Component-generated - see below | Runs after the write to build the returned `link` |
 | `maxFolderDepth` | `number` | `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH` (`2`) | Folder segments only - the filename itself does not count against this limit |

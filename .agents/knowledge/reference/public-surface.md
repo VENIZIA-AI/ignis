@@ -3466,13 +3466,14 @@ generated:
 - `IConnectRpcModule` interface
 - `IGrpcComponentConfig` interface
 
-### `@venizia/ignis/static-asset` (36)
+### `@venizia/ignis/static-asset` (37)
 
 - `AssetCommitToken` class
 - `AssetControllerFactory` class
 - `AssetIngest` class
 - `BaseMetaLinkModel` class
 - `BaseMetaLinkRepository` class
+- `DEFAULT_MAX_UPLOAD_FILES` const
 - `DEFAULT_PENDING_PREFIX` const
 - `IAssetControllerOptions` interface
 - `ICommitTokenPayload` interface

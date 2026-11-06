@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis/static-asset, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-36 exports, 36 with TSDoc.
+37 exports, 37 with TSDoc.
 
 ## `AssetCommitToken`
 
@@ -844,6 +844,18 @@ export declare class BaseMetaLinkRepository extends DefaultCRUDRepository<typeof
 ```
 
 Source: `packages/core-server/src/components/static-asset/repositories/base.repository.ts`
+
+## `DEFAULT_MAX_UPLOAD_FILES`
+
+*const*
+
+The most file parts one upload request may carry unless `parseMultipartBody.maxFiles` says otherwise.
+
+```ts
+export declare const DEFAULT_MAX_UPLOAD_FILES = 20;
+```
+
+Source: `packages/core-server/src/components/static-asset/common/constants.ts`
 
 ## `DEFAULT_PENDING_PREFIX`
 
@@ -1944,6 +1956,12 @@ export type TStaticAssetExtraOptions = {
     parseMultipartBody?: {
         storage?: TMultipartStorage;
         uploadDir?: string;
+        /**
+         * The most file parts one upload request may carry; more is refused with 413 before anything is written.
+         *
+         * @default DEFAULT_MAX_UPLOAD_FILES (20)
+         */
+        maxFiles?: number;
     };
     /** `folderPath` carries the upload query's target folder - dropping it flattens nested uploads. */
     normalizeNameFn?: (opts: {
