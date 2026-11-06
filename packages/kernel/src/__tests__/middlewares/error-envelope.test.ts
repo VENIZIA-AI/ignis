@@ -482,6 +482,38 @@ describe('the `extra` a response carries', () => {
     expect(JSON.stringify(body)).not.toContain('sk_live_SECRET');
   });
 
+  test('in production a server error keeps only the correlation ids', async () => {
+    const { body } = await probe({
+      middleware: production(),
+      thrower: throwWithStatus({
+        statusCode: HTTP.ResultCodes.RS_5.ServiceUnavailable,
+        extra: {
+          requestId: 'req-up-1',
+          upstreamRequestIds: ['a', 'b'],
+          details: { indexed: 40 },
+          apiKey: 'sk_live_SECRET',
+        },
+      }),
+    });
+
+    expect(body.extra).toEqual({ requestId: 'req-up-1', upstreamRequestIds: ['a', 'b'] });
+  });
+
+  test('the correlation-id allowance carries only short strings', async () => {
+    const { body } = await probe({
+      middleware: production(),
+      thrower: throwWithStatus({
+        statusCode: HTTP.ResultCodes.RS_5.BadGateway,
+        extra: {
+          requestId: { dsn: 'postgres://u:p@h/db' },
+          upstreamRequestIds: ['ok', 'x'.repeat(200)],
+        },
+      }),
+    });
+
+    expect(body.extra).toBeUndefined();
+  });
+
   test('in production the masking holds with the logger switch off', async () => {
     const previous = process.env.APP_ENV_LOGGER_DO_REDACT;
     process.env.APP_ENV_LOGGER_DO_REDACT = 'false';

@@ -57,7 +57,7 @@ throw getError({
 });
 ```
 
-Any key `getError` does not model rides into `extra`. That's how a throw site attaches context the framework knows nothing about. The response renders `extra` through the same redaction as the log line (secret-shaped keys read `[REDACTED]`, a cycle reads `[Circular]`, a BigInt becomes text), and in production a server error (5xx) carries no `extra` at all: the log has it, a client has no use for it. Outside production it is kept, masked.
+Any key `getError` does not model rides into `extra`. That's how a throw site attaches context the framework knows nothing about. The response renders `extra` through the same redaction as the log line (secret-shaped keys read `[REDACTED]`, a cycle reads `[Circular]`, a BigInt becomes text), and in production a server error (5xx) carries no `extra` at all except the correlation ids `requestId` and `upstreamRequestIds`: the log has the rest, a client has no use for it. Outside production it is kept, masked. The `message` of an intentional error is returned as written, so never interpolate a secret or a connection string into it.
 
 > [!NOTE]
 > The trade-off: a **misspelling** rides the same path. `getError({ message, statuscode: 503 })` compiles. `statusCode` stays `400`, and `503` sits in `extra.statuscode`. The framework can't tell your context from your typo - spell option keys carefully.

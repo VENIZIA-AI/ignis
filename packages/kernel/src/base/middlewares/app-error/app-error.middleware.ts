@@ -428,7 +428,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     }
 
     if (isProduction && statusCode >= 500) {
-      return undefined;
+      return this.pickCorrelationIds({ extra: error.extra });
     }
 
     const safe = RedactUtility.toJsonSafe({ value: error.extra, force: isProduction });
@@ -449,6 +449,36 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     } catch {
       return '[unrenderable]';
     }
+  }
+
+  /**
+   * What a production server error still carries from `extra`: the correlation ids support needs, `requestId` and
+   * `upstreamRequestIds`, and nothing else. Only short strings count (a list of them for the chain), so the allowance
+   * cannot carry anything but an id.
+   */
+  private pickCorrelationIds(opts: { extra: unknown }): Record<string, unknown> | undefined {
+    const { extra } = opts;
+
+    if (typeof extra !== 'object' || extra === null) {
+      return undefined;
+    }
+
+    const source = extra as Record<string, unknown>;
+    const isId = (value: unknown): value is string =>
+      typeof value === 'string' && value.length <= 128;
+    const picked: Record<string, unknown> = {};
+
+    if (isId(source.requestId)) {
+      picked.requestId = source.requestId;
+    }
+
+    const chain = source.upstreamRequestIds;
+
+    if (Array.isArray(chain) && chain.length <= 32 && chain.every(isId)) {
+      picked.upstreamRequestIds = chain;
+    }
+
+    return Object.keys(picked).length > 0 ? picked : undefined;
   }
 
   /** The `args` a throw site passes to its message template are data the client may see; secret-shaped keys in them are masked in production, whatever the logger switch says. */

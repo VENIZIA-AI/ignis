@@ -15,7 +15,7 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis']
 ## What changed
 
 - **Redacted.** `extra` is whatever a throw site attached to the error. The log line already masked secret-shaped keys in it; the response now does the same, and in production it masks whatever `APP_ENV_LOGGER_DO_REDACT` says.
-- **None for a 5xx in production.** The log has the context; a client has no use for it. A client error (4xx) keeps its `extra`, masked, because validation and conflict details are meant for the caller. Outside production every status keeps it, masked.
+- **Only the correlation ids for a 5xx in production.** `requestId` and `upstreamRequestIds` stay (short strings only), because support needs them; everything else is dropped. The log has the context; a client has no use for it. A client error (4xx) keeps its `extra`, masked, because validation and conflict details are meant for the caller. Outside production every status keeps it, masked.
 - **Also in the response.** A nested error in `extra` carries no `stack` in production, the `args` of the message template are masked by key name in production, and `RedactUtility` names a function (`[Function]`) instead of carrying it, so a `toJSON` on a plain object cannot add keys after the redaction.
 - **No more degraded status.** A cycle in `extra` used to make the response fail and fall back to a plain 500; it now reads `[Circular]` and a BigInt becomes text, so the status the throw site chose is the status the client gets.
 

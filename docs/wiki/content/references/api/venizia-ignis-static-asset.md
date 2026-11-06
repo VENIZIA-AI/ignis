@@ -242,8 +242,8 @@ export declare class AssetIngest {
      * process: the guarded body is capped and handed to `writeStream` as a stream.
      *
      * The url is guarded by `UrlIngest.fetchGuarded` - scheme allow-list, every resolved address
-     * checked, redirects walked by hand with a per-hop re-check, and a timeout. The connection goes to the
-     * address that was checked, so a DNS answer that changes afterwards is never used; see `UrlIngest.fetchGuarded`.
+     * checked, redirects walked by hand with a per-hop re-check, and a timeout. A rebinding window
+     * remains open between the check and the connect; see `UrlIngest.assertPublicHost`.
      *
      * The served content type is decided from the stored KEY, never from what the remote host
      * claimed - the same rule the asset routes apply, and for the same reason.
