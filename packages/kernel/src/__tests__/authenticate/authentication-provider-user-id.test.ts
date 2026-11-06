@@ -28,6 +28,8 @@ const build = (opts: {
   strategies: Record<string, IAuthenticationStrategy>;
   names: string[];
   mode?: TAuthMode;
+  /** Answers with the current user the middleware stored, to assert which strategy won. */
+  echoUser?: boolean;
 }) => {
   spyOn(AuthenticationStrategyRegistry, 'getInstance').mockReturnValue({
     resolveStrategy: ({ name }: { name: string }) => opts.strategies[name],
@@ -43,7 +45,11 @@ const build = (opts: {
   app.get(
     '/profile',
     new AuthenticationProvider().value()({ strategies: opts.names, mode: opts.mode }),
-    (context) => context.json({ ok: true }),
+    (context) =>
+      context.json({
+        ok: true,
+        user: opts.echoUser ? context.get('auth.current.user') : undefined,
+      }),
   );
 
   return app;
@@ -103,10 +109,14 @@ describe('authenticate, any mode with several strategies', () => {
         second: strategy({ userId: 'u-2' }),
       },
       names: ['first', 'second'],
+      echoUser: true,
     });
     const response = await app.request('/profile');
+    const result = await response.json();
+    const body = result as { user: { userId?: string } };
 
     expect(response.status).toBe(200);
+    expect(body.user.userId).toBe('u-2');
   });
 
   test('no strategy yields a user id: 401', async () => {

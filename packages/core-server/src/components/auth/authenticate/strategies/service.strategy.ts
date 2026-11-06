@@ -61,10 +61,8 @@ export class ServiceAuthenticationStrategy<E extends Env = Env>
 
     const principal = await this.options.resolvePrincipal({ issuer, context });
 
-    // Validated rather than trusted. `executeAnyMode` calls `setCurrentUser` unconditionally, so an
-    // application returning a principal without a `userId` would authenticate the request and then
-    // fail at the first write, far from here. `executeAllMode` already refuses it; this closes the
-    // gap between the two modes.
+    // Validated rather than trusted. The provider also refuses an answer without a `userId`, but a principal an
+    // application resolves wrongly is reported here, at the cause, with the issuer and the strategy named.
     if (!principal?.userId) {
       this.logger
         .for(this.authenticate.name)

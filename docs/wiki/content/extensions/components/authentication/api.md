@@ -281,7 +281,7 @@ type TRouteAuthenticateConfig =
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `authenticate.strategies` | `TAuthStrategy[]` | -- | Strategy names to try - for example, `['jwt']` or `['jwt', 'basic']`. Any name you register works too; `'jwt'` and `'basic'` are the ones the framework ships |
-| `authenticate.mode` | `'any' \| 'all'` | `'any'` | `'any'`: first success wins. `'all'`: every strategy must pass. In both modes the strategy's answer must carry a `userId`: a verified credential without one does not authenticate the request |
+| `authenticate.mode` | `'any' \| 'all'` | `'any'` | `'any'`: first success wins. `'all'`: every strategy must pass. A verified credential whose answer has no `userId` does not authenticate the request: in `any` mode that strategy counts as failed, in `all` mode the first strategy's answer must carry it |
 | `authenticate.skip` | `true` | -- | Skips authentication for this route entirely |
 
 ### IAuthUser / IJWTTokenPayload

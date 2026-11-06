@@ -15,7 +15,7 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis']
 ## What changed
 
 - **One rule for both modes.** In `any` mode a strategy whose answer has no `userId` counts as failed; the next strategy is tried, and when none identifies a user the request is refused with `401`. `all` mode is unchanged.
-- **Why it matters.** A token can verify without being a login token, for example one the same signing key issued for another purpose. Such a token no longer becomes the current user.
+- **Why it matters.** A token can verify without being a login token, for example one the same signing key issued for another purpose. Such a token, when it carries no `userId`, no longer becomes the current user. A token that does carry one is still accepted if the signature and time claims verify; restricting the accepted purpose, audience and issuer is a `verify` option of the strategy.
 - **Tests.** The provider is tested in both modes with a user, without a user id, with an empty id, and with several strategies.
 
 ## Who is affected

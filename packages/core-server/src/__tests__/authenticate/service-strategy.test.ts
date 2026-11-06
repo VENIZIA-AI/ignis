@@ -135,9 +135,8 @@ describe('the strategy validates what the application hands back', () => {
   });
 
   /**
-   * `executeAnyMode` calls `setCurrentUser` unconditionally, so a principal with no `userId` would
-   * authenticate here and fail at the first write, far from the cause. `executeAllMode` already
-   * refuses it; this closes the gap between the two modes.
+   * A principal with no `userId` is refused by the strategy itself, at the cause, rather than reaching the first
+   * write. The provider refuses it in both modes too; this keeps the message specific.
    */
   test('a principal with no userId is refused', async () => {
     const { signer, strategy, server } = await buildStack({
