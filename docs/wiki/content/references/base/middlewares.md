@@ -114,13 +114,34 @@ const application = new MyApplication({
 
 | Option | Meaning |
 |---|---|
-| `origin` | Required. A string, a list of strings or a function `(origin, context) => string \| null` |
+| `origin` | Required. A string, a list of strings or a function `(origin, context) => string \| null`. A string or a list entry may be a subdomain wildcard, see [Wildcard origins](#wildcard-origins) |
 | `path` | Where it applies. Default `'*'` |
 | `allowMethods`, `allowHeaders`, `exposeHeaders`, `maxAge`, `credentials` | Passed to Hono's `cors()`; unset keys keep Hono's defaults |
 
 Why first: a response the framework produces before your own middlewares run - a `413` from the body limit, a `400` for a body that cannot be parsed - would otherwise carry no `Access-Control-Allow-Origin`, and a browser reports it as a network error instead of a readable status. A preflight (`OPTIONS`) is answered by `cors()` itself with `204`, before the body limit sees it.
 
 The application refuses to boot when `origin` is missing or empty, or when `credentials: true` is combined with the origin `'*'` (a browser rejects a wildcard origin on a credentialed request); list the origins instead.
+
+### Wildcard origins
+
+A string or a list entry may be a subdomain wildcard such as `https://*.example.com`. One matcher handles every pattern (`CorsUtility.matchOriginPattern`), so no app writes its own origin regex:
+
+```typescript
+cors: {
+  origin: ['https://example.com', 'https://*.example.com', 'http://localhost:3000'],
+  credentials: true,
+},
+```
+
+| Request `Origin` | `https://*.example.com` |
+|---|---|
+| `https://app.example.com`, `https://a.b.example.com` | matches |
+| `https://example.com` (the apex) | no - list it next to the pattern |
+| `https://evilexample.com`, `https://example.com.evil.net` | no |
+| `http://app.example.com` | no - the scheme is matched exactly |
+| `https://app.example.com:8443` | no - the port is matched exactly; write `https://*.example.com:8443` for it |
+
+The `*` stands for the whole leftmost host label and nothing else. The host must be lower case and have at least two labels after the `*.`; a pattern that breaks this (`https://*`, `https://*.com`, `https://app*.example.com`, `*.example.com` with no scheme) makes the application refuse to boot. A matching origin is echoed back, so `credentials: true` is allowed with a pattern; the bare `'*'` with `credentials: true` is still refused.
 
 > [!NOTE]
 > A `cors()` you add yourself in `setupMiddlewares()` still works, but it runs after the framework's early exits, so those responses carry no CORS headers. Move the policy into `configs.middlewares.cors`.
