@@ -249,6 +249,35 @@ describe('APP_ENV_LOGGER_DO_REDACT=false - the reveal kill-switch', () => {
     });
   });
 
+  test('force: true with the switch unset masks, as it does without force', () => {
+    flip(undefined, () => {
+      const masked = RedactUtility.redactSecrets({ value: { token: 'tok_live' }, force: true }) as {
+        token: string;
+      };
+
+      expect(masked.token).toBe(REDACTED);
+    });
+  });
+
+  test('force: true masks keys only - the projection still caps strings and breaks repeated references', () => {
+    const address = { city: 'Hanoi' };
+    const note = 'a'.repeat(3000);
+
+    flip('false', () => {
+      const out = RedactUtility.redactSecrets({
+        value: { billing: address, shipping: address, note, number: '4111', password: 'p' },
+        force: true,
+      }) as Record<string, unknown>;
+
+      expect(out.password).toBe(REDACTED);
+      // Not a faithful document: a card number under a non-secret key is kept, a long string is cut, and the
+      // second reference to the same object is a cycle marker.
+      expect(out.number).toBe('4111');
+      expect(String(out.note).length).toBeLessThan(note.length);
+      expect(out.shipping).toBe('[Circular]');
+    });
+  });
+
   test('force: false or absent leaves the switch in charge', () => {
     flip('false', () => {
       const options = { password: 'hunter2' };

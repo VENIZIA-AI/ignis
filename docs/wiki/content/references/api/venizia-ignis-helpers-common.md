@@ -711,7 +711,10 @@ export declare class RedactUtility {
      * rendering only inspects a handful of levels, so walking to `Infinity` did work whose result was
      * thrown away - 12x on a deep graph, and a `RangeError` on a very deep chain.
      *
-     * `force: true` masks even when `APP_ENV_LOGGER_DO_REDACT=false`: for data that must never leave unmasked (invoices, payment or personal data written to a file or sent to a third party). The logger never sets it.
+     * `force: true` masks secret-looking KEYS even when `APP_ENV_LOGGER_DO_REDACT=false`. The result is still the
+     * log-shaped copy: long strings are capped, a second reference to one object reads `[Circular]`, binary is
+     * summarized, and a key is masked by name only (a card number under `number` is not). It is not a faithful
+     * redacted document. The logger never sets it.
      */
     static redactSecrets(opts: {
         value: unknown;
@@ -719,7 +722,7 @@ export declare class RedactUtility {
         depth?: number;
         force?: boolean;
     }): unknown;
-    /** Projects a value into something `JSON.stringify` can render: it answers `[Circular]` for the WHOLE payload when one cycle sits anywhere inside it, so cycles must be broken per-branch first. `depth` bounds the walk the way `util.inspect` does - a log argument may hold a live connector or request context, whose graph is effectively unbounded. The projection itself is unconditional: `APP_ENV_LOGGER_DO_REDACT=false` turns off the key masking, never the structural pass. `force: true` keeps the key masking on whatever the switch says. */
+    /** Projects a value into something `JSON.stringify` can render: it answers `[Circular]` for the WHOLE payload when one cycle sits anywhere inside it, so cycles must be broken per-branch first. `depth` bounds the walk the way `util.inspect` does - a log argument may hold a live connector or request context, whose graph is effectively unbounded. The projection itself is unconditional: `APP_ENV_LOGGER_DO_REDACT=false` turns off the key masking, never the structural pass. `force: true` keeps the key masking on whatever the switch says; the projection stays lossy, as in {@link RedactUtility.redactSecrets}. */
     static toJsonSafe(opts: {
         value: unknown;
         depth?: number;

@@ -10,16 +10,17 @@ packages: ['@venizia/ignis-helpers']
 
 <Badge type="tip" text="New Feature" /> <Badge type="danger" text="Security" />
 
-**In one line.** Pass `force: true` to `RedactUtility.redactSecrets`, `redactUrlCredentials` or `toJsonSafe` and the value is masked even when `APP_ENV_LOGGER_DO_REDACT=false`. A project no longer needs its own always-on redactor for data that must never leave unmasked.
+**In one line.** Pass `force: true` to `RedactUtility.redactSecrets`, `redactUrlCredentials` or `toJsonSafe` and secret-looking keys are masked even when `APP_ENV_LOGGER_DO_REDACT=false`. A project no longer needs its own always-on switch around the redactor for a copy it logs or inspects.
 
 ## What changed
 
-- **A `force` option.** `APP_ENV_LOGGER_DO_REDACT=false` is a debugging switch for log lines. A payment record or personal data written to a file or sent to a third party must be masked whatever the switch says; `force: true` does that.
+- **A `force` option.** `APP_ENV_LOGGER_DO_REDACT=false` is a debugging switch for log lines. `force: true` keeps the key masking on whatever the switch says.
+- **What it does not do.** Keys are matched by name (`password`, `token`, `apiKey`, ...), so a card number under `number` is not masked. The result is the log-shaped copy: long strings are cut, a second reference to one object reads `[Circular]`, binary and `Map` values are summarized. It is not a faithful redacted document to write to a file or send on.
 - **The logger is unchanged.** It never passes `force`, so the switch still turns log masking off for local debugging, and without `force` the three methods behave as before.
 
 ## Who is affected
 
-- **Code that sends data outside the process and relied on `RedactUtility` for masking.** Add `force: true` so a debugging switch left on cannot unmask it.
+- **Code that masks a copy it logs or inspects with `RedactUtility`.** Add `force: true` so a debugging switch left on cannot unmask it.
 - **Everyone else.** No action needed.
 
 ## Details
