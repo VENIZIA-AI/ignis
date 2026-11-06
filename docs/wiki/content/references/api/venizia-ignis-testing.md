@@ -20,6 +20,9 @@ so no socket is opened and no post-start hook runs.
 Datasources are bound and resolved but not configured, unless named in `keepDataSources`; the
 secrets steps are skipped; every other step and every component runs as in a real boot. A component
 that opens Redis, Kafka or S3 in `binding()` therefore runs for real: name it in `skipComponents`.
+`setupMiddlewares()` is not run: it is the application's own start-time step, user code that may open
+connections, and the probe cannot know it is free of side effects. The framework's default stack (CORS, body
+limit, request id) is a boot step of `initialize()`, so an invalid `configs.middlewares` value still fails here.
 When the boot fails inside a component, one warning names it; the rejection is still the original error. When the
 boot fails, the rejection is the original error. The application stays booted and is returned;
 a failed boot leaves a half-booted instance, so build a new one rather than reuse it.

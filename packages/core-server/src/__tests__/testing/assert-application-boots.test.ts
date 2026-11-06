@@ -30,7 +30,15 @@ const okResponse = OpenApiResponses.jsonResponse({
   description: 'ok',
 });
 
-const calls = { failing: 0, counting: 0, component: 0, hydrate: 0, rotatables: 0, override: 0 };
+const calls = {
+  failing: 0,
+  counting: 0,
+  component: 0,
+  hydrate: 0,
+  rotatables: 0,
+  override: 0,
+  middlewares: 0,
+};
 
 beforeEach(() => {
   for (const key of Object.keys(calls)) {
@@ -286,7 +294,9 @@ class PlannedApplication extends BaseApplication {
   }
 
   postConfigure(): void {}
-  setupMiddlewares(): void {}
+  setupMiddlewares(): void {
+    calls.middlewares += 1;
+  }
 
   override async hydrateSecrets(): Promise<void> {
     calls.hydrate += 1;
@@ -357,6 +367,27 @@ describe('ApplicationBootAssertion.assert - the boot path', () => {
 
     expect(seen).toHaveLength(1);
     expect(error).toBe(seen[0]);
+  });
+
+  test('the default stack validates configs.middlewares, so an invalid CORS pattern fails the probe', async () => {
+    const application = new PlannedApplication({
+      config: { middlewares: { cors: { origin: 'http://*:*' } } },
+    });
+    let error: unknown;
+
+    try {
+      await ApplicationBootAssertion.assert({ application });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(String(error)).toContain('[registerCors] configs.middlewares.cors.origin');
+  });
+
+  test('the start-time setupMiddlewares step is user code and is not run by the probe', async () => {
+    await ApplicationBootAssertion.assert({ application: new PlannedApplication(FULL) });
+
+    expect(calls.middlewares).toBe(0);
   });
 
   test('C3 a correct application resolves with that same application', async () => {
