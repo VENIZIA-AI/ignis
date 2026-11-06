@@ -343,7 +343,7 @@ To run this sequence in a test without a database, a port or a network, call `Ap
 
 | Hook | When to Use | Notes |
 |------|-------------|-------|
-| **`staticConfigure()`** | Pre-DI static setup (static files, etc.) | Synchronous, called before `registerArtifacts` |
+| **`staticConfigure()`** | Pre-DI static setup (static files, etc.) | Synchronous, called before `registerArtifacts`. `configs.middlewares` is already read by now: [set it in the constructor](/references/base/middlewares#set-configs-middlewares-in-the-constructor) |
 | **`registerArtifacts`** | Framework registers every class in `configs.artifacts` | Decorator `when` conditions run here, before `preConfigure` |
 | **`preConfigure()`** | Register what the index cannot express - registry calls, hand-made bindings | Nothing instantiated yet - order doesn't matter |
 | **`register...()`** | Framework iterates bindings and instantiates classes | Configurations first, then datasources, then the layers that depend on them |
@@ -396,7 +396,7 @@ interface IApplicationConfigs {
   favicon?: string;                       // Favicon emoji (default: '🔥')
   error?: { rootKey?: string; environment?: string }; // Error envelope root key, ambient environment name
   asyncContext?: { enable: boolean };     // Hono async context storage (default: true on BaseApplication, false on Rest and Worker)
-  middlewares?: IMiddlewareConfigs;       // Only bodyLimit is installed by the framework; see Middlewares Reference
+  middlewares?: IMiddlewareConfigs;       // cors and bodyLimit are installed by the framework, read BEFORE staticConfigure(): pass them here; see Middlewares Reference
   artifacts?: TArtifactIndexInput;        // Generated indexes registered before preConfigure
   discoverArtifacts?: boolean;            // Register every decorated class the application imports (default: false)
   bootChecks?: {                          // Boot-time checks; absent means nothing is verified
@@ -523,8 +523,8 @@ The same file declares three more mixin interfaces that `IRestApplication` does 
 
 ## Middleware Configuration Types
 
-Bind `middlewares` under `configs` and the framework installs `bodyLimit` for you, right after the
-request id and ahead of every other middleware - see [Body limit](/references/base/middlewares#body-limit-configs-middlewares-bodylimit).
+Pass `middlewares` under `configs` to the constructor and the framework installs `cors` first and `bodyLimit` right after the
+request id, ahead of every other middleware - see [CORS](/references/base/middlewares#cors-configs-middlewares-cors) and [Body limit](/references/base/middlewares#body-limit-configs-middlewares-bodylimit).
 Every other key below is a type only; read it from `this.configs.middlewares` inside your own
 `setupMiddlewares()`.
 
