@@ -713,11 +713,14 @@ export abstract class FilterBuilder extends BaseHelper {
         });
       }
 
-      const relationConfig = relations[relationName];
+      // Own properties only: `constructor` or `toString` is not a relation, and an inherited function would fail later as an internal error.
+      const relationConfig = Object.hasOwn(relations, relationName)
+        ? relations[relationName]
+        : undefined;
 
       if (!relationConfig) {
         throw getError({
-          message: `[FilterBuilder][toInclude] Relation NOT FOUND | relation: '${relationName}'`,
+          message: `[FilterBuilder][toInclude] Relation NOT FOUND | relation: '${EchoUtility.toSafeEcho({ value: relationName })}'`,
         });
       }
 
