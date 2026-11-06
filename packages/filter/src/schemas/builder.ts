@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import type { TSchemaDecorator } from './common';
+import { DEFAULT_MAX_WHERE_DEPTH, WhereDepthGuard } from './where-depth';
 
 /**
  * The schemas are built by a factory rather than declared at module scope because documentation metadata has to be injected. `.openapi()` returns a NEW schema instead of mutating, and three of these decorations sit on inner nodes of a nested tree, so a consumer cannot annotate them after the tree is composed - the outer node would still hold the undecorated children.
@@ -10,8 +11,10 @@ import type { TSchemaDecorator } from './common';
 export class QuerySchemaFactory {
   private static readonly identityDecorator: TSchemaDecorator = (schema) => schema;
 
-  static build(opts?: { decorate?: TSchemaDecorator }) {
+  /** `limits.whereDepth` is the deepest `and` / `or` nesting a `where` may have (default 20); a deeper one is a validation issue. */
+  static build(opts?: { decorate?: TSchemaDecorator; limits?: { whereDepth?: number } }) {
     const decorate = opts?.decorate ?? QuerySchemaFactory.identityDecorator;
+    const maxWhereDepth = opts?.limits?.whereDepth ?? DEFAULT_MAX_WHERE_DEPTH;
 
     /**
      * `int().nonnegative()`, not a bare `number()`. A NEGATIVE limit is not a smaller page - Drizzle
@@ -69,9 +72,26 @@ export class QuerySchemaFactory {
       ),
     );
 
+    /** The depth is checked on the raw value first: the recursive schema below costs the square of it. */
+    const BoundedWhereSchema = z
+      .any()
+      .transform((value, ctx) => {
+        if (WhereDepthGuard.exceeds({ value, max: maxWhereDepth })) {
+          ctx.addIssue({
+            code: 'custom',
+            message: `where is nested deeper than ${maxWhereDepth} levels`,
+          });
+
+          return z.NEVER;
+        }
+
+        return value;
+      })
+      .pipe(RecursiveWhereSchema);
+
     const WhereSchema = decorate(
       z.union([
-        RecursiveWhereSchema,
+        BoundedWhereSchema,
         z
           .string()
           // A caught parse, never a bare `JSON.parse`. zod lets a thrown SyntaxError escape
@@ -90,7 +110,7 @@ export class QuerySchemaFactory {
               return z.NEVER;
             }
           })
-          .pipe(RecursiveWhereSchema),
+          .pipe(BoundedWhereSchema),
       ]),
       { type: 'object', description: 'Query conditions for selecting data.' },
     );

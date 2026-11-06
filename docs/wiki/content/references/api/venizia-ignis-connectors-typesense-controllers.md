@@ -154,7 +154,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 queryBy: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                 highlight: z.ZodOptional<z.ZodBoolean>;
                                 filter: z.ZodOptional<z.ZodObject<{
-                                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+                                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                     limit: z.ZodOptional<z.ZodNumber>;
@@ -183,7 +183,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 queryText: z.ZodOptional<z.ZodString>;
                                 k: z.ZodOptional<z.ZodNumber>;
                                 filter: z.ZodOptional<z.ZodObject<{
-                                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+                                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                     limit: z.ZodOptional<z.ZodNumber>;
@@ -214,7 +214,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 alpha: z.ZodOptional<z.ZodNumber>;
                                 k: z.ZodOptional<z.ZodNumber>;
                                 filter: z.ZodOptional<z.ZodObject<{
-                                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>]>>;
+                                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
                                     order: z.ZodOptional<z.ZodArray<z.ZodString>>;
                                     limit: z.ZodOptional<z.ZodNumber>;
