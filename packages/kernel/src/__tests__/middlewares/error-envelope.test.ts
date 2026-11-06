@@ -516,6 +516,48 @@ describe('the `extra` a response carries', () => {
     expect(body.extra.requestPayload.card).toBe('visible-card');
   });
 
+  test('in production a function-valued toJSON in extra cannot add keys after the redaction', async () => {
+    const { body } = await probe({
+      middleware: production(),
+      thrower: throwWithStatus({
+        statusCode: HTTP.ResultCodes.RS_4.Conflict,
+        extra: { blob: { toJSON: () => ({ apiKey: 'TOJSON_SECRET' }) } },
+      }),
+    });
+
+    expect(JSON.stringify(body)).not.toContain('TOJSON_SECRET');
+  });
+
+  test('in production a nested error in extra carries no stack', async () => {
+    const { body } = await probe({
+      middleware: production(),
+      thrower: throwWithStatus({
+        statusCode: HTTP.ResultCodes.RS_4.Conflict,
+        extra: { upstream: new Error('upstream refused') },
+      }),
+    });
+
+    expect(body.extra.upstream.message).toBe('upstream refused');
+    expect(body.extra.upstream.stack).toBeUndefined();
+  });
+
+  test('in production the message args are masked by key name, even on a server error', async () => {
+    const { status, body } = await probe({
+      middleware: production(),
+      thrower: () => {
+        throw getError({
+          statusCode: HTTP.ResultCodes.RS_5.BadGateway,
+          message: 'upstream %{name} failed',
+          messageArgs: { name: 'payments', apiKey: 'sk_live_ARGS' },
+        });
+      },
+    });
+
+    expect(status).toBe(HTTP.ResultCodes.RS_5.BadGateway);
+    expect(body.normalized.args.apiKey).toBe('[REDACTED]');
+    expect(JSON.stringify(body)).not.toContain('sk_live_ARGS');
+  });
+
   test('an error without `extra` has none', async () => {
     const { body } = await probe({ thrower: throwIntentional });
 

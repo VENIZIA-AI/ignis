@@ -435,15 +435,40 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
 
     // A value `context.json` would refuse (a BigInt) becomes text here, so the authored status survives it.
     try {
-      const text = JSON.stringify(safe, (_key, entry: unknown) =>
-        typeof entry === 'bigint' ? entry.toString() : entry,
-      );
+      // A nested Error keeps its `stack` through the redaction (the log wants it); a client in production does not get one.
+      const text = JSON.stringify(safe, (key, entry: unknown) => {
+        if (isProduction && key === 'stack') {
+          return undefined;
+        }
+
+        return typeof entry === 'bigint' ? entry.toString() : entry;
+      });
 
       return text === undefined ? undefined : JSON.parse(text);
       // eslint-disable-next-line venizia/no-silent-catch -- the marker returned below is the report: the response carries it where the value would have been
     } catch {
       return '[unrenderable]';
     }
+  }
+
+  /** The `args` a throw site passes to its message template are data the client may see; secret-shaped keys in them are masked in production, whatever the logger switch says. */
+  private renderNormalized(opts: {
+    normalized: IResolvedApplicationError['normalized'];
+    isProduction: boolean;
+  }): IResolvedApplicationError['normalized'] {
+    const { normalized, isProduction } = opts;
+
+    if (!isProduction || !normalized.args || Object.keys(normalized.args).length === 0) {
+      return normalized;
+    }
+
+    return {
+      ...normalized,
+      args: RedactUtility.redactSecrets({
+        value: normalized.args,
+        force: true,
+      }) as typeof normalized.args,
+    };
   }
 
   value(): ErrorHandler {
@@ -482,7 +507,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
       const rs = {
         message: this.renderMessage({ resolved, isProduction, requestId }),
         statusCode,
-        normalized,
+        normalized: this.renderNormalized({ normalized, isProduction }),
         requestId,
         extra: this.renderExtra({ error, statusCode, isProduction }),
         details: {

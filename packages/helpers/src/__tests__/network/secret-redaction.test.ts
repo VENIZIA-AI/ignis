@@ -186,6 +186,17 @@ describe('redactSecrets - the Vault wire spellings the key list must now cover',
   });
 });
 
+describe('redactSecrets - a function is named, never carried', () => {
+  test('an own toJSON cannot add keys after the walk', () => {
+    const redacted = RedactUtility.redactSecrets({
+      value: { blob: { toJSON: () => ({ apiKey: 'TOJSON_SECRET' }) }, ok: 1 },
+    });
+
+    expect(JSON.stringify(redacted)).not.toContain('TOJSON_SECRET');
+    expect(JSON.stringify(redacted)).toBe('{"blob":{"toJSON":"[Function]"},"ok":1}');
+  });
+});
+
 describe('redactSecrets - Error awareness keeps the diagnosis, drops the secret', () => {
   test('an AxiosError-shaped object keeps its message but redacts the nested token', () => {
     const axiosError = Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:8200'), {
