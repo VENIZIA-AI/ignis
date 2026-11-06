@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-96 exports, 96 with TSDoc. 912 more are re-exported from other entries (listed at the end).
+96 exports, 96 with TSDoc. 913 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3398,6 +3398,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `post` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `PostgresBaseRepository` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `PostgresDataTypeEnricher` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
+- `PostgresErrorCodes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `PostgresFilterBuilder` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `PostgresIdEnricher` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `PostgresPrincipalEnricher` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)

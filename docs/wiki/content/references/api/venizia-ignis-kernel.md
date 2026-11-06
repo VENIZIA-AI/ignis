@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-340 exports, 340 with TSDoc. 77 more are re-exported from other entries (listed at the end).
+341 exports, 341 with TSDoc. 77 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -5344,6 +5344,45 @@ export declare const post: <RestRouteConfigType extends Omit<IAuthRouteConfig, "
 ```
 
 Source: `packages/kernel/src/base/metadata/routes/rest.ts`
+
+## `PostgresErrorCodes`
+
+*const*
+
+PostgreSQL SQLSTATE codes representing a CLIENT error (HTTP 400) - caused by the request/data, not a server fault. @see https://www.postgresql.org/docs/current/errcodes-appendix.html
+
+```ts
+export declare const PostgresErrorCodes: {
+    readonly DATA_EXCEPTION: "22000";
+    readonly STRING_DATA_TOO_LONG: "22001";
+    readonly NUMERIC_VALUE_OUT_OF_RANGE: "22003";
+    readonly NULL_VALUE_NOT_ALLOWED: "22004";
+    readonly INVALID_DATETIME_FORMAT: "22007";
+    readonly DATETIME_FIELD_OVERFLOW: "22008";
+    readonly INVALID_TIME_ZONE_DISPLACEMENT_VALUE: "22009";
+    readonly SUBSTRING_ERROR: "22011";
+    readonly DIVISION_BY_ZERO: "22012";
+    readonly INVALID_PARAMETER_VALUE: "22023";
+    readonly INVALID_ESCAPE_SEQUENCE: "22025";
+    readonly STRING_DATA_LENGTH_MISMATCH: "22026";
+    readonly DUPLICATE_JSON_OBJECT_KEY_VALUE: "22030";
+    readonly INVALID_JSON_TEXT: "22032";
+    readonly FLOATING_POINT_EXCEPTION: "22P01";
+    readonly INVALID_TEXT_REPRESENTATION: "22P02";
+    readonly INVALID_BINARY_REPRESENTATION: "22P03";
+    readonly UNTRANSLATABLE_CHARACTER: "22P05";
+    readonly INTEGRITY_CONSTRAINT_VIOLATION: "23000";
+    readonly RESTRICT_VIOLATION: "23001";
+    readonly NOT_NULL_VIOLATION: "23502";
+    readonly FOREIGN_KEY_VIOLATION: "23503";
+    readonly UNIQUE_VIOLATION: "23505";
+    readonly CHECK_VIOLATION: "23514";
+    readonly EXCLUSION_VIOLATION: "23P01";
+    readonly WITH_CHECK_OPTION_VIOLATION: "44000";
+};
+```
+
+Source: `packages/kernel/src/base/middlewares/app-error/definition.ts`
 
 ## `put`
 
