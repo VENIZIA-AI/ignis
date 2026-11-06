@@ -110,7 +110,10 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
       // `code` and `state` are credentials in an OAuth callback and too common as plain names to mask everywhere.
       const query = Object.fromEntries(
         Object.entries(req.query() ?? {}).map(([key, value]) => {
-          return [key, RequestSpyMiddleware.CALLBACK_PARAMETERS.has(key.toLowerCase()) ? REDACTED : value];
+          return [
+            key,
+            RequestSpyMiddleware.CALLBACK_PARAMETERS.has(key.toLowerCase()) ? REDACTED : value,
+          ];
         }),
       );
 
