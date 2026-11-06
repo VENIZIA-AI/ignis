@@ -16,8 +16,44 @@ export const isPromiseLike = <T>(value: T | PromiseLike<T>): value is PromiseLik
 
 /** Waiting, bounded concurrency and fire-and-forget. `voidExecution` is not a `BaseHelper` member: TS cannot emit protected members on an exported ANONYMOUS class (TS4094), which is what factory-built controllers return; a static on a separate class has no such limit. */
 export class PromiseUtility {
-  static sleep(opts: { ms: number }): Promise<unknown> {
+  static sleep(opts: { ms: number }): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, opts.ms));
+  }
+
+  /**
+   * Runs `call` and resolves with its result, or rejects with an `ApplicationError` when `timeoutMs` passes first
+   * (`message` is the error text; the default names the limit). The timer is cleared on every path - the call wins,
+   * the timeout wins, the call throws - so none is left behind. The call's own rejection passes through unchanged.
+   * The losing call keeps running: a promise cannot be cancelled. `timeoutMs` must be a positive finite number, else
+   * this rejects without running `call`.
+   */
+  static async withTimeout<T>(opts: {
+    call: () => ValueOrPromise<T>;
+    timeoutMs: number;
+    message?: string;
+  }): Promise<T> {
+    const { call, timeoutMs, message } = opts;
+
+    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+      throw getError({
+        message: `[withTimeout] timeoutMs must be a positive finite number | received: ${timeoutMs}`,
+      });
+    }
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(() => {
+        reject(getError({ message: message ?? `[withTimeout] Timed out after ${timeoutMs}ms` }));
+      }, timeoutMs);
+    });
+
+    try {
+      const result = await Promise.race([new Promise<T>((resolve) => resolve(call())), timeout]);
+
+      return result;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   /** Execute async tasks with bounded concurrency. */

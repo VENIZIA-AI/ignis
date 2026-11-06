@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-204 exports, 204 with TSDoc. 215 more are re-exported from other entries (listed at the end).
+203 exports, 203 with TSDoc. 216 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -3790,36 +3790,6 @@ export declare const NON_SLUG_CHARACTERS_PATTERN: RegExp;
 
 Source: `packages/helpers/src/modules/slug/common/constants.ts`
 
-## `PromiseUtility`
-
-*class*
-
-Waiting, bounded concurrency and fire-and-forget. `voidExecution` is not a `BaseHelper` member: TS cannot emit protected members on an exported ANONYMOUS class (TS4094), which is what factory-built controllers return; a static on a separate class has no such limit.
-
-```ts
-export declare class PromiseUtility {
-    static sleep(opts: {
-        ms: number;
-    }): Promise<unknown>;
-    /** Execute async tasks with bounded concurrency. */
-    static executeWithLimit<T>(opts: {
-        tasks: Array<TTask<T>>;
-        limit: number;
-        onTaskDone?: <R>(opts: {
-            result: R;
-        }) => ValueOrPromise<void>;
-    }): Promise<Awaited<T>[]>;
-    /** Fire-and-forget: routes rejection to `logger` (or console.error), passes sync results through untouched. */
-    static voidExecution(opts: {
-        logger?: ILogger;
-        scope: string;
-        execution: ValueOrPromise<unknown>;
-    }): void;
-}
-```
-
-Source: `packages/helpers/src/utilities/promise.utility.ts`
-
 ## `PropsWithChildren`
 
 *type*
@@ -5350,6 +5320,7 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `OpaqueUidHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `ParseUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `PerformanceUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `PromiseUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `QueryStringNestedModes` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `QueryStringNullishModes` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `QueryStringSeparators` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)

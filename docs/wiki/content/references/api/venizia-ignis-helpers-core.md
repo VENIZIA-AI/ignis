@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-99 exports, 99 with TSDoc. 59 more are re-exported from other entries (listed at the end).
+100 exports, 100 with TSDoc. 59 more are re-exported from other entries (listed at the end).
 
 ## `AbstractCryptoAlgorithm`
 
@@ -1545,6 +1545,48 @@ export declare class ProjectRootRegistry {
 ```
 
 Source: `packages/helpers/src/utilities/project-root.utility.ts`
+
+## `PromiseUtility`
+
+*class*
+
+Waiting, bounded concurrency and fire-and-forget. `voidExecution` is not a `BaseHelper` member: TS cannot emit protected members on an exported ANONYMOUS class (TS4094), which is what factory-built controllers return; a static on a separate class has no such limit.
+
+```ts
+export declare class PromiseUtility {
+    static sleep(opts: {
+        ms: number;
+    }): Promise<void>;
+    /**
+     * Runs `call` and resolves with its result, or rejects with an `ApplicationError` when `timeoutMs` passes first
+     * (`message` is the error text; the default names the limit). The timer is cleared on every path - the call wins,
+     * the timeout wins, the call throws - so none is left behind. The call's own rejection passes through unchanged.
+     * The losing call keeps running: a promise cannot be cancelled. `timeoutMs` must be a positive finite number, else
+     * this rejects without running `call`.
+     */
+    static withTimeout<T>(opts: {
+        call: () => ValueOrPromise<T>;
+        timeoutMs: number;
+        message?: string;
+    }): Promise<T>;
+    /** Execute async tasks with bounded concurrency. */
+    static executeWithLimit<T>(opts: {
+        tasks: Array<TTask<T>>;
+        limit: number;
+        onTaskDone?: <R>(opts: {
+            result: R;
+        }) => ValueOrPromise<void>;
+    }): Promise<Awaited<T>[]>;
+    /** Fire-and-forget: routes rejection to `logger` (or console.error), passes sync results through untouched. */
+    static voidExecution(opts: {
+        logger?: ILogger;
+        scope: string;
+        execution: ValueOrPromise<unknown>;
+    }): void;
+}
+```
+
+Source: `packages/helpers/src/utilities/promise.utility.ts`
 
 ## `QueryStringNestedModes`
 

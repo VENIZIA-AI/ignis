@@ -13,12 +13,12 @@ The helpers utilities used to be bare functions (`int`, `sleep`, `executePromise
 | **Module** | `ignis-helpers` | Optional peer loading | `ModuleUtility` |
 | **Parse** | `ignis-helpers` | Data type conversion | `ParseUtility.toInt()`, `.toFloat()`, `.toBoolean()`, `.toCamel()` |
 | **Performance** | `ignis-helpers` | Execution timing | `PerformanceUtility.executeWithMeasure()`, `.getCheckpoint()` |
-| **Promise** | `ignis-helpers` | Promise helpers | `PromiseUtility.executeWithLimit()`, `isPromiseLike()`, `ErrorUtility.toError()` |
+| **Promise** | `ignis-helpers` | Promise helpers | `PromiseUtility.executeWithLimit()`, `.withTimeout()`, `isPromiseLike()`, `ErrorUtility.toError()` |
 | **Request** | `ignis-helpers` | HTTP utilities | `RequestUtility.parseMultipartBody()`, `.sanitizeFilename()`, `.buildContentDispositionHeader()` |
 | **Retry** | `ignis-helpers` | Backoff-driven retries | `RetryHelper` |
 | **Schema** | `ignis` | Zod schema helpers | `OpenApiResponses.jsonContent()`, `OpenApiResponses.jsonResponse()`, `OpenApiSchemas.requiredString()`, `OpenApiSchemas.idParams()` |
 | **Statuses** | `ignis` | Status code constants | `Statuses`, `CommonStatuses`, `UserStatuses`, `RoleStatuses` |
-| **Timing** | `ignis-helpers` | Pause and measure | `PromiseUtility.sleep()`, `HrTimeUtility.getSeconds()` |
+| **Timing** | `ignis-helpers` | Pause and measure | `PromiseUtility.sleep()`, `.withTimeout()`, `HrTimeUtility.getSeconds()` |
 
 Calendar dates - parsing, formatting, adding a month in a time zone - live in [`TemporalHelper`](/extensions/helpers/temporal/).
 

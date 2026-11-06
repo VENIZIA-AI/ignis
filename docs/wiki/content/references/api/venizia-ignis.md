@@ -3407,7 +3407,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `PostgresQueryOperators` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `PostgresTzEnricher` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `PostgresUserAuditEnricher` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
-- `PromiseUtility` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `PromiseUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `PropsWithChildren` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `provide` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `put` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
