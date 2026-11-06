@@ -36,7 +36,8 @@ const SECRET_KEY_PATTERN = new RegExp(
     // an underscore before the word).
     '|^(secret_?access_?key|aws_?secret_?access_?key|signing_?key|encryption_?key|master_?key|hmac_?key|account_?key|storage_?key|license_?key|reset_?key|reset_?code|verification_?code|authorization_?code|auth_?code)$',
     '|^(jwt|session_?id|sid|signature|sig|passwd|pwd|passcode|pass_phrase|secret_?answer|otp|totp|cvv|cvc|card_?number|ssn|national_?id)$',
-    '|^(redis_?url|mongo_?uri|mongo_?url)$',
+    '|^(redis_?url|mongo_?uri|mongo_?url|webhook_?url|private_?key_?pem|password_?hash|mfa_?code|otp_?code|x_?api_?key)$',
+    '|^(api_?keys|refresh_?tokens|access_?tokens|secrets|tokens)$',
     '|^(x-amz-signature|x-amz-security-token|x-amz-credential)$',
     '|^(id|refresh|access|bearer|auth|api|session|csrf|xsrf)-token$',
     '|^(client|api|app|webhook)-secret$|^(private|signing|secret|api|access|encryption)-key$',
@@ -47,15 +48,22 @@ const SECRET_KEY_PATTERN = new RegExp(
 /** The placeholder that replaces a secret value in redacted output. */
 export const REDACTED = '[REDACTED]';
 
-/** `scheme://user:password@host`: the password of a url's userinfo, wherever the url sits inside a string. */
-const URL_USERINFO_PATTERN = /([a-z][a-z0-9+.-]*:\/\/)([^\s/:@]*):([^\s/@]+)@/gi;
+/**
+ * `://user:password@host`: the password of a url's userinfo, wherever the url sits inside a string. Anchored on `://`
+ * (not on the scheme, whose letters a pattern would rescan from every start) and every run is bounded, so the cost is
+ * linear in the string. The password runs to the LAST `@` before a space or slash, so one that holds an `@` is whole.
+ */
+const URL_USERINFO_PATTERN = /(:\/\/[^\s/:@]{0,256}):[^\s/]{1,256}@/g;
+
+/** `://token@host`: a userinfo with no password is the credential itself (`https://<token>@github.com`). */
+const URL_USER_ONLY_PATTERN = /:\/\/[^\s/:@]{1,256}@/g;
 
 /** `Bearer abc...` and `Basic abc...` credentials, as an `Authorization` header or a message quotes them. */
 const AUTH_SCHEME_PATTERN = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{8,}/gi;
 
-/** A credential-like parameter in a query string: `?access_token=...`, `&signature=...`. */
+/** A credential-like `name=value` after a query, fragment, list or space: `?access_token=...`, `#id_token=...`, `, password=...`. */
 const QUERY_CREDENTIAL_PATTERN =
-  /([?&;])(access_token|refresh_token|id_token|token|api_key|apikey|password|passwd|pwd|secret|client_secret|signature|sig|x-amz-signature|x-amz-security-token|jwt|session_id|sessionid|code)=([^&\s#]*)/gi;
+  /([?&;,#\s])(access_token|refresh_token|id_token|token|api_key|apikey|x-api-key|key|auth|password|passwd|pwd|secret|client_secret|signature|sig|x-amz-signature|x-amz-security-token|jwt|session_id|sessionid|code)=([^&\s#,)]*)/gi;
 
 /** A string with the credentials it carries masked: a connection url's password, a bearer token, a credential query parameter. */
 const scrubString = (value: string): string => {
@@ -64,7 +72,8 @@ const scrubString = (value: string): string => {
   }
 
   return value
-    .replace(URL_USERINFO_PATTERN, `$1$2:${'[REDACTED]'}@`)
+    .replace(URL_USERINFO_PATTERN, `$1:${'[REDACTED]'}@`)
+    .replace(URL_USER_ONLY_PATTERN, `://${'[REDACTED]'}@`)
     .replace(AUTH_SCHEME_PATTERN, `$1 ${'[REDACTED]'}`)
     .replace(QUERY_CREDENTIAL_PATTERN, `$1$2=${'[REDACTED]'}`);
 };
@@ -232,6 +241,11 @@ export class RedactUtility {
       depth,
       maxStringLength: resolveMaxStringLength(),
     });
+  }
+
+  /** Masks the credentials a plain string carries (a url's password, a bearer token, credential query parameters). For a log line's string argument; objects go through {@link RedactUtility.redactSecrets}. `force: true` scrubs even when `APP_ENV_LOGGER_DO_REDACT=false`. */
+  static scrubText(opts: { value: string; force?: boolean }): string {
+    return isRedactionEnabled(opts.force) ? scrubString(opts.value) : opts.value;
   }
 
   /** Projects a value into something `JSON.stringify` can render: it answers `[Circular]` for the WHOLE payload when one cycle sits anywhere inside it, so cycles must be broken per-branch first. `depth` bounds the walk the way `util.inspect` does - a log argument may hold a live connector or request context, whose graph is effectively unbounded. The projection itself is unconditional: `APP_ENV_LOGGER_DO_REDACT=false` turns off the key masking, never the structural pass. `force: true` keeps the key masking on whatever the switch says; the projection stays lossy, as in {@link RedactUtility.redactSecrets}. */

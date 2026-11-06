@@ -54,7 +54,8 @@ export class LogFormatUtility {
       const isInspectable = typeof arg === 'object' && arg !== null;
 
       if (!isInspectable) {
-        return arg;
+        // A string argument (`%s`, or none) is printed as written: the credentials it carries are masked first.
+        return typeof arg === 'string' ? RedactUtility.scrubText({ value: arg }) : arg;
       }
 
       // `%j` runs JSON.stringify, which answers `[Circular]` for the WHOLE argument when one cycle sits anywhere inside it - a transaction handle in the payload wipes out every other field. It also has no notion of secret keys, and no depth limit of its own. Project the value first, under the same depth cap `%s` gets.

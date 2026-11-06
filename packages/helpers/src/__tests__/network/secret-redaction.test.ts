@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { REDACTED, RedactUtility } from '@/common/redact';
+import { LogFormatUtility } from '@/modules/logger/formatting/deep-splat';
 
 /** Secrets in a log line ship to an aggregator and outlive the process; pins the two shapes a secret arrives in - a KEY in an options object, and the authority section of a URL. */
 describe('redactUrlCredentials', () => {
@@ -495,5 +496,66 @@ describe('redactSecrets - more credential names and the credentials inside strin
         process.env.APP_ENV_LOGGER_DO_REDACT = previous;
       }
     }
+  });
+});
+
+describe('scrubbing strings - bounded cost and the forms a first pass missed', () => {
+  const scrub = (value: string) => RedactUtility.scrubText({ value, force: true });
+
+  test.each([
+    ['a long run of letters then @', `${'a'.repeat(1e6)}@`],
+    ['many scheme starts', `http://${'a:'.repeat(1e5)}`],
+    ['a long bearer value', `Bearer ${'a'.repeat(1e6)}`],
+    ['many query starts', '?token='.repeat(1e5)],
+    ['a long userinfo with no @', `://${'a'.repeat(1e6)}`],
+  ])('%s: a megabyte is scrubbed in well under a second', (_name, input) => {
+    const started = performance.now();
+    scrub(input);
+
+    expect(performance.now() - started).toBeLessThan(500);
+  });
+
+  test.each([
+    ['postgres://user:p@ss@host/db', 'postgres://user:[REDACTED]@host/db'],
+    ['https://ghp_TOKEN@github.com/x.git', 'https://[REDACTED]@github.com/x.git'],
+    ['x #access_token=abc&state=1', 'x #access_token=[REDACTED]&state=1'],
+    ['/cb?key=abc&auth=def', '/cb?key=[REDACTED]&auth=[REDACTED]'],
+    ['user=a, password=hunter2, ok=1', 'user=a, password=[REDACTED], ok=1'],
+    ['[link](https://x.y/?sig=1) text', '[link](https://x.y/?sig=[REDACTED]) text'],
+  ])('%s', (input, expected) => {
+    expect(scrub(input)).toBe(expected);
+  });
+
+  test.each([
+    'privateKeyPem',
+    'passwordHash',
+    'password_hash',
+    'mfaCode',
+    'otpCode',
+    'webhookUrl',
+    'apiKeys',
+    'refreshTokens',
+    'secrets',
+    'xApiKey',
+  ])('the key %s is masked', (key) => {
+    expect(
+      (
+        RedactUtility.redactSecrets({ value: { [key]: 'V' }, force: true }) as Record<
+          string,
+          string
+        >
+      )[key],
+    ).toBe(REDACTED);
+  });
+});
+
+describe('the logger scrubs a string argument', () => {
+  test('a url in a %s argument loses its password', () => {
+    const line = LogFormatUtility.formatMessage({
+      message: 'connecting to %s',
+      args: ['postgres://u:hunter2@h/db'],
+    });
+
+    expect(line).toBe('connecting to postgres://u:[REDACTED]@h/db');
   });
 });
