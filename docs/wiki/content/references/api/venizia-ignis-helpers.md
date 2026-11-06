@@ -1276,7 +1276,6 @@ export declare class DiskHelper extends BaseStorageHelper {
     private basePath;
     constructor(options: IDiskHelperOptions);
     private getBucketPath;
-    private getObjectPath;
     /** Validates the name AND the resolved path: containment survives a naming rule we get wrong. */
     private resolveObjectPath;
     /** `null` means not there. Anything but ENOENT is logged: it may exist and be unreadable. */
