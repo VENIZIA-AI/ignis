@@ -359,20 +359,32 @@ export class ReadableSearchRepository<
 
     const named: Array<{ param: string; field: string }> = [];
 
+    // An engine reads a field list as a comma-joined string, so one element can name several fields: each part is checked.
+    const addFields = (entry: { param: string; value: string }) => {
+      for (const part of entry.value.split(',')) {
+        named.push({ param: entry.param, field: part.trim() });
+      }
+    };
+
     for (const param of ['facetBy', 'groupBy', 'highlightFields', 'highlightFullFields'] as const) {
-      for (const field of input[param] ?? []) {
-        named.push({ param, field });
+      for (const value of input[param] ?? []) {
+        addFields({ param, value });
       }
     }
 
     if (input.facetQuery !== undefined) {
-      named.push({ param: 'facetQuery', field: input.facetQuery.split(':')[0]?.trim() ?? '' });
+      addFields({ param: 'facetQuery', value: input.facetQuery.split(':')[0] ?? '' });
     }
 
     if ('queryBy' in input) {
-      for (const field of input.queryBy ?? []) {
-        named.push({ param: 'queryBy', field });
+      for (const value of input.queryBy ?? []) {
+        addFields({ param: 'queryBy', value });
       }
+    }
+
+    // The vector field of a semantic or hybrid search is a field name too.
+    if ('vectorField' in input && typeof input.vectorField === 'string') {
+      addFields({ param: 'vectorField', value: input.vectorField });
     }
 
     const hidden = named.find(({ field }) => this.hiddenFields.includes(field));
