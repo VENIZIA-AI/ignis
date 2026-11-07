@@ -22,7 +22,7 @@ Each layer adds one capability. The first two ship from `@venizia/ignis-kernel` 
 | Class | Adds | Key Methods |
 |-------|------|-------------|
 | **AbstractApplication** | config, lifecycle hooks, the DI container | `init()`, `registerPostStartHook()`, `registerPostStopHook()` |
-| **RestApplication** | the two `OpenAPIHono` routers and the whole registration surface | `getServer()`, `getRootRouter()`, `configuration()`, `component()`, `controller()`, `service()`, `repository()`, `dataSource()`, `registerArtifacts()` |
+| **RestApplication** | the two routers (plain `Hono`, or `OpenAPIHono` once the REST controller layer is loaded) and the whole registration surface | `getServer()`, `getRootRouter()`, `configuration()`, `component()`, `controller()`, `service()`, `repository()`, `dataSource()`, `registerArtifacts()` |
 | **ServerApplication** | the socket | `start()`, `stop()`, `getServerHost()`, `getServerPort()`, `getServerAddress()` |
 | **BaseApplication** | secrets, static serving, the gRPC transport, the server-only boot steps | `static()`, `validateEnvs()`, `registerSecrets()`, `hydrateSecrets()`, `wireSecretRotatables()` |
 
@@ -75,7 +75,9 @@ abstract class RestApplication<
 > extends AbstractApplication
 ```
 
-It builds the two `OpenAPIHono` instances - the main server and the `rootRouter` - and binds them as `APPLICATION_SERVER` and `APPLICATION_ROOT_ROUTER`.
+It builds the two routers - the main server and the `rootRouter` - and binds them as `APPLICATION_SERVER` and `APPLICATION_ROOT_ROUTER`.
+
+The routers are plain `Hono` unless the REST controller layer is part of the program: loading `AbstractRestController` registers `OpenAPIHono`, and from then on the routers are `OpenAPIHono`. So a browser worker with no controller never loads `@hono/zod-openapi`, zod or zod-to-openapi (about 137 KB, 45 KB gzipped, instead of 569 KB, 146 KB gzipped). A subclass that must always have `OpenAPIHono` overrides the protected `createRouter({ strict })`; `ServerApplication` does.
 
 ## `ServerApplication`
 
@@ -98,7 +100,7 @@ Port `0` survives that scan on purpose - it asks the operating system for an eph
 
 | Feature | Description |
 | :--- | :--- |
-| **Hono Instance** | Creates and holds two `OpenAPIHono` instances - a main server and a root router |
+| **Hono Instance** | Creates and holds two `OpenAPIHono` instances - a main server and a root router (`createRouter()` always builds an `OpenAPIHono` here) |
 | **Runtime Guard** | `start()` throws `IGNIS requires Bun >= 1.4 (running on <runtime>)` on any other runtime, before it touches a hook, a datasource or a socket |
 | **Core Bindings** | Registers `CoreBindings.APPLICATION_INSTANCE`, `CoreBindings.APPLICATION_SERVER`, and `CoreBindings.APPLICATION_ROOT_ROUTER` |
 | **Lifecycle Management** | Defines abstract methods (`preConfigure`, `postConfigure`, `setupMiddlewares`, `staticConfigure`, `initialize`, `getAppInfo`) |
@@ -156,10 +158,10 @@ type TBunServerInstance = ReturnType<typeof Bun.serve>;
 The router and the socket are held apart. `RestApplication` carries the router alone:
 
 ```typescript
-protected server: { hono: OpenAPIHono<AppEnv, AppSchema, BasePath> };
+protected server: { hono: Hono<AppEnv, AppSchema, BasePath> };
 ```
 
-`ServerApplication` adds the runtime and the socket as two separate fields of its own:
+`ServerApplication` narrows it to `OpenAPIHono` and adds the runtime and the socket as two separate fields of its own:
 
 ```typescript
 protected runtime = RuntimeModules.detect();

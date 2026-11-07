@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors, from the built declarat
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-3 exports, 3 with TSDoc. 129 more are re-exported from other entries (listed at the end).
+3 exports, 3 with TSDoc. 134 more are re-exported from other entries (listed at the end).
 
 ## `AbstractDriverDataSource`
 
@@ -25,15 +25,15 @@ neutral base - do not move it down into a family.
 
 ```ts
 export declare abstract class AbstractDriverDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = unknown, TConnector = unknown, TDriver extends IConnectorDriver<TConnector, AnyType> = IConnectorDriver<TConnector, Client>> extends AbstractDataSource<Settings, Schema, ConfigurableOptions> {
-    connector: TConnector;
+    connector?: TConnector;
     protected client?: Client;
     protected driver?: TDriver;
     private closePromise?;
     /**
      * Lazy and idempotent: builds the driver named by `@datasource({ driver })` over the client
-     * `configure()` assigned, then the connector from it.
+     * `configure()` assigned, then the connector from it. Returns the connector.
      */
-    protected wireDriverFromMetadata(): void;
+    protected wireDriverFromMetadata(): TConnector;
     /**
      * Rejects a driver-name string from untyped JS
      * callers: a string carries no module into the bundle.
@@ -42,12 +42,12 @@ export declare abstract class AbstractDriverDataSource<Settings extends object =
     protected resolveDriver(): TDriver;
     /**
      * Assigns `this.driver` AND builds `this.connector` in one step - a
-     * driver without its connector is silently bypassed on pooled queries.
+     * driver without its connector is silently bypassed on pooled queries. Returns the connector.
      */
     protected useDriver(opts: {
         driver: TDriver;
         schema?: Schema;
-    }): void;
+    }): TConnector;
     /** A datasource that opens on first use has no client, driver or connector until the first call that needs it has awaited `ensureOpen()`. */
     private assertOpenForSyncUse;
     /** The handles `configure()` is given: the connector and the client through the ungated internals, so its own database work (migrations, seeding) needs no gate. */
@@ -167,6 +167,7 @@ Source: `packages/connectors/src/common/scope-filter.ts`
 - `IDefinedEntity` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `IEntity` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `IImportResult` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
+- `IInsertConflictOptions` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `IInsertOptions` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `IManyRelation` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `IMigration` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
@@ -207,6 +208,7 @@ Source: `packages/connectors/src/common/scope-filter.ts`
 - `IStatementResult` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `ISynonym` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
 - `ITransformedUpdateData` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
+- `IUniqueKey` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `IUpdateOptions` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `IWriteResult` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `JSON_PATH_PATTERN` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
@@ -272,10 +274,13 @@ Source: `packages/connectors/src/common/scope-filter.ts`
 - `TSearchMode` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
 - `TSearchSchema` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
 - `TSoftDeletableTableSchema` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
+- `TTableColumnKey` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TTableColumns` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TTableInsert` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TTableObject` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TTableSchemaWithId` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
+- `TUpsertUpdateKey` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TVectorDistance` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
 - `TypesenseBaseRepository` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
+- `UniqueKeys` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `VectorDistances` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)

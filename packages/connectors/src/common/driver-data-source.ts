@@ -24,7 +24,7 @@ export abstract class AbstractDriverDataSource<
   TConnector = unknown,
   TDriver extends IConnectorDriver<TConnector, AnyType> = IConnectorDriver<TConnector, Client>,
 > extends AbstractDataSource<Settings, Schema, ConfigurableOptions> {
-  connector: TConnector;
+  connector?: TConnector;
 
   protected client?: Client;
   protected driver?: TDriver;
@@ -33,17 +33,18 @@ export abstract class AbstractDriverDataSource<
 
   /**
    * Lazy and idempotent: builds the driver named by `@datasource({ driver })` over the client
-   * `configure()` assigned, then the connector from it.
+   * `configure()` assigned, then the connector from it. Returns the connector.
    */
-  protected wireDriverFromMetadata(): void {
+  protected wireDriverFromMetadata(): TConnector {
     if (this.connector) {
-      return;
+      return this.connector;
     }
 
     if (this.driver) {
-      this.connector = this.driver.createConnector({ schema: this.getSchema() });
+      const connector = this.driver.createConnector({ schema: this.getSchema() });
+      this.connector = connector;
 
-      return;
+      return connector;
     }
 
     if (!this.client) {
@@ -53,7 +54,8 @@ export abstract class AbstractDriverDataSource<
     }
 
     const DriverClass = this.resolveDriverClass();
-    this.useDriver({ driver: new DriverClass({ client: this.client }) });
+
+    return this.useDriver({ driver: new DriverClass({ client: this.client }) });
   }
 
   /**
@@ -83,11 +85,14 @@ export abstract class AbstractDriverDataSource<
 
   /**
    * Assigns `this.driver` AND builds `this.connector` in one step - a
-   * driver without its connector is silently bypassed on pooled queries.
+   * driver without its connector is silently bypassed on pooled queries. Returns the connector.
    */
-  protected useDriver(opts: { driver: TDriver; schema?: Schema }): void {
+  protected useDriver(opts: { driver: TDriver; schema?: Schema }): TConnector {
     this.driver = opts.driver;
-    this.connector = opts.driver.createConnector({ schema: opts.schema ?? this.getSchema() });
+    const connector = opts.driver.createConnector({ schema: opts.schema ?? this.getSchema() });
+    this.connector = connector;
+
+    return connector;
   }
 
   /** A datasource that opens on first use has no client, driver or connector until the first call that needs it has awaited `ensureOpen()`. */
@@ -119,21 +124,16 @@ export abstract class AbstractDriverDataSource<
   protected override createOpening(): IDataSourceOpening<TConnector, Client> {
     return {
       ...super.createOpening(),
-      getConnector: () => {
-        this.wireDriverFromMetadata();
-
-        return this.connector;
-      },
+      getConnector: () => this.wireDriverFromMetadata(),
       getClient: () => this.readClient(),
-    } as IDataSourceOpening<TConnector, Client>;
+    };
   }
 
   /** Wires the driver on first use, so a `configure()` that only builds `this.client` is enough. */
   getConnector(): TConnector {
     this.assertOpenForSyncUse({ member: this.getConnector.name });
-    this.wireDriverFromMetadata();
 
-    return this.connector;
+    return this.wireDriverFromMetadata();
   }
 
   /**
@@ -178,7 +178,7 @@ export abstract class AbstractDriverDataSource<
 
     this.client = undefined;
     this.driver = undefined;
-    this.connector = undefined as TConnector;
+    this.connector = undefined;
 
     // A close() that is waiting for this open owns the slot: clearing it would let a second close end the connection twice.
     if (!this.isClosed()) {
@@ -235,7 +235,7 @@ export abstract class AbstractDriverDataSource<
 
     // Nothing is open yet, so there is no pool to swap: the rotated credentials wait in the settings for the first use.
     if (this.isOpenDeferred() && !this.isOpen()) {
-      Object.assign(this.settings as AnyObject, this.mapSecretToSettings({ secret: opts.secret }));
+      Object.assign(this.settings, this.mapSecretToSettings({ secret: opts.secret }));
       logger.info(
         'Datasource not open yet; credentials kept for its first use | key: %s',
         opts.key,

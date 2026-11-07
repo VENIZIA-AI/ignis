@@ -230,7 +230,7 @@ See [component model](/architecture/component-model.md) and the
 
 - Every constructor parameter of a container-instantiated class (controller, service, repository) must carry `@inject` - mixing decorated and undecorated parameters is refused at boot.
 - The kernel is browser-pure and the boundary is machine-checked by `make purity`: it reaches Drizzle only through `import type` and must never value-import a client library. In core, only `src/connectors/<engine>/` may.
-- Core API queries (`this.dataSource.connector`) are faster but skip relation loading; use the query API (`this.dataSource.connector.query`) when `include` is needed.
+- Core API queries (`this.dataSource.getConnector()`) are faster but skip relation loading; use the query API (`this.dataSource.getConnector().query`) when `include` is needed.
 
 ## Related
 

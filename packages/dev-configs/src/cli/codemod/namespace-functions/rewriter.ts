@@ -312,7 +312,7 @@ export class NamespaceFunctions {
           if (mapping) {
             report({
               node: element,
-              reason: `re-exports \`${name}\`; re-export ${mapping.className} as well, by hand (the old name goes away in 0.5)`,
+              reason: `re-exports \`${name}\`; re-export ${mapping.className} as well, by hand`,
             });
           }
         }

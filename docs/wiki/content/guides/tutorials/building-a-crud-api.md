@@ -41,7 +41,7 @@ HTTP Request (GET /api/todos/{id})
    ┌─────────────────┐
    │ TodoRepository  │  ← Type-safe data access
    └────────┬────────┘
-            │ uses dataSource.connector
+            │ uses dataSource.getConnector()
             ▼
    ┌─────────────────┐
    │PostgresDataSource│ ← Database connection (Drizzle ORM)

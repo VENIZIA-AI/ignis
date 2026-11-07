@@ -22,6 +22,8 @@ tags: [architecture, connectors, drizzle, postgres, sqlite, relational]
 - [`UpdateBuilder` is reachable two ways - use the dialect](#updatebuilder-is-reachable-two-ways---use-the-dialect)
 - [Historical names off `@venizia/ignis-connectors/postgres`](#historical-names-off-veniziaignis-connectorspostgres)
 - [The tier is falsified by one suite, run twice](#the-tier-is-falsified-by-one-suite-run-twice)
+- [Upsert: one statement, the key read from the table](#upsert-one-statement-the-key-read-from-the-table)
+- [`findEvery` yields pages, keyed by `id`, through `find`](#findevery-yields-pages-keyed-by-id-through-find)
 - [Related](#related)
 <!-- okf:generated:contents end -->
 
@@ -108,7 +110,7 @@ query builder - `FilterBuilder` composes SQL fragments, `PostgresQueryExecutor` 
 | `count` | `readable.ts`'s `count` | `connector.$count(table, where)` |
 | `findMany` | `readable.ts`'s `findWithQueryAPI` | `connector.query[entityName].findMany(queryOptions)` |
 | `findFirst` | `readable.ts`'s `findOne` (relational branch) | `connector.query[entityName].findFirst(queryOptions)`, `limit` stripped (the config type forbids it) |
-| `insert` | `persistable.ts`'s `_create` | `.insert(table).values(data)`, then `.returning()` or the driver's affected-row count |
+| `insert` | `persistable.ts`'s `_create` and `_upsert` | `.insert(table).values(data)`, with `onConflict` `.onConflictDoUpdate({ target, targetWhere, set, setWhere })`, then `.returning()` or the driver's affected-row count |
 | `update` | `persistable.ts`'s `_update` | `.update(table).set(data).where(where)`, same two branches |
 | `remove` | `persistable.ts`'s `_delete` | `.delete(table).where(where)`, same two branches |
 
@@ -424,6 +426,42 @@ paradigm is guarded the day its directory appears, and the forbidden set is ever
 family plus every other family's `core/` - one paradigm reaching another is the same defect as one
 engine reaching another. A discovery that found nothing would make every walk pass vacuously, so a
 single test pins the expected families and engines by name.
+
+## Upsert: one statement, the key read from the table
+
+`upsert` is `INSERT ... ON CONFLICT (key) [WHERE predicate] DO UPDATE SET ... WHERE setWhere`, the same
+shape on Postgres, PGlite and SQLite, so one conformance suite (`conformance/upsert-cases.ts`) runs on both engines.
+The key is a handle from `UniqueKeys.of({ table, index })`, read from `getTableConfig` (pg-core or sqlite-core, by
+`is(table, PgTable)` / `is(table, SQLiteTable)`) when the entity module loads: indexes, unique constraints and
+`.unique()` columns; a missing, non-unique or expression index throws there. Drizzle's table type does not carry its
+indexes, so the handle carries the table itself (`IUniqueKey<Schema>.table`): a key of another table is a compile
+error even when the column names match. The target columns come from the schema, never a caller string; a partial
+index's `where` goes out as `targetWhere`; `ON CONFLICT ON CONSTRAINT` is never used. The SET is
+`excluded.<column>` per update column. `$onUpdate` columns are not added by the repository: Drizzle 0.45's
+`onConflictDoUpdate` builds its SET with the same `dialect.buildUpdateSet` an `update` uses, which appends every
+column with an `onUpdateFn`, so `modifiedAt`/`modifiedBy` move on the update branch only (a test pins it).
+
+## `findEvery` yields pages, keyed by `id`, through `find`
+
+`readable.ts`'s `findEvery` is an `async *` generator that yields one page (`Array<TRow<DataObject, R, F>>`) per
+iteration. Each page is one `this.find(...)` with `order: ['id ASC']`, `limit: pageSize` and, from the second page,
+`where: { and: [callerWhere, { id: { gt: lastId } }] }`, so an `or` in the caller's `where` cannot widen the window
+and the default filter, the row scope, the `limit.max` ceiling and the hidden columns hold on every page by the same
+path as a plain read. A page shorter than `pageSize` ends the loop; a full page runs one more `find`, and an empty
+page yields nothing. Nothing is read ahead, so a `break` (the generator's `return`) makes no further query.
+
+| Choice | What it is |
+|---|---|
+| Typing | A public overload carries `AsyncGenerator<Array<TRow<DataObject, R, F>>>`; the implementation signature yields `Array<unknown>`, so no `as` is needed. Inside, `find<Pick<DataObject, 'id'>>` types the rows for the cursor, and the keyset is `Pick<TWhere<DataObject>, 'id'>` (the `whereById` pattern). |
+| Key | The `id` column. Refused (400) when it is neither `primary` nor `isUnique` (a composite primary key) or is a hidden property. |
+| Refused filter keys | `order`, `limit`, `skip`, `offset`, `include` (400). The overload's filter type omits them; the runtime check is for untyped callers. |
+| `fields` | When the selection narrows the row and leaves `id` out, the page reads the selected column names plus `id` as a list, and `id` is dropped from the rows. An object entry that is not a column of the table is not read then. |
+| `pageSize` | Integer, default `min(500, ceiling)`, ceiling `min(10_000, limit.max ?? DEFAULT_MAX_LIMIT)`. `find` applies `limit.max` only with a `@repository` binding, so an unbound repository whose model raises `limit.max` above 1000 gets the 400 from `findEvery` at the model's value but a plain `getError` from `find` above 1000. |
+| Options | The caller's `options` go to every page with `shouldQueryRange: false` and `retry: undefined`: a page is neither a range nor a retried read. |
+| Errors | Thrown on the first `next()`, not at the call. |
+
+Tests: `__tests__/relational/conformance/find-every-conformance.ts`, run on PGlite and libsql by
+`pglite-find-every.test.ts` and `libsql-find-every.test.ts`, count the `find` calls each page costs.
 
 ## Related
 

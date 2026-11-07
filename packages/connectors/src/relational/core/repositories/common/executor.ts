@@ -1,6 +1,6 @@
 import type { TDrizzleQueryOptions, TLockOptions } from '@venizia/ignis-kernel';
 import type { TNullable } from '@venizia/ignis-helpers/common';
-import type { SQL } from 'drizzle-orm';
+import type { AnyColumn, SQL } from 'drizzle-orm';
 import type { TTableSchemaWithId } from '@/relational/core/models/common';
 
 /** Column subset for a projection, in Drizzle's own shape. `undefined` selects every column. */
@@ -44,6 +44,20 @@ export interface IInsertOptions<TConnector> {
   /** `undefined` returns every column; omit the key entirely to return nothing. */
   returning?: TColumnSelection;
   shouldReturn: boolean;
+  /** Turns the insert into an upsert: `ON CONFLICT (target) [WHERE targetWhere] DO UPDATE SET set [WHERE setWhere]`. A conflicting row that fails `setWhere` is left as it is and returned by nothing. */
+  onConflict?: IInsertConflictOptions;
+}
+
+/** The conflict branch of an upsert; the repository reads `target` and `targetWhere` from a declared unique key before it gets here. */
+export interface IInsertConflictOptions {
+  /** The key's columns, from the table schema. */
+  target: AnyColumn[];
+  /** The predicate of a partial unique index, so the engine infers that index as the arbiter. */
+  targetWhere?: SQL;
+  /** Property to value for the update branch; columns with `$onUpdate` are added by Drizzle, as for an update. */
+  set: Record<string, SQL>;
+  /** Which existing rows the update branch may touch, read against the existing row. */
+  setWhere?: SQL;
 }
 
 /** Input of an `update` call on the query executor; `where` omitted updates every row. */

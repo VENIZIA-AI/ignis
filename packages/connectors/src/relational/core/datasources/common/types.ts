@@ -56,7 +56,7 @@ export interface IRelationalDataSource<
   Client = unknown,
   TConnector = unknown,
 > extends AbstractDataSource<Settings, Schema, ConfigurableOptions> {
-  connector: TConnector;
+  connector?: TConnector;
 
   getConnectionString(): ValueOrPromise<string>;
   getConnector(): TConnector;

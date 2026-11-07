@@ -139,6 +139,10 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make test-inversion
 
+      - name: Test - filter
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: make test-filter
+
       - name: Test - helpers
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make test-helpers
@@ -162,6 +166,10 @@ jobs:
       - name: Test - core-server
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make test-core-server
+
+      - name: Test - dev-configs
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: make test-dev-configs
 
       - name: Temp folders - verify
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}

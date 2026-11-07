@@ -1,6 +1,7 @@
 import type { IRelationalDataSource } from '@/relational/core/datasources/common';
 import type {
   BaseRelationalEntity,
+  IUniqueKey,
   TTableInsert,
   TTableObject,
   TTableSchemaWithId,
@@ -10,7 +11,13 @@ import { getError } from '@venizia/ignis-helpers/core';
 import type { IExtraOptions, TCount, TRepositoryLogOptions, TWhere } from '@venizia/ignis-kernel';
 import { RepositoryOperationScopes, ScopeOperations } from '@venizia/ignis-kernel';
 import type { SQL } from 'drizzle-orm';
-import type { IRelationalExtraOptions, TRelationalTransactionOf } from '../common';
+import type {
+  IRelationalExtraOptions,
+  TRelationalTransactionOf,
+  TUpsertUpdateKey,
+} from '../common';
+import { ScopeWriteGuard } from '../common/scope-write-guard';
+import { UpsertPlan } from '../common/upsert-plan';
 import { ReadableRelationalRepository } from './readable';
 
 /** Full CRUD repository extending ReadableRelationalRepository with create, update, and delete. */
@@ -185,6 +192,160 @@ export class PersistableRelationalRepository<
     };
 
     return this._create<R>({ data: opts.data, options });
+  }
+
+  /**
+   * One `INSERT ... ON CONFLICT (key) DO UPDATE` statement. The key and `update` are checked before anything else, so a
+   * bad one runs no guard and no SQL. The new row passes the CREATE guard; the columns the update branch writes pass the
+   * UPDATE guard; the existing row must match the UPDATE scope and the default filter (`setWhere`), read in the same
+   * statement, so it cannot change between the check and the write.
+   */
+  protected async _upsert<R = DataObject>(opts: {
+    data: PersistObject;
+    on?: IUniqueKey<EntitySchema>;
+    update?: ReadonlyArray<string>;
+    options?: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: TNullable<R> }> {
+    const { shouldReturn = true, log, transaction } = opts.options ?? {};
+    const data: Record<string, unknown> = opts.data;
+    const plan = UpsertPlan.build({
+      schema: this.entity.schema,
+      data,
+      on: opts.on,
+      update: opts.update,
+    });
+
+    // As in `_create`: a `through` model checks its parents and writes in one transaction.
+    if (this.getAccessSettings()?.through && !transaction) {
+      return this.runInTransaction({
+        execute: (owned) =>
+          this._upsert<R>({ ...opts, options: Object.assign({}, opts.options, owned) }),
+      });
+    }
+
+    if (log?.use) {
+      this.logger.for('_upsert').log(log.level ?? 'info', 'Executing with opts: %j', opts);
+    }
+
+    // A null the caller sent is refused before the guard runs; an absent column is read after it, as `assign` may fill it.
+    UpsertPlan.assertKeyValues({
+      schema: this.entity.schema,
+      key: plan.key,
+      row: data,
+      isAbsentAllowed: true,
+    });
+
+    const [row] = await this.guardScopedWrite({
+      rows: [data],
+      operation: ScopeOperations.CREATE,
+      transaction,
+    });
+
+    UpsertPlan.assertKeyValues({
+      schema: this.entity.schema,
+      key: plan.key,
+      row,
+      isAbsentAllowed: false,
+    });
+
+    await this.guardScopedWrite({
+      rows: [Object.fromEntries(plan.updateKeys.map((property) => [property, row[property]]))],
+      operation: ScopeOperations.UPDATE,
+      transaction,
+    });
+
+    // `shouldSkipDefaultFilter` is not read: an upsert never updates a row the default filter hides (a soft deleted one).
+    const mergedFilter = this.applyDefaultFilter({
+      userFilter: { where: {} },
+      mutation: ScopeOperations.UPDATE,
+    });
+    const setWhere = this.queryDialect.toWhere({
+      tableName: this.entity.name,
+      schema: this.entity.schema,
+      where: mergedFilter.where ?? {},
+    });
+
+    const connector = await this.acquireConnector({ transaction });
+
+    const rs = await this.queryExecutor.insert<R>({
+      connector,
+      table: this.entity.schema,
+      values: row,
+      returning: this.getVisibleProperties(),
+      shouldReturn,
+      onConflict: {
+        target: plan.target,
+        targetWhere: plan.key.where,
+        set: plan.set,
+        setWhere,
+      },
+    });
+
+    this.logger.for('_upsert').debug('UPSERT result | shouldReturn: %s | rs: %j', shouldReturn, rs);
+
+    // No row back means a row holds the key but `setWhere` kept it: it is outside the scope or the default filter. It is
+    // not an insert (there was a conflict) and not a success (nothing was written).
+    if (rs.count === 0) {
+      throw ScopeWriteGuard.conflictDenied({ model: this.entity.name });
+    }
+
+    return { count: rs.count, data: shouldReturn ? (rs.rows[0] ?? null) : null };
+  }
+
+  /**
+   * Inserts one row, or updates the row that already holds its key: one `INSERT ... ON CONFLICT (key) DO UPDATE`
+   * statement, with no read before it.
+   *
+   * - `on` is a key declared with `UniqueKeys.of`; omitted, the primary key. Every column of the key must hold a value
+   *   (a scope column `write.mode: 'assign'` fills counts); a null is refused with a 400 unless the key is
+   *   `nullsNotDistinct`.
+   * - `update` lists the columns the update branch writes, each one set in `data` and none of the key. Without it, every
+   *   column `data` sets except the key, the primary key and the creation audit columns.
+   * - The new row is held to the access scope as `create` holds it, the columns written on a conflict as `update` holds
+   *   them, and the existing row must be one the caller may update: a row outside the scope or hidden by the default
+   *   filter is left as it is and the call fails with the write-denied 403. `options.shouldSkipDefaultFilter` is ignored.
+   * - Defaults apply on insert, `$onUpdate` columns (`modifiedAt`, `modifiedBy`) on a conflict, and hidden fields are
+   *   written but not returned.
+   * @example
+   * ```typescript
+   * import { UniqueKeys } from '@venizia/ignis-connectors/relational';
+   * import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
+   * import { pgTable, serial, text, uniqueIndex } from 'drizzle-orm/pg-core';
+   *
+   * const settings = pgTable(
+   *   'Setting',
+   *   { id: serial('id').primaryKey(), key: text('key').notNull(), value: text('value') },
+   *   (t) => [uniqueIndex('setting_key').on(t.key)],
+   * );
+   * const settingKey = UniqueKeys.of({ table: settings, index: 'setting_key' });
+   * declare const repo: DefaultCRUDRepository<typeof settings>;
+   * const { data } = await repo.upsert({ data: { key: 'theme', value: 'dark' }, on: settingKey });
+   * ```
+   */
+  upsert(opts: {
+    data: PersistObject;
+    on?: IUniqueKey<EntitySchema>;
+    update?: ReadonlyArray<TUpsertUpdateKey<PersistObject>>;
+    options: ExtraOptions & { shouldReturn: false };
+  }): Promise<TCount & { data: undefined | null }>;
+  upsert<R = DataObject>(opts: {
+    data: PersistObject;
+    on?: IUniqueKey<EntitySchema>;
+    update?: ReadonlyArray<TUpsertUpdateKey<PersistObject>>;
+    options?: ExtraOptions & { shouldReturn?: true };
+  }): Promise<TCount & { data: R }>;
+  async upsert<R = DataObject>(opts: {
+    data: PersistObject;
+    on?: IUniqueKey<EntitySchema>;
+    update?: ReadonlyArray<TUpsertUpdateKey<PersistObject>>;
+    options?: ExtraOptions & { shouldReturn?: boolean };
+  }): Promise<TCount & { data: TNullable<R> }> {
+    return this._upsert<R>({
+      data: opts.data,
+      on: opts.on,
+      update: opts.update,
+      options: opts.options,
+    });
   }
 
   /**
