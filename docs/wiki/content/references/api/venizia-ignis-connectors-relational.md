@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/relational, from the bui
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-74 exports, 74 with TSDoc.
+79 exports, 79 with TSDoc.
 
 ## `AbstractRelationalDataSource`
 
@@ -467,6 +467,27 @@ export interface IEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
 
 Source: `packages/connectors/src/relational/core/models/common/types.ts`
 
+## `IInsertConflictOptions`
+
+*interface*
+
+The conflict branch of an upsert; the repository reads `target` and `targetWhere` from a declared unique key before it gets here.
+
+```ts
+export interface IInsertConflictOptions {
+    /** The key's columns, from the table schema. */
+    target: AnyColumn[];
+    /** The predicate of a partial unique index, so the engine infers that index as the arbiter. */
+    targetWhere?: SQL;
+    /** Property to value for the update branch; columns with `$onUpdate` are added by Drizzle, as for an update. */
+    set: Record<string, SQL>;
+    /** Which existing rows the update branch may touch, read against the existing row. */
+    setWhere?: SQL;
+}
+```
+
+Source: `packages/connectors/src/relational/core/repositories/common/executor.ts`
+
 ## `IInsertOptions`
 
 *interface*
@@ -481,6 +502,8 @@ export interface IInsertOptions<TConnector> {
     /** `undefined` returns every column; omit the key entirely to return nothing. */
     returning?: TColumnSelection;
     shouldReturn: boolean;
+    /** Turns the insert into an upsert: `ON CONFLICT (target) [WHERE targetWhere] DO UPDATE SET set [WHERE setWhere]`. A conflicting row that fails `setWhere` is left as it is and returned by nothing. */
+    onConflict?: IInsertConflictOptions;
 }
 ```
 
@@ -935,6 +958,31 @@ export interface ITransformedUpdateData {
 
 Source: `packages/connectors/src/relational/core/repositories/common/types.ts`
 
+## `IUniqueKey`
+
+*interface*
+
+A unique index or unique constraint of one table, read from its Drizzle declaration by `UniqueKeys.of`. It carries the
+table itself, so a key of one table does not type-check where another table's key is expected, even when the two
+tables share their column names.
+
+```ts
+export interface IUniqueKey<Schema extends TTableSchemaWithId = TTableSchemaWithId> {
+    /** The table the key belongs to; a repository refuses a key whose table is not its own. */
+    readonly table: Schema;
+    /** The name of the index or constraint, as declared. */
+    readonly name: string;
+    /** The key's columns, as table properties, in the declared order. */
+    readonly columns: ReadonlyArray<TTableColumnKey<Schema>>;
+    /** The predicate of a partial unique index (`uniqueIndex(...).where(...)`), sent as the conflict target's `WHERE`. */
+    readonly where?: SQL;
+    /** Whether two nulls count as equal for this key (Postgres `NULLS NOT DISTINCT`); a null key column is refused otherwise. */
+    readonly nullsNotDistinct: boolean;
+}
+```
+
+Source: `packages/connectors/src/relational/core/models/common/types.ts`
+
 ## `IUpdateOptions`
 
 *interface*
@@ -1173,6 +1221,73 @@ export declare class PersistableRelationalRepository<EntitySchema extends TTable
         };
     }): Promise<TCount & {
         data: Array<R>;
+    }>;
+    /**
+     * One `INSERT ... ON CONFLICT (key) DO UPDATE` statement. The key and `update` are checked before anything else, so a
+     * bad one runs no guard and no SQL. The new row passes the CREATE guard; the columns the update branch writes pass the
+     * UPDATE guard; the existing row must match the UPDATE scope and the default filter (`setWhere`), read in the same
+     * statement, so it cannot change between the check and the write.
+     */
+    protected _upsert<R = DataObject>(opts: {
+        data: PersistObject;
+        on?: IUniqueKey<EntitySchema>;
+        update?: ReadonlyArray<string>;
+        options: ExtraOptions & {
+            shouldReturn?: boolean;
+            log?: TRepositoryLogOptions;
+        };
+    }): Promise<TCount & {
+        data: TNullable<R>;
+    }>;
+    /**
+     * Inserts one row, or updates the row that already holds its key: one `INSERT ... ON CONFLICT (key) DO UPDATE`
+     * statement, with no read before it.
+     *
+     * - `on` is a key declared with `UniqueKeys.of`; omitted, the primary key. Every column of the key must hold a value
+     *   (a scope column `write.mode: 'assign'` fills counts); a null is refused with a 400 unless the key is
+     *   `nullsNotDistinct`.
+     * - `update` lists the columns the update branch writes, each one set in `data` and none of the key. Without it, every
+     *   column `data` sets except the key, the primary key and the creation audit columns.
+     * - The new row is held to the access scope as `create` holds it, the columns written on a conflict as `update` holds
+     *   them, and the existing row must be one the caller may update: a row outside the scope or hidden by the default
+     *   filter is left as it is and the call fails with the write-denied 403. `options.shouldSkipDefaultFilter` is ignored.
+     * - Defaults apply on insert, `$onUpdate` columns (`modifiedAt`, `modifiedBy`) on a conflict, and hidden fields are
+     *   written but not returned.
+     * @example
+     * ```typescript
+     * import { UniqueKeys } from '@venizia/ignis-connectors/relational';
+     * import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
+     * import { pgTable, serial, text, uniqueIndex } from 'drizzle-orm/pg-core';
+     *
+     * const settings = pgTable(
+     *   'Setting',
+     *   { id: serial('id').primaryKey(), key: text('key').notNull(), value: text('value') },
+     *   (t) => [uniqueIndex('setting_key').on(t.key)],
+     * );
+     * const settingKey = UniqueKeys.of({ table: settings, index: 'setting_key' });
+     * declare const repo: DefaultCRUDRepository<typeof settings>;
+     * const { data } = await repo.upsert({ data: { key: 'theme', value: 'dark' }, on: settingKey });
+     * ```
+     */
+    upsert(opts: {
+        data: PersistObject;
+        on?: IUniqueKey<EntitySchema>;
+        update?: ReadonlyArray<TUpsertUpdateKey<PersistObject>>;
+        options: ExtraOptions & {
+            shouldReturn: false;
+        };
+    }): Promise<TCount & {
+        data: undefined | null;
+    }>;
+    upsert<R = DataObject>(opts: {
+        data: PersistObject;
+        on?: IUniqueKey<EntitySchema>;
+        update?: ReadonlyArray<TUpsertUpdateKey<PersistObject>>;
+        options?: ExtraOptions & {
+            shouldReturn?: true;
+        };
+    }): Promise<TCount & {
+        data: R;
     }>;
     /**
      * `operation` is what the row scope sees: UPDATE for an update (and a restore), DELETE for a
@@ -2671,6 +2786,18 @@ export type TSoftDeletableTableSchema = TTableSchemaWithId & {
 
 Source: `packages/connectors/src/relational/core/repositories/core/soft-deletable.ts`
 
+## `TTableColumnKey`
+
+*type*
+
+A column property of the table `Schema`: the key it has in the table object, not the database name.
+
+```ts
+export type TTableColumnKey<Schema extends TTableSchemaWithId> = keyof Schema['_']['columns'] & string;
+```
+
+Source: `packages/connectors/src/relational/core/models/common/types.ts`
+
 ## `TTableColumns`
 
 *type*
@@ -2720,3 +2847,63 @@ export type TTableSchemaWithId<TC extends TableConfig = TableConfig> = Table<TC>
 ```
 
 Source: `packages/connectors/src/relational/core/models/common/types.ts`
+
+## `TUpsertUpdateKey`
+
+*type*
+
+A column an upsert's update branch may write: any insert property but the creation audit columns, which only the insert sets.
+
+```ts
+export type TUpsertUpdateKey<PersistObject> = Exclude<keyof PersistObject & string, 'createdAt' | 'createdBy'>;
+```
+
+Source: `packages/connectors/src/relational/core/repositories/common/types.ts`
+
+## `UniqueKeys`
+
+*class*
+
+Typed handles on the unique keys a table declares, for `upsert({ on })`. Declare each one once, next to the table or
+as a `static keys` of the entity: `UniqueKeys.of` runs when that module loads, so a wrong name fails at boot, not at
+the first upsert.
+
+````ts
+export declare class UniqueKeys {
+    /**
+     * The unique index, unique constraint or unique column named `index` on `table`. Throws when no key of the table has
+     * that name, when the index is not unique, when one of its columns is an expression (`lower(email)`), or when the
+     * table is neither a Postgres nor a SQLite table. A partial index keeps its predicate in `where`; write that predicate
+     * with literals, not a bound value, as SQLite cannot match a partial index from a bound parameter. The primary key needs
+     * no handle: `upsert` uses it when `on` is omitted.
+     * @example
+     * ```typescript
+     * import { UniqueKeys } from '@venizia/ignis-connectors/relational';
+     * import { sql } from 'drizzle-orm';
+     * import { pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+     *
+     * const cache = pgTable(
+     *   'SelfOrderCache',
+     *   {
+     *     id: uuid('id').primaryKey().defaultRandom(),
+     *     merchantId: text('merchant_id').notNull(),
+     *     cacheKey: text('cache_key').notNull(),
+     *     deletedAt: timestamp('deleted_at'),
+     *   },
+     *   (t) => [
+     *     uniqueIndex('self_order_cache_merchant_key')
+     *       .on(t.merchantId, t.cacheKey)
+     *       .where(sql`${t.deletedAt} is null`),
+     *   ],
+     * );
+     * const merchantCacheKey = UniqueKeys.of({ table: cache, index: 'self_order_cache_merchant_key' });
+     * ```
+     */
+    static of<Schema extends TTableSchemaWithId>(opts: {
+        table: Schema;
+        index: string;
+    }): IUniqueKey<Schema>;
+}
+````
+
+Source: `packages/connectors/src/relational/core/models/unique-keys.ts`
