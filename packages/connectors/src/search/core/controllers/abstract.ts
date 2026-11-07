@@ -10,6 +10,7 @@ import type { TMultiSearchInput, TSearchInput } from '@/search/core/repositories
 import { SearchModes } from '@/search/core/repositories/common';
 import type { ReadableSearchRepository } from '../repositories/core/readable';
 import { SearchEngineParams } from './engine-params';
+import { SearchRawAccess } from './raw-access';
 import { SearchControllerScope } from './scope';
 import type { TSearchScopeResolver } from './scope';
 
@@ -56,6 +57,9 @@ export abstract class AbstractSearchController<
   /** The `engineParams` names a caller may send, normalised (see {@link SearchEngineParams}). Empty: any `engineParams` is refused. */
   allowedEngineParams: ReadonlySet<string>;
 
+  /** Whether the controller serves `mode: 'raw'` and multi-search over HTTP (`modes.raw.allow`). Closed by default: see {@link SearchRawAccess}. */
+  isRawAllowed: boolean;
+
   constructor(opts: {
     scope: string;
     path: string;
@@ -66,11 +70,14 @@ export abstract class AbstractSearchController<
     searchScope?: TSearchScopeResolver<RouteEnv>;
     /** Names from `engineParams.allow`, as `SearchEngineParams.resolveAllowlist` answers them. */
     allowedEngineParams?: ReadonlySet<string>;
+    /** `modes.raw.allow`, as `SearchRawAccess.resolve` answers it. */
+    isRawAllowed?: boolean;
   }) {
     super({ scope: opts.scope, path: opts.path, isStrict: opts.isStrict });
     this.repository = opts.repository;
     this.searchScope = opts.searchScope;
     this.allowedEngineParams = opts.allowedEngineParams ?? new Set();
+    this.isRawAllowed = opts.isRawAllowed ?? false;
     this.definitions = opts.definitions;
   }
 
@@ -81,6 +88,7 @@ export abstract class AbstractSearchController<
     let input = body;
 
     // Before the scope and on every controller: a caller's raw engine parameters can replace the controller's own filter.
+    SearchRawAccess.assertSearchInput({ input: body, isAllowed: this.isRawAllowed });
     SearchEngineParams.assertSearchInput({ input: body, allowed: this.allowedEngineParams });
 
     if (this.searchScope) {
@@ -129,6 +137,8 @@ export abstract class AbstractSearchController<
         message: '[multiSearch] multi-search is not available on a scoped search controller',
       });
     }
+
+    SearchRawAccess.assertMultiSearch({ isAllowed: this.isRawAllowed });
 
     const input = context.req.valid<TMultiSearchInput>('json');
 

@@ -151,6 +151,8 @@ describe('SearchControllerFactory.defineSearchController', () => {
       entity: ProductDocument,
       repository: { name: SearchFactoryProductRepository.name },
       controller: { name: 'ProductSearchController', basePath: '/products' },
+      // Multi-search hands the engine its own parameters, so a controller serves it only when it opts in.
+      modes: { raw: { allow: true } },
     });
     const controller = new ProductSearchController(repositoryInstance);
 
@@ -182,6 +184,7 @@ describe('AbstractSearchController list headers', () => {
     found: number;
     isFoundExact: boolean;
     hits: Array<{ document: { id: string; title: string } }>;
+    isRawAllowed?: boolean;
   }) => {
     const dataSource = new SearchFactoryDataSource({ name: opts.name, config: {} });
     dataSource.fakeConnector.searchResponse = {
@@ -193,6 +196,7 @@ describe('AbstractSearchController list headers', () => {
       entity: ProductDocument,
       repository: { name: SearchFactoryProductRepository.name },
       controller: { name: `${opts.name}-controller`, basePath: '/products' },
+      modes: opts.isRawAllowed ? { raw: { allow: true } } : undefined,
     });
 
     return new Controller(new SearchFactoryProductRepository(dataSource));
@@ -227,6 +231,7 @@ describe('AbstractSearchController list headers', () => {
       found: 7,
       isFoundExact: true,
       hits: twoHits,
+      isRawAllowed: true,
     });
     // Raw params are the engine wire form; the snake_case keys are assigned through string access so no object-literal key carries them.
     const rawParams: Record<string, unknown> = { q: 'foo', page: 2 };

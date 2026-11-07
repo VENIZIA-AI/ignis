@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/typesense/controllers, f
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-6 exports, 6 with TSDoc.
+7 exports, 7 with TSDoc.
 
 ## `AbstractSearchController`
 
@@ -21,6 +21,8 @@ export declare abstract class AbstractSearchController<TEntity extends AbstractE
     searchScope?: TSearchScopeResolver<RouteEnv>;
     /** The `engineParams` names a caller may send, normalised (see {@link SearchEngineParams}). Empty: any `engineParams` is refused. */
     allowedEngineParams: ReadonlySet<string>;
+    /** Whether the controller serves `mode: 'raw'` and multi-search over HTTP (`modes.raw.allow`). Closed by default: see {@link SearchRawAccess}. */
+    isRawAllowed: boolean;
     constructor(opts: {
         scope: string;
         path: string;
@@ -31,6 +33,8 @@ export declare abstract class AbstractSearchController<TEntity extends AbstractE
         searchScope?: TSearchScopeResolver<RouteEnv>;
         /** Names from `engineParams.allow`, as `SearchEngineParams.resolveAllowlist` answers them. */
         allowedEngineParams?: ReadonlySet<string>;
+        /** `modes.raw.allow`, as `SearchRawAccess.resolve` answers it. */
+        isRawAllowed?: boolean;
     });
     /** POST /search - single-collection keyword/semantic/hybrid/raw search. Carries the list headers of every IGNIS list endpoint; the body keeps `{ found, isFoundExact, hits }` because `isFoundExact` has no place in a `{ count, data }` envelope, and it is the only carrier of "found is an estimate". */
     search(opts: {
@@ -94,6 +98,17 @@ export interface ISearchControllerOptions<TEntity extends AbstractEntity<TAnyObj
      */
     engineParams?: {
         allow?: string[];
+    };
+    /**
+     * `modes.raw.allow: true` serves `mode: 'raw'` and multi-search over HTTP. Left out, both answer 400: they hand the
+     * engine their parameters as they are, so the model's default filter and its hidden fields do not apply to them, and
+     * opting in exposes the whole collection to every caller the route admits. A scoped controller cannot opt in. Server
+     * code keeps `search({ mode: 'raw' })` and `multiSearch()` on the repository.
+     */
+    modes?: {
+        raw?: {
+            allow?: boolean;
+        };
     };
 }
 ```
@@ -436,6 +451,7 @@ export declare class SearchControllerFactory extends BaseHelper {
             repository: ReadableSearchRepository<TDataObject, import("../index.js").AbstractSearchDataSource<{}>>;
             searchScope?: TSearchScopeResolver<RouteEnv> | undefined;
             allowedEngineParams: ReadonlySet<string>;
+            isRawAllowed: boolean;
             search(opts: {
                 context: import("@venizia/ignis-kernel").TRouteContext<RouteEnv>;
             }): Promise<import("@venizia/ignis-kernel").TJsonResponse<unknown, 200>>;
@@ -631,6 +647,37 @@ export declare class SearchEngineParams {
 ```
 
 Source: `packages/connectors/src/search/core/controllers/engine-params.ts`
+
+## `SearchRawAccess`
+
+*class*
+
+Whether a search controller serves the engine's own parameters over HTTP. `mode: 'raw'` and a multi-search entry hand
+the engine their parameters as they are: the model's default filter and its hidden fields are not applied to them.
+So every generated search controller refuses both (400) unless `modes.raw.allow` is `true`. Server code is not
+affected: the repository's `search({ mode: 'raw' })` and `multiSearch()` work as before.
+
+```ts
+export declare class SearchRawAccess {
+    /** Reads `modes.raw.allow` of a controller definition: only a literal `true` opens it. A scoped controller cannot open it, and the definition throws. */
+    static resolve(opts: {
+        scope: string;
+        modes?: unknown;
+        isScoped: boolean;
+    }): boolean;
+    /** Refuses (400) a `raw` search body when the controller did not opt in. */
+    static assertSearchInput(opts: {
+        input: TSearchInput;
+        isAllowed: boolean;
+    }): void;
+    /** Refuses (400) a multi-search request when the controller did not opt in: its entries carry the engine's own parameters and name any collection. */
+    static assertMultiSearch(opts: {
+        isAllowed: boolean;
+    }): void;
+}
+```
+
+Source: `packages/connectors/src/search/core/controllers/raw-access.ts`
 
 ## `TSearchScopeResolver`
 

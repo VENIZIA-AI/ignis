@@ -41,8 +41,8 @@ Every route sits under `/api`.
 | `DELETE` | `/articles/{id}` | Delete one document |
 | `PATCH` | `/articles?where={...}` | Update every document matching `where` |
 | `DELETE` | `/articles?where={...}` | Delete every document matching `where` |
-| `POST` | `/articles/search` | Keyword, semantic, hybrid, or raw search, discriminated by `mode` |
-| `POST` | `/articles/multi-search` | Cross-collection search (one collection here, but the route always exists) |
+| `POST` | `/articles/search` | Keyword, semantic, or hybrid search, discriminated by `mode` (`raw` answers `400` unless the controller sets `modes.raw.allow`) |
+| `POST` | `/articles/multi-search` | Cross-collection search; the route exists, and answers `400` unless the controller sets `modes.raw.allow` |
 | `GET` | `/doc/openapi.json` | The OpenAPI document |
 
 ## Index and search

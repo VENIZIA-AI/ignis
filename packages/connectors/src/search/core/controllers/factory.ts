@@ -14,6 +14,7 @@ import { MultiSearchInputSchema, SearchInputSchema } from '@/search/core/reposit
 import type { ReadableSearchRepository } from '../repositories/core/readable';
 import { AbstractSearchController } from './abstract';
 import { SearchEngineParams } from './engine-params';
+import { SearchRawAccess } from './raw-access';
 import type { TSearchScopeResolver } from './scope';
 
 /** Per-route enable/disable switches for the generated search controller. */
@@ -70,6 +71,14 @@ export interface ISearchControllerOptions<
    * repository call.
    */
   engineParams?: { allow?: string[] };
+
+  /**
+   * `modes.raw.allow: true` serves `mode: 'raw'` and multi-search over HTTP. Left out, both answer 400: they hand the
+   * engine their parameters as they are, so the model's default filter and its hidden fields do not apply to them, and
+   * opting in exposes the whole collection to every caller the route admits. A scoped controller cannot opt in. Server
+   * code keeps `search({ mode: 'raw' })` and `multiSearch()` on the repository.
+   */
+  modes?: { raw?: { allow?: boolean } };
 }
 
 /** Factory for generating turnkey search controllers (single-collection + cross-collection) from entity definitions. */
@@ -148,6 +157,11 @@ export class SearchControllerFactory extends BaseHelper {
     const { controller, entity, authenticate, authorize, routes, scope } = defOpts;
 
     const { name, basePath = 'unknown_path', isStrict = true } = controller;
+    const isRawAllowed = SearchRawAccess.resolve({
+      scope: `defineSearchController | name: ${name}`,
+      modes: defOpts.modes,
+      isScoped: scope !== undefined,
+    });
     const allowedEngineParams = SearchEngineParams.resolveAllowlist({
       scope: `defineSearchController | name: ${name}`,
       allow: defOpts.engineParams?.allow,
@@ -192,6 +206,7 @@ export class SearchControllerFactory extends BaseHelper {
           definitions: routeDefinitions,
           searchScope: scope as TSearchScopeResolver<RouteEnv> | undefined,
           allowedEngineParams,
+          isRawAllowed,
         });
       }
 

@@ -5,7 +5,7 @@ import { SearchControllerFactory } from '@venizia/ignis-connectors/typesense/con
 
 const BASE_PATH = '/articles';
 
-/** Generates POST /articles/search (keyword/semantic/hybrid/raw) and POST /articles/multi-search. */
+/** Generates POST /articles/search (keyword/semantic/hybrid) and POST /articles/multi-search. `mode: 'raw'` and multi-search answer 400 here: a controller opts in with `modes.raw.allow`. */
 const BaseSearchController = SearchControllerFactory.defineSearchController({
   entity: ArticleDocument,
   repository: { name: ArticleRepository.name },

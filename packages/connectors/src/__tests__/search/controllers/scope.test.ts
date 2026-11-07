@@ -40,6 +40,7 @@ let sequence = 0;
 const build = (opts: {
   scope?: (ctx: { context: unknown }) => unknown;
   routes?: Record<string, { enabled?: boolean }>;
+  isRawAllowed?: boolean;
 }) => {
   sequence += 1;
   const dataSource = new SearchScopeDataSource({ name: `search-scope-ds-${sequence}`, config: {} });
@@ -51,6 +52,7 @@ const build = (opts: {
     controller: { name: 'ScopedProductSearchController', basePath: '/products' },
     routes: opts.routes ?? { multiSearch: { enabled: false } },
     scope: opts.scope as any,
+    modes: opts.isRawAllowed ? { raw: { allow: true } } : undefined,
   });
 
   return { controller: new Controller(repositoryInstance), dataSource };
@@ -273,7 +275,7 @@ describe('SearchControllerFactory - scope', () => {
   });
 
   test('a controller without a scope behaves as before', async () => {
-    const { controller, dataSource } = build({ routes: {} });
+    const { controller, dataSource } = build({ routes: {}, isRawAllowed: true });
 
     await controller['search']({
       context: fakeContext({ mode: SearchModes.KEYWORD, query: 'foo', queryBy: ['title'] }).context,
