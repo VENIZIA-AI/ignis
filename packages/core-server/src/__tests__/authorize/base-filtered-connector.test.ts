@@ -80,7 +80,8 @@ describe('BaseFilteredAdapter - connector resolution', () => {
       },
     } as ICasbinPolicySource;
 
-    const resolved = await new TestFilteredAdapter({ dataSource }).exposeConnector();
+    const adapter = new TestFilteredAdapter({ dataSource });
+    const resolved = await adapter.exposeConnector();
 
     expect(resolved).toBe(connector);
   });

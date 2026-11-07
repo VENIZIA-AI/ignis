@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-351 exports, 351 with TSDoc. 78 more are re-exported from other entries (listed at the end).
+353 exports, 353 with TSDoc. 78 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -2353,6 +2353,21 @@ export declare class DataSourceDrivers {
 
 Source: `packages/kernel/src/base/datasources/common/types.ts`
 
+## `DataSourceOpenDefaults`
+
+*class*
+
+Defaults of the `open` option.
+
+```ts
+export declare class DataSourceOpenDefaults {
+    /** How long a first use waits for the open before it gives up (ms): a WASM boot on a slow link fits, a `configure()` that waits on itself does not hang for ever. */
+    static readonly TIMEOUT_MS = 60000;
+}
+```
+
+Source: `packages/kernel/src/base/datasources/common/types.ts`
+
 ## `DataSourceOpenModes`
 
 *class*
@@ -3567,6 +3582,29 @@ export interface IDataSourceMetadata extends IArtifactRegistrationOptions {
 
 Source: `packages/kernel/src/helpers/inversion/common/types/persistence.ts`
 
+## `IDataSourceOpening`
+
+*interface*
+
+What `configure()` is given to do its database work while the datasource is opening: the connector, the client and a
+transaction, through the datasource's own ungated internals. Only `configure()` receives it, so nothing outside can use it
+and every other caller still waits for the open to finish. Generic over the datasource's connector, client and
+transaction types, so `opening.getClient()` of a PGlite datasource is a `PGlite`.
+
+Inside the open of a datasource that opens on first use, the public `getConnector()`, `getClient()` and
+`beginTransaction()` are gated (they wait for the open, which waits for `configure()`), and a repository cannot be used:
+use these handles instead.
+
+```ts
+export interface IDataSourceOpening<TConnector = unknown, Client = unknown, TTransaction extends ITransaction = ITransaction, TTransactionOptions extends ITransactionOptions = ITransactionOptions> {
+    getConnector(): TConnector;
+    getClient(): Client;
+    beginTransaction(opts?: TTransactionOptions): Promise<TTransaction>;
+}
+```
+
+Source: `packages/kernel/src/base/datasources/common/types.ts`
+
 ## `IDataSourceOpenOptions`
 
 *interface*
@@ -3584,6 +3622,14 @@ export interface IDataSourceOpenOptions {
      * @default 'start'
      */
     on?: TDataSourceOpenMode;
+    /**
+     * `first-use` only: how long the open may take (ms) before every waiting call is rejected with a named error and the
+     * attempt is abandoned. An abandoned `configure()` that finishes later is closed and never published, and the next call
+     * waits until it has settled before trying again. `0` waits for ever.
+     *
+     * @default 60000
+     */
+    timeoutMs?: number;
 }
 ```
 

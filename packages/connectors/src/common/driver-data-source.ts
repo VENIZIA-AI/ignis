@@ -183,6 +183,7 @@ export abstract class AbstractDriverDataSource<
     this.client = undefined;
     this.driver = undefined;
     this.connector = undefined as TConnector;
+
     // A close() that is waiting for this open owns the slot: clearing it would let a second close end the connection twice.
     if (!this.isClosed()) {
       this.closePromise = undefined;

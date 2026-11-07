@@ -31,7 +31,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-connectors/postgres/postgres-js`](/references/api/venizia-ignis-connectors-postgres-postgres-js) | 1 | 1 |
 | [`@venizia/ignis-connectors/postgres/supabase`](/references/api/venizia-ignis-connectors-postgres-supabase) | 14 | 14 |
 | [`@venizia/ignis-connectors/raw-sql`](/references/api/venizia-ignis-connectors-raw-sql) | 8 | 8 |
-| [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational) | 73 | 73 |
+| [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational) | 74 | 74 |
 | [`@venizia/ignis-connectors/search`](/references/api/venizia-ignis-connectors-search) | 0 | 0 |
 | [`@venizia/ignis-connectors/search/controllers`](/references/api/venizia-ignis-connectors-search-controllers) | 0 | 0 |
 | [`@venizia/ignis-connectors/sqlite`](/references/api/venizia-ignis-connectors-sqlite) | 49 | 49 |
@@ -59,7 +59,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-helpers/uuid`](/references/api/venizia-ignis-helpers-uuid) | 0 | 0 |
 | [`@venizia/ignis-helpers/winston`](/references/api/venizia-ignis-helpers-winston) | 9 | 9 |
 | [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion) | 72 | 72 |
-| [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel) | 351 | 351 |
+| [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel) | 353 | 353 |
 | [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata) | 21 | 21 |
 | [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository) | 30 | 30 |
 | [`@venizia/ignis-worker`](/references/api/venizia-ignis-worker) | 18 | 18 |

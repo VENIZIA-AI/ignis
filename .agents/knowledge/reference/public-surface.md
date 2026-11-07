@@ -1232,7 +1232,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (430)
+### `@venizia/ignis-kernel` (432)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1314,6 +1314,7 @@ generated:
 - `DataRangeUtility` class
 - `datasource` const
 - `DataSourceDrivers` class
+- `DataSourceOpenDefaults` class
 - `DataSourceOpenModes` class
 - `DEFAULT_LIMIT` const
 - `DEFAULT_MAX_LIMIT` const
@@ -1377,6 +1378,7 @@ generated:
 - `IDataSource` interface
 - `IDataSourceCapabilities` interface
 - `IDataSourceMetadata` interface
+- `IDataSourceOpening` interface
 - `IDataSourceOpenOptions` interface
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
@@ -1733,7 +1735,7 @@ generated:
 
 ## connectors
 
-### `@venizia/ignis-connectors` (131)
+### `@venizia/ignis-connectors` (132)
 
 - `AbstractDriverDataSource` class
 - `AbstractRelationalDataSource` class
@@ -1761,6 +1763,7 @@ generated:
 - `IRecursiveTreeOptions` interface
 - `IRelationalConnection` interface
 - `IRelationalDataSource` interface
+- `IRelationalDataSourceOpening` type
 - `IRelationalDriver` interface
 - `IRelationalExtraOptions` interface
 - `IRelationalQueryDialect` interface
@@ -1903,7 +1906,7 @@ generated:
 - `TRawSqlQuery` type
 - `TRawSqlSchema` type
 
-### `@venizia/ignis-connectors/relational` (73)
+### `@venizia/ignis-connectors/relational` (74)
 
 - `AbstractRelationalDataSource` class
 - `AuditUserResolver` class
@@ -1921,6 +1924,7 @@ generated:
 - `IRecursiveTreeOptions` interface
 - `IRelationalConnection` interface
 - `IRelationalDataSource` interface
+- `IRelationalDataSourceOpening` type
 - `IRelationalDriver` interface
 - `IRelationalExtraOptions` interface
 - `IRelationalQueryDialect` interface
@@ -2395,7 +2399,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1027)
+### `@venizia/ignis` (1029)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2548,6 +2552,7 @@ generated:
 - `DataRangeUtility` class
 - `datasource` const
 - `DataSourceDrivers` class
+- `DataSourceOpenDefaults` class
 - `DataSourceOpenModes` class
 - `DataTypes` class
 - `DayjsTemporalAdapter` class
@@ -2689,6 +2694,7 @@ generated:
 - `IDataSource` interface
 - `IDataSourceCapabilities` interface
 - `IDataSourceMetadata` interface
+- `IDataSourceOpening` interface
 - `IDataSourceOpenOptions` interface
 - `IDayjsFactory` interface
 - `IDayjsInstance` interface

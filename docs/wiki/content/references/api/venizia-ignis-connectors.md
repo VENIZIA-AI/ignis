@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors, from the built declarat
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-3 exports, 3 with TSDoc. 128 more are re-exported from other entries (listed at the end).
+3 exports, 3 with TSDoc. 129 more are re-exported from other entries (listed at the end).
 
 ## `AbstractDriverDataSource`
 
@@ -50,6 +50,9 @@ export declare abstract class AbstractDriverDataSource<Settings extends object =
     }): void;
     /** A datasource that opens on first use has no client, driver or connector until the first call that needs it has awaited `ensureOpen()`. */
     private assertOpenForSyncUse;
+    getOpening(): IDataSourceOpening<TConnector, Client>;
+    /** The handles `configure()` is given: the connector and the client through the ungated internals, so its own database work (migrations, seeding) needs no gate. */
+    protected createOpening(): IDataSourceOpening<TConnector, Client>;
     /** Wires the driver on first use, so a `configure()` that only builds `this.client` is enough. */
     getConnector(): TConnector;
     /**
@@ -57,6 +60,7 @@ export declare abstract class AbstractDriverDataSource<Settings extends object =
      * than handing back an `undefined` typed as `Client`.
      */
     getClient(): Client;
+    private readClient;
     /**
      * Ends the connection `configure()` opened. Runs once: every later call returns the first call's
      * promise. Goes through the driver, wired now if nothing queried yet, because its `end()` is the
@@ -171,6 +175,7 @@ Source: `packages/connectors/src/common/scope-filter.ts`
 - `IRecursiveTreeOptions` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `IRelationalConnection` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `IRelationalDataSource` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
+- `IRelationalDataSourceOpening` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `IRelationalDriver` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `IRelationalExtraOptions` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `IRelationalQueryDialect` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)

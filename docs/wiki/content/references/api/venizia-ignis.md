@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-99 exports, 99 with TSDoc. 927 more are re-exported from other entries (listed at the end).
+99 exports, 99 with TSDoc. 929 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -628,7 +628,7 @@ export declare abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
         scope: string;
         dataSource: ICasbinPolicySource;
     });
-    protected get connector(): TCasbinPolicyConnector;
+    protected resolveConnector(): Promise<TCasbinPolicyConnector>;
     /** Runs a raw statement and returns its rows. Drizzle's `execute()` shape differs per driver (node-postgres `{ rows }`, postgres-js the row list itself) - never read `.rows` directly. */
     protected query<TRow>(opts: {
         statement: SQL;
@@ -1401,6 +1401,8 @@ Minimal source the adapters depend on - any drizzle-backed datasource satisfies 
 
 ```ts
 export interface ICasbinPolicySource {
+    /** A datasource that opens on first use opens here; one that opens at start resolves at once. */
+    ensureOpen?(): Promise<void>;
     /** Preferred: lazily wires the driver on first read and survives pool rotation, mirroring repositories. */
     getConnector?(): TCasbinPolicyConnector;
     /** Back-compat: a pre-wired connector. Prefer getConnector on a real datasource. */
@@ -2125,11 +2127,11 @@ Connector-resolution logic shared by every adapter/loader reading the casbin pol
 
 ```ts
 export declare class PolicyConnectorResolver {
-    /** Resolve the wired connector off a policy datasource. */
+    /** Resolve the wired connector off a policy datasource, once the datasource is open (one that opens on first use opens here). */
     static resolve(opts: {
         source: ICasbinPolicySource;
         caller: string;
-    }): TCasbinPolicyConnector;
+    }): Promise<TCasbinPolicyConnector>;
 }
 ```
 
@@ -3160,6 +3162,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `DataRangeUtility` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `datasource` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `DataSourceDrivers` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `DataSourceOpenDefaults` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `DataSourceOpenModes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `DataTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `DayjsTemporalAdapter` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
@@ -3283,6 +3286,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IDataSource` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `IDataSourceCapabilities` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IDataSourceMetadata` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `IDataSourceOpening` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IDataSourceOpenOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IDayjsFactory` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `IDayjsInstance` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)

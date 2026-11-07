@@ -174,7 +174,8 @@ describe('the same configure() body at start and on first use', () => {
     dataSource.deferOpen({});
     const repository = repositoryOf(dataSource);
 
-    const rows = (await repository.find({ filter: {} })) as Array<{ title: string }>;
+    const found = await repository.find({ filter: {} });
+    const rows = found as Array<{ title: string }>;
 
     expect(rows.map((row) => row.title)).toEqual(['seeded']);
     expect(dataSource.isOpen()).toBe(true);
@@ -182,12 +183,15 @@ describe('the same configure() body at start and on first use', () => {
 
   test('at start: the boot passes the same handles, and the body works unchanged', async () => {
     const dataSource = new StartOpeningDataSource();
+    const opening = dataSource.getOpening();
 
     // What the boot does for a datasource that opens at start.
-    await dataSource.configure({}, dataSource.getOpening());
+    await dataSource.configure({}, opening);
+
     const repository = repositoryOf(dataSource);
 
-    const rows = (await repository.find({ filter: {} })) as Array<{ title: string }>;
+    const found = await repository.find({ filter: {} });
+    const rows = found as Array<{ title: string }>;
 
     expect(rows.map((row) => row.title)).toEqual(['seeded']);
     expect(dataSource.isOpen()).toBe(true);
@@ -205,7 +209,8 @@ describe('the same configure() body at start and on first use', () => {
     expect(dataSource.isOpen()).toBe(false);
 
     gate.release();
-    const results = (await Promise.all(calls)) as Array<Array<{ title: string }>>;
+    const settled = await Promise.all(calls);
+    const results = settled as Array<Array<{ title: string }>>;
 
     for (const rows of results) {
       expect(rows.map((row) => row.title)).toEqual(['seeded']);
@@ -293,7 +298,8 @@ describe('an open that is abandoned after its timeout', () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
     Probe.hold = undefined;
 
-    const rows = (await repository.find({ filter: {} })) as Array<{ title: string }>;
+    const found = await repository.find({ filter: {} });
+    const rows = found as Array<{ title: string }>;
 
     expect(rows.map((row) => row.title)).toEqual(['seeded']);
     expect(Probe.clients).toHaveLength(2);
