@@ -30,6 +30,7 @@ const REST_APPLICATION_MEMBERS = [
   'configuration',
   'constructor',
   'controller',
+  'createRouter',
   'dataSource',
   'drainByTag',
   'generateRequestId',
