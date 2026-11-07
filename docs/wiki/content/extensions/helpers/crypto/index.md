@@ -33,7 +33,7 @@ const decrypted = await aes.decrypt({ message: encrypted, secret });
 
 - **One factory pattern.** Every algorithm class exposes a static `withAlgorithm()` that returns an instance. The constructors are public too, so `new AES({ algorithm: 'aes-256-gcm' })` works. Prefer the factory; it is what the rest of the framework calls.
 - **`ECDH` extends the neutral `AbstractCryptoAlgorithm` directly.** It uses `CryptoKey` objects from the Web Crypto API (`crypto.subtle`), not string secrets. It skips the string-normalization helpers entirely. It needs no `node:crypto`, so a browser imports it from `@venizia/ignis-helpers/core` and talks to a server `ECDH` in the same wire format.
-- **Options objects, throw-by-default.** Every `encrypt`/`decrypt` takes `{ message, secret, opts? }`. On internal error, each throws by default. Pass `opts.doThrow: false` to get the original input back unchanged instead.
+- **Options objects, always throwing.** Every `encrypt`/`decrypt` takes `{ message, secret, opts? }`. On internal error, each throws. There is no mode that hands the input back: `opts.doThrow` was removed, and passing it throws.
 
 **`AES` and `RSA` share `BaseCryptoAlgorithm`**, which adds two helpers:
 
@@ -103,14 +103,20 @@ const decrypted = await rsa.decrypt({ message: encrypted, secret: privateKey.toS
 // => 'secret data'
 ```
 
-### Fail soft instead of throwing
+### A failure always throws
 
-Pass `opts: { doThrow: false }` to get the original message back on error instead of an exception. Use this when a decryption failure should be a fallback path, not a crash.
+`encrypt` and `decrypt` of `AES` and `RSA` throw on a wrong key, a damaged ciphertext or bad input. They never return the input in place of a result: a caller could take it for ciphertext or plaintext. Where a decryption failure is a fallback path, catch it there.
 
 ```typescript
-const result = await rsa.encrypt({ message: 'test', secret: 'invalid-key', opts: { doThrow: false } });
-// result === 'test' (original message, no throw)
+try {
+  const plain = await aes.decrypt({ message: stored, secret });
+  // use plain
+} catch (error) {
+  // the message was not sealed with this secret: take the fallback path
+}
 ```
+
+`opts.doThrow` was removed. A call that still passes it is refused with `The doThrow option was removed`, so nobody believes it still works.
 
 ### Hash or HMAC a message
 

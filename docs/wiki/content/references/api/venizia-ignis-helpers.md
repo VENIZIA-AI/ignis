@@ -486,7 +486,6 @@ interface IAESExtraOptions extends IAESDecryptOptions {
 interface IAESDecryptOptions {
     inputEncoding?: BufferEncoding;
     outputEncoding?: BufferEncoding;
-    doThrow?: boolean;
     /** Per-deployment PBKDF2 salt override. Must be supplied identically on encrypt and decrypt; omit for the shipped default. */
     kdfSalt?: string;
     /** PBKDF2 iteration count override. Must be supplied identically on encrypt and decrypt; omit for the shipped default. */
@@ -568,6 +567,15 @@ Base for the symmetric algorithms: validates the algorithm name and derives a ke
 
 ```ts
 export declare abstract class BaseCryptoAlgorithm<AlgorithmType extends string, EncryptInputType = unknown, DecryptInputType = unknown, SecretKeyType = unknown, EncryptReturnType = unknown, DecryptReturnType = unknown, ExtraOptions = unknown> extends AbstractCryptoAlgorithm<AlgorithmType, EncryptInputType, DecryptInputType, SecretKeyType, EncryptReturnType, DecryptReturnType, ExtraOptions> {
+    /**
+     * `doThrow: false` is gone: a failed encrypt or decrypt used to hand the input back, which a caller could take for
+     * ciphertext or plaintext. A failure always throws. A caller that still passes the option is refused, not ignored,
+     * so nobody believes it still works.
+     */
+    protected assertNoRemovedOptions(opts: {
+        method: string;
+        options?: object;
+    }): void;
     constructor(opts: {
         scope: string;
         algorithm: AlgorithmType;
@@ -4091,7 +4099,6 @@ interface IRSAExtraOptions {
         message: BufferEncoding;
     };
     outputEncoding?: BufferEncoding;
-    doThrow?: boolean;
 }
 ```
 
