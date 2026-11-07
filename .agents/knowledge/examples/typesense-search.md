@@ -23,7 +23,7 @@ under `@repository({ model, dataSource })`).
 - **Factory search endpoints** -
   `SearchControllerFactory.defineSearchController` in `src/controllers/search.controller.ts`
   generates `POST /articles/search` (keyword/semantic/hybrid/raw, dispatched to
-  `repository.search()`) and `POST /articles/multi-search` (forwarded to `dataSource.multiSearch()`).
+  `repository.search()`) and `POST /articles/multi-search` (forwarded to `dataSource.multiSearch()`; it and `mode: 'raw'` answer 400 until the controller sets `modes.raw.allow`).
   Like `ControllerFactory.defineCrudController`, it injects the repository named in
   `repository.name`, so the subclass is empty.
 - **The NotSupported convention** - passing `{ transaction }` or `{ lock }` in any repository call

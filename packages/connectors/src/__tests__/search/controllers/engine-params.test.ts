@@ -35,6 +35,7 @@ const build = (opts: {
   scope?: () => unknown;
   allow?: string[];
   routes?: Record<string, { enabled?: boolean }>;
+  isRawAllowed?: boolean;
 }) => {
   sequence += 1;
   const dataSource = new EngineParamsDataSource({
@@ -50,6 +51,7 @@ const build = (opts: {
     routes: opts.routes ?? (opts.scope ? { multiSearch: { enabled: false } } : undefined),
     scope: opts.scope as never,
     engineParams: opts.allow === undefined ? undefined : { allow: opts.allow },
+    modes: opts.isRawAllowed ? { raw: { allow: true } } : undefined,
   });
 
   return { controller: new Controller(repositoryInstance), dataSource };
@@ -182,7 +184,7 @@ describe('multi-search on an unscoped controller', () => {
   });
 
   test('refuses engineParams in any entry', async () => {
-    const { controller } = build({});
+    const { controller } = build({ isRawAllowed: true });
 
     const error = await refusal(
       controller['multiSearch']({
@@ -200,7 +202,7 @@ describe('multi-search on an unscoped controller', () => {
   const REACHED_THE_ENGINE = 'Not needed for this test';
 
   test('an entry without engineParams is not affected: the request reaches the engine', async () => {
-    const { controller } = build({});
+    const { controller } = build({ isRawAllowed: true });
 
     const error = await refusal(
       controller['multiSearch']({ context: fakeContext({ searches: [entry()] }) as never }),
@@ -210,7 +212,7 @@ describe('multi-search on an unscoped controller', () => {
   });
 
   test('with an allowlist, an allowed entry parameter passes and the others are refused', async () => {
-    const { controller } = build({ allow: ['typo_tokens_threshold'] });
+    const { controller } = build({ allow: ['typo_tokens_threshold'], isRawAllowed: true });
 
     const passed = await refusal(
       controller['multiSearch']({

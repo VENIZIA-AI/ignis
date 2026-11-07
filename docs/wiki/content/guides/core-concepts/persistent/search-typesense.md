@@ -593,7 +593,7 @@ The subclass needs no constructor. The factory injects the repository bound unde
 
 Import the factory from `@venizia/ignis-connectors/typesense/controllers` (or `@venizia/ignis-connectors/search/controllers`), never from `@venizia/ignis-connectors/typesense`. That entry loads without `hono`, so it carries no controller.
 
-It registers `POST /search` (request body is the mode-discriminated schema, so validation and OpenAPI come for free, and the handler dispatches to `repository.search`). It also registers `POST /multi-search`, which dispatches to `dataSource.multiSearch`. For anything the factory does not cover, write a custom `BaseRestController` calling `repository.search()` or `getClient()` directly.
+It registers `POST /search` (request body is the mode-discriminated schema, so validation and OpenAPI come for free, and the handler dispatches to `repository.search`). It also registers `POST /multi-search`, which dispatches to `dataSource.multiSearch`. `mode: 'raw'` and multi-search answer `400` until the controller opts in: see [Raw mode and multi-search over HTTP](#raw-mode-and-multi-search-over-http). For anything the factory does not cover, write a custom `BaseRestController` calling `repository.search()` or `getClient()` directly.
 
 ### Scope the search per request
 
@@ -625,7 +625,7 @@ const ScopedSearchController = SearchControllerFactory.defineSearchController({
 | `ScopeFilters.UNRESTRICTED` | No scope for this call (an admin, a system job) |
 | `null`, `undefined`, or it throws | Refused with `403`; nothing is searched |
 
-A scope is a `where` ANDed into a filter, so the three inputs that carry the engine's own filter string cannot take one. A scoped controller therefore refuses `mode: 'raw'` (`400`), and `defineSearchController` throws unless `routes.multiSearch.enabled` is `false`. `engineParams` is refused on every controller, see below.
+A scope is a `where` ANDed into a filter, so the three inputs that carry the engine's own filter string cannot take one. A scoped controller therefore refuses `mode: 'raw'` (`400`), and `defineSearchController` throws unless `routes.multiSearch.enabled` is `false`. Every controller refuses `mode: 'raw'`, multi-search and `engineParams` unless it opts in, see below.
 
 ### Engine parameters over HTTP
 
@@ -646,6 +646,25 @@ SearchControllerFactory.defineSearchController({
 - **Anything else is a `400`**, naming the parameters it refused.
 - **A parameter that selects rows or fields, or orders them, can never be listed.** `filter_by`, `include_fields`, `exclude_fields`, `query_by`, `facet_by`, `group_by`, `highlight_fields`, `sort_by`, `preset`, `pinned_hits`, `vector_query` and their Meilisearch counterparts (`filter`, `attributesToRetrieve`, `facets`, `sort`, ...). `defineSearchController` throws when the list holds one.
 - **Server code is not affected.** `repository.search({ ..., engineParams })` takes any parameter, as before.
+
+### Raw mode and multi-search over HTTP
+
+`mode: 'raw'` and a multi-search entry hand the engine their parameters as they are. The model's default filter and its hidden fields are not applied to them, and a multi-search entry can name any collection. So every generated search controller answers `400` to both, scoped or not, until it opts in:
+
+```typescript
+SearchControllerFactory.defineSearchController({
+  entity: ProductDocument,
+  repository: { name: ProductSearchRepository.name },
+  controller: { name: 'ProductSearchController', basePath: '/products' },
+  modes: { raw: { allow: true } },
+});
+```
+
+> [!WARNING]
+> `modes.raw.allow: true` exposes the whole collection to every caller the route admits, including the fields the model hides and the rows its default filter leaves out. Opt in only for a route that only trusted callers reach (an internal tool behind its own authorization).
+
+- **A scoped controller cannot opt in.** The scope cannot be applied to the engine's own parameters, so `defineSearchController` throws when `scope` and `modes.raw.allow` are both set.
+- **Server code is not affected.** `repository.search({ mode: 'raw' })` and `dataSource.multiSearch()` work as before.
 
 ## Big collections: streaming export, timeouts and import errors
 
