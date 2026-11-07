@@ -26,6 +26,7 @@ Matches a field against a `[min, max]` range.
 - The value must be a 2-element array `[min, max]`; anything else throws `[PostgresQueryOperators][BETWEEN] Invalid value: expected array of 2 elements, got ...`.
 - If either bound is `null`, the condition matches no rows (SQL `NULL` comparison).
 - If `min > max`, the condition matches no rows.
+- On a timestamp or date column each bound may be an ISO 8601 string or epoch milliseconds, and an unparseable bound is a `400` - see [Timestamp and date values](./index#timestamp-and-date-values).
 
 ## notBetween
 

@@ -23,11 +23,11 @@ generated:
 | `vite/` | 2 |
 | `clis/` | 1 |
 
-## connectors  (241 source files)
+## connectors  (242 source files)
 
 | Subsystem | Files |
 |---|---|
-| `relational/` | 140 |
+| `relational/` | 141 |
 | `search/` | 79 |
 | `http/` | 7 |
 | `common/` | 6 |
