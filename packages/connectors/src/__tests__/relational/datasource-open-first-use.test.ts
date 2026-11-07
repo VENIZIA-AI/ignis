@@ -200,6 +200,7 @@ describe('the first repository call opens the datasource', () => {
     ],
     ['deleteAll', (repository: TNoteRepository) => repository.deleteAll({ where: { title: 'x' } })],
     ['findById', (repository: TNoteRepository) => repository.findById({ id: 1 })],
+    ['upsert', (repository: TNoteRepository) => repository.upsert({ data: { id: 1, title: 'x' } })],
   ])('%s as the very first call opens it, once', async (_name, firstCall) => {
     const { dataSource, repository } = build();
 
@@ -207,6 +208,24 @@ describe('the first repository call opens the datasource', () => {
 
     expect(Probe.opens).toBe(1);
     expect(dataSource.isOpen()).toBe(true);
+  });
+
+  test('concurrent first upserts of one key share the one open and leave one row', async () => {
+    const { repository } = build();
+    const gate = Probe.gate();
+
+    const calls = Array.from({ length: 8 }, (_unused, index) =>
+      repository.upsert({ data: { id: 1, title: `row ${index}` } }),
+    );
+
+    gate.release();
+    const results = await Promise.all(calls);
+
+    expect(Probe.opens).toBe(1);
+    expect(results.every((rs) => rs.count === 1)).toBe(true);
+    const total = await repository.count({ where: {} });
+
+    expect(total).toEqual({ count: 1 });
   });
 
   test('beginTransaction() as the first call opens it, and the transaction works', async () => {

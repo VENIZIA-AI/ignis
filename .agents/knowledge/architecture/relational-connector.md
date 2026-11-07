@@ -22,6 +22,7 @@ tags: [architecture, connectors, drizzle, postgres, sqlite, relational]
 - [`UpdateBuilder` is reachable two ways - use the dialect](#updatebuilder-is-reachable-two-ways---use-the-dialect)
 - [Historical names off `@venizia/ignis-connectors/postgres`](#historical-names-off-veniziaignis-connectorspostgres)
 - [The tier is falsified by one suite, run twice](#the-tier-is-falsified-by-one-suite-run-twice)
+- [Upsert: one statement, the key read from the table](#upsert-one-statement-the-key-read-from-the-table)
 - [Related](#related)
 <!-- okf:generated:contents end -->
 
@@ -108,7 +109,7 @@ query builder - `FilterBuilder` composes SQL fragments, `PostgresQueryExecutor` 
 | `count` | `readable.ts`'s `count` | `connector.$count(table, where)` |
 | `findMany` | `readable.ts`'s `findWithQueryAPI` | `connector.query[entityName].findMany(queryOptions)` |
 | `findFirst` | `readable.ts`'s `findOne` (relational branch) | `connector.query[entityName].findFirst(queryOptions)`, `limit` stripped (the config type forbids it) |
-| `insert` | `persistable.ts`'s `_create` | `.insert(table).values(data)`, then `.returning()` or the driver's affected-row count |
+| `insert` | `persistable.ts`'s `_create` and `_upsert` | `.insert(table).values(data)`, with `onConflict` `.onConflictDoUpdate({ target, targetWhere, set, setWhere })`, then `.returning()` or the driver's affected-row count |
 | `update` | `persistable.ts`'s `_update` | `.update(table).set(data).where(where)`, same two branches |
 | `remove` | `persistable.ts`'s `_delete` | `.delete(table).where(where)`, same two branches |
 
@@ -424,6 +425,20 @@ paradigm is guarded the day its directory appears, and the forbidden set is ever
 family plus every other family's `core/` - one paradigm reaching another is the same defect as one
 engine reaching another. A discovery that found nothing would make every walk pass vacuously, so a
 single test pins the expected families and engines by name.
+
+## Upsert: one statement, the key read from the table
+
+`upsert` is `INSERT ... ON CONFLICT (key) [WHERE predicate] DO UPDATE SET ... WHERE setWhere`, the same
+shape on Postgres, PGlite and SQLite, so one conformance suite (`conformance/upsert-cases.ts`) runs on both engines.
+The key is a handle from `UniqueKeys.of({ table, index })`, read from `getTableConfig` (pg-core or sqlite-core, by
+`is(table, PgTable)` / `is(table, SQLiteTable)`) when the entity module loads: indexes, unique constraints and
+`.unique()` columns; a missing, non-unique or expression index throws there. Drizzle's table type does not carry its
+indexes, so the handle carries the table itself (`IUniqueKey<Schema>.table`): a key of another table is a compile
+error even when the column names match. The target columns come from the schema, never a caller string; a partial
+index's `where` goes out as `targetWhere`; `ON CONFLICT ON CONSTRAINT` is never used. The SET is
+`excluded.<column>` per update column. `$onUpdate` columns are not added by the repository: Drizzle 0.45's
+`onConflictDoUpdate` builds its SET with the same `dialect.buildUpdateSet` an `update` uses, which appends every
+column with an `onUpdateFn`, so `modifiedAt`/`modifiedBy` move on the update branch only (a test pins it).
 
 ## Related
 

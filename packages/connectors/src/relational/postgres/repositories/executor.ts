@@ -88,8 +88,17 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
   }
 
   async insert<R>(opts: IInsertOptions<TRelationalConnector>): Promise<IWriteResult<R>> {
-    const { connector, table, values, returning, shouldReturn } = opts;
-    const query = connector.insert(table as PgTable).values(values as AnyType);
+    const { connector, table, values, returning, shouldReturn, onConflict } = opts;
+    const inserted = connector.insert(table as PgTable).values(values as AnyType);
+    // `onConflictDoUpdate` returns the same builder; only its type narrows, so both branches share one variable.
+    const query = onConflict
+      ? (inserted.onConflictDoUpdate({
+          target: onConflict.target as AnyType,
+          targetWhere: onConflict.targetWhere,
+          set: onConflict.set as AnyType,
+          setWhere: onConflict.setWhere,
+        }) as unknown as typeof inserted)
+      : inserted;
 
     if (!shouldReturn) {
       const result = await query;
