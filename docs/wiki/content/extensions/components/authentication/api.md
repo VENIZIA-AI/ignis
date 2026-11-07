@@ -254,6 +254,11 @@ A JWKS URL is `https:`. It may be `http:` only when its host is loopback (`local
 - **Exact entries.** An entry is a host name (`identity-service`), an IPv4 address (`10.0.0.5`) or an IPv6 address in brackets (`[fd00::1]`), with an optional `:port` (`identity-service:3000`, `10.0.0.5:8080`, `[fd00::1]:8443`).
 - **Ports.** An entry without a port covers every port of that host. An entry with a port covers that port only. A URL with no port is on port 80, so `host:80` covers it.
 - **Spelled the way the URL parser writes it.** An entry is valid only when `new URL('http://' + entry)` gives the same host back, so `2130706433`, `0x7f000001`, `1.2.3`, `010.0.0.5` and `[::ffff:10.0.0.5]` refuse the boot, naming the entry. A URL is read by the same parser, so `http://167772165` is `10.0.0.5` and is covered by that entry, and `http://[::ffff:10.0.0.5]` is `[::ffff:a00:5]` and is not. A host name written with a trailing dot does not match its entry.
+- **The mapped form is the same machine.** `[::ffff:a00:5]` is `10.0.0.5` written as an IPv6 address. Listing one does not list the other, so list the form your JWKS URL uses; but know that both reach one host.
+- **Entries are not trimmed.** A space, tab or newline around an entry refuses the boot, naming the entry: it is a typo, not a value to correct.
+- **DNS limits.** A name is at most 253 characters and a label at most 63. An address is judged by the URL parser alone.
+- **Not hosts.** `0.0.0.0` and `[::]` mean "any local address" and are refused as entries.
+- **Port 0.** A `jwksUrl` on port 0 refuses the boot, whatever the entries: nothing listens there, and an entry without a port would otherwise cover it.
 - **No wildcards, ranges or CIDR.** A scheme, a path, a query, userinfo, a wildcard, an empty label or an empty port refuses the boot. There is no rule for private networks: what a name resolves to can change, so you opt in host by host. Loopback is always allowed.
 - **Redirects are not followed.** The key set fetch reads only a `200`, so an `https:` URL cannot lead to an `http:` host; a URL that redirects fails verification.
 - **Checked at boot.** The component checks the verifier URL and every caller URL when the application starts; the services check again before they fetch.
