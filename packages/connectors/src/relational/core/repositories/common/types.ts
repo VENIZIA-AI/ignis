@@ -4,6 +4,7 @@ import type {
   RelationTypes,
   ScopeFilters,
   TDrizzleQueryOptions,
+  TFields,
   TFilter,
   TModelAccessSettings,
   TScopeOperation,
@@ -114,6 +115,14 @@ export interface IRelationalQueryDialect {
     operation: TScopeOperation;
   }): TNullable<TWhere> | typeof ScopeFilters.UNRESTRICTED;
 }
+
+/** The filter of `findEvery`: a `where` and the `fields` to read. The key cursor owns the order and the window, so `order`, `limit`, `skip`, `offset` and `include` have no place in it. */
+export type TFindEveryFilter<T = any, F extends TFields<T> = TFields<T>> = Omit<
+  TFilter<T>,
+  'fields' | 'include' | 'order' | 'limit' | 'skip' | 'offset'
+> & {
+  fields?: F;
+};
 
 /** The SQL branch's `IExtraOptions`: narrows `transaction` to a connector-bearing SQL handle so `options.transaction.connector` needs no cast. An engine binds `TConnector` to keep that access typed; unbound it is `unknown`, which is all neutral code can know. */
 export interface IRelationalExtraOptions<TConnector = unknown> extends IExtraOptions {

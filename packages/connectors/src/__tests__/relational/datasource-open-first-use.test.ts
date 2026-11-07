@@ -209,6 +209,28 @@ describe('the first repository call opens the datasource', () => {
     expect(dataSource.isOpen()).toBe(true);
   });
 
+  test('findEvery as the very first call opens it on the first page, once, and pages the rows', async () => {
+    const { dataSource, repository } = build();
+    const titles: Array<string> = [];
+
+    for await (const row of repository.findEvery({ filter: { fields: ['title'] }, pageSize: 2 })) {
+      titles.push(row.title);
+    }
+
+    expect(titles).toEqual([]);
+    expect(Probe.opens).toBe(1);
+    expect(dataSource.isOpen()).toBe(true);
+
+    await repository.createAll({ data: [{ title: 'a' }, { title: 'b' }, { title: 'c' }] });
+
+    for await (const row of repository.findEvery({ filter: { fields: ['title'] }, pageSize: 2 })) {
+      titles.push(row.title);
+    }
+
+    expect(titles).toEqual(['a', 'b', 'c']);
+    expect(Probe.opens).toBe(1);
+  });
+
   test('beginTransaction() as the first call opens it, and the transaction works', async () => {
     const { dataSource, repository } = build();
 

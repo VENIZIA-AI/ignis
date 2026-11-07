@@ -80,7 +80,7 @@ AbstractRepository (engine-neutral base in src/base - lazy dataSource/entity res
 PostgresBaseRepository (postgres connector - filter building, hidden-column exclusion,
                         default-filter merging, transaction-aware connector resolution)
   ↓
-ReadableRepository (read-only: find, findOne, findById, count, existsWith)
+ReadableRepository (read-only: find, findOne, findById, findEvery, count, existsWith)
   ↓
 PersistableRepository (+ create, createAll, updateById, updateEach, updateAll, deleteById, deleteAll)
   ↓
@@ -167,6 +167,29 @@ const { count, data } = await repo.updateEach({
 ```
 
 It runs one update per row, in the order given, inside one transaction: a refused payload or a failed statement writes nothing. Pass `options: { transaction }` to join yours, and the repository leaves the commit to you. Each row goes through the same rules as `updateById` - the default filter, the row scope, hidden fields and the audit stamps - so `data[i]` is `null` and the row adds 0 to `count` when it does not match (missing, outside the scope, soft deleted). A repeated `id` runs once per occurrence and adds to `count` each time. `updateEach` is N statements, not one; `shouldReturn: false` returns `data: null`, and empty `rows` return `{ count: 0, data: [] }` without opening a transaction. Relational repositories only.
+
+### Visiting every row
+
+A batch job or an export has to read every row that matches a filter without loading them all at once. `findEvery` is an async iterator that does it, one row at a time, reading `pageSize` rows per query:
+
+```typescript
+for await (const user of repo.findEvery({
+  filter: { where: { status: 'ACTIVE' }, fields: ['id', 'email'] },
+  pageSize: 200,
+})) {
+  await exportRow(user);
+}
+```
+
+Each page starts after the last key of the page before it (`id > last`, ordered by `id`). A row inserted or deleted while the loop runs never shifts the window, and no offset grows, so the last page costs what the first one did. Rows come in ascending `id` order. A row inserted with a smaller key than the cursor is not visited; one with a larger key is.
+
+- **Same rules as `find`.** Every page goes through `find`, so the default filter, the row scope (`access`) and the hidden fields apply to each one. `options` takes `transaction` (every page reads through it), `shouldSkipDefaultFilter` and `lock`, like `find`.
+- **The key owns the order and the window.** A filter with `order`, `limit`, `skip`, `offset` or `include` is refused with a 400. `where` and `fields` are honoured. `id` is read for the cursor even when `fields` leaves it out, and is not in the rows then.
+- **`pageSize`** is a positive integer: 500 when omitted, at most 10 000 and at most the model's `limit.max` (1000 unless the model raises it). A value outside that is a 400, and a model with a smaller `limit.max` lowers the default to it.
+- **Stopping.** `break`, `return` or a throw in the loop stops it, and no further query is made. A result that is an exact multiple of `pageSize` costs one more query, which is empty.
+- **One key.** The model's `id` must be a single-column primary key and must not be a hidden property; a composite primary key is refused with a 400.
+- **Where it throws.** Every refusal surfaces on the first iteration, not when `findEvery` is called.
+- **Relational repositories only.**
 
 ## Extra Options
 

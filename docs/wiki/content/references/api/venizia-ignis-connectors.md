@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors, from the built declarat
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-3 exports, 3 with TSDoc. 129 more are re-exported from other entries (listed at the end).
+3 exports, 3 with TSDoc. 130 more are re-exported from other entries (listed at the end).
 
 ## `AbstractDriverDataSource`
 
@@ -249,6 +249,7 @@ Source: `packages/connectors/src/common/scope-filter.ts`
 - `TDeletedAtColumn` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TEntityObject` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TFieldFlags` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)
+- `TFindEveryFilter` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TGetIdType` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TIdColumn` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TMultiSearchEntry` from [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense)

@@ -21,6 +21,7 @@ tags: [architecture, connectors, drizzle, postgres, sqlite, relational]
 - [What stays Postgres-only](#what-stays-postgres-only)
 - [`UpdateBuilder` is reachable two ways - use the dialect](#updatebuilder-is-reachable-two-ways---use-the-dialect)
 - [Historical names off `@venizia/ignis-connectors/postgres`](#historical-names-off-veniziaignis-connectorspostgres)
+- [`findEvery` pages by key through `find`](#findevery-pages-by-key-through-find)
 - [The tier is falsified by one suite, run twice](#the-tier-is-falsified-by-one-suite-run-twice)
 - [Related](#related)
 <!-- okf:generated:contents end -->
@@ -397,6 +398,28 @@ root too. A consumer imports
 `NodePostgresDriver` is unaffected by the lift - it always lived at its own
 `@venizia/ignis-connectors/postgres/node-postgres` sub-path (it eagerly imports `pg`, so it stays out of the
 root `./postgres` barrel by the same rule every other optional-peer driver follows).
+
+## `findEvery` pages by key through `find`
+
+`readable.ts`'s `findEvery` is an `async *` generator that yields rows and reads `pageSize` rows per query by
+keyset: `order: ['id ASC']`, `limit: pageSize`, and from the second page `where: { id: { gt: last } }`. The
+caller's `where` and the keyset are joined as `{ and: [where, keyset] }`, so an `or` in the caller's `where` cannot
+widen the window. Every page is one `this.find(...)`, never `findWithCoreAPI` directly: the default filter, the
+row scope (never skippable), the `limit.max` ceiling and the hidden columns all hold on every page by the same path
+as a plain read. Nothing is read ahead of the loop, so a `break` (the generator's `return`) ends it with no further query.
+
+| Choice | What it is |
+|---|---|
+| Yields | Rows (`AsyncGenerator<TRow<...>>`), not pages. |
+| Key | The `id` column, the one `whereById` and `TTableSchemaWithId` already name. Refused (400) when `id` is neither `primary` nor `isUnique` (a composite primary key), or when `id` is a hidden property. The cursor is the value the row carries, so a number stays a number and a text key is compared as text. |
+| Refused filter keys | `order`, `limit`, `skip`, `offset`, `include` (400). The type (`TFindEveryFilter`) has none of them; the runtime check is for untyped callers. |
+| `fields` | Honoured. `id` is added to a narrowing selection (an array, or an object with a `true` entry) and dropped from the rows when the caller did not ask for it. |
+| `pageSize` | Positive integer, default 500, at most `min(10_000, limit.max ?? DEFAULT_MAX_LIMIT)`; the default is clamped to that ceiling. |
+| Options | The caller's `options` go to every page, with `shouldQueryRange` and `retry` removed: a page is neither a range nor a retried read. |
+| Errors | Thrown on the first `next()`, not at the call. |
+
+Tests: `__tests__/relational/conformance/find-every-conformance.ts`, run on PGlite and libsql by
+`pglite-find-every.test.ts` and `libsql-find-every.test.ts`, count the queries that reach the executor.
 
 ## The tier is falsified by one suite, run twice
 

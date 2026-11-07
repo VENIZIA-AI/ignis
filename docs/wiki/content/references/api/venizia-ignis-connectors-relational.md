@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/relational, from the bui
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-74 exports, 74 with TSDoc.
+75 exports, 75 with TSDoc.
 
 ## `AbstractRelationalDataSource`
 
@@ -1428,6 +1428,42 @@ export declare class ReadableRelationalRepository<EntitySchema extends TTableSch
         options?: TFindOptions<ExtraOptions, TRow<DataObject, R, F>>;
     }): Promise<Array<TRow<DataObject, R, F>>>;
     /**
+     * Visits every row matching `filter`, one row at a time, reading `pageSize` rows per query. A page starts after the
+     * last key of the one before (`id > last`, ordered by `id`), so a row inserted or deleted while the loop runs never
+     * shifts the window and no offset grows. Rows come in ascending `id` order.
+     *
+     * Every page goes through `find`, so the default filter, the row scope and the hidden fields apply to each one. The
+     * keyset owns the order and the window: a filter with `order`, `limit`, `skip`, `offset` or `include` is refused (400).
+     * `pageSize` is a positive integer, 500 by default, at most 10 000 and at most the model's `limit.max`. The key is read
+     * for the cursor even when `fields` leaves it out, and is dropped from the rows then. The model's `id` must be a
+     * single-column primary key and must not be hidden. Leaving the loop (`break`, `return`, a throw) makes no further query.
+     * Every refusal surfaces on the first iteration.
+     * @example
+     * ```typescript
+     * import { ReadableRepository } from '@venizia/ignis-connectors/postgres';
+     * import { integer, pgTable, text } from 'drizzle-orm/pg-core';
+     *
+     * const users = pgTable('User', { id: integer('id').primaryKey(), status: text('status') });
+     * declare const repo: ReadableRepository<typeof users>;
+     * for await (const user of repo.findEvery({ filter: { where: { status: 'ACTIVE' } }, pageSize: 200 })) {
+     *   console.log(user.id);
+     * }
+     * ```
+     */
+    findEvery<R = unknown, const F extends TFields<DataObject> = TFields<DataObject>>(opts: {
+        filter?: TFindEveryFilter<DataObject, F>;
+        pageSize?: number;
+        options?: ExtraOptions;
+    }): AsyncGenerator<TRow<DataObject, R, F>, void, undefined>;
+    /** The cursor reads `id`: it must name one row, and the rows `find` returns must carry it. */
+    private assertFindEveryKey;
+    private assertFindEveryFilter;
+    private resolveFindEveryPageSize;
+    /** The `fields` a page reads: the caller's, plus `id` when they narrow the row without it. `isKeyAdded` says the rows must lose it again. */
+    private withKeyField;
+    /** The caller's `where` and the keyset, both required: an `or` in the caller's `where` must not widen the window. */
+    private joinKeyset;
+    /**
      * Auto-selects Core API or Query API based on filter complexity.
      * @example
      * ```typescript
@@ -2484,6 +2520,20 @@ type TDefinitionsOf<Entity extends IDefinedEntity> = NonNullable<Entity['relatio
 ```
 
 Source: `packages/connectors/src/relational/core/models/common/types.ts`
+
+## `TFindEveryFilter`
+
+*type*
+
+The filter of `findEvery`: a `where` and the `fields` to read. The key cursor owns the order and the window, so `order`, `limit`, `skip`, `offset` and `include` have no place in it.
+
+```ts
+export type TFindEveryFilter<T = any, F extends TFields<T> = TFields<T>> = Omit<TFilter<T>, 'fields' | 'include' | 'order' | 'limit' | 'skip' | 'offset'> & {
+    fields?: F;
+};
+```
+
+Source: `packages/connectors/src/relational/core/repositories/common/types.ts`
 
 ## `TGetIdType`
 

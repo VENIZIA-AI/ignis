@@ -1737,7 +1737,7 @@ generated:
 
 ## connectors
 
-### `@venizia/ignis-connectors` (132)
+### `@venizia/ignis-connectors` (133)
 
 - `AbstractDriverDataSource` class
 - `AbstractRelationalDataSource` class
@@ -1841,6 +1841,7 @@ generated:
 - `TDeletedAtColumn` type
 - `TEntityObject` type
 - `TFieldFlags` type
+- `TFindEveryFilter` type
 - `TGetIdType` type
 - `TIdColumn` type
 - `TMultiSearchEntry` type
@@ -1908,7 +1909,7 @@ generated:
 - `TRawSqlQuery` type
 - `TRawSqlSchema` type
 
-### `@venizia/ignis-connectors/relational` (74)
+### `@venizia/ignis-connectors/relational` (75)
 
 - `AbstractRelationalDataSource` class
 - `AuditUserResolver` class
@@ -1966,6 +1967,7 @@ generated:
 - `TDefinedEntityClass` type
 - `TDeletedAtColumn` type
 - `TEntityObject` type
+- `TFindEveryFilter` type
 - `TGetIdType` type
 - `TIdColumn` type
 - `TPrimaryKey` type

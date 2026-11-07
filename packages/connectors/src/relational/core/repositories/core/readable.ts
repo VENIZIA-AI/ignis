@@ -1,4 +1,5 @@
-import { ObjectUtility } from '@venizia/ignis-helpers/common';
+import { HTTP, ObjectUtility } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import type {
   IExtraOptions,
   TByIdFilter,
@@ -12,7 +13,12 @@ import type {
   TRow,
   TWhere,
 } from '@venizia/ignis-kernel';
-import { DataRangeUtility, DEFAULT_LIMIT, RepositoryOperationScopes } from '@venizia/ignis-kernel';
+import {
+  DataRangeUtility,
+  DEFAULT_LIMIT,
+  DEFAULT_MAX_LIMIT,
+  RepositoryOperationScopes,
+} from '@venizia/ignis-kernel';
 import type { IRelationalDataSource } from '@/relational/core/datasources/common';
 import type {
   BaseRelationalEntity,
@@ -21,8 +27,17 @@ import type {
   TTableSchemaWithId,
 } from '@/relational/core/models';
 import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
-import type { IRelationalExtraOptions } from '../common';
+import type { IRelationalExtraOptions, TFindEveryFilter } from '../common';
 import { RelationalBaseRepository } from './base';
+
+/** Rows a `findEvery` page holds when the caller names no size. */
+const FIND_EVERY_DEFAULT_PAGE_SIZE = 500;
+
+/** Largest `pageSize` a `findEvery` accepts, whatever the model's own `limit.max` allows. */
+const FIND_EVERY_MAX_PAGE_SIZE = 10_000;
+
+/** The filter keys the key cursor owns: the order and the window of every page. */
+const FIND_EVERY_REFUSED_KEYS = ['order', 'limit', 'skip', 'offset', 'include'] as const;
 
 /** Read-only repository. Write operations throw errors. */
 export class ReadableRelationalRepository<
@@ -239,6 +254,174 @@ export class ReadableRelationalRepository<
         total,
       }),
     };
+  }
+
+  /**
+   * Visits every row matching `filter`, one row at a time, reading `pageSize` rows per query. A page starts after the
+   * last key of the one before (`id > last`, ordered by `id`), so a row inserted or deleted while the loop runs never
+   * shifts the window and no offset grows. Rows come in ascending `id` order.
+   *
+   * Every page goes through `find`, so the default filter, the row scope and the hidden fields apply to each one. The
+   * keyset owns the order and the window: a filter with `order`, `limit`, `skip`, `offset` or `include` is refused (400).
+   * `pageSize` is a positive integer, 500 by default, at most 10 000 and at most the model's `limit.max`. The key is read
+   * for the cursor even when `fields` leaves it out, and is dropped from the rows then. The model's `id` must be a
+   * single-column primary key and must not be hidden. Leaving the loop (`break`, `return`, a throw) makes no further query.
+   * Every refusal surfaces on the first iteration.
+   * @example
+   * ```typescript
+   * import { ReadableRepository } from '@venizia/ignis-connectors/postgres';
+   * import { integer, pgTable, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: integer('id').primaryKey(), status: text('status') });
+   * declare const repo: ReadableRepository<typeof users>;
+   * for await (const user of repo.findEvery({ filter: { where: { status: 'ACTIVE' } }, pageSize: 200 })) {
+   *   console.log(user.id);
+   * }
+   * ```
+   */
+  async *findEvery<R = unknown, const F extends TFields<DataObject> = TFields<DataObject>>(opts: {
+    filter?: TFindEveryFilter<DataObject, F>;
+    pageSize?: number;
+    options?: ExtraOptions;
+  }): AsyncGenerator<TRow<DataObject, R, F>, void, undefined> {
+    const { filter, options } = opts;
+    const scope = 'findEvery';
+
+    this.assertFindEveryKey({ scope });
+    this.assertFindEveryFilter({ filter, scope });
+
+    const pageSize = this.resolveFindEveryPageSize({ pageSize: opts.pageSize, scope });
+    const { fields, isKeyAdded } = this.withKeyField({ fields: filter?.fields });
+    // `find` reads the range envelope and the retry from these two; a page is neither.
+    const pageOptions = {
+      ...options,
+      shouldQueryRange: false,
+      retry: undefined,
+    } as unknown as ExtraOptions;
+
+    let cursor: unknown;
+    let isFirstPage = true;
+
+    while (true) {
+      const keyset = isFirstPage ? undefined : { id: { gt: cursor } };
+      const where = this.joinKeyset({ where: filter?.where, keyset });
+
+      const page = await this.find<Record<string, unknown>>({
+        filter: { where, fields, order: ['id ASC'], limit: pageSize } as TFilter<DataObject>,
+        options: pageOptions,
+      });
+
+      for (const row of page) {
+        yield (isKeyAdded ? ObjectUtility.omit({ source: row, keys: ['id'] }) : row) as TRow<
+          DataObject,
+          R,
+          F
+        >;
+      }
+
+      if (page.length < pageSize) {
+        return;
+      }
+
+      cursor = page[page.length - 1]?.id;
+      isFirstPage = false;
+    }
+  }
+
+  /** The cursor reads `id`: it must name one row, and the rows `find` returns must carry it. */
+  private assertFindEveryKey(opts: { scope: string }): void {
+    const column = this.entity.schema.id;
+
+    if (!column.primary && !column.isUnique) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `[${this.constructor.name}][${opts.scope}] Needs a single-column primary key | 'id' alone does not identify a row of '${this.entity.name}' (composite primary key)`,
+      });
+    }
+
+    if (this.getHiddenProperties().has('id')) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `[${this.constructor.name}][${opts.scope}] The key 'id' of '${this.entity.name}' is a hidden property | A page cannot continue from a key it never reads`,
+      });
+    }
+  }
+
+  private assertFindEveryFilter(opts: { filter?: object; scope: string }): void {
+    const refused = FIND_EVERY_REFUSED_KEYS.filter(
+      (key) =>
+        opts.filter !== undefined && (opts.filter as Record<string, unknown>)[key] !== undefined,
+    );
+
+    if (refused.length === 0) {
+      return;
+    }
+
+    throw getError({
+      statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+      message: `[${this.constructor.name}][${opts.scope}] Refused filter key(s): ${refused.join(', ')} | The key cursor owns the order and the window of every page`,
+    });
+  }
+
+  private resolveFindEveryPageSize(opts: { pageSize?: number; scope: string }): number {
+    const { pageSize, scope } = opts;
+    const ceiling = Math.min(FIND_EVERY_MAX_PAGE_SIZE, this.maxLimit ?? DEFAULT_MAX_LIMIT);
+
+    if (pageSize === undefined) {
+      return Math.min(FIND_EVERY_DEFAULT_PAGE_SIZE, ceiling);
+    }
+
+    if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > ceiling) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `[${this.constructor.name}][${scope}] Invalid 'pageSize' | Expected an integer from 1 to ${ceiling} | Got: ${pageSize}`,
+      });
+    }
+
+    return pageSize;
+  }
+
+  /** The `fields` a page reads: the caller's, plus `id` when they narrow the row without it. `isKeyAdded` says the rows must lose it again. */
+  private withKeyField(opts: { fields?: TFields<DataObject> }): {
+    fields: TFields<DataObject> | undefined;
+    isKeyAdded: boolean;
+  } {
+    const { fields } = opts;
+
+    if (Array.isArray(fields)) {
+      if (fields.length === 0 || fields.includes('id')) {
+        return { fields, isKeyAdded: false };
+      }
+
+      return { fields: [...fields, 'id'], isKeyAdded: true };
+    }
+
+    if (fields && typeof fields === 'object') {
+      const record = fields as Record<string, unknown>;
+
+      if (!Object.values(record).includes(true) || record.id === true) {
+        return { fields, isKeyAdded: false };
+      }
+
+      return { fields: { ...record, id: true } as TFields<DataObject>, isKeyAdded: true };
+    }
+
+    return { fields: undefined, isKeyAdded: false };
+  }
+
+  /** The caller's `where` and the keyset, both required: an `or` in the caller's `where` must not widen the window. */
+  private joinKeyset(opts: {
+    where?: TWhere<DataObject>;
+    keyset?: Record<string, unknown>;
+  }): TWhere<DataObject> | undefined {
+    const { where, keyset } = opts;
+    const hasWhere = where !== undefined && Object.keys(where).length > 0;
+
+    if (!keyset) {
+      return hasWhere ? where : undefined;
+    }
+
+    return (hasWhere ? { and: [where, keyset] } : keyset) as TWhere<DataObject>;
   }
 
   /**
