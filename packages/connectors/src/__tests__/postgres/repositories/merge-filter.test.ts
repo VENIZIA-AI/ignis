@@ -156,6 +156,20 @@ describe('FilterBuilder.mergeFilter - top-key-level where merge', () => {
     });
   });
 
+  test.each(['hasOwnProperty', 'toString', 'valueOf', 'constructor'])(
+    'the inherited name %s is an ordinary key, never a default it would collide with',
+    (name) => {
+      const where = JSON.parse(`{"${name}": "x"}`);
+      const merged = builder.mergeFilter<any>({
+        defaultFilter: { where: { isDeleted: false } },
+        userFilter: { where },
+      });
+
+      expect(merged.where).toEqual({ isDeleted: false, ...where });
+      expect((merged.where as Record<string, unknown>).and).toBeUndefined();
+    },
+  );
+
   test('a user value of undefined does not override a defined default (tenant/soft-delete scope)', () => {
     const merged = builder.mergeFilter<any>({
       defaultFilter: { where: { tenantId: 'safe-tenant', isDeleted: false } },

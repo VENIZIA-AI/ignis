@@ -179,7 +179,8 @@ export abstract class FilterBuilder extends BaseHelper {
         continue;
       }
 
-      const defaultValue = defaults[key];
+      // An OWN property only: `toString` or `valueOf` on a plain object is the prototype's function, not a default.
+      const defaultValue = Object.hasOwn(defaults, key) ? defaults[key] : undefined;
 
       // A collision AND-composes, scalars included: scalar-over-scalar used to be a plain override, which let a
       // caller replace the soft-delete default (`deletedAt: null`) and read deleted rows.
