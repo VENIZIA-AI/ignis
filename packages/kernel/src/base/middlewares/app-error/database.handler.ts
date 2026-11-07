@@ -4,7 +4,7 @@ import {
   POSTGRES_CLIENT_ERROR_CLASSES,
   POSTGRES_RETRYABLE_ERROR_CODES,
 } from './definition';
-import type { IDatabaseError } from './common';
+import { PostgresErrors } from './postgres-errors';
 
 export class DatabaseErrorHandler {
   /** True for a database error caused by the request (SQLSTATE class 22/23/44) -> HTTP 400; in production the detail/table/constraint context is suppressed so no row values or schema internals leak. */
@@ -13,14 +13,15 @@ export class DatabaseErrorHandler {
     message?: string;
   } {
     const { error, isProduction } = opts;
-    const dbError = error as IDatabaseError;
-    const cause = dbError.cause;
-    const code = [dbError.code, cause?.code].find(Boolean);
+    // The same walk an application uses: the Postgres error may sit several `cause`s down, and a value without a SQLSTATE `code` (a gRPC numeric one, ECONNRESET) is not one, so this last-resort handler never crashes on it.
+    const pgError = PostgresErrors.find({ error });
 
-    // Only request-caused SQLSTATE classes are client errors; a missing or non-string code (e.g. a gRPC numeric one) is non-client and must never crash this last-resort handler.
-    if (typeof code !== 'string' || !POSTGRES_CLIENT_ERROR_CLASSES.includes(code.slice(0, 2))) {
+    // Only request-caused SQLSTATE classes are client errors.
+    if (!pgError || !POSTGRES_CLIENT_ERROR_CLASSES.includes(pgError.code.slice(0, 2))) {
       return { isClientError: false };
     }
+
+    const { code } = pgError;
 
     const baseMessage =
       DATABASE_CLIENT_ERROR_MESSAGES[code] ?? DATABASE_CLIENT_ERROR_FALLBACK_MESSAGE;
@@ -33,16 +34,16 @@ export class DatabaseErrorHandler {
     // Non-production: append driver-provided context to aid debugging.
     const lines = [baseMessage];
 
-    if (cause?.detail) {
-      lines.push(`Detail: ${cause.detail}`);
+    if (pgError.detail) {
+      lines.push(`Detail: ${pgError.detail}`);
     }
 
-    if (cause?.table) {
-      lines.push(`Table: ${cause.table}`);
+    if (pgError.table) {
+      lines.push(`Table: ${pgError.table}`);
     }
 
-    if (cause?.constraint) {
-      lines.push(`Constraint: ${cause.constraint}`);
+    if (pgError.constraint) {
+      lines.push(`Constraint: ${pgError.constraint}`);
     }
 
     return {
@@ -53,9 +54,8 @@ export class DatabaseErrorHandler {
 
   /** True for a transient, retryable transaction conflict (serialization failure / deadlock - SQLSTATE 40001 / 40P01) -> HTTP 409: the client can retry the same request. */
   static isRetryableDatabaseError(opts: { error: Error }): boolean {
-    const dbError = opts.error as IDatabaseError;
-    const code = [dbError.code, dbError.cause?.code].find(Boolean);
+    const pgError = PostgresErrors.find({ error: opts.error });
 
-    return typeof code === 'string' && POSTGRES_RETRYABLE_ERROR_CODES.includes(code);
+    return pgError !== undefined && POSTGRES_RETRYABLE_ERROR_CODES.includes(pgError.code);
   }
 }

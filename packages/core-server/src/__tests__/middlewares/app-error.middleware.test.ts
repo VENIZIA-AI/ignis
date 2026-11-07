@@ -230,6 +230,41 @@ describe('isDatabaseClientError — DB constraint errors map to HTTP 400', () =>
     expect(body.message).toBe('connection terminated');
   });
 
+  test('non-prod: a Postgres error two levels deep in cause (ORM wrapper around a driver wrapper) is a 400 with its context', async () => {
+    const driver = {
+      code: '23505',
+      detail: 'Key (email)=(a@b.com) already exists.',
+      table: 'users',
+      constraint: 'users_email_key',
+    };
+    const res = await mount({
+      thrower: () => {
+        const orm = new Error('Failed query', { cause: new Error('pool', { cause: driver }) });
+
+        throw orm;
+      },
+    }).request('/x', undefined, { NODE_ENV: 'development' });
+    expect(res.status).toBe(400);
+    const body = await readJson(res);
+    expect(body.message).toContain('Unique constraint violation');
+    expect(body.message).toContain('Table: users');
+    expect(body.message).toContain('Constraint: users_email_key');
+  });
+
+  test('a deadlock three levels deep in cause is a 409 retryable conflict', async () => {
+    const res = await mount({
+      thrower: () => {
+        const inner = Object.assign(new Error('deadlock detected'), { code: '40P01' });
+        const middle = new Error('pool', { cause: inner });
+
+        throw new Error('Failed query', { cause: new Error('orm', { cause: middle }) });
+      },
+    }).request('/x');
+    expect(res.status).toBe(409);
+    const body = await readJson(res);
+    expect(body.normalized.code).toBe('database.conflict');
+  });
+
   test('production: client DB error returns only the base message (no detail/table/constraint)', async () => {
     const res = await mount({
       thrower: dbThrower({
