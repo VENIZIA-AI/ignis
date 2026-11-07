@@ -37,6 +37,7 @@ const jwtOptions = (jwtSecret: string): TJWTTokenServiceOptions => ({
   options: {
     jwtSecret,
     getTokenExpiresFn: () => 60,
+    claims: { issuer: 'test-issuer', audience: 'test-audience' },
   },
 });
 

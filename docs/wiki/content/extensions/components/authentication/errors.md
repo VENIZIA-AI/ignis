@@ -57,6 +57,9 @@ Thrown during `binding()` while validating options and wiring services.
 | `[defineJWSAuth] claims.issuer is required` / `claims.audience is required` | 500 | The key is missing, empty or not a string (a list for `audience`) | Set a non-empty `issuer` and `audience` |
 | `[defineJWSAuth] claims holds unknown keys ["audiance"] \| accepted: issuer, audience` | 500 | A misspelt or extra key in `claims` | Remove or correct the named key |
 | `[defineJWSAuth] \`sign\` was removed` / `verify.issuer was removed` / `verify.audience was removed` | 500 | An option from before `claims` | Move the value to `claims.issuer` or `claims.audience` |
+| `[defineJWSAuth] verify must be an object` | 500 | `verify` is a string, a number, a list or `null` | Pass an object, or remove it |
+| `[defineJWSAuth] the algorithm 'none' is refused` | 500 | `headerAlgorithm` or `verify.algorithms` names `none` | Name a real algorithm |
+| `[verify] Invalid or expired token` with cause `A service assertion is not a user token` | 401 | A token with `typ: svc+jwt` reached the user-token path | Send service assertions in the `x-service-assertion` header |
 | `[defineJWKSAuth] verify.algorithms is required` | 500 | A JWKS verifier without `verify.algorithms` | Pass the algorithms the issuer signs with, for example `verify: { algorithms: ['RS256'] }` |
 | `[defineJWSAuth] jwtSecret is too short: {n} bytes, at least 32 are required \| Generate one with: openssl rand -base64 48` (also `[JWSTokenService]`) | 500 | `jwtSecret` is shorter than 32 UTF-8 bytes | Generate a longer secret, for example `openssl rand -base64 48`. The message never shows the secret |
 | `[defineJWSAuth] getTokenExpiresFn is required` | 400 | `getTokenExpiresFn` missing from JWS options | Provide `() => Number(process.env.APP_ENV_JWT_EXPIRES_IN \|\| 86400)` |

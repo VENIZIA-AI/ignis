@@ -59,6 +59,13 @@ export declare abstract class AbstractBearerTokenService<E extends Env = Env> ex
         type: string;
         token: string;
     }): Promise<IJWTTokenPayload>;
+    /**
+     * A service assertion (`typ: svc+jwt`) is not a user token. When a JWKS issuer shares the key of the service
+     * assertions and the names collide, an assertion would otherwise verify here, so the user-token path refuses it.
+     */
+    protected assertNotServiceAssertion(opts: {
+        token: string;
+    }): Promise<void>;
     generate(opts: {
         payload: IJWTTokenPayload;
         getTokenExpiresFn?: TGetTokenExpiresFn;

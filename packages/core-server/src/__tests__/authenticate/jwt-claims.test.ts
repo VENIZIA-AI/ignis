@@ -404,3 +404,116 @@ describe('the other verify knobs reach jose', () => {
     });
   });
 });
+
+const refusalOf = (task: () => unknown): string => {
+  try {
+    task();
+  } catch (error) {
+    return (error as Error).message;
+  }
+
+  throw new Error('expected a refusal');
+};
+
+describe('hardening: tokens and options that must not pass', () => {
+  const unsigned = () => {
+    const part = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
+    const now = Math.floor(Date.now() / 1000);
+
+    return `${part({ alg: 'none', typ: 'JWT' })}.${part({
+      userId: 1,
+      iss: 'identity',
+      aud: 'inventory',
+      exp: now + 3600,
+    })}.`;
+  };
+
+  test('a token with alg none is refused', async () => {
+    await RejectionHelper.expectRejection({
+      task: buildService().verify({ type: 'Bearer', token: unsigned() }),
+      message: REFUSED,
+    });
+  });
+
+  test("the algorithm 'none' refuses the boot, as a header algorithm or in verify.algorithms", () => {
+    expect(refusalOf(() => buildService({ headerAlgorithm: 'none' }))).toContain("'none'");
+    expect(refusalOf(() => buildService({ verify: { algorithms: ['HS256', 'None'] } }))).toContain(
+      "'none'",
+    );
+  });
+
+  test.each([['maxTokenAge'], [5], [['maxTokenAge']], [null]])(
+    'a verify option that is not an object (%p) refuses the boot',
+    (verify) => {
+      expect(refusalOf(() => buildService({ verify: verify as AnyType }))).toContain(
+        'verify must be an object',
+      );
+    },
+  );
+
+  test('a configured audience list accepts a token naming any entry', async () => {
+    const service = buildService({
+      claims: { issuer: 'identity', audience: ['inventory', 'billing'] },
+    });
+    const token = await signedElsewhere({ issuer: 'identity', audience: 'billing' });
+
+    const result = await service.verify({ type: 'Bearer', token });
+    expect(result.userId).toBe(1);
+  });
+
+  test('the encrypted variant refuses a token that carries no claims', async () => {
+    const service = buildService({ applicationSecret: '0123456789abcdef0123456789abcdef' });
+    const own = await service.generate({ payload: basePayload() });
+
+    const result2 = await service.verify({ type: 'Bearer', token: own });
+    expect(result2.userId).toBe(1);
+    const result3 = await signedElsewhere({});
+    await RejectionHelper.expectRejection({
+      task: service.verify({ type: 'Bearer', token: result3 }),
+      message: REFUSED,
+    });
+  });
+
+  describe('a service assertion is not a user token', () => {
+    const withTyp = (typ: string) =>
+      new SignJWT({ userId: 1, roles: [] })
+        .setProtectedHeader({ alg: 'HS256', typ })
+        .setIssuer('identity')
+        .setAudience('inventory')
+        .setIssuedAt()
+        .setExpirationTime('1h')
+        .sign(KEY);
+
+    test.each(['svc+jwt', 'SVC+JWT', 'application/svc+jwt'])(
+      'typ %p is refused on the user-token path',
+      async (typ) => {
+        const token = await withTyp(typ);
+
+        await RejectionHelper.expectRejection({
+          task: buildService().verify({ type: 'Bearer', token }),
+          message: REFUSED,
+        });
+      },
+    );
+
+    test('the cause names the service assertion', async () => {
+      let caught: AnyType;
+      const token = await withTyp('svc+jwt');
+
+      try {
+        await buildService().verify({ type: 'Bearer', token });
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(String(caught?.cause)).toContain('service assertion');
+    });
+
+    test('an ordinary typ (JWT) is accepted', async () => {
+      const token = await withTyp('JWT');
+      const verified = await buildService().verify({ type: 'Bearer', token });
+
+      expect(verified.userId).toBe(1);
+    });
+  });
+});
