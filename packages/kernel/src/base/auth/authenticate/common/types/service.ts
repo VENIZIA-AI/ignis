@@ -105,7 +105,7 @@ export interface IServiceAuthOptions<E extends Env = Env> {
     /** @default 30_000 */
     cooldownMs?: number;
 
-    /** Host names that may serve a caller's key set over `http:`. Unset means `https:` or loopback only. */
+    /** Exact hosts (name, IP or bracketed IPv6, each with an optional `:port`) that may serve a caller's key set over `http:`. Unset means `https:` or loopback only. */
     hosts?: IJWKSHosts;
   };
 
