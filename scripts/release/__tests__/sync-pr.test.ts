@@ -36,6 +36,8 @@ const fixture = (): string => {
 
   roots.push(root);
   git({ cwd: root, args: ['init', '-q', '-b', 'main'] });
+  // Git would start a detached maintenance run after a commit and write into the folder while the test removes it.
+  git({ cwd: root, args: ['config', 'maintenance.auto', 'false'] });
   commit({ root, version: '0.4.8', message: 'chore(release): v0.4.8 [patch]' });
   git({ cwd: root, args: ['checkout', '-q', '-b', 'develop'] });
   commit({ root, version: '0.4.9-0', file: 'a.txt', message: '[#10] feat(a): first change' });

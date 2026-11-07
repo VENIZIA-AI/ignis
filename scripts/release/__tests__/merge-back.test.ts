@@ -74,6 +74,8 @@ const fixture = (opts: { developVersion: string }): string => {
   const root = scratch();
 
   run({ cwd: root, args: ['init', '-q', '-b', 'main'] });
+  // Git would start a detached maintenance run after a commit and write into the folder while the test removes it.
+  run({ cwd: root, args: ['config', 'maintenance.auto', 'false'] });
   write({
     root,
     path: 'package.json',

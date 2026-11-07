@@ -66,6 +66,8 @@ const fixture = (): string => {
   const root = scratch();
 
   git({ cwd: root, args: ['init', '-q', '-b', 'develop'] });
+  // Git would start a detached maintenance run after a commit and write into the folder while the test removes it.
+  git({ cwd: root, args: ['config', 'maintenance.auto', 'false'] });
   commit({
     root,
     message: '[#1] feat(a): the first',
@@ -517,6 +519,7 @@ describe('GithubRelease.create', () => {
     const stub = stubGh({});
 
     git({ cwd: root, args: ['init', '-q', '-b', 'develop'] });
+    git({ cwd: root, args: ['config', 'maintenance.auto', 'false'] });
     // A pattern no real manifest has: `<dir>-<version>` turns the package `atlas` at the version `index` into the tag.
     commit({
       root,
