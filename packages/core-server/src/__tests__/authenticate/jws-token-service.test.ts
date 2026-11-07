@@ -11,6 +11,7 @@ const buildService = (overrides: Partial<IJWSTokenServiceOptions> = {}) => {
   return new JWSTokenService({
     jwtSecret: JWT_SECRET,
     getTokenExpiresFn: () => 3600,
+    claims: { issuer: 'test-issuer', audience: 'test-audience' },
     ...overrides,
   } as IJWSTokenServiceOptions);
 };

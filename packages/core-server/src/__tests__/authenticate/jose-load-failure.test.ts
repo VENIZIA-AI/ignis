@@ -27,6 +27,7 @@ const JWT_OPTIONS: TJWTTokenServiceOptions = {
   options: {
     jwtSecret: 'probe-secret-that-is-long-enough-for-hs256',
     getTokenExpiresFn: () => 60,
+    claims: { issuer: 'test-issuer', audience: 'test-audience' },
   },
 };
 

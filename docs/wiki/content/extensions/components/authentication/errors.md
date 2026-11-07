@@ -53,6 +53,11 @@ Thrown during `binding()` while validating options and wiring services.
 | `[AuthenticateComponent] At least one of jwtOptions, basicOptions or serviceOptions must be provided` | 400 | None of `JWT_OPTIONS`, `BASIC_OPTIONS` or `SERVICE_OPTIONS` is bound | Bind any one of the three - see [Setup](./#common-tasks). A service that only verifies assertions binds `SERVICE_OPTIONS` alone |
 | `[AuthenticateComponent] Unknown JOSE standard: {standard}` | 400 | `jwtOptions.standard` is not `'JWS'` or `'JWKS'` | Use `JOSEStandards.JWS` or `JOSEStandards.JWKS` |
 | `[defineJWSAuth] Invalid jwtSecret \| Provided: {jwtSecret}` | 400 | `jwtSecret` falsy or equals placeholder `'unknown_secret'` | Set a real secret - `APP_ENV_JWT_SECRET`, for example |
+| `[defineJWSAuth] claims is required \| pass claims: { issuer, audience } ...` (also `[defineJWKSAuth]`, `[JWSTokenService]`, `[JWKSIssuerTokenService]`, `[JWKSVerifierTokenService]`) | 500 | No `claims` object | Pass `claims: { issuer: string, audience: string \| string[] }` |
+| `[defineJWSAuth] claims.issuer is required` / `claims.audience is required` | 500 | The key is missing, empty or not a string (a list for `audience`) | Set a non-empty `issuer` and `audience` |
+| `[defineJWSAuth] claims holds unknown keys ["audiance"] \| accepted: issuer, audience` | 500 | A misspelt or extra key in `claims` | Remove or correct the named key |
+| `[defineJWSAuth] \`sign\` was removed` / `verify.issuer was removed` / `verify.audience was removed` | 500 | An option from before `claims` | Move the value to `claims.issuer` or `claims.audience` |
+| `[defineJWKSAuth] verify.algorithms is required` | 500 | A JWKS verifier without `verify.algorithms` | Pass the algorithms the issuer signs with, for example `verify: { algorithms: ['RS256'] }` |
 | `[defineJWSAuth] getTokenExpiresFn is required` | 400 | `getTokenExpiresFn` missing from JWS options | Provide `() => Number(process.env.APP_ENV_JWT_EXPIRES_IN \|\| 86400)` |
 | `[defineJWKSAuth] keys.private and keys.public are required for issuer mode` | 400 | Issuer mode missing one or both keys | Provide `keys.private` and `keys.public` |
 | `[defineJWKSAuth] keys.format is required and must be one of: pem, jwk` | 400 | `keys.format` missing or invalid | Use `JWKSKeyFormats.PEM` or `JWKSKeyFormats.JWK` |

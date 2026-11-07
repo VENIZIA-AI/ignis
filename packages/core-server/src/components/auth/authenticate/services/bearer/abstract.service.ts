@@ -2,18 +2,33 @@ import type { AESAlgorithmType } from '@venizia/ignis-helpers';
 import { AES } from '@venizia/ignis-helpers';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import type {
+  IJWTClaimsOptions,
   IJWTIssueClaims,
-  IJWTSignOptions,
   IJWTTokenPayload,
+  IJWTVerifyOptions,
   IPayloadFieldCodec,
   TContext,
   TGetTokenExpiresFn,
 } from '@venizia/ignis-kernel';
 import { Authentication, AuthenticationErrors, BaseService } from '@venizia/ignis-kernel';
 import type { Env } from 'hono';
-import type { JWTPayload, JWTVerifyResult, SignJWT } from 'jose';
+import type { JWTPayload, JWTVerifyOptions, JWTVerifyResult, SignJWT } from 'jose';
+
+/** What a token service is configured with for claims: the required `claims`, the `verify` checks, and the removed `sign` it refuses. */
+export interface IClaimsConfigSource {
+  claims?: unknown;
+  verify?: unknown;
+  /** Removed: refused with a message that points to `claims`. */
+  sign?: unknown;
+}
+
+/** What {@link AbstractBearerTokenService.resolveClaimsConfig} answers: the validated claims and the verify options jose receives. */
+export interface IResolvedClaimsConfig {
+  claims: IJWTClaimsOptions;
+  verify: JWTVerifyOptions & { algorithms: string[] };
+}
 
 /** Abstract base for Bearer-token services (JWS, JWKS) with optional AES payload encryption. */
 export abstract class AbstractBearerTokenService<E extends Env = Env> extends BaseService {
@@ -32,19 +47,124 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
   protected applicationSecret: string | null = null;
   protected fieldCodecs: Map<string, IPayloadFieldCodec> = new Map();
 
-  /** Configured `iss` / `aud`. Authoritative over anything the payload carries. */
-  protected signOptions: IJWTSignOptions | null = null;
+  /** Configured `iss` / `aud`: stamped on every issued token, authoritative over anything the payload carries, and required on every verified one. */
+  protected claimOptions: IJWTClaimsOptions | null = null;
+
+  /** What jose verifies against: the claims, the algorithm pin and the `verify` checks. */
+  protected verifyOptions: JWTVerifyOptions | null = null;
+
+  /** The keys a `claims` object may hold. */
+  static readonly CLAIM_KEYS: ReadonlyArray<string> = ['issuer', 'audience'];
+
+  /**
+   * Validates the claims configuration of a token service and answers what the service uses. It throws, naming the
+   * key, when `claims.issuer` or `claims.audience` is missing or empty, when `claims` holds another key, when the
+   * removed `sign` or `verify.issuer` / `verify.audience` is still passed, and when no algorithm is pinned.
+   * `pinnedAlgorithms` is what the service signs with; a verifier has none and requires `verify.algorithms`.
+   * The component calls it at boot, and a service calls it when it is built, so neither can start without them.
+   */
+  static resolveClaimsConfig(opts: {
+    scope: string;
+    options: IClaimsConfigSource;
+    pinnedAlgorithms?: string[];
+  }): IResolvedClaimsConfig {
+    const { scope, options, pinnedAlgorithms } = opts;
+    const fail = (detail: string) =>
+      getError({
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message: `[${scope}] ${detail}`,
+      });
+
+    if (options.sign !== undefined) {
+      throw fail(
+        '`sign` was removed | put the issuer and the audience in `claims: { issuer, audience }`: they are stamped on every token and required on every verified one',
+      );
+    }
+
+    const verify = RecordUtility.isPlainRecord(options.verify) ? options.verify : {};
+
+    for (const key of AbstractBearerTokenService.CLAIM_KEYS) {
+      if (key in verify) {
+        throw fail(
+          `verify.${key} was removed | set claims.${key}: it is stamped on every token and required on every verified one`,
+        );
+      }
+    }
+
+    const { claims } = options;
+
+    if (!RecordUtility.isPlainRecord(claims)) {
+      throw fail(
+        'claims is required | pass claims: { issuer: string, audience: string | string[] }: a token signed with the same key for another purpose must not authenticate a request',
+      );
+    }
+
+    const unknown = Object.keys(claims).filter(
+      (key) => !AbstractBearerTokenService.CLAIM_KEYS.includes(key),
+    );
+
+    if (unknown.length > 0) {
+      throw fail(
+        `claims holds unknown keys ${JSON.stringify(unknown)} | accepted: ${AbstractBearerTokenService.CLAIM_KEYS.join(', ')}`,
+      );
+    }
+
+    const { issuer, audience } = claims;
+    const isName = (value: unknown): value is string =>
+      typeof value === 'string' && value.trim().length > 0;
+
+    if (!isName(issuer)) {
+      throw fail('claims.issuer is required | a non-empty string');
+    }
+
+    if (
+      !isName(audience) &&
+      !(Array.isArray(audience) && audience.length > 0 && audience.every(isName))
+    ) {
+      throw fail('claims.audience is required | a non-empty string or a non-empty list of them');
+    }
+
+    const algorithms = verify.algorithms ?? pinnedAlgorithms;
+
+    if (!Array.isArray(algorithms) || algorithms.length === 0 || !algorithms.every(isName)) {
+      throw fail(
+        "verify.algorithms is required | the accepted JWS algorithms, for example ['RS256']: a verifier cannot know what the issuer signs with",
+      );
+    }
+
+    return {
+      claims: { issuer, audience: Array.isArray(audience) ? [...audience] : audience },
+      verify: {
+        ...(verify as IJWTVerifyOptions),
+        issuer,
+        audience: Array.isArray(audience) ? [...audience] : audience,
+        algorithms: [...algorithms],
+      },
+    };
+  }
+
+  /** Validates the claims configuration (see {@link AbstractBearerTokenService.resolveClaimsConfig}) and keeps the result. */
+  protected configureClaims(opts: {
+    options: IClaimsConfigSource;
+    pinnedAlgorithms?: string[];
+  }): void {
+    const resolved = AbstractBearerTokenService.resolveClaimsConfig({
+      scope: this.scope,
+      options: opts.options,
+      pinnedAlgorithms: opts.pinnedAlgorithms,
+    });
+
+    this.claimOptions = resolved.claims;
+    this.verifyOptions = resolved.verify;
+  }
 
   /** Configures AES payload encryption and field codecs. Both aesAlgorithm and applicationSecret required to activate encryption. */
   protected configurePayloadEncryption(opts: {
     aesAlgorithm?: AESAlgorithmType;
     applicationSecret?: string;
     fieldCodecs?: IPayloadFieldCodec[];
-    sign?: IJWTSignOptions;
   }): void {
-    const { aesAlgorithm = 'aes-256-cbc', applicationSecret, fieldCodecs, sign } = opts;
-
-    this.signOptions = sign ?? null;
+    const { aesAlgorithm = 'aes-256-cbc', applicationSecret, fieldCodecs } = opts;
 
     if (fieldCodecs) {
       for (const codec of fieldCodecs) {
@@ -238,7 +358,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     claims?: IJWTIssueClaims;
   }): SignJWT {
     const { signer, payload, claims } = opts;
-    const configured = this.signOptions;
+    const configured = this.claimOptions;
 
     const issuer = claims?.issuer ?? configured?.issuer;
     const audience = claims?.audience ?? configured?.audience;

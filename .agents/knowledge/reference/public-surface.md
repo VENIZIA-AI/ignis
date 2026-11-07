@@ -1229,7 +1229,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (419)
+### `@venizia/ignis-kernel` (420)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1385,9 +1385,10 @@ generated:
 - `IGrpcControllerMetadata` interface
 - `IJWKSIssuerOptions` interface
 - `IJWKSVerifierOptions` interface
+- `IJWKSVerifierVerifyOptions` interface
 - `IJWSTokenServiceOptions` interface
+- `IJWTClaimsOptions` interface
 - `IJWTIssueClaims` interface
-- `IJWTSignOptions` interface
 - `IJWTTokenPayload` interface
 - `IJWTVerifyOptions` interface
 - `IMiddlewareConfigs` interface
@@ -2373,7 +2374,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1013)
+### `@venizia/ignis` (1016)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2638,6 +2639,7 @@ generated:
 - `ICasbinPolicyFilter` interface
 - `ICasbinPolicySource` interface
 - `ICasbinRules` interface
+- `IClaimsConfigSource` interface
 - `IClock` interface
 - `IComponentMixin` interface
 - `ICompressOptions` interface
@@ -2701,9 +2703,10 @@ generated:
 - `IIdGeneratorOptions` interface
 - `IJWKSIssuerOptions` interface
 - `IJWKSVerifierOptions` interface
+- `IJWKSVerifierVerifyOptions` interface
 - `IJWSTokenServiceOptions` interface
+- `IJWTClaimsOptions` interface
 - `IJWTIssueClaims` interface
-- `IJWTSignOptions` interface
 - `IJWTTokenPayload` interface
 - `IJWTVerifyOptions` interface
 - `ILeavesOptions` interface
@@ -2788,6 +2791,7 @@ generated:
 - `IRequestedRemark` interface
 - `IRequestIdOptions` interface
 - `IRequestOptions` interface
+- `IResolvedClaimsConfig` interface
 - `IResolvedRepositoryMetadata` interface
 - `IRestApplication` interface
 - `IRestComponentConfig` interface

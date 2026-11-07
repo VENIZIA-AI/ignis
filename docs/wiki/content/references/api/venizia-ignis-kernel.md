@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-341 exports, 341 with TSDoc. 77 more are re-exported from other entries (listed at the end).
+342 exports, 342 with TSDoc. 77 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -3716,6 +3716,8 @@ export interface IJWKSIssuerOptions {
     };
     kid: string;
     getTokenExpiresFn: TGetTokenExpiresFn;
+    /** The `iss` and `aud` stamped on every issued token and required on every verified one. A configured value WINS over one supplied in the payload. */
+    claims: IJWTClaimsOptions;
     /**
      * The AES algorithm of payload encryption, used when `applicationSecret` is set.
      *
@@ -3724,10 +3726,8 @@ export interface IJWKSIssuerOptions {
     aesAlgorithm?: AESAlgorithmType;
     applicationSecret?: string;
     fieldCodecs?: IPayloadFieldCodec[];
-    /** Claim checks applied on verify. Unset means signature and time claims only. */
+    /** Further checks applied on verify, beside `claims` and the algorithm pin. */
     verify?: IJWTVerifyOptions;
-    /** Claims stamped on every issued token. A configured value WINS over one supplied in the payload. */
-    sign?: IJWTSignOptions;
 }
 ```
 
@@ -3743,6 +3743,8 @@ Options of a JWKS verifier, which checks tokens against the key set served at `j
 export interface IJWKSVerifierOptions {
     mode: typeof JWKSModes.VERIFIER;
     jwksUrl: string;
+    /** The `iss` and `aud` required on every verified token. */
+    claims: IJWTClaimsOptions;
     /**
      * How long the fetched key set stays cached, in ms (12 hours).
      *
@@ -3763,8 +3765,23 @@ export interface IJWKSVerifierOptions {
     aesAlgorithm?: AESAlgorithmType;
     applicationSecret?: string;
     fieldCodecs?: IPayloadFieldCodec[];
-    /** Claim checks applied on verify. Unset means signature and time claims only. */
-    verify?: IJWTVerifyOptions;
+    /** Further checks applied on verify, beside `claims`. `algorithms` is required. */
+    verify: IJWKSVerifierVerifyOptions;
+}
+```
+
+Source: `packages/kernel/src/base/auth/authenticate/common/types/jwt.ts`
+
+## `IJWKSVerifierVerifyOptions`
+
+*interface*
+
+The verify checks of a JWKS verifier: `algorithms` is required, because the verifier cannot know what the issuer signs with.
+
+```ts
+export interface IJWKSVerifierVerifyOptions extends IJWTVerifyOptions {
+    /** The JWS `alg` values accepted, for example `['RS256']`. At least one. */
+    algorithms: string[];
 }
 ```
 
@@ -3788,6 +3805,8 @@ export interface IJWSTokenServiceOptions {
     headerAlgorithm?: string;
     jwtSecret: string;
     getTokenExpiresFn: TGetTokenExpiresFn;
+    /** The `iss` and `aud` stamped on every issued token and required on every verified one. A configured value WINS over one supplied in the payload. */
+    claims: IJWTClaimsOptions;
     /**
      * The AES algorithm of payload encryption, used when `applicationSecret` is set.
      *
@@ -3796,10 +3815,32 @@ export interface IJWSTokenServiceOptions {
     aesAlgorithm?: AESAlgorithmType;
     applicationSecret?: string;
     fieldCodecs?: IPayloadFieldCodec[];
-    /** Claim checks applied on verify. Unset means signature and time claims only. */
+    /** Further checks applied on verify, beside `claims` and the algorithm pin. */
     verify?: IJWTVerifyOptions;
-    /** Claims stamped on every issued token. A configured value WINS over one supplied in the payload. */
-    sign?: IJWTSignOptions;
+}
+```
+
+Source: `packages/kernel/src/base/auth/authenticate/common/types/jwt.ts`
+
+## `IJWTClaimsOptions`
+
+*interface*
+
+The `iss` and `aud` of a service: stamped on every token it signs and REQUIRED on every token it
+verifies. Both are required, and no other key is accepted.
+
+Without them a token signed with the same key for another purpose (a password-reset or an invite
+token that carries a user id) would authenticate a request, and in a fleet where every verifier
+points at the same issuer JWKS a token minted for one service would be accepted by every other.
+`audience` is what makes "this token was meant for me" a cryptographic statement rather than a
+convention.
+
+```ts
+export interface IJWTClaimsOptions {
+    /** The `iss` stamped on every issued token and required on every verified one. */
+    issuer: string;
+    /** The `aud` stamped on every issued token and required on every verified one. Matching is jose's OVERLAP semantics, not equality: a token carrying `['a','b']` satisfies `audience: 'a'`. Enforce single-valued audiences at issue time if that matters. */
+    audience: string | string[];
 }
 ```
 
@@ -3814,7 +3855,7 @@ Per-token registered claims, passed to `generate()`.
 This is the supported way to vary `aud` or `sub` per token. Putting them on the payload used to
 work by accident - `iss`, `aud`, `sub` and `jti` ride through the AES envelope in the clear
 because they are standard JWT fields - but a claim the payload can set is a claim any caller who
-shapes the payload can forge. These win over {@link IJWTSignOptions}; the payload never does.
+shapes the payload can forge. These win over the configured {@link IJWTClaimsOptions}; the payload never does.
 
 ```ts
 export interface IJWTIssueClaims {
@@ -3822,21 +3863,6 @@ export interface IJWTIssueClaims {
     audience?: string | string[];
     subject?: string;
     jwtId?: string;
-}
-```
-
-Source: `packages/kernel/src/base/auth/authenticate/common/types/jwt.ts`
-
-## `IJWTSignOptions`
-
-*interface*
-
-Default `iss` / `aud` stamped on every issued token. Configured values are AUTHORITATIVE - see {@link IJWTIssueClaims}.
-
-```ts
-export interface IJWTSignOptions {
-    issuer?: string;
-    audience?: string | string[];
 }
 ```
 
@@ -3867,26 +3893,20 @@ Source: `packages/kernel/src/base/auth/authenticate/common/types/jwt.ts`
 
 *interface*
 
-Claim checks applied when VERIFYING a JWT. Field names and types mirror jose's `JWTVerifyOptions`
-exactly, so this is a pass-through with no translation layer.
+The other claim checks applied when VERIFYING a JWT. Field names and types mirror jose's
+`JWTVerifyOptions`, so this is a pass-through with no translation layer. `issuer` and `audience`
+are not here: they are the required {@link IJWTClaimsOptions}.
 
-Every field is optional and unset by default, which is today's behaviour: nothing is checked
-beyond the signature and the time claims. In a fleet where every verifier points at the same
-issuer JWKS, that means a token minted for one service is accepted verbatim by every other -
-`audience` is what makes "this token was meant for me" a cryptographic statement rather than a
-convention.
+Every field is optional and unset by default: nothing is checked beyond the signature, the time
+claims, the `claims` and the algorithm pin.
 
 ```ts
 export interface IJWTVerifyOptions {
-    /** Expected `aud`. Setting it makes the claim required. Matching is jose's OVERLAP semantics, not equality: a token carrying `['a','b']` satisfies `audience: 'a'`. Enforce single-valued audiences at issue time if that matters. */
-    audience?: string | string[];
-    /** Expected `iss`. Setting it makes the claim required. */
-    issuer?: string | string[];
     /** Expected `sub`. Setting it makes the claim required. */
     subject?: string;
     /** Clock skew tolerance: seconds, or a jose duration string such as `'30 seconds'`. */
     clockTolerance?: string | number;
-    /** Accepted JWS `alg` header values. Unset means the accepted algorithm is decided entirely by what the JWKS serves. */
+    /** Accepted JWS `alg` header values. Unset pins the one algorithm the service signs with: `headerAlgorithm` (`HS256` by default) of the JWS service, `algorithm` of a JWKS issuer. A JWKS verifier cannot know it, so it requires this ({@link IJWKSVerifierVerifyOptions}). */
     algorithms?: string[];
     /** Caps elapsed time since `iat`. The real replay window for a short-lived assertion, independent of whatever `exp` the caller chose to stamp. */
     maxTokenAge?: string | number;

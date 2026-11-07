@@ -83,6 +83,8 @@ Copy `.env.example` to `.env`. The keys:
 | `APP_ENV_SUPABASE_POOL_MAX` | Passed to postgres-js only when set. Blank keeps the postgres-js default |
 | `APP_ENV_JWT_SECRET` | The HS256 secret the app verifies tokens with, and mints test tokens with (`bun run token`). On a real Supabase project, the project's JWT secret |
 | `APP_ENV_JWT_EXPIRES_IN` | Lifetime of the tokens this app mints (`3600` in `.env.example`) |
+| `APP_ENV_JWT_ISSUER` | The `iss` the app requires of a token, and stamps on its test tokens. Supabase Auth writes `https://<project>.supabase.co/auth/v1`. Defaults to the local Supabase CLI's `http://127.0.0.1:54321/auth/v1` |
+| `APP_ENV_JWT_AUDIENCE` | The `aud` the app requires. Supabase Auth writes `authenticated`, the default |
 | `APP_ENV_APPLICATION_NAME` | The application name |
 | `APP_ENV_LOGGER_FOLDER_PATH` | Where file logs go. Unset: console only |
 | `PORT` | The HTTP port (`3000`) |

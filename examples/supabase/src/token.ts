@@ -1,4 +1,5 @@
 import { EnvironmentKeys } from '@/common/environments';
+import { getJwtClaims } from '@/common/jwt-claims';
 import { JWSTokenService } from '@venizia/ignis';
 import type { IJWTTokenPayload } from '@venizia/ignis';
 import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
@@ -24,7 +25,11 @@ export const mintToken = async (opts: { subject: string; role?: string }): Promi
     }),
   });
 
-  const service = new JWSTokenService({ jwtSecret, getTokenExpiresFn: () => expiresIn });
+  const service = new JWSTokenService({
+    jwtSecret,
+    getTokenExpiresFn: () => expiresIn,
+    claims: getJwtClaims(),
+  });
 
   const payload: IJWTTokenPayload = { userId: subject, roles: [], role };
 

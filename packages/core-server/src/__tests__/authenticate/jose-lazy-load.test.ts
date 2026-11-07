@@ -56,6 +56,7 @@ describe('auth services load jose lazily', () => {
       const service = new JWSTokenService({
         jwtSecret: 'probe-secret-that-is-long-enough-for-hs256',
         getTokenExpiresFn: () => 60,
+        claims: { issuer: 'test-issuer', audience: 'test-audience' },
       });
       const token = await service.generate({ payload: { userId: 'probe', roles: [] } });
       await service.verify({ type: 'Bearer', token });

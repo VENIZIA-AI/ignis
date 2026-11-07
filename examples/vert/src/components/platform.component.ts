@@ -144,6 +144,8 @@ export class PlatformComponent extends BaseComponent {
           public: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWKS_PUBLIC_KEY),
         },
         kid: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWKS_KID),
+        // This server issues and verifies its own tokens: both claims name it.
+        claims: { issuer: 'vert', audience: 'vert' },
         getTokenExpiresFn: () => {
           const expiresIn = applicationEnvironment.get<string>(
             EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN,

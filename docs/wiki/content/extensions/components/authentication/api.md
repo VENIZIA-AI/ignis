@@ -151,8 +151,8 @@ Bearer token service hierarchy:
 
 | Method | Purpose |
 |--------|---------|
-| `defineJWSAuth(opts)` | Validates `jwtSecret` and `getTokenExpiresFn`, binds `IJWSTokenServiceOptions` to `JWT_OPTIONS`, registers `JWSTokenService` |
-| `defineJWKSAuth(opts)` | Switches on `mode`.<br>**Issuer:** validates keys/format/kid/getTokenExpiresFn, binds to `JWKS_OPTIONS`, registers `JWKSIssuerTokenService` + `JWKSController`.<br>**Verifier:** validates `jwksUrl`, binds to `JWKS_OPTIONS`, registers `JWKSVerifierTokenService` |
+| `defineJWSAuth(opts)` | Validates `jwtSecret`, `getTokenExpiresFn` and `claims`, binds `IJWSTokenServiceOptions` to `JWT_OPTIONS`, registers `JWSTokenService` |
+| `defineJWKSAuth(opts)` | Switches on `mode`.<br>**Issuer:** validates keys/format/kid/getTokenExpiresFn/claims, binds to `JWKS_OPTIONS`, registers `JWKSIssuerTokenService` + `JWKSController`.<br>**Verifier:** validates `jwksUrl`, `claims` and `verify.algorithms`, binds to `JWKS_OPTIONS`, registers `JWKSVerifierTokenService` |
 | `defineServiceAuth(opts)` | Validates `name` and `resolvePrincipal`, registers the verifier and the `service` strategy. With `keys` present it also registers the signer and mounts the certs route. Absent options: does nothing |
 | `defineBasicAuth(opts)` | Validates `verifyCredentials` presence, registers `BasicTokenService`. Skips (debug log) if `basicOptions` not bound |
 | `defineControllers(opts)` | Requires `jwtOptions` when `useAuthController: true`. Calls `AuthControllerFactory.define()` and registers the generated controller |
@@ -199,8 +199,8 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload encryption |
 | `headerAlgorithm` | `string` | `'HS256'` | No | JWT signing algorithm |
 | `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Custom serialize/deserialize per field name |
-| `verify` | `IJWTVerifyOptions` | -- | No | Claim checks on verify: `audience`, `issuer`, `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims`. Unset means signature and time claims only |
-| `sign` | `{ issuer?, audience? }` | -- | No | Claims stamped on every issued token. A configured value WINS over one supplied in the payload |
+| `verify` | `IJWTVerifyOptions` | -- | No | Further checks on verify: `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims`. `issuer` and `audience` are `claims` now. `algorithms` unset pins the algorithm the service signs with |
+| `claims` | `{ issuer: string; audience: string \| string[] }` | -- | Yes | The `iss` and `aud` stamped on every issued token and required on every verified one. A configured value WINS over one supplied in the payload. No other key is accepted |
 
 > [!WARNING]
 > `jwtSecret` is mandatory - the component throws if it's missing or equals the placeholder `'unknown_secret'`. `applicationSecret` is optional. When you omit it, the JWT payload stays standard plaintext. Standard fields (`iss`, `sub`, `aud`, `jti`, `nbf`, `exp`, `iat`) are never encrypted either way.
@@ -221,8 +221,8 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload encryption |
 | `applicationSecret` | `string` | -- | No | Enables AES payload field encryption when set |
 | `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Custom serialize/deserialize per field name |
-| `verify` | `IJWTVerifyOptions` | -- | No | Claim checks on verify: `audience`, `issuer`, `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims`. Unset means signature and time claims only |
-| `sign` | `{ issuer?, audience? }` | -- | No | Claims stamped on every issued token. A configured value WINS over one supplied in the payload |
+| `verify` | `IJWTVerifyOptions` | -- | No | Further checks on verify: `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims`. `issuer` and `audience` are `claims` now. `algorithms` unset pins the algorithm the service signs with |
+| `claims` | `{ issuer: string; audience: string \| string[] }` | -- | Yes | The `iss` and `aud` stamped on every issued token and required on every verified one. A configured value WINS over one supplied in the payload. No other key is accepted |
 
 ### IJWKSVerifierOptions
 
@@ -235,7 +235,8 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload decryption |
 | `applicationSecret` | `string` | -- | No | Must match the issuer's secret to decrypt payloads |
 | `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Must match the issuer's codecs to decrypt custom fields |
-| `verify` | `IJWTVerifyOptions` | -- | No | Claim checks on verify: `audience`, `issuer`, `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims`. Unset means signature and time claims only |
+| `claims` | `{ issuer: string; audience: string \| string[] }` | -- | Yes | The `iss` and `aud` required on every verified token. No other key is accepted |
+| `verify` | `IJWKSVerifierVerifyOptions` | -- | Yes | `algorithms` is required (the accepted JWS algorithms, for example `['RS256']`): a verifier cannot know what the issuer signs with. Also `subject`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims` |
 
 > [!IMPORTANT]
 > `JWKSVerifierTokenService` cannot sign tokens - `getSigner()`, `getSigningKey()`, and `getDefaultTokenExpiresFn()` all throw. Only `verify()` and `extractCredentials()` are functional.
@@ -479,7 +480,7 @@ Static: `JWT_COMMON_FIELDS: Set<'iss'|'sub'|'aud'|'jti'|'nbf'|'exp'|'iat'>` - ne
 
 **File:** [`packages/core-server/src/components/auth/authenticate/services/bearer/jws.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/services/bearer/jws.service.ts)
 
-The constructor validates `jwtSecret` and `getTokenExpiresFn`, throwing `500` if either is missing. It encodes the secret to `Uint8Array` and calls `configurePayloadEncryption()`. `doVerify` calls `jose.jwtVerify()` with the shared secret. `getSigner` signs with header `HS256`, or `headerAlgorithm` if you set one.
+The constructor validates `jwtSecret`, `getTokenExpiresFn` and `claims`, throwing `500` if any is missing. It encodes the secret to `Uint8Array` and calls `configurePayloadEncryption()`. `doVerify` calls `jose.jwtVerify()` with the shared secret. `getSigner` signs with header `HS256`, or `headerAlgorithm` if you set one.
 
 ### AbstractJWKSTokenService
 

@@ -213,15 +213,25 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
     mode: JWKSModes.ISSUER, algorithm: 'ES256',
     keys: { driver: JWKSKeyDrivers.FILE, format: JWKSKeyFormats.PEM, private: './keys/private.pem', public: './keys/public.pem' },
     kid: 'auth-key-1', getTokenExpiresFn: () => 86400,
+    claims: { issuer: 'https://auth-service.internal', audience: 'api-service' },
   },
 });
 
 // API service (verifier)
 this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
   standard: JOSEStandards.JWKS,
-  options: { mode: JWKSModes.VERIFIER, jwksUrl: 'https://auth-service.internal/certs', cacheTtlMs: 43_200_000, cooldownMs: 30_000 },
+  options: {
+    mode: JWKSModes.VERIFIER,
+    jwksUrl: 'https://auth-service.internal/certs',
+    claims: { issuer: 'https://auth-service.internal', audience: 'api-service' }, // what the issuer stamps
+    verify: { algorithms: ['ES256'] },                                          // required: the verifier cannot know it
+    cacheTtlMs: 43_200_000,
+    cooldownMs: 30_000,
+  },
 });
 ```
+
+The verifier requires the `iss` and `aud` the issuer stamps, so a token minted for another service is refused. It also requires `verify.algorithms`: a verifier cannot know what the issuer signs with, and a boot without it is refused.
 
 **Generate ES256 or RS256 keys.**
 
@@ -253,10 +263,10 @@ keys: {
 
 ```typescript
 // Issuer
-{ mode: JWKSModes.ISSUER, /* ... */ applicationSecret: process.env.APP_ENV_APPLICATION_SECRET }
+{ mode: JWKSModes.ISSUER, /* claims, ... */ applicationSecret: process.env.APP_ENV_APPLICATION_SECRET }
 
 // Verifier - must match
-{ mode: JWKSModes.VERIFIER, jwksUrl: '...', applicationSecret: process.env.APP_ENV_APPLICATION_SECRET }
+{ mode: JWKSModes.VERIFIER, jwksUrl: '...', /* claims, verify.algorithms, ... */ applicationSecret: process.env.APP_ENV_APPLICATION_SECRET }
 ```
 
 ## Auth flows
@@ -327,6 +337,7 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
   options: {
     jwtSecret: process.env.APP_ENV_JWT_SECRET!,
     getTokenExpiresFn: () => 86400,
+    claims: { issuer: 'my-api', audience: 'my-api' },
     applicationSecret: process.env.APP_ENV_APPLICATION_SECRET, // enables AES encryption
     fieldCodecs: [AuthenticationFieldCodecs.ROLES_CODEC],       // optional, opt-in
   },

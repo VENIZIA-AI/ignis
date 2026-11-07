@@ -27,6 +27,7 @@ import {
 import { AuthControllerFactory, JWKSController } from './controllers';
 import { ServiceCertsController } from './controllers/service-certs';
 import {
+  AbstractBearerTokenService,
   BasicTokenService,
   JWKSIssuerTokenService,
   JWKSVerifierTokenService,
@@ -153,6 +154,13 @@ export class AuthenticateComponent extends BaseComponent {
       });
     }
 
+    // The boot refuses a configuration without claims, and a service refuses the same when built.
+    AbstractBearerTokenService.resolveClaimsConfig({
+      scope: 'defineJWSAuth',
+      options: jwsOptions,
+      pinnedAlgorithms: [jwsOptions.headerAlgorithm ?? 'HS256'],
+    });
+
     this.application
       .bind<IJWSTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
       .toValue(jwsOptions);
@@ -190,6 +198,12 @@ export class AuthenticateComponent extends BaseComponent {
           });
         }
 
+        AbstractBearerTokenService.resolveClaimsConfig({
+          scope: 'defineJWKSAuth',
+          options: issuerOpts,
+          pinnedAlgorithms: [issuerOpts.algorithm],
+        });
+
         this.application
           .bind<IJWKSIssuerOptions>({ key: AuthenticateBindingKeys.JWKS_OPTIONS })
           .toValue(issuerOpts);
@@ -214,6 +228,11 @@ export class AuthenticateComponent extends BaseComponent {
         if (!verifierOpts.jwksUrl) {
           throw getError({ message: '[defineJWKSAuth] jwksUrl is required for verifier mode' });
         }
+
+        AbstractBearerTokenService.resolveClaimsConfig({
+          scope: 'defineJWKSAuth',
+          options: verifierOpts,
+        });
 
         this.application
           .bind<IJWKSVerifierOptions>({ key: AuthenticateBindingKeys.JWKS_OPTIONS })

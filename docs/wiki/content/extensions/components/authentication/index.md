@@ -32,6 +32,7 @@ export class Application extends BaseApplication {
       options: {
         jwtSecret: process.env.APP_ENV_JWT_SECRET!,
         getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
+        claims: { issuer: 'my-api', audience: 'my-api' },
       },
     });
 
@@ -82,9 +83,12 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
   options: {
     jwtSecret: process.env.APP_ENV_JWT_SECRET!,
     getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
+    claims: { issuer: 'my-api', audience: 'my-api' },
   },
 });
 ```
+
+**Every JWT configuration needs `claims`.** `claims.issuer` and `claims.audience` are stamped on every token IGNIS signs and required on every token it verifies. A token signed with the same key for another purpose (a password-reset or invite token) has neither, so it does not authenticate a request. A configuration without them, or with a misspelt key in `claims`, refuses to boot and the message names the key. The accepted algorithm is pinned too: `HS256` (or `headerAlgorithm`) for JWS, `algorithm` for a JWKS issuer, and `verify.algorithms` for a JWKS verifier.
 
 **Configure JWKS Issuer (asymmetric JWT, microservice-friendly).** Signs with a private key, serves the public key at `/certs`.
 
@@ -97,6 +101,7 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
     keys: { driver: JWKSKeyDrivers.FILE, format: JWKSKeyFormats.PEM, private: './keys/private.pem', public: './keys/public.pem' },
     kid: 'my-key-id-1',
     getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
+    claims: { issuer: 'https://auth.example.com', audience: 'my-api' },
   },
 });
 ```

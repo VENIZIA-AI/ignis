@@ -12,6 +12,7 @@ const buildService = (opts: {
   return new JWSTokenService({
     jwtSecret: JWT_SECRET,
     getTokenExpiresFn: () => 3600,
+    claims: { issuer: 'test-issuer', audience: 'test-audience' },
     ...(opts.encrypted ? { applicationSecret: APPLICATION_SECRET } : {}),
     ...(opts.fieldCodecs ? { fieldCodecs: opts.fieldCodecs } : {}),
   } as IJWSTokenServiceOptions);
@@ -19,7 +20,7 @@ const buildService = (opts: {
 
 /** The claims that vary per token and have nothing to do with the payload under test. */
 const withoutTimeClaims = (payload: IJWTTokenPayload): Record<string, unknown> => {
-  const { iat: _iat, exp: _exp, nbf: _nbf, ...rest } = payload;
+  const { iat: _iat, exp: _exp, nbf: _nbf, iss: _iss, aud: _aud, ...rest } = payload;
 
   return rest;
 };
