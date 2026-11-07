@@ -207,12 +207,14 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       }
     }
 
-    if (normalized.length > 1024) {
+    const byteLength = BaseStorageHelper.UTF8.encode(normalized).byteLength;
+
+    if (byteLength > 1024) {
       this.logger
         .for(this.isValidKeyPath.name)
         .error(
-          'Path is too long (%d characters): %s',
-          normalized.length,
+          'Path is too long (%d bytes): %s',
+          byteLength,
           EchoUtility.toSafeEcho({ value: pathStr }),
         );
 

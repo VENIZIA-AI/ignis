@@ -171,6 +171,30 @@ describe('Storage Path Validation', () => {
     });
   });
 
+  describe('whole key length in UTF-8 bytes', () => {
+    const key = (segments: string[]) => segments.join('/');
+    const isValid = (value: string) =>
+      helper.isValidObjectKey({ object: { key: value }, maxDepth: 10 });
+
+    test('1024 ASCII bytes are accepted and 1025 are refused', () => {
+      const a = (length: number) => 'a'.repeat(length);
+
+      expect(isValid(key([a(255), a(255), a(255), a(254), a(1)]))).toBe(true);
+      expect(isValid(key([a(255), a(255), a(255), a(255), a(1)]))).toBe(false);
+    });
+
+    test('a multi-byte key counts its bytes, not its characters', () => {
+      const segment = '写'.repeat(85);
+
+      expect(isValid(key([segment, segment, segment, segment]))).toBe(true);
+
+      const tooLong = key([segment, segment, segment, segment, segment]);
+
+      expect(tooLong.length).toBeLessThanOrEqual(1024);
+      expect(isValid(tooLong)).toBe(false);
+    });
+  });
+
   describe('isValidPath', () => {
     describe('valid paths', () => {
       test('should accept simple filename (no folder)', () => {

@@ -15,6 +15,7 @@ packages: ['@venizia/ignis-helpers', '@venizia/ignis']
 ## What changed
 
 - **A segment is measured in bytes.** `isValidSegment` (and so `isValidObjectKey` and `isValidBucketName`) allows at most 255 bytes in UTF-8 per segment, not 255 characters. A file system limits a name in bytes, so a name of 128 `é` (128 characters, 256 bytes) used to pass the check. Inside a folder, `DiskHelper` then failed a write with a raw `ENAMETOOLONG` (a 500) and answered a read with a 404.
+- **A whole key is measured in bytes too.** The 1024 limit of a key counts UTF-8 bytes, so a deep path of multi-byte names that fit in 1024 characters is refused as an invalid name instead of failing in the storage backend.
 - **A key cannot end with `/`.** `isValidObjectKey` refuses `photos/a.png/` and a directory marker such as `photos/`. On disk, `photos/a.png/` was written as `photos/a.png`, so two different keys named the same file.
 
 ## Who is affected
@@ -26,7 +27,7 @@ packages: ['@venizia/ignis-helpers', '@venizia/ignis']
 
 ## Details
 
-- The length of a whole key (1024) and the length of an upload's `originalName` when it is metadata only (255) still count characters.
+- The limit of a whole key (1024) is counted in UTF-8 bytes too. The length of an upload's `originalName` when it is metadata only (255) still counts characters: it is never a file name or a key.
 
 | File | Package |
 |------|---------|

@@ -79,14 +79,14 @@ Bucket names are validated with `isValidBucketName()`, which is `isValidSegment(
 | Trailing slash (key only) | `photos/a.png/`, `photos/` | `isValidObjectKey()` rejects a key that ends with `/` |
 | Double slashes (key only) | `a//b.png` | `isValidObjectKey()` rejects empty segments |
 | Excess folder depth (key only) | `a/b/c/d.png` with `maxFolderDepth: 2` | `folderDepth = segments.length - 1` exceeds the limit |
-| Long keys (key only) | 1025+ characters | Exceeds the 1024-character normalized-key limit |
+| Long keys (key only) | 1025+ bytes | Exceeds the 1024-byte (UTF-8) normalized-key limit |
 
 ## Troubleshooting
 
 ### "Invalid bucket name" / "Invalid object name or path"
 
 - **Cause:** the name fails the rules above.
-- **Fix:** strip path separators, leading dots, shell metacharacters, and control characters. Keep each name within 255 bytes in UTF-8 (1024 characters for a full object path), and never end a key with `/`. Never send an empty or whitespace-only value.
+- **Fix:** strip path separators, leading dots, shell metacharacters, and control characters. Keep each name within 255 bytes in UTF-8 (1024 bytes for a full object path), and never end a key with `/`. Never send an empty or whitespace-only value.
 
 ```typescript
 // Wrong - contains a path separator, rejected by isValidBucketName()

@@ -497,7 +497,7 @@ interface IListObjectsOptions {
 | Double slashes | Rejects empty segments, for example `a//b` |
 | Folder depth | `folderDepth = segments.length - 1`; rejects if it exceeds `maxDepth` (default `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH = 2`) |
 | Segment names | Every segment must pass `isValidSegment()` |
-| Key length | Rejects a normalized length over 1024 characters |
+| Key length | Rejects a normalized length over 1024 UTF-8 bytes |
 
 > [!NOTE]
 > Every step but the trailing-slash check lives on `protected isValidKeyPath({ path, maxDepth })`, which `isValidObjectKey` and `upload`'s `folderPath` check both call. It is protected, so `isValidObjectKey` is the only way in from outside the class.
