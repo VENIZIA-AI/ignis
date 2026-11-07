@@ -80,7 +80,7 @@ AbstractRepository (engine-neutral base in src/base - lazy dataSource/entity res
 PostgresBaseRepository (postgres connector - filter building, hidden-column exclusion,
                         default-filter merging, transaction-aware connector resolution)
   ↓
-ReadableRepository (read-only: find, findOne, findById, count, existsWith)
+ReadableRepository (read-only: find, findOne, findById, findEvery, count, existsWith)
   ↓
 PersistableRepository (+ create, createAll, updateById, updateEach, updateAll, deleteById, deleteAll)
   ↓
@@ -210,6 +210,30 @@ The rules are the rules of `create` and `update`:
 - As the first call on a datasource that opens on first use, it opens it.
 
 Two upserts of one key at the same time leave one row: the database resolves the conflict inside the statement. There is no `upsertAll` yet.
+
+### Reading every row, a page at a time
+
+A batch job or an export has to read every row a filter matches without loading them all at once. `findEvery` is an async iterator that yields one page (an array of rows) per iteration:
+
+```typescript
+for await (const page of repo.findEvery({
+  filter: { where: { status: 'ACTIVE' }, fields: ['id', 'email'] },
+  pageSize: 200,
+})) {
+  await exportRows(page);
+}
+```
+
+Each page reads the rows whose `id` is above the last `id` of the page before, in ascending `id` order. A row inserted or deleted while the loop runs never shifts the window and no offset grows: a new row with a smaller `id` than the last one read is not visited, one with a larger `id` is, and no row comes twice.
+
+- **Pages.** Every page holds `pageSize` rows except the last, which may be shorter. An empty result yields no page. When the last page is full, one more query runs, finds nothing and yields nothing.
+- **Same rules as `find`.** Every page is a `find`, so the default filter, the row scope (`access`) and the hidden fields apply to each one. `options` is passed to every page: `transaction` (every page reads through it), `shouldSkipDefaultFilter`, `lock`.
+- **The key owns the order and the window.** A filter with `order`, `limit`, `skip`, `offset` or `include` is refused with a 400. `where` and `fields` work. `id` is read for the cursor even when `fields` leaves it out, and is not in the rows then. The type of a page follows `fields`, as with `find`.
+- **`pageSize`** is an integer: 500 when omitted, at least 1, at most 10 000 and at most the model's `limit.max` (1000 unless the model sets it). A value outside that is a 400, and a model whose `limit.max` is below 500 lowers the default to it.
+- **Stopping.** `break`, `return` or a throw in the loop ends it, and no further query is made.
+- **One key.** The model's `id` must be a single-column primary key and must not be a hidden property; anything else is a 400.
+- **Where it throws.** Every refusal surfaces on the first iteration, not when `findEvery` is called.
+- **Relational repositories only.**
 
 ## Extra Options
 
