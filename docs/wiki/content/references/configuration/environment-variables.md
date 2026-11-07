@@ -224,7 +224,7 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
 
 - **Not read directly.** The `AuthenticateComponent` receives its secrets programmatically via the `jwtOptions` binding (`jwtSecret`, `getTokenExpiresFn`) - it never reads these environment variables itself.
 - **`EnvironmentKeys` is the convention, not a requirement.** These constants are the conventional way for your application to supply those values into the binding.
-- **A missing or placeholder secret fails the boot.** The component throws at startup if `jwtSecret` is missing or left at the placeholder value. Wiring it from an unset environment variable fails the same way.
+- **A missing, placeholder or short secret fails the boot.** The component throws at startup if `jwtSecret` is missing, left at the placeholder value, or shorter than 32 bytes. Wiring it from an unset environment variable fails the same way. The 32 bytes count the UTF-8 bytes of the text, so `openssl rand -base64 32` (44 characters) is enough. `APP_ENV_APPLICATION_SECRET` is an AES passphrase, not an HMAC key, and has no minimum.
 
 ### Generate Strong Secrets
 
@@ -238,7 +238,7 @@ openssl rand -base64 32  # For APP_ENV_JWT_SECRET
 
 ```bash
 APP_ENV_APPLICATION_SECRET=K8sX2mP9qR4tV7wZ1aD3fG6hJ9kL2nO5
-APP_ENV_JWT_SECRET=M3nB6vC9xZ2aS5dF8gH1jK4lP7oI0uY
+APP_ENV_JWT_SECRET=M3nB6vC9xZ2aS5dF8gH1jK4lP7oI0uYq
 APP_ENV_JWT_EXPIRES_IN=86400
 ```
 

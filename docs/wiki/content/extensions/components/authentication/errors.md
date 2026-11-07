@@ -58,6 +58,7 @@ Thrown during `binding()` while validating options and wiring services.
 | `[defineJWSAuth] claims holds unknown keys ["audiance"] \| accepted: issuer, audience` | 500 | A misspelt or extra key in `claims` | Remove or correct the named key |
 | `[defineJWSAuth] \`sign\` was removed` / `verify.issuer was removed` / `verify.audience was removed` | 500 | An option from before `claims` | Move the value to `claims.issuer` or `claims.audience` |
 | `[defineJWKSAuth] verify.algorithms is required` | 500 | A JWKS verifier without `verify.algorithms` | Pass the algorithms the issuer signs with, for example `verify: { algorithms: ['RS256'] }` |
+| `[defineJWSAuth] jwtSecret is too short: {n} bytes, at least 32 are required \| Generate one with: openssl rand -base64 48` (also `[JWSTokenService]`) | 500 | `jwtSecret` is shorter than 32 UTF-8 bytes | Generate a longer secret, for example `openssl rand -base64 48`. The message never shows the secret |
 | `[defineJWSAuth] getTokenExpiresFn is required` | 400 | `getTokenExpiresFn` missing from JWS options | Provide `() => Number(process.env.APP_ENV_JWT_EXPIRES_IN \|\| 86400)` |
 | `[defineJWKSAuth] keys.private and keys.public are required for issuer mode` | 400 | Issuer mode missing one or both keys | Provide `keys.private` and `keys.public` |
 | `[defineJWKSAuth] keys.format is required and must be one of: pem, jwk` | 400 | `keys.format` missing or invalid | Use `JWKSKeyFormats.PEM` or `JWKSKeyFormats.JWK` |
