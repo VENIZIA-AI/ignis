@@ -8,7 +8,7 @@ const isInTry = (node: unknown): boolean => {
   let current = AwaitSupport.parentOf({ node });
 
   while (current && !FUNCTION_TYPES.has(AstNode.getType({ node: current }) ?? '')) {
-    if (AstNode.getType({ node: current }) === 'TryStatement') {
+    if (AstNode.getType({ node: current }) === AstNodeTypes.TRY_STATEMENT) {
       return true;
     }
 
@@ -47,7 +47,7 @@ export class NoReturnAwaitRule {
         const argument = AstNode.readField({ node: opts.awaitNode, key: 'argument' });
         const argumentText =
           AwaitSupport.isNode(argument) &&
-          AstNode.getType({ node: argument }) !== 'SequenceExpression'
+          AstNode.getType({ node: argument }) !== AstNodeTypes.SEQUENCE_EXPRESSION
             ? sourceCode.getText(argument)
             : undefined;
 
@@ -89,7 +89,7 @@ export class NoReturnAwaitRule {
 
           if (
             AwaitSupport.isNode(argument) &&
-            AstNode.getType({ node: argument }) === 'AwaitExpression'
+            AstNode.getType({ node: argument }) === AstNodeTypes.AWAIT_EXPRESSION
           ) {
             reportAwait({ reported: node, awaitNode: argument, statement: node });
           }
@@ -97,7 +97,10 @@ export class NoReturnAwaitRule {
         [AstNodeTypes.ARROW_FUNCTION_EXPRESSION]: (node: Rule.Node) => {
           const body = AstNode.readField({ node, key: 'body' });
 
-          if (AwaitSupport.isNode(body) && AstNode.getType({ node: body }) === 'AwaitExpression') {
+          if (
+            AwaitSupport.isNode(body) &&
+            AstNode.getType({ node: body }) === AstNodeTypes.AWAIT_EXPRESSION
+          ) {
             reportAwait({ reported: node, awaitNode: body });
           }
         },

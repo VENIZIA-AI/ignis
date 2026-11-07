@@ -1,10 +1,13 @@
 import type { Rule } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
-import { HOUSE_PLUGIN_NAMESPACE } from './common';
+import { AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 
 /** `&&` directly under a JSX child: `disabled={a && b}` is a value, not something drawn. */
-const LEAKED_RENDER_SELECTOR = ['JSXElement', 'JSXFragment']
-  .map((parent) => `${parent} > JSXExpressionContainer > LogicalExpression[operator='&&']`)
+const LEAKED_RENDER_SELECTOR = [AstNodeTypes.JSX_ELEMENT, AstNodeTypes.JSX_FRAGMENT]
+  .map(
+    (parent) =>
+      `${parent} > ${AstNodeTypes.JSX_EXPRESSION_CONTAINER} > ${AstNodeTypes.LOGICAL_EXPRESSION}[operator='&&']`,
+  )
   .join(', ');
 
 /**
@@ -26,7 +29,7 @@ export class NoLeakedRenderRule {
     },
     create: (context) => ({
       [LEAKED_RENDER_SELECTOR]: (node: Rule.Node) => {
-        if (node.type !== 'LogicalExpression') {
+        if (node.type !== AstNodeTypes.LOGICAL_EXPRESSION) {
           return;
         }
 
