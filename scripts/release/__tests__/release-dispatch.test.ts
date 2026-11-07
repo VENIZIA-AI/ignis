@@ -181,11 +181,23 @@ describe('ReleaseDispatch.syncCommands', () => {
   test('is a real fast-forward in a repository that has a same-named branch under a folder', () => {
     const root = mkdtempSync(join(tmpdir(), 'sync-commands-'));
     const git = (cwd: string, ...args: string[]) =>
-      Bun.spawnSync(['git', '-c', 'user.name=t', '-c', 'user.email=t@t', ...args], {
-        cwd,
-        stdout: 'pipe',
-        stderr: 'pipe',
-      });
+      Bun.spawnSync(
+        [
+          'git',
+          '-c',
+          'user.name=t',
+          '-c',
+          'user.email=t@t',
+          '-c',
+          'maintenance.auto=false',
+          ...args,
+        ],
+        {
+          cwd,
+          stdout: 'pipe',
+          stderr: 'pipe',
+        },
+      );
 
     try {
       const origin = join(root, 'origin.git');
@@ -193,6 +205,7 @@ describe('ReleaseDispatch.syncCommands', () => {
       const other = join(root, 'other');
 
       git(root, 'init', '--bare', '-b', 'develop', origin);
+      git(origin, 'config', 'maintenance.auto', 'false');
       git(root, 'clone', '-q', origin, clone);
       writeFileSync(join(clone, 'a'), '1');
       git(clone, 'add', 'a');
