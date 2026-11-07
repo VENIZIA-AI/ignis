@@ -277,8 +277,12 @@ describe('a configuration without claims is refused, naming the key', () => {
     );
   });
 
-  test('a missing audience', () => {
-    expect(refusal(() => resolve({ claims: { issuer: 'identity' } }))).toContain('claims.audience');
+  test('a missing audience is allowed: it is optional', () => {
+    const resolved = resolve({ claims: { issuer: 'identity' } });
+
+    expect(resolved.claims).toEqual({ issuer: 'identity' });
+    expect('audience' in resolved.verify).toBe(false);
+    expect(resolved.verify.issuer).toBe('identity');
   });
 
   test.each([
@@ -293,6 +297,9 @@ describe('a configuration without claims is refused, naming the key', () => {
       'claims.audience',
     ],
     ['a list with a number', { issuer: 'identity', audience: ['a', 1] }, 'claims.audience'],
+    ['a null audience', { issuer: 'identity', audience: null }, 'claims.audience'],
+    ['a blank audience', { issuer: 'identity', audience: '   ' }, 'claims.audience'],
+    ['a number as audience', { issuer: 'identity', audience: 7 }, 'claims.audience'],
   ])('%s', (_name, claims, key) => {
     expect(refusal(() => resolve({ claims }))).toContain(key);
   });
@@ -515,5 +522,97 @@ describe('hardening: tokens and options that must not pass', () => {
 
       expect(verified.userId).toBe(1);
     });
+  });
+});
+
+describe('claims without an audience: nothing is stamped and no aud is checked', () => {
+  const withoutAudience = (overrides?: Partial<IJWSTokenServiceOptions>) =>
+    buildService({ claims: { issuer: 'identity' }, ...overrides });
+
+  test('a token the service makes carries the issuer and no aud', async () => {
+    const result = await withoutAudience().generate({ payload: basePayload() });
+    const claims = decodeJwt(result);
+
+    expect(claims.iss).toBe('identity');
+    expect(claims.aud).toBeUndefined();
+  });
+
+  test('a token the service made verifies', async () => {
+    const service = withoutAudience();
+    const token = await service.generate({ payload: basePayload() });
+
+    const result2 = await service.verify({ type: 'Bearer', token });
+    expect(result2.userId).toBe(1);
+  });
+
+  test('a token with no aud and a token with any aud both verify', async () => {
+    const service = withoutAudience();
+    const none = await signedElsewhere({ issuer: 'identity' });
+    const some = await signedElsewhere({ issuer: 'identity', audience: 'anything' });
+
+    const result3 = await service.verify({ type: 'Bearer', token: none });
+    expect(result3.userId).toBe(1);
+    const result4 = await service.verify({ type: 'Bearer', token: some });
+    expect(result4.userId).toBe(1);
+  });
+
+  test('the issuer is still required: a token with none or another one is refused', async () => {
+    const service = withoutAudience();
+    const noIssuer = await signedElsewhere({});
+    const other = await signedElsewhere({ issuer: 'somebody-else' });
+
+    await RejectionHelper.expectRejection({
+      task: service.verify({ type: 'Bearer', token: noIssuer }),
+      message: REFUSED,
+    });
+    await RejectionHelper.expectRejection({
+      task: service.verify({ type: 'Bearer', token: other }),
+      message: REFUSED,
+    });
+  });
+
+  test('a per-token audience is still stamped, and this service does not check it', async () => {
+    const service = withoutAudience();
+    const token = await service.generate({
+      payload: basePayload(),
+      claims: { audience: 'commerce' },
+    });
+
+    expect(decodeJwt(token).aud).toBe('commerce');
+    const result5 = await service.verify({ type: 'Bearer', token });
+    expect(result5.userId).toBe(1);
+  });
+
+  test('the encrypted variant works the same without an audience', async () => {
+    const service = withoutAudience({ applicationSecret: '0123456789abcdef0123456789abcdef' });
+    const token = await service.generate({ payload: basePayload() });
+    const bare = await signedElsewhere({});
+
+    const result6 = await service.verify({ type: 'Bearer', token });
+    expect(result6.userId).toBe(1);
+    await RejectionHelper.expectRejection({
+      task: service.verify({ type: 'Bearer', token: bare }),
+      message: REFUSED,
+    });
+  });
+});
+
+describe('claims with an audience: still refused when wrong or missing', () => {
+  test('a token with no aud or another aud is refused; the configured one is accepted', async () => {
+    const service = buildService();
+    const none = await signedElsewhere({ issuer: 'identity' });
+    const wrong = await signedElsewhere({ issuer: 'identity', audience: 'commerce' });
+    const right = await signedElsewhere({ issuer: 'identity', audience: 'inventory' });
+
+    await RejectionHelper.expectRejection({
+      task: service.verify({ type: 'Bearer', token: none }),
+      message: REFUSED,
+    });
+    await RejectionHelper.expectRejection({
+      task: service.verify({ type: 'Bearer', token: wrong }),
+      message: REFUSED,
+    });
+    const result = await service.verify({ type: 'Bearer', token: right });
+    expect(result.userId).toBe(1);
   });
 });

@@ -64,8 +64,10 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
 
   /**
    * Validates the claims configuration of a token service and answers what the service uses. It throws, naming the
-   * key, when `claims.issuer` or `claims.audience` is missing or empty, when `claims` holds another key, when the
-   * removed `sign` or `verify.issuer` / `verify.audience` is still passed, and when no algorithm is pinned.
+   * key, when `claims.issuer` is missing or empty, when `claims.audience` is present but not a non-empty string or a
+   * non-empty list of them, when `claims` holds another key, when the removed `sign` or `verify.issuer` /
+   * `verify.audience` is still passed, and when no algorithm is pinned. `claims.audience` is optional: without it
+   * no `aud` is stamped and none is checked.
    * `pinnedAlgorithms` is what the service signs with; a verifier has none and requires `verify.algorithms`.
    * The component calls it at boot, and a service calls it when it is built, so neither can start without them.
    */
@@ -129,12 +131,18 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
       throw fail('claims.issuer is required | a non-empty string');
     }
 
+    // Optional, but a present value is checked: `null`, `''` and `[]` are mistakes, not "no audience".
     if (
+      audience !== undefined &&
       !isName(audience) &&
       !(Array.isArray(audience) && audience.length > 0 && audience.every(isName))
     ) {
-      throw fail('claims.audience is required | a non-empty string or a non-empty list of them');
+      throw fail(
+        'claims.audience must be a non-empty string or a non-empty list of them | or leave it out',
+      );
     }
+
+    const resolvedAudience = Array.isArray(audience) ? [...audience] : audience;
 
     const algorithms = verify.algorithms ?? pinnedAlgorithms;
 
@@ -149,11 +157,11 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     }
 
     return {
-      claims: { issuer, audience: Array.isArray(audience) ? [...audience] : audience },
+      claims: { issuer, ...(resolvedAudience === undefined ? {} : { audience: resolvedAudience }) },
       verify: {
         ...(verify as IJWTVerifyOptions),
         issuer,
-        audience: Array.isArray(audience) ? [...audience] : audience,
+        ...(resolvedAudience === undefined ? {} : { audience: resolvedAudience }),
         algorithms: [...algorithms],
       },
     };

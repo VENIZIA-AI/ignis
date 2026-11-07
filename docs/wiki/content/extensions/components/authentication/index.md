@@ -88,7 +88,7 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
 });
 ```
 
-**Every JWT configuration needs `claims`.** `claims.issuer` and `claims.audience` are stamped on every token IGNIS signs and required on every token it verifies. A token signed with the same key for another purpose (a password-reset or invite token) has neither, so it does not authenticate a request. A configuration without them, or with a misspelt key in `claims`, refuses to boot and the message names the key. The accepted algorithm is pinned too: `HS256` (or `headerAlgorithm`) for JWS, `algorithm` for a JWKS issuer, and `verify.algorithms` for a JWKS verifier.
+**Every JWT configuration needs `claims`.** `claims.issuer` is stamped as `iss` on every token IGNIS signs and required on every token it verifies. A token signed with the same key for another purpose (a password-reset or invite token) has no matching `iss`, so it does not authenticate a request. `claims.audience` is optional: set it and it is stamped as `aud` and required too, which pins a token to one service; leave it out and no `aud` is stamped or checked, so a token with or without one verifies. A configuration without `issuer`, with an `audience` that is empty, or with a misspelt key in `claims` refuses to boot, and the message names the key. The accepted algorithm is pinned too: `HS256` (or `headerAlgorithm`) for JWS, `algorithm` for a JWKS issuer, and `verify.algorithms` for a JWKS verifier.
 
 **Configure JWKS Issuer (asymmetric JWT, microservice-friendly).** Signs with a private key, serves the public key at `/certs`.
 

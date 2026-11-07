@@ -12,6 +12,9 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis']
 
 **In one line.** Bearer and JWKS verification checked only the signature and the expiry, so a token signed with the same key for another purpose (a password-reset or invite token that carries a user id) authenticated a request. Every JWT configuration now needs `claims: { issuer, audience }`, and a configuration without it does not boot.
 
+> [!NOTE]
+> `claims.audience` is optional: see [The token audience is optional](./2026-11-07-the-token-audience-is-optional). `claims.issuer` stays required.
+
 ## What changed
 
 - **`claims` is required.** `claims.issuer` and `claims.audience` (a string, or a list for `audience`) are stamped on every token IGNIS signs and required on every token it verifies. A token without them, or with other values, is refused with `401`.
