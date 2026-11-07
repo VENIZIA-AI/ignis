@@ -101,7 +101,9 @@ export abstract class SearchBaseRepository<
     try {
       opts.task();
     } catch (error) {
-      return error instanceof Error ? error : getError({ message: 'A value that is not an Error was thrown', cause: error });
+      return error instanceof Error
+        ? error
+        : getError({ message: 'A value that is not an Error was thrown', cause: error });
     }
 
     return undefined;

@@ -251,7 +251,10 @@ export class RequestFilterGuard {
           throw error;
         }
 
-        walk.refusal ??= error instanceof Error ? error : getError({ message: 'A value that is not an Error was thrown', cause: error });
+        walk.refusal ??=
+          error instanceof Error
+            ? error
+            : getError({ message: 'A value that is not an Error was thrown', cause: error });
         continue;
       }
 

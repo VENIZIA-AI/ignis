@@ -94,7 +94,12 @@ export class ReadableRelationalRepository<
           }),
         };
       } catch (error) {
-        return { error: error instanceof Error ? error : getError({ message: 'A value that is not an Error was thrown', cause: error }) };
+        return {
+          error:
+            error instanceof Error
+              ? error
+              : getError({ message: 'A value that is not an Error was thrown', cause: error }),
+        };
       }
     };
 
