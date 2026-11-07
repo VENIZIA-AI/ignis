@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/typesense/controllers, f
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-5 exports, 5 with TSDoc.
+6 exports, 6 with TSDoc.
 
 ## `AbstractSearchController`
 
@@ -19,6 +19,8 @@ Base tier of a generated search controller: the repository handle plus the searc
 export declare abstract class AbstractSearchController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEntity>> extends BaseRestController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions> {
     repository: ReadableSearchRepository<TDataObject>;
     searchScope?: TSearchScopeResolver<RouteEnv>;
+    /** The `engineParams` names a caller may send, normalised (see {@link SearchEngineParams}). Empty: any `engineParams` is refused. */
+    allowedEngineParams: ReadonlySet<string>;
     constructor(opts: {
         scope: string;
         path: string;
@@ -27,6 +29,8 @@ export declare abstract class AbstractSearchController<TEntity extends AbstractE
         definitions: AnyType;
         /** Per-request search scope; see {@link TSearchScopeResolver}. */
         searchScope?: TSearchScopeResolver<RouteEnv>;
+        /** Names from `engineParams.allow`, as `SearchEngineParams.resolveAllowlist` answers them. */
+        allowedEngineParams?: ReadonlySet<string>;
     });
     /** POST /search - single-collection keyword/semantic/hybrid/raw search. Carries the list headers of every IGNIS list endpoint; the body keeps `{ found, isFoundExact, hits }` because `isFoundExact` has no place in a `{ count, data }` envelope, and it is the only carrier of "found is an estimate". */
     search(opts: {
@@ -74,12 +78,23 @@ export interface ISearchControllerOptions<TEntity extends AbstractEntity<TAnyObj
      * widen or remove it. Fails closed - a scope that is null, undefined or throws refuses the
      * request with 403. Return `ScopeFilters.UNRESTRICTED` to apply none for a trusted caller.
      *
-     * `raw` mode and `engineParams` hand the engine its own wire parameters, and a multi-search entry
-     * carries a raw `filterBy`; none can take a scope, so a scoped controller refuses `raw` and
-     * `engineParams` (400) and must disable the multi-search route (`routes.multiSearch.enabled:
-     * false`), which `defineSearchController` requires.
+     * `raw` mode hands the engine its own wire parameters, and a multi-search entry carries a raw
+     * `filterBy`; neither can take a scope, so a scoped controller refuses `raw` (400) and must disable the
+     * multi-search route (`routes.multiSearch.enabled: false`), which `defineSearchController` requires.
+     * `engineParams` is refused on every controller unless `engineParams.allow` lists it.
      */
     scope?: TSearchScopeResolver;
+    /**
+     * Which engine parameters a caller may send in a request's `engineParams`. Unset or empty, a request that carries
+     * `engineParams` is refused with 400, on a scoped and an unscoped controller alike: raw engine parameters can replace
+     * the controller's own filter and name fields the model hides. A parameter that selects rows or fields, or orders
+     * them (`filter_by`, `include_fields`, `query_by`, `facet_by`, `group_by`, `highlight_fields`, `sort_by`, a
+     * `preset`, ...) can never be listed: the definition throws. Server code still passes `engineParams` on the
+     * repository call.
+     */
+    engineParams?: {
+        allow?: string[];
+    };
 }
 ```
 
@@ -420,6 +435,7 @@ export declare class SearchControllerFactory extends BaseHelper {
             binding(): ValueOrPromise<void>;
             repository: ReadableSearchRepository<TDataObject, import("../index.js").AbstractSearchDataSource<{}>>;
             searchScope?: TSearchScopeResolver<RouteEnv> | undefined;
+            allowedEngineParams: ReadonlySet<string>;
             search(opts: {
                 context: import("@venizia/ignis-kernel").TRouteContext<RouteEnv>;
             }): Promise<import("@venizia/ignis-kernel").TJsonResponse<unknown, 200>>;
@@ -572,6 +588,49 @@ export declare class SearchControllerFactory extends BaseHelper {
 ```
 
 Source: `packages/connectors/src/search/core/controllers/factory.ts`
+
+## `SearchEngineParams`
+
+*class*
+
+What a search request's `engineParams` may carry. `engineParams` hands the engine its own wire parameters, and some of
+them choose the rows (`filter_by`), the fields (`include_fields`, `query_by`, `facet_by`, `highlight_fields`) or both
+(a preset). Over the wire it is refused on every search controller, scoped or not, unless the controller names the
+parameters a caller may send (`engineParams.allow`). A parameter that selects rows or fields, or reorders them, can
+never be named. Server code passes `engineParams` on the repository call as before.
+
+```ts
+export declare class SearchEngineParams {
+    /**
+     * Parameters no allowlist can hold, in the form `normalize` gives: they choose rows, fields or order, in either engine.
+     * `preset` and `override_tags` / `pinned_hits` / `hidden_hits` change which rows come back, and `vector_query` /
+     * `vector` / `hybrid` search by similarity, which reveals a field's content as surely as a filter does.
+     */
+    static readonly NEVER_ALLOWED: ReadonlySet<string>;
+    /** The allowlist of a controller, validated: strings only, none that selects rows or fields. Throws at definition time, so a bad list never boots. */
+    static resolveAllowlist(opts: {
+        scope: string;
+        allow?: unknown;
+    }): ReadonlySet<string>;
+    /** Refuses (400) an `engineParams` that carries a name the controller does not allow. With no allowlist, any `engineParams` is refused. */
+    static assertAllowed(opts: {
+        engineParams?: unknown;
+        allowed: ReadonlySet<string>;
+    }): void;
+    /** The check for a single-collection search body. `raw` mode has no `engineParams`: it is the controller's own choice to serve it. */
+    static assertSearchInput(opts: {
+        input: TSearchInput;
+        allowed: ReadonlySet<string>;
+    }): void;
+    /** The check for every entry of a multi-search body. */
+    static assertMultiSearchInput(opts: {
+        input: TMultiSearchInput;
+        allowed: ReadonlySet<string>;
+    }): void;
+}
+```
+
+Source: `packages/connectors/src/search/core/controllers/engine-params.ts`
 
 ## `TSearchScopeResolver`
 

@@ -9,6 +9,7 @@ import type { Env, Schema } from 'hono';
 import type { TMultiSearchInput, TSearchInput } from '@/search/core/repositories/common';
 import { SearchModes } from '@/search/core/repositories/common';
 import type { ReadableSearchRepository } from '../repositories/core/readable';
+import { SearchEngineParams } from './engine-params';
 import { SearchControllerScope } from './scope';
 import type { TSearchScopeResolver } from './scope';
 
@@ -52,6 +53,9 @@ export abstract class AbstractSearchController<
   repository: ReadableSearchRepository<TDataObject>;
   searchScope?: TSearchScopeResolver<RouteEnv>;
 
+  /** The `engineParams` names a caller may send, normalised (see {@link SearchEngineParams}). Empty: any `engineParams` is refused. */
+  allowedEngineParams: ReadonlySet<string>;
+
   constructor(opts: {
     scope: string;
     path: string;
@@ -60,10 +64,13 @@ export abstract class AbstractSearchController<
     definitions: AnyType;
     /** Per-request search scope; see {@link TSearchScopeResolver}. */
     searchScope?: TSearchScopeResolver<RouteEnv>;
+    /** Names from `engineParams.allow`, as `SearchEngineParams.resolveAllowlist` answers them. */
+    allowedEngineParams?: ReadonlySet<string>;
   }) {
     super({ scope: opts.scope, path: opts.path, isStrict: opts.isStrict });
     this.repository = opts.repository;
     this.searchScope = opts.searchScope;
+    this.allowedEngineParams = opts.allowedEngineParams ?? new Set();
     this.definitions = opts.definitions;
   }
 
@@ -72,6 +79,9 @@ export abstract class AbstractSearchController<
     const { context } = opts;
     const body = context.req.valid<TSearchInput>('json');
     let input = body;
+
+    // Before the scope and on every controller: a caller's raw engine parameters can replace the controller's own filter.
+    SearchEngineParams.assertSearchInput({ input: body, allowed: this.allowedEngineParams });
 
     if (this.searchScope) {
       const scoped = await SearchControllerScope.applySearchScope({
@@ -121,6 +131,8 @@ export abstract class AbstractSearchController<
     }
 
     const input = context.req.valid<TMultiSearchInput>('json');
+
+    SearchEngineParams.assertMultiSearchInput({ input, allowed: this.allowedEngineParams });
 
     const rs = await this.measure({
       scope: 'multiSearch',

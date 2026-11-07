@@ -2216,12 +2216,13 @@ generated:
 - `TypesenseBaseRepository` class
 - `VectorDistances` class
 
-### `@venizia/ignis-connectors/search/controllers` (5)
+### `@venizia/ignis-connectors/search/controllers` (6)
 
 - `AbstractSearchController` class
 - `ISearchControllerOptions` interface
 - `ISearchCustomizableRoutes` interface
 - `SearchControllerFactory` class
+- `SearchEngineParams` class
 - `TSearchScopeResolver` type
 
 ### `@venizia/ignis-connectors/typesense` (82)
@@ -2309,12 +2310,13 @@ generated:
 - `TypesenseQueryDialect` class
 - `VectorDistances` class
 
-### `@venizia/ignis-connectors/typesense/controllers` (5)
+### `@venizia/ignis-connectors/typesense/controllers` (6)
 
 - `AbstractSearchController` class
 - `ISearchControllerOptions` interface
 - `ISearchCustomizableRoutes` interface
 - `SearchControllerFactory` class
+- `SearchEngineParams` class
 - `TSearchScopeResolver` type
 
 ### `@venizia/ignis-connectors/meilisearch` (16)

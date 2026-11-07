@@ -373,7 +373,7 @@ await repository.search({
 });
 ```
 
-`engineParams` is still the one door to the engine's own parameters, so a scoped search controller refuses it, the camelCase names included.
+`engineParams` is the one door to the engine's own parameters, so over HTTP every search controller refuses it, scoped or not (`400`), unless the controller lists the parameters a caller may send: see [Engine parameters over HTTP](#engine-parameters-over-http). A repository call from server code takes it as shown here.
 
 Sorting by a declared field is `filter.order` in the neutral input, and the dialect sends it as `sort_by` (at most three fields, each one the collection declares; a string field also needs `sortable: true`, which Typesense checks). `suggest()` takes no `order`, so its documents come back in relevance order unless you pass `sortBy`.
 
@@ -400,7 +400,7 @@ await repository.search({
 | At most three top-level entries | Typesense's limit; `_eval(...)` counts as one, however many commas it holds |
 | Given once | `sortBy` with `filter.order`, or with `sort_by`, throws instead of letting one win |
 
-Field names and the inside of an `_eval` expression are Typesense's to check. A scoped search controller refuses `engineParams`, `sortBy` included. Meilisearch has no equivalent, so its neutral `order` is unchanged.
+Field names and the inside of an `_eval` expression are Typesense's to check. A search controller refuses `engineParams` over HTTP, `sortBy` included. Meilisearch has no equivalent, so its neutral `order` is unchanged.
 
 `searchCount()`, `facets()` and `suggest()` take the same `engineParams`, checked and sent the same way, so they match what a `search()` with that tuning matches. Without it, a count, a facet or a suggestion can differ from the search beside it (an accented query that finds unaccented names in `search()` finds none in `suggest()`). Repository methods are not routes, so the scoped-controller refusal is unchanged: a search controller's routes call `search()` and `multiSearch()` only, and a scoped one still answers `400` to `engineParams` on `/search`.
 
@@ -625,7 +625,27 @@ const ScopedSearchController = SearchControllerFactory.defineSearchController({
 | `ScopeFilters.UNRESTRICTED` | No scope for this call (an admin, a system job) |
 | `null`, `undefined`, or it throws | Refused with `403`; nothing is searched |
 
-A scope is a `where` ANDed into a filter, so the three inputs that carry the engine's own filter string cannot take one. A scoped controller therefore refuses `mode: 'raw'` and `engineParams` (`400`), and `defineSearchController` throws unless `routes.multiSearch.enabled` is `false`.
+A scope is a `where` ANDed into a filter, so the three inputs that carry the engine's own filter string cannot take one. A scoped controller therefore refuses `mode: 'raw'` (`400`), and `defineSearchController` throws unless `routes.multiSearch.enabled` is `false`. `engineParams` is refused on every controller, see below.
+
+### Engine parameters over HTTP
+
+A search request's `engineParams` hands the engine its own wire parameters. It could replace the controller's own `filter_by` and name fields the model hides, so a search controller, scoped or not, refuses a request that carries it with `400 engineParams is not available on this search controller`, in `search` and in every entry of `multi-search`. The key alone is the request: an empty `engineParams: {}` is refused too.
+
+A controller that wants callers to tune something lists the parameters:
+
+```typescript
+SearchControllerFactory.defineSearchController({
+  entity: ProductDocument,
+  repository: { name: ProductSearchRepository.name },
+  controller: { name: 'ProductSearchController', basePath: '/products' },
+  engineParams: { allow: ['typo_tokens_threshold', 'num_typos'] },
+});
+```
+
+- **Names compare in one spelling.** `num_typos`, `numTypos` and `NUM_TYPOS` are one name.
+- **Anything else is a `400`**, naming the parameters it refused.
+- **A parameter that selects rows or fields, or orders them, can never be listed.** `filter_by`, `include_fields`, `exclude_fields`, `query_by`, `facet_by`, `group_by`, `highlight_fields`, `sort_by`, `preset`, `pinned_hits`, `vector_query` and their Meilisearch counterparts (`filter`, `attributesToRetrieve`, `facets`, `sort`, ...). `defineSearchController` throws when the list holds one.
+- **Server code is not affected.** `repository.search({ ..., engineParams })` takes any parameter, as before.
 
 ## Big collections: streaming export, timeouts and import errors
 
