@@ -144,6 +144,25 @@ export class BunS3Helper extends BaseStorageHelper {
     };
   }
 
+  /**
+   * What a call this process makes on one bucket's objects (or its listing) passes to Bun's client. Path style needs only the
+   * bucket. Virtual-hosted style needs the bucket's own host as well: Bun puts the bucket in neither the host nor the path in that
+   * mode, so a call without it goes to the bare endpoint (`PUT /k.png` on the endpoint host) and never reaches the object.
+   */
+  private callOptions(opts: { bucket: string }): {
+    bucket: string;
+    endpoint?: string;
+    virtualHostedStyle?: boolean;
+  } {
+    if (!this.credentials.virtualHostedStyle) {
+      return { bucket: opts.bucket };
+    }
+
+    const { endpoint } = this.objectEndpoint({ bucket: opts.bucket, audience: S3Audiences.SERVER });
+
+    return { bucket: opts.bucket, endpoint, virtualHostedStyle: true };
+  }
+
   async hasBucket(opts: { bucket: IBucketRef }): Promise<boolean> {
     const { name } = opts.bucket;
 
@@ -152,7 +171,7 @@ export class BunS3Helper extends BaseStorageHelper {
     }
 
     try {
-      await this.client.list({ maxKeys: 1 }, { bucket: name });
+      await this.client.list({ maxKeys: 1 }, this.callOptions({ bucket: name }));
 
       return true;
     } catch (error) {
@@ -508,7 +527,7 @@ export class BunS3Helper extends BaseStorageHelper {
     const { mimetype: mimeType, buffer } = file;
 
     await this.client.write(opts.object.key, buffer, {
-      bucket: bucketName,
+      ...this.callOptions({ bucket: bucketName }),
       type: mimeType,
       partSize: this.transfer.partSize,
       queueSize: this.transfer.queueSize,
@@ -535,7 +554,7 @@ export class BunS3Helper extends BaseStorageHelper {
     const body = source instanceof ReadableStream ? new Response(source) : source;
 
     await this.client.write(object.key, body, {
-      bucket: bucket.name,
+      ...this.callOptions({ bucket: bucket.name }),
       ...(contentType ? { type: contentType } : {}),
       partSize: this.transfer.partSize,
       queueSize: this.transfer.queueSize,
@@ -547,7 +566,7 @@ export class BunS3Helper extends BaseStorageHelper {
   async getObject(opts: IObjectLocation & { options?: any }): Promise<Readable> {
     const bucketName = opts.bucket.name;
     const key = opts.object.key;
-    const source = this.client.file(key, { bucket: bucketName }).stream();
+    const source = this.client.file(key, this.callOptions({ bucket: bucketName })).stream();
 
     return Readable.fromWeb(source as ReadableStream<Uint8Array>, {
       // Keeps backpressure meaningful rather than draining S3 into memory.
@@ -562,7 +581,7 @@ export class BunS3Helper extends BaseStorageHelper {
     const bucketName = opts.bucket.name;
     const key = opts.object.key;
     const { range } = opts;
-    const file = this.client.file(key, { bucket: bucketName });
+    const file = this.client.file(key, this.callOptions({ bucket: bucketName }));
 
     if (!range) {
       return file.stream() as ReadableStream<Uint8Array>;
@@ -580,7 +599,7 @@ export class BunS3Helper extends BaseStorageHelper {
     const key = opts.object.key;
 
     try {
-      const stat = await this.client.stat(key, { bucket: bucketName });
+      const stat = await this.client.stat(key, this.callOptions({ bucket: bucketName }));
 
       return {
         size: stat.size,
@@ -604,7 +623,7 @@ export class BunS3Helper extends BaseStorageHelper {
     const key = opts.object.key;
 
     try {
-      await this.client.delete(key, { bucket: bucketName });
+      await this.client.delete(key, this.callOptions({ bucket: bucketName }));
     } catch (error) {
       throw this.asStorageError({
         error,
@@ -648,7 +667,7 @@ export class BunS3Helper extends BaseStorageHelper {
           ...(useRecursive ? {} : { delimiter: '/' }),
           ...(Number.isFinite(remaining) ? { maxKeys: Math.min(remaining, 1000) } : {}),
         },
-        { bucket: bucketName },
+        this.callOptions({ bucket: bucketName }),
       );
 
       const responseContents = response.contents ?? [];
