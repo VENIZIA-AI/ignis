@@ -9,6 +9,7 @@ import type { IServiceAssertionClaims, IServiceAuthOptions } from '@venizia/igni
 import { getError } from '@venizia/ignis-helpers/core';
 import type { createRemoteJWKSet } from 'jose';
 import { JoseLoader } from '../jose-loader';
+import { JWKSUrlPolicy } from '../jwks-url-policy';
 
 type TRemoteKeySet = ReturnType<typeof createRemoteJWKSet>;
 
@@ -110,11 +111,20 @@ export class ServiceAssertionVerifierService extends BaseService {
       }),
     );
 
-    const keySet = jose.createRemoteJWKSet(new URL(jwksUrl), {
-      cacheMaxAge:
-        this.options.jwks?.cacheMaxAgeMs ?? ServiceAssertion.DEFAULT_JWKS_CACHE_MAX_AGE_MS,
-      cooldownDuration: this.options.jwks?.cooldownMs ?? ServiceAssertion.DEFAULT_JWKS_COOLDOWN_MS,
-    });
+    const keySet = jose.createRemoteJWKSet(
+      JWKSUrlPolicy.assertUrl({
+        scope: ServiceAssertionVerifierService.name,
+        label: 'the caller jwksUrl',
+        url: jwksUrl,
+        hosts: this.options.jwks?.hosts?.http,
+      }),
+      {
+        cacheMaxAge:
+          this.options.jwks?.cacheMaxAgeMs ?? ServiceAssertion.DEFAULT_JWKS_CACHE_MAX_AGE_MS,
+        cooldownDuration:
+          this.options.jwks?.cooldownMs ?? ServiceAssertion.DEFAULT_JWKS_COOLDOWN_MS,
+      },
+    );
 
     this.keySets.set(issuer, keySet);
 

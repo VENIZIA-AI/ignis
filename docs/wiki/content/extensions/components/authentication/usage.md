@@ -233,6 +233,16 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
 
 The verifier requires the `iss` and `aud` the issuer stamps, so a token minted for another service is refused. It also requires `verify.algorithms`: a verifier cannot know what the issuer signs with, and a boot without it is refused.
 
+**Fetch a JWKS over http inside a private network.** A JWKS URL is `https:`, unless its host is loopback or named in `jwks.hosts.http`. Name the in-cluster hosts; the port does not matter. The same list covers the callers of a service-to-service setup.
+
+```typescript
+// JWKS verifier
+options: { mode: JWKSModes.VERIFIER, jwksUrl: 'http://auth-service:3000/certs', jwks: { hosts: { http: ['auth-service'] } }, /* claims, verify.algorithms */ }
+
+// Service assertions: every caller's jwksUrl
+{ name: 'inventory', callers: { commerce: 'http://commerce:3000/svc-certs' }, jwks: { hosts: { http: ['commerce'] } }, /* resolvePrincipal */ }
+```
+
 **Generate ES256 or RS256 keys.**
 
 ```bash

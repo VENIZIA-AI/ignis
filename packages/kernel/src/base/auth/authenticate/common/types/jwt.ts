@@ -142,6 +142,19 @@ export interface IJWKSVerifierVerifyOptions extends IJWTVerifyOptions {
   algorithms: string[];
 }
 
+/**
+ * Where a JWKS may be fetched over plain `http:`. A JWKS URL is `https:` unless its host is loopback (`localhost`,
+ * `127.0.0.0/8`, `::1`) or is named in `http`.
+ */
+export interface IJWKSHosts {
+  /**
+   * Host NAMES that may serve a JWKS over `http:`, for example `['identity-service']`: a service inside a private
+   * network. Names only, never an address range, because what a name resolves to can change. A name matches on the
+   * host and ignores the port. An entry with a port, a scheme or a wildcard refuses the boot.
+   */
+  http?: string[];
+}
+
 /** Options of a JWKS verifier, which checks tokens against the key set served at `jwksUrl`. */
 export interface IJWKSVerifierOptions {
   mode: typeof JWKSModes.VERIFIER;
@@ -149,6 +162,9 @@ export interface IJWKSVerifierOptions {
 
   /** The `iss` and `aud` required on every verified token. */
   claims: IJWTClaimsOptions;
+
+  /** Where the key set may be fetched from over `http:`. Unset means `https:` or loopback only. */
+  jwks?: { hosts?: IJWKSHosts };
 
   /**
    * How long the fetched key set stays cached, in ms (12 hours).

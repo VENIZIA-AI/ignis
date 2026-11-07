@@ -237,9 +237,23 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Must match the issuer's codecs to decrypt custom fields |
 | `claims` | `{ issuer: string; audience: string \| string[] }` | -- | Yes | The `iss` and `aud` required on every verified token. No other key is accepted |
 | `verify` | `IJWKSVerifierVerifyOptions` | -- | Yes | `algorithms` is required (the accepted JWS algorithms, for example `['RS256']`): a verifier cannot know what the issuer signs with. Also `subject`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims` |
+| `jwks.hosts.http` | `string[]` | `[]` | No | Host names that may serve the key set over `http:`. Without it the `jwksUrl` is `https:` or a loopback host. See [JWKS over http](#jwks-over-http) |
 
 > [!IMPORTANT]
 > `JWKSVerifierTokenService` cannot sign tokens - `getSigner()`, `getSigningKey()`, and `getDefaultTokenExpiresFn()` all throw. Only `verify()` and `extractCredentials()` are functional.
+
+### JWKS over http
+
+A JWKS URL is `https:`. It may be `http:` only when its host is loopback (`localhost`, `127.0.0.0/8`, `::1`) or is named in `jwks.hosts.http`. Any other scheme is refused. A key set read over plain `http:` can be replaced on the way, and whoever replaces it signs tokens that verify.
+
+| Where | Option |
+|-------|--------|
+| JWKS verifier | `options.jwks.hosts.http`, beside `jwksUrl` |
+| Service-assertion callers | `IServiceAuthOptions.jwks.hosts.http`, which covers every `callers[...].jwksUrl` |
+
+- **Host names only.** `['identity-service']` covers `http://identity-service:3000/certs` and `http://identity-service/certs`: the port is ignored. An entry with a port, a scheme, a path, a wildcard or an IP address refuses the boot, naming the entry.
+- **No address ranges.** There is no rule for private networks: what a name resolves to can change, so you opt in by name.
+- **Checked at boot.** The component checks the verifier URL and every caller URL when the application starts; the services check again before they fetch.
 
 ### TBasicTokenServiceOptions
 

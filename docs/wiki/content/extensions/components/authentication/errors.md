@@ -60,6 +60,9 @@ Thrown during `binding()` while validating options and wiring services.
 | `[defineJWSAuth] verify must be an object` | 500 | `verify` is a string, a number, a list or `null` | Pass an object, or remove it |
 | `[defineJWSAuth] the algorithm 'none' is refused` | 500 | `headerAlgorithm` or `verify.algorithms` names `none` | Name a real algorithm |
 | `[verify] Invalid or expired token` with cause `A service assertion is not a user token` | 401 | A token with `typ: svc+jwt` reached the user-token path | Send service assertions in the `x-service-assertion` header |
+| `[defineJWKSAuth] jwksUrl uses http: and the host '{host}' is not allowed \| use https, or list the host name in jwks.hosts.http` (also `[defineServiceAuth] callers["{name}"].jwksUrl ...`) | 500 | A plain-http JWKS URL whose host is neither loopback nor in `jwks.hosts.http` | Use `https:`, or add the host name to `jwks.hosts.http` |
+| `[defineJWKSAuth] jwksUrl must use https \| scheme: {scheme}` | 500 | A JWKS URL that is not `http:` or `https:` | Use `https:` |
+| `[defineServiceAuth] jwks.hosts.http holds "{entry}" \| list host names only ...` | 500 | An entry with a port, scheme, path, wildcard or IP address, or an entry that is not a string | List host names, for example `identity-service` |
 | `[defineJWKSAuth] verify.algorithms is required` | 500 | A JWKS verifier without `verify.algorithms` | Pass the algorithms the issuer signs with, for example `verify: { algorithms: ['RS256'] }` |
 | `[defineJWSAuth] jwtSecret is too short: {n} bytes, at least 32 are required \| Generate one with: openssl rand -base64 48` (also `[JWSTokenService]`) | 500 | `jwtSecret` is shorter than 32 UTF-8 bytes | Generate a longer secret, for example `openssl rand -base64 48`. The message never shows the secret |
 | `[defineJWSAuth] getTokenExpiresFn is required` | 400 | `getTokenExpiresFn` missing from JWS options | Provide `() => Number(process.env.APP_ENV_JWT_EXPIRES_IN \|\| 86400)` |

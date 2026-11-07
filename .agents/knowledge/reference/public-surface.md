@@ -1229,7 +1229,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (420)
+### `@venizia/ignis-kernel` (421)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1383,6 +1383,7 @@ generated:
 - `IEventHandlerRetryOptions` interface
 - `IExtraOptions` interface
 - `IGrpcControllerMetadata` interface
+- `IJWKSHosts` interface
 - `IJWKSIssuerOptions` interface
 - `IJWKSVerifierOptions` interface
 - `IJWKSVerifierVerifyOptions` interface
@@ -2374,7 +2375,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1016)
+### `@venizia/ignis` (1018)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2701,6 +2702,7 @@ generated:
 - `IHfLogFlusherOptions` interface
 - `IHfQueueNode` interface
 - `IIdGeneratorOptions` interface
+- `IJWKSHosts` interface
 - `IJWKSIssuerOptions` interface
 - `IJWKSVerifierOptions` interface
 - `IJWKSVerifierVerifyOptions` interface
@@ -2882,6 +2884,7 @@ generated:
 - `JWKSKeyDrivers` class
 - `JWKSKeyFormats` class
 - `JWKSModes` class
+- `JWKSUrlPolicy` class
 - `JWKSVerifierAuthenticationStrategy` class
 - `JWKSVerifierTokenService` class
 - `JWSAuthenticationStrategy` class
