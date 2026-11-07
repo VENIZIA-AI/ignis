@@ -368,13 +368,13 @@ describe('the other verify knobs reach jose', () => {
     // Minted directly so `iat` can be backdated: the service always stamps "now", and `maxTokenAge`
     // measures against `iat`, not `exp` - a token still well inside its expiry is refused here.
     const now = Math.floor(Date.now() / 1000);
-    const token = await new SignJWT({ userId: 1 })
+    const jwt = new SignJWT({ userId: 1 })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuer('identity')
       .setAudience('inventory')
       .setIssuedAt(now - 600)
-      .setExpirationTime(now + 3600)
-      .sign(KEY);
+      .setExpirationTime(now + 3600);
+    const token = await jwt.sign(KEY);
 
     await RejectionHelper.expectRejection({
       task: buildService({ verify: { maxTokenAge: '60 seconds' } }).verify({

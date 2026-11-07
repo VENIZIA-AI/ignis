@@ -33,7 +33,8 @@ parity: aggregating several upstreams into the one shape a UI renders is the poi
 class BrowserBffApplication extends WorkerApplication {
   /* configure, bind controllers */
 }
-await new BrowserBffApplication().listen();
+const application = new BrowserBffApplication();
+await application.listen();
 
 // bff.ts - on the page
 export const bff = new SharedBffTransport({

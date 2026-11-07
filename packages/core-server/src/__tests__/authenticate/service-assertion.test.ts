@@ -222,7 +222,7 @@ describe('a callee refuses everything else', () => {
     // Minted directly so `iat` can be backdated: `maxTokenAge` measures against `iat`, and the
     // service always stamps "now".
     const privateKey = await (signer as AnyType).resolvePrivateKey();
-    const token = await new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
+    const jwt = new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({
         alg: ServiceAssertion.ALGORITHM,
         typ: ServiceAssertion.TYP,
@@ -232,8 +232,8 @@ describe('a callee refuses everything else', () => {
       .setAudience(CALLEE)
       .setJti('stale-1')
       .setIssuedAt(stale)
-      .setExpirationTime(stale + 3600)
-      .sign(privateKey);
+      .setExpirationTime(stale + 3600);
+    const token = await jwt.sign(privateKey);
 
     return expect(
       buildVerifier(calleeOptions()).verify({ token, method: 'GET', path: '/v1/api/x' }),
@@ -252,12 +252,12 @@ describe('a callee refuses everything else', () => {
 
   test('an assertion with no iss', async () => {
     const privateKey = await (signer as AnyType).resolvePrivateKey();
-    const token = await new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
+    const jwt = new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({ alg: ServiceAssertion.ALGORITHM, typ: ServiceAssertion.TYP })
       .setAudience(CALLEE)
       .setIssuedAt()
-      .setExpirationTime('60s')
-      .sign(privateKey);
+      .setExpirationTime('60s');
+    const token = await jwt.sign(privateKey);
 
     return expect(
       buildVerifier(calleeOptions()).verify({ token, method: 'GET', path: '/v1/api/x' }),
@@ -274,7 +274,7 @@ describe('the callee decides the window, per caller', () => {
     const stale = Math.floor(Date.now() / 1000) - 300;
 
     const privateKey = await (signer as AnyType).resolvePrivateKey();
-    const token = await new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
+    const jwt = new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({
         alg: ServiceAssertion.ALGORITHM,
         typ: ServiceAssertion.TYP,
@@ -284,8 +284,8 @@ describe('the callee decides the window, per caller', () => {
       .setAudience(CALLEE)
       .setJti('batch-1')
       .setIssuedAt(stale)
-      .setExpirationTime(stale + 3600)
-      .sign(privateKey);
+      .setExpirationTime(stale + 3600);
+    const token = await jwt.sign(privateKey);
 
     // Default window: refused.
     const result = await RejectionHelper.rejectionOf({

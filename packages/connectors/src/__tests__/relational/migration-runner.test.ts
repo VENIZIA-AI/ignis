@@ -50,7 +50,8 @@ describe('RelationalMigrationRunner', () => {
   test('creates the ledger, reads it, then applies each pending migration in a transaction', async () => {
     const { driver, statements, releaseCount } = buildFakeDriver();
 
-    await new RelationalMigrationRunner({ driver }).run({ migrations: MIGRATIONS });
+    const relationalMigrationRunner = new RelationalMigrationRunner({ driver });
+    await relationalMigrationRunner.run({ migrations: MIGRATIONS });
 
     expect(statements[0]).toContain('CREATE TABLE IF NOT EXISTS "ignis_migrations"');
     expect(statements[1]).toContain('SELECT "name" FROM "ignis_migrations"');
@@ -74,7 +75,8 @@ describe('RelationalMigrationRunner', () => {
   test('a migration already in the ledger is skipped entirely', async () => {
     const { driver, statements } = buildFakeDriver({ applied: ['0001_notes'] });
 
-    await new RelationalMigrationRunner({ driver }).run({ migrations: MIGRATIONS });
+    const relationalMigrationRunner = new RelationalMigrationRunner({ driver });
+    await relationalMigrationRunner.run({ migrations: MIGRATIONS });
 
     expect(statements).not.toContain('CREATE TABLE notes (id integer)');
     expect(statements).toContain('CREATE INDEX notes_id ON notes (id)');
@@ -86,7 +88,8 @@ describe('RelationalMigrationRunner', () => {
     let failure: unknown;
 
     try {
-      await new RelationalMigrationRunner({ driver }).run({ migrations: MIGRATIONS });
+      const relationalMigrationRunner = new RelationalMigrationRunner({ driver });
+      await relationalMigrationRunner.run({ migrations: MIGRATIONS });
     } catch (error) {
       failure = error;
     }
@@ -107,7 +110,8 @@ describe('RelationalMigrationRunner', () => {
     let failure: unknown;
 
     try {
-      await new RelationalMigrationRunner({ driver }).run({
+      const relationalMigrationRunner = new RelationalMigrationRunner({ driver });
+      await relationalMigrationRunner.run({
         migrations: [{ name: `x'); DROP TABLE notes; --`, sql: 'SELECT 1' }],
       });
     } catch (error) {
@@ -133,7 +137,8 @@ describe('RelationalMigrationRunner', () => {
   test("a drizzle-kit file's statements each run on their own call", async () => {
     const { driver, statements } = buildFakeDriver();
 
-    await new RelationalMigrationRunner({ driver }).run({
+    const relationalMigrationRunner = new RelationalMigrationRunner({ driver });
+    await relationalMigrationRunner.run({
       migrations: [
         {
           name: '0003_multi',
@@ -152,7 +157,11 @@ describe('RelationalMigrationRunner', () => {
   test('the ledger table is configurable', async () => {
     const { driver, statements } = buildFakeDriver();
 
-    await new RelationalMigrationRunner({ driver, ledgerTable: 'my_ledger' }).run({
+    const relationalMigrationRunner = new RelationalMigrationRunner({
+      driver,
+      ledgerTable: 'my_ledger',
+    });
+    await relationalMigrationRunner.run({
       migrations: [MIGRATIONS[0]!],
     });
 
