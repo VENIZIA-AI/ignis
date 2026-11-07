@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/relational, from the bui
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-79 exports, 79 with TSDoc.
+80 exports, 80 with TSDoc.
 
 ## `AbstractRelationalDataSource`
 
@@ -1254,8 +1254,9 @@ export declare class PersistableRelationalRepository<EntitySchema extends TTable
     /**
      * One `INSERT ... ON CONFLICT (key) DO UPDATE` statement. The key and `update` are checked before anything else, so a
      * bad one runs no guard and no SQL. The new row passes the CREATE guard; the columns the update branch writes pass the
-     * guard of `resolveUpdateOperation`; the existing row must match that operation's scope and the default filter
-     * (`setWhere`), read in the same statement, so it cannot change between the check and the write.
+     * guard of every operation `resolveUpdateOperations` gives; the existing row must match each of their scopes and the
+     * default filter (`setWhere`), read in the same statement, so it cannot change between the check and the write. `data`
+     * is read once, into a copy every step uses.
      */
     protected _upsert<R = DataObject>(opts: {
         data: PersistObject;
@@ -1281,7 +1282,7 @@ export declare class PersistableRelationalRepository<EntitySchema extends TTable
      *   them, and the existing row must be one the caller may update: a row outside the scope or hidden by the default
      *   filter is left as it is and the call fails with the write-denied 403. `options.shouldSkipDefaultFilter` is ignored.
      *   On a soft-deletable repository, an update branch that sets `deletedAt` to a value other than `null` is held to
-     *   the DELETE scope instead.
+     *   the UPDATE scope and the DELETE scope both.
      * - Defaults apply on insert, `$onUpdate` columns (`modifiedAt`, `modifiedBy`) on a conflict, and hidden fields are
      *   written but not returned.
      * @example
@@ -1321,15 +1322,21 @@ export declare class PersistableRelationalRepository<EntitySchema extends TTable
         data: R;
     }>;
     /**
-     * The operation the row scope sees for an update that writes `data`. UPDATE here; a soft-deletable
-     * repository answers DELETE when `data` sets its soft-delete column.
+     * The operations the row scope checks for an update that writes `data`, all of them. `[UPDATE]` here; a
+     * soft-deletable repository adds DELETE when `data` sets its soft-delete column.
      */
-    protected resolveUpdateOperation(_opts: {
+    protected resolveUpdateOperations(_opts: {
         data: Record<string, unknown>;
-    }): typeof ScopeOperations.UPDATE | typeof ScopeOperations.DELETE;
+    }): TUpdateScopeOperations;
+    /** One null-prototype copy of `data`: every enumerable key, own or inherited, read once, so the check and the write see the same values. */
+    private snapshotData;
+    /** Holds `row` to the write guard of every operation. */
+    private guardUpdate;
+    /** The default filter, then the row scope of every operation, AND-composed: a row is selected only when each allows it. */
+    private applyUpdateFilter;
     /**
      * `operation` is what the row scope sees: DELETE for a soft delete, which is a delete to the caller even though it is
-     * stored as an update. Omitted, it is `resolveUpdateOperation({ data })`.
+     * stored as an update. Omitted, the update is checked against every operation `resolveUpdateOperations({ data })` gives.
      */
     protected _update<R = DataObject>(opts: {
         data: Partial<PersistObject>;
@@ -2403,18 +2410,18 @@ Source: `packages/connectors/src/relational/core/repositories/common/scope-filte
 
 *class*
 
-Repository that soft-deletes (sets `deletedAt`) instead of physically removing rows; models need a `deletedAt` column and `query: { filter: { where: { deletedAt: null } } }` in `@model` settings. An update, `updateEach` or upsert whose data sets `deletedAt` to a value other than `null` is checked by the access scope as a DELETE.
+Repository that soft-deletes (sets `deletedAt`) instead of physically removing rows; models need a `deletedAt` column and `query: { filter: { where: { deletedAt: null } } }` in `@model` settings. An update, `updateEach` or upsert whose data sets `deletedAt` to a value other than `null` is checked by the access scope as an UPDATE and a DELETE: both scopes must allow the row.
 
 ````ts
 export declare class SoftDeletableRelationalRepository<EntitySchema extends TSoftDeletableTableSchema = TSoftDeletableTableSchema, DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>, PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>, ExtraOptions extends IExtraOptions = IRelationalExtraOptions, TDataSource extends IRelationalDataSource = IRelationalDataSource> extends DefaultRelationalRepository<EntitySchema, DataObject, PersistObject, ExtraOptions, TDataSource> {
     private softDeletePatch;
     /**
-     * DELETE when `data` sets `deletedAt` (by property, column name or a path on it) to anything but `null`, an
-     * expression included; UPDATE when it sets it to `null`, as a restore is checked, or leaves it `undefined`.
+     * DELETE and UPDATE when `data` sets `deletedAt` (by property, column name or a path on it) to anything but `null`,
+     * an expression included; UPDATE alone when it sets it to `null`, as a restore is checked, or leaves it `undefined`.
      */
-    protected resolveUpdateOperation(opts: {
+    protected resolveUpdateOperations(opts: {
         data: Record<string, unknown>;
-    }): typeof ScopeOperations.UPDATE | typeof ScopeOperations.DELETE;
+    }): TUpdateScopeOperations;
     /** `isStrict` is evaluated AFTER `options.retry` has been exhausted - the retry loop lives inside `super.findById` -> `findOne`, so a strict read waits out replica lag before it 404s. */
     findById<R = unknown, const F extends TFields<DataObject> = TFields<DataObject>>(opts: {
         id: DataObject['id'];
@@ -2922,6 +2929,21 @@ export type TTableSchemaWithId<TC extends TableConfig = TableConfig> = Table<TC>
 ```
 
 Source: `packages/connectors/src/relational/core/models/common/types.ts`
+
+## `TUpdateScopeOperations`
+
+*type*
+
+The row-scope operations an update is checked against: each one must allow the selected rows and the written values.
+
+```ts
+export type TUpdateScopeOperations = readonly [
+    typeof ScopeOperations.UPDATE | typeof ScopeOperations.DELETE,
+    ...Array<typeof ScopeOperations.UPDATE | typeof ScopeOperations.DELETE>
+];
+```
+
+Source: `packages/connectors/src/relational/core/repositories/core/persistable.ts`
 
 ## `TUpsertUpdateKey`
 

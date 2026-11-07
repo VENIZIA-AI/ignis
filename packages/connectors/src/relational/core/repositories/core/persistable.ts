@@ -8,7 +8,14 @@ import type {
 } from '@/relational/core/models';
 import type { AnyType, TClass, TNullable } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import type { IExtraOptions, TCount, TRepositoryLogOptions, TWhere } from '@venizia/ignis-kernel';
+import type {
+  IExtraOptions,
+  ITransaction,
+  TCount,
+  TFilter,
+  TRepositoryLogOptions,
+  TWhere,
+} from '@venizia/ignis-kernel';
 import { RepositoryOperationScopes, ScopeOperations } from '@venizia/ignis-kernel';
 import type { SQL } from 'drizzle-orm';
 import type {
@@ -19,6 +26,12 @@ import type {
 import { ScopeWriteGuard } from '../common/scope-write-guard';
 import { UpsertPlan } from '../common/upsert-plan';
 import { ReadableRelationalRepository } from './readable';
+
+/** The row-scope operations an update is checked against: each one must allow the selected rows and the written values. */
+export type TUpdateScopeOperations = readonly [
+  typeof ScopeOperations.UPDATE | typeof ScopeOperations.DELETE,
+  ...Array<typeof ScopeOperations.UPDATE | typeof ScopeOperations.DELETE>,
+];
 
 /** Full CRUD repository extending ReadableRelationalRepository with create, update, and delete. */
 export class PersistableRelationalRepository<
@@ -197,8 +210,9 @@ export class PersistableRelationalRepository<
   /**
    * One `INSERT ... ON CONFLICT (key) DO UPDATE` statement. The key and `update` are checked before anything else, so a
    * bad one runs no guard and no SQL. The new row passes the CREATE guard; the columns the update branch writes pass the
-   * guard of `resolveUpdateOperation`; the existing row must match that operation's scope and the default filter
-   * (`setWhere`), read in the same statement, so it cannot change between the check and the write.
+   * guard of every operation `resolveUpdateOperations` gives; the existing row must match each of their scopes and the
+   * default filter (`setWhere`), read in the same statement, so it cannot change between the check and the write. `data`
+   * is read once, into a copy every step uses.
    */
   protected async _upsert<R = DataObject>(opts: {
     data: PersistObject;
@@ -207,7 +221,7 @@ export class PersistableRelationalRepository<
     options?: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: TNullable<R> }> {
     const { shouldReturn = true, log, transaction } = opts.options ?? {};
-    const data: Record<string, unknown> = opts.data;
+    const data = this.snapshotData(opts.data);
     const plan = UpsertPlan.build({
       schema: this.entity.schema,
       data,
@@ -251,19 +265,12 @@ export class PersistableRelationalRepository<
     const updated = Object.fromEntries(
       plan.updateKeys.map((property) => [property, row[property]]),
     );
-    const updateOperation = this.resolveUpdateOperation({ data: updated });
+    const operations = this.resolveUpdateOperations({ data: updated });
 
-    await this.guardScopedWrite({
-      rows: [updated],
-      operation: updateOperation,
-      transaction,
-    });
+    await this.guardUpdate({ row: updated, operations, transaction });
 
     // `shouldSkipDefaultFilter` is not read: an upsert never updates a row the default filter hides (a soft deleted one).
-    const mergedFilter = this.applyDefaultFilter({
-      userFilter: { where: {} },
-      mutation: updateOperation,
-    });
+    const mergedFilter = this.applyUpdateFilter({ where: {}, operations });
     const setWhere = this.queryDialect.toWhere({
       tableName: this.entity.name,
       schema: this.entity.schema,
@@ -291,7 +298,7 @@ export class PersistableRelationalRepository<
     // No row back means a row holds the key but `setWhere` kept it: it is outside the scope or the default filter. It is
     // not an insert (there was a conflict) and not a success (nothing was written).
     if (rs.count === 0) {
-      throw ScopeWriteGuard.conflictDenied({ model: this.entity.name, operation: updateOperation });
+      throw ScopeWriteGuard.conflictDenied({ model: this.entity.name, operation: operations[0] });
     }
 
     return { count: rs.count, data: shouldReturn ? (rs.rows[0] ?? null) : null };
@@ -310,7 +317,7 @@ export class PersistableRelationalRepository<
    *   them, and the existing row must be one the caller may update: a row outside the scope or hidden by the default
    *   filter is left as it is and the call fails with the write-denied 403. `options.shouldSkipDefaultFilter` is ignored.
    *   On a soft-deletable repository, an update branch that sets `deletedAt` to a value other than `null` is held to
-   *   the DELETE scope instead.
+   *   the UPDATE scope and the DELETE scope both.
    * - Defaults apply on insert, `$onUpdate` columns (`modifiedAt`, `modifiedBy`) on a conflict, and hidden fields are
    *   written but not returned.
    * @example
@@ -356,18 +363,60 @@ export class PersistableRelationalRepository<
   }
 
   /**
-   * The operation the row scope sees for an update that writes `data`. UPDATE here; a soft-deletable
-   * repository answers DELETE when `data` sets its soft-delete column.
+   * The operations the row scope checks for an update that writes `data`, all of them. `[UPDATE]` here; a
+   * soft-deletable repository adds DELETE when `data` sets its soft-delete column.
    */
-  protected resolveUpdateOperation(_opts: {
+  protected resolveUpdateOperations(_opts: {
     data: Record<string, unknown>;
-  }): typeof ScopeOperations.UPDATE | typeof ScopeOperations.DELETE {
-    return ScopeOperations.UPDATE;
+  }): TUpdateScopeOperations {
+    return [ScopeOperations.UPDATE];
+  }
+
+  /** One null-prototype copy of `data`: every enumerable key, own or inherited, read once, so the check and the write see the same values. */
+  private snapshotData(data: Record<string, unknown>): Record<string, unknown> {
+    const copy: Record<string, unknown> = Object.create(null);
+
+    for (const key in data) {
+      copy[key] = data[key];
+    }
+
+    return copy;
+  }
+
+  /** Holds `row` to the write guard of every operation. */
+  private async guardUpdate(opts: {
+    row: Record<string, unknown>;
+    operations: TUpdateScopeOperations;
+    transaction?: ITransaction;
+  }): Promise<void> {
+    for (const operation of opts.operations) {
+      await this.guardScopedWrite({ rows: [opts.row], operation, transaction: opts.transaction });
+    }
+  }
+
+  /** The default filter, then the row scope of every operation, AND-composed: a row is selected only when each allows it. */
+  private applyUpdateFilter(opts: {
+    where: TWhere<DataObject>;
+    shouldSkipDefaultFilter?: boolean;
+    operations: TUpdateScopeOperations;
+  }): TFilter<DataObject> {
+    const [first, ...rest] = opts.operations;
+    let filter = this.applyDefaultFilter<DataObject>({
+      userFilter: { where: opts.where },
+      shouldSkipDefaultFilter: opts.shouldSkipDefaultFilter,
+      mutation: first,
+    });
+
+    for (const mutation of rest) {
+      filter = this.applyScopeFilter<DataObject>({ userFilter: filter, mutation });
+    }
+
+    return filter;
   }
 
   /**
    * `operation` is what the row scope sees: DELETE for a soft delete, which is a delete to the caller even though it is
-   * stored as an update. Omitted, it is `resolveUpdateOperation({ data })`.
+   * stored as an update. Omitted, the update is checked against every operation `resolveUpdateOperations({ data })` gives.
    */
   protected async _update<R = DataObject>(opts: {
     data: Partial<PersistObject>;
@@ -378,8 +427,6 @@ export class PersistableRelationalRepository<
     };
     operation?: typeof ScopeOperations.UPDATE | typeof ScopeOperations.DELETE;
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    const { operation = this.resolveUpdateOperation({ data: opts.data }) } = opts;
-
     const {
       shouldReturn = true,
       force = false,
@@ -399,16 +446,16 @@ export class PersistableRelationalRepository<
       this.logger.for('_update').log(log.level ?? 'info', 'Executing with opts: %j', opts);
     }
 
-    await this.guardScopedWrite({
-      rows: [opts.data as Record<string, unknown>],
-      operation,
-      transaction,
-    });
+    const data = this.snapshotData(opts.data);
+    const operations: TUpdateScopeOperations =
+      opts.operation === undefined ? this.resolveUpdateOperations({ data }) : [opts.operation];
 
-    const mergedFilter = this.applyDefaultFilter({
-      userFilter: { where: opts.where },
+    await this.guardUpdate({ row: data, operations, transaction });
+
+    const mergedFilter = this.applyUpdateFilter({
+      where: opts.where,
       shouldSkipDefaultFilter,
-      mutation: operation,
+      operations,
     });
     const mergedWhere = mergedFilter.where ?? opts.where;
 
@@ -424,7 +471,7 @@ export class PersistableRelationalRepository<
         .warn(
           'Entity: %s | Performing update with empty condition | data: %j',
           this.entity.name,
-          opts.data,
+          data,
         );
     }
 
@@ -432,7 +479,7 @@ export class PersistableRelationalRepository<
     const transformed = this.queryDialect.transformUpdate({
       tableName: this.entity.name,
       schema: this.entity.schema,
-      data: opts.data,
+      data,
     });
     const updateData = this.queryDialect.toUpdateData({ transformed });
 

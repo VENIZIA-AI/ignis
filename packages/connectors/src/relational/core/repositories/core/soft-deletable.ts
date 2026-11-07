@@ -16,6 +16,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import type { AnyColumn } from 'drizzle-orm';
 import type { IRelationalExtraOptions } from '../common';
 import { DefaultRelationalRepository } from './default';
+import type { TUpdateScopeOperations } from './persistable';
 
 /** Drizzle's root `AnyColumn<TPartial>` is the exact dialect-free twin of `AnyPgColumn<TPartial>`, so a `timestamp('deleted_at')` still satisfies this bound. */
 export type TDeletedAtColumn = AnyColumn<{
@@ -27,7 +28,7 @@ export type TSoftDeletableTableSchema = TTableSchemaWithId & {
   deletedAt: TDeletedAtColumn;
 };
 
-/** Repository that soft-deletes (sets `deletedAt`) instead of physically removing rows; models need a `deletedAt` column and `query: { filter: { where: { deletedAt: null } } }` in `@model` settings. An update, `updateEach` or upsert whose data sets `deletedAt` to a value other than `null` is checked by the access scope as a DELETE. */
+/** Repository that soft-deletes (sets `deletedAt`) instead of physically removing rows; models need a `deletedAt` column and `query: { filter: { where: { deletedAt: null } } }` in `@model` settings. An update, `updateEach` or upsert whose data sets `deletedAt` to a value other than `null` is checked by the access scope as an UPDATE and a DELETE: both scopes must allow the row. */
 export class SoftDeletableRelationalRepository<
   EntitySchema extends TSoftDeletableTableSchema = TSoftDeletableTableSchema,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
@@ -46,12 +47,12 @@ export class SoftDeletableRelationalRepository<
   }
 
   /**
-   * DELETE when `data` sets `deletedAt` (by property, column name or a path on it) to anything but `null`, an
-   * expression included; UPDATE when it sets it to `null`, as a restore is checked, or leaves it `undefined`.
+   * DELETE and UPDATE when `data` sets `deletedAt` (by property, column name or a path on it) to anything but `null`,
+   * an expression included; UPDATE alone when it sets it to `null`, as a restore is checked, or leaves it `undefined`.
    */
-  protected override resolveUpdateOperation(opts: {
+  protected override resolveUpdateOperations(opts: {
     data: Record<string, unknown>;
-  }): typeof ScopeOperations.UPDATE | typeof ScopeOperations.DELETE {
+  }): TUpdateScopeOperations {
     const { data } = opts;
     const names = new Set<string>(['deletedAt', this.entity.schema.deletedAt.name]);
 
@@ -59,11 +60,11 @@ export class SoftDeletableRelationalRepository<
       const value = data[key];
 
       if (names.has(FilterKeys.columnOf({ key })) && value !== undefined && value !== null) {
-        return ScopeOperations.DELETE;
+        return [ScopeOperations.DELETE, ScopeOperations.UPDATE];
       }
     }
 
-    return ScopeOperations.UPDATE;
+    return [ScopeOperations.UPDATE];
   }
 
   /** `isStrict` is evaluated AFTER `options.retry` has been exhausted - the retry loop lives inside `super.findById` -> `findOne`, so a strict read waits out replica lag before it 404s. */

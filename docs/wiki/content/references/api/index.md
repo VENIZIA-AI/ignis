@@ -31,7 +31,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-connectors/postgres/postgres-js`](/references/api/venizia-ignis-connectors-postgres-postgres-js) | 1 | 1 |
 | [`@venizia/ignis-connectors/postgres/supabase`](/references/api/venizia-ignis-connectors-postgres-supabase) | 14 | 14 |
 | [`@venizia/ignis-connectors/raw-sql`](/references/api/venizia-ignis-connectors-raw-sql) | 8 | 8 |
-| [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational) | 79 | 79 |
+| [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational) | 80 | 80 |
 | [`@venizia/ignis-connectors/search`](/references/api/venizia-ignis-connectors-search) | 0 | 0 |
 | [`@venizia/ignis-connectors/search/controllers`](/references/api/venizia-ignis-connectors-search-controllers) | 0 | 0 |
 | [`@venizia/ignis-connectors/sqlite`](/references/api/venizia-ignis-connectors-sqlite) | 49 | 49 |

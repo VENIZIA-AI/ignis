@@ -1747,7 +1747,7 @@ generated:
 
 ## connectors
 
-### `@venizia/ignis-connectors` (137)
+### `@venizia/ignis-connectors` (138)
 
 - `AbstractDriverDataSource` class
 - `AbstractRelationalDataSource` class
@@ -1881,6 +1881,7 @@ generated:
 - `TTableInsert` type
 - `TTableObject` type
 - `TTableSchemaWithId` type
+- `TUpdateScopeOperations` type
 - `TUpsertUpdateKey` type
 - `TVectorDistance` type
 - `TypesenseBaseRepository` class
@@ -1923,7 +1924,7 @@ generated:
 - `TRawSqlQuery` type
 - `TRawSqlSchema` type
 
-### `@venizia/ignis-connectors/relational` (79)
+### `@venizia/ignis-connectors/relational` (80)
 
 - `AbstractRelationalDataSource` class
 - `AuditUserResolver` class
@@ -2002,6 +2003,7 @@ generated:
 - `TTableInsert` type
 - `TTableObject` type
 - `TTableSchemaWithId` type
+- `TUpdateScopeOperations` type
 - `TUpsertUpdateKey` type
 - `UniqueKeys` class
 

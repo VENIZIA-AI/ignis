@@ -42,6 +42,19 @@ const UPDATE_ONLY = ({ operation }: { operation: TScopeOperation }) => {
 /** May read, create, update and delete its own rows. */
 const FULL = () => MINE;
 
+/** What an update that sets `deletedAt` is checked against. */
+const BOTH: TScopeOperation[] = [ScopeOperations.UPDATE, ScopeOperations.DELETE];
+
+/** May delete its own rows, may not update any. */
+const DELETE_ONLY = ({ operation }: { operation: TScopeOperation }) => {
+  return operation === ScopeOperations.UPDATE ? null : MINE;
+};
+
+/** May update the rows of m1, delete those of m1 and m2. */
+const WIDE_DELETE = ({ operation }: { operation: TScopeOperation }) => {
+  return operation === ScopeOperations.DELETE ? { merchantId: { inq: [ME, 'm2'] } } : MINE;
+};
+
 /** May update the rows of m1 and m2, delete only those of m1. */
 const WIDE_UPDATE = ({ operation }: { operation: TScopeOperation }) => {
   return operation === ScopeOperations.UPDATE ? { merchantId: { inq: [ME, 'm2'] } } : MINE;
@@ -96,12 +109,16 @@ export class SoftDeleteUpdateCases {
       cases.calls = [];
     };
 
-    const expectChecked = (operation: TScopeOperation) => {
-      const other =
-        operation === ScopeOperations.DELETE ? ScopeOperations.UPDATE : ScopeOperations.DELETE;
+    /** The update and delete operations the resolver was asked for, each once. */
+    const expectChecked = (operations: TScopeOperation[]) => {
+      const asked = new Set<TScopeOperation>(
+        cases.calls.filter(
+          (operation) =>
+            operation === ScopeOperations.UPDATE || operation === ScopeOperations.DELETE,
+        ),
+      );
 
-      expect(cases.calls).toContain(operation);
-      expect(cases.calls).not.toContain(other);
+      expect([...asked].sort()).toEqual([...operations].sort());
     };
 
     beforeEach(async () => {
@@ -113,11 +130,11 @@ export class SoftDeleteUpdateCases {
     describe('a role that may update but not delete', () => {
       beforeEach(() => actAs(UPDATE_ONLY));
 
-      test('updateById setting deletedAt is checked as a delete and changes nothing', async () => {
+      test('updateById setting deletedAt is checked as an update and a delete and changes nothing', async () => {
         const rs = await ctx.soft.updateById({ id: 1, data: { deletedAt: new Date() } });
 
         expect(rs.count).toBe(0);
-        expectChecked(ScopeOperations.DELETE);
+        expectChecked(BOTH);
         await expectUnchanged();
       });
 
@@ -128,7 +145,7 @@ export class SoftDeleteUpdateCases {
         });
 
         expect(rs.count).toBe(0);
-        expectChecked(ScopeOperations.DELETE);
+        expectChecked(BOTH);
         await expectUnchanged();
       });
 
@@ -138,7 +155,7 @@ export class SoftDeleteUpdateCases {
         });
 
         expect(rs.count).toBe(0);
-        expectChecked(ScopeOperations.DELETE);
+        expectChecked(BOTH);
         await expectUnchanged();
       });
 
@@ -153,8 +170,7 @@ export class SoftDeleteUpdateCases {
           RepositoryErrorCodes.SCOPE_WRITE_DENIED,
         );
         expect(isApplicationError(error) ? error.message : '').toContain('[delete]');
-        expect(cases.calls).toContain(ScopeOperations.DELETE);
-        expect(cases.calls).not.toContain(ScopeOperations.UPDATE);
+        expectChecked(BOTH);
         await expectUnchanged();
       });
 
@@ -176,7 +192,7 @@ export class SoftDeleteUpdateCases {
         );
 
         expect(error).toBeDefined();
-        expectChecked(ScopeOperations.DELETE);
+        expectChecked(BOTH);
         await expectUnchanged();
       });
 
@@ -186,7 +202,7 @@ export class SoftDeleteUpdateCases {
         );
 
         expect(error).toBeDefined();
-        expectChecked(ScopeOperations.DELETE);
+        expectChecked(BOTH);
         await expectUnchanged();
       });
 
@@ -195,7 +211,7 @@ export class SoftDeleteUpdateCases {
         const rs = await ctx.soft.updateById({ id: 1, data });
 
         expect(rs.count).toBe(0);
-        expectChecked(ScopeOperations.DELETE);
+        expectChecked(BOTH);
         await expectUnchanged();
       });
 
@@ -206,7 +222,7 @@ export class SoftDeleteUpdateCases {
           const rs = await ctx.soft.updateById({ id: 1, data: { deletedAt } });
 
           expect(rs.count).toBe(0);
-          expectChecked(ScopeOperations.DELETE);
+          expectChecked(BOTH);
         }
 
         await expectUnchanged();
@@ -218,7 +234,7 @@ export class SoftDeleteUpdateCases {
 
           await failure(() => ctx.soft.updateById({ id: 1, data: { deletedAt } }));
 
-          expectChecked(ScopeOperations.DELETE);
+          expectChecked(BOTH);
         }
 
         await expectUnchanged();
@@ -230,7 +246,7 @@ export class SoftDeleteUpdateCases {
         );
 
         expect(error).toBeDefined();
-        expectChecked(ScopeOperations.DELETE);
+        expectChecked(BOTH);
         await expectUnchanged();
       });
 
@@ -241,7 +257,7 @@ export class SoftDeleteUpdateCases {
         const upserted = await ctx.soft.upsert({ data: { id: 3, merchantId: ME, name: 'c3' } });
 
         expect([byId.count, by.count, each.count, upserted.count]).toEqual([1, 1, 1, 1]);
-        expectChecked(ScopeOperations.UPDATE);
+        expectChecked([ScopeOperations.UPDATE]);
 
         const rows = await ctx.rawRows();
         expect(rows.map((row) => row.name)).toEqual(['a3', 'b', 'c3', 'd']);
@@ -252,7 +268,7 @@ export class SoftDeleteUpdateCases {
         const rs = await ctx.soft.updateById({ id: 1, data: { name: 'a2', deletedAt: undefined } });
 
         expect(rs.count).toBe(1);
-        expectChecked(ScopeOperations.UPDATE);
+        expectChecked([ScopeOperations.UPDATE]);
         await expectDeleted([4]);
       });
 
@@ -264,17 +280,17 @@ export class SoftDeleteUpdateCases {
         });
 
         expect(rs.count).toBe(1);
-        expectChecked(ScopeOperations.UPDATE);
+        expectChecked([ScopeOperations.UPDATE]);
         await expectDeleted([]);
       });
     });
 
-    describe('a role that may delete', () => {
+    describe('a role that may update and delete', () => {
       test('soft deletes through updateById, updateBy, updateEach and upsert', async () => {
         await ctx.soft.updateById({ id: 1, data: { deletedAt: new Date() } });
         await ctx.soft.updateBy({ where: { id: 3 }, data: { deletedAt: ctx.now } });
 
-        expectChecked(ScopeOperations.DELETE);
+        expectChecked(BOTH);
         await expectDeleted([1, 3, 4]);
 
         await ctx.reset();
@@ -285,7 +301,7 @@ export class SoftDeleteUpdateCases {
           data: { id: 3, merchantId: ME, name: 'c', deletedAt: new Date() },
         });
 
-        expect(cases.calls).toContain(ScopeOperations.DELETE);
+        expectChecked(BOTH);
         await expectDeleted([1, 3, 4]);
       });
 
@@ -300,6 +316,123 @@ export class SoftDeleteUpdateCases {
       });
     });
 
+    describe('a role that may delete but not update', () => {
+      beforeEach(() => actAs(DELETE_ONLY));
+
+      test('updateById and updateBy setting deletedAt and another column change nothing', async () => {
+        const byId = await ctx.soft.updateById({
+          id: 1,
+          data: { name: 'changed', deletedAt: new Date() },
+        });
+        const by = await ctx.soft.updateBy({
+          where: { merchantId: ME },
+          data: { name: 'changed', deletedAt: new Date() },
+        });
+
+        expect([byId.count, by.count]).toEqual([0, 0]);
+        expectChecked(BOTH);
+        await expectUnchanged();
+      });
+
+      test('an upsert setting deletedAt and another column is refused with the write-denied 403', async () => {
+        const error = await failure(() =>
+          ctx.soft.upsert({
+            data: { id: 1, merchantId: ME, name: 'changed', deletedAt: new Date() },
+          }),
+        );
+
+        expect(isApplicationError(error) ? error.statusCode : undefined).toBe(403);
+        await expectUnchanged();
+      });
+
+      test('positive control: the same role soft deletes through deleteById', async () => {
+        const rs = await ctx.soft.deleteById({ id: 1 });
+
+        expect(rs.count).toBe(1);
+        await expectDeleted([1, 4]);
+      });
+    });
+
+    describe('a role whose DELETE scope is wider than its UPDATE scope', () => {
+      beforeEach(() => actAs(WIDE_DELETE));
+
+      test('updateById setting deletedAt on a row only the DELETE scope allows changes nothing', async () => {
+        const rs = await ctx.soft.updateById({
+          id: 2,
+          data: { name: 'changed', deletedAt: new Date() },
+        });
+
+        expect(rs.count).toBe(0);
+        expectChecked(BOTH);
+        await expectUnchanged();
+      });
+
+      test('a written scope column outside the UPDATE scope is refused by the write guard', async () => {
+        const error = await failure(() =>
+          ctx.soft.updateById({ id: 1, data: { merchantId: 'm2', deletedAt: new Date() } }),
+        );
+
+        expect(isApplicationError(error) ? error.normalized.code : undefined).toBe(
+          RepositoryErrorCodes.SCOPE_WRITE_DENIED,
+        );
+        expect(isApplicationError(error) ? error.message : '').toContain('[update]');
+        await expectUnchanged();
+      });
+
+      test('updateBy setting deletedAt reaches only the rows both scopes allow', async () => {
+        await ctx.soft.updateBy({
+          where: { name: { inq: ['a', 'b', 'c'] } },
+          data: { deletedAt: new Date() },
+        });
+
+        await expectDeleted([1, 3, 4]);
+      });
+
+      test('positive control: deleteBy reaches the rows of both merchants', async () => {
+        await ctx.soft.deleteBy({ where: { name: { inq: ['a', 'b', 'c'] } } });
+
+        await expectDeleted([1, 2, 3, 4]);
+      });
+    });
+
+    describe('data is read once', () => {
+      beforeEach(() => actAs(UPDATE_ONLY));
+
+      /** A `deletedAt` that reads `null` the first time and a date after it. */
+      const shifting = (base: Record<string, unknown>) => {
+        const state = { reads: 0 };
+        const data = {
+          ...base,
+          get deletedAt() {
+            state.reads++;
+
+            return state.reads > 1 ? new Date() : null;
+          },
+        };
+
+        return { state, data };
+      };
+
+      test('updateById reads a getter once and writes the value it checked', async () => {
+        const { state, data } = shifting({ name: 'a2' });
+        const rs = await ctx.soft.updateById({ id: 1, data });
+
+        expect(rs.count).toBe(1);
+        expect(state.reads).toBe(1);
+        expectChecked([ScopeOperations.UPDATE]);
+        await expectDeleted([4]);
+      });
+
+      test('an upsert reads a getter once and writes the value it checked', async () => {
+        const { state, data } = shifting({ id: 1, merchantId: ME, name: 'a2' });
+        const rs = await ctx.soft.upsert({ data });
+
+        expect(rs.count).toBe(1);
+        expect(state.reads).toBe(1);
+        await expectDeleted([4]);
+      });
+    });
+
     describe('the written row and the selected rows are held to the DELETE scope', () => {
       beforeEach(() => actAs(WIDE_UPDATE));
 
@@ -309,7 +442,7 @@ export class SoftDeleteUpdateCases {
           data: { deletedAt: new Date() },
         });
 
-        expectChecked(ScopeOperations.DELETE);
+        expectChecked(BOTH);
         await expectDeleted([1, 3, 4]);
       });
 
@@ -340,7 +473,7 @@ export class SoftDeleteUpdateCases {
         const rs = await ctx.plain.updateById({ id: 1, data: { deletedAt: new Date() } });
 
         expect(rs.count).toBe(1);
-        expectChecked(ScopeOperations.UPDATE);
+        expectChecked([ScopeOperations.UPDATE]);
         await expectDeleted([1, 4]);
       });
     });
