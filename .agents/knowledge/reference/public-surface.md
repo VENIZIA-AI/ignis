@@ -1232,7 +1232,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (432)
+### `@venizia/ignis-kernel` (434)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1417,6 +1417,7 @@ generated:
 - `InjectableUtility` class
 - `IPayloadFieldCodec` interface
 - `IPersistableRepository` interface
+- `IPostgresError` interface
 - `IProvideMetadata` interface
 - `IProvider` interface
 - `IQueryHandlerOptions` interface
@@ -1477,6 +1478,7 @@ generated:
 - `PersistableCrudController` class
 - `post` const
 - `PostgresErrorCodes` const
+- `PostgresErrors` class
 - `provide` const
 - `put` const
 - `QueryOperators` class
@@ -2399,7 +2401,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1029)
+### `@venizia/ignis` (1031)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2783,6 +2785,7 @@ generated:
 - `IPoolStats` interface
 - `IPoolWaiter` interface
 - `IPostgresDataSource` interface
+- `IPostgresError` interface
 - `IPostPolicy` interface
 - `IPrintOptions` interface
 - `IProvideMetadata` interface
@@ -2981,6 +2984,7 @@ generated:
 - `PostgresBaseRepository` class
 - `PostgresDataTypeEnricher` class
 - `PostgresErrorCodes` const
+- `PostgresErrors` class
 - `PostgresFilterBuilder` class
 - `PostgresIdEnricher` class
 - `PostgresPrincipalEnricher` class

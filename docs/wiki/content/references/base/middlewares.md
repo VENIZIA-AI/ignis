@@ -345,6 +345,39 @@ Database errors in SQLSTATE class `22` (data exception), `23` (integrity constra
 | `22` Data exception | `22000` data exception, `22001` string too long, `22003` numeric range, `22004` null not allowed, `22007` datetime format, `22008` datetime overflow, `22009` tz displacement, `22011` substring, `22012` division by zero, `22023` invalid parameter, `22025` invalid escape, `22026` length mismatch, `22030` duplicate JSON key, `22032` invalid JSON, `22P01` floating-point, `22P02` invalid text, `22P03` invalid binary, `22P05` untranslatable char |
 | `44` View check | `44000` WITH CHECK OPTION violation |
 
+##### Finding the Postgres error yourself
+
+The handler looks through `cause` for the driver error, because an ORM wraps it (sometimes more than once). The helper it uses is public, so your code finds the same error the same way:
+
+```typescript
+import { PostgresErrorCodes, PostgresErrors } from '@venizia/ignis';
+
+try {
+  await userRepository.create({ data });
+} catch (error) {
+  const pgError = PostgresErrors.find({ error });
+
+  if (pgError?.code === PostgresErrorCodes.UNIQUE_VIOLATION) {
+    // pgError.constraint is 'users_email_key', pgError.table is 'users', ...
+  }
+
+  throw error;
+}
+```
+
+`PostgresErrors.find({ error })` returns an `IPostgresError`, or `undefined` when there is no Postgres error in the chain.
+
+| Field | Meaning |
+|-------|---------|
+| `code` | The 5-character SQLSTATE, always set. Compare it with `PostgresErrorCodes`. |
+| `constraint`, `table`, `column`, `schema`, `detail` | What the server sent for that error. A field the server did not send is absent. |
+| `message` | The `message` of that error. |
+
+- **Rules.** The outermost error whose `code` is a SQLSTATE (five characters of digits and upper-case letters) wins. A `code` that is anything else, such as `ECONNRESET` or a number, is skipped and the walk continues.
+- **Bound.** The walk follows at most `PostgresErrors.MAX_DEPTH` (10) `cause` hops. An error 11 hops down is not found.
+- **Safe.** It never throws: a `cause` cycle, a getter that throws, a Proxy and a value that is not an object all give `undefined`.
+- **Drivers.** node-postgres, postgres-js and PGlite are read into the same fields (postgres-js spells them `constraint_name`, `table_name`, `column_name` and `schema_name`).
+
 :::tip Transient conflicts return 409, not 400/500
 Class `40` (`40001` serialization failure, `40P01` deadlock) is transient/retryable. It returns **409 Conflict** with `normalized.code: "database.conflict"` and a safe "please retry" message - the client can safely retry the same request. Programming/infra classes (`42` syntax, `53` resources, `0A`, `25`, `28`) remain 500.
 :::

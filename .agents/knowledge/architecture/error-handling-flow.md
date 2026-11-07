@@ -161,10 +161,16 @@ falls back to `error`. Then it is routed:
   request: `22` (data exception), `23` (integrity constraint violation) and `44` (WITH CHECK OPTION
   violation - a row written through an updatable view fails that view's CHECK). Everything else -
   class `42` syntax/undefined-column, class `53` resources - stays a 500, being the server's bug,
-  not the client's. A missing or non-string code (a gRPC numeric code, say) is treated as
-  non-client and must never crash this last-resort handler.
+  not the client's. It finds the Postgres error with the public `PostgresErrors.find` (the same
+  helper an application calls, kernel `base/middlewares/app-error/postgres-errors.ts`): it walks
+  `cause` up to `PostgresErrors.MAX_DEPTH` (10) hops, cycle-safe and never throwing, and the
+  OUTERMOST error whose `code` is a 5-character SQLSTATE (`/^[0-9A-Z]{5}$/`) wins - so a wrapper's
+  `ECONNRESET` or a gRPC numeric code never hides it and never crashes this last-resort handler.
+  The helper folds the driver spellings into one `IPostgresError` (`constraint`/`constraint_name`,
+  `table`/`table_name`, `column`/`column_name`, `schema`/`schema_name`; node-postgres and PGlite use
+  the first, postgres-js the second).
 - **Transient DB conflict** -> 409. `DatabaseErrorHandler.isRetryableDatabaseError` matches SQLSTATE `40001`
-  (serialization failure) and `40P01` (deadlock); the response gets a fixed safe message and a
+  (serialization failure) and `40P01` (deadlock), found with the same `PostgresErrors.find` walk; the response gets a fixed safe message and a
   retryable message code, since the client can retry the request unchanged.
 - **Intentional domain error** (anything with `statusCode`) -> its own status and message, untouched.
 - **Anything else** -> 500.

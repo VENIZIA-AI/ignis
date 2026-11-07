@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-353 exports, 353 with TSDoc. 78 more are re-exported from other entries (listed at the end).
+355 exports, 355 with TSDoc. 78 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -4452,6 +4452,27 @@ export interface IPayloadFieldCodec<T = unknown> {
 
 Source: `packages/kernel/src/base/auth/authenticate/common/types/jwt.ts`
 
+## `IPostgresError`
+
+*interface*
+
+A Postgres error as every driver reports it, under one set of names. Only `code` is always there; the rest is what the server sent for that error.
+
+```ts
+export interface IPostgresError {
+    /** The 5-character SQLSTATE (`23505`, `40P01`, ...); compare it with `PostgresErrorCodes`. */
+    code: string;
+    constraint?: string;
+    detail?: string;
+    table?: string;
+    column?: string;
+    schema?: string;
+    message?: string;
+}
+```
+
+Source: `packages/kernel/src/base/middlewares/app-error/common/types.ts`
+
 ## `IProvideMetadata`
 
 *interface*
@@ -5639,6 +5660,34 @@ export declare const PostgresErrorCodes: {
 ```
 
 Source: `packages/kernel/src/base/middlewares/app-error/definition.ts`
+
+## `PostgresErrors`
+
+*class*
+
+Finds the Postgres error in a thrown value, through the `cause` chain an ORM builds around a driver error. The error handler uses it; so can your code.
+
+```ts
+export declare class PostgresErrors {
+    /** How many `cause` hops the walk follows: the thrown error is hop 0, so an error 10 hops down is found and one 11 hops down is not. */
+    static readonly MAX_DEPTH = 10;
+    /** Reads one property and never throws: a getter that throws, or a Proxy trap that does, reads as `undefined`. */
+    private static read;
+    /** The first spelling of a field that holds a string, or `undefined`. */
+    private static readString;
+    /** Normalizes one driver error into the result type, or `undefined` when its `code` is not a SQLSTATE. */
+    private static normalize;
+    /**
+     * Finds the Postgres error in a thrown value, looking through `cause` (an ORM wraps the driver error, sometimes more than once). The outermost error with a SQLSTATE `code` wins.
+     * Never throws: a value that is not an object, a cycle, a getter that throws and a Proxy all end in `undefined`.
+     */
+    static find(opts: {
+        error: unknown;
+    }): IPostgresError | undefined;
+}
+```
+
+Source: `packages/kernel/src/base/middlewares/app-error/postgres-errors.ts`
 
 ## `put`
 
