@@ -45,6 +45,80 @@ export class DiskHelper extends BaseStorageHelper {
     return path.join(this.basePath, opts.bucket.name);
   }
 
+  /**
+   * Whether `target`, with every symbolic link followed, lies inside the real storage root. A target that does not exist
+   * yet is judged by its nearest existing parent (a write creates the rest beneath it); a link whose own target is
+   * missing is refused, because writing through it would create the file where the link points.
+   */
+  private async isInsideRoot(opts: { target: string }): Promise<boolean> {
+    const root = await fsp.realpath(this.basePath);
+    let probe = opts.target;
+
+    for (;;) {
+      try {
+        const real = await fsp.realpath(probe);
+
+        return real === root || real.startsWith(`${root}${path.sep}`);
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException)?.code;
+
+        if (code !== 'ENOENT' && code !== 'ENOTDIR') {
+          throw error;
+        }
+      }
+
+      const link = await this.lstatOrNull({ target: probe });
+
+      if (link?.isSymbolicLink()) {
+        return false;
+      }
+
+      const parent = path.dirname(probe);
+
+      if (parent === probe) {
+        return false;
+      }
+
+      probe = parent;
+    }
+  }
+
+  /** `null` when nothing is there (or it cannot be read): the caller walks up to the parent and judges that. */
+  private async lstatOrNull(opts: { target: string }): Promise<Stats | null> {
+    try {
+      const result = await fsp.lstat(opts.target);
+
+      return result;
+      // eslint-disable-next-line venizia/no-silent-catch -- a missing or unreadable entry is the answer here: the containment walk goes on to its parent
+    } catch {
+      return null;
+    }
+  }
+
+  /** A directory that exists AND lies inside the real root: a bucket that is a link leading outside is not one. */
+  private async isReachableBucketPath(opts: { target: string }): Promise<boolean> {
+    const inside = await this.isInsideRoot(opts);
+
+    if (!inside) {
+      return false;
+    }
+
+    return this.exists(opts);
+  }
+
+  /** The path of an object after the checks of {@link DiskHelper.resolveObjectPath} and the real-path containment check. */
+  private async resolveContainedObjectPath(opts: IObjectLocation): Promise<string> {
+    const objectPath = this.resolveObjectPath(opts);
+
+    const result = await this.isInsideRoot({ target: objectPath });
+
+    if (!result) {
+      throw getError({ message: `[storage] Invalid object name | key: ${opts.object.key}` });
+    }
+
+    return objectPath;
+  }
+
   /** Validates the name AND the resolved path: containment survives a naming rule we get wrong. */
   private resolveObjectPath(opts: IObjectLocation): string {
     const { bucket, object } = opts;
@@ -107,7 +181,16 @@ export class DiskHelper extends BaseStorageHelper {
       return false;
     }
 
-    const stat = await this.statOrNull({ target: this.getBucketPath(opts) });
+    const target = this.getBucketPath(opts);
+
+    // A bucket that is a link leading outside the root is not a bucket.
+    const result = await this.isInsideRoot({ target });
+
+    if (!result) {
+      return false;
+    }
+
+    const stat = await this.statOrNull({ target });
 
     return stat?.isDirectory() ?? false;
   }
@@ -143,7 +226,14 @@ export class DiskHelper extends BaseStorageHelper {
       return null;
     }
 
-    const stat = await this.statOrNull({ target: this.getBucketPath(opts) });
+    const target = this.getBucketPath(opts);
+    const inside = await this.isInsideRoot({ target });
+
+    if (!inside) {
+      return null;
+    }
+
+    const stat = await this.statOrNull({ target });
 
     if (!stat?.isDirectory()) {
       return null;
@@ -187,7 +277,7 @@ export class DiskHelper extends BaseStorageHelper {
 
     const bucketPath = this.getBucketPath(opts);
 
-    const result = await this.exists({ target: bucketPath });
+    const result = await this.isReachableBucketPath({ target: bucketPath });
 
     if (!result) {
       throw getError({
@@ -215,7 +305,7 @@ export class DiskHelper extends BaseStorageHelper {
   protected async writeObject(opts: IObjectLocation & { file: IUploadFile }): Promise<void> {
     const { bucket, object, file } = opts;
     // The same validated, contained path every other operation uses: `writeStream` reaches here without `upload`'s checks.
-    const objectPath = this.resolveObjectPath({ bucket, object });
+    const objectPath = await this.resolveContainedObjectPath({ bucket, object });
 
     // `recursive` succeeds on an existing directory; probing first wastes a syscall per file.
     await fsp.mkdir(path.dirname(objectPath), { recursive: true });
@@ -224,7 +314,7 @@ export class DiskHelper extends BaseStorageHelper {
 
   async getObject(opts: IObjectLocation & { options?: any }): Promise<Readable> {
     const { bucket, object } = opts;
-    const objectPath = this.resolveObjectPath({ bucket, object });
+    const objectPath = await this.resolveContainedObjectPath({ bucket, object });
 
     const result = await this.isFile({ target: objectPath });
 
@@ -243,7 +333,7 @@ export class DiskHelper extends BaseStorageHelper {
     opts: IObjectLocation & { range?: { start: number; end?: number } },
   ): Promise<ReadableStream<Uint8Array>> {
     const { bucket, object, range } = opts;
-    const objectPath = this.resolveObjectPath({ bucket, object });
+    const objectPath = await this.resolveContainedObjectPath({ bucket, object });
 
     const result = await this.isFile({ target: objectPath });
 
@@ -264,7 +354,7 @@ export class DiskHelper extends BaseStorageHelper {
 
   async getStat(opts: IObjectLocation): Promise<IFileStat> {
     const { bucket, object } = opts;
-    const objectPath = this.resolveObjectPath({ bucket, object });
+    const objectPath = await this.resolveContainedObjectPath({ bucket, object });
     const stat = await this.statOrNull({ target: objectPath });
 
     if (!stat?.isFile()) {
@@ -285,7 +375,7 @@ export class DiskHelper extends BaseStorageHelper {
 
   async removeObject(opts: IObjectLocation): Promise<void> {
     const { bucket, object } = opts;
-    const objectPath = this.resolveObjectPath({ bucket, object });
+    const objectPath = await this.resolveContainedObjectPath({ bucket, object });
 
     const result = await this.isFile({ target: objectPath });
 
@@ -324,7 +414,7 @@ export class DiskHelper extends BaseStorageHelper {
     }
 
     const bucketPath = this.getBucketPath({ bucket });
-    const result = await this.exists({ target: bucketPath });
+    const result = await this.isReachableBucketPath({ target: bucketPath });
 
     if (!result) {
       return [];

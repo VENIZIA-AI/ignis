@@ -461,6 +461,19 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       throw getError({ message: `[writeStream] Invalid object name | key: ${object.key}` });
     }
 
+    if (!this.isValidBucketName({ bucket })) {
+      throw getError({ message: `[storage] Invalid bucket name | bucket: ${bucket.name}` });
+    }
+
+    // As `upload` does: a write never creates the bucket.
+    const result2 = await this.hasBucket({ bucket });
+
+    if (!result2) {
+      throw getError({
+        message: `[writeStream] Bucket does not exist | name: ${bucket.name}`,
+      });
+    }
+
     const body =
       source instanceof Response || source instanceof Request ? source : new Response(source);
     const result = await body.arrayBuffer();

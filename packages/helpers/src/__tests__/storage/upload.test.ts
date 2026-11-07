@@ -64,6 +64,7 @@ describe('Storage - upload', () => {
           async () => ({ isDirectory: () => bucketExists }) as AnyType,
         ),
         spyOn(fsp, 'mkdir').mockImplementation(async () => undefined),
+        spyOn(fsp, 'realpath').mockImplementation((async (target: string) => target) as never),
         spyOn(fsp, 'writeFile').mockImplementation(async (objectPath: AnyType, data: AnyType) => {
           writes.push({
             bucket: 'n/a',
