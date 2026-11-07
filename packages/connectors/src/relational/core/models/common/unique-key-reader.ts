@@ -69,9 +69,7 @@ export class UniqueKeyReader {
     const composite = config.primaryKeys.at(0);
     const entries: ReadonlyArray<unknown> = composite
       ? composite.columns
-      : Object.values(getTableColumns(table) as Record<string, Column>).filter(
-          (column) => column.primary,
-        );
+      : Object.values(UniqueKeyReader.columnsOf({ table })).filter((column) => column.primary);
     const columns: Array<TTableColumnKey<Schema>> = [];
 
     for (const entry of entries) {
@@ -122,7 +120,7 @@ export class UniqueKeyReader {
       });
     }
 
-    for (const column of Object.values(getTableColumns(table) as Record<string, Column>)) {
+    for (const column of Object.values(UniqueKeyReader.columnsOf({ table }))) {
       if (column.isUnique && column.uniqueName) {
         keys.push({
           name: column.uniqueName,
@@ -173,9 +171,24 @@ export class UniqueKeyReader {
     }
 
     const name = entry.name;
-    const columns = getTableColumns(table) as Record<string, Column>;
-    const property = Object.keys(columns).find((key) => columns[key].name === name);
+    const columns = UniqueKeyReader.columnsOf({ table });
 
-    return property as TTableColumnKey<Schema> | undefined;
+    return Object.keys(columns).find(
+      (key): key is TTableColumnKey<Schema> =>
+        UniqueKeyReader.isColumnKey(table, key) && columns[key].name === name,
+    );
+  }
+
+  /** The table's columns by property. */
+  static columnsOf(opts: { table: TTableSchemaWithId }): Record<string, Column> {
+    return getTableColumns(opts.table);
+  }
+
+  /** Whether `key` is a column property of `table`. */
+  static isColumnKey<Schema extends TTableSchemaWithId>(
+    table: Schema,
+    key: string,
+  ): key is TTableColumnKey<Schema> {
+    return Object.hasOwn(getTableColumns(table), key);
   }
 }

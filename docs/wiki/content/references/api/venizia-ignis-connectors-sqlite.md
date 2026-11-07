@@ -491,6 +491,8 @@ export declare class SqliteQueryExecutor implements IRelationalQueryExecutor<TSq
     insert<R>(opts: IInsertOptions<TSqliteConnector>): Promise<IWriteResult<R>>;
     update<R>(opts: IUpdateOptions<TSqliteConnector>): Promise<IWriteResult<R>>;
     remove<R>(opts: IRemoveOptions<TSqliteConnector>): Promise<IWriteResult<R>>;
+    /** The conflict target, narrowed to SQLite columns; a column of another engine cannot name a SQLite key. */
+    private toConflictTarget;
     /**
      * The neutral options carry the dialect-free `Table` bound; every Drizzle SQLite verb wants the
      * concrete `SQLiteTable`. Knowing your own input belongs in the engine adapter, so the whole

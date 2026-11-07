@@ -4,15 +4,15 @@ import { AuditFields } from '@/relational/core/models/common/constants';
 import { UniqueKeyReader } from '@/relational/core/models/common/unique-key-reader';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import type { AnyColumn, Column, SQL } from 'drizzle-orm';
-import { getTableColumns, getTableName, sql } from 'drizzle-orm';
+import type { AnyColumn, SQL } from 'drizzle-orm';
+import { getTableName, sql } from 'drizzle-orm';
 
 /** The creation audit columns: written on insert, never by the update branch of an upsert. */
 const CREATION_AUDIT = new Set<string>([AuditFields.CREATED_AT, AuditFields.CREATED_BY]);
 
 /** What one upsert statement needs once its options are checked. */
-export interface IUpsertPlan {
-  key: IUniqueKey;
+export interface IUpsertPlan<Schema extends TTableSchemaWithId = TTableSchemaWithId> {
+  key: IUniqueKey<Schema>;
   /** The key's columns, from the table schema: the SQL quotes the column the schema declares, never a caller string. */
   target: AnyColumn[];
   /** The properties the update branch writes. */
@@ -26,14 +26,14 @@ export interface IUpsertPlan {
  * branch. Internal: the `common` barrel does not export this file.
  */
 export class UpsertPlan {
-  static build(opts: {
-    schema: TTableSchemaWithId;
+  static build<Schema extends TTableSchemaWithId>(opts: {
+    schema: Schema;
     data: Record<string, unknown>;
-    on?: IUniqueKey;
+    on?: IUniqueKey<Schema>;
     update?: ReadonlyArray<string>;
-  }): IUpsertPlan {
+  }): IUpsertPlan<Schema> {
     const { schema, data, on, update } = opts;
-    const columns = getTableColumns(schema) as Record<string, Column>;
+    const columns = UniqueKeyReader.columnsOf({ table: schema });
     const refuse = (detail: string) =>
       getError({ message: `[upsert] Table: ${getTableName(schema)} | ${detail}` });
     const echo = (value: unknown) => `'${EchoUtility.toSafeEcho({ value: String(value) })}'`;
@@ -55,7 +55,7 @@ export class UpsertPlan {
     }
 
     const keyColumns = new Set<string>(key.columns);
-    const primary = UniqueKeyReader.primaryOf({ table: schema }).columns as ReadonlyArray<string>;
+    const primary: ReadonlyArray<string> = UniqueKeyReader.primaryOf({ table: schema }).columns;
     const isSent = (property: string) =>
       Object.hasOwn(columns, property) && data[property] !== undefined;
 
@@ -126,9 +126,9 @@ export class UpsertPlan {
    * insert a duplicate each time. A `nullsNotDistinct` key takes an explicit null. Run on the row the CREATE guard
    * returns, so a scope column the guard assigns counts as set.
    */
-  static assertKeyValues(opts: {
-    schema: TTableSchemaWithId;
-    key: IUniqueKey;
+  static assertKeyValues<Schema extends TTableSchemaWithId>(opts: {
+    schema: Schema;
+    key: IUniqueKey<Schema>;
     row: Record<string, unknown>;
     /** True before the CREATE guard: a scope column absent there may still be assigned. */
     isAbsentAllowed: boolean;
