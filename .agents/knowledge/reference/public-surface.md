@@ -1229,7 +1229,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (422)
+### `@venizia/ignis-kernel` (425)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1421,6 +1421,7 @@ generated:
 - `IRepositoryMetadataBase` interface
 - `IRepositoryMixin` interface
 - `IRequestedExtra` interface
+- `IRequestFilterShape` interface
 - `IRequestIdOptions` interface
 - `IResolvedRepositoryMetadata` interface
 - `IRestApplication` interface
@@ -1482,6 +1483,7 @@ generated:
 - `RequestContextRegistry` class
 - `RequestDomainResolver` class
 - `RequestErrors` const
+- `RequestFilterGuard` class
 - `ResolverUtility` class
 - `ResponseExtras` class
 - `ResponseFormats` class
@@ -1611,6 +1613,7 @@ generated:
 - `trackableHeaders` const
 - `TRegistryDescriptor` type
 - `TRelationBuilder` type
+- `TRelationHiddenResolver` type
 - `TRelationType` type
 - `TRepositoryErrorCode` type
 - `TRepositoryLogOptions` type
@@ -2380,7 +2383,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1019)
+### `@venizia/ignis` (1022)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2797,6 +2800,7 @@ generated:
 - `IRepositoryMixin` interface
 - `IRequestedExtra` interface
 - `IRequestedRemark` interface
+- `IRequestFilterShape` interface
 - `IRequestIdOptions` interface
 - `IRequestOptions` interface
 - `IResolvedClaimsConfig` interface
@@ -3004,6 +3008,7 @@ generated:
 - `RequestContextRegistry` class
 - `RequestDomainResolver` class
 - `RequestErrors` const
+- `RequestFilterGuard` class
 - `RequestIdGenerator` class
 - `RequestTrackerComponent` class
 - `RequestUtility` class
@@ -3277,6 +3282,7 @@ generated:
 - `TRelationConfig` type
 - `TRelationDefinition` type
 - `TRelationDefinitions` type
+- `TRelationHiddenResolver` type
 - `TRelationMetadata` type
 - `TRelationType` type
 - `TRelativeUnit` type

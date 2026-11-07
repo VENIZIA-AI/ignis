@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-99 exports, 99 with TSDoc. 919 more are re-exported from other entries (listed at the end).
+99 exports, 99 with TSDoc. 922 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3389,6 +3389,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IRepositoryMixin` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IRequestedExtra` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IRequestedRemark` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `IRequestFilterShape` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IRequestIdOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IRequestOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IResolvedRepositoryMetadata` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -3571,6 +3572,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `RequestContextRegistry` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `RequestDomainResolver` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `RequestErrors` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `RequestFilterGuard` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `RequestIdGenerator` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `RequestUtility` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `ResolverUtility` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
@@ -3819,6 +3821,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TRelationConfig` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TRelationDefinition` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TRelationDefinitions` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
+- `TRelationHiddenResolver` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TRelationMetadata` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TRelationType` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TRelativeUnit` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)

@@ -14,6 +14,7 @@ tags: [architecture, filter, query, drizzle, postgres]
 - [Translation](#translation)
 - [The dual query API](#the-dual-query-api)
 - [JSON path pitfalls](#json-path-pitfalls)
+- [Hidden fields and a request filter](#hidden-fields-and-a-request-filter)
 - [mergeFilter and arrays](#mergefilter-and-arrays)
 - [Related](#related)
 <!-- okf:generated:contents end -->
@@ -146,6 +147,10 @@ against `T`'s JSON columns. It stops at the column - the path's own components (
 above) and the value are still runtime-only, and it cannot tell a relation field from a JSON column
 (both are object-shaped at the type level), so `'creator.name'` type-checks and still throws
 `Column 'creator' is not a JSON column` here.
+
+## Hidden fields and a request filter
+
+`AbstractRepository.assertRequestFilter({ filter })` (kernel, on `RequestFilterGuard`) refuses a request-supplied filter that names a hidden property: its `where` (through `and`/`or`, a JSON path or an indexed key is judged by its root column), its `order` entries, and the `scope` of each `include`, each level against the hidden set of the model it reads (the relational repository resolves a relation or a dotted path of relations through the dialect's `resolveRelations` and `resolveHiddenProperties`). The refusal is a 400 `Column NOT FOUND`, the phrase an unknown column gets. The generated CRUD controllers call it on what the client sent (before the base `where` joins it; `count`, `find`, `findOne`, `findById`, `updateBy`, `deleteBy`), and `AbstractSearchController.search` calls it on `filter` for the non-raw modes. The repository's own verbs do not call it, so server code and a model's default filter can still name a hidden property.
 
 ## mergeFilter and arrays
 

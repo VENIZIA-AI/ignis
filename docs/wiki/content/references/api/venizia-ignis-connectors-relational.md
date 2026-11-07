@@ -666,6 +666,14 @@ The engine-neutral query-dialect surface a repository consumes via `dataSource.g
 
 ```ts
 export interface IRelationalQueryDialect {
+    /** The relations a schema declares, by name. */
+    resolveRelations(opts: {
+        schema: TTableSchemaWithId;
+    }): Record<string, TRelationConfig>;
+    /** The fields the model of a schema hides. */
+    resolveHiddenProperties(opts: {
+        schema: TTableSchemaWithId;
+    }): Set<string>;
     mergeFilter<T = any>(opts: {
         defaultFilter?: TFilter<T>;
         userFilter?: TFilter<T>;
@@ -1628,6 +1636,13 @@ export declare abstract class RelationalBaseRepository<EntitySchema extends TTab
         dataSource: TDataSource;
     }): void;
     getEntitySchema(): EntitySchema;
+    /**
+     * The hidden fields of the model a relation, or a dotted path of relations (`comments.post`), points to. Each step is a
+     * relation of the schema reached so far (own relations only); an unknown step answers `undefined`, and the query refuses it.
+     */
+    protected resolveRelationHiddenFields(opts: {
+        relation: string;
+    }): ReadonlySet<string> | undefined;
     /** Hidden fields as a memoized Set, derived from the base's class-keyed `hiddenFields` array. */
     getHiddenProperties(): Set<string>;
     hasHiddenProperties(): boolean;

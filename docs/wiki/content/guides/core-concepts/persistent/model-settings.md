@@ -120,6 +120,8 @@ export class Product extends ModelFactory.defineEntity({ table: productTable }) 
 
 The repository leaves the column out of the `SELECT`, so the value is never read, not read and then stripped. It applies to every read (`find`, `findOne`, `findById`), to rows returned by writes (`create`, `updateById` return the visible properties only), and to relations loaded through `include`: an included `Product` hides its `costPrice` as well.
 
+A client cannot ask about a hidden property either. A `where` or an `order` on one would reveal its value one question at a time, so the generated CRUD controllers and the generated search controllers answer a request filter that names a hidden property with `400 Column NOT FOUND`: in the `where` (at any depth of `and` and `or`, JSON paths included), in the `order`, and in the `scope` of an `include`, where each level is judged by the properties its own model hides. The repository's own methods are not held to this, so server code can still filter and sort on a hidden property.
+
 Use it for values a client must never receive: cost prices, password hashes, internal notes. It does not stop code that queries the table directly with drizzle, and it does not change what you may write: `create({ data: { costPrice: 120 } })` still stores the value.
 
 ## 3. query.filter

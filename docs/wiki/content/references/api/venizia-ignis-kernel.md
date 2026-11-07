@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-344 exports, 344 with TSDoc. 77 more are re-exported from other entries (listed at the end).
+347 exports, 347 with TSDoc. 77 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -116,6 +116,17 @@ export declare abstract class AbstractCrudController<TEntity extends AbstractEnt
         repository: AbstractRepository<TDataObject, TPersistObject, AnyType>;
         definitions: AnyType;
     });
+    /**
+     * Refuses (400) a filter the client sent when it names a field the model hides (`where`, `order`, an include scope).
+     * The repository answers it; a stand-in that does not extend `AbstractRepository` has no hidden fields to hold the filter to.
+     */
+    assertRequestFilter(opts: {
+        filter?: {
+            where?: unknown;
+            order?: unknown;
+            include?: unknown;
+        };
+    }): void;
     /** 400 when a bulk operation is missing its `where` filter; undefined when it is present. */
     bulkWhereError(opts: {
         context: TRouteContext<RouteEnv>;
@@ -2049,6 +2060,13 @@ export declare class ControllerFactory extends BaseHelper {
                 context: import("../index.js").TRouteContext<RouteEnv>;
             }): Promise<import("../index.js").TJsonResponse<unknown, 200>>;
             repository: AbstractRepository<TDataObject, TPersistObject, import("../../repositories/index.js").IExtraOptions>;
+            assertRequestFilter(opts: {
+                filter?: {
+                    where?: unknown;
+                    order?: unknown;
+                    include?: unknown;
+                };
+            }): void;
             bulkWhereError(opts: {
                 context: import("../index.js").TRouteContext<RouteEnv>;
                 where?: object;
@@ -4503,6 +4521,22 @@ export interface IRequestedExtra {
 
 Source: `packages/kernel/src/base/controllers/rest/extras.ts`
 
+## `IRequestFilterShape`
+
+*interface*
+
+What a request filter holds that names fields: `where`, `order` and the `include` scopes.
+
+```ts
+export interface IRequestFilterShape {
+    where?: unknown;
+    order?: unknown;
+    include?: unknown;
+}
+```
+
+Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
+
 ## `IRequestIdOptions`
 
 *interface*
@@ -5703,6 +5737,50 @@ export declare const RequestErrors: {
 ```
 
 Source: `packages/kernel/src/base/middlewares/common/errors.ts`
+
+## `RequestFilterGuard`
+
+*class*
+
+A filter that comes from a request is not allowed to name a field the model hides. Hidden fields are never returned, but a
+`where` or an `order` on one reveals its value one question at a time. The check runs where a request enters
+(the generated controllers), never in the repository, so server code can still filter and sort on a hidden field.
+
+The answer is the one an unknown column gets (`Column NOT FOUND`), so a caller cannot tell a hidden field from one that does not exist.
+
+```ts
+export declare class RequestFilterGuard {
+    /** The column a key or an order entry starts with: `secret.path`, `secret->>path` and `secret[0]` all name `secret`. */
+    static rootOf(opts: {
+        key: string;
+    }): string;
+    private static refuse;
+    /** Refuses a `where` that names a hidden field, at any depth of `and` and `or`. */
+    static assertWhere(opts: {
+        scope: string;
+        where?: unknown;
+        hidden: ReadonlySet<string>;
+    }): void;
+    /** Refuses an `order` that names a hidden field (a string or a list of `'field DIRECTION'` entries). */
+    static assertOrder(opts: {
+        scope: string;
+        order?: unknown;
+        hidden: ReadonlySet<string>;
+    }): void;
+    /**
+     * Refuses a filter that names a hidden field in its `where`, its `order`, or the `scope` of any `include`, each level
+     * judged by the hidden fields of the model it reads (`resolveRelation` answers them).
+     */
+    static assertFilter(opts: {
+        scope: string;
+        filter?: IRequestFilterShape;
+        hidden: ReadonlySet<string>;
+        resolveRelation?: TRelationHiddenResolver;
+    }): void;
+}
+```
+
+Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
 
 ## `ResponseExtras`
 
@@ -8284,6 +8362,20 @@ export type TRelationBuilder = (opts: {
 ```
 
 Source: `packages/kernel/src/helpers/inversion/common/relation-builder.ts`
+
+## `TRelationHiddenResolver`
+
+*type*
+
+The hidden fields of the model a relation points to; `undefined` when the relation is unknown (the query then refuses it).
+
+```ts
+export type TRelationHiddenResolver = (opts: {
+    relation: string;
+}) => ReadonlySet<string> | undefined;
+```
+
+Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
 
 ## `TRelationType`
 

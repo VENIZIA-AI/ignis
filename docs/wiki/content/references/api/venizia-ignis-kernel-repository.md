@@ -112,6 +112,19 @@ export declare abstract class AbstractRepository<TDataObject extends object, TPe
      */
     protected get modelSettings(): IModelMetadata['settings'];
     protected get hiddenFields(): string[];
+    /**
+     * Refuses (400, `Column NOT FOUND`) a filter that came from a request and names a field the model hides, in its
+     * `where`, its `order` or the `scope` of an `include` (judged by the hidden fields of the model it reads). The generated
+     * controllers call it on what a client sends; the repository's own verbs do not, so server code can still filter and
+     * sort on a hidden field.
+     */
+    assertRequestFilter(opts: {
+        filter?: IRequestFilterShape;
+    }): void;
+    /** The hidden fields of the model a relation (or a dotted path of relations) points to; none here, a relational repository answers it. */
+    protected resolveRelationHiddenFields(_opts: {
+        relation: string;
+    }): ReadonlySet<string> | undefined;
     /** Default where from @model settings.query.filter.where, AND-merged into every query unless skipped. */
     protected get defaultWhere(): TWhere | undefined;
     protected get defaultLimit(): number | undefined;

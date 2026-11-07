@@ -253,3 +253,78 @@ describe('ReadableCrudController base where - overridden', () => {
     expect(outOfScope.bodies[0]).toEqual({ count: 0, data: null });
   });
 });
+
+/** A repository that holds the request's filter to the model's hidden fields, the way `AbstractRepository.assertRequestFilter` does. */
+class HidingRepository extends RecordingRepository {
+  assertRequestFilter(opts: { filter?: { where?: Record<string, unknown> } }) {
+    this.calls.push({ method: 'assertRequestFilter', args: { ...opts } });
+
+    if (opts.filter?.where && 'secret' in opts.filter.where) {
+      throw new Error('Column NOT FOUND | key: secret');
+    }
+  }
+}
+
+describe('ReadableCrudController - a request filter naming a hidden field', () => {
+  const build = () => {
+    const repository = new HidingRepository();
+    const controller = new ItemsController(repository);
+
+    return { repository, controller };
+  };
+
+  test.each(['find', 'findOne', 'count'] as const)(
+    '%s refuses it before the repository reads anything',
+    async (verb) => {
+      const { repository, controller } = build();
+      const query =
+        verb === 'count' ? { where: { secret: 'x' } } : { filter: { where: { secret: 'x' } } };
+
+      let failure: unknown;
+
+      try {
+        await controller[verb]({ context: fakeContext({ query }).context });
+      } catch (error) {
+        failure = error;
+      }
+
+      expect(String(failure)).toContain('Column NOT FOUND');
+
+      expect(repository.calls.map((call) => call.method)).toEqual(['assertRequestFilter']);
+    },
+  );
+
+  test('findById holds its filter to the check too', async () => {
+    const { repository, controller } = build();
+
+    await controller.findById({
+      context: fakeContext({ query: { filter: { include: [] } }, param: { id: '1' } }).context,
+    });
+
+    expect(repository.calls[0]?.method).toBe('assertRequestFilter');
+  });
+
+  test('the check sees what the client sent, not the base where joined to it', async () => {
+    const repository = new HidingRepository();
+    const controller = new TenantItemsController(repository);
+
+    await controller.find({
+      context: fakeContext({ query: { filter: { where: { status: 'open' } } } }).context,
+    });
+
+    const checked = repository.calls.find((call) => call.method === 'assertRequestFilter');
+
+    expect(checked?.args).toEqual({ filter: { where: { status: 'open' } } });
+  });
+
+  test('a repository without the check (a stand-in) is served as before', async () => {
+    const repository = new RecordingRepository();
+    const controller = new ItemsController(repository);
+
+    await controller.find({
+      context: fakeContext({ query: { filter: { where: { secret: 'x' } } } }).context,
+    });
+
+    expect(repository.calls.map((call) => call.method)).toEqual(['find']);
+  });
+});
