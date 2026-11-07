@@ -21,6 +21,7 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
     protected options: IJWKSVerifierOptions,
   ) {
     super({ scope: JWKSVerifierTokenService.name });
+    this.configureClaims({ options: this.options });
     this.configurePayloadEncryption({
       aesAlgorithm: this.options.aesAlgorithm,
       applicationSecret: this.options.applicationSecret,
@@ -49,7 +50,7 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
     const result = await jwtVerify<IJWTTokenPayload>(
       token,
       this.jwksVerifier!,
-      this.options.verify,
+      this.verifyOptions!,
     );
 
     return this.decryptPayload({ result });

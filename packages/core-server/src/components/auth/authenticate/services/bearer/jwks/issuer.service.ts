@@ -28,11 +28,11 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
   ) {
     super({ scope: JWKSIssuerTokenService.name });
 
+    this.configureClaims({ options: this.options, pinnedAlgorithms: [this.options.algorithm] });
     this.configurePayloadEncryption({
       aesAlgorithm: this.options.aesAlgorithm,
       applicationSecret: this.options.applicationSecret,
       fieldCodecs: this.options.fieldCodecs,
-      sign: this.options.sign,
     });
   }
 
@@ -191,7 +191,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
   protected override async doVerify(token: string): Promise<IJWTTokenPayload> {
     await this.ensureInitialized();
     const { jwtVerify } = await JoseLoader.load();
-    const result = await jwtVerify<IJWTTokenPayload>(token, this.publicKey!, this.options.verify);
+    const result = await jwtVerify<IJWTTokenPayload>(token, this.publicKey!, this.verifyOptions!);
 
     return this.decryptPayload({ result });
   }

@@ -13,6 +13,7 @@ const buildService = (overrides: Partial<IJWSTokenServiceOptions> = {}) => {
   return new JWSTokenService({
     jwtSecret: JWT_SECRET,
     getTokenExpiresFn: () => 3600,
+    claims: { issuer: 'test-issuer', audience: 'test-audience' },
     applicationSecret: APPLICATION_SECRET,
     ...overrides,
   } as IJWSTokenServiceOptions);
@@ -63,6 +64,8 @@ const signStoredToken = async (opts: { algorithm: 'aes-256-cbc' | 'aes-256-gcm' 
 
   return new SignJWT(claims)
     .setProtectedHeader({ alg: 'HS256' })
+    .setIssuer('test-issuer')
+    .setAudience('test-audience')
     .setIssuedAt()
     .setExpirationTime('1h')
     .sign(new TextEncoder().encode(JWT_SECRET));

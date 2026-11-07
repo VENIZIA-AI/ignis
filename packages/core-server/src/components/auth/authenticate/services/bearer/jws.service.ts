@@ -38,11 +38,14 @@ export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenSer
       });
     }
 
+    this.configureClaims({
+      options,
+      pinnedAlgorithms: [options.headerAlgorithm ?? 'HS256'],
+    });
     this.configurePayloadEncryption({
       aesAlgorithm,
       applicationSecret,
       fieldCodecs: options.fieldCodecs,
-      sign: options.sign,
     });
     this.jwtSecret = new TextEncoder().encode(this.options.jwtSecret);
   }
@@ -52,7 +55,7 @@ export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenSer
     const decodedToken = await jwtVerify<IJWTTokenPayload>(
       token,
       this.jwtSecret,
-      this.options.verify,
+      this.verifyOptions!,
     );
 
     return this.decryptPayload({ result: decodedToken });

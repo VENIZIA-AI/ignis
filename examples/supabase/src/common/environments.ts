@@ -10,6 +10,12 @@ export class EnvironmentKeys extends BaseEnv {
   /** Forwarded to postgres-js only when set, so its own default survives when it is not. */
   static readonly APP_ENV_SUPABASE_POOL_MAX = 'APP_ENV_SUPABASE_POOL_MAX';
 
+  /** The `iss` this app requires of a token and stamps on its test tokens. Defaults to the local Supabase CLI's. */
+  static readonly APP_ENV_JWT_ISSUER = 'APP_ENV_JWT_ISSUER';
+
+  /** The `aud` this app requires of a token and stamps on its test tokens. Defaults to `authenticated`. */
+  static readonly APP_ENV_JWT_AUDIENCE = 'APP_ENV_JWT_AUDIENCE';
+
   // `APP_ENV_JWT_SECRET` and `APP_ENV_JWT_EXPIRES_IN` are inherited from the base class. On a real
   // Supabase project the secret is the project's JWT secret, and Supabase Auth (GoTrue) signs with
   // it. This example mints its own test tokens with the same secret (`src/token.ts`), so it needs no

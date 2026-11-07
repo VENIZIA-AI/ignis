@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-96 exports, 96 with TSDoc. 916 more are re-exported from other entries (listed at the end).
+98 exports, 98 with TSDoc. 917 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -22,14 +22,34 @@ export declare abstract class AbstractBearerTokenService<E extends Env = Env> ex
     protected aes: AES | null;
     protected applicationSecret: string | null;
     protected fieldCodecs: Map<string, IPayloadFieldCodec>;
-    /** Configured `iss` / `aud`. Authoritative over anything the payload carries. */
-    protected signOptions: IJWTSignOptions | null;
+    /** Configured `iss` / `aud`: stamped on every issued token, authoritative over anything the payload carries, and required on every verified one. */
+    protected claimOptions: IJWTClaimsOptions | null;
+    /** What jose verifies against: the claims, the algorithm pin and the `verify` checks. */
+    protected verifyOptions: JWTVerifyOptions | null;
+    /** The keys a `claims` object may hold. */
+    static readonly CLAIM_KEYS: ReadonlyArray<string>;
+    /**
+     * Validates the claims configuration of a token service and answers what the service uses. It throws, naming the
+     * key, when `claims.issuer` or `claims.audience` is missing or empty, when `claims` holds another key, when the
+     * removed `sign` or `verify.issuer` / `verify.audience` is still passed, and when no algorithm is pinned.
+     * `pinnedAlgorithms` is what the service signs with; a verifier has none and requires `verify.algorithms`.
+     * The component calls it at boot, and a service calls it when it is built, so neither can start without them.
+     */
+    static resolveClaimsConfig(opts: {
+        scope: string;
+        options: IClaimsConfigSource;
+        pinnedAlgorithms?: string[];
+    }): IResolvedClaimsConfig;
+    /** Validates the claims configuration (see {@link AbstractBearerTokenService.resolveClaimsConfig}) and keeps the result. */
+    protected configureClaims(opts: {
+        options: IClaimsConfigSource;
+        pinnedAlgorithms?: string[];
+    }): void;
     /** Configures AES payload encryption and field codecs. Both aesAlgorithm and applicationSecret required to activate encryption. */
     protected configurePayloadEncryption(opts: {
         aesAlgorithm?: AESAlgorithmType;
         applicationSecret?: string;
         fieldCodecs?: IPayloadFieldCodec[];
-        sign?: IJWTSignOptions;
     }): void;
     extractCredentials(context: TContext<E, string>): {
         type: string;
@@ -1381,6 +1401,23 @@ export interface ICasbinPolicySource {
 
 Source: `packages/core-server/src/components/auth/authorize/adapters/common/types.ts`
 
+## `IClaimsConfigSource`
+
+*interface*
+
+What a token service is configured with for claims: the required `claims`, the `verify` checks, and the removed `sign` it refuses.
+
+```ts
+export interface IClaimsConfigSource {
+    claims?: unknown;
+    verify?: unknown;
+    /** Removed: refused with a message that points to `claims`. */
+    sign?: unknown;
+}
+```
+
+Source: `packages/core-server/src/components/auth/authenticate/services/bearer/abstract.service.ts`
+
 ## `IConnectAdapterResult`
 
 *interface*
@@ -1536,6 +1573,23 @@ export interface IHealthCheckOptions {
 ```
 
 Source: `packages/core-server/src/components/health-check/common/types.ts`
+
+## `IResolvedClaimsConfig`
+
+*interface*
+
+What {@link AbstractBearerTokenService.resolveClaimsConfig} answers: the validated claims and the verify options jose receives.
+
+```ts
+export interface IResolvedClaimsConfig {
+    claims: IJWTClaimsOptions;
+    verify: JWTVerifyOptions & {
+        algorithms: string[];
+    };
+}
+```
+
+Source: `packages/core-server/src/components/auth/authenticate/services/bearer/abstract.service.ts`
 
 ## `IRpcRegistration`
 
@@ -3189,9 +3243,10 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IIdGeneratorOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IJWKSIssuerOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IJWKSVerifierOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `IJWKSVerifierVerifyOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IJWSTokenServiceOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `IJWTClaimsOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IJWTIssueClaims` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
-- `IJWTSignOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IJWTTokenPayload` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IJWTVerifyOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `ILeavesOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)

@@ -15,7 +15,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters) | 24 | 24 |
 | [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint) | 30 | 30 |
 | [`@venizia/dev-configs/testing`](/references/api/venizia-dev-configs-testing) | 5 | 5 |
-| [`@venizia/ignis`](/references/api/venizia-ignis) | 96 | 96 |
+| [`@venizia/ignis`](/references/api/venizia-ignis) | 98 | 98 |
 | [`@venizia/ignis-boot`](/references/api/venizia-ignis-boot) | 0 | 0 |
 | [`@venizia/ignis-boot/auto`](/references/api/venizia-ignis-boot-auto) | 1 | 1 |
 | [`@venizia/ignis-boot/build-info`](/references/api/venizia-ignis-boot-build-info) | 3 | 3 |
@@ -59,7 +59,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-helpers/uuid`](/references/api/venizia-ignis-helpers-uuid) | 0 | 0 |
 | [`@venizia/ignis-helpers/winston`](/references/api/venizia-ignis-helpers-winston) | 9 | 9 |
 | [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion) | 72 | 72 |
-| [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel) | 341 | 341 |
+| [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel) | 342 | 342 |
 | [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata) | 21 | 21 |
 | [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository) | 30 | 30 |
 | [`@venizia/ignis-worker`](/references/api/venizia-ignis-worker) | 18 | 18 |
