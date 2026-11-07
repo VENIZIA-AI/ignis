@@ -96,8 +96,10 @@ export class ReadableRelationalRepository<
     const limit = isFindOne ? 1 : mergedFilter.limit;
     const offset = mergedFilter.skip ?? mergedFilter.offset;
 
+    const connector = await this.acquireConnector({ transaction: options?.transaction });
+
     return this.queryExecutor.select<R>({
-      connector: this.resolveConnector({ transaction: options?.transaction }),
+      connector,
       table: schema,
       columns: this.getVisibleProperties(),
       where,
@@ -115,8 +117,10 @@ export class ReadableRelationalRepository<
   }): Promise<Array<R>> {
     const queryOptions = this.buildQuery({ filter: opts.filter });
 
+    const connector = await this.acquireConnector({ transaction: opts.options?.transaction });
+
     return this.queryExecutor.findMany<R>({
-      connector: this.resolveConnector({ transaction: opts.options?.transaction }),
+      connector,
       entityName: this.entity.name,
       query: queryOptions,
       scope: this.constructor.name,
@@ -292,8 +296,10 @@ export class ReadableRelationalRepository<
       keys: ['limit'],
     });
 
+    const connector = await this.acquireConnector({ transaction: opts?.options?.transaction });
+
     return this.queryExecutor.findFirst<TRow<DataObject, R, F>>({
-      connector: this.resolveConnector({ transaction: opts?.options?.transaction }),
+      connector,
       entityName: this.entity.name,
       query: queryOptions,
       scope: this.constructor.name,
@@ -353,8 +359,10 @@ export class ReadableRelationalRepository<
       where: mergedFilter.where ?? {},
     });
 
+    const connector = await this.acquireConnector({ transaction: opts.options?.transaction });
+
     const count = await this.queryExecutor.count({
-      connector: this.resolveConnector({ transaction: opts.options?.transaction }),
+      connector,
       table: this.entity.schema,
       where,
     });

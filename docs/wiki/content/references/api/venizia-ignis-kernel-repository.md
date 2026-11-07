@@ -23,6 +23,47 @@ export declare abstract class AbstractDataSource<Settings extends object = {}, S
     settings: Settings;
     schema: Schema;
     abstract configure(opts?: ConfigurableOptions): ValueOrPromise<void>;
+    /** The options the boot would have given `configure()`, kept for the open that the first use starts. */
+    private deferredOptions?;
+    /** The open in flight: every call that arrives meanwhile awaits this one promise. */
+    private opening?;
+    private isOpened;
+    private isShutDown;
+    /**
+     * Whether this family can open on first use: only a family whose every entry point first awaits {@link ensureOpen}
+     * says yes (the relational one does). A family that does not is refused at boot rather than left half-working.
+     */
+    protected supportsDeferredOpen(): boolean;
+    /** The `open.on` of `@datasource`, `start` when unset. */
+    getOpenMode(): TDataSourceOpenMode;
+    isOpenDeferred(): boolean;
+    /** Whether a datasource that opens on first use has been opened (and not closed since). Always false for one that opens at start: the boot configures it. */
+    isOpen(): boolean;
+    /** Whether `close()` has begun. A datasource that opens on first use is not reopened after it. */
+    isClosed(): boolean;
+    /**
+     * The boot's replacement for `configure()` on a datasource that opens on first use: records the options and opens nothing.
+     * Refused for a family that cannot honour it.
+     */
+    deferOpen(opts: {
+        options?: object;
+    }): void;
+    /**
+     * Resolves once the datasource is open. At once for one that opens with the application, or is open already. Otherwise
+     * the first caller starts `configure()` and the rest await the same promise, so it runs once; a failure rejects all of
+     * them, undoes what the failed `configure()` left ({@link discardPartialOpen}) and clears the slot, so the next call
+     * opens afresh. Rejects after `close()`: a stopped application does not reopen its datasources.
+     */
+    ensureOpen(): Promise<void>;
+    private runOpen;
+    private discardOpenAttempt;
+    /** Undoes what a `configure()` that threw left behind, so the next open starts clean. The root holds nothing; a family that keeps a client overrides it. */
+    protected discardPartialOpen(): ValueOrPromise<void>;
+    /**
+     * Waits for an open in flight and refuses any later one. A family's `close()` calls it first, so a stop that arrives
+     * during the first use closes what that open built instead of racing it.
+     */
+    protected settleOpening(): Promise<void>;
     getSettings(): Settings;
     getSchema(): Schema;
     /** Capability probe, overridden by connectors that support it (e.g. postgres reports `{ transactions: true }`). */
@@ -616,6 +657,14 @@ export interface IDataSource<Settings extends object = {}, Schema extends TAnyDa
     getSchema(): Schema;
     /** Releases what `configure()` opened. `stop()` calls it on every datasource the boot configured. */
     close?(): Promise<void>;
+    /** True when the datasource opens on first use (`@datasource({ open: { on: 'first-use' } })`): the boot then calls {@link deferOpen} instead of `configure()`. */
+    isOpenDeferred?(): boolean;
+    /** Records the options `configure()` will get when the datasource opens on first use; nothing is opened. */
+    deferOpen?(opts: {
+        options?: object;
+    }): void;
+    /** Resolves once the datasource is open: at once when it opens with the application or is already open, else after the one open that the first use starts. */
+    ensureOpen?(): Promise<void>;
 }
 ```
 

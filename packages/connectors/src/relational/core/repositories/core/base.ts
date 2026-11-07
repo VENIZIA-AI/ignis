@@ -310,8 +310,10 @@ export abstract class RelationalBaseRepository<
       scope === ScopeFilters.UNRESTRICTED
         ? undefined
         : this.queryDialect.toParentWhere({ link, scope });
+    const connector = await this.acquireConnector({ transaction });
+
     const found = await this.queryExecutor.select<{ key: unknown }>({
-      connector: this.resolveConnector({ transaction }),
+      connector,
       table: link.parentSchema,
       columns: { key: link.parentColumn },
       where: and(inArray(link.parentColumn, keys), parentScope),
@@ -569,6 +571,19 @@ export abstract class RelationalBaseRepository<
     }
 
     return filteredColumns;
+  }
+
+  /**
+   * The connector for one call: the datasource is open first (a datasource that opens on first use opens here, once, for
+   * every concurrent first call), then the transaction's connector or the pooled one. Every verb awaits this before it
+   * touches the engine.
+   */
+  protected async acquireConnector(opts?: {
+    transaction?: ITransaction;
+  }): Promise<TRelationalConnectorOf<TDataSource>> {
+    await this.dataSource.ensureOpen?.();
+
+    return this.resolveConnector(opts);
   }
 
   /** Resolves the database connector, using the transaction's connector if provided. */

@@ -1232,7 +1232,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (427)
+### `@venizia/ignis-kernel` (430)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1314,6 +1314,7 @@ generated:
 - `DataRangeUtility` class
 - `datasource` const
 - `DataSourceDrivers` class
+- `DataSourceOpenModes` class
 - `DEFAULT_LIMIT` const
 - `DEFAULT_MAX_LIMIT` const
 - `defaultRequestHeaders` const
@@ -1376,6 +1377,7 @@ generated:
 - `IDataSource` interface
 - `IDataSourceCapabilities` interface
 - `IDataSourceMetadata` interface
+- `IDataSourceOpenOptions` interface
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
 - `IDomainEvent` interface
@@ -1562,6 +1564,7 @@ generated:
 - `TDataRange` type
 - `TDataSourceDriver` type
 - `TDataSourceDriverClass` type
+- `TDataSourceOpenMode` type
 - `TDataWithRange` type
 - `TDecoratorModelTarget` type
 - `TDecoratorTarget` type
@@ -2392,7 +2395,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1024)
+### `@venizia/ignis` (1027)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2545,6 +2548,7 @@ generated:
 - `DataRangeUtility` class
 - `datasource` const
 - `DataSourceDrivers` class
+- `DataSourceOpenModes` class
 - `DataTypes` class
 - `DayjsTemporalAdapter` class
 - `DEFAULT_CIPHER_BITS` const
@@ -2685,6 +2689,7 @@ generated:
 - `IDataSource` interface
 - `IDataSourceCapabilities` interface
 - `IDataSourceMetadata` interface
+- `IDataSourceOpenOptions` interface
 - `IDayjsFactory` interface
 - `IDayjsInstance` interface
 - `IDefinedEntity` interface
@@ -3151,6 +3156,7 @@ generated:
 - `TDataRange` type
 - `TDataSourceDriver` type
 - `TDataSourceDriverClass` type
+- `TDataSourceOpenMode` type
 - `TDataTypeEnricherOptions` type
 - `TDataWithRange` type
 - `TDecoratorModelTarget` type

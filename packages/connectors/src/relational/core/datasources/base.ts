@@ -156,6 +156,8 @@ export abstract class BaseRelationalDataSource<
   override async beginTransaction(
     opts?: TRelationalTransactionOptions,
   ): Promise<IRelationalTransaction<TConnector>> {
+    await this.ensureOpen();
+
     const driver = this.resolveDriver();
     const connection = await driver.acquire({ schema: this.getSchema() });
 

@@ -90,8 +90,24 @@ export abstract class AbstractDriverDataSource<
     this.connector = opts.driver.createConnector({ schema: opts.schema ?? this.getSchema() });
   }
 
+  /** A datasource that opens on first use has no client, driver or connector until the first call that needs it has awaited `ensureOpen()`. */
+  private assertOpenForSyncUse(opts: { member: string }): void {
+    if (this.isOpenDeferred() && this.isClosed()) {
+      throw getError({
+        message: `[${this.constructor.name}][${opts.member}] The datasource is closed | It opens on first use only before close()`,
+      });
+    }
+
+    if (this.isOpenDeferred() && !this.isOpen()) {
+      throw getError({
+        message: `[${this.constructor.name}][${opts.member}] The datasource opens on first use and is not open | Await ensureOpen() first; repository calls do it for you`,
+      });
+    }
+  }
+
   /** Wires the driver on first use, so a `configure()` that only builds `this.client` is enough. */
   getConnector(): TConnector {
+    this.assertOpenForSyncUse({ member: this.getConnector.name });
     this.wireDriverFromMetadata();
 
     return this.connector;
@@ -102,6 +118,8 @@ export abstract class AbstractDriverDataSource<
    * than handing back an `undefined` typed as `Client`.
    */
   getClient(): Client {
+    this.assertOpenForSyncUse({ member: this.getClient.name });
+
     if (this.driver) {
       return this.driver.getClient() as Client;
     }
@@ -121,9 +139,30 @@ export abstract class AbstractDriverDataSource<
    * engine's whole teardown - PGlite also clears the exit status it plants on the host process.
    */
   override close(): Promise<void> {
-    this.closePromise ??= this.endConnection();
+    // A stop that arrives while the first use is still opening waits for that open, then closes what it built.
+    this.closePromise ??= this.settleOpening().then(() => this.endConnection());
 
     return this.closePromise;
+  }
+
+  /** Ends a client that a failed open left half-built and forgets the driver and connector, so the next open starts from nothing. */
+  protected override async discardPartialOpen(): Promise<void> {
+    const { client, driver } = this;
+
+    this.client = undefined;
+    this.driver = undefined;
+    this.connector = undefined as TConnector;
+    this.closePromise = undefined;
+
+    if (driver && typeof driver.end === 'function') {
+      await driver.end();
+
+      return;
+    }
+
+    if (client !== undefined) {
+      await this.drainClient({ client });
+    }
   }
 
   private async endConnection(): Promise<void> {
@@ -162,6 +201,18 @@ export abstract class AbstractDriverDataSource<
    */
   async onSecretRotated(opts: { key: string; secret: Record<string, string> }): Promise<void> {
     const logger = this.logger.for(this.onSecretRotated.name);
+
+    // Nothing is open yet, so there is no pool to swap: the rotated credentials wait in the settings for the first use.
+    if (this.isOpenDeferred() && !this.isOpen()) {
+      Object.assign(this.settings as AnyObject, this.mapSecretToSettings({ secret: opts.secret }));
+      logger.info(
+        'Datasource not open yet; credentials kept for its first use | key: %s',
+        opts.key,
+      );
+
+      return;
+    }
+
     const oldClient = this.getClient() as AnyType;
 
     // Snapshot so a failed rebuild restores the datasource verbatim;

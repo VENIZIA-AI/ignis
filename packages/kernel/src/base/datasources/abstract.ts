@@ -8,7 +8,9 @@ import type {
   ITransaction,
   ITransactionOptions,
   TAnyDataSourceSchema,
+  TDataSourceOpenMode,
 } from './common';
+import { DataSourceOpenModes } from './common';
 
 /**
  * Brands the datasource root so `@repository` can recognise a subclass WITHOUT `instanceof`.
@@ -42,6 +44,128 @@ export abstract class AbstractDataSource<
   schema: Schema;
 
   abstract configure(opts?: ConfigurableOptions): ValueOrPromise<void>;
+
+  /** The options the boot would have given `configure()`, kept for the open that the first use starts. */
+  private deferredOptions?: ConfigurableOptions;
+
+  /** The open in flight: every call that arrives meanwhile awaits this one promise. */
+  private opening?: Promise<void>;
+
+  private isOpened = false;
+  private isShutDown = false;
+
+  /**
+   * Whether this family can open on first use: only a family whose every entry point first awaits {@link ensureOpen}
+   * says yes (the relational one does). A family that does not is refused at boot rather than left half-working.
+   */
+  protected supportsDeferredOpen(): boolean {
+    return false;
+  }
+
+  /** The `open.on` of `@datasource`, `start` when unset. */
+  getOpenMode(): TDataSourceOpenMode {
+    const metadata = MetadataRegistry.getInstance().getDataSourceMetadata({
+      target: this.constructor,
+    });
+
+    return metadata?.open?.on ?? DataSourceOpenModes.START;
+  }
+
+  isOpenDeferred(): boolean {
+    return this.getOpenMode() === DataSourceOpenModes.FIRST_USE;
+  }
+
+  /** Whether a datasource that opens on first use has been opened (and not closed since). Always false for one that opens at start: the boot configures it. */
+  isOpen(): boolean {
+    return this.isOpened && !this.isShutDown;
+  }
+
+  /** Whether `close()` has begun. A datasource that opens on first use is not reopened after it. */
+  isClosed(): boolean {
+    return this.isShutDown;
+  }
+
+  /**
+   * The boot's replacement for `configure()` on a datasource that opens on first use: records the options and opens nothing.
+   * Refused for a family that cannot honour it.
+   */
+  deferOpen(opts: { options?: object }): void {
+    if (!this.supportsDeferredOpen()) {
+      throw getError({
+        message: `[${this.constructor.name}][deferOpen] open: 'first-use' is not supported by this datasource family | Use open: { on: 'start' }, or remove the option`,
+      });
+    }
+
+    this.deferredOptions = opts.options as ConfigurableOptions | undefined;
+  }
+
+  /**
+   * Resolves once the datasource is open. At once for one that opens with the application, or is open already. Otherwise
+   * the first caller starts `configure()` and the rest await the same promise, so it runs once; a failure rejects all of
+   * them, undoes what the failed `configure()` left ({@link discardPartialOpen}) and clears the slot, so the next call
+   * opens afresh. Rejects after `close()`: a stopped application does not reopen its datasources.
+   */
+  ensureOpen(): Promise<void> {
+    if (!this.isOpenDeferred() || this.isOpened) {
+      return Promise.resolve();
+    }
+
+    if (this.isShutDown) {
+      return Promise.reject(
+        getError({
+          message: `[${this.constructor.name}][ensureOpen] The datasource is closed | It opens on first use only before close()`,
+        }),
+      );
+    }
+
+    this.opening ??= this.runOpen();
+
+    return this.opening;
+  }
+
+  private async runOpen(): Promise<void> {
+    try {
+      await this.configure(this.deferredOptions);
+      this.isOpened = true;
+    } catch (error) {
+      await this.discardOpenAttempt();
+
+      throw error;
+    } finally {
+      this.opening = undefined;
+    }
+  }
+
+  private async discardOpenAttempt(): Promise<void> {
+    try {
+      await this.discardPartialOpen();
+      // eslint-disable-next-line venizia/no-silent-catch -- the open's own error is what the caller must see: a failed clean-up is logged, never thrown over it
+    } catch (cleanupError) {
+      this.logger
+        .for(this.ensureOpen.name)
+        .warn('Clean-up after a failed open also failed | error: %s', cleanupError);
+    }
+  }
+
+  /** Undoes what a `configure()` that threw left behind, so the next open starts clean. The root holds nothing; a family that keeps a client overrides it. */
+  protected discardPartialOpen(): ValueOrPromise<void> {}
+
+  /**
+   * Waits for an open in flight and refuses any later one. A family's `close()` calls it first, so a stop that arrives
+   * during the first use closes what that open built instead of racing it.
+   */
+  protected async settleOpening(): Promise<void> {
+    this.isShutDown = true;
+
+    try {
+      await this.opening;
+      // eslint-disable-next-line venizia/no-silent-catch -- the failed open was reported to its own waiters; stopping goes on
+    } catch (openError) {
+      this.logger
+        .for(this.close.name)
+        .debug('The open in flight failed while stopping | error: %s', openError);
+    }
+  }
 
   getSettings() {
     return this.settings;

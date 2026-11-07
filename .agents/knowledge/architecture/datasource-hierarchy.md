@@ -6,6 +6,20 @@ resource: packages/connectors/src
 tags: [architecture, datasource, connectors, drizzle, postgres, search]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [The real layering](#the-real-layering)
+- [A raw-SQL engine sits beside the relational branch, not under it](#a-raw-sql-engine-sits-beside-the-relational-branch-not-under-it)
+- [Datasources are singletons](#datasources-are-singletons)
+- [Schema auto-discovery, not manual config](#schema-auto-discovery-not-manual-config)
+- [A datasource can open on first use](#a-datasource-can-open-on-first-use)
+- [Lazy resolution](#lazy-resolution)
+- [The driver is a CLASS, not a string](#the-driver-is-a-class-not-a-string)
+- [Closing](#closing)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 A DataSource owns the connection to one backing engine. IGNIS does not have a single DataSource base class per engine - it has a **paradigm-family** split under `packages/connectors/src`, the `@venizia/ignis-connectors` package, rooted at an engine-neutral base in `packages/kernel/src/base/datasources`. That base sits in the browser-pure `@venizia/ignis-kernel` package, and `@venizia/ignis` re-exports both: the whole kernel, plus `packages/core-server/src/connectors`, which is now only a shim of alias barrels forwarding to `@venizia/ignis-connectors` - import paths for consumers are unchanged.
 
 Sub-path **names** stay flat (`@venizia/ignis-connectors/postgres`, `/sqlite`, `/typesense`, `/meilisearch`) even though the source folders nest each engine under its family, `relational/` or `search/`.
@@ -58,6 +72,10 @@ override getSchema(): Schema {
 ```
 
 `discoverSchema()` calls `registry.buildSchema({ dataSource })` and merges `schema` with `relations`. `BaseSearchDataSource` mirrors it with `discoverCollections()` over the shared `discoverDefinitions()` helper, reading each bound model's static `searchCollection` (the dual-schema escape hatch for a Postgres entity that also carries a search index) and falling back to a shape-guarded static `schema`. Passing `schema` into the constructor, or `@datasource({ autoDiscovery: false })`, opts out.
+
+## A datasource can open on first use
+
+`@datasource({ open: { on: 'first-use' } })` (default `start`). The boot (`registerDynamicBindings`, DATASOURCE namespace) calls `deferOpen({ options })` instead of `configure()`; `AbstractDataSource.ensureOpen()` runs `configure(options)` once on the first call, concurrent callers share the promise, a failure runs `discardPartialOpen()` (the driver base ends the half-built client and clears driver/connector) and frees the slot for a retry, `close()` settles an open in flight first (`settleOpening()`) and refuses any later open. Only a family whose every entry point awaits `ensureOpen()` says `supportsDeferredOpen()`: the relational one does (`acquireConnector()` in the repository, `beginTransaction()`); search and raw SQL refuse `first-use` at boot. `getConnector()`/`getClient()` stay synchronous and throw until the datasource is open.
 
 ## Lazy resolution
 

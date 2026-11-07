@@ -458,7 +458,13 @@ export abstract class RestApplication<
           return;
         }
 
-        if (typeof (instance as Partial<IConfigurable>)?.configure === 'function') {
+        const dataSource = instance as Partial<IDataSource>;
+
+        if (namespace === BindingNamespaces.DATASOURCE && dataSource.isOpenDeferred?.() === true) {
+          // Opens at the first call that needs it; the application starts, and listens, without it.
+          dataSource.deferOpen?.({ options: this.artifactOptions.get(binding.key) });
+          logger.info('Datasource opens on first use | key: %s', binding.key);
+        } else if (typeof (instance as Partial<IConfigurable>)?.configure === 'function') {
           const options = this.artifactOptions.get(binding.key);
           await (instance as IConfigurable).configure(options);
         }

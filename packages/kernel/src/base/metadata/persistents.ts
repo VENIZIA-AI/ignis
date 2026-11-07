@@ -11,7 +11,7 @@ import { ClassResolver, ResolverUtility } from '@venizia/ignis-helpers/common';
 import type { IInjectMetadata } from '@venizia/ignis-inversion';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IDataSource } from '../datasources';
-import { isDataSourceClass } from '../datasources';
+import { DataSourceOpenModes, isDataSourceClass } from '../datasources';
 import type { AbstractEntity } from '../models';
 import { RepositoryTypes } from '../repositories/common/constants';
 import { injectable, InjectableUtility } from './injectable';
@@ -95,6 +95,15 @@ export const model = (input: IModelMetadata = {}): ClassDecorator => {
  */
 export const datasource = (metadata?: IDataSourceMetadata): ClassDecorator => {
   return (target) => {
+    const openMode = metadata?.open?.on;
+
+    // Untyped JS callers: a misspelt mode would silently mean "start", so it is refused where it is written.
+    if (openMode !== undefined && !DataSourceOpenModes.isValid(openMode)) {
+      throw getError({
+        message: `[datasource][@datasource][${target.name}] Invalid metadata | Unknown 'open.on': ${String(openMode)} | Expected one of: ${[...DataSourceOpenModes.SCHEME_SET].join(', ')}`,
+      });
+    }
+
     injectable({
       type: ArtifactTypes.DATASOURCE,
       ...InjectableUtility.pickRegistrationOptions({ metadata: metadata ?? {} }),

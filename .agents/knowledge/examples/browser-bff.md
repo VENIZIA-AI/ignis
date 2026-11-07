@@ -11,6 +11,7 @@ tags: [examples, browser, bff, worker, pglite, opfs]
 
 - [What it demonstrates](#what-it-demonstrates)
 - [The one workaround left, and the two that were removed](#the-one-workaround-left-and-the-two-that-were-removed)
+- [The datasource opens on first use](#the-datasource-opens-on-first-use)
 - [Migrations are inlined, and the ledger is atomic](#migrations-are-inlined-and-the-ledger-is-atomic)
 - [Notable / non-obvious](#notable--non-obvious)
 - [Related](#related)
@@ -68,6 +69,10 @@ because `@venizia/ignis-connectors/postgres` imported that module and its body c
 the alias and the shim are gone: the enricher now reads
 [`RequestContextRegistry`](/packages/kernel.md), and this Worker installs no resolver, which the
 enricher reads as "no request context" - the state its `allowAnonymous` branch already handled.
+
+## The datasource opens on first use
+
+`@datasource({ driver: PGliteDriver, open: { on: 'first-use' } })` keeps the ~16 MB WASM boot off the first screen: the Worker listens first, and the first request that needs the database runs `configure()` (PGlite, then the migrations). Concurrent first requests share that one open; a failed open is reported to all and retried by the next request. `test/lazy-open.test.ts` boots the application in-process and pins "not open after boot, opened by the first call, one open for concurrent calls". The `opfs-ahp://` and `idb://` data directories need a browser: Bun runs the example on an in-memory PGlite, so those two are exercised by hand in the browser, not by the test.
 
 ## Migrations are inlined, and the ledger is atomic
 

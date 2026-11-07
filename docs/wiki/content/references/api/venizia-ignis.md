@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-99 exports, 99 with TSDoc. 924 more are re-exported from other entries (listed at the end).
+99 exports, 99 with TSDoc. 927 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3160,6 +3160,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `DataRangeUtility` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `datasource` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `DataSourceDrivers` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `DataSourceOpenModes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `DataTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `DayjsTemporalAdapter` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `DEFAULT_CIPHER_BITS` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -3282,6 +3283,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IDataSource` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `IDataSourceCapabilities` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IDataSourceMetadata` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `IDataSourceOpenOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IDayjsFactory` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `IDayjsInstance` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `IDefinedEntity` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
@@ -3701,6 +3703,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TDataRange` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TDataSourceDriver` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TDataSourceDriverClass` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `TDataSourceOpenMode` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TDataTypeEnricherOptions` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TDataWithRange` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TDecoratorModelTarget` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)

@@ -36,6 +36,11 @@ export abstract class AbstractRelationalDataSource<
   >
   implements IRelationalDataSource<Settings, Schema, ConfigurableOptions, Client, TConnector>
 {
+  /** Every repository verb and `beginTransaction()` awaits `ensureOpen()` first, so a relational datasource can open on first use. */
+  protected override supportsDeferredOpen(): boolean {
+    return true;
+  }
+
   abstract getConnectionString(): ValueOrPromise<string>;
   abstract override beginTransaction(
     opts?: TRelationalTransactionOptions,

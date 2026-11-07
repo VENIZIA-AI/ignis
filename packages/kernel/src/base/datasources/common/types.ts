@@ -38,6 +38,34 @@ export class DataSourceDrivers {
   }
 }
 
+/** When a datasource opens: with the application (`start`, the default) or at the first call that needs it (`first-use`). */
+export class DataSourceOpenModes {
+  static readonly START = 'start';
+  static readonly FIRST_USE = 'first-use';
+
+  static readonly SCHEME_SET = new Set([this.START, this.FIRST_USE]);
+
+  static isValid(value: string): value is TDataSourceOpenMode {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+/** One of the {@link DataSourceOpenModes} values. */
+export type TDataSourceOpenMode = TConstValue<typeof DataSourceOpenModes>;
+
+/** The `open` option of `@datasource`. */
+export interface IDataSourceOpenOptions {
+  /**
+   * `start`: `configure()` runs when the application starts, and `listen()` waits for it. `first-use`: the application
+   * starts without opening the datasource; the first call that needs it runs `configure()` once, and every call that
+   * arrives meanwhile waits for that one open. A failed open rejects every waiting call, leaves nothing half-open, and is
+   * tried again by the next call.
+   *
+   * @default 'start'
+   */
+  on?: TDataSourceOpenMode;
+}
+
 // `(string & {})` keeps autocomplete for the known values
 // while still accepting any other engine-driver string.
 /** A driver name: one of `DataSourceDrivers`, or any other string for an unlisted engine. */
@@ -68,6 +96,15 @@ export interface IDataSource<
 
   /** Releases what `configure()` opened. `stop()` calls it on every datasource the boot configured. */
   close?(): Promise<void>;
+
+  /** True when the datasource opens on first use (`@datasource({ open: { on: 'first-use' } })`): the boot then calls {@link deferOpen} instead of `configure()`. */
+  isOpenDeferred?(): boolean;
+
+  /** Records the options `configure()` will get when the datasource opens on first use; nothing is opened. */
+  deferOpen?(opts: { options?: object }): void;
+
+  /** Resolves once the datasource is open: at once when it opens with the application or is already open, else after the one open that the first use starts. */
+  ensureOpen?(): Promise<void>;
 }
 
 /**

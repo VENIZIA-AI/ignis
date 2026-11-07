@@ -67,6 +67,40 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 
 You can disable auto-discovery per datasource via `@datasource({ driver: NodePostgresDriver, autoDiscovery: false })`.
 
+## Open at start, or on first use
+
+By default `configure()` runs when the application starts, and `listen()` waits for it. A datasource can open later: `@datasource({ driver: PGliteDriver, open: { on: 'first-use' } })`. The default is `open: { on: 'start' }`.
+
+```typescript
+@datasource({ driver: PGliteDriver, open: { on: 'first-use' } })
+export class PGliteDataSource extends BasePostgresDataSource<IPGliteSettings, {}, {}, PGlite> {
+  override async configure(): Promise<void> {
+    const client = new PGlite(this.settings.dataDir);
+    await client.waitReady;
+    this.client = client;
+
+    // The migrations run inside the open: no call ever sees a database without its tables.
+    const runner = new RelationalMigrationRunner({ driver: this.resolveDriver() });
+    await runner.run({ migrations: MIGRATIONS });
+  }
+}
+```
+
+With `first-use`:
+
+- **The application starts and listens without the datasource.** Nothing is built until a call needs it. In a browser Worker on PGlite this moves the WASM boot (about 16 MB) off the first screen.
+- **The first repository call opens it, once.** Every verb and `beginTransaction()` awaits the open first. Calls that arrive while it is opening wait for that same open; `configure()` runs once.
+- **A failed open is reported to every waiting call.** What the failed `configure()` built is closed and forgotten, so nothing is left half-open, and the next call tries again from nothing. A `configure()` that fails after it assigned `this.client` has that client ended for it.
+- **`close()` closes only what was opened.** A datasource that was never used builds nothing and closes nothing. A stop that arrives during the first use waits for that open, then closes what it built. After the stop a call is refused (`The datasource is closed`); a stopped application does not reopen its datasources.
+- **`getConnector()` and `getClient()` throw until it is open.** They are synchronous. Await `dataSource.ensureOpen()` first; repository calls do it for you.
+- **A rotated secret waits in the settings** for the first use when the datasource is not open yet.
+- **Relational datasources only** (node-postgres, postgres-js, PGlite, libsql). A search or raw-SQL datasource with `first-use` refuses to start, naming the datasource.
+
+```typescript
+await dataSource.ensureOpen(); // resolves at once for a datasource that opens at start, or is open already
+dataSource.isOpen();           // false until the first use has finished
+```
+
 ## Manual Schema (Optional)
 
 If you need explicit control, you can still provide schema manually:

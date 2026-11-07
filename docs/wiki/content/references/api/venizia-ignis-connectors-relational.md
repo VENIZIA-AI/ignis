@@ -21,6 +21,8 @@ query executor.
 
 ```ts
 export declare abstract class AbstractRelationalDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = unknown, TConnector = unknown> extends AbstractDriverDataSource<Settings, Schema, ConfigurableOptions, Client, TConnector, IRelationalDriver<TConnector>> implements IRelationalDataSource<Settings, Schema, ConfigurableOptions, Client, TConnector> {
+    /** Every repository verb and `beginTransaction()` awaits `ensureOpen()` first, so a relational datasource can open on first use. */
+    protected supportsDeferredOpen(): boolean;
     abstract getConnectionString(): ValueOrPromise<string>;
     abstract beginTransaction(opts?: TRelationalTransactionOptions): Promise<IRelationalTransaction<TConnector>>;
     abstract getQueryDialect(): IRelationalQueryDialect;
@@ -1752,6 +1754,14 @@ export declare abstract class RelationalBaseRepository<EntitySchema extends TTab
     }): TDrizzleQueryOptions;
     /** Copy of a Drizzle column selection with hidden properties dropped. */
     private omitHiddenColumns;
+    /**
+     * The connector for one call: the datasource is open first (a datasource that opens on first use opens here, once, for
+     * every concurrent first call), then the transaction's connector or the pooled one. Every verb awaits this before it
+     * touches the engine.
+     */
+    protected acquireConnector(opts?: {
+        transaction?: ITransaction;
+    }): Promise<TRelationalConnectorOf<TDataSource>>;
     /** Resolves the database connector, using the transaction's connector if provided. */
     protected resolveConnector(opts?: {
         transaction?: ITransaction;

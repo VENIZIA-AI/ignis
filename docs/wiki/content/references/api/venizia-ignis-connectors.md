@@ -48,6 +48,8 @@ export declare abstract class AbstractDriverDataSource<Settings extends object =
         driver: TDriver;
         schema?: Schema;
     }): void;
+    /** A datasource that opens on first use has no client, driver or connector until the first call that needs it has awaited `ensureOpen()`. */
+    private assertOpenForSyncUse;
     /** Wires the driver on first use, so a `configure()` that only builds `this.client` is enough. */
     getConnector(): TConnector;
     /**
@@ -61,6 +63,8 @@ export declare abstract class AbstractDriverDataSource<Settings extends object =
      * engine's whole teardown - PGlite also clears the exit status it plants on the host process.
      */
     close(): Promise<void>;
+    /** Ends a client that a failed open left half-built and forgets the driver and connector, so the next open starts from nothing. */
+    protected discardPartialOpen(): Promise<void>;
     private endConnection;
     /**
      * Soft-evicts the pool after a secret rotation: rebuilds against the rotated credentials without
