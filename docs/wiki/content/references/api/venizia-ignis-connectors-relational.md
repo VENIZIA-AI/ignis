@@ -281,6 +281,14 @@ export declare abstract class FilterBuilder extends BaseHelper {
      */
     private buildWhereKeyConditions;
     /**
+     * A `where` value for a column Drizzle maps from a `Date`, with every string or number in it parsed to a `Date`.
+     * `null` stays `null`; anything that is no timestamp is a 400.
+     */
+    private toDateOperand;
+    private toDateList;
+    /** A list operator given something that is no list: the membership operators read it as one value, `between` leaves its own refusal to the operator. */
+    private toDateMembershipOperand;
+    /**
      * Converts order entries to Drizzle SQL order nodes. A key resolves against `expressions` first
      * (a joined column or a computed `SQL`), then as a JSON path, then as a schema column.
      */
