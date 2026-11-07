@@ -14,7 +14,7 @@ make vulcan-sync      # = bun x --no-install vulcan sync
 
 | Read before you touch anything | What lives there |
 |---|---|
-| **[`.agents/rules.md`](.agents/rules.md)** | **THE rules** - write boundaries (W), security (S), process (P), build (B), docs (D), cited by ID. They extend the shared VULCAN base (`node_modules/@venizia/vulcan/base/rules.md`, IDs `V-*`), which also holds the code and writing rules `V-C-01` … `V-C-18`. |
+| **[`.agents/rules.md`](.agents/rules.md)** | **THE rules** - write boundaries (W), security (S), process (P), build (B), docs (D), cited by ID. They extend the shared VULCAN base (`node_modules/@venizia/vulcan/base/rules.md`, IDs `V-*`), which also holds the code and writing rules `V-C-01` … `V-C-20`. |
 | **[`.agents/knowledge/index.md`](.agents/knowledge/index.md)** | **THE facts** - what IGNIS is and why, the monorepo layout, design decisions, the gotchas, per-package concepts, conventions, playbooks. |
 
 Both are mandatory, for every agent, on every task. The two rules that cost the most when skipped:
