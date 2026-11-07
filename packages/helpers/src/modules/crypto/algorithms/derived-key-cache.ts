@@ -1,13 +1,17 @@
-import { createHash } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
 
 /**
  * The keys PBKDF2 has derived, kept so a second call (one that starts while the first runs included) shares the result.
  * Bounded, least recently used out first: the entries are keyed by what went into the derivation, which includes a secret
- * a caller may supply per request, so an unbounded map would grow with every distinct one. The key is a digest of the
- * inputs, so the secret itself is not kept as a map key.
+ * a caller may supply per request, so an unbounded map would grow with every distinct one. The key is an HMAC of the
+ * inputs under a random key made once per process, so the secret itself is not kept as a map key, and a key read from
+ * memory cannot be tested against guesses at SHA-256 speed without that process key.
  */
 export class DerivedKeyCache {
   static readonly MAX_ENTRIES = 64;
+
+  /** Made once per process and never leaves it: a cache key from one process means nothing in another. */
+  private static readonly PROCESS_KEY = randomBytes(32);
 
   private readonly entries = new Map<string, Promise<Buffer>>();
 
@@ -15,9 +19,9 @@ export class DerivedKeyCache {
     return this.entries.size;
   }
 
-  /** The digest of the derivation inputs: what the cache is keyed by. */
+  /** The keyed digest of the derivation inputs: what the cache is keyed by. */
   static keyOf(opts: { parts: Array<string | number> }): string {
-    const hash = createHash('sha256');
+    const hash = createHmac('sha256', DerivedKeyCache.PROCESS_KEY);
 
     for (const part of opts.parts) {
       const text = String(part);

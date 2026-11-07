@@ -100,9 +100,9 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
   static readonly DEFAULT_MAX_FOLDER_DEPTH = 2;
 
-  /** Control characters, lone surrogates and the bidirectional marks and overrides: never part of a file name or a key (the overrides make `gpj.exe` display as `exe.jpg`), and a control character or a surrogate cannot be encoded into a header. */
+  /** Control characters, lone surrogates, the line and paragraph separators (U+2028, U+2029) and the bidirectional marks and overrides: never part of a file name or a key (the overrides make `gpj.exe` display as `exe.jpg`), and a control character or a surrogate cannot be encoded into a header. */
   private static readonly UNSAFE_NAME_CHARACTERS =
-    /[\p{Cc}\p{Cs}\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/u;
+    /[\p{Cc}\p{Cs}\u061C\u200E\u200F\u2028\u2029\u202A-\u202E\u2066-\u2069]/u;
 
   /** A bucket name is one segment; a separator in it would silently address a different bucket. */
   isValidBucketName(opts: { bucket: IBucketRef }): boolean {

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, test } from 'bun:test';
 import { DerivedKeyCache } from '@/modules/crypto/algorithms/derived-key-cache';
 
@@ -88,5 +89,15 @@ describe('DerivedKeyCache', () => {
     expect(DerivedKeyCache.keyOf({ parts: ['ab', 'c'] })).not.toBe(
       DerivedKeyCache.keyOf({ parts: ['a', 'bc'] }),
     );
+  });
+
+  test('the key is keyed per process: it is stable here and is not the plain SHA-256 of the inputs', () => {
+    const parts = ['sha256', 1, 32, 'salt', 'weak'];
+    const plain = createHash('sha256')
+      .update(parts.map((part) => `${String(part).length}:${String(part)}`).join(''))
+      .digest('hex');
+
+    expect(DerivedKeyCache.keyOf({ parts })).toBe(DerivedKeyCache.keyOf({ parts }));
+    expect(DerivedKeyCache.keyOf({ parts })).not.toBe(plain);
   });
 });
