@@ -31,7 +31,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-connectors/postgres/postgres-js`](/references/api/venizia-ignis-connectors-postgres-postgres-js) | 1 | 1 |
 | [`@venizia/ignis-connectors/postgres/supabase`](/references/api/venizia-ignis-connectors-postgres-supabase) | 14 | 14 |
 | [`@venizia/ignis-connectors/raw-sql`](/references/api/venizia-ignis-connectors-raw-sql) | 8 | 8 |
-| [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational) | 74 | 74 |
+| [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational) | 79 | 79 |
 | [`@venizia/ignis-connectors/search`](/references/api/venizia-ignis-connectors-search) | 0 | 0 |
 | [`@venizia/ignis-connectors/search/controllers`](/references/api/venizia-ignis-connectors-search-controllers) | 0 | 0 |
 | [`@venizia/ignis-connectors/sqlite`](/references/api/venizia-ignis-connectors-sqlite) | 49 | 49 |
@@ -46,7 +46,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-helpers/bullmq`](/references/api/venizia-ignis-helpers-bullmq) | 2 | 2 |
 | [`@venizia/ignis-helpers/bun-s3`](/references/api/venizia-ignis-helpers-bun-s3) | 2 | 2 |
 | [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common) | 52 | 52 |
-| [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core) | 100 | 100 |
+| [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core) | 101 | 101 |
 | [`@venizia/ignis-helpers/cron`](/references/api/venizia-ignis-helpers-cron) | 2 | 2 |
 | [`@venizia/ignis-helpers/dotenv-vault`](/references/api/venizia-ignis-helpers-dotenv-vault) | 2 | 2 |
 | [`@venizia/ignis-helpers/hashicorp-vault`](/references/api/venizia-ignis-helpers-hashicorp-vault) | 4 | 4 |

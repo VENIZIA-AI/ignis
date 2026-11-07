@@ -3,7 +3,6 @@ import { ArtifactNamespaces, BindingNamespaces, CoreBindings } from '@/common/bi
 import type { Binding, TBindingScope } from '@/helpers/inversion';
 import { BindingScopes, MetadataRegistry } from '@/helpers/inversion';
 import { BindingVerifier } from '@venizia/ignis-inversion';
-import { OpenAPIHono } from '@hono/zod-openapi';
 import type { AnyType, IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   PerformanceUtility,
@@ -11,7 +10,7 @@ import {
   RequestIdGenerator,
   RetryHelper,
 } from '@venizia/ignis-helpers/core';
-import type { Env, MiddlewareHandler, Schema } from 'hono';
+import type { Env, Hono, MiddlewareHandler, Schema } from 'hono';
 import { showRoutes as showApplicationRoutes } from 'hono/dev';
 import { requestId } from 'hono/request-id';
 import type { BaseComponent } from '../components';
@@ -28,6 +27,7 @@ import type { IRepository } from '../repositories';
 import type { IService } from '../services';
 import { AbstractApplication } from './abstract';
 import { BodyLimits } from './body-limit';
+import { RouterFactories } from './router-factory';
 import { CorsUtility } from './cors';
 import { ArtifactIndexHelper } from './artifact-index';
 import type { IBootSequenceStep } from './boot-sequence';
@@ -41,7 +41,48 @@ interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurabl
   onAfterConfigure?: (opts: { binding: Binding<T>; instance: T }) => Promise<void>;
 }
 
-/** Adds the `OpenAPIHono` router surface on top of `AbstractApplication` - no listening server, so this is the layer a browser Worker or gRPC-only host can extend without pulling in `Bun.serve`. */
+/**
+ * Runtime checks that narrow a bound instance to the members the boot calls on it. Positional: a type predicate narrows
+ * its own parameter.
+ */
+class BootTargets {
+  private static isObjectLike(value: unknown): value is object {
+    return (typeof value === 'object' && value !== null) || typeof value === 'function';
+  }
+
+  /** Has `isOpenDeferred()`, so the boot can ask whether its open waits for the first use. */
+  static canDeferOpen(
+    value: unknown,
+  ): value is Pick<IDataSource, 'deferOpen'> & Required<Pick<IDataSource, 'isOpenDeferred'>> {
+    return (
+      BootTargets.isObjectLike(value) &&
+      'isOpenDeferred' in value &&
+      typeof value.isOpenDeferred === 'function'
+    );
+  }
+
+  /** Has `configure()`; a datasource's takes the opening handles in its second argument. */
+  static isConfigurable(value: unknown): value is Pick<IDataSource, 'configure'> {
+    return (
+      BootTargets.isObjectLike(value) &&
+      'configure' in value &&
+      typeof value.configure === 'function'
+    );
+  }
+
+  /** Carries the opening handles every datasource root defines. */
+  static hasOpeningHandles(
+    value: unknown,
+  ): value is { [OPENING_HANDLES]: () => IDataSourceOpening } {
+    return (
+      BootTargets.isObjectLike(value) &&
+      OPENING_HANDLES in value &&
+      typeof value[OPENING_HANDLES] === 'function'
+    );
+  }
+}
+
+/** Adds the Hono router surface on top of `AbstractApplication` - no listening server, so this is the layer a browser Worker or gRPC-only host can extend without pulling in `Bun.serve`. */
 export abstract class RestApplication<
   AppEnv extends Env = Env,
   AppSchema extends Schema = {},
@@ -51,9 +92,9 @@ export abstract class RestApplication<
   private artifactOptions = new Map<string, object>();
 
   /** The router, and nothing else. What runtime is underneath and what socket is bound are `ServerApplication`'s to know - a browser Worker has neither, and carrying the union here made `RuntimeModules.detect()` answer `'node'` inside a Worker. */
-  protected server: { hono: OpenAPIHono<AppEnv, AppSchema, BasePath> };
+  protected server: { hono: Hono<AppEnv, AppSchema, BasePath> };
 
-  protected rootRouter: OpenAPIHono<AppEnv, AppSchema, BasePath>;
+  protected rootRouter: Hono<AppEnv, AppSchema, BasePath>;
   protected readonly requestIdGenerator: RequestIdGenerator;
 
   /** A copy of the `bodyLimit` the default stack installed, absent until `registerDefaultMiddlewares()` ran. */
@@ -79,17 +120,23 @@ export abstract class RestApplication<
     this.requestIdGenerator = new RequestIdGenerator({ scope: opts.scope });
 
     const strict = this.configs.path.isStrict ?? true;
-    const honoServer = new OpenAPIHono<AppEnv, AppSchema, BasePath>({ strict });
-    this.rootRouter = new OpenAPIHono({ strict });
-
-    this.server = { hono: honoServer };
+    this.server = { hono: this.createRouter({ strict }) };
+    this.rootRouter = this.createRouter({ strict });
   }
 
-  getRootRouter(): OpenAPIHono<AppEnv, AppSchema, BasePath> {
+  /**
+   * Builds one of the two routers: a plain `Hono`, or an `OpenAPIHono` once the REST controller layer is
+   * loaded. Called from the constructor, so an override must not read its own instance fields.
+   */
+  protected createRouter(opts: { strict: boolean }): Hono<AppEnv, AppSchema, BasePath> {
+    return RouterFactories.create<AppEnv, AppSchema, BasePath>({ strict: opts.strict });
+  }
+
+  getRootRouter(): Hono<AppEnv, AppSchema, BasePath> {
     return this.rootRouter;
   }
 
-  getServer(): OpenAPIHono<AppEnv, AppSchema, BasePath> {
+  getServer(): Hono<AppEnv, AppSchema, BasePath> {
     return this.server.hono;
   }
 
@@ -459,20 +506,23 @@ export abstract class RestApplication<
           return;
         }
 
-        const dataSource = instance as Partial<IDataSource>;
-
-        if (namespace === BindingNamespaces.DATASOURCE && dataSource.isOpenDeferred?.() === true) {
+        if (
+          namespace === BindingNamespaces.DATASOURCE &&
+          BootTargets.canDeferOpen(instance) &&
+          instance.isOpenDeferred() === true
+        ) {
           // Opens at the first call that needs it; the application starts, and listens, without it.
-          dataSource.deferOpen?.({ options: this.artifactOptions.get(binding.key) });
+          instance.deferOpen?.({ options: this.artifactOptions.get(binding.key) });
           logger.info('Datasource opens on first use | key: %s', binding.key);
-        } else if (typeof (instance as Partial<IConfigurable>)?.configure === 'function') {
+        } else if (BootTargets.isConfigurable(instance)) {
           const options = this.artifactOptions.get(binding.key);
           // A datasource also gets the handles of its open (the same body works at start and on first use).
-          const holder = dataSource as { [OPENING_HANDLES]?: () => IDataSourceOpening };
           const opening =
-            namespace === BindingNamespaces.DATASOURCE ? holder[OPENING_HANDLES]?.() : undefined;
+            namespace === BindingNamespaces.DATASOURCE && BootTargets.hasOpeningHandles(instance)
+              ? instance[OPENING_HANDLES]()
+              : undefined;
 
-          await (instance as unknown as IDataSource).configure(options, opening);
+          await instance.configure(options, opening);
         }
 
         // Marked before the after-hook runs, so the hook sees its own binding as configured.

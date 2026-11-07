@@ -1,4 +1,4 @@
-import { ObjectUtility } from '@venizia/ignis-helpers/common';
+import { HTTP, ObjectUtility } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type {
   IExtraOptions,
@@ -18,6 +18,7 @@ import type {
 import {
   DataRangeUtility,
   DEFAULT_LIMIT,
+  DEFAULT_MAX_LIMIT,
   RepositoryOperationScopes,
   RequestFilterParts,
 } from '@venizia/ignis-kernel';
@@ -288,6 +289,113 @@ export class ReadableRelationalRepository<
         total,
       }),
     };
+  }
+
+  /**
+   * Yields the rows matching `filter` as pages of `pageSize` rows (default 500), ascending by `id`; each page is a `find`
+   * for `id` above the last one read. The first iteration throws a 400 for `order`, `limit`, `skip`, `offset` or `include`
+   * in `filter`, a `pageSize` outside 1 to min(10 000, `limit.max` or 1000), a hidden `id` or a composite primary key.
+   * @example
+   * ```typescript
+   * import { ReadableRepository } from '@venizia/ignis-connectors/postgres';
+   * import { integer, pgTable, text } from 'drizzle-orm/pg-core';
+   *
+   * const users = pgTable('User', { id: integer('id').primaryKey(), status: text('status') });
+   * declare const repo: ReadableRepository<typeof users>;
+   * for await (const page of repo.findEvery({ filter: { where: { status: 'ACTIVE' } }, pageSize: 200 })) {
+   *   console.log(page.length);
+   * }
+   * ```
+   */
+  findEvery<R = unknown, const F extends TFields<DataObject> = TFields<DataObject>>(opts: {
+    filter?: Omit<TFilter<DataObject, F>, 'order' | 'limit' | 'skip' | 'offset' | 'include'>;
+    pageSize?: number;
+    options?: ExtraOptions;
+  }): AsyncGenerator<Array<TRow<DataObject, R, F>>, void, undefined>;
+
+  async *findEvery(opts: {
+    filter?: TFilter<DataObject>;
+    pageSize?: number;
+    options?: ExtraOptions;
+  }): AsyncGenerator<Array<unknown>, void, undefined> {
+    const { filter = {}, options } = opts;
+    const scope = `[${this.constructor.name}][findEvery]`;
+    const refused = (['order', 'limit', 'skip', 'offset', 'include'] as const).filter(
+      (key) => filter[key] !== undefined,
+    );
+
+    if (refused.length > 0) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `${scope} Refused filter key(s): ${refused.join(', ')} | The key cursor owns the order and the window of every page`,
+      });
+    }
+
+    const ceiling = Math.min(10_000, this.maxLimit ?? DEFAULT_MAX_LIMIT);
+    const { pageSize = Math.min(500, ceiling) } = opts;
+
+    if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > ceiling) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `${scope} Invalid 'pageSize' | Expected an integer from 1 to ${ceiling} | Got: ${pageSize}`,
+      });
+    }
+
+    const key = this.entity.schema.id;
+
+    if (!key.primary && !key.isUnique) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `${scope} Needs a single-column primary key | 'id' alone does not identify a row of '${this.entity.name}'`,
+      });
+    }
+
+    if (this.getHiddenProperties().has('id')) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `${scope} The key 'id' of '${this.entity.name}' is a hidden property | A page cannot continue from a key it never reads`,
+      });
+    }
+
+    const { where, fields } = filter;
+    const isColumn = (name: string): name is Extract<keyof DataObject, string> =>
+      Object.hasOwn(this.entity.schema, name);
+    const selected = Array.isArray(fields)
+      ? fields
+      : Object.entries(fields ?? {}).flatMap(([name, isSelected]) =>
+          isSelected === true && isColumn(name) ? [name] : [],
+        );
+    const isKeyAdded = selected.length > 0 && !selected.includes('id');
+    let keyset: Pick<TWhere<DataObject>, 'id'> | undefined;
+
+    while (true) {
+      const afterLast: Pick<TWhere<DataObject>, 'and'> | undefined = keyset && {
+        and: where ? [where, keyset] : [keyset],
+      };
+      const page = await this.find<Pick<DataObject, 'id'>>({
+        filter: {
+          where: afterLast ?? where,
+          fields: isKeyAdded ? [...selected, 'id'] : fields,
+          order: ['id ASC'],
+          limit: pageSize,
+        },
+        options: options && { ...options, shouldQueryRange: false, retry: undefined },
+      });
+
+      if (page.length === 0) {
+        return;
+      }
+
+      yield isKeyAdded
+        ? page.map((row) => ObjectUtility.omit({ source: row, keys: ['id'] }))
+        : page;
+
+      if (page.length < pageSize) {
+        return;
+      }
+
+      keyset = { id: { gt: page[page.length - 1].id } };
+    }
   }
 
   /**

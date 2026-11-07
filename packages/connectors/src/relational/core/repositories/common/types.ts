@@ -148,3 +148,9 @@ export interface ITransformedUpdateData {
   /** SQL expressions for JSON path updates, keyed by the schema PROPERTY name - not the column name, which is what the emitted SQL quotes. The two diverge whenever a column is declared as `jsonb('meta_data')` under a property called `metadata`. */
   jsonExpressions: Record<string, SQL>;
 }
+
+/** A column an upsert's update branch may write: any insert property but the creation audit columns, which only the insert sets. */
+export type TUpsertUpdateKey<PersistObject> = Exclude<
+  keyof PersistObject & string,
+  'createdAt' | 'createdBy'
+>;

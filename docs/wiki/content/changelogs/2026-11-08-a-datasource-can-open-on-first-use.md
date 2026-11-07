@@ -32,6 +32,7 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis-connectors', '@venizia/ignis
 - **Everyone.** No action needed: the default is `start`.
 - **A browser Worker or any app with a slow-to-open datasource.** Set `open: { on: 'first-use' }` to take the open off the start.
 - **Code that reads `getConnector()` or `getClient()` itself.** With `first-use`, `await dataSource.ensureOpen()` first. Repository calls do it for you.
+- **Code that reads the `connector` field.** It is typed `TConnector | undefined` now, because it is empty before the first open and after `close()`. Call `getConnector()` instead.
 
 ## Details
 

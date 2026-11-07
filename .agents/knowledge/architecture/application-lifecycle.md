@@ -22,7 +22,7 @@ base is a four-class chain split across two packages:
 | Class | Lives in | Adds |
 |---|---|---|
 | `AbstractApplication extends Container` | `packages/kernel/src/base/applications/abstract.ts` | config normalisation, project root, post-start/post-stop hooks, `init()` and `registerCoreBindings()`. No router, no server. |
-| `RestApplication` | `packages/kernel/src/base/applications/rest.ts` | the two `OpenAPIHono` instances, `getServer()`, `getRootRouter()`, `inspectRoutes()`, and the `APPLICATION_SERVER` / `APPLICATION_ROOT_ROUTER` bindings. |
+| `RestApplication` | `packages/kernel/src/base/applications/rest.ts` | the two routers (plain `Hono`; `OpenAPIHono` once `AbstractRestController` has registered itself in `RouterFactories`, or always in `ServerApplication`, whose `createRouter()` override builds one - so the application base never imports `@hono/zod-openapi` and a worker with no controller carries no zod), `getServer()`, `getRootRouter()`, `inspectRoutes()`, and the `APPLICATION_SERVER` / `APPLICATION_ROOT_ROUTER` bindings. |
 | `ServerApplication` | `packages/core-server/src/base/applications/server.ts` | the only layer that touches a socket: `getServerHost/Port/Address`, `startBunModule`, `start()`, `stop()`. |
 | `BaseApplication` | `packages/core-server/src/base/applications/base.ts` | the configuration sequence, secrets. |
 

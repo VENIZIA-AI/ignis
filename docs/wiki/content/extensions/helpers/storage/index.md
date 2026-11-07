@@ -52,6 +52,7 @@ Every public method takes one options object with nested refs: a bucket is `{ na
 - **Every write path is validated first.** Every key and every `folderPath` runs through the path rule `isValidObjectKey()` enforces, before anything touches the filesystem or object store.
 - **The original file name is checked by what it becomes.** Without `normalizeNameFn` it is the key, so it must pass `isValidSegment()`. With one, it is only metadata: `Báo cáo [Q3] & tổng hợp #1!.xlsx` is accepted, and only control characters, an empty name or more than 255 characters are refused.
 - **Validation blocks four kinds of bad input:** path traversal (`../`), shell-injection characters, hidden files, and folder nesting beyond `maxFolderDepth` (default `2`).
+- **A log line never carries a caller's key raw.** A rejected key, segment, bucket name or original name is written through `EchoUtility.toSafeEcho()`: quoted, with line breaks, escape sequences, bidirectional overrides and invisible characters shown as `\uXXXX` escapes. The names in a thrown error's message go through `EchoUtility.toSafeText()`, escaped but not quoted. A key chosen by the caller cannot forge a second line in the server log.
 - **A custom `normalizeNameFn` doesn't get a free pass.** Its output runs through the same check, so a traversal payload smuggled back from application code is rejected too.
 - **The S3 backend stays optional.** `BunS3Helper` lives behind a separate sub-path export, so an app that only needs `DiskHelper` or `MemoryStorageHelper` never requires the Bun runtime.
 

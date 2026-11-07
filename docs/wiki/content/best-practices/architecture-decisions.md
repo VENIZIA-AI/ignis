@@ -192,7 +192,7 @@ export class OrderRepository extends DefaultRelationalRepository<typeof Order.sc
 
   // Performance-optimized query (raw SQL through the Drizzle connector)
   async getOrderStats(userId: string) {
-    return this.dataSource.connector.execute(sql`
+    return this.dataSource.getConnector().execute(sql`
       SELECT
         COUNT(*) as total,
         SUM(total) as revenue,
@@ -382,7 +382,7 @@ OrderStatusRepository  // Probably doesn't need its own repo
 const orders = await orderRepository.find({ filter: { where: { userId } } });
 
 // Use raw queries (via the datasource's Drizzle connector) for:
-const connector = this.dataSource.connector;
+const connector = this.dataSource.getConnector();
 
 // 1. Complex aggregations
 const stats = await connector.execute(sql`

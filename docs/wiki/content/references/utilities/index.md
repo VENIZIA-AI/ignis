@@ -9,6 +9,7 @@ The helpers utilities used to be bare functions (`int`, `sleep`, `executePromise
 | Utility | Package | Purpose | Key Functions |
 |---------|---------|---------|---------------|
 | **Duration** | `ignis-helpers` | Duration units and conversion | `DurationUnits`, `DurationMultipliers.toMilliseconds()`, `.parseToMilliseconds()` |
+| **Echo** | `ignis-helpers` | A caller's value made safe for a log line | `EchoUtility.toSafeEcho()`, `.toSafeText()` |
 | **JSX** | `ignis` | HTML/JSX responses | `OpenApiResponses.htmlContent()`, `OpenApiResponses.htmlResponse()` |
 | **Module** | `ignis-helpers` | Optional peer loading | `ModuleUtility` |
 | **Parse** | `ignis-helpers` | Data type conversion | `ParseUtility.toInt()`, `.toFloat()`, `.toBoolean()`, `.toCamel()` |

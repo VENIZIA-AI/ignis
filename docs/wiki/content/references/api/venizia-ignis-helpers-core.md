@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-100 exports, 100 with TSDoc. 59 more are re-exported from other entries (listed at the end).
+101 exports, 101 with TSDoc. 59 more are re-exported from other entries (listed at the end).
 
 ## `AbstractCryptoAlgorithm`
 
@@ -411,6 +411,50 @@ export type ECDHAlgorithmType = 'ecdh-p256';
 ```
 
 Source: `packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts`
+
+## `EchoUtility`
+
+*class*
+
+A caller's value made safe to put inside a log line or an error message. Pure string work, no node import, so it ships on `/core`.
+
+```ts
+export declare class EchoUtility {
+    /**
+     * What can forge or hide part of a line: C0 controls (a line break, an escape sequence), DEL and C1 controls
+     * (U+0085 is a line break to some viewers), lone surrogates, the soft hyphen, the Arabic letter mark, the
+     * Mongolian vowel separator, the zero-width and directional marks (U+200B-U+200F), the line and paragraph
+     * separators and every bidirectional override and isolate (U+2028-U+202E, U+2060-U+206F), the byte order mark
+     * (U+FEFF), the interlinear annotation marks and the Unicode tag characters. The `u` flag makes the surrogate
+     * range match a LONE surrogate only; a valid pair is one character and stays.
+     */
+    private static readonly UNSAFE_CHARACTERS;
+    /** A value JSON cannot take (a cycle, a `BigInt`) is named by its type, never thrown over: a log line must not fail. */
+    private static stringify;
+    private static escapeUnsafe;
+    /**
+     * The value as one quoted, single-line token: a string becomes `"a.txt"`, anything else its JSON. Every character
+     * that can break a line or reorder what a reader sees becomes a `\uXXXX` (or `\u{XXXXX}`) escape.
+     *
+     * Use it for every caller-chosen value that reaches a log line (a key, a bucket, a file name, a path): hand the
+     * result to a `%s`, never to a template that then adds the quotes again.
+     */
+    static toSafeEcho(opts: {
+        value: unknown;
+    }): string;
+    /**
+     * The value with every unsafe character escaped and nothing else changed: no quotes, and `"` and `\` stay.
+     * For a caller's value inside a message that is read as text (a thrown error's message, which reaches the
+     * caller and the error log), where an ordinary name must read unchanged. A value that is not a
+     * string is written as `toSafeEcho` writes it.
+     */
+    static toSafeText(opts: {
+        value: unknown;
+    }): string;
+}
+```
+
+Source: `packages/helpers/src/utilities/echo.utility.ts`
 
 ## `EnvironmentNames`
 

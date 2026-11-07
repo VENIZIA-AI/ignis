@@ -2,6 +2,8 @@ import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
 import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { datasource, model, ScopeFilters, ScopeThrough } from '@venizia/ignis-kernel';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
@@ -292,5 +294,57 @@ describe('a write to a through model on SQLite', () => {
     expect(select.mock.calls.length).toBeGreaterThan(0);
     expect(select.mock.calls.every(([opts]) => opts.lock === undefined)).toBe(true);
     select.mockRestore();
+  });
+});
+
+describe('upsert on a through model', () => {
+  const variantRows = async (): Promise<Array<{ id: number; productId: number; name: string }>> => {
+    const { rows } = await client.execute(
+      `SELECT id, product_id, name FROM ${VARIANT_TABLE} ORDER BY id`,
+    );
+
+    return rows.map((row) => ({
+      id: Number(row.id),
+      productId: Number(row.product_id),
+      name: String(row.name),
+    }));
+  };
+
+  const expectDenied = async (task: () => Promise<unknown>) => {
+    const before = await variantRows();
+    const error = await RejectionHelper.rejectionOf({ task: task() });
+    const after = await variantRows();
+
+    expect(isApplicationError(error) ? error.statusCode : undefined).toBe(403);
+    expect(error instanceof Error ? error.message : String(error)).toContain(
+      'write refused by the access scope',
+    );
+    expect(after).toEqual(before);
+  };
+
+  test("a variant of another merchant's product is not overwritten by upserting on its id", async () => {
+    await expectDenied(() => variants.upsert({ data: { id: 3, productId: 1, name: 'stolen' } }));
+  });
+
+  test("a new variant under another merchant's product is refused, and nothing is written", async () => {
+    // The update branch writes no parent key, so only the CREATE guard can refuse the new row.
+    await expectDenied(() =>
+      variants.upsert({ data: { id: 99, productId: 3, name: 'new' }, update: ['name'] }),
+    );
+  });
+
+  test("my variant cannot be moved under another merchant's product", async () => {
+    await expectDenied(() => variants.upsert({ data: { id: 1, productId: 3, name: 'moved' } }));
+  });
+
+  test('a variant of my own product is updated through its id, in one owned transaction', async () => {
+    const begin = spyOn(variants, 'beginTransaction');
+
+    const rs = await variants.upsert({ data: { id: 1, productId: 2, name: 'moved' } });
+
+    expect(begin).toHaveBeenCalledTimes(1);
+    begin.mockRestore();
+    expect(rs.count).toBe(1);
+    expect(rs.data).toMatchObject({ id: 1, productId: 2, name: 'moved' });
   });
 });

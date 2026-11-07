@@ -546,6 +546,18 @@ export class ScopeWriteGuard {
     });
   }
 
+  /**
+   * An upsert met a row holding its key that the caller may not update: outside the scope, or hidden by the default
+   * filter. The row is left as it is; the refusal is the same one an out-of-scope write gets.
+   */
+  static conflictDenied(opts: { model: string }) {
+    return ScopeWriteGuard.denied({
+      model: opts.model,
+      operation: ScopeOperations.UPDATE,
+      detail: "the row holding this key is outside the caller's scope",
+    });
+  }
+
   /** Names the model and the column, never a value: the caller may be a request. */
   private static denied(opts: {
     model: string;

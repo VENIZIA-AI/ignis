@@ -99,9 +99,10 @@ export interface ISearchQueryDialect {
   }): ISearchQuery;
 
   /**
-   * cannot. This signature has no representation for "matches nothing" - it returned `''`, which
-   * the caller could not tell from "no constraint", so an empty `or` widened the query it was
-   * meant to narrow. It now THROWS on that input rather than answering wrongly.
+   * The filter string of a `where`. A filter string cannot say "matches nothing" and `''` cannot be told from "no
+   * constraint", so a `where` that matches nothing (an empty `or`) THROWS instead of answering wrongly.
+   *
+   * @deprecated Use {@link compileWhere}, which answers match-all and match-none explicitly.
    */
   toWhere(opts: { where: TWhere }): string;
 

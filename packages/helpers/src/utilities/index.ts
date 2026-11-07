@@ -1,6 +1,7 @@
 export * from './build-info.utility';
 // `RequestBodyErrors` stays on `/core`: consumers name it through the kernel's `RequestErrors`.
 export { FormBodyUtility } from './form-body.utility';
+export * from './echo.utility';
 export * from './error.utility';
 export * from './hr-time.utility';
 export * from './module.utility';

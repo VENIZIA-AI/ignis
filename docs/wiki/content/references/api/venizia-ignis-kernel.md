@@ -2801,8 +2801,8 @@ Exactly what EVERY host implements. `getServerHost`/`getServerPort`/`getServerAd
 export interface IApplication<AppEnv extends Env = Env, AppSchema extends Schema = Schema, BasePath extends string = '/'> {
     getProjectRoot(): string;
     getProjectConfigs(): IApplicationConfigs;
-    getServer(): OpenAPIHono<AppEnv, AppSchema, BasePath>;
-    getRootRouter(): OpenAPIHono<AppEnv, AppSchema, BasePath>;
+    getServer(): Hono<AppEnv, AppSchema, BasePath>;
+    getRootRouter(): Hono<AppEnv, AppSchema, BasePath>;
     setupMiddlewares(): ValueOrPromise<void>;
     initialize(): ValueOrPromise<void>;
 }
@@ -5969,7 +5969,7 @@ Source: `packages/kernel/src/base/controllers/common/constants.ts`
 
 *class*
 
-Adds the `OpenAPIHono` router surface on top of `AbstractApplication` - no listening server, so this is the layer a browser Worker or gRPC-only host can extend without pulling in `Bun.serve`.
+Adds the Hono router surface on top of `AbstractApplication` - no listening server, so this is the layer a browser Worker or gRPC-only host can extend without pulling in `Bun.serve`.
 
 ```ts
 export declare abstract class RestApplication<AppEnv extends Env = Env, AppSchema extends Schema = {}, BasePath extends string = '/'> extends AbstractApplication {
@@ -5977,9 +5977,9 @@ export declare abstract class RestApplication<AppEnv extends Env = Env, AppSchem
     private artifactOptions;
     /** The router, and nothing else. What runtime is underneath and what socket is bound are `ServerApplication`'s to know - a browser Worker has neither, and carrying the union here made `RuntimeModules.detect()` answer `'node'` inside a Worker. */
     protected server: {
-        hono: OpenAPIHono<AppEnv, AppSchema, BasePath>;
+        hono: Hono<AppEnv, AppSchema, BasePath>;
     };
-    protected rootRouter: OpenAPIHono<AppEnv, AppSchema, BasePath>;
+    protected rootRouter: Hono<AppEnv, AppSchema, BasePath>;
     protected readonly requestIdGenerator: RequestIdGenerator;
     /** A copy of the `bodyLimit` the default stack installed, absent until `registerDefaultMiddlewares()` ran. */
     private installedBodyLimit?;
@@ -5987,8 +5987,15 @@ export declare abstract class RestApplication<AppEnv extends Env = Env, AppSchem
         scope: string;
         config: IApplicationConfigs;
     });
-    getRootRouter(): OpenAPIHono<AppEnv, AppSchema, BasePath>;
-    getServer(): OpenAPIHono<AppEnv, AppSchema, BasePath>;
+    /**
+     * Builds one of the two routers: a plain `Hono`, or an `OpenAPIHono` once the REST controller layer is
+     * loaded. Called from the constructor, so an override must not read its own instance fields.
+     */
+    protected createRouter(opts: {
+        strict: boolean;
+    }): Hono<AppEnv, AppSchema, BasePath>;
+    getRootRouter(): Hono<AppEnv, AppSchema, BasePath>;
+    getServer(): Hono<AppEnv, AppSchema, BasePath>;
     protected registerCoreBindings(): void;
     /** The correlation id every host stamps - see {@link RequestIdGenerator} for why `crypto.randomUUID` is refused. */
     protected generateRequestId(): string;
