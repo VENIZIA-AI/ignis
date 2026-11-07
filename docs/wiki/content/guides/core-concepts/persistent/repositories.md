@@ -196,14 +196,14 @@ await settingRepo.upsert({ data: { id: 'theme', value: 'dark' } });
 
 It returns `{ count, data }` like `create`: the written row, without hidden fields. `options` takes what `create` takes (`transaction`, `shouldReturn`, `log`).
 
-`update` lists the columns the update branch writes. Without it, every column `data` sets, except the key's columns, the primary key and `createdAt`/`createdBy`. The compiler refuses an unknown column and `createdAt`/`createdBy`. A column of the key, or one `data` does not set, is refused when the call runs, before any SQL.
+`update` lists the columns the update branch writes. Without it, every column `data` sets, except the key's columns, the primary key and `createdAt`/`createdBy`. The compiler refuses an unknown column and `createdAt`/`createdBy`. A column of the key, a primary key column, or one `data` does not set, is refused when the call runs, before any SQL. A hand-built key that names a column the table does not have is refused the same way.
 
 The rules are the rules of `create` and `update`:
 
 - **Both branches are guarded.** The new row passes the write guard as a create, before any SQL. Under `write.mode: 'assign'`, a missing scope column is filled from the scope. The columns the update branch writes pass it as an update.
 - **The existing row must be yours.** The update branch only touches a row inside your scope and the model's default filter. If the row holding the key is outside them (another merchant's, or soft deleted), it is left as it is and the call fails with the same 403 write-denied error an out-of-scope write gets. `shouldSkipDefaultFilter` is ignored.
 - **Every key column needs a value.** A null never conflicts in SQLite or in default Postgres, so the upsert would insert a duplicate each time. A null or missing key column is refused with a 400, unless the key is a `nullsNotDistinct()` unique constraint (Postgres 15+). A scope column that `assign` fills counts as set.
-- **A partial index** sends its `where` with the conflict target, so a soft-deleted twin is not a conflict: a new row is inserted next to it.
+- **A partial index** sends its `where` with the conflict target, so a soft-deleted twin is not a conflict: a new row is inserted next to it. A row you send with the soft-delete column already set does not satisfy a partial key's predicate either, so it never conflicts: it is inserted as a new, already-deleted row.
 - **Defaults** apply on insert. `$onUpdate` columns (`modifiedAt`, `modifiedBy`) apply on the update branch, as in `update`. `createdAt` and `createdBy` never change.
 - **Hidden fields** are written like `create` writes them, and never returned.
 - A `through` model checks its parents and writes in one transaction, as `create` does.

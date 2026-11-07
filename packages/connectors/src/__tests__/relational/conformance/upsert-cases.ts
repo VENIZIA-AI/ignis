@@ -378,6 +378,25 @@ export const defineUpsertCases = (context: () => IUpsertContext): void => {
         status: 400,
       },
       {
+        label: 'an update column that is the primary key, with another key as on',
+        opts: (ctx) => ({
+          data: { id: 777, merchantId: ME, code: 'A', value: 'x' },
+          on: ctx.codeKey,
+          update: ['id'],
+        }),
+        message: /'update' names a primary key column \| key: 'id'/,
+        status: 400,
+      },
+      {
+        label: 'a hand-built key naming a column the table does not have',
+        opts: (ctx) => ({
+          data: { merchantId: ME, code: 'A', value: 'x' },
+          on: { ...ctx.codeKey, columns: ['ghost'] } as never,
+        }),
+        message: /names a column the table does not have \| column: 'ghost'/,
+        status: 400,
+      },
+      {
         label: 'an update column that is a creation audit column',
         opts: (ctx) => ({
           data: { merchantId: ME, code: 'A', createdAt: 'x' },

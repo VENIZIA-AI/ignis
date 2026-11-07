@@ -44,6 +44,16 @@ export class UpsertPlan {
     }
 
     const key = on ?? UniqueKeyReader.primaryOf({ table: schema });
+
+    // A handle built by hand can name columns the table does not have.
+    for (const property of key.columns) {
+      if (typeof property !== 'string' || !Object.hasOwn(columns, property)) {
+        throw refuse(
+          `the key '${key.name}' names a column the table does not have | column: ${echo(property)}`,
+        );
+      }
+    }
+
     const keyColumns = new Set<string>(key.columns);
     const primary = UniqueKeyReader.primaryOf({ table: schema }).columns as ReadonlyArray<string>;
     const isSent = (property: string) =>
@@ -80,6 +90,10 @@ export class UpsertPlan {
 
         if (CREATION_AUDIT.has(property)) {
           throw refuse(`'update' names a creation audit column | key: ${echo(property)}`);
+        }
+
+        if (primary.includes(property)) {
+          throw refuse(`'update' names a primary key column | key: ${echo(property)}`);
         }
 
         // The update branch writes the value sent for the column; a column not sent would be overwritten by its default.
