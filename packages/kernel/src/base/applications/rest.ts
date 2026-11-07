@@ -19,7 +19,8 @@ import { ArtifactBindingKeys } from '../metadata/artifact-keys';
 import { RestComponent } from '../components/controller/rest/rest.component';
 import type { BaseConfiguration } from '../configurations';
 import { ControllerTransports } from '../controllers/common/constants';
-import type { IDataSource } from '../datasources';
+import type { IDataSource, IDataSourceOpening } from '../datasources';
+import { OPENING_HANDLES } from '../datasources/opening-handles';
 import { BaseAppErrorMiddleware } from '../middlewares/app-error/app-error.middleware';
 import { notFoundHandler } from '../middlewares/not-found/not-found.middleware';
 import type { TMixinOpts } from '../mixins/common';
@@ -467,8 +468,9 @@ export abstract class RestApplication<
         } else if (typeof (instance as Partial<IConfigurable>)?.configure === 'function') {
           const options = this.artifactOptions.get(binding.key);
           // A datasource also gets the handles of its open (the same body works at start and on first use).
+          const holder = dataSource as { [OPENING_HANDLES]?: () => IDataSourceOpening };
           const opening =
-            namespace === BindingNamespaces.DATASOURCE ? dataSource.getOpening?.() : undefined;
+            namespace === BindingNamespaces.DATASOURCE ? holder[OPENING_HANDLES]?.() : undefined;
 
           await (instance as unknown as IDataSource).configure(options, opening);
         }

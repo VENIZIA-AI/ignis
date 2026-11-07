@@ -12,6 +12,7 @@ import type {
   TDataSourceOpenMode,
 } from './common';
 import { DataSourceOpenDefaults, DataSourceOpenModes } from './common';
+import { OPENING_HANDLES } from './opening-handles';
 
 /**
  * Brands the datasource root so `@repository` can recognise a subclass WITHOUT `instanceof`.
@@ -121,13 +122,18 @@ export abstract class AbstractDataSource<
   }
 
   /**
-   * The handles `configure()` gets as its second argument, in both modes. The root has no connector, client or transaction to
-   * hand out; a family that has them overrides {@link createOpening}.
+   * What the application boot calls to get the handles it passes to `configure()` of a datasource that opens at start. Keyed by a
+   * symbol the package does not export, so nothing else can obtain the handles: see {@link OPENING_HANDLES}.
    */
-  getOpening(): IDataSourceOpening {
+  [OPENING_HANDLES](): IDataSourceOpening {
     return this.createOpening();
   }
 
+  /**
+   * The handles `configure()` gets as its second argument, in both modes. The root has no connector, client or transaction to
+   * hand out; a family that has them overrides this. Protected: the only ways out are the argument of `configure()` and the
+   * boot's private key.
+   */
   protected createOpening(): IDataSourceOpening {
     const refuse = (member: string): never =>
       NotSupportedUtility.throwNotSupported({
@@ -197,7 +203,7 @@ export abstract class AbstractDataSource<
   private async runOpen(): Promise<void> {
     const timeoutMs = this.getOpenTimeoutMs();
     const work = Promise.resolve().then(() =>
-      this.configure(this.deferredOptions, this.getOpening()),
+      this.configure(this.deferredOptions, this.createOpening()),
     );
     let timer: ReturnType<typeof setTimeout> | undefined;
     const expired = new Promise<typeof OPEN_TIMED_OUT>((resolve) => {

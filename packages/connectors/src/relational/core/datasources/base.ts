@@ -165,10 +165,6 @@ export abstract class BaseRelationalDataSource<
     return this.openTransaction(opts);
   }
 
-  override getOpening(): IRelationalDataSourceOpening<TConnector, Client> {
-    return this.createOpening();
-  }
-
   /** Adds the transaction to the handles of the open: `configure()` can run its migrations in one, through the ungated internals. */
   protected override createOpening(): IRelationalDataSourceOpening<TConnector, Client> {
     return {

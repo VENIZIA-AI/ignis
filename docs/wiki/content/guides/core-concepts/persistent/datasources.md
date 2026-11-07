@@ -120,7 +120,10 @@ export class PGliteDataSource extends BasePostgresDataSource<IPGliteSettings, {}
 }
 ```
 
-The boot passes the same handles to a datasource that opens at start, so the same body works in both modes. `this.client`, `this.resolveDriver()` and `RelationalMigrationRunner` need no handle. Calling `this.getConnector()` inside `configure()` of a first-use datasource throws "still opening" and names the `opening` argument. A `configure()` that awaits a repository or `ensureOpen()` waits on itself until the timeout, which rejects with a named error.
+The boot passes the same handles to a datasource that opens at start, so the same body works in both modes. `this.client`, `this.resolveDriver()` and `RelationalMigrationRunner` need no handle. Calling `this.getConnector()` inside `configure()` of a first-use datasource throws "still opening" and names the `opening` argument. A `configure()` that awaits a repository or `ensureOpen()` waits on itself until the timeout, which rejects with a named error. The handles exist only as that argument: the datasource has no public accessor for them, so no other code can take them while it is opening.
+
+> [!WARNING]
+> A `configure()` that never settles keeps the datasource from opening until the process restarts. `timeoutMs` releases the waiting calls with the named error, but the abandoned `configure()` still owns the datasource: a new open starts only after it has settled, and until then every call is refused with "the previous open is still running". Make `configure()` end (or fail) on its own, for example with a timeout on the call that can hang.
 
 ```typescript
 await dataSource.ensureOpen(); // resolves at once for a datasource that opens at start, or is open already

@@ -1,6 +1,8 @@
 import { PGlite } from '@electric-sql/pglite';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
-import { datasource, model } from '@venizia/ignis-kernel';
+import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
+import { datasource, model, RestApplication } from '@venizia/ignis-kernel';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
 import { pgTable, serial, text } from 'drizzle-orm/pg-core';
@@ -131,6 +133,29 @@ class ShortTimeoutOpeningDataSource extends OpeningBaseDataSource {}
 @datasource({ driver: PGliteDriver })
 class StartOpeningDataSource extends OpeningBaseDataSource {}
 
+/** The real application boot: it is the only thing that hands a datasource that opens at start its handles. */
+class OpeningApplication extends RestApplication {
+  getAppInfo(): ValueOrPromise<IApplicationInfo> {
+    return { name: 'opening-handle-app', version: '0.0.0', description: '' };
+  }
+
+  preConfigure(): void {}
+  postConfigure(): void {}
+  staticConfigure(): void {}
+  setupMiddlewares(): void {}
+}
+
+const bootApplication = async (dataSourceClass: new () => OpeningBaseDataSource) => {
+  const config: IApplicationConfigs = { path: { base: '/', isStrict: false } };
+  const application = new OpeningApplication({ scope: OpeningApplication.name, config });
+
+  application.init();
+  application.dataSource(dataSourceClass);
+  await application.registerDataSources();
+
+  return application;
+};
+
 type TNoteRepository<TDataSource extends OpeningBaseDataSource> = DefaultCRUDRepository<
   typeof noteTable,
   TTableObject<typeof noteTable>,
@@ -154,6 +179,36 @@ const waitUntil = async (opts: { until: () => boolean; timeoutMs?: number }): Pr
   while (!opts.until() && Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
+};
+
+/** Calls again while the datasource says the abandoned open is still running, up to a bound: it ends on its own clock. */
+const retryWhileAbandoned = async <T>(opts: {
+  call: () => Promise<T>;
+  timeoutMs?: number;
+}): Promise<T> => {
+  const deadline = Date.now() + (opts.timeoutMs ?? 10_000);
+  let attempt: { value?: T; error?: unknown; isDone: boolean } = { isDone: false };
+
+  while (!attempt.isDone) {
+    try {
+      // eslint-disable-next-line no-await-in-loop -- each try must finish before the next one starts
+      const value = await opts.call();
+
+      attempt = { value, isDone: true };
+      // eslint-disable-next-line venizia/no-silent-catch -- only the "still running" refusal is retried; anything else is rethrown below
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+
+      if (!/previous open is still running/.test(message) || Date.now() > deadline) {
+        throw error;
+      }
+
+      // eslint-disable-next-line no-await-in-loop -- a pause between tries
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+  }
+
+  return attempt.value as T;
 };
 
 beforeEach(() => {
@@ -181,13 +236,11 @@ describe('the same configure() body at start and on first use', () => {
     expect(dataSource.isOpen()).toBe(true);
   });
 
-  test('at start: the boot passes the same handles, and the body works unchanged', async () => {
-    const dataSource = new StartOpeningDataSource();
-    const opening = dataSource.getOpening();
-
-    // What the boot does for a datasource that opens at start.
-    await dataSource.configure({}, opening);
-
+  test('at start: the real boot passes the same handles, and the body works unchanged', async () => {
+    const application = await bootApplication(StartOpeningDataSource);
+    const dataSource = application.get<StartOpeningDataSource>({
+      key: 'datasources.StartOpeningDataSource',
+    });
     const repository = repositoryOf(dataSource);
 
     const found = await repository.find({ filter: {} });
@@ -293,12 +346,9 @@ describe('an open that is abandoned after its timeout', () => {
     });
 
     gate.release();
-    await waitUntil({ until: () => Probe.clients[0]?.closed === true });
-    // The abandoned attempt clears its slot just after it closed the client.
-    await new Promise((resolve) => setTimeout(resolve, 50));
     Probe.hold = undefined;
-
-    const found = await repository.find({ filter: {} });
+    // The abandoned attempt closes its client, then clears its slot: retry until a call is no longer refused for it.
+    const found = await retryWhileAbandoned({ call: () => repository.find({ filter: {} }) });
     const rows = found as Array<{ title: string }>;
 
     expect(rows.map((row) => row.title)).toEqual(['seeded']);
@@ -334,5 +384,30 @@ describe('stopping while the open fails', () => {
 
     expect(message).toMatch(/The datasource is closed/);
     expect(Probe.clients[0]?.closed).toBe(true);
+  });
+});
+
+describe('the handles are not reachable from outside configure()', () => {
+  test('there is no getOpening on the datasource: a request cannot take the handles during the open and query before the migrations', async () => {
+    const dataSource = new FirstUseOpeningDataSource();
+    dataSource.deferOpen({});
+    const repository = repositoryOf(dataSource);
+    const gate = Probe.gate();
+
+    const opening = repository.find({ filter: {} });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    // @ts-expect-error the handles are not on the type: only configure() receives them
+    const accessor: unknown = dataSource.getOpening;
+
+    expect(accessor).toBeUndefined();
+    expect('getOpening' in dataSource).toBe(false);
+
+    // The public API still waits for the open and refuses while it is in flight.
+    expect(() => dataSource.getConnector()).toThrow(/still opening/);
+    expect(() => dataSource.getClient()).toThrow(/still opening/);
+
+    gate.release();
+    await opening;
   });
 });

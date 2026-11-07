@@ -115,10 +115,6 @@ export abstract class AbstractDriverDataSource<
     }
   }
 
-  override getOpening(): IDataSourceOpening<TConnector, Client> {
-    return this.createOpening();
-  }
-
   /** The handles `configure()` is given: the connector and the client through the ungated internals, so its own database work (migrations, seeding) needs no gate. */
   protected override createOpening(): IDataSourceOpening<TConnector, Client> {
     return {

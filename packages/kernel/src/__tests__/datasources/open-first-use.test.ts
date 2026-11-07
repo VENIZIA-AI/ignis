@@ -433,13 +433,97 @@ describe('the handles configure() is given', () => {
 
   test('the root family has no connector, client or transaction to hand out, and says so', async () => {
     const application = await boot(LazyDataSource);
-    const opening = lazyOf(application).getOpening();
 
-    expect(() => opening.getConnector()).toThrow(/opening.getConnector/);
-    expect(() => opening.getClient()).toThrow(/opening.getClient/);
+    await lazyOf(application).ensureOpen();
+
+    const [opening] = OpenControl.seenOpenings as Array<IDataSourceOpening>;
+
+    expect(() => opening?.getConnector()).toThrow(/opening.getConnector/);
+    expect(() => opening?.getClient()).toThrow(/opening.getClient/);
     await RejectionHelper.expectRejection({
-      task: opening.beginTransaction(),
+      task: opening!.beginTransaction(),
       message: /opening.beginTransaction/,
+    });
+  });
+});
+
+describe('the handles exist only as the argument of configure()', () => {
+  /** Every string key and every symbol on the datasource and its prototype chain, up to the root class. */
+  const reachableKeys = (target: object) => {
+    const strings = new Set<string>();
+    const symbols: Array<symbol> = [];
+
+    for (
+      let level: object | null = target;
+      level && level !== Object.prototype;
+      level = Object.getPrototypeOf(level)
+    ) {
+      for (const key of Object.getOwnPropertyNames(level)) {
+        strings.add(key);
+      }
+
+      symbols.push(...Object.getOwnPropertySymbols(level));
+    }
+
+    return { strings, symbols };
+  };
+
+  test('there is no public accessor: getOpening is not on the type and not on the object', async () => {
+    const application = await boot(LazyDataSource);
+    const dataSource = lazyOf(application);
+
+    // @ts-expect-error the handles are not reachable from outside configure()
+    const accessor: unknown = dataSource.getOpening;
+
+    expect(accessor).toBeUndefined();
+    expect('getOpening' in dataSource).toBe(false);
+  });
+
+  test('the factory of the handles is protected, and the boot key is a symbol nobody can name or forge', async () => {
+    const application = await boot(LazyDataSource);
+    const dataSource = lazyOf(application);
+
+    // @ts-expect-error createOpening is protected: only a datasource family reaches it
+    const factory: unknown = dataSource.createOpening;
+
+    expect(typeof factory).toBe('function');
+
+    // The boot's key is a symbol the package does not export, made with `Symbol()` and not `Symbol.for()`: the registry cannot forge it.
+    const { symbols } = reachableKeys(dataSource);
+
+    expect(symbols.length).toBeGreaterThan(0);
+
+    for (const symbol of symbols) {
+      expect(Symbol.keyFor(symbol)).toBeUndefined();
+    }
+  });
+
+  test('the handles seen by configure() are the only ones a first use ever produces: nothing yields them during the open', async () => {
+    const application = await boot(LazyDataSource);
+    const dataSource = lazyOf(application);
+    OpenControl.hold = gate();
+
+    const opening = dataSource.ensureOpen();
+
+    // While the open is in flight the public API still refuses: it is gated, never a way to the handles.
+    expect(dataSource.isOpen()).toBe(false);
+    expect(dataSource.isOpening()).toBe(true);
+    expect(Object.keys(dataSource)).not.toContain('getConnector');
+
+    OpenControl.hold.release();
+    await opening;
+
+    expect(OpenControl.seenOpenings).toHaveLength(1);
+  });
+
+  test('a datasource that opens at start still gets its handles from the boot', async () => {
+    await boot(EagerDataSource);
+
+    expect(OpenControl.seenOpenings).toHaveLength(1);
+    expect(OpenControl.seenOpenings[0]).toEqual({
+      getConnector: expect.any(Function),
+      getClient: expect.any(Function),
+      beginTransaction: expect.any(Function),
     });
   });
 });

@@ -142,9 +142,6 @@ export interface IDataSource<
   /** The datasource's own `configure()` receives the handles of {@link IDataSourceOpening} as its second argument. */
   configure(opts?: ConfigurableOptions, opening?: IDataSourceOpening): ValueOrPromise<void>;
 
-  /** The handles `configure()` is given: the boot passes them in every mode, so the same body works whether the datasource opens at start or on first use. */
-  getOpening?(): IDataSourceOpening;
-
   /** True when the datasource opens on first use (`@datasource({ open: { on: 'first-use' } })`): the boot then calls {@link deferOpen} instead of `configure()`. */
   isOpenDeferred?(): boolean;
 
