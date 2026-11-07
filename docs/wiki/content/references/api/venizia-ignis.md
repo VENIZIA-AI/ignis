@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-99 exports, 99 with TSDoc. 929 more are re-exported from other entries (listed at the end).
+99 exports, 99 with TSDoc. 931 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3369,6 +3369,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IPoolStats` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IPoolWaiter` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IPostgresDataSource` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
+- `IPostgresError` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IPostPolicy` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IPrintOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IProvideMetadata` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -3543,6 +3544,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `PostgresBaseRepository` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `PostgresDataTypeEnricher` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `PostgresErrorCodes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `PostgresErrors` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `PostgresFilterBuilder` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `PostgresIdEnricher` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `PostgresPrincipalEnricher` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
