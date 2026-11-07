@@ -13,7 +13,7 @@ export class DatabaseErrorHandler {
     message?: string;
   } {
     const { error, isProduction } = opts;
-    // The same walk an application uses: the Postgres error may sit several `cause`s down, and a value without a SQLSTATE `code` (a gRPC numeric one, ECONNRESET) is not one, so this last-resort handler never crashes on it.
+    // A value without a SQLSTATE `code` (a gRPC numeric one, `ECONNRESET`) is not a Postgres error.
     const pgError = PostgresErrors.find({ error });
 
     // Only request-caused SQLSTATE classes are client errors.

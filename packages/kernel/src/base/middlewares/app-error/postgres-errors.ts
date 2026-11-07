@@ -15,7 +15,7 @@ const FIELD_SPELLINGS: Record<Exclude<keyof IPostgresError, 'code'>, readonly st
 
 /** Finds the Postgres error in a thrown value, through the `cause` chain an ORM builds around a driver error. The error handler uses it; so can your code. */
 export class PostgresErrors {
-  /** How many `cause` hops the walk follows: the thrown error is hop 0, so an error 10 hops down is found and one 11 hops down is not. A real wrapper chain is 1-3 deep; the bound only stops a pathological one. */
+  /** How many `cause` hops the walk follows: the thrown error is hop 0, so an error 10 hops down is found and one 11 hops down is not. */
   static readonly MAX_DEPTH = 10;
 
   /** Reads one property and never throws: a getter that throws, or a Proxy trap that does, reads as `undefined`. */
