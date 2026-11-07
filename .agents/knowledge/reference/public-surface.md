@@ -334,7 +334,7 @@ generated:
 
 ## helpers
 
-### `@venizia/ignis-helpers` (419)
+### `@venizia/ignis-helpers` (420)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -402,6 +402,7 @@ generated:
 - `DurationUnits` class
 - `ECDH` class
 - `ECDHAlgorithmType` type
+- `EchoUtility` class
 - `Environment` class
 - `EnvironmentNames` class
 - `ErrorLogLevels` class
@@ -818,7 +819,7 @@ generated:
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (159)
+### `@venizia/ignis-helpers/core` (160)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractNetworkFetchableHelper` class
@@ -841,6 +842,7 @@ generated:
 - `DEFAULT_UID_MAX_ATTEMPTS` const
 - `ECDH` class
 - `ECDHAlgorithmType` type
+- `EchoUtility` class
 - `EnvironmentNames` class
 - `ErrorLogLevels` class
 - `ErrorScopes` class
@@ -2411,7 +2413,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1031)
+### `@venizia/ignis` (1032)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2595,6 +2597,7 @@ generated:
 - `DurationUnits` class
 - `ECDH` class
 - `ECDHAlgorithmType` type
+- `EchoUtility` class
 - `EmojiFaviconMiddleware` class
 - `Environment` class
 - `EnvironmentKeys` class

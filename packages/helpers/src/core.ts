@@ -52,6 +52,7 @@ export { TreeWalker } from './modules/tree/walk';
 // symbol below is verified free of node builtins/globals.
 export { BuildInfoRegistry } from './utilities/build-info.utility';
 export type { IBuildInfo, TBuildInfoRecord } from './utilities/build-info.utility';
+export { EchoUtility } from './utilities/echo.utility';
 export { ParseUtility } from './utilities/parse.utility';
 export { PerformanceUtility } from './utilities/performance.utility';
 export { PromiseUtility } from './utilities/promise.utility';

@@ -1,6 +1,7 @@
 import type { IDuration } from '@/common';
 import { getError } from '@/modules/error';
 import { ErrorPrettier } from '@/modules/logger';
+import { EchoUtility } from '@/utilities/echo.utility';
 import { S3Client } from 'bun';
 import { Readable } from 'node:stream';
 import { BaseStorageHelper } from '../base';
@@ -115,7 +116,7 @@ export class BunS3Helper extends BaseStorageHelper {
     // The bucket becomes a label of the host, so it must be one: anything else (a dot, a slash, an `@`, a port) would steer the request to another host.
     if (!S3_HOST_LABEL_PATTERN.test(opts.bucket)) {
       throw getError({
-        message: `[objectEndpoint] A bucket used in a host must be one lower-case DNS label (a-z, 0-9, hyphen; 1-63 characters) | bucket: '${opts.bucket}'`,
+        message: `[objectEndpoint] A bucket used in a host must be one lower-case DNS label (a-z, 0-9, hyphen; 1-63 characters) | bucket: '${EchoUtility.toSafeText({ value: opts.bucket })}'`,
       });
     }
 
@@ -179,7 +180,7 @@ export class BunS3Helper extends BaseStorageHelper {
       if (!StorageUtility.isNotFoundError({ error })) {
         this.logger.warn(
           '[hasBucket] Cannot determine bucket existence - reporting false | bucket: %s | %s',
-          name,
+          EchoUtility.toSafeEcho({ value: name }),
           ErrorPrettier.format({ error }),
         );
       }
@@ -334,7 +335,7 @@ export class BunS3Helper extends BaseStorageHelper {
 
     if (!response.ok) {
       throw getError({
-        message: `[copyObject] Copy failed | bucket: ${bucket.name} | source: ${source.key} | status: ${response.status}`,
+        message: `[copyObject] Copy failed | bucket: ${EchoUtility.toSafeText({ value: bucket.name })} | source: ${EchoUtility.toSafeText({ value: source.key })} | status: ${response.status}`,
       });
     }
   }
@@ -547,7 +548,9 @@ export class BunS3Helper extends BaseStorageHelper {
 
     // The same depth rule `upload` applies: one object, two doors, one answer.
     if (!this.isValidObjectKey({ object, maxDepth: opts.maxFolderDepth })) {
-      throw getError({ message: `[writeStream] Invalid object name | key: ${object.key}` });
+      throw getError({
+        message: `[writeStream] Invalid object name | key: ${EchoUtility.toSafeText({ value: object.key })}`,
+      });
     }
 
     // Bun's `write` takes a Response, not a bare ReadableStream; wrapping streams, never buffers.
