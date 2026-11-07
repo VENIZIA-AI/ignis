@@ -781,18 +781,19 @@ export declare abstract class BaseStorageHelper extends BaseHelper implements IS
     getMimeType(opts: {
         filename: string;
     }): string;
-    /** One path segment or file name: no separator, no traversal, no control or shell character. */
+    /** One path segment or file name: at most 255 UTF-8 bytes, no separator, no traversal, no control or shell character. */
     isValidSegment(opts: {
         segment: string;
     }): boolean;
     static readonly DEFAULT_MAX_FOLDER_DEPTH = 2;
+    private static readonly UTF8;
     /** Control characters, lone surrogates, the line and paragraph separators (U+2028, U+2029) and the bidirectional marks and overrides: never part of a file name or a key (the overrides make `gpj.exe` display as `exe.jpg`), and a control character or a surrogate cannot be encoded into a header. */
     private static readonly UNSAFE_NAME_CHARACTERS;
     /** A bucket name is one segment; a separator in it would silently address a different bucket. */
     isValidBucketName(opts: {
         bucket: IBucketRef;
     }): boolean;
-    /** A whole object key: every segment valid, and no deeper than `maxDepth` folders. */
+    /** A whole object key: every segment valid, no trailing `/`, and no deeper than `maxDepth` folders. */
     isValidObjectKey(opts: {
         object: IObjectRef;
         maxDepth?: number;

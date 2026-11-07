@@ -25,7 +25,7 @@ await fetch('/assets/buckets/user-uploads', { method: 'POST' });
 const { isDeleted } = await fetch('/assets/buckets/user-uploads', { method: 'DELETE' }).then(r => r.json());
 ```
 
-Every `bucketName` is validated with `isValidBucketName()` - single segment, no `..`/`/`/`\`, no shell metacharacters, 255 characters or fewer. See [Error Reference](./errors) for the full rule set.
+Every `bucketName` is validated with `isValidBucketName()` - single segment, no `..`/`/`/`\`, no shell metacharacters, 255 bytes or fewer in UTF-8. See [Error Reference](./errors) for the full rule set.
 
 ## Upload files
 

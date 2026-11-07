@@ -31,7 +31,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     return ContentTypeTable.resolve(opts);
   }
 
-  /** One path segment or file name: no separator, no traversal, no control or shell character. */
+  /** One path segment or file name: at most 255 UTF-8 bytes, no separator, no traversal, no control or shell character. */
   isValidSegment(opts: { segment: string }): boolean {
     const name = opts.segment;
 
@@ -87,12 +87,14 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       return false;
     }
 
-    if (name.length > 255) {
+    const byteLength = BaseStorageHelper.UTF8.encode(name).byteLength;
+
+    if (byteLength > 255) {
       this.logger
         .for(this.isValidSegment.name)
         .error(
-          'Name is too long (%d characters): %s',
-          name.length,
+          'Name is too long (%d bytes): %s',
+          byteLength,
           EchoUtility.toSafeEcho({ value: name }),
         );
 
@@ -115,6 +117,8 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
   static readonly DEFAULT_MAX_FOLDER_DEPTH = 2;
 
+  private static readonly UTF8 = new TextEncoder();
+
   /** Control characters, lone surrogates, the line and paragraph separators (U+2028, U+2029) and the bidirectional marks and overrides: never part of a file name or a key (the overrides make `gpj.exe` display as `exe.jpg`), and a control character or a surrogate cannot be encoded into a header. */
   private static readonly UNSAFE_NAME_CHARACTERS =
     /[\p{Cc}\p{Cs}\u061C\u200E\u200F\u2028\u2029\u202A-\u202E\u2066-\u2069]/u;
@@ -124,9 +128,19 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     return this.isValidSegment({ segment: opts.bucket.name });
   }
 
-  /** A whole object key: every segment valid, and no deeper than `maxDepth` folders. */
+  /** A whole object key: every segment valid, no trailing `/`, and no deeper than `maxDepth` folders. */
   isValidObjectKey(opts: { object: IObjectRef; maxDepth?: number }): boolean {
-    return this.isValidKeyPath({ path: opts.object.key, maxDepth: opts.maxDepth });
+    const { key } = opts.object;
+
+    if (typeof key === 'string' && key.endsWith('/')) {
+      this.logger
+        .for(this.isValidObjectKey.name)
+        .error('Object key ends with a slash: %s', EchoUtility.toSafeEcho({ value: key }));
+
+      return false;
+    }
+
+    return this.isValidKeyPath({ path: key, maxDepth: opts.maxDepth });
   }
 
   /** The shared rule behind `isValidObjectKey` and the folder check inside `upload`. */
@@ -193,12 +207,14 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       }
     }
 
-    if (normalized.length > 1024) {
+    const byteLength = BaseStorageHelper.UTF8.encode(normalized).byteLength;
+
+    if (byteLength > 1024) {
       this.logger
         .for(this.isValidKeyPath.name)
         .error(
-          'Path is too long (%d characters): %s',
-          normalized.length,
+          'Path is too long (%d bytes): %s',
+          byteLength,
           EchoUtility.toSafeEcho({ value: pathStr }),
         );
 

@@ -7,6 +7,8 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { HTTP } from '@/common/constants';
+import { isApplicationError } from '@/modules/error';
 import { DiskHelper } from '@/modules/storage/disk';
 
 const roots: string[] = [];
@@ -161,5 +163,72 @@ describe('DiskHelper - a write cannot leave its bucket either', () => {
     });
 
     expect(existsSync(join(root, 'images', 'a', 'b', 'file.txt'))).toBe(true);
+  });
+});
+
+describe('DiskHelper - a key names one file on disk', () => {
+  const statusOf = async (opts: { task: Promise<unknown> }): Promise<number | undefined> => {
+    try {
+      await opts.task;
+
+      return undefined;
+    } catch (error) {
+      return isApplicationError(error) ? error.statusCode : undefined;
+    }
+  };
+
+  test('a key ending with a slash is a 400 and writes nothing', async () => {
+    const { root, helper } = buildStorage();
+
+    const status = await statusOf({
+      task: helper.writeStream({
+        bucket: { name: 'images' },
+        object: { key: 'a/b.txt/' },
+        source: new Blob(['payload']),
+      }),
+    });
+
+    expect(status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
+    expect(existsSync(join(root, 'images', 'a'))).toBe(false);
+  });
+
+  const bucket = { name: 'images' };
+  const overLimit = `${'é'.repeat(126)}.txt`;
+  const object = { key: `docs/${overLimit}` };
+  const operations: Array<[string, (helper: DiskHelper) => Promise<unknown>]> = [
+    ['writeStream', (helper) => helper.writeStream({ bucket, object, source: new Blob(['x']) })],
+    ['getStat', (helper) => helper.getStat({ bucket, object })],
+    ['removeObject', (helper) => helper.removeObject({ bucket, object })],
+    [
+      'upload',
+      (helper) =>
+        helper.upload({
+          bucket,
+          files: [
+            { originalName: overLimit, mimetype: 'text/plain', buffer: Buffer.from('x'), size: 1 },
+          ],
+        }),
+    ],
+  ];
+
+  test.each(operations)('a name over 255 bytes is a 400 from %s', async (_operation, run) => {
+    const { helper } = buildStorage();
+
+    const status = await statusOf({ task: run(helper) });
+
+    expect(status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
+  });
+
+  test('a multi-byte name of exactly 255 bytes is written', async () => {
+    const { root, helper } = buildStorage();
+    const name = `${'é'.repeat(125)}a.txt`;
+
+    await helper.writeStream({
+      bucket: { name: 'images' },
+      object: { key: `docs/${name}` },
+      source: new Blob(['payload']),
+    });
+
+    expect(existsSync(join(root, 'images', 'docs', name))).toBe(true);
   });
 });

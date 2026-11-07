@@ -227,6 +227,20 @@ describe('StaticAsset controller — path traversal hardening', () => {
     ['shell metacharacters', 'photo.jpg%3Brm%20-rf'],
   ] as const;
 
+  test.each([
+    ['a name over 255 bytes', encodeURIComponent(`${'é'.repeat(126)}.jpg`)],
+    ['a key ending with a slash', encodeURIComponent('photos/photo.jpg/')],
+  ])('GET object answers %s with a 400 without reaching storage', async (_label, objectName) => {
+    const response = await router.request(`/assets/buckets/images/objects/${objectName}`);
+    expect(response.status).toBe(400);
+
+    const body = await readJson(response);
+    expect(body.normalized?.code).toBe('core.static_asset.object_name_invalid');
+    expect(helper.calls.filter((call) => ['getObject', 'getStat'].includes(call.method))).toEqual(
+      [],
+    );
+  });
+
   for (const [label, objectName] of maliciousObjectNames) {
     test(`GET object rejects ${label} without reaching storage`, async () => {
       const response = await router.request(`/assets/buckets/images/objects/${objectName}`);
