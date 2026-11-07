@@ -57,6 +57,7 @@ describe('DiskHelper - error messages hold no absolute path', () => {
     const error = await refusal(helper.getObject({ bucket, object: { key: 'loop-a' } }));
 
     expect(error.message).toContain('Invalid object name');
+    expect((error as { statusCode?: number }).statusCode).toBe(400);
     expect(error.message).not.toContain(base);
     expect(error.message).not.toContain('ELOOP');
   });
@@ -70,6 +71,7 @@ describe('DiskHelper - error messages hold no absolute path', () => {
     const error = await refusal(helper.getObject({ bucket, object: { key: 'locked/a.txt' } }));
 
     expect(error.message).toContain('EACCES');
+    expect((error as { statusCode?: number }).statusCode).toBe(500);
     expect(error.message).not.toContain(base);
     expect(error.message).not.toContain('locked');
   });
@@ -81,6 +83,7 @@ describe('DiskHelper - error messages hold no absolute path', () => {
     const error = await refusal(helper.getObject({ bucket, object: { key: 'real.txt' } }));
 
     expect(error.message).toContain('ENOENT');
+    expect((error as { statusCode?: number }).statusCode).toBe(500);
     expect(error.message).not.toContain(base);
   });
 });
