@@ -458,7 +458,7 @@ this.getServer().use('*', secureHeaders({
 
 ## 11. Request Size Limits
 
-Prevent denial of service through large payloads. Prefer `configs.middlewares.bodyLimit` over
+Prevent denial of service through large payloads. Every route has a 5 MiB body limit unless you configure another. Prefer `configs.middlewares.bodyLimit` over
 registering `hono/body-limit` yourself in `setupMiddlewares()`: the framework installs it right
 after the request id, ahead of every other middleware, including the request spy - a limit
 registered in `setupMiddlewares()` runs after all of that.
@@ -480,8 +480,8 @@ effect, and the application refuses to boot when it detects the value changed af
 
 Over the limit answers `413` with `core.request.body_too_large`, or your own `onError`. See
 [Body limit](/references/base/middlewares#body-limit-configs-middlewares-bodylimit) for `path`
-scoping and the full option table - `path` lets a file-upload route carry a higher ceiling than the
-rest of the API.
+scoping and the full option table. A route that takes larger bodies (an upload, an import) sets its own
+limit with `BodyLimits.route({ maxSize })`; the 5 MiB default stands aside for it.
 
 ## 12. Logging Security Events
 

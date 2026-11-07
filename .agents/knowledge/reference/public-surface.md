@@ -1229,7 +1229,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (421)
+### `@venizia/ignis-kernel` (422)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1284,6 +1284,7 @@ generated:
 - `BindingNamespaces` class
 - `BindingScopes` class
 - `BindingValueTypes` class
+- `BodyLimits` class
 - `BootSequence` class
 - `BootSteps` class
 - `CasbinDomainMatchingFunctions` class
@@ -2375,7 +2376,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1018)
+### `@venizia/ignis` (1019)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2484,6 +2485,7 @@ generated:
 - `BindingNamespaces` class
 - `BindingScopes` class
 - `BindingValueTypes` class
+- `BodyLimits` class
 - `BootSequence` class
 - `BootSteps` class
 - `BuildInfoRegistry` class

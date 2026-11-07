@@ -54,7 +54,13 @@ export interface ICSRFOptions extends IBaseMiddlewareOptions {
   secFetchSite?: TSecFetchSite | TSecFetchSite[] | TIsAllowedSecFetchSiteHandler;
 }
 
-/** Options of the body limit middleware the framework installs right after the request id. `maxSize` is in bytes. */
+/**
+ * Options of the body limit middleware the framework installs right after the request id. `maxSize` is in bytes.
+ *
+ * Unset (no `bodyLimit` key), every route gets `BodyLimits.DEFAULT_MAX_SIZE`, 5 MiB. Configured, it replaces
+ * the default (with a `path`, only the routes under it are limited). `enable: false` removes the limit. A route
+ * that takes larger bodies puts `BodyLimits.route({ maxSize })` in its `middleware`.
+ */
 export interface IBodyLimitOptions extends IBaseMiddlewareOptions {
   maxSize: number;
   onError?: (c: Context) => Response | Promise<Response>;
