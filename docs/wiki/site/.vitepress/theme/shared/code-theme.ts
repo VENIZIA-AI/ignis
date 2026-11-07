@@ -6,7 +6,8 @@
  * take the accent, types and functions take lighter tints of it, strings stay green, comments and
  * punctuation stay neutral, and an error is red. No violet and no orange that is not the product's own,
  * so a code block reads in the product's colour like the hero window does (tokens.css, home.css).
- * `config.mts` passes it as `markdown.theme`; pass the same value as `--accent-on-dark` in product.css.
+ * `config.mts` passes it as `markdown.theme`, with the accent on dark of the manifest theme (the same value as
+ * `--accent-on-dark`).
  */
 export type TCodeThemeOptions = {
   /** The accent on a dark ground, e.g. `#dead6a`. */
