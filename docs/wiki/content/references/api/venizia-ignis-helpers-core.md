@@ -1687,7 +1687,7 @@ Source: `packages/helpers/src/modules/network/utilities/query-string.ts`
 
 *class*
 
-Narrowing of an `unknown` value, such as a wire payload, to an object whose string keys can be read; no node import, so it ships on `/core`.
+Narrowing of an `unknown` value, such as a wire payload, to an object whose string keys can be read, and a safe deep read of one; no node import, so it ships on `/core`.
 
 ```ts
 export declare class RecordUtility {
@@ -1695,6 +1695,16 @@ export declare class RecordUtility {
     static isRecord(value: unknown): value is Record<string, unknown>;
     /** A non-null object that is not an array: `isRecord` without the arrays. A class instance (an `Error`, a `Date`) passes; there is no prototype check, so this is not lodash's `isPlainObject`. */
     static isPlainRecord(value: unknown): value is Record<string, unknown>;
+    /**
+     * Reads `value` along `path` (an array of keys; a number reads an array index) and answers `undefined` when any step
+     * is missing, null or not an object, where `ParseUtility.getDeepProperty` throws. Only own properties are read: a
+     * name such as `__proto__`, `constructor` or `toString` is never found through the prototype, so a path taken from
+     * input cannot reach the prototype chain. An empty `path` answers `value` itself. The answer is `unknown`: narrow it.
+     */
+    static read(opts: {
+        value: unknown;
+        path: ReadonlyArray<string | number>;
+    }): unknown;
 }
 ```
 
