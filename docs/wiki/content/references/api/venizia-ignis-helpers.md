@@ -1280,6 +1280,13 @@ export declare class DiskHelper extends BaseStorageHelper {
      * missing is refused, because writing through it would create the file where the link points.
      */
     private isInsideRoot;
+    /** The real path of `target`; a failure leaves as {@link DiskHelper.toRealPathError} answers it. */
+    private realpathOrFail;
+    /**
+     * What a failed `realpath` is reported as: the code, never the path. Node's message holds the absolute path of the
+     * server, and a refusal reaches the caller of the storage API. The full error stays in the log.
+     */
+    private toRealPathError;
     /** `null` when nothing is there (or it cannot be read): the caller walks up to the parent and judges that. */
     private lstatOrNull;
     /** A directory that exists AND lies inside the real root: a bucket that is a link leading outside is not one. */
