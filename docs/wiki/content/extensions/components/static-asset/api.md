@@ -484,22 +484,23 @@ interface IListObjectsOptions {
 | Hidden file | A leading `.` |
 | Shell metacharacters | `;`, `\|`, `&`, `$`, `` ` ``, `<`, `>`, `{`, `}`, `[`, `]`, `!`, `#` |
 | Control characters | `\n`, `\r`, `\0` |
-| Length | Over 255 characters |
+| Length | Over 255 bytes in UTF-8 (128 `é` is 128 characters but 256 bytes) |
 | Whitespace-only | Empty after trimming |
 
 `isValidObjectKey({ object, maxDepth })` runs these checks, in order:
 
 | Step | Behavior |
 |------|----------|
-| Normalize | Trims leading/trailing slashes |
+| Trailing slash | Rejects a key that ends with `/` |
+| Normalize | Trims a leading slash |
 | Empty check | Rejects if the result is empty |
 | Double slashes | Rejects empty segments, for example `a//b` |
 | Folder depth | `folderDepth = segments.length - 1`; rejects if it exceeds `maxDepth` (default `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH = 2`) |
 | Segment names | Every segment must pass `isValidSegment()` |
-| Key length | Rejects a normalized length over 1024 characters |
+| Key length | Rejects a normalized length over 1024 UTF-8 bytes |
 
 > [!NOTE]
-> Those six steps live on `protected isValidKeyPath({ path, maxDepth })`, which `isValidObjectKey` and `upload`'s `folderPath` check both call. It is protected, so `isValidObjectKey` is the only way in from outside the class.
+> Every step but the trailing-slash check lives on `protected isValidKeyPath({ path, maxDepth })`, which `isValidObjectKey` and `upload`'s `folderPath` check both call. It is protected, so `isValidObjectKey` is the only way in from outside the class.
 
 ### `DiskHelper`
 

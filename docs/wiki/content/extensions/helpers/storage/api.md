@@ -181,13 +181,14 @@ Validates a **single path segment**: a bucket name or a bare file name, which mu
 | Must not start with `.` | `.hidden` | Hidden file |
 | Must not contain `;`, `\|`, `&`, `$`, `` ` ``, `<`, `>`, `{`, `}`, `[`, `]`, `!`, `#` | `file;rm -rf` | Shell injection |
 | Must not contain `\n`, `\r`, or `\0` | `file\nname` | Header injection |
-| Must not exceed 255 characters | (very long string) | DoS prevention |
+| Must not exceed 255 bytes in UTF-8 | `'é'.repeat(128)` (128 characters, 256 bytes) | A file system limits a name to 255 bytes |
 | Must not be whitespace-only | `'   '` | Invalid input |
 
 ```typescript
 storage.isValidSegment({ segment: 'my-file.pdf' });    // true
 storage.isValidSegment({ segment: '../etc/passwd' });  // false -- contains path separators
 storage.isValidSegment({ segment: '.hidden' });        // false -- starts with dot
+storage.isValidSegment({ segment: 'é'.repeat(128) });  // false -- 256 bytes
 ```
 
 **Returns:** `true` if the segment passes every check, `false` otherwise.
@@ -211,27 +212,29 @@ storage.isValidBucketName({ bucket: { name: 'a/b' } });           // false
 isValidObjectKey(opts: { object: IObjectRef; maxDepth?: number }): boolean
 ```
 
-Validates a **full object key** that may include folder segments, for example `2025/uploads/report.pdf`. It trims leading and trailing slashes, splits on `/`, validates each segment with `isValidSegment`, and enforces a maximum folder depth. See the exact rules below.
+Validates a **full object key** that may include folder segments, for example `2025/uploads/report.pdf`. It refuses a key that ends with `/`, trims a leading slash, splits on `/`, validates each segment with `isValidSegment`, and enforces a maximum folder depth. See the exact rules below.
 
 | Rule (checked in order) | Description |
 |---|---|
-| 1 | Must be a non-empty string |
-| 2 | After stripping leading/trailing slashes, must not be empty |
-| 3 | Must not contain empty segments (double slashes, e.g. `a//b`) |
-| 4 | Folder depth (`segments.length - 1`) must not exceed `opts.maxDepth` (default `DEFAULT_MAX_FOLDER_DEPTH`, `2`) |
-| 5 | Every segment must pass `isValidSegment()` |
-| 6 | Total normalized key length must not exceed 1024 characters |
+| 1 | Must not end with `/`: on disk `a/b.txt/` would write `a/b.txt` and collide with it, and an S3 directory marker such as `photos/` is not an object |
+| 2 | Must be a non-empty string |
+| 3 | After stripping a leading slash, must not be empty |
+| 4 | Must not contain empty segments (double slashes, e.g. `a//b`) |
+| 5 | Folder depth (`segments.length - 1`) must not exceed `opts.maxDepth` (default `DEFAULT_MAX_FOLDER_DEPTH`, `2`) |
+| 6 | Every segment must pass `isValidSegment()` |
+| 7 | Total normalized key length must not exceed 1024 characters |
 
 ```typescript
 storage.isValidObjectKey({ object: { key: 'folder/file.pdf' } });   // true
 storage.isValidObjectKey({ object: { key: '../etc/passwd' } });     // false -- path traversal
 storage.isValidObjectKey({ object: { key: 'a/b/c/d/file.pdf' } });  // false -- over the default depth of 2
+storage.isValidObjectKey({ object: { key: 'folder/file.pdf/' } });  // false -- ends with a slash
 ```
 
 **Returns:** `true` if the key and all its segments are valid, `false` otherwise.
 
 > [!NOTE]
-> The six rules above live on `protected isValidKeyPath({ path, maxDepth })`, which `isValidObjectKey` and `upload`'s own `folderPath` check both call. It is protected, so `isValidObjectKey` is the way in from outside the class.
+> Rules 2 to 7 live on `protected isValidKeyPath({ path, maxDepth })`, which `isValidObjectKey` and `upload`'s own `folderPath` check both call; rule 1 is `isValidObjectKey`'s own. It is protected, so `isValidObjectKey` is the way in from outside the class.
 
 #### getMediaType
 
