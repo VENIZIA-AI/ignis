@@ -3850,8 +3850,8 @@ Source: `packages/kernel/src/base/auth/authenticate/common/types/jwt.ts`
 
 *interface*
 
-The `iss` and `aud` of a service: stamped on every token it signs and REQUIRED on every token it
-verifies. Both are required, and no other key is accepted.
+The `iss` and, optionally, the `aud` of a service: stamped on every token it signs and REQUIRED on every token it
+verifies. `issuer` is required, `audience` is optional, and no other key is accepted.
 
 Without them a token signed with the same key for another purpose (a password-reset or an invite
 token that carries a user id) would authenticate a request, and in a fleet where every verifier
@@ -3863,8 +3863,13 @@ convention.
 export interface IJWTClaimsOptions {
     /** The `iss` stamped on every issued token and required on every verified one. */
     issuer: string;
-    /** The `aud` stamped on every issued token and required on every verified one. Matching is jose's OVERLAP semantics, not equality: a token carrying `['a','b']` satisfies `audience: 'a'`. Enforce single-valued audiences at issue time if that matters. */
-    audience: string | string[];
+    /**
+     * The `aud` stamped on every issued token and required on every verified one. Optional: without it no `aud` is
+     * stamped and none is checked, so a token with or without one verifies. Set, it must be a non-empty string or a
+     * non-empty list of them. Matching is jose's OVERLAP semantics, not equality: a token carrying `['a','b']`
+     * satisfies `audience: 'a'`. Enforce single-valued audiences at issue time if that matters.
+     */
+    audience?: string | string[];
 }
 ```
 

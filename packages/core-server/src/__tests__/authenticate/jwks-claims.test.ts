@@ -123,7 +123,11 @@ describe('JWKS issuer', () => {
 
   test('is refused at construction without claims, naming the key', () => {
     expect(refusal(() => buildIssuer({ claims: undefined }))).toContain('claims is required');
-    expect(refusal(() => buildIssuer({ claims: { issuer: 'identity' } }))).toContain(
+    expect(refusal(() => buildIssuer({ claims: { audience: 'inventory' } }))).toContain(
+      'claims.issuer',
+    );
+    expect(() => buildIssuer({ claims: { issuer: 'identity' } })).not.toThrow();
+    expect(refusal(() => buildIssuer({ claims: { issuer: 'identity', audience: [] } }))).toContain(
       'claims.audience',
     );
     expect(refusal(() => buildIssuer({ sign: { issuer: 'identity' } }))).toContain(
@@ -213,6 +217,35 @@ describe('JWKS key confusion', () => {
     });
     await RejectionHelper.expectRejection({
       task: buildIssuer().verify({ type: 'Bearer', token: forged }),
+      message: REFUSED,
+    });
+  });
+});
+
+describe('JWKS claims without an audience', () => {
+  test('the issuer stamps no aud, and the verifier accepts the token with or without one', async () => {
+    const issuer = buildIssuer({ claims: { issuer: 'identity' } });
+    const verifier = buildVerifier({ claims: { issuer: 'identity' } });
+    const token = await issuer.generate({ payload: payload() });
+    const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+    const withAudience = await signedElsewhere({ issuer: 'identity', audience: 'x' });
+
+    expect(claims.iss).toBe('identity');
+    expect(claims.aud).toBeUndefined();
+    const result = await verifier.verify({ type: 'Bearer', token });
+    expect(result.userId).toBe(1);
+    const result2 = await verifier.verify({ type: 'Bearer', token: withAudience });
+    expect(result2.userId).toBe(1);
+  });
+
+  test('the issuer is still required on the verifier', async () => {
+    const other = await signedElsewhere({ issuer: 'somebody-else' });
+
+    await RejectionHelper.expectRejection({
+      task: buildVerifier({ claims: { issuer: 'identity' } }).verify({
+        type: 'Bearer',
+        token: other,
+      }),
       message: REFUSED,
     });
   });

@@ -200,7 +200,7 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `headerAlgorithm` | `string` | `'HS256'` | No | JWT signing algorithm |
 | `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Custom serialize/deserialize per field name |
 | `verify` | `IJWTVerifyOptions` | -- | No | Further checks on verify: `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims`. `issuer` and `audience` are `claims` now. `algorithms` unset pins the algorithm the service signs with |
-| `claims` | `{ issuer: string; audience: string \| string[] }` | -- | Yes | The `iss` and `aud` stamped on every issued token and required on every verified one. A configured value WINS over one supplied in the payload. No other key is accepted |
+| `claims` | `{ issuer: string; audience?: string \| string[] }` | -- | Yes | `issuer` is required: stamped as `iss` on every issued token and required on every verified one. `audience` is optional: set, it is stamped as `aud` and required; absent, no `aud` is stamped and none is checked. A configured value WINS over one supplied in the payload. No other key is accepted |
 
 > [!WARNING]
 > `jwtSecret` is mandatory - the component throws if it's missing, equals the placeholder `'unknown_secret'`, or is shorter than 32 bytes. `applicationSecret` is optional. When you omit it, the JWT payload stays standard plaintext. Standard fields (`iss`, `sub`, `aud`, `jti`, `nbf`, `exp`, `iat`) are never encrypted either way.
@@ -222,7 +222,7 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `applicationSecret` | `string` | -- | No | Enables AES payload field encryption when set |
 | `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Custom serialize/deserialize per field name |
 | `verify` | `IJWTVerifyOptions` | -- | No | Further checks on verify: `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims`. `issuer` and `audience` are `claims` now. `algorithms` unset pins the algorithm the service signs with |
-| `claims` | `{ issuer: string; audience: string \| string[] }` | -- | Yes | The `iss` and `aud` stamped on every issued token and required on every verified one. A configured value WINS over one supplied in the payload. No other key is accepted |
+| `claims` | `{ issuer: string; audience?: string \| string[] }` | -- | Yes | `issuer` is required: stamped as `iss` on every issued token and required on every verified one. `audience` is optional: set, it is stamped as `aud` and required; absent, no `aud` is stamped and none is checked. A configured value WINS over one supplied in the payload. No other key is accepted |
 
 ### IJWKSVerifierOptions
 
@@ -235,7 +235,7 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload decryption |
 | `applicationSecret` | `string` | -- | No | Must match the issuer's secret to decrypt payloads |
 | `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Must match the issuer's codecs to decrypt custom fields |
-| `claims` | `{ issuer: string; audience: string \| string[] }` | -- | Yes | The `iss` and `aud` required on every verified token. No other key is accepted |
+| `claims` | `{ issuer: string; audience?: string \| string[] }` | -- | Yes | `issuer` is required on every verified token. `audience` is optional: set, it is required too; absent, `aud` is not checked. No other key is accepted |
 | `verify` | `IJWKSVerifierVerifyOptions` | -- | Yes | `algorithms` is required (the accepted JWS algorithms, for example `['RS256']`): a verifier cannot know what the issuer signs with. Also `subject`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims` |
 | `jwks.hosts.http` | `string[]` | `[]` | No | Host names that may serve the key set over `http:`. Without it the `jwksUrl` is `https:` or a loopback host. See [JWKS over http](#jwks-over-http) |
 

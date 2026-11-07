@@ -108,9 +108,15 @@ describe.each([
     expect(result3).toContain('claims.issuer');
   });
 
-  test('without claims.audience refuses to boot, naming the key', async () => {
+  test('without claims.audience boots: it is optional', async () => {
     const result4 = await boot(build({ claims: { issuer: 'identity' } }));
-    expect(result4).toContain('claims.audience');
+    expect(result4).toBeNull();
+  });
+
+  test('with a null claims.audience refuses to boot, naming the key', async () => {
+    const result = await boot(build({ claims: { issuer: 'identity', audience: null } }));
+
+    expect(result).toContain('claims.audience');
   });
 
   test('with a misspelt key in claims refuses to boot, naming it', async () => {
