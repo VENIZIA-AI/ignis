@@ -78,7 +78,6 @@ export declare abstract class BaseRelationalDataSource<Settings extends object =
         transactions: boolean;
     };
     beginTransaction(opts?: TRelationalTransactionOptions): Promise<IRelationalTransaction<TConnector>>;
-    getOpening(): IRelationalDataSourceOpening<TConnector, Client>;
     /** Adds the transaction to the handles of the open: `configure()` can run its migrations in one, through the ungated internals. */
     protected createOpening(): IRelationalDataSourceOpening<TConnector, Client>;
     /** A transaction on a connection of its own, with no gate: for `beginTransaction()` (after the open) and for the open itself. */

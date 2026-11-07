@@ -50,7 +50,6 @@ export declare abstract class AbstractDriverDataSource<Settings extends object =
     }): void;
     /** A datasource that opens on first use has no client, driver or connector until the first call that needs it has awaited `ensureOpen()`. */
     private assertOpenForSyncUse;
-    getOpening(): IDataSourceOpening<TConnector, Client>;
     /** The handles `configure()` is given: the connector and the client through the ungated internals, so its own database work (migrations, seeding) needs no gate. */
     protected createOpening(): IDataSourceOpening<TConnector, Client>;
     /** Wires the driver on first use, so a `configure()` that only builds `this.client` is enough. */

@@ -54,10 +54,15 @@ export declare abstract class AbstractDataSource<Settings extends object = {}, S
     /** Whether `close()` has begun. A datasource that opens on first use is not reopened after it. */
     isClosed(): boolean;
     /**
-     * The handles `configure()` gets as its second argument, in both modes. The root has no connector, client or transaction to
-     * hand out; a family that has them overrides {@link createOpening}.
+     * What the application boot calls to get the handles it passes to `configure()` of a datasource that opens at start. Keyed by a
+     * symbol the package does not export, so nothing else can obtain the handles: see {@link OPENING_HANDLES}.
      */
-    getOpening(): IDataSourceOpening;
+    [OPENING_HANDLES](): IDataSourceOpening;
+    /**
+     * The handles `configure()` gets as its second argument, in both modes. The root has no connector, client or transaction to
+     * hand out; a family that has them overrides this. Protected: the only ways out are the argument of `configure()` and the
+     * boot's private key.
+     */
     protected createOpening(): IDataSourceOpening;
     /**
      * The boot's replacement for `configure()` on a datasource that opens on first use: records the options and opens nothing.
@@ -679,8 +684,6 @@ export interface IDataSource<Settings extends object = {}, Schema extends TAnyDa
     close?(): Promise<void>;
     /** The datasource's own `configure()` receives the handles of {@link IDataSourceOpening} as its second argument. */
     configure(opts?: ConfigurableOptions, opening?: IDataSourceOpening): ValueOrPromise<void>;
-    /** The handles `configure()` is given: the boot passes them in every mode, so the same body works whether the datasource opens at start or on first use. */
-    getOpening?(): IDataSourceOpening;
     /** True when the datasource opens on first use (`@datasource({ open: { on: 'first-use' } })`): the boot then calls {@link deferOpen} instead of `configure()`. */
     isOpenDeferred?(): boolean;
     /** Records the options `configure()` will get when the datasource opens on first use; nothing is opened. */
