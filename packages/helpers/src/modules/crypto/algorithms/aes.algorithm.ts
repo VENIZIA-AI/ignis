@@ -9,18 +9,14 @@ const DEFAULT_LENGTH = 16;
 const CIPHERTEXT_VERSION = 0x01;
 const DEFAULT_KEY_ID = '0';
 
-interface IAESDecryptOptions {
+/** Options of `AES.encrypt` and `AES.decrypt`. There is no `iv`: every encryption draws a fresh random one, and decrypt reads it from the envelope. */
+interface IAESOptions {
   inputEncoding?: BufferEncoding;
   outputEncoding?: BufferEncoding;
   /** Per-deployment PBKDF2 salt override. Must be supplied identically on encrypt and decrypt; omit for the shipped default. */
   kdfSalt?: string;
   /** PBKDF2 iteration count override. Must be supplied identically on encrypt and decrypt; omit for the shipped default. */
   kdfIterations?: number;
-}
-
-/** `iv` is encrypt-only: the envelope carries the IV, so decrypt reads it from there and a supplied one would be silently ignored. */
-interface IAESExtraOptions extends IAESDecryptOptions {
-  iv?: Buffer;
 }
 
 /** One key in a keyring: `id` is written into the ciphertext so decrypt can pick the matching `secret`. */
@@ -42,8 +38,11 @@ export class AES extends BaseCryptoAlgorithm<
   TAESSecret,
   Promise<string>,
   Promise<string>,
-  IAESExtraOptions
+  IAESOptions
 > {
+  /** The options AES refuses: `doThrow` (a failure always throws) and `iv` (every encryption draws its own). */
+  private static readonly REMOVED_OPTIONS = ['doThrow', 'iv'] as const;
+
   constructor(opts: { algorithm: AESAlgorithmType }) {
     super({ scope: AES.name, ...opts });
   }
@@ -113,13 +112,18 @@ export class AES extends BaseCryptoAlgorithm<
   async encrypt(opts: {
     message: string;
     secret: TAESSecret;
-    opts?: IAESExtraOptions;
+    opts?: IAESOptions;
   }): Promise<string> {
     const { message, secret } = opts;
-    this.assertNoRemovedOptions({ method: 'encrypt', options: opts.opts });
+    this.assertNoRemovedOptions({
+      method: 'encrypt',
+      options: opts.opts,
+      removed: AES.REMOVED_OPTIONS,
+    });
 
+    // Fresh for every call, from the system's random source: the IV is never the caller's to choose.
+    const iv = Buffer.from(crypto.getRandomValues(new Uint8Array(DEFAULT_LENGTH)));
     const {
-      iv = Buffer.from(crypto.getRandomValues(new Uint8Array(DEFAULT_LENGTH))),
       inputEncoding = 'utf-8',
       outputEncoding = 'base64',
       kdfSalt,
@@ -131,13 +135,6 @@ export class AES extends BaseCryptoAlgorithm<
 
     if (idBuffer.length > 0xff) {
       throw getError({ message: '[AES][encrypt] Key id too long (max 255 bytes)' });
-    }
-
-    // `decrypt` reads exactly DEFAULT_LENGTH bytes of IV from the envelope, so any other length would write a ciphertext nothing can read.
-    if (iv.length !== DEFAULT_LENGTH) {
-      throw getError({
-        message: `[AES][encrypt] The IV must be ${DEFAULT_LENGTH} bytes, got ${iv.length}`,
-      });
     }
 
     const { cipherText, authTag } = await AesEngine.seal({
@@ -176,10 +173,14 @@ export class AES extends BaseCryptoAlgorithm<
   async decrypt(opts: {
     message: string;
     secret: TAESSecret;
-    opts?: IAESDecryptOptions;
+    opts?: IAESOptions;
   }): Promise<string> {
     const { message, secret } = opts;
-    this.assertNoRemovedOptions({ method: 'decrypt', options: opts.opts });
+    this.assertNoRemovedOptions({
+      method: 'decrypt',
+      options: opts.opts,
+      removed: AES.REMOVED_OPTIONS,
+    });
 
     const {
       inputEncoding = 'base64',

@@ -37,12 +37,25 @@ describe('AES: what is stored still reads, and the same input writes the same by
       });
       expect(result).toBe(fixture.message);
 
-      const rewritten = await cipher.encrypt({
-        message: fixture.message,
-        secret: fixture.secret,
-        opts: { iv: Buffer.from(fixture.ivHex, 'hex'), ...kdf },
-      });
-      expect(rewritten).toBe(fixture.stored);
+      // The IV of a call is the system's random bytes. Stubbing the source to the fixture's IV proves the same
+      // input still writes the same bytes: the format and the key derivation are what the fixture recorded.
+      const stub = spyOn(crypto, 'getRandomValues').mockImplementation(((array: Uint8Array) => {
+        array.set(Buffer.from(fixture.ivHex, 'hex'));
+
+        return array;
+      }) as never);
+
+      try {
+        const rewritten = await cipher.encrypt({
+          message: fixture.message,
+          secret: fixture.secret,
+          opts: kdf,
+        });
+
+        expect(rewritten).toBe(fixture.stored);
+      } finally {
+        stub.mockRestore();
+      }
     });
   }
 
@@ -260,5 +273,60 @@ describe('RSA: keys and ciphertext of the synchronous implementation still work'
     });
     expect(result5).toBeString();
     expect(result5).not.toContain('doThrow');
+  });
+});
+
+describe('AES: ciphertext sealed under a fixed IV, before the iv option was removed, still decrypts', () => {
+  const SECRET = 'a-stored-secret-of-32-characters';
+
+  /** What the old encrypt wrote for a caller-chosen IV: [version 1][idLen][id][iv 16][tag 16, gcm only][cipher]. */
+  const sealUnderFixedIv = (opts: {
+    algorithm: 'aes-256-cbc' | 'aes-256-gcm';
+    iv: Buffer;
+    message: string;
+  }) => {
+    const key = C.pbkdf2Sync(SECRET, 'ignis-kdf-salt-v1', 100_000, 32, 'sha256');
+    const cipher = C.createCipheriv(opts.algorithm, key, opts.iv);
+    const cipherText = Buffer.concat([cipher.update(opts.message, 'utf-8'), cipher.final()]);
+    const id = Buffer.from('0');
+    const parts = [Buffer.from([1, id.length]), id, opts.iv];
+
+    if (opts.algorithm === 'aes-256-gcm') {
+      parts.push((cipher as C.CipherGCM).getAuthTag());
+    }
+
+    parts.push(cipherText);
+
+    return Buffer.concat(parts).toString('base64');
+  };
+
+  test.each(['aes-256-cbc', 'aes-256-gcm'] as const)(
+    '%s: an envelope with a constant IV is read as before',
+    async (algorithm) => {
+      const stored = sealUnderFixedIv({
+        algorithm,
+        iv: Buffer.alloc(16, 5),
+        message: 'sealed before the change',
+      });
+
+      const result = await AES.withAlgorithm(algorithm).decrypt({
+        message: stored,
+        secret: SECRET,
+      });
+
+      expect(result).toBe('sealed before the change');
+    },
+  );
+
+  test('the same IV under two messages is still readable: only writing it is gone', async () => {
+    const iv = Buffer.alloc(16, 7);
+    const first = sealUnderFixedIv({ algorithm: 'aes-256-gcm', iv, message: 'first' });
+    const second = sealUnderFixedIv({ algorithm: 'aes-256-gcm', iv, message: 'second' });
+    const cipher = AES.withAlgorithm('aes-256-gcm');
+
+    const result2 = await cipher.decrypt({ message: first, secret: SECRET });
+    expect(result2).toBe('first');
+    const result3 = await cipher.decrypt({ message: second, secret: SECRET });
+    expect(result3).toBe('second');
   });
 });
