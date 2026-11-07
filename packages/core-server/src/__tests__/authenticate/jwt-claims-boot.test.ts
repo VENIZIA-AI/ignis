@@ -136,3 +136,31 @@ describe('the JWKS verifier configuration', () => {
     expect(result2).toContain('verify.algorithms');
   });
 });
+
+describe.each([
+  ['JWS', JWS],
+  ['JWKS issuer', ISSUER],
+  ['JWKS verifier', VERIFIER],
+])('the %s configuration, bad claim values', (_name, build) => {
+  test('a whitespace issuer refuses to boot', async () => {
+    const result = await boot(build({ claims: { issuer: '   ', audience: 'inventory' } }));
+    expect(result).toContain('claims.issuer');
+  });
+
+  test('an empty audience list refuses to boot', async () => {
+    const result2 = await boot(build({ claims: { issuer: 'identity', audience: [] } }));
+    expect(result2).toContain('claims.audience');
+  });
+
+  test('a verify option that is not an object refuses to boot', async () => {
+    const result3 = await boot(build({ verify: 'maxTokenAge' }));
+    expect(result3).toContain('verify must be an object');
+  });
+});
+
+describe('the JWS configuration, algorithm none', () => {
+  test("headerAlgorithm 'none' refuses to boot", async () => {
+    const result = await boot(JWS({ headerAlgorithm: 'none' }));
+    expect(result).toContain("'none'");
+  });
+});

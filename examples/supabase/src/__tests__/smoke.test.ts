@@ -15,7 +15,7 @@ import { Application } from '../application';
 
 const HOST = '127.0.0.1';
 const DATABASE_URL = 'postgresql://postgres:postgres@localhost:15433/postgres';
-const JWT_SECRET = 'smoke-test-secret';
+const JWT_SECRET = 'smoke-test-secret-not-for-production';
 
 const NoteSchema = z.object({ id: z.string(), ownerId: z.string(), title: z.string() });
 const NoteListResponse = z.object({ data: z.array(NoteSchema), count: z.number() });

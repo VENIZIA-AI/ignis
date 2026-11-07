@@ -45,7 +45,7 @@ Inside `base/auth`, the providers and registries reach each other by **leaf impo
 
 The JWT branch is discriminated by `JOSEStandards`:
 
-- **JWS** - a shared-secret token. `defineJWSAuth()` refuses a missing or default `jwtSecret`, requires `getTokenExpiresFn` and `claims`, and registers `JWSTokenService`.
+- **JWS** - a shared-secret token. `defineJWSAuth()` refuses a missing, default or shorter-than-32-bytes `jwtSecret` (`JWSTokenService.assertSecretStrength`, which the service also runs when built; `applicationSecret` is an AES passphrase and has no minimum), requires `getTokenExpiresFn` and `claims`, and registers `JWSTokenService`.
 - **JWKS** - asymmetric, discriminated again by `JWKSModes`:
   - `issuer` - requires `keys.private` / `keys.public`, a valid `keys.format` (`pem` or `jwk`), a `kid`, `getTokenExpiresFn` and `claims`. Registers `JWKSIssuerTokenService` and mounts `JWKSController`. The controller's path depends on a runtime option, so `@controller` cannot be applied statically - the component calls `Reflect.decorate([controller({ path: issuerOpts?.rest?.path ?? '/certs' })], JWKSController)` instead.
   - `verifier` - requires `jwksUrl`, `claims` and `verify.algorithms`, registers `JWKSVerifierTokenService` (with `cacheTtlMs` defaulting to 12h and a 30s `cooldownMs`).

@@ -193,7 +193,7 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 
 | Option | Type | Default | Required | Description |
 |--------|------|---------|----------|-------------|
-| `jwtSecret` | `string` | -- | Yes | Secret for signing and verifying the JWT signature |
+| `jwtSecret` | `string` | -- | Yes | Secret for signing and verifying the JWT signature. At least 32 bytes (UTF-8): a shorter one refuses the boot |
 | `getTokenExpiresFn` | `TGetTokenExpiresFn` | -- | Yes | Returns token expiration in seconds |
 | `applicationSecret` | `string` | -- | No | Enables AES payload field encryption when set |
 | `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload encryption |
@@ -203,7 +203,7 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `claims` | `{ issuer: string; audience: string \| string[] }` | -- | Yes | The `iss` and `aud` stamped on every issued token and required on every verified one. A configured value WINS over one supplied in the payload. No other key is accepted |
 
 > [!WARNING]
-> `jwtSecret` is mandatory - the component throws if it's missing or equals the placeholder `'unknown_secret'`. `applicationSecret` is optional. When you omit it, the JWT payload stays standard plaintext. Standard fields (`iss`, `sub`, `aud`, `jti`, `nbf`, `exp`, `iat`) are never encrypted either way.
+> `jwtSecret` is mandatory - the component throws if it's missing, equals the placeholder `'unknown_secret'`, or is shorter than 32 bytes. `applicationSecret` is optional. When you omit it, the JWT payload stays standard plaintext. Standard fields (`iss`, `sub`, `aud`, `jti`, `nbf`, `exp`, `iat`) are never encrypted either way.
 
 ### IJWKSIssuerOptions
 

@@ -59,6 +59,13 @@ export declare abstract class AbstractBearerTokenService<E extends Env = Env> ex
         type: string;
         token: string;
     }): Promise<IJWTTokenPayload>;
+    /**
+     * A service assertion (`typ: svc+jwt`) is not a user token. When a JWKS issuer shares the key of the service
+     * assertions and the names collide, an assertion would otherwise verify here, so the user-token path refuses it.
+     */
+    protected assertNotServiceAssertion(opts: {
+        token: string;
+    }): Promise<void>;
     generate(opts: {
         payload: IJWTTokenPayload;
         getTokenExpiresFn?: TGetTokenExpiresFn;
@@ -1983,7 +1990,18 @@ Symmetric JWT (JWS) token service with optional AES-encrypted payloads.
 ```ts
 export declare class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenService<E> {
     protected options: IJWSTokenServiceOptions;
+    /** The shortest `jwtSecret` accepted, in bytes: an HMAC key is as strong as it is long, and 32 bytes is the size of a SHA-256 output. */
+    static readonly MIN_SECRET_BYTES = 32;
     protected jwtSecret: Uint8Array;
+    /**
+     * Refuses a `jwtSecret` shorter than {@link JWSTokenService.MIN_SECRET_BYTES} (counted in UTF-8 bytes, not
+     * characters), saying how to make one. The secret is never echoed. The component calls it at boot and the
+     * service when it is built.
+     */
+    static assertSecretStrength(opts: {
+        scope: string;
+        secret: string;
+    }): void;
     constructor(options: IJWSTokenServiceOptions);
     protected doVerify(token: string): Promise<IJWTTokenPayload>;
     getSigner(opts: {

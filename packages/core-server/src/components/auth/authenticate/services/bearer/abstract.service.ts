@@ -12,8 +12,14 @@ import type {
   TContext,
   TGetTokenExpiresFn,
 } from '@venizia/ignis-kernel';
-import { Authentication, AuthenticationErrors, BaseService } from '@venizia/ignis-kernel';
+import {
+  Authentication,
+  AuthenticationErrors,
+  BaseService,
+  ServiceAssertion,
+} from '@venizia/ignis-kernel';
 import type { Env } from 'hono';
+import { JoseLoader } from '../jose-loader';
 import type { JWTPayload, JWTVerifyOptions, JWTVerifyResult, SignJWT } from 'jose';
 
 /** What a token service is configured with for claims: the required `claims`, the `verify` checks, and the removed `sign` it refuses. */
@@ -81,6 +87,12 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
       );
     }
 
+    if (options.verify !== undefined && !RecordUtility.isPlainRecord(options.verify)) {
+      throw fail(
+        'verify must be an object | its checks (maxTokenAge, subject, ...) would be dropped silently',
+      );
+    }
+
     const verify = RecordUtility.isPlainRecord(options.verify) ? options.verify : {};
 
     for (const key of AbstractBearerTokenService.CLAIM_KEYS) {
@@ -130,6 +142,10 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
       throw fail(
         "verify.algorithms is required | the accepted JWS algorithms, for example ['RS256']: a verifier cannot know what the issuer signs with",
       );
+    }
+
+    if (algorithms.some((algorithm) => algorithm.trim().toLowerCase() === 'none')) {
+      throw fail("the algorithm 'none' is refused | a token with no signature verifies nothing");
     }
 
     return {
@@ -225,6 +241,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     }
 
     try {
+      await this.assertNotServiceAssertion({ token });
       const result = await this.doVerify(token);
 
       return result;
@@ -235,6 +252,23 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
         message: '[verify] Invalid or expired token',
         logLevel: 'warn',
         cause: error,
+      });
+    }
+  }
+
+  /**
+   * A service assertion (`typ: svc+jwt`) is not a user token. When a JWKS issuer shares the key of the service
+   * assertions and the names collide, an assertion would otherwise verify here, so the user-token path refuses it.
+   */
+  protected async assertNotServiceAssertion(opts: { token: string }): Promise<void> {
+    const { decodeProtectedHeader } = await JoseLoader.load();
+    const { typ } = decodeProtectedHeader(opts.token);
+    const kind = typeof typ === 'string' ? typ.toLowerCase().replace(/^application\//, '') : '';
+
+    if (kind === ServiceAssertion.TYP) {
+      throw getError({
+        error: AuthenticationErrors.TOKEN_INVALID,
+        message: '[verify] A service assertion is not a user token',
       });
     }
   }

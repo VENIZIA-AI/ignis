@@ -326,7 +326,7 @@ Configure separate environment for testing:
 # .env.test - Test environment variables
 NODE_ENV=test
 APP_ENV_APPLICATION_SECRET=test-secret-key
-APP_ENV_JWT_SECRET=test-jwt-secret
+APP_ENV_JWT_SECRET=test-jwt-secret-of-at-least-32-bytes
 APP_ENV_POSTGRES_HOST=localhost
 APP_ENV_POSTGRES_PORT=5433
 APP_ENV_POSTGRES_USERNAME=test_user

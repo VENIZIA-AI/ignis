@@ -161,6 +161,8 @@ export class AuthenticateComponent extends BaseComponent {
       pinnedAlgorithms: [jwsOptions.headerAlgorithm ?? 'HS256'],
     });
 
+    JWSTokenService.assertSecretStrength({ scope: 'defineJWSAuth', secret: jwtSecret });
+
     this.application
       .bind<IJWSTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
       .toValue(jwsOptions);
