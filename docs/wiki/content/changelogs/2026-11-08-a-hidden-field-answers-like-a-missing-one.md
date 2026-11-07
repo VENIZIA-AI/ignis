@@ -8,7 +8,7 @@ packages: ['@venizia/ignis-connectors', '@venizia/ignis-kernel', '@venizia/ignis
 
 ## A hidden field answers like a missing one in every filter path
 
-<Badge type="info" text="Bug Fix" /> <Badge type="danger" text="Security" />
+<Badge type="info" text="Bug Fix" /> <Badge type="danger" text="Security" /> <Badge type="warning" text="Breaking Change" />
 
 **In one line.** A caller could still learn that a property exists and is hidden, by sorting on it in Meilisearch or by putting a bogus key next to it. Both now get the answer a missing property gets.
 
@@ -25,6 +25,27 @@ packages: ['@venizia/ignis-connectors', '@venizia/ignis-kernel', '@venizia/ignis
 - **Meilisearch callers that sort on a field the collection definition does not declare.** They get `400` instead of the engine's own error. Declare the field, or sort through `mode: 'raw'`.
 - **Meilisearch callers that sort by distance through `filter.order`** (`_geoPoint(lat, lng) ASC`). It is not a declared field, so it is refused now. Send the geo sort through `mode: 'raw'`.
 - **Everyone else.** No action needed.
+
+## Breaking changes
+
+> [!WARNING]
+> A Meilisearch `filter.order` entry that is not a declared field of the collection, such as a distance sort, answers `400` instead of reaching the engine.
+
+**Before:**
+
+```typescript
+await repository.search({
+  input: { mode: 'keyword', query: 'cafe', filter: { order: ['_geoPoint(10.77, 106.69) ASC'] } },
+});
+```
+
+**After** (send the geo sort to the engine through raw mode, on a controller that opted in with `modes.raw.allow`):
+
+```typescript
+await repository.search({
+  input: { mode: 'raw', params: { q: 'cafe', sort: ['_geoPoint(10.77,106.69):asc'] } },
+});
+```
 
 ## Details
 

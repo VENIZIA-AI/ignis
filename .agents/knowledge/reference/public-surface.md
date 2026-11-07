@@ -1232,7 +1232,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (434)
+### `@venizia/ignis-kernel` (436)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2403,7 +2403,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1031)
+### `@venizia/ignis` (1033)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
