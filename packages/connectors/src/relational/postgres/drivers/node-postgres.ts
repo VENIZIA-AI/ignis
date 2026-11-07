@@ -2,6 +2,7 @@ import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import type { TRelationalConnector } from '@/relational/postgres/datasources/common';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
+import { RelationalDialects } from '@/relational/core/drivers';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 import type { TRelationalConnection, TRelationalDriver } from './driver';
@@ -10,6 +11,9 @@ import type { TRelationalConnection, TRelationalDriver } from './driver';
 export class NodePostgresDriver<
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
 > implements TRelationalDriver<Schema, Pool> {
+  /** The engine this driver speaks; the migration ledger reads it (see {@link RelationalDialects}). */
+  readonly dialect = RelationalDialects.POSTGRES;
+
   private readonly client: Pool;
 
   constructor(opts: { client: Pool }) {

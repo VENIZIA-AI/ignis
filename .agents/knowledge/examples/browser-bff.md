@@ -76,8 +76,8 @@ ledger table records what ran.
 
 The runner is the framework's `RelationalMigrationRunner`, not this example's - it was 70 lines of
 transaction handling with a documented crash analysis, which is framework work living in an example.
-The example keeps only its `MIGRATIONS` array, and passes `ledgerTable: 'ignis_browser_migrations'`
-because that is the name its own earlier ledger used and the database lives in the visitor's OPFS.
+The example keeps only its `MIGRATIONS` array, and passes `ledger: { schema: 'public', table: 'ignis_browser_migrations' }`
+because that is the table its own earlier ledger used and the database lives in the visitor's OPFS.
 
 The DDL and the ledger row go in **one** transaction. Run as two statements they would not: a bare
 exec commits when it returns, so an interruption between them leaves the table present and the ledger

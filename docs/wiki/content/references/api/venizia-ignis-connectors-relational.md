@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/relational, from the bui
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-71 exports, 71 with TSDoc.
+73 exports, 73 with TSDoc.
 
 ## `AbstractRelationalDataSource`
 
@@ -652,6 +652,8 @@ The common driver (connector, client, end) plus connection acquisition and raw c
 
 ```ts
 export interface IRelationalDriver<TConnector, Client = unknown> extends IConnectorDriver<TConnector, Client> {
+    /** The engine this driver speaks. The built-in drivers declare it; a hand-made driver may omit it, and the migration ledger then accepts no `ledger.schema` (it cannot know whether the engine has schemas). */
+    readonly dialect?: TRelationalDialect;
     acquire(opts: {
         schema: TAnyDataSourceSchema;
     }): Promise<IRelationalConnection<TConnector>>;
@@ -1935,6 +1937,23 @@ export declare abstract class RelationalBaseRepository<EntitySchema extends TTab
 
 Source: `packages/connectors/src/relational/core/repositories/core/base.ts`
 
+## `RelationalDialects`
+
+*class*
+
+The SQL engines a relational driver can speak. Only the migration ledger reads it today: Postgres has schemas to create, SQLite has only `main`.
+
+```ts
+export declare class RelationalDialects {
+    static readonly POSTGRES = "postgres";
+    static readonly SQLITE = "sqlite";
+    static readonly SCHEME_SET: Set<string>;
+    static isValid(input: string): input is TRelationalDialect;
+}
+```
+
+Source: `packages/connectors/src/relational/core/drivers/driver.ts`
+
 ## `RelationalEntityUtility`
 
 *class*
@@ -1982,16 +2001,26 @@ TWO LIMITS THE TRANSACTION AND THE MINIMAL LEDGER IMPOSE, both deliberate:
 export declare class RelationalMigrationRunner extends BaseHelper {
     private readonly driver;
     private readonly ledgerTable;
+    /** `undefined` is the engine's default schema: the table is then written unqualified, as it always was. */
+    private readonly ledgerSchema;
     /** Set when a ROLLBACK itself fails, so the connection is destroyed rather than pooled. */
     private isSessionPoisoned;
     constructor(opts: {
         driver: IRelationalDriver<unknown>;
         /**
-         * The table that records applied migrations. Validated like a migration name.
+         * Where the applied migrations are recorded. Both names are validated like a migration name and
+         * written quoted.
          *
-         * @default 'ignis_migrations'
+         * - `table` defaults to `'ignis_migrations'`.
+         * - `schema` defaults to the engine's default schema. On Postgres a `schema` is created when it
+         *   is missing (checked first, so an existing one needs no `CREATE` privilege), in the same
+         *   transaction as the ledger table. SQLite has only `main`: any other
+         *   schema is refused here, and so is any schema on a driver that declares no `dialect`.
          */
-        ledgerTable?: string;
+        ledger?: {
+            schema?: string;
+            table?: string;
+        };
         scope?: string;
     });
     /**
@@ -2001,6 +2030,10 @@ export declare class RelationalMigrationRunner extends BaseHelper {
      * is refused rather than escaped. Escaping is what gets this wrong; refusing cannot.
      */
     private static assertSafeName;
+    /** A schema is accepted only on an engine known to have it: Postgres, or SQLite's `main`. A driver that names no dialect cannot be asked, so it gets none. Never ignored, never guessed. */
+    private assertSchemaSupported;
+    /** The ledger table as SQL: `"schema"."table"`, or `"table"` when the engine's default schema is used. */
+    private get ledgerName();
     /** Splits on `drizzle-kit`'s own breakpoint marker; a hand-written single-statement migration has none and comes back whole. */
     static splitStatements(opts: {
         sql: string;
@@ -2008,8 +2041,19 @@ export declare class RelationalMigrationRunner extends BaseHelper {
     run(opts: {
         migrations: ReadonlyArray<IMigration>;
     }): Promise<void>;
-    /** BEGIN/COMMIT written here rather than through `beginTransaction()`: that acquires its OWN connection, and the ledger read above has to see the same session on a single-connection engine. */
+    /** The ledger's schema (Postgres only, and only when one is named, and only when it is missing) and its table. */
+    private createLedger;
+    /**
+     * Creates the schema only when it is missing. `CREATE SCHEMA IF NOT EXISTS` is not enough: Postgres checks the
+     * `CREATE` privilege on the database before it looks at `IF NOT EXISTS`, so a role without it would fail even for
+     * `public`. Asking `pg_namespace` first lets such a role use an existing schema; it fails only when it must create one.
+     * The name passed the safe-name check, so it is embedded as a literal like the others.
+     */
+    private ensureSchema;
+    /** One migration and its ledger row, in one transaction. */
     private applyOne;
+    /** BEGIN/COMMIT written here rather than through `beginTransaction()`: that acquires its OWN connection, and the ledger read has to see the same session on a single-connection engine. */
+    private transact;
 }
 ```
 
@@ -2464,6 +2508,18 @@ export type TRelationalConnectorOf<TDataSource extends IRelationalDataSource> = 
 ```
 
 Source: `packages/connectors/src/relational/core/repositories/common/types.ts`
+
+## `TRelationalDialect`
+
+*type*
+
+Union of the `RelationalDialects` values.
+
+```ts
+export type TRelationalDialect = TConstValue<typeof RelationalDialects>;
+```
+
+Source: `packages/connectors/src/relational/core/drivers/driver.ts`
 
 ## `TRelationalTransactionOf`
 

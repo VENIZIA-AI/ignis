@@ -25,6 +25,8 @@ it. Route work that must stay outside one through `acquire()`.
 
 ```ts
 export declare class LibSqlDriver<Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema> implements TSqliteDriver<Schema, Client> {
+    /** The engine this driver speaks; the migration ledger reads it (see {@link RelationalDialects}). */
+    readonly dialect = "sqlite";
     private readonly client;
     /**
      * The pooled resource IS the single client, so `create()` always hands back the same instance.

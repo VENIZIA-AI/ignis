@@ -17,6 +17,8 @@ Driver over a `pg` `Pool`. Throws on construction if given anything without pool
 
 ```ts
 export declare class NodePostgresDriver<Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema> implements TRelationalDriver<Schema, Pool> {
+    /** The engine this driver speaks; the migration ledger reads it (see {@link RelationalDialects}). */
+    readonly dialect = "postgres";
     private readonly client;
     constructor(opts: {
         client: Pool;

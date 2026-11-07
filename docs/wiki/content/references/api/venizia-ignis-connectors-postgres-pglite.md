@@ -23,6 +23,8 @@ transaction and dies with its ROLLBACK. Under concurrency, write through `acquir
 
 ```ts
 export declare class PGliteDriver<Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema> implements TRelationalDriver<Schema, PGlite> {
+    /** The engine this driver speaks; the migration ledger reads it (see {@link RelationalDialects}). */
+    readonly dialect = "postgres";
     private readonly client;
     /**
      * The pooled resource IS the single client, so `create()` always hands back the same instance.

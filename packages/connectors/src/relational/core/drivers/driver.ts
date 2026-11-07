@@ -1,5 +1,20 @@
 import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
+import type { TConstValue } from '@venizia/ignis-helpers/common';
 import type { IConnectorDriver } from '@/common/driver';
+
+/** The SQL engines a relational driver can speak. Only the migration ledger reads it today: Postgres has schemas to create, SQLite has only `main`. */
+export class RelationalDialects {
+  static readonly POSTGRES = 'postgres';
+  static readonly SQLITE = 'sqlite';
+
+  static readonly SCHEME_SET = new Set([this.POSTGRES, this.SQLITE]);
+
+  static isValid(input: string): input is TRelationalDialect {
+    return this.SCHEME_SET.has(input);
+  }
+}
+/** Union of the `RelationalDialects` values. */
+export type TRelationalDialect = TConstValue<typeof RelationalDialects>;
 
 /** Neutral result of a raw statement. Each driver maps its native shape (pg `rowCount`, postgres-js `count`) at its own boundary - callers never sniff shapes at runtime. */
 export interface IStatementResult {
@@ -27,5 +42,8 @@ export interface IRelationalDriver<TConnector, Client = unknown> extends IConnec
   TConnector,
   Client
 > {
+  /** The engine this driver speaks. The built-in drivers declare it; a hand-made driver may omit it, and the migration ledger then accepts no `ledger.schema` (it cannot know whether the engine has schemas). */
+  readonly dialect?: TRelationalDialect;
+
   acquire(opts: { schema: TAnyDataSourceSchema }): Promise<IRelationalConnection<TConnector>>;
 }

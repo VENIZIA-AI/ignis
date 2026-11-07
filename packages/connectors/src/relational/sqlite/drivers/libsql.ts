@@ -4,6 +4,7 @@ import type { Client } from '@libsql/client';
 import type { ILogger, IPoolControlOptions } from '@venizia/ignis-helpers/core';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { BaseHelper, BasePoolHelper, getError } from '@venizia/ignis-helpers/core';
+import { RelationalDialects } from '@/relational/core/drivers';
 import { drizzle } from 'drizzle-orm/libsql';
 import type { TSqliteConnection, TSqliteConnector, TSqliteDriver } from './driver';
 
@@ -39,6 +40,9 @@ export type TLibSqlDriverOptions = Omit<IPoolControlOptions, 'size'> & { client:
 export class LibSqlDriver<
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
 > implements TSqliteDriver<Schema, Client> {
+  /** The engine this driver speaks; the migration ledger reads it (see {@link RelationalDialects}). */
+  readonly dialect = RelationalDialects.SQLITE;
+
   private readonly client: Client;
 
   /**

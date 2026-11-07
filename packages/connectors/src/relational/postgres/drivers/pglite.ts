@@ -4,6 +4,7 @@ import type { PGlite } from '@electric-sql/pglite';
 import type { ILogger, IPoolControlOptions } from '@venizia/ignis-helpers/core';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { BaseHelper, BasePoolHelper, getError } from '@venizia/ignis-helpers/core';
+import { RelationalDialects } from '@/relational/core/drivers';
 import { drizzle } from 'drizzle-orm/pglite';
 import type { TRelationalConnection, TRelationalDriver } from './driver';
 
@@ -25,6 +26,9 @@ export type TPGliteDriverOptions = Omit<IPoolControlOptions, 'size'> & { client:
 export class PGliteDriver<
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
 > implements TRelationalDriver<Schema, PGlite> {
+  /** The engine this driver speaks; the migration ledger reads it (see {@link RelationalDialects}). */
+  readonly dialect = RelationalDialects.POSTGRES;
+
   private readonly client: PGlite;
 
   /**
