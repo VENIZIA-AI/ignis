@@ -2,7 +2,13 @@ import { Hono } from 'hono';
 import type { Env, Schema } from 'hono';
 
 /** What builds one router. `strict` is Hono's trailing-slash mode, passed through as given. */
-export type TRouterFactory = (opts: { strict: boolean }) => Hono<Env, Schema, string>;
+export type TRouterFactory = <
+  AppEnv extends Env,
+  AppSchema extends Schema,
+  BasePath extends string,
+>(opts: {
+  strict: boolean;
+}) => Hono<AppEnv, AppSchema, BasePath>;
 
 /**
  * Where `RestApplication` gets its two routers: a plain `Hono` until the OpenAPI layer registers `OpenAPIHono`
@@ -27,8 +33,12 @@ export class RouterFactories {
     return this.openApi !== undefined;
   }
 
-  private static createPlain(opts: { strict: boolean }): Hono<Env, Schema, string> {
-    return new Hono({ strict: opts.strict });
+  private static createPlain<
+    AppEnv extends Env,
+    AppSchema extends Schema,
+    BasePath extends string,
+  >(opts: { strict: boolean }): Hono<AppEnv, AppSchema, BasePath> {
+    return new Hono<AppEnv, AppSchema, BasePath>({ strict: opts.strict });
   }
 
   static create<AppEnv extends Env, AppSchema extends Schema, BasePath extends string>(opts: {
@@ -36,6 +46,6 @@ export class RouterFactories {
   }): Hono<AppEnv, AppSchema, BasePath> {
     const factory: TRouterFactory = this.openApi ?? RouterFactories.createPlain;
 
-    return factory({ strict: opts.strict }) as unknown as Hono<AppEnv, AppSchema, BasePath>;
+    return factory<AppEnv, AppSchema, BasePath>({ strict: opts.strict });
   }
 }

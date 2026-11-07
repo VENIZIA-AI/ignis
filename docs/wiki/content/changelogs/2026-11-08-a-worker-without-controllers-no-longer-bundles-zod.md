@@ -46,13 +46,19 @@ class App extends WorkerApplication {
 import { OpenAPIHono } from '@hono/zod-openapi';
 
 class App extends WorkerApplication {
+  declare protected rootRouter: OpenAPIHono;
+
   // Always an OpenAPIHono, whether or not a controller is in the program.
   protected override createRouter(opts: { strict: boolean }): OpenAPIHono {
     return new OpenAPIHono({ strict: opts.strict });
   }
 
+  override getRootRouter(): OpenAPIHono {
+    return this.rootRouter;
+  }
+
   override setupMiddlewares(): void {
-    (this.getRootRouter() as OpenAPIHono).doc('/doc', {
+    this.getRootRouter().doc('/doc', {
       openapi: '3.0.0',
       info: { title: 'x', version: '1' },
     });
