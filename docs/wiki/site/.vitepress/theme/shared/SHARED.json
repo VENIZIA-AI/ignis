@@ -1,5 +1,5 @@
 {
-  "fingerprint": "a74e2ec203fbe49fef2d70e9616bcb23ff185ad18f47a41446fb28da1779fe86",
+  "fingerprint": "8505a681fce16e23b71cacd8c8676e7d3dd6312959f5983bcb774bc4ad612064",
   "files": {
     "AtAGlance.vue": "82a497e03e3214a0aabca18d2dcf581bd2e9379c4d13594d0df48ce74f398991",
     "ChangelogEntryHead.vue": "f39ba1e011c369954e9a1cdf64dc0f3eefc965365e0e5a4fc99182753db70a2a",
@@ -25,7 +25,7 @@
     "changelog-loader.ts": "8c090caed3c345328b1247007e12e07d57f1671e8b9815e8aaa0eb522dbeea7b",
     "changelog.css": "fffa7bacd277fc052607ba409150bf55d9c29ba9f5fc4084e63d9ce4c21a6111",
     "changelog.data.ts": "0b7def6ba98b2ffbd93b0df6d088821308c1821e80f9826fc2103214568ecabe",
-    "code-theme.ts": "6c0bfe2ab70ae491adafe40d20a148d38ba014caac8eef1b06f321eea2fe4761",
+    "code-theme.ts": "2d8cf612fd10748ddaebbe69e5b27450f6b2876119f737642d47b1ece805bebb",
     "doc.css": "7cfbd7b57929b8e3c3856828371f5f48d55357f7f224ca76efeb2536c5b1b83c",
     "docs-blocks.css": "04900d683b5c916331f447f070f5a9fbd352adf3d2e5574777e39150df8e953a",
     "docs-shell.css": "afb5801b6fc0499d46bc3edfee4e1671d8a7c30984b26992b3160a993a50ad43",
@@ -43,10 +43,10 @@
     "highlight.ts": "10405f487837df4fd9276301653b8f568ab91592170aab7d47abeb5162164eaa",
     "home-types.ts": "3e9efd210599c296b7e6537a9373e6a18a8a287767972354531ad63ff27789ec",
     "home.css": "325356909f8ca67cb4a3d07bf42a4619131ef2ce411befc1aef2e5af0ec4a4fb",
-    "index.ts": "5be4cd68f27ca1a78e21b74624ece93610dc0ba01698dc6a8e2ff1103b4e9a67",
+    "index.ts": "ddd4da4b6d0c8f69505d8dda90a07f7229c45158a4ef174464262849f8eda1ee",
     "theme-switch.css": "cbf2c2b3a7be26b5e7cfa632a9cd005f01efa36242be8f7684f0460d4c0285f7",
     "toggle-appearance.ts": "77ea0c377f0d7ba8cecd26580a6e79a5b173c1bc140c80516ddf67f94395c04c",
-    "tokens.css": "e244e478721015cc052765846e2bfee35de5f6f81ee9f39bfb22fb1154029bc3",
+    "tokens.css": "684654b3adecf5b762144c7e07f9a6774ab5de09246309624e8d1cb6c3f0cf34",
     "topbar.css": "d1612e86f0b588e8068bc8d761628345a3608ddd74b66aaf82a78335ac664340",
     "useBarState.ts": "9f1b085b25c23418d562689ea4907c69e30cba39dbc54263b95986235c573364",
     "useDust.ts": "5be17dbe6d3c288f0b796f66248187c59c69169c0b3a170e6feacb1737ff020e",
@@ -54,6 +54,7 @@
     "useTerminal.ts": "8ab1e37b701c93b73f237a4791128b76d19e90dac4adc626fc249f47283f3ab0",
     "venizia-logo.ts": "743b2255878053ec1e1c94359da71d7dc819b693507d8bd3c270c372dc4289ff",
     "vitepress-selectors.json": "e797e36f65d8113626814a8652e0736c4572a0eb27248db2162b7ecdbe1e66d5",
-    "vp-map.css": "81eccfc381490c28c1d2ef2bb1458919afedd2e7e24b16c02f5f130ede89fed2"
+    "vp-map.css": "7c1efe72b5134d149040a13fbbe6c508beb4903ed2b9958541c421d840ef72c0",
+    "wiki-theme.ts": "d814507c87fe0d65d846e5aa52a7649f215ad9e8d1ce1f4d4f2aca90b9f2eaf6"
   }
 }

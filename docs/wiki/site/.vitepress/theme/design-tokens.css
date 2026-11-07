@@ -1,8 +1,8 @@
 /* =============================================================================
  * IGNIS DOCS - DESIGN TOKENS
  * -----------------------------------------------------------------------------
- * The brand ramp. The values are copied into product.css (--accent, --accent-2, --accent-on-dark,
- * --accent-text), which is what the pages read; nothing reads these properties. The file stays because
+ * The brand ramp, for reference; nothing reads these properties. The pages read the accent from the
+ * `theme` of .configs/vulcan.config.mts (through the manifest) and --accent-2 from config.mts. The file stays because
  * theme/shared/index.ts imports it under this fixed name. The neutrals and fonts are the shared
  * theme's (theme/shared/tokens.css).
  * ============================================================================= */

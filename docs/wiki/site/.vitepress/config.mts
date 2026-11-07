@@ -5,6 +5,13 @@ import { defineConfig, type DefaultTheme } from 'vitepress';
 import { withMermaid } from 'vitepress-plugin-mermaid';
 import { writeChangelogFeed } from './theme/shared/changelog-loader.ts';
 import { venziaCodeTheme } from './theme/shared/code-theme.ts';
+import { WikiTheme } from './theme/shared/wiki-theme.ts';
+
+// The colours of the wiki are the project's resolved theme, as `vulcan sync` wrote it to the manifest.
+const THEME = WikiTheme.read({
+  manifest: new URL('../../../../.agents/vulcan.manifest.json', import.meta.url).pathname,
+});
+const ACCENT_2 = '#d98e6a';
 
 // ── API reference pages: written by `vulcan x atlas api gen`, one per package entry; none before the first run ──
 const apiReferenceItems = (): DefaultTheme.SidebarItem[] => {
@@ -368,8 +375,8 @@ const config = defineConfig({
   appearance: 'dark',
   markdown: {
     // The code windows are dark in both themes (theme/shared/tokens.css), so one dark theme serves both: the
-    // shared theme built from IGNIS's accent on dark (the same value as --accent-on-dark in theme/product.css).
-    theme: venziaCodeTheme({ accent: '#c98a8a' }),
+    // shared theme built from the accent on dark of the manifest theme (the value of --accent-on-dark).
+    theme: venziaCodeTheme({ accent: THEME.dark.accent ?? '' }),
   },
   srcDir: '../content',
   outDir: './.vitepress/dist',
@@ -388,6 +395,7 @@ const config = defineConfig({
   },
   description: 'A TypeScript Server Infrastructure with Hono Framework',
   head: [
+    WikiTheme.head({ theme: THEME, accent2: ACCENT_2 }),
     // The home page and its terminal hide their reveal states only under this class, set before first paint.
     ['script', {}, "document.documentElement.classList.add('js');"],
     // Favicon + PWA
