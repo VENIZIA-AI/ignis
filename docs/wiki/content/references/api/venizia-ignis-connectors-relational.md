@@ -281,8 +281,7 @@ export declare abstract class FilterBuilder extends BaseHelper {
      */
     private buildWhereKeyConditions;
     /**
-     * A `where` value for a column Drizzle maps from a `Date`, with every string or number in it parsed to a `Date`:
-     * the driver mapping calls `Date` methods on whatever it is given, and a JSON request can only carry text and numbers.
+     * A `where` value for a column Drizzle maps from a `Date`, with every string or number in it parsed to a `Date`.
      * `null` stays `null`; anything that is no timestamp is a 400.
      */
     private toDateOperand;
