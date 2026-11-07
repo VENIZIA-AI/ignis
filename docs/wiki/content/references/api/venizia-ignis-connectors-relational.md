@@ -1543,6 +1543,27 @@ export declare class ReadableRelationalRepository<EntitySchema extends TTableSch
         options?: TFindOptions<ExtraOptions, TRow<DataObject, R, F>>;
     }): Promise<Array<TRow<DataObject, R, F>>>;
     /**
+     * Yields the rows matching `filter` as pages of `pageSize` rows (default 500), ascending by `id`; each page is a `find`
+     * for `id` above the last one read. The first iteration throws a 400 for `order`, `limit`, `skip`, `offset` or `include`
+     * in `filter`, a `pageSize` outside 1 to min(10 000, `limit.max` or 1000), a hidden `id` or a composite primary key.
+     * @example
+     * ```typescript
+     * import { ReadableRepository } from '@venizia/ignis-connectors/postgres';
+     * import { integer, pgTable, text } from 'drizzle-orm/pg-core';
+     *
+     * const users = pgTable('User', { id: integer('id').primaryKey(), status: text('status') });
+     * declare const repo: ReadableRepository<typeof users>;
+     * for await (const page of repo.findEvery({ filter: { where: { status: 'ACTIVE' } }, pageSize: 200 })) {
+     *   console.log(page.length);
+     * }
+     * ```
+     */
+    findEvery<R = unknown, const F extends TFields<DataObject> = TFields<DataObject>>(opts: {
+        filter?: Omit<TFilter<DataObject, F>, 'order' | 'limit' | 'skip' | 'offset' | 'include'>;
+        pageSize?: number;
+        options?: ExtraOptions;
+    }): AsyncGenerator<Array<TRow<DataObject, R, F>>, void, undefined>;
+    /**
      * Auto-selects Core API or Query API based on filter complexity.
      * @example
      * ```typescript
