@@ -30,51 +30,52 @@ const collectValue = (opts: {
   const value = (child: unknown) => collectValue({ node: child, parameter, identifiers });
 
   switch (type) {
-    case 'Literal': {
+    case AstNodeTypes.LITERAL: {
       return true;
     }
-    case 'Identifier': {
+    case AstNodeTypes.IDENTIFIER: {
       identifiers.push(node);
 
       return true;
     }
-    case 'TemplateLiteral': {
+    case AstNodeTypes.TEMPLATE_LITERAL: {
       return PromiseChainSupport.isConstant({ node });
     }
-    case 'UnaryExpression': {
+    case AstNodeTypes.UNARY_EXPRESSION: {
       return PromiseChainSupport.isConstant({ node });
     }
-    case 'ChainExpression': {
+    case AstNodeTypes.CHAIN_EXPRESSION: {
       return value(AstNode.readField({ node, key: 'expression' }));
     }
-    case 'MemberExpression': {
+    case AstNodeTypes.MEMBER_EXPRESSION: {
       // Only a read of the error itself: `error.message`, `error?.response.status`.
       const object = AstNode.readField({ node, key: 'object' });
       const isRead =
         AstNode.readField({ node, key: 'computed' }) !== true ||
-        AstNode.getType({ node: AstNode.readField({ node, key: 'property' }) }) === 'Literal';
+        AstNode.getType({ node: AstNode.readField({ node, key: 'property' }) }) ===
+          AstNodeTypes.LITERAL;
       const isRooted =
-        AstNode.getType({ node: object }) === 'MemberExpression' ||
-        (AstNode.getType({ node: object }) === 'Identifier' &&
+        AstNode.getType({ node: object }) === AstNodeTypes.MEMBER_EXPRESSION ||
+        (AstNode.getType({ node: object }) === AstNodeTypes.IDENTIFIER &&
           AstNode.readField({ node: object, key: 'name' }) === parameter);
 
       return isRead && isRooted && parameter !== undefined && value(object);
     }
-    case 'ArrayExpression': {
+    case AstNodeTypes.ARRAY_EXPRESSION: {
       const elements = AstNode.readField({ node, key: 'elements' });
 
       return (
         Array.isArray(elements) && elements.every((element) => element === null || value(element))
       );
     }
-    case 'ObjectExpression': {
+    case AstNodeTypes.OBJECT_EXPRESSION: {
       const properties = AstNode.readField({ node, key: 'properties' });
 
       return (
         Array.isArray(properties) &&
         properties.every(
           (property) =>
-            AstNode.getType({ node: property }) === 'Property' &&
+            AstNode.getType({ node: property }) === AstNodeTypes.PROPERTY &&
             AstNode.readField({ node: property, key: 'computed' }) !== true &&
             AstNode.readField({ node: property, key: 'method' }) !== true &&
             AstNode.readField({ node: property, key: 'kind' }) === 'init' &&
@@ -114,9 +115,9 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
   const args = AstNode.readField({ node: call, key: 'arguments' });
 
   if (
-    AstNode.getType({ node: call }) !== 'CallExpression' ||
+    AstNode.getType({ node: call }) !== AstNodeTypes.CALL_EXPRESSION ||
     AstNode.readField({ node: call, key: 'optional' }) === true ||
-    AstNode.getType({ node: callee }) !== 'MemberExpression' ||
+    AstNode.getType({ node: callee }) !== AstNodeTypes.MEMBER_EXPRESSION ||
     AstNode.readField({ node: callee, key: 'computed' }) === true ||
     AstNode.readField({ node: callee, key: 'optional' }) === true ||
     PromiseChainSupport.memberName({ member: callee }) !== 'catch' ||
@@ -132,7 +133,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
   const parameter: unknown = Array.isArray(params) ? params[0] : undefined;
 
   if (
-    AstNode.getType({ node: handler }) !== 'ArrowFunctionExpression' ||
+    AstNode.getType({ node: handler }) !== AstNodeTypes.ARROW_FUNCTION_EXPRESSION ||
     AstNode.readField({ node: handler, key: 'async' }) === true ||
     AstNode.getType({ node: body }) === AstNodeTypes.BLOCK_STATEMENT ||
     AstNode.readField({ node: handler, key: 'returnType' }) ||
@@ -140,7 +141,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
     !Array.isArray(params) ||
     params.length > 1 ||
     (parameter !== undefined &&
-      (AstNode.getType({ node: parameter }) !== 'Identifier' ||
+      (AstNode.getType({ node: parameter }) !== AstNodeTypes.IDENTIFIER ||
         AstNode.readField({ node: parameter, key: 'typeAnnotation' }) ||
         AstNode.readField({ node: parameter, key: 'optional' }) === true))
   ) {
@@ -166,10 +167,10 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
   const kind = String(AstNode.readField({ node: declaration, key: 'kind' }));
 
   if (
-    AstNode.getType({ node: declarator }) !== 'VariableDeclarator' ||
+    AstNode.getType({ node: declarator }) !== AstNodeTypes.VARIABLE_DECLARATOR ||
     AstNode.readField({ node: declarator, key: 'init' }) !== awaitNode ||
     AstNode.readField({ node: declarator, key: 'definite' }) === true ||
-    AstNode.getType({ node: id }) !== 'Identifier' ||
+    AstNode.getType({ node: id }) !== AstNodeTypes.IDENTIFIER ||
     !AwaitSupport.isNode(declarator) ||
     !AwaitSupport.isNode(declaration) ||
     !Array.isArray(declarations) ||
@@ -207,8 +208,8 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
       reference.isWrite() ||
       (annotation === '' &&
         (reference.from.variableScope !== variable.scope.variableScope ||
-          parentType === 'ExportSpecifier' ||
-          parentType === 'TSTypeQuery'))
+          parentType === AstNodeTypes.EXPORT_SPECIFIER ||
+          parentType === AstNodeTypes.TYPE_QUERY))
     ) {
       return undefined;
     }
@@ -229,7 +230,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
 
   if (
     annotation === '' &&
-    AstNode.getType({ node: body }) === 'ArrayExpression' &&
+    AstNode.getType({ node: body }) === AstNodeTypes.ARRAY_EXPRESSION &&
     Array.isArray(elements) &&
     elements.length === 0
   ) {
@@ -286,7 +287,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
       .map((identifier) => {
         const parent = AwaitSupport.parentOf({ node: identifier });
         const isShorthand =
-          AstNode.getType({ node: parent }) === 'Property' &&
+          AstNode.getType({ node: parent }) === AstNodeTypes.PROPERTY &&
           AstNode.readField({ node: parent, key: 'shorthand' }) === true;
 
         return {

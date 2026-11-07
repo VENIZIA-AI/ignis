@@ -9,11 +9,11 @@ const KEY_SET_TYPES = new Set(['Pick', 'Omit', 'Extract', 'Exclude', 'Record']);
 const isKeySet = (opts: { node: unknown }): boolean => {
   const parent = AstNode.readField({ node: opts.node, key: 'parent' });
 
-  if (AstNode.getType({ node: parent }) === 'TSMappedType') {
+  if (AstNode.getType({ node: parent }) === AstNodeTypes.MAPPED_TYPE) {
     return true;
   }
 
-  if (AstNode.getType({ node: parent }) !== 'TSTypeParameterInstantiation') {
+  if (AstNode.getType({ node: parent }) !== AstNodeTypes.TYPE_PARAMETER_INSTANTIATION) {
     return false;
   }
 
@@ -24,7 +24,8 @@ const isKeySet = (opts: { node: unknown }): boolean => {
   });
 
   return (
-    AstNode.getType({ node: reference }) === 'TSTypeReference' && KEY_SET_TYPES.has(String(name))
+    AstNode.getType({ node: reference }) === AstNodeTypes.TYPE_REFERENCE &&
+    KEY_SET_TYPES.has(String(name))
   );
 };
 
@@ -35,7 +36,7 @@ const topLevelStatement = (opts: { node: unknown }): unknown => {
   while (current) {
     const parent = AstNode.readField({ node: current, key: 'parent' });
 
-    if (AstNode.getType({ node: parent }) === 'Program') {
+    if (AstNode.getType({ node: parent }) === AstNodeTypes.PROGRAM) {
       return current;
     }
 
@@ -49,7 +50,7 @@ const isStringLiteral = (opts: { member: unknown }): boolean => {
   const { member } = opts;
 
   return (
-    AstNode.getType({ node: member }) === 'TSLiteralType' &&
+    AstNode.getType({ node: member }) === AstNodeTypes.LITERAL_TYPE &&
     typeof AstNode.readField({
       node: AstNode.readField({ node: member, key: 'literal' }),
       key: 'value',
@@ -60,7 +61,7 @@ const isStringLiteral = (opts: { member: unknown }): boolean => {
 const isNullish = (opts: { member: unknown }): boolean => {
   const type = AstNode.getType({ node: opts.member });
 
-  return type === 'TSNullKeyword' || type === 'TSUndefinedKeyword';
+  return type === AstNodeTypes.NULL_KEYWORD || type === AstNodeTypes.UNDEFINED_KEYWORD;
 };
 
 /**
@@ -100,7 +101,7 @@ export class ConstClassValuesRule {
 
         return (
           namePattern === undefined ||
-          (AstNode.getType({ node: declaration }) === 'TSTypeAliasDeclaration' &&
+          (AstNode.getType({ node: declaration }) === AstNodeTypes.TYPE_ALIAS_DECLARATION &&
             AstNode.readField({ node: declaration, key: 'typeAnnotation' }) === node &&
             typeof name === 'string' &&
             namePattern.test(name))
@@ -125,7 +126,7 @@ export class ConstClassValuesRule {
           const statementType = AstNode.getType({ node: statement });
           const isExported =
             statementType === AstNodeTypes.EXPORT_NAMED_DECLARATION ||
-            statementType === 'ExportDefaultDeclaration';
+            statementType === AstNodeTypes.EXPORT_DEFAULT_DECLARATION;
 
           if (!isExported || isKeySet({ node }) || !isNamed({ statement, node })) {
             return;

@@ -5,10 +5,10 @@ import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 
 /** Wrappers that carry no meaning of their own around the call or the instance: `(await new X().m()) as Y`, `new X()!.m()`, `new X()?.m()`. */
 const TRANSPARENT_TYPES = new Set([
-  'ChainExpression',
-  'TSAsExpression',
-  'TSSatisfiesExpression',
-  'TSNonNullExpression',
+  AstNodeTypes.CHAIN_EXPRESSION,
+  AstNodeTypes.AS_EXPRESSION,
+  AstNodeTypes.SATISFIES_EXPRESSION,
+  AstNodeTypes.NON_NULL_EXPRESSION,
 ]);
 
 /** The classes whose `new` is awaited on its own account: `await new Promise(...)` calls no method, and `.then` on it is `no-await-promise-chain`'s. */
@@ -57,7 +57,7 @@ export class NoAwaitNewChainRule {
       node: AstNode.readField({ node: operand, key: 'callee' }),
     });
 
-    if (AstNode.getType({ node: callee }) !== 'MemberExpression') {
+    if (AstNode.getType({ node: callee }) !== AstNodeTypes.MEMBER_EXPRESSION) {
       return undefined;
     }
 
@@ -72,7 +72,7 @@ export class NoAwaitNewChainRule {
         current = NoAwaitNewChainRule.unwrap({
           node: AstNode.readField({ node: current, key: 'callee' }),
         });
-      } else if (type === 'MemberExpression') {
+      } else if (type === AstNodeTypes.MEMBER_EXPRESSION) {
         current = NoAwaitNewChainRule.unwrap({
           node: AstNode.readField({ node: current, key: 'object' }),
         });
@@ -88,7 +88,7 @@ export class NoAwaitNewChainRule {
     const constructed = AstNode.readField({ node: current, key: 'callee' });
 
     if (
-      AstNode.getType({ node: constructed }) === 'Identifier' &&
+      AstNode.getType({ node: constructed }) === AstNodeTypes.IDENTIFIER &&
       EXEMPT_CLASSES.has(String(AstNode.readField({ node: constructed, key: 'name' })))
     ) {
       return undefined;
@@ -106,11 +106,11 @@ export class NoAwaitNewChainRule {
     const { awaitNode, statement } = opts;
     const type = AstNode.getType({ node: statement });
 
-    if (type === 'ExpressionStatement') {
+    if (type === AstNodeTypes.EXPRESSION_STATEMENT) {
       return AstNode.readField({ node: statement, key: 'expression' }) === awaitNode;
     }
 
-    if (type !== 'VariableDeclaration') {
+    if (type !== AstNodeTypes.VARIABLE_DECLARATION) {
       return false;
     }
 
@@ -129,21 +129,24 @@ export class NoAwaitNewChainRule {
 
     while (
       AstNode.getType({ node: current }) === AstNodeTypes.CALL_EXPRESSION ||
-      AstNode.getType({ node: current }) === 'MemberExpression'
+      AstNode.getType({ node: current }) === AstNodeTypes.MEMBER_EXPRESSION
     ) {
       current = NoAwaitNewChainRule.unwrap({
         node: AstNode.readField({
           node: current,
-          key: AstNode.getType({ node: current }) === 'MemberExpression' ? 'object' : 'callee',
+          key:
+            AstNode.getType({ node: current }) === AstNodeTypes.MEMBER_EXPRESSION
+              ? 'object'
+              : 'callee',
         }),
       });
     }
 
     const constructed = AstNode.readField({ node: current, key: 'callee' });
     const word =
-      AstNode.getType({ node: constructed }) === 'Identifier'
+      AstNode.getType({ node: constructed }) === AstNodeTypes.IDENTIFIER
         ? AstNode.readField({ node: constructed, key: 'name' })
-        : AstNode.getType({ node: constructed }) === 'MemberExpression'
+        : AstNode.getType({ node: constructed }) === AstNodeTypes.MEMBER_EXPRESSION
           ? AstNode.readField({
               node: AstNode.readField({ node: constructed, key: 'property' }),
               key: 'name',
