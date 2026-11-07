@@ -15,7 +15,10 @@ import { NotSupportedUtility } from '@venizia/ignis-kernel';
 import type { ILogger } from '@venizia/ignis-helpers/core';
 import type { AnyType, TNullable } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import type { AnyColumn } from 'drizzle-orm';
+import { is } from 'drizzle-orm';
 import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
+import { SQLiteColumn } from 'drizzle-orm/sqlite-core';
 
 /**
  * Translates already-built SQL fragments (`where`, `orderBy`, projections) to Drizzle Core calls.
@@ -106,14 +109,13 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
   async insert<R>(opts: IInsertOptions<TSqliteConnector>): Promise<IWriteResult<R>> {
     const { connector, table, values, returning, shouldReturn, onConflict } = opts;
     const inserted = connector.insert(this.asTable({ table })).values(values as AnyType);
-    // `onConflictDoUpdate` returns the same builder; only its type narrows, so both branches share one variable.
     const query = onConflict
-      ? (inserted.onConflictDoUpdate({
-          target: onConflict.target as AnyType,
+      ? inserted.onConflictDoUpdate({
+          target: this.toConflictTarget({ columns: onConflict.target }),
           targetWhere: onConflict.targetWhere,
-          set: onConflict.set as AnyType,
+          set: onConflict.set,
           setWhere: onConflict.setWhere,
-        }) as unknown as typeof inserted)
+        })
       : inserted;
 
     if (!shouldReturn) {
@@ -161,6 +163,19 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
     const rows = await pending;
 
     return { count: rows.length, rows: rows as Array<R> };
+  }
+
+  /** The conflict target, narrowed to SQLite columns; a column of another engine cannot name a SQLite key. */
+  private toConflictTarget(opts: { columns: AnyColumn[] }): SQLiteColumn[] {
+    const { columns } = opts;
+
+    if (!columns.every((column): column is SQLiteColumn => is(column, SQLiteColumn))) {
+      throw getError({
+        message: '[insert] Invalid conflict target | every target column must be a SQLite column',
+      });
+    }
+
+    return columns;
   }
 
   /**

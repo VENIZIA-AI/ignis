@@ -277,7 +277,7 @@ When you pass a `transaction` option to a repository method, the repository uses
 // Inside PostgresBaseRepository (simplified)
 protected resolveConnector(opts?: { transaction?: IDatabaseTransaction }) {
   if (!opts?.transaction) {
-    return this.dataSource.connector;
+    return this.dataSource.getConnector();
   }
 
   // Throws if the transaction has already been committed/rolled back,

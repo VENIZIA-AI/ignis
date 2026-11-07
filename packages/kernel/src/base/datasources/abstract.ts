@@ -153,14 +153,14 @@ export abstract class AbstractDataSource<
    * The boot's replacement for `configure()` on a datasource that opens on first use: records the options and opens nothing.
    * Refused for a family that cannot honour it.
    */
-  deferOpen(opts: { options?: object }): void {
+  deferOpen(opts: { options?: ConfigurableOptions }): void {
     if (!this.supportsDeferredOpen()) {
       throw getError({
         message: `[${this.constructor.name}][deferOpen] open: 'first-use' is not supported by this datasource family | Use open: { on: 'start' }, or remove the option`,
       });
     }
 
-    this.deferredOptions = opts.options as ConfigurableOptions | undefined;
+    this.deferredOptions = opts.options;
   }
 
   /**

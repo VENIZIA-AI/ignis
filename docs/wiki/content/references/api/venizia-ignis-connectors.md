@@ -25,15 +25,15 @@ neutral base - do not move it down into a family.
 
 ```ts
 export declare abstract class AbstractDriverDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = unknown, TConnector = unknown, TDriver extends IConnectorDriver<TConnector, AnyType> = IConnectorDriver<TConnector, Client>> extends AbstractDataSource<Settings, Schema, ConfigurableOptions> {
-    connector: TConnector;
+    connector?: TConnector;
     protected client?: Client;
     protected driver?: TDriver;
     private closePromise?;
     /**
      * Lazy and idempotent: builds the driver named by `@datasource({ driver })` over the client
-     * `configure()` assigned, then the connector from it.
+     * `configure()` assigned, then the connector from it. Returns the connector.
      */
-    protected wireDriverFromMetadata(): void;
+    protected wireDriverFromMetadata(): TConnector;
     /**
      * Rejects a driver-name string from untyped JS
      * callers: a string carries no module into the bundle.
@@ -42,12 +42,12 @@ export declare abstract class AbstractDriverDataSource<Settings extends object =
     protected resolveDriver(): TDriver;
     /**
      * Assigns `this.driver` AND builds `this.connector` in one step - a
-     * driver without its connector is silently bypassed on pooled queries.
+     * driver without its connector is silently bypassed on pooled queries. Returns the connector.
      */
     protected useDriver(opts: {
         driver: TDriver;
         schema?: Schema;
-    }): void;
+    }): TConnector;
     /** A datasource that opens on first use has no client, driver or connector until the first call that needs it has awaited `ensureOpen()`. */
     private assertOpenForSyncUse;
     /** The handles `configure()` is given: the connector and the client through the ungated internals, so its own database work (migrations, seeding) needs no gate. */

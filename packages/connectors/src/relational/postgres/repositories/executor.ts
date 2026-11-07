@@ -12,7 +12,10 @@ import type {
 import type { TRelationalConnector } from '@/relational/postgres/datasources';
 import type { AnyType, TNullable } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
+import type { AnyColumn } from 'drizzle-orm';
+import { is } from 'drizzle-orm';
 import type { PgTable } from 'drizzle-orm/pg-core';
+import { PgColumn } from 'drizzle-orm/pg-core';
 
 /**
  * Translates already-built SQL fragments (`where`, `orderBy`, projections) to Drizzle Core calls.
@@ -90,14 +93,14 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
   async insert<R>(opts: IInsertOptions<TRelationalConnector>): Promise<IWriteResult<R>> {
     const { connector, table, values, returning, shouldReturn, onConflict } = opts;
     const inserted = connector.insert(table as PgTable).values(values as AnyType);
-    // `onConflictDoUpdate` returns the same builder; only its type narrows, so both branches share one variable.
-    const query = onConflict
-      ? (inserted.onConflictDoUpdate({
-          target: onConflict.target as AnyType,
+    // `onConflictDoUpdate` returns the same builder; its type only drops the conflict methods, which `inserted` also satisfies.
+    const query: ReturnType<typeof inserted.onConflictDoUpdate> = onConflict
+      ? inserted.onConflictDoUpdate({
+          target: this.toConflictTarget({ columns: onConflict.target }),
           targetWhere: onConflict.targetWhere,
-          set: onConflict.set as AnyType,
+          set: onConflict.set,
           setWhere: onConflict.setWhere,
-        }) as unknown as typeof inserted)
+        })
       : inserted;
 
     if (!shouldReturn) {
@@ -171,6 +174,19 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
     }
 
     return queryInterface;
+  }
+
+  /** The conflict target, narrowed to Postgres columns; a column of another engine cannot name a Postgres key. */
+  private toConflictTarget(opts: { columns: AnyColumn[] }): PgColumn[] {
+    const { columns } = opts;
+
+    if (!columns.every((column): column is PgColumn => is(column, PgColumn))) {
+      throw getError({
+        message: '[insert] Invalid conflict target | every target column must be a Postgres column',
+      });
+    }
+
+    return columns;
   }
 
   /**

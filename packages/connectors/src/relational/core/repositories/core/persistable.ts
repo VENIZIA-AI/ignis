@@ -204,14 +204,14 @@ export class PersistableRelationalRepository<
     data: PersistObject;
     on?: IUniqueKey<EntitySchema>;
     update?: ReadonlyArray<string>;
-    options: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
+    options?: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: TNullable<R> }> {
     const { shouldReturn = true, log, transaction } = opts.options ?? {};
-    const data = opts.data as Record<string, unknown>;
+    const data: Record<string, unknown> = opts.data;
     const plan = UpsertPlan.build({
       schema: this.entity.schema,
       data,
-      on: opts.on as IUniqueKey | undefined,
+      on: opts.on,
       update: opts.update,
     });
 
@@ -340,12 +340,12 @@ export class PersistableRelationalRepository<
     update?: ReadonlyArray<TUpsertUpdateKey<PersistObject>>;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
-    // Same cast as `create`: ExtraOptions is caller-bound, so only the concrete shape can be proven.
-    const options = { shouldReturn: true, ...opts.options } as ExtraOptions & {
-      shouldReturn: boolean;
-    };
-
-    return this._upsert<R>({ data: opts.data, on: opts.on, update: opts.update, options });
+    return this._upsert<R>({
+      data: opts.data,
+      on: opts.on,
+      update: opts.update,
+      options: opts.options,
+    });
   }
 
   /**
