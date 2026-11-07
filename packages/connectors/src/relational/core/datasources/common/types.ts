@@ -1,5 +1,6 @@
 import type {
   AbstractDataSource,
+  IDataSourceOpening,
   ITransaction,
   ITransactionOptions,
   TAnyDataSourceSchema,
@@ -12,6 +13,28 @@ import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 
 /** Neutral SQL transaction options; each engine adds its own knobs. An alias, not an empty `interface ... extends`, which `@typescript-eslint/no-empty-object-type` rejects. */
 export type TRelationalTransactionOptions = ITransactionOptions;
+
+/**
+ * The handles a relational datasource's `configure()` is given as its second argument, typed by the datasource's own
+ * connector and client: `opening.getClient()` of a PGlite datasource is a `PGlite`.
+ *
+ * @example
+ * ```typescript
+ * override async configure(
+ *   _options?: object,
+ *   opening?: IRelationalDataSourceOpening<TRelationalConnector, PGlite>,
+ * ): Promise<void> {
+ *   this.client = new PGlite(this.settings.dataDir);
+ *   const transaction = await opening!.beginTransaction(); // migrations, seeding
+ * }
+ * ```
+ */
+export type IRelationalDataSourceOpening<TConnector, Client> = IDataSourceOpening<
+  TConnector,
+  Client,
+  IRelationalTransaction<TConnector>,
+  TRelationalTransactionOptions
+>;
 
 /** Transaction handle for a SQL datasource: `connector` runs queries inside the transaction, `commit()` and `rollback()` end it. */
 export interface IRelationalTransaction<TConnector> extends ITransaction {

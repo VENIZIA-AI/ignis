@@ -1,4 +1,4 @@
-import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
+import type { IDataSourceOpening, TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { AbstractDataSource } from '@venizia/ignis-kernel/repository';
 import { MetadataRegistry } from '@venizia/ignis-kernel/metadata';
 import type { AnyObject, AnyType, TClass } from '@venizia/ignis-helpers/common';
@@ -92,17 +92,44 @@ export abstract class AbstractDriverDataSource<
 
   /** A datasource that opens on first use has no client, driver or connector until the first call that needs it has awaited `ensureOpen()`. */
   private assertOpenForSyncUse(opts: { member: string }): void {
-    if (this.isOpenDeferred() && this.isClosed()) {
+    if (!this.isOpenDeferred()) {
+      return;
+    }
+
+    if (this.isClosed()) {
       throw getError({
         message: `[${this.constructor.name}][${opts.member}] The datasource is closed | It opens on first use only before close()`,
       });
     }
 
-    if (this.isOpenDeferred() && !this.isOpen()) {
+    if (this.isOpening()) {
+      throw getError({
+        message: `[${this.constructor.name}][${opts.member}] The datasource is still opening | Inside configure() use the opening argument (opening.${opts.member}()); outside it, await ensureOpen()`,
+      });
+    }
+
+    if (!this.isOpen()) {
       throw getError({
         message: `[${this.constructor.name}][${opts.member}] The datasource opens on first use and is not open | Await ensureOpen() first; repository calls do it for you`,
       });
     }
+  }
+
+  override getOpening(): IDataSourceOpening<TConnector, Client> {
+    return this.createOpening();
+  }
+
+  /** The handles `configure()` is given: the connector and the client through the ungated internals, so its own database work (migrations, seeding) needs no gate. */
+  protected override createOpening(): IDataSourceOpening<TConnector, Client> {
+    return {
+      ...super.createOpening(),
+      getConnector: () => {
+        this.wireDriverFromMetadata();
+
+        return this.connector;
+      },
+      getClient: () => this.readClient(),
+    } as IDataSourceOpening<TConnector, Client>;
   }
 
   /** Wires the driver on first use, so a `configure()` that only builds `this.client` is enough. */
@@ -120,6 +147,10 @@ export abstract class AbstractDriverDataSource<
   getClient(): Client {
     this.assertOpenForSyncUse({ member: this.getClient.name });
 
+    return this.readClient();
+  }
+
+  private readClient(): Client {
     if (this.driver) {
       return this.driver.getClient() as Client;
     }
@@ -152,7 +183,10 @@ export abstract class AbstractDriverDataSource<
     this.client = undefined;
     this.driver = undefined;
     this.connector = undefined as TConnector;
-    this.closePromise = undefined;
+    // A close() that is waiting for this open owns the slot: clearing it would let a second close end the connection twice.
+    if (!this.isClosed()) {
+      this.closePromise = undefined;
+    }
 
     if (driver && typeof driver.end === 'function') {
       await driver.end();

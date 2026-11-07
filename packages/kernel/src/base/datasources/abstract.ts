@@ -5,12 +5,13 @@ import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type {
   IDataSource,
   IDataSourceCapabilities,
+  IDataSourceOpening,
   ITransaction,
   ITransactionOptions,
   TAnyDataSourceSchema,
   TDataSourceOpenMode,
 } from './common';
-import { DataSourceOpenModes } from './common';
+import { DataSourceOpenDefaults, DataSourceOpenModes } from './common';
 
 /**
  * Brands the datasource root so `@repository` can recognise a subclass WITHOUT `instanceof`.
@@ -26,6 +27,10 @@ export const DATA_SOURCE_BRAND = Symbol.for('@venizia/ignis-kernel:abstract-data
 export const isDataSourceClass = (value: unknown): value is TClass<AnyType> => {
   return typeof value === 'function' && DATA_SOURCE_BRAND in value;
 };
+
+/** The two ways a race between the open and its timeout can end. */
+const OPEN_DONE = 'done';
+const OPEN_TIMED_OUT = 'timed-out';
 
 /** Engine-neutral datasource root - NO SQL members. Every connector family extends this. */
 export abstract class AbstractDataSource<
@@ -43,13 +48,22 @@ export abstract class AbstractDataSource<
   settings: Settings;
   schema: Schema;
 
-  abstract configure(opts?: ConfigurableOptions): ValueOrPromise<void>;
+  abstract configure(
+    opts?: ConfigurableOptions,
+    opening?: IDataSourceOpening,
+  ): ValueOrPromise<void>;
 
   /** The options the boot would have given `configure()`, kept for the open that the first use starts. */
   private deferredOptions?: ConfigurableOptions;
 
   /** The open in flight: every call that arrives meanwhile awaits this one promise. */
   private opening?: Promise<void>;
+
+  /**
+   * An open that outlived its timeout and has not settled. Nothing is retried until it has: two `configure()` must never
+   * run at once, and when it does settle what it built is closed, never published.
+   */
+  private abandoned?: Promise<void>;
 
   private isOpened = false;
   private isShutDown = false;
@@ -75,14 +89,58 @@ export abstract class AbstractDataSource<
     return this.getOpenMode() === DataSourceOpenModes.FIRST_USE;
   }
 
-  /** Whether a datasource that opens on first use has been opened (and not closed since). Always false for one that opens at start: the boot configures it. */
+  /** The `open.timeoutMs` of `@datasource` (ms; `0` waits for ever), 60 s when unset. */
+  getOpenTimeoutMs(): number {
+    const metadata = MetadataRegistry.getInstance().getDataSourceMetadata({
+      target: this.constructor,
+    });
+
+    return metadata?.open?.timeoutMs ?? DataSourceOpenDefaults.TIMEOUT_MS;
+  }
+
+  /**
+   * Whether the datasource is open. One that opens on first use: after the first use has finished, until `close()`. One that
+   * opens at start: from the moment the application has started it, until `close()`.
+   */
   isOpen(): boolean {
-    return this.isOpened && !this.isShutDown;
+    if (this.isShutDown) {
+      return false;
+    }
+
+    return this.isOpenDeferred() ? this.isOpened : true;
+  }
+
+  /** Whether the first use is opening the datasource right now. */
+  isOpening(): boolean {
+    return this.opening !== undefined;
   }
 
   /** Whether `close()` has begun. A datasource that opens on first use is not reopened after it. */
   isClosed(): boolean {
     return this.isShutDown;
+  }
+
+  /**
+   * The handles `configure()` gets as its second argument, in both modes. The root has no connector, client or transaction to
+   * hand out; a family that has them overrides {@link createOpening}.
+   */
+  getOpening(): IDataSourceOpening {
+    return this.createOpening();
+  }
+
+  protected createOpening(): IDataSourceOpening {
+    const refuse = (member: string): never =>
+      NotSupportedUtility.throwNotSupported({
+        scope: this.constructor.name,
+        feature: `opening.${member}`,
+        logger: this.logger,
+      });
+
+    return {
+      getConnector: () => refuse('getConnector'),
+      getClient: () => refuse('getClient'),
+      beginTransaction: () => Promise.resolve().then(() => refuse('beginTransaction')),
+    };
   }
 
   /**
@@ -100,20 +158,33 @@ export abstract class AbstractDataSource<
   }
 
   /**
-   * Resolves once the datasource is open. At once for one that opens with the application, or is open already. Otherwise
-   * the first caller starts `configure()` and the rest await the same promise, so it runs once; a failure rejects all of
-   * them, undoes what the failed `configure()` left ({@link discardPartialOpen}) and clears the slot, so the next call
-   * opens afresh. Rejects after `close()`: a stopped application does not reopen its datasources.
+   * Resolves once the datasource is open. At once for one that opens with the application. Otherwise the first caller
+   * starts `configure()` and the rest await the same promise, so it runs once; a failure rejects all of them, undoes what the
+   * failed `configure()` left ({@link discardPartialOpen}) and clears the slot, so the next call opens afresh. After
+   * `close()` it rejects: a stopped application does not reopen its datasources.
    */
   ensureOpen(): Promise<void> {
-    if (!this.isOpenDeferred() || this.isOpened) {
+    if (!this.isOpenDeferred()) {
       return Promise.resolve();
     }
 
+    // Closed first: a call after `close()` is told so, whether or not the datasource had been opened.
     if (this.isShutDown) {
       return Promise.reject(
         getError({
           message: `[${this.constructor.name}][ensureOpen] The datasource is closed | It opens on first use only before close()`,
+        }),
+      );
+    }
+
+    if (this.isOpened) {
+      return Promise.resolve();
+    }
+
+    if (this.abandoned) {
+      return Promise.reject(
+        getError({
+          message: `[${this.constructor.name}][ensureOpen] The previous open is still running after its timeout | It is retried once it has settled`,
         }),
       );
     }
@@ -124,16 +195,53 @@ export abstract class AbstractDataSource<
   }
 
   private async runOpen(): Promise<void> {
+    const timeoutMs = this.getOpenTimeoutMs();
+    const work = Promise.resolve().then(() =>
+      this.configure(this.deferredOptions, this.getOpening()),
+    );
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const expired = new Promise<typeof OPEN_TIMED_OUT>((resolve) => {
+      if (timeoutMs > 0) {
+        timer = setTimeout(() => resolve(OPEN_TIMED_OUT), timeoutMs);
+      }
+    });
+
     try {
-      await this.configure(this.deferredOptions);
+      const outcome = await Promise.race([work.then(() => OPEN_DONE), expired]);
+
+      if (outcome === OPEN_TIMED_OUT) {
+        this.abandoned = this.settleAbandoned({ work });
+
+        throw getError({
+          message: `[${this.constructor.name}][ensureOpen] The open did not finish within ${timeoutMs} ms | Does configure() await the datasource (a repository, ensureOpen)? Use the opening argument inside configure()`,
+        });
+      }
+
       this.isOpened = true;
     } catch (error) {
       await this.discardOpenAttempt();
 
       throw error;
     } finally {
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
+
       this.opening = undefined;
     }
+  }
+
+  /** When an abandoned open finally settles, whatever it built is closed (it was never published) and retries are allowed again. */
+  private async settleAbandoned(opts: { work: Promise<unknown> }): Promise<void> {
+    try {
+      await opts.work;
+      // eslint-disable-next-line venizia/no-silent-catch -- the abandoned attempt's own outcome was already reported by the timeout; only its clean-up matters now
+    } catch {
+      // Falls through to the clean-up.
+    }
+
+    await this.discardOpenAttempt();
+    this.abandoned = undefined;
   }
 
   private async discardOpenAttempt(): Promise<void> {

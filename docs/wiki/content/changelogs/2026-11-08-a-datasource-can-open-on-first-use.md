@@ -21,6 +21,9 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis-connectors', '@venizia/ignis
 - **New members.** `ensureOpen()`, `isOpen()`, `isClosed()`, `isOpenDeferred()` and `getOpenMode()` on the datasource base. `getConnector()` and `getClient()` stay synchronous and throw until the datasource is open.
 - **Relational datasources.** node-postgres, postgres-js, PGlite and libsql. A search or raw-SQL datasource with `first-use` refuses to start, naming the datasource.
 - **Rotated secrets.** A secret rotated before the first use waits in the settings.
+- **Handles for the open's own database work.** `configure(options, opening)` receives `opening.getConnector()`, `opening.getClient()` and `opening.beginTransaction()`, typed by the datasource (`IRelationalDataSourceOpening<TConnector, Client>` for a relational one). Use them for migrations and seeding. The boot passes them in both modes, so one body works at start and on first use. Inside `configure()` of a first-use datasource the public `getConnector()`, `getClient()` and `beginTransaction()` are gated and a repository cannot be used (it would wait on its own open).
+- **A timeout.** `open: { on: 'first-use', timeoutMs }`, default 60 s, `0` waits for ever. An open that does not finish rejects every waiting call with a named error; a `configure()` that ends late has what it built closed and never published; the next call waits until it has ended.
+- **Every connector resolution waits for the open**, the casbin policy adapters included. `isOpen()` is true from the start for a datasource that opens at start, until `close()`. After `close()` a call says the datasource is closed.
 - **The browser-bff example** now uses it: the Worker listens before PGlite's ~16 MB WASM boot starts.
 
 ## Who is affected

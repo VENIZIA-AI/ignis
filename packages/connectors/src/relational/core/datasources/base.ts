@@ -12,7 +12,11 @@ import type { IDataSource, TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
 import type { IRelationalConnection } from '@/relational/core/drivers';
 import { AbstractRelationalDataSource } from './abstract';
-import type { IRelationalTransaction, TRelationalTransactionOptions } from './common';
+import type {
+  IRelationalDataSourceOpening,
+  IRelationalTransaction,
+  TRelationalTransactionOptions,
+} from './common';
 import { RelationPairing } from './relation-pairing';
 import type { ITransactionEnd } from './transaction-lifecycle';
 import { TransactionLifecycle } from './transaction-lifecycle';
@@ -158,6 +162,25 @@ export abstract class BaseRelationalDataSource<
   ): Promise<IRelationalTransaction<TConnector>> {
     await this.ensureOpen();
 
+    return this.openTransaction(opts);
+  }
+
+  override getOpening(): IRelationalDataSourceOpening<TConnector, Client> {
+    return this.createOpening();
+  }
+
+  /** Adds the transaction to the handles of the open: `configure()` can run its migrations in one, through the ungated internals. */
+  protected override createOpening(): IRelationalDataSourceOpening<TConnector, Client> {
+    return {
+      ...super.createOpening(),
+      beginTransaction: (opts) => this.openTransaction(opts),
+    };
+  }
+
+  /** A transaction on a connection of its own, with no gate: for `beginTransaction()` (after the open) and for the open itself. */
+  private async openTransaction(
+    opts?: TRelationalTransactionOptions,
+  ): Promise<IRelationalTransaction<TConnector>> {
     const driver = this.resolveDriver();
     const connection = await driver.acquire({ schema: this.getSchema() });
 

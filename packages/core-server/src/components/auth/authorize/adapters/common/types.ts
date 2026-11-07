@@ -12,6 +12,9 @@ export type TCasbinPolicyConnector = PgDatabase<PgQueryResultHKT, Record<string,
 
 /** Minimal source the adapters depend on - any drizzle-backed datasource satisfies it. */
 export interface ICasbinPolicySource {
+  /** A datasource that opens on first use opens here; one that opens at start resolves at once. */
+  ensureOpen?(): Promise<void>;
+
   /** Preferred: lazily wires the driver on first read and survives pool rotation, mirroring repositories. */
   getConnector?(): TCasbinPolicyConnector;
 

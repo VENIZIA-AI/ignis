@@ -466,7 +466,11 @@ export abstract class RestApplication<
           logger.info('Datasource opens on first use | key: %s', binding.key);
         } else if (typeof (instance as Partial<IConfigurable>)?.configure === 'function') {
           const options = this.artifactOptions.get(binding.key);
-          await (instance as IConfigurable).configure(options);
+          // A datasource also gets the handles of its open (the same body works at start and on first use).
+          const opening =
+            namespace === BindingNamespaces.DATASOURCE ? dataSource.getOpening?.() : undefined;
+
+          await (instance as unknown as IDataSource).configure(options, opening);
         }
 
         // Marked before the after-hook runs, so the hook sees its own binding as configured.

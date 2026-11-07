@@ -95,6 +95,17 @@ export const model = (input: IModelMetadata = {}): ClassDecorator => {
  */
 export const datasource = (metadata?: IDataSourceMetadata): ClassDecorator => {
   return (target) => {
+    const openTimeout = metadata?.open?.timeoutMs;
+
+    if (
+      openTimeout !== undefined &&
+      (typeof openTimeout !== 'number' || !Number.isInteger(openTimeout) || openTimeout < 0)
+    ) {
+      throw getError({
+        message: `[datasource][@datasource][${target.name}] Invalid metadata | 'open.timeoutMs' must be a non-negative integer (ms; 0 waits for ever) | Got: ${String(openTimeout)}`,
+      });
+    }
+
     const openMode = metadata?.open?.on;
 
     // Untyped JS callers: a misspelt mode would silently mean "start", so it is refused where it is written.

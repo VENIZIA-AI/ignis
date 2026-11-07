@@ -156,7 +156,7 @@ export class CustomGrantExpander extends BaseHelper {
     }
 
     const permissionTable = this.qualifiedTable({ table: this.permission });
-    const connector = PolicyConnectorResolver.resolve({
+    const connector = await PolicyConnectorResolver.resolve({
       source: this.dataSource,
       caller: CustomGrantExpander.name,
     });

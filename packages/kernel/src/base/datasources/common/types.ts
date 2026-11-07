@@ -1,4 +1,10 @@
-import type { AnyType, IConfigurable, TClass, TConstValue } from '@venizia/ignis-helpers/common';
+import type {
+  AnyType,
+  IConfigurable,
+  TClass,
+  TConstValue,
+  ValueOrPromise,
+} from '@venizia/ignis-helpers/common';
 
 /** Names of the supported datasource drivers, split into relational and search sets. `isValid` checks a value against all of them. */
 export class DataSourceDrivers {
@@ -50,6 +56,12 @@ export class DataSourceOpenModes {
   }
 }
 
+/** Defaults of the `open` option. */
+export class DataSourceOpenDefaults {
+  /** How long a first use waits for the open before it gives up (ms): a WASM boot on a slow link fits, a `configure()` that waits on itself does not hang for ever. */
+  static readonly TIMEOUT_MS = 60_000;
+}
+
 /** One of the {@link DataSourceOpenModes} values. */
 export type TDataSourceOpenMode = TConstValue<typeof DataSourceOpenModes>;
 
@@ -64,6 +76,36 @@ export interface IDataSourceOpenOptions {
    * @default 'start'
    */
   on?: TDataSourceOpenMode;
+
+  /**
+   * `first-use` only: how long the open may take (ms) before every waiting call is rejected with a named error and the
+   * attempt is abandoned. An abandoned `configure()` that finishes later is closed and never published, and the next call
+   * waits until it has settled before trying again. `0` waits for ever.
+   *
+   * @default 60000
+   */
+  timeoutMs?: number;
+}
+
+/**
+ * What `configure()` is given to do its database work while the datasource is opening: the connector, the client and a
+ * transaction, through the datasource's own ungated internals. Only `configure()` receives it, so nothing outside can use it
+ * and every other caller still waits for the open to finish. Generic over the datasource's connector, client and
+ * transaction types, so `opening.getClient()` of a PGlite datasource is a `PGlite`.
+ *
+ * Inside the open of a datasource that opens on first use, the public `getConnector()`, `getClient()` and
+ * `beginTransaction()` are gated (they wait for the open, which waits for `configure()`), and a repository cannot be used:
+ * use these handles instead.
+ */
+export interface IDataSourceOpening<
+  TConnector = unknown,
+  Client = unknown,
+  TTransaction extends ITransaction = ITransaction,
+  TTransactionOptions extends ITransactionOptions = ITransactionOptions,
+> {
+  getConnector(): TConnector;
+  getClient(): Client;
+  beginTransaction(opts?: TTransactionOptions): Promise<TTransaction>;
 }
 
 // `(string & {})` keeps autocomplete for the known values
@@ -96,6 +138,12 @@ export interface IDataSource<
 
   /** Releases what `configure()` opened. `stop()` calls it on every datasource the boot configured. */
   close?(): Promise<void>;
+
+  /** The datasource's own `configure()` receives the handles of {@link IDataSourceOpening} as its second argument. */
+  configure(opts?: ConfigurableOptions, opening?: IDataSourceOpening): ValueOrPromise<void>;
+
+  /** The handles `configure()` is given: the boot passes them in every mode, so the same body works whether the datasource opens at start or on first use. */
+  getOpening?(): IDataSourceOpening;
 
   /** True when the datasource opens on first use (`@datasource({ open: { on: 'first-use' } })`): the boot then calls {@link deferOpen} instead of `configure()`. */
   isOpenDeferred?(): boolean;

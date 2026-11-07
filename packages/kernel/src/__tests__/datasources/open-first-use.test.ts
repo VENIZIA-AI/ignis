@@ -1,6 +1,6 @@
 import { RestApplication } from '@/base/applications/rest';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/common';
-import type { TAnyDataSourceSchema } from '@/base/datasources';
+import type { IDataSourceOpening, TAnyDataSourceSchema } from '@/base/datasources';
 import { AbstractDataSource, DataSourceOpenModes } from '@/base/datasources';
 import { datasource } from '@/base/metadata';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
@@ -42,11 +42,13 @@ class OpenControl {
   static failures = 0;
   static hold: { opened: Promise<void>; release: () => void } | undefined;
   static seenOptions: Array<unknown> = [];
+  static seenOpenings: Array<unknown> = [];
 
   static reset(): void {
     OpenControl.failures = 0;
     OpenControl.hold = undefined;
     OpenControl.seenOptions = [];
+    OpenControl.seenOpenings = [];
   }
 }
 
@@ -72,9 +74,10 @@ abstract class CountingDataSource extends AbstractDataSource<
     return true;
   }
 
-  async configure(options?: ICountingOptions): Promise<void> {
+  async configure(options?: ICountingOptions, opening?: IDataSourceOpening): Promise<void> {
     Journal.entries.push(`configure:${this.name}`);
     OpenControl.seenOptions.push(options);
+    OpenControl.seenOpenings.push(opening);
     this.halfBuilt = true;
 
     if (OpenControl.hold) {
@@ -103,6 +106,9 @@ abstract class CountingDataSource extends AbstractDataSource<
 
 @datasource({ open: { on: 'first-use' } })
 class LazyDataSource extends CountingDataSource {}
+
+@datasource({ open: { on: 'first-use', timeoutMs: 40 } })
+class ShortTimeoutDataSource extends CountingDataSource {}
 
 @datasource({ open: { on: 'start' } })
 class EagerDataSource extends CountingDataSource {}
@@ -405,5 +411,169 @@ describe('stopping', () => {
     await application.stop();
 
     expect(dataSource.isOpen()).toBe(false);
+  });
+});
+
+describe('the handles configure() is given', () => {
+  test('configure() gets an opening object whether the datasource opens at start or on first use', async () => {
+    const application = await boot(EagerDataSource, LazyDataSource);
+
+    await lazyOf(application).ensureOpen();
+
+    expect(OpenControl.seenOpenings).toHaveLength(2);
+
+    for (const opening of OpenControl.seenOpenings) {
+      expect(opening).toEqual({
+        getConnector: expect.any(Function),
+        getClient: expect.any(Function),
+        beginTransaction: expect.any(Function),
+      });
+    }
+  });
+
+  test('the root family has no connector, client or transaction to hand out, and says so', async () => {
+    const application = await boot(LazyDataSource);
+    const opening = lazyOf(application).getOpening();
+
+    expect(() => opening.getConnector()).toThrow(/opening.getConnector/);
+    expect(() => opening.getClient()).toThrow(/opening.getClient/);
+    await RejectionHelper.expectRejection({
+      task: opening.beginTransaction(),
+      message: /opening.beginTransaction/,
+    });
+  });
+});
+
+describe('isOpen() and the order of the checks', () => {
+  test('a datasource that opens at start is open until it is closed', async () => {
+    const application = await boot(EagerDataSource);
+    const eager = application.get<EagerDataSource>({ key: 'datasources.EagerDataSource' });
+
+    expect(eager.isOpen()).toBe(true);
+
+    await application.stop();
+
+    expect(eager.isOpen()).toBe(false);
+  });
+
+  test('after the stop, a datasource that was opened says it is closed, not "open"', async () => {
+    const application = await boot(LazyDataSource);
+    const dataSource = lazyOf(application);
+
+    await dataSource.ensureOpen();
+    await application.stop();
+
+    await RejectionHelper.expectRejection({
+      task: dataSource.ensureOpen(),
+      message: /The datasource is closed/,
+    });
+  });
+});
+
+describe('the timeout of the open', () => {
+  test('the default is 60 s and a value is read from the decorator', () => {
+    expect(new LazyDataSource().getOpenTimeoutMs()).toBe(60_000);
+    expect(new ShortTimeoutDataSource().getOpenTimeoutMs()).toBe(40);
+  });
+
+  test.each([[-1], [1.5], ['40' as never], [Number.NaN]])(
+    'a timeoutMs of %p is refused where @datasource is written',
+    (timeoutMs) => {
+      expect(() => {
+        @datasource({ open: { on: 'first-use', timeoutMs } })
+        class BadTimeout extends CountingDataSource {}
+
+        return BadTimeout;
+      }).toThrow(/open.timeoutMs/);
+    },
+  );
+
+  test('an open that does not finish rejects every waiter with a named error, and the datasource stays closed', async () => {
+    const application = new TestApplication({ scope: TestApplication.name, config: CONFIGS });
+    application.dataSource(ShortTimeoutDataSource);
+    await application.registerDataSources();
+
+    const dataSource = application.get<ShortTimeoutDataSource>({
+      key: 'datasources.ShortTimeoutDataSource',
+    });
+    OpenControl.hold = gate();
+
+    const outcomes = Array.from({ length: 3 }, () =>
+      dataSource.ensureOpen().then(
+        () => 'opened',
+        (error: Error) => error.message,
+      ),
+    );
+    const results = await Promise.all(outcomes);
+
+    for (const message of results) {
+      expect(message).toMatch(/did not finish within 40 ms/);
+      expect(message).toMatch(/opening argument/);
+    }
+
+    expect(dataSource.isOpen()).toBe(false);
+    expect(Journal.count('configure:ShortTimeoutDataSource')).toBe(1);
+
+    OpenControl.hold.release();
+  });
+
+  test('while the abandoned configure still runs, no second one starts; once it ends, what it built is discarded and the next call opens afresh', async () => {
+    const application = new TestApplication({ scope: TestApplication.name, config: CONFIGS });
+    application.dataSource(ShortTimeoutDataSource);
+    await application.registerDataSources();
+
+    const dataSource = application.get<ShortTimeoutDataSource>({
+      key: 'datasources.ShortTimeoutDataSource',
+    });
+    const hold = gate();
+    OpenControl.hold = hold;
+
+    await RejectionHelper.expectRejection({
+      task: dataSource.ensureOpen(),
+      message: /did not finish/,
+    });
+    expect(Journal.count('discard:ShortTimeoutDataSource')).toBe(1);
+
+    // The first configure() is still waiting: a second call is refused, and no second configure() starts.
+    await RejectionHelper.expectRejection({
+      task: dataSource.ensureOpen(),
+      message: /previous open is still running/,
+    });
+    expect(Journal.count('configure:ShortTimeoutDataSource')).toBe(1);
+
+    // It ends late and succeeds: what it built is discarded, never published.
+    hold.release();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(Journal.count('discard:ShortTimeoutDataSource')).toBe(2);
+    expect(dataSource.isOpen()).toBe(false);
+    expect(dataSource.halfBuilt).toBe(false);
+
+    OpenControl.hold = undefined;
+    await dataSource.ensureOpen();
+
+    expect(Journal.count('configure:ShortTimeoutDataSource')).toBe(2);
+    expect(dataSource.isOpen()).toBe(true);
+  });
+
+  test('a stop during an abandoned open does not wait for it', async () => {
+    const application = new TestApplication({ scope: TestApplication.name, config: CONFIGS });
+    application.dataSource(ShortTimeoutDataSource);
+    await application.registerDataSources();
+
+    const dataSource = application.get<ShortTimeoutDataSource>({
+      key: 'datasources.ShortTimeoutDataSource',
+    });
+    OpenControl.hold = gate();
+
+    await RejectionHelper.expectRejection({
+      task: dataSource.ensureOpen(),
+      message: /did not finish/,
+    });
+    await application.stop();
+
+    expect(Journal.count('close:ShortTimeoutDataSource')).toBe(1);
+
+    OpenControl.hold.release();
   });
 });
