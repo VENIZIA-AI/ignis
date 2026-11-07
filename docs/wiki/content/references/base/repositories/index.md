@@ -204,6 +204,7 @@ await productRepository.deleteAll({ where: { id: { inq: staleIds } } });
 - `shouldReturn: false` answers the count with `data: null`. The count is the server's `x-response-count`.
 - A failed write - or read - throws the `ApplicationError` the server threw: its status, `normalized` code, args and text, and its `extra` with the `requestId` added. The message names the verb, status and path - never the host or the query. A 422's per-field issues (`{ path, message, code }`) are the error's `cause`.
 - An empty, `.` or `..` id is refused before any request: a URL resolves those to the list or the parent route.
+- A request path stays under the base path. `paths` on `request`, `read` and `write` is refused with a 400 when a segment is `.` or `..` (plain, `%2e`-encoded, or ended by `?`, `#` or a space), or holds a backslash (`\` or `%5c`) or a control character. Encode a value you put in a path with `encodeURIComponent`: a `?` in it would start the query. An id that really contains a backslash is refused too, because some servers decode `%5c` into a separator.
 - There is no `createAll`: the IGNIS REST contract has no bulk-create route.
 
 For a route the verbs do not cover - a `PUT`, an upload, an action endpoint - call the datasource:
@@ -238,7 +239,7 @@ new HttpDataSource({
 
 | Setting | Meaning |
 |---|---|
-| `baseUrl` | An absolute URL, or a path from the page origin (`/api`). A path-relative one (`api`) is refused: it would follow the current route. |
+| `baseUrl` | An absolute URL, or a path from the page origin (`/api`). A path-relative one (`api`) is refused: it would follow the current route. So is one with a `?` or `#`: the request paths would end up inside the query. |
 | `errorRootKey` | The server's `error.rootKey`. Without it, a wrapped error envelope reads as `core.system_error`. |
 | `headers` | Sent on every request. |
 | `headersResolver` | Headers for this request. Wins over `headers`. |
