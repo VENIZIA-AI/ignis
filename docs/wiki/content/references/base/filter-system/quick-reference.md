@@ -162,7 +162,7 @@ A model's `settings.query.filter` merges into every read, update, and delete for
 | Collision shape | Result |
 |---|---|
 | Different keys | AND-composed - `{ isDeleted: false }` default + `{ status: 'published' }` caller filter -> `WHERE "isDeleted" = false AND "status" = 'published'` |
-| Same key, scalar vs. scalar | Caller wins - the one override escape, no `shouldSkipDefaultFilter` needed |
+| Same key, scalar vs. scalar | Equal values: one condition. Different values: AND-composed (a caller cannot replace the default; server code passes `shouldSkipDefaultFilter`) |
 | Same key, scalar vs. operator object (either side) | AND-composed |
 | Same key, both `and` | Concatenated - both groups hold |
 | Same key, both `or` | Kept as two separate conjuncts, never unioned |

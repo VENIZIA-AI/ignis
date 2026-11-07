@@ -325,7 +325,7 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
   });
 
   describe('a scoped model that also has a default filter', () => {
-    test('the caller can still opt out of the default filter, and still cannot leave the scope', async () => {
+    test('the caller cannot replace the default filter, and cannot leave the scope; the server opts out explicitly', async () => {
       const ctx = context();
       await ctx.reset();
       ctx.setItemScope({ merchantId: 'm1' });
@@ -338,16 +338,45 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
 
       const result5 = await find({});
       expect(result5).toEqual(['a']);
+      // The default (status: live) stands: a caller asking for the archived rows gets none.
       const result6 = await find({ status: 'archived' });
-      expect(result6).toEqual(['b']);
+      expect(result6).toEqual([]);
+      // Restating the default changes nothing.
+      const restated = await find({ status: 'live' });
+      expect(restated).toEqual(['a']);
       const result7 = await find({ merchantId: 'm2' });
       expect(result7).toEqual([]);
       const result8 = await find({ status: 'archived', merchantId: 'm2' });
       expect(result8).toEqual([]);
       const result9 = await ctx.items.count({ where: { status: 'archived' } });
-      expect(result9.count).toBe(1);
+      expect(result9.count).toBe(0);
       const result10 = await ctx.items.count({ where: { merchantId: 'm2' } });
       expect(result10.count).toBe(0);
+
+      // findOne follows the same rule.
+      const hidden = await ctx.items.findOne({ filter: { where: { status: 'archived' } } });
+      const shown = await ctx.items.findOne({ filter: { where: { status: 'live' } } });
+      expect(hidden).toBeNull();
+      expect(shown?.name).toBe('a');
+
+      // Server code says it wants the rows the default hides, and still stays inside the scope.
+      const result14 = await ctx.items.find({
+        filter: { where: { status: 'archived' } },
+        options: { shouldSkipDefaultFilter: true },
+      });
+      const optedOut = names(result14);
+      const result15 = await ctx.items.find({
+        filter: { where: { status: 'archived', merchantId: 'm2' } },
+        options: { shouldSkipDefaultFilter: true },
+      });
+      const outOfScope = names(result15);
+      const optedOutOne = await ctx.items.findOne({
+        filter: { where: { status: 'archived' } },
+        options: { shouldSkipDefaultFilter: true },
+      });
+      expect(optedOut).toEqual(['b']);
+      expect(optedOutOne?.name).toBe('b');
+      expect(outOfScope).toEqual([]);
     });
 
     test('update and delete follow the same rule', async () => {
@@ -355,18 +384,35 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
       await ctx.reset();
       ctx.setItemScope({ merchantId: 'm1' });
 
-      const updated = await ctx.items.updateBy({
+      // A caller's where cannot reach the rows the default hides.
+      const refused = await ctx.items.updateBy({
         where: { status: 'archived' },
         data: { name: 'renamed' },
         options: { shouldReturn: false },
       });
+      const refusedDelete = await ctx.items.deleteBy({
+        where: { status: 'archived' },
+        options: { shouldReturn: false },
+      });
+
+      expect(refused.count).toBe(0);
+      expect(refusedDelete.count).toBe(0);
+      const untouched = await ctx.itemNames();
+      expect(untouched.sort()).toEqual(['a', 'b', 'c', 'd']);
+
+      // The server opts out explicitly, and the scope still holds.
+      const updated = await ctx.items.updateBy({
+        where: { status: 'archived' },
+        data: { name: 'renamed' },
+        options: { shouldReturn: false, shouldSkipDefaultFilter: true },
+      });
       const foreign = await ctx.items.deleteBy({
         where: { status: 'archived', merchantId: 'm2' },
-        options: { shouldReturn: false },
+        options: { shouldReturn: false, shouldSkipDefaultFilter: true },
       });
       const deleted = await ctx.items.deleteBy({
         where: { status: 'archived' },
-        options: { shouldReturn: false },
+        options: { shouldReturn: false, shouldSkipDefaultFilter: true },
       });
 
       expect(updated.count).toBe(1);
@@ -376,7 +422,7 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
       expect(result11.sort()).toEqual(['a', 'c', 'd']);
     });
 
-    test("an include keeps the related model's opt-out and its scope", async () => {
+    test("an include cannot replace the related model's default, and keeps its scope; the server opts out explicitly", async () => {
       const ctx = context();
       await ctx.reset();
       ctx.setProductScope(ScopeFilters.UNRESTRICTED);
@@ -393,9 +439,19 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
         filter: { include: [{ relation: 'notes', scope: { where: { name: 'n3' } } }] },
       });
 
+      const serverOptedOut = await ctx.products.find({
+        filter: {
+          include: [
+            { relation: 'notes', scope: { where: { name: 'n2' } }, shouldSkipDefaultFilter: true },
+          ],
+        },
+      });
+
       expect(noteNames(plain)).toEqual(['n1']);
-      expect(noteNames(optedOut)).toEqual(['n2']);
+      // A request's scope where on the default's column does not replace the default.
+      expect(noteNames(optedOut)).toEqual([]);
       expect(noteNames(foreign)).toEqual([]);
+      expect(noteNames(serverOptedOut)).toEqual(['n2']);
     });
   });
 

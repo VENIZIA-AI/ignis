@@ -46,13 +46,48 @@ describe('FilterBuilder.mergeFilter - top-key-level where merge', () => {
     });
   });
 
-  test('scalar-over-scalar stays a plain override - the soft-delete opt-out keeps working', () => {
+  test('scalar-over-scalar composes: a caller cannot replace the soft-delete default', () => {
     const merged = builder.mergeFilter<any>({
       defaultFilter: { where: { isDeleted: false, tenantId: 5 } },
       userFilter: { where: { isDeleted: true } },
     });
 
-    expect(merged.where).toEqual({ isDeleted: true, tenantId: 5 });
+    expect(merged.where).toEqual({
+      tenantId: 5,
+      and: [{ isDeleted: false }, { isDeleted: true }],
+    });
+  });
+
+  test('a caller restating the default scalar changes nothing', () => {
+    const merged = builder.mergeFilter<any>({
+      defaultFilter: { where: { isDeleted: false, tenantId: 5 } },
+      userFilter: { where: { isDeleted: false } },
+    });
+
+    expect(merged.where).toEqual({ isDeleted: false, tenantId: 5 });
+  });
+
+  test('null is a scalar too: the caller restating deletedAt null changes nothing, another value composes', () => {
+    const same = builder.mergeFilter<any>({
+      defaultFilter: { where: { deletedAt: null } },
+      userFilter: { where: { deletedAt: null } },
+    });
+    const other = builder.mergeFilter<any>({
+      defaultFilter: { where: { deletedAt: null } },
+      userFilter: { where: { deletedAt: { neq: null } } },
+    });
+
+    expect(same.where).toEqual({ deletedAt: null });
+    expect(other.where).toEqual({ and: [{ deletedAt: null }, { deletedAt: { neq: null } }] });
+  });
+
+  test('equal dates are the same scalar', () => {
+    const merged = builder.mergeFilter<any>({
+      defaultFilter: { where: { since: new Date('2026-01-01T00:00:00Z') } },
+      userFilter: { where: { since: new Date('2026-01-01T00:00:00Z') } },
+    });
+
+    expect(merged.where).toEqual({ since: new Date('2026-01-01T00:00:00Z') });
   });
 
   test('a user scalar cannot swallow an OPERATOR default either', () => {
@@ -88,13 +123,25 @@ describe('FilterBuilder.mergeFilter - top-key-level where merge', () => {
     expect(merged.where).toEqual({ and: [{ or: [{ x: 1 }] }, { or: [{ y: 2 }] }] });
   });
 
-  test('scalar override semantics are unchanged (user key wins, other default keys kept)', () => {
+  test('a user key the default does not set passes through, and the other default keys are kept', () => {
+    const merged = builder.mergeFilter<any>({
+      defaultFilter: { where: { status: 'active', tenantId: 5 } },
+      userFilter: { where: { name: 'x' } },
+    });
+
+    expect(merged.where).toEqual({ status: 'active', tenantId: 5, name: 'x' });
+  });
+
+  test('a user value on a default key composes instead of replacing it', () => {
     const merged = builder.mergeFilter<any>({
       defaultFilter: { where: { status: 'active', tenantId: 5 } },
       userFilter: { where: { status: 'inactive' } },
     });
 
-    expect(merged.where).toEqual({ status: 'inactive', tenantId: 5 });
+    expect(merged.where).toEqual({
+      tenantId: 5,
+      and: [{ status: 'active' }, { status: 'inactive' }],
+    });
   });
 
   test('a default tenant scope cannot be widened - the user inq is intersected, not substituted', () => {

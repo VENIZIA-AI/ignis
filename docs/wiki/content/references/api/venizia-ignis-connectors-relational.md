@@ -170,10 +170,15 @@ export declare abstract class FilterBuilder extends BaseHelper {
         userFilter?: TFilter<T>;
     }): TFilter<T>;
     /**
-     * Top-key merge: operator-object collisions AND-compose under the reserved `and` key, merging
-     * with an existing `and` rather than clobbering it. Every other collision is user-wins.
+     * Top-key merge: every collision of a key both sides constrain AND-composes under the reserved `and` key
+     * (merging with an existing `and` rather than clobbering it), so a caller's `where` can only narrow the default
+     * and never replace it: a caller cannot ask for `deletedAt: { not: null }` and read the rows the default hides.
+     * A caller's value equal to the default's scalar is a no-op. A server that needs the rows the default hides says so
+     * with `shouldSkipDefaultFilter`, which is not on the wire schema.
      */
     private mergeWhere;
+    /** Two values that are the same scalar: equal primitives (`null` included) or the same instant. Operator objects and lists are never "the same": they compose. */
+    private isSameScalar;
     /**
      * Registry lookup shared by the resolvers below. A failure degrades to no settings rather than
      * failing the query, and is never silent - a degraded `resolveHiddenProperties` would stop

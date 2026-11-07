@@ -156,8 +156,11 @@ export abstract class FilterBuilder extends BaseHelper {
   }
 
   /**
-   * Top-key merge: operator-object collisions AND-compose under the reserved `and` key, merging
-   * with an existing `and` rather than clobbering it. Every other collision is user-wins.
+   * Top-key merge: every collision of a key both sides constrain AND-composes under the reserved `and` key
+   * (merging with an existing `and` rather than clobbering it), so a caller's `where` can only narrow the default
+   * and never replace it: a caller cannot ask for `deletedAt: { not: null }` and read the rows the default hides.
+   * A caller's value equal to the default's scalar is a no-op. A server that needs the rows the default hides says so
+   * with `shouldSkipDefaultFilter`, which is not on the wire schema.
    */
   private mergeWhere<T = any>(opts: { defaultWhere: TWhere<T>; userWhere: TWhere<T> }): TWhere<T> {
     const { defaultWhere, userWhere } = opts;
@@ -178,8 +181,8 @@ export abstract class FilterBuilder extends BaseHelper {
 
       const defaultValue = defaults[key];
 
-      // Scalar-over-scalar is a plain override - the soft-delete opt-out. Everything else
-      // AND-composes, so a user operator object cannot swallow a scalar default.
+      // A collision AND-composes, scalars included: scalar-over-scalar used to be a plain override, which let a
+      // caller replace the soft-delete default (`deletedAt: null`) and read deleted rows.
       const isCollision = defaultValue !== undefined;
 
       // `and`/`or` are how a SCOPE is written and both sides are arrays, which `isPrimitiveValue`
@@ -198,11 +201,12 @@ export abstract class FilterBuilder extends BaseHelper {
         continue;
       }
 
-      const isScalarOverride =
-        !this.isOperatorObject({ value: defaultValue }) &&
-        !this.isOperatorObject({ value: userValue });
+      if (isCollision) {
+        // The caller restating the default changes nothing: keep the one condition, not two equal ones.
+        if (this.isSameScalar({ left: defaultValue, right: userValue })) {
+          continue;
+        }
 
-      if (isCollision && !isScalarOverride) {
         delete merged[key];
         composed.push({ [key]: defaultValue }, { [key]: userValue });
         continue;
@@ -216,6 +220,19 @@ export abstract class FilterBuilder extends BaseHelper {
     }
 
     return merged as TWhere<T>;
+  }
+
+  /** Two values that are the same scalar: equal primitives (`null` included) or the same instant. Operator objects and lists are never "the same": they compose. */
+  private isSameScalar(opts: { left: unknown; right: unknown }): boolean {
+    const { left, right } = opts;
+
+    if (left instanceof Date && right instanceof Date) {
+      return left.getTime() === right.getTime();
+    }
+
+    const isPrimitive = (value: unknown) => value === null || typeof value !== 'object';
+
+    return isPrimitive(left) && isPrimitive(right) && Object.is(left, right);
   }
 
   /**

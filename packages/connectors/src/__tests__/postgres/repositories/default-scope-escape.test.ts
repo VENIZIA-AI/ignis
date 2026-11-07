@@ -96,11 +96,15 @@ describe('an EMPTY logical group', () => {
 });
 
 describe('mergeWhere - the established rules still hold', () => {
-  test('a scalar-over-scalar collision is still a caller override (opting out of soft delete)', () => {
+  test('a scalar-over-scalar collision composes: the caller cannot opt out of soft delete', () => {
     const merged = mergeWhere({ isDeleted: false }, { isDeleted: true });
 
-    expect(merged.isDeleted).toBe(true);
-    expect(merged.and).toBeUndefined();
+    expect(merged.isDeleted).toBeUndefined();
+    expect(merged.and).toEqual([{ isDeleted: false }, { isDeleted: true }]);
+  });
+
+  test('the caller restating the default scalar is a no-op', () => {
+    expect(mergeWhere({ isDeleted: false }, { isDeleted: false })).toEqual({ isDeleted: false });
   });
 
   test('an operator-object collision is still AND-composed', () => {
