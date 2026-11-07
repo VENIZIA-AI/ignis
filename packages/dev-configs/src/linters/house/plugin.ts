@@ -4,6 +4,7 @@ import { ConstClassValuesRule } from './const-class-values.rule';
 import { EffectCleanupConsistencyRule } from './effect-cleanup-consistency.rule';
 import { MaxParamsOwnRule } from './max-params-own.rule';
 import { NoAsyncHookCallbackRule } from './no-async-hook-callback.rule';
+import { NoAwaitNewChainRule } from './no-await-new-chain.rule';
 import { NoAwaitPromiseChainRule } from './no-await-promise-chain.rule';
 import { NoInlineAwaitRule } from './no-inline-await.rule';
 import { NoLeakedRenderRule } from './no-leaked-render.rule';
@@ -20,6 +21,7 @@ export const houseEslintPlugin: ESLint.Plugin = {
     'effect-cleanup-consistency': EffectCleanupConsistencyRule.RULE,
     'max-params-own': MaxParamsOwnRule.RULE,
     'no-async-hook-callback': NoAsyncHookCallbackRule.RULE,
+    'no-await-new-chain': NoAwaitNewChainRule.RULE,
     'no-await-promise-chain': NoAwaitPromiseChainRule.RULE,
     'no-inline-await': NoInlineAwaitRule.RULE,
     'no-leaked-render': NoLeakedRenderRule.RULE,

@@ -5,6 +5,7 @@ export * from './effect-cleanup-consistency.rule';
 export * from './hook-support';
 export * from './max-params-own.rule';
 export * from './no-async-hook-callback.rule';
+export * from './no-await-new-chain.rule';
 export * from './no-await-promise-chain.rule';
 export * from './no-inline-await.rule';
 export * from './no-leaked-render.rule';

@@ -1,5 +1,6 @@
 import type { Linter } from 'eslint';
 import { HOUSE_PLUGIN_NAMESPACE } from './common';
+import { NoAwaitNewChainRule } from './no-await-new-chain.rule';
 import { NoAwaitPromiseChainRule } from './no-await-promise-chain.rule';
 import { NoInlineAwaitRule } from './no-inline-await.rule';
 import { NoReturnAwaitRule } from './no-return-await.rule';
@@ -9,7 +10,7 @@ import { houseEslintPlugin } from './plugin';
 /**
  * The async style rules: `await` stands alone as a statement or as the whole initializer of a declaration
  * (`no-inline-await`), a function returns the promise instead of `return await` (`no-return-await`), an `await`
- * never takes a promise chain (`no-await-promise-chain`), and a caught error leaves a trace (`no-silent-catch`).
+ * never takes a promise chain (`no-await-promise-chain`) or a method called on a new instance (`no-await-new-chain`), and a caught error leaves a trace (`no-silent-catch`).
  * They apply to test files too. Not exported from the package: `houseConfigs` and `reactHouseConfigs` carry them, and
  * `devz codemod async-style` runs them alone.
  */
@@ -20,6 +21,7 @@ export const asyncRuleConfigs: Linter.Config[] = [
     rules: {
       [NoInlineAwaitRule.NAME]: NoInlineAwaitRule.build(),
       [NoReturnAwaitRule.NAME]: NoReturnAwaitRule.build(),
+      [NoAwaitNewChainRule.NAME]: NoAwaitNewChainRule.build(),
       [NoAwaitPromiseChainRule.NAME]: NoAwaitPromiseChainRule.build(),
       [NoSilentCatchRule.NAME]: NoSilentCatchRule.build(),
     },

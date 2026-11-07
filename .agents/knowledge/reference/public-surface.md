@@ -12,7 +12,7 @@ generated:
 
 ## dev-configs
 
-### `@venizia/dev-configs` (55)
+### `@venizia/dev-configs` (56)
 
 - `AstNode` class
 - `AstNodeTypes` class
@@ -37,6 +37,7 @@ generated:
 - `namingConventionConfigs` const
 - `NamingConventionRule` class
 - `NoAsyncHookCallbackRule` class
+- `NoAwaitNewChainRule` class
 - `NoAwaitPromiseChainRule` class
 - `NoInlineAwaitRule` class
 - `NoLeakedRenderRule` class
@@ -74,7 +75,7 @@ generated:
 
 - `BunCompiler` class
 
-### `@venizia/dev-configs/linters` (54)
+### `@venizia/dev-configs/linters` (55)
 
 - `AstNode` class
 - `AstNodeTypes` class
@@ -98,6 +99,7 @@ generated:
 - `namingConventionConfigs` const
 - `NamingConventionRule` class
 - `NoAsyncHookCallbackRule` class
+- `NoAwaitNewChainRule` class
 - `NoAwaitPromiseChainRule` class
 - `NoInlineAwaitRule` class
 - `NoLeakedRenderRule` class
