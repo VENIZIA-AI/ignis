@@ -115,7 +115,8 @@ export abstract class ReadableCrudController<
     const { id } = context.req.valid<{ id: IdType }>('param');
     const { filter } = context.req.valid<{ filter?: Omit<TFilter<TDataObject>, 'where'> }>('query');
 
-    this.assertRequestFilter({ filter });
+    // The read is by id, so a `where` the client sent is never read; the check reads only what the query reads.
+    this.assertRequestFilter({ filter: filter && { ...filter, where: undefined } });
 
     const baseWhere = await this.getBaseWhere({ context });
 

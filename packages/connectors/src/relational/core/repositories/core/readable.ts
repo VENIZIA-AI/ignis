@@ -1,6 +1,7 @@
 import { ObjectUtility } from '@venizia/ignis-helpers/common';
 import type {
   IExtraOptions,
+  IRequestFilterJudge,
   TByIdFilter,
   TCount,
   TDataWithRange,
@@ -9,10 +10,16 @@ import type {
   TFindOneOptions,
   TFindOptions,
   TFindRangeOptions,
+  TRequestFilterPart,
   TRow,
   TWhere,
 } from '@venizia/ignis-kernel';
-import { DataRangeUtility, DEFAULT_LIMIT, RepositoryOperationScopes } from '@venizia/ignis-kernel';
+import {
+  DataRangeUtility,
+  DEFAULT_LIMIT,
+  RepositoryOperationScopes,
+  RequestFilterParts,
+} from '@venizia/ignis-kernel';
 import type { IRelationalDataSource } from '@/relational/core/datasources/common';
 import type {
   BaseRelationalEntity,
@@ -23,6 +30,13 @@ import type {
 import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
 import type { IRelationalExtraOptions } from '../common';
 import { RelationalBaseRepository } from './base';
+
+/** The order the Core API reads a filter in: where, then order. */
+const CORE_API_READ_ORDER: ReadonlyArray<TRequestFilterPart> = [
+  RequestFilterParts.WHERE,
+  RequestFilterParts.ORDER,
+  RequestFilterParts.INCLUDE,
+];
 
 /** Read-only repository. Write operations throw errors. */
 export class ReadableRelationalRepository<
@@ -58,6 +72,39 @@ export class ReadableRelationalRepository<
         : Object.keys(filter.fields).length > 0);
 
     return !hasInclude && !hasFields;
+  }
+
+  /**
+   * A request filter is read as `find` reads it: through the Core API (where, then order) when the filter merged with the
+   * model's default filter selects no fields and includes nothing, and through `build` (order, where, include) otherwise.
+   * Merging with the default filter comes first, so its refusal of a `where` key is the first.
+   */
+  protected override createRequestFilterJudge(): IRequestFilterJudge {
+    const judge = super.createRequestFilterJudge();
+
+    const merge = (filter: unknown): { merged?: TFilter<DataObject>; error?: Error } => {
+      try {
+        return {
+          merged: this.queryDialect.mergeFilter({
+            defaultFilter: this.getDefaultFilter(),
+            userFilter: filter as TFilter<DataObject>,
+          }),
+        };
+      } catch (error) {
+        return { error: error as Error };
+      }
+    };
+
+    return {
+      ...judge,
+      filterRefusal: (opts) => merge(opts.filter).error,
+      readOrder: (opts) => {
+        const { merged } = merge(opts.filter);
+        const isCoreAPI = this.canUseCoreAPI(merged ?? (opts.filter as TFilter<DataObject>));
+
+        return isCoreAPI ? CORE_API_READ_ORDER : (judge.readOrder?.(opts) ?? CORE_API_READ_ORDER);
+      },
+    };
   }
 
   /** Executes a query through the executor's Core-API `select`. */

@@ -1232,7 +1232,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (434)
+### `@venizia/ignis-kernel` (436)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1495,6 +1495,7 @@ generated:
 - `RequestDomainResolver` class
 - `RequestErrors` const
 - `RequestFilterGuard` class
+- `RequestFilterParts` class
 - `ResolverUtility` class
 - `ResponseExtras` class
 - `ResponseFormats` class
@@ -1633,6 +1634,7 @@ generated:
 - `TRepositoryType` type
 - `TRequestContextResolver` type
 - `TRequestFilterKeyKind` type
+- `TRequestFilterPart` type
 - `TResponseBodyOf` type
 - `TResponseExtra` type
 - `TResponseFormat` type
@@ -2411,7 +2413,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1031)
+### `@venizia/ignis` (1033)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -3045,6 +3047,7 @@ generated:
 - `RequestDomainResolver` class
 - `RequestErrors` const
 - `RequestFilterGuard` class
+- `RequestFilterParts` class
 - `RequestIdGenerator` class
 - `RequestTrackerComponent` class
 - `RequestUtility` class
@@ -3329,6 +3332,7 @@ generated:
 - `TRepositoryType` type
 - `TRequestContextResolver` type
 - `TRequestFilterKeyKind` type
+- `TRequestFilterPart` type
 - `TResolveDomainEdgesFn` type
 - `TResolver` type
 - `TResponseBodyOf` type

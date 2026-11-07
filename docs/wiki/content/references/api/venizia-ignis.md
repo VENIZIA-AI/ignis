@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-99 exports, 99 with TSDoc. 931 more are re-exported from other entries (listed at the end).
+99 exports, 99 with TSDoc. 933 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3594,6 +3594,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `RequestDomainResolver` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `RequestErrors` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `RequestFilterGuard` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `RequestFilterParts` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `RequestIdGenerator` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `RequestUtility` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `ResolverUtility` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
@@ -3853,6 +3854,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TRepositoryType` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TRequestContextResolver` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TRequestFilterKeyKind` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `TRequestFilterPart` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TResponseBodyOf` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TResponsedError` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)

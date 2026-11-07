@@ -455,6 +455,7 @@ export declare class MeilisearchQueryDialect extends BaseHelper implements ISear
         kind: 'where' | 'order';
         field: string;
     }): Error;
+    /** Each order field must be one the collection declares, as in a `where`: an undeclared one is refused before the engine. */
     private toOrderBy;
     /** A logical group always parenthesises, so precedence never depends on where the group sat in the tree. */
     private compileLogicalGroup;

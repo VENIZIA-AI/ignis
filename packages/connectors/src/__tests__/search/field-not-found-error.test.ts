@@ -58,9 +58,15 @@ describe('Meilisearch', () => {
     expect(dialect.fieldNotFoundError({ kind: 'where', field: 'meta.pin' }).message).toBe(own);
   });
 
-  test('an order field is worded like the other engine: the query itself leaves an order field to the engine', () => {
-    expect(dialect.fieldNotFoundError({ kind: 'order', field: 'nope' }).message).toContain(
-      'Field NOT FOUND',
+  test('an order field reads as the undeclared order field does', () => {
+    const own = messageOf(() =>
+      dialect.build({ filter: { order: ['nope ASC'] }, capabilities: { fields: FIELDS } }),
     );
+
+    expect(dialect.fieldNotFoundError({ kind: 'order', field: 'nope' }).message).toBe(own);
+  });
+
+  test('an order with no declared fields to check against is left to the engine', () => {
+    expect(dialect.build({ filter: { order: ['nope ASC'] } }).sortBy).toBe('nope:asc');
   });
 });
