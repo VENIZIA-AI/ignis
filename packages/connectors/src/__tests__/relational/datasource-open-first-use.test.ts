@@ -228,6 +228,30 @@ describe('the first repository call opens the datasource', () => {
     expect(total).toEqual({ count: 1 });
   });
 
+  test('findEvery as the very first call opens it once, and its pages are typed by fields', async () => {
+    const { dataSource, repository } = build();
+    const pages: Array<Array<{ title: string }>> = [];
+
+    for await (const page of repository.findEvery({ filter: { fields: ['title'] }, pageSize: 2 })) {
+      pages.push(page);
+    }
+
+    expect(pages).toEqual([]);
+    expect(Probe.opens).toBe(1);
+    expect(dataSource.isOpen()).toBe(true);
+
+    await repository.createAll({ data: [{ title: 'a' }, { title: 'b' }, { title: 'c' }] });
+
+    for await (const page of repository.findEvery({ filter: { fields: ['title'] }, pageSize: 2 })) {
+      // @ts-expect-error `fields: ['title']` leaves `rank` out of the row type
+      expect(page.map((row) => row.rank)).toEqual(page.map(() => undefined));
+      pages.push(page);
+    }
+
+    expect(pages).toEqual([[{ title: 'a' }, { title: 'b' }], [{ title: 'c' }]]);
+    expect(Probe.opens).toBe(1);
+  });
+
   test('beginTransaction() as the first call opens it, and the transaction works', async () => {
     const { dataSource, repository } = build();
 
