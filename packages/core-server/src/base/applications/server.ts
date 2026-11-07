@@ -1,3 +1,4 @@
+import { OpenAPIHono } from '@hono/zod-openapi';
 import { CoreBindings, RestApplication } from '@venizia/ignis-kernel';
 import { ModuleUtility } from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers/core';
@@ -139,6 +140,25 @@ export abstract class ServerApplication<
     this.configs.port = resolveServerPort({
       candidates: [opts.config.port, process.env.PORT, process.env.APP_ENV_SERVER_PORT],
     });
+  }
+
+  /** Narrowed from the kernel's `Hono`: this layer serves OpenAPI documentation, so both routers are `OpenAPIHono` (see `createRouter`). */
+  declare protected server: { hono: OpenAPIHono<AppEnv, AppSchema, BasePath> };
+  declare protected rootRouter: OpenAPIHono<AppEnv, AppSchema, BasePath>;
+
+  /** Always an `OpenAPIHono`, whatever else got loaded: the API reference reads `rootRouter.openAPIRegistry`. The kernel's default is a plain `Hono` so a browser Worker does not carry zod. */
+  protected override createRouter(opts: {
+    strict: boolean;
+  }): OpenAPIHono<AppEnv, AppSchema, BasePath> {
+    return new OpenAPIHono<AppEnv, AppSchema, BasePath>({ strict: opts.strict });
+  }
+
+  override getServer(): OpenAPIHono<AppEnv, AppSchema, BasePath> {
+    return this.server.hono;
+  }
+
+  override getRootRouter(): OpenAPIHono<AppEnv, AppSchema, BasePath> {
+    return this.rootRouter;
   }
 
   /** Restores the pre-split default: a server-capable application installs `hono/context-storage` unless the caller opts out explicitly. */

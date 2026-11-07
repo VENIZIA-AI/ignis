@@ -13,6 +13,7 @@ import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { Env, Schema } from 'hono';
+import { RouterFactories } from '@/base/applications/router-factory';
 import type {
   IAuthRouteConfig,
   IBindRouteOptions,
@@ -21,6 +22,13 @@ import type {
   IDefineRouteOptions,
   TRouteHandler,
 } from '../common/types';
+
+// This module is where the OpenAPI layer (zod, zod-to-openapi) enters a program, so it is also where
+// the application's routers become `OpenAPIHono`: a program with REST controllers gets the routers it
+// always had, and one without them never loads `@hono/zod-openapi`. See `RouterFactories`.
+RouterFactories.registerOpenApi({
+  factory: ({ strict }) => new OpenAPIHono({ strict }),
+});
 
 /** True for a route path carrying a path parameter, in either supported syntax: `/{id}` or `/:id`. */
 const hasPathParam = (opts: { path: string }): boolean => {

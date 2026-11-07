@@ -58,7 +58,7 @@ directory grows into.
 
 Weight is not purity: zod is browser-PURE, so the purity gate had nothing to say while one
 `z.object()` at module load cost every consumer of `Container` 423 KB.
-`src/__tests__/bundle/browser-weight.test.ts` bundles both entries and fails over 120 KB.
+`src/__tests__/bundle/browser-weight.test.ts` bundles both entries and fails over 120 KB; it also fails when zod or zod-to-openapi reach `applications/rest.ts`. `RestApplication` takes its routers from the internal `RouterFactories` (`applications/router-factory.ts`): plain `Hono` by default, `OpenAPIHono` once `controllers/rest/abstract.ts` has loaded and registered it; `ServerApplication` overrides the protected `createRouter()` to always build one.
 
 ## What it owns
 

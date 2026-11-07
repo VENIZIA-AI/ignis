@@ -3,7 +3,6 @@ import { ArtifactNamespaces, BindingNamespaces, CoreBindings } from '@/common/bi
 import type { Binding, TBindingScope } from '@/helpers/inversion';
 import { BindingScopes, MetadataRegistry } from '@/helpers/inversion';
 import { BindingVerifier } from '@venizia/ignis-inversion';
-import { OpenAPIHono } from '@hono/zod-openapi';
 import type { AnyType, IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   PerformanceUtility,
@@ -11,7 +10,7 @@ import {
   RequestIdGenerator,
   RetryHelper,
 } from '@venizia/ignis-helpers/core';
-import type { Env, MiddlewareHandler, Schema } from 'hono';
+import type { Env, Hono, MiddlewareHandler, Schema } from 'hono';
 import { showRoutes as showApplicationRoutes } from 'hono/dev';
 import { requestId } from 'hono/request-id';
 import type { BaseComponent } from '../components';
@@ -28,6 +27,7 @@ import type { IRepository } from '../repositories';
 import type { IService } from '../services';
 import { AbstractApplication } from './abstract';
 import { BodyLimits } from './body-limit';
+import { RouterFactories } from './router-factory';
 import { CorsUtility } from './cors';
 import { ArtifactIndexHelper } from './artifact-index';
 import type { IBootSequenceStep } from './boot-sequence';
@@ -41,7 +41,7 @@ interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurabl
   onAfterConfigure?: (opts: { binding: Binding<T>; instance: T }) => Promise<void>;
 }
 
-/** Adds the `OpenAPIHono` router surface on top of `AbstractApplication` - no listening server, so this is the layer a browser Worker or gRPC-only host can extend without pulling in `Bun.serve`. */
+/** Adds the Hono router surface on top of `AbstractApplication` (an `OpenAPIHono` once the REST controller layer is loaded - see `RouterFactories`) - no listening server, so this is the layer a browser Worker or gRPC-only host can extend without pulling in `Bun.serve`. */
 export abstract class RestApplication<
   AppEnv extends Env = Env,
   AppSchema extends Schema = {},
@@ -51,9 +51,9 @@ export abstract class RestApplication<
   private artifactOptions = new Map<string, object>();
 
   /** The router, and nothing else. What runtime is underneath and what socket is bound are `ServerApplication`'s to know - a browser Worker has neither, and carrying the union here made `RuntimeModules.detect()` answer `'node'` inside a Worker. */
-  protected server: { hono: OpenAPIHono<AppEnv, AppSchema, BasePath> };
+  protected server: { hono: Hono<AppEnv, AppSchema, BasePath> };
 
-  protected rootRouter: OpenAPIHono<AppEnv, AppSchema, BasePath>;
+  protected rootRouter: Hono<AppEnv, AppSchema, BasePath>;
   protected readonly requestIdGenerator: RequestIdGenerator;
 
   /** A copy of the `bodyLimit` the default stack installed, absent until `registerDefaultMiddlewares()` ran. */
@@ -79,17 +79,25 @@ export abstract class RestApplication<
     this.requestIdGenerator = new RequestIdGenerator({ scope: opts.scope });
 
     const strict = this.configs.path.isStrict ?? true;
-    const honoServer = new OpenAPIHono<AppEnv, AppSchema, BasePath>({ strict });
-    this.rootRouter = new OpenAPIHono({ strict });
-
-    this.server = { hono: honoServer };
+    this.server = { hono: this.createRouter({ strict }) };
+    this.rootRouter = this.createRouter({ strict });
   }
 
-  getRootRouter(): OpenAPIHono<AppEnv, AppSchema, BasePath> {
+  /**
+   * Builds one of the two routers. Plain `Hono` unless the OpenAPI layer is loaded - see
+   * {@link RouterFactories}. A host that always serves OpenAPI documentation (`ServerApplication`)
+   * overrides this to return an `OpenAPIHono` whatever got loaded. Called from the constructor, so an
+   * override must not read its own instance fields.
+   */
+  protected createRouter(opts: { strict: boolean }): Hono<AppEnv, AppSchema, BasePath> {
+    return RouterFactories.create<AppEnv, AppSchema, BasePath>({ strict: opts.strict });
+  }
+
+  getRootRouter(): Hono<AppEnv, AppSchema, BasePath> {
     return this.rootRouter;
   }
 
-  getServer(): OpenAPIHono<AppEnv, AppSchema, BasePath> {
+  getServer(): Hono<AppEnv, AppSchema, BasePath> {
     return this.server.hono;
   }
 

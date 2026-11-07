@@ -1,6 +1,5 @@
-import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
-import type { Env, Schema } from 'hono';
+import type { Env, Hono, Schema } from 'hono';
 import type { TControllerTransport } from '../../../controllers/common/constants';
 import type {
   IComponentMixin,
@@ -107,8 +106,8 @@ export interface IApplication<
 > {
   getProjectRoot(): string;
   getProjectConfigs(): IApplicationConfigs;
-  getServer(): OpenAPIHono<AppEnv, AppSchema, BasePath>;
-  getRootRouter(): OpenAPIHono<AppEnv, AppSchema, BasePath>;
+  getServer(): Hono<AppEnv, AppSchema, BasePath>;
+  getRootRouter(): Hono<AppEnv, AppSchema, BasePath>;
 
   setupMiddlewares(): ValueOrPromise<void>;
 

@@ -2355,6 +2355,17 @@ export declare abstract class ServerApplication<AppEnv extends Env = Env, AppSch
         scope: string;
         config: IServerApplicationConfigs;
     });
+    /** Narrowed from the kernel's `Hono`: this layer serves OpenAPI documentation, so both routers are `OpenAPIHono` (see `createRouter`). */
+    protected server: {
+        hono: OpenAPIHono<AppEnv, AppSchema, BasePath>;
+    };
+    protected rootRouter: OpenAPIHono<AppEnv, AppSchema, BasePath>;
+    /** Always an `OpenAPIHono`, whatever else got loaded: the API reference reads `rootRouter.openAPIRegistry`. The kernel's default is a plain `Hono` so a browser Worker does not carry zod. */
+    protected createRouter(opts: {
+        strict: boolean;
+    }): OpenAPIHono<AppEnv, AppSchema, BasePath>;
+    getServer(): OpenAPIHono<AppEnv, AppSchema, BasePath>;
+    getRootRouter(): OpenAPIHono<AppEnv, AppSchema, BasePath>;
     /** Restores the pre-split default: a server-capable application installs `hono/context-storage` unless the caller opts out explicitly. */
     protected getDefaultAsyncContextEnabled(): boolean;
     /** `configs.projectRoot` wins, else the process cwd. The value is bound AND handed to `ModuleUtility`, so every peer lookup (optional modules, the gRPC adapter) resolves under it - a compiled binary sets it to where its `node_modules` really is. */

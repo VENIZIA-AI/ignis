@@ -141,3 +141,23 @@ describe('the repository entry stays free of the schema layer', () => {
     expect(text.includes('ZodObject'), 'zod reached the repository entry').toBe(false);
   });
 });
+
+/**
+ * `RestApplication` is the base of the browser Worker host, and it used to `new OpenAPIHono` for its two
+ * routers: `@hono/zod-openapi` loads at import and takes zod (about 394 KB) and zod-to-openapi (about 33 KB)
+ * with it, for a worker that declares no validated or OpenAPI route at all. The routers are plain `Hono`
+ * now, and the OpenAPI layer arrives only with the REST controller module (`RouterFactories`).
+ */
+describe('the application entry stays free of the OpenAPI layer', () => {
+  const APPLICATION_ENTRY = join(process.cwd(), 'src/base/applications/rest.ts');
+
+  test('no zod and no zod-to-openapi reach it', async () => {
+    const { text } = await bundle(APPLICATION_ENTRY);
+
+    expect(text.includes('ZodObject'), 'zod reached the RestApplication entry').toBe(false);
+    expect(
+      text.includes('OpenApiGeneratorV3'),
+      'zod-to-openapi reached the RestApplication entry',
+    ).toBe(false);
+  });
+});
