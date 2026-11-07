@@ -46,7 +46,7 @@ export class EchoUtility {
   /**
    * The value with every unsafe character escaped and nothing else changed: no quotes, and `"` and `\` stay.
    * For a caller's value inside a message that is read as text (a thrown error's message, which reaches the
-   * caller and the error log), where an ordinary name must read exactly as it did before. A value that is not a
+   * caller and the error log), where an ordinary name must read unchanged. A value that is not a
    * string is written as `toSafeEcho` writes it.
    */
   static toSafeText(opts: { value: unknown }): string {
