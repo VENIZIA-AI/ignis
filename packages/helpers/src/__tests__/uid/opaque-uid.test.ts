@@ -231,7 +231,8 @@ describe('OpaqueUidHelper - isAvailable', () => {
   test('an async check redraws the same way, and awaits every verdict', async () => {
     const rejected: Array<string> = [];
 
-    const id = await new OpaqueUidHelper().nextId({
+    const opaqueUidHelper = new OpaqueUidHelper();
+    const id = await opaqueUidHelper.nextId({
       isAvailable: async (candidate) => {
         if (rejected.length < 3) {
           rejected.push(candidate);
@@ -251,7 +252,8 @@ describe('OpaqueUidHelper - isAvailable', () => {
     let failure: unknown;
 
     try {
-      await new OpaqueUidHelper().nextId({ isAvailable: async () => false, maxAttempts: 3 });
+      const opaqueUidHelper = new OpaqueUidHelper();
+      await opaqueUidHelper.nextId({ isAvailable: async () => false, maxAttempts: 3 });
     } catch (error) {
       failure = error;
     }
@@ -263,7 +265,8 @@ describe('OpaqueUidHelper - isAvailable', () => {
     // The switch to the async path happens on the first pending verdict, whenever that arrives.
     let call = 0;
 
-    const id = await new OpaqueUidHelper().nextId({
+    const opaqueUidHelper = new OpaqueUidHelper();
+    const id = await opaqueUidHelper.nextId({
       isAvailable: () => {
         call += 1;
 

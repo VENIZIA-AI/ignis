@@ -196,13 +196,13 @@ describe('JWKS verifier', () => {
 describe('JWKS key confusion', () => {
   test('an HS256 token signed with the public key as the HMAC secret is refused', async () => {
     const publicPem = issuerOptions.keys.public as string;
-    const forged = await new SignJWT({ userId: 1, roles: [] })
+    const jwt = new SignJWT({ userId: 1, roles: [] })
       .setProtectedHeader({ alg: 'HS256', kid: 'test-kid' })
       .setIssuer('identity')
       .setAudience('inventory')
       .setIssuedAt()
-      .setExpirationTime('1h')
-      .sign(new TextEncoder().encode(publicPem));
+      .setExpirationTime('1h');
+    const forged = await jwt.sign(new TextEncoder().encode(publicPem));
 
     await RejectionHelper.expectRejection({
       task: buildVerifier().verify({ type: 'Bearer', token: forged }),

@@ -46,7 +46,8 @@ const buildServer = (opts: {
   server.use(middleware.value());
   // Reads the RAW stream, as a proxy does.
   server.put('/upload', async (context) => {
-    const result = await new Response(context.req.raw.body).arrayBuffer();
+    const response = new Response(context.req.raw.body);
+    const result = await response.arrayBuffer();
     const bytes = new Uint8Array(result);
 
     return context.json({ bytes: Array.from(bytes) });

@@ -41,12 +41,13 @@ export class PGliteDataSource extends BasePostgresDataSource<
     this.client = client;
 
     try {
-      await new RelationalMigrationRunner({
+      const runner = new RelationalMigrationRunner({
         driver: this.resolveDriver(),
         // Kept from earlier versions of this example, so a database already in OPFS stays readable.
         ledgerTable: 'ignis_browser_migrations',
         scope: PGliteDataSource.name,
-      }).run({ migrations: MIGRATIONS });
+      });
+      await runner.run({ migrations: MIGRATIONS });
     } catch (error) {
       // OPFS access handles are exclusive: an instance left open makes every retry fail until the
       // site data is cleared by hand. A failed close is logged so it cannot hide the real cause.

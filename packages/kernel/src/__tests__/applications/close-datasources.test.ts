@@ -143,7 +143,8 @@ describe('RestApplication.closeDataSources', () => {
   });
 
   test('the engine-neutral root has nothing to release', async () => {
-    const result = await new PlainDataSource().close();
+    const plainDataSource = new PlainDataSource();
+    const result = await plainDataSource.close();
     expect(result).toBeUndefined();
   });
 

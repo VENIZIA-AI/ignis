@@ -246,8 +246,10 @@ describe('ReadableCrudController base where - overridden', () => {
     const missing = fakeContext({ param: { id: 'missing' } });
     const outOfScope = fakeContext({ param: { id: 'r1' } });
 
-    await new ItemsController(repository).findById({ context: missing.context });
-    await new TenantItemsController(repository).findById({ context: outOfScope.context });
+    const itemsController = new ItemsController(repository);
+    await itemsController.findById({ context: missing.context });
+    const tenantItemsController = new TenantItemsController(repository);
+    await tenantItemsController.findById({ context: outOfScope.context });
 
     expect(outOfScope.bodies[0]).toEqual(missing.bodies[0]);
     expect(outOfScope.bodies[0]).toEqual({ count: 0, data: null });

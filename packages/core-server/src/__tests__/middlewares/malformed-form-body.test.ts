@@ -79,7 +79,8 @@ const boot = async (opts: { environment: string; helper: FakeStorageHelper }) =>
   });
   application.init();
   await application['registerDefaultMiddlewares']();
-  await new RequestTrackerComponent(application).configure();
+  const requestTrackerComponent = new RequestTrackerComponent(application);
+  await requestTrackerComponent.configure();
 
   application.controller(HandParsedController);
   application.controller(
