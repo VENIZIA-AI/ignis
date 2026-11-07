@@ -703,11 +703,13 @@ export abstract class FilterBuilder extends BaseHelper {
     const result: Record<string, true | TDrizzleQueryOptions> = {};
 
     for (const inc of include) {
-      const relationName = typeof inc === 'string' ? inc : inc.relation;
-      const scope = typeof inc === 'string' ? undefined : inc.scope;
-      const shouldSkipDefaultFilter = typeof inc === 'string' ? false : inc.shouldSkipDefaultFilter;
+      const relationName = typeof inc === 'string' ? inc : inc?.relation;
+      const scope = typeof inc === 'string' ? undefined : inc?.scope;
+      const shouldSkipDefaultFilter =
+        typeof inc === 'string' ? false : inc?.shouldSkipDefaultFilter;
 
-      if (!relationName) {
+      // A name that is not a non-empty string (`['zzz']`, `42`, `{}`) is a malformed include: a 400 here, not a TypeError further down.
+      if (typeof relationName !== 'string' || !relationName) {
         throw getError({
           message: `[FilterBuilder][toInclude] Invalid include format | include: ${JSON.stringify(inc)}`,
         });

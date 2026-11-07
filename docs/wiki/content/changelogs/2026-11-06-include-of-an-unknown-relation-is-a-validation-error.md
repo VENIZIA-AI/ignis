@@ -15,6 +15,7 @@ packages: ['@venizia/ignis-connectors', '@venizia/ignis']
 ## What changed
 
 - **Own relations only.** A relation name is looked up on the declared relations, not on the object's prototype. `constructor`, `toString`, `__proto__` and similar names are not relations.
+- **Malformed entries.** A relation name that is not a non-empty string (`["zzz"]`, `42`) or an entry that is `null` answers `400 Invalid include format` instead of a TypeError (500).
 - **Escaped echo.** The not-found message writes the name through the same escaping the column messages use: one line, control characters as `\uXXXX`.
 
 ## Who is affected

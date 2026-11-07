@@ -52,4 +52,26 @@ describe.each([
     expect(error.message).not.toContain('\n');
     expect(error.message).toContain('bad\\u000aFORGED name');
   });
+
+  test.each([[['zzz']], [{ a: 1 }], [42], [true]])(
+    'a relation name that is not a string (%p) is a 400 invalid-format error, not a TypeError',
+    (value) => {
+      const error = capture(() =>
+        dialect.toInclude({ include: [{ relation: value }] as never, relations }),
+      );
+
+      expect(error.statusCode).toBe(400);
+      expect(error.message).toContain('Invalid include format');
+    },
+  );
+
+  test.each([[null], [undefined], [7]])(
+    'an include entry that is %p is a 400 invalid-format error',
+    (entry) => {
+      const error = capture(() => dialect.toInclude({ include: [entry] as never, relations }));
+
+      expect(error.statusCode).toBe(400);
+      expect(error.message).toContain('Invalid include format');
+    },
+  );
 });
