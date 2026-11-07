@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { model } from '@venizia/ignis-kernel';
+import { model, type TFilter } from '@venizia/ignis-kernel';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { BaseSearchEntity, field, SearchCollectionFactory } from '@/search/core/models';
 import { ReadableSearchRepository } from '@/search/core/repositories';
@@ -39,7 +39,7 @@ const typesense = (): { repository: TRepository; engineCalls: () => number } => 
   const dataSource = new FakeSearchDataSource({ name: `first-refusal-ts-${sequence}`, config: {} });
 
   return {
-    repository: new ReadableSearchRepository(dataSource as never, {
+    repository: new ReadableSearchRepository(dataSource, {
       entityClass: FirstRefusalDocument,
     }),
     engineCalls: () => dataSource.fakeConnector.searchCalls.length,
@@ -93,13 +93,13 @@ const guardRefusal = (repository: TRepository, filter: object) => {
   throw new Error('expected the guard to refuse the filter');
 };
 
-const queryRefusal = async (repository: TRepository, filter: object) => {
+const queryRefusal = async (repository: TRepository, filter: TFilter) => {
   try {
     await repository.search({
       mode: SearchModes.KEYWORD,
       query: 'a',
       queryBy: ['title'],
-      filter: filter as never,
+      filter,
     });
   } catch (error) {
     if (isApplicationError(error)) {
@@ -112,7 +112,7 @@ const queryRefusal = async (repository: TRepository, filter: object) => {
   throw new Error('expected the query to refuse the filter');
 };
 
-const renamed = (filter: object, from: string, to: string): object =>
+const renamed = (filter: object, from: string, to: string): TFilter =>
   JSON.parse(JSON.stringify(filter).replaceAll(from, to));
 
 describe.each(ENGINES)('%s', (_engine, make) => {
@@ -188,7 +188,7 @@ describe.each(ENGINES)('%s', (_engine, make) => {
       mode: SearchModes.KEYWORD,
       query: 'a',
       queryBy: ['title'],
-      filter: filter as never,
+      filter,
     });
 
     expect(engineCalls()).toBe(1);

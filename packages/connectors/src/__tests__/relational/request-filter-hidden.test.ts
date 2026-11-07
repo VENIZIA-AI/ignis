@@ -1,6 +1,6 @@
 import { PGlite } from '@electric-sql/pglite';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { datasource, model } from '@venizia/ignis-kernel';
+import { datasource, model, type TFilter } from '@venizia/ignis-kernel';
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { integer, jsonb, pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
@@ -164,7 +164,7 @@ describe('the request filter of a model that hides `secret`', () => {
       throw new Error('the query accepted a column that does not exist');
     };
 
-    const renamed = (filter: object, from: string, to: string): object =>
+    const renamed = (filter: object, from: string, to: string): TFilter =>
       JSON.parse(JSON.stringify(filter).replaceAll(from, to));
 
     test.each([
@@ -229,10 +229,10 @@ describe('the request filter of a model that hides `secret`', () => {
  * order; the query API reads order, then where, then each include in turn, its scope the same way.
  */
 describe('the first refusal in the order the query reads the filter', () => {
-  const queryError = async (opts: { filter: object; isCount?: boolean }): Promise<AnyType> => {
+  const queryError = async (opts: { filter: TFilter; isCount?: boolean }): Promise<AnyType> => {
     try {
       if (opts.isCount) {
-        await posts.count({ where: (opts.filter as AnyType).where });
+        await posts.count({ where: opts.filter.where });
       } else {
         await posts.find({ filter: opts.filter });
       }
@@ -243,7 +243,7 @@ describe('the first refusal in the order the query reads the filter', () => {
     throw new Error('the query accepted the filter');
   };
 
-  const renamed = (filter: object, from: string, to: string): object =>
+  const renamed = (filter: object, from: string, to: string): TFilter =>
     JSON.parse(JSON.stringify(filter).replaceAll(from, to));
 
   /** Each filter names a hidden field and `nope`; the control puts the missing `zzz` in place of the hidden name. */

@@ -24,6 +24,7 @@ packages: ['@venizia/ignis-connectors', '@venizia/ignis-kernel', '@venizia/ignis
 
 - **Meilisearch callers that sort on a field the collection definition does not declare.** They get `400` instead of the engine's own error. Declare the field, or sort through `mode: 'raw'`.
 - **Meilisearch callers that sort by distance through `filter.order`** (`_geoPoint(lat, lng) ASC`). It is not a declared field, so it is refused now. Send the geo sort through `mode: 'raw'`.
+- **Code with its own query dialect.** A class that implements `IRelationalQueryDialect` must add `resolveInclusion`, and one that implements `ISearchQueryDialect` must add `includeNotSupportedError`. A dialect that extends a shipped one already has them.
 - **Everyone else.** No action needed.
 
 ## Breaking changes
@@ -47,6 +48,28 @@ await repository.search({
 });
 ```
 
+> [!WARNING]
+> `IRelationalQueryDialect` and `ISearchQueryDialect` each have one more required method.
+
+**Before:**
+
+```typescript
+class MySearchDialect implements ISearchQueryDialect {
+  fieldNotFoundError(opts: { kind: 'where' | 'order'; field: string }): Error { /* ... */ }
+  // ...
+}
+```
+
+**After** (return the error your `build` throws for a filter with an `include`; a relational dialect adds `resolveInclusion` the same way):
+
+```typescript
+class MySearchDialect implements ISearchQueryDialect {
+  fieldNotFoundError(opts: { kind: 'where' | 'order'; field: string }): Error { /* ... */ }
+  includeNotSupportedError(): Error { /* ... */ }
+  // ...
+}
+```
+
 ## Details
 
 | File | Package |
@@ -56,3 +79,7 @@ await repository.search({
 | `src/relational/core/repositories/core/readable.ts` | connectors |
 | `src/search/core/repositories/core/base.ts` | connectors |
 | `src/search/meilisearch/repositories/dialect/query-dialect.ts` | connectors |
+| `src/search/typesense/repositories/dialect/query-dialect.ts` | connectors |
+| `src/search/core/repositories/common/types.ts` | connectors |
+| `src/relational/core/repositories/dialect/filter.ts` | connectors |
+| `src/relational/core/repositories/common/types.ts` | connectors |

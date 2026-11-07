@@ -451,6 +451,7 @@ export declare class MeilisearchQueryDialect extends BaseHelper implements ISear
     }): TCompiledWhere;
     private assertNoUnsupportedKnobs;
     private jsonPathError;
+    includeNotSupportedError(): Error;
     fieldNotFoundError(opts: {
         kind: 'where' | 'order';
         field: string;

@@ -24,6 +24,12 @@ export class RequestFilterParts {
 /** A part of a request filter: `where`, `order` or `include`. */
 export type TRequestFilterPart = TConstValue<typeof RequestFilterParts>;
 
+/** One piece of a request filter, as the query reads it on its own: a `where` of one key, one `order` entry, or one `include` entry. */
+export type TRequestFilterPiece =
+  | { part: typeof RequestFilterParts.WHERE; value: Record<string, unknown> }
+  | { part: typeof RequestFilterParts.ORDER; value: string }
+  | { part: typeof RequestFilterParts.INCLUDE; value: unknown };
+
 /**
  * How one model judges a key of a request filter. The repository of a model supplies it, so the judgment reads a key the way
  * that model's own query does (a relational JSON path names its first part, a search field is a dotted name), and a refusal
@@ -53,11 +59,7 @@ export interface IRequestFilterJudge {
    * The error the query throws for one piece of a filter on its own, or `undefined` when it reads the piece. A piece is a
    * `where` of one key (`{ [key]: value }`), one `order` entry, or one `include` entry.
    */
-  queryRefusal?(opts: {
-    part: TRequestFilterPart;
-    value: unknown;
-    tableName: string;
-  }): Error | undefined;
+  queryRefusal?(opts: TRequestFilterPiece & { tableName: string }): Error | undefined;
 }
 
 /** The first refusal a walk of a filter met, before any hidden key. */
@@ -141,17 +143,16 @@ export class RequestFilterGuard {
     walk: IRequestFilterWalk;
     judge: IRequestFilterJudge;
     tableName: string;
-    part: TRequestFilterKeyKind;
     key: string;
-    piece: unknown;
+    piece: Exclude<TRequestFilterPiece, { part: typeof RequestFilterParts.INCLUDE }>;
   }): void {
-    const { walk, judge, tableName, part, key, piece } = opts;
+    const { walk, judge, tableName, key, piece } = opts;
 
     if (judge.isHidden({ key })) {
-      throw walk.refusal ?? judge.refuse({ kind: part, key, tableName });
+      throw walk.refusal ?? judge.refuse({ kind: piece.part, key, tableName });
     }
 
-    walk.refusal ??= judge.queryRefusal?.({ part, value: piece, tableName });
+    walk.refusal ??= judge.queryRefusal?.({ ...piece, tableName });
   }
 
   private static walkFilter(opts: {
@@ -216,9 +217,8 @@ export class RequestFilterGuard {
         walk,
         judge,
         tableName,
-        part: RequestFilterParts.WHERE,
         key,
-        piece: { [key]: value },
+        piece: { part: RequestFilterParts.WHERE, value: { [key]: value } },
       });
     }
   }
@@ -251,7 +251,7 @@ export class RequestFilterGuard {
           throw error;
         }
 
-        walk.refusal ??= error as Error;
+        walk.refusal ??= error instanceof Error ? error : getError({ message: 'A value that is not an Error was thrown', cause: error });
         continue;
       }
 
@@ -259,9 +259,8 @@ export class RequestFilterGuard {
         walk,
         judge,
         tableName,
-        part: RequestFilterParts.ORDER,
         key: field,
-        piece: entry,
+        piece: { part: RequestFilterParts.ORDER, value: entry },
       });
     }
   }

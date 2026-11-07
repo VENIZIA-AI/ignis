@@ -59,7 +59,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-helpers/uuid`](/references/api/venizia-ignis-helpers-uuid) | 0 | 0 |
 | [`@venizia/ignis-helpers/winston`](/references/api/venizia-ignis-helpers-winston) | 9 | 9 |
 | [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion) | 72 | 72 |
-| [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel) | 357 | 357 |
+| [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel) | 358 | 358 |
 | [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata) | 21 | 21 |
 | [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository) | 30 | 30 |
 | [`@venizia/ignis-worker`](/references/api/venizia-ignis-worker) | 18 | 18 |

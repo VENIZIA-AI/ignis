@@ -76,26 +76,18 @@ export abstract class SearchBaseRepository<
       refuse: ({ kind, key }) => this.queryDialect.fieldNotFoundError({ kind, field: key }),
       readOrder: () => SEARCH_READ_ORDER,
       filterRefusal: ({ filter }) =>
-        SearchBaseRepository.refusalOf({
-          task: () => {
-            if (filter.include !== undefined) {
-              this.queryDialect.build({
-                filter: { include: filter.include as TFilter['include'] },
-              });
-            }
-          },
-        }),
+        filter.include ? this.queryDialect.includeNotSupportedError() : undefined,
       queryRefusal: ({ part, value }) =>
         SearchBaseRepository.refusalOf({
           task: () => {
             if (part === RequestFilterParts.WHERE) {
               this.queryDialect.compileWhere({
-                where: value as TWhere,
+                where: value,
                 capabilities: { fields: this.collectionFields },
               });
             } else if (part === RequestFilterParts.ORDER) {
               this.queryDialect.build({
-                filter: { order: [value as string] },
+                filter: { order: [value] },
                 capabilities: { fields: this.collectionFields },
               });
             }
@@ -109,7 +101,7 @@ export abstract class SearchBaseRepository<
     try {
       opts.task();
     } catch (error) {
-      return error as Error;
+      return error instanceof Error ? error : getError({ message: 'A value that is not an Error was thrown', cause: error });
     }
 
     return undefined;

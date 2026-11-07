@@ -1232,7 +1232,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (436)
+### `@venizia/ignis-kernel` (437)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1635,6 +1635,7 @@ generated:
 - `TRequestContextResolver` type
 - `TRequestFilterKeyKind` type
 - `TRequestFilterPart` type
+- `TRequestFilterPiece` type
 - `TResponseBodyOf` type
 - `TResponseExtra` type
 - `TResponseFormat` type
@@ -2403,7 +2404,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1033)
+### `@venizia/ignis` (1034)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -3323,6 +3324,7 @@ generated:
 - `TRequestContextResolver` type
 - `TRequestFilterKeyKind` type
 - `TRequestFilterPart` type
+- `TRequestFilterPiece` type
 - `TResolveDomainEdgesFn` type
 - `TResolver` type
 - `TResponseBodyOf` type

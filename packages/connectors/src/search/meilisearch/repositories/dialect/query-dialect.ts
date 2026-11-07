@@ -165,10 +165,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     const { where, fields, order, limit, skip, offset, include } = filter ?? {};
 
     if (include) {
-      throw getError({
-        message:
-          '[MeilisearchQueryDialect][build] search() does not support "include" - relations cannot be translated to a Meilisearch filter',
-      });
+      throw this.includeNotSupportedError();
     }
 
     const query: IMeilisearchSearchQuery = { query: '*' };
@@ -461,6 +458,13 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
   private jsonPathError(opts: { field: string }): Error {
     return getError({
       message: `[MeilisearchQueryDialect][toWhere] search() does not support JSON-path fields | field: '${opts.field}'`,
+    });
+  }
+
+  includeNotSupportedError(): Error {
+    return getError({
+      message:
+        '[MeilisearchQueryDialect][build] search() does not support "include" - relations cannot be translated to a Meilisearch filter',
     });
   }
 

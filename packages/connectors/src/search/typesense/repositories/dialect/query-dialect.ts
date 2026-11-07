@@ -308,10 +308,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
     const { where, fields, order, limit, skip, offset, include } = filter ?? {};
 
     if (include) {
-      throw getError({
-        message:
-          '[TypesenseQueryDialect][build] search() does not support "include" - relations cannot be translated to a Typesense filter',
-      });
+      throw this.includeNotSupportedError();
     }
 
     const query: ITypesenseSearchQuery = { query: '*' };
@@ -667,6 +664,13 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
     return clauses.filter((clause) => clause.outcome === SearchFilterOutcomes.FILTER).length > 1
       ? SearchDialectHelper.parenthesize({ compiled: combined })
       : combined;
+  }
+
+  includeNotSupportedError(): Error {
+    return getError({
+      message:
+        '[TypesenseQueryDialect][build] search() does not support "include" - relations cannot be translated to a Typesense filter',
+    });
   }
 
   fieldNotFoundError(opts: { kind: 'where' | 'order'; field: string }): Error {

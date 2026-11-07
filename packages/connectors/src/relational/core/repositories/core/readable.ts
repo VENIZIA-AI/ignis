@@ -1,4 +1,5 @@
 import { ObjectUtility } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import type {
   IExtraOptions,
   IRequestFilterJudge,
@@ -87,11 +88,12 @@ export class ReadableRelationalRepository<
         return {
           merged: this.queryDialect.mergeFilter({
             defaultFilter: this.getDefaultFilter(),
+            // The request filter is unvalidated here; `mergeFilter` is what rejects a malformed one.
             userFilter: filter as TFilter<DataObject>,
           }),
         };
       } catch (error) {
-        return { error: error as Error };
+        return { error: error instanceof Error ? error : getError({ message: 'A value that is not an Error was thrown', cause: error }) };
       }
     };
 
@@ -100,7 +102,7 @@ export class ReadableRelationalRepository<
       filterRefusal: (opts) => merge(opts.filter).error,
       readOrder: (opts) => {
         const { merged } = merge(opts.filter);
-        const isCoreAPI = this.canUseCoreAPI(merged ?? (opts.filter as TFilter<DataObject>));
+        const isCoreAPI = merged !== undefined && this.canUseCoreAPI(merged);
 
         return isCoreAPI ? CORE_API_READ_ORDER : (judge.readOrder?.(opts) ?? CORE_API_READ_ORDER);
       },

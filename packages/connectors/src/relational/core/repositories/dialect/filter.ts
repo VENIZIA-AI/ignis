@@ -717,6 +717,45 @@ export abstract class FilterBuilder extends BaseHelper {
   }
 
   /**
+   * The relation one `include` entry (a relation name, or an object with `relation`) names, read as `toInclude` reads it.
+   * Throws the query's refusal of a malformed entry or of a relation the schema does not declare.
+   */
+  resolveInclusion(opts: {
+    inclusion: unknown;
+    relations: { [relationName: string]: TRelationConfig };
+  }): { relationName: string; relationConfig: TRelationConfig } {
+    const { inclusion, relations } = opts;
+    const relationName =
+      typeof inclusion === 'string'
+        ? inclusion
+        : (typeof inclusion === 'object' || typeof inclusion === 'function') &&
+            inclusion !== null &&
+            'relation' in inclusion
+          ? inclusion.relation
+          : undefined;
+
+    // A name that is not a non-empty string (`['zzz']`, `42`, `{}`) is a malformed include: a 400 here, not a TypeError further down.
+    if (typeof relationName !== 'string' || !relationName) {
+      throw getError({
+        message: `[FilterBuilder][toInclude] Invalid include format | include: ${JSON.stringify(inclusion)}`,
+      });
+    }
+
+    // Own properties only: `constructor` or `toString` is not a relation, and an inherited function would fail later as an internal error.
+    const relationConfig = Object.hasOwn(relations, relationName)
+      ? relations[relationName]
+      : undefined;
+
+    if (!relationConfig) {
+      throw getError({
+        message: `[FilterBuilder][toInclude] Relation NOT FOUND | relation: '${EchoUtility.toSafeEcho({ value: relationName })}'`,
+      });
+    }
+
+    return { relationName, relationConfig };
+  }
+
+  /**
    * Converts include clause to Drizzle 'with' options
    * with nested filtering and hidden prop exclusion.
    */
@@ -728,28 +767,10 @@ export abstract class FilterBuilder extends BaseHelper {
     const result: Record<string, true | TDrizzleQueryOptions> = {};
 
     for (const inc of include) {
-      const relationName = typeof inc === 'string' ? inc : inc?.relation;
       const scope = typeof inc === 'string' ? undefined : inc?.scope;
       const shouldSkipDefaultFilter =
         typeof inc === 'string' ? false : inc?.shouldSkipDefaultFilter;
-
-      // A name that is not a non-empty string (`['zzz']`, `42`, `{}`) is a malformed include: a 400 here, not a TypeError further down.
-      if (typeof relationName !== 'string' || !relationName) {
-        throw getError({
-          message: `[FilterBuilder][toInclude] Invalid include format | include: ${JSON.stringify(inc)}`,
-        });
-      }
-
-      // Own properties only: `constructor` or `toString` is not a relation, and an inherited function would fail later as an internal error.
-      const relationConfig = Object.hasOwn(relations, relationName)
-        ? relations[relationName]
-        : undefined;
-
-      if (!relationConfig) {
-        throw getError({
-          message: `[FilterBuilder][toInclude] Relation NOT FOUND | relation: '${EchoUtility.toSafeEcho({ value: relationName })}'`,
-        });
-      }
+      const { relationName, relationConfig } = this.resolveInclusion({ inclusion: inc, relations });
 
       // Resolved ONCE and handed to all four readers: they ask the registry the same question
       // about the same schema, and the lookup - `getTableName` plus a registry read - is the

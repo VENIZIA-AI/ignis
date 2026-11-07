@@ -4,6 +4,7 @@ import {
   RequestFilterGuard,
   RequestFilterParts,
   type IRequestFilterJudge,
+  type IRequestFilterShape,
 } from '@/base/repositories/common/request-filter-guard';
 
 /** A filter that comes from a request cannot name a hidden field in its where, order or include scopes. */
@@ -233,15 +234,15 @@ describe('the first refusal in the order the query reads the filter', () => {
 
   const queryRefusal: IRequestFilterJudge['queryRefusal'] = ({ part, value, tableName }) => {
     if (part === RequestFilterParts.INCLUDE) {
-      const relation = (value as { relation?: unknown }).relation;
+      const relation =
+        typeof value === 'object' && value !== null && 'relation' in value
+          ? value.relation
+          : undefined;
 
       return relation === 'comments' ? undefined : new Error(`relation|${String(relation)}`);
     }
 
-    const key =
-      part === RequestFilterParts.WHERE
-        ? Object.keys(value as object)[0]
-        : String(value).split(' ')[0];
+    const key = part === RequestFilterParts.WHERE ? Object.keys(value)[0] : value.split(' ')[0];
 
     return missing.has(key ?? '') ? new Error(`${part}|${tableName}|${key}`) : undefined;
   };
@@ -251,8 +252,8 @@ describe('the first refusal in the order the query reads the filter', () => {
     ...judgeOf({ hidden: HIDDEN, relations: { comments } }),
     queryRefusal,
   };
-  const run = (filter: unknown, of: IRequestFilterJudge = judge) =>
-    RequestFilterGuard.assertFilter({ filter: filter as never, judge: of, tableName: 'Probe' });
+  const run = (filter: IRequestFilterShape, of: IRequestFilterJudge = judge) =>
+    RequestFilterGuard.assertFilter({ filter, judge: of, tableName: 'Probe' });
 
   test.each([
     [

@@ -4,7 +4,6 @@ import type {
   IPersistableRepository,
   IRequestFilterJudge,
   IModelAccessThroughSettings,
-  TInclusion,
   TRequestFilterPart,
   TModelAccessSettings,
   ITransaction,
@@ -168,28 +167,19 @@ export abstract class RelationalBaseRepository<
           task: () => {
             switch (part) {
               case RequestFilterParts.WHERE: {
-                dialect.toWhere({ tableName, schema, where: value as TWhere });
+                dialect.toWhere({ tableName, schema, where: value });
                 break;
               }
               case RequestFilterParts.ORDER: {
-                dialect.toOrderBy({ tableName, schema, order: [value as string] });
+                dialect.toOrderBy({ tableName, schema, order: [value] });
                 break;
               }
               case RequestFilterParts.INCLUDE: {
-                const relations = dialect.resolveRelations({ schema });
-                const relation =
-                  typeof value === 'string' ? value : (value as { relation?: unknown })?.relation;
-
                 // A known relation is read; its scope is judged key by key.
-                if (
-                  typeof relation === 'string' &&
-                  relation &&
-                  Object.hasOwn(relations, relation)
-                ) {
-                  break;
-                }
-
-                dialect.build({ tableName, schema, filter: { include: [value as TInclusion] } });
+                dialect.resolveInclusion({
+                  inclusion: value,
+                  relations: dialect.resolveRelations({ schema }),
+                });
                 break;
               }
               default: {
@@ -221,7 +211,7 @@ export abstract class RelationalBaseRepository<
     try {
       opts.task();
     } catch (error) {
-      return error as Error;
+      return error instanceof Error ? error : getError({ message: 'A value that is not an Error was thrown', cause: error });
     }
 
     return undefined;

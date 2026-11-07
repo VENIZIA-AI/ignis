@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-357 exports, 357 with TSDoc. 78 more are re-exported from other entries (listed at the end).
+358 exports, 358 with TSDoc. 78 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -4672,9 +4672,7 @@ export interface IRequestFilterJudge {
      * The error the query throws for one piece of a filter on its own, or `undefined` when it reads the piece. A piece is a
      * `where` of one key (`{ [key]: value }`), one `order` entry, or one `include` entry.
      */
-    queryRefusal?(opts: {
-        part: TRequestFilterPart;
-        value: unknown;
+    queryRefusal?(opts: TRequestFilterPiece & {
         tableName: string;
     }): Error | undefined;
 }
@@ -8688,6 +8686,34 @@ A part of a request filter: `where`, `order` or `include`.
 
 ```ts
 export type TRequestFilterPart = TConstValue<typeof RequestFilterParts>;
+```
+
+Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
+
+## `TRequestFilterPiece`
+
+*type*
+
+One piece of a request filter, as the query reads it on its own: a `where` of one key, one `order` entry, or one `include` entry.
+
+```ts
+export type TRequestFilterPiece = {
+    part: typeof RequestFilterParts.WHERE;
+    value: Record<string, unknown>;
+} | {
+    part: typeof RequestFilterParts.ORDER;
+    value: string;
+} | {
+    part: typeof RequestFilterParts.INCLUDE;
+    value: unknown;
+};
+
+/** The parts of a request filter a query reads, one at a time, in an order the query decides. */
+export declare class RequestFilterParts {
+    static readonly WHERE = "where";
+    static readonly ORDER = "order";
+    static readonly INCLUDE = "include";
+}
 ```
 
 Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`

@@ -729,6 +729,8 @@ export interface ISearchQueryDialect {
         kind: 'where' | 'order';
         field: string;
     }): Error;
+    /** The error `build` throws for a filter with an `include`: no search query reads relations. */
+    includeNotSupportedError(): Error;
     /**
      * Compiles a `where` tree, resolving what a filter string cannot express. `capabilities` is
      * per-call, never retained - one dialect instance serves every datasource.
@@ -2741,6 +2743,7 @@ export declare class TypesenseQueryDialect extends BaseHelper implements ISearch
     conjoin(opts: {
         clauses: TCompiledWhere[];
     }): TCompiledWhere;
+    includeNotSupportedError(): Error;
     fieldNotFoundError(opts: {
         kind: 'where' | 'order';
         field: string;

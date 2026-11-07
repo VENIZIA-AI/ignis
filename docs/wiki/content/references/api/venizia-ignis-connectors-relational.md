@@ -293,6 +293,19 @@ export declare abstract class FilterBuilder extends BaseHelper {
     private readOrderEntry;
     private getOrderNode;
     /**
+     * The relation one `include` entry (a relation name, or an object with `relation`) names, read as `toInclude` reads it.
+     * Throws the query's refusal of a malformed entry or of a relation the schema does not declare.
+     */
+    resolveInclusion(opts: {
+        inclusion: unknown;
+        relations: {
+            [relationName: string]: TRelationConfig;
+        };
+    }): {
+        relationName: string;
+        relationConfig: TRelationConfig;
+    };
+    /**
      * Converts include clause to Drizzle 'with' options
      * with nested filtering and hidden prop exclusion.
      */
@@ -718,6 +731,14 @@ export interface IRelationalQueryDialect {
     resolveRelations(opts: {
         schema: TTableSchemaWithId;
     }): Record<string, TRelationConfig>;
+    /** The relation one `include` entry names; throws the query's refusal of a malformed entry or an undeclared relation. */
+    resolveInclusion(opts: {
+        inclusion: unknown;
+        relations: Record<string, TRelationConfig>;
+    }): {
+        relationName: string;
+        relationConfig: TRelationConfig;
+    };
     /** The error the query gives for a `where` key or an `order` field that names no column. */
     columnNotFoundError(opts: {
         kind: 'where' | 'order';
