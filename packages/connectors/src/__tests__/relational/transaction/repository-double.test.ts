@@ -2,6 +2,7 @@ import type { ITransaction } from '@venizia/ignis-kernel';
 import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 import { PostgresTransactionDouble, RepositoryDouble, TransactionStates } from '@/testing';
 import { getError } from '@venizia/ignis-helpers/core';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 import { describe, expect, mock, test } from 'bun:test';
 
 /**
@@ -92,5 +93,97 @@ describe('RepositoryDouble.withTransactions', () => {
     });
 
     expect(transaction.commitCount).toBe(1);
+  });
+
+  describe('events: the order of begin, commit and rollback', () => {
+    test('a commit flow is begin, then commit', async () => {
+      const { repository, transaction } = buildRepository();
+
+      expect(transaction.events).toEqual([]);
+
+      await createInTransaction({ repository, name: 'a' });
+
+      expect(transaction.events).toEqual(['begin', 'commit']);
+    });
+
+    test('a rollback-on-error flow is begin, then rollback, and the error is still the original', async () => {
+      const { repository, transaction, create } = buildRepository();
+      const original = getError({ message: '[RepositoryDoubleTest] create failed' });
+      create.mockRejectedValueOnce(original);
+
+      const result2 = await RejectionHelper.rejectionOf({
+        task: createInTransaction({ repository, name: 'a' }),
+      });
+      expect(result2).toBe(original);
+
+      expect(transaction.events).toEqual(['begin', 'rollback']);
+    });
+
+    test('a joined call records no begin of its own, and the owner records its own end', async () => {
+      const { repository, transaction: built } = buildRepository();
+      const owner = new PostgresTransactionDouble();
+
+      await repository.runInTransaction({
+        transaction: owner,
+        execute: ({ transaction }) =>
+          repository.create({ data: { name: 'b' }, options: { transaction } }),
+      });
+
+      expect(owner.events).toEqual([]);
+      expect(built.events).toEqual([]);
+
+      await owner.commit();
+
+      expect(owner.events).toEqual(['commit']);
+    });
+
+    test('a nested call inside an owned transaction joins it: one begin, one commit', async () => {
+      const { repository, transaction } = buildRepository();
+
+      await repository.runInTransaction({
+        execute: ({ transaction: owned }) =>
+          repository.runInTransaction({
+            transaction: owned,
+            execute: () =>
+              repository.create({ data: { name: 'c' }, options: { transaction: owned } }),
+          }),
+      });
+
+      expect(transaction.events).toEqual(['begin', 'commit']);
+    });
+
+    test('an end the handle refuses is not recorded, and the list is a snapshot', async () => {
+      const transaction = new PostgresTransactionDouble();
+
+      await transaction.commit();
+      const before = transaction.events;
+      await RejectionHelper.expectRejection({ task: transaction.commit(), message: /.+/ });
+
+      expect(before).toEqual(['commit']);
+      expect(transaction.events).toEqual(['commit']);
+      expect(transaction.commitCount).toBe(1);
+    });
+
+    test('a failed commit is recorded as a commit; the hooks and counters are unchanged', async () => {
+      const failing = new PostgresTransactionDouble({ commitError: new Error('boom') });
+
+      await RejectionHelper.expectRejection({ task: failing.commit(), message: 'boom' });
+
+      expect(failing.events).toEqual(['commit']);
+      expect(failing.commitCount).toBe(1);
+    });
+
+    test('events interleave with what the code under test does', async () => {
+      const { repository, transaction, create } = buildRepository();
+      create.mockImplementationOnce(async (opts) => {
+        expect(transaction.events).toEqual(['begin']);
+
+        return opts.data;
+      });
+
+      await createInTransaction({ repository, name: 'a' });
+
+      expect(transaction.events).toEqual(['begin', 'commit']);
+    });
   });
 });

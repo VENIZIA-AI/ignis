@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/testing, from the built 
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-11 exports, 11 with TSDoc.
+12 exports, 12 with TSDoc.
 
 ## `IPostgresTransactionDoubleOptions`
 
@@ -93,6 +93,8 @@ export declare class RepositoryDouble {
      * they call, so the double commits, rolls back and joins exactly as a repository does. `source` is a repository
      * class (`DefaultCRUDRepository`): this entry imports no repository code, so it loads without the database driver.
      * `beginTransaction` returns `transaction`: pass a fresh `TransactionDouble` per test, a handle that has ended stays ended.
+     * When `transaction` is a `TransactionDouble`, each `beginTransaction` is recorded in its `events`, so a test can assert the order
+     * of begin, commit and rollback; a call that joins a transaction it was given does not begin one.
      * It overwrites the double's own `runInTransaction`, `beginTransaction` and `logger`, and returns the same object.
      */
     static withTransactions<Repository extends object>(opts: {
@@ -128,7 +130,8 @@ Source: `packages/connectors/src/testing/transaction-double.ts`
 *class*
 
 A transaction handle for unit tests, with no database behind it. It ends by the same rules as the
-real handle and counts every commit() and rollback() that reached the end statement. Reading
+real handle and counts every commit() and rollback() that reached the end statement. `events` lists, in order,
+each begin, commit and rollback that reached the double. Reading
 `connector` returns the `connector` option when one was given; without it the read throws, and a
 repository method that would reach the database must be stubbed.
 
@@ -139,6 +142,15 @@ export declare class TransactionDouble<TConnector = never> extends TransactionLi
     get state(): TTransactionState;
     get commitCount(): number;
     get rollbackCount(): number;
+    /**
+     * Each begin, commit and rollback that reached the double, in the order they came: a snapshot, so a later event is
+     * not in a list read earlier. A begin is recorded by `RepositoryDouble.withTransactions` when the code under test
+     * opens the transaction; a call that joins this handle opens nothing and records no begin. A second end that the
+     * handle refuses is not recorded: it never reached the end statement.
+     */
+    get events(): ReadonlyArray<TTransactionDoubleEvent>;
+    /** Records a begin. `RepositoryDouble.withTransactions` calls it when `beginTransaction` hands this handle out; a test that builds its own `beginTransaction` stub calls it the same way. */
+    recordBegin(): void;
     get connector(): TConnector;
     protected executeEnd(opts: {
         end: ITransactionEnd;
@@ -178,6 +190,18 @@ export type TRepositoryWithTransactions<Repository extends object> = Repository 
 ```
 
 Source: `packages/connectors/src/testing/repository-double.ts`
+
+## `TTransactionDoubleEvent`
+
+*type*
+
+What `TransactionDouble.events` records: a begin the repository double made, a commit or a rollback that reached the end statement.
+
+```ts
+export type TTransactionDoubleEvent = 'begin' | 'commit' | 'rollback';
+```
+
+Source: `packages/connectors/src/testing/transaction-double.ts`
 
 ## `TTransactionDoubleHook`
 
