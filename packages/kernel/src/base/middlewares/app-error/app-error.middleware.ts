@@ -23,6 +23,13 @@ import { ZodErrorHandler } from './zod.handler';
 
 const DEFAULT_INTERNAL_ERROR_MESSAGE = 'Internal Server Error';
 
+/**
+ * Set by `ApplicationError.fromUnknown` on an error it wrapped from a value with no usable HTTP status. Read by registry key, so
+ * kernel and inversion share no export. Such an error carries a `statusCode` (500) like any `ApplicationError`, yet its message
+ * came from a foreign value, so it is answered as UNEXPECTED: generic to the client in production.
+ */
+const UNEXPECTED_ERROR_MARKER = Symbol.for('@venizia/ignis-inversion:unexpected-error');
+
 /** An intentional error's throw site is still worth naming; its caller chain is framework plumbing, so it gets a smaller budget than an unexpected one. */
 const DEFAULT_INTENTIONAL_STACK_FRAMES = 5;
 const DEFAULT_UNEXPECTED_STACK_FRAMES = 10;
@@ -238,6 +245,10 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
       return ApplicationErrorTypes.DATABASE_RETRYABLE;
     }
 
+    if (UNEXPECTED_ERROR_MARKER in error) {
+      return ApplicationErrorTypes.UNEXPECTED;
+    }
+
     if ('statusCode' in error || this.readClientErrorStatus({ error }) !== undefined) {
       return ApplicationErrorTypes.INTENTIONAL;
     }
@@ -286,8 +297,10 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
       messageCode ??
       MessageCode.resolve('messageCode' in error ? (error.messageCode as string) : undefined);
 
+    // An error wrapped from a foreign value keeps that value's text in `normalized`: the response must carry the answer chosen
+    // here (generic in production), never the wrapped text.
     const normalized =
-      'normalized' in error
+      'normalized' in error && !(UNEXPECTED_ERROR_MARKER in error)
         ? (error.normalized as IResolvedApplicationError['normalized'])
         : { text: message, code, args: {} };
 

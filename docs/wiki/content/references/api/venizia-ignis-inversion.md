@@ -115,6 +115,34 @@ export declare class ApplicationError extends Error {
      */
     toFilledText(): string;
     static getError(opts: TError): ApplicationError;
+    /** One property read that cannot throw: a getter or a Proxy trap that throws reads as absent. */
+    private static readProperty;
+    /**
+     * The status a wrapped value is allowed to keep, or `undefined` when it has none: an integer `statusCode` in 400-599
+     * (what `getError` sets), else an integer `status` in 400-499 (Hono's `HTTPException` and an HTTP client's error:
+     * a 5xx `status` is an upstream's, never the caller's to show).
+     */
+    private static readWrappedStatus;
+    /** The value's own string `message` on one line (every control character escaped, as a log line must not break), else the fixed text. */
+    private static readWrappedMessage;
+    /**
+     * The `ApplicationError` for a caught value of any type: the same instance when it already is one
+     * (`isApplicationError` shape, so an error from another copy of the class counts), else a new one
+     * with the original as `cause`. Never throws, whatever the value.
+     *
+     * What the client may see depends on what the value carried:
+     * - a valid HTTP status (an integer `statusCode` in 400-599, or a `status` in 400-499) is kept, with the value's
+     *   string `message`: the thrower chose to answer with it;
+     * - anything else becomes a 500 that the error middleware answers as an UNEXPECTED error: a generic message to the
+     *   client in production, while the real message (one line, control characters escaped, or a fixed text when there
+     *   is none) and the original as `cause` stay in the log only. A driver or engine error carries SQL, paths and
+     *   hosts, so it must not reach a response by being wrapped.
+     *
+     * The marker that makes it unexpected is private (a symbol that does not enumerate), not a public flag.
+     */
+    static fromUnknown(opts: {
+        error: unknown;
+    }): ApplicationError;
     static fromError(opts: {
         error: TResponsedError;
     }): ApplicationError;

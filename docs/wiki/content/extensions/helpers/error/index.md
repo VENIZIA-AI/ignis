@@ -28,6 +28,7 @@ The framework's `AppErrorMiddleware` catches `ApplicationError` instances and fo
 |---|---|
 | Throw a one-off error with a status code | [Throw a free-form error](#throw-a-free-form-error) |
 | Re-throw an error you already caught and shaped | [Recognize an already-shaped error in a catch block](#recognize-an-already-shaped-error-in-a-catch-block) |
+| Wrap whatever a `catch` caught, even a string or `null` | [Wrap a caught value of any type](#wrap-a-caught-value-of-any-type) |
 | Declare a reusable, i18n-ready error once | [Catalog a reusable error](#catalog-a-reusable-error) |
 | Get autocomplete on `messageCode` | [Register catalog keys for messageCode autocomplete](#register-catalog-keys-for-messagecode-autocomplete) |
 | Build a message code outside a catalog | [Build a code outside a catalog](#build-a-code-outside-a-catalog) |
@@ -199,6 +200,34 @@ try {
   });
 }
 ```
+
+### Wrap a caught value of any type
+
+A `catch` variable is `unknown`: it can be an `Error`, a string, `null` or anything else that was thrown. `ApplicationError.fromUnknown({ error })` turns it into an `ApplicationError` and never throws, so the `catch` block cannot fail on the way out.
+
+```typescript
+import { ApplicationError } from '@venizia/ignis-helpers';
+
+try {
+  await someOperation();
+} catch (error) {
+  throw ApplicationError.fromUnknown({ error });
+}
+```
+
+| The caught value | The result |
+|---|---|
+| An `ApplicationError` (also one from another installed copy of the package) | The same instance, untouched |
+| Anything else | A new `ApplicationError` with the original as `cause` |
+
+The new error is built from three reads, each guarded so a throwing getter or a Proxy reads as absent:
+
+- **`statusCode`.** The value's `statusCode` when it is an integer from 400 to 599, else its `status` (what Hono's `HTTPException` and an HTTP client's error carry) when it is an integer from 400 to 499. Anything else, such as `200`, `404.5`, `'404'` or a `status` of `502`, gives `500` and an unexpected error (see below).
+- **Message.** The value's `message` when it is a non-blank string. Otherwise the fixed text `An unknown value was thrown`. The value is never turned into text with `String()`, so a thrown object or symbol is not printed. A control character in the message, such as a newline, is escaped as `\u000a`, so the message stays on one line.
+- **`cause`.** The original value, as thrown. A thrown `undefined` leaves `cause` unset.
+
+> [!WARNING]
+> What a client reads depends on the value. A value that carries a valid HTTP status (above) keeps that status and its message: whoever threw it chose to answer with it. Any other value (a driver error, a string, an error with no status) becomes a 500 that the error middleware answers as an UNEXPECTED error: `Internal Server Error` in production, with nothing from the value in the response. Its real message (one line, control characters escaped), the original as `cause` and the stack stay in the log only. Outside production the message is shown, as for any unexpected error. To answer a client with a message you chose, build the error yourself with `getError`.
 
 ### Catalog a reusable error
 
@@ -409,7 +438,7 @@ a parse failure.
 
 - [`packages/helpers/src/modules/error/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/error/index.ts) - module barrel
 - [`packages/kernel/src/base/models/common/schemas.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/schemas.ts) - `ErrorSchema`, `TErrorResponse` (the RESPONSE schema, for OpenAPI)
-- [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts) - `ApplicationError`, `getError`, `fromError`, `isApplicationError`
+- [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts) - `ApplicationError` (with `fromError` and `fromUnknown`), `getError`, `fromError`, `isApplicationError`
 - [`packages/inversion/src/modules/error/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/common/types.ts) - `TError`, `TErrorDefinition`, `TErrorNormalized`, `TResponsedError`, `IErrorKeyRegistry`, `TRegisterErrors`
 - [`packages/inversion/src/modules/error/definition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/definition.ts) - `ErrorScopes`, `TErrorScope`
 - [`packages/inversion/src/modules/error/message-code.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/message-code.ts) - `MessageCode`
