@@ -355,7 +355,7 @@ jobs:
         run: |
           VULCAN_CMD="bun x @venizia/vulcan@$(jq -r '.devDependencies["@venizia/vulcan"]' package.json)" make preset-smoke
 
-      # The package's own unit tests, before a version is cut. A package without a test target (`filter`) says so.
+      # The package's own unit tests, before a version is cut. A package without a test target says so.
       - name: Unit tests
         run: |
           if make -n test-$PACKAGE > /dev/null 2>&1; then
