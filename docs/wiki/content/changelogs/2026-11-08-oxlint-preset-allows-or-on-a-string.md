@@ -16,6 +16,7 @@ packages: ['@venizia/dev-configs']
 
 - **Strings.** `prefer-nullish-coalescing` now runs with `ignorePrimitives: { string: true }`. `name?.trim() || 'guest'` and an env value that is `''` are an intentional fallback, and `??` would keep the `''`.
 - **Everything else still reports.** `||` on an object, a number, a boolean or a bigint is flagged as before.
+- **The ESLint preset follows.** `eslintConfigs` sets the same `ignorePrimitives: { string: true }` on `@typescript-eslint/prefer-nullish-coalescing`, so the two presets agree on strings.
 - **`lenientFallback`.** `OxlintConfigs.create({ lenientFallback: true })` still adds number to the allowed set, so `limit || 20` passes. `BrowserOxlintConfigs` and `ReactOxlintConfigs` follow the base.
 
 ## Who is affected

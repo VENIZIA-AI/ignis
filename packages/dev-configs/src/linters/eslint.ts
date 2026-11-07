@@ -75,9 +75,14 @@ const STRICT_RULES: Linter.RulesRecord = {
   '@typescript-eslint/await-thenable': 'error',
   '@typescript-eslint/no-floating-promises': 'error',
   '@typescript-eslint/prefer-optional-chain': 'error',
+  // `||` on a string is mostly an intentional empty-string fallback (`value?.trim() || fallback`); `??` keeps `''`.
+  // The same exception as the oxlint preset: objects, numbers and booleans still report.
   '@typescript-eslint/prefer-nullish-coalescing': [
     'error',
-    { allowRuleToRunWithoutStrictNullChecksIKnowWhatIAmDoing: true },
+    {
+      allowRuleToRunWithoutStrictNullChecksIKnowWhatIAmDoing: true,
+      ignorePrimitives: { string: true },
+    },
   ],
   '@typescript-eslint/return-await': 'error',
 };

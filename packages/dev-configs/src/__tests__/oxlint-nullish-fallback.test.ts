@@ -5,6 +5,7 @@ import {
   oxlintConfigs,
   ReactOxlintConfigs,
 } from '../linters/oxlint-presets';
+import { eslintConfigs } from '../linters/eslint';
 import { PreferNullishCoalescingRule } from '../linters/rules';
 
 const rule = (config: { rules?: Record<string, unknown> }) =>
@@ -45,5 +46,35 @@ describe('prefer-nullish-coalescing in the oxlint presets', () => {
   test('the browser and React presets inherit the string option', () => {
     expect(rule(BrowserOxlintConfigs.create())).toEqual(rule(oxlintConfigs));
     expect(rule(ReactOxlintConfigs.create())).toEqual(rule(oxlintConfigs));
+  });
+});
+
+describe('prefer-nullish-coalescing in the ESLint preset', () => {
+  const eslintEntry = () => {
+    for (const config of eslintConfigs) {
+      const entry = config.rules?.['@typescript-eslint/prefer-nullish-coalescing'];
+
+      if (entry !== undefined) {
+        return entry;
+      }
+    }
+
+    return undefined;
+  };
+
+  test('allows `||` on a string, the same exception as the oxlint base', () => {
+    expect(eslintEntry()).toEqual([
+      'error',
+      {
+        allowRuleToRunWithoutStrictNullChecksIKnowWhatIAmDoing: true,
+        ignorePrimitives: { string: true },
+      },
+    ]);
+  });
+
+  test('never ignores number, boolean or bigint', () => {
+    const entry = eslintEntry() as [string, { ignorePrimitives: Record<string, boolean> }];
+
+    expect(Object.keys(entry[1].ignorePrimitives)).toEqual(['string']);
   });
 });
