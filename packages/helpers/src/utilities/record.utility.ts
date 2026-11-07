@@ -5,9 +5,32 @@ export class RecordUtility {
     return typeof value === 'object' && value !== null;
   }
 
-  /** A non-null object that is not an array: `isRecord` without the arrays. A class instance (an `Error`, a `Date`) passes; there is no prototype check, so this is not lodash's `isPlainObject`. */
+  /** A non-null object that is not an array: `isRecord` without the arrays. A class instance (an `Error`, a `Date`) passes; there is no prototype check; use `isPlainObject` for that. */
   static isPlainRecord(value: unknown): value is Record<string, unknown> {
     return RecordUtility.isRecord(value) && !Array.isArray(value);
+  }
+
+  /**
+   * A non-null object whose prototype is exactly `Object.prototype` or `null`: an object literal, `JSON.parse` output,
+   * `Object.create(null)`. Where `isRecord` and `isPlainRecord` look only at the type of the value, this one reads the
+   * prototype, so an array, a class instance (an `Error`, a `Date`, a `Map`), a function and an object from another
+   * realm (its `Object.prototype` is not this realm's) answer `false`. `Object.create(Object.create(null))` also
+   * answers `false`: its prototype is an object, not `null`. Use it for input that must be literal-shaped (a JSON
+   * body, a config). It never throws: a Proxy whose `getPrototypeOf` trap throws answers `false`.
+   */
+  static isPlainObject(value: unknown): value is Record<string, unknown> {
+    if (!RecordUtility.isRecord(value)) {
+      return false;
+    }
+
+    try {
+      const prototype = Object.getPrototypeOf(value);
+
+      return prototype === null || prototype === Object.prototype;
+      // eslint-disable-next-line venizia/no-silent-catch -- a revoked or hostile Proxy throws from the trap; `false` is the answer of a guard, and the cause is of no use to the caller
+    } catch {
+      return false;
+    }
   }
 
   /**

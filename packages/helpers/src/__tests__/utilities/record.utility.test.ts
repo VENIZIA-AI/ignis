@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import vm from 'node:vm';
 import { RecordUtility } from '@/utilities/record.utility';
 
 const PRIMITIVES: unknown[] = [null, undefined, 0, 1, '', 'a', true, false, 1n, Symbol('s')];
@@ -55,6 +56,110 @@ describe('RecordUtility.isPlainRecord', () => {
 
     expect(records).toEqual([{ id: 1 }, { id: 2 }]);
     expect(records[0]?.['id']).toBe(1);
+  });
+});
+
+describe('RecordUtility.isPlainObject', () => {
+  test('accepts an object literal, an empty object and JSON.parse output', () => {
+    expect(RecordUtility.isPlainObject({ a: 1 })).toBe(true);
+    expect(RecordUtility.isPlainObject({})).toBe(true);
+    expect(RecordUtility.isPlainObject(JSON.parse('{"a":{"b":[1]}}'))).toBe(true);
+    expect(RecordUtility.isPlainObject(new Object())).toBe(true);
+  });
+
+  test('accepts a null-prototype object, however it was made', () => {
+    expect(RecordUtility.isPlainObject(Object.create(null))).toBe(true);
+    expect(RecordUtility.isPlainObject(Object.setPrototypeOf({ a: 1 }, null))).toBe(true);
+    expect(RecordUtility.isPlainObject(Object.assign(Object.create(null), { a: 1 }))).toBe(true);
+  });
+
+  test('accepts an object that only carries a Symbol.toStringTag of its own', () => {
+    expect(RecordUtility.isPlainObject({ [Symbol.toStringTag]: 'Custom' })).toBe(true);
+  });
+
+  test('rejects an object whose prototype is an object other than Object.prototype', () => {
+    expect(RecordUtility.isPlainObject(Object.create(Object.create(null)))).toBe(false);
+    expect(RecordUtility.isPlainObject(Object.create({}))).toBe(false);
+    expect(RecordUtility.isPlainObject(Object.create(Object.create(Object.prototype)))).toBe(false);
+  });
+
+  test('rejects a class instance, even one tagged with Symbol.toStringTag', () => {
+    class Point {
+      x = 1;
+    }
+
+    class Tagged {
+      get [Symbol.toStringTag]() {
+        return 'Object';
+      }
+    }
+
+    expect(RecordUtility.isPlainObject(new Point())).toBe(false);
+    expect(RecordUtility.isPlainObject(new Tagged())).toBe(false);
+  });
+
+  test('rejects an array, a Date, a Map, a Set, an Error, a RegExp and a function', () => {
+    for (const value of [
+      [],
+      [{ a: 1 }],
+      new Date(),
+      new Map(),
+      new Set(),
+      new Error('boom'),
+      /x/,
+      () => ({}),
+      class {},
+    ]) {
+      expect(RecordUtility.isPlainObject(value)).toBe(false);
+    }
+  });
+
+  test('rejects null, undefined and every primitive', () => {
+    for (const value of PRIMITIVES) {
+      expect(RecordUtility.isPlainObject(value)).toBe(false);
+    }
+  });
+
+  test('rejects a plain object from another realm, whose Object.prototype is not ours', () => {
+    const foreign: unknown = vm.runInNewContext('({ a: 1 })');
+
+    expect(RecordUtility.isRecord(foreign)).toBe(true);
+    expect(RecordUtility.isPlainObject(foreign)).toBe(false);
+  });
+
+  test('answers false, and does not throw, for a Proxy whose getPrototypeOf trap throws', () => {
+    const hostile = new Proxy(
+      {},
+      {
+        getPrototypeOf() {
+          throw new TypeError('trap');
+        },
+      },
+    );
+
+    expect(RecordUtility.isPlainObject(hostile)).toBe(false);
+  });
+
+  test('answers false for a revoked Proxy without throwing', () => {
+    const { proxy, revoke } = Proxy.revocable({}, {});
+
+    revoke();
+
+    expect(() => RecordUtility.isPlainObject(proxy)).not.toThrow();
+    expect(RecordUtility.isPlainObject(proxy)).toBe(false);
+  });
+
+  test('a Proxy is judged by its target prototype', () => {
+    expect(RecordUtility.isPlainObject(new Proxy({ a: 1 }, {}))).toBe(true);
+    expect(RecordUtility.isPlainObject(new Proxy(new Date(), {}))).toBe(false);
+  });
+
+  test('narrows the type and works as a filter callback', () => {
+    const rows: unknown[] = [{ id: 1 }, [1], null, new Date(0), 'x', { id: 2 }];
+    const objects = rows.filter(RecordUtility.isPlainObject);
+
+    expect(objects).toEqual([{ id: 1 }, { id: 2 }]);
+    expect(objects[0]?.['id']).toBe(1);
   });
 });
 
