@@ -301,6 +301,19 @@ export declare abstract class FilterBuilder extends BaseHelper {
     private readOrderEntry;
     private getOrderNode;
     /**
+     * The relation one `include` entry (a relation name, or an object with `relation`) names, read as `toInclude` reads it.
+     * Throws the query's refusal of a malformed entry or of a relation the schema does not declare.
+     */
+    resolveInclusion(opts: {
+        inclusion: unknown;
+        relations: {
+            [relationName: string]: TRelationConfig;
+        };
+    }): {
+        relationName: string;
+        relationConfig: TRelationConfig;
+    };
+    /**
      * Converts include clause to Drizzle 'with' options
      * with nested filtering and hidden prop exclusion.
      */
@@ -749,6 +762,14 @@ export interface IRelationalQueryDialect {
     resolveRelations(opts: {
         schema: TTableSchemaWithId;
     }): Record<string, TRelationConfig>;
+    /** The relation one `include` entry names; throws the query's refusal of a malformed entry or an undeclared relation. */
+    resolveInclusion(opts: {
+        inclusion: unknown;
+        relations: Record<string, TRelationConfig>;
+    }): {
+        relationName: string;
+        relationConfig: TRelationConfig;
+    };
     /** The error the query gives for a `where` key or an `order` field that names no column. */
     columnNotFoundError(opts: {
         kind: 'where' | 'order';
@@ -1516,6 +1537,12 @@ export declare class ReadableRelationalRepository<EntitySchema extends TTableSch
     });
     /** Core API is ~15-20% faster but supports neither relations nor field selection. */
     protected canUseCoreAPI(filter: TFilter<DataObject>): boolean;
+    /**
+     * A request filter is read as `find` reads it: through the Core API (where, then order) when the filter merged with the
+     * model's default filter selects no fields and includes nothing, and through `build` (order, where, include) otherwise.
+     * Merging with the default filter comes first, so its refusal of a `where` key is the first.
+     */
+    protected createRequestFilterJudge(): IRequestFilterJudge;
     /** Executes a query through the executor's Core-API `select`. */
     protected findWithCoreAPI<R = DataObject>(opts: {
         filter: TFilter<DataObject>;
@@ -1837,10 +1864,13 @@ export declare abstract class RelationalBaseRepository<EntitySchema extends TTab
     /**
      * Judges a request filter's keys as this repository's query reads them: a JSON path names the column it starts with
      * (`[meta].pin`, `.meta.pin` and `meta.pin` all read `meta`), and a refusal is the error the query gives for a column that does
-     * not exist. An include scope is judged by the hidden fields of the model its relation points to.
+     * not exist. An include scope is judged by the hidden fields of the model its relation points to. The parts are read in the
+     * order `build` reads them (order, where, include), and a piece the query refuses on its own is refused with the query's error.
      */
     protected createRequestFilterJudge(): IRequestFilterJudge;
     private judgeSchema;
+    /** The error `task` throws, or `undefined`. */
+    private static refusalOf;
     /** Hidden fields as a memoized Set, derived from the base's class-keyed `hiddenFields` array. */
     getHiddenProperties(): Set<string>;
     hasHiddenProperties(): boolean;

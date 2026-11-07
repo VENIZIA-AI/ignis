@@ -306,6 +306,25 @@ describe('ReadableCrudController - a request filter naming a hidden field', () =
     expect(repository.calls[0]?.method).toBe('assertRequestFilter');
   });
 
+  test('findById checks the filter without its where, which the read by id never reads', async () => {
+    const { repository, controller } = build();
+
+    await controller.findById({
+      context: fakeContext({
+        query: { filter: { where: { secret: 'x' }, order: ['name ASC'] } },
+        param: { id: '1' },
+      }).context,
+    });
+
+    expect(repository.calls[0]?.args).toEqual({
+      filter: { where: undefined, order: ['name ASC'] },
+    });
+    expect(repository.calls.map((call) => call.method)).toEqual([
+      'assertRequestFilter',
+      'findById',
+    ]);
+  });
+
   test('the check sees what the client sent, not the base where joined to it', async () => {
     const repository = new HidingRepository();
     const controller = new TenantItemsController(repository);

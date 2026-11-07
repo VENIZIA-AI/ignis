@@ -1,4 +1,5 @@
-import type { IRequestFilterJudge, ITransaction } from '@venizia/ignis-kernel';
+import type { IRequestFilterJudge, ITransaction, TRequestFilterPart } from '@venizia/ignis-kernel';
+import { RequestFilterParts } from '@venizia/ignis-kernel/repository';
 import type { TFields, TFilter, TLockOptions, TWhere } from '@venizia/ignis-kernel';
 import { AbstractRepository } from '@venizia/ignis-kernel/repository';
 import { DEFAULT_MAX_LIMIT } from '@venizia/ignis-kernel/repository';
@@ -15,6 +16,12 @@ import type {
 } from '@/search/core/repositories/common';
 import { SearchFilterOutcomes } from '@/search/core/repositories/common';
 import { SearchDialectHelper } from '@/search/core/repositories/common/dialect-helpers';
+
+/** The order a search query reads a filter in: `build` reads the order entries, then the caller's where is compiled. */
+const SEARCH_READ_ORDER: ReadonlyArray<TRequestFilterPart> = [
+  RequestFilterParts.ORDER,
+  RequestFilterParts.WHERE,
+];
 
 /** Search-repository plumbing on `AbstractRepository`. `TDataSource` carries the concrete connector type through `this.connector`, so a concretely-bound repository reaches its engine's verbs uncast while an engine-agnostic one is forced to write `connector.alias?.…`. */
 export abstract class SearchBaseRepository<
@@ -56,14 +63,50 @@ export abstract class SearchBaseRepository<
     return this.dataSource.getQueryDialect();
   }
 
-  /** A request filter naming a hidden field is refused with the error the engine's dialect gives for a field the collection does not declare. */
+  /**
+   * A request filter naming a hidden field is refused with the error the engine's dialect gives for a field the collection does
+   * not declare. The filter is read as `buildQuery` reads it: an `include` is refused first, then the order entries, then the
+   * where keys; a piece the dialect refuses on its own is refused with the dialect's error.
+   */
   protected override createRequestFilterJudge(): IRequestFilterJudge {
     const judge = super.createRequestFilterJudge();
 
     return {
       ...judge,
       refuse: ({ kind, key }) => this.queryDialect.fieldNotFoundError({ kind, field: key }),
+      readOrder: () => SEARCH_READ_ORDER,
+      filterRefusal: ({ filter }) =>
+        filter.include ? this.queryDialect.includeNotSupportedError() : undefined,
+      queryRefusal: ({ part, value }) =>
+        SearchBaseRepository.refusalOf({
+          task: () => {
+            if (part === RequestFilterParts.WHERE) {
+              this.queryDialect.compileWhere({
+                where: value,
+                capabilities: { fields: this.collectionFields },
+              });
+            } else if (part === RequestFilterParts.ORDER) {
+              this.queryDialect.build({
+                filter: { order: [value] },
+                capabilities: { fields: this.collectionFields },
+              });
+            }
+          },
+        }),
     };
+  }
+
+  /** The error `task` throws, or `undefined`. */
+  private static refusalOf(opts: { task: () => void }): Error | undefined {
+    try {
+      opts.task();
+    } catch (error) {
+      return error instanceof Error
+        ? error
+        : getError({ message: 'A value that is not an Error was thrown', cause: error });
+    }
+
+    return undefined;
   }
 
   get multiSearch(): TDataSource['multiSearch'] {

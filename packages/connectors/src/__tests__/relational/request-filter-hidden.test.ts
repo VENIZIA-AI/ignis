@@ -1,6 +1,6 @@
 import { PGlite } from '@electric-sql/pglite';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { datasource, model } from '@venizia/ignis-kernel';
+import { datasource, model, type TFilter } from '@venizia/ignis-kernel';
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { integer, jsonb, pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
@@ -164,7 +164,7 @@ describe('the request filter of a model that hides `secret`', () => {
       throw new Error('the query accepted a column that does not exist');
     };
 
-    const renamed = (filter: object, from: string, to: string): object =>
+    const renamed = (filter: object, from: string, to: string): TFilter =>
       JSON.parse(JSON.stringify(filter).replaceAll(from, to));
 
     test.each([
@@ -219,6 +219,140 @@ describe('the request filter of a model that hides `secret`', () => {
           fields: ['id', 'name'],
         },
       }),
+    ).not.toThrow();
+  });
+});
+
+/**
+ * A filter that names a hidden field and something else the query refuses is answered with the first refusal the query meets,
+ * as the same filter with a missing name in place of the hidden one is. The core API (no include, no fields) reads where, then
+ * order; the query API reads order, then where, then each include in turn, its scope the same way.
+ */
+describe('the first refusal in the order the query reads the filter', () => {
+  const queryError = async (opts: { filter: TFilter; isCount?: boolean }): Promise<AnyType> => {
+    try {
+      if (opts.isCount) {
+        await posts.count({ where: opts.filter.where });
+      } else {
+        await posts.find({ filter: opts.filter });
+      }
+    } catch (error) {
+      return error;
+    }
+
+    throw new Error('the query accepted the filter');
+  };
+
+  const renamed = (filter: object, from: string, to: string): TFilter =>
+    JSON.parse(JSON.stringify(filter).replaceAll(from, to));
+
+  /** Each filter names a hidden field and `nope`; the control puts the missing `zzz` in place of the hidden name. */
+  test.each([
+    [
+      'a missing where key before the hidden one',
+      'secret',
+      'nope',
+      { where: { nope: 1, secret: 1 } },
+    ],
+    [
+      'the hidden where key before a missing one',
+      'secret',
+      'zzz',
+      { where: { secret: 1, nope: 1 } },
+    ],
+    [
+      'a missing key in an or before the hidden one',
+      'secret',
+      'nope',
+      { where: { or: [{ nope: 1 }], secret: 1 } },
+    ],
+    [
+      'a missing key before a hidden JSON path',
+      'meta',
+      'nope',
+      { where: { nope: 1, '.meta.pin': '1111' } },
+    ],
+    [
+      'a JSON path on a visible text column before the hidden one',
+      'secret',
+      'not a JSON column',
+      { where: { 'name.x': 1, secret: 1 } },
+    ],
+    [
+      'a missing order entry before the hidden one',
+      'secret',
+      'nope',
+      { order: ['nope ASC', 'secret DESC'] },
+    ],
+    [
+      'core API: the where is read before the order',
+      'secret',
+      'nope',
+      { where: { nope: 1 }, order: ['secret DESC'] },
+    ],
+    [
+      'core API: a hidden where key before a missing order entry',
+      'secret',
+      'zzz',
+      { where: { secret: 1 }, order: ['nope ASC'] },
+    ],
+    [
+      'query API: the order is read before the where',
+      'secret',
+      'nope',
+      { fields: ['id', 'name'], where: { secret: 1 }, order: ['nope ASC'] },
+    ],
+    [
+      'query API: the where is read before an include scope',
+      'internalNote',
+      'nope',
+      {
+        where: { nope: 1 },
+        include: [{ relation: 'comments', scope: { where: { internalNote: 'x' } } }],
+      },
+    ],
+    [
+      'an include scope reads its order before its where',
+      'internalNote',
+      'nope',
+      {
+        include: [
+          { relation: 'comments', scope: { where: { internalNote: 'x' }, order: ['nope ASC'] } },
+        ],
+      },
+    ],
+    [
+      'an unknown relation before a known one whose scope names a hidden field',
+      'internalNote',
+      'Relation NOT FOUND',
+      {
+        include: [
+          { relation: 'nope' },
+          { relation: 'comments', scope: { where: { internalNote: 'x' } } },
+        ],
+      },
+    ],
+  ])('%s', async (_name, hiddenName, named, filter) => {
+    const hidden = refusal(() => posts.assertRequestFilter({ filter }));
+    const missing = await queryError({ filter: renamed(filter, hiddenName, 'zzz') });
+
+    expect(missing.message).toContain(named);
+    expect(hidden.statusCode).toBe(missing.statusCode);
+    expect(hidden.message).toBe(missing.message.replaceAll('zzz', hiddenName));
+  });
+
+  test('count reads the where alone: a missing key before the hidden one is named', async () => {
+    const filter = { where: { nope: 1, secret: 1 } };
+    const hidden = refusal(() => posts.assertRequestFilter({ filter }));
+    const missing = await queryError({ filter: renamed(filter, 'secret', 'zzz'), isCount: true });
+
+    expect(missing.message).toContain('nope');
+    expect(hidden.message).toBe(missing.message);
+  });
+
+  test('a filter with a missing name and no hidden one is left to the query', () => {
+    expect(() =>
+      posts.assertRequestFilter({ filter: { where: { nope: 1 }, order: ['zzz ASC'] } }),
     ).not.toThrow();
   });
 });

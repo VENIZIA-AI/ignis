@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel/repository, from the built d
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-30 exports, 30 with TSDoc. 7 more are re-exported from other entries (listed at the end).
+35 exports, 35 with TSDoc. 7 more are re-exported from other entries (listed at the end).
 
 ## `AbstractDataSource`
 
@@ -832,6 +832,72 @@ export interface IRepository {
 
 Source: `packages/kernel/src/base/repositories/common/types/contracts.ts`
 
+## `IRequestFilterJudge`
+
+*interface*
+
+How one model judges a key of a request filter. The repository of a model supplies it, so the judgment reads a key the way
+that model's own query does (a relational JSON path names its first part, a search field is a dotted name), and a refusal
+is the error that query gives for a column or field that does not exist.
+
+A filter that names a hidden field is refused with the first refusal the query itself would meet if the hidden name were
+missing: `readOrder` gives the order the query reads the parts in, `filterRefusal` and `queryRefusal` the errors it throws
+on its own before that point. Without them the parts are read `where`, `order`, `include`, and nothing else is refused.
+
+```ts
+export interface IRequestFilterJudge {
+    /** Whether the key reaches a field the model hides. */
+    isHidden(opts: {
+        key: string;
+    }): boolean;
+    /** The error to throw for a key that is hidden: the one an unknown column or field gets, so a caller cannot tell them apart. */
+    refuse(opts: {
+        kind: TRequestFilterKeyKind;
+        key: string;
+        tableName: string;
+    }): Error;
+    /** The judge of the model a relation of this model points to; `undefined` when the relation is unknown (the query refuses it). A nested include is judged by the relation judge's own `relation`. */
+    relation?(opts: {
+        relation: string;
+    }): IRequestFilterJudge | undefined;
+    /** The parts of `filter` in the order this model's query reads them. */
+    readOrder?(opts: {
+        filter: IRequestFilterShape;
+    }): ReadonlyArray<TRequestFilterPart>;
+    /** The error the query throws for `filter` as a whole before it reads any key of it, or `undefined`. */
+    filterRefusal?(opts: {
+        filter: IRequestFilterShape;
+        tableName: string;
+    }): Error | undefined;
+    /**
+     * The error the query throws for one piece of a filter on its own, or `undefined` when it reads the piece. A piece is a
+     * `where` of one key (`{ [key]: value }`), one `order` entry, or one `include` entry.
+     */
+    queryRefusal?(opts: TRequestFilterPiece & {
+        tableName: string;
+    }): Error | undefined;
+}
+```
+
+Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
+
+## `IRequestFilterShape`
+
+*interface*
+
+What a request filter holds that a query reads: `where`, `order`, the `include` scopes, and the `fields` that can decide the order it reads them in.
+
+```ts
+export interface IRequestFilterShape {
+    where?: unknown;
+    order?: unknown;
+    include?: unknown;
+    fields?: unknown;
+}
+```
+
+Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
+
 ## `IUpdatableRepository`
 
 *interface*
@@ -958,6 +1024,22 @@ export declare class RepositoryTypes {
 ```
 
 Source: `packages/kernel/src/base/repositories/common/constants.ts`
+
+## `RequestFilterParts`
+
+*class*
+
+The parts of a request filter a query reads, one at a time, in an order the query decides.
+
+```ts
+export declare class RequestFilterParts {
+    static readonly WHERE = "where";
+    static readonly ORDER = "order";
+    static readonly INCLUDE = "include";
+}
+```
+
+Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
 
 ## `SchemaTypes`
 
@@ -1092,6 +1174,46 @@ export type TRepositoryType = TConstValue<typeof RepositoryTypes>;
 ```
 
 Source: `packages/kernel/src/base/repositories/common/constants.ts`
+
+## `TRequestFilterPart`
+
+*type*
+
+A part of a request filter: `where`, `order` or `include`.
+
+```ts
+export type TRequestFilterPart = TConstValue<typeof RequestFilterParts>;
+```
+
+Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
+
+## `TRequestFilterPiece`
+
+*type*
+
+One piece of a request filter, as the query reads it on its own: a `where` of one key, one `order` entry, or one `include` entry.
+
+```ts
+export type TRequestFilterPiece = {
+    part: typeof RequestFilterParts.WHERE;
+    value: Record<string, unknown>;
+} | {
+    part: typeof RequestFilterParts.ORDER;
+    value: string;
+} | {
+    part: typeof RequestFilterParts.INCLUDE;
+    value: unknown;
+};
+
+/** The parts of a request filter a query reads, one at a time, in an order the query decides. */
+export declare class RequestFilterParts {
+    static readonly WHERE = "where";
+    static readonly ORDER = "order";
+    static readonly INCLUDE = "include";
+}
+```
+
+Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
 
 ## `TSchemaType`
 

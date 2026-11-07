@@ -1234,7 +1234,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (434)
+### `@venizia/ignis-kernel` (437)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1497,6 +1497,7 @@ generated:
 - `RequestDomainResolver` class
 - `RequestErrors` const
 - `RequestFilterGuard` class
+- `RequestFilterParts` class
 - `ResolverUtility` class
 - `ResponseExtras` class
 - `ResponseFormats` class
@@ -1635,6 +1636,8 @@ generated:
 - `TRepositoryType` type
 - `TRequestContextResolver` type
 - `TRequestFilterKeyKind` type
+- `TRequestFilterPart` type
+- `TRequestFilterPiece` type
 - `TResponseBodyOf` type
 - `TResponseExtra` type
 - `TResponseFormat` type
@@ -1697,7 +1700,7 @@ generated:
 - `TBindingNamespace` type
 - `TBindingScope` type
 
-### `@venizia/ignis-kernel/repository` (37)
+### `@venizia/ignis-kernel/repository` (42)
 
 - `AbstractDataSource` class
 - `AbstractEntity` class
@@ -1715,10 +1718,13 @@ generated:
 - `IPersistableRepository` interface
 - `IReadableRepository` interface
 - `IRepository` interface
+- `IRequestFilterJudge` interface
+- `IRequestFilterShape` interface
 - `IUpdatableRepository` interface
 - `NotSupportedUtility` class
 - `RepositoryOperationScopes` class
 - `RepositoryTypes` class
+- `RequestFilterParts` class
 - `SchemaTypes` class
 - `SearchErrorCodes` class
 - `TByIdFilter` type
@@ -1732,6 +1738,8 @@ generated:
 - `TIdSchemaType` type
 - `TInclusion` type
 - `TRepositoryType` type
+- `TRequestFilterPart` type
+- `TRequestFilterPiece` type
 - `TRow` type
 - `TSchemaType` type
 - `TSelectedRow` type
@@ -2413,7 +2421,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1032)
+### `@venizia/ignis` (1035)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -3048,6 +3056,7 @@ generated:
 - `RequestDomainResolver` class
 - `RequestErrors` const
 - `RequestFilterGuard` class
+- `RequestFilterParts` class
 - `RequestIdGenerator` class
 - `RequestTrackerComponent` class
 - `RequestUtility` class
@@ -3332,6 +3341,8 @@ generated:
 - `TRepositoryType` type
 - `TRequestContextResolver` type
 - `TRequestFilterKeyKind` type
+- `TRequestFilterPart` type
+- `TRequestFilterPiece` type
 - `TResolveDomainEdgesFn` type
 - `TResolver` type
 - `TResponseBodyOf` type

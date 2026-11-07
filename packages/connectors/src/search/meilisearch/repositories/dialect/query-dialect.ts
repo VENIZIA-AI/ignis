@@ -165,10 +165,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     const { where, fields, order, limit, skip, offset, include } = filter ?? {};
 
     if (include) {
-      throw getError({
-        message:
-          '[MeilisearchQueryDialect][build] search() does not support "include" - relations cannot be translated to a Meilisearch filter',
-      });
+      throw this.includeNotSupportedError();
     }
 
     const query: IMeilisearchSearchQuery = { query: '*' };
@@ -186,7 +183,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     }
 
     if (order) {
-      query.sortBy = this.toOrderBy({ order });
+      query.sortBy = this.toOrderBy({ order, capabilities });
     }
 
     if (limit !== undefined) {
@@ -464,6 +461,13 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     });
   }
 
+  includeNotSupportedError(): Error {
+    return getError({
+      message:
+        '[MeilisearchQueryDialect][build] search() does not support "include" - relations cannot be translated to a Meilisearch filter',
+    });
+  }
+
   fieldNotFoundError(opts: { kind: 'where' | 'order'; field: string }): Error {
     const { kind, field } = opts;
 
@@ -479,10 +483,20 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     });
   }
 
-  private toOrderBy(opts: { order: string[] }): string {
-    return opts.order
+  /** Each order field must be one the collection declares, as in a `where`: an undeclared one is refused before the engine. */
+  private toOrderBy(opts: { order: string[]; capabilities?: ISearchCompileCapabilities }): string {
+    const { order, capabilities } = opts;
+
+    return order
       .map((entry) => {
         const { field, direction } = Sorts.parseEntry({ entry });
+
+        SearchDialectHelper.assertKnownField({
+          field,
+          engine: ENGINE,
+          capabilities,
+          method: 'toOrderBy',
+        });
 
         return `${field}:${direction}`;
       })

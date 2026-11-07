@@ -54,6 +54,11 @@ export type TTableColumns = ReturnType<typeof getTableColumns>;
 export interface IRelationalQueryDialect {
   /** The relations a schema declares, by name. */
   resolveRelations(opts: { schema: TTableSchemaWithId }): Record<string, TRelationConfig>;
+  /** The relation one `include` entry names; throws the query's refusal of a malformed entry or an undeclared relation. */
+  resolveInclusion(opts: { inclusion: unknown; relations: Record<string, TRelationConfig> }): {
+    relationName: string;
+    relationConfig: TRelationConfig;
+  };
   /** The error the query gives for a `where` key or an `order` field that names no column. */
   columnNotFoundError(opts: { kind: 'where' | 'order'; key: string; tableName: string }): Error;
   /** The fields the model of a schema hides. */

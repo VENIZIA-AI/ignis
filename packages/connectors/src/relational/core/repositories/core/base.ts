@@ -4,6 +4,7 @@ import type {
   IPersistableRepository,
   IRequestFilterJudge,
   IModelAccessThroughSettings,
+  TRequestFilterPart,
   TModelAccessSettings,
   ITransaction,
   TCount,
@@ -24,6 +25,7 @@ import type {
 import {
   AbstractRepository,
   LockStrengths,
+  RequestFilterParts,
   ScopeFilterMissingBehaviors,
   ScopeFilters,
   ScopeOperations,
@@ -53,6 +55,13 @@ import type {
 } from '../common';
 import { ScopeFilterDenial } from '../common';
 import { ScopeWriteGuard } from '../common/scope-write-guard';
+
+/** The order `build` reads a filter in, and so every include scope: order, where, include. */
+const BUILD_READ_ORDER: ReadonlyArray<TRequestFilterPart> = [
+  RequestFilterParts.ORDER,
+  RequestFilterParts.WHERE,
+  RequestFilterParts.INCLUDE,
+];
 
 /** Relational implementation of `AbstractRepository`: adds the query dialect + hidden-column exclusion on top of the neutral base, and reaches the database only through `IRelationalQueryExecutor`. Both engine-facing parameters default to the neutral SQL contracts; an engine binds them by subclassing. */
 export abstract class RelationalBaseRepository<
@@ -135,7 +144,8 @@ export abstract class RelationalBaseRepository<
   /**
    * Judges a request filter's keys as this repository's query reads them: a JSON path names the column it starts with
    * (`[meta].pin`, `.meta.pin` and `meta.pin` all read `meta`), and a refusal is the error the query gives for a column that does
-   * not exist. An include scope is judged by the hidden fields of the model its relation points to.
+   * not exist. An include scope is judged by the hidden fields of the model its relation points to. The parts are read in the
+   * order `build` reads them (order, where, include), and a piece the query refuses on its own is refused with the query's error.
    */
   protected override createRequestFilterJudge(): IRequestFilterJudge {
     return this.judgeSchema({ schema: this.entity.schema, hidden: this.getHiddenProperties() });
@@ -151,6 +161,33 @@ export abstract class RelationalBaseRepository<
     return {
       isHidden: ({ key }) => hidden.has(FilterKeys.columnOf({ key })),
       refuse: (refusal) => dialect.columnNotFoundError(refusal),
+      readOrder: () => BUILD_READ_ORDER,
+      queryRefusal: ({ part, value, tableName }) =>
+        RelationalBaseRepository.refusalOf({
+          task: () => {
+            switch (part) {
+              case RequestFilterParts.WHERE: {
+                dialect.toWhere({ tableName, schema, where: value });
+                break;
+              }
+              case RequestFilterParts.ORDER: {
+                dialect.toOrderBy({ tableName, schema, order: [value] });
+                break;
+              }
+              case RequestFilterParts.INCLUDE: {
+                // A known relation is read; its scope is judged key by key.
+                dialect.resolveInclusion({
+                  inclusion: value,
+                  relations: dialect.resolveRelations({ schema }),
+                });
+                break;
+              }
+              default: {
+                break;
+              }
+            }
+          },
+        }),
       relation: ({ relation }) => {
         const relations = dialect.resolveRelations({ schema });
         const config: TRelationConfig | undefined = Object.hasOwn(relations, relation)
@@ -167,6 +204,19 @@ export abstract class RelationalBaseRepository<
         });
       },
     };
+  }
+
+  /** The error `task` throws, or `undefined`. */
+  private static refusalOf(opts: { task: () => void }): Error | undefined {
+    try {
+      opts.task();
+    } catch (error) {
+      return error instanceof Error
+        ? error
+        : getError({ message: 'A value that is not an Error was thrown', cause: error });
+    }
+
+    return undefined;
   }
 
   /** Hidden fields as a memoized Set, derived from the base's class-keyed `hiddenFields` array. */

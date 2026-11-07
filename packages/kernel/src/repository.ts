@@ -65,3 +65,12 @@ export type {
   TSelectedRow,
   TWhere,
 } from '@venizia/ignis-filter';
+
+// What a repository on any transport needs to refuse a request filter that names a hidden property.
+export { RequestFilterParts } from '@/base/repositories/common/request-filter-guard';
+export type {
+  IRequestFilterJudge,
+  IRequestFilterShape,
+  TRequestFilterPart,
+  TRequestFilterPiece,
+} from '@/base/repositories/common/request-filter-guard';

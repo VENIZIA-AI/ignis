@@ -730,6 +730,8 @@ export interface ISearchQueryDialect {
         kind: 'where' | 'order';
         field: string;
     }): Error;
+    /** The error `build` throws for a filter with an `include`: no search query reads relations. */
+    includeNotSupportedError(): Error;
     /**
      * Compiles a `where` tree, resolving what a filter string cannot express. `capabilities` is
      * per-call, never retained - one dialect instance serves every datasource.
@@ -1551,8 +1553,14 @@ export declare abstract class SearchBaseRepository<TDocument extends object = ob
     get collectionName(): string;
     protected get connector(): ReturnType<TDataSource['getConnector']>;
     protected get queryDialect(): ISearchQueryDialect;
-    /** A request filter naming a hidden field is refused with the error the engine's dialect gives for a field the collection does not declare. */
+    /**
+     * A request filter naming a hidden field is refused with the error the engine's dialect gives for a field the collection does
+     * not declare. The filter is read as `buildQuery` reads it: an `include` is refused first, then the order entries, then the
+     * where keys; a piece the dialect refuses on its own is refused with the dialect's error.
+     */
     protected createRequestFilterJudge(): IRequestFilterJudge;
+    /** The error `task` throws, or `undefined`. */
+    private static refusalOf;
     get multiSearch(): TDataSource['multiSearch'];
     setDataSource(opts: {
         dataSource: TDataSource;
@@ -2266,8 +2274,14 @@ export declare abstract class SearchBaseRepository<TDocument extends object = ob
     get collectionName(): string;
     protected get connector(): ReturnType<TDataSource['getConnector']>;
     protected get queryDialect(): ISearchQueryDialect;
-    /** A request filter naming a hidden field is refused with the error the engine's dialect gives for a field the collection does not declare. */
+    /**
+     * A request filter naming a hidden field is refused with the error the engine's dialect gives for a field the collection does
+     * not declare. The filter is read as `buildQuery` reads it: an `include` is refused first, then the order entries, then the
+     * where keys; a piece the dialect refuses on its own is refused with the dialect's error.
+     */
     protected createRequestFilterJudge(): IRequestFilterJudge;
+    /** The error `task` throws, or `undefined`. */
+    private static refusalOf;
     get multiSearch(): TDataSource['multiSearch'];
     setDataSource(opts: {
         dataSource: TDataSource;
@@ -2730,6 +2744,7 @@ export declare class TypesenseQueryDialect extends BaseHelper implements ISearch
     conjoin(opts: {
         clauses: TCompiledWhere[];
     }): TCompiledWhere;
+    includeNotSupportedError(): Error;
     fieldNotFoundError(opts: {
         kind: 'where' | 'order';
         field: string;
