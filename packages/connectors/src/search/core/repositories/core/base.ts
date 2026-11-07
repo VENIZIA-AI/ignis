@@ -1,5 +1,5 @@
 import type { IRequestFilterJudge, ITransaction, TRequestFilterPart } from '@venizia/ignis-kernel';
-import { RequestFilterParts } from '@venizia/ignis-kernel';
+import { RequestFilterParts } from '@venizia/ignis-kernel/repository';
 import type { TFields, TFilter, TLockOptions, TWhere } from '@venizia/ignis-kernel';
 import { AbstractRepository } from '@venizia/ignis-kernel/repository';
 import { DEFAULT_MAX_LIMIT } from '@venizia/ignis-kernel/repository';

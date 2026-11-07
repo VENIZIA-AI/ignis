@@ -1698,7 +1698,7 @@ generated:
 - `TBindingNamespace` type
 - `TBindingScope` type
 
-### `@venizia/ignis-kernel/repository` (37)
+### `@venizia/ignis-kernel/repository` (42)
 
 - `AbstractDataSource` class
 - `AbstractEntity` class
@@ -1716,10 +1716,13 @@ generated:
 - `IPersistableRepository` interface
 - `IReadableRepository` interface
 - `IRepository` interface
+- `IRequestFilterJudge` interface
+- `IRequestFilterShape` interface
 - `IUpdatableRepository` interface
 - `NotSupportedUtility` class
 - `RepositoryOperationScopes` class
 - `RepositoryTypes` class
+- `RequestFilterParts` class
 - `SchemaTypes` class
 - `SearchErrorCodes` class
 - `TByIdFilter` type
@@ -1733,6 +1736,8 @@ generated:
 - `TIdSchemaType` type
 - `TInclusion` type
 - `TRepositoryType` type
+- `TRequestFilterPart` type
+- `TRequestFilterPiece` type
 - `TRow` type
 - `TSchemaType` type
 - `TSelectedRow` type

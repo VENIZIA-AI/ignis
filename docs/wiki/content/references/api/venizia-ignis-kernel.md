@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-358 exports, 358 with TSDoc. 78 more are re-exported from other entries (listed at the end).
+353 exports, 353 with TSDoc. 83 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -4631,72 +4631,6 @@ export interface IRequestedExtra {
 
 Source: `packages/kernel/src/base/controllers/rest/extras.ts`
 
-## `IRequestFilterJudge`
-
-*interface*
-
-How one model judges a key of a request filter. The repository of a model supplies it, so the judgment reads a key the way
-that model's own query does (a relational JSON path names its first part, a search field is a dotted name), and a refusal
-is the error that query gives for a column or field that does not exist.
-
-A filter that names a hidden field is refused with the first refusal the query itself would meet if the hidden name were
-missing: `readOrder` gives the order the query reads the parts in, `filterRefusal` and `queryRefusal` the errors it throws
-on its own before that point. Without them the parts are read `where`, `order`, `include`, and nothing else is refused.
-
-```ts
-export interface IRequestFilterJudge {
-    /** Whether the key reaches a field the model hides. */
-    isHidden(opts: {
-        key: string;
-    }): boolean;
-    /** The error to throw for a key that is hidden: the one an unknown column or field gets, so a caller cannot tell them apart. */
-    refuse(opts: {
-        kind: TRequestFilterKeyKind;
-        key: string;
-        tableName: string;
-    }): Error;
-    /** The judge of the model a relation of this model points to; `undefined` when the relation is unknown (the query refuses it). A nested include is judged by the relation judge's own `relation`. */
-    relation?(opts: {
-        relation: string;
-    }): IRequestFilterJudge | undefined;
-    /** The parts of `filter` in the order this model's query reads them. */
-    readOrder?(opts: {
-        filter: IRequestFilterShape;
-    }): ReadonlyArray<TRequestFilterPart>;
-    /** The error the query throws for `filter` as a whole before it reads any key of it, or `undefined`. */
-    filterRefusal?(opts: {
-        filter: IRequestFilterShape;
-        tableName: string;
-    }): Error | undefined;
-    /**
-     * The error the query throws for one piece of a filter on its own, or `undefined` when it reads the piece. A piece is a
-     * `where` of one key (`{ [key]: value }`), one `order` entry, or one `include` entry.
-     */
-    queryRefusal?(opts: TRequestFilterPiece & {
-        tableName: string;
-    }): Error | undefined;
-}
-```
-
-Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
-
-## `IRequestFilterShape`
-
-*interface*
-
-What a request filter holds that a query reads: `where`, `order`, the `include` scopes, and the `fields` that can decide the order it reads them in.
-
-```ts
-export interface IRequestFilterShape {
-    where?: unknown;
-    order?: unknown;
-    include?: unknown;
-    fields?: unknown;
-}
-```
-
-Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
-
 ## `IRequestIdOptions`
 
 *interface*
@@ -5976,22 +5910,6 @@ export declare class RequestFilterGuard {
     private static walkWhere;
     private static walkOrder;
     private static walkInclude;
-}
-```
-
-Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
-
-## `RequestFilterParts`
-
-*class*
-
-The parts of a request filter a query reads, one at a time, in an order the query decides.
-
-```ts
-export declare class RequestFilterParts {
-    static readonly WHERE = "where";
-    static readonly ORDER = "order";
-    static readonly INCLUDE = "include";
 }
 ```
 
@@ -8678,46 +8596,6 @@ export type TRequestFilterKeyKind = 'where' | 'order';
 
 Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
 
-## `TRequestFilterPart`
-
-*type*
-
-A part of a request filter: `where`, `order` or `include`.
-
-```ts
-export type TRequestFilterPart = TConstValue<typeof RequestFilterParts>;
-```
-
-Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
-
-## `TRequestFilterPiece`
-
-*type*
-
-One piece of a request filter, as the query reads it on its own: a `where` of one key, one `order` entry, or one `include` entry.
-
-```ts
-export type TRequestFilterPiece = {
-    part: typeof RequestFilterParts.WHERE;
-    value: Record<string, unknown>;
-} | {
-    part: typeof RequestFilterParts.ORDER;
-    value: string;
-} | {
-    part: typeof RequestFilterParts.INCLUDE;
-    value: unknown;
-};
-
-/** The parts of a request filter a query reads, one at a time, in an order the query decides. */
-export declare class RequestFilterParts {
-    static readonly WHERE = "where";
-    static readonly ORDER = "order";
-    static readonly INCLUDE = "include";
-}
-```
-
-Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
-
 ## `TResponseBodyOf`
 
 *type*
@@ -9174,6 +9052,8 @@ Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`
 - `IProvider` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `IReadableRepository` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `IRepository` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
+- `IRequestFilterJudge` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
+- `IRequestFilterShape` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `isClass` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `isClassProvider` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `IUpdatableRepository` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
@@ -9185,6 +9065,7 @@ Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`
 - `repository` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `RepositoryOperationScopes` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `RepositoryTypes` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
+- `RequestFilterParts` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `ResolverUtility` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `SchemaTypes` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `SearchErrorCodes` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
@@ -9209,6 +9090,8 @@ Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`
 - `TOrderEntry` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
 - `TParsedOrderEntry` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
 - `TRepositoryType` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
+- `TRequestFilterPart` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
+- `TRequestFilterPiece` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TRow` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
 - `TSchemaType` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TSelectedRow` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
