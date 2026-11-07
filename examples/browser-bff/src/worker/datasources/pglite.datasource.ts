@@ -21,7 +21,9 @@ const MIGRATIONS: IMigration[] = [
  * The schema is discovered from the repositories bound to this datasource. The fourth type
  * parameter is the raw client `getClient()` returns.
  */
-@datasource({ driver: PGliteDriver })
+// `first-use`: the Worker starts and answers without PGlite. The ~16 MB WASM boot, and the migrations, run when the
+// first request that needs the database arrives, so the first screen does not wait for them.
+@datasource({ driver: PGliteDriver, open: { on: 'first-use' } })
 export class PGliteDataSource extends BasePostgresDataSource<
   IPGliteSettings,
   TAnyDataSourceSchema,

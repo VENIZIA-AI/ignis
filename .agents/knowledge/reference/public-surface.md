@@ -1232,7 +1232,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (427)
+### `@venizia/ignis-kernel` (432)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1314,6 +1314,8 @@ generated:
 - `DataRangeUtility` class
 - `datasource` const
 - `DataSourceDrivers` class
+- `DataSourceOpenDefaults` class
+- `DataSourceOpenModes` class
 - `DEFAULT_LIMIT` const
 - `DEFAULT_MAX_LIMIT` const
 - `defaultRequestHeaders` const
@@ -1376,6 +1378,8 @@ generated:
 - `IDataSource` interface
 - `IDataSourceCapabilities` interface
 - `IDataSourceMetadata` interface
+- `IDataSourceOpening` interface
+- `IDataSourceOpenOptions` interface
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
 - `IDomainEvent` interface
@@ -1562,6 +1566,7 @@ generated:
 - `TDataRange` type
 - `TDataSourceDriver` type
 - `TDataSourceDriverClass` type
+- `TDataSourceOpenMode` type
 - `TDataWithRange` type
 - `TDecoratorModelTarget` type
 - `TDecoratorTarget` type
@@ -1730,7 +1735,7 @@ generated:
 
 ## connectors
 
-### `@venizia/ignis-connectors` (131)
+### `@venizia/ignis-connectors` (132)
 
 - `AbstractDriverDataSource` class
 - `AbstractRelationalDataSource` class
@@ -1758,6 +1763,7 @@ generated:
 - `IRecursiveTreeOptions` interface
 - `IRelationalConnection` interface
 - `IRelationalDataSource` interface
+- `IRelationalDataSourceOpening` type
 - `IRelationalDriver` interface
 - `IRelationalExtraOptions` interface
 - `IRelationalQueryDialect` interface
@@ -1900,7 +1906,7 @@ generated:
 - `TRawSqlQuery` type
 - `TRawSqlSchema` type
 
-### `@venizia/ignis-connectors/relational` (73)
+### `@venizia/ignis-connectors/relational` (74)
 
 - `AbstractRelationalDataSource` class
 - `AuditUserResolver` class
@@ -1918,6 +1924,7 @@ generated:
 - `IRecursiveTreeOptions` interface
 - `IRelationalConnection` interface
 - `IRelationalDataSource` interface
+- `IRelationalDataSourceOpening` type
 - `IRelationalDriver` interface
 - `IRelationalExtraOptions` interface
 - `IRelationalQueryDialect` interface
@@ -2392,7 +2399,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1024)
+### `@venizia/ignis` (1029)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2545,6 +2552,8 @@ generated:
 - `DataRangeUtility` class
 - `datasource` const
 - `DataSourceDrivers` class
+- `DataSourceOpenDefaults` class
+- `DataSourceOpenModes` class
 - `DataTypes` class
 - `DayjsTemporalAdapter` class
 - `DEFAULT_CIPHER_BITS` const
@@ -2685,6 +2694,8 @@ generated:
 - `IDataSource` interface
 - `IDataSourceCapabilities` interface
 - `IDataSourceMetadata` interface
+- `IDataSourceOpening` interface
+- `IDataSourceOpenOptions` interface
 - `IDayjsFactory` interface
 - `IDayjsInstance` interface
 - `IDefinedEntity` interface
@@ -3151,6 +3162,7 @@ generated:
 - `TDataRange` type
 - `TDataSourceDriver` type
 - `TDataSourceDriverClass` type
+- `TDataSourceOpenMode` type
 - `TDataTypeEnricherOptions` type
 - `TDataWithRange` type
 - `TDecoratorModelTarget` type

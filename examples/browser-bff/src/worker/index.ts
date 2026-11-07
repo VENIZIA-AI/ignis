@@ -16,8 +16,8 @@ const application = new Application({
 
 application.init();
 
-// `listen()` answers on `postMessage` instead of a socket, and queues requests that arrive while
-// PGlite is still starting.
+// `listen()` answers on `postMessage` instead of a socket. PGlite opens on the first request that needs it
+// (`open: { on: 'first-use' }`), so the Worker is listening before the WASM boot starts.
 await application.listen();
 
 // Vite hot reload replaces this module without ending the Worker; stopping releases the OPFS lock.

@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-348 exports, 348 with TSDoc. 78 more are re-exported from other entries (listed at the end).
+353 exports, 353 with TSDoc. 78 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -2353,6 +2353,38 @@ export declare class DataSourceDrivers {
 
 Source: `packages/kernel/src/base/datasources/common/types.ts`
 
+## `DataSourceOpenDefaults`
+
+*class*
+
+Defaults of the `open` option.
+
+```ts
+export declare class DataSourceOpenDefaults {
+    /** How long a first use waits for the open before it gives up (ms): a WASM boot on a slow link fits, a `configure()` that waits on itself does not hang for ever. */
+    static readonly TIMEOUT_MS = 60000;
+}
+```
+
+Source: `packages/kernel/src/base/datasources/common/types.ts`
+
+## `DataSourceOpenModes`
+
+*class*
+
+When a datasource opens: with the application (`start`, the default) or at the first call that needs it (`first-use`).
+
+```ts
+export declare class DataSourceOpenModes {
+    static readonly START = "start";
+    static readonly FIRST_USE = "first-use";
+    static readonly SCHEME_SET: Set<string>;
+    static isValid(value: string): value is TDataSourceOpenMode;
+}
+```
+
+Source: `packages/kernel/src/base/datasources/common/types.ts`
+
 ## `defaultRequestHeaders`
 
 *const*
@@ -3537,6 +3569,8 @@ Metadata accepted by `@datasource`.
 ```ts
 export interface IDataSourceMetadata extends IArtifactRegistrationOptions {
     driver?: TDataSourceDriverClass;
+    /** When the datasource opens. `{ on: 'first-use' }` leaves it closed at start and opens it at the first call that needs it. */
+    open?: IDataSourceOpenOptions;
     /**
      * `false` stops model schema discovery for the datasource.
      *
@@ -3547,6 +3581,59 @@ export interface IDataSourceMetadata extends IArtifactRegistrationOptions {
 ```
 
 Source: `packages/kernel/src/helpers/inversion/common/types/persistence.ts`
+
+## `IDataSourceOpening`
+
+*interface*
+
+What `configure()` is given to do its database work while the datasource is opening: the connector, the client and a
+transaction, through the datasource's own ungated internals. Only `configure()` receives it, so nothing outside can use it
+and every other caller still waits for the open to finish. Generic over the datasource's connector, client and
+transaction types, so `opening.getClient()` of a PGlite datasource is a `PGlite`.
+
+Inside the open of a datasource that opens on first use, the public `getConnector()`, `getClient()` and
+`beginTransaction()` are gated (they wait for the open, which waits for `configure()`), and a repository cannot be used:
+use these handles instead.
+
+```ts
+export interface IDataSourceOpening<TConnector = unknown, Client = unknown, TTransaction extends ITransaction = ITransaction, TTransactionOptions extends ITransactionOptions = ITransactionOptions> {
+    getConnector(): TConnector;
+    getClient(): Client;
+    beginTransaction(opts?: TTransactionOptions): Promise<TTransaction>;
+}
+```
+
+Source: `packages/kernel/src/base/datasources/common/types.ts`
+
+## `IDataSourceOpenOptions`
+
+*interface*
+
+The `open` option of `@datasource`.
+
+```ts
+export interface IDataSourceOpenOptions {
+    /**
+     * `start`: `configure()` runs when the application starts, and `listen()` waits for it. `first-use`: the application
+     * starts without opening the datasource; the first call that needs it runs `configure()` once, and every call that
+     * arrives meanwhile waits for that one open. A failed open rejects every waiting call, leaves nothing half-open, and is
+     * tried again by the next call.
+     *
+     * @default 'start'
+     */
+    on?: TDataSourceOpenMode;
+    /**
+     * `first-use` only: how long the open may take (ms) before every waiting call is rejected with a named error and the
+     * attempt is abandoned. An abandoned `configure()` that finishes later is closed and never published, and the next call
+     * waits until it has settled before trying again. `0` waits for ever.
+     *
+     * @default 60000
+     */
+    timeoutMs?: number;
+}
+```
+
+Source: `packages/kernel/src/base/datasources/common/types.ts`
 
 ## `IDefineRouteOptions`
 
@@ -7689,6 +7776,18 @@ dropped. Untyped because `IRelationalDriver` lives under `connectors/`, off-limi
 
 ```ts
 export type TDataSourceDriverClass = TClass<AnyType>;
+```
+
+Source: `packages/kernel/src/base/datasources/common/types.ts`
+
+## `TDataSourceOpenMode`
+
+*type*
+
+One of the {@link DataSourceOpenModes} values.
+
+```ts
+export type TDataSourceOpenMode = TConstValue<typeof DataSourceOpenModes>;
 ```
 
 Source: `packages/kernel/src/base/datasources/common/types.ts`

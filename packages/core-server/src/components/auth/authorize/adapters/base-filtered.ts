@@ -18,7 +18,7 @@ export abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
     this.dataSource = opts.dataSource;
   }
 
-  protected get connector(): TCasbinPolicyConnector {
+  protected resolveConnector(): Promise<TCasbinPolicyConnector> {
     return PolicyConnectorResolver.resolve({
       source: this.dataSource,
       caller: 'BaseFilteredAdapter',
@@ -27,7 +27,8 @@ export abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
 
   /** Runs a raw statement and returns its rows. Drizzle's `execute()` shape differs per driver (node-postgres `{ rows }`, postgres-js the row list itself) - never read `.rows` directly. */
   protected async query<TRow>(opts: { statement: SQL }): Promise<TRow[]> {
-    const result = await this.connector.execute(opts.statement);
+    const connector = await this.resolveConnector();
+    const result = await connector.execute(opts.statement);
 
     return DrizzleResultUtility.readResultRows<TRow>({ result });
   }

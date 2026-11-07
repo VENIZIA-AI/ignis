@@ -98,8 +98,10 @@ export class PersistableRelationalRepository<
     });
     const values = scoped as Array<PersistObject>;
 
+    const connector = await this.acquireConnector({ transaction });
+
     const rs = await this.queryExecutor.insert<R>({
-      connector: this.resolveConnector({ transaction }),
+      connector,
       table: this.entity.schema,
       values,
       returning: this.getVisibleProperties(),
@@ -256,8 +258,10 @@ export class PersistableRelationalRepository<
     });
     const updateData = this.queryDialect.toUpdateData({ transformed });
 
+    const connector = await this.acquireConnector({ transaction });
+
     const rs = await this.queryExecutor.update<R>({
-      connector: this.resolveConnector({ transaction }),
+      connector,
       table: this.entity.schema,
       data: updateData,
       where,
@@ -433,8 +437,10 @@ export class PersistableRelationalRepository<
         .warn('Entity: %s | Performing delete with empty condition', this.entity.name);
     }
 
+    const connector = await this.acquireConnector({ transaction });
+
     const rs = await this.queryExecutor.remove<R>({
-      connector: this.resolveConnector({ transaction }),
+      connector,
       table: this.entity.schema,
       where,
       returning: this.getVisibleProperties(),

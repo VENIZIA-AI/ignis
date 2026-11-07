@@ -96,6 +96,10 @@ The models are the `pglite-quickstart` models. Generate the migration there, cop
 `migration/NNNN_*.sql` file here, and add it to `MIGRATIONS` in
 `src/worker/datasources/pglite.datasource.ts`.
 
+## PGlite opens on the first request
+
+The datasource is `@datasource({ driver: PGliteDriver, open: { on: 'first-use' } })`, so the Worker starts and listens without PGlite. The WASM boot (about 16 MB) and the migrations run when the first request that needs the database arrives, and requests that arrive meanwhile wait for that one open. A failed open rejects them all and the next request tries again.
+
 ## Many tabs, one database
 
 PGlite on OPFS holds an access handle that is exclusive per origin. A second tab starting its own

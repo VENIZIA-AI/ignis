@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors, from the built declarat
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-3 exports, 3 with TSDoc. 128 more are re-exported from other entries (listed at the end).
+3 exports, 3 with TSDoc. 129 more are re-exported from other entries (listed at the end).
 
 ## `AbstractDriverDataSource`
 
@@ -48,6 +48,10 @@ export declare abstract class AbstractDriverDataSource<Settings extends object =
         driver: TDriver;
         schema?: Schema;
     }): void;
+    /** A datasource that opens on first use has no client, driver or connector until the first call that needs it has awaited `ensureOpen()`. */
+    private assertOpenForSyncUse;
+    /** The handles `configure()` is given: the connector and the client through the ungated internals, so its own database work (migrations, seeding) needs no gate. */
+    protected createOpening(): IDataSourceOpening<TConnector, Client>;
     /** Wires the driver on first use, so a `configure()` that only builds `this.client` is enough. */
     getConnector(): TConnector;
     /**
@@ -55,12 +59,15 @@ export declare abstract class AbstractDriverDataSource<Settings extends object =
      * than handing back an `undefined` typed as `Client`.
      */
     getClient(): Client;
+    private readClient;
     /**
      * Ends the connection `configure()` opened. Runs once: every later call returns the first call's
      * promise. Goes through the driver, wired now if nothing queried yet, because its `end()` is the
      * engine's whole teardown - PGlite also clears the exit status it plants on the host process.
      */
     close(): Promise<void>;
+    /** Ends a client that a failed open left half-built and forgets the driver and connector, so the next open starts from nothing. */
+    protected discardPartialOpen(): Promise<void>;
     private endConnection;
     /**
      * Soft-evicts the pool after a secret rotation: rebuilds against the rotated credentials without
@@ -167,6 +174,7 @@ Source: `packages/connectors/src/common/scope-filter.ts`
 - `IRecursiveTreeOptions` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `IRelationalConnection` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `IRelationalDataSource` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
+- `IRelationalDataSourceOpening` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `IRelationalDriver` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `IRelationalExtraOptions` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `IRelationalQueryDialect` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)

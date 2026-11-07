@@ -1,4 +1,10 @@
-import type { AnyType, IConfigurable, TClass, TConstValue } from '@venizia/ignis-helpers/common';
+import type {
+  AnyType,
+  IConfigurable,
+  TClass,
+  TConstValue,
+  ValueOrPromise,
+} from '@venizia/ignis-helpers/common';
 
 /** Names of the supported datasource drivers, split into relational and search sets. `isValid` checks a value against all of them. */
 export class DataSourceDrivers {
@@ -38,6 +44,70 @@ export class DataSourceDrivers {
   }
 }
 
+/** When a datasource opens: with the application (`start`, the default) or at the first call that needs it (`first-use`). */
+export class DataSourceOpenModes {
+  static readonly START = 'start';
+  static readonly FIRST_USE = 'first-use';
+
+  static readonly SCHEME_SET = new Set([this.START, this.FIRST_USE]);
+
+  static isValid(value: string): value is TDataSourceOpenMode {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+/** Defaults of the `open` option. */
+export class DataSourceOpenDefaults {
+  /** How long a first use waits for the open before it gives up (ms): a WASM boot on a slow link fits, a `configure()` that waits on itself does not hang for ever. */
+  static readonly TIMEOUT_MS = 60_000;
+}
+
+/** One of the {@link DataSourceOpenModes} values. */
+export type TDataSourceOpenMode = TConstValue<typeof DataSourceOpenModes>;
+
+/** The `open` option of `@datasource`. */
+export interface IDataSourceOpenOptions {
+  /**
+   * `start`: `configure()` runs when the application starts, and `listen()` waits for it. `first-use`: the application
+   * starts without opening the datasource; the first call that needs it runs `configure()` once, and every call that
+   * arrives meanwhile waits for that one open. A failed open rejects every waiting call, leaves nothing half-open, and is
+   * tried again by the next call.
+   *
+   * @default 'start'
+   */
+  on?: TDataSourceOpenMode;
+
+  /**
+   * `first-use` only: how long the open may take (ms) before every waiting call is rejected with a named error and the
+   * attempt is abandoned. An abandoned `configure()` that finishes later is closed and never published, and the next call
+   * waits until it has settled before trying again. `0` waits for ever.
+   *
+   * @default 60000
+   */
+  timeoutMs?: number;
+}
+
+/**
+ * What `configure()` is given to do its database work while the datasource is opening: the connector, the client and a
+ * transaction, through the datasource's own ungated internals. Only `configure()` receives it, so nothing outside can use it
+ * and every other caller still waits for the open to finish. Generic over the datasource's connector, client and
+ * transaction types, so `opening.getClient()` of a PGlite datasource is a `PGlite`.
+ *
+ * Inside the open of a datasource that opens on first use, the public `getConnector()`, `getClient()` and
+ * `beginTransaction()` are gated (they wait for the open, which waits for `configure()`), and a repository cannot be used:
+ * use these handles instead.
+ */
+export interface IDataSourceOpening<
+  TConnector = unknown,
+  Client = unknown,
+  TTransaction extends ITransaction = ITransaction,
+  TTransactionOptions extends ITransactionOptions = ITransactionOptions,
+> {
+  getConnector(): TConnector;
+  getClient(): Client;
+  beginTransaction(opts?: TTransactionOptions): Promise<TTransaction>;
+}
+
 // `(string & {})` keeps autocomplete for the known values
 // while still accepting any other engine-driver string.
 /** A driver name: one of `DataSourceDrivers`, or any other string for an unlisted engine. */
@@ -68,6 +138,18 @@ export interface IDataSource<
 
   /** Releases what `configure()` opened. `stop()` calls it on every datasource the boot configured. */
   close?(): Promise<void>;
+
+  /** The datasource's own `configure()` receives the handles of {@link IDataSourceOpening} as its second argument. */
+  configure(opts?: ConfigurableOptions, opening?: IDataSourceOpening): ValueOrPromise<void>;
+
+  /** True when the datasource opens on first use (`@datasource({ open: { on: 'first-use' } })`): the boot then calls {@link deferOpen} instead of `configure()`. */
+  isOpenDeferred?(): boolean;
+
+  /** Records the options `configure()` will get when the datasource opens on first use; nothing is opened. */
+  deferOpen?(opts: { options?: object }): void;
+
+  /** Resolves once the datasource is open: at once when it opens with the application or is already open, else after the one open that the first use starts. */
+  ensureOpen?(): Promise<void>;
 }
 
 /**

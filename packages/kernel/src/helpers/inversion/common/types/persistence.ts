@@ -1,4 +1,8 @@
-import type { IDataSource, TDataSourceDriverClass } from '@/base/datasources';
+import type {
+  IDataSource,
+  IDataSourceOpenOptions,
+  TDataSourceDriverClass,
+} from '@/base/datasources';
 import type { AbstractEntity } from '@/base/models';
 import type {
   IRepository,
@@ -12,6 +16,10 @@ import type { IArtifactRegistrationOptions, TDecoratorTarget } from './artifact'
 /** Metadata accepted by `@datasource`. */
 export interface IDataSourceMetadata extends IArtifactRegistrationOptions {
   driver?: TDataSourceDriverClass;
+
+  /** When the datasource opens. `{ on: 'first-use' }` leaves it closed at start and opens it at the first call that needs it. */
+  open?: IDataSourceOpenOptions;
+
   /**
    * `false` stops model schema discovery for the datasource.
    *

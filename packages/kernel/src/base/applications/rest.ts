@@ -19,7 +19,8 @@ import { ArtifactBindingKeys } from '../metadata/artifact-keys';
 import { RestComponent } from '../components/controller/rest/rest.component';
 import type { BaseConfiguration } from '../configurations';
 import { ControllerTransports } from '../controllers/common/constants';
-import type { IDataSource } from '../datasources';
+import type { IDataSource, IDataSourceOpening } from '../datasources';
+import { OPENING_HANDLES } from '../datasources/opening-handles';
 import { BaseAppErrorMiddleware } from '../middlewares/app-error/app-error.middleware';
 import { notFoundHandler } from '../middlewares/not-found/not-found.middleware';
 import type { TMixinOpts } from '../mixins/common';
@@ -458,9 +459,20 @@ export abstract class RestApplication<
           return;
         }
 
-        if (typeof (instance as Partial<IConfigurable>)?.configure === 'function') {
+        const dataSource = instance as Partial<IDataSource>;
+
+        if (namespace === BindingNamespaces.DATASOURCE && dataSource.isOpenDeferred?.() === true) {
+          // Opens at the first call that needs it; the application starts, and listens, without it.
+          dataSource.deferOpen?.({ options: this.artifactOptions.get(binding.key) });
+          logger.info('Datasource opens on first use | key: %s', binding.key);
+        } else if (typeof (instance as Partial<IConfigurable>)?.configure === 'function') {
           const options = this.artifactOptions.get(binding.key);
-          await (instance as IConfigurable).configure(options);
+          // A datasource also gets the handles of its open (the same body works at start and on first use).
+          const holder = dataSource as { [OPENING_HANDLES]?: () => IDataSourceOpening };
+          const opening =
+            namespace === BindingNamespaces.DATASOURCE ? holder[OPENING_HANDLES]?.() : undefined;
+
+          await (instance as unknown as IDataSource).configure(options, opening);
         }
 
         // Marked before the after-hook runs, so the hook sees its own binding as configured.
