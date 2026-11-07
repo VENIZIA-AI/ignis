@@ -661,7 +661,7 @@ SQL-branch contract, engine-free. Extends `AbstractDataSource` itself, not just 
 
 ```ts
 export interface IRelationalDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = unknown, TConnector = unknown> extends AbstractDataSource<Settings, Schema, ConfigurableOptions> {
-    connector: TConnector;
+    connector?: TConnector;
     getConnectionString(): ValueOrPromise<string>;
     getConnector(): TConnector;
     getClient(): Client;
@@ -1232,7 +1232,7 @@ export declare class PersistableRelationalRepository<EntitySchema extends TTable
         data: PersistObject;
         on?: IUniqueKey<EntitySchema>;
         update?: ReadonlyArray<string>;
-        options: ExtraOptions & {
+        options?: ExtraOptions & {
             shouldReturn?: boolean;
             log?: TRepositoryLogOptions;
         };

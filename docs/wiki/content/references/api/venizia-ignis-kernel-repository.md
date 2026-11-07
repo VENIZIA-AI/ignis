@@ -69,7 +69,7 @@ export declare abstract class AbstractDataSource<Settings extends object = {}, S
      * Refused for a family that cannot honour it.
      */
     deferOpen(opts: {
-        options?: object;
+        options?: ConfigurableOptions;
     }): void;
     /**
      * Resolves once the datasource is open. At once for one that opens with the application. Otherwise the first caller
@@ -688,7 +688,7 @@ export interface IDataSource<Settings extends object = {}, Schema extends TAnyDa
     isOpenDeferred?(): boolean;
     /** Records the options `configure()` will get when the datasource opens on first use; nothing is opened. */
     deferOpen?(opts: {
-        options?: object;
+        options?: ConfigurableOptions;
     }): void;
     /** Resolves once the datasource is open: at once when it opens with the application or is already open, else after the one open that the first use starts. */
     ensureOpen?(): Promise<void>;

@@ -592,6 +592,8 @@ export declare class PostgresQueryExecutor implements IRelationalQueryExecutor<T
      * names the entity and lists the available keys, and a test asserts it word for word.
      */
     private getQueryInterface;
+    /** The conflict target, narrowed to Postgres columns; a column of another engine cannot name a Postgres key. */
+    private toConflictTarget;
     /**
      * Rows affected by a write executed without RETURNING. Reads `pg`'s `rowCount`, postgres-js's
      * `count` or PGlite's `affectedRows` off the raw driver result - engine knowledge the shared

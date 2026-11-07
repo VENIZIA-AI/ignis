@@ -121,7 +121,7 @@ class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {}
 | **Drizzle ORM** | Type-safe ORM library. [Docs](https://orm.drizzle.team/) |
 | **Schema** | Table structure definition using Drizzle syntax |
 | **Migration** | Script that creates/modifies tables. Version control for database structure. |
-| **Connector** | Database driver that executes queries (via `dataSource.connector`) |
+| **Connector** | Database driver that executes queries (via `dataSource.getConnector()`) |
 | **Relations** | Connections between tables (hasMany, belongsTo, hasOne) |
 
 ```typescript

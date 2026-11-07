@@ -146,7 +146,7 @@ export interface IDataSource<
   isOpenDeferred?(): boolean;
 
   /** Records the options `configure()` will get when the datasource opens on first use; nothing is opened. */
-  deferOpen?(opts: { options?: object }): void;
+  deferOpen?(opts: { options?: ConfigurableOptions }): void;
 
   /** Resolves once the datasource is open: at once when it opens with the application or is already open, else after the one open that the first use starts. */
   ensureOpen?(): Promise<void>;

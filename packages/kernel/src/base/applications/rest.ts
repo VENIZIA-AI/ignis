@@ -41,6 +41,47 @@ interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurabl
   onAfterConfigure?: (opts: { binding: Binding<T>; instance: T }) => Promise<void>;
 }
 
+/**
+ * Runtime checks that narrow a bound instance to the members the boot calls on it. Positional: a type predicate narrows
+ * its own parameter.
+ */
+class BootTargets {
+  private static isObjectLike(value: unknown): value is object {
+    return (typeof value === 'object' && value !== null) || typeof value === 'function';
+  }
+
+  /** Has `isOpenDeferred()`, so the boot can ask whether its open waits for the first use. */
+  static canDeferOpen(
+    value: unknown,
+  ): value is Pick<IDataSource, 'deferOpen'> & Required<Pick<IDataSource, 'isOpenDeferred'>> {
+    return (
+      BootTargets.isObjectLike(value) &&
+      'isOpenDeferred' in value &&
+      typeof value.isOpenDeferred === 'function'
+    );
+  }
+
+  /** Has `configure()`; a datasource's takes the opening handles in its second argument. */
+  static isConfigurable(value: unknown): value is Pick<IDataSource, 'configure'> {
+    return (
+      BootTargets.isObjectLike(value) &&
+      'configure' in value &&
+      typeof value.configure === 'function'
+    );
+  }
+
+  /** Carries the opening handles every datasource root defines. */
+  static hasOpeningHandles(
+    value: unknown,
+  ): value is { [OPENING_HANDLES]: () => IDataSourceOpening } {
+    return (
+      BootTargets.isObjectLike(value) &&
+      OPENING_HANDLES in value &&
+      typeof value[OPENING_HANDLES] === 'function'
+    );
+  }
+}
+
 /** Adds the `OpenAPIHono` router surface on top of `AbstractApplication` - no listening server, so this is the layer a browser Worker or gRPC-only host can extend without pulling in `Bun.serve`. */
 export abstract class RestApplication<
   AppEnv extends Env = Env,
@@ -459,20 +500,23 @@ export abstract class RestApplication<
           return;
         }
 
-        const dataSource = instance as Partial<IDataSource>;
-
-        if (namespace === BindingNamespaces.DATASOURCE && dataSource.isOpenDeferred?.() === true) {
+        if (
+          namespace === BindingNamespaces.DATASOURCE &&
+          BootTargets.canDeferOpen(instance) &&
+          instance.isOpenDeferred() === true
+        ) {
           // Opens at the first call that needs it; the application starts, and listens, without it.
-          dataSource.deferOpen?.({ options: this.artifactOptions.get(binding.key) });
+          instance.deferOpen?.({ options: this.artifactOptions.get(binding.key) });
           logger.info('Datasource opens on first use | key: %s', binding.key);
-        } else if (typeof (instance as Partial<IConfigurable>)?.configure === 'function') {
+        } else if (BootTargets.isConfigurable(instance)) {
           const options = this.artifactOptions.get(binding.key);
           // A datasource also gets the handles of its open (the same body works at start and on first use).
-          const holder = dataSource as { [OPENING_HANDLES]?: () => IDataSourceOpening };
           const opening =
-            namespace === BindingNamespaces.DATASOURCE ? holder[OPENING_HANDLES]?.() : undefined;
+            namespace === BindingNamespaces.DATASOURCE && BootTargets.hasOpeningHandles(instance)
+              ? instance[OPENING_HANDLES]()
+              : undefined;
 
-          await (instance as unknown as IDataSource).configure(options, opening);
+          await instance.configure(options, opening);
         }
 
         // Marked before the after-hook runs, so the hook sees its own binding as configured.
