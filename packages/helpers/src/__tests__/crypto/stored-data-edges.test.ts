@@ -2,19 +2,22 @@ import { describe, expect, spyOn, test } from 'bun:test';
 import { AES } from '../../modules/crypto/algorithms/aes.algorithm';
 import { Rejection } from './rejection';
 
-describe('AES: an IV that the envelope could not carry is refused when writing', () => {
+describe('AES: an IV of the caller is refused when writing', () => {
   for (const algorithm of ['aes-256-cbc', 'aes-256-gcm'] as const) {
-    test(`${algorithm} refuses a 12-byte IV`, async () => {
-      const message = await Rejection.messageOf({
-        promise: AES.withAlgorithm(algorithm).encrypt({
-          message: 'x',
-          secret: 'a secret',
-          opts: { iv: Buffer.alloc(12, 1) },
-        }),
-      });
+    test.each([12, 16])(
+      `${algorithm} refuses a ${'%d'}-byte IV, whatever its length`,
+      async (length) => {
+        const message = await Rejection.messageOf({
+          promise: AES.withAlgorithm(algorithm).encrypt({
+            message: 'x',
+            secret: 'a secret',
+            opts: { iv: Buffer.alloc(length, 1) } as never,
+          }),
+        });
 
-      expect(message).toContain('The IV must be 16 bytes');
-    });
+        expect(message).toContain('The iv option was removed');
+      },
+    );
   }
 });
 

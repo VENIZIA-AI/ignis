@@ -61,7 +61,7 @@ import type {
 
 All of the above resolve through the root `@venizia/ignis-helpers` barrel, which re-exports `./modules` (and therefore `./modules/crypto`) and `./utilities` in full.
 
-`IAESExtraOptions` and `IAESDecryptOptions` are named in the signatures below, but neither is exported. Write the option object inline, or derive the shape when you need a name for it:
+`IAESOptions` is named in the signatures below, but it is not exported. Write the option object inline, or derive the shape when you need a name for it:
 
 ```typescript
 type TAesEncryptOptions = NonNullable<Parameters<AES['encrypt']>[0]['opts']>;
@@ -141,12 +141,11 @@ const aes = AES.withAlgorithm('aes-256-gcm'); // or 'aes-256-cbc'
 ### `encrypt`
 
 ```typescript
-encrypt(opts: { message: string; secret: TAESSecret; opts?: IAESExtraOptions }): Promise<string>
+encrypt(opts: { message: string; secret: TAESSecret; opts?: IAESOptions }): Promise<string>
 ```
 
 | Option (`opts.opts`) | Type | Default | Description |
 |-----------------------|------|---------|-------------|
-| `iv` | `Buffer` | 16 random bytes from `crypto.getRandomValues` | Initialization vector |
 | `inputEncoding` | `crypto.Encoding` | `'utf-8'` | Encoding of `message` |
 | `outputEncoding` | `crypto.Encoding` | `'base64'` | Encoding of the returned ciphertext |
 | `kdfSalt` | `string` | `'ignis-kdf-salt-v1'` | PBKDF2 salt. At least 16 bytes, or the call throws. Pass the same value on decrypt |
@@ -164,13 +163,10 @@ The version byte is `0x01`. The key id is the entry `decrypt` looks up in a keyr
 > Ciphertext written before this format started with the raw IV and derived its key by padding the secret. `decrypt` rejects it on its version byte; re-encrypt that data with the key you still hold.
 
 ```typescript
-import C from 'node:crypto';
-
 const encrypted = await aes.encrypt({
   message: 'hello',
   secret: 'my-secret',
   opts: {
-    iv: C.randomBytes(16),
     inputEncoding: 'utf-8',
     outputEncoding: 'hex',
   },
@@ -180,10 +176,10 @@ const encrypted = await aes.encrypt({
 ### `decrypt`
 
 ```typescript
-decrypt(opts: { message: string; secret: TAESSecret; opts?: IAESDecryptOptions }): Promise<string>
+decrypt(opts: { message: string; secret: TAESSecret; opts?: IAESOptions }): Promise<string>
 ```
 
-`decrypt` takes no `iv`. The envelope carries the one `encrypt` used, so passing another would be ignored - the option is absent from `IAESDecryptOptions` and supplying it is a compile error.
+**There is no `iv` option.** Every `encrypt` draws a fresh random 16-byte IV from `crypto.getRandomValues` and writes it into the envelope, and `decrypt` reads it from there. A caller-chosen IV is how a nonce gets reused, and an IV reused under `aes-256-gcm` breaks confidentiality and integrity. A call to `encrypt` or `decrypt` that passes `iv` throws `The iv option was removed`. Ciphertext that was written under a fixed IV still decrypts: the IV is in the envelope.
 
 | Option (`opts.opts`) | Type | Default | Description |
 |-----------------------|------|---------|-------------|

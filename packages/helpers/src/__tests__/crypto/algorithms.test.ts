@@ -1,6 +1,6 @@
 /** Crypto Algorithms Test Suite */
 
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, spyOn } from 'bun:test';
 import C from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -132,17 +132,17 @@ describe('Crypto Algorithms', () => {
         expect(decrypted).toBe(plaintext);
       });
 
-      test('TC-016: encrypt/decrypt with explicit IV', async () => {
-        const plaintext = 'explicit iv test';
-        const iv = C.randomBytes(16);
-        const encrypted = await aes.encrypt({
-          message: plaintext,
-          secret: SECRET_32,
-          opts: { iv },
+      test('TC-016: a chosen IV is refused: the removed iv option is not ignored', async () => {
+        const failure = await Rejection.messageOf({
+          promise: aes.encrypt({
+            message: 'explicit iv test',
+            secret: SECRET_32,
+            opts: { iv: C.randomBytes(16) } as never,
+          }),
         });
-        // No `iv` on the way back: the envelope carries the one encrypt used.
-        const decrypted = await aes.decrypt({ message: encrypted, secret: SECRET_32 });
-        expect(decrypted).toBe(plaintext);
+
+        expect(failure).toContain('The iv option was removed');
+        expect(failure).toContain('fresh random IV');
       });
 
       test('TC-017: same plaintext produces different ciphertext (random IV)', async () => {
@@ -196,23 +196,20 @@ describe('Crypto Algorithms', () => {
 
       test('TC-020: a failed encrypt throws and never returns the message as the result', async () => {
         const aesInvalid = new AES({ algorithm: 'aes-256-cbc' });
-        // Force an error by using an IV with wrong length
+        // Force an error with a secret nothing can derive a key from
         const failure = await Rejection.messageOf({
-          promise: aesInvalid.encrypt({
-            message: 'test',
-            secret: SECRET_32,
-            opts: { iv: Buffer.alloc(1) },
-          }),
+          promise: aesInvalid.encrypt({ message: 'test', secret: '' }),
         });
         const removed = await Rejection.messageOf({
           promise: aesInvalid.encrypt({
             message: 'test',
             secret: SECRET_32,
-            opts: { iv: Buffer.alloc(1), doThrow: false } as never,
+            opts: { doThrow: false } as never,
           }),
         });
 
-        expect(failure).toContain('IV must be');
+        expect(failure).toBeString();
+        expect(failure).not.toContain('removed');
         expect(removed).toContain('The doThrow option was removed');
       });
 
@@ -344,17 +341,19 @@ describe('Crypto Algorithms', () => {
         expect(decrypted).toBe('');
       });
 
-      test('TC-035: encrypt/decrypt with explicit IV in GCM', async () => {
-        const plaintext = 'explicit iv gcm';
-        const iv = C.randomBytes(16);
-        const encrypted = await aes.encrypt({
-          message: plaintext,
-          secret: SECRET_32,
-          opts: { iv },
-        });
-        // No `iv` on the way back: the envelope carries the one encrypt used.
-        const decrypted = await aes.decrypt({ message: encrypted, secret: SECRET_32 });
-        expect(decrypted).toBe(plaintext);
+      test('TC-035: GCM never reuses an IV: every encryption of one message carries its own', async () => {
+        const ivs = new Set<string>();
+
+        for (let attempt = 0; attempt < 500; attempt += 1) {
+          const result3 = await aes.encrypt({ message: 'same message', secret: SECRET_32 });
+          const sealed = Buffer.from(result3, 'base64');
+          // [version(1)][idLen(1)][id(idLen)][iv(16)]...
+          const start = 2 + (sealed[1] ?? 0);
+
+          ivs.add(sealed.subarray(start, start + 16).toString('hex'));
+        }
+
+        expect(ivs.size).toBe(500);
       });
 
       test('TC-036: encrypt/decrypt with hex encoding in GCM', async () => {
@@ -1194,15 +1193,17 @@ describe('AES contract after the envelope change', () => {
     const aes = AES.withAlgorithm('aes-256-cbc');
     const encrypted = await aes.encrypt({ message: 'payload', secret: KEYRING_SECRET });
 
-    const decrypted = await aes.decrypt({
-      message: encrypted,
-      secret: KEYRING_SECRET,
-      // @ts-expect-error `iv` is an encrypt-only option; decrypt reads it from the envelope.
-      opts: { iv: Buffer.alloc(16, 7) },
+    const failure = await Rejection.messageOf({
+      promise: aes.decrypt({
+        message: encrypted,
+        secret: KEYRING_SECRET,
+        // @ts-expect-error `iv` is not an option: the envelope carries the IV.
+        opts: { iv: Buffer.alloc(16, 7) },
+      }),
     });
 
-    // The envelope wins regardless, which is exactly why the option must not typecheck.
-    expect(decrypted).toBe('payload');
+    // The envelope wins regardless, so a supplied IV is refused instead of being quietly ignored.
+    expect(failure).toContain('The iv option was removed');
   });
 });
 
@@ -1232,11 +1233,9 @@ describe('kdfSalt / kdfIterations (per-deployment KDF override)', () => {
 
   test('KDF-002: omitting kdfSalt keeps encrypt/decrypt byte-for-byte compatible with the pre-change default', async () => {
     const aes = AES.withAlgorithm('aes-256-gcm');
-    const iv = Buffer.alloc(16, 9);
     const encrypted = await aes.encrypt({
       message: 'legacy default payload',
       secret: SECRET,
-      opts: { iv },
     });
     const decrypted = await aes.decrypt({ message: encrypted, secret: SECRET });
     expect(decrypted).toBe('legacy default payload');
@@ -1245,17 +1244,29 @@ describe('kdfSalt / kdfIterations (per-deployment KDF override)', () => {
   test('KDF-003: two different salts produce different ciphertext for the same input', async () => {
     const aes = AES.withAlgorithm('aes-256-cbc');
     const iv = Buffer.alloc(16, 3);
-    const encryptedA = await aes.encrypt({
-      message: 'same plaintext',
-      secret: SECRET,
-      opts: { iv, kdfSalt: CUSTOM_SALT_A },
-    });
-    const encryptedB = await aes.encrypt({
-      message: 'same plaintext',
-      secret: SECRET,
-      opts: { iv, kdfSalt: CUSTOM_SALT_B },
-    });
-    expect(encryptedA).not.toBe(encryptedB);
+    // The IV is fixed by the test only, with the random source stubbed, so the two outputs differ by the salt alone.
+    const stub = spyOn(crypto, 'getRandomValues').mockImplementation(((array: Uint8Array) => {
+      array.set(iv);
+
+      return array;
+    }) as never);
+
+    try {
+      const encryptedA = await aes.encrypt({
+        message: 'same plaintext',
+        secret: SECRET,
+        opts: { kdfSalt: CUSTOM_SALT_A },
+      });
+      const encryptedB = await aes.encrypt({
+        message: 'same plaintext',
+        secret: SECRET,
+        opts: { kdfSalt: CUSTOM_SALT_B },
+      });
+
+      expect(encryptedA).not.toBe(encryptedB);
+    } finally {
+      stub.mockRestore();
+    }
   });
 
   test('KDF-004: ciphertext decrypts only with the salt it was encrypted under', async () => {

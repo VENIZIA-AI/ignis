@@ -38,16 +38,35 @@ export abstract class BaseCryptoAlgorithm<
   DecryptReturnType,
   ExtraOptions
 > {
+  /** What a caller that still passes a removed option is told: the option, and what replaced it. */
+  private static readonly REMOVED_OPTION_HINTS: Record<string, string> = {
+    doThrow:
+      'a failure always throws: catch the error where a fallback is wanted, and never treat the input as the result',
+    iv: 'every encryption draws a fresh random IV, and decrypt reads it from the ciphertext: a chosen IV is how a nonce is reused',
+  };
+
   /**
+   * A caller that still passes a removed option is refused, not ignored, so nobody believes it still works.
    * `doThrow: false` is gone: a failed encrypt or decrypt used to hand the input back, which a caller could take for
-   * ciphertext or plaintext. A failure always throws. A caller that still passes the option is refused, not ignored,
-   * so nobody believes it still works.
+   * ciphertext or plaintext. `iv` is gone from AES: a caller-chosen IV reused under GCM breaks confidentiality and integrity.
    */
-  protected assertNoRemovedOptions(opts: { method: string; options?: object }): void {
-    if (opts.options !== undefined && opts.options !== null && 'doThrow' in opts.options) {
-      throw getError({
-        message: `[${this.constructor.name}][${opts.method}] The doThrow option was removed | a failure always throws: catch the error where a fallback is wanted, and never treat the input as the result`,
-      });
+  protected assertNoRemovedOptions(opts: {
+    method: string;
+    options?: object;
+    removed?: ReadonlyArray<string>;
+  }): void {
+    const { method, options, removed = ['doThrow'] } = opts;
+
+    if (options === undefined || options === null) {
+      return;
+    }
+
+    for (const name of removed) {
+      if (name in options) {
+        throw getError({
+          message: `[${this.constructor.name}][${method}] The ${name} option was removed | ${BaseCryptoAlgorithm.REMOVED_OPTION_HINTS[name]}`,
+        });
+      }
     }
   }
 

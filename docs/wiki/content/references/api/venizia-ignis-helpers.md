@@ -439,7 +439,9 @@ Source: `packages/helpers/src/modules/worker-thread/thread/abstract.ts`
 `encrypt` and `decrypt` are async: key derivation and the cipher run over `crypto.subtle`.
 
 ```ts
-export declare class AES extends BaseCryptoAlgorithm<AESAlgorithmType, string, string, TAESSecret, Promise<string>, Promise<string>, IAESExtraOptions> {
+export declare class AES extends BaseCryptoAlgorithm<AESAlgorithmType, string, string, TAESSecret, Promise<string>, Promise<string>, IAESOptions> {
+    /** The options AES refuses: `doThrow` (a failure always throws) and `iv` (every encryption draws its own). */
+    private static readonly REMOVED_OPTIONS;
     constructor(opts: {
         algorithm: AESAlgorithmType;
     });
@@ -461,7 +463,7 @@ export declare class AES extends BaseCryptoAlgorithm<AESAlgorithmType, string, s
     encrypt(opts: {
         message: string;
         secret: TAESSecret;
-        opts?: IAESExtraOptions;
+        opts?: IAESOptions;
     }): Promise<string>;
     encryptFile(opts: {
         absolutePath: string;
@@ -470,7 +472,7 @@ export declare class AES extends BaseCryptoAlgorithm<AESAlgorithmType, string, s
     decrypt(opts: {
         message: string;
         secret: TAESSecret;
-        opts?: IAESDecryptOptions;
+        opts?: IAESOptions;
     }): Promise<string>;
     decryptFile(opts: {
         absolutePath: string;
@@ -478,12 +480,8 @@ export declare class AES extends BaseCryptoAlgorithm<AESAlgorithmType, string, s
     }): Promise<string>;
 }
 
-/** `iv` is encrypt-only: the envelope carries the IV, so decrypt reads it from there and a supplied one would be silently ignored. */
-interface IAESExtraOptions extends IAESDecryptOptions {
-    iv?: Buffer;
-}
-
-interface IAESDecryptOptions {
+/** Options of `AES.encrypt` and `AES.decrypt`. There is no `iv`: every encryption draws a fresh random one, and decrypt reads it from the envelope. */
+interface IAESOptions {
     inputEncoding?: BufferEncoding;
     outputEncoding?: BufferEncoding;
     /** Per-deployment PBKDF2 salt override. Must be supplied identically on encrypt and decrypt; omit for the shipped default. */
@@ -567,14 +565,17 @@ Base for the symmetric algorithms: validates the algorithm name and derives a ke
 
 ```ts
 export declare abstract class BaseCryptoAlgorithm<AlgorithmType extends string, EncryptInputType = unknown, DecryptInputType = unknown, SecretKeyType = unknown, EncryptReturnType = unknown, DecryptReturnType = unknown, ExtraOptions = unknown> extends AbstractCryptoAlgorithm<AlgorithmType, EncryptInputType, DecryptInputType, SecretKeyType, EncryptReturnType, DecryptReturnType, ExtraOptions> {
+    /** What a caller that still passes a removed option is told: the option, and what replaced it. */
+    private static readonly REMOVED_OPTION_HINTS;
     /**
+     * A caller that still passes a removed option is refused, not ignored, so nobody believes it still works.
      * `doThrow: false` is gone: a failed encrypt or decrypt used to hand the input back, which a caller could take for
-     * ciphertext or plaintext. A failure always throws. A caller that still passes the option is refused, not ignored,
-     * so nobody believes it still works.
+     * ciphertext or plaintext. `iv` is gone from AES: a caller-chosen IV reused under GCM breaks confidentiality and integrity.
      */
     protected assertNoRemovedOptions(opts: {
         method: string;
         options?: object;
+        removed?: ReadonlyArray<string>;
     }): void;
     constructor(opts: {
         scope: string;
