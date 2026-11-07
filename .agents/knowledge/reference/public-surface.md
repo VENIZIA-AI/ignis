@@ -1728,7 +1728,7 @@ generated:
 
 ## connectors
 
-### `@venizia/ignis-connectors` (129)
+### `@venizia/ignis-connectors` (131)
 
 - `AbstractDriverDataSource` class
 - `AbstractRelationalDataSource` class
@@ -1804,6 +1804,7 @@ generated:
 - `RecursiveTreeDirections` class
 - `RecursiveTreeSql` class
 - `RelationalBaseRepository` class
+- `RelationalDialects` class
 - `RelationalEntityUtility` class
 - `RelationalMigrationRunner` class
 - `RelationalUpdateBuilder` class
@@ -1837,6 +1838,7 @@ generated:
 - `TPrimaryKey` type
 - `TRecursiveTreeDirection` type
 - `TRelationalConnectorOf` type
+- `TRelationalDialect` type
 - `TRelationalTransactionOf` type
 - `TRelationalTransactionOptions` type
 - `TRelationalTransactionOptionsOf` type
@@ -1896,7 +1898,7 @@ generated:
 - `TRawSqlQuery` type
 - `TRawSqlSchema` type
 
-### `@venizia/ignis-connectors/relational` (71)
+### `@venizia/ignis-connectors/relational` (73)
 
 - `AbstractRelationalDataSource` class
 - `AuditUserResolver` class
@@ -1937,6 +1939,7 @@ generated:
 - `RecursiveTreeDirections` class
 - `RecursiveTreeSql` class
 - `RelationalBaseRepository` class
+- `RelationalDialects` class
 - `RelationalEntityUtility` class
 - `RelationalMigrationRunner` class
 - `RelationalUpdateBuilder` class
@@ -1957,6 +1960,7 @@ generated:
 - `TPrimaryKey` type
 - `TRecursiveTreeDirection` type
 - `TRelationalConnectorOf` type
+- `TRelationalDialect` type
 - `TRelationalTransactionOf` type
 - `TRelationalTransactionOptions` type
 - `TRelationalTransactionOptionsOf` type

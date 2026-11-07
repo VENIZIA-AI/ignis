@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors, from the built declarat
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-3 exports, 3 with TSDoc. 126 more are re-exported from other entries (listed at the end).
+3 exports, 3 with TSDoc. 128 more are re-exported from other entries (listed at the end).
 
 ## `AbstractDriverDataSource`
 
@@ -215,6 +215,7 @@ Source: `packages/connectors/src/common/scope-filter.ts`
 - `RecursiveTreeDirections` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `RecursiveTreeSql` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `RelationalBaseRepository` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
+- `RelationalDialects` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `RelationalEntityUtility` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `RelationalMigrationRunner` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `RelationalUpdateBuilder` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
@@ -247,6 +248,7 @@ Source: `packages/connectors/src/common/scope-filter.ts`
 - `TPrimaryKey` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TRecursiveTreeDirection` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TRelationalConnectorOf` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
+- `TRelationalDialect` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TRelationalTransactionOf` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TRelationalTransactionOptions` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TRelationalTransactionOptionsOf` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)

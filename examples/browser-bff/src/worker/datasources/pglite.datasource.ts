@@ -44,7 +44,7 @@ export class PGliteDataSource extends BasePostgresDataSource<
       const runner = new RelationalMigrationRunner({
         driver: this.resolveDriver(),
         // Kept from earlier versions of this example, so a database already in OPFS stays readable.
-        ledgerTable: 'ignis_browser_migrations',
+        ledger: { schema: 'public', table: 'ignis_browser_migrations' },
         scope: PGliteDataSource.name,
       });
       await runner.run({ migrations: MIGRATIONS });

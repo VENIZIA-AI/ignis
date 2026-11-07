@@ -17,6 +17,8 @@ Driver over a `postgres` (postgres-js) `Sql` client. Throws on construction if t
 
 ```ts
 export declare class PostgresJsDriver<Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema> implements TRelationalDriver<Schema, Sql> {
+    /** The engine this driver speaks; the migration ledger reads it (see {@link RelationalDialects}). */
+    readonly dialect = "postgres";
     private readonly client;
     constructor(opts: {
         client: Sql;
