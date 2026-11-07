@@ -5,10 +5,12 @@ import { CodemodFiles } from './files';
 
 const USAGE = `Usage: devz codemod async-style [paths...] [--write | --check]
 
-Applies the fixers of three house lint rules, so a repository can sweep them without a lint pass:
+Applies the fixers of four house lint rules, so a repository can sweep them without a lint pass:
 
   venizia/no-inline-await         \`expect(await f())\` becomes \`const result = await f(); expect(result)\`
   venizia/no-return-await         \`return await f()\` becomes \`return f()\` (\`const result = await f(); return result;\` in a try)
+  venizia/no-await-new-chain      \`await new Runner(options).run()\` becomes
+                                  \`const runner = new Runner(options); await runner.run();\`
   venizia/no-await-promise-chain  \`const x = await f().catch(() => null)\` becomes
                                   \`let x; try { x = await f(); } catch (error) { x = null; }\`
 
@@ -209,7 +211,7 @@ export class AsyncStyle {
 
 /**
  * `devz codemod async-style [paths...] [--write | --check]`: applies the fixers of `no-inline-await`,
- * `no-return-await` and `no-await-promise-chain`, and lists what is left of those and of `no-silent-catch`.
+ * `no-return-await`, `no-await-new-chain` and `no-await-promise-chain`, and lists what is left of those and of `no-silent-catch`.
  * It is a dry run unless `--write` is given. `--check` is the same dry run, and exits 1 when anything would
  * change or is left unfixed.
  */

@@ -12,7 +12,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/dev-configs`](/references/api/venizia-dev-configs) | 0 | 0 |
 | [`@venizia/dev-configs/checks`](/references/api/venizia-dev-configs-checks) | 37 | 37 |
 | [`@venizia/dev-configs/compilers`](/references/api/venizia-dev-configs-compilers) | 1 | 1 |
-| [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters) | 24 | 24 |
+| [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters) | 25 | 25 |
 | [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint) | 30 | 30 |
 | [`@venizia/dev-configs/testing`](/references/api/venizia-dev-configs-testing) | 5 | 5 |
 | [`@venizia/ignis`](/references/api/venizia-ignis) | 99 | 99 |

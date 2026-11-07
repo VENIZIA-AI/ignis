@@ -11,6 +11,7 @@ tags: [conventions, async, lint]
 
 - [Await stands alone](#await-stands-alone)
 - [A function returns its promise](#a-function-returns-its-promise)
+- [Declare the instance, then await](#declare-the-instance-then-await)
 - [Await or chain, never both](#await-or-chain-never-both)
 - [No silent catch](#no-silent-catch)
 - [Hooks](#hooks)
@@ -61,6 +62,10 @@ try {
   return recover({ error });
 }
 ```
+
+## Declare the instance, then await
+
+`await new X(...).method(...)` is reported by `no-await-new-chain`: a method is never called on a fresh instance inside an `await`. Declare the instance (or, for a builder chain, the builder up to its last call) in a `const`, then `await` on its own line. `await new Promise(...)` is exempt (no method is called), as is `await new X().prop`.
 
 ## Await or chain, never both
 

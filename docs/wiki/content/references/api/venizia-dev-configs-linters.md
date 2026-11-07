@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs/linters, from the built decla
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-24 exports, 24 with TSDoc. 30 more are re-exported from other entries (listed at the end).
+25 exports, 25 with TSDoc. 30 more are re-exported from other entries (listed at the end).
 
 ## `AstNode`
 
@@ -350,6 +350,48 @@ export declare class NoAsyncHookCallbackRule {
 ```
 
 Source: `packages/dev-configs/src/linters/house/no-async-hook-callback.rule.ts`
+
+## `NoAwaitNewChainRule`
+
+*class*
+
+`venizia/no-await-new-chain`. A method is never called on a fresh instance inside an `await`:
+`await new Runner({ ... }).run(...)` and `const text = await new Response(body).text()` declare the instance first,
+then await on its own line (`const runner = new Runner({ ... }); await runner.run(...);`). A builder chain
+(`await new SignJWT(claims).setIssuer(iss).sign(key)`) declares the builder, then awaits its last call.
+
+`await new Promise(...)` calls no method and is allowed. `await new X().prop` is not a call and is allowed.
+
+The fix moves the instance, or the chain up to the last call, into a `const` in front of the statement. It is made
+only when nothing that does more than read a value runs before the `await` inside the statement; otherwise the
+finding is reported and left alone.
+
+```ts
+export declare class NoAwaitNewChainRule {
+    static readonly NAME = "venizia/no-await-new-chain";
+    /** The expression under any transparent wrapper. */
+    private static unwrap;
+    /**
+     * The receiver of the last call when the awaited value is a method call on a `new` (directly or through a chain of
+     * calls and member reads), else `undefined`.
+     */
+    private static receiverOf;
+    /**
+     * Whether the `await` is the whole statement (`await f();`) or the whole initializer of a declaration with one
+     * declarator (`const { a } = await f();`). Nothing runs before it there: a binding pattern and its defaults are
+     * evaluated after the initializer.
+     */
+    private static isFirstToRun;
+    /** `Response` becomes `response`, `ns.SignJWT` becomes `signJWT`; anything else is `instance`. */
+    private static nameOf;
+    static readonly RULE: Rule.RuleModule;
+    static build(opts?: {
+        severity?: TRuleSeverity;
+    }): TRuleSeverity;
+}
+```
+
+Source: `packages/dev-configs/src/linters/house/no-await-new-chain.rule.ts`
 
 ## `NoAwaitPromiseChainRule`
 

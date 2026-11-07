@@ -7,7 +7,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-0 exports, 0 with TSDoc. 55 more are re-exported from other entries (listed at the end).
+0 exports, 0 with TSDoc. 56 more are re-exported from other entries (listed at the end).
 
 ## Re-exported
 
@@ -34,6 +34,7 @@ description: "Every export of @venizia/dev-configs, from the built declarations 
 - `namingConventionConfigs` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `NamingConventionRule` from [`@venizia/dev-configs/linters/oxlint`](/references/api/venizia-dev-configs-linters-oxlint)
 - `NoAsyncHookCallbackRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
+- `NoAwaitNewChainRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `NoAwaitPromiseChainRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `NoInlineAwaitRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
 - `NoLeakedRenderRule` from [`@venizia/dev-configs/linters`](/references/api/venizia-dev-configs-linters)
