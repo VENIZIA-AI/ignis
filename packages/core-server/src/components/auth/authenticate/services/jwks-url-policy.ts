@@ -1,8 +1,8 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 
-/** One host name of `jwks.hosts.http`: letters, digits, dots and hyphens - no port, no scheme, no wildcard, no address literal. */
-const HOST_NAME_PATTERN = /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/;
+/** One host name of `jwks.hosts.http`: labels of letters, digits and hyphens joined by single dots - no empty label, no port, no scheme, no wildcard, no address literal. */
+const HOST_NAME_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$/;
 
 /** An IPv4 address: an entry of `jwks.hosts.http` is a name, and an address is not one. */
 const IPV4_PATTERN = /^\d{1,3}(?:\.\d{1,3}){3}$/;
@@ -42,7 +42,13 @@ export class JWKSUrlPolicy {
     for (const entry of hosts) {
       const name = typeof entry === 'string' ? entry.trim().toLowerCase() : '';
 
-      if (!HOST_NAME_PATTERN.test(name) || IPV4_PATTERN.test(name)) {
+      // The name must be what the URL parser makes of it: `2130706433`, `0x7f000001` and `1.2.3` are addresses the parser
+      // rewrites (to `127.0.0.1`, `1.2.0.3`), so none of them is the name it looks like.
+      if (
+        !HOST_NAME_PATTERN.test(name) ||
+        IPV4_PATTERN.test(name) ||
+        !JWKSUrlPolicy.isParsedAsItself({ name })
+      ) {
         throw getError({
           statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
           message: `[${scope}] jwks.hosts.http holds ${JSON.stringify(entry)} | list host names only: no port, scheme, wildcard or address, for example 'identity-service'`,
@@ -53,6 +59,16 @@ export class JWKSUrlPolicy {
     }
 
     return resolved;
+  }
+
+  /** Whether `http://<name>` has `<name>` as its host once the URL parser has had its say. */
+  private static isParsedAsItself(opts: { name: string }): boolean {
+    try {
+      return new URL(`http://${opts.name}`).hostname === opts.name;
+      // eslint-disable-next-line venizia/no-silent-catch -- a name the parser refuses is not a host name: the caller refuses the entry
+    } catch {
+      return false;
+    }
   }
 
   /** Whether the URL parser's hostname is a loopback one: `localhost`, `127.0.0.0/8` or `::1`. */

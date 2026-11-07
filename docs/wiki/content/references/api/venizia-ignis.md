@@ -1942,6 +1942,8 @@ export declare class JWKSUrlPolicy {
         scope: string;
         hosts?: unknown;
     }): ReadonlySet<string>;
+    /** Whether `http://<name>` has `<name>` as its host once the URL parser has had its say. */
+    private static isParsedAsItself;
     /** Whether the URL parser's hostname is a loopback one: `localhost`, `127.0.0.0/8` or `::1`. */
     static isLoopback(hostname: string): boolean;
     /**

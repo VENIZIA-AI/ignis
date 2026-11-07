@@ -250,3 +250,29 @@ describe('JWKS claims without an audience', () => {
     });
   });
 });
+
+describe('a JWKS that redirects is not followed', () => {
+  test('a key set behind a redirect to a working key set fails verification, a direct one works', async () => {
+    const redirecting = Bun.serve({
+      port: 0,
+      fetch: () => Response.redirect(jwksUrl, 302),
+    });
+
+    try {
+      const token = await buildIssuer().generate({ payload: payload() });
+      const direct = buildVerifier();
+      const behindRedirect = buildVerifier({
+        jwksUrl: `http://localhost:${redirecting.port}/certs`,
+      });
+
+      const result = await direct.verify({ type: 'Bearer', token });
+      expect(result.userId).toBe(1);
+      await RejectionHelper.expectRejection({
+        task: behindRedirect.verify({ type: 'Bearer', token }),
+        message: REFUSED,
+      });
+    } finally {
+      await redirecting.stop(true);
+    }
+  });
+});
