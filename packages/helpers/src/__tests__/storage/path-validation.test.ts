@@ -127,6 +127,50 @@ describe('Storage Path Validation', () => {
     });
   });
 
+  describe('segment length in UTF-8 bytes', () => {
+    const accepted = [
+      ['255 ASCII bytes', 'a'.repeat(255)],
+      ['127 two-byte characters and one ASCII byte', `${'é'.repeat(127)}a`],
+      ['85 three-byte characters', '写'.repeat(85)],
+      ['63 emoji and 3 ASCII bytes', `${'😀'.repeat(63)}abc`],
+    ];
+    const refused = [
+      ['128 two-byte characters', 'é'.repeat(128)],
+      ['86 three-byte characters', '写'.repeat(86)],
+      ['64 emoji', '😀'.repeat(64)],
+    ];
+
+    test.each(accepted)('%s is a valid segment, key and bucket name', (_name, value) => {
+      expect(helper.isValidSegment({ segment: value })).toBe(true);
+      expect(helper.isValidObjectKey({ object: { key: `folder/${value}` } })).toBe(true);
+      expect(helper.isValidBucketName({ bucket: { name: value } })).toBe(true);
+    });
+
+    test.each(refused)(
+      '%s, inside 255 characters, is refused in a segment, a key and a bucket name',
+      (_name, value) => {
+        expect(value.length).toBeLessThanOrEqual(255);
+        expect(helper.isValidSegment({ segment: value })).toBe(false);
+        expect(helper.isValidObjectKey({ object: { key: `folder/${value}` } })).toBe(false);
+        expect(helper.isValidBucketName({ bucket: { name: value } })).toBe(false);
+      },
+    );
+
+    test('256 ASCII bytes are refused', () => {
+      expect(helper.isValidSegment({ segment: 'a'.repeat(256) })).toBe(false);
+    });
+
+    test('a lone surrogate is refused even inside the byte limit', () => {
+      expect(helper.isValidSegment({ segment: `${'a'.repeat(250)}\ud83d` })).toBe(false);
+    });
+
+    test('unicode names, dots inside names and nested keys stay valid', () => {
+      expect(helper.isValidSegment({ segment: 'a.b.c.txt' })).toBe(true);
+      expect(helper.isValidObjectKey({ object: { key: 'a/b/c.txt' } })).toBe(true);
+      expect(helper.isValidObjectKey({ object: { key: 'ảnh/2024/ảnh đẹp.v2.png' } })).toBe(true);
+    });
+  });
+
   describe('isValidPath', () => {
     describe('valid paths', () => {
       test('should accept simple filename (no folder)', () => {
@@ -151,10 +195,8 @@ describe('Storage Path Validation', () => {
         ).toBe(true);
       });
 
-      test('should trim leading/trailing slashes', () => {
+      test('should trim a leading slash', () => {
         expect(helper.isValidObjectKey({ object: { key: '/photos/file.jpg' } })).toBe(true);
-        expect(helper.isValidObjectKey({ object: { key: 'photos/file.jpg/' } })).toBe(true);
-        expect(helper.isValidObjectKey({ object: { key: '/photos/file.jpg/' } })).toBe(true);
       });
     });
 
@@ -186,6 +228,15 @@ describe('Storage Path Validation', () => {
       test('should reject paths exceeding default max depth (2 folders)', () => {
         // 3 folder levels + file = 4 segments, folderDepth=3 > default 2
         expect(helper.isValidObjectKey({ object: { key: 'a/b/c/file.jpg' } })).toBe(false);
+      });
+
+      test.each([
+        ['a file key', 'photos/file.jpg/'],
+        ['a key with a leading slash', '/photos/file.jpg/'],
+        ['a directory marker', 'photos/'],
+        ['a nested directory marker', 'a/b/'],
+      ])('should reject %s ending with a slash', (_name, key) => {
+        expect(helper.isValidObjectKey({ object: { key } })).toBe(false);
       });
 
       test('should reject paths that are only slashes', () => {
