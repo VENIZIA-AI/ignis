@@ -197,8 +197,8 @@ export class PersistableRelationalRepository<
   /**
    * One `INSERT ... ON CONFLICT (key) DO UPDATE` statement. The key and `update` are checked before anything else, so a
    * bad one runs no guard and no SQL. The new row passes the CREATE guard; the columns the update branch writes pass the
-   * UPDATE guard; the existing row must match the UPDATE scope and the default filter (`setWhere`), read in the same
-   * statement, so it cannot change between the check and the write.
+   * guard of `resolveUpdateOperation`; the existing row must match that operation's scope and the default filter
+   * (`setWhere`), read in the same statement, so it cannot change between the check and the write.
    */
   protected async _upsert<R = DataObject>(opts: {
     data: PersistObject;
@@ -248,16 +248,21 @@ export class PersistableRelationalRepository<
       isAbsentAllowed: false,
     });
 
+    const updated = Object.fromEntries(
+      plan.updateKeys.map((property) => [property, row[property]]),
+    );
+    const updateOperation = this.resolveUpdateOperation({ data: updated });
+
     await this.guardScopedWrite({
-      rows: [Object.fromEntries(plan.updateKeys.map((property) => [property, row[property]]))],
-      operation: ScopeOperations.UPDATE,
+      rows: [updated],
+      operation: updateOperation,
       transaction,
     });
 
     // `shouldSkipDefaultFilter` is not read: an upsert never updates a row the default filter hides (a soft deleted one).
     const mergedFilter = this.applyDefaultFilter({
       userFilter: { where: {} },
-      mutation: ScopeOperations.UPDATE,
+      mutation: updateOperation,
     });
     const setWhere = this.queryDialect.toWhere({
       tableName: this.entity.name,
@@ -286,7 +291,7 @@ export class PersistableRelationalRepository<
     // No row back means a row holds the key but `setWhere` kept it: it is outside the scope or the default filter. It is
     // not an insert (there was a conflict) and not a success (nothing was written).
     if (rs.count === 0) {
-      throw ScopeWriteGuard.conflictDenied({ model: this.entity.name });
+      throw ScopeWriteGuard.conflictDenied({ model: this.entity.name, operation: updateOperation });
     }
 
     return { count: rs.count, data: shouldReturn ? (rs.rows[0] ?? null) : null };
@@ -304,6 +309,8 @@ export class PersistableRelationalRepository<
    * - The new row is held to the access scope as `create` holds it, the columns written on a conflict as `update` holds
    *   them, and the existing row must be one the caller may update: a row outside the scope or hidden by the default
    *   filter is left as it is and the call fails with the write-denied 403. `options.shouldSkipDefaultFilter` is ignored.
+   *   On a soft-deletable repository, an update branch that sets `deletedAt` to a value other than `null` is held to
+   *   the DELETE scope instead.
    * - Defaults apply on insert, `$onUpdate` columns (`modifiedAt`, `modifiedBy`) on a conflict, and hidden fields are
    *   written but not returned.
    * @example
@@ -349,8 +356,18 @@ export class PersistableRelationalRepository<
   }
 
   /**
-   * `operation` is what the row scope sees: UPDATE for an update (and a restore), DELETE for a
-   * soft delete, which is a delete to the caller even though it is stored as an update.
+   * The operation the row scope sees for an update that writes `data`. UPDATE here; a soft-deletable
+   * repository answers DELETE when `data` sets its soft-delete column.
+   */
+  protected resolveUpdateOperation(_opts: {
+    data: Record<string, unknown>;
+  }): typeof ScopeOperations.UPDATE | typeof ScopeOperations.DELETE {
+    return ScopeOperations.UPDATE;
+  }
+
+  /**
+   * `operation` is what the row scope sees: DELETE for a soft delete, which is a delete to the caller even though it is
+   * stored as an update. Omitted, it is `resolveUpdateOperation({ data })`.
    */
   protected async _update<R = DataObject>(opts: {
     data: Partial<PersistObject>;
@@ -361,7 +378,7 @@ export class PersistableRelationalRepository<
     };
     operation?: typeof ScopeOperations.UPDATE | typeof ScopeOperations.DELETE;
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    const { operation = ScopeOperations.UPDATE } = opts;
+    const { operation = this.resolveUpdateOperation({ data: opts.data }) } = opts;
 
     const {
       shouldReturn = true,

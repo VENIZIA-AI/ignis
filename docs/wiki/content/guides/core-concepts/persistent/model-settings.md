@@ -240,10 +240,10 @@ A read sees both columns. A create, an update and a delete are held to `merchant
 |---|---|
 | `find`, `findOne`, `findById`, `count`, `existsWith`, and a relation loaded through `include` | `READ` |
 | `create`, `createAll` | `CREATE` |
-| `updateById`, `updateAll`, and `restore` | `UPDATE` |
+| `updateById`, `updateAll`, `updateBy`, `updateEach`, the update branch of `upsert`, and `restore` | `UPDATE` |
 | `deleteById`, `deleteAll`, `deleteBy`, a soft delete included | `DELETE` |
 
-A soft delete is stored as an update of the row, but the resolver sees `DELETE`: a caller who may update a row is not thereby allowed to delete it. The soft-delete flag (`deletedAt`) is an ordinary column, though. An `updateAll` that writes it soft-deletes the row under the `UPDATE` scope, not the `DELETE` one. To keep `UPDATE` from deleting, do not let callers write that column, or check it in the service. A read with a row `lock` (`findOne` with `lock`) still passes `READ`, so it can lock rows the caller may only read.
+A soft delete is stored as an update of the row, but the resolver sees `DELETE`: a caller who may update a row is not thereby allowed to delete it. On a `SoftDeletableRepository` this holds for an ordinary update too. When `updateById`, `updateAll`, `updateBy`, `updateEach` or the update branch of `upsert` writes `deletedAt` (by its property name, its column name or a JSON path on it) with any value but `null`, the call passes `DELETE`, and both the rows it selects and the values it writes are held to the `DELETE` scope. A `Date`, a string, `false`, `0` and an SQL expression all count as a delete, because only `null` clears the column. Writing `null` passes `UPDATE`, as `restore` does. A `deletedAt` left `undefined` is not written. A repository without soft delete treats `deletedAt` as an ordinary column. A read with a row `lock` (`findOne` with `lock`) still passes `READ`, so it can lock rows the caller may only read.
 
 `ScopeOperations.WRITE` and `ScopeOperations.ALL` are groups, never an `operation`. Ask `includes({ group, operation })` whether an operation belongs to one.
 

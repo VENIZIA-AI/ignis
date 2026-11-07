@@ -67,6 +67,7 @@ export class CategoryRepository extends SoftDeletableRepository<typeof Category.
 
 - **Delete sets a timestamp, not a `DELETE`.** All delete methods set `deletedAt = new Date()` instead of removing the row - `deleteById` calls `updateById` internally, `deleteAll`/`deleteBy` call `updateAll`.
 - **Bypass with `shouldHardDelete`.** Pass `options.shouldHardDelete: true` to skip soft delete and delegate to the parent's real `DELETE`.
+- **An update that sets `deletedAt` is a delete to the access scope.** `updateById`, `updateAll`, `updateBy`, `updateEach` and the update branch of `upsert` pass `DELETE` to `access.resolve` when their data sets `deletedAt` to any value but `null`, and `UPDATE` when it sets `null`, as the restore methods do. See [Read wider than you write](/guides/core-concepts/persistent/model-settings#read-wider-than-you-write).
 
 ### deleteById
 

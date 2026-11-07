@@ -1254,8 +1254,8 @@ export declare class PersistableRelationalRepository<EntitySchema extends TTable
     /**
      * One `INSERT ... ON CONFLICT (key) DO UPDATE` statement. The key and `update` are checked before anything else, so a
      * bad one runs no guard and no SQL. The new row passes the CREATE guard; the columns the update branch writes pass the
-     * UPDATE guard; the existing row must match the UPDATE scope and the default filter (`setWhere`), read in the same
-     * statement, so it cannot change between the check and the write.
+     * guard of `resolveUpdateOperation`; the existing row must match that operation's scope and the default filter
+     * (`setWhere`), read in the same statement, so it cannot change between the check and the write.
      */
     protected _upsert<R = DataObject>(opts: {
         data: PersistObject;
@@ -1280,6 +1280,8 @@ export declare class PersistableRelationalRepository<EntitySchema extends TTable
      * - The new row is held to the access scope as `create` holds it, the columns written on a conflict as `update` holds
      *   them, and the existing row must be one the caller may update: a row outside the scope or hidden by the default
      *   filter is left as it is and the call fails with the write-denied 403. `options.shouldSkipDefaultFilter` is ignored.
+     *   On a soft-deletable repository, an update branch that sets `deletedAt` to a value other than `null` is held to
+     *   the DELETE scope instead.
      * - Defaults apply on insert, `$onUpdate` columns (`modifiedAt`, `modifiedBy`) on a conflict, and hidden fields are
      *   written but not returned.
      * @example
@@ -1319,8 +1321,15 @@ export declare class PersistableRelationalRepository<EntitySchema extends TTable
         data: R;
     }>;
     /**
-     * `operation` is what the row scope sees: UPDATE for an update (and a restore), DELETE for a
-     * soft delete, which is a delete to the caller even though it is stored as an update.
+     * The operation the row scope sees for an update that writes `data`. UPDATE here; a soft-deletable
+     * repository answers DELETE when `data` sets its soft-delete column.
+     */
+    protected resolveUpdateOperation(_opts: {
+        data: Record<string, unknown>;
+    }): typeof ScopeOperations.UPDATE | typeof ScopeOperations.DELETE;
+    /**
+     * `operation` is what the row scope sees: DELETE for a soft delete, which is a delete to the caller even though it is
+     * stored as an update. Omitted, it is `resolveUpdateOperation({ data })`.
      */
     protected _update<R = DataObject>(opts: {
         data: Partial<PersistObject>;
@@ -2394,11 +2403,18 @@ Source: `packages/connectors/src/relational/core/repositories/common/scope-filte
 
 *class*
 
-Repository that soft-deletes (sets `deletedAt`) instead of physically removing rows; models need a `deletedAt` column and `query: { filter: { where: { deletedAt: null } } }` in `@model` settings.
+Repository that soft-deletes (sets `deletedAt`) instead of physically removing rows; models need a `deletedAt` column and `query: { filter: { where: { deletedAt: null } } }` in `@model` settings. An update, `updateEach` or upsert whose data sets `deletedAt` to a value other than `null` is checked by the access scope as a DELETE.
 
 ````ts
 export declare class SoftDeletableRelationalRepository<EntitySchema extends TSoftDeletableTableSchema = TSoftDeletableTableSchema, DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>, PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>, ExtraOptions extends IExtraOptions = IRelationalExtraOptions, TDataSource extends IRelationalDataSource = IRelationalDataSource> extends DefaultRelationalRepository<EntitySchema, DataObject, PersistObject, ExtraOptions, TDataSource> {
     private softDeletePatch;
+    /**
+     * DELETE when `data` sets `deletedAt` (by property, column name or a path on it) to anything but `null`, an
+     * expression included; UPDATE when it sets it to `null`, as a restore is checked, or leaves it `undefined`.
+     */
+    protected resolveUpdateOperation(opts: {
+        data: Record<string, unknown>;
+    }): typeof ScopeOperations.UPDATE | typeof ScopeOperations.DELETE;
     /** `isStrict` is evaluated AFTER `options.retry` has been exhausted - the retry loop lives inside `super.findById` -> `findOne`, so a strict read waits out replica lag before it 404s. */
     findById<R = unknown, const F extends TFields<DataObject> = TFields<DataObject>>(opts: {
         id: DataObject['id'];

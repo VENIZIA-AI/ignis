@@ -547,13 +547,12 @@ export class ScopeWriteGuard {
   }
 
   /**
-   * An upsert met a row holding its key that the caller may not update: outside the scope, or hidden by the default
-   * filter. The row is left as it is; the refusal is the same one an out-of-scope write gets.
+   * An upsert met a row holding its key that the caller may not write with this operation: outside the scope, or hidden
+   * by the default filter. The row is left as it is; the refusal is the same one an out-of-scope write gets.
    */
-  static conflictDenied(opts: { model: string }) {
+  static conflictDenied(opts: { model: string; operation: TScopeOperation }) {
     return ScopeWriteGuard.denied({
-      model: opts.model,
-      operation: ScopeOperations.UPDATE,
+      ...opts,
       detail: "the row holding this key is outside the caller's scope",
     });
   }

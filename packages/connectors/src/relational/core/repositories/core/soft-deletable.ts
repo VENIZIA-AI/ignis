@@ -11,6 +11,7 @@ import { RepositoryErrors, ScopeOperations } from '@venizia/ignis-kernel';
 import type { IRelationalDataSource } from '@/relational/core/datasources/common';
 import type { TTableInsert, TTableObject, TTableSchemaWithId } from '@/relational/core/models';
 import type { TNullable } from '@venizia/ignis-helpers/common';
+import { FilterKeys } from '@venizia/ignis-filter';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { AnyColumn } from 'drizzle-orm';
 import type { IRelationalExtraOptions } from '../common';
@@ -26,7 +27,7 @@ export type TSoftDeletableTableSchema = TTableSchemaWithId & {
   deletedAt: TDeletedAtColumn;
 };
 
-/** Repository that soft-deletes (sets `deletedAt`) instead of physically removing rows; models need a `deletedAt` column and `query: { filter: { where: { deletedAt: null } } }` in `@model` settings. */
+/** Repository that soft-deletes (sets `deletedAt`) instead of physically removing rows; models need a `deletedAt` column and `query: { filter: { where: { deletedAt: null } } }` in `@model` settings. An update, `updateEach` or upsert whose data sets `deletedAt` to a value other than `null` is checked by the access scope as a DELETE. */
 export class SoftDeletableRelationalRepository<
   EntitySchema extends TSoftDeletableTableSchema = TSoftDeletableTableSchema,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
@@ -42,6 +43,27 @@ export class SoftDeletableRelationalRepository<
 > {
   private softDeletePatch(deletedAt: Date | null): Partial<PersistObject> {
     return { deletedAt } as any;
+  }
+
+  /**
+   * DELETE when `data` sets `deletedAt` (by property, column name or a path on it) to anything but `null`, an
+   * expression included; UPDATE when it sets it to `null`, as a restore is checked, or leaves it `undefined`.
+   */
+  protected override resolveUpdateOperation(opts: {
+    data: Record<string, unknown>;
+  }): typeof ScopeOperations.UPDATE | typeof ScopeOperations.DELETE {
+    const { data } = opts;
+    const names = new Set<string>(['deletedAt', this.entity.schema.deletedAt.name]);
+
+    for (const key in data) {
+      const value = data[key];
+
+      if (names.has(FilterKeys.columnOf({ key })) && value !== undefined && value !== null) {
+        return ScopeOperations.DELETE;
+      }
+    }
+
+    return ScopeOperations.UPDATE;
   }
 
   /** `isStrict` is evaluated AFTER `options.retry` has been exhausted - the retry loop lives inside `super.findById` -> `findOne`, so a strict read waits out replica lag before it 404s. */
