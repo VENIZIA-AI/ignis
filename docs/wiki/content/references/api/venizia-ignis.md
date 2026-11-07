@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-98 exports, 98 with TSDoc. 917 more are re-exported from other entries (listed at the end).
+99 exports, 99 with TSDoc. 918 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -1921,6 +1921,42 @@ export declare class JWKSIssuerTokenService<E extends Env = Env> extends Abstrac
 
 Source: `packages/core-server/src/components/auth/authenticate/services/bearer/jwks/issuer.service.ts`
 
+## `JWKSUrlPolicy`
+
+*class*
+
+Where a JWKS may be fetched from. A key set read over plain `http:` can be replaced on the way, and
+whoever replaces it signs tokens that verify, so a JWKS URL is `https:` unless its host is loopback or
+is listed by name in `jwks.hosts.http`. The one policy serves the JWKS verifier and the service-assertion
+callers: both fetch a key set to decide who may call.
+
+The opt-in is by host NAME, never by address range: what a name resolves to can change, and the choice to
+trust a name is the operator's. The port is ignored, so `identity-service` covers every port.
+
+```ts
+export declare class JWKSUrlPolicy {
+    /** Refuses an entry of `jwks.hosts.http` that is not a bare host name, and answers the entries lower-cased. */
+    static resolveHttpHosts(opts: {
+        scope: string;
+        hosts?: unknown;
+    }): ReadonlySet<string>;
+    /** Whether the URL parser's hostname is a loopback one: `localhost`, `127.0.0.0/8` or `::1`. */
+    static isLoopback(hostname: string): boolean;
+    /**
+     * Parses a JWKS URL and refuses it unless it is `https:`, or `http:` to a loopback host or a host listed in
+     * `jwks.hosts.http`. Only the host name goes into the message: a URL may carry credentials.
+     */
+    static assertUrl(opts: {
+        scope: string;
+        label: string;
+        url: string;
+        hosts?: unknown;
+    }): URL;
+}
+```
+
+Source: `packages/core-server/src/components/auth/authenticate/services/jwks-url-policy.ts`
+
 ## `JWKSVerifierAuthenticationStrategy`
 
 *class*
@@ -3259,6 +3295,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IHfLogFlusherOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IHfQueueNode` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IIdGeneratorOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `IJWKSHosts` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IJWKSIssuerOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IJWKSVerifierOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IJWKSVerifierVerifyOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)

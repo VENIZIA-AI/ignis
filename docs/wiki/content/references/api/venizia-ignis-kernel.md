@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-342 exports, 342 with TSDoc. 77 more are re-exported from other entries (listed at the end).
+343 exports, 343 with TSDoc. 77 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -3694,6 +3694,26 @@ interface IBaseControllerMetadata extends IArtifactRegistrationOptions {
 
 Source: `packages/kernel/src/helpers/inversion/common/types/controller.ts`
 
+## `IJWKSHosts`
+
+*interface*
+
+Where a JWKS may be fetched over plain `http:`. A JWKS URL is `https:` unless its host is loopback (`localhost`,
+`127.0.0.0/8`, `::1`) or is named in `http`.
+
+```ts
+export interface IJWKSHosts {
+    /**
+     * Host NAMES that may serve a JWKS over `http:`, for example `['identity-service']`: a service inside a private
+     * network. Names only, never an address range, because what a name resolves to can change. A name matches on the
+     * host and ignores the port. An entry with a port, a scheme or a wildcard refuses the boot.
+     */
+    http?: string[];
+}
+```
+
+Source: `packages/kernel/src/base/auth/authenticate/common/types/jwt.ts`
+
 ## `IJWKSIssuerOptions`
 
 *interface*
@@ -3745,6 +3765,10 @@ export interface IJWKSVerifierOptions {
     jwksUrl: string;
     /** The `iss` and `aud` required on every verified token. */
     claims: IJWTClaimsOptions;
+    /** Where the key set may be fetched from over `http:`. Unset means `https:` or loopback only. */
+    jwks?: {
+        hosts?: IJWKSHosts;
+    };
     /**
      * How long the fetched key set stays cached, in ms (12 hours).
      *
@@ -4692,6 +4716,8 @@ export interface IServiceAuthOptions<E extends Env = Env> {
         cacheMaxAgeMs?: number;
         /** @default 30_000 */
         cooldownMs?: number;
+        /** Host names that may serve a caller's key set over `http:`. Unset means `https:` or loopback only. */
+        hosts?: IJWKSHosts;
     };
     /**
      * WHO a verified assertion acts as. The framework has already proven the caller; this only maps a

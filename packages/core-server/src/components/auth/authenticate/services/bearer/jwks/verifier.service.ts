@@ -10,6 +10,7 @@ import {
 import { type Env } from 'hono';
 import type { createRemoteJWKSet, SignJWT } from 'jose';
 import { JoseLoader } from '../../jose-loader';
+import { JWKSUrlPolicy } from '../../jwks-url-policy';
 import { AbstractJWKSTokenService } from './abstract.service';
 
 /** Verifies tokens against a remote JWKS fetched from `jwksUrl`. The key set is cached for `cacheTtlMs` (default 43_200_000 ms) with a `cooldownMs` refetch cooldown (default 30_000 ms). */
@@ -31,7 +32,12 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
 
   protected override async initialize(): Promise<void> {
     const { createRemoteJWKSet } = await JoseLoader.load();
-    const jwksUrl = new URL(this.options.jwksUrl);
+    const jwksUrl = JWKSUrlPolicy.assertUrl({
+      scope: JWKSVerifierTokenService.name,
+      label: 'jwksUrl',
+      url: this.options.jwksUrl,
+      hosts: this.options.jwks?.hosts?.http,
+    });
     this.jwksVerifier = createRemoteJWKSet(jwksUrl, {
       cacheMaxAge: this.options.cacheTtlMs ?? 43_200_000,
       cooldownDuration: this.options.cooldownMs ?? 30_000,

@@ -34,6 +34,7 @@ import {
   JWSTokenService,
 } from './services';
 import { JoseLoader } from './services/jose-loader';
+import { JWKSUrlPolicy } from './services/jwks-url-policy';
 import { ServiceAssertionSignerService } from './services/service/signer.service';
 import { ServiceAssertionVerifierService } from './services/service/verifier.service';
 import { ServiceAuthenticationStrategy } from './strategies/service.strategy';
@@ -236,6 +237,13 @@ export class AuthenticateComponent extends BaseComponent {
           options: verifierOpts,
         });
 
+        JWKSUrlPolicy.assertUrl({
+          scope: 'defineJWKSAuth',
+          label: 'jwksUrl',
+          url: verifierOpts.jwksUrl,
+          hosts: verifierOpts.jwks?.hosts?.http,
+        });
+
         this.application
           .bind<IJWKSVerifierOptions>({ key: AuthenticateBindingKeys.JWKS_OPTIONS })
           .toValue(verifierOpts);
@@ -284,6 +292,21 @@ export class AuthenticateComponent extends BaseComponent {
       throw getError({
         message:
           '[defineServiceAuth] resolvePrincipal is required | the framework proves WHICH SERVICE called, the application decides who that acts as',
+      });
+    }
+
+    // A caller's key set decides who may call: https, loopback, or a host named in jwks.hosts.http. Checked at boot, so a bad URL never waits for its first request.
+    JWKSUrlPolicy.resolveHttpHosts({
+      scope: 'defineServiceAuth',
+      hosts: serviceOptions.jwks?.hosts?.http,
+    });
+
+    for (const [caller, entry] of Object.entries(serviceOptions.callers ?? {})) {
+      JWKSUrlPolicy.assertUrl({
+        scope: 'defineServiceAuth',
+        label: `callers[${JSON.stringify(caller)}].jwksUrl`,
+        url: typeof entry === 'string' ? entry : entry.jwksUrl,
+        hosts: serviceOptions.jwks?.hosts?.http,
       });
     }
 

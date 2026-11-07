@@ -3,6 +3,7 @@ import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Env } from 'hono';
 import type { JWTPayload } from 'jose';
 import type { TJWKSKeyDriver, TJWKSKeyFormat } from '../constants';
+import type { IJWKSHosts } from './jwt';
 import type { IAuthUser } from './strategy';
 
 /**
@@ -103,6 +104,9 @@ export interface IServiceAuthOptions<E extends Env = Env> {
 
     /** @default 30_000 */
     cooldownMs?: number;
+
+    /** Host names that may serve a caller's key set over `http:`. Unset means `https:` or loopback only. */
+    hosts?: IJWKSHosts;
   };
 
   /**
