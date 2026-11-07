@@ -1551,6 +1551,7 @@ describe('the atlas pair of each release tag', () => {
       const git = (args: string[]) =>
         Bun.spawnSync({ cmd: ['git', ...args], cwd: repository, stdout: 'pipe', stderr: 'pipe' });
       git(['init', '-q']);
+      git(['config', 'maintenance.auto', 'false']);
       git([
         '-c',
         'user.name=t',
