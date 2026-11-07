@@ -159,9 +159,9 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     hiddenFields?: string[];
     capabilities?: ISearchCompileCapabilities;
   }): IMeilisearchSearchQuery {
-    const { filter, capabilities } = opts;
+    const { filter, hiddenFields, capabilities } = opts;
 
-    // `hiddenFields` is accepted and deliberately NOT translated: Meilisearch has no per-query field exclusion, only index-level `displayedAttributes`, so `SearchBaseRepository` strips hidden fields from every returned document one layer up.
+    // Meilisearch has no per-query field EXCLUSION, only the include list `attributesToRetrieve`: so a model that hides fields asks the engine for the visible ones only, and the engine never returns a hidden value (in the document, or in `_formatted`, which holds every retrieved attribute). `SearchBaseRepository` still strips hidden fields from every returned document and highlight, for an index the engine answers differently.
     const { where, fields, order, limit, skip, offset, include } = filter ?? {};
 
     if (include) {
@@ -200,13 +200,48 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     }
 
     // An empty selection (`[]`, or an object with no `true`) selects nothing in particular: the engine returns whole documents, so no include list is sent.
-    const included = fields ? SearchDialectHelper.toFieldsCsv({ fields }) : '';
+    const requested = fields ? SearchDialectHelper.toFieldsCsv({ fields }) : '';
+    const hidden = new Set(hiddenFields ?? []);
+    const included = this.toIncludedFields({ requested, hidden, declared: capabilities?.fields });
 
     if (included) {
       query.includeFields = included;
     }
 
     return query;
+  }
+
+  /**
+   * The include list sent to the engine. A caller's selection loses any hidden field it names (and falls back to the visible
+   * fields when nothing else is left). With no selection, a model that hides fields asks for every declared field that is
+   * visible, plus `id` (the primary key, declared or not). A model that hides nothing, or one whose fields are unknown, sends
+   * the caller's selection as it is.
+   */
+  private toIncludedFields(opts: {
+    requested: string;
+    hidden: ReadonlySet<string>;
+    declared?: ReadonlySet<string>;
+  }): string {
+    const { requested, hidden, declared } = opts;
+
+    if (hidden.size === 0) {
+      return requested;
+    }
+
+    const selected =
+      requested === '' ? [] : requested.split(',').filter((name) => !hidden.has(name));
+
+    if (selected.length > 0) {
+      return selected.join(',');
+    }
+
+    if (!declared || declared.size === 0) {
+      return '';
+    }
+
+    const visible = [...declared].filter((name) => !hidden.has(name));
+
+    return [...new Set(['id', ...visible])].filter((name) => !hidden.has(name)).join(',');
   }
 
   /** Maps the neutral query onto Meilisearch wire params. Pagination always uses the exhaustive `page`/`hitsPerPage` mode (exact `totalHits`), never `offset`/`limit`; `engineParams` merges last, verbatim. */

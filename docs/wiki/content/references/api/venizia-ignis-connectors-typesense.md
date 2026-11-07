@@ -1573,6 +1573,12 @@ export declare abstract class SearchBaseRepository<TDocument extends object = ob
     protected shapeDocument<R>(document: R, opts?: {
         fields?: TFields;
     }): R;
+    /**
+     * A hit's `highlight` as it leaves the repository: it is built from the document's own fields (Meilisearch copies `_formatted`,
+     * which holds every retrieved attribute), so it loses the hidden fields the document loses. A record loses its hidden keys;
+     * a list of entries loses those whose `field` is hidden. Anything else is returned as it is.
+     */
+    protected shapeHighlight<R>(highlight: R): R;
     protected shapeDocuments<R>(documents: R[], opts?: {
         fields?: TFields;
     }): R[];
@@ -2282,6 +2288,12 @@ export declare abstract class SearchBaseRepository<TDocument extends object = ob
     protected shapeDocument<R>(document: R, opts?: {
         fields?: TFields;
     }): R;
+    /**
+     * A hit's `highlight` as it leaves the repository: it is built from the document's own fields (Meilisearch copies `_formatted`,
+     * which holds every retrieved attribute), so it loses the hidden fields the document loses. A record loses its hidden keys;
+     * a list of entries loses those whose `field` is hidden. Anything else is returned as it is.
+     */
+    protected shapeHighlight<R>(highlight: R): R;
     protected shapeDocuments<R>(documents: R[], opts?: {
         fields?: TFields;
     }): R[];

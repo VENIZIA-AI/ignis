@@ -161,9 +161,9 @@ When a batch fails, the batches after the failure point did not land. The thrown
 
 **`createCollection`/`ensureCollection` are idempotent.** An `index_already_exists` failure is tolerated and logged rather than thrown. Boot-time provisioning against an already-provisioned collection (a restart, a second app instance) succeeds instead of crashing.
 
-**`hiddenProperties` is supported on Meilisearch via JS-side stripping, not engine-side exclusion.** Meilisearch has no per-query field-exclusion param (only the index-level `displayedAttributes` setting), so the dialect does not attempt to translate `hiddenFields`. It deliberately passes them through untranslated.
+**`hiddenProperties` is supported on Meilisearch by asking the engine for the visible fields, and by JS-side stripping.** Meilisearch has no per-query field-exclusion param (only the index-level `displayedAttributes` setting), so the dialect cannot send an exclusion. It sends the include list instead: a model that hides fields asks for `attributesToRetrieve` = every declared field that is visible, plus `id`, so the engine never returns a hidden value, not in the document and not in `_formatted` (which holds every retrieved attribute). A `filter.fields` selection loses any hidden field it names.
 
-The guarantee is upheld one layer up: `SearchBaseRepository` strips hidden fields from every document `find()`/`findOne()`/`search()` returns before it reaches the caller. A model with `hiddenProperties` works identically to Typesense from the caller's point of view - no throw, no leak.
+The guarantee is also upheld one layer up, for an engine that answers otherwise: `SearchBaseRepository` strips hidden fields from every document `find()`/`findOne()`/`search()` returns, and from every hit's `highlight`, before it reaches the caller. A model with `hiddenProperties` works identically to Typesense from the caller's point of view - no throw, no leak.
 
 **A geopoint field must be named `_geo`.** Meilisearch supports exactly one geo field, shaped `{ lat, lng }`, under that reserved name. The compiler throws on any other name, and on a second geo field.
 
