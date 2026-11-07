@@ -91,7 +91,7 @@ Full operator-by-operator tables, one line each, live on the [Quick Reference](.
 
 - **Applies automatically.** A model's `settings.query.filter` merges into every read, update, and delete for that model.
 - **AND-composes on collision.** When the default and the caller's filter constrain the same field, IGNIS AND-composes the two conditions instead of one replacing the other.
-- **One override escape.** When the default and the caller **both** give that field a plain scalar, the caller's value replaces the default outright - the one intentional opt-out, and it needs no `shouldSkipDefaultFilter`. If either side is an operator object, the two AND-compose instead. The full collision table lives on the [Default Filter](./default-filter) page.
+- **No override.** A caller's `where` can only narrow the default: when both sides constrain a field, the two AND-compose, scalars included, so a caller cannot read the rows the default hides (`deletedAt: null`, `isDeleted: false`). A caller restating the default's value changes nothing. Server code that needs those rows passes `shouldSkipDefaultFilter: true`, which is not on the wire schema. The full collision table lives on the [Default Filter](./default-filter) page.
 
 ```typescript
 import { model, BaseEntity } from '@venizia/ignis';

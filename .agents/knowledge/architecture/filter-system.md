@@ -152,7 +152,7 @@ above) and the value are still runtime-only, and it cannot tell a relation field
 `mergeFilter({ defaultFilter, userFilter })` composes a model's default filter (soft delete, tenancy, visibility) with the caller's. It merges `where` at the **top key level, never index-wise** - index-wise merging corrupts operator arrays like `inq` and `or`. The rules, as implemented in `mergeWhere()`:
 
 - a user value of `undefined` never overrides a defined default, so a caller cannot blow away a tenant or soft-delete scope by passing `undefined`;
-- scalar-over-scalar on the same key is a plain override (`isDeleted: false` -> `true` is the long-standing opt-out);
+- scalar-over-scalar on the same key AND-composes like every other collision (equal scalars collapse to one condition): a caller cannot replace the soft-delete default and read deleted rows; server code opts out with `shouldSkipDefaultFilter`, which is not on the wire schema;
 - the row scope of `access.resolve` is NOT merged by key: `composeScope({ scopeWhere, userFilter })` ANDs it with the caller's `where` (`{ and: [scope, userWhere] }`), so a caller can only narrow it, whatever shape the scope has. Order: the default filter is merged with the caller's filter first (its scalar opt-out resolves there), then the scope is composed last and outermost (`applyDefaultFilter`; for includes `toInclude`). Only the model's default filter (`query.filter`) uses the key merge below;
 - **any other collision AND-composes** into the reserved `and` group, so a default scope can only ever be narrowed - `status: 'active'` plus `status: { neq: 'archived' }` keeps both;
 - an `and` collision concatenates the two conjunct lists (concatenating *is* the AND of the groups);

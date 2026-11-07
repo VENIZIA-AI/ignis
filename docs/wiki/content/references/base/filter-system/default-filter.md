@@ -54,7 +54,7 @@ Keys present on only one side pass through untouched. When the same key appears 
 
 | Default | Caller | Result |
 |---|---|---|
-| scalar | scalar | **Caller wins** - the one true override (`isDeleted: false` -> `isDeleted: true` opts an admin out of soft-delete) |
+| scalar | scalar | **Equal: one condition. Different: AND-composed** - a caller asking for `isDeleted: true` against the default `isDeleted: false` gets no rows. Server code that needs the hidden rows passes `shouldSkipDefaultFilter: true` |
 | operator object | operator object | **AND-composed** into an `and: [...]` group - both conditions apply |
 | scalar | operator object | **AND-composed** |
 | operator object | scalar | **AND-composed** |
@@ -62,7 +62,7 @@ Keys present on only one side pass through untouched. When the same key appears 
 - **`and` collisions concatenate.** Both conjunct lists merge into one.
 - **`or` collisions cannot concatenate** - that would union, not narrow - so each side's `or` group becomes its own conjunct instead.
 - **Non-scalar collisions always AND-compose.** Take a default scope - a `createdAt` floor, a tenant `inq`. A caller filter can narrow it, but never widen or drop it.
-- **Only scalar-over-scalar is a true override.** Every other collision shape composes rather than replaces.
+- **There is no override.** Every collision shape composes rather than replaces, scalar-over-scalar included. A caller filter can narrow a default, never widen or drop it. To read what the default hides (a trash view, a restore screen), server code calls the repository with `options: { shouldSkipDefaultFilter: true }`; a request cannot send it. The row scope of `access.resolve` still composes outermost.
 
 ```typescript
 // Default: a floor on createdAt. Caller: an upper bound on the same key.
