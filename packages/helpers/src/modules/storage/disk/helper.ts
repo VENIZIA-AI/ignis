@@ -1,3 +1,4 @@
+import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
 import { ErrorPrettier } from '@/modules/logger';
 import fs from 'node:fs';
@@ -113,7 +114,9 @@ export class DiskHelper extends BaseStorageHelper {
       error,
     );
 
+    // A server-side fault, not the caller's: the default status of `getError` is a 400.
     return getError({
+      statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
       message: `[storage] Cannot resolve the real path of a storage target | code: ${code}`,
     });
   }
