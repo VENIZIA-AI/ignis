@@ -144,9 +144,10 @@ Not ported:
 
 #### lenientFallback
 
-`prefer-nullish-coalescing` flags `||` on any nullable left side, so `opts.name || 'guest'` fails when
-`name` is `string | undefined`. That is the default: `||` also swallows a real `''` or `0`. A project
-where `''` and `0` fall back on purpose opts out in one line:
+`prefer-nullish-coalescing` flags `||` on a nullable left side, because `||` also swallows a real `0`
+or `false`. `||` on a string is allowed in every preset: `opts.name?.trim() || 'guest'` is an
+intentional empty-string fallback, and `??` would keep the `''`. A project where `0` falls back on
+purpose too opts in with one line:
 
 ```ts
 // .configs/lints/oxlint.config.mts

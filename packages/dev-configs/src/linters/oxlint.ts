@@ -28,8 +28,9 @@ const JS_TS_FILES = ['**/*.js', '**/*.cjs', '**/*.mjs', '**/*.jsx', ...TS_FILES]
  * export default defineConfig(oxlintConfigs);
  * ```
  *
- * `OxlintConfigs.create({ lenientFallback: true })` is the same preset with `||` allowed on string
- * and number operands.
+ * `prefer-nullish-coalescing` allows `||` on a string (`name?.trim() || 'guest'`) and reports it on
+ * every other nullable type. `OxlintConfigs.create({ lenientFallback: true })` is the same preset
+ * with `||` allowed on number operands too.
  */
 export const oxlintConfigs: OxlintConfig = {
   plugins: ['typescript', 'unicorn'],
@@ -133,7 +134,11 @@ export const oxlintConfigs: OxlintConfig = {
     // typescript-eslint, type-aware
     'typescript/await-thenable': 'error',
     'typescript/no-floating-promises': 'error',
-    [PreferNullishCoalescingRule.NAME]: PreferNullishCoalescingRule.build(),
+    // `||` on a string is mostly an intentional empty-string fallback (`value?.trim() || fallback`);
+    // `??` keeps `''` and changes behaviour. Objects and numbers still report.
+    [PreferNullishCoalescingRule.NAME]: PreferNullishCoalescingRule.build({
+      ignorePrimitives: { string: true },
+    }),
     'typescript/return-await': 'error',
   },
   overrides: [
@@ -191,9 +196,9 @@ export const oxlintConfigs: OxlintConfig = {
 /** Options of `OxlintConfigs.create`. */
 export interface IOxlintPresetOptions {
   /**
-   * Allow `||` / `||=` where the left side is a string or a number, so `name || 'guest'` and
-   * `limit || 20` pass: `''` and `0` fall back on purpose. Left off, the base catches a real
-   * `''` or `0` swallowed by `||`.
+   * Also allow `||` / `||=` where the left side is a number, so `limit || 20` passes: `0` falls
+   * back on purpose. A string is allowed by the base already. Left off, the base catches a real `0`
+   * swallowed by `||`.
    *
    * @default false
    */
