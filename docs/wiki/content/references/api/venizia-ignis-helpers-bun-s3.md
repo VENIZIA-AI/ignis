@@ -26,6 +26,12 @@ export declare class BunS3Helper extends BaseStorageHelper {
     private objectEndpoint;
     /** Per-call overrides, so one client serves every bucket in either addressing style. */
     private presignOptions;
+    /**
+     * What a call this process makes on one bucket's objects (or its listing) passes to Bun's client. Path style needs only the
+     * bucket. Virtual-hosted style needs the bucket's own host as well: Bun puts the bucket in neither the host nor the path in that
+     * mode, so a call without it goes to the bare endpoint (`PUT /k.png` on the endpoint host) and never reaches the object.
+     */
+    private callOptions;
     hasBucket(opts: {
         bucket: IBucketRef;
     }): Promise<boolean>;
