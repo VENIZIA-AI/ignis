@@ -156,7 +156,7 @@ describe('FilterBuilder.mergeFilter - top-key-level where merge', () => {
     });
   });
 
-  test.each(['hasOwnProperty', 'toString', 'valueOf', 'constructor'])(
+  test.each(['hasOwnProperty', 'toString', 'valueOf'])(
     'the inherited name %s is an ordinary key, never a default it would collide with',
     (name) => {
       const where = JSON.parse(`{"${name}": "x"}`);
@@ -167,6 +167,20 @@ describe('FilterBuilder.mergeFilter - top-key-level where merge', () => {
 
       expect(merged.where).toEqual({ isDeleted: false, ...where });
       expect((merged.where as Record<string, unknown>).and).toBeUndefined();
+    },
+  );
+
+  test.each(['__proto__', 'constructor', 'prototype'])(
+    'the key %s cannot reach the merged object: it is refused as an unknown column',
+    (name) => {
+      const where = JSON.parse(`{"${name}": "x"}`);
+
+      expect(() =>
+        builder.mergeFilter<any>({
+          defaultFilter: { where: { isDeleted: false } },
+          userFilter: { where },
+        }),
+      ).toThrow(/Column NOT FOUND/);
     },
   );
 

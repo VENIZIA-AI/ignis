@@ -365,7 +365,7 @@ export abstract class RelationalBaseRepository<
 
     const defaultFilter = shouldSkipDefaultFilter ? undefined : this.getDefaultFilter();
 
-    // The default filter is resolved against the caller's filter FIRST (its scalar opt-out, for one), and the row scope goes
+    // The default filter is composed with the caller's filter FIRST (a caller can only narrow it), and the row scope goes
     // on LAST and outermost: whatever the caller asked for, it can only narrow the scope.
     const defaulted = defaultFilter
       ? this.queryDialect.mergeFilter({ defaultFilter, userFilter })

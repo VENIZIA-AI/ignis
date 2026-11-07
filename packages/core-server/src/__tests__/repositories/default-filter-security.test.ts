@@ -171,10 +171,12 @@ describe('FilterBuilder.mergeFilter - adversarial input handling', () => {
       const userFilter: AnyFilter = {
         where: { constructor: { prototype: { polluted: true } } },
       };
-      const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
 
+      // The key names no column: it is refused, and nothing reaches Object.prototype.
+      expect(() => filterBuilder.mergeFilter({ defaultFilter, userFilter })).toThrow(
+        /Column NOT FOUND/,
+      );
       expect(({} as Record<string, unknown>).polluted).toBeUndefined();
-      expect(result.where?.isDeleted).toBe(false);
     });
 
     test('literal "__proto__.isAdmin" string key does not pollute Object.prototype', () => {

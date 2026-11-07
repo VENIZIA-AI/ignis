@@ -47,7 +47,7 @@ export abstract class RelationalUpdateBuilder extends BaseHelper {
       }
 
       if (!JsonPathUtility.isJsonPath({ key })) {
-        if (!columns[key]) {
+        if (!Object.hasOwn(columns, key)) {
           throw getError({
             message: `[${this.scope}][transform] Table: ${tableName} | Column NOT FOUND | key: '${EchoUtility.toSafeEcho({ value: key })}'`,
           });
@@ -89,7 +89,9 @@ export abstract class RelationalUpdateBuilder extends BaseHelper {
     const { key, columns, tableName } = opts;
 
     const parsed = JsonPathUtility.parseJsonPath({ key });
-    const column = columns[parsed.columnName];
+    const column = Object.hasOwn(columns, parsed.columnName)
+      ? columns[parsed.columnName]
+      : undefined;
 
     if (!column) {
       throw getError({
