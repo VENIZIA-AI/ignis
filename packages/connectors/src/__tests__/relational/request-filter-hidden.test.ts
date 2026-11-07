@@ -2,7 +2,7 @@ import { PGlite } from '@electric-sql/pglite';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { datasource, model } from '@venizia/ignis-kernel';
 import { beforeAll, describe, expect, test } from 'bun:test';
-import { integer, pgTable, serial, text } from 'drizzle-orm/pg-core';
+import { integer, jsonb, pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
@@ -18,7 +18,8 @@ import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 const postTable = pgTable('rfh_post', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
-  secret: text('secret'),
+  secret: text('secret_col'),
+  meta: jsonb('meta'),
 });
 const commentTable = pgTable('rfh_comment', {
   id: serial('id').primaryKey(),
@@ -33,7 +34,7 @@ const PostBase = ModelFactory.defineEntity({
   table: postTable,
   relations: () => ({ comments: many(commentTable, { relationName: 'post' }) }),
 });
-@model({ type: 'entity', settings: { hiddenProperties: ['secret'] } })
+@model({ type: 'entity', settings: { hiddenProperties: ['secret', 'meta'] } })
 class RfhPost extends PostBase {}
 
 const CommentBase = ModelFactory.defineEntity({
@@ -84,9 +85,9 @@ beforeAll(async () => {
   const client = new PGlite();
   await client.waitReady;
   await client.exec(`
-    CREATE TABLE rfh_post (id serial primary key, name text not null, secret text);
+    CREATE TABLE rfh_post (id serial primary key, name text not null, secret_col text, meta jsonb);
     CREATE TABLE rfh_comment (id serial primary key, post_id integer not null references rfh_post(id), body text not null, internal_note text);
-    INSERT INTO rfh_post (name, secret) VALUES ('alpha', 's-1'), ('beta', 's-2');
+    INSERT INTO rfh_post (name, secret_col, meta) VALUES ('alpha', 's-1', '{"pin":"1111"}'), ('beta', 's-2', '{"pin":"9999"}');
     INSERT INTO rfh_comment (post_id, body, internal_note) VALUES (1, 'c1', 'n-1'), (1, 'c2', 'n-2'), (2, 'c3', 'n-3');
   `);
   const ds = new RfhDataSource({ client });
@@ -120,20 +121,93 @@ describe('the request filter of a model that hides `secret`', () => {
     expect(error.message).toContain('Column NOT FOUND');
   });
 
-  test('answers like the query answers a column that does not exist: a 400 Column NOT FOUND, without the word hidden', async () => {
-    const hidden = refusal(() => posts.assertRequestFilter({ filter: { where: { secret: 1 } } }));
-    let missing: AnyType;
+  test.each([
+    ['a hidden JSON column, as [meta].pin', { where: { '[meta].pin': '1111' } }],
+    ['a hidden JSON column, as .meta.pin', { where: { '.meta.pin': '1111' } }],
+    ['a hidden JSON column, as [meta]pin', { where: { '[meta]pin': '9999' } }],
+    ['a hidden JSON column, as meta.pin', { where: { 'meta.pin': '9999' } }],
+    ['a hidden JSON column in an or', { where: { or: [{ '.meta.pin': '9999' }] } }],
+    ['a hidden text column read as a path', { where: { '.secret': 's-1' } }],
+    ['a hidden text column read as brackets', { where: { '[secret].x': 'a' } }],
+    ['an order on a hidden JSON column, as [meta].pin', { order: ['[meta].pin DESC'] }],
+    ['an order on a hidden JSON column, as .meta.pin', { order: ['.meta.pin ASC'] }],
+    ['an order on a hidden JSON column, as meta.pin', { order: ['meta.pin ASC'] }],
+  ])('refuses %s', (_name, filter) => {
+    expect(refusal(() => posts.assertRequestFilter({ filter })).statusCode).toBe(400);
+  });
+
+  test("a column's database name is not a property: the guard leaves it, and the query refuses it as an unknown column", async () => {
+    // eslint-disable-next-line @typescript-eslint/naming-convention -- the database name of the column, which is not a property
+    const filter = { where: { secret_col: 's-1' } };
+    let error: AnyType;
+
+    expect(() => posts.assertRequestFilter({ filter })).not.toThrow();
 
     try {
-      await posts.find({ filter: { where: { nope: 1 } } });
-    } catch (error) {
-      missing = error;
+      await posts.find({ filter });
+    } catch (caught) {
+      error = caught;
     }
 
-    expect(hidden.statusCode).toBe(missing.statusCode);
-    expect(hidden.message).toContain('Column NOT FOUND');
-    expect(missing.message).toContain('Column NOT FOUND');
-    expect(hidden.message).not.toContain('hidden');
+    expect(error.message).toContain('Column NOT FOUND');
+  });
+
+  /** The refusal of a hidden field is the very text the query gives for a column that does not exist: nothing tells them apart. */
+  describe('byte for byte the error of a column that does not exist', () => {
+    const queryError = async (filter: object): Promise<AnyType> => {
+      try {
+        await posts.find({ filter });
+      } catch (error) {
+        return error;
+      }
+
+      throw new Error('the query accepted a column that does not exist');
+    };
+
+    const renamed = (filter: object, from: string, to: string): object =>
+      JSON.parse(JSON.stringify(filter).replaceAll(from, to));
+
+    test.each([
+      ['where, plain', 'secret', { where: { secret: 's-1' } }],
+      ['where, in a nested and and or', 'secret', { where: { and: [{ or: [{ secret: 1 }] }] } }],
+      ['where, [meta].pin', 'meta', { where: { '[meta].pin': '1111' } }],
+      ['where, .meta.pin', 'meta', { where: { '.meta.pin': '1111' } }],
+      ['where, [meta]pin', 'meta', { where: { '[meta]pin': '1111' } }],
+      ['where, meta.pin', 'meta', { where: { 'meta.pin': '1111' } }],
+      ['where, .secret on a text column', 'secret', { where: { '.secret': 's-1' } }],
+      ['where, [secret].x on a text column', 'secret', { where: { '[secret].x': 's-1' } }],
+      ['order, plain', 'secret', { order: ['secret DESC'] }],
+      ['order, [meta].pin', 'meta', { order: ['[meta].pin DESC'] }],
+      ['order, .meta.pin', 'meta', { order: ['.meta.pin ASC'] }],
+      ['order, meta.pin', 'meta', { order: ['meta.pin ASC'] }],
+    ])('%s', async (_name, hiddenName, filter) => {
+      const hidden = refusal(() => posts.assertRequestFilter({ filter }));
+      const missing = await queryError(renamed(filter, hiddenName, 'nope'));
+
+      expect(hidden.statusCode).toBe(missing.statusCode);
+      expect(hidden.message).toBe(missing.message.replaceAll('nope', hiddenName));
+      expect(hidden.message).toContain('Column NOT FOUND');
+      expect(hidden.message).not.toContain('hidden');
+    });
+
+    test("an include scope's refusal is the related table's own error", async () => {
+      const hidden = refusal(() =>
+        posts.assertRequestFilter({
+          filter: { include: [{ relation: 'comments', scope: { where: { internalNote: 'x' } } }] },
+        }),
+      );
+      let missing: AnyType;
+
+      try {
+        await posts.find({
+          filter: { include: [{ relation: 'comments', scope: { where: { nope: 'x' } } }] },
+        });
+      } catch (error) {
+        missing = error;
+      }
+
+      expect(hidden.message).toBe(missing.message.replaceAll('nope', 'internalNote'));
+    });
   });
 
   test('passes a filter on visible fields', () => {

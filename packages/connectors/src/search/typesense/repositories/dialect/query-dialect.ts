@@ -669,6 +669,14 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
       : combined;
   }
 
+  fieldNotFoundError(opts: { kind: 'where' | 'order'; field: string }): Error {
+    return SearchDialectHelper.fieldNotFoundError({
+      field: opts.field,
+      engine: ENGINE,
+      method: opts.kind === 'order' ? 'toOrderBy' : 'compileWhere',
+    });
+  }
+
   private toOrderBy(opts: { order: string[]; capabilities?: ISearchCompileCapabilities }): string {
     const { order, capabilities } = opts;
 

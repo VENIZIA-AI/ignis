@@ -443,6 +443,11 @@ export declare class MeilisearchQueryDialect extends BaseHelper implements ISear
         clauses: TCompiledWhere[];
     }): TCompiledWhere;
     private assertNoUnsupportedKnobs;
+    private jsonPathError;
+    fieldNotFoundError(opts: {
+        kind: 'where' | 'order';
+        field: string;
+    }): Error;
     private toOrderBy;
     /** A logical group always parenthesises, so precedence never depends on where the group sat in the tree. */
     private compileLogicalGroup;

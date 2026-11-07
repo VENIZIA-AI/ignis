@@ -54,6 +54,8 @@ export type TTableColumns = ReturnType<typeof getTableColumns>;
 export interface IRelationalQueryDialect {
   /** The relations a schema declares, by name. */
   resolveRelations(opts: { schema: TTableSchemaWithId }): Record<string, TRelationConfig>;
+  /** The error the query gives for a `where` key or an `order` field that names no column. */
+  columnNotFoundError(opts: { kind: 'where' | 'order'; key: string; tableName: string }): Error;
   /** The fields the model of a schema hides. */
   resolveHiddenProperties(opts: { schema: TTableSchemaWithId }): Set<string>;
   mergeFilter<T = any>(opts: { defaultFilter?: TFilter<T>; userFilter?: TFilter<T> }): TFilter<T>;

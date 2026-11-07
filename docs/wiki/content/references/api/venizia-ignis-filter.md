@@ -7,7 +7,36 @@ description: "Every export of @venizia/ignis-filter, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-18 exports, 18 with TSDoc.
+19 exports, 19 with TSDoc.
+
+## `FilterKeys`
+
+*class*
+
+How a key of a `where`, or the field of an `order` entry, names a column. One reader for the query that builds the SQL and for
+everything that must judge the same key (a request guard), so they cannot disagree about which column a key reaches.
+
+```ts
+export declare class FilterKeys {
+    /** A key with a `.` or a `[` is a JSON path into a column (`meta.tags[0]`), not a column name. */
+    static isJsonPath(opts: {
+        key: string;
+    }): boolean;
+    /** Splits a JSON path on dots and brackets, dropping the empty parts: `[meta].pin`, `.meta.pin` and `meta.pin` all read `meta`, then `pin`. */
+    static parseJsonPath(opts: {
+        key: string;
+    }): {
+        columnName: string;
+        path: string[];
+    };
+    /** The column a key reaches: the first part of a JSON path, or the key itself. */
+    static columnOf(opts: {
+        key: string;
+    }): string;
+}
+```
+
+Source: `packages/filter/src/common/keys.ts`
 
 ## `QueryOperators`
 

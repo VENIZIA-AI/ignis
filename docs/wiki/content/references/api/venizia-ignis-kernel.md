@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-347 exports, 347 with TSDoc. 77 more are re-exported from other entries (listed at the end).
+348 exports, 348 with TSDoc. 78 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -4521,6 +4521,35 @@ export interface IRequestedExtra {
 
 Source: `packages/kernel/src/base/controllers/rest/extras.ts`
 
+## `IRequestFilterJudge`
+
+*interface*
+
+How one model judges a key of a request filter. The repository of a model supplies it, so the judgment reads a key the way
+that model's own query does (a relational JSON path names its first part, a search field is a dotted name), and a refusal
+is the error that query gives for a column or field that does not exist.
+
+```ts
+export interface IRequestFilterJudge {
+    /** Whether the key reaches a field the model hides. */
+    isHidden(opts: {
+        key: string;
+    }): boolean;
+    /** The error to throw for a key that is hidden: the one an unknown column or field gets, so a caller cannot tell them apart. */
+    refuse(opts: {
+        kind: TRequestFilterKeyKind;
+        key: string;
+        tableName: string;
+    }): Error;
+    /** The judge of the model a relation of this model points to; `undefined` when the relation is unknown (the query refuses it). A nested include is judged by the relation judge's own `relation`. */
+    relation?(opts: {
+        relation: string;
+    }): IRequestFilterJudge | undefined;
+}
+```
+
+Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
+
 ## `IRequestFilterShape`
 
 *interface*
@@ -5744,38 +5773,40 @@ Source: `packages/kernel/src/base/middlewares/common/errors.ts`
 
 A filter that comes from a request is not allowed to name a field the model hides. Hidden fields are never returned, but a
 `where` or an `order` on one reveals its value one question at a time. The check runs where a request enters
-(the generated controllers), never in the repository, so server code can still filter and sort on a hidden field.
-
-The answer is the one an unknown column gets (`Column NOT FOUND`), so a caller cannot tell a hidden field from one that does not exist.
+(the generated controllers), never in the repository's own verbs, so server code can still filter and sort on a hidden field.
 
 ```ts
 export declare class RequestFilterGuard {
-    /** The column a key or an order entry starts with: `secret.path`, `secret->>path` and `secret[0]` all name `secret`. */
-    static rootOf(opts: {
+    /** The names of `hidden` a dotted key reaches: the key is one, a dotted prefix of one, or has one as its dotted prefix (`meta` and `meta.pin.x` both reach `meta.pin`). */
+    static isHiddenByName(opts: {
         key: string;
-    }): string;
-    private static refuse;
+        hidden: ReadonlySet<string>;
+    }): boolean;
+    /** The refusal when a model has no query error of its own to borrow: a 400 `Column NOT FOUND`. */
+    static columnNotFound(opts: {
+        scope: string;
+        key: string;
+    }): Error;
     /** Refuses a `where` that names a hidden field, at any depth of `and` and `or`. */
     static assertWhere(opts: {
-        scope: string;
         where?: unknown;
-        hidden: ReadonlySet<string>;
+        judge: IRequestFilterJudge;
+        tableName: string;
     }): void;
-    /** Refuses an `order` that names a hidden field (a string or a list of `'field DIRECTION'` entries). */
+    /** Refuses an `order` that names a hidden field (a string or a list of `'field DIRECTION'` entries), reading each entry as the query does. */
     static assertOrder(opts: {
-        scope: string;
         order?: unknown;
-        hidden: ReadonlySet<string>;
+        judge: IRequestFilterJudge;
+        tableName: string;
     }): void;
     /**
      * Refuses a filter that names a hidden field in its `where`, its `order`, or the `scope` of any `include`, each level
-     * judged by the hidden fields of the model it reads (`resolveRelation` answers them).
+     * judged by the model it reads (`judge.relation` answers it).
      */
     static assertFilter(opts: {
-        scope: string;
         filter?: IRequestFilterShape;
-        hidden: ReadonlySet<string>;
-        resolveRelation?: TRelationHiddenResolver;
+        judge: IRequestFilterJudge;
+        tableName: string;
     }): void;
 }
 ```
@@ -8363,20 +8394,6 @@ export type TRelationBuilder = (opts: {
 
 Source: `packages/kernel/src/helpers/inversion/common/relation-builder.ts`
 
-## `TRelationHiddenResolver`
-
-*type*
-
-The hidden fields of the model a relation points to; `undefined` when the relation is unknown (the query then refuses it).
-
-```ts
-export type TRelationHiddenResolver = (opts: {
-    relation: string;
-}) => ReadonlySet<string> | undefined;
-```
-
-Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
-
 ## `TRelationType`
 
 *type*
@@ -8452,6 +8469,18 @@ export type TRequestContextResolver = () => Context | undefined;
 ```
 
 Source: `packages/kernel/src/base/request-context/common/types.ts`
+
+## `TRequestFilterKeyKind`
+
+*type*
+
+Which part of a filter a key came from: the refusal reads like the query's own refusal of an unknown column of that part.
+
+```ts
+export type TRequestFilterKeyKind = 'where' | 'order';
+```
+
+Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
 
 ## `TResponseBodyOf`
 
@@ -8892,6 +8921,7 @@ Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`
 - `datasource` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `DEFAULT_LIMIT` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `DEFAULT_MAX_LIMIT` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
+- `FilterKeys` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
 - `IArtifactGroup` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `IArtifactIndex` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `IArtifactMetadata` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)

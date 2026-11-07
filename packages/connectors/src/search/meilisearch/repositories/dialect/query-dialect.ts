@@ -423,6 +423,27 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     }
   }
 
+  private jsonPathError(opts: { field: string }): Error {
+    return getError({
+      message: `[MeilisearchQueryDialect][toWhere] search() does not support JSON-path fields | field: '${opts.field}'`,
+    });
+  }
+
+  fieldNotFoundError(opts: { kind: 'where' | 'order'; field: string }): Error {
+    const { kind, field } = opts;
+
+    // A dotted `where` key is refused before the declared fields are looked at, so a hidden one is too.
+    if (kind === 'where' && field.includes('.')) {
+      return this.jsonPathError({ field });
+    }
+
+    return SearchDialectHelper.fieldNotFoundError({
+      field,
+      engine: ENGINE,
+      method: kind === 'order' ? 'toOrderBy' : 'compileWhere',
+    });
+  }
+
   private toOrderBy(opts: { order: string[] }): string {
     return opts.order
       .map((entry) => {
@@ -464,9 +485,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     const { field, value, capabilities } = opts;
 
     if (field.includes('.')) {
-      throw getError({
-        message: `[MeilisearchQueryDialect][toWhere] search() does not support JSON-path fields | field: '${field}'`,
-      });
+      throw this.jsonPathError({ field });
     }
 
     SearchDialectHelper.assertKnownField({ field, engine: ENGINE, capabilities });

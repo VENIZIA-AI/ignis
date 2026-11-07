@@ -1,4 +1,5 @@
 import { EchoUtility } from '@/common/internal';
+import { FilterKeys } from '@venizia/ignis-filter';
 import { getError } from '@venizia/ignis-helpers/core';
 
 /** Regex for validating JSON path components (identifiers, kebab-case, array indices). */
@@ -6,15 +7,13 @@ export const JSON_PATH_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_-]*$|^\d+$/;
 
 /** Parses and validates JSON-path keys such as `meta.tags[0]` used in update data and filters. */
 export class JsonPathUtility {
+  // The one reader of a key, shared with the request guard: see `FilterKeys`.
   static isJsonPath(opts: { key: string }): boolean {
-    return opts.key.includes('.') || opts.key.includes('[');
+    return FilterKeys.isJsonPath(opts);
   }
 
   static parseJsonPath(opts: { key: string }): { columnName: string; path: string[] } {
-    const parts = opts.key.split(/[.[\]]+/).filter(Boolean);
-    const [columnName = opts.key, ...path] = parts;
-
-    return { columnName, path };
+    return FilterKeys.parseJsonPath(opts);
   }
 
   /** @throws Error if any path component is invalid. */

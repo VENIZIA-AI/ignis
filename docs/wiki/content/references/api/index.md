@@ -39,7 +39,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-connectors/testing`](/references/api/venizia-ignis-connectors-testing) | 12 | 12 |
 | [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense) | 82 | 82 |
 | [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers) | 7 | 7 |
-| [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter) | 18 | 18 |
+| [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter) | 19 | 19 |
 | [`@venizia/ignis-filter/schemas`](/references/api/venizia-ignis-filter-schemas) | 11 | 11 |
 | [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers) | 203 | 203 |
 | [`@venizia/ignis-helpers/axios`](/references/api/venizia-ignis-helpers-axios) | 4 | 4 |
@@ -59,7 +59,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-helpers/uuid`](/references/api/venizia-ignis-helpers-uuid) | 0 | 0 |
 | [`@venizia/ignis-helpers/winston`](/references/api/venizia-ignis-helpers-winston) | 9 | 9 |
 | [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion) | 72 | 72 |
-| [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel) | 347 | 347 |
+| [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel) | 348 | 348 |
 | [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata) | 21 | 21 |
 | [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository) | 30 | 30 |
 | [`@venizia/ignis-worker`](/references/api/venizia-ignis-worker) | 18 | 18 |

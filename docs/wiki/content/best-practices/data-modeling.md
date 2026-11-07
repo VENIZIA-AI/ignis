@@ -407,7 +407,7 @@ export class User extends BaseRelationalEntity<typeof User.schema> {
 **Key points:**
 
 - Hidden properties are excluded from SELECT, INSERT RETURNING, UPDATE RETURNING, DELETE RETURNING
-- **Server code** can still filter and sort by hidden properties. A filter that comes from a client request cannot: a generated controller answers `400 Column NOT FOUND` when the request's `where`, `order` or an include scope names one
+- **Server code** can still filter and sort by hidden properties. A filter that comes from a client request cannot: a generated controller answers `400`, the error of a column that does not exist, when the request's `where`, `order` or an include scope names one
 - Hidden properties are **recursively excluded** from included relations
 - Use the connector directly when you need to access hidden data (e.g., password verification)
 

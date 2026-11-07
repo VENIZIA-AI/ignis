@@ -121,10 +121,12 @@ export declare abstract class AbstractRepository<TDataObject extends object, TPe
     assertRequestFilter(opts: {
         filter?: IRequestFilterShape;
     }): void;
-    /** The hidden fields of the model a relation (or a dotted path of relations) points to; none here, a relational repository answers it. */
-    protected resolveRelationHiddenFields(_opts: {
-        relation: string;
-    }): ReadonlySet<string> | undefined;
+    /**
+     * How this repository judges the keys of a request filter. The default reads a key as a dotted field name and refuses it with
+     * a 400 `Column NOT FOUND`; a relational or a search repository overrides it to read keys as its own query does and to
+     * refuse with its own query's error for a column that does not exist.
+     */
+    protected createRequestFilterJudge(): IRequestFilterJudge;
     /** Default where from @model settings.query.filter.where, AND-merged into every query unless skipped. */
     protected get defaultWhere(): TWhere | undefined;
     protected get defaultLimit(): number | undefined;

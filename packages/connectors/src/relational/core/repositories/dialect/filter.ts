@@ -620,9 +620,7 @@ export abstract class FilterBuilder extends BaseHelper {
     const column = Object.hasOwn(columns, key) ? columns[key] : undefined;
 
     if (!column) {
-      throw getError({
-        message: `[FilterBuilder][toWhere] Table: ${tableName} | Column NOT FOUND | key: '${EchoUtility.toSafeEcho({ value: key })}'`,
-      });
+      throw this.columnNotFoundError({ kind: 'where', key, tableName });
     }
 
     if (!this.isOperatorObject({ value })) {
@@ -671,9 +669,7 @@ export abstract class FilterBuilder extends BaseHelper {
       const column = Object.hasOwn(columns, key) ? columns[key] : undefined;
 
       if (!column) {
-        throw getError({
-          message: `[FilterBuilder][toOrderBy] Table: ${tableName} | Column NOT FOUND | key: '${EchoUtility.toSafeEcho({ value: key })}'`,
-        });
+        throw this.columnNotFoundError({ kind: 'order', key, tableName });
       }
 
       namesId ||= column === idColumn;
@@ -969,6 +965,36 @@ export abstract class FilterBuilder extends BaseHelper {
     return key === QueryOperators.AND ? and(...clauses)! : or(...clauses)!;
   }
 
+  /** The refusal of a key that names no column, as the query words it. One builder, so a refusal made before the query (a request guard) is the very same text. */
+  protected columnNotFoundMessage(opts: { method: string; tableName: string; key: string }): Error {
+    return getError({
+      message: `[FilterBuilder][${opts.method}] Table: ${opts.tableName} | Column NOT FOUND | key: '${EchoUtility.toSafeEcho({ value: opts.key })}'`,
+    });
+  }
+
+  /**
+   * The error the query gives for a `where` key or an `order` field that names no column: a JSON path is judged by its first
+   * part, with the JSON method's wording, and any other key by itself. A request guard throws it for a hidden field, so a caller
+   * cannot tell a hidden column from one that does not exist.
+   */
+  columnNotFoundError(opts: { kind: 'where' | 'order'; key: string; tableName: string }): Error {
+    const { kind, key, tableName } = opts;
+    const isJson = JsonPathUtility.isJsonPath({ key });
+    const method = isJson
+      ? kind === 'where'
+        ? 'buildJsonWhereCondition'
+        : 'buildJsonOrderBy'
+      : kind === 'where'
+        ? 'toWhere'
+        : 'toOrderBy';
+
+    return this.columnNotFoundMessage({
+      method,
+      tableName,
+      key: isJson ? JsonPathUtility.parseJsonPath({ key }).columnName : key,
+    });
+  }
+
   protected validateJsonColumn(opts: {
     key: string;
     columns: TTableColumns;
@@ -984,9 +1010,7 @@ export abstract class FilterBuilder extends BaseHelper {
       : undefined;
 
     if (!column) {
-      throw getError({
-        message: `[FilterBuilder][${methodName}] Table: ${tableName} | Column NOT FOUND | key: '${EchoUtility.toSafeEcho({ value: parsed.columnName })}'`,
-      });
+      throw this.columnNotFoundMessage({ method: methodName, tableName, key: parsed.columnName });
     }
 
     JsonPathUtility.validateJsonColumnType({
