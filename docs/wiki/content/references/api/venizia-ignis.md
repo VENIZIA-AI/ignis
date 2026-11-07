@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-99 exports, 99 with TSDoc. 934 more are re-exported from other entries (listed at the end).
+99 exports, 99 with TSDoc. 935 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -2355,6 +2355,17 @@ export declare abstract class ServerApplication<AppEnv extends Env = Env, AppSch
         scope: string;
         config: IServerApplicationConfigs;
     });
+    /** Both routers are `OpenAPIHono` (see `createRouter`). */
+    protected server: {
+        hono: OpenAPIHono<AppEnv, AppSchema, BasePath>;
+    };
+    protected rootRouter: OpenAPIHono<AppEnv, AppSchema, BasePath>;
+    /** Always an `OpenAPIHono`, whatever else is loaded: the API reference reads `rootRouter.openAPIRegistry`. */
+    protected createRouter(opts: {
+        strict: boolean;
+    }): OpenAPIHono<AppEnv, AppSchema, BasePath>;
+    getServer(): OpenAPIHono<AppEnv, AppSchema, BasePath>;
+    getRootRouter(): OpenAPIHono<AppEnv, AppSchema, BasePath>;
     /** Restores the pre-split default: a server-capable application installs `hono/context-storage` unless the caller opts out explicitly. */
     protected getDefaultAsyncContextEnabled(): boolean;
     /** `configs.projectRoot` wins, else the process cwd. The value is bound AND handed to `ModuleUtility`, so every peer lookup (optional modules, the gRPC adapter) resolves under it - a compiled binary sets it to where its `node_modules` really is. */
@@ -3190,6 +3201,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `DurationUnits` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `ECDH` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `ECDHAlgorithmType` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `EchoUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `EmojiFaviconMiddleware` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `Environment` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `EnvironmentNames` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)

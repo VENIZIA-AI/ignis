@@ -334,7 +334,7 @@ generated:
 
 ## helpers
 
-### `@venizia/ignis-helpers` (419)
+### `@venizia/ignis-helpers` (420)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -402,6 +402,7 @@ generated:
 - `DurationUnits` class
 - `ECDH` class
 - `ECDHAlgorithmType` type
+- `EchoUtility` class
 - `Environment` class
 - `EnvironmentNames` class
 - `ErrorLogLevels` class
@@ -818,7 +819,7 @@ generated:
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (159)
+### `@venizia/ignis-helpers/core` (160)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractNetworkFetchableHelper` class
@@ -841,6 +842,7 @@ generated:
 - `DEFAULT_UID_MAX_ATTEMPTS` const
 - `ECDH` class
 - `ECDHAlgorithmType` type
+- `EchoUtility` class
 - `EnvironmentNames` class
 - `ErrorLogLevels` class
 - `ErrorScopes` class
@@ -1745,7 +1747,7 @@ generated:
 
 ## connectors
 
-### `@venizia/ignis-connectors` (132)
+### `@venizia/ignis-connectors` (137)
 
 - `AbstractDriverDataSource` class
 - `AbstractRelationalDataSource` class
@@ -1766,6 +1768,7 @@ generated:
 - `IDefinedEntity` interface
 - `IEntity` interface
 - `IImportResult` interface
+- `IInsertConflictOptions` interface
 - `IInsertOptions` interface
 - `IManyRelation` interface
 - `IMigration` interface
@@ -1806,6 +1809,7 @@ generated:
 - `IStatementResult` interface
 - `ISynonym` interface
 - `ITransformedUpdateData` interface
+- `IUniqueKey` interface
 - `IUpdateOptions` interface
 - `IWriteResult` interface
 - `JSON_PATH_PATTERN` const
@@ -1872,12 +1876,15 @@ generated:
 - `TSearchMode` type
 - `TSearchSchema` type
 - `TSoftDeletableTableSchema` type
+- `TTableColumnKey` type
 - `TTableColumns` type
 - `TTableInsert` type
 - `TTableObject` type
 - `TTableSchemaWithId` type
+- `TUpsertUpdateKey` type
 - `TVectorDistance` type
 - `TypesenseBaseRepository` class
+- `UniqueKeys` class
 - `VectorDistances` class
 
 ### `@venizia/ignis-connectors/http` (22)
@@ -1916,7 +1923,7 @@ generated:
 - `TRawSqlQuery` type
 - `TRawSqlSchema` type
 
-### `@venizia/ignis-connectors/relational` (74)
+### `@venizia/ignis-connectors/relational` (79)
 
 - `AbstractRelationalDataSource` class
 - `AuditUserResolver` class
@@ -1927,6 +1934,7 @@ generated:
 - `ICountOptions` interface
 - `IDefinedEntity` interface
 - `IEntity` interface
+- `IInsertConflictOptions` interface
 - `IInsertOptions` interface
 - `IManyRelation` interface
 - `IMigration` interface
@@ -1946,6 +1954,7 @@ generated:
 - `isRelationalTransaction` const
 - `IStatementResult` interface
 - `ITransformedUpdateData` interface
+- `IUniqueKey` interface
 - `IUpdateOptions` interface
 - `IWriteResult` interface
 - `JSON_PATH_PATTERN` const
@@ -1988,10 +1997,13 @@ generated:
 - `TRelationDefinitions` type
 - `TRelationMetadata` type
 - `TSoftDeletableTableSchema` type
+- `TTableColumnKey` type
 - `TTableColumns` type
 - `TTableInsert` type
 - `TTableObject` type
 - `TTableSchemaWithId` type
+- `TUpsertUpdateKey` type
+- `UniqueKeys` class
 
 ### `@venizia/ignis-connectors/postgres` (81)
 
@@ -2409,7 +2421,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1034)
+### `@venizia/ignis` (1035)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2593,6 +2605,7 @@ generated:
 - `DurationUnits` class
 - `ECDH` class
 - `ECDHAlgorithmType` type
+- `EchoUtility` class
 - `EmojiFaviconMiddleware` class
 - `Environment` class
 - `EnvironmentKeys` class
