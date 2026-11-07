@@ -1,6 +1,7 @@
 import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
 import { ErrorPrettier } from '@/modules/logger';
+import { EchoUtility } from '@/utilities/echo.utility';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import type { Stats } from 'node:fs';
@@ -111,7 +112,8 @@ export class DiskHelper extends BaseStorageHelper {
     this.logger.error(
       'Cannot resolve the real path of a storage target | code: %s | %s',
       code,
-      error,
+      // A system error quotes the path it failed on; the path is a caller's key under the storage root.
+      EchoUtility.toSafeEcho({ value: ErrorPrettier.format({ error }) }),
     );
 
     // A server-side fault, not the caller's: the default status of `getError` is a 400.
@@ -151,7 +153,9 @@ export class DiskHelper extends BaseStorageHelper {
     const result = await this.isInsideRoot({ target: objectPath });
 
     if (!result) {
-      throw getError({ message: `[storage] Invalid object name | key: ${opts.object.key}` });
+      throw getError({
+        message: `[storage] Invalid object name | key: ${EchoUtility.toSafeText({ value: opts.object.key })}`,
+      });
     }
 
     return objectPath;
@@ -162,18 +166,24 @@ export class DiskHelper extends BaseStorageHelper {
     const { bucket, object } = opts;
 
     if (!this.isValidBucketName({ bucket })) {
-      throw getError({ message: `[storage] Invalid bucket name | bucket: ${bucket.name}` });
+      throw getError({
+        message: `[storage] Invalid bucket name | bucket: ${EchoUtility.toSafeText({ value: bucket.name })}`,
+      });
     }
 
     if (!this.isValidObjectKey({ object, maxDepth: Number.MAX_SAFE_INTEGER })) {
-      throw getError({ message: `[storage] Invalid object name | key: ${object.key}` });
+      throw getError({
+        message: `[storage] Invalid object name | key: ${EchoUtility.toSafeText({ value: object.key })}`,
+      });
     }
 
     const bucketPath = this.getBucketPath({ bucket });
     const objectPath = path.resolve(bucketPath, object.key);
 
     if (objectPath !== bucketPath && !objectPath.startsWith(`${bucketPath}${path.sep}`)) {
-      throw getError({ message: `[storage] Invalid object name | key: ${object.key}` });
+      throw getError({
+        message: `[storage] Invalid object name | key: ${EchoUtility.toSafeText({ value: object.key })}`,
+      });
     }
 
     return objectPath;
@@ -191,8 +201,9 @@ export class DiskHelper extends BaseStorageHelper {
       if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
         this.logger.warn(
           '[statOrNull] Cannot determine existence, reporting missing | path: %s | %s',
-          target,
-          ErrorPrettier.format({ error }),
+          EchoUtility.toSafeEcho({ value: target }),
+          // The error's own text quotes the path, so it is escaped like the path is.
+          EchoUtility.toSafeEcho({ value: ErrorPrettier.format({ error }) }),
         );
       }
 
@@ -295,7 +306,7 @@ export class DiskHelper extends BaseStorageHelper {
 
     if (result) {
       throw getError({
-        message: `[createBucket] Bucket already exists | name: ${name}`,
+        message: `[createBucket] Bucket already exists | name: ${EchoUtility.toSafeText({ value: name })}`,
       });
     }
 
@@ -319,7 +330,7 @@ export class DiskHelper extends BaseStorageHelper {
 
     if (!result) {
       throw getError({
-        message: `[removeBucket] Bucket does not exist | name: ${name}`,
+        message: `[removeBucket] Bucket does not exist | name: ${EchoUtility.toSafeText({ value: name })}`,
       });
     }
 
@@ -327,7 +338,7 @@ export class DiskHelper extends BaseStorageHelper {
 
     if (files.length > 0) {
       throw getError({
-        message: `[removeBucket] Bucket is not empty | name: ${name}`,
+        message: `[removeBucket] Bucket is not empty | name: ${EchoUtility.toSafeText({ value: name })}`,
       });
     }
 
@@ -359,7 +370,7 @@ export class DiskHelper extends BaseStorageHelper {
     if (!result) {
       throw getError({
         error: StorageErrors.OBJECT_NOT_FOUND,
-        message: `[getObject] Object not found | bucket: ${bucket.name} | key: ${object.key}`,
+        message: `[getObject] Object not found | bucket: ${EchoUtility.toSafeText({ value: bucket.name })} | key: ${EchoUtility.toSafeText({ value: object.key })}`,
       });
     }
 
@@ -378,7 +389,7 @@ export class DiskHelper extends BaseStorageHelper {
     if (!result) {
       throw getError({
         error: StorageErrors.OBJECT_NOT_FOUND,
-        message: `[getObjectStream] Object not found | bucket: ${bucket.name} | key: ${object.key}`,
+        message: `[getObjectStream] Object not found | bucket: ${EchoUtility.toSafeText({ value: bucket.name })} | key: ${EchoUtility.toSafeText({ value: object.key })}`,
       });
     }
 
@@ -398,7 +409,7 @@ export class DiskHelper extends BaseStorageHelper {
     if (!stat?.isFile()) {
       throw getError({
         error: StorageErrors.OBJECT_NOT_FOUND,
-        message: `[getStat] Object not found | bucket: ${bucket.name} | key: ${object.key}`,
+        message: `[getStat] Object not found | bucket: ${EchoUtility.toSafeText({ value: bucket.name })} | key: ${EchoUtility.toSafeText({ value: object.key })}`,
       });
     }
 
@@ -420,7 +431,7 @@ export class DiskHelper extends BaseStorageHelper {
     if (!result) {
       throw getError({
         error: StorageErrors.OBJECT_NOT_FOUND,
-        message: `[removeObject] Object not found | bucket: ${bucket.name} | key: ${object.key}`,
+        message: `[removeObject] Object not found | bucket: ${EchoUtility.toSafeText({ value: bucket.name })} | key: ${EchoUtility.toSafeText({ value: object.key })}`,
       });
     }
 
@@ -441,7 +452,9 @@ export class DiskHelper extends BaseStorageHelper {
     const { bucket, prefix = '', useRecursive = false, maxKeys } = opts;
 
     if (!this.isValidBucketName({ bucket })) {
-      throw getError({ message: `[listObjects] Invalid bucket name | bucket: ${bucket.name}` });
+      throw getError({
+        message: `[listObjects] Invalid bucket name | bucket: ${EchoUtility.toSafeText({ value: bucket.name })}`,
+      });
     }
 
     // `maxKeys: 0` means zero, not unlimited.

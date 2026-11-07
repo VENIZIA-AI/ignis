@@ -2,6 +2,7 @@ import { ObjectUtility } from '@venizia/ignis-inversion';
 import { ContentTypeTable, type IDuration, MimeTypes } from '@/common';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
+import { EchoUtility } from '@/utilities/echo.utility';
 import { PromiseUtility } from '@/utilities/promise.utility';
 import { Readable } from 'node:stream';
 import {
@@ -35,7 +36,9 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     const name = opts.segment;
 
     if (typeof name !== 'string') {
-      this.logger.for(this.isValidSegment.name).error('Invalid name provided: %j', name);
+      this.logger
+        .for(this.isValidSegment.name)
+        .error('Invalid name provided: %s', EchoUtility.toSafeEcho({ value: name }));
 
       return false;
     }
@@ -49,13 +52,18 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     if (name.includes('..') || name.includes('/') || name.includes('\\')) {
       this.logger
         .for(this.isValidSegment.name)
-        .error('Name contains invalid path characters: %s', name);
+        .error(
+          'Name contains invalid path characters: %s',
+          EchoUtility.toSafeEcho({ value: name }),
+        );
 
       return false;
     }
 
     if (name.startsWith('.')) {
-      this.logger.for(this.isValidSegment.name).error('Name cannot start with a dot: %s', name);
+      this.logger
+        .for(this.isValidSegment.name)
+        .error('Name cannot start with a dot: %s', EchoUtility.toSafeEcho({ value: name }));
 
       return false;
     }
@@ -65,7 +73,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     if (dangerousChars.test(name)) {
       this.logger
         .for(this.isValidSegment.name)
-        .error('Name contains dangerous characters: %s', name);
+        .error('Name contains dangerous characters: %s', EchoUtility.toSafeEcho({ value: name }));
 
       return false;
     }
@@ -82,7 +90,11 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     if (name.length > 255) {
       this.logger
         .for(this.isValidSegment.name)
-        .error('Name is too long (%d characters): %s', name.length, name);
+        .error(
+          'Name is too long (%d characters): %s',
+          name.length,
+          EchoUtility.toSafeEcho({ value: name }),
+        );
 
       return false;
     }
@@ -90,7 +102,10 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     if (name.trim().length === 0) {
       this.logger
         .for(this.isValidSegment.name)
-        .error('Name cannot be empty or whitespace only: "%s"', name);
+        .error(
+          'Name cannot be empty or whitespace only: %s',
+          EchoUtility.toSafeEcho({ value: name }),
+        );
 
       return false;
     }
@@ -140,7 +155,10 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     if (segments.some((s) => s.length === 0)) {
       this.logger
         .for(this.isValidKeyPath.name)
-        .error('Path contains empty segments (double slashes): %s', pathStr);
+        .error(
+          'Path contains empty segments (double slashes): %s',
+          EchoUtility.toSafeEcho({ value: pathStr }),
+        );
 
       return false;
     }
@@ -154,7 +172,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
         .error(
           'Path exceeds max folder depth (%d): %s (depth: %d)',
           maxDepth,
-          pathStr,
+          EchoUtility.toSafeEcho({ value: pathStr }),
           folderDepth,
         );
 
@@ -165,7 +183,11 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       if (!this.isValidSegment({ segment })) {
         this.logger
           .for(this.isValidKeyPath.name)
-          .error('Path segment failed validation: %s (in path: %s)', segment, pathStr);
+          .error(
+            'Path segment failed validation: %s (in path: %s)',
+            EchoUtility.toSafeEcho({ value: segment }),
+            EchoUtility.toSafeEcho({ value: pathStr }),
+          );
 
         return false;
       }
@@ -174,7 +196,11 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     if (normalized.length > 1024) {
       this.logger
         .for(this.isValidKeyPath.name)
-        .error('Path is too long (%d characters): %s', normalized.length, pathStr);
+        .error(
+          'Path is too long (%d characters): %s',
+          normalized.length,
+          EchoUtility.toSafeEcho({ value: pathStr }),
+        );
 
       return false;
     }
@@ -232,7 +258,9 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     const { name } = opts;
 
     if (typeof name !== 'string' || name.trim().length === 0 || name.length > 255) {
-      this.logger.for(this.isValidOriginalName.name).error('Invalid original name: %j', name);
+      this.logger
+        .for(this.isValidOriginalName.name)
+        .error('Invalid original name: %s', EchoUtility.toSafeEcho({ value: name }));
 
       return false;
     }
@@ -240,7 +268,10 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     if (BaseStorageHelper.UNSAFE_NAME_CHARACTERS.test(name)) {
       this.logger
         .for(this.isValidOriginalName.name)
-        .error('Original name contains a control character or a lone surrogate: %j', name);
+        .error(
+          'Original name contains a control character or a lone surrogate: %s',
+          EchoUtility.toSafeEcho({ value: name }),
+        );
 
       return false;
     }
@@ -322,7 +353,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
     if (!isExists) {
       throw getError({
-        message: `[upload] Bucket does not exist | name: ${bucket.name}`,
+        message: `[upload] Bucket does not exist | name: ${EchoUtility.toSafeText({ value: bucket.name })}`,
       });
     }
 
@@ -344,7 +375,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
       if (!this.isValidObjectKey({ object: { key }, maxDepth: maxFolderDepth })) {
         throw getError({
-          message: `[upload] Invalid normalized object name | name: ${key}`,
+          message: `[upload] Invalid normalized object name | name: ${EchoUtility.toSafeText({ value: key })}`,
         });
       }
 
@@ -368,8 +399,8 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
         this.logger
           .for(this.upload.name)
           .info(
-            'Uploaded: %j | Took: %s (ms)',
-            { key, link, mimeType, encoding, size },
+            'Uploaded: %s | Took: %s (ms)',
+            EchoUtility.toSafeEcho({ value: { key, link, mimeType, encoding, size } }),
             performance.now() - t,
           );
 
@@ -458,11 +489,15 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
     // The same depth rule `upload` applies, as `BunS3Helper.writeStream` does: one object, two doors, one answer.
     if (!this.isValidObjectKey({ object, maxDepth: opts.maxFolderDepth })) {
-      throw getError({ message: `[writeStream] Invalid object name | key: ${object.key}` });
+      throw getError({
+        message: `[writeStream] Invalid object name | key: ${EchoUtility.toSafeText({ value: object.key })}`,
+      });
     }
 
     if (!this.isValidBucketName({ bucket })) {
-      throw getError({ message: `[storage] Invalid bucket name | bucket: ${bucket.name}` });
+      throw getError({
+        message: `[storage] Invalid bucket name | bucket: ${EchoUtility.toSafeText({ value: bucket.name })}`,
+      });
     }
 
     // As `upload` does: a write never creates the bucket.
@@ -470,7 +505,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
     if (!result2) {
       throw getError({
-        message: `[writeStream] Bucket does not exist | name: ${bucket.name}`,
+        message: `[writeStream] Bucket does not exist | name: ${EchoUtility.toSafeText({ value: bucket.name })}`,
       });
     }
 
@@ -519,7 +554,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
     return getError({
       error: StorageErrors.OBJECT_NOT_FOUND,
-      message: `[${operation}] Object not found | bucket: ${bucket.name} | key: ${object.key}`,
+      message: `[${operation}] Object not found | bucket: ${EchoUtility.toSafeText({ value: bucket.name })} | key: ${EchoUtility.toSafeText({ value: object.key })}`,
     });
   }
 
