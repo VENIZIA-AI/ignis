@@ -15,7 +15,7 @@ packages: ['@venizia/ignis-helpers', '@venizia/ignis']
 ## What changed
 
 - **Link loops.** A name that leads into a link loop (`ELOOP`), or a path the system refuses as too long (`ENAMETOOLONG`), answers `Invalid object name`, like a link that leads outside the root.
-- **Other failures.** Any other failure to resolve the real path (`EACCES`, a storage root that disappeared) answers `Cannot resolve the real path of a storage target | code: EACCES`. The full error, path included, stays in the server log.
+- **Other failures.** Any other failure to resolve the real path (`EACCES`, a storage root that disappeared) answers a 500 `Cannot resolve the real path of a storage target | code: EACCES`. The full error, path included, stays in the server log.
 
 ## Who is affected
 
