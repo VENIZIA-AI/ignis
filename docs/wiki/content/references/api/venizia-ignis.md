@@ -1929,21 +1929,30 @@ Source: `packages/core-server/src/components/auth/authenticate/services/bearer/j
 
 Where a JWKS may be fetched from. A key set read over plain `http:` can be replaced on the way, and
 whoever replaces it signs tokens that verify, so a JWKS URL is `https:` unless its host is loopback or
-is listed by name in `jwks.hosts.http`. The one policy serves the JWKS verifier and the service-assertion
+is listed in `jwks.hosts.http`. The one policy serves the JWKS verifier and the service-assertion
 callers: both fetch a key set to decide who may call.
 
-The opt-in is by host NAME, never by address range: what a name resolves to can change, and the choice to
-trust a name is the operator's. The port is ignored, so `identity-service` covers every port.
+The opt-in is an EXACT entry, never a pattern or a range: a host name, an IPv4 address, or an IPv6 address in
+brackets, each optionally with a port (`identity-service`, `10.0.0.5:8080`, `[fd00::1]:8443`). An entry without a
+port covers every port of that host; an entry with one covers that port only. An entry and a URL are both read by
+the URL parser, so the two sides are compared in the form the parser gives them: `http://2130706433` is
+`127.0.0.1`, and `http://[::ffff:10.0.0.5]` is `[::ffff:a00:5]`, which is not `10.0.0.5`.
 
 ```ts
 export declare class JWKSUrlPolicy {
-    /** Refuses an entry of `jwks.hosts.http` that is not a bare host name, and answers the entries lower-cased. */
+    /**
+     * Refuses an entry of `jwks.hosts.http` that is not exactly a host with an optional port, and answers the entries
+     * in the form a URL is matched in: the host as the URL parser writes it (lower case), then `:port` when there is one.
+     * An entry is valid only when `new URL('http://' + entry)` gives the same host back, and the same port.
+     */
     static resolveHttpHosts(opts: {
         scope: string;
         hosts?: unknown;
     }): ReadonlySet<string>;
-    /** Whether `http://<name>` has `<name>` as its host once the URL parser has had its say. */
-    private static isParsedAsItself;
+    /** The canonical form of one entry, or `undefined` when it is not exactly a host with an optional port. */
+    private static canonicalEntry;
+    /** `http://<authority>` through the URL parser, or `undefined` when it refuses it. */
+    private static parseHttp;
     /** Whether the URL parser's hostname is a loopback one: `localhost`, `127.0.0.0/8` or `::1`. */
     static isLoopback(hostname: string): boolean;
     /**

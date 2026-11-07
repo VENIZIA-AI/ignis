@@ -149,13 +149,15 @@ export interface IJWKSVerifierVerifyOptions extends IJWTVerifyOptions {
 
 /**
  * Where a JWKS may be fetched over plain `http:`. A JWKS URL is `https:` unless its host is loopback (`localhost`,
- * `127.0.0.0/8`, `::1`) or is named in `http`.
+ * `127.0.0.0/8`, `::1`) or is listed in `http`.
  */
 export interface IJWKSHosts {
   /**
-   * Host NAMES that may serve a JWKS over `http:`, for example `['identity-service']`: a service inside a private
-   * network. Names only, never an address range, because what a name resolves to can change. A name matches on the
-   * host and ignores the port. An entry with a port, a scheme or a wildcard refuses the boot.
+   * Exact hosts that may serve a JWKS over `http:`: a name (`identity-service`), an IPv4 address (`10.0.0.5`) or an
+   * IPv6 address in brackets (`[fd00::1]`), each with an optional `:port` (`10.0.0.5:8080`, `[fd00::1]:8443`). An entry
+   * without a port covers every port of that host; an entry with one covers that port only. Never a wildcard, range or
+   * CIDR. An entry is valid only when `new URL('http://' + entry)` gives the same host back, so `2130706433` and
+   * `[::ffff:10.0.0.5]` refuse the boot, as do a scheme, a path, credentials or an empty label.
    */
   http?: string[];
 }

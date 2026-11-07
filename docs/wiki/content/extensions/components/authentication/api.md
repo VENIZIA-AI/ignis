@@ -237,22 +237,24 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Must match the issuer's codecs to decrypt custom fields |
 | `claims` | `{ issuer: string; audience?: string \| string[] }` | -- | Yes | `issuer` is required on every verified token. `audience` is optional: set, it is required too; absent, `aud` is not checked. No other key is accepted |
 | `verify` | `IJWKSVerifierVerifyOptions` | -- | Yes | `algorithms` is required (the accepted JWS algorithms, for example `['RS256']`): a verifier cannot know what the issuer signs with. Also `subject`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims` |
-| `jwks.hosts.http` | `string[]` | `[]` | No | Host names that may serve the key set over `http:`. Without it the `jwksUrl` is `https:` or a loopback host. See [JWKS over http](#jwks-over-http) |
+| `jwks.hosts.http` | `string[]` | `[]` | No | Exact hosts that may serve the key set over `http:`: a name, an IPv4 address or an IPv6 address in brackets, each with an optional `:port`. Without it the `jwksUrl` is `https:` or a loopback host. See [JWKS over http](#jwks-over-http) |
 
 > [!IMPORTANT]
 > `JWKSVerifierTokenService` cannot sign tokens - `getSigner()`, `getSigningKey()`, and `getDefaultTokenExpiresFn()` all throw. Only `verify()` and `extractCredentials()` are functional.
 
 ### JWKS over http
 
-A JWKS URL is `https:`. It may be `http:` only when its host is loopback (`localhost`, `127.0.0.0/8`, `::1`) or is named in `jwks.hosts.http`. Any other scheme is refused. A key set read over plain `http:` can be replaced on the way, and whoever replaces it signs tokens that verify.
+A JWKS URL is `https:`. It may be `http:` only when its host is loopback (`localhost`, `127.0.0.0/8`, `::1`) or is listed in `jwks.hosts.http`. Any other scheme is refused. A key set read over plain `http:` can be replaced on the way, and whoever replaces it signs tokens that verify.
 
 | Where | Option |
 |-------|--------|
 | JWKS verifier | `options.jwks.hosts.http`, beside `jwksUrl` |
 | Service-assertion callers | `IServiceAuthOptions.jwks.hosts.http`, which covers every `callers[...].jwksUrl` |
 
-- **Host names only.** `['identity-service']` covers `http://identity-service:3000/certs` and `http://identity-service/certs`: the port is ignored, and a host written with a trailing dot does not match. An entry with a port, a scheme, a path, a wildcard, an empty label, a leading or trailing dot, or an IP address in any spelling (`2130706433`, `0x7f000001`) refuses the boot, naming the entry. A plain-http JWKS on a non-loopback IP address cannot be allowed: give it a host name.
-- **No address ranges.** There is no rule for private networks: what a name resolves to can change, so you opt in by name.
+- **Exact entries.** An entry is a host name (`identity-service`), an IPv4 address (`10.0.0.5`) or an IPv6 address in brackets (`[fd00::1]`), with an optional `:port` (`identity-service:3000`, `10.0.0.5:8080`, `[fd00::1]:8443`).
+- **Ports.** An entry without a port covers every port of that host. An entry with a port covers that port only. A URL with no port is on port 80, so `host:80` covers it.
+- **Spelled the way the URL parser writes it.** An entry is valid only when `new URL('http://' + entry)` gives the same host back, so `2130706433`, `0x7f000001`, `1.2.3`, `010.0.0.5` and `[::ffff:10.0.0.5]` refuse the boot, naming the entry. A URL is read by the same parser, so `http://167772165` is `10.0.0.5` and is covered by that entry, and `http://[::ffff:10.0.0.5]` is `[::ffff:a00:5]` and is not. A host name written with a trailing dot does not match its entry.
+- **No wildcards, ranges or CIDR.** A scheme, a path, a query, userinfo, a wildcard, an empty label or an empty port refuses the boot. There is no rule for private networks: what a name resolves to can change, so you opt in host by host. Loopback is always allowed.
 - **Redirects are not followed.** The key set fetch reads only a `200`, so an `https:` URL cannot lead to an `http:` host; a URL that redirects fails verification.
 - **Checked at boot.** The component checks the verifier URL and every caller URL when the application starts; the services check again before they fetch.
 

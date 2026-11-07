@@ -295,7 +295,7 @@ export class AuthenticateComponent extends BaseComponent {
       });
     }
 
-    // A caller's key set decides who may call: https, loopback, or a host named in jwks.hosts.http. Checked at boot, so a bad URL never waits for its first request.
+    // A caller's key set decides who may call: https, loopback, or a host listed in jwks.hosts.http. Checked at boot, so a bad URL never waits for its first request.
     JWKSUrlPolicy.resolveHttpHosts({
       scope: 'defineServiceAuth',
       hosts: serviceOptions.jwks?.hosts?.http,
