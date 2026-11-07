@@ -3,6 +3,11 @@ import { ApplicationError, getError, isApplicationError } from '@/modules/error'
 
 const GENERIC_MESSAGE = 'An unknown value was thrown';
 
+const UNEXPECTED_KEY = '@venizia/ignis-inversion:unexpected-error';
+
+/** Whether the private marker the kernel middleware reads is on the error. */
+const isUnexpected = (error: object): boolean => Symbol.for(UNEXPECTED_KEY) in error;
+
 const wrap = (error: unknown): ApplicationError => ApplicationError.fromUnknown({ error });
 
 /** True for a character that cannot break a log line: no C0, DEL, C1 control and no Unicode line terminator. */
@@ -88,9 +93,44 @@ describe('ApplicationError.fromUnknown - an Error', () => {
   });
 
   test('an unusable statusCode falls through to a usable status', () => {
-    const original = Object.assign(new Error('Both'), { statusCode: 200, status: 503 });
+    const original = Object.assign(new Error('Both'), { statusCode: 200, status: 404 });
 
-    expect(wrap(original).statusCode).toBe(503);
+    expect(wrap(original).statusCode).toBe(404);
+  });
+
+  test('a 5xx status (not a statusCode) is an upstream status: it is not kept, and the error is unexpected', () => {
+    const original = Object.assign(new Error('Bad gateway'), { status: 503 });
+    const wrapped = wrap(original);
+
+    expect(wrapped.statusCode).toBe(500);
+    expect(isUnexpected(wrapped)).toBe(true);
+  });
+});
+
+describe('ApplicationError.fromUnknown - the private unexpected marker', () => {
+  test('a value with no usable status is marked, a value with one is not', () => {
+    expect(isUnexpected(wrap(new Error('x')))).toBe(true);
+    expect(isUnexpected(wrap({ message: 'x', statusCode: 200 }))).toBe(true);
+    expect(isUnexpected(wrap({ message: 'x', statusCode: 409 }))).toBe(false);
+    expect(isUnexpected(wrap({ message: 'x', status: 404 }))).toBe(false);
+  });
+
+  test('an ApplicationError returned as it is gets no marker', () => {
+    const own = getError({ message: 'mine', statusCode: 500 });
+
+    expect(wrap(own)).toBe(own);
+    expect(isUnexpected(own)).toBe(false);
+  });
+
+  test('the marker does not enumerate, is not an own string key, and never reaches JSON', () => {
+    const wrapped = wrap(new Error('x'));
+
+    expect(Object.keys(wrapped)).not.toContain('unexpected');
+    expect(
+      Object.getOwnPropertySymbols(wrapped).some((symbol) => symbol.description === UNEXPECTED_KEY),
+    ).toBe(true);
+    expect(JSON.stringify(wrapped)).not.toContain('unexpected');
+    expect(Object.entries(wrapped).flat().includes(true)).toBe(false);
   });
 });
 
@@ -279,7 +319,7 @@ describe('ApplicationError.fromUnknown - never throws, for any input', () => {
   test('a frozen object is read, never written', () => {
     expect(wrap(frozen).statusCode).toBe(418);
     expect(wrap(frozen).message).toBe('Frozen teapot');
-    expect(wrap(frozenError).statusCode).toBe(502);
+    expect(wrap(frozenError).statusCode).toBe(500);
     expect(Object.isFrozen(frozen)).toBe(true);
   });
 

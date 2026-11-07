@@ -222,12 +222,12 @@ try {
 
 The new error is built from three reads, each guarded so a throwing getter or a Proxy reads as absent:
 
-- **`statusCode`.** The value's `statusCode`, else its `status` (what Hono's `HTTPException` sets), when it is an integer from 400 to 599. Anything else, such as `200`, `404.5` or `'404'`, gives `500`.
+- **`statusCode`.** The value's `statusCode` when it is an integer from 400 to 599, else its `status` (what Hono's `HTTPException` and an HTTP client's error carry) when it is an integer from 400 to 499. Anything else, such as `200`, `404.5`, `'404'` or a `status` of `502`, gives `500` and an unexpected error (see below).
 - **Message.** The value's `message` when it is a non-blank string. Otherwise the fixed text `An unknown value was thrown`. The value is never turned into text with `String()`, so a thrown object or symbol is not printed. A control character in the message, such as a newline, is escaped as `\u000a`, so the message stays on one line.
 - **`cause`.** The original value, as thrown. A thrown `undefined` leaves `cause` unset.
 
 > [!WARNING]
-> The message you keep is the message a client reads. The error middleware sends an `ApplicationError` message as written, and replaces only an unexpected error's message with `Internal Server Error` in production. Wrap a value whose message is safe to show, or build the error yourself with `getError` and a message you chose. The `cause` is not sent in production.
+> What a client reads depends on the value. A value that carries a valid HTTP status (above) keeps that status and its message: whoever threw it chose to answer with it. Any other value (a driver error, a string, an error with no status) becomes a 500 that the error middleware answers as an UNEXPECTED error: `Internal Server Error` in production, with nothing from the value in the response. Its real message (one line, control characters escaped), the original as `cause` and the stack stay in the log only. Outside production the message is shown, as for any unexpected error. To answer a client with a message you chose, build the error yourself with `getError`.
 
 ### Catalog a reusable error
 

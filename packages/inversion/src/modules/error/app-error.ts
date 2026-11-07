@@ -21,7 +21,16 @@ const KNOWN_KEYS = [
 /** The HTTP error range: a wrapped value's own status counts only inside it, so a stray 200 or 0 never becomes the response status. */
 const MIN_WRAPPED_STATUS = 400;
 const MAX_WRAPPED_STATUS = 599;
+const MAX_CLIENT_STATUS = 499;
 const DEFAULT_WRAPPED_STATUS = 500;
+
+/**
+ * Set (not enumerable) on an error `fromUnknown` wrapped from a value that carried no usable HTTP status. It is the
+ * private signal the kernel error middleware reads (by this registry key, so the two packages share no export) to
+ * answer it as an UNEXPECTED error: a generic message to the client in production, the real one in the log only.
+ * A symbol key, so it never reaches `JSON.stringify`, `extra` or a response.
+ */
+const UNEXPECTED_ERROR_MARKER = Symbol.for('@venizia/ignis-inversion:unexpected-error');
 
 /** Fixed text for a value that carries no message; the value itself is never printed, it only rides as the cause. */
 const UNKNOWN_VALUE_MESSAGE = 'An unknown value was thrown';
@@ -130,24 +139,32 @@ export class ApplicationError extends Error {
     }
   }
 
-  /** The first of `statusCode` (what `getError` sets) and `status` (Hono's `HTTPException`) that is an integer in 400-599; else 500. */
-  private static readWrappedStatus(opts: { value: unknown }): number {
+  /**
+   * The status a wrapped value is allowed to keep, or `undefined` when it has none: an integer `statusCode` in 400-599
+   * (what `getError` sets), else an integer `status` in 400-499 (Hono's `HTTPException` and an HTTP client's error:
+   * a 5xx `status` is an upstream's, never the caller's to show).
+   */
+  private static readWrappedStatus(opts: { value: unknown }): number | undefined {
     const { value } = opts;
+    const limits = [
+      { key: 'statusCode', max: MAX_WRAPPED_STATUS },
+      { key: 'status', max: MAX_CLIENT_STATUS },
+    ];
 
-    for (const key of ['statusCode', 'status']) {
+    for (const { key, max } of limits) {
       const candidate = ApplicationError.readProperty({ value, key });
 
       if (
         typeof candidate === 'number' &&
         Number.isInteger(candidate) &&
         candidate >= MIN_WRAPPED_STATUS &&
-        candidate <= MAX_WRAPPED_STATUS
+        candidate <= max
       ) {
         return candidate;
       }
     }
 
-    return DEFAULT_WRAPPED_STATUS;
+    return undefined;
   }
 
   /** The value's own string `message` on one line (every control character escaped, as a log line must not break), else the fixed text. */
@@ -182,9 +199,15 @@ export class ApplicationError extends Error {
    * (`isApplicationError` shape, so an error from another copy of the class counts), else a new one
    * with the original as `cause`. Never throws, whatever the value.
    *
-   * The new error takes its `statusCode` from the value's `statusCode`, then `status`, when that is an integer
-   * in 400-599 (else 500), and its message from a string `message` (else a fixed text). That message reaches the
-   * client as written, unlike an unexpected error's, so wrap only what its caller may show.
+   * What the client may see depends on what the value carried:
+   * - a valid HTTP status (an integer `statusCode` in 400-599, or a `status` in 400-499) is kept, with the value's
+   *   string `message`: the thrower chose to answer with it;
+   * - anything else becomes a 500 that the error middleware answers as an UNEXPECTED error: a generic message to the
+   *   client in production, while the real message (one line, control characters escaped, or a fixed text when there
+   *   is none) and the original as `cause` stay in the log only. A driver or engine error carries SQL, paths and
+   *   hosts, so it must not reach a response by being wrapped.
+   *
+   * The marker that makes it unexpected is private (a symbol that does not enumerate), not a public flag.
    */
   static fromUnknown(opts: { error: unknown }): ApplicationError {
     const { error } = opts;
@@ -198,11 +221,18 @@ export class ApplicationError extends Error {
       // Falls through to the wrap.
     }
 
-    return ApplicationError.getError({
+    const status = ApplicationError.readWrappedStatus({ value: error });
+    const wrapped = ApplicationError.getError({
       message: ApplicationError.readWrappedMessage({ value: error }),
-      statusCode: ApplicationError.readWrappedStatus({ value: error }),
+      statusCode: status ?? DEFAULT_WRAPPED_STATUS,
       cause: error,
     });
+
+    if (status === undefined) {
+      Object.defineProperty(wrapped, UNEXPECTED_ERROR_MARKER, { value: true, enumerable: false });
+    }
+
+    return wrapped;
   }
 
   static fromError(opts: { error: TResponsedError }): ApplicationError {
