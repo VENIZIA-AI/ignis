@@ -4639,6 +4639,10 @@ How one model judges a key of a request filter. The repository of a model suppli
 that model's own query does (a relational JSON path names its first part, a search field is a dotted name), and a refusal
 is the error that query gives for a column or field that does not exist.
 
+A filter that names a hidden field is refused with the first refusal the query itself would meet if the hidden name were
+missing: `readOrder` gives the order the query reads the parts in, `filterRefusal` and `queryRefusal` the errors it throws
+on its own before that point. Without them the parts are read `where`, `order`, `include`, and nothing else is refused.
+
 ```ts
 export interface IRequestFilterJudge {
     /** Whether the key reaches a field the model hides. */
@@ -4655,6 +4659,24 @@ export interface IRequestFilterJudge {
     relation?(opts: {
         relation: string;
     }): IRequestFilterJudge | undefined;
+    /** The parts of `filter` in the order this model's query reads them. */
+    readOrder?(opts: {
+        filter: IRequestFilterShape;
+    }): ReadonlyArray<TRequestFilterPart>;
+    /** The error the query throws for `filter` as a whole before it reads any key of it, or `undefined`. */
+    filterRefusal?(opts: {
+        filter: IRequestFilterShape;
+        tableName: string;
+    }): Error | undefined;
+    /**
+     * The error the query throws for one piece of a filter on its own, or `undefined` when it reads the piece. A piece is a
+     * `where` of one key (`{ [key]: value }`), one `order` entry, or one `include` entry.
+     */
+    queryRefusal?(opts: {
+        part: TRequestFilterPart;
+        value: unknown;
+        tableName: string;
+    }): Error | undefined;
 }
 ```
 
@@ -4664,13 +4686,14 @@ Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
 
 *interface*
 
-What a request filter holds that names fields: `where`, `order` and the `include` scopes.
+What a request filter holds that a query reads: `where`, `order`, the `include` scopes, and the `fields` that can decide the order it reads them in.
 
 ```ts
 export interface IRequestFilterShape {
     where?: unknown;
     order?: unknown;
     include?: unknown;
+    fields?: unknown;
 }
 ```
 
@@ -5939,13 +5962,38 @@ export declare class RequestFilterGuard {
     }): void;
     /**
      * Refuses a filter that names a hidden field in its `where`, its `order`, or the `scope` of any `include`, each level
-     * judged by the model it reads (`judge.relation` answers it).
+     * judged by the model it reads (`judge.relation` answers it). The parts are read in the order the query reads them, and a
+     * filter that the query refuses for another reason before it meets the hidden field gets that refusal instead, so the answer
+     * is the one the same filter gets with a missing name in place of the hidden one. A filter that names no hidden field is
+     * left to the query.
      */
     static assertFilter(opts: {
         filter?: IRequestFilterShape;
         judge: IRequestFilterJudge;
         tableName: string;
     }): void;
+    /** Throws for a hidden key: the refusal met before it, or the hidden key's own. Otherwise keeps the query's refusal of the piece when it is the first. */
+    private static visitKey;
+    private static walkFilter;
+    private static walkWhere;
+    private static walkOrder;
+    private static walkInclude;
+}
+```
+
+Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
+
+## `RequestFilterParts`
+
+*class*
+
+The parts of a request filter a query reads, one at a time, in an order the query decides.
+
+```ts
+export declare class RequestFilterParts {
+    static readonly WHERE = "where";
+    static readonly ORDER = "order";
+    static readonly INCLUDE = "include";
 }
 ```
 
@@ -8628,6 +8676,18 @@ Which part of a filter a key came from: the refusal reads like the query's own r
 
 ```ts
 export type TRequestFilterKeyKind = 'where' | 'order';
+```
+
+Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`
+
+## `TRequestFilterPart`
+
+*type*
+
+A part of a request filter: `where`, `order` or `include`.
+
+```ts
+export type TRequestFilterPart = TConstValue<typeof RequestFilterParts>;
 ```
 
 Source: `packages/kernel/src/base/repositories/common/request-filter-guard.ts`

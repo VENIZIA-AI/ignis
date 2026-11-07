@@ -167,6 +167,8 @@ The guarantee is also upheld one layer up, for an engine that answers otherwise:
 
 **A geopoint field must be named `_geo`.** Meilisearch supports exactly one geo field, shaped `{ lat, lng }`, under that reserved name. The compiler throws on any other name, and on a second geo field.
 
+**`filter.order` accepts declared fields only.** An entry on a field the collection does not declare gets `400 Field NOT FOUND` before the engine is called, as on Typesense. A geo sort (`_geoPoint(lat, lng):asc`) is not a declared field: send it through `mode: 'raw'`.
+
 **Vector distance is cosine only.** `field.vector(..., { distance: 'l2' })` throws.
 
 **Engine-specific knobs never reach the neutral schema.** The neutral search input carries only fields every engine supports. Typesense-only tuning (`num_typos`, `pinned_hits`, `preset`, ...) travels through `engineParams` with wire names and is passed verbatim to the engine. Sending it to a Meilisearch datasource is a caller error.

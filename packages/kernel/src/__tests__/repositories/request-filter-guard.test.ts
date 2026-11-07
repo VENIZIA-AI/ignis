@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import {
   RequestFilterGuard,
+  RequestFilterParts,
   type IRequestFilterJudge,
 } from '@/base/repositories/common/request-filter-guard';
 
@@ -220,6 +221,118 @@ describe('include scopes', () => {
       assertFilter({ include: [{ relation: 'comments', scope: { where: { internalNote: 1 } } }] }),
     ).not.toThrow();
     expect(refusal(() => assertFilter({ where: { secret: 1 } })).statusCode).toBe(400);
+  });
+});
+
+/**
+ * A filter that names a hidden field gets the first refusal the query would meet if the hidden name were missing: the judge
+ * gives the order the query reads the parts in and the errors it throws on its own.
+ */
+describe('the first refusal in the order the query reads the filter', () => {
+  const missing = new Set(['nope', 'zzz']);
+
+  const queryRefusal: IRequestFilterJudge['queryRefusal'] = ({ part, value, tableName }) => {
+    if (part === RequestFilterParts.INCLUDE) {
+      const relation = (value as { relation?: unknown }).relation;
+
+      return relation === 'comments' ? undefined : new Error(`relation|${String(relation)}`);
+    }
+
+    const key =
+      part === RequestFilterParts.WHERE
+        ? Object.keys(value as object)[0]
+        : String(value).split(' ')[0];
+
+    return missing.has(key ?? '') ? new Error(`${part}|${tableName}|${key}`) : undefined;
+  };
+
+  const comments = { ...judgeOf({ hidden: new Set(['internalNote']) }), queryRefusal };
+  const judge: IRequestFilterJudge = {
+    ...judgeOf({ hidden: HIDDEN, relations: { comments } }),
+    queryRefusal,
+  };
+  const run = (filter: unknown, of: IRequestFilterJudge = judge) =>
+    RequestFilterGuard.assertFilter({ filter: filter as never, judge: of, tableName: 'Probe' });
+
+  test.each([
+    [
+      'a missing where key before the hidden one',
+      { where: { nope: 1, secret: 1 } },
+      'where|Probe|nope',
+    ],
+    [
+      'a missing key in an or before the hidden one',
+      { where: { or: [{ nope: 1 }], secret: 1 } },
+      'where|Probe|nope',
+    ],
+    [
+      'a missing order entry before the hidden one',
+      { order: ['nope ASC', 'secret DESC'] },
+      'order|Probe|nope',
+    ],
+    [
+      'a missing where key before a hidden order entry',
+      { where: { nope: 1 }, order: ['secret DESC'] },
+      'where|Probe|nope',
+    ],
+    [
+      'an unknown relation before a hidden key of a known one',
+      {
+        include: [
+          { relation: 'x' },
+          { relation: 'comments', scope: { where: { internalNote: 1 } } },
+        ],
+      },
+      'relation|x',
+    ],
+    [
+      'a missing key before the hidden one in an include scope',
+      { include: [{ relation: 'comments', scope: { where: { zzz: 1, internalNote: 1 } } }] },
+      'where|comments|zzz',
+    ],
+  ])('%s', (_name, filter, expected) => {
+    expect(() => run(filter)).toThrow(expected);
+  });
+
+  test('the hidden key before a missing one is refused as hidden', () => {
+    expect(refusal(() => run({ where: { secret: 1, nope: 1 } })).message).toBe(
+      '[Probe] Column NOT FOUND | key: "secret"',
+    );
+  });
+
+  test('the parts are read in the order the judge gives', () => {
+    const orderFirst: IRequestFilterJudge = {
+      ...judge,
+      readOrder: () => [RequestFilterParts.ORDER, RequestFilterParts.WHERE],
+    };
+
+    expect(() => run({ where: { nope: 1 }, order: ['secret DESC'] }, orderFirst)).toThrow(
+      'Column NOT FOUND | key: "secret"',
+    );
+    expect(() => run({ where: { secret: 1 }, order: ['nope DESC'] }, orderFirst)).toThrow(
+      'order|Probe|nope',
+    );
+  });
+
+  test('a refusal of the filter as a whole comes before every key', () => {
+    const whole: IRequestFilterJudge = { ...judge, filterRefusal: () => new Error('whole') };
+
+    expect(() => run({ where: { secret: 1 } }, whole)).toThrow('whole');
+  });
+
+  test('a judge that does not say what its query refuses has an unparseable order entry refused at once', () => {
+    expect(() => assertFilter({ order: ['a b c'] })).toThrow('Too many tokens');
+  });
+
+  test('an order entry the query cannot parse is its refusal, before a later hidden entry', () => {
+    expect(() => run({ order: ['a b c', 'secret DESC'] })).toThrow('Too many tokens');
+  });
+
+  test('a filter that names no hidden field is left to the query, whatever it refuses', () => {
+    const whole: IRequestFilterJudge = { ...judge, filterRefusal: () => new Error('whole') };
+
+    expect(() => run({ where: { nope: 1 }, order: ['zzz ASC', 'a b c'] })).not.toThrow();
+    expect(() => run({ where: { name: 1 } }, whole)).not.toThrow();
   });
 });
 

@@ -1550,8 +1550,14 @@ export declare abstract class SearchBaseRepository<TDocument extends object = ob
     get collectionName(): string;
     protected get connector(): ReturnType<TDataSource['getConnector']>;
     protected get queryDialect(): ISearchQueryDialect;
-    /** A request filter naming a hidden field is refused with the error the engine's dialect gives for a field the collection does not declare. */
+    /**
+     * A request filter naming a hidden field is refused with the error the engine's dialect gives for a field the collection does
+     * not declare. The filter is read as `buildQuery` reads it: an `include` is refused first, then the order entries, then the
+     * where keys; a piece the dialect refuses on its own is refused with the dialect's error.
+     */
     protected createRequestFilterJudge(): IRequestFilterJudge;
+    /** The error `task` throws, or `undefined`. */
+    private static refusalOf;
     get multiSearch(): TDataSource['multiSearch'];
     setDataSource(opts: {
         dataSource: TDataSource;
@@ -2265,8 +2271,14 @@ export declare abstract class SearchBaseRepository<TDocument extends object = ob
     get collectionName(): string;
     protected get connector(): ReturnType<TDataSource['getConnector']>;
     protected get queryDialect(): ISearchQueryDialect;
-    /** A request filter naming a hidden field is refused with the error the engine's dialect gives for a field the collection does not declare. */
+    /**
+     * A request filter naming a hidden field is refused with the error the engine's dialect gives for a field the collection does
+     * not declare. The filter is read as `buildQuery` reads it: an `include` is refused first, then the order entries, then the
+     * where keys; a piece the dialect refuses on its own is refused with the dialect's error.
+     */
     protected createRequestFilterJudge(): IRequestFilterJudge;
+    /** The error `task` throws, or `undefined`. */
+    private static refusalOf;
     get multiSearch(): TDataSource['multiSearch'];
     setDataSource(opts: {
         dataSource: TDataSource;

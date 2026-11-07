@@ -1495,6 +1495,7 @@ generated:
 - `RequestDomainResolver` class
 - `RequestErrors` const
 - `RequestFilterGuard` class
+- `RequestFilterParts` class
 - `ResolverUtility` class
 - `ResponseExtras` class
 - `ResponseFormats` class
@@ -1633,6 +1634,7 @@ generated:
 - `TRepositoryType` type
 - `TRequestContextResolver` type
 - `TRequestFilterKeyKind` type
+- `TRequestFilterPart` type
 - `TResponseBodyOf` type
 - `TResponseExtra` type
 - `TResponseFormat` type
@@ -3035,6 +3037,7 @@ generated:
 - `RequestDomainResolver` class
 - `RequestErrors` const
 - `RequestFilterGuard` class
+- `RequestFilterParts` class
 - `RequestIdGenerator` class
 - `RequestTrackerComponent` class
 - `RequestUtility` class
@@ -3319,6 +3322,7 @@ generated:
 - `TRepositoryType` type
 - `TRequestContextResolver` type
 - `TRequestFilterKeyKind` type
+- `TRequestFilterPart` type
 - `TResolveDomainEdgesFn` type
 - `TResolver` type
 - `TResponseBodyOf` type

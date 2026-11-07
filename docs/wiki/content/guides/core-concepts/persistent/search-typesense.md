@@ -400,7 +400,7 @@ await repository.search({
 | At most three top-level entries | Typesense's limit; `_eval(...)` counts as one, however many commas it holds |
 | Given once | `sortBy` with `filter.order`, or with `sort_by`, throws instead of letting one win |
 
-Field names and the inside of an `_eval` expression are Typesense's to check. A search controller refuses `engineParams` over HTTP, `sortBy` included. Meilisearch has no equivalent, so its neutral `order` is unchanged.
+Field names and the inside of an `_eval` expression are Typesense's to check. A search controller refuses `engineParams` over HTTP, `sortBy` included. Meilisearch has no `sortBy` equivalent. Its neutral `order` also accepts declared fields only: an undeclared one gets the same `400` before the engine is called.
 
 `searchCount()`, `facets()` and `suggest()` take the same `engineParams`, checked and sent the same way, so they match what a `search()` with that tuning matches. Without it, a count, a facet or a suggestion can differ from the search beside it (an accented query that finds unaccented names in `search()` finds none in `suggest()`). Repository methods are not routes, so the scoped-controller refusal is unchanged: a search controller's routes call `search()` and `multiSearch()` only, and a scoped one still answers `400` to `engineParams` on `/search`.
 
