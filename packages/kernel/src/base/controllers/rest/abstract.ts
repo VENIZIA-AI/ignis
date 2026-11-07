@@ -23,9 +23,7 @@ import type {
   TRouteHandler,
 } from '../common/types';
 
-// This module is where the OpenAPI layer (zod, zod-to-openapi) enters a program, so it is also where
-// the application's routers become `OpenAPIHono`: a program with REST controllers gets the routers it
-// always had, and one without them never loads `@hono/zod-openapi`. See `RouterFactories`.
+// Loading this module makes the application's routers `OpenAPIHono` (see `RouterFactories`).
 RouterFactories.registerOpenApi({
   factory: ({ strict }) => new OpenAPIHono({ strict }),
 });

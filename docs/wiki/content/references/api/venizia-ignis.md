@@ -2355,12 +2355,12 @@ export declare abstract class ServerApplication<AppEnv extends Env = Env, AppSch
         scope: string;
         config: IServerApplicationConfigs;
     });
-    /** Narrowed from the kernel's `Hono`: this layer serves OpenAPI documentation, so both routers are `OpenAPIHono` (see `createRouter`). */
+    /** Both routers are `OpenAPIHono` (see `createRouter`). */
     protected server: {
         hono: OpenAPIHono<AppEnv, AppSchema, BasePath>;
     };
     protected rootRouter: OpenAPIHono<AppEnv, AppSchema, BasePath>;
-    /** Always an `OpenAPIHono`, whatever else got loaded: the API reference reads `rootRouter.openAPIRegistry`. The kernel's default is a plain `Hono` so a browser Worker does not carry zod. */
+    /** Always an `OpenAPIHono`, whatever else is loaded: the API reference reads `rootRouter.openAPIRegistry`. */
     protected createRouter(opts: {
         strict: boolean;
     }): OpenAPIHono<AppEnv, AppSchema, BasePath>;

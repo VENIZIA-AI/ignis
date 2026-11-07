@@ -41,7 +41,7 @@ interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurabl
   onAfterConfigure?: (opts: { binding: Binding<T>; instance: T }) => Promise<void>;
 }
 
-/** Adds the Hono router surface on top of `AbstractApplication` (an `OpenAPIHono` once the REST controller layer is loaded - see `RouterFactories`) - no listening server, so this is the layer a browser Worker or gRPC-only host can extend without pulling in `Bun.serve`. */
+/** Adds the Hono router surface on top of `AbstractApplication` - no listening server, so this is the layer a browser Worker or gRPC-only host can extend without pulling in `Bun.serve`. */
 export abstract class RestApplication<
   AppEnv extends Env = Env,
   AppSchema extends Schema = {},
@@ -84,10 +84,8 @@ export abstract class RestApplication<
   }
 
   /**
-   * Builds one of the two routers. Plain `Hono` unless the OpenAPI layer is loaded - see
-   * {@link RouterFactories}. A host that always serves OpenAPI documentation (`ServerApplication`)
-   * overrides this to return an `OpenAPIHono` whatever got loaded. Called from the constructor, so an
-   * override must not read its own instance fields.
+   * Builds one of the two routers: a plain `Hono`, or an `OpenAPIHono` once the REST controller layer is
+   * loaded. Called from the constructor, so an override must not read its own instance fields.
    */
   protected createRouter(opts: { strict: boolean }): Hono<AppEnv, AppSchema, BasePath> {
     return RouterFactories.create<AppEnv, AppSchema, BasePath>({ strict: opts.strict });

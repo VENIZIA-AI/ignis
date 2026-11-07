@@ -5,14 +5,9 @@ import type { Env, Schema } from 'hono';
 export type TRouterFactory = (opts: { strict: boolean }) => Hono<Env, Schema, string>;
 
 /**
- * Where `RestApplication` gets its two routers. Not exported from the package: the seam exists so the
- * application base does not import `@hono/zod-openapi`, which loads zod (about 394 KB) and zod-to-openapi
- * (about 33 KB) at import time and cannot be tree-shaken, whether or not a route ever uses them.
- *
- * The default is a plain `Hono`. The OpenAPI layer registers `OpenAPIHono` when its own module loads
- * (`AbstractRestController`), so a program that has REST controllers gets the same routers it always had,
- * and a worker with none never pays for zod. ESM evaluates every import before the application is
- * constructed, so the registration is always in place by the time a router is built.
+ * Where `RestApplication` gets its two routers: a plain `Hono` until the OpenAPI layer registers `OpenAPIHono`
+ * when its own module loads (`AbstractRestController`). ESM evaluates every import before an application is
+ * constructed, so the registration precedes the first router. Not exported from the package.
  */
 export class RouterFactories {
   private static openApi?: TRouterFactory;
