@@ -51,7 +51,7 @@ export class DiskHelper extends BaseStorageHelper {
    * missing is refused, because writing through it would create the file where the link points.
    */
   private async isInsideRoot(opts: { target: string }): Promise<boolean> {
-    const root = await fsp.realpath(this.basePath);
+    const root = await this.realpathOrFail({ target: this.basePath });
     let probe = opts.target;
 
     for (;;) {
@@ -62,8 +62,13 @@ export class DiskHelper extends BaseStorageHelper {
       } catch (error) {
         const code = (error as NodeJS.ErrnoException)?.code;
 
+        // A link loop or a path the system refuses as too long is not a place a name can lead to.
+        if (code === 'ELOOP' || code === 'ENAMETOOLONG') {
+          return false;
+        }
+
         if (code !== 'ENOENT' && code !== 'ENOTDIR') {
-          throw error;
+          throw this.toRealPathError({ error });
         }
       }
 
@@ -81,6 +86,36 @@ export class DiskHelper extends BaseStorageHelper {
 
       probe = parent;
     }
+  }
+
+  /** The real path of `target`; a failure leaves as {@link DiskHelper.toRealPathError} answers it. */
+  private async realpathOrFail(opts: { target: string }): Promise<string> {
+    try {
+      const result = await fsp.realpath(opts.target);
+
+      return result;
+    } catch (error) {
+      throw this.toRealPathError({ error });
+    }
+  }
+
+  /**
+   * What a failed `realpath` is reported as: the code, never the path. Node's message holds the absolute path of the
+   * server, and a refusal reaches the caller of the storage API. The full error stays in the log.
+   */
+  private toRealPathError(opts: { error: unknown }) {
+    const { error } = opts;
+    const code = (error as NodeJS.ErrnoException)?.code ?? 'UNKNOWN';
+
+    this.logger.error(
+      'Cannot resolve the real path of a storage target | code: %s | %s',
+      code,
+      error,
+    );
+
+    return getError({
+      message: `[storage] Cannot resolve the real path of a storage target | code: ${code}`,
+    });
   }
 
   /** `null` when nothing is there (or it cannot be read): the caller walks up to the parent and judges that. */
