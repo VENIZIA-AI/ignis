@@ -35,6 +35,18 @@ export abstract class AbstractCrudController<
     this.definitions = opts.definitions;
   }
 
+  /**
+   * Refuses (400) a filter the client sent when it names a field the model hides (`where`, `order`, an include scope).
+   * The repository answers it; a stand-in that does not extend `AbstractRepository` has no hidden fields to hold the filter to.
+   */
+  assertRequestFilter(opts: {
+    filter?: { where?: unknown; order?: unknown; include?: unknown };
+  }): void {
+    (
+      this.repository as Partial<Pick<AbstractRepository<object>, 'assertRequestFilter'>>
+    ).assertRequestFilter?.(opts);
+  }
+
   /** 400 when a bulk operation is missing its `where` filter; undefined when it is present. */
   bulkWhereError(opts: { context: TRouteContext<RouteEnv>; where?: object }) {
     const { context, where } = opts;

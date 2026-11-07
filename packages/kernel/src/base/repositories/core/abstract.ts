@@ -24,6 +24,8 @@ import {
   RepositoryErrorCodes,
   RepositoryOperationScopes,
 } from '../common/constants';
+import { RequestFilterGuard } from '../common/request-filter-guard';
+import type { IRequestFilterShape } from '../common/request-filter-guard';
 import type {
   TByIdFilter,
   TFields,
@@ -140,6 +142,28 @@ export abstract class AbstractRepository<
 
   protected get hiddenFields(): string[] {
     return this.modelSettings?.hiddenProperties ?? [];
+  }
+
+  /**
+   * Refuses (400, `Column NOT FOUND`) a filter that came from a request and names a field the model hides, in its
+   * `where`, its `order` or the `scope` of an `include` (judged by the hidden fields of the model it reads). The generated
+   * controllers call it on what a client sends; the repository's own verbs do not, so server code can still filter and
+   * sort on a hidden field.
+   */
+  assertRequestFilter(opts: { filter?: IRequestFilterShape }): void {
+    RequestFilterGuard.assertFilter({
+      scope: this.constructor.name,
+      filter: opts.filter,
+      hidden: new Set(this.hiddenFields),
+      resolveRelation: (relation) => this.resolveRelationHiddenFields(relation),
+    });
+  }
+
+  /** The hidden fields of the model a relation (or a dotted path of relations) points to; none here, a relational repository answers it. */
+  protected resolveRelationHiddenFields(_opts: {
+    relation: string;
+  }): ReadonlySet<string> | undefined {
+    return undefined;
   }
 
   /** Default where from @model settings.query.filter.where, AND-merged into every query unless skipped. */

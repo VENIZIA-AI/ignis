@@ -44,6 +44,7 @@ import type {
   IRelationalExtraOptions,
   IRelationalQueryDialect,
   IRelationalQueryExecutor,
+  TRelationConfig,
   TRelationalConnectorOf,
   TRelationalTransactionOf,
   TRelationalTransactionOptionsOf,
@@ -127,6 +128,30 @@ export abstract class RelationalBaseRepository<
 
   getEntitySchema(): EntitySchema {
     return this.entity.schema;
+  }
+
+  /**
+   * The hidden fields of the model a relation, or a dotted path of relations (`comments.post`), points to. Each step is a
+   * relation of the schema reached so far (own relations only); an unknown step answers `undefined`, and the query refuses it.
+   */
+  protected override resolveRelationHiddenFields(opts: {
+    relation: string;
+  }): ReadonlySet<string> | undefined {
+    let schema: TTableSchemaWithId = this.entity.schema;
+    let relationConfig: TRelationConfig | undefined;
+
+    for (const step of opts.relation.split('.')) {
+      const relations = this.queryDialect.resolveRelations({ schema });
+      relationConfig = Object.hasOwn(relations, step) ? relations[step] : undefined;
+
+      if (!relationConfig) {
+        return undefined;
+      }
+
+      schema = relationConfig.schema;
+    }
+
+    return this.queryDialect.resolveHiddenProperties({ schema });
   }
 
   /** Hidden fields as a memoized Set, derived from the base's class-keyed `hiddenFields` array. */
