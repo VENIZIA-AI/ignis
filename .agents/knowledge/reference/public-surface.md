@@ -294,8 +294,9 @@ generated:
 
 ## filter
 
-### `@venizia/ignis-filter` (18)
+### `@venizia/ignis-filter` (19)
 
+- `FilterKeys` class
 - `QueryOperators` class
 - `Sorts` class
 - `TByIdFilter` type
@@ -1229,7 +1230,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (422)
+### `@venizia/ignis-kernel` (427)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1321,6 +1322,7 @@ generated:
 - `EventDispatchRetry` class
 - `EventHandlerTypes` class
 - `FieldsSchema` const
+- `FilterKeys` class
 - `FilterQuerySchema` const
 - `FilterSchema` const
 - `findResponseHeaders` const
@@ -1421,6 +1423,8 @@ generated:
 - `IRepositoryMetadataBase` interface
 - `IRepositoryMixin` interface
 - `IRequestedExtra` interface
+- `IRequestFilterJudge` interface
+- `IRequestFilterShape` interface
 - `IRequestIdOptions` interface
 - `IResolvedRepositoryMetadata` interface
 - `IRestApplication` interface
@@ -1482,6 +1486,7 @@ generated:
 - `RequestContextRegistry` class
 - `RequestDomainResolver` class
 - `RequestErrors` const
+- `RequestFilterGuard` class
 - `ResolverUtility` class
 - `ResponseExtras` class
 - `ResponseFormats` class
@@ -1618,6 +1623,7 @@ generated:
 - `TRepositoryOperationScope` type
 - `TRepositoryType` type
 - `TRequestContextResolver` type
+- `TRequestFilterKeyKind` type
 - `TResponseBodyOf` type
 - `TResponseExtra` type
 - `TResponseFormat` type
@@ -2380,7 +2386,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1019)
+### `@venizia/ignis` (1024)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2578,6 +2584,7 @@ generated:
 - `FieldMappingDataTypes` class
 - `FieldsSchema` const
 - `FileExtensions` class
+- `FilterKeys` class
 - `FilterQuerySchema` const
 - `FilterSchema` const
 - `findResponseHeaders` const
@@ -2797,6 +2804,8 @@ generated:
 - `IRepositoryMixin` interface
 - `IRequestedExtra` interface
 - `IRequestedRemark` interface
+- `IRequestFilterJudge` interface
+- `IRequestFilterShape` interface
 - `IRequestIdOptions` interface
 - `IRequestOptions` interface
 - `IResolvedClaimsConfig` interface
@@ -3004,6 +3013,7 @@ generated:
 - `RequestContextRegistry` class
 - `RequestDomainResolver` class
 - `RequestErrors` const
+- `RequestFilterGuard` class
 - `RequestIdGenerator` class
 - `RequestTrackerComponent` class
 - `RequestUtility` class
@@ -3286,6 +3296,7 @@ generated:
 - `TRepositoryOperationScope` type
 - `TRepositoryType` type
 - `TRequestContextResolver` type
+- `TRequestFilterKeyKind` type
 - `TResolveDomainEdgesFn` type
 - `TResolver` type
 - `TResponseBodyOf` type

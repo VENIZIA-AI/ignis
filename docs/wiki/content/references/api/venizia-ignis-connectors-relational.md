@@ -330,6 +330,22 @@ export declare abstract class FilterBuilder extends BaseHelper {
     private buildNotCondition;
     /** Builds SQL conditions for logical groups (AND/OR). */
     private buildLogicalGroupCondition;
+    /** The refusal of a key that names no column, as the query words it. One builder, so a refusal made before the query (a request guard) is the very same text. */
+    protected columnNotFoundMessage(opts: {
+        method: string;
+        tableName: string;
+        key: string;
+    }): Error;
+    /**
+     * The error the query gives for a `where` key or an `order` field that names no column: a JSON path is judged by its first
+     * part, with the JSON method's wording, and any other key by itself. A request guard throws it for a hidden field, so a caller
+     * cannot tell a hidden column from one that does not exist.
+     */
+    columnNotFoundError(opts: {
+        kind: 'where' | 'order';
+        key: string;
+        tableName: string;
+    }): Error;
     protected validateJsonColumn(opts: {
         key: string;
         columns: TTableColumns;
@@ -666,6 +682,20 @@ The engine-neutral query-dialect surface a repository consumes via `dataSource.g
 
 ```ts
 export interface IRelationalQueryDialect {
+    /** The relations a schema declares, by name. */
+    resolveRelations(opts: {
+        schema: TTableSchemaWithId;
+    }): Record<string, TRelationConfig>;
+    /** The error the query gives for a `where` key or an `order` field that names no column. */
+    columnNotFoundError(opts: {
+        kind: 'where' | 'order';
+        key: string;
+        tableName: string;
+    }): Error;
+    /** The fields the model of a schema hides. */
+    resolveHiddenProperties(opts: {
+        schema: TTableSchemaWithId;
+    }): Set<string>;
     mergeFilter<T = any>(opts: {
         defaultFilter?: TFilter<T>;
         userFilter?: TFilter<T>;
@@ -1628,6 +1658,13 @@ export declare abstract class RelationalBaseRepository<EntitySchema extends TTab
         dataSource: TDataSource;
     }): void;
     getEntitySchema(): EntitySchema;
+    /**
+     * Judges a request filter's keys as this repository's query reads them: a JSON path names the column it starts with
+     * (`[meta].pin`, `.meta.pin` and `meta.pin` all read `meta`), and a refusal is the error the query gives for a column that does
+     * not exist. An include scope is judged by the hidden fields of the model its relation points to.
+     */
+    protected createRequestFilterJudge(): IRequestFilterJudge;
+    private judgeSchema;
     /** Hidden fields as a memoized Set, derived from the base's class-keyed `hiddenFields` array. */
     getHiddenProperties(): Set<string>;
     hasHiddenProperties(): boolean;

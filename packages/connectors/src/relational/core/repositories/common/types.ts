@@ -52,6 +52,12 @@ export type TTableColumns = ReturnType<typeof getTableColumns>;
 
 /** The engine-neutral query-dialect surface a repository consumes via `dataSource.getQueryDialect()`, never constructed inside the repository. */
 export interface IRelationalQueryDialect {
+  /** The relations a schema declares, by name. */
+  resolveRelations(opts: { schema: TTableSchemaWithId }): Record<string, TRelationConfig>;
+  /** The error the query gives for a `where` key or an `order` field that names no column. */
+  columnNotFoundError(opts: { kind: 'where' | 'order'; key: string; tableName: string }): Error;
+  /** The fields the model of a schema hides. */
+  resolveHiddenProperties(opts: { schema: TTableSchemaWithId }): Set<string>;
   mergeFilter<T = any>(opts: { defaultFilter?: TFilter<T>; userFilter?: TFilter<T> }): TFilter<T>;
   composeScope<T = any>(opts: { scopeWhere: TWhere<T>; userFilter?: TFilter<T> }): TFilter<T>;
   build<Schema extends TTableSchemaWithId>(opts: {

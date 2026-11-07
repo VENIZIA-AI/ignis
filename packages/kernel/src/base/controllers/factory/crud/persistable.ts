@@ -112,6 +112,8 @@ export abstract class PersistableCrudController<
 
     const { where } = resolved;
 
+    this.assertRequestFilter({ filter: { where } });
+
     const rs = await this.measure({
       scope: 'updateBy',
       args: { where, data },
@@ -177,6 +179,8 @@ export abstract class PersistableCrudController<
     }
 
     const { where } = resolved;
+
+    this.assertRequestFilter({ filter: { where } });
 
     const rs = await this.measure({
       scope: 'deleteBy',

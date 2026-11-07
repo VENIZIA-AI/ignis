@@ -1,4 +1,4 @@
-import type { ITransaction } from '@venizia/ignis-kernel';
+import type { IRequestFilterJudge, ITransaction } from '@venizia/ignis-kernel';
 import type { TFields, TFilter, TLockOptions, TWhere } from '@venizia/ignis-kernel';
 import { AbstractRepository } from '@venizia/ignis-kernel/repository';
 import { DEFAULT_MAX_LIMIT } from '@venizia/ignis-kernel/repository';
@@ -54,6 +54,16 @@ export abstract class SearchBaseRepository<
 
   protected get queryDialect(): ISearchQueryDialect {
     return this.dataSource.getQueryDialect();
+  }
+
+  /** A request filter naming a hidden field is refused with the error the engine's dialect gives for a field the collection does not declare. */
+  protected override createRequestFilterJudge(): IRequestFilterJudge {
+    const judge = super.createRequestFilterJudge();
+
+    return {
+      ...judge,
+      refuse: ({ kind, key }) => this.queryDialect.fieldNotFoundError({ kind, field: key }),
+    };
   }
 
   get multiSearch(): TDataSource['multiSearch'] {

@@ -2,6 +2,7 @@ import type {
   IdType,
   IExtraOptions,
   IPersistableRepository,
+  IRequestFilterJudge,
   IModelAccessThroughSettings,
   TModelAccessSettings,
   ITransaction,
@@ -37,6 +38,7 @@ import type {
   TTableObject,
   TTableSchemaWithId,
 } from '@/relational/core/models';
+import { FilterKeys } from '@venizia/ignis-filter';
 import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { and, getTableColumns, inArray } from 'drizzle-orm';
@@ -44,6 +46,7 @@ import type {
   IRelationalExtraOptions,
   IRelationalQueryDialect,
   IRelationalQueryExecutor,
+  TRelationConfig,
   TRelationalConnectorOf,
   TRelationalTransactionOf,
   TRelationalTransactionOptionsOf,
@@ -127,6 +130,43 @@ export abstract class RelationalBaseRepository<
 
   getEntitySchema(): EntitySchema {
     return this.entity.schema;
+  }
+
+  /**
+   * Judges a request filter's keys as this repository's query reads them: a JSON path names the column it starts with
+   * (`[meta].pin`, `.meta.pin` and `meta.pin` all read `meta`), and a refusal is the error the query gives for a column that does
+   * not exist. An include scope is judged by the hidden fields of the model its relation points to.
+   */
+  protected override createRequestFilterJudge(): IRequestFilterJudge {
+    return this.judgeSchema({ schema: this.entity.schema, hidden: this.getHiddenProperties() });
+  }
+
+  private judgeSchema(opts: {
+    schema: TTableSchemaWithId;
+    hidden: ReadonlySet<string>;
+  }): IRequestFilterJudge {
+    const { schema, hidden } = opts;
+    const dialect = this.queryDialect;
+
+    return {
+      isHidden: ({ key }) => hidden.has(FilterKeys.columnOf({ key })),
+      refuse: (refusal) => dialect.columnNotFoundError(refusal),
+      relation: ({ relation }) => {
+        const relations = dialect.resolveRelations({ schema });
+        const config: TRelationConfig | undefined = Object.hasOwn(relations, relation)
+          ? relations[relation]
+          : undefined;
+
+        if (!config) {
+          return undefined;
+        }
+
+        return this.judgeSchema({
+          schema: config.schema,
+          hidden: dialect.resolveHiddenProperties({ schema: config.schema }),
+        });
+      },
+    };
   }
 
   /** Hidden fields as a memoized Set, derived from the base's class-keyed `hiddenFields` array. */

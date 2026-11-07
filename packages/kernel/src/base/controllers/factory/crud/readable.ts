@@ -60,6 +60,10 @@ export abstract class ReadableCrudController<
   async count(opts: { context: TRouteContext<RouteEnv> }) {
     const { context } = opts;
     const { where } = context.req.valid<{ where: TWhere<TDataObject> }>('query');
+
+    // What the client sent, before the base where joins it: a hidden field cannot be asked about.
+    this.assertRequestFilter({ filter: { where } });
+
     const baseWhere = await this.getBaseWhere({ context });
     const scopedWhere = baseWhere ? withBaseWhere({ baseWhere, where }) : where;
 
@@ -76,6 +80,9 @@ export abstract class ReadableCrudController<
   async find(opts: { context: TRouteContext<RouteEnv> }) {
     const { context } = opts;
     const { filter = {} } = context.req.valid<{ filter?: TFilter<TDataObject> }>('query');
+
+    this.assertRequestFilter({ filter });
+
     const baseWhere = await this.getBaseWhere({ context });
     const scopedFilter = baseWhere
       ? { ...filter, where: withBaseWhere({ baseWhere, where: filter.where }) }
@@ -107,6 +114,9 @@ export abstract class ReadableCrudController<
     const { context } = opts;
     const { id } = context.req.valid<{ id: IdType }>('param');
     const { filter } = context.req.valid<{ filter?: Omit<TFilter<TDataObject>, 'where'> }>('query');
+
+    this.assertRequestFilter({ filter });
+
     const baseWhere = await this.getBaseWhere({ context });
 
     // `repository.findById` takes no where, so a scoped read goes through `findOne` - the same
@@ -139,6 +149,9 @@ export abstract class ReadableCrudController<
   async findOne(opts: { context: TRouteContext<RouteEnv> }) {
     const { context } = opts;
     const { filter = {} } = context.req.valid<{ filter?: TFilter<TDataObject> }>('query');
+
+    this.assertRequestFilter({ filter });
+
     const baseWhere = await this.getBaseWhere({ context });
     const scopedFilter = baseWhere
       ? { ...filter, where: withBaseWhere({ baseWhere, where: filter.where }) }

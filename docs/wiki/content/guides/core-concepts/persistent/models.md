@@ -184,7 +184,7 @@ export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 |-----------|----------|
 | `find()`, `findOne()`, `findById()` | Hidden excluded from SELECT |
 | `create()`, `updateById()`, `deleteById()` | Hidden excluded from RETURNING |
-| Where clause filtering | Hidden fields **can** be used in filters |
+| Where clause filtering | Hidden fields **can** be used in filters by server code on the repository. A generated controller refuses a request filter that names one (`400`) |
 | Direct connector query | Hidden fields **included** (bypasses repository) |
 
 When you need to access hidden data, use the connector directly:

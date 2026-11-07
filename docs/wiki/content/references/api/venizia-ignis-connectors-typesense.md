@@ -724,6 +724,11 @@ export interface ISearchQueryDialect {
     toWhere(opts: {
         where: TWhere;
     }): string;
+    /** The error this engine gives for a `where` key or an `order` field that names no field: a request guard throws it for a hidden field, so the two cannot be told apart. */
+    fieldNotFoundError(opts: {
+        kind: 'where' | 'order';
+        field: string;
+    }): Error;
     /**
      * Compiles a `where` tree, resolving what a filter string cannot express. `capabilities` is
      * per-call, never retained - one dialect instance serves every datasource.
@@ -1545,6 +1550,8 @@ export declare abstract class SearchBaseRepository<TDocument extends object = ob
     get collectionName(): string;
     protected get connector(): ReturnType<TDataSource['getConnector']>;
     protected get queryDialect(): ISearchQueryDialect;
+    /** A request filter naming a hidden field is refused with the error the engine's dialect gives for a field the collection does not declare. */
+    protected createRequestFilterJudge(): IRequestFilterJudge;
     get multiSearch(): TDataSource['multiSearch'];
     setDataSource(opts: {
         dataSource: TDataSource;
@@ -2252,6 +2259,8 @@ export declare abstract class SearchBaseRepository<TDocument extends object = ob
     get collectionName(): string;
     protected get connector(): ReturnType<TDataSource['getConnector']>;
     protected get queryDialect(): ISearchQueryDialect;
+    /** A request filter naming a hidden field is refused with the error the engine's dialect gives for a field the collection does not declare. */
+    protected createRequestFilterJudge(): IRequestFilterJudge;
     get multiSearch(): TDataSource['multiSearch'];
     setDataSource(opts: {
         dataSource: TDataSource;
@@ -2708,6 +2717,10 @@ export declare class TypesenseQueryDialect extends BaseHelper implements ISearch
     conjoin(opts: {
         clauses: TCompiledWhere[];
     }): TCompiledWhere;
+    fieldNotFoundError(opts: {
+        kind: 'where' | 'order';
+        field: string;
+    }): Error;
     private toOrderBy;
     /** A logical group always parenthesises, so precedence never depends on where the group sat in the tree. */
     private compileLogicalGroup;

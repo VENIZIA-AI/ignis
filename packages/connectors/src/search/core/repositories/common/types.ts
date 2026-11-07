@@ -105,6 +105,9 @@ export interface ISearchQueryDialect {
    */
   toWhere(opts: { where: TWhere }): string;
 
+  /** The error this engine gives for a `where` key or an `order` field that names no field: a request guard throws it for a hidden field, so the two cannot be told apart. */
+  fieldNotFoundError(opts: { kind: 'where' | 'order'; field: string }): Error;
+
   /**
    * Compiles a `where` tree, resolving what a filter string cannot express. `capabilities` is
    * per-call, never retained - one dialect instance serves every datasource.

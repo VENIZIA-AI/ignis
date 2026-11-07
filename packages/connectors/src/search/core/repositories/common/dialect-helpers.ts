@@ -193,8 +193,8 @@ export class SearchDialectHelper {
    * `enable_nested_fields` a dotted name is an ordinary field name, so `merchantName.en` passes when
    * declared and `metadata.foo` fails when not, for the only reason that is true of it.
    *
-   * Hidden fields stay filterable on purpose - `FilterBuilder` does not consult `hiddenProperties`
-   * either, and diverging from the reference is not this change's business.
+   * A request guard refuses a hidden field with this same error (`fieldNotFoundError`), so a caller cannot tell a hidden
+   * field from one the collection does not declare.
    */
   static assertKnownField(opts: {
     field: string;
@@ -208,7 +208,14 @@ export class SearchDialectHelper {
       return;
     }
 
-    throw getError({
+    throw SearchDialectHelper.fieldNotFoundError({ field, engine, method });
+  }
+
+  /** The error for a field the collection declares no such field of. One builder, so every refusal of an unknown field reads alike. */
+  static fieldNotFoundError(opts: { field: string; engine: string; method?: string }): Error {
+    const { field, engine, method = 'compileWhere' } = opts;
+
+    return getError({
       error: SearchErrors.UNKNOWN_FIELD,
       message: `[${engine}QueryDialect][${method}] search() Field NOT FOUND | field: '${EchoUtility.toSafeEcho({ value: field })}' | engine: '${engine}' | the collection definition declares no such field`,
     });

@@ -4,5 +4,6 @@ export * from '@venizia/ignis-filter';
 export * from './errors';
 export * from '../query-schemas';
 export * from './constants';
+export * from './request-filter-guard';
 export * from './scope-through';
 export * from './types';

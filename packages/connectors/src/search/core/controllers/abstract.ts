@@ -91,6 +91,11 @@ export abstract class AbstractSearchController<
     SearchRawAccess.assertSearchInput({ input: body, isAllowed: this.isRawAllowed });
     SearchEngineParams.assertSearchInput({ input: body, allowed: this.allowedEngineParams });
 
+    // The request's own filter cannot name a hidden field (where or order); server code is not held to it.
+    if (body.mode !== SearchModes.RAW) {
+      this.repository.assertRequestFilter({ filter: body.filter });
+    }
+
     if (this.searchScope) {
       const scoped = await SearchControllerScope.applySearchScope({
         resolve: this.searchScope,
