@@ -691,11 +691,13 @@ a multipart envelope is larger than the files inside it, and only the parsed fil
 authoritative.
 
 > [!WARNING]
-> `extra.maxBytes` bounds only a **declared** `content-length`. A chunked request that omits the
-> header skips this check entirely, and is bounded only by `configs.middlewares.bodyLimit` (see
-> [Body limit](/references/base/middlewares#body-limit-configs-middlewares-bodylimit)) or Bun's own
-> request-size limit. Pair `extra.maxBytes` with `configs.middlewares.bodyLimit` for a ceiling a
-> chunked upload cannot skip.
+> `extra.maxBytes` bounds a **declared** `content-length` early. The upload route also carries its own
+> body limit (`BodyLimits.route`): `maxFiles` files of `maxBytes` each plus their multipart framing
+> (4 KiB per file and 64 KiB for the other parts), so a chunked request that omits the header is
+> counted too, and the 5 MiB default limit stands aside for it (see
+> [Body limit](/references/base/middlewares#body-limit-configs-middlewares-bodylimit)). Without
+> `extra.maxBytes` the upload route is held to that default. Raise `configs.server.maxRequestBodySize`
+> above the route's limit, or Bun's own limit answers first.
 
 ### Upload validation order
 

@@ -605,6 +605,7 @@ export class AssetControllerFactory extends BaseHelper {
               : AssetRouteOptions.appendLengthGuard({
                   middleware: uploadRoute.override.middleware,
                   maxBytes,
+                  maxFiles: options?.parseMultipartBody?.maxFiles ?? DEFAULT_MAX_UPLOAD_FILES,
                 });
 
           this.bindRoute({

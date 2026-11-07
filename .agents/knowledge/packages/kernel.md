@@ -132,13 +132,15 @@ is underneath and which socket is bound belong to `ServerApplication`.
 ## One default middleware stack
 
 `RestApplication.registerDefaultMiddlewares()` installs the registrations every host shares:
-`requestId()` fed by `RequestIdGenerator`, `configs.middlewares.bodyLimit` when set, the framework
+`requestId()` fed by `RequestIdGenerator`, the body limit (`configs.middlewares.bodyLimit`, 5 MiB when unset), the framework
 error handler, and `notFoundHandler`. `WorkerApplication` inherits it untouched; `BaseApplication`
 calls `super()` and adds `contextStorage`, `RequestTrackerComponent` and the favicon on top.
 `buildErrorMiddleware()` is the one seam inside it, which core overrides to swap in the
 `ErrorPrettier`-backed formatter; it feeds `config.error.environment` through as the middleware's
 `environment` option, which is how a browser application declares the ambient environment it has no
 `process.env` to read.
+
+**The body limit is on by default.** Unset, `registerDefaultMiddlewares()` installs `BodyLimits.limiter` with `BodyLimits.DEFAULT_MAX_SIZE` (5 MiB) on every route; a configured `bodyLimit` replaces it, `enable: false` removes it, and the drift check (`assertBodyLimitUnchanged`) compares against the resolved default too. A route that takes larger bodies puts `BodyLimits.route({ maxSize })` in its `middleware`: the limiter is tagged with a registry symbol, the default limiter reads the tags of `context.req.matchedRoutes` and stands aside for a tagged route. The static-asset upload route tags itself (`maxFiles` files of `maxBytes` plus framing). Bun's own `maxRequestBodySize` (128 MiB by default) still answers first when it is lower.
 
 `configs.middlewares.bodyLimit` (`IMiddlewareConfigs`, `IBodyLimitOptions`) is the only middleware
 config the framework installs by itself - every other key in `IMiddlewareConfigs` is a type only,

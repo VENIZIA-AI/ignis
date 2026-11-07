@@ -53,6 +53,7 @@ const REST_APPLICATION_MEMBERS = [
   'registerDiscoveredArtifacts',
   'registerDynamicBindings',
   'repository',
+  'resolveBodyLimit',
   'runApplicationHook',
   'runBootSequence',
   'service',

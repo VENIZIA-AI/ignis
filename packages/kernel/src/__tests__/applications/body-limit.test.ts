@@ -1,3 +1,4 @@
+import { BodyLimits } from '@/base/applications/body-limit';
 import { RestApplication } from '@/base/applications/rest';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/common';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
@@ -76,7 +77,7 @@ const postChunked = (opts: {
 const LARGE_BODY = 'x'.repeat(2048);
 
 describe('configs.middlewares.bodyLimit', () => {
-  test('unset, a large body reaches the handler: no limit is invented', async () => {
+  test('unset, a body of the default size still reaches the handler (the default limit is tested below)', async () => {
     const server = await buildServer({});
 
     const response = await post({ server, path: '/echo', body: LARGE_BODY });
@@ -242,7 +243,7 @@ describe('configs.middlewares.bodyLimit is read once, before staticConfigure()',
   });
 
   for (const lateHook of ['staticConfigure', 'preConfigure'] as const) {
-    test(`set in ${lateHook}(), the boot is refused instead of running unlimited`, async () => {
+    test(`set in ${lateHook}(), the boot is refused instead of running with the default`, async () => {
       const refusal = await toRefusal(
         bootApplication({
           lateHook,
@@ -287,12 +288,25 @@ describe('configs.middlewares.bodyLimit is read once, before staticConfigure()',
   test('a disabled limit assigned late installs nothing either way, so the boot goes on', async () => {
     const refusal = await toRefusal(
       bootApplication({
+        middlewares: { bodyLimit: { enable: false, maxSize: 1024 } },
+        lateHook: 'staticConfigure',
+        lateMiddlewares: { bodyLimit: { enable: false, maxSize: 2048 } },
+      }),
+    );
+
+    expect(refusal).toBeUndefined();
+  });
+
+  test('a limit disabled late, where the default was installed, is a change: the boot is refused', async () => {
+    const refusal = await toRefusal(
+      bootApplication({
         lateHook: 'staticConfigure',
         lateMiddlewares: { bodyLimit: { enable: false, maxSize: 1024 } },
       }),
     );
 
-    expect(refusal).toBeUndefined();
+    expect(String(refusal)).toContain('configs.middlewares.bodyLimit');
+    expect(String(refusal)).toContain(`installed maxSize: ${BodyLimits.DEFAULT_MAX_SIZE}`);
   });
 
   test('without the default stack, nothing was installed, so nothing is compared', async () => {
@@ -305,5 +319,138 @@ describe('configs.middlewares.bodyLimit is read once, before staticConfigure()',
 
     const result = await toRefusal(application.initialize());
     expect(result).toBeUndefined();
+  });
+});
+
+/** The same stack, with routes that declare their own limit: one larger, one smaller. */
+const buildRouteServer = async (opts: { middlewares?: IApplicationConfigs['middlewares'] }) => {
+  const application = new BodyLimitApplication({
+    scope: BodyLimitApplication.name,
+    config: { path: { base: '/', isStrict: true }, middlewares: opts.middlewares },
+  });
+
+  await application['registerDefaultMiddlewares']();
+
+  const server = application.getServer();
+
+  const read = async (context: import('hono').Context) => {
+    const text = await context.req.text();
+
+    return context.json({ length: text.length });
+  };
+
+  server.post('/plain', read);
+  server.post('/import', BodyLimits.route({ maxSize: BodyLimits.DEFAULT_MAX_SIZE * 2 }), read);
+  server.post('/tiny', BodyLimits.route({ maxSize: 16 }), read);
+
+  return server;
+};
+
+const DEFAULT = BodyLimits.DEFAULT_MAX_SIZE;
+
+describe('the default body limit: 5 MiB on every route', () => {
+  test('the default is 5 MiB', () => {
+    expect(DEFAULT).toBe(5 * 1024 * 1024);
+  });
+
+  test('a body of exactly the default size reaches the handler', async () => {
+    const server = await buildServer({});
+
+    const response = await post({ server, path: '/echo', body: 'x'.repeat(DEFAULT) });
+
+    expect(response.status).toBe(HTTP.ResultCodes.RS_2.Ok);
+    const result2 = await response.json();
+    expect(result2).toEqual({ length: DEFAULT });
+  });
+
+  test('a declared length of one byte over is a 413 in the error envelope, with its code', async () => {
+    const server = await buildServer({});
+
+    const response = await post({ server, path: '/echo', body: 'x'.repeat(DEFAULT + 1) });
+    const result3 = await response.json();
+    const result = result3 as { message?: string; normalized?: { code?: string } };
+
+    expect(response.status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
+    expect(JSON.stringify(result)).toContain(BODY_TOO_LARGE_CODE);
+  });
+
+  test('a chunked body over the default is a 413 too: no Content-Length is needed', async () => {
+    const server = await buildServer({});
+
+    const response = await postChunked({ server, path: '/echo', body: 'x'.repeat(DEFAULT + 1) });
+
+    expect(response.status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
+  });
+
+  test('every route has it, a nested upload path included', async () => {
+    const server = await buildServer({});
+
+    const response = await post({ server, path: '/upload/file', body: 'x'.repeat(DEFAULT + 1) });
+
+    expect(response.status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
+  });
+
+  test('a configured bodyLimit replaces the default, larger or smaller', async () => {
+    const larger = await buildServer({ middlewares: { bodyLimit: { maxSize: DEFAULT * 2 } } });
+    const smaller = await buildServer({ middlewares: { bodyLimit: { maxSize: 1024 } } });
+
+    const result4 = await post({ server: larger, path: '/echo', body: 'x'.repeat(DEFAULT + 1) });
+    expect(result4.status).toBe(HTTP.ResultCodes.RS_2.Ok);
+    const result5 = await post({ server: smaller, path: '/echo', body: LARGE_BODY });
+    expect(result5.status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
+  });
+
+  test('enable: false removes the limit', async () => {
+    const server = await buildServer({ middlewares: { bodyLimit: { enable: false, maxSize: 1 } } });
+
+    const response = await post({ server, path: '/echo', body: 'x'.repeat(DEFAULT + 1) });
+
+    expect(response.status).toBe(HTTP.ResultCodes.RS_2.Ok);
+  });
+});
+
+describe('BodyLimits.route: a route sets its own limit', () => {
+  test('a route with a larger limit takes a body the default refuses', async () => {
+    const server = await buildRouteServer({});
+    const body = 'x'.repeat(DEFAULT + 1);
+
+    const result = await post({ server, path: '/plain', body });
+    expect(result.status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
+    const result2 = await post({ server, path: '/import', body });
+    expect(result2.status).toBe(HTTP.ResultCodes.RS_2.Ok);
+  });
+
+  test('the route limit is a limit: a body over it is a 413, declared or chunked', async () => {
+    const server = await buildRouteServer({});
+    const body = 'x'.repeat(DEFAULT * 2 + 1);
+
+    const result3 = await post({ server, path: '/import', body });
+    expect(result3.status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
+    const result4 = await postChunked({ server, path: '/import', body });
+    expect(result4.status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
+  });
+
+  test('a route may set a smaller limit than the default', async () => {
+    const server = await buildRouteServer({});
+
+    const result5 = await post({ server, path: '/tiny', body: 'x'.repeat(16) });
+    expect(result5.status).toBe(HTTP.ResultCodes.RS_2.Ok);
+    const result6 = await post({ server, path: '/tiny', body: 'x'.repeat(17) });
+    expect(result6.status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
+  });
+
+  test('the default stands aside for a route limit also over a configured default', async () => {
+    const server = await buildRouteServer({ middlewares: { bodyLimit: { maxSize: 1024 } } });
+
+    const result7 = await post({ server, path: '/import', body: 'x'.repeat(DEFAULT) });
+    expect(result7.status).toBe(HTTP.ResultCodes.RS_2.Ok);
+    const result8 = await post({ server, path: '/plain', body: LARGE_BODY });
+    expect(result8.status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
+  });
+
+  test('a maxSize that is not a non-negative number is refused when the route is declared', () => {
+    for (const maxSize of [-1, Number.NaN, Number.POSITIVE_INFINITY, '5', undefined]) {
+      expect(() => BodyLimits.route({ maxSize: maxSize as never })).toThrow(/maxSize/);
+    }
   });
 });

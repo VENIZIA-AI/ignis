@@ -53,10 +53,11 @@ protected async registerDefaultMiddlewares() {
   // 1. Request id
   server.use(requestId({ generator: () => this.generateRequestId() }));
 
-  // 2. Body limit - only when configs.middlewares.bodyLimit is set and enable !== false.
+  // 2. Body limit - 5 MiB when configs.middlewares.bodyLimit is unset, and unless enable === false.
   // Ahead of every middleware a host adds after this one, the request spy included.
+  // A route with its own limit (BodyLimits.route) is held to that one instead.
   if (bodyLimitOptions && bodyLimitOptions.enable !== false) {
-    server.use(bodyLimit({ maxSize, onError }));
+    server.use(limiter);
   }
 
   // 3. Global error handler
@@ -180,7 +181,7 @@ The `:*` port also works on a subdomain wildcard (`https://*.example.com:*` matc
 
 ## Body limit (`configs.middlewares.bodyLimit`)
 
-`RestApplication.registerDefaultMiddlewares()` reads `configs.middlewares.bodyLimit` and, when it is set and `enable !== false`, installs Hono's `hono/body-limit` right after the request id - ahead of every middleware a host adds afterward, the request spy included. Left unset, there is no body-size limit from the framework.
+`RestApplication.registerDefaultMiddlewares()` installs Hono's `hono/body-limit` right after the request id - ahead of every middleware a host adds afterward, the request spy included. **Left unset, every route has a limit of 5 MiB** (`BodyLimits.DEFAULT_MAX_SIZE`). A configured `bodyLimit` replaces that default, and `enable: false` removes the limit. A route that takes larger bodies sets its own limit, see [A route's own limit](#a-route-s-own-limit).
 
 ```typescript
 interface IBodyLimitOptions extends IBaseMiddlewareOptions {
@@ -191,9 +192,9 @@ interface IBodyLimitOptions extends IBaseMiddlewareOptions {
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `maxSize` | `number` | - | Byte ceiling. Must be a finite number `>= 0`, or the application throws at boot. |
+| `maxSize` | `number` | `5242880` (5 MiB) when `bodyLimit` is unset | Byte ceiling. Must be a finite number `>= 0`, or the application throws at boot. |
 | `enable` | `boolean` | applies the limit unless `false` | A missing `enable` still applies the limit - fail-closed for a security control. |
-| `path` | `string` | every path | Passed to `server.use(path, limiter)` when set. |
+| `path` | `string` | every path | Passed to `server.use(path, limiter)` when set. With a `path`, only the routes under it are limited: the 5 MiB default is replaced, not added. |
 | `onError` | `(c: Context) => Response \| Promise<Response>` | throws `RequestErrors.BODY_TOO_LARGE` | Your own handler for the over-limit case. |
 
 ```typescript
@@ -210,10 +211,28 @@ const application = new MyApplication({
 
 `bodyLimit` follows the same rule as `cors`: set it in the constructor, see [Set `configs.middlewares` in the constructor](#set-configs-middlewares-in-the-constructor).
 
+### A route's own limit
+
+An upload or an import that takes bodies over the default puts `BodyLimits.route({ maxSize })` in the route's `middleware`. The default limit stands aside for that route, and this one answers instead - larger or smaller than the default, declared length or chunked.
+
+```typescript
+import { BodyLimits } from '@venizia/ignis';
+
+this.defineRoute({
+  configs: {
+    ...routeConfig,
+    middleware: [BodyLimits.route({ maxSize: 50 * 1024 * 1024 })],
+  },
+  handler,
+});
+```
+
+Raise `configs.server.maxRequestBodySize` to at least the largest route limit: Bun's own limit (default 128 MiB) answers first when it is lower. The static-asset upload route sets its own limit from `extra.maxBytes`, see [the upload route](/extensions/components/static-asset/api).
+
 Over the limit, and with no `onError`, the request answers `413` with `core.request.body_too_large` (`RequestErrors.BODY_TOO_LARGE`). Every other `IMiddlewareConfigs` key - `compress`, `csrf`, `ipRestriction` - is a type only; wire it yourself in `setupMiddlewares()`, as in [User-Defined Middlewares](#user-defined-middlewares).
 
 > [!WARNING]
-> `extra.maxBytes` on a static-asset upload route only bounds a declared `Content-Length` - a chunked request with none skips it. Pair `extra.maxBytes` with `configs.middlewares.bodyLimit` for a ceiling nothing can skip. Raise `configs.server.maxRequestBodySize` above `bodyLimit.maxSize`, or Bun's own limit (default 128 MiB) answers `413` first, with no IGNIS envelope and no `core.request.body_too_large` code. Keep `bodyLimit.path` away from a route that streams a body through - the limiter buffers the whole body on any path it is scoped to, chunked or not.
+> `extra.maxBytes` on a static-asset upload route bounds a declared `Content-Length` early, and the route now also carries its own body limit (`maxFiles` files of `maxBytes` plus multipart framing), so a chunked request with none is counted too. Raise `configs.server.maxRequestBodySize` above the largest limit, or Bun's own limit (default 128 MiB) answers `413` first, with no IGNIS envelope and no `core.request.body_too_large` code. A route that streams a body through is held to the 5 MiB default: give it `BodyLimits.route({ maxSize })`, or `enable: false` for an application that must not limit.
 
 ## Form body reader
 

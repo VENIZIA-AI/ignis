@@ -11,9 +11,8 @@ import {
   RequestIdGenerator,
   RetryHelper,
 } from '@venizia/ignis-helpers/core';
-import type { Env, Schema } from 'hono';
+import type { Env, MiddlewareHandler, Schema } from 'hono';
 import { showRoutes as showApplicationRoutes } from 'hono/dev';
-import { bodyLimit } from 'hono/body-limit';
 import { requestId } from 'hono/request-id';
 import type { BaseComponent } from '../components';
 import { ArtifactBindingKeys } from '../metadata/artifact-keys';
@@ -22,12 +21,12 @@ import type { BaseConfiguration } from '../configurations';
 import { ControllerTransports } from '../controllers/common/constants';
 import type { IDataSource } from '../datasources';
 import { BaseAppErrorMiddleware } from '../middlewares/app-error/app-error.middleware';
-import { RequestErrors } from '../middlewares/common/errors';
 import { notFoundHandler } from '../middlewares/not-found/not-found.middleware';
 import type { TMixinOpts } from '../mixins/common';
 import type { IRepository } from '../repositories';
 import type { IService } from '../services';
 import { AbstractApplication } from './abstract';
+import { BodyLimits } from './body-limit';
 import { CorsUtility } from './cors';
 import { ArtifactIndexHelper } from './artifact-index';
 import type { IBootSequenceStep } from './boot-sequence';
@@ -137,7 +136,10 @@ export abstract class RestApplication<
     server.use(requestId({ generator: () => this.generateRequestId() }));
 
     // Ahead of every middleware a host adds after this one, so none of them buffers a body over it.
-    const bodyLimitOptions = this.configs.middlewares?.bodyLimit;
+    // Unset, every route gets BodyLimits.DEFAULT_MAX_SIZE; a configured bodyLimit replaces it, and `enable: false` removes it.
+    const bodyLimitOptions = this.resolveBodyLimit({
+      options: this.configs.middlewares?.bodyLimit,
+    });
     this.installedBodyLimit = { options: this.toInstalledBodyLimit({ options: bodyLimitOptions }) };
 
     if (bodyLimitOptions && bodyLimitOptions.enable !== false) {
@@ -149,17 +151,11 @@ export abstract class RestApplication<
         });
       }
 
-      const limiter = bodyLimit({
-        maxSize,
-        onError:
-          onError ??
-          (() => {
-            throw getError({
-              error: RequestErrors.BODY_TOO_LARGE,
-              message: `Request body exceeds the maximum of ${maxSize} bytes`,
-            });
-          }),
-      });
+      const defaultLimiter = BodyLimits.limiter({ maxSize, onError });
+
+      // A route with its own limit (BodyLimits.route) is held to that one, not to this.
+      const limiter: MiddlewareHandler = (context, next) =>
+        BodyLimits.hasRouteLimit(context) ? next() : defaultLimiter(context, next);
 
       if (path) {
         server.use(path, limiter);
@@ -170,6 +166,11 @@ export abstract class RestApplication<
 
     server.onError(this.buildErrorMiddleware().value());
     server.notFound(notFoundHandler({ logger: this.logger }));
+  }
+
+  /** The configured `bodyLimit`, or the default one when none is configured. */
+  private resolveBodyLimit(opts: { options?: IBodyLimitOptions }): IBodyLimitOptions {
+    return opts.options ?? { maxSize: BodyLimits.DEFAULT_MAX_SIZE };
   }
 
   /** What a `bodyLimit` config installs: nothing when absent or disabled, else a copy, so a later in-place edit shows. */
@@ -213,7 +214,9 @@ export abstract class RestApplication<
     }
 
     const installed = this.installedBodyLimit.options;
-    const current = this.toInstalledBodyLimit({ options: this.configs.middlewares?.bodyLimit });
+    const current = this.toInstalledBodyLimit({
+      options: this.resolveBodyLimit({ options: this.configs.middlewares?.bodyLimit }),
+    });
 
     if (this.isSameBodyLimit({ left: installed, right: current })) {
       return;

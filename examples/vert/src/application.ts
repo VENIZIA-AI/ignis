@@ -27,7 +27,6 @@ import {
   HTTP,
   RedisSingleHelper,
 } from '@venizia/ignis-helpers';
-import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common';
@@ -44,6 +43,15 @@ export const beConfigs: IApplicationConfigs = {
   path: { base: process.env.APP_ENV_SERVER_BASE_PATH ?? '/v1/api', isStrict: true },
   error: { rootKey: 'error' },
   debug: { shouldShowRoutes: !Environment.is({ name: Environment.PRODUCTION }) },
+
+  // Asset uploads are the large bodies here. The framework limits every route to 5 MiB unless told otherwise, and
+  // it installs the limit ahead of any middleware added in setupMiddlewares(), so the 100 MiB ceiling is configured here.
+  middlewares: {
+    bodyLimit: {
+      maxSize: 100 * 1024 * 1024,
+      onError: (context) => context.json({}, HTTP.ResultCodes.RS_4.ContentTooLarge),
+    },
+  },
 
   // Every decorated class under src/, listed at build time by `bun run generate:artifacts`.
   artifacts: GeneratedArtifacts,
@@ -68,13 +76,6 @@ export class Application extends BaseApplication {
         allowMethods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
         maxAge: 86_400,
         credentials: true,
-      }),
-    );
-    server.use(
-      '*',
-      bodyLimit({
-        maxSize: 100 * 1024 * 1024,
-        onError: (context) => context.json({}, HTTP.ResultCodes.RS_4.ContentTooLarge),
       }),
     );
   }

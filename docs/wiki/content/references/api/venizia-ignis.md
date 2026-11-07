@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-99 exports, 99 with TSDoc. 918 more are re-exported from other entries (listed at the end).
+99 exports, 99 with TSDoc. 919 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3107,6 +3107,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `BindingNamespaces` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `BindingScopes` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `BindingValueTypes` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
+- `BodyLimits` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `BootSequence` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `BootSteps` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `BuildInfoRegistry` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)

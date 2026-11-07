@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-343 exports, 343 with TSDoc. 77 more are re-exported from other entries (listed at the end).
+344 exports, 344 with TSDoc. 77 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -1680,6 +1680,41 @@ export type BigIntIdType = bigint;
 
 Source: `packages/kernel/src/base/models/common/types/id.ts`
 
+## `BodyLimits`
+
+*class*
+
+The request body limit: the default every route gets, and the limit one route sets for itself.
+
+The application installs the default (`DEFAULT_MAX_SIZE`) ahead of every other middleware, so no route reads
+a body over it. A route that takes larger bodies (an upload, an import) puts `BodyLimits.route({ maxSize })`
+in its `middleware`: the default steps aside for that route and this limit answers instead. The limit counts
+the bytes that arrive, so a chunked body with no `Content-Length` is held to it too.
+
+```ts
+export declare class BodyLimits {
+    /** The default of every route: 5 MiB. */
+    static readonly DEFAULT_MAX_SIZE: number;
+    /** The limiter itself: a body over `maxSize` bytes is the framework's 413, or the `onError` answer. */
+    static limiter(opts: {
+        maxSize: number;
+        onError?: (context: Context) => Response | Promise<Response>;
+    }): MiddlewareHandler;
+    /**
+     * The limit of one route, to put in the route's `middleware`. It replaces the default for this route, larger or smaller.
+     * A body larger than the host accepts at all (`configs.server.maxRequestBodySize`, Bun's own cap) is still refused there.
+     */
+    static route(opts: {
+        maxSize: number;
+        onError?: (context: Context) => Response | Promise<Response>;
+    }): MiddlewareHandler;
+    /** Whether the route this request matched carries its own limit, so the default stands aside. */
+    static hasRouteLimit(context: Context): boolean;
+}
+```
+
+Source: `packages/kernel/src/base/applications/body-limit.ts`
+
 ## `BootSequence`
 
 *class*
@@ -3109,6 +3144,10 @@ Source: `packages/kernel/src/base/controllers/common/types/route.ts`
 *interface*
 
 Options of the body limit middleware the framework installs right after the request id. `maxSize` is in bytes.
+
+Unset (no `bodyLimit` key), every route gets `BodyLimits.DEFAULT_MAX_SIZE`, 5 MiB. Configured, it replaces
+the default (with a `path`, only the routes under it are limited). `enable: false` removes the limit. A route
+that takes larger bodies puts `BodyLimits.route({ maxSize })` in its `middleware`.
 
 ```ts
 export interface IBodyLimitOptions extends IBaseMiddlewareOptions {
@@ -5750,6 +5789,8 @@ export declare abstract class RestApplication<AppEnv extends Env = Env, AppSchem
      * Registered before `initialize()`, so an application's own handlers still win.
      */
     protected registerDefaultMiddlewares(): ValueOrPromise<void>;
+    /** The configured `bodyLimit`, or the default one when none is configured. */
+    private resolveBodyLimit;
     /** What a `bodyLimit` config installs: nothing when absent or disabled, else a copy, so a later in-place edit shows. */
     private toInstalledBodyLimit;
     private isSameBodyLimit;
