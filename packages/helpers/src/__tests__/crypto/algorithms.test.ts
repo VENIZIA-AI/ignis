@@ -162,37 +162,58 @@ describe('Crypto Algorithms', () => {
         expect(result2).toBeString();
       });
 
-      test('TC-019: decrypt of a malformed message with doThrow=false returns the input', async () => {
+      test('TC-019: a failed decrypt always throws; the removed doThrow option is refused, not ignored', async () => {
         const message = 'not-a-ciphertext';
-        const result = await aes.decrypt({ message, secret: SECRET_32, opts: { doThrow: false } });
-        expect(result).toBe(message);
+        const failure = await Rejection.messageOf({
+          promise: aes.decrypt({ message, secret: SECRET_32 }),
+        });
+        const removed = await Rejection.messageOf({
+          promise: aes.decrypt({ message, secret: SECRET_32, opts: { doThrow: false } as never }),
+        });
+
+        expect(failure).toBeString();
+        expect(failure).not.toContain('doThrow');
+        expect(removed).toContain('The doThrow option was removed');
       });
 
       test('TC-019b: a wrong secret never yields the plaintext, whichever way it fails', async () => {
         const encrypted = await aes.encrypt({ message: 'secret data', secret: SECRET_32 });
 
         for (let attempt = 0; attempt < 200; attempt += 1) {
-          const result3 = await aes.encrypt({ message: 'secret data', secret: SECRET_32 });
-          const result = await aes.decrypt({
-            message: result3,
-            secret: 'wrong-secret-key',
-            opts: { doThrow: false },
+          const sealed = await aes.encrypt({ message: 'secret data', secret: SECRET_32 });
+          // CBC has no authentication tag, so a wrong key either throws or decrypts to garbage; it never gives the plaintext.
+          const outcome = await Rejection.outcomeOf({
+            promise: aes.decrypt({ message: sealed, secret: 'wrong-secret-key' }),
           });
-          expect(result).not.toBe('secret data');
+
+          if ('value' in outcome) {
+            expect(outcome.value).not.toBe('secret data');
+          }
         }
 
         expect(encrypted).not.toBe('secret data');
       });
 
-      test('TC-020: encrypt with doThrow=false returns original on error', async () => {
+      test('TC-020: a failed encrypt throws and never returns the message as the result', async () => {
         const aesInvalid = new AES({ algorithm: 'aes-256-cbc' });
         // Force an error by using an IV with wrong length
-        const result = await aesInvalid.encrypt({
-          message: 'test',
-          secret: SECRET_32,
-          opts: { iv: Buffer.alloc(1), doThrow: false },
+        const failure = await Rejection.messageOf({
+          promise: aesInvalid.encrypt({
+            message: 'test',
+            secret: SECRET_32,
+            opts: { iv: Buffer.alloc(1) },
+          }),
         });
-        expect(result).toBe('test');
+        const removed = await Rejection.messageOf({
+          promise: aesInvalid.encrypt({
+            message: 'test',
+            secret: SECRET_32,
+            opts: { iv: Buffer.alloc(1), doThrow: false } as never,
+          }),
+        });
+
+        expect(failure).toContain('IV must be');
+        expect(removed).toContain('The doThrow option was removed');
       });
 
       test('TC-021: encrypt/decrypt empty string', async () => {
@@ -301,14 +322,13 @@ describe('Crypto Algorithms', () => {
         expect(result5).toBeString();
       });
 
-      test('TC-032: decrypt wrong secret with doThrow=false returns original', async () => {
+      test('TC-032: decrypt with a wrong secret throws, and the ciphertext is never handed back', async () => {
         const encrypted = await aes.encrypt({ message: 'GCM no throw', secret: SECRET_32 });
-        const result = await aes.decrypt({
-          message: encrypted,
-          secret: 'wrong-key',
-          opts: { doThrow: false },
+        const failure = await Rejection.messageOf({
+          promise: aes.decrypt({ message: encrypted, secret: 'wrong-key' }),
         });
-        expect(result).toBe(encrypted);
+
+        expect(failure).toBeString();
       });
 
       test('TC-033: encrypt/decrypt unicode content in GCM', async () => {
@@ -593,29 +613,39 @@ describe('Crypto Algorithms', () => {
         expect(result17).toBeString();
       });
 
-      test('TC-053: decrypt with wrong key and doThrow=false returns original', async () => {
+      test('TC-053: decrypt with the wrong key throws, and the ciphertext is never handed back', async () => {
         const otherKeys = await rsa.generateDERKeyPair();
         const wrongPrivKey = otherKeys.privateKey.toString('base64');
 
         const encrypted = await rsa.encrypt({ message: 'no throw test', secret: pubKeyB64 });
-        const result = await rsa.decrypt({
-          message: encrypted,
-          secret: wrongPrivKey,
-          opts: { doThrow: false },
+        const failure = await Rejection.messageOf({
+          promise: rsa.decrypt({ message: encrypted, secret: wrongPrivKey }),
         });
-        expect(result).toBe(encrypted);
+
+        expect(failure).toBeString();
       });
 
-      test('TC-054: encrypt with invalid key and doThrow=false returns original', async () => {
-        const result = await rsa.encrypt({
-          message: 'bad key',
-          secret: 'not-a-real-key',
-          opts: { doThrow: false },
+      test('TC-054: the removed doThrow option is refused by RSA, not ignored', async () => {
+        const encrypting = await Rejection.messageOf({
+          promise: rsa.encrypt({
+            message: 'bad key',
+            secret: 'not-a-real-key',
+            opts: { doThrow: false } as never,
+          }),
         });
-        expect(result).toBe('bad key');
+        const decrypting = await Rejection.messageOf({
+          promise: rsa.decrypt({
+            message: 'x',
+            secret: 'not-a-real-key',
+            opts: { doThrow: true } as never,
+          }),
+        });
+
+        expect(encrypting).toContain('The doThrow option was removed');
+        expect(decrypting).toContain('The doThrow option was removed');
       });
 
-      test('TC-055: encrypt with invalid key and doThrow=true (default) throws', async () => {
+      test('TC-055: encrypt with an invalid key throws', async () => {
         const result18 = await Rejection.messageOf({
           promise: rsa.encrypt({ message: 'bad key', secret: 'not-a-real-key' }),
         });

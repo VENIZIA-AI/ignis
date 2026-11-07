@@ -5,7 +5,6 @@ import { BaseCryptoAlgorithm } from './base.algorithm';
 interface IRSAExtraOptions {
   inputEncoding?: { key: BufferEncoding; message: BufferEncoding };
   outputEncoding?: BufferEncoding;
-  doThrow?: boolean;
 }
 
 /** The algorithm name `RSA` reports as its `algorithm`. */
@@ -69,34 +68,25 @@ export class RSA extends BaseCryptoAlgorithm<
     opts?: IRSAExtraOptions;
   }): Promise<string> {
     const { message, secret: pubKey } = opts;
-    const {
-      inputEncoding = { key: 'base64', message: 'utf-8' },
-      outputEncoding = 'base64',
-      doThrow = true,
-    } = opts.opts ?? {};
+    this.assertNoRemovedOptions({ method: 'encrypt', options: opts.opts });
 
-    try {
-      const key = await crypto.subtle.importKey(
-        'spki',
-        Buffer.from(pubKey, inputEncoding.key),
-        OAEP,
-        false,
-        ['encrypt'],
-      );
-      const cipherBytes = await crypto.subtle.encrypt(
-        { name: OAEP.name },
-        key,
-        Buffer.from(message, inputEncoding.message),
-      );
+    const { inputEncoding = { key: 'base64', message: 'utf-8' }, outputEncoding = 'base64' } =
+      opts.opts ?? {};
 
-      return Buffer.from(cipherBytes).toString(outputEncoding);
-    } catch (error) {
-      if (doThrow) {
-        throw error;
-      }
+    const key = await crypto.subtle.importKey(
+      'spki',
+      Buffer.from(pubKey, inputEncoding.key),
+      OAEP,
+      false,
+      ['encrypt'],
+    );
+    const cipherBytes = await crypto.subtle.encrypt(
+      { name: OAEP.name },
+      key,
+      Buffer.from(message, inputEncoding.message),
+    );
 
-      return message;
-    }
+    return Buffer.from(cipherBytes).toString(outputEncoding);
   }
 
   async decrypt(opts: {
@@ -105,33 +95,24 @@ export class RSA extends BaseCryptoAlgorithm<
     opts?: IRSAExtraOptions;
   }): Promise<string> {
     const { message, secret: privKey } = opts;
-    const {
-      inputEncoding = { key: 'base64', message: 'base64' },
-      outputEncoding = 'utf-8',
-      doThrow = true,
-    } = opts.opts ?? {};
+    this.assertNoRemovedOptions({ method: 'decrypt', options: opts.opts });
 
-    try {
-      const key = await crypto.subtle.importKey(
-        'pkcs8',
-        Buffer.from(privKey, inputEncoding.key),
-        OAEP,
-        false,
-        ['decrypt'],
-      );
-      const plainBytes = await crypto.subtle.decrypt(
-        { name: OAEP.name },
-        key,
-        Buffer.from(message, inputEncoding.message),
-      );
+    const { inputEncoding = { key: 'base64', message: 'base64' }, outputEncoding = 'utf-8' } =
+      opts.opts ?? {};
 
-      return Buffer.from(plainBytes).toString(outputEncoding);
-    } catch (error) {
-      if (doThrow) {
-        throw error;
-      }
+    const key = await crypto.subtle.importKey(
+      'pkcs8',
+      Buffer.from(privKey, inputEncoding.key),
+      OAEP,
+      false,
+      ['decrypt'],
+    );
+    const plainBytes = await crypto.subtle.decrypt(
+      { name: OAEP.name },
+      key,
+      Buffer.from(message, inputEncoding.message),
+    );
 
-      return message;
-    }
+    return Buffer.from(plainBytes).toString(outputEncoding);
   }
 }

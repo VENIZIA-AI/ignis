@@ -38,6 +38,19 @@ export abstract class BaseCryptoAlgorithm<
   DecryptReturnType,
   ExtraOptions
 > {
+  /**
+   * `doThrow: false` is gone: a failed encrypt or decrypt used to hand the input back, which a caller could take for
+   * ciphertext or plaintext. A failure always throws. A caller that still passes the option is refused, not ignored,
+   * so nobody believes it still works.
+   */
+  protected assertNoRemovedOptions(opts: { method: string; options?: object }): void {
+    if (opts.options !== undefined && opts.options !== null && 'doThrow' in opts.options) {
+      throw getError({
+        message: `[${this.constructor.name}][${opts.method}] The doThrow option was removed | a failure always throws: catch the error where a fallback is wanted, and never treat the input as the result`,
+      });
+    }
+  }
+
   constructor(opts: { scope: string; algorithm: AlgorithmType }) {
     super({
       scope: opts.scope ?? opts.algorithm ?? BaseCryptoAlgorithm.name,

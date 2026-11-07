@@ -149,7 +149,6 @@ encrypt(opts: { message: string; secret: TAESSecret; opts?: IAESExtraOptions }):
 | `iv` | `Buffer` | 16 random bytes from `crypto.getRandomValues` | Initialization vector |
 | `inputEncoding` | `crypto.Encoding` | `'utf-8'` | Encoding of `message` |
 | `outputEncoding` | `crypto.Encoding` | `'base64'` | Encoding of the returned ciphertext |
-| `doThrow` | `boolean` | `true` | If `false`, returns the original `message` instead of throwing on error |
 | `kdfSalt` | `string` | `'ignis-kdf-salt-v1'` | PBKDF2 salt. At least 16 bytes, or the call throws. Pass the same value on decrypt |
 | `kdfIterations` | `number` | `100000` | PBKDF2 iteration count. Pass the same value on decrypt |
 
@@ -174,7 +173,6 @@ const encrypted = await aes.encrypt({
     iv: C.randomBytes(16),
     inputEncoding: 'utf-8',
     outputEncoding: 'hex',
-    doThrow: false,
   },
 });
 ```
@@ -191,7 +189,6 @@ decrypt(opts: { message: string; secret: TAESSecret; opts?: IAESDecryptOptions }
 |-----------------------|------|---------|-------------|
 | `inputEncoding` | `crypto.Encoding` | `'base64'` | Encoding of `message` |
 | `outputEncoding` | `crypto.Encoding` | `'utf-8'` | Encoding of the returned plaintext |
-| `doThrow` | `boolean` | `true` | If `false`, returns the original `message` instead of throwing on error |
 | `kdfSalt` | `string` | `'ignis-kdf-salt-v1'` | PBKDF2 salt. Must match the value used on encrypt, and be at least 16 bytes |
 | `kdfIterations` | `number` | `100000` | PBKDF2 iteration count. Must match the value used on encrypt |
 
@@ -277,7 +274,6 @@ encrypt(opts: { message: string; secret: string; opts?: IRSAExtraOptions }): Pro
 | `inputEncoding.key` | `crypto.Encoding` | `'base64'` | Encoding of the `secret` key buffer |
 | `inputEncoding.message` | `crypto.Encoding` | `'utf-8'` | Encoding of `message` |
 | `outputEncoding` | `crypto.Encoding` | `'base64'` | Encoding of the returned ciphertext |
-| `doThrow` | `boolean` | `true` | If `false`, returns the original `message` instead of throwing on error |
 
 ### `decrypt`
 
@@ -292,7 +288,6 @@ decrypt(opts: { message: string; secret: string; opts?: IRSAExtraOptions }): Pro
 | `inputEncoding.key` | `crypto.Encoding` | `'base64'` | Encoding of the `secret` key buffer |
 | `inputEncoding.message` | `crypto.Encoding` | `'base64'` | Encoding of `message` |
 | `outputEncoding` | `crypto.Encoding` | `'utf-8'` | Encoding of the returned plaintext |
-| `doThrow` | `boolean` | `true` | If `false`, returns the original `message` instead of throwing on error |
 
 ```typescript
 const rsa = RSA.withAlgorithm();
@@ -301,7 +296,7 @@ const { publicKey, privateKey } = await rsa.generateDERKeyPair({ modulus: 4096 }
 const encrypted = await rsa.encrypt({
   message: 'hello',
   secret: publicKey.toString('base64'),
-  opts: { outputEncoding: 'hex', doThrow: false },
+  opts: { outputEncoding: 'hex' },
 });
 
 const decrypted = await rsa.decrypt({

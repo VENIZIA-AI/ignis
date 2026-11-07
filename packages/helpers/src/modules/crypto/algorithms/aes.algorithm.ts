@@ -12,7 +12,6 @@ const DEFAULT_KEY_ID = '0';
 interface IAESDecryptOptions {
   inputEncoding?: BufferEncoding;
   outputEncoding?: BufferEncoding;
-  doThrow?: boolean;
   /** Per-deployment PBKDF2 salt override. Must be supplied identically on encrypt and decrypt; omit for the shipped default. */
   kdfSalt?: string;
   /** PBKDF2 iteration count override. Must be supplied identically on encrypt and decrypt; omit for the shipped default. */
@@ -117,55 +116,48 @@ export class AES extends BaseCryptoAlgorithm<
     opts?: IAESExtraOptions;
   }): Promise<string> {
     const { message, secret } = opts;
+    this.assertNoRemovedOptions({ method: 'encrypt', options: opts.opts });
+
     const {
       iv = Buffer.from(crypto.getRandomValues(new Uint8Array(DEFAULT_LENGTH))),
       inputEncoding = 'utf-8',
       outputEncoding = 'base64',
-      doThrow = true,
       kdfSalt,
       kdfIterations,
     } = opts.opts ?? {};
 
-    try {
-      const { id, key } = await this.resolveEncryptKey({ secret, kdfSalt, kdfIterations });
-      const idBuffer = Buffer.from(id, 'utf-8');
+    const { id, key } = await this.resolveEncryptKey({ secret, kdfSalt, kdfIterations });
+    const idBuffer = Buffer.from(id, 'utf-8');
 
-      if (idBuffer.length > 0xff) {
-        throw getError({ message: '[AES][encrypt] Key id too long (max 255 bytes)' });
-      }
-
-      // `decrypt` reads exactly DEFAULT_LENGTH bytes of IV from the envelope, so any other length would write a ciphertext nothing can read.
-      if (iv.length !== DEFAULT_LENGTH) {
-        throw getError({
-          message: `[AES][encrypt] The IV must be ${DEFAULT_LENGTH} bytes, got ${iv.length}`,
-        });
-      }
-
-      const { cipherText, authTag } = await AesEngine.seal({
-        algorithm: this.algorithm,
-        key,
-        iv,
-        plain: Buffer.from(message, inputEncoding),
-      });
-
-      // Envelope: [version(1)][idLen(1)][id(idLen)][iv(16)][authTag(16, gcm only)][cipher]
-      const header = Buffer.from([CIPHERTEXT_VERSION, idBuffer.length]);
-      const parts: Uint8Array[] = [header, idBuffer, iv];
-
-      if (authTag !== null) {
-        parts.push(authTag);
-      }
-
-      parts.push(cipherText);
-
-      return Buffer.concat(parts).toString(outputEncoding);
-    } catch (error) {
-      if (doThrow) {
-        throw error;
-      }
-
-      return message;
+    if (idBuffer.length > 0xff) {
+      throw getError({ message: '[AES][encrypt] Key id too long (max 255 bytes)' });
     }
+
+    // `decrypt` reads exactly DEFAULT_LENGTH bytes of IV from the envelope, so any other length would write a ciphertext nothing can read.
+    if (iv.length !== DEFAULT_LENGTH) {
+      throw getError({
+        message: `[AES][encrypt] The IV must be ${DEFAULT_LENGTH} bytes, got ${iv.length}`,
+      });
+    }
+
+    const { cipherText, authTag } = await AesEngine.seal({
+      algorithm: this.algorithm,
+      key,
+      iv,
+      plain: Buffer.from(message, inputEncoding),
+    });
+
+    // Envelope: [version(1)][idLen(1)][id(idLen)][iv(16)][authTag(16, gcm only)][cipher]
+    const header = Buffer.from([CIPHERTEXT_VERSION, idBuffer.length]);
+    const parts: Uint8Array[] = [header, idBuffer, iv];
+
+    if (authTag !== null) {
+      parts.push(authTag);
+    }
+
+    parts.push(cipherText);
+
+    return Buffer.concat(parts).toString(outputEncoding);
   }
 
   async encryptFile(opts: { absolutePath: string; secret: TAESSecret }): Promise<string> {
@@ -187,57 +179,50 @@ export class AES extends BaseCryptoAlgorithm<
     opts?: IAESDecryptOptions;
   }): Promise<string> {
     const { message, secret } = opts;
+    this.assertNoRemovedOptions({ method: 'decrypt', options: opts.opts });
+
     const {
       inputEncoding = 'base64',
       outputEncoding = 'utf-8',
-      doThrow = true,
       kdfSalt,
       kdfIterations,
     } = opts.opts ?? {};
 
-    try {
-      const raw = Buffer.from(message, inputEncoding);
+    const raw = Buffer.from(message, inputEncoding);
 
-      const version = raw[0];
+    const version = raw[0];
 
-      if (version !== CIPHERTEXT_VERSION) {
-        throw getError({ message: `[AES][decrypt] Unsupported ciphertext version: ${version}` });
-      }
-
-      const idLength = raw[1];
-      let cursor = 2;
-
-      const id = raw.subarray(cursor, cursor + idLength).toString('utf-8');
-      cursor += idLength;
-
-      const iv = raw.subarray(cursor, cursor + DEFAULT_LENGTH);
-      cursor += DEFAULT_LENGTH;
-
-      const key = await this.resolveDecryptKey({ secret, id, kdfSalt, kdfIterations });
-
-      let authTag: Uint8Array | null = null;
-
-      if (this.algorithm === AESAlgorithms.AES_256_GCM) {
-        authTag = raw.subarray(cursor, cursor + DEFAULT_LENGTH);
-        cursor += DEFAULT_LENGTH;
-      }
-
-      const plain = await AesEngine.open({
-        algorithm: this.algorithm,
-        key,
-        iv,
-        cipherText: raw.subarray(cursor),
-        authTag,
-      });
-
-      return Buffer.from(plain).toString(outputEncoding);
-    } catch (error) {
-      if (doThrow) {
-        throw error;
-      }
-
-      return message;
+    if (version !== CIPHERTEXT_VERSION) {
+      throw getError({ message: `[AES][decrypt] Unsupported ciphertext version: ${version}` });
     }
+
+    const idLength = raw[1];
+    let cursor = 2;
+
+    const id = raw.subarray(cursor, cursor + idLength).toString('utf-8');
+    cursor += idLength;
+
+    const iv = raw.subarray(cursor, cursor + DEFAULT_LENGTH);
+    cursor += DEFAULT_LENGTH;
+
+    const key = await this.resolveDecryptKey({ secret, id, kdfSalt, kdfIterations });
+
+    let authTag: Uint8Array | null = null;
+
+    if (this.algorithm === AESAlgorithms.AES_256_GCM) {
+      authTag = raw.subarray(cursor, cursor + DEFAULT_LENGTH);
+      cursor += DEFAULT_LENGTH;
+    }
+
+    const plain = await AesEngine.open({
+      algorithm: this.algorithm,
+      key,
+      iv,
+      cipherText: raw.subarray(cursor),
+      authTag,
+    });
+
+    return Buffer.from(plain).toString(outputEncoding);
   }
 
   async decryptFile(opts: { absolutePath: string; secret: TAESSecret }): Promise<string> {

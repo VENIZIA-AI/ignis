@@ -69,7 +69,7 @@ describe('AES: what is stored still reads, and the same input writes the same by
     expect(result3).toBeString();
   });
 
-  test('a flipped bit in a GCM ciphertext is refused, and doThrow: false hands the message back', async () => {
+  test('a flipped bit in a GCM ciphertext is refused, and the message is never handed back', async () => {
     const fixture = aesFixtures.find((entry) => entry.name === 'aes-256-gcm short plain');
 
     if (!fixture) {
@@ -85,12 +85,7 @@ describe('AES: what is stored still reads, and the same input writes the same by
       promise: cipher.decrypt({ message: tampered, secret: fixture.secret as string }),
     });
     expect(result4).toBeString();
-    const result5 = await cipher.decrypt({
-      message: tampered,
-      secret: fixture.secret as string,
-      opts: { doThrow: false },
-    });
-    expect(result5).toBe(tampered);
+    expect(result4).not.toContain('doThrow');
   });
 
   test('a wrong secret never returns the plaintext', async () => {
@@ -256,7 +251,7 @@ describe('RSA: keys and ciphertext of the synchronous implementation still work'
     expect(result4).toMatch(/below the 2048-bit minimum/);
   });
 
-  test('a wrong key or a damaged ciphertext is refused, and doThrow: false hands the message back', async () => {
+  test('a wrong key or a damaged ciphertext is refused, and the message is never handed back', async () => {
     const other = await rsa.generateDERKeyPair();
     const stored = fixtures.rsa.stored[0]?.stored ?? '';
 
@@ -264,11 +259,6 @@ describe('RSA: keys and ciphertext of the synchronous implementation still work'
       promise: rsa.decrypt({ message: stored, secret: other.privateKey.toString('base64') }),
     });
     expect(result5).toBeString();
-    const result6 = await rsa.decrypt({
-      message: stored,
-      secret: other.privateKey.toString('base64'),
-      opts: { doThrow: false },
-    });
-    expect(result6).toBe(stored);
+    expect(result5).not.toContain('doThrow');
   });
 });

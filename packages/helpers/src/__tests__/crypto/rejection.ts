@@ -4,6 +4,19 @@
  * test has ended. This awaits the promise itself, so the assertion that follows always runs in time.
  */
 export class Rejection {
+  /** How the promise ended: its value, or the error it rejected with. For a call that may legitimately do either. */
+  static async outcomeOf<T>(opts: {
+    promise: Promise<T>;
+  }): Promise<{ value: T } | { error: unknown }> {
+    try {
+      const result = await opts.promise;
+
+      return { value: result };
+    } catch (error) {
+      return { error };
+    }
+  }
+
   /** The message of the error the promise rejected with, or `undefined` when it resolved (so a `toMatch` or `toBeString` on it fails). */
   static async messageOf(opts: { promise: Promise<unknown> }): Promise<string | undefined> {
     try {
