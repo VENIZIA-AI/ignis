@@ -13,6 +13,7 @@ import type { Env, Schema } from 'hono';
 import { MultiSearchInputSchema, SearchInputSchema } from '@/search/core/repositories/common';
 import type { ReadableSearchRepository } from '../repositories/core/readable';
 import { AbstractSearchController } from './abstract';
+import { SearchEngineParams } from './engine-params';
 import type { TSearchScopeResolver } from './scope';
 
 /** Per-route enable/disable switches for the generated search controller. */
@@ -53,12 +54,22 @@ export interface ISearchControllerOptions<
    * widen or remove it. Fails closed - a scope that is null, undefined or throws refuses the
    * request with 403. Return `ScopeFilters.UNRESTRICTED` to apply none for a trusted caller.
    *
-   * `raw` mode and `engineParams` hand the engine its own wire parameters, and a multi-search entry
-   * carries a raw `filterBy`; none can take a scope, so a scoped controller refuses `raw` and
-   * `engineParams` (400) and must disable the multi-search route (`routes.multiSearch.enabled:
-   * false`), which `defineSearchController` requires.
+   * `raw` mode hands the engine its own wire parameters, and a multi-search entry carries a raw
+   * `filterBy`; neither can take a scope, so a scoped controller refuses `raw` (400) and must disable the
+   * multi-search route (`routes.multiSearch.enabled: false`), which `defineSearchController` requires.
+   * `engineParams` is refused on every controller unless `engineParams.allow` lists it.
    */
   scope?: TSearchScopeResolver;
+
+  /**
+   * Which engine parameters a caller may send in a request's `engineParams`. Unset or empty, a request that carries
+   * `engineParams` is refused with 400, on a scoped and an unscoped controller alike: raw engine parameters can replace
+   * the controller's own filter and name fields the model hides. A parameter that selects rows or fields, or orders
+   * them (`filter_by`, `include_fields`, `query_by`, `facet_by`, `group_by`, `highlight_fields`, `sort_by`, a
+   * `preset`, ...) can never be listed: the definition throws. Server code still passes `engineParams` on the
+   * repository call.
+   */
+  engineParams?: { allow?: string[] };
 }
 
 /** Factory for generating turnkey search controllers (single-collection + cross-collection) from entity definitions. */
@@ -137,6 +148,10 @@ export class SearchControllerFactory extends BaseHelper {
     const { controller, entity, authenticate, authorize, routes, scope } = defOpts;
 
     const { name, basePath = 'unknown_path', isStrict = true } = controller;
+    const allowedEngineParams = SearchEngineParams.resolveAllowlist({
+      scope: `defineSearchController | name: ${name}`,
+      allow: defOpts.engineParams?.allow,
+    });
 
     if (!basePath || basePath === 'unknown_path') {
       throw getError({
@@ -176,6 +191,7 @@ export class SearchControllerFactory extends BaseHelper {
           repository,
           definitions: routeDefinitions,
           searchScope: scope as TSearchScopeResolver<RouteEnv> | undefined,
+          allowedEngineParams,
         });
       }
 

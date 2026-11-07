@@ -31,8 +31,9 @@ export class SearchControllerScope {
    *
    * Fails closed:
    * - a scope that is null, undefined, or throws refuses the request (403);
-   * - `raw` mode and `engineParams` hand the engine its own wire parameters (`filter_by` among them),
-   *   which a `where` cannot be ANDed into, so a scoped controller refuses them (400).
+   * - `raw` mode hands the engine its own wire parameters (`filter_by` among them), which a `where` cannot be
+   *   ANDed into, so a scoped controller refuses it (400). `engineParams` is checked before this, on every controller
+   *   (`SearchEngineParams`): what a controller allows there never selects rows or fields.
    */
   static async applySearchScope<RouteEnv extends Env = Env>(opts: {
     resolve: TSearchScopeResolver<RouteEnv>;
@@ -69,13 +70,6 @@ export class SearchControllerScope {
       throw SearchControllerScope.refuse({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
         message: "[search] mode 'raw' is not available on a scoped search controller",
-      });
-    }
-
-    if (input.engineParams !== undefined) {
-      throw SearchControllerScope.refuse({
-        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-        message: '[search] engineParams is not available on a scoped search controller',
       });
     }
 
