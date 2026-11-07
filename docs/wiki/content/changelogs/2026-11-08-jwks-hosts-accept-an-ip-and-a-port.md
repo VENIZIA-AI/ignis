@@ -21,11 +21,14 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis']
 - **IPv6 in the short form.** Write `[fd00::1]:8443`. `[fd00:0:0:0:0:0:0:1]` refuses the boot, because the parser writes that address as `[fd00::1]`.
 - **Still refused at boot.** A scheme, a path, a query, credentials, a wildcard, an empty label, an empty port, a port above 65535, a port of 0, and a port with a leading zero or a sign. The message names the entry.
 - **Loopback is still always allowed.**
+- **Stricter on the edges.** An entry is no longer trimmed: a space, tab or newline around it refuses the boot. A name is at most 253 characters with labels of at most 63. `0.0.0.0` and `[::]` are refused as entries. A `jwksUrl` on port 0 refuses the boot.
+- **The mapped form is the same machine.** `[::ffff:a00:5]` is `10.0.0.5` as an IPv6 address; listing one does not list the other, but both reach one host.
 
 ## Who is affected
 
 - **Apps that reach a key set over `http:` on an IP address.** Add the address, with its port if you want to pin it. Prefer `https:` where you can.
-- **Everyone else.** No action needed: every entry that was valid still is, and means the same.
+- **Apps whose entries had spaces around them.** The boot is refused, naming the entry: remove the spaces.
+- **Everyone else.** No action needed: every other entry that was valid still is, and means the same.
 
 ## Details
 

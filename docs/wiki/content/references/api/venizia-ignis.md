@@ -1951,6 +1951,8 @@ export declare class JWKSUrlPolicy {
     }): ReadonlySet<string>;
     /** The canonical form of one entry, or `undefined` when it is not exactly a host with an optional port. */
     private static canonicalEntry;
+    /** Whether a name is within the DNS limits: 253 characters, and 63 for each label. */
+    private static isWithinLimits;
     /** `http://<authority>` through the URL parser, or `undefined` when it refuses it. */
     private static parseHttp;
     /** Whether the URL parser's hostname is a loopback one: `localhost`, `127.0.0.0/8` or `::1`. */

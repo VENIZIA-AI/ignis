@@ -123,10 +123,10 @@ describe('JWKSUrlPolicy.resolveHttpHosts', () => {
     expect(JWKSUrlPolicy.resolveHttpHosts({ scope: SCOPE }).size).toBe(0);
   });
 
-  test('host names are kept, trimmed and lower-cased', () => {
+  test('host names are kept and lower-cased', () => {
     const resolved = JWKSUrlPolicy.resolveHttpHosts({
       scope: SCOPE,
-      hosts: [' Identity-Service ', 'auth.internal', 'a'],
+      hosts: ['Identity-Service', 'auth.internal', 'a'],
     });
 
     expect([...resolved]).toEqual(['identity-service', 'auth.internal', 'a']);
@@ -170,6 +170,24 @@ describe('JWKSUrlPolicy.resolveHttpHosts', () => {
     ['a leading dot', '.identity-service'],
     ['an empty string', ''],
     ['a blank string', '   '],
+    ['a leading space', ' identity-service'],
+    ['a trailing space', 'identity-service '],
+    ['a trailing tab', '10.0.0.5:8080\t'],
+    ['a trailing newline', '10.0.0.5:8080\n'],
+    ['a leading newline', '\nidentity-service'],
+    ['a carriage return', 'identity-service\r'],
+    ['a space inside', 'identity service'],
+    ['a label of 64 characters', `${'a'.repeat(64)}.internal`],
+    [
+      'a name of 254 characters',
+      `${'a'.repeat(63)}.${'b'.repeat(63)}.${'c'.repeat(63)}.${'d'.repeat(62)}`,
+    ],
+    ['the unspecified IPv4 address', '0.0.0.0'],
+    ['the unspecified IPv4 address with a port', '0.0.0.0:8080'],
+    ['the unspecified IPv6 address', '[::]'],
+    ['the unspecified IPv6 address with a port', '[::]:8080'],
+    ['the unspecified IPv6 address in the long form', '[0:0:0:0:0:0:0:0]'],
+    ['zero as an address', '0'],
     ['credentials', 'user@identity-service'],
     ['a leading hyphen', '-identity'],
     ['a number', 5],
@@ -213,8 +231,8 @@ describe('JWKSUrlPolicy.resolveHttpHosts: exact addresses and ports', () => {
     ]);
   });
 
-  test('entries are trimmed and lower-cased, and the port is kept as written', () => {
-    expect(resolve('  Identity-Service:3000 ', '[FD00::1]:8443')).toEqual([
+  test('entries are lower-cased, and the port is kept as written', () => {
+    expect(resolve('Identity-Service:3000', '[FD00::1]:8443')).toEqual([
       'identity-service:3000',
       '[fd00::1]:8443',
     ]);
@@ -231,6 +249,55 @@ describe('JWKSUrlPolicy.resolveHttpHosts: exact addresses and ports', () => {
   test('an IPv6 address the parser writes in the long form is refused, the short one is kept', () => {
     expect(() => resolve('[fd00:0:0:0:0:0:0:1]')).toThrow(/jwks.hosts.http holds/);
     expect(resolve('[fd00::1]')).toEqual(['[fd00::1]']);
+  });
+});
+
+describe('JWKSUrlPolicy.resolveHttpHosts: limits', () => {
+  const resolve = (...hosts: Array<unknown>) => [
+    ...JWKSUrlPolicy.resolveHttpHosts({ scope: SCOPE, hosts }),
+  ];
+
+  test('a label of 63 characters and a name of 253 are kept', () => {
+    const label = 'a'.repeat(63);
+    const name = `${label}.${'b'.repeat(63)}.${'c'.repeat(63)}.${'d'.repeat(61)}`;
+
+    expect(name).toHaveLength(253);
+    expect(resolve(label, name)).toEqual([label, name]);
+  });
+
+  test('the limits are for names: an address is judged by the parser alone', () => {
+    expect(resolve('255.255.255.255', '[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]')).toHaveLength(2);
+  });
+
+  test('the refusal of a too long name names the entry', () => {
+    const entry = `${'a'.repeat(64)}.internal`;
+
+    expect(refusal(() => resolve(entry))).toContain('jwks.hosts.http holds');
+  });
+});
+
+describe('JWKSUrlPolicy.assertUrl: port 0', () => {
+  test.each([
+    'http://10.0.0.5:0/certs',
+    'http://identity-service:0/certs',
+    'http://127.0.0.1:0/certs',
+    'http://[fd00::1]:0/certs',
+  ])('%s is refused, whatever the entries', (url) => {
+    const message = refusal(() => assertUrl(url, ['10.0.0.5', 'identity-service', '[fd00::1]']));
+
+    expect(message).toContain('uses port 0');
+  });
+
+  test('the refusal names the host, never the URL', () => {
+    const message = refusal(() => assertUrl('http://admin:hunter2@10.0.0.5:0/certs', ['10.0.0.5']));
+
+    expect(message).toContain("'10.0.0.5'");
+    expect(message).not.toContain('hunter2');
+  });
+
+  test('a port that is merely written with a zero is the port it is', () => {
+    expect(() => assertUrl('http://10.0.0.5:08080/certs', ['10.0.0.5:8080'])).not.toThrow();
+    expect(() => assertUrl('http://10.0.0.5:00080/certs', ['10.0.0.5:80'])).not.toThrow();
   });
 });
 
@@ -337,6 +404,14 @@ describe('JWKSUrlPolicy.assertUrl: an entry that is an address or has a port', (
     ]) {
       expect(refusal(() => assertUrl(url, ['[fd00::1]:8443']))).toContain('is not allowed');
     }
+  });
+
+  test('the mapped form of an address is the same machine, but it is another entry', () => {
+    // `[::ffff:a00:5]` reaches 10.0.0.5: listing it is listing that machine. Listing 10.0.0.5 does not list it.
+    expect(() => assertUrl('http://[::ffff:10.0.0.5]/certs', ['[::ffff:a00:5]'])).not.toThrow();
+    expect(refusal(() => assertUrl('http://10.0.0.5/certs', ['[::ffff:a00:5]']))).toContain(
+      'is not allowed',
+    );
   });
 
   test('an address entry never widens to a name, and a name entry never widens to an address', () => {

@@ -16,6 +16,13 @@ const ENTRY_PATTERN = /^(?<host>\[[0-9a-f:.]+\]|[a-z0-9][a-z0-9.-]*)(?::(?<port>
 /** The port of an `http:` URL that names none. */
 const DEFAULT_HTTP_PORT = '80';
 
+/** The longest label and the longest name DNS has (RFC 1035): a longer entry is not a host name. */
+const MAX_LABEL_LENGTH = 63;
+const MAX_NAME_LENGTH = 253;
+
+/** The addresses that mean "any local address", not a host: as the URL parser writes them. */
+const UNSPECIFIED_HOSTS: ReadonlySet<string> = new Set(['0.0.0.0', '[::]']);
+
 /** `127.0.0.0/8`, as the URL parser writes an IPv4 host. */
 const LOOPBACK_IPV4_PATTERN = /^127(?:\.\d{1,3}){3}$/;
 
@@ -74,7 +81,8 @@ export class JWKSUrlPolicy {
 
   /** The canonical form of one entry, or `undefined` when it is not exactly a host with an optional port. */
   private static canonicalEntry(opts: { entry: string }): string | undefined {
-    const matched = ENTRY_PATTERN.exec(opts.entry.trim().toLowerCase());
+    // Not trimmed: an entry with a space, a tab or a newline around it is a typo, and is refused rather than corrected.
+    const matched = ENTRY_PATTERN.exec(opts.entry.toLowerCase());
     const { host, port } = matched?.groups ?? {};
 
     if (host === undefined) {
@@ -84,7 +92,10 @@ export class JWKSUrlPolicy {
     // A name has labels of its own shape; an IPv4 or an IPv6 address is judged by the parser alone, below.
     const isAddress = host.startsWith('[') || IPV4_PATTERN.test(host);
 
-    if (!isAddress && !HOST_NAME_PATTERN.test(host)) {
+    if (
+      !isAddress &&
+      !(HOST_NAME_PATTERN.test(host) && JWKSUrlPolicy.isWithinLimits({ name: host }))
+    ) {
       return undefined;
     }
 
@@ -94,7 +105,7 @@ export class JWKSUrlPolicy {
 
     // The host must be what the parser makes of it: `2130706433`, `0x7f000001`, `1.2.3`, `010.0.0.5` and
     // `[::ffff:10.0.0.5]` are spellings the parser rewrites, so none of them is the host it looks like.
-    if (parsed === undefined || parsed.hostname !== host) {
+    if (parsed === undefined || parsed.hostname !== host || UNSPECIFIED_HOSTS.has(host)) {
       return undefined;
     }
 
@@ -110,6 +121,14 @@ export class JWKSUrlPolicy {
     }
 
     return `${host}:${port}`;
+  }
+
+  /** Whether a name is within the DNS limits: 253 characters, and 63 for each label. */
+  private static isWithinLimits(opts: { name: string }): boolean {
+    return (
+      opts.name.length <= MAX_NAME_LENGTH &&
+      opts.name.split('.').every((label) => label.length <= MAX_LABEL_LENGTH)
+    );
   }
 
   /** `http://<authority>` through the URL parser, or `undefined` when it refuses it. */
@@ -158,6 +177,14 @@ export class JWKSUrlPolicy {
     }
 
     const allowed = JWKSUrlPolicy.resolveHttpHosts({ scope, hosts: opts.hosts });
+
+    // Nothing listens on port 0: a URL that names it is a mistake, and no entry without a port should cover it.
+    if (parsed.port === '0') {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message: `[${scope}] ${label} uses port 0 | the host is '${parsed.hostname}'`,
+      });
+    }
 
     // An entry without a port covers every port; one with a port covers that port only (an `http:` URL with none is on 80).
     const port = parsed.port === '' ? DEFAULT_HTTP_PORT : parsed.port;
