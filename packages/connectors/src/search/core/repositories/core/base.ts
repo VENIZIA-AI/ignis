@@ -120,6 +120,30 @@ export abstract class SearchBaseRepository<
     return this.shapeWith({ document, nullable: this.selectedNullableFields(opts) });
   }
 
+  /**
+   * A hit's `highlight` as it leaves the repository: it is built from the document's own fields (Meilisearch copies `_formatted`,
+   * which holds every retrieved attribute), so it loses the hidden fields the document loses. A record loses its hidden keys;
+   * a list of entries loses those whose `field` is hidden. Anything else is returned as it is.
+   */
+  protected shapeHighlight<R>(highlight: R): R {
+    const hiddenFields = this.hiddenFields;
+
+    if (hiddenFields.length === 0 || highlight === null || typeof highlight !== 'object') {
+      return highlight;
+    }
+
+    if (Array.isArray(highlight)) {
+      return highlight.filter((entry) => {
+        const name =
+          entry !== null && typeof entry === 'object' ? Reflect.get(entry, 'field') : undefined;
+
+        return typeof name !== 'string' || !hiddenFields.includes(name.split('.')[0] ?? name);
+      }) as R;
+    }
+
+    return this.omitHiddenFields(highlight);
+  }
+
   protected shapeDocuments<R>(documents: R[], opts: { fields?: TFields } = {}): R[] {
     if (this.hiddenFields.length === 0 && this.nullableFields.length === 0) {
       return documents;

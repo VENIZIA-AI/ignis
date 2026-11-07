@@ -70,6 +70,8 @@ const matchesFilter = (opts: { document: Record<string, unknown>; filter: string
 export class FakeMeilisearchClient implements IMeilisearchClientLike {
   taskPollCount = 0;
   multiSearchCalls: unknown[] = [];
+  /** Every search the client received, with its wire params - lets a test read what the engine was asked for. */
+  searchCalls: Array<{ query: string | null; params?: unknown }> = [];
   /** Every payload passed to `updateDocuments`, in call order - lets a test read exactly what reached the SDK. */
   updateDocumentsCalls: unknown[][] = [];
 
@@ -361,12 +363,24 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
           );
         }
 
+        // `attributesToRetrieve` limits what comes back, `_formatted` included: it holds every RETRIEVED attribute.
+        const retrieve = (document: Record<string, unknown>) => {
+          const names = (params as { attributesToRetrieve?: string[] } | undefined)
+            ?.attributesToRetrieve;
+
+          return names
+            ? Object.fromEntries(Object.entries(document).filter(([key]) => names.includes(key)))
+            : document;
+        };
+
         // Real hits carry engine metadata alongside the stored document.
         const hits = rows.map((document) => ({
-          ...document,
+          ...retrieve(document),
           ['_rankingScore']: 0.9,
-          ['_formatted']: document,
+          ['_formatted']: retrieve(document),
         }));
+
+        self.searchCalls.push({ query, params });
 
         // hitsPerPage present => the exhaustive page mode, which reports `totalHits`.
         const base = { hits, processingTimeMs: 0 };

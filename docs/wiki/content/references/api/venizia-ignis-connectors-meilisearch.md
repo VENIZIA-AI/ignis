@@ -413,6 +413,13 @@ export declare class MeilisearchQueryDialect extends BaseHelper implements ISear
         hiddenFields?: string[];
         capabilities?: ISearchCompileCapabilities;
     }): IMeilisearchSearchQuery;
+    /**
+     * The include list sent to the engine. A caller's selection loses any hidden field it names (and falls back to the visible
+     * fields when nothing else is left). With no selection, a model that hides fields asks for every declared field that is
+     * visible, plus `id` (the primary key, declared or not). A model that hides nothing, or one whose fields are unknown, sends
+     * the caller's selection as it is.
+     */
+    private toIncludedFields;
     /** Maps the neutral query onto Meilisearch wire params. Pagination always uses the exhaustive `page`/`hitsPerPage` mode (exact `totalHits`), never `offset`/`limit`; `engineParams` merges last, verbatim. */
     toWireParams(opts: {
         query: Partial<ISearchQuery>;

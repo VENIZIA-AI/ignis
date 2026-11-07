@@ -35,6 +35,7 @@ Provisioning is opt-in and additive-only: `autoProvision` (constructor option, o
 
 - `raw` - a full-power passthrough straight to the connector: no dialect, no default filter, **no hidden-field handling**. The caller owns exclusion there.
 - `keyword` / `semantic` / `hybrid` - `where` / default filter / hidden fields are translated through the dialect the same way `find()` does, then `ISearchQueryDialect.applySearchInput` applies every engine-specific parameter. Mode dispatch, the vector clause, and the tuning knobs all live in the dialect - nothing engine-specific leaks into the repository.
+  A hit's `highlight` is shaped like its document: `BaseSearchRepository.shapeHighlight` drops the hidden fields from it (a snippet carries the value), and the Meilisearch dialect sends `attributesToRetrieve` built from the collection's declared fields minus the hidden ones, because that engine highlights from the retrieved fields.
 
 `multiSearch()` lives on the **datasource**, not a repository, because it spans collections. It unions each collection's `@model` hiddenProperties into that entry's `excludeFields` using a memoized `hiddenFieldsByCollection()` map; an entry naming an unknown collection passes through untouched.
 

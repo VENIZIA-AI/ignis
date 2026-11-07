@@ -232,6 +232,8 @@ export class ReadableSearchRepository<
       hits: (result.hits ?? []).map((hit) => ({
         ...hit,
         document: this.shapeDocument(hit.document, { fields: opts.filter?.fields }),
+        // Built from the document's own fields, so it loses the hidden ones the document loses.
+        ...(hit.highlight === undefined ? {} : { highlight: this.shapeHighlight(hit.highlight) }),
       })),
     };
   }
