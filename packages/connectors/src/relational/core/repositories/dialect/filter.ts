@@ -70,6 +70,9 @@ const MEMBERSHIP_OPERATORS = new Set<string>([
   QueryOperators.NIN,
 ]);
 
+/** Keys of a caller's `where` that name no column and would act on the object instead: refused as unknown columns. */
+const UNSAFE_WHERE_KEYS: ReadonlySet<string> = new Set(['__proto__', 'constructor', 'prototype']);
+
 /**
  * Converts filter objects into Drizzle query options (where, order, columns, relations). The
  * operator table and both JSON extractions are abstract rather than defaulted, so this tier
@@ -101,10 +104,9 @@ export abstract class FilterBuilder extends BaseHelper {
   protected abstract get operators(): TQueryOperatorHandlers;
 
   /**
-   * Holds `userFilter` to the row scope: the scope and the caller's `where` are ANDed, never merged by key. A key merge
-   * treats a scalar on both sides as a replacement (that is the soft-delete opt-out), so a scope written as
-   * `{ tenantId: 'a' }` would lose to a caller's `where: { tenantId: 'b' }`. The caller can only narrow a scope.
-   * Every other part of the filter (order, limit, fields, include) is the caller's.
+   * Holds `userFilter` to the row scope: the scope and the caller's `where` are ANDed, never merged by key, so a
+   * scope written as `{ tenantId: 'a' }` holds against a caller's `where: { tenantId: 'b' }` whatever the shapes.
+   * The caller can only narrow a scope. Every other part of the filter (order, limit, fields, include) is the caller's.
    */
   composeScope<T = any>(opts: { scopeWhere: TWhere<T>; userFilter?: TFilter<T> }): TFilter<T> {
     const { scopeWhere, userFilter } = opts;
@@ -120,8 +122,9 @@ export abstract class FilterBuilder extends BaseHelper {
 
   /**
    * Merges default and user filters. `where` merges at the TOP KEY LEVEL, never index-wise - that
-   * corrupts operator arrays. Operator-object collisions AND-compose, so a default scope can only
-   * be narrowed, and a user `undefined` never overrides a defined default. Other parts user-wins.
+   * corrupts operator arrays. Every collision AND-composes, scalars included (equal scalars collapse to one condition),
+   * so a default can only be narrowed, and a user `undefined` never overrides a defined default. A key that would
+   * change the merged object's prototype (`__proto__`, `constructor`, `prototype`) is refused. Other parts user-wins.
    */
   mergeFilter<T = any>(opts: { defaultFilter?: TFilter<T>; userFilter?: TFilter<T> }): TFilter<T> {
     const { defaultFilter, userFilter } = opts;
@@ -177,6 +180,13 @@ export abstract class FilterBuilder extends BaseHelper {
 
       if (userValue === undefined) {
         continue;
+      }
+
+      // `merged[key] = ...` with one of these would change the merged object's prototype, not set a condition.
+      if (UNSAFE_WHERE_KEYS.has(key)) {
+        throw getError({
+          message: `[FilterBuilder][mergeWhere] Column NOT FOUND | key: '${EchoUtility.toSafeEcho({ value: key })}'`,
+        });
       }
 
       // An OWN property only: `toString` or `valueOf` on a plain object is the prototype's function, not a default.
@@ -606,7 +616,8 @@ export abstract class FilterBuilder extends BaseHelper {
       return this.buildJsonWhereCondition({ key, value, columns, tableName });
     }
 
-    const column = columns[key];
+    // An OWN column only: `constructor` or `toString` on the columns object is the prototype's function, not a column.
+    const column = Object.hasOwn(columns, key) ? columns[key] : undefined;
 
     if (!column) {
       throw getError({
@@ -657,7 +668,7 @@ export abstract class FilterBuilder extends BaseHelper {
         continue;
       }
 
-      const column = columns[key];
+      const column = Object.hasOwn(columns, key) ? columns[key] : undefined;
 
       if (!column) {
         throw getError({
@@ -759,7 +770,7 @@ export abstract class FilterBuilder extends BaseHelper {
 
       // Row scope is this relation's OWN `@model` setting - never the parent's - and is applied
       // LAST and outermost, after the default filter, so it survives `shouldSkipDefaultFilter` exactly like the parent and
-      // the caller's `scope.where` (with the default filter's opt-out resolved) can only narrow it.
+      // the caller's `scope.where` (composed with the default filter, never replacing it) can only narrow it.
       const scopeFilterSettings = this.resolveScopeFilter({
         schema: relationConfig.schema,
         modelEntry,
@@ -968,7 +979,9 @@ export abstract class FilterBuilder extends BaseHelper {
 
     const parsed = JsonPathUtility.parseJsonPath({ key });
 
-    const column = columns[parsed.columnName];
+    const column = Object.hasOwn(columns, parsed.columnName)
+      ? columns[parsed.columnName]
+      : undefined;
 
     if (!column) {
       throw getError({
