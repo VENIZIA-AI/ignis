@@ -669,6 +669,12 @@ catch rather than prove it absent.
   union, not a bare brand, is deliberate: `$inferSelect` and `$inferInsert` read the same `data`
   field, so a bare-brand `data` would have also blocked inserting a plain string literal. See
   [filter](/packages/filter.md).
+- A request filter value on a Drizzle `Date` column (pg `timestamp`/`date`, SQLite
+  `integer({ mode: 'timestamp' | 'timestamp_ms' })`) is parsed by `FilterBuilder` through
+  `DateOperandUtility` (`dialect/internal/date-operand.ts`): an ISO 8601 string or epoch
+  milliseconds becomes a `Date`, anything else is a 400. `isoTimestamp` is a custom type
+  (`dataType: 'custom'`) and keeps taking its string as written. Details in
+  [filter system](/architecture/filter-system.md).
 
 ## Related
 

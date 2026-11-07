@@ -80,6 +80,20 @@ LIMIT 20
 
 Full operator-by-operator tables, one line each, live on the [Quick Reference](./quick-reference) page.
 
+### Timestamp and date values
+
+A filter that arrives over HTTP is JSON, which has no `Date`. On a relational column that Drizzle maps from a `Date` (`timestamp` and `date` in Postgres, `integer({ mode: 'timestamp' })` and `integer({ mode: 'timestamp_ms' })` in SQLite), the filter builder parses the value for every operator that takes one: the bare value, `eq`, `ne`, `neq`, `gt`, `gte`, `lt`, `lte`, `is`, `isn`, each element of `in`/`inq`/`nin`, both ends of `between`/`notBetween`, and the value inside `not`, `and` and `or`.
+
+| Value | Read as |
+|---|---|
+| `'2026-11-07'` | midnight UTC of that date |
+| `'2026-11-07T10:30:00Z'`, `'2026-11-07T17:30:00+07:00'` | that instant. The time needs `T` and `Z` or an offset; fractional seconds are allowed |
+| `1794009600000` | epoch milliseconds, in SQLite `timestamp` (seconds) columns too |
+| a `Date` | itself |
+| `null` | `IS NULL`, as before |
+
+Anything else is refused with a `400` that names the table, the column and these forms: a locale string (`'11/07/2026'`), a word (`'tomorrow'`), a date that does not exist (`'2026-02-31'`), a date-time with no zone (the server's time zone would decide the instant), a numeric string, `NaN`, a boolean or an object. A column with its own storage type, such as `isoTimestamp`, or a `mode: 'string'` column, takes the string as written and is not converted. A JSON path (`'metadata.at'`) reads text or numbers, not a `Date`, and is not converted.
+
 ### Fields, order, and pagination
 
 - **`fields`** selects columns - an array, or a `{ field: true }` object (inclusion-only; `false` is ignored).

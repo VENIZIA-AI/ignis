@@ -45,7 +45,7 @@ import {
 } from 'drizzle-orm';
 import type { TRelationConfig, TTableColumns } from '../common';
 import { ScopeFilterDenial, ScopeResolution, TableColumnCache } from '../common';
-import { JsonPathUtility } from './internal';
+import { DateOperandUtility, JsonPathUtility } from './internal';
 
 /** Operators whose scalar operand determines the JSON numeric-cast need in jsonNeedsNumericCast. */
 /** What one registry lookup yields - named so the three setting readers can accept an already-resolved entry instead of each repeating the lookup. */
@@ -68,6 +68,28 @@ const MEMBERSHIP_OPERATORS = new Set<string>([
   QueryOperators.IN,
   QueryOperators.INQ,
   QueryOperators.NIN,
+]);
+
+/** Operators whose one operand is a single value to compare. */
+const DATE_SCALAR_OPERATORS = new Set<string>([
+  QueryOperators.EQ,
+  QueryOperators.NE,
+  QueryOperators.NEQ,
+  QueryOperators.GT,
+  QueryOperators.GTE,
+  QueryOperators.LT,
+  QueryOperators.LTE,
+  QueryOperators.IS,
+  QueryOperators.IS_NOT,
+]);
+
+/** Operators whose operand is a list of values (or, for the membership ones, a single value). */
+const DATE_LIST_OPERATORS = new Set<string>([
+  QueryOperators.IN,
+  QueryOperators.INQ,
+  QueryOperators.NIN,
+  QueryOperators.BETWEEN,
+  QueryOperators.NOT_BETWEEN,
 ]);
 
 /** Keys of a caller's `where` that name no column and would act on the object instead: refused as unknown columns. */
@@ -623,11 +645,88 @@ export abstract class FilterBuilder extends BaseHelper {
       throw this.columnNotFoundError({ kind: 'where', key, tableName });
     }
 
-    if (!this.isOperatorObject({ value })) {
-      return [this.buildValueCondition({ column, value })];
+    const operand = DateOperandUtility.isDateColumn({ column })
+      ? this.toDateOperand({ value, key, tableName })
+      : value;
+
+    if (!this.isOperatorObject({ value: operand })) {
+      return [this.buildValueCondition({ column, value: operand })];
     }
 
-    return this.buildOperatorConditions({ column, value });
+    return this.buildOperatorConditions({ column, value: operand });
+  }
+
+  /**
+   * A `where` value for a column Drizzle maps from a `Date`, with every string or number in it parsed to a `Date`.
+   * `null` stays `null`; anything that is no timestamp is a 400.
+   */
+  private toDateOperand(opts: { value: any; key: string; tableName: string }): any {
+    const { value, key, tableName } = opts;
+
+    if (value === null) {
+      return null;
+    }
+
+    if (Array.isArray(value)) {
+      return this.toDateList({ values: value, key, tableName });
+    }
+
+    if (!this.isOperatorObject({ value })) {
+      return DateOperandUtility.toDate({ value, key, tableName });
+    }
+
+    const result: Record<string, any> = {};
+
+    for (const op in value) {
+      const operand = value[op];
+
+      if (op === QueryOperators.NOT) {
+        result[op] = this.toDateOperand({ value: operand, key, tableName });
+        continue;
+      }
+
+      if (DATE_SCALAR_OPERATORS.has(op)) {
+        result[op] =
+          operand === null ? null : DateOperandUtility.toDate({ value: operand, key, tableName });
+        continue;
+      }
+
+      if (DATE_LIST_OPERATORS.has(op)) {
+        result[op] = Array.isArray(operand)
+          ? this.toDateList({ values: operand, key, tableName })
+          : this.toDateMembershipOperand({ op, operand, key, tableName });
+        continue;
+      }
+
+      result[op] = operand;
+    }
+
+    return result;
+  }
+
+  private toDateList(opts: { values: any[]; key: string; tableName: string }): any[] {
+    const { values, key, tableName } = opts;
+
+    // A `null` element is passed on as the SQL NULL it is, which compares as UNKNOWN, as it does for any column.
+    return values.map((value) =>
+      value === null ? null : DateOperandUtility.toDate({ value, key, tableName }),
+    );
+  }
+
+  /** A list operator given something that is no list: the membership operators read it as one value, `between` leaves its own refusal to the operator. */
+  private toDateMembershipOperand(opts: {
+    op: string;
+    operand: any;
+    key: string;
+    tableName: string;
+  }): any {
+    const { op, operand, key, tableName } = opts;
+
+    if (op === QueryOperators.BETWEEN || op === QueryOperators.NOT_BETWEEN || operand === null) {
+      return operand;
+    }
+
+    return DateOperandUtility.toDate({ value: operand, key, tableName });
   }
 
   /**
