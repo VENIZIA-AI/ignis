@@ -40,8 +40,11 @@ class Probe {
   /** What a datasource of this file does inside `configure()`: the right way, or one of the two wrong ones. */
   static mode: 'handles' | 'public-connector' | 'repository' = 'handles';
   static repository: { find(opts: { filter: object }): Promise<unknown> } | undefined;
+  /** The open timeout of `ShortTimeoutOpeningDataSource`: short for the attempt that must time out, `0` (none) for the one that must finish. */
+  static openTimeoutMs = 80;
 
   static reset(): void {
+    Probe.openTimeoutMs = 80;
     Probe.clients = [];
     Probe.hold = undefined;
     Probe.mode = 'handles';
@@ -128,7 +131,11 @@ abstract class OpeningBaseDataSource extends BasePostgresDataSource<{}, {}, {}, 
 class FirstUseOpeningDataSource extends OpeningBaseDataSource {}
 
 @datasource({ driver: PGliteDriver, open: { on: 'first-use', timeoutMs: 80 } })
-class ShortTimeoutOpeningDataSource extends OpeningBaseDataSource {}
+class ShortTimeoutOpeningDataSource extends OpeningBaseDataSource {
+  override getOpenTimeoutMs(): number {
+    return Probe.openTimeoutMs;
+  }
+}
 
 @datasource({ driver: PGliteDriver })
 class StartOpeningDataSource extends OpeningBaseDataSource {}
@@ -347,6 +354,8 @@ describe('an open that is abandoned after its timeout', () => {
 
     gate.release();
     Probe.hold = undefined;
+    // The attempt that must finish boots a PGlite: no timeout, so a loaded machine cannot time it out.
+    Probe.openTimeoutMs = 0;
     // The abandoned attempt closes its client, then clears its slot: retry until a call is no longer refused for it.
     const found = await retryWhileAbandoned({ call: () => repository.find({ filter: {} }) });
     const rows = found as Array<{ title: string }>;
