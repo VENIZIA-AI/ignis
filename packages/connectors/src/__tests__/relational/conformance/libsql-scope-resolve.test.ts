@@ -688,7 +688,7 @@ describe('access.resolve on SQLite - write.sharedRows', () => {
     });
 
     test('a scope the guard cannot read refuses a delete instead of leaving shared rows reachable', async () => {
-      scope = { or: [{ merchantId: 'm-a' }, { name: 'shared' }] };
+      scope = { or: [{ merchantId: 'm-a' }, { name: { like: 'shared' } }] };
 
       const error = await refusal(build(RejectItem).deleteById({ id: 2 }));
 
@@ -696,15 +696,28 @@ describe('access.resolve on SQLite - write.sharedRows', () => {
       const result = await names();
       expect(result).toEqual(['mine', 'shared', 'theirs']);
     });
+
+    test('an or over different columns reaches the rows of each branch, a null merchantId included', async () => {
+      scope = { or: [{ merchantId: 'm-a' }, { name: 'shared' }] };
+      const repository = build(RejectItem);
+
+      const shared = await repository.deleteById({ id: 2 });
+      const theirs = await repository.deleteById({ id: 3 });
+
+      expect(shared.count).toBe(1);
+      expect(theirs.count).toBe(0);
+      const result = await names();
+      expect(result).toEqual(['mine', 'theirs']);
+    });
   });
 });
 
 describe('access.resolve on SQLite - a scope that cannot be verified', () => {
   test.each([
     [
-      'an or over different columns',
-      { or: [{ merchantId: 'm-a' }, { name: 'one' }] },
-      /different columns/,
+      'a range inside an or branch over several columns',
+      { or: [{ merchantId: 'm-a' }, { merchantId: { gt: 'm' }, name: 'one' }] },
+      /operator 'gt'/,
     ],
     ['a range', { merchantId: { gt: 'm' } }, /operator 'gt'/],
     ['two operators', { merchantId: { eq: 'm-a', neq: 'm-b' } }, /2 operators/],
@@ -792,9 +805,9 @@ describe('access.resolve on SQLite - a scope that cannot be verified, more shape
       /operator 'gt'/,
     ],
     [
-      'an or branch with two conditions',
-      { or: [{ merchantId: 'm-a', name: 'one' }] },
-      /several conditions/,
+      'two operators inside an or branch over several columns',
+      { or: [{ merchantId: 'm-a' }, { merchantId: { eq: 'm-a', neq: 'm-b' }, name: 'one' }] },
+      /2 operators/,
     ],
     ['a nested path', { 'meta.merchant': 'm-a' }, /nested path/],
   ])(

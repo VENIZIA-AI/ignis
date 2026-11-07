@@ -18,20 +18,33 @@ import { ScopeFilterDenial, ScopeResolution } from './scope-filter';
 
 type TScalar = string | number | bigint | boolean | Date | null;
 
-/** The allowed values per scope column, each normalised so `1` and `'1'` and equal dates compare equal. */
-type TConstraints = Map<string, Set<string | null>>;
+/** One column's allowed values, each normalised so `1` and `'1'` and equal dates compare equal. */
+type TAllowed = Set<string | null>;
 
+/** One conjunction of the scope: the allowed values of each column it constrains. */
+type TBranch = Map<string, TAllowed>;
+
+/** The scope as a disjunction of branches: a row is inside it when it satisfies at least one. */
 type TExtraction =
-  | { isVerifiable: true; constraints: TConstraints }
+  | { isVerifiable: true; branches: TBranch[] }
   | { isVerifiable: false; reason: string };
 
 /** What the scope becomes for a write: a `where`, no row at all, or a shape that cannot be narrowed. */
 type TNarrowed =
-  | { kind: 'where'; where: TWhere }
-  | { kind: 'none' }
-  | { kind: 'unverifiable'; reason: string };
+  | { status: 'where'; where: TWhere }
+  | { status: 'none' }
+  | { status: 'unverifiable'; reason: string };
+
+/** One column's condition for a write: its non-null part, nothing left, or a shape that cannot be narrowed. */
+type TNarrowedCondition =
+  | { status: 'condition'; value: unknown }
+  | { status: 'none' }
+  | { status: 'unverifiable'; reason: string };
 
 const WRITE_DENIED_STATUS = HTTP.ResultCodes.RS_4.Forbidden;
+
+/** The most branches a scope may expand to; past it the scope is unverifiable. */
+const MAX_BRANCHES = 32;
 
 const isScalar = (value: unknown): value is TScalar => {
   return (
@@ -49,141 +62,180 @@ const normalise = (value: TScalar): string | null => {
   return value instanceof Date ? value.toISOString() : String(value);
 };
 
-const intersect = (opts: { left: Set<string | null>; right: Set<string | null> }) => {
+const intersect = (opts: { left: TAllowed; right: TAllowed }) => {
   return new Set([...opts.left].filter((value) => opts.right.has(value)));
 };
 
 /**
- * The write side of `@model` settings.access. The resolved scope is a `where`; the guard reads
- * from it the columns it constrains and the values it allows, and holds every written row to them.
+ * The write side of `@model` settings.access. The resolved scope is a `where`; the guard reads it as
+ * a list of branches (the columns each constrains and the values it allows) and holds every written
+ * row to them.
  *
  * Only shapes that can be checked are read: a column equal to a scalar or `null`, `{ eq }`, `{ inq }`
- * (or `in`), an array, `and` of those, and an `or` whose branches all constrain the same column. Anything
- * else - an `or` over several columns, ranges, `like`, a nested path - makes
- * the scope unverifiable, and the write is refused with its own message instead of being skipped.
+ * (or `in`), an array, and `and` and `or` of those. Anything else - ranges, `like`, a nested path,
+ * several operators on one column, an empty `or` branch, more than 32 branches - makes the scope
+ * unverifiable, and the write is refused with its own message instead of being skipped.
+ *
+ * A scope of one branch is checked column by column: an update checks only the scope columns it
+ * writes, and `sharedRows` admits `null` on any scope column. A scope of several branches is checked
+ * branch by branch: a row must satisfy one branch on every column that branch constrains, an update
+ * that writes a scope column must satisfy one branch on its own, and `null` passes only where the
+ * branch allows it and `sharedRows` is on.
  */
 export class ScopeWriteGuard {
   static extractConstraints(opts: { where: TWhere }): TExtraction {
-    const constraints: TConstraints = new Map();
-    const reason = ScopeWriteGuard.collect({
-      where: opts.where as Record<string, unknown>,
-      constraints,
-    });
+    const branches = ScopeWriteGuard.branchesOf({ where: opts.where });
 
-    return reason === undefined
-      ? { isVerifiable: true, constraints }
-      : { isVerifiable: false, reason };
+    return typeof branches === 'string'
+      ? { isVerifiable: false, reason: branches }
+      : { isVerifiable: true, branches };
   }
 
-  /** Adds the where's constraints to `constraints`; returns the reason it cannot be verified, if any. */
-  private static collect(opts: {
-    where: Record<string, unknown>;
-    constraints: TConstraints;
-  }): string | undefined {
-    const { where, constraints } = opts;
+  /** The branches of a where, or the reason it cannot be verified. */
+  private static branchesOf(opts: { where: unknown }): TBranch[] | string {
+    const { where } = opts;
+
+    if (!RecordUtility.isPlainRecord(where)) {
+      return 'a condition that is not an object cannot be checked on a write';
+    }
+
+    let branches: TBranch[] = [new Map()];
 
     for (const [key, value] of Object.entries(where)) {
-      if (key === 'and') {
-        if (!Array.isArray(value)) {
-          return "'and' is not a list";
+      const factor = ScopeWriteGuard.factorOf({ key, value });
+
+      if (typeof factor === 'string') {
+        return factor;
+      }
+
+      for (const part of factor) {
+        const product = ScopeWriteGuard.multiply({ left: branches, right: part });
+
+        if (typeof product === 'string') {
+          return product;
         }
 
-        for (const part of value) {
-          const reason = ScopeWriteGuard.collect({
-            where: part as Record<string, unknown>,
-            constraints,
-          });
-
-          if (reason !== undefined) {
-            return reason;
-          }
-        }
-
-        continue;
+        branches = product;
       }
-
-      if (key === 'or') {
-        const union = ScopeWriteGuard.unionOfBranches({ branches: value });
-
-        if (typeof union === 'string') {
-          return union;
-        }
-
-        const existing = constraints.get(union.column);
-        constraints.set(
-          union.column,
-          existing ? intersect({ left: existing, right: union.allowed }) : union.allowed,
-        );
-        continue;
-      }
-
-      if (key.includes('.')) {
-        return `the nested path '${key}' cannot be checked on a write`;
-      }
-
-      const allowed = ScopeWriteGuard.allowedValues({ value });
-
-      if (typeof allowed === 'string') {
-        return `column '${key}': ${allowed}`;
-      }
-
-      const existing = constraints.get(key);
-      constraints.set(key, existing ? intersect({ left: existing, right: allowed }) : allowed);
     }
 
-    return undefined;
+    return branches;
   }
 
-  /**
-   * An `or` is checkable only when every branch constrains the same single column with a scalar,
-   * `null`, `eq`, `in` or `inq`: the allowed values are then the union of the branches. This is the
-   * shared-rows scope, `{ or: [{ merchantId: { in: ids } }, { merchantId: null }] }`. Any other `or`
-   * (several columns, ranges, nested `and` or `or`) cannot be checked.
-   */
-  private static unionOfBranches(opts: {
-    branches: unknown;
-  }): { column: string; allowed: Set<string | null> } | string {
-    const { branches } = opts;
+  /** The disjunctions one key of a where contributes, all of which must hold. */
+  private static factorOf(opts: { key: string; value: unknown }): TBranch[][] | string {
+    const { key, value } = opts;
 
-    if (!Array.isArray(branches) || branches.length === 0) {
-      return "'or' is not a list";
+    if (key === QueryOperators.AND) {
+      if (!Array.isArray(value)) {
+        return "'and' is not a list";
+      }
+
+      const parts: TBranch[][] = [];
+
+      for (const part of value) {
+        const branches = ScopeWriteGuard.branchesOf({ where: part });
+
+        if (typeof branches === 'string') {
+          return branches;
+        }
+
+        parts.push(branches);
+      }
+
+      return parts;
     }
 
-    let column: string | undefined;
-    const allowed = new Set<string | null>();
-
-    for (const branch of branches) {
-      const entries = Object.entries((branch ?? {}) as Record<string, unknown>);
-
-      if (entries.length !== 1) {
-        return "an 'or' branch with several conditions cannot be checked on a write";
+    if (key === QueryOperators.OR) {
+      if (!Array.isArray(value) || value.length === 0) {
+        return "'or' is not a list";
       }
 
-      const [key, value] = entries[0];
+      const alternatives: TBranch[] = [];
 
-      if (key === 'and' || key === 'or' || key.includes('.')) {
-        return `an 'or' branch over '${key}' cannot be checked on a write`;
+      for (const part of value) {
+        const branches = ScopeWriteGuard.branchesOf({ where: part });
+
+        if (typeof branches === 'string') {
+          return branches;
+        }
+
+        if (branches.some((branch) => branch.size === 0)) {
+          return "an 'or' branch with no condition cannot be checked on a write";
+        }
+
+        alternatives.push(...branches);
       }
 
-      if (column !== undefined && column !== key) {
-        return "an 'or' over different columns cannot be checked on a write";
-      }
-
-      column = key;
-      const values = ScopeWriteGuard.allowedValues({ value });
-
-      if (typeof values === 'string') {
-        return `column '${key}': ${values}`;
-      }
-
-      values.forEach((entry) => allowed.add(entry));
+      return [ScopeWriteGuard.mergeSingleColumn({ branches: alternatives })];
     }
 
-    return { column: column as string, allowed };
+    if (key.includes('.')) {
+      return `the nested path '${key}' cannot be checked on a write`;
+    }
+
+    const allowed = ScopeWriteGuard.allowedValues({ value });
+
+    if (typeof allowed === 'string') {
+      return `column '${key}': ${allowed}`;
+    }
+
+    return [[new Map([[key, allowed]])]];
+  }
+
+  /** Every combination of one branch from each side, with the values of a shared column intersected. */
+  private static multiply(opts: { left: TBranch[]; right: TBranch[] }): TBranch[] | string {
+    const { left, right } = opts;
+
+    if (left.length * right.length > MAX_BRANCHES) {
+      return `a scope of more than ${MAX_BRANCHES} branches cannot be checked on a write`;
+    }
+
+    return left.flatMap((base) => {
+      return right.map((extra) => {
+        const combined: TBranch = new Map(base);
+
+        for (const [column, allowed] of extra) {
+          const existing = combined.get(column);
+          combined.set(column, existing ? intersect({ left: existing, right: allowed }) : allowed);
+        }
+
+        return combined;
+      });
+    });
+  }
+
+  /** Alternatives that each constrain one and the same column become one branch holding the union of their values. */
+  private static mergeSingleColumn(opts: { branches: TBranch[] }): TBranch[] {
+    const merged: TBranch[] = [];
+    const byColumn = new Map<string, TAllowed>();
+
+    for (const branch of opts.branches) {
+      const [entry] = branch.size === 1 ? [...branch] : [];
+
+      if (entry === undefined) {
+        merged.push(branch);
+        continue;
+      }
+
+      const [column, allowed] = entry;
+      const existing = byColumn.get(column);
+
+      if (existing) {
+        allowed.forEach((value) => existing.add(value));
+        continue;
+      }
+
+      const union = new Set(allowed);
+      byColumn.set(column, union);
+      merged.push(new Map([[column, union]]));
+    }
+
+    return merged;
   }
 
   /** The values one column's condition allows, or a string naming why it cannot be checked. */
-  private static allowedValues(opts: { value: unknown }): Set<string | null> | string {
+  private static allowedValues(opts: { value: unknown }): TAllowed | string {
     const { value } = opts;
 
     if (isScalar(value)) {
@@ -196,18 +248,18 @@ export class ScopeWriteGuard {
         : 'a list with a non-scalar entry';
     }
 
-    if (typeof value !== 'object' || value === undefined) {
+    if (!RecordUtility.isPlainRecord(value)) {
       return 'an unsupported condition';
     }
 
-    const operators = Object.keys(value as object);
+    const operators = Object.keys(value);
 
     if (operators.length !== 1) {
       return `a condition with ${operators.length} operators cannot be checked on a write`;
     }
 
     const [operator] = operators;
-    const operand = (value as Record<string, unknown>)[operator];
+    const operand = value[operator];
 
     if (operator === QueryOperators.EQ && isScalar(operand)) {
       return new Set([normalise(operand)]);
@@ -229,8 +281,9 @@ export class ScopeWriteGuard {
    * The scope as a MUTATION `where` (update, delete, soft delete, restore). A scope with a `null`
    * branch - `{ or: [{ merchantId: { in: ids } }, { merchantId: null }] }` - lets the caller READ the
    * shared rows. Changing or deleting one is the same permission as creating one, `write.sharedRows`,
-   * so without it the `null` branch is removed and only the caller's own rows match. With
-   * `sharedRows` the scope is returned as it is.
+   * so without it the `null` branch is removed and only the caller's own rows match. A branch over
+   * several columns that holds a `null` constraint is removed whole. With `sharedRows` the scope is
+   * returned as it is.
    *
    * Only the shapes the write guard can read are narrowed. Any other shape cannot be shown to exclude
    * the shared rows, so the mutation is refused, as an update with a payload already is.
@@ -248,7 +301,7 @@ export class ScopeWriteGuard {
     // Checked with `sharedRows` too: it lets the null branch through, not a shape the guard cannot read.
     const narrowed = ScopeWriteGuard.withoutShared({ where: scopeWhere });
 
-    if (narrowed.kind === 'unverifiable') {
+    if (narrowed.status === 'unverifiable') {
       throw ScopeWriteGuard.denied({
         model,
         operation,
@@ -260,7 +313,7 @@ export class ScopeWriteGuard {
       return scopeWhere;
     }
 
-    return narrowed.kind === 'none' ? ScopeFilterDenial.where() : narrowed.where;
+    return narrowed.status === 'none' ? ScopeFilterDenial.where() : narrowed.where;
   }
 
   /** `where` with every `null` the scope allows removed; `none` when nothing but `null` was allowed. */
@@ -268,18 +321,17 @@ export class ScopeWriteGuard {
     const result: TWhere = {};
 
     for (const [key, value] of Object.entries(opts.where)) {
-      if (key === 'and' || key === 'or') {
-        if (!Array.isArray(value) || (key === 'or' && value.length === 0)) {
-          return { kind: 'unverifiable', reason: `'${key}' is not a list` };
+      if (key === QueryOperators.AND || key === QueryOperators.OR) {
+        if (!Array.isArray(value) || (key === QueryOperators.OR && value.length === 0)) {
+          return { status: 'unverifiable', reason: `'${key}' is not a list` };
         }
 
-        // An 'or' is read only when every branch constrains the same column, as the guard reads it: a branch over another column
-        // could match a shared row without a null in sight.
-        if (key === 'or') {
-          const union = ScopeWriteGuard.unionOfBranches({ branches: value });
+        // An 'or' is narrowed only when the guard can read it as branches.
+        if (key === QueryOperators.OR) {
+          const extraction = ScopeWriteGuard.extractConstraints({ where: { [key]: value } });
 
-          if (typeof union === 'string') {
-            return { kind: 'unverifiable', reason: union };
+          if (!extraction.isVerifiable) {
+            return { status: 'unverifiable', reason: extraction.reason };
           }
         }
 
@@ -290,13 +342,13 @@ export class ScopeWriteGuard {
             where: RecordUtility.isPlainRecord(part) ? part : {},
           });
 
-          if (narrowed.kind === 'unverifiable') {
+          if (narrowed.status === 'unverifiable') {
             return narrowed;
           }
 
-          if (narrowed.kind === 'none') {
+          if (narrowed.status === 'none') {
             // One impossible 'and' part makes the whole 'and' impossible; an impossible 'or' branch just drops out.
-            if (key === 'and') {
+            if (key === QueryOperators.AND) {
               return narrowed;
             }
 
@@ -306,8 +358,8 @@ export class ScopeWriteGuard {
           kept.push(narrowed.where);
         }
 
-        if (key === 'or' && kept.length === 0) {
-          return { kind: 'none' };
+        if (key === QueryOperators.OR && kept.length === 0) {
+          return { status: 'none' };
         }
 
         result[key] = kept;
@@ -316,48 +368,41 @@ export class ScopeWriteGuard {
 
       if (key.includes('.')) {
         return {
-          kind: 'unverifiable',
+          status: 'unverifiable',
           reason: `the nested path '${key}' cannot be checked on a write`,
         };
       }
 
       const narrowed = ScopeWriteGuard.conditionWithoutNull({ value });
 
-      if (narrowed.kind !== 'condition') {
-        return narrowed.kind === 'none'
-          ? { kind: 'none' }
-          : { kind: 'unverifiable', reason: `column '${key}': ${narrowed.reason}` };
+      if (narrowed.status !== 'condition') {
+        return narrowed.status === 'none'
+          ? { status: 'none' }
+          : { status: 'unverifiable', reason: `column '${key}': ${narrowed.reason}` };
       }
 
       result[key] = narrowed.value;
     }
 
-    return { kind: 'where', where: result };
+    return { status: 'where', where: result };
   }
 
   /** One column's condition without its `null` values, reading the same shapes `allowedValues` reads. */
-  private static conditionWithoutNull(opts: {
-    value: unknown;
-  }):
-    | { kind: 'condition'; value: unknown }
-    | { kind: 'none' }
-    | { kind: 'unverifiable'; reason: string } {
+  private static conditionWithoutNull(opts: { value: unknown }): TNarrowedCondition {
     const { value } = opts;
 
-    const list = (entries: unknown[]) => {
+    const list = (entries: unknown[]): TNarrowedCondition => {
       if (!entries.every(isScalar)) {
-        return { kind: 'unverifiable' as const, reason: 'a list with a non-scalar entry' };
+        return { status: 'unverifiable', reason: 'a list with a non-scalar entry' };
       }
 
       const kept = entries.filter((entry) => entry !== null);
 
-      return kept.length === 0
-        ? { kind: 'none' as const }
-        : { kind: 'condition' as const, value: kept };
+      return kept.length === 0 ? { status: 'none' } : { status: 'condition', value: kept };
     };
 
     if (isScalar(value)) {
-      return value === null ? { kind: 'none' } : { kind: 'condition', value };
+      return value === null ? { status: 'none' } : { status: 'condition', value };
     }
 
     if (Array.isArray(value)) {
@@ -365,14 +410,14 @@ export class ScopeWriteGuard {
     }
 
     if (!RecordUtility.isPlainRecord(value)) {
-      return { kind: 'unverifiable', reason: 'an unsupported condition' };
+      return { status: 'unverifiable', reason: 'an unsupported condition' };
     }
 
     const operators = Object.keys(value);
 
     if (operators.length !== 1) {
       return {
-        kind: 'unverifiable',
+        status: 'unverifiable',
         reason: `a condition with ${operators.length} operators cannot be checked on a write`,
       };
     }
@@ -381,7 +426,7 @@ export class ScopeWriteGuard {
     const operand = value[operator];
 
     if (operator === QueryOperators.EQ && isScalar(operand)) {
-      return operand === null ? { kind: 'none' } : { kind: 'condition', value };
+      return operand === null ? { status: 'none' } : { status: 'condition', value };
     }
 
     if (
@@ -390,13 +435,13 @@ export class ScopeWriteGuard {
     ) {
       const narrowed = list(operand);
 
-      return narrowed.kind === 'condition'
-        ? { kind: 'condition', value: { [operator]: narrowed.value } }
+      return narrowed.status === 'condition'
+        ? { status: 'condition', value: { [operator]: narrowed.value } }
         : narrowed;
     }
 
     return {
-      kind: 'unverifiable',
+      status: 'unverifiable',
       reason: `the operator '${operator}' cannot be checked on a write`,
     };
   }
@@ -449,11 +494,13 @@ export class ScopeWriteGuard {
       });
     }
 
-    const { constraints } = extraction;
+    const { branches } = extraction;
     const declared = settings.columns;
 
     if (declared) {
-      const undeclared = [...constraints.keys()].find((column) => !declared.includes(column));
+      const undeclared = branches
+        .flatMap((branch) => [...branch.keys()])
+        .find((column) => !declared.includes(column));
 
       if (undeclared !== undefined) {
         throw ScopeWriteGuard.denied({
@@ -467,56 +514,162 @@ export class ScopeWriteGuard {
     const isAssign =
       settings.write?.mode === ScopeWriteGuards.ASSIGN && operation === ScopeOperations.CREATE;
     const sharedRows = settings.write?.sharedRows === true;
+    const [single] = branches.length === 1 ? branches : [];
 
     return rows.map((row) => {
-      let result = row;
+      const check = { model, operation, row, isAssign, sharedRows };
 
-      for (const [column, allowed] of constraints) {
-        const value = (row as Record<string, unknown>)[column];
+      return single
+        ? ScopeWriteGuard.holdToColumns({ ...check, branch: single })
+        : ScopeWriteGuard.holdToBranches({ ...check, branches });
+    });
+  }
 
-        if (value === undefined) {
-          if (operation !== ScopeOperations.CREATE) {
-            continue;
-          }
+  /** A scope of one branch: each scope column the row holds is checked on its own. */
+  private static holdToColumns<Row extends Record<string, unknown>>(opts: {
+    model: string;
+    operation: TScopeOperation;
+    row: Row;
+    branch: TBranch;
+    isAssign: boolean;
+    sharedRows: boolean;
+  }): Row {
+    const { model, operation, row, branch, isAssign, sharedRows } = opts;
+    let result = row;
 
-          // `assign` first: stamping gives the row an owner, which is safer than leaving it shared.
-          const only = allowed.size === 1 ? [...allowed][0] : undefined;
+    for (const [column, allowed] of branch) {
+      const value = row[column];
 
-          if (isAssign && only !== undefined && only !== null) {
-            result = { ...result, [column]: only };
-            continue;
-          }
-
-          // Absent means the database default, usually `null`, so it is held to the `null` rule.
-          if (sharedRows) {
-            continue;
-          }
-
-          throw ScopeWriteGuard.denied({
-            model,
-            operation,
-            column,
-            detail: 'the scope column is missing',
-          });
+      if (value === undefined) {
+        if (operation !== ScopeOperations.CREATE) {
+          continue;
         }
 
-        const normalised = isScalar(value) ? normalise(value) : undefined;
-        // A `null` branch in the scope lets this caller READ shared rows. Writing one (or moving a
-        // row into the shared set) is a separate permission: only `sharedRows` grants it.
-        const isOutside = normalised === null ? !sharedRows : !allowed.has(normalised as string);
+        // `assign` first: stamping gives the row an owner, which is safer than leaving it shared.
+        const only = allowed.size === 1 ? [...allowed][0] : undefined;
 
-        if (normalised === undefined || isOutside) {
-          throw ScopeWriteGuard.denied({
-            model,
-            operation,
-            column,
-            detail: 'the value is outside the resolved scope',
-          });
+        if (isAssign && only !== undefined && only !== null) {
+          result = { ...result, [column]: only };
+          continue;
         }
+
+        // Absent means the database default, usually `null`, so it is held to the `null` rule.
+        if (sharedRows) {
+          continue;
+        }
+
+        throw ScopeWriteGuard.denied({
+          model,
+          operation,
+          column,
+          detail: 'the scope column is missing',
+        });
       }
 
-      return result;
+      const normalised = isScalar(value) ? normalise(value) : undefined;
+      // A `null` branch in the scope lets this caller READ shared rows. Writing one (or moving a
+      // row into the shared set) is a separate permission: only `sharedRows` grants it.
+      const isInside =
+        normalised === null ? sharedRows : normalised !== undefined && allowed.has(normalised);
+
+      if (!isInside) {
+        throw ScopeWriteGuard.denied({
+          model,
+          operation,
+          column,
+          detail: 'the value is outside the resolved scope',
+        });
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * A scope of several branches: the row must satisfy one branch on every column it constrains. An
+   * absent column is `null` on a create; an update that writes no scope column is not checked, and one
+   * that does must satisfy a branch with the columns it writes, whatever the stored row holds.
+   */
+  private static holdToBranches<Row extends Record<string, unknown>>(opts: {
+    model: string;
+    operation: TScopeOperation;
+    row: Row;
+    branches: TBranch[];
+    isAssign: boolean;
+    sharedRows: boolean;
+  }): Row {
+    const { model, operation, row, branches, isAssign, sharedRows } = opts;
+    const isCreate = operation === ScopeOperations.CREATE;
+
+    if (
+      !isCreate &&
+      branches.every((branch) => [...branch.keys()].every((column) => row[column] === undefined))
+    ) {
+      return row;
+    }
+
+    // A branch with an empty set admits no row, so it drops out before `assign` counts the branches that still fit.
+    const reachable = branches.filter((branch) => {
+      return [...branch.values()].every((allowed) => allowed.size > 0);
     });
+
+    // `isPartial` skips the columns the candidate leaves out: the branch can still apply to it.
+    const satisfies = (check: { branch: TBranch; candidate: Row; isPartial: boolean }) => {
+      return [...check.branch].every(([column, allowed]) => {
+        const value = check.candidate[column];
+
+        if (value === undefined && check.isPartial) {
+          return true;
+        }
+
+        return ScopeWriteGuard.admits({
+          allowed,
+          value: isCreate ? (value ?? null) : value,
+          sharedRows,
+        });
+      });
+    };
+
+    let result = row;
+
+    if (isAssign) {
+      const feasible = reachable.filter((branch) =>
+        satisfies({ branch, candidate: row, isPartial: true }),
+      );
+
+      if (feasible.length === 1) {
+        for (const [column, allowed] of feasible[0]) {
+          const [only] = allowed.size === 1 ? [...allowed] : [];
+
+          if (row[column] === undefined && only !== undefined && only !== null) {
+            result = { ...result, [column]: only };
+          }
+        }
+      }
+    }
+
+    if (reachable.some((branch) => satisfies({ branch, candidate: result, isPartial: false }))) {
+      return result;
+    }
+
+    throw ScopeWriteGuard.denied({
+      model,
+      operation,
+      detail: 'the row satisfies no branch of the resolved scope',
+    });
+  }
+
+  /** Whether a written value is in a branch's allowed set; `null` also needs `sharedRows`. */
+  private static admits(opts: { allowed: TAllowed; value: unknown; sharedRows: boolean }): boolean {
+    const { allowed, value, sharedRows } = opts;
+
+    if (!isScalar(value)) {
+      return false;
+    }
+
+    const normalised = normalise(value);
+
+    return allowed.has(normalised) && (normalised !== null || sharedRows);
   }
 
   /**

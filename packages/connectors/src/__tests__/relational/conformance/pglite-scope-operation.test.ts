@@ -297,10 +297,10 @@ describe('a zero-argument resolver is unchanged on every operation', () => {
 });
 
 describe('write.sharedRows keeps the refusal of a scope the guard cannot read', () => {
-  const OR_OVER_TWO_COLUMNS = { or: [{ merchantId: ME }, { counterpartMerchantId: ME }] };
+  const OR_WITH_A_PATTERN = { or: [{ merchantId: ME }, { counterpartMerchantId: { like: ME } }] };
 
-  test('a delete and an update selection under an or over two columns are refused', async () => {
-    resolver = () => OR_OVER_TWO_COLUMNS;
+  test('a delete and an update selection under an or holding a pattern are refused', async () => {
+    resolver = () => OR_WITH_A_PATTERN;
 
     const writes = [
       sharedRowsRepository.deleteAll({ where: {}, options: { shouldHardDelete: true } }),
@@ -310,7 +310,7 @@ describe('write.sharedRows keeps the refusal of a scope the guard cannot read', 
 
     for (const write of writes) {
       const result = await refusal({ write });
-      expect(result).toContain("an 'or' over different columns");
+      expect(result).toContain("the operator 'like' cannot be checked on a write");
     }
 
     const result2 = await rawNames();
@@ -377,19 +377,27 @@ describe('one model reads wider than it writes', () => {
     expect(message).toContain('write refused by the access scope');
   });
 
-  test('returning the or over two columns for a write is still refused, with the same message', async () => {
+  test('returning the or over two columns for a write holds each write to one of its branches', async () => {
     resolver = () => ({ or: [{ merchantId: ME }, { counterpartMerchantId: ME }] });
 
-    const writes = [
-      repository.create({ data: { merchantId: ME, name: 'x' } }),
-      repository.updateAll({ where: {}, data: { name: 'x' }, options: { shouldReturn: false } }),
-      repository.deleteAll({ where: {}, options: { shouldHardDelete: true } }),
-    ];
+    await repository.create({ data: { merchantId: ME, name: 'own' } });
+    await repository.create({
+      data: { merchantId: 'm2', counterpartMerchantId: ME, name: 'named' },
+    });
+    const message = await refusal({
+      write: repository.create({
+        data: { merchantId: 'm3', counterpartMerchantId: 'm4', name: 'x' },
+      }),
+    });
+    await repository.updateAll({
+      where: {},
+      data: { name: 'x' },
+      options: { shouldReturn: false },
+    });
 
-    for (const write of writes) {
-      const result4 = await refusal({ write });
-      expect(result4).toContain("an 'or' over different columns cannot be checked on a write");
-    }
+    expect(message).toContain('the row satisfies no branch of the resolved scope');
+    const result4 = await rawNames();
+    expect(result4).toEqual(['x', 'x', 'unrelated', 'mine-deleted', 'x', 'x']);
   });
 
   test('a soft delete is held to the DELETE scope, not the UPDATE scope', async () => {

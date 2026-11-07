@@ -318,7 +318,7 @@ describe('with write.sharedRows on the parent the same writes are allowed', () =
 
 describe('other shapes of the parent scope', () => {
   test('a parent scope the write guard cannot read refuses the child write, and still reads', async () => {
-    productScope = { or: [{ merchantId: 'm1' }, { name: 'p2' }] };
+    productScope = { or: [{ merchantId: 'm1' }, { name: { like: 'p2' } }] };
 
     const created = await refusal(() => variants.create({ data: { productId: 1, name: 'x' } }));
     const updated = await refusal(() =>

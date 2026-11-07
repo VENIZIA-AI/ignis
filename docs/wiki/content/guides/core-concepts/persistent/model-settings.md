@@ -247,7 +247,7 @@ A soft delete is stored as an update of the row, but the resolver sees `DELETE`:
 
 `ScopeOperations.WRITE` and `ScopeOperations.ALL` are groups, never an `operation`. Ask `includes({ group, operation })` whether an operation belongs to one.
 
-Returning the `or` for a write operation is still refused, with the same "cannot be verified" message. Return the narrow scope for that operation instead.
+Returning the `or` for a write operation is accepted too, but it means something else: a write may then land in either branch (see [An `or` over different columns](#an-or-over-different-columns)). To hold writes to `merchantId` alone, return the narrow scope for that operation, as above.
 
 ### onMissing
 
@@ -299,7 +299,7 @@ export class Product extends ModelFactory.defineEntity({ table: productTable }) 
 A scope on reads is not enough: a `create` has no `where` to AND into, so without a check a merchant could insert a product owned by someone else. The write guard holds every created row, and every update payload that names a scope column, to the resolved scope. `write.mode` chooses what happens to a row that is outside it:
 
 - `'reject'` (default): the write is refused and nothing is written.
-- `'assign'` (`ScopeWriteGuards.ASSIGN`; `'reject'` is `ScopeWriteGuards.REJECT`): also fills a scope column that is missing from a created row, when the scope is a single equality such as `{ merchantId: 'm-1' }`. A value that is present and disagrees is still refused.
+- `'assign'` (`ScopeWriteGuards.ASSIGN`; `'reject'` is `ScopeWriteGuards.REJECT`): also fills a scope column that is missing from a created row, when the scope is a single equality such as `{ merchantId: 'm-1' }`. A value that is present and disagrees is still refused. For a scope with several branches, see [An `or` over different columns](#an-or-over-different-columns).
 
 The scope is `{ merchantId: 'm-1' }` for every row of this table:
 
@@ -313,7 +313,7 @@ The scope is `{ merchantId: 'm-1' }` for every row of this table:
 | `createAll([own, own, other])`, one bad row | Refused, nothing written | Refused, nothing written |
 | Any of the above under `ScopeFilters.UNRESTRICTED` (an admin, a system job) | Written as given | Written as given, nothing stamped |
 
-The guard reads the allowed values from the resolved `where`: an equality, `eq`, `inq` or `in`, an array, `and` of those, and an `or` whose branches all constrain the same column. Any other shape (an `or` over two columns, a range, `like`) cannot be checked, so the write is refused with a message that says so. It is never skipped. To read two columns and write one, [return the narrow scope for a write operation](#read-wider-than-you-write).
+The guard reads the allowed values from the resolved `where`: an equality, `eq`, `inq` or `in`, an array, and `and` and `or` of those. Any other shape (a range, `like`, a nested path, two operators on one column) cannot be checked, so the write is refused with a message that says so. It is never skipped. To read two columns and write one, [return the narrow scope for a write operation](#read-wider-than-you-write).
 
 ```typescript
 // src/models/product.model.ts
@@ -383,7 +383,51 @@ The `null` branch lets the caller read shared rows. Changing a shared row is a d
 
 If your resolver lists `null`, restricted callers still cannot create, change or delete shared rows unless `sharedRows` is `true`. That is true for `updateById`, `updateAll`, `updateBy`, `deleteById`, `deleteAll`, `deleteBy`, soft delete and restore alike: the scope they run under has the `null` branch removed. Set `sharedRows` only on a model where every merchant may write platform-wide rows that all merchants then see. Platform-defined data (a fare policy, a tax type, a promotion) stays `false`; platform staff who manage it use `ScopeFilters.UNRESTRICTED`.
 
-A scope the guard cannot read (an `or` over several columns, a range) cannot be narrowed this way, so an update or a delete under it is refused with a "cannot be verified" message, as a create already was. This holds with `sharedRows: true` too: it lets the `null` rows through, not a shape the guard cannot read.
+A scope the guard cannot read (a range, `like`) cannot be narrowed this way, so an update or a delete under it is refused with a "cannot be verified" message, as a create already was. This holds with `sharedRows: true` too: it lets the `null` rows through, not a shape the guard cannot read.
+
+### An `or` over different columns
+
+A scope can name owners at two levels. Say a ticket belongs to a merchant, or, when it has no merchant, to the organizer that runs the event. The scope is an `or` whose branches constrain different columns:
+
+```typescript
+// src/models/ticket.model.ts
+import { model } from '@venizia/ignis';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
+import { currentMerchantIds, currentOrganizerIds } from '@/utilities/merchant';
+import { ticketTable } from './ticket.table';
+
+@model({
+  settings: {
+    access: {
+      resolve: () => ({
+        or: [
+          { merchantId: { inq: currentMerchantIds() } },
+          { merchantId: null, organizerId: { inq: currentOrganizerIds() } },
+        ],
+      }),
+      write: { sharedRows: true },
+    },
+  },
+})
+export class Ticket extends ModelFactory.defineEntity({ table: ticketTable }) {}
+```
+
+The guard reads each branch as a whole. A written row must satisfy one branch on every column that branch names. A column the branch does not name is free in it.
+
+| The row | Written? |
+|---|---|
+| `{ merchantId: mine, organizerId: anyone }` | Yes, through the first branch |
+| `{ merchantId: null, organizerId: mine }` | Yes, through the second branch. Needs `sharedRows: true` |
+| `{ merchantId: other, organizerId: mine }` | No: both branches fail on `merchantId` |
+| `{ merchantId: null, organizerId: other }` | No, even with `sharedRows: true` |
+
+- **`null`.** With several branches, `null` passes only in a branch that allows it, and only with `sharedRows: true`. A create that leaves a scope column out writes `null`.
+- **Update.** A payload that writes no scope column is not checked. A payload that writes one must satisfy a whole branch on its own, so the row lands in that branch whatever it held before. `{ organizerId: mine }` alone is refused; `{ merchantId: null, organizerId: mine }` passes. A change of `organizerId` alone on a merchant row is refused too: send `merchantId` with it.
+- **Which rows an update or delete reaches.** Without `sharedRows`, a branch with a `null` constraint is removed from the scope they run under, so organizer-level rows stay out of reach. When every branch has one, the write matches no row.
+- **`assign`.** Fills columns only when exactly one branch still fits the columns the row carries, and only the columns that branch pins to one value that is not `null`.
+- **Limit.** An `and` of several `or`s multiplies their branches. Past 32 branches the scope cannot be verified, and a create or an update is refused. An update or a delete is also refused when a single `or` holds more than 32 branches.
+
+A scope with one branch keeps the rules of the sections above, even over several columns: an update checks only the scope columns it writes, and `sharedRows` admits `null` on any scope column. An `or` whose branches all name the same column is one branch holding all their values.
 
 ### columns
 
@@ -629,7 +673,8 @@ A refused write is an `ApplicationError` with HTTP status `403` and the code `co
 |---|---|
 | `write refused by the access scope \| entity: Product \| column: merchantId \| the value is outside the resolved scope` | A row names another merchant, or `null` without `sharedRows` |
 | `... \| column: merchantId \| the scope column is missing` | A created row has no scope column and the mode is `reject` |
-| `... \| the resolved scope cannot be verified on a write \| column 'merchantId': the operator 'gt' cannot be checked on a write` | The scope is an `or` over several columns, a range or another shape the guard cannot read |
+| `... \| the row satisfies no branch of the resolved scope` | The scope is an `or` over different columns and the row, or the update payload, satisfies none of its branches whole |
+| `... \| the resolved scope cannot be verified on a write \| column 'merchantId': the operator 'gt' cannot be checked on a write` | The scope holds a range or another shape the guard cannot read, or more than 32 branches |
 | `... \| no scope could be resolved for this caller` | `resolve()` returned `null` and `onMissing` is `'deny'`, on a create |
 
 At boot, `ScopeFilterUtility.assertScopeFilterSupported` runs as the last boot step of a `BaseApplication` and refuses four kinds of model:

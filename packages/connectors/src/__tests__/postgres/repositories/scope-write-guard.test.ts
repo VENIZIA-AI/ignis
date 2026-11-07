@@ -375,9 +375,9 @@ describe('scopeFilter write guard', () => {
   describe('a scope that cannot be verified', () => {
     test.each([
       [
-        'an or over different columns',
-        { or: [{ merchantId: 'm-a' }, { name: 'one' }] },
-        /different columns/,
+        'a range inside an or branch over several columns',
+        { or: [{ merchantId: 'm-a' }, { merchantId: { gt: 'm' }, name: 'one' }] },
+        /operator 'gt'/,
       ],
       [
         'an or with a range',
@@ -385,9 +385,9 @@ describe('scopeFilter write guard', () => {
         /operator 'gt'/,
       ],
       [
-        'an or branch with two conditions',
-        { or: [{ merchantId: 'm-a', name: 'one' }] },
-        /several conditions/,
+        'two operators inside an or branch over several columns',
+        { or: [{ merchantId: 'm-a' }, { merchantId: { eq: 'm-a', neq: 'm-b' }, name: 'one' }] },
+        /2 operators/,
       ],
       ['a range', { merchantId: { gt: 'm' } }, /operator 'gt'/],
       ['two operators', { merchantId: { eq: 'm-a', neq: 'm-b' } }, /2 operators/],
@@ -814,13 +814,25 @@ describe('scopeFilter write guard', () => {
 
     test('a scope the guard cannot read refuses a delete instead of leaving shared rows reachable', async () => {
       const { repository, shared } = await seed();
-      scope = { or: [{ merchantId: 'm-a' }, { name: 'shared' }] };
+      scope = { or: [{ merchantId: 'm-a' }, { name: { like: 'shared' } }] };
 
       const error = await refusal(repository.deleteById({ id: shared }));
 
       expect(error.message).toMatch(/cannot be verified/);
       const result = await names();
       expect(result).toEqual(['mine', 'shared', 'theirs']);
+    });
+
+    test('an or over different columns reaches the rows of each branch, a null merchantId included', async () => {
+      const { repository, shared, theirs } = await seed();
+      scope = { or: [{ merchantId: 'm-a' }, { name: 'shared' }] };
+
+      const result = await repository.deleteById({ id: shared });
+      expect(result.count).toBe(1);
+      const result2 = await repository.deleteById({ id: theirs });
+      expect(result2.count).toBe(0);
+      const result3 = await names();
+      expect(result3).toEqual(['mine', 'theirs']);
     });
   });
 });

@@ -72,7 +72,7 @@ describe('ScopeWriteGuard.apply - a delete payload', () => {
 });
 
 describe('ScopeWriteGuard.mutationWhere - the operation', () => {
-  test('sharedRows refuses an or over two columns and keeps the null branch otherwise', () => {
+  test('sharedRows refuses an or the guard cannot read and keeps the null branch otherwise', () => {
     const settings: IModelAccessSettings = {
       resolve: () => ({ merchantId: 'm1' }),
       write: { sharedRows: true },
@@ -83,9 +83,9 @@ describe('ScopeWriteGuard.mutationWhere - the operation', () => {
         settings,
         model: 'Item',
         operation: ScopeOperations.DELETE,
-        scopeWhere: { or: [{ merchantId: 'm1' }, { counterpartMerchantId: 'm1' }] },
+        scopeWhere: { or: [{ merchantId: 'm1' }, { counterpartMerchantId: { gt: 'm' } }] },
       }),
-    ).toThrow(/an 'or' over different columns/);
+    ).toThrow(/the operator 'gt'/);
 
     const shared = { or: [{ merchantId: 'm1' }, { merchantId: null }] };
     expect(
