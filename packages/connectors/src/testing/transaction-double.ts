@@ -19,6 +19,9 @@ import { getError } from '@venizia/ignis-helpers/core';
  */
 export type TTransactionDoubleHook = () => void | Promise<void>;
 
+/** What `TransactionDouble.events` records: a begin the repository double made, a commit or a rollback that reached the end statement. */
+export type TTransactionDoubleEvent = 'begin' | 'commit' | 'rollback';
+
 /** Options shared by the transaction doubles: the `connector` to expose, errors to throw on the first commit or rollback, and hooks to observe them. */
 export interface ITransactionDoubleOptions<TConnector = never> {
   /**
@@ -57,7 +60,8 @@ export interface ISqliteTransactionDoubleOptions<
 
 /**
  * A transaction handle for unit tests, with no database behind it. It ends by the same rules as the
- * real handle and counts every commit() and rollback() that reached the end statement. Reading
+ * real handle and counts every commit() and rollback() that reached the end statement. `events` lists, in order,
+ * each begin, commit and rollback that reached the double. Reading
  * `connector` returns the `connector` option when one was given; without it the read throws, and a
  * repository method that would reach the database must be stubbed.
  */
@@ -71,6 +75,7 @@ export class TransactionDouble<TConnector = never>
   readonly #onCommit?: TTransactionDoubleHook;
   readonly #onRollback?: TTransactionDoubleHook;
 
+  readonly #events: Array<TTransactionDoubleEvent> = [];
   #commitCount = 0;
   #rollbackCount = 0;
 
@@ -96,6 +101,21 @@ export class TransactionDouble<TConnector = never>
     return this.#rollbackCount;
   }
 
+  /**
+   * Each begin, commit and rollback that reached the double, in the order they came: a snapshot, so a later event is
+   * not in a list read earlier. A begin is recorded by `RepositoryDouble.withTransactions` when the code under test
+   * opens the transaction; a call that joins this handle opens nothing and records no begin. A second end that the
+   * handle refuses is not recorded: it never reached the end statement.
+   */
+  get events(): ReadonlyArray<TTransactionDoubleEvent> {
+    return [...this.#events];
+  }
+
+  /** Records a begin. `RepositoryDouble.withTransactions` calls it when `beginTransaction` hands this handle out; a test that builds its own `beginTransaction` stub calls it the same way. */
+  recordBegin(): void {
+    this.#events.push('begin');
+  }
+
   get connector(): TConnector {
     if (this.#connector !== undefined) {
       return this.#connector;
@@ -110,6 +130,7 @@ export class TransactionDouble<TConnector = never>
   protected override async executeEnd(opts: { end: ITransactionEnd }): Promise<void> {
     if (opts.end.endedState === TransactionStates.COMMITTED) {
       this.#commitCount++;
+      this.#events.push('commit');
       await this.#onCommit?.();
 
       if (this.#commitError) {
@@ -120,6 +141,7 @@ export class TransactionDouble<TConnector = never>
     }
 
     this.#rollbackCount++;
+    this.#events.push('rollback');
     await this.#onRollback?.();
 
     if (this.#rollbackError) {

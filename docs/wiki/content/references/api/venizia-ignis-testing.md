@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis/testing, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-3 exports, 3 with TSDoc. 11 more are re-exported from other entries (listed at the end).
+3 exports, 3 with TSDoc. 12 more are re-exported from other entries (listed at the end).
 
 ## `ApplicationBootAssertion`
 
@@ -145,5 +145,6 @@ Source: `packages/core-server/src/testing/assert-application-boots.ts`
 - `TransactionDouble` from [`@venizia/ignis-connectors/testing`](/references/api/venizia-ignis-connectors-testing)
 - `TransactionStates` from [`@venizia/ignis-connectors/testing`](/references/api/venizia-ignis-connectors-testing)
 - `TRepositoryWithTransactions` from [`@venizia/ignis-connectors/testing`](/references/api/venizia-ignis-connectors-testing)
+- `TTransactionDoubleEvent` from [`@venizia/ignis-connectors/testing`](/references/api/venizia-ignis-connectors-testing)
 - `TTransactionDoubleHook` from [`@venizia/ignis-connectors/testing`](/references/api/venizia-ignis-connectors-testing)
 - `TTransactionState` from [`@venizia/ignis-connectors/testing`](/references/api/venizia-ignis-connectors-testing)
