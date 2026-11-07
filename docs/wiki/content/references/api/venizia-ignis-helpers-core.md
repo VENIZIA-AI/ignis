@@ -1693,8 +1693,17 @@ Narrowing of an `unknown` value, such as a wire payload, to an object whose stri
 export declare class RecordUtility {
     /** A non-null object, arrays included: the narrowest check before reading string keys off an `unknown`. A type guard, so it keeps its positional `value`. */
     static isRecord(value: unknown): value is Record<string, unknown>;
-    /** A non-null object that is not an array: `isRecord` without the arrays. A class instance (an `Error`, a `Date`) passes; there is no prototype check, so this is not lodash's `isPlainObject`. */
+    /** A non-null object that is not an array: `isRecord` without the arrays. A class instance (an `Error`, a `Date`) passes; there is no prototype check; use `isPlainObject` for that. */
     static isPlainRecord(value: unknown): value is Record<string, unknown>;
+    /**
+     * A non-null object whose prototype is exactly `Object.prototype` or `null`: an object literal, `JSON.parse` output,
+     * `Object.create(null)`. Where `isRecord` and `isPlainRecord` look only at the type of the value, this one reads the
+     * prototype, so an array, a class instance (an `Error`, a `Date`, a `Map`), a function and an object from another
+     * realm (its `Object.prototype` is not this realm's) answer `false`. `Object.create(Object.create(null))` also
+     * answers `false`: its prototype is an object, not `null`. Use it for input that must be literal-shaped (a JSON
+     * body, a config). It never throws: a Proxy whose `getPrototypeOf` trap throws answers `false`.
+     */
+    static isPlainObject(value: unknown): value is Record<string, unknown>;
     /**
      * Reads `value` along `path` (an array of keys; a number reads an array index) and answers `undefined` when any step
      * is missing, null or not an object, where `ParseUtility.getDeepProperty` throws. Only own properties are read: a
