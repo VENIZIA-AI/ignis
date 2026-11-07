@@ -115,6 +115,24 @@ export declare class ApplicationError extends Error {
      */
     toFilledText(): string;
     static getError(opts: TError): ApplicationError;
+    /** One property read that cannot throw: a getter or a Proxy trap that throws reads as absent. */
+    private static readProperty;
+    /** The first of `statusCode` (what `getError` sets) and `status` (Hono's `HTTPException`) that is an integer in 400-599; else 500. */
+    private static readWrappedStatus;
+    /** The value's own string `message` on one line (every control character escaped, as a log line must not break), else the fixed text. */
+    private static readWrappedMessage;
+    /**
+     * The `ApplicationError` for a caught value of any type: the same instance when it already is one
+     * (`isApplicationError` shape, so an error from another copy of the class counts), else a new one
+     * with the original as `cause`. Never throws, whatever the value.
+     *
+     * The new error takes its `statusCode` from the value's `statusCode`, then `status`, when that is an integer
+     * in 400-599 (else 500), and its message from a string `message` (else a fixed text). That message reaches the
+     * client as written, unlike an unexpected error's, so wrap only what its caller may show.
+     */
+    static fromUnknown(opts: {
+        error: unknown;
+    }): ApplicationError;
     static fromError(opts: {
         error: TResponsedError;
     }): ApplicationError;

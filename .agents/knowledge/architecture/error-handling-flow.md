@@ -16,6 +16,7 @@ tags: [architecture, errors, middleware, security, isomorphic]
 - [The production boundary](#the-production-boundary)
 - [The response shape](#the-response-shape)
 - [The return trip: `fromError`](#the-return-trip-fromerror)
+- [Wrapping a caught value: `fromUnknown`](#wrapping-a-caught-value-fromunknown)
 - [Related](#related)
 <!-- okf:generated:contents end -->
 
@@ -268,6 +269,12 @@ server actually sent. A non-IGNIS body still yields an `ApplicationError` degrad
 The wire shape is also described by `ErrorSchema`/`TErrorResponse` in **kernel** (`base/models/common/schemas.ts`), for OpenAPI. That
 one cannot serve a browser: it depends on `@hono/zod-openapi`. `TResponsedError` exists because inversion
 must stay browser-safe, not as a duplicate to be consolidated away.
+
+## Wrapping a caught value: `fromUnknown`
+
+`ApplicationError.fromUnknown({ error })` (inversion, `app-error.ts`) is the catch-block counterpart: it takes the `unknown` a `catch` binds and NEVER throws. A value that passes `isApplicationError` (or `instanceof`) comes back as the SAME instance; anything else becomes a new `ApplicationError` with the value as `cause`. Status: the first of `statusCode`, `status` that is an integer in 400-599, else 500. Message: a non-blank string `message`, else the fixed `An unknown value was thrown`; control characters are escaped (the same set as `EchoUtility.toSafeEcho`) and the value is never `String()`-ed. Every property read goes through `Reflect.get` inside a try, so a throwing getter or Proxy trap reads as absent.
+
+The wrapped message is NOT sanitized for the client: the wrapper has a `statusCode`, so the middleware classifies it INTENTIONAL and sends the message as written (S-03 replaces only an UNEXPECTED error's message in production). `cause` is dropped in production. A call site that wraps a driver or SDK error should pass a message of its own through `getError` instead.
 
 ## Related
 
