@@ -47,7 +47,7 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
 
     this.logger
       .for(this.initialize.name)
-      .info('JWKS verifier initialized | url: %s', this.options.jwksUrl);
+      .info('JWKS verifier initialized | origin: %s', jwksUrl.origin);
   }
 
   protected override async doVerify(token: string): Promise<IJWTTokenPayload> {

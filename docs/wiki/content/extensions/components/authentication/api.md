@@ -251,8 +251,9 @@ A JWKS URL is `https:`. It may be `http:` only when its host is loopback (`local
 | JWKS verifier | `options.jwks.hosts.http`, beside `jwksUrl` |
 | Service-assertion callers | `IServiceAuthOptions.jwks.hosts.http`, which covers every `callers[...].jwksUrl` |
 
-- **Host names only.** `['identity-service']` covers `http://identity-service:3000/certs` and `http://identity-service/certs`: the port is ignored. An entry with a port, a scheme, a path, a wildcard or an IP address refuses the boot, naming the entry.
+- **Host names only.** `['identity-service']` covers `http://identity-service:3000/certs` and `http://identity-service/certs`: the port is ignored, and a host written with a trailing dot does not match. An entry with a port, a scheme, a path, a wildcard, an empty label, a leading or trailing dot, or an IP address in any spelling (`2130706433`, `0x7f000001`) refuses the boot, naming the entry. A plain-http JWKS on a non-loopback IP address cannot be allowed: give it a host name.
 - **No address ranges.** There is no rule for private networks: what a name resolves to can change, so you opt in by name.
+- **Redirects are not followed.** The key set fetch reads only a `200`, so an `https:` URL cannot lead to an `http:` host; a URL that redirects fails verification.
 - **Checked at boot.** The component checks the verifier URL and every caller URL when the application starts; the services check again before they fetch.
 
 ### TBasicTokenServiceOptions

@@ -2,7 +2,10 @@ import 'reflect-metadata';
 
 import { BaseApplication } from '@/base/applications';
 import { AuthenticateComponent } from '@/components/auth/authenticate/component';
+import { JWKSVerifierTokenService } from '@/components/auth/authenticate/services/bearer/jwks/verifier.service';
+import { JoseLoader } from '@/components/auth/authenticate/services/jose-loader';
 import { JWKSUrlPolicy } from '@/components/auth/authenticate/services/jwks-url-policy';
+import { ServiceAssertionVerifierService } from '@/components/auth/authenticate/services/service/verifier.service';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   AuthenticateBindingKeys,
@@ -137,6 +140,12 @@ describe('JWKSUrlPolicy.resolveHttpHosts', () => {
     ['a range', '10.0.0.0/8'],
     ['an IPv4 address', '10.0.0.5'],
     ['an IPv6 address', '[::1]'],
+    ['a decimal address', '2130706433'],
+    ['a hexadecimal address', '0x7f000001'],
+    ['a short dotted address', '1.2.3'],
+    ['an empty label', 'a..b'],
+    ['a trailing dot', 'identity-service.'],
+    ['a leading dot', '.identity-service'],
     ['an empty string', ''],
     ['a blank string', '   '],
     ['credentials', 'user@identity-service'],
@@ -155,6 +164,46 @@ describe('JWKSUrlPolicy.resolveHttpHosts', () => {
       refusal(() => JWKSUrlPolicy.resolveHttpHosts({ scope: SCOPE, hosts: 'identity' })),
     ).toContain('must be a list');
   });
+});
+
+describe('JWKSUrlPolicy.assertUrl: forms of the same host', () => {
+  test.each(['HTTP://localhost/certs', 'Http://LOCALHOST:3000/certs'])(
+    'an upper-case scheme or host is read as the parser reads it: %s is loopback',
+    (url) => {
+      expect(() => assertUrl(url)).not.toThrow();
+    },
+  );
+
+  test('an upper-case scheme and host are held to the list like any other', () => {
+    expect(refusal(() => assertUrl('HTTP://Identity-Service/certs'))).toContain('is not allowed');
+    expect(() => assertUrl('HTTP://Identity-Service/certs', ['identity-service'])).not.toThrow();
+  });
+
+  test.each([
+    ['2130706433', '127.0.0.1 as one number'],
+    ['0x7f.1', '127.0.0.1 in hexadecimal and short form'],
+    ['0177.0.0.1', '127.0.0.1 in octal'],
+  ])('http://%s is loopback, as the parser writes %s', (host) => {
+    expect(() => assertUrl(`http://${host}/certs`)).not.toThrow();
+  });
+
+  test.each([
+    ['167772161', '10.0.0.1 as one number'],
+    ['0xa000001', '10.0.0.1 in hexadecimal'],
+    ['3232235777', '192.168.1.1 as one number'],
+  ])('http://%s is not loopback, and no list can allow an address: %s', (host) => {
+    expect(refusal(() => assertUrl(`http://${host}/certs`))).toContain('is not allowed');
+    expect(refusal(() => assertUrl(`http://${host}/certs`, [host]))).toContain(
+      'jwks.hosts.http holds',
+    );
+  });
+
+  test.each(['[::ffff:127.0.0.1]', '[::ffff:7f00:1]', '[::2]', '[fe80::1]'])(
+    'the IPv6 form %s is not loopback (only ::1 is), so it is refused',
+    (host) => {
+      expect(refusal(() => assertUrl(`http://${host}:3000/certs`))).toContain('is not allowed');
+    },
+  );
 });
 
 const CONFIGS: IApplicationConfigs = {
@@ -313,5 +362,52 @@ describe('the service-assertion callers', () => {
 
     const result3 = await boot({ serviceOptions });
     expect(result3).toContain('jwks.hosts.http');
+  });
+});
+
+describe('the second check, before each fetch', () => {
+  test('a JWKS verifier built with a URL the policy refuses fails at its first use, naming the host', async () => {
+    const jwksService = new JWKSVerifierTokenService({
+      mode: 'verifier',
+      jwksUrl: 'http://identity-service:3000/certs',
+      claims: { issuer: 'identity', audience: 'inventory' },
+      verify: { algorithms: ['ES256'] },
+    } as never);
+    const token = 'eyJhbGciOiJFUzI1NiJ9.e30.c2ln';
+
+    let caught: { cause?: unknown } | undefined;
+
+    try {
+      await jwksService.verify({ type: 'Bearer', token });
+    } catch (error) {
+      caught = error as { cause?: unknown };
+    }
+
+    expect(String(caught?.cause)).toContain("the host 'identity-service' is not allowed");
+  });
+
+  test('the service-assertion verifier refuses a caller URL the policy refuses, before any fetch', async () => {
+    const jose = await JoseLoader.load();
+    const assertionVerifier = new ServiceAssertionVerifierService({
+      name: 'inventory',
+      callers: { commerce: 'http://commerce:3000/svc-certs' },
+      resolvePrincipal: () => ({ userId: 'svc' }),
+    } as never);
+
+    const message = refusal(() => assertionVerifier['resolveKeySet']({ issuer: 'commerce', jose }));
+
+    expect(message).toContain("the host 'commerce' is not allowed");
+  });
+
+  test('the same URL passes it when the host is listed', async () => {
+    const jose = await JoseLoader.load();
+    const listedVerifier = new ServiceAssertionVerifierService({
+      name: 'inventory',
+      callers: { commerce: 'http://commerce:3000/svc-certs' },
+      jwks: { hosts: { http: ['commerce'] } },
+      resolvePrincipal: () => ({ userId: 'svc' }),
+    } as never);
+
+    expect(() => listedVerifier['resolveKeySet']({ issuer: 'commerce', jose })).not.toThrow();
   });
 });
