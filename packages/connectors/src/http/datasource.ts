@@ -1,3 +1,4 @@
+import { EchoUtility } from '@/common/internal';
 import { HttpReadShapes, type THttpReadShape } from './common/constants';
 import { AbstractDataSource } from '@venizia/ignis-kernel/repository';
 import { HTTP } from '@venizia/ignis-helpers/common';
@@ -18,6 +19,18 @@ import { HttpWire } from './common/wire';
 
 /** A scheme and `//` make a URL absolute - `localhost:3000` has neither. Read by pattern: `URL.canParse` needs Safari 17 or Chrome 120, and this runs in pages. */
 const ABSOLUTE_URL_PATTERN = /^[a-z][a-z\d+.-]*:\/\//i;
+
+/** A backslash is a separator to the URL parser, and a control character (a tab or a newline inside `.<TAB>.`) is dropped by it: neither may hide a dot segment. `%5c` is the encoded backslash. */
+const UNSAFE_REQUEST_PATH_PATTERN = /[\p{Cc}\\]|%5c/iu;
+
+/** What ends a path segment for the URL parser: a slash, a `?` or a `#` (it ends the path itself, so `..?` is a `..` segment), and the encoded slash, which a server may decode into a separator. */
+const REQUEST_PATH_SEPARATOR_PATTERN = /[/?#]|%2f/i;
+
+/** The longest part of a refused path an error message copies: a huge path is not copied whole into the error and the log. */
+const MAX_ECHOED_PATH_LENGTH = 200;
+
+/** A segment that is `.` or `..` once its `%2e` is decoded. */
+const DOT_SEGMENT_PATTERN = /^(?:\.|%2e){1,2}$/i;
 
 /** Reads an IGNIS REST server through the repository contract. Targets IGNIS, not any REST API. */
 export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> {
@@ -46,6 +59,14 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         message: `[${name}] baseUrl '${settings.baseUrl}' is neither absolute nor a path from the origin | Pass '/api' or an absolute URL such as 'https://api.example.com'`,
+      });
+    }
+
+    // A `?` or `#` in the base would swallow the request paths into the query or the fragment.
+    if (/[?#]/.test(settings.baseUrl)) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message: `[${name}] baseUrl must not carry a query or a fragment: the request paths would end up inside it | Pass the base without '?' or '#', and use the call's query option`,
       });
     }
 
@@ -133,8 +154,54 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     return typeof location.origin === 'string' ? location.origin : undefined;
   }
 
+  /** The path as an error message quotes it: cut at 200 characters, with an ellipsis. */
+  protected static toEchoedPath(opts: { path: string }): string {
+    const { path } = opts;
+
+    return path.length > MAX_ECHOED_PATH_LENGTH
+      ? `${path.slice(0, MAX_ECHOED_PATH_LENGTH)}…`
+      : path;
+  }
+
+  /** The request paths name a place under the base path, so none may be a dot segment, hide one, or carry a separator the URL parser would read differently from a server. */
+  protected assertPathsStayUnderBase(opts: { paths: Array<string> }): void {
+    for (const path of opts.paths) {
+      const segments = path.split(REQUEST_PATH_SEPARATOR_PATTERN);
+      const isEscaping =
+        UNSAFE_REQUEST_PATH_PATTERN.test(path) ||
+        // A trailing space is stripped from the whole URL by the parser, so `.. ` ends as `..`.
+        segments.some((segment) => DOT_SEGMENT_PATTERN.test(segment.trimEnd()));
+
+      if (isEscaping) {
+        throw getError({
+          statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+          message: `[${this.name}] A request path must stay under the base path: no dot segment, backslash or control character | path: '${EchoUtility.toSafeEcho({ value: HttpDataSource.toEchoedPath({ path }) })}'`,
+        });
+      }
+    }
+  }
+
+  /** The resolved URL, whatever built it, is on the base's origin and under its path: the check that holds when the text checks above miss a form. */
+  protected assertUnderBase(opts: { url: URL; origin?: string }): void {
+    const { url, origin } = opts;
+    const base = new URL(this.settings.baseUrl, origin);
+    const basePath = base.pathname.replace(/\/+$/, '');
+    const isUnderBase =
+      url.origin === base.origin &&
+      (url.pathname === basePath || url.pathname.startsWith(`${basePath}/`));
+
+    if (!isUnderBase) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `[${this.name}] A request path must stay under the base path: the URL left the origin or the base path`,
+      });
+    }
+  }
+
   buildUrl(opts: { paths: Array<string>; query?: Record<string, unknown> }): string {
     const { paths, query } = opts;
+    this.assertPathsStayUnderBase({ paths });
+
     const requestUrl = this.network.getRequestUrl({ paths });
 
     // A page or a Web Worker has an origin to resolve '/api' against; a server has none.
@@ -148,6 +215,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     }
 
     const url = new URL(requestUrl, origin);
+    this.assertUnderBase({ url, origin });
 
     const parameters = Object.entries(query ?? {});
 
