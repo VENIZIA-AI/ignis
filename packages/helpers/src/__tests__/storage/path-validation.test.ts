@@ -112,6 +112,8 @@ describe('Storage Path Validation', () => {
       ['an isolate', 'a\u2066b.png'],
       ['a directional mark', 'a\u200Fb.png'],
       ['an arabic letter mark', 'a\u061Cb.png'],
+      ['a line separator', 'a\u2028b.png'],
+      ['a paragraph separator', 'a\u2029b.png'],
     ])('%s is refused in a segment, a key and a bucket name', (_name, value) => {
       expect(helper.isValidSegment({ segment: value })).toBe(false);
       expect(helper.isValidObjectKey({ object: { key: `folder/${value}` } })).toBe(false);

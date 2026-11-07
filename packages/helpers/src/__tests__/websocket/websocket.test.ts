@@ -2422,10 +2422,11 @@ describe('WebSocketEmitter', () => {
 });
 
 describe('WebSocketServerHelper - the window of an encryption handshake', () => {
-  const build = (handshake: { resolve?: (value: unknown) => void }) => {
+  const build = (handshake: { resolve?: (value: unknown) => void }, authTimeout?: number) => {
     const messageHandler = mock(() => {});
     const helper = new WebSocketServerHelper({
       identifier: 'handshake-ws-server',
+      authTimeout,
       server: createMockBunServer(),
       redisConnection: createMockRedisHelper(),
       authenticateFn: () => ({ userId: 'user-1' }),
@@ -2488,6 +2489,27 @@ describe('WebSocketServerHelper - the window of an encryption handshake', () => 
 
       const client = (helper.getClients() as Map<string, { state: string }>).get('c1');
       expect(client?.state).toBe(WebSocketClientStates.AUTHENTICATED);
+    } finally {
+      await helper.shutdown();
+    }
+  });
+
+  test('a handshake that never completes is closed by the in-progress timeout, with the timeout close code', async () => {
+    const handshake: { resolve?: (value: unknown) => void } = {};
+    // The in-progress window is three times the authentication timeout: 3 x 20 ms.
+    const { helper } = build(handshake, 20);
+    const socket = createMockSocket('c1');
+
+    try {
+      helper.onClientConnect({ clientId: 'c1', socket });
+      send(helper, WebSocketEvents.AUTHENTICATE, {});
+      await wait(10);
+
+      expect(socket.close).not.toHaveBeenCalled();
+
+      await wait(120);
+
+      expect(socket.close).toHaveBeenCalledWith(4001, 'Authentication timeout');
     } finally {
       await helper.shutdown();
     }
