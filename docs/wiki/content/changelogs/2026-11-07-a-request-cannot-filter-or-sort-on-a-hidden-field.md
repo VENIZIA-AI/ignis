@@ -1,7 +1,7 @@
 ---
 title: A request cannot filter or sort on a hidden field
 description: "A where, an order or an include scope that names a hidden property answers 400, with the very text a field that does not exist gets, on the generated CRUD and search controllers. Server code on the repository is unchanged."
-packages: ['@venizia/ignis-kernel', '@venizia/ignis-connectors', '@venizia/ignis']
+packages: ['@venizia/ignis-filter', '@venizia/ignis-kernel', '@venizia/ignis-connectors', '@venizia/ignis']
 ---
 
 # Changelog - 2026-11-07
@@ -53,4 +53,5 @@ await productRepository.find({ filter: { where: { costPrice: { gt: 100 } } } });
 | `src/base/repositories/core/abstract.ts` | kernel |
 | `src/base/controllers/factory/crud/` | kernel |
 | `src/relational/core/repositories/core/base.ts` | connectors |
+| `src/common/keys.ts` | filter |
 | `src/search/core/controllers/abstract.ts` | connectors |
