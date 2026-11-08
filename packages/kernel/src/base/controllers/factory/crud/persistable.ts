@@ -7,10 +7,28 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { Env, Schema } from 'hono';
 import type { TEntityDataObject, TEntityPersistObject, TRouteContext } from '../../common';
+import type { IRestorableRepository } from '@/base/repositories/common/types/contracts';
 import { ReadableCrudController } from './readable';
 import { ResponseFormats } from '../../common';
 
-/** Write tier: create / updateById / updateBy / deleteById / deleteBy. Inherits the read verbs. */
+const isRestorable = <TDataObject extends object>(
+  repository: object,
+): repository is IRestorableRepository<TDataObject> =>
+  'restoreById' in repository && 'restoreBy' in repository;
+
+/** The factory refuses to list a restore route over a repository without the restore methods, so this is the backstop for a controller built by hand. */
+const restorableOf = <TDataObject extends object>(opts: {
+  repository: object;
+  scope: string;
+}): IRestorableRepository<TDataObject> => {
+  if (!isRestorable<TDataObject>(opts.repository)) {
+    throw getError({ message: `[${opts.scope}] The repository has no restoreById and restoreBy` });
+  }
+
+  return opts.repository;
+};
+
+/** Write tier: create / updateById / updateBy / deleteById / deleteBy, and the restore verbs for a repository that has them. Inherits the read verbs. */
 export abstract class PersistableCrudController<
   TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>,
   RouteEnv extends Env = Env,
@@ -187,6 +205,68 @@ export abstract class PersistableCrudController<
       args: { where },
       task: async () => {
         const payload = await this.repository.deleteBy({ where });
+
+        return this.respond<Array<TDataObject>>({
+          context,
+          format: ResponseFormats.ARRAY,
+          payload,
+        });
+      },
+    });
+
+    return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
+  }
+
+  /** POST /:id/restore */
+  async restoreById(opts: { context: TRouteContext<RouteEnv> }) {
+    const { context } = opts;
+    const { id } = context.req.valid<{ id: IdType }>('param');
+    const repository = restorableOf<TDataObject>({
+      repository: this.repository,
+      scope: this.constructor.name,
+    });
+
+    const rs = await this.measure({
+      scope: 'restoreById',
+      args: { id },
+      task: async () => {
+        const payload = await repository.restoreById<TDataObject>({ id });
+
+        return this.respond<TDataObject>({
+          context,
+          format: ResponseFormats.OBJECT,
+          payload,
+        });
+      },
+    });
+
+    return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
+  }
+
+  /** POST /restore */
+  async restoreBy(opts: { context: TRouteContext<RouteEnv> }) {
+    const { context } = opts;
+    const { where: queryWhere } = context.req.valid<{ where?: TWhere<TDataObject> }>('query');
+    const repository = restorableOf<TDataObject>({
+      repository: this.repository,
+      scope: this.constructor.name,
+    });
+
+    const resolved = this.resolveBulkWhere({ context, where: { fromQuery: queryWhere } });
+
+    if (resolved.error !== undefined) {
+      return resolved.error;
+    }
+
+    const { where } = resolved;
+
+    this.assertRequestFilter({ filter: { where } });
+
+    const rs = await this.measure({
+      scope: 'restoreBy',
+      args: { where },
+      task: async () => {
+        const payload = await repository.restoreBy<TDataObject>({ where });
 
         return this.respond<Array<TDataObject>>({
           context,

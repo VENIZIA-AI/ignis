@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-352 exports, 352 with TSDoc. 86 more are re-exported from other entries (listed at the end).
+358 exports, 358 with TSDoc. 86 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -111,9 +111,9 @@ export declare abstract class AbstractCrudController<TEntity extends AbstractEnt
     repository: AbstractRepository<TDataObject, TPersistObject>;
     constructor(opts: {
         scope: string;
-        path: string;
         isStrict?: boolean;
-        repository: AbstractRepository<TDataObject, TPersistObject, AnyType>;
+        /** Typed by the repository class the generated controller was built over, so any row and option types fit. */
+        repository: AnyType;
         definitions: AnyType;
     });
     /**
@@ -198,6 +198,8 @@ export declare abstract class AbstractRestController<RouteEnv extends Env = Env,
     };
     /** Override to register routes using bindRoute or defineRoute. */
     abstract binding(): ValueOrPromise<void>;
+    /** Registers the routes a generated controller brings; runs after `binding()`, so a route declared there wins a path the defaults also match. */
+    bindDefaultRoutes(): ValueOrPromise<void>;
     /** Creates a fluent binding for registering a route (call .to() to attach handler). */
     abstract bindRoute<RouteConfig extends IAuthRouteConfig>(opts: {
         configs: RouteConfig;
@@ -1998,13 +2000,14 @@ export declare class ControllerFactory extends BaseHelper {
     static registerRepositoryInjection(opts: {
         target: TClass<unknown>;
         factoryName: string;
-        controllerName: string;
         repositoryName: string;
     }): void;
-    static defineCrudController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, Routes extends ICustomizableRoutes = ICustomizableRoutes, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEntity>, TPersistObject extends object = TEntityPersistObject<TEntity>>(defOpts: ICrudControllerOptions<TEntity, Routes>): {
-        new (repository: AbstractRepository<TDataObject, TPersistObject, AnyType>): {
-            /** Registers each CRUD route whose handler tier supplies it, honoring enabledRoutes/readonly. */
+    static crud<Repository extends TCrudRepositoryClass, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TRepositoryDataObject<InstanceType<Repository>>, TPersistObject extends object = TRepositoryPersistObject<InstanceType<Repository>>>(opts: ICrudControllerOptions<Repository>): {
+        new (repositoryInstance: InstanceType<Repository>): {
+            /** The routes of a generated controller come from `routes`; a subclass adds its own here. */
             binding(): ValueOrPromise<void>;
+            /** Registers each listed CRUD route, after `binding()`: a custom static path is never taken by `/{id}`. */
+            bindDefaultRoutes(): ValueOrPromise<void>;
             create(opts: {
                 context: import("../index.js").TRouteContext<RouteEnv>;
             }): Promise<import("../index.js").TJsonResponse<unknown, 201>>;
@@ -2024,6 +2027,12 @@ export declare class ControllerFactory extends BaseHelper {
             deleteBy(opts: {
                 context: import("../index.js").TRouteContext<RouteEnv>;
             }): Promise<Response>;
+            restoreById(opts: {
+                context: import("../index.js").TRouteContext<RouteEnv>;
+            }): Promise<import("../index.js").TJsonResponse<unknown, 200>>;
+            restoreBy(opts: {
+                context: import("../index.js").TRouteContext<RouteEnv>;
+            }): Promise<Response>;
             getBaseWhere(_opts: {
                 context: import("../index.js").TRouteContext<RouteEnv>;
             }): Promise<import("@venizia/ignis-filter").TWhere<TDataObject> | undefined>;
@@ -2039,7 +2048,7 @@ export declare class ControllerFactory extends BaseHelper {
             findOne(opts: {
                 context: import("../index.js").TRouteContext<RouteEnv>;
             }): Promise<import("../index.js").TJsonResponse<unknown, 200>>;
-            repository: AbstractRepository<TDataObject, TPersistObject, import("../../repositories/index.js").IExtraOptions>;
+            repository: import("../../index.js").AbstractRepository<TDataObject, TPersistObject, import("../../index.js").IExtraOptions>;
             assertRequestFilter(opts: {
                 filter?: {
                     where?: unknown;
@@ -2089,7 +2098,7 @@ export declare class ControllerFactory extends BaseHelper {
                     count: number;
                     data?: import("@venizia/ignis-helpers/common").TNullable<R>;
                 };
-                range?: import("../../repositories/index.js").TDataRange;
+                range?: import("../../index.js").TDataRange;
                 extra?: never;
             }): R | {
                 count: number;
@@ -2102,7 +2111,7 @@ export declare class ControllerFactory extends BaseHelper {
                     count: number;
                     data?: import("@venizia/ignis-helpers/common").TNullable<R>;
                 };
-                range?: import("../../repositories/index.js").TDataRange;
+                range?: import("../../index.js").TDataRange;
                 extra: Extra;
             }): Promise<R | {
                 count: number;
@@ -2119,7 +2128,7 @@ export declare class ControllerFactory extends BaseHelper {
                     count: number;
                     data?: import("@venizia/ignis-helpers/common").TNullable<R>;
                 };
-                range?: import("../../repositories/index.js").TDataRange;
+                range?: import("../../index.js").TDataRange;
                 extra?: Record<string, import("../index.js").TResponseExtra>;
             }): ValueOrPromise<R | {
                 count?: number;
@@ -2149,7 +2158,7 @@ export declare class ControllerFactory extends BaseHelper {
                 context: import("../index.js").TRouteContext<RouteEnv>;
                 count: number;
             } & ({
-                range: import("../../repositories/index.js").TDataRange;
+                range: import("../../index.js").TDataRange;
             } | {
                 offset: number;
                 total: number;
@@ -2206,22 +2215,21 @@ export declare class ControllerFactory extends BaseHelper {
             getLogger(): import("@venizia/ignis-helpers/core").ILogger;
         };
     };
+    /** A restore route needs a repository that has the restore methods; the types already refuse one, this is the backstop for an untyped caller. */
+    private static assertRestoreRoutesSupported;
     private static describeSpec;
     /**
-     * Refuses a CRUD controller whose enabled write verb would inherit a controller-level `authorize`
+     * Refuses a CRUD controller that lists a write verb which would inherit a controller-level `authorize`
      * that is only a `read` permission: the verb would then answer to anyone who may read.
      *
-     * A write verb is fine when it declares its own `authorize` (a spec, an array, or `{ skip: true }`),
-     * skips authentication, is not enabled, or the controller is `readonly`. Only the literal action
-     * `read` is detected; a custom action name is the application's own vocabulary. An array counts when
-     * every spec in it is `read`, since the specs of one route must all pass.
+     * A listed write verb is fine when it declares its own `authorize` (a spec, an array, or `{ skip: true }`) or
+     * skips authentication. Only the literal action `read` is detected; a custom action name is the application's own
+     * vocabulary. An array counts when every spec in it is `read`, since the specs of one route must all pass.
      */
     static assertWriteVerbsDeclareAuthorize(opts: {
-        controllerName: string;
+        repositoryName: string;
         authorize: IAuthorizationSpec | IAuthorizationSpec[] | undefined;
-        routes: ICustomizableRoutes | undefined;
-        readonly: boolean | undefined;
-        enabledRoutes: Array<keyof ICustomizableRoutes> | undefined;
+        routes: TCrudRoutes | undefined;
     }): void;
 }
 ```
@@ -2292,6 +2300,26 @@ export declare const CountSchema: z.ZodObject<{
 ```
 
 Source: `packages/kernel/src/base/repositories/common/types/result-schemas.ts`
+
+## `CrudRoutes`
+
+*class*
+
+Route groups to spread into the `routes` of a CRUD controller.
+
+```ts
+export declare class CrudRoutes {
+    /** The four read routes: `count`, `find`, `findById` and `findOne`. */
+    static readonly READ: {
+        count: true;
+        find: true;
+        findById: true;
+        findOne: true;
+    };
+}
+```
+
+Source: `packages/kernel/src/base/controllers/common/constants.ts`
 
 ## `DATA_SOURCE_BRAND`
 
@@ -3454,26 +3482,15 @@ Source: `packages/kernel/src/base/applications/common/types/middlewares.ts`
 
 *interface*
 
-Configuration options for creating a CRUD controller via ControllerFactory.defineCrudController.
+Configuration options for creating a CRUD controller via ControllerFactory.crud.
 
 ```ts
-export interface ICrudControllerOptions<TEntity extends AbstractEntity = AbstractEntity, Routes extends ICustomizableRoutes = ICustomizableRoutes> {
-    /** Entity class or resolver returning it - its schema drives the inferred DataObject/PersistObject types of the generated controller's `repository`. */
-    entity: TClass<TEntity> | TResolver<TClass<TEntity>>;
-    /** Repository binding configuration */
-    repository: {
-        name: string;
-    };
-    controller: {
-        name: string;
-        basePath: string;
-        readonly?: boolean;
-        /** Whitelist of routes to register; overrides per-route `enabled` flags in `routes` when set. */
-        enabledRoutes?: Array<keyof ICustomizableRoutes>;
-        isStrict?: {
-            path?: boolean;
-            requestSchema?: boolean;
-        };
+export interface ICrudControllerOptions<Repository extends TCrudRepositoryClass = TCrudRepositoryClass> {
+    /** The repository class; its name is the binding key and its `@repository` model drives the schemas. */
+    repository: Repository;
+    isStrict?: {
+        path?: boolean;
+        requestSchema?: boolean;
     };
     /** Authentication config applied to all routes (unless overridden per-route). */
     authenticate?: {
@@ -3482,8 +3499,8 @@ export interface ICrudControllerOptions<TEntity extends AbstractEntity = Abstrac
     };
     /** Authorization config applied to all routes (unless overridden per-route). */
     authorize?: IAuthorizationSpec | IAuthorizationSpec[];
-    /** Per-route configuration combining schema and auth overrides. */
-    routes?: Routes;
+    /** The routes the controller has: a route exists only when listed. */
+    routes?: TCrudRoutes<InstanceType<Repository>>;
 }
 ```
 
@@ -3521,6 +3538,8 @@ export interface ICustomizableRoutes<RouteConfig extends TCustomizableRouteConfi
     updateBy?: RouteConfig;
     deleteById?: RouteConfig;
     deleteBy?: RouteConfig;
+    restoreById?: RouteConfig;
+    restoreBy?: RouteConfig;
 }
 ```
 
@@ -4707,6 +4726,36 @@ interface IBaseControllerMetadata extends IArtifactRegistrationOptions {
 
 Source: `packages/kernel/src/helpers/inversion/common/types/controller.ts`
 
+## `IRestorableRepository`
+
+*interface*
+
+Interface for a repository that can undo a soft delete.
+
+```ts
+export interface IRestorableRepository<TDataObject extends object = object, ExtraOptions extends IExtraOptions = IExtraOptions> extends IRepository {
+    restoreById<R = TDataObject>(opts: {
+        id: IdType;
+        options?: ExtraOptions & {
+            shouldReturn?: boolean;
+        };
+    }): Promise<TCount & {
+        data: TNullable<R>;
+    }>;
+    restoreBy<R = TDataObject>(opts: {
+        where: TWhere<TDataObject>;
+        options?: ExtraOptions & {
+            shouldReturn?: boolean;
+            force?: boolean;
+        };
+    }): Promise<TCount & {
+        data: TNullable<Array<R>>;
+    }>;
+}
+```
+
+Source: `packages/kernel/src/base/repositories/common/types/contracts.ts`
+
 ## `IRpcMetadata`
 
 *interface*
@@ -5526,7 +5575,7 @@ Source: `packages/kernel/src/base/metadata/routes/rest.ts`
 
 *class*
 
-Write tier: create / updateById / updateBy / deleteById / deleteBy. Inherits the read verbs.
+Write tier: create / updateById / updateBy / deleteById / deleteBy, and the restore verbs for a repository that has them. Inherits the read verbs.
 
 ```ts
 export declare abstract class PersistableCrudController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEntity>, TPersistObject extends object = TEntityPersistObject<TEntity>> extends ReadableCrudController<TEntity, RouteEnv, RouteSchema, BasePath, ConfigurableOptions, TDataObject, TPersistObject> {
@@ -5556,6 +5605,14 @@ export declare abstract class PersistableCrudController<TEntity extends Abstract
     }): Promise<import("../../index.js").TJsonResponse<unknown, 200>>;
     /** DELETE / */
     deleteBy(opts: {
+        context: TRouteContext<RouteEnv>;
+    }): Promise<Response>;
+    /** POST /:id/restore */
+    restoreById(opts: {
+        context: TRouteContext<RouteEnv>;
+    }): Promise<import("../../index.js").TJsonResponse<unknown, 200>>;
+    /** POST /restore */
+    restoreBy(opts: {
         context: TRouteContext<RouteEnv>;
     }): Promise<Response>;
 }
@@ -6166,6 +6223,7 @@ export declare class RestPaths {
     static readonly ROOT = "/";
     static readonly COUNT = "/count";
     static readonly FIND_ONE = "/find-one";
+    static readonly RESTORE = "/restore";
 }
 ```
 
@@ -6238,7 +6296,7 @@ export declare class RouteConfigResolver {
         selectSchema: FindSchema;
     }): {
         request: {
-            query: TAnyObjectSchema | z.ZodObject<{
+            query: z.ZodObject<{
                 filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
@@ -6262,7 +6320,7 @@ export declare class RouteConfigResolver {
                     offset: z.ZodOptional<z.ZodNumber>;
                     skip: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>]>>;
-            }, z.core.$strip>;
+            }, z.core.$strip> | TAnyObjectSchema;
             headers: TAnyObjectSchema | z.ZodObject<{
                 "x-request-id": z.ZodOptional<z.ZodString>;
                 "x-request-channel": z.ZodOptional<z.ZodString>;
@@ -6290,7 +6348,7 @@ export declare class RouteConfigResolver {
             }, z.core.$strip> | TAnyObjectSchema | z.ZodObject<{
                 id: z.ZodCoercedNumber<unknown>;
             }, z.core.$strip>;
-            query: TAnyObjectSchema | z.ZodObject<{
+            query: z.ZodObject<{
                 filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
@@ -6314,7 +6372,7 @@ export declare class RouteConfigResolver {
                     offset: z.ZodOptional<z.ZodNumber>;
                     skip: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>]>>;
-            }, z.core.$strip>;
+            }, z.core.$strip> | TAnyObjectSchema;
             headers: TAnyObjectSchema | z.ZodObject<{
                 "x-request-id": z.ZodOptional<z.ZodString>;
                 "x-request-channel": z.ZodOptional<z.ZodString>;
@@ -6336,7 +6394,7 @@ export declare class RouteConfigResolver {
         selectSchema: FindOneSchema;
     }): {
         request: {
-            query: TAnyObjectSchema | z.ZodObject<{
+            query: z.ZodObject<{
                 filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
@@ -6360,7 +6418,7 @@ export declare class RouteConfigResolver {
                     offset: z.ZodOptional<z.ZodNumber>;
                     skip: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>]>>;
-            }, z.core.$strip>;
+            }, z.core.$strip> | TAnyObjectSchema;
             headers: TAnyObjectSchema | z.ZodObject<{
                 "x-request-id": z.ZodOptional<z.ZodString>;
                 "x-request-channel": z.ZodOptional<z.ZodString>;
@@ -6406,11 +6464,13 @@ export declare class RouteConfigResolver {
     private static resolveUpdateByConfig;
     private static resolveDeleteByIdConfig;
     private static resolveDeleteByConfig;
+    private static resolveRestoreByIdConfig;
+    private static resolveRestoreByConfig;
     /**
-     * Generates complete route configurations for a CRUD controller. `serverStampedKeys` - the keys the default
-     * write bodies leave out.
+     * Generates the route configurations of a CRUD controller: one for each route listed in `routes`, none for
+     * the rest. `serverStampedKeys` - the keys the default write bodies leave out.
      */
-    static defineControllerRouteConfigs<Routes extends ICustomizableRoutes, SelectSchema extends TAnyObjectSchema, CreateSchema extends TAnyObjectSchema, UpdateSchema extends TAnyObjectSchema>(opts: {
+    static defineControllerRouteConfigs<SelectSchema extends TAnyObjectSchema, CreateSchema extends TAnyObjectSchema, UpdateSchema extends TAnyObjectSchema>(opts: {
         isStrict: boolean;
         idType: TIdSchemaType;
         authenticate?: {
@@ -6424,126 +6484,20 @@ export declare class RouteConfigResolver {
             update: UpdateSchema;
         };
         serverStampedKeys?: string[];
-        routes?: Routes;
+        routes?: TCrudRoutes;
     }): {
-        readonly COUNT: {
-            readonly method: "get";
-            readonly path: "/count";
-            readonly description: "Count records matching where condition";
-            readonly authenticate: {
+        readonly RESTORE_BY?: {
+            method: "post";
+            path: string;
+            description: string;
+            authenticate: {
                 strategies?: TAuthStrategy[];
                 mode?: TAuthMode;
             };
-            readonly authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
-            readonly request: {
+            authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
+            request: {
                 query: TAnyObjectSchema | z.ZodObject<{
-                    where: z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]> | z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
-                }, z.core.$strip>;
-                headers: TAnyObjectSchema | z.ZodObject<{
-                    "x-request-id": z.ZodOptional<z.ZodString>;
-                    "x-request-channel": z.ZodOptional<z.ZodString>;
-                    "x-device-info": z.ZodOptional<z.ZodString>;
-                }, z.core.$strip>;
-            };
-            readonly responses: {
-                '4XX': {
-                    description: string;
-                    content: {
-                        'application/json': {
-                            schema: z.ZodObject<{
-                                statusCode: z.ZodOptional<z.ZodNumber>;
-                                message: z.ZodString;
-                                normalized: z.ZodOptional<z.ZodObject<{
-                                    text: z.ZodString;
-                                    code: z.ZodString;
-                                    args: z.ZodRecord<z.ZodString, z.ZodAny>;
-                                }, z.core.$strip>>;
-                                extra: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
-                                requestId: z.ZodOptional<z.ZodString>;
-                                details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
-                            }, z.core.$strip>;
-                        };
-                    };
-                    required: boolean | undefined;
-                };
-                '5XX': {
-                    description: string;
-                    content: {
-                        'application/json': {
-                            schema: z.ZodObject<{
-                                statusCode: z.ZodOptional<z.ZodNumber>;
-                                message: z.ZodString;
-                                normalized: z.ZodOptional<z.ZodObject<{
-                                    text: z.ZodString;
-                                    code: z.ZodString;
-                                    args: z.ZodRecord<z.ZodString, z.ZodAny>;
-                                }, z.core.$strip>>;
-                                extra: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
-                                requestId: z.ZodOptional<z.ZodString>;
-                                details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
-                            }, z.core.$strip>;
-                        };
-                    };
-                    required: boolean | undefined;
-                };
-                200: {
-                    description: string;
-                    content: {
-                        'application/json': {
-                            schema: z.ZodObject<{
-                                count: z.ZodDefault<z.ZodNumber>;
-                            }, z.core.$strip>;
-                        };
-                    };
-                    required: boolean | undefined;
-                } | {
-                    headers: import("../index.js").TResponseHeaders;
-                    description: string;
-                    content: {
-                        'application/json': {
-                            schema: z.ZodObject<{
-                                count: z.ZodDefault<z.ZodNumber>;
-                            }, z.core.$strip>;
-                        };
-                    };
-                    required: boolean | undefined;
-                };
-            };
-        };
-        readonly FIND: {
-            readonly method: "get";
-            readonly path: "/";
-            readonly description: "Find records with filter, pagination, sorting, and relations";
-            readonly authenticate: {
-                strategies?: TAuthStrategy[];
-                mode?: TAuthMode;
-            };
-            readonly authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
-            readonly request: {
-                query: TAnyObjectSchema | z.ZodObject<{
-                    filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
-                        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
-                        fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
-                        include: z.ZodOptional<z.ZodArray<z.ZodObject<{
-                            relation: z.ZodString;
-                            scope: z.ZodOptional<z.ZodLazy<z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>;
-                        }, z.core.$strip>>>;
-                        order: z.ZodOptional<z.ZodArray<z.ZodString>>;
-                        limit: z.ZodOptional<z.ZodNumber>;
-                        offset: z.ZodOptional<z.ZodNumber>;
-                        skip: z.ZodOptional<z.ZodNumber>;
-                    }, z.core.$strip>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
-                        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
-                        fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
-                        include: z.ZodOptional<z.ZodArray<z.ZodObject<{
-                            relation: z.ZodString;
-                            scope: z.ZodOptional<z.ZodLazy<z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>;
-                        }, z.core.$strip>>>;
-                        order: z.ZodOptional<z.ZodArray<z.ZodString>>;
-                        limit: z.ZodOptional<z.ZodNumber>;
-                        offset: z.ZodOptional<z.ZodNumber>;
-                        skip: z.ZodOptional<z.ZodNumber>;
-                    }, z.core.$strip>>]>>;
+                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                 }, z.core.$strip>;
                 headers: TAnyObjectSchema | z.ZodObject<{
                     "x-request-id": z.ZodOptional<z.ZodString>;
@@ -6552,7 +6506,7 @@ export declare class RouteConfigResolver {
                     "x-request-count": z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-            readonly responses: {
+            responses: {
                 '4XX': {
                     description: string;
                     content: {
@@ -6618,47 +6572,22 @@ export declare class RouteConfigResolver {
                     required: boolean | undefined;
                 };
             };
-        };
-        readonly FIND_BY_ID: {
-            readonly method: "get";
-            readonly path: "/{id}";
-            readonly description: "Find single record by ID";
-            readonly authenticate: {
+        } | undefined;
+        readonly RESTORE_BY_ID?: {
+            method: "post";
+            path: string;
+            description: string;
+            authenticate: {
                 strategies?: TAuthStrategy[];
                 mode?: TAuthMode;
             };
-            readonly authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
-            readonly request: {
+            authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
+            request: {
                 params: z.ZodObject<{
                     id: z.ZodString;
                 }, z.core.$strip> | TAnyObjectSchema | z.ZodObject<{
                     id: z.ZodCoercedNumber<unknown>;
                 }, z.core.$strip>;
-                query: TAnyObjectSchema | z.ZodObject<{
-                    filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
-                        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
-                        fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
-                        include: z.ZodOptional<z.ZodArray<z.ZodObject<{
-                            relation: z.ZodString;
-                            scope: z.ZodOptional<z.ZodLazy<z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>;
-                        }, z.core.$strip>>>;
-                        order: z.ZodOptional<z.ZodArray<z.ZodString>>;
-                        limit: z.ZodOptional<z.ZodNumber>;
-                        offset: z.ZodOptional<z.ZodNumber>;
-                        skip: z.ZodOptional<z.ZodNumber>;
-                    }, z.core.$strip>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
-                        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
-                        fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
-                        include: z.ZodOptional<z.ZodArray<z.ZodObject<{
-                            relation: z.ZodString;
-                            scope: z.ZodOptional<z.ZodLazy<z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>;
-                        }, z.core.$strip>>>;
-                        order: z.ZodOptional<z.ZodArray<z.ZodString>>;
-                        limit: z.ZodOptional<z.ZodNumber>;
-                        offset: z.ZodOptional<z.ZodNumber>;
-                        skip: z.ZodOptional<z.ZodNumber>;
-                    }, z.core.$strip>>]>>;
-                }, z.core.$strip>;
                 headers: TAnyObjectSchema | z.ZodObject<{
                     "x-request-id": z.ZodOptional<z.ZodString>;
                     "x-request-channel": z.ZodOptional<z.ZodString>;
@@ -6666,7 +6595,7 @@ export declare class RouteConfigResolver {
                     "x-request-count": z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-            readonly responses: {
+            responses: {
                 '4XX': {
                     description: string;
                     content: {
@@ -6732,41 +6661,117 @@ export declare class RouteConfigResolver {
                     required: boolean | undefined;
                 };
             };
-        };
-        readonly FIND_ONE: {
-            readonly method: "get";
-            readonly path: "/find-one";
-            readonly description: "Find first record matching filter";
-            readonly authenticate: {
+        } | undefined;
+        readonly DELETE_BY?: {
+            method: "delete";
+            path: string;
+            description: string;
+            authenticate: {
                 strategies?: TAuthStrategy[];
                 mode?: TAuthMode;
             };
-            readonly authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
-            readonly request: {
+            authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
+            request: {
+                headers: TAnyObjectSchema | z.ZodObject<{
+                    "x-request-id": z.ZodOptional<z.ZodString>;
+                    "x-request-channel": z.ZodOptional<z.ZodString>;
+                    "x-device-info": z.ZodOptional<z.ZodString>;
+                    "x-request-count": z.ZodOptional<z.ZodString>;
+                }, z.core.$strip>;
+                body?: {
+                    description: string;
+                    content: {
+                        'application/json': {
+                            schema: TAnyObjectSchema;
+                        };
+                    };
+                    required: boolean | undefined;
+                } | undefined;
                 query: TAnyObjectSchema | z.ZodObject<{
-                    filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
-                        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
-                        fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
-                        include: z.ZodOptional<z.ZodArray<z.ZodObject<{
-                            relation: z.ZodString;
-                            scope: z.ZodOptional<z.ZodLazy<z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>;
-                        }, z.core.$strip>>>;
-                        order: z.ZodOptional<z.ZodArray<z.ZodString>>;
-                        limit: z.ZodOptional<z.ZodNumber>;
-                        offset: z.ZodOptional<z.ZodNumber>;
-                        skip: z.ZodOptional<z.ZodNumber>;
-                    }, z.core.$strip>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodObject<{
-                        where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
-                        fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
-                        include: z.ZodOptional<z.ZodArray<z.ZodObject<{
-                            relation: z.ZodString;
-                            scope: z.ZodOptional<z.ZodLazy<z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>;
-                        }, z.core.$strip>>>;
-                        order: z.ZodOptional<z.ZodArray<z.ZodString>>;
-                        limit: z.ZodOptional<z.ZodNumber>;
-                        offset: z.ZodOptional<z.ZodNumber>;
-                        skip: z.ZodOptional<z.ZodNumber>;
-                    }, z.core.$strip>>]>>;
+                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+                }, z.core.$strip>;
+            };
+            responses: {
+                '4XX': {
+                    description: string;
+                    content: {
+                        'application/json': {
+                            schema: z.ZodObject<{
+                                statusCode: z.ZodOptional<z.ZodNumber>;
+                                message: z.ZodString;
+                                normalized: z.ZodOptional<z.ZodObject<{
+                                    text: z.ZodString;
+                                    code: z.ZodString;
+                                    args: z.ZodRecord<z.ZodString, z.ZodAny>;
+                                }, z.core.$strip>>;
+                                extra: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+                                requestId: z.ZodOptional<z.ZodString>;
+                                details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+                            }, z.core.$strip>;
+                        };
+                    };
+                    required: boolean | undefined;
+                };
+                '5XX': {
+                    description: string;
+                    content: {
+                        'application/json': {
+                            schema: z.ZodObject<{
+                                statusCode: z.ZodOptional<z.ZodNumber>;
+                                message: z.ZodString;
+                                normalized: z.ZodOptional<z.ZodObject<{
+                                    text: z.ZodString;
+                                    code: z.ZodString;
+                                    args: z.ZodRecord<z.ZodString, z.ZodAny>;
+                                }, z.core.$strip>>;
+                                extra: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+                                requestId: z.ZodOptional<z.ZodString>;
+                                details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+                            }, z.core.$strip>;
+                        };
+                    };
+                    required: boolean | undefined;
+                };
+                200: {
+                    description: string;
+                    content: {
+                        'application/json': {
+                            schema: z.ZodUnion<readonly [z.ZodObject<{
+                                count: z.ZodDefault<z.ZodNumber>;
+                                data: z.ZodArray<SelectSchema>;
+                            }, z.core.$strip>, z.ZodArray<SelectSchema>]>;
+                        };
+                    };
+                    required: boolean | undefined;
+                } | {
+                    headers: import("../index.js").TResponseHeaders;
+                    description: string;
+                    content: {
+                        'application/json': {
+                            schema: z.ZodUnion<readonly [z.ZodObject<{
+                                count: z.ZodDefault<z.ZodNumber>;
+                                data: z.ZodArray<SelectSchema>;
+                            }, z.core.$strip>, z.ZodArray<SelectSchema>]>;
+                        };
+                    };
+                    required: boolean | undefined;
+                };
+            };
+        } | undefined;
+        readonly DELETE_BY_ID?: {
+            method: "delete";
+            path: string;
+            description: string;
+            authenticate: {
+                strategies?: TAuthStrategy[];
+                mode?: TAuthMode;
+            };
+            authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
+            request: {
+                params: z.ZodObject<{
+                    id: z.ZodString;
+                }, z.core.$strip> | TAnyObjectSchema | z.ZodObject<{
+                    id: z.ZodCoercedNumber<unknown>;
                 }, z.core.$strip>;
                 headers: TAnyObjectSchema | z.ZodObject<{
                     "x-request-id": z.ZodOptional<z.ZodString>;
@@ -6775,7 +6780,7 @@ export declare class RouteConfigResolver {
                     "x-request-count": z.ZodOptional<z.ZodString>;
                 }, z.core.$strip>;
             };
-            readonly responses: {
+            responses: {
                 '4XX': {
                     description: string;
                     content: {
@@ -6841,15 +6846,146 @@ export declare class RouteConfigResolver {
                     required: boolean | undefined;
                 };
             };
-        };
-        readonly CREATE: {
-            readonly method: "post";
-            readonly path: "/";
-            readonly description: "Create new record";
-            readonly authenticate: {
+        } | undefined;
+        readonly UPDATE_BY?: {
+            method: "patch";
+            path: string;
+            description: string;
+            authenticate: {
                 strategies?: TAuthStrategy[];
                 mode?: TAuthMode;
             };
+            authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
+            request: {
+                query: TAnyObjectSchema | z.ZodObject<{
+                    where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
+                }, z.core.$strip>;
+                body: {
+                    description: string;
+                    content: {
+                        'application/json': {
+                            schema: TAnyObjectSchema;
+                        };
+                    };
+                    required: boolean | undefined;
+                };
+                headers: TAnyObjectSchema | z.ZodObject<{
+                    "x-request-id": z.ZodOptional<z.ZodString>;
+                    "x-request-channel": z.ZodOptional<z.ZodString>;
+                    "x-device-info": z.ZodOptional<z.ZodString>;
+                    "x-request-count": z.ZodOptional<z.ZodString>;
+                }, z.core.$strip>;
+            };
+            responses: {
+                '4XX': {
+                    description: string;
+                    content: {
+                        'application/json': {
+                            schema: z.ZodObject<{
+                                statusCode: z.ZodOptional<z.ZodNumber>;
+                                message: z.ZodString;
+                                normalized: z.ZodOptional<z.ZodObject<{
+                                    text: z.ZodString;
+                                    code: z.ZodString;
+                                    args: z.ZodRecord<z.ZodString, z.ZodAny>;
+                                }, z.core.$strip>>;
+                                extra: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+                                requestId: z.ZodOptional<z.ZodString>;
+                                details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+                            }, z.core.$strip>;
+                        };
+                    };
+                    required: boolean | undefined;
+                };
+                '5XX': {
+                    description: string;
+                    content: {
+                        'application/json': {
+                            schema: z.ZodObject<{
+                                statusCode: z.ZodOptional<z.ZodNumber>;
+                                message: z.ZodString;
+                                normalized: z.ZodOptional<z.ZodObject<{
+                                    text: z.ZodString;
+                                    code: z.ZodString;
+                                    args: z.ZodRecord<z.ZodString, z.ZodAny>;
+                                }, z.core.$strip>>;
+                                extra: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+                                requestId: z.ZodOptional<z.ZodString>;
+                                details: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
+                            }, z.core.$strip>;
+                        };
+                    };
+                    required: boolean | undefined;
+                };
+                200: {
+                    description: string;
+                    content: {
+                        'application/json': {
+                            schema: z.ZodUnion<readonly [z.ZodObject<{
+                                count: z.ZodDefault<z.ZodNumber>;
+                                data: z.ZodArray<SelectSchema>;
+                            }, z.core.$strip>, z.ZodArray<SelectSchema>]>;
+                        };
+                    };
+                    required: boolean | undefined;
+                } | {
+                    headers: import("../index.js").TResponseHeaders;
+                    description: string;
+                    content: {
+                        'application/json': {
+                            schema: z.ZodUnion<readonly [z.ZodObject<{
+                                count: z.ZodDefault<z.ZodNumber>;
+                                data: z.ZodArray<SelectSchema>;
+                            }, z.core.$strip>, z.ZodArray<SelectSchema>]>;
+                        };
+                    };
+                    required: boolean | undefined;
+                };
+            };
+        } | undefined;
+        readonly UPDATE_BY_ID?: {
+            method: "patch";
+            path: string;
+            description: string;
+            authenticate: {
+                strategies?: TAuthStrategy[];
+                mode?: TAuthMode;
+            };
+            authorize: IAuthorizationSpec<import("hono").Env, string, string> | IAuthorizationSpec<import("hono").Env, string, string>[] | undefined;
+            request: {
+                params: z.ZodObject<{
+                    id: z.ZodString;
+                }, z.core.$strip> | TAnyObjectSchema | z.ZodObject<{
+                    id: z.ZodCoercedNumber<unknown>;
+                }, z.core.$strip>;
+                body: {
+                    description: string;
+                    content: {
+                        'application/json': {
+                            schema: TAnyObjectSchema;
+                        };
+                    };
+                    required: boolean | undefined;
+                };
+                headers: TAnyObjectSchema | z.ZodObject<{
+                    "x-request-id": z.ZodOptional<z.ZodString>;
+                    "x-request-channel": z.ZodOptional<z.ZodString>;
+                    "x-device-info": z.ZodOptional<z.ZodString>;
+                    "x-request-count": z.ZodOptional<z.ZodString>;
+                }, z.core.$strip>;
+            };
+            responses: {
+                '4XX': {
+                    description: string;
+                    content: {
+                        'application/json': {
+                            schema: z.ZodObject<{
+                                statusCode: z.ZodOptional<z.ZodNumber>;
+                                message: z.ZodString;
+                                normalized: z.ZodOptional<z.ZodObject<{
+                                    text: z.ZodString;
+                                    code: z.ZodString;
+                                    args: z.ZodRecord<z.ZodString, z.ZodAny>;
 // ... cut
 ```
 
@@ -7670,6 +7806,35 @@ export type TCountResponse<TData = unknown> = TData | {
 
 Source: `packages/kernel/src/base/controllers/common/types/context.ts`
 
+## `TCrudRepositoryClass`
+
+*type*
+
+The repository classes a CRUD controller can be built over.
+
+```ts
+export type TCrudRepositoryClass = TClass<IRepository>;
+```
+
+Source: `packages/kernel/src/base/controllers/common/types/controller.ts`
+
+## `TCrudRoutes`
+
+*type*
+
+The routes of a CRUD controller: only a listed route exists, as `true` (on, with its defaults) or a config
+(on, with overrides). `restoreById` and `restoreBy` are listed only for a repository that has those methods.
+
+```ts
+export type TCrudRoutes<Repository extends object = AnyType> = {
+    [Key in keyof ICustomizableRoutes]?: Key extends 'restoreById' | 'restoreBy' ? Repository extends {
+        [Name in Key]: unknown;
+    } ? true | TCustomizableRouteConfig : never : true | TCustomizableRouteConfig;
+};
+```
+
+Source: `packages/kernel/src/base/controllers/common/types/route.ts`
+
 ## `TCustomGrantMetadata`
 
 *type*
@@ -7688,16 +7853,10 @@ Source: `packages/kernel/src/base/auth/authorize/common/types/grant.ts`
 
 *type*
 
-What a CRUD route lets a caller override: auth, `enabled`, the request schemas (params, query, body, headers) and the response schema and headers.
+What a CRUD route lets a caller override: auth, the request schemas (params, query, body, headers) and the response schema and headers.
 
 ```ts
 export type TCustomizableRouteConfig = TRouteAuthConfig & {
-    /**
-     * Whether this route is registered.
-     *
-     * @default true
-     */
-    enabled?: boolean;
     request?: {
         params?: TAnyObjectSchema;
         query?: TAnyObjectSchema;
@@ -8466,6 +8625,18 @@ export type TRelationType = TConstValue<typeof RelationTypes>;
 
 Source: `packages/kernel/src/base/repositories/common/constants.ts`
 
+## `TRepositoryDataObject`
+
+*type*
+
+Read object of a repository: the `TDataObject` its `AbstractRepository` base declares; falls back to `object`.
+
+```ts
+export type TRepositoryDataObject<Repository> = Repository extends AbstractRepository<infer TData, AnyType, AnyType> ? TData : object;
+```
+
+Source: `packages/kernel/src/base/controllers/common/types/controller.ts`
+
 ## `TRepositoryErrorCode`
 
 *type*
@@ -8516,6 +8687,18 @@ export type TRepositoryOperationScope = TConstValue<typeof RepositoryOperationSc
 ```
 
 Source: `packages/kernel/src/base/repositories/common/constants.ts`
+
+## `TRepositoryPersistObject`
+
+*type*
+
+Persist object of a repository: the `TPersistObject` its `AbstractRepository` base declares; falls back to `object`.
+
+```ts
+export type TRepositoryPersistObject<Repository> = Repository extends AbstractRepository<AnyType, infer TPersist, AnyType> ? TPersist : object;
+```
+
+Source: `packages/kernel/src/base/controllers/common/types/controller.ts`
 
 ## `TRequestContextResolver`
 

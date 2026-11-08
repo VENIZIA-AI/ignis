@@ -311,20 +311,21 @@ Create `src/controllers/todo/definitions.ts`:
 
 ```typescript
 // src/controllers/todo/definitions.ts
-import { Todo } from '@/models/todo.model';
 import { TodoRepository } from '@/repositories/todo.repository';
-import { ControllerFactory } from '@venizia/ignis';
+import { ControllerFactory, CrudRoutes } from '@venizia/ignis';
 
 export const BASE_PATH = '/todos';
 
-// The factory generates a controller class with all CRUD routes
-export const _Controller = ControllerFactory.defineCrudController({
-  repository: { name: TodoRepository.name },
-  controller: {
-    name: 'TodoController',
-    basePath: BASE_PATH,
+// The factory generates a controller class with the routes you list.
+// The entity (for the OpenAPI schemas) comes from @repository({ model }) on TodoRepository.
+export const _Controller = ControllerFactory.crud({
+  repository: TodoRepository,
+  routes: {
+    ...CrudRoutes.READ,
+    create: true,
+    updateById: true,
+    deleteById: true,
   },
-  entity: () => Todo, // The entity is used to generate OpenAPI schemas
 });
 ```
 
@@ -335,7 +336,7 @@ Create `src/controllers/todo/todo.controller.ts`:
 import { controller } from '@venizia/ignis';
 import { BASE_PATH, _Controller } from './definitions';
 
-// No constructor: the container injects the repository named in repository.name
+// No constructor: the container injects the repository class
 @controller({ path: BASE_PATH })
 export class TodoController extends _Controller {}
 ```

@@ -21,6 +21,8 @@ export interface ISoftDeleteDataContext {
   /** The soft-deletable repository of a model with no scope and no default filter. */
   open: AnyType;
   codeKey: AnyType;
+  /** The database column behind the `deletedAt` property: not `deleted_at`, so a key that names the column is a different key from the property. */
+  deletedAtColumn: string;
   /** The query executor every repository of the engine shares, to count the statements a call runs. */
   executor: AnyType;
   /** Every row, read with the raw client: what is really stored, past every scope. */
@@ -33,14 +35,26 @@ const ME = 'm1';
 const OTHER = 'm2';
 const MINE = { merchantId: ME };
 
-const DELETED_AT_COLUMN = 'deleted_at';
-
 const MESSAGE = 'deletedAt changes only through deleteById/deleteBy and restoreById/restoreBy';
 
 const DELETED_AT_DATA: ReadonlyArray<{ title: string; data: () => Record<string, unknown> }> = [
   { title: 'a date under the property name', data: () => ({ deletedAt: new Date() }) },
   { title: 'null under the property name', data: () => ({ deletedAt: null }) },
 ];
+
+/** Data whose `deletedAt` reads as unset the first time and as a date every time after: only a check and a write that read it separately disagree. */
+const flippingDeletedAt = (opts: { status: string }) => {
+  let reads = 0;
+
+  return {
+    status: opts.status,
+    get deletedAt() {
+      reads += 1;
+
+      return reads === 1 ? undefined : new Date();
+    },
+  };
+};
 
 const codeOf = (error: unknown): unknown => {
   return isApplicationError(error) ? error.normalized.code : undefined;
@@ -158,9 +172,37 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
       });
     }
 
+    test('the flipping data really changes its answer, so the tests below can fail', () => {
+      const data = flippingDeletedAt({ status: 'closed' });
+
+      expect(data.deletedAt).toBeUndefined();
+      expect(data.deletedAt).toBeInstanceOf(Date);
+    });
+
+    test('data that answers differently on a second read is checked and written as one copy', async () => {
+      const ctx = await setup();
+
+      await ctx.items.updateById({ id: 1, data: flippingDeletedAt({ status: 'one' }) });
+      await ctx.items.updateBy({
+        where: { code: 'C' },
+        data: flippingDeletedAt({ status: 'two' }),
+      });
+      await ctx.items.updateEach({
+        rows: [{ id: 2, data: flippingDeletedAt({ status: 'three' }) }],
+      });
+      await ctx.items.upsert({
+        data: { merchantId: ME, code: 'A', ...flippingDeletedAt({ status: 'four' }) },
+        on: ctx.codeKey,
+      });
+
+      const deletedCount = await deletedCountOf({ ctx });
+
+      expect(deletedCount).toBe(0);
+    });
+
     test('the column name is no way round it: an update answers 400, an upsert ignores the key', async () => {
       const ctx = await setup();
-      const data = { [DELETED_AT_COLUMN]: new Date() };
+      const data = { [ctx.deletedAtColumn]: new Date() };
 
       await expectBadRequest({ ctx, task: () => ctx.items.updateById({ id: 1, data }) });
       await expectBadRequest({ ctx, task: () => ctx.items.updateBy({ where: MINE, data }) });
@@ -400,7 +442,7 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
 
     test('the column name is no way round it for a soft delete either', async () => {
       const ctx = await setup();
-      const data = { [DELETED_AT_COLUMN]: new Date() };
+      const data = { [ctx.deletedAtColumn]: new Date() };
 
       await expectBadRequest({ ctx, task: () => ctx.items.deleteById({ id: 1, data }) });
       await expectBadRequest({ ctx, task: () => ctx.items.deleteBy({ where: MINE, data }) });

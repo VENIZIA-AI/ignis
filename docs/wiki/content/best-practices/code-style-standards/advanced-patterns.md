@@ -62,20 +62,15 @@ Generate classes dynamically with configuration:
 
 ```typescript
 class ControllerFactory extends BaseHelper {
-  static defineCrudController<
-    TEntity extends AbstractEntity = AbstractEntity,
-    Routes extends ICustomizableRoutes = ICustomizableRoutes,
-    // DataObject/PersistObject default to the entity's inferred select/insert shapes
-    TDataObject extends object = TEntityDataObject<TEntity>,
-    TPersistObject extends object = TEntityPersistObject<TEntity>,
-  >(defOpts: ICrudControllerOptions<TEntity, Routes>) {
-    const { controller, entity, routes } = defOpts;
+  static crud<Repository extends TClass<IRepository>>(opts: ICrudControllerOptions<Repository>) {
+    const { repository, routes } = opts;
 
-    // `entity` accepts a class directly or a resolver function
-    const entityClass = isClass(entity) ? entity : entity();
+    // The entity comes from @repository({ model }) on the repository class
+    const model = MetadataRegistry.getInstance().getRepositoryBinding({ target: repository })?.model;
+    const entityClass = isClass(model) ? model : model();
     const entityInstance = new entityClass();
 
-    // Derive request/response schemas + route configs from the entity instance
+    // Derive request/response schemas + route configs from the entity; only listed routes get one
     const definitions = RouteConfigResolver.defineControllerRouteConfigs({
       idType: entityInstance.getIdType(),
       routes,
@@ -86,37 +81,29 @@ class ControllerFactory extends BaseHelper {
       },
     });
 
-    return class extends PersistableCrudController<TEntity> {
-      constructor(repository: AbstractRepository<TDataObject, TPersistObject>) {
-        super({
-          scope: controller.name,
-          path: controller.basePath,
-          repository,
-          definitions,
-        });
+    return class extends PersistableCrudController {
+      constructor(repositoryInstance: InstanceType<Repository>) {
+        super({ scope: new.target.name, repository: repositoryInstance, definitions });
       }
 
-      /** Registers all CRUD route handlers. */
-      override binding(): ValueOrPromise<void> {
-        this.defineRoute({
-          configs: definitions.FIND,
-          handler: async context => this.find({ context }),
-        });
-        this.defineRoute({
-          configs: definitions.FIND_BY_ID,
-          handler: async context => this.findById({ context }),
-        });
-        // ... more routes (count/findOne/create/updateById/deleteById/...)
+      /** Registers each listed CRUD route handler, after the subclass's binding(). */
+      override bindDefaultRoutes(): ValueOrPromise<void> {
+        if (definitions.FIND) {
+          this.defineRoute({
+            configs: definitions.FIND,
+            handler: async context => this.find({ context }),
+          });
+        }
+        // ... the other routes, each guarded the same way
       }
     };
   }
 }
 
-// Usage - types come from the entity, entity can be a class or a resolver
-const UserCrudController = ControllerFactory.defineCrudController({
-  controller: { name: 'UserController', basePath: '/users' },
-  repository: { name: UserRepository.name },
-  entity: () => User,
+// Usage - the entity comes from the repository's @repository({ model }), the path from @controller
+const UserCrudController = ControllerFactory.crud({
+  repository: UserRepository,
+  routes: CrudRoutes.READ,
 });
 
 @controller({ path: '/users' })
@@ -126,8 +113,8 @@ export class UserController extends UserCrudController {
 ```
 
 > [!NOTE]
-> `controller.basePath` is required - `defineCrudController` throws via `getError` when it is
-> missing or left at the internal `'unknown_path'` placeholder.
+> The path is only on `@controller({ path })`. The generated routes register after the subclass's
+> `binding()`, so a custom static path declared there wins over `/{id}`.
 
 ## Value Resolver Pattern
 

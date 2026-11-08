@@ -50,6 +50,14 @@ export class PersistableRelationalRepository<
   /** Throw to refuse an update's data. */
   protected validateUpdateData(_opts: { data: object }): void {}
 
+  /** Reads the caller's `data` once into a plain copy, checks that copy and returns it: the check and the write see the same values, even when `data` is a getter or a proxy. */
+  protected checkedUpdateData<Data extends object>(opts: { data: Data }): Data {
+    const data = { ...opts.data };
+    this.validateUpdateData({ data });
+
+    return data;
+  }
+
   /** Guards id-based operations against a null/undefined id */
   protected validateId(opts: { id: unknown; operationName: string }): void {
     if (opts.id !== null && opts.id !== undefined) {
@@ -343,10 +351,10 @@ export class PersistableRelationalRepository<
     update?: ReadonlyArray<TUpsertUpdateKey<PersistObject>>;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
-    this.validateUpdateData({ data: opts.data });
+    const data = this.checkedUpdateData({ data: opts.data });
 
     return this._upsert<R>({
-      data: opts.data,
+      data,
       on: opts.on,
       update: opts.update,
       options: opts.options,
@@ -475,12 +483,12 @@ export class PersistableRelationalRepository<
     data: Partial<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
-    this.validateUpdateData({ data: opts.data });
+    const data = this.checkedUpdateData({ data: opts.data });
     this.validateId({ id: opts.id, operationName: 'updateById' });
 
     const rs = await this._update<R>({
       where: this.whereById({ id: opts.id }),
-      data: opts.data,
+      data,
       options: opts.options,
     });
 
@@ -510,11 +518,12 @@ export class PersistableRelationalRepository<
     const { rows, options } = opts;
     const shouldReturn = options?.shouldReturn !== false;
 
-    for (const row of rows) {
-      this.validateUpdateData({ data: row.data });
-    }
+    const checkedRows = rows.map((row) => ({
+      id: row.id,
+      data: this.checkedUpdateData({ data: row.data }),
+    }));
 
-    if (rows.length === 0) {
+    if (checkedRows.length === 0) {
       return { count: 0, data: shouldReturn ? [] : null };
     }
 
@@ -524,7 +533,7 @@ export class PersistableRelationalRepository<
         let count = 0;
         const data: Array<TNullable<R>> = [];
 
-        for (const { id, data: values } of rows) {
+        for (const { id, data: values } of checkedRows) {
           this.validateId({ id, operationName: 'updateEach' });
 
           const rs = await this._update<R>({
@@ -570,9 +579,9 @@ export class PersistableRelationalRepository<
     where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    this.validateUpdateData({ data: opts.data });
+    const data = this.checkedUpdateData({ data: opts.data });
 
-    return this._update<R>(opts);
+    return this._update<R>({ where: opts.where, data, options: opts.options });
   }
 
   protected async _delete<R = DataObject>(opts: {

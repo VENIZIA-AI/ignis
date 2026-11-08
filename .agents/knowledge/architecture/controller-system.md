@@ -71,20 +71,27 @@ All three converge on `this.router.openapi(routeConfigs, handler)`. Route config
 `@hono/zod-openapi` `createRoute` shapes, so schemas are Zod, validation is generated from them, and
 the OpenAPI document derives from the same source rather than being hand-maintained alongside it.
 
-`configure()` registers routes in three passes, ordered by path **shape** rather than by source
-order: decorator routes with no path parameter first, then whatever `binding()` registers, then
-decorator routes carrying a path parameter last. Hono matches in registration order, so a `/{id}`
-route registered early would shadow a sibling literal route such as `/count`. A route declared
-imperatively inside `binding()` therefore always sits between the two decorator passes.
+`configure()` registers routes in four passes, ordered by path **shape** rather than by source
+order: decorator routes with no path parameter first, then whatever `binding()` registers, then the
+routes a generated CRUD controller brings (`bindDefaultRoutes()`), then decorator routes carrying a
+path parameter last. Hono matches in registration order, so a `/{id}` route registered early would
+shadow a sibling literal route such as `/count`. A route declared inside `binding()` therefore
+always sits between the two decorator passes, and a custom static path there wins over the generated
+`/{id}`. A generated controller's `binding()` is empty: do not call `super.binding()` in a subclass.
 
 ## The CRUD controller factory
 
-`ControllerFactory.defineCrudController({ controller, entity, authenticate, authorize, routes })`
-generates a fully typed CRUD controller from an entity definition, with per-route customization via
-`routes`. Under it sit `AbstractCrudController`, `ReadableCrudController` and
-`PersistableCrudController`, mirroring the read/write split on the repository side. `entity` accepts
-a class or a thunk returning one (`isClass(entity) ? entity : entity()`), which is how circular model
-imports are broken.
+`ControllerFactory.crud({ repository, authenticate, authorize, isStrict, routes })` generates a
+fully typed CRUD controller from a repository class. The entity comes from the class's
+`@repository({ model })` metadata (a class or a thunk, which is how circular model imports are
+broken). The path is only on `@controller({ path })` of the subclass; the name is the class name.
+`routes` is the whole list: a route that is listed exists (`true`, or a config with its own
+`authenticate`, `authorize` and `request`), one that is not listed does not. `CrudRoutes.READ` lists
+the four read routes. `restoreById` (`POST /{id}/restore`) and `restoreBy` (`POST /restore`, `where`
+in the query) are listed like the others and are checked against the UPDATE scope; the types refuse
+them for a repository class without the restore methods, and the build throws as a backstop. Under
+the factory sit `AbstractCrudController`, `ReadableCrudController` and `PersistableCrudController`,
+mirroring the read/write split on the repository side.
 
 The default create and update bodies leave out the keys of the model's `properties.stamped` (default
 `AuditFields.SCHEME_SET`: the audit keys and `deletedAt`) and an update body never carries `id`; see

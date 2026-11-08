@@ -236,7 +236,6 @@ export class SearchControllerFactory extends BaseHelper {
     ControllerFactory.registerRepositoryInjection({
       target: controllerClass,
       factoryName: 'defineSearchController',
-      controllerName: name,
       repositoryName: defOpts.repository.name,
     });
 

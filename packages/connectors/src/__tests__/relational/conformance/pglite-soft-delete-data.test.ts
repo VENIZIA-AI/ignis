@@ -22,7 +22,7 @@ const itemTable = pgTable(
     merchantId: text('merchant_id').notNull(),
     code: text('code').notNull(),
     status: text('status').notNull().default('open'),
-    deletedAt: timestamp('deleted_at'),
+    deletedAt: timestamp('removed_at'),
   },
   (table) => [uniqueIndex('soft_delete_data_pg_code').on(table.code)],
 );
@@ -78,7 +78,7 @@ beforeAll(async () => {
       merchant_id text not null,
       code text not null,
       status text not null default 'open',
-      deleted_at timestamp
+      removed_at timestamp
     );
     CREATE UNIQUE INDEX soft_delete_data_pg_code ON ${TABLE_NAME} (code);
   `);
@@ -98,6 +98,7 @@ defineSoftDeleteDataCases(() => ({
   items,
   plain,
   open,
+  deletedAtColumn: 'removed_at',
   codeKey: UniqueKeys.of({ table: itemTable, index: 'soft_delete_data_pg_code' }),
   executor: dataSource.getQueryExecutor(),
   setResolver: (next) => {
@@ -106,7 +107,7 @@ defineSoftDeleteDataCases(() => ({
   reset: async () => {
     await client.exec(`TRUNCATE TABLE ${TABLE_NAME} RESTART IDENTITY;`);
     await client.exec(`
-      INSERT INTO ${TABLE_NAME} (merchant_id, code, status, deleted_at) VALUES
+      INSERT INTO ${TABLE_NAME} (merchant_id, code, status, removed_at) VALUES
         ('m1', 'A', 'open', NULL),
         ('m2', 'B', 'open', NULL),
         ('m1', 'C', 'open', NULL);
@@ -120,7 +121,7 @@ defineSoftDeleteDataCases(() => ({
       merchantId: row.merchant_id,
       code: row.code,
       status: row.status,
-      isDeleted: row.deleted_at !== null,
+      isDeleted: row.removed_at !== null,
     }));
   },
 }));

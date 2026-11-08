@@ -244,7 +244,7 @@ const category = await repository.findById({
 
 `deletedAt` changes only through `deleteById`, `deleteBy` and the restore methods. `updateById`, `updateBy`, `updateEach` and `upsert` refuse a `data` that carries it, with any value including `null`: the call fails with a 400 and writes nothing.
 
-`deletedAt` is in the default `properties.stamped` list of a model, so the default `POST` and `PATCH` bodies of `ControllerFactory.defineCrudController` leave it out. A route you give your own `request.body` keeps whatever that body declares.
+`deletedAt` is in the default `properties.stamped` list of a model, so the default `POST` and `PATCH` bodies of `ControllerFactory.crud` leave it out. A route you give your own `request.body` keeps whatever that body declares.
 
 > [!NOTE]
 > The default bodies follow the model, not the repository. The 400 is raised by `SoftDeletableRepository` and `SoftDeletableSqliteRepository`; another repository over the same table still accepts `deletedAt` in an update.

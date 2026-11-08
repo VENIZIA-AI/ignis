@@ -3,7 +3,12 @@ import '@venizia/ignis-kernel';
 
 import { describe, expect, test } from 'bun:test';
 
-import { ControllerFactory, repository, model } from '@venizia/ignis-kernel';
+import {
+  controller as controllerDecorator,
+  ControllerFactory,
+  repository,
+  model,
+} from '@venizia/ignis-kernel';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { SearchControllerFactory } from '@/search/core/controllers/factory';
 import { SearchModes } from '@/search/core/repositories/common';
@@ -237,15 +242,20 @@ describe('a CRUD controller over a search repository', () => {
       name: `hidden-filter-crud-${sequence}`,
       config: {},
     });
-    const Controller = ControllerFactory.defineCrudController({
-      entity: HiddenFilterNestedDocument as never,
-      repository: { name: HiddenFilterNestedRepository.name },
-      controller: { name: `HiddenFilterCrud${sequence}`, basePath: '/x' },
+    const Controller = ControllerFactory.crud({
+      repository: HiddenFilterNestedRepository,
+      routes: { count: true },
     });
-    const controller = new Controller(new HiddenFilterNestedRepository(dataSource) as never);
+
+    @controllerDecorator({ path: '/x' })
+    class HiddenFilterCrudController extends Controller {}
+
+    const crudController = new HiddenFilterCrudController(
+      new HiddenFilterNestedRepository(dataSource),
+    );
 
     expect(() =>
-      controller.assertRequestFilter({ filter: { where: { 'meta.pin': '1111' } } }),
+      crudController.assertRequestFilter({ filter: { where: { 'meta.pin': '1111' } } }),
     ).toThrow('NOT FOUND');
     expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
   });

@@ -87,8 +87,6 @@ describe('defineSearchController injects the repository named in repository.name
         repository: { name: '' },
         controller: { name: 'NamelessSearchController', basePath: '/nameless' },
       }),
-    ).toThrow(
-      '[defineSearchController] Invalid repository name | controller: NamelessSearchController',
-    );
+    ).toThrow('[defineSearchController] Invalid repository name');
   });
 });

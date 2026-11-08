@@ -8,9 +8,12 @@ import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   Authentication,
   BaseAppErrorMiddleware,
+  controller,
   ControllerFactory,
+  CrudRoutes,
   datasource,
   model,
+  repository as repositoryDecorator,
   RequestContextRegistry,
 } from '@venizia/ignis-kernel';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
@@ -212,8 +215,21 @@ class SqliteRouteDataSource extends BaseSqliteDataSource<{ url: string }, AnyTyp
   override configure(): ValueOrPromise<void> {}
 }
 
+@repositoryDecorator({ model: PostgresRouteRow, dataSource: 'PostgresRouteDataSource' })
+class PostgresRouteRepository extends DefaultCRUDRepository<
+  typeof postgresRouteTable,
+  TTableObject<typeof postgresRouteTable>,
+  TTableInsert<typeof postgresRouteTable>,
+  IDatabaseExtraOptions,
+  PostgresRouteDataSource
+> {}
+
+@repositoryDecorator({ model: SqliteRouteRow, dataSource: 'SqliteRouteDataSource' })
+class SqliteRouteRepository extends DefaultSqliteRepository<AnyType> {}
+
 interface IRouteTier {
   name: string;
+  repositoryClass: AnyType;
   open: () => Promise<{ repository: AnyType; close: () => Promise<void> }>;
   entity: AnyType;
 }
@@ -222,6 +238,7 @@ const ROUTE_TIERS: IRouteTier[] = [
   {
     name: 'postgres (PGlite)',
     entity: PostgresRouteRow,
+    repositoryClass: PostgresRouteRepository,
     open: async () => {
       const client = new PGlite();
       await client.waitReady;
@@ -239,13 +256,7 @@ const ROUTE_TIERS: IRouteTier[] = [
       const dataSource = new PostgresRouteDataSource({ client });
 
       return {
-        repository: new DefaultCRUDRepository<
-          typeof postgresRouteTable,
-          TTableObject<typeof postgresRouteTable>,
-          TTableInsert<typeof postgresRouteTable>,
-          IDatabaseExtraOptions,
-          PostgresRouteDataSource
-        >(dataSource, { entityClass: PostgresRouteRow }),
+        repository: new PostgresRouteRepository(dataSource, { entityClass: PostgresRouteRow }),
         close: () => dataSource.endDriver(),
       };
     },
@@ -253,6 +264,7 @@ const ROUTE_TIERS: IRouteTier[] = [
   {
     name: 'sqlite (libsql :memory:)',
     entity: SqliteRouteRow,
+    repositoryClass: SqliteRouteRepository,
     open: async () => {
       const client = createClient({ url: ':memory:' });
       await client.execute(`
@@ -269,9 +281,7 @@ const ROUTE_TIERS: IRouteTier[] = [
       const dataSource = new SqliteRouteDataSource({ client });
 
       return {
-        repository: new DefaultSqliteRepository<AnyType>(dataSource, {
-          entityClass: SqliteRouteRow,
-        }),
+        repository: new SqliteRouteRepository(dataSource, { entityClass: SqliteRouteRow }),
         close: async () => client.close(),
       };
     },
@@ -290,15 +300,24 @@ describe.each(ROUTE_TIERS)('a generated CRUD route on $name stamps the signed-in
     repository = opened.repository;
     close = opened.close;
 
-    const RouteController = ControllerFactory.defineCrudController({
-      entity: tier.entity,
-      repository: { name: `${tier.entity.name}Repository` },
-      controller: { name: `${tier.entity.name}Controller`, basePath: '/rows' },
+    const RouteController = ControllerFactory.crud({
+      repository: tier.repositoryClass,
+      routes: {
+        ...CrudRoutes.READ,
+        create: true,
+        updateById: true,
+        updateBy: true,
+        deleteById: true,
+        deleteBy: true,
+      },
     });
 
-    const controller = new RouteController(repository);
-    await controller.configure();
-    router = controller.getRouter();
+    @controller({ path: '/rows' })
+    class RowsController extends RouteController {}
+
+    const rowsController = new RowsController(repository);
+    await rowsController.configure();
+    router = rowsController.getRouter();
     // The handler an application installs on its server: without it a thrown `getError` is a bare 500.
     router.onError(new BaseAppErrorMiddleware().value());
   });

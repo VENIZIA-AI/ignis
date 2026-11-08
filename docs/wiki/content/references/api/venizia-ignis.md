@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-99 exports, 99 with TSDoc. 937 more are re-exported from other entries (listed at the end).
+99 exports, 99 with TSDoc. 943 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -377,6 +377,7 @@ export declare class AuthControllerFactory {
             }): RouteConfig & {
                 getRoutingPath(): RouteConfig["path"] extends infer T ? T extends RouteConfig["path"] ? T extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start_1}/{${infer Param_1}}${infer Rest_1}` ? `${Start_1}/:${Param_1}${Rest_1 extends `${infer Start_2}/{${infer Param_2}}${infer Rest_2}` ? `${Start_2}/:${Param_2}${Rest_2 extends `${infer Start_3}/{${infer Param_3}}${infer Rest_3}` ? `${Start_3}/:${Param_3}${Rest_3 extends `${infer Start_4}/{${infer Param_4}}${infer Rest_4}` ? `${Start_4}/:${Param_4}${Rest_4 extends `${infer Start_5}/{${infer Param_5}}${infer Rest_5}` ? `${Start_5}/:${Param_5}${Rest_5 extends `${infer Start_6}/{${infer Param_6}}${infer Rest_6}` ? `${Start_6}/:${Param_6}${Rest_6 extends `${infer Start_7}/{${infer Param_7}}${infer Rest_7}` ? `${Start_7}/:${Param_7}${Rest_7 extends `${infer Start_8}/{${infer Param_8}}${infer Rest_8}` ? `${Start_8}/:${Param_8}${Rest_8 extends `${infer Start_9}/{${infer Param_9}}${infer Rest_9}` ? `${Start_9}/:${Param_9}${Rest_9 extends `${infer Start_10}/{${infer Param_10}}${infer Rest_10}` ? `${Start_10}/:${Param_10}${any}` : Rest_9}` : Rest_8}` : Rest_7}` : Rest_6}` : Rest_5}` : Rest_4}` : Rest_3}` : Rest_2}` : Rest_1}` : Rest}` : T : never : never;
             };
+            bindDefaultRoutes(): ValueOrPromise<void>;
             scope: string;
             identifier: string;
             get logger(): import("@venizia/ignis-helpers").ILogger;
@@ -3169,6 +3170,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `CountSchema` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `CredentialAlgorithms` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `CredentialHelper` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `CrudRoutes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `D_STROKE_REPLACEMENTS` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `DATA_SOURCE_BRAND` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `DataRangeUtility` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
@@ -3430,6 +3432,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IRestApplication` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IRestComponentConfig` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IRestControllerMetadata` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `IRestorableRepository` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IRetryBackoffOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IRetryContext` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IRpcMetadata` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -3719,6 +3722,8 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TcpClientStates` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TCreateRedisHelperOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TCredentialAlgorithm` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `TCrudRepositoryClass` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `TCrudRoutes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TCustomGrantMetadata` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TCustomizableRouteConfig` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TDataRange` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
@@ -3861,10 +3866,12 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TRelationMetadata` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TRelationType` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TRelativeUnit` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
+- `TRepositoryDataObject` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TRepositoryErrorCode` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TRepositoryLogOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TRepositoryMetadata` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TRepositoryOperationScope` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `TRepositoryPersistObject` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TRepositoryType` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TRequestContextResolver` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TRequestFilterKeyKind` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)

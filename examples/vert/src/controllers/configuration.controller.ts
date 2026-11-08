@@ -1,5 +1,4 @@
 import { z } from '@hono/zod-openapi';
-import { Configuration } from '@/models';
 import { ConfigurationRepository } from '@/repositories';
 import {
   Authentication,
@@ -25,17 +24,20 @@ const CreateConfigurationSchema = z
  * The CRUD routes from the factory, with per-route authentication: every route takes a JWT or
  * Basic credentials, `count` is public, `create` takes Basic only, and both deletes take a JWT only.
  */
-const BaseCrudController = ControllerFactory.defineCrudController({
-  entity: Configuration,
-  repository: { name: ConfigurationRepository.name },
-  controller: { name: 'ConfigurationController', basePath: BASE_PATH },
+const BaseCrudController = ControllerFactory.crud({
+  repository: ConfigurationRepository,
   authenticate: { strategies: [Authentication.STRATEGY_JWT, Authentication.STRATEGY_BASIC] },
   routes: {
     count: { authenticate: { skip: true } },
+    find: true,
+    findById: true,
+    findOne: true,
     create: {
       authenticate: { strategies: [Authentication.STRATEGY_BASIC] },
       request: { body: CreateConfigurationSchema },
     },
+    updateById: true,
+    updateBy: true,
     deleteById: { authenticate: { strategies: [Authentication.STRATEGY_JWT] } },
     deleteBy: { authenticate: { strategies: [Authentication.STRATEGY_JWT] } },
   },

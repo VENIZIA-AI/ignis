@@ -1,14 +1,22 @@
+import { CrudRoutes } from '@/base/controllers/common';
+import type { TCrudRoutes } from '@/base/controllers/common';
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
 import { ControllerFactory } from '@/base/controllers/factory/controller';
 import { RouteConfigResolver } from '@/base/controllers/factory/definition';
-import { model } from '@/base/metadata';
+import {
+  controller as controllerDecorator,
+  model,
+  repository as repositoryDecorator,
+} from '@/base/metadata';
 import { AbstractEntity } from '@/base/models';
 import { AuditFields } from '@/base/models/common/constants';
 import { BindingNamespaces } from '@/common/bindings';
 import { BindingKeys, Container } from '@/helpers/inversion';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import type { AnyType } from '@venizia/ignis-helpers/common';
+import { getError } from '@venizia/ignis-helpers/core';
 import { describe, expect, test } from 'bun:test';
+import { StubRepository } from './stub-repository';
 
 /** The shape an entity with the audit and timestamp enrichers exposes; `deletedAt` is soft-delete state, not a stamp. */
 const auditedShape = {
@@ -37,11 +45,20 @@ type TRouteWithBody = {
   request: { body: { content: { 'application/json': { schema: TAnyObjectSchema } } } };
 };
 
-const toBody = (opts: { route: TRouteWithBody }) => {
-  return opts.route.request.body.content['application/json'].schema;
+/** A route the test lists is built; one it does not list is not, and reading it is a test bug. */
+const listedRoute = (opts: { route: TRouteWithBody | undefined }): TRouteWithBody => {
+  if (opts.route === undefined) {
+    throw getError({ message: 'the route is not listed, so it was not built' });
+  }
+
+  return opts.route;
 };
 
-const toBodyKeys = (opts: { route: TRouteWithBody }) => {
+const toBody = (opts: { route: TRouteWithBody | undefined }) => {
+  return listedRoute(opts).request.body.content['application/json'].schema;
+};
+
+const toBodyKeys = (opts: { route: TRouteWithBody | undefined }) => {
   return Object.keys(toBody(opts).shape).sort();
 };
 
@@ -49,25 +66,25 @@ const buildRoutes = (opts: {
   create: TAnyObjectSchema;
   update?: TAnyObjectSchema;
   serverStampedKeys?: string[];
-  routes?: Parameters<typeof RouteConfigResolver.defineControllerRouteConfigs>[0]['routes'];
+  routes?: TCrudRoutes;
 }) => {
   return RouteConfigResolver.defineControllerRouteConfigs({
     isStrict: true,
     idType: 'string',
     schema: { select: plainSchema, create: opts.create, update: opts.update ?? opts.create },
     serverStampedKeys: opts.serverStampedKeys,
-    routes: opts.routes,
+    routes: { create: true, updateById: true, updateBy: true, ...opts.routes },
   });
 };
 
 /** The request body a generated OpenAPI document declares for one write route. */
-const toDocumentedBody = (opts: { route: TRouteWithBody }) => {
+const toDocumentedBody = (opts: { route: TRouteWithBody | undefined }) => {
   const application = new OpenAPIHono();
   application.openapi(
     createRoute({
       method: 'post',
       path: '/probe',
-      request: { body: opts.route.request.body },
+      request: { body: listedRoute(opts).request.body },
       responses: { 200: { description: 'ok' } },
     }),
     (context) => context.text('ok'),
@@ -279,15 +296,25 @@ class UnstampedVariantDocument extends VariantDocument {}
 class StampedVariantDocument extends VariantDocument {}
 
 /** Records what the create route hands over. */
-class RecordingRepository {
+class RecordingRepository extends StubRepository {
   readonly created: object[] = [];
 
-  async create(opts: { data: object }) {
+  override create(opts: { data: object }): Promise<AnyType> {
     this.created.push(opts.data);
 
-    return { count: 1, data: opts.data };
+    return Promise.resolve({ count: 1, data: opts.data });
   }
 }
+
+/** A repository class bound to `entity`, the way `@repository({ model })` binds a real one. */
+const repositoryClassOf = (opts: { entity: typeof VariantDocument; name: string }) => {
+  class VariantRepository extends RecordingRepository {}
+
+  Object.defineProperty(VariantRepository, 'name', { value: opts.name, configurable: true });
+  repositoryDecorator({ model: opts.entity, dataSource: 'ProbeDataSource' })(VariantRepository);
+
+  return VariantRepository;
+};
 
 const resolveVariantController = (opts: {
   entity: typeof VariantDocument;
@@ -295,21 +322,24 @@ const resolveVariantController = (opts: {
 }) => {
   const { entity, controllerName } = opts;
   const repositoryName = `${controllerName}Repository`;
-  const VariantController = ControllerFactory.defineCrudController({
-    entity,
-    repository: { name: repositoryName },
-    controller: { name: controllerName, basePath: '/variants' },
+  const VariantRepository = repositoryClassOf({ entity, name: repositoryName });
+  const VariantCrudController = ControllerFactory.crud({
+    repository: VariantRepository,
+    routes: { ...CrudRoutes.READ, create: true, updateById: true },
   });
 
-  const repository = new RecordingRepository();
+  @controllerDecorator({ path: '/variants' })
+  class VariantController extends VariantCrudController {}
+
+  const repositoryInstance = new VariantRepository();
   const container = new Container();
   container
     .bind({
       key: BindingKeys.build({ namespace: BindingNamespaces.REPOSITORY, key: repositoryName }),
     })
-    .toValue(repository);
+    .toValue(repositoryInstance);
 
-  return { controller: container.resolve(VariantController), repository };
+  return { controller: container.resolve(VariantController), repository: repositoryInstance };
 };
 
 const toRouteBodySchemas = async (opts: {
@@ -328,7 +358,7 @@ const toRouteBodySchemas = async (opts: {
   };
 };
 
-describe('defineCrudController reads which keys the model stamps', () => {
+describe('ControllerFactory.crud reads which keys the model stamps', () => {
   test('the default stamped list is the audit keys and deletedAt', () => {
     expect([...AuditFields.SCHEME_SET]).toEqual([
       'createdBy',

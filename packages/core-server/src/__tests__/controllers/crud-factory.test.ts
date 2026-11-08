@@ -4,11 +4,15 @@ import '@/base/applications';
 import { describe, expect, test } from 'bun:test';
 import { pgTable, serial, text, varchar } from 'drizzle-orm/pg-core';
 
-import { ControllerFactory } from '@venizia/ignis-kernel';
-import { model, repository } from '@/base/metadata';
+import { CrudRoutes, ControllerFactory } from '@venizia/ignis-kernel';
+import { controller, model, repository } from '@/base/metadata';
 import { SchemaTypes } from '@venizia/ignis-kernel';
-import { BasePostgresDataSource, BasePostgresEntity } from '@venizia/ignis-connectors/postgres';
-import type { TAnyObjectSchema } from '@venizia/ignis-kernel';
+import {
+  BasePostgresDataSource,
+  BasePostgresEntity,
+  DefaultCRUDRepository,
+} from '@venizia/ignis-connectors/postgres';
+import type { TAnyObjectSchema, TCrudRoutes } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { fakeCrudRepository } from './fixtures';
@@ -43,22 +47,35 @@ class CrudFactoryDocument extends BasePostgresEntity<typeof CrudFactoryDocument.
 }
 
 @repository({ model: CrudFactoryAccount, dataSource: CrudFactoryDataSource })
-class CrudFactoryAccountRepository {}
+class CrudFactoryAccountRepository extends DefaultCRUDRepository<
+  typeof CrudFactoryAccount.schema
+> {}
 
 @repository({ model: CrudFactoryDocument, dataSource: CrudFactoryDataSource })
-class CrudFactoryDocumentRepository {}
+class CrudFactoryDocumentRepository extends DefaultCRUDRepository<
+  typeof CrudFactoryDocument.schema
+> {}
 
 const mountedRoutes = (opts: { router: { routes: Array<{ method: string; path: string }> } }) => {
   return new Set(opts.router.routes.map((route) => `${route.method} ${route.path}`));
 };
 
-describe('ControllerFactory.defineCrudController - generated routes', () => {
+describe('ControllerFactory.crud - generated routes', () => {
   test('mounts the nine CRUD routes, with /count and /find-one ahead of the /:id param route', async () => {
-    const AccountController = ControllerFactory.defineCrudController({
-      entity: CrudFactoryAccount,
-      repository: { name: CrudFactoryAccountRepository.name },
-      controller: { name: 'CrudFactoryAccountController', basePath: '/accounts' },
+    const AccountCrudController = ControllerFactory.crud({
+      repository: CrudFactoryAccountRepository,
+      routes: {
+        ...CrudRoutes.READ,
+        create: true,
+        updateById: true,
+        updateBy: true,
+        deleteById: true,
+        deleteBy: true,
+      },
     });
+
+    @controller({ path: '/accounts' })
+    class AccountController extends AccountCrudController {}
 
     const restController = new AccountController(fakeCrudRepository({ records: [] }));
     await restController.configure();
@@ -82,18 +99,16 @@ describe('ControllerFactory.defineCrudController - generated routes', () => {
     expect(paths.indexOf('/find-one')).toBeLessThan(paths.indexOf('/:id'));
   });
 
-  test('readonly: true registers only the four read routes', async () => {
-    const ReadonlyController = ControllerFactory.defineCrudController({
-      entity: CrudFactoryAccount,
-      repository: { name: CrudFactoryAccountRepository.name },
-      controller: {
-        name: 'CrudFactoryReadonlyController',
-        basePath: '/accounts',
-        readonly: true,
-      },
+  test('CrudRoutes.READ registers only the four read routes', async () => {
+    const ReadCrudController = ControllerFactory.crud({
+      repository: CrudFactoryAccountRepository,
+      routes: CrudRoutes.READ,
     });
 
-    const restController = new ReadonlyController(fakeCrudRepository({ records: [] }));
+    @controller({ path: '/accounts' })
+    class ReadController extends ReadCrudController {}
+
+    const restController = new ReadController(fakeCrudRepository({ records: [] }));
     await restController.configure();
 
     expect(mountedRoutes({ router: restController.getRouter() })).toEqual(
@@ -101,19 +116,16 @@ describe('ControllerFactory.defineCrudController - generated routes', () => {
     );
   });
 
-  test('enabledRoutes whitelists routes and overrides per-route enabled flags', async () => {
-    const WhitelistedController = ControllerFactory.defineCrudController({
-      entity: CrudFactoryAccount,
-      repository: { name: CrudFactoryAccountRepository.name },
-      controller: {
-        name: 'CrudFactoryWhitelistedController',
-        basePath: '/accounts',
-        enabledRoutes: ['count', 'create'],
-      },
-      routes: { create: { enabled: false } },
+  test('a listed route exists and an unlisted one does not', async () => {
+    const ListedCrudController = ControllerFactory.crud({
+      repository: CrudFactoryAccountRepository,
+      routes: { count: true, create: true },
     });
 
-    const restController = new WhitelistedController(fakeCrudRepository({ records: [] }));
+    @controller({ path: '/accounts' })
+    class ListedController extends ListedCrudController {}
+
+    const restController = new ListedController(fakeCrudRepository({ records: [] }));
     await restController.configure();
 
     expect(mountedRoutes({ router: restController.getRouter() })).toEqual(
@@ -121,44 +133,37 @@ describe('ControllerFactory.defineCrudController - generated routes', () => {
     );
   });
 
-  test('routes.<key>.enabled: false disables exactly that route', async () => {
-    const PartialController = ControllerFactory.defineCrudController({
-      entity: CrudFactoryAccount,
-      repository: { name: CrudFactoryAccountRepository.name },
-      controller: { name: 'CrudFactoryPartialController', basePath: '/accounts' },
-      routes: { deleteBy: { enabled: false }, updateBy: { enabled: false } },
-    });
+  test('no routes map mounts no route', async () => {
+    const BareCrudController = ControllerFactory.crud({ repository: CrudFactoryAccountRepository });
 
-    const restController = new PartialController(fakeCrudRepository({ records: [] }));
+    @controller({ path: '/accounts' })
+    class BareController extends BareCrudController {}
+
+    const restController = new BareController(fakeCrudRepository({ records: [] }));
     await restController.configure();
 
-    const mounted = mountedRoutes({ router: restController.getRouter() });
-    expect(mounted.has('DELETE /')).toBe(false);
-    expect(mounted.has('PATCH /')).toBe(false);
-    expect(mounted.has('DELETE /:id')).toBe(true);
+    expect(mountedRoutes({ router: restController.getRouter() }).size).toBe(0);
   });
 
-  test('an empty basePath is rejected', () => {
-    expect(() => {
-      ControllerFactory.defineCrudController({
-        entity: CrudFactoryAccount,
-        repository: { name: CrudFactoryAccountRepository.name },
-        controller: { name: 'CrudFactoryNoPathController', basePath: '' },
-      });
-    }).toThrow(/basePath/);
-  });
+  test('defining the controller twice for one repository yields independent classes and routers', async () => {
+    const routes = { count: true, create: true } satisfies TCrudRoutes;
 
-  test('defining the controller twice for one entity yields independent classes and routers', async () => {
-    const options = {
-      entity: CrudFactoryAccount,
-      repository: { name: CrudFactoryAccountRepository.name },
-      controller: { name: 'CrudFactoryTwiceController', basePath: '/accounts' },
-    };
+    const FirstCrudController = ControllerFactory.crud({
+      repository: CrudFactoryAccountRepository,
+      routes,
+    });
+    const SecondCrudController = ControllerFactory.crud({
+      repository: CrudFactoryAccountRepository,
+      routes,
+    });
 
-    const FirstController = ControllerFactory.defineCrudController(options);
-    const SecondController = ControllerFactory.defineCrudController(options);
+    expect(FirstCrudController).not.toBe(SecondCrudController);
 
-    expect(FirstController).not.toBe(SecondController);
+    @controller({ path: '/accounts' })
+    class FirstController extends FirstCrudController {}
+
+    @controller({ path: '/accounts' })
+    class SecondController extends SecondCrudController {}
 
     const first = new FirstController(fakeCrudRepository({ records: [] }));
     const second = new SecondController(fakeCrudRepository({ records: [] }));
@@ -173,14 +178,15 @@ describe('ControllerFactory.defineCrudController - generated routes', () => {
   });
 });
 
-describe('ControllerFactory.defineCrudController - request schemas', () => {
+describe('ControllerFactory.crud - request schemas', () => {
   test('GET /:id accepts a numeric id from the path (params arrive as strings)', async () => {
-    const AccountController = ControllerFactory.defineCrudController({
-      entity: CrudFactoryAccount,
-      repository: { name: CrudFactoryAccountRepository.name },
-      controller: { name: 'CrudFactoryNumberIdController', basePath: '/accounts' },
-      routes: { findById: { enabled: true } },
+    const AccountCrudController = ControllerFactory.crud({
+      repository: CrudFactoryAccountRepository,
+      routes: { findById: true },
     });
+
+    @controller({ path: '/accounts' })
+    class AccountController extends AccountCrudController {}
 
     const restController = new AccountController(
       fakeCrudRepository({ records: [{ id: 7, email: 'a@b.c' }] }),
@@ -196,11 +202,13 @@ describe('ControllerFactory.defineCrudController - request schemas', () => {
   });
 
   test('GET /:id accepts a string id when the entity id is text', async () => {
-    const DocumentController = ControllerFactory.defineCrudController({
-      entity: CrudFactoryDocument,
-      repository: { name: CrudFactoryDocumentRepository.name },
-      controller: { name: 'CrudFactoryStringIdController', basePath: '/documents' },
+    const DocumentCrudController = ControllerFactory.crud({
+      repository: CrudFactoryDocumentRepository,
+      routes: { findById: true },
     });
+
+    @controller({ path: '/documents' })
+    class DocumentController extends DocumentCrudController {}
 
     const restController = new DocumentController(
       fakeCrudRepository({ records: [{ id: 'doc-1', title: 'x' }] }),
@@ -220,12 +228,13 @@ describe('ControllerFactory.defineCrudController - request schemas', () => {
       id: z.string().openapi({ param: { name: 'id', in: 'path' } }),
     });
 
-    const OverriddenController = ControllerFactory.defineCrudController({
-      entity: CrudFactoryAccount,
-      repository: { name: CrudFactoryAccountRepository.name },
-      controller: { name: 'CrudFactoryParamsOverrideController', basePath: '/accounts' },
+    const OverriddenCrudController = ControllerFactory.crud({
+      repository: CrudFactoryAccountRepository,
       routes: { findById: { request: { params: paramsSchema } } },
     });
+
+    @controller({ path: '/accounts' })
+    class OverriddenController extends OverriddenCrudController {}
 
     const restController = new OverriddenController(
       fakeCrudRepository({ records: [{ id: 'ext-1', email: 'a@b.c' }] }),
@@ -241,26 +250,22 @@ describe('ControllerFactory.defineCrudController - request schemas', () => {
   });
 
   test('the count route honors isStrict.requestSchema for its where param', async () => {
-    const StrictController = ControllerFactory.defineCrudController({
-      entity: CrudFactoryAccount,
-      repository: { name: CrudFactoryAccountRepository.name },
-      controller: {
-        name: 'CrudFactoryStrictCountController',
-        basePath: '/accounts',
-        enabledRoutes: ['count'],
-        isStrict: { path: true, requestSchema: true },
-      },
+    const StrictCrudController = ControllerFactory.crud({
+      repository: CrudFactoryAccountRepository,
+      isStrict: { path: true, requestSchema: true },
+      routes: { count: true },
     });
-    const LooseController = ControllerFactory.defineCrudController({
-      entity: CrudFactoryAccount,
-      repository: { name: CrudFactoryAccountRepository.name },
-      controller: {
-        name: 'CrudFactoryLooseCountController',
-        basePath: '/accounts',
-        enabledRoutes: ['count'],
-        isStrict: { path: true, requestSchema: false },
-      },
+    const LooseCrudController = ControllerFactory.crud({
+      repository: CrudFactoryAccountRepository,
+      isStrict: { path: true, requestSchema: false },
+      routes: { count: true },
     });
+
+    @controller({ path: '/accounts' })
+    class StrictController extends StrictCrudController {}
+
+    @controller({ path: '/accounts' })
+    class LooseController extends LooseCrudController {}
 
     const strict = new StrictController(fakeCrudRepository({ records: [] }));
     const loose = new LooseController(fakeCrudRepository({ records: [] }));
@@ -287,8 +292,8 @@ describe('ControllerFactory.defineCrudController - request schemas', () => {
   });
 });
 
-describe('ControllerFactory.defineCrudController - bulk where in the query or the body', () => {
-  const buildBulkController = async (opts: { name: string }) => {
+describe('ControllerFactory.crud - bulk where in the query or the body', () => {
+  const buildBulkController = async () => {
     const calls: Array<{ verb: string; where: unknown; data?: unknown }> = [];
     const recordingRepository = {
       ...fakeCrudRepository({ records: [] }),
@@ -304,15 +309,13 @@ describe('ControllerFactory.defineCrudController - bulk where in the query or th
       },
     };
 
-    const BulkController = ControllerFactory.defineCrudController({
-      entity: CrudFactoryAccount,
-      repository: { name: CrudFactoryAccountRepository.name },
-      controller: {
-        name: opts.name,
-        basePath: '/accounts',
-        enabledRoutes: ['updateBy', 'deleteBy'],
-      },
+    const BulkCrudController = ControllerFactory.crud({
+      repository: CrudFactoryAccountRepository,
+      routes: { updateBy: true, deleteBy: true },
     });
+
+    @controller({ path: '/accounts' })
+    class BulkController extends BulkCrudController {}
 
     const restController = new BulkController(recordingRepository);
     await restController.configure();
@@ -326,7 +329,7 @@ describe('ControllerFactory.defineCrudController - bulk where in the query or th
   const whereQuery = `?where=${encodeURIComponent(JSON.stringify({ id: 1 }))}`;
 
   test('PATCH / takes where from the body, and it never reaches the data', async () => {
-    const { router, calls } = await buildBulkController({ name: 'BulkPatchBodyController' });
+    const { router, calls } = await buildBulkController();
 
     const response = await router.request('/', {
       method: 'PATCH',
@@ -339,7 +342,7 @@ describe('ControllerFactory.defineCrudController - bulk where in the query or th
   });
 
   test('PATCH / still takes where from the query', async () => {
-    const { router, calls } = await buildBulkController({ name: 'BulkPatchQueryController' });
+    const { router, calls } = await buildBulkController();
 
     const response = await router.request(`/${whereQuery}`, {
       method: 'PATCH',
@@ -352,7 +355,7 @@ describe('ControllerFactory.defineCrudController - bulk where in the query or th
   });
 
   test('DELETE / takes where from the body', async () => {
-    const { router, calls } = await buildBulkController({ name: 'BulkDeleteBodyController' });
+    const { router, calls } = await buildBulkController();
 
     const response = await router.request('/', {
       method: 'DELETE',
@@ -365,7 +368,7 @@ describe('ControllerFactory.defineCrudController - bulk where in the query or th
   });
 
   test('DELETE / still takes where from the query, with no body', async () => {
-    const { router, calls } = await buildBulkController({ name: 'BulkDeleteQueryController' });
+    const { router, calls } = await buildBulkController();
 
     const response = await router.request(`/${whereQuery}`, { method: 'DELETE' });
 
@@ -380,9 +383,7 @@ describe('ControllerFactory.defineCrudController - bulk where in the query or th
     [{ 'content-type': 'application/json' }, 'a json content-type and no body'],
     [{ 'content-type': 'text/plain' }, 'a text content-type and no body'],
   ])('DELETE / with a query where works with %#: %s', async (headers) => {
-    const { router, calls } = await buildBulkController({
-      name: `BulkDeleteHabit${JSON.stringify(headers).length}Controller`,
-    });
+    const { router, calls } = await buildBulkController();
 
     const response = await router.request(`/${whereQuery}`, {
       method: 'DELETE',
@@ -394,7 +395,7 @@ describe('ControllerFactory.defineCrudController - bulk where in the query or th
   });
 
   test('where in both places is refused, and nothing is written', async () => {
-    const { router, calls } = await buildBulkController({ name: 'BulkBothController' });
+    const { router, calls } = await buildBulkController();
 
     const patched = await router.request(`/${whereQuery}`, {
       method: 'PATCH',
@@ -415,7 +416,7 @@ describe('ControllerFactory.defineCrudController - bulk where in the query or th
   });
 
   test('where in neither place is refused, and nothing is written', async () => {
-    const { router, calls } = await buildBulkController({ name: 'BulkNeitherController' });
+    const { router, calls } = await buildBulkController();
 
     const patched = await router.request('/', {
       method: 'PATCH',

@@ -24,23 +24,23 @@ Repository Layer       applyDefaultFilter() merges the @model default filter,
 
 ## Generate a CRUD controller from an entity
 
-For a standard `GET`/`POST`/`PATCH`/`DELETE` resource, generate the controller instead of writing filter parsing by hand. `ControllerFactory.defineCrudController` builds it from an entity and a repository binding:
+For a standard `GET`/`POST`/`PATCH`/`DELETE` resource, generate the controller instead of writing filter parsing by hand. `ControllerFactory.crud` builds it from a repository class:
 
 ```typescript
 // src/controllers/product.controller.ts
-import { Product } from '@/models';
 import { ProductRepository } from '@/repositories';
-import { controller, ControllerFactory } from '@venizia/ignis';
+import { controller, ControllerFactory, CrudRoutes } from '@venizia/ignis';
 
 const BASE_PATH = '/products';
 
-const _Controller = ControllerFactory.defineCrudController({
-  entity: Product,
-  repository: { name: ProductRepository.name },
-  controller: {
-    name: 'ProductController',
-    basePath: BASE_PATH,
-    isStrict: { path: true, requestSchema: true },
+const _Controller = ControllerFactory.crud({
+  repository: ProductRepository,
+  isStrict: { path: true, requestSchema: true },
+  routes: {
+    ...CrudRoutes.READ,
+    create: true,
+    updateById: true,
+    deleteById: true,
   },
 });
 

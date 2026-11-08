@@ -204,18 +204,17 @@ authorize: { action: AuthorizationActions.DELETE, resource: 'Article', allowedRo
 
 ## CRUD factory integration
 
-**Apply to every generated route.** Set `authorize` at the controller level in `defineCrudController`. A write route (`create`, `updateById`, `updateBy`, `deleteById`, `deleteBy`) must not inherit a `read` spec, so give each write route its own, or make the controller `readonly`.
+**Apply to every listed route.** Set `authorize` at the controller level in `ControllerFactory.crud`. A write route (`create`, `updateById`, `updateBy`, `deleteById`, `deleteBy`) must not inherit a `read` spec, so give each listed write route its own, or do not list it.
 
 ```typescript
-import { AuthorizationActions } from '@venizia/ignis';
+import { AuthorizationActions, CrudRoutes } from '@venizia/ignis';
 
-ControllerFactory.defineCrudController({
-  entity: Article,
-  repository: { name: 'ArticleRepository' },
-  controller: { name: 'ArticleController', basePath: '/articles' },
+ControllerFactory.crud({
+  repository: ArticleRepository,
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   authorize: { action: AuthorizationActions.READ, resource: 'Article' },
   routes: {
+    ...CrudRoutes.READ,
     create: { authorize: { action: AuthorizationActions.CREATE, resource: 'Article' } },
     updateById: { authorize: { action: AuthorizationActions.UPDATE, resource: 'Article' } },
     updateBy: { authorize: { action: AuthorizationActions.UPDATE, resource: 'Article' } },
@@ -226,7 +225,7 @@ ControllerFactory.defineCrudController({
 ```
 
 > [!WARNING] A write route cannot inherit a `read` authorize
-> `defineCrudController` throws at boot when an enabled write route would inherit a controller-level spec whose action is `read` (every spec, for an array). The error names the controller and the routes. Declare `routes.<route>.authorize` (a spec, an array or `{ skip: true }`), set `controller.readonly: true`, or leave the route out of `controller.enabledRoutes`.
+> `ControllerFactory.crud` throws at boot when a listed write route would inherit a controller-level spec whose action is `read` (every spec, for an array). The error names the repository and the routes. Declare `routes.<route>.authorize` (a spec, an array or `{ skip: true }`), or leave the route out of `routes`.
 
 **Override per endpoint.** `routes.<endpoint>.authorize` takes precedence over the controller-level spec.
 

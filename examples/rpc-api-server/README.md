@@ -21,7 +21,7 @@ The secret signs every token. A new secret on each start signs every user out; p
 |---|---|
 | `src/application.ts` | Binds the JWT options, mounts the auth routes, registers the `jwt` strategy |
 | `src/services/authentication.service.ts` | Sign-up, sign-in and change-password: hashes with `Bun.password`, signs with `JWSTokenService` |
-| `src/controllers/configuration.controller.ts` | CRUD routes from `ControllerFactory.defineCrudController`, all behind `authenticate: { strategies: [Authentication.STRATEGY_JWT] }` |
+| `src/controllers/configuration.controller.ts` | CRUD routes from `ControllerFactory.crud`, all behind `authenticate: { strategies: [Authentication.STRATEGY_JWT] }` |
 | `src/controllers/view.controller.tsx` | Two HTML pages declared with `defineJSXRoute`; the pages live in `src/views` |
 | `src/models/*.ts` | The `users` and `configurations` tables and their entities |
 | `src/models/auth.schema.ts` | Response schemas of the auth routes, which type the generated client |

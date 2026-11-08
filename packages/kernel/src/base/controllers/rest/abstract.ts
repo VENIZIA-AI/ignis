@@ -134,9 +134,10 @@ export abstract class AbstractRestController<
     const configureOptions = opts ?? {};
     logger.info('START | Binding controller | Options: %j', configureOptions);
 
-    // Hono matches in registration order, so registration runs by SHAPE not source: every static path first, then binding()'s routes, then decorator param routes last (`/{id}` early would eat `/count`).
+    // Hono matches in registration order, so registration runs by SHAPE not source: every static path first, then binding()'s routes, then the generated defaults, then decorator param routes last (`/{id}` early would eat `/count`).
     this.registerRoutesFromRegistry({ paths: RoutePathScopes.STATIC });
     await this.binding();
+    await this.bindDefaultRoutes();
     this.registerRoutesFromRegistry({ paths: RoutePathScopes.PARAM });
 
     this.isConfigured = true;
@@ -233,6 +234,9 @@ export abstract class AbstractRestController<
   }
   /** Override to register routes using bindRoute or defineRoute. */
   abstract binding(): ValueOrPromise<void>;
+
+  /** Registers the routes a generated controller brings; runs after `binding()`, so a route declared there wins a path the defaults also match. */
+  bindDefaultRoutes(): ValueOrPromise<void> {}
 
   /** Creates a fluent binding for registering a route (call .to() to attach handler). */
   abstract bindRoute<RouteConfig extends IAuthRouteConfig>(opts: {

@@ -18,13 +18,13 @@ under `@repository({ model, dataSource })`).
   `pgTable`; `id` is auto-prepended, never listed. `TArticleDocument` derives from
   `ArticleDocument.schema`.
 - **Factory CRUD over a search repository** - `src/controllers/article.controller.ts` calls
-  `ControllerFactory.defineCrudController` exactly as the Postgres examples do; `TFilter`/`where`
+  `ControllerFactory.crud` exactly as the Postgres examples do; `TFilter`/`where`
   translates to Typesense `filter_by` instead of SQL.
 - **Factory search endpoints** -
   `SearchControllerFactory.defineSearchController` in `src/controllers/search.controller.ts`
   generates `POST /articles/search` (keyword/semantic/hybrid/raw, dispatched to
   `repository.search()`) and `POST /articles/multi-search` (forwarded to `dataSource.multiSearch()`; it and `mode: 'raw'` answer 400 until the controller sets `modes.raw.allow`).
-  Like `ControllerFactory.defineCrudController`, it injects the repository named in
+  Like `ControllerFactory.crud`, it injects the repository named in
   `repository.name`, so the subclass is empty.
 - **The NotSupported convention** - passing `{ transaction }` or `{ lock }` in any repository call
   throws the standardized `NotSupported` error (HTTP 501, `core.not_supported`), because Typesense

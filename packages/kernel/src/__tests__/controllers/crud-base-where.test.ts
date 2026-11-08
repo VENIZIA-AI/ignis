@@ -5,6 +5,7 @@ import type { AbstractEntity } from '@/base/models';
 import type { AbstractRepository } from '@/base/repositories';
 import type { TRouteContext } from '@/base/controllers/common';
 import { ReadableCrudController } from '@/base/controllers/factory/crud';
+import { controller as controllerDecorator } from '@/base/metadata';
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
 
 type TRow = { id: string; tenantId: string; status?: string };
@@ -57,6 +58,7 @@ class RecordingRepository {
   }
 }
 
+@controllerDecorator({ path: '/items' })
 class ItemsController extends ReadableCrudController<
   AbstractEntity<TAnyObjectSchema>,
   Env,
@@ -69,7 +71,6 @@ class ItemsController extends ReadableCrudController<
   constructor(repository: RecordingRepository) {
     super({
       scope: 'ItemsController',
-      path: '/items',
       // The recorder implements the four read verbs under test, not the whole persistable contract.
       repository: repository as unknown as AbstractRepository<TRow, TRow>,
       definitions: {},

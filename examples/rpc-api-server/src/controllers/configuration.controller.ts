@@ -1,15 +1,20 @@
-import { Configuration } from '@/models/configuration.model';
 import { ConfigurationRepository } from '@/repositories/configuration.repository';
-import { Authentication, controller, ControllerFactory } from '@venizia/ignis';
+import { Authentication, controller, ControllerFactory, CrudRoutes } from '@venizia/ignis';
 
 const BASE_PATH = '/configurations';
 
 /** Generates the CRUD routes; every one of them demands a valid JWT. */
-const BaseCrudController = ControllerFactory.defineCrudController({
-  entity: Configuration,
-  repository: { name: ConfigurationRepository.name },
-  controller: { name: 'ConfigurationController', basePath: BASE_PATH },
+const BaseCrudController = ControllerFactory.crud({
+  repository: ConfigurationRepository,
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+  routes: {
+    ...CrudRoutes.READ,
+    create: true,
+    updateById: true,
+    updateBy: true,
+    deleteById: true,
+    deleteBy: true,
+  },
 });
 
 @controller({ path: BASE_PATH })

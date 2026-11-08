@@ -2,19 +2,19 @@ import { AuthorizationActions } from '@/base/auth/authorize/common/constants';
 import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
 import type { AbstractEntity } from '@/base/models';
 import { AuditFields, SchemaTypes } from '@/base/models/common/constants';
-import type { AbstractRepository } from '@/base/repositories';
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
 import { BindingNamespaces } from '@/common/bindings';
 import { BindingKeys, MetadataRegistry } from '@/helpers/inversion';
-import type { AnyType, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { isClass } from '@venizia/ignis-inversion';
 import type { Env, Schema } from 'hono';
 import type {
   ICrudControllerOptions,
-  ICustomizableRoutes,
-  TEntityDataObject,
-  TEntityPersistObject,
+  TCrudRepositoryClass,
+  TCrudRoutes,
+  TRepositoryDataObject,
+  TRepositoryPersistObject,
 } from '../common';
 import { PersistableCrudController } from './crud';
 import { RouteConfigResolver } from './definition';
@@ -28,6 +28,8 @@ export class ControllerFactory extends BaseHelper {
     'updateBy',
     'deleteById',
     'deleteBy',
+    'restoreById',
+    'restoreBy',
   ] as const;
 
   constructor() {
@@ -43,14 +45,13 @@ export class ControllerFactory extends BaseHelper {
   static registerRepositoryInjection(opts: {
     target: TClass<unknown>;
     factoryName: string;
-    controllerName: string;
     repositoryName: string;
   }): void {
-    const { target, factoryName, controllerName, repositoryName } = opts;
+    const { target, factoryName, repositoryName } = opts;
 
     if (!repositoryName) {
       throw getError({
-        message: `[${factoryName}] Invalid repository name | controller: ${controllerName} | repository.name must name the repository binding`,
+        message: `[${factoryName}] Invalid repository name | repository.name must name the repository binding`,
       });
     }
 
@@ -65,39 +66,35 @@ export class ControllerFactory extends BaseHelper {
     });
   }
 
-  static defineCrudController<
-    TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>,
-    Routes extends ICustomizableRoutes = ICustomizableRoutes,
+  static crud<
+    Repository extends TCrudRepositoryClass,
     RouteEnv extends Env = Env,
     RouteSchema extends Schema = {},
     BasePath extends string = '/',
     ConfigurableOptions extends object = {},
-    TDataObject extends object = TEntityDataObject<TEntity>,
-    TPersistObject extends object = TEntityPersistObject<TEntity>,
-  >(defOpts: ICrudControllerOptions<TEntity, Routes>) {
-    const { controller, entity, authenticate, authorize, routes } = defOpts;
+    TDataObject extends object = TRepositoryDataObject<InstanceType<Repository>>,
+    TPersistObject extends object = TRepositoryPersistObject<InstanceType<Repository>>,
+  >(opts: ICrudControllerOptions<Repository>) {
+    const { repository, authenticate, authorize, routes, isStrict = {} } = opts;
 
-    const {
-      name,
-      basePath = 'unknown_path',
-      isStrict = { path: true, requestSchema: true },
-    } = controller;
+    ControllerFactory.assertWriteVerbsDeclareAuthorize({
+      repositoryName: repository.name,
+      authorize,
+      routes,
+    });
+    ControllerFactory.assertRestoreRoutesSupported({ repository, routes });
 
-    if (!basePath || basePath === 'unknown_path') {
+    const model = MetadataRegistry.getInstance().getRepositoryBinding({
+      target: repository,
+    })?.model;
+
+    if (!model) {
       throw getError({
-        message: `[defineCrudController] Invalid controller basePath | name: ${name} | basePath: ${basePath}`,
+        message: `[ControllerFactory.crud] Cannot resolve the entity | repository: ${repository.name} | declare it with @repository({ model })`,
       });
     }
 
-    ControllerFactory.assertWriteVerbsDeclareAuthorize({
-      controllerName: name,
-      authorize,
-      routes,
-      readonly: controller.readonly,
-      enabledRoutes: controller.enabledRoutes,
-    });
-
-    const entityClass = isClass(entity) ? entity : entity();
+    const entityClass = isClass(model) ? model : model();
     const entityInstance = new entityClass();
     const settings = MetadataRegistry.getInstance().getModelMetadata({
       target: entityClass,
@@ -110,15 +107,15 @@ export class ControllerFactory extends BaseHelper {
       authorize,
       routes,
       schema: {
-        select: entityInstance.getSchema({ type: SchemaTypes.SELECT }),
-        create: entityInstance.getSchema({ type: SchemaTypes.CREATE }),
-        update: entityInstance.getSchema({ type: SchemaTypes.UPDATE }),
+        select: entityInstance.getSchema<TAnyObjectSchema>({ type: SchemaTypes.SELECT }),
+        create: entityInstance.getSchema<TAnyObjectSchema>({ type: SchemaTypes.CREATE }),
+        update: entityInstance.getSchema<TAnyObjectSchema>({ type: SchemaTypes.UPDATE }),
       },
       serverStampedKeys: [...(settings?.properties?.stamped ?? AuditFields.SCHEME_SET)],
     });
 
     const controllerClass = class extends PersistableCrudController<
-      TEntity,
+      AbstractEntity<TAnyObjectSchema>,
       RouteEnv,
       RouteSchema,
       BasePath,
@@ -126,107 +123,122 @@ export class ControllerFactory extends BaseHelper {
       TDataObject,
       TPersistObject
     > {
-      // Any extra options: a repository whose options narrow `IExtraOptions` (a typed transaction) must fit.
-      constructor(repository: AbstractRepository<TDataObject, TPersistObject, AnyType>) {
+      constructor(repositoryInstance: InstanceType<Repository>) {
         super({
-          scope: name,
-          path: basePath,
+          scope: new.target.name,
           isStrict: isStrict.path ?? true,
-          repository,
+          repository: repositoryInstance,
           definitions: routeDefinitions,
         });
       }
 
-      /** Registers each CRUD route whose handler tier supplies it, honoring enabledRoutes/readonly. */
-      override binding(): ValueOrPromise<void> {
-        const isEnabled = (routeKey: keyof ICustomizableRoutes) => {
-          if (controller.enabledRoutes) {
-            return controller.enabledRoutes.includes(routeKey);
-          }
+      /** The routes of a generated controller come from `routes`; a subclass adds its own here. */
+      override binding(): ValueOrPromise<void> {}
 
-          return routes?.[routeKey]?.enabled !== false;
-        };
-
-        // Read routes - always registered (unless explicitly disabled)
-        if (isEnabled('count')) {
+      /** Registers each listed CRUD route, after `binding()`: a custom static path is never taken by `/{id}`. */
+      override bindDefaultRoutes(): ValueOrPromise<void> {
+        if (routeDefinitions.COUNT) {
           this.defineRoute({
             configs: routeDefinitions.COUNT,
             handler: async (context) => this.count({ context }),
           });
         }
 
-        if (isEnabled('find')) {
+        if (routeDefinitions.FIND) {
           this.defineRoute({
             configs: routeDefinitions.FIND,
             handler: async (context) => this.find({ context }),
           });
         }
 
-        if (isEnabled('findOne')) {
+        if (routeDefinitions.FIND_ONE) {
           this.defineRoute({
             configs: routeDefinitions.FIND_ONE,
             handler: async (context) => this.findOne({ context }),
           });
         }
 
-        if (isEnabled('findById')) {
+        if (routeDefinitions.FIND_BY_ID) {
           this.defineRoute({
             configs: routeDefinitions.FIND_BY_ID,
             handler: async (context) => this.findById({ context }),
           });
         }
 
-        // Write routes - skipped when readonly
-        if (controller.readonly) {
-          return;
-        }
-
-        if (isEnabled('create')) {
+        if (routeDefinitions.CREATE) {
           this.defineRoute({
             configs: routeDefinitions.CREATE,
             handler: async (context) => this.create({ context }),
           });
         }
 
-        if (isEnabled('updateById')) {
+        if (routeDefinitions.UPDATE_BY_ID) {
           this.defineRoute({
             configs: routeDefinitions.UPDATE_BY_ID,
             handler: async (context) => this.updateById({ context }),
           });
         }
 
-        if (isEnabled('updateBy')) {
+        if (routeDefinitions.UPDATE_BY) {
           this.defineRoute({
             configs: routeDefinitions.UPDATE_BY,
             handler: async (context) => this.updateBy({ context }),
           });
         }
 
-        if (isEnabled('deleteById')) {
+        if (routeDefinitions.DELETE_BY_ID) {
           this.defineRoute({
             configs: routeDefinitions.DELETE_BY_ID,
             handler: async (context) => this.deleteById({ context }),
           });
         }
 
-        if (isEnabled('deleteBy')) {
+        if (routeDefinitions.DELETE_BY) {
           this.defineRoute({
             configs: routeDefinitions.DELETE_BY,
             handler: async (context) => this.deleteBy({ context }),
           });
         }
+
+        if (routeDefinitions.RESTORE_BY) {
+          this.defineRoute({
+            configs: routeDefinitions.RESTORE_BY,
+            handler: async (context) => this.restoreBy({ context }),
+          });
+        }
+
+        if (routeDefinitions.RESTORE_BY_ID) {
+          this.defineRoute({
+            configs: routeDefinitions.RESTORE_BY_ID,
+            handler: async (context) => this.restoreById({ context }),
+          });
+        }
       }
     };
 
-    Object.defineProperty(controllerClass, 'name', { value: name, configurable: true });
     ControllerFactory.registerRepositoryInjection({
       target: controllerClass,
-      factoryName: 'defineCrudController',
-      controllerName: name,
-      repositoryName: defOpts.repository.name,
+      factoryName: 'ControllerFactory.crud',
+      repositoryName: repository.name,
     });
 
     return controllerClass;
+  }
+
+  /** A restore route needs a repository that has the restore methods; the types already refuse one, this is the backstop for an untyped caller. */
+  private static assertRestoreRoutesSupported(opts: {
+    repository: TCrudRepositoryClass;
+    routes: TCrudRoutes | undefined;
+  }): void {
+    const { repository, routes } = opts;
+
+    for (const verb of ['restoreById', 'restoreBy'] as const) {
+      if (routes?.[verb] !== undefined && typeof repository.prototype[verb] !== 'function') {
+        throw getError({
+          message: `[ControllerFactory.crud] routes.${verb} needs a repository with restoreById and restoreBy | repository: ${repository.name}`,
+        });
+      }
+    }
   }
 
   private static describeSpec(opts: { spec: IAuthorizationSpec }): string {
@@ -236,24 +248,21 @@ export class ControllerFactory extends BaseHelper {
   }
 
   /**
-   * Refuses a CRUD controller whose enabled write verb would inherit a controller-level `authorize`
+   * Refuses a CRUD controller that lists a write verb which would inherit a controller-level `authorize`
    * that is only a `read` permission: the verb would then answer to anyone who may read.
    *
-   * A write verb is fine when it declares its own `authorize` (a spec, an array, or `{ skip: true }`),
-   * skips authentication, is not enabled, or the controller is `readonly`. Only the literal action
-   * `read` is detected; a custom action name is the application's own vocabulary. An array counts when
-   * every spec in it is `read`, since the specs of one route must all pass.
+   * A listed write verb is fine when it declares its own `authorize` (a spec, an array, or `{ skip: true }`) or
+   * skips authentication. Only the literal action `read` is detected; a custom action name is the application's own
+   * vocabulary. An array counts when every spec in it is `read`, since the specs of one route must all pass.
    */
   static assertWriteVerbsDeclareAuthorize(opts: {
-    controllerName: string;
+    repositoryName: string;
     authorize: IAuthorizationSpec | IAuthorizationSpec[] | undefined;
-    routes: ICustomizableRoutes | undefined;
-    readonly: boolean | undefined;
-    enabledRoutes: Array<keyof ICustomizableRoutes> | undefined;
+    routes: TCrudRoutes | undefined;
   }): void {
-    const { controllerName, authorize, routes, readonly, enabledRoutes } = opts;
+    const { repositoryName, authorize, routes } = opts;
 
-    if (readonly || authorize == null) {
+    if (authorize == null) {
       return;
     }
 
@@ -266,17 +275,13 @@ export class ControllerFactory extends BaseHelper {
     }
 
     const offending = ControllerFactory.WRITE_VERBS.filter((verb) => {
-      const isEnabled = enabledRoutes
-        ? enabledRoutes.includes(verb)
-        : routes?.[verb]?.enabled !== false;
+      const route = routes?.[verb];
 
-      if (!isEnabled) {
+      if (route === undefined) {
         return false;
       }
 
-      const route = routes?.[verb];
-
-      return route?.authenticate?.skip !== true && route?.authorize == null;
+      return route === true || (route.authenticate?.skip !== true && route.authorize == null);
     });
 
     if (offending.length === 0) {
@@ -284,19 +289,13 @@ export class ControllerFactory extends BaseHelper {
     }
 
     const inherited = specs.map((spec) => ControllerFactory.describeSpec({ spec })).join(', ');
-    const verbs = offending.map((verb) => `${controllerName}.${verb}`).join(', ');
-    const hasBulkVerb = offending.some((verb) => verb === 'updateBy' || verb === 'deleteBy');
+    const verbs = offending.map((verb) => `${repositoryName}.${verb}`).join(', ');
 
     throw getError({
       message: [
-        `[defineCrudController] Write routes would inherit a read-only authorize | controller: ${controllerName} | routes: ${verbs} | inherited: ${inherited}`,
-        'Anyone allowed to read could then create, update or delete.',
-        `Fix: declare routes.<verb>.authorize for each of them (a spec, an array or { skip: true }), or set controller.readonly, or leave them out of controller.enabledRoutes.`,
-        ...(hasBulkVerb
-          ? [
-              'updateBy and deleteBy are bulk routes on the collection and are generated unless controller.enabledRoutes lists the routes you want, so dropping them there closes this too.',
-            ]
-          : []),
+        `[ControllerFactory.crud] Write routes would inherit a read-only authorize | repository: ${repositoryName} | routes: ${verbs} | inherited: ${inherited}`,
+        'Anyone allowed to read could then create, update, delete or restore.',
+        'Fix: declare routes.<verb>.authorize for each of them (a spec, an array or { skip: true }), or leave them out of routes.',
       ].join(' | '),
     });
   }

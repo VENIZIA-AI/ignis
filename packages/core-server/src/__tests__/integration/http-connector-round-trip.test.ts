@@ -5,7 +5,13 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { PGlite } from '@electric-sql/pglite';
 import { Hono } from 'hono';
 import { pgTable, serial, text } from 'drizzle-orm/pg-core';
-import { ControllerFactory, datasource, model } from '@venizia/ignis-kernel';
+import {
+  controller,
+  ControllerFactory,
+  CrudRoutes,
+  datasource,
+  model,
+} from '@venizia/ignis-kernel';
 import { BasePostgresDataSource, BasePostgresEntity } from '@venizia/ignis-connectors/postgres';
 import { PGliteDriver } from '@venizia/ignis-connectors/postgres/pglite';
 import { DefaultRelationalRepository } from '@venizia/ignis-connectors/relational';
@@ -57,7 +63,7 @@ class HttpRoundTripDataSource extends BasePostgresDataSource<{}, {}, {}, PGlite>
 }
 
 @repository({ model: HttpRoundTripNote, dataSource: HttpRoundTripDataSource })
-class HttpRoundTripNoteRepository {}
+class HttpRoundTripNoteRepository extends DefaultRelationalRepository<typeof table> {}
 
 const logger = Logger.get('http-round-trip-test');
 logger.error = () => undefined;
@@ -77,27 +83,37 @@ beforeAll(async () => {
   );
 
   dataSource = new HttpRoundTripDataSource({ client });
-  const noteRepository = new DefaultRelationalRepository<typeof table>(dataSource, {
+  const noteRepository = new HttpRoundTripNoteRepository(dataSource, {
     entityClass: HttpRoundTripNote,
   });
 
-  const NoteController = ControllerFactory.defineCrudController({
-    entity: HttpRoundTripNote,
-    repository: { name: HttpRoundTripNoteRepository.name },
-    controller: { name: 'HttpRoundTripNoteController', basePath: '/notes' },
+  const NoteCrudController = ControllerFactory.crud({
+    repository: HttpRoundTripNoteRepository,
+    routes: {
+      ...CrudRoutes.READ,
+      create: true,
+      updateById: true,
+      updateBy: true,
+      deleteById: true,
+      deleteBy: true,
+    },
   });
-  const controller = new NoteController(noteRepository);
-  await controller.configure();
+
+  @controller({ path: '/notes' })
+  class NoteController extends NoteCrudController {}
+
+  const noteController = new NoteController(noteRepository);
+  await noteController.configure();
 
   const app = new Hono();
-  app.route('/notes', controller.getRouter());
+  app.route('/notes', noteController.getRouter());
   app.onError(new AppErrorMiddleware({ logger }).value());
 
   server = Bun.serve({ port: 0, fetch: app.fetch });
 
   // The same routes behind a server that wraps its error envelope under `error.rootKey`.
   const wrappedApp = new Hono();
-  wrappedApp.route('/notes', controller.getRouter());
+  wrappedApp.route('/notes', noteController.getRouter());
   wrappedApp.onError(new AppErrorMiddleware({ logger, rootKey: 'error' }).value());
   wrappedServer = Bun.serve({ port: 0, fetch: wrappedApp.fetch });
 

@@ -64,15 +64,14 @@ export class Application extends BaseApplication {
 ```
 
 ```typescript
-import { Authentication, AuthorizationActions, ControllerFactory } from '@venizia/ignis';
+import { Authentication, AuthorizationActions, ControllerFactory, CrudRoutes } from '@venizia/ignis';
 
 // A CRUD controller with a route protected by authentication + authorization
-export const ArticleController = ControllerFactory.defineCrudController({
-  entity: Article,
-  repository: { name: 'ArticleRepository' },
-  controller: { name: 'ArticleController', basePath: '/articles' },
+export const ArticleController = ControllerFactory.crud({
+  repository: ArticleRepository,
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   routes: {
+    ...CrudRoutes.READ,
     deleteById: {
       authorize: { action: AuthorizationActions.DELETE, resource: 'Article' },
     },

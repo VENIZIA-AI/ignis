@@ -129,6 +129,22 @@ export interface IDeletableRepository<
   }): Promise<TCount & { data: Array<R> | null }>;
 }
 
+/** Interface for a repository that can undo a soft delete. */
+export interface IRestorableRepository<
+  TDataObject extends object = object,
+  ExtraOptions extends IExtraOptions = IExtraOptions,
+> extends IRepository {
+  restoreById<R = TDataObject>(opts: {
+    id: IdType;
+    options?: ExtraOptions & { shouldReturn?: boolean };
+  }): Promise<TCount & { data: TNullable<R> }>;
+
+  restoreBy<R = TDataObject>(opts: {
+    where: TWhere<TDataObject>;
+    options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
+  }): Promise<TCount & { data: TNullable<Array<R>> }>;
+}
+
 /** Interface for full CRUD repository operations - reads plus create, update, and delete. */
 export interface IPersistableRepository<
   TDataObject extends object = object,

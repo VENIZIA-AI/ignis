@@ -4,8 +4,11 @@ import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   BaseAppErrorMiddleware,
   ControllerFactory,
+  controller,
+  CrudRoutes,
   datasource,
   model,
+  repository as repositoryDecorator,
 } from '@venizia/ignis-kernel';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { date, integer, pgTable, timestamp } from 'drizzle-orm/pg-core';
@@ -57,13 +60,17 @@ class TimestampDataSource extends BasePostgresDataSource<{}, {}, {}, PGlite> {
 
 let client: PGlite;
 let dataSource: TimestampDataSource;
-let repository: DefaultCRUDRepository<
+
+@repositoryDecorator({ model: TimestampEvent, dataSource: 'TimestampDataSource' })
+class TimestampEventRepository extends DefaultCRUDRepository<
   typeof eventTable,
   TTableObject<typeof eventTable>,
   TTableInsert<typeof eventTable>,
   IDatabaseExtraOptions,
   TimestampDataSource
->;
+> {}
+
+let repository: TimestampEventRepository;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -84,7 +91,7 @@ beforeAll(async () => {
   `);
 
   dataSource = new TimestampDataSource({ client });
-  repository = new DefaultCRUDRepository(dataSource, { entityClass: TimestampEvent });
+  repository = new TimestampEventRepository(dataSource, { entityClass: TimestampEvent });
 });
 
 afterAll(async () => {
@@ -125,15 +132,17 @@ describe('Postgres - a generated CRUD route', () => {
   let router: AnyType;
 
   beforeAll(async () => {
-    const RouteController = ControllerFactory.defineCrudController({
-      entity: TimestampEvent,
-      repository: { name: 'TimestampEventRepository' },
-      controller: { name: 'TimestampEventController', basePath: '/events' },
+    const RouteController = ControllerFactory.crud({
+      repository: TimestampEventRepository,
+      routes: CrudRoutes.READ,
     });
 
-    const controller = new RouteController(repository);
-    await controller.configure();
-    router = controller.getRouter();
+    @controller({ path: '/events' })
+    class EventsController extends RouteController {}
+
+    const eventsController = new EventsController(repository);
+    await eventsController.configure();
+    router = eventsController.getRouter();
     router.onError(new BaseAppErrorMiddleware().value());
   });
 

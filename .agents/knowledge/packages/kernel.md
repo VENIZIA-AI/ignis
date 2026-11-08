@@ -258,7 +258,7 @@ metadata type is a union discriminated on it (`TRepositoryMetadata`):
 of the factory injection: `repositories.<repositoryName>` at constructor parameter 0, `isOptional:
 false`, recorded through `MetadataRegistry.setInjectMetadata` because Bun drops parameter decorators
 in some configurations. An empty name throws `[<factoryName>] Invalid repository name`.
-`defineCrudController` and connectors' `defineSearchController` both call it. An own `@inject` at
+`ControllerFactory.crud` and connectors' `defineSearchController` both call it. An own `@inject` at
 parameter 0 in a subclass wins.
 
 The CRUD factory's DEFAULT write bodies leave out the keys of the model's `settings.properties.stamped`

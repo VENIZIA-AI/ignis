@@ -71,14 +71,8 @@ export type TResponseBodyOf<R extends { responses: AnyType }> = TInferDistributi
   R['responses'][keyof R['responses']]['content']['application/json']['schema']
 >;
 
-/** What a CRUD route lets a caller override: auth, `enabled`, the request schemas (params, query, body, headers) and the response schema and headers. */
+/** What a CRUD route lets a caller override: auth, the request schemas (params, query, body, headers) and the response schema and headers. */
 export type TCustomizableRouteConfig = TRouteAuthConfig & {
-  /**
-   * Whether this route is registered.
-   *
-   * @default true
-   */
-  enabled?: boolean;
   request?: {
     params?: TAnyObjectSchema;
     query?: TAnyObjectSchema;
@@ -104,4 +98,18 @@ export interface ICustomizableRoutes<
   updateBy?: RouteConfig;
   deleteById?: RouteConfig;
   deleteBy?: RouteConfig;
+  restoreById?: RouteConfig;
+  restoreBy?: RouteConfig;
 }
+
+/**
+ * The routes of a CRUD controller: only a listed route exists, as `true` (on, with its defaults) or a config
+ * (on, with overrides). `restoreById` and `restoreBy` are listed only for a repository that has those methods.
+ */
+export type TCrudRoutes<Repository extends object = AnyType> = {
+  [Key in keyof ICustomizableRoutes]?: Key extends 'restoreById' | 'restoreBy'
+    ? Repository extends { [Name in Key]: unknown }
+      ? true | TCustomizableRouteConfig
+      : never
+    : true | TCustomizableRouteConfig;
+};

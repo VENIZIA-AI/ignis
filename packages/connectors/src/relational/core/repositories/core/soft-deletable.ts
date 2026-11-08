@@ -24,7 +24,9 @@ export type TDeletedAtColumn = AnyColumn<{
 
 const ID_KEY = 'id';
 
-type TSoftDeleteData<PersistObject> = Partial<Omit<PersistObject, typeof ID_KEY | 'deletedAt'>>;
+type TSoftDeleteData<PersistObject> = Partial<
+  Omit<PersistObject, typeof ID_KEY | typeof AuditFields.DELETED_AT>
+>;
 
 /** A table schema with an `id` column and a nullable `deletedAt` column, as soft deletion requires. */
 export type TSoftDeletableTableSchema = TTableSchemaWithId & {
@@ -62,13 +64,16 @@ export class SoftDeletableRelationalRepository<
     }
   }
 
-  private validateDeleteData(opts: {
+  /** The `data` a soft delete writes, read once into a plain copy and checked: the check and the write see the same values. */
+  private checkedDeleteData(opts: {
     data?: TSoftDeleteData<PersistObject>;
     shouldHardDelete?: boolean;
-  }): void {
+  }): TSoftDeleteData<PersistObject> | undefined {
     if (opts.data === undefined) {
-      return;
+      return undefined;
     }
+
+    const data = { ...opts.data };
 
     if (opts.shouldHardDelete) {
       throw getError({
@@ -77,14 +82,16 @@ export class SoftDeletableRelationalRepository<
       });
     }
 
-    if (Reflect.get(opts.data, ID_KEY) !== undefined) {
+    if (Reflect.get(data, ID_KEY) !== undefined) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
         message: 'data of a soft delete cannot change the id',
       });
     }
 
-    this.validateUpdateData({ data: opts.data });
+    this.validateUpdateData({ data });
+
+    return data;
   }
 
   /** `isStrict` is evaluated AFTER `options.retry` has been exhausted - the retry loop lives inside `super.findById` -> `findOne`, so a strict read waits out replica lag before it 404s. */
@@ -140,7 +147,10 @@ export class SoftDeletableRelationalRepository<
     data?: TSoftDeleteData<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; shouldHardDelete?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
-    this.validateDeleteData({ data: opts.data, shouldHardDelete: opts.options?.shouldHardDelete });
+    const data = this.checkedDeleteData({
+      data: opts.data,
+      shouldHardDelete: opts.options?.shouldHardDelete,
+    });
 
     if (opts.options?.shouldHardDelete) {
       return super.deleteById<R>(opts);
@@ -151,7 +161,7 @@ export class SoftDeletableRelationalRepository<
     // A soft delete is a delete to the row scope: it passes DELETE, not UPDATE.
     const rs = await this._update<R>({
       where: this.whereById({ id: opts.id }),
-      data: this.softDeletePatch({ data: opts.data, deletedAt: new Date() }),
+      data: this.softDeletePatch({ data, deletedAt: new Date() }),
       options: opts.options,
       operation: ScopeOperations.DELETE,
     });
@@ -178,7 +188,10 @@ export class SoftDeletableRelationalRepository<
       shouldHardDelete?: boolean;
     };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    this.validateDeleteData({ data: opts.data, shouldHardDelete: opts.options?.shouldHardDelete });
+    const data = this.checkedDeleteData({
+      data: opts.data,
+      shouldHardDelete: opts.options?.shouldHardDelete,
+    });
 
     if (opts.options?.shouldHardDelete) {
       return super.deleteBy<R>(opts);
@@ -186,7 +199,7 @@ export class SoftDeletableRelationalRepository<
 
     return this._update<R>({
       where: opts.where,
-      data: this.softDeletePatch({ data: opts.data, deletedAt: new Date() }),
+      data: this.softDeletePatch({ data, deletedAt: new Date() }),
       options: opts.options,
       operation: ScopeOperations.DELETE,
     });

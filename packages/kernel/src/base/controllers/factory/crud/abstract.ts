@@ -25,12 +25,12 @@ export abstract class AbstractCrudController<
 
   constructor(opts: {
     scope: string;
-    path: string;
     isStrict?: boolean;
-    repository: AbstractRepository<TDataObject, TPersistObject, AnyType>;
+    /** Typed by the repository class the generated controller was built over, so any row and option types fit. */
+    repository: AnyType;
     definitions: AnyType;
   }) {
-    super({ scope: opts.scope, path: opts.path, isStrict: opts.isStrict });
+    super({ scope: opts.scope, isStrict: opts.isStrict });
     this.repository = opts.repository;
     this.definitions = opts.definitions;
   }
