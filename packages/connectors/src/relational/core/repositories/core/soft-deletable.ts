@@ -10,9 +10,12 @@ import type {
 import { RepositoryErrors, ScopeOperations } from '@venizia/ignis-kernel';
 import type { IRelationalDataSource } from '@/relational/core/datasources/common';
 import type { TTableInsert, TTableObject, TTableSchemaWithId } from '@/relational/core/models';
+import { AuditFields } from '@/relational/core/models/common/constants';
 import type { TNullable } from '@venizia/ignis-helpers/common';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import type { AnyColumn } from 'drizzle-orm';
+import type { AnyColumn, Column } from 'drizzle-orm';
+import { getTableColumns } from 'drizzle-orm';
 import type { IRelationalExtraOptions } from '../common';
 import { DefaultRelationalRepository } from './default';
 
@@ -42,6 +45,24 @@ export class SoftDeletableRelationalRepository<
 > {
   private softDeletePatch(deletedAt: Date | null): Partial<PersistObject> {
     return { deletedAt } as any;
+  }
+
+  /** Refuses `data` that carries the soft-delete column, by property or column name, with any value: it changes only through the delete and restore calls. */
+  protected override validateUpdateData(opts: { data: Partial<PersistObject> }): void {
+    const columns: Record<string, Column | undefined> = getTableColumns(this.entity.schema);
+    const names = [AuditFields.DELETED_AT, columns[AuditFields.DELETED_AT]?.name];
+    const carries = Object.entries(opts.data).some(
+      ([key, value]) => value !== undefined && names.includes(key),
+    );
+
+    if (!carries) {
+      return;
+    }
+
+    throw getError({
+      statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+      message: `${AuditFields.DELETED_AT} changes only through deleteById/deleteAll/deleteBy and restoreById/restoreAll/restoreBy`,
+    });
   }
 
   /** `isStrict` is evaluated AFTER `options.retry` has been exhausted - the retry loop lives inside `super.findById` -> `findOne`, so a strict read waits out replica lag before it 404s. */
