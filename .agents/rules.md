@@ -31,7 +31,7 @@ rule still applies in full.
 | [S - Security](#s---security) | S-01 … S-06 | Secrets, injected content, leaks, auth defaults, dependencies |
 | [P - Process](#p---process) | P-01 … P-15 | How work starts, how it is tracked, how it is measured, how it is judged done |
 | [B - Build and quality](#b---build-and-quality) | B-01 … B-08 | Build, lint, verify, what a test suite really loads |
-| [C - Code and writing](#c---code-and-writing) | V-C-01 … V-C-20, C-03, C-04, C-05, C-18 | Style in code and in prose - the shared VULCAN base, plus four IGNIS rules |
+| [C - Code and writing](#c---code-and-writing) | V-C-01 … V-C-20, C-03, C-04, C-05, C-18, C-21 | Style in code and in prose - the shared VULCAN base, plus five IGNIS rules |
 
 ---
 
@@ -143,9 +143,9 @@ The code and writing rules are the shared VULCAN base, `V-C-01` … `V-C-20`, in
 `node_modules/@venizia/vulcan/base/rules.md` - IGNIS's own C rules, moved upstream so every project
 codes the same way. Cite them as `V-C-xx`.
 
-Four rules stay IGNIS's own. Three bind the framework and its stack, not every project, so the base
-retired `V-C-03` and `V-C-05` and kept only the last clause of `V-C-18`; the fourth is the exception
-V-C-04 leaves to each project. They keep the IDs they had before the move, so an old citation still
+Five rules stay IGNIS's own. Three bind the framework and its stack, not every project, so the base
+retired `V-C-03` and `V-C-05` and kept only the last clause of `V-C-18`; the other two are the
+exceptions `V-C-04` and `V-C-13` leave to each project. They keep the IDs they had before the move, so an old citation still
 means the same rule.
 
 | ID | Rule |
@@ -154,6 +154,7 @@ means the same rule.
 | **C-04** | **Extends V-C-04 with one exception, set by the PO: `tz` for a time zone** - `TemporalHelper`'s option and its derivatives `getTz`, `sourceTz`, `targetTz`. |
 | **C-05** | **Errors are `getError` / `ApplicationError`. Never `new Error`.** Never `instanceof ApplicationError` across a package boundary - two installed copies of a package give the class several identities; use `isApplicationError()`. Enforced by `venizia/no-new-error` in `houseConfigs` (`@venizia/dev-configs/linters`); a justified exception carries an `eslint-disable-next-line` with its reason. |
 | **C-18** | **The hard stack.** Drizzle only (never TypeORM, Prisma, Sequelize); Hono only (never Express, Fastify, Koa); Zod only (never Joi, Yup, class-validator); PostgreSQL primary with SQLite alongside, the repository tier engine-neutral (`pgTable` and `sqliteTable` both). REST is default framework behavior, not a component. |
+| **C-21** | **The wiki's one custom theme is the shared Venizia theme, and nothing else is custom.** `V-C-13` keeps a docs site native to its generator; this repository's exception is the folder `docs/wiki/site/.vitepress/theme/shared` (components and CSS), canonical in VULCAN and copied unedited into this repository (and into ARDOR) with VULCAN's `scripts/wiki-shared/copy.ts`. VULCAN's `make wiki-shared-check` compares the copies and its release gate runs it; a component or a style outside that folder is not an exception. |
 
 ---
 
@@ -163,6 +164,7 @@ Most of these rules hold because agents read this file. Only these have tooling 
 
 | Rule | Enforced by | Actually blocks? |
 |---|---|---|
+| C-21 | VULCAN's `make wiki-shared-check` (its release gate) compares `docs/wiki/site/.vitepress/theme/shared` with the copy IGNIS publishes on develop | Fails VULCAN's release when a copy differs |
 | B-02 | `.githooks/pre-commit` runs `make lint-all` (after `make setup-hooks`); `make build` and the tests run by hand | Lint blocks a commit; build and tests are not gated |
 | C-05, V-C-02, V-C-06, V-C-14 | ESLint `houseConfigs` (`venizia/no-new-error`, `venizia/max-params-own`, the naming convention) through `make lint-all` | Yes, at pre-commit |
 | P-03 | `make okf-check-strict` in CI; the `knowledge-sync` skill periodically | Blocks a pull request, not a commit - a per-commit check cannot tell whether prose is still true |
