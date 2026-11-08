@@ -248,7 +248,6 @@ export class SoftDeletableRelationalRepository<
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
     const { shouldReturn = true, force, ...restOptions } = opts.options ?? {};
 
-    // `updateBy` forwards straight to `_update`, so calling it here directly is behavior-identical.
     const options = {
       ...restOptions,
       shouldReturn,

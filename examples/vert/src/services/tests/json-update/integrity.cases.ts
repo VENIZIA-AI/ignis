@@ -186,7 +186,7 @@ export class IntegrityCases extends BaseTestCases {
   // ----------------------------------------------------------------
   // CASE 11: updateBy with JSON paths
   // ----------------------------------------------------------------
-  async case11UpdateAllWithJsonPaths(): Promise<void> {
+  async case11UpdateByWithJsonPaths(): Promise<void> {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 11] Bulk update with JSON paths');
 

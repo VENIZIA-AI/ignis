@@ -82,15 +82,15 @@ export class ModifiedByCases extends UserAuditCases {
   }
 
   // ----------------------------------------------------------------
-  // CASE 6: UpdateAll (bulk) - modifiedBy changes for all
+  // CASE 6: UpdateBy (bulk) - modifiedBy changes for all
   // ----------------------------------------------------------------
-  async case6UpdateAllBulkModifiedByChanges(): Promise<void> {
+  async case6UpdateByBulkModifiedByChanges(): Promise<void> {
     const repo = this.context.configurationRepository;
-    this.context.logCase('[CASE 6] UpdateAll - modifiedBy should change for all matching records');
+    this.context.logCase('[CASE 6] UpdateBy - modifiedBy should change for all matching records');
 
     try {
       const uniqueId = ParseUtility.getUID();
-      const group = `AUDIT_UPDATEALL_${uniqueId}`;
+      const group = `AUDIT_UPDATEBY_${uniqueId}`;
       // Create real Users for FK constraint
       const originalUser = await this.createTestUser(`CASE6_ORIGINAL_${uniqueId}`);
       const bulkUpdater = await this.createTestUser(`CASE6_UPDATER_${uniqueId}`);

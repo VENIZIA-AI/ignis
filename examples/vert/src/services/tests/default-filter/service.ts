@@ -51,8 +51,8 @@ export class DefaultFilterTestService extends BaseTestService {
     await integrationCases.case20RelationsWithDefaultFilter();
 
     // Additional edge cases
-    await overrideCases.case21UpdateAllWithDefaultFilter();
-    await overrideCases.case22DeleteAllWithDefaultFilter();
+    await overrideCases.case21UpdateByWithDefaultFilter();
+    await overrideCases.case22DeleteByWithDefaultFilter();
     await whereCases.case23AndOrCombinationWithDefaultFilter();
     await clauseOptionsCases.case24DefaultFilterWithFieldSelection();
     await integrationCases.case25ConcurrentQueriesWithDefaultFilter();
@@ -98,8 +98,8 @@ export class DefaultFilterTestService extends BaseTestService {
         'DF_SPECIAL_%',
         'DF_TX_%',
         'DF_REL_%',
-        'DF_UPDATEALL_%',
-        'DF_DELETEALL_%',
+        'DF_UPDATEBY_%',
+        'DF_DELETEBY_%',
         'DF_ANDOR_%',
         'DF_FIELDS_%',
         'DF_CONCURRENT_%',

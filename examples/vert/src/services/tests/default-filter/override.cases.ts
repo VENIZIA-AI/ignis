@@ -287,13 +287,13 @@ export class OverrideCases extends BaseTestCases {
   }
 
   // ----------------------------------------------------------------
-  // CASE 21: UpdateAll with default filter
+  // CASE 21: UpdateBy with default filter
   // ----------------------------------------------------------------
-  async case21UpdateAllWithDefaultFilter(): Promise<void> {
+  async case21UpdateByWithDefaultFilter(): Promise<void> {
     const repo = this.context.productRepository;
-    this.context.logCase('[CASE 21] UpdateAll should respect default filter');
+    this.context.logCase('[CASE 21] UpdateBy should respect default filter');
 
-    const testCode = `DF_UPDATEALL_${ParseUtility.getUID()}`;
+    const testCode = `DF_UPDATEBY_${ParseUtility.getUID()}`;
 
     try {
       // Create products with different prices
@@ -307,7 +307,7 @@ export class OverrideCases extends BaseTestCases {
         options: { shouldSkipDefaultFilter: true },
       });
 
-      // UpdateAll without skip - should only update priced product
+      // UpdateBy without skip - should only update priced product
       const updateResult = await repo.updateBy({
         where: { code: { like: `${testCode}%` } },
         data: { description: 'Updated' },
@@ -315,7 +315,7 @@ export class OverrideCases extends BaseTestCases {
 
       if (updateResult.count === 1) {
         this.context.logger.info(
-          '[CASE 21] PASSED | UpdateAll respects default filter | updated: %d',
+          '[CASE 21] PASSED | UpdateBy respects default filter | updated: %d',
           updateResult.count,
         );
       } else {
@@ -344,13 +344,13 @@ export class OverrideCases extends BaseTestCases {
   }
 
   // ----------------------------------------------------------------
-  // CASE 22: DeleteAll with default filter
+  // CASE 22: DeleteBy with default filter
   // ----------------------------------------------------------------
-  async case22DeleteAllWithDefaultFilter(): Promise<void> {
+  async case22DeleteByWithDefaultFilter(): Promise<void> {
     const repo = this.context.productRepository;
-    this.context.logCase('[CASE 22] DeleteAll should respect default filter');
+    this.context.logCase('[CASE 22] DeleteBy should respect default filter');
 
-    const testCode = `DF_DELETEALL_${ParseUtility.getUID()}`;
+    const testCode = `DF_DELETEBY_${ParseUtility.getUID()}`;
 
     try {
       await repo.create({
@@ -363,14 +363,14 @@ export class OverrideCases extends BaseTestCases {
         options: { shouldSkipDefaultFilter: true },
       });
 
-      // DeleteAll without skip - should only delete priced product
+      // DeleteBy without skip - should only delete priced product
       const deleteResult = await repo.deleteBy({
         where: { code: { like: `${testCode}%` } },
       });
 
       if (deleteResult.count === 1) {
         this.context.logger.info(
-          '[CASE 22] PASSED | DeleteAll respects default filter | deleted: %d',
+          '[CASE 22] PASSED | DeleteBy respects default filter | deleted: %d',
           deleteResult.count,
         );
       } else {

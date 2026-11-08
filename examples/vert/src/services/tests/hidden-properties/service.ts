@@ -28,7 +28,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
     // Edge cases
     await edgeCases.case7ConnectorQueryReturnsHidden();
     await writeCases.case8CreateAllExcludesHidden();
-    await writeCases.case9UpdateAllExcludesHidden();
+    await writeCases.case9UpdateByExcludesHidden();
     await writeCases.case10DeleteByIdExcludesHidden();
     await readCases.case11FieldsSelectionStillExcludesHidden();
     await edgeCases.case12VerifyDataActuallyStoredInDB();

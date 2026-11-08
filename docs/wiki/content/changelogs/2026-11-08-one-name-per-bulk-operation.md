@@ -43,14 +43,15 @@ await repo.restoreBy({ where: { id: { gt: 10 } } });
 
 - **Every call to `updateAll`, `deleteAll` or `restoreAll`.** Rename it, and give `where` to a `deleteAll()` or `restoreAll()` that had none: `where: {}` with `options: { force: true }` for the whole table.
 - **A repository class that overrides or implements them** (a custom `IUpdatableRepository`, a subclass of `AbstractRepository`): implement `updateBy` and `deleteBy` instead. A subclass that only overrode the `By` alias now overrides the real method.
+- **A subclass that overrode `updateAll` or `deleteAll` without the `override` keyword** now compiles, and its override never runs: nothing calls those names any more. The second `rg` finds them.
 - **Code that wraps or mocks the repository** in tests.
 - **Everyone else.** No action needed.
 
 Find the call sites:
 
 ```bash
-rg -n '\.(updateAll|deleteAll|restoreAll)\(' --glob '*.ts' --glob '*.tsx' --glob '!node_modules'
-rg -n '\b(updateAll|restoreAll)\b|\bdeleteAll\b' --glob '*.ts' --glob '!node_modules'   # overrides and mocks; document.deleteAll is the search connector and stays
+rg -n '\.(updateAll|deleteAll|restoreAll)\s*(<|\()' --glob '*.{ts,tsx,js,mjs,cjs}' --glob '!node_modules'
+rg -n '\b(updateAll|restoreAll|deleteAll)\b' --glob '*.{ts,tsx,js,mjs,cjs}' --glob '!node_modules'   # overrides and mocks; document.deleteAll is the search connector and stays
 ```
 
 The typecheck finds the rest: "Property 'updateAll' does not exist", or "Property 'where' is missing".
