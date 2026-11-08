@@ -266,7 +266,7 @@ The CRUD factory's DEFAULT write bodies leave out what the entity reports from
 update bodies also leave out `id` - `RouteConfigResolver.toWriteBodySchema` in
 `base/controllers/factory/definition.ts`. The kernel names no audit key; connectors'
 `BaseRelationalEntity` reports `createdBy`/`modifiedBy`/`createdAt`/`modifiedAt` whose drizzle
-column has `hasDefault` or `onUpdateFn` (names in the internal
+column has `hasDefault` or `onUpdateFn`, plus `deletedAt` whenever the table has that column (names in the internal
 `relational/core/models/common/constants.ts`).
 
 - Nothing to leave out returns the entity schema by identity, so a refinement or an OpenAPI name

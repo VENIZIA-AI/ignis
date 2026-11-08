@@ -87,7 +87,7 @@ a class or a thunk returning one (`isClass(entity) ? entity : entity()`), which 
 imports are broken.
 
 The default create and update bodies leave out the keys the entity reports from
-`getServerStampedKeys()` - a relational entity's audit columns, none on a search entity - and an
+`getServerStampedKeys()` - a relational entity's audit columns and `deletedAt`, none on a search entity - and an
 update body never carries `id`; see [kernel](/packages/kernel.md). A factory of your own injects its
 repository through `ControllerFactory.registerRepositoryInjection`.
 

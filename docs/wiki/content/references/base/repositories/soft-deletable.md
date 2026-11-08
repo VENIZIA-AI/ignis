@@ -236,6 +236,13 @@ const category = await repository.findById({
 > [!TIP]
 > `shouldHardDelete` bypasses soft delete entirely and calls `super`, which is `DefaultRelationalRepository`'s delete implementation - a real SQL `DELETE`.
 
+## deletedAt in the generated routes
+
+A model with a `deletedAt` column reports it as server-stamped, like the audit columns, so the default `POST` and `PATCH` bodies of `ControllerFactory.defineCrudController` leave it out. A client cannot soft-delete or restore a row by sending `deletedAt` to a generated route; the delete and restore calls change it. A route you give your own `request.body` keeps whatever that body declares.
+
+> [!NOTE]
+> This is a property of the model, not of the repository: it holds for any entity whose schema has a `deletedAt` column. A direct `updateById` or `updateAll` call that writes `deletedAt` is not refused.
+
 ## With Transactions
 
 ```typescript

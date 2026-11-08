@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { ControllerFactory } from '@venizia/ignis-kernel';
 import { integer, pgTable, text } from 'drizzle-orm/pg-core';
+import { z } from 'zod';
 import { sqliteTable, text as sqliteText } from 'drizzle-orm/sqlite-core';
 import {
   BasePostgresEntity,
@@ -8,6 +9,7 @@ import {
   PostgresUserAuditEnricher,
 } from '@/relational/postgres/models';
 import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
+import { DefaultSqliteRepository } from '@/relational/sqlite/repositories';
 import {
   BaseSqliteEntity,
   SqliteTzEnricher,
@@ -15,6 +17,7 @@ import {
 } from '@/relational/sqlite/models';
 
 const ENRICHED_KEYS = ['createdBy', 'modifiedBy', 'createdAt', 'modifiedAt'];
+const SOFT_DELETE_KEY = 'deletedAt';
 
 const postgresEnrichedTable = pgTable('stamped_keys_pg_enriched', {
   id: text('id').primaryKey(),
@@ -32,7 +35,8 @@ class PostgresEnrichedRow extends BasePostgresEntity<typeof postgresEnrichedTabl
 
 const sqliteEnrichedTable = sqliteTable('stamped_keys_sqlite_enriched', {
   id: sqliteText('id').primaryKey(),
-  ...SqliteTzEnricher.generateColumnDefs(),
+  code: sqliteText('code').notNull(),
+  ...SqliteTzEnricher.generateColumnDefs({ deleted: { enable: true, columnName: 'deleted_at' } }),
   ...SqliteUserAuditEnricher.generateColumnDefs(),
 });
 
@@ -81,10 +85,108 @@ const toCreateBody = async (opts: { entity: typeof HandDeclaredRow }) => {
   return document.paths?.['/']?.post?.requestBody;
 };
 
+/** The property names of the JSON body one generated write route documents. */
+const bodyKeysOf = (opts: { requestBody: unknown }): string[] => {
+  const body = z
+    .object({
+      content: z.object({
+        'application/json': z.object({
+          schema: z.object({ properties: z.record(z.string(), z.unknown()) }),
+        }),
+      }),
+    })
+    .parse(opts.requestBody);
+
+  return Object.keys(body.content['application/json'].schema.properties).sort();
+};
+
+const documentOf = async (opts: {
+  controller: {
+    configure(): Promise<{
+      getOpenAPI31Document(config: {
+        openapi: '3.1.0';
+        info: { title: string; version: string };
+      }): {
+        paths?: Record<string, Record<string, { requestBody?: unknown } | undefined> | undefined>;
+      };
+    }>;
+  };
+}) => {
+  const router = await opts.controller.configure();
+
+  return router.getOpenAPI31Document({
+    openapi: '3.1.0',
+    info: { title: 'write-bodies', version: '1' },
+  });
+};
+
+describe('the generated create and update bodies leave deletedAt out, with the audit stamps', () => {
+  test('on postgres', async () => {
+    const PostgresController = ControllerFactory.defineCrudController({
+      entity: PostgresEnrichedRow,
+      repository: { name: 'PostgresEnrichedRowRepository' },
+      controller: { name: 'PostgresEnrichedRowController', basePath: '/rows' },
+    });
+    const document = await documentOf({
+      controller: new PostgresController(
+        new DefaultCRUDRepository<typeof postgresEnrichedTable>(undefined, {
+          entityClass: PostgresEnrichedRow,
+        }),
+      ),
+    });
+
+    expect(bodyKeysOf({ requestBody: document.paths?.['/']?.post?.requestBody })).toEqual([
+      'code',
+      'id',
+      'status',
+    ]);
+    expect(bodyKeysOf({ requestBody: document.paths?.['/{id}']?.patch?.requestBody })).toEqual([
+      'code',
+      'status',
+    ]);
+  });
+
+  test('on sqlite', async () => {
+    const SqliteController = ControllerFactory.defineCrudController({
+      entity: SqliteEnrichedRow,
+      repository: { name: 'SqliteEnrichedRowRepository' },
+      controller: { name: 'SqliteEnrichedRowController', basePath: '/rows' },
+    });
+    const document = await documentOf({
+      controller: new SqliteController(
+        new DefaultSqliteRepository<typeof sqliteEnrichedTable>(undefined, {
+          entityClass: SqliteEnrichedRow,
+        }),
+      ),
+    });
+
+    expect(bodyKeysOf({ requestBody: document.paths?.['/']?.post?.requestBody })).toEqual([
+      'code',
+      'id',
+    ]);
+    expect(bodyKeysOf({ requestBody: document.paths?.['/{id}']?.patch?.requestBody })).toEqual([
+      'code',
+    ]);
+  });
+});
+
 describe('a relational entity reports the audit keys its columns stamp', () => {
   test('the user-audit and timestamp enrichers stamp all four, on either engine', () => {
-    expect(new PostgresEnrichedRow().getServerStampedKeys()).toEqual(ENRICHED_KEYS);
-    expect(new SqliteEnrichedRow().getServerStampedKeys()).toEqual(ENRICHED_KEYS);
+    expect(new PostgresEnrichedRow().getServerStampedKeys()).toEqual([
+      ...ENRICHED_KEYS,
+      SOFT_DELETE_KEY,
+    ]);
+    expect(new SqliteEnrichedRow().getServerStampedKeys()).toEqual([
+      ...ENRICHED_KEYS,
+      SOFT_DELETE_KEY,
+    ]);
+  });
+
+  test('a deletedAt column is reported too, on either engine, and a table without one does not report it', () => {
+    expect(new PostgresEnrichedRow().getServerStampedKeys()).toContain(SOFT_DELETE_KEY);
+    expect(new SqliteEnrichedRow().getServerStampedKeys()).toContain(SOFT_DELETE_KEY);
+    expect(new CreatedOnlyRow().getServerStampedKeys()).not.toContain(SOFT_DELETE_KEY);
+    expect(new HandDeclaredRow().getServerStampedKeys()).not.toContain(SOFT_DELETE_KEY);
   });
 
   test('a timestamp enricher without modifiedAt stamps createdAt alone', () => {
