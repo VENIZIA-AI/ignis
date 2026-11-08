@@ -84,8 +84,7 @@
   "knowledge": {
     "bundle": ".agents/knowledge",
     "wiki": "docs/wiki/content",
-    "changelogs": "docs/wiki/content/changelogs",
-    "syncAreas": ".agents/knowledge/process/knowledge-sync-areas.md"
+    "changelogs": "docs/wiki/content/changelogs"
   },
   "release": {
     "tagPattern": "<dir>-v<version>",
@@ -151,9 +150,9 @@
     "preset": "venizia",
     "tokens": {
       "light": {
-        "ground": "#f5f5f5",
+        "ground": "#f6f6f7",
         "bg": "#ffffff",
-        "line": "#0000001a",
+        "line": "#e2e2e3",
         "line-strong": "#101010",
         "ink": "#000000",
         "body": "#4b4b4b",
@@ -172,9 +171,9 @@
         "accent-text": "#a15757"
       },
       "dark": {
-        "ground": "#121214",
-        "bg": "#1b1b1b",
-        "line": "#ffffff1a",
+        "ground": "#1b1b1f",
+        "bg": "#202127",
+        "line": "#2e2e32",
         "line-strong": "#ffffff4d",
         "ink": "#ffffff",
         "body": "#ffffffb3",
@@ -189,7 +188,7 @@
         "info-soft": "#102a43",
         "accent": "#c98a8a",
         "accent-ink": "#0e0e0f",
-        "accent-soft": "#2c2325",
+        "accent-soft": "#30282c",
         "accent-text": "#c98a8a"
       }
     },

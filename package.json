@@ -85,7 +85,7 @@
   "devDependencies": {
     "@types/bun": "catalog:",
     "@venizia/dev-configs": "workspace:*",
-    "@venizia/vulcan": "0.4.10-9",
+    "@venizia/vulcan": "0.4.10-10",
     "eslint": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:"

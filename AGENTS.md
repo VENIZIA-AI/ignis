@@ -96,7 +96,7 @@ It is also served over MCP by **`atlas`** (written into `.mcp.json` per machine 
 Maintaining it is rule P-03: change a fact in the code, update the concept in the same change.
 Generated reference files come from `make okf-gen` (and `api-gen` for the API pages) - the okf target
 is VULCAN's, included from `vulcan.mk`. `make okf-check-strict` validates (OKF v0.2 plus the house rules); it is a CI gate, not a
-commit gate. The `knowledge-sync` skill re-verifies the bundle against the code periodically.
+commit gate. The `docs-update` skill keeps the bundle in step with the code.
 
 ## Shared agent assets (`.agents/`)
 
@@ -118,7 +118,7 @@ Code ships.
 This `AGENTS.md` is the single source. `make vulcan-sync` (`vulcan sync`) writes each tool's file as a
 pointer to it (`CLAUDE.md` holds `@AGENTS.md`), never a copy, and writes `.claude/`: VULCAN's settings
 and hooks (its session digest and the `guard-writes` check) and the shipped skills - `docs-update`
-(it applies the D rules in `.agents/rules.md`), `docs-writing` and `knowledge-sync`. The
+(it applies the D rules in `.agents/rules.md`), `docs-writing`. The
 digest names the rules sessions drop most (`digest.oftenDropped` in `.configs/vulcan.config.mts`) and
 prints the minimap shape from `.agents/rules.md`. Re-run `make vulcan-sync` after a pull that touched
 `.configs/vulcan.config.mts` or the pinned VULCAN version; `make vulcan-doctor`

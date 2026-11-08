@@ -168,7 +168,7 @@ Most of these rules hold because agents read this file. Only these have tooling 
 | C-21 | VULCAN's `make wiki-shared-check` (its release gate) compares `docs/wiki/site/.vitepress/theme/shared` with the copy IGNIS publishes on develop | Fails VULCAN's release when a copy differs |
 | B-02 | `.githooks/pre-commit` runs `make lint-all` (after `make setup-hooks`); `make build` and the tests run by hand | Lint blocks a commit; build and tests are not gated |
 | C-05, V-C-02, V-C-06, V-C-14 | ESLint `houseConfigs` (`venizia/no-new-error`, `venizia/max-params-own`, the naming convention) through `make lint-all` | Yes, at pre-commit |
-| P-03 | `make okf-check-strict` in CI; the `knowledge-sync` skill periodically | Blocks a pull request, not a commit - a per-commit check cannot tell whether prose is still true |
+| P-03 | `make okf-check-strict` in CI; the `docs-update` skill with each change | Blocks a pull request, not a commit - a per-commit check cannot tell whether prose is still true |
 | D-05 | `make api-undocumented` (in `make build-all` and CI), which lists a public export with no TSDoc | Blocks a pull request, not a commit; the gate checks that TSDoc exists, not that it is true |
 | Agent setup | `make vulcan-doctor` in CI (after `make vulcan-sync`); locally by hand | Blocks a pull request; not run at pre-commit |
 | Every rule row | VULCAN's base SessionStart digest prints the base rules and every row of this file; it adds the most-dropped IDs (`digest.oftenDropped` in `.configs/vulcan.config.mts`) and the minimap shape | Reminds, never blocks |
