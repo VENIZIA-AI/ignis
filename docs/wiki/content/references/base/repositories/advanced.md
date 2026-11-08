@@ -373,7 +373,7 @@ const result2 = await repository.create({ data: { name: 'John' } });
 console.log(result2.data.name); // 'John' - fully typed
 ```
 
-The same inference applies to `createAll`, `updateById`, `updateAll`, `updateBy`, `deleteById`, `deleteAll`, `deleteBy`.
+The same inference applies to `createAll`, `updateById`, `updateBy`, `deleteById`, `deleteBy`.
 
 ### Generic return types
 
@@ -391,7 +391,7 @@ if (user) {
 }
 ```
 
-**Supported on:** `find<R>()`, `findOne<R>()`, `findById<R>()`, `create<R>()`, `createAll<R>()`, `updateById<R>()`, `updateAll<R>()`, `updateBy<R>()`, `deleteById<R>()`, `deleteAll<R>()`, `deleteBy<R>()`.
+**Supported on:** `find<R>()`, `findOne<R>()`, `findById<R>()`, `create<R>()`, `createAll<R>()`, `updateById<R>()`, `updateBy<R>()`, `updateBy<R>()`, `deleteById<R>()`, `deleteBy<R>()`, `deleteBy<R>()`.
 
 ## Debugging
 
@@ -414,7 +414,7 @@ await repository.create({
 | `warn` | Notable but non-fatal conditions |
 | `error` | Failure paths |
 
-**Supported on:** `create`, `createAll`, `updateById`, `updateAll`, `updateBy`, `deleteById`, `deleteAll`, `deleteBy` - every write operation that goes through the internal `_create`, `_update`, or `_delete` methods.
+**Supported on:** `create`, `createAll`, `updateById`, `updateBy`, `deleteById`, `deleteBy` - every write operation that goes through the internal `_create`, `_update`, or `_delete` methods.
 
 ### Query interface validation
 
@@ -431,14 +431,14 @@ Error: [UserRepository] Schema key mismatch
 
 ### Empty where protection
 
-`updateAll`/`updateBy`/`deleteAll`/`deleteBy` refuse an empty `where` unless `force: true` is passed, to block accidental mass updates and deletes:
+`updateBy`/`deleteBy` refuse an empty `where` unless `force: true` is passed, to block accidental mass updates and deletes:
 
 ```typescript
 // Throws - empty where without force
-await repository.deleteAll({ where: {} });
+await repository.deleteBy({ where: {} });
 
 // Explicit force - logs a warning, proceeds
-await repository.deleteAll({ where: {}, options: { force: true } });
+await repository.deleteBy({ where: {}, options: { force: true } });
 // Warning: [_delete] Entity: User | Performing delete with empty condition
 ```
 
@@ -511,13 +511,6 @@ export class AuditLogRepository extends ReadableRepository<typeof AuditLog.schem
 }
 ```
 
-### Alias methods
-
-`AbstractRepository` provides two alias methods for convenience, both delegating directly and supporting the same `shouldReturn`/`force` options:
-
-- `updateBy(opts)` - alias for `updateAll(opts)`.
-- `deleteBy(opts)` - alias for `deleteAll(opts)`.
-
 ### Moved from the removed mixins
 
 `FieldsVisibilityMixin` and `DefaultFilterMixin` are no longer exported. Their methods now live on `RelationalBaseRepository`, so a repository that extends `DefaultCRUDRepository` (or any class in the relational chain) already has them and needs no change.
@@ -550,15 +543,15 @@ await repository.find({
 await repository.find({ filter, options: { shouldSkipDefaultFilter: true } });
 await repository.findOne({ filter, options: { shouldSkipDefaultFilter: true } });
 await repository.count({ where, options: { shouldSkipDefaultFilter: true } });
-await repository.updateAll({ where, data, options: { shouldSkipDefaultFilter: true } });
-await repository.deleteAll({ where, options: { shouldSkipDefaultFilter: true, force: true } });
+await repository.updateBy({ where, data, options: { shouldSkipDefaultFilter: true } });
+await repository.deleteBy({ where, options: { shouldSkipDefaultFilter: true, force: true } });
 ```
 
 > [!TIP]
 > Combine it with a transaction for an atomic admin operation:
 > ```typescript
 > const tx = await repository.beginTransaction();
-> await repository.updateAll({
+> await repository.updateBy({
 >   where: { status: 'archived' },
 >   data: { isDeleted: true },
 >   options: { transaction: tx, shouldSkipDefaultFilter: true },

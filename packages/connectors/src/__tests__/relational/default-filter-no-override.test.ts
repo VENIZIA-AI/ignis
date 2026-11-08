@@ -186,7 +186,7 @@ describe('a caller cannot reach the row the default (deletedAt: null) hides', ()
       posts.updateBy({ where, data: { name: 'touched' }, options: { shouldReturn: false } }),
     );
     await outcomeOf(() =>
-      posts.updateAll({ where, data: { name: 'touched' }, options: { shouldReturn: false } }),
+      posts.updateBy({ where, data: { name: 'touched' }, options: { shouldReturn: false } }),
     );
     await outcomeOf(() => posts.deleteBy({ where, options: { shouldReturn: false } }));
     await outcomeOf(() =>

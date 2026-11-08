@@ -182,8 +182,8 @@ describe('PersistableSearchRepository', () => {
     });
   });
 
-  describe('updateBy - postgres-parity alias for updateAll (factory PATCH / route)', () => {
-    test('routes through toWhere with the default-filter merge, same as updateAll', async () => {
+  describe('updateBy - postgres-parity alias for updateBy (factory PATCH / route)', () => {
+    test('routes through toWhere with the default-filter merge, same as updateBy', async () => {
       dataSource.fakeConnector.updateByFilterResponse = { updatedCount: 3 };
 
       const result = await repository.updateBy({
@@ -191,7 +191,7 @@ describe('PersistableSearchRepository', () => {
         where: { status: 'active' },
       });
 
-      // updateBy aliases updateAll: bulk writes on search engines have no RETURNING, so data is always null and no extra engine read happens.
+      // updateBy aliases updateBy: bulk writes on search engines have no RETURNING, so data is always null and no extra engine read happens.
       expect(result).toEqual({ count: 3, data: null });
       expect(dataSource.fakeConnector.searchCalls.length).toBe(0);
 
@@ -202,11 +202,11 @@ describe('PersistableSearchRepository', () => {
     });
   });
 
-  describe('updateAll', () => {
+  describe('updateBy', () => {
     test('merges defaultWhere and forwards toWhere output as filterBy', async () => {
       dataSource.fakeConnector.updateByFilterResponse = { updatedCount: 3 };
 
-      const result = await repository.updateAll({
+      const result = await repository.updateBy({
         data: { title: 'x' },
         where: { status: 'active' },
       });
@@ -221,10 +221,10 @@ describe('PersistableSearchRepository', () => {
       expect(call.document).toEqual({ title: 'x' });
     });
 
-    test('no where still applies the default filter', async () => {
+    test('an empty where still applies the default filter', async () => {
       dataSource.fakeConnector.updateByFilterResponse = { updatedCount: 1 };
 
-      await repository.updateAll({ data: { title: 'x' } });
+      await repository.updateBy({ where: {}, data: { title: 'x' } });
 
       const [call] = dataSource.fakeConnector.updateByFilterCalls;
       expect(call.filterBy).toBe('isActive:=true');
@@ -241,7 +241,7 @@ describe('PersistableSearchRepository', () => {
         ],
       };
 
-      const result = await repository.updateAll({
+      const result = await repository.updateBy({
         data: { status: 'inactive' },
         where: { status: 'active' },
       });
@@ -259,7 +259,7 @@ describe('PersistableSearchRepository', () => {
       let caught: unknown;
 
       try {
-        await noFilterRepository.updateAll({ data: { title: 'x' } });
+        await noFilterRepository.updateBy({ where: {}, data: { title: 'x' } });
       } catch (error) {
         caught = error;
       }
@@ -269,7 +269,7 @@ describe('PersistableSearchRepository', () => {
     });
   });
 
-  describe('deleteAll', () => {
+  describe('deleteBy', () => {
     test('returns count only - data is always null, no engine read', async () => {
       dataSource.fakeConnector.deleteByFilterResponse = 4;
       dataSource.fakeConnector.searchResponse = {
@@ -278,7 +278,7 @@ describe('PersistableSearchRepository', () => {
         hits: [{ document: { id: '1', title: 'A', status: 'active' } }],
       };
 
-      const result = await repository.deleteAll({ where: { status: 'active' } });
+      const result = await repository.deleteBy({ where: { status: 'active' } });
 
       expect(result).toEqual({ count: 4, data: null });
       expect(dataSource.fakeConnector.searchCalls.length).toBe(0);
@@ -400,13 +400,13 @@ describe('DefaultSearchRepository', () => {
     });
   });
 
-  describe('deleteBy - postgres-parity alias for deleteAll (factory DELETE / route)', () => {
-    test('routes through toWhere with the default-filter merge, same as deleteAll', async () => {
+  describe('deleteBy - postgres-parity alias for deleteBy (factory DELETE / route)', () => {
+    test('routes through toWhere with the default-filter merge, same as deleteBy', async () => {
       dataSource.fakeConnector.deleteByFilterResponse = 7;
 
       const result = await repository.deleteBy({ where: { status: 'inactive' } });
 
-      // deleteBy aliases deleteAll: count-only, no RETURNING on search engines.
+      // deleteBy is count-only, no RETURNING on search engines.
       expect(result).toEqual({ count: 7, data: null });
       expect(dataSource.fakeConnector.searchCalls.length).toBe(0);
 
@@ -416,11 +416,11 @@ describe('DefaultSearchRepository', () => {
     });
   });
 
-  describe('deleteAll', () => {
+  describe('deleteBy', () => {
     test('with where -> merges default filter and uses deleteByFilter', async () => {
       dataSource.fakeConnector.deleteByFilterResponse = 7;
 
-      const result = await repository.deleteAll({ where: { status: 'inactive' } });
+      const result = await repository.deleteBy({ where: { status: 'inactive' } });
 
       expect(result).toEqual({ count: 7, data: null });
 
@@ -430,10 +430,10 @@ describe('DefaultSearchRepository', () => {
       expect(dataSource.fakeConnector.deleteAllDocumentsCalls.length).toBe(0);
     });
 
-    test('no where but a default filter is present -> filter delete, NOT truncate', async () => {
+    test('an empty where with a default filter -> filter delete, NOT truncate', async () => {
       dataSource.fakeConnector.deleteByFilterResponse = 4;
 
-      const result = await repository.deleteAll();
+      const result = await repository.deleteBy({ where: {} });
 
       expect(result).toEqual({ count: 4, data: null });
 
@@ -442,14 +442,14 @@ describe('DefaultSearchRepository', () => {
       expect(dataSource.fakeConnector.deleteAllDocumentsCalls.length).toBe(0);
     });
 
-    test('no where and no default filter -> truncate ONLY on an explicit force', async () => {
+    test('an empty where and no default filter -> truncate ONLY on an explicit force', async () => {
       const noFilterRepository = new DefaultSearchRepository<any>(dataSource, {
         entityClass: ProductDocumentNoDefaultFilter,
       });
       dataSource.fakeConnector.deleteAllDocumentsResponse = true;
 
       // Without `force` this is refused: an unfiltered delete used to wipe the collection while reporting `{ count: 0 }`, so nothing surfaced the damage.
-      const result = await noFilterRepository.deleteAll({ options: { force: true } });
+      const result = await noFilterRepository.deleteBy({ where: {}, options: { force: true } });
 
       // Truncate reports no per-document count (an engine limitation) - count stays 0.
       expect(result).toEqual({ count: 0, data: null });

@@ -41,7 +41,7 @@ export class RollbackCases extends BaseTestCases {
         this.context.logger.info('[CASE 2] PASSED - Record NOT persisted after rollback');
       } else {
         this.context.logger.error('[CASE 2] FAILED - Record should not exist after rollback');
-        await repo.deleteAll({ where: { code: code1 } });
+        await repo.deleteBy({ where: { code: code1 } });
       }
     }
   }
@@ -71,7 +71,7 @@ export class RollbackCases extends BaseTestCases {
         this.context.logger.info('[CASE 3] PASSED - Record NOT persisted after explicit rollback');
       } else {
         this.context.logger.error('[CASE 3] FAILED - Record should not exist');
-        await repo.deleteAll({ where: { code } });
+        await repo.deleteBy({ where: { code } });
       }
     } catch (error) {
       this.context.logger.error('[CASE 3] FAILED with error: %o', error);
@@ -128,7 +128,7 @@ export class RollbackCases extends BaseTestCases {
           '[CASE 16] FAILED | %d records found after rollback',
           afterRollback.length,
         );
-        await repo.deleteAll({ where: { group } });
+        await repo.deleteBy({ where: { group } });
       }
     } catch (error) {
       try {

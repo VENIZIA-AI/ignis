@@ -154,7 +154,7 @@ import { productTable } from './product.table';
 export class Product extends ModelFactory.defineEntity({ table: productTable }) {}
 ```
 
-The `where` is ANDed with the caller's `where` on every `find`, `findOne`, `findById`, `count`, `updateById`, `updateAll` and `deleteAll`. A caller who asks for `{ where: { name: 'Lamp' } }` gets `isDeleted = false AND name = 'Lamp'`.
+The `where` is ANDed with the caller's `where` on every `find`, `findOne`, `findById`, `count`, `updateById`, `updateBy` and `deleteBy`. A caller who asks for `{ where: { name: 'Lamp' } }` gets `isDeleted = false AND name = 'Lamp'`.
 
 To read the deleted rows too (an admin screen, a restore job), pass `shouldSkipDefaultFilter`:
 
@@ -254,10 +254,10 @@ A read sees both columns. A create, an update and a delete are held to `merchant
 |---|---|
 | `find`, `findOne`, `findById`, `count`, `existsWith`, and a relation loaded through `include` | `READ` |
 | `create`, `createAll` | `CREATE` |
-| `updateById`, `updateAll`, and `restore` | `UPDATE` |
-| `deleteById`, `deleteAll`, `deleteBy`, a soft delete included | `DELETE` |
+| `updateById`, `updateBy`, and `restore` | `UPDATE` |
+| `deleteById`, `deleteBy`, a soft delete included | `DELETE` |
 
-A soft delete is stored as an update of the row, but the resolver sees `DELETE`: a caller who may update a row is not thereby allowed to delete it. The soft-delete flag (`deletedAt`) is an ordinary column, though. Where nothing refuses it, an `updateAll` that writes it soft-deletes the row under the `UPDATE` scope, not the `DELETE` one. The generated create and update routes leave that column out of their bodies, and a `SoftDeletableRepository` refuses an update or upsert that carries it, so the column changes only through the delete and restore calls. A soft delete that also writes other columns (`deleteById({ id, data })`) is checked against the `DELETE` scope. A repository that does not soft delete, or a route with its own body, can still write the column: do not let callers write it, or check it in the service. A read with a row `lock` (`findOne` with `lock`) still passes `READ`, so it can lock rows the caller may only read.
+A soft delete is stored as an update of the row, but the resolver sees `DELETE`: a caller who may update a row is not thereby allowed to delete it. The soft-delete flag (`deletedAt`) is an ordinary column, though. Where nothing refuses it, an `updateBy` that writes it soft-deletes the row under the `UPDATE` scope, not the `DELETE` one. The generated create and update routes leave that column out of their bodies, and a `SoftDeletableRepository` refuses an update or upsert that carries it, so the column changes only through the delete and restore calls. A soft delete that also writes other columns (`deleteById({ id, data })`) is checked against the `DELETE` scope. A repository that does not soft delete, or a route with its own body, can still write the column: do not let callers write it, or check it in the service. A read with a row `lock` (`findOne` with `lock`) still passes `READ`, so it can lock rows the caller may only read.
 
 `ScopeOperations.WRITE` and `ScopeOperations.ALL` are groups, never an `operation`. Ask `includes({ group, operation })` whether an operation belongs to one.
 
@@ -395,7 +395,7 @@ The `null` branch lets the caller read shared rows. Changing a shared row is a d
 | Update, delete, soft delete, restore, `sharedRows: false` | Yes | No: the row does not match, so the count is 0 and it stays as it was |
 | Any write, `sharedRows: true` | Yes | Yes |
 
-If your resolver lists `null`, restricted callers still cannot create, change or delete shared rows unless `sharedRows` is `true`. That is true for `updateById`, `updateAll`, `updateBy`, `deleteById`, `deleteAll`, `deleteBy`, soft delete and restore alike: the scope they run under has the `null` branch removed. Set `sharedRows` only on a model where every merchant may write platform-wide rows that all merchants then see. Platform-defined data (a fare policy, a tax type, a promotion) stays `false`; platform staff who manage it use `ScopeFilters.UNRESTRICTED`.
+If your resolver lists `null`, restricted callers still cannot create, change or delete shared rows unless `sharedRows` is `true`. That is true for `updateById`, `updateBy`, `deleteById`, `deleteBy`, soft delete and restore alike: the scope they run under has the `null` branch removed. Set `sharedRows` only on a model where every merchant may write platform-wide rows that all merchants then see. Platform-defined data (a fare policy, a tax type, a promotion) stays `false`; platform staff who manage it use `ScopeFilters.UNRESTRICTED`.
 
 A scope the guard cannot read (an `or` over several columns, a range) cannot be narrowed this way, so an update or a delete under it is refused with a "cannot be verified" message, as a create already was. This holds with `sharedRows: true` too: it lets the `null` rows through, not a shape the guard cannot read.
 

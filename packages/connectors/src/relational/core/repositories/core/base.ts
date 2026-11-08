@@ -759,42 +759,17 @@ export abstract class RelationalBaseRepository<
     options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
 
-  abstract override updateAll(opts: {
+  abstract override updateBy(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
 
-  abstract override updateAll<R = DataObject>(opts: {
+  abstract override updateBy<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
-
-  // Re-declared, not inherited: the base alias is `Array<R> | null` to cover the search family, but SQL engines have RETURNING so this surface must stay exactly `Array<R>`.
-  override updateBy(opts: {
-    data: Partial<PersistObject>;
-    where: TWhere<DataObject>;
-    options: ExtraOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-  override updateBy<R = DataObject>(opts: {
-    data: Partial<PersistObject>;
-    where: TWhere<DataObject>;
-    options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
-  override updateBy<R = DataObject>(opts: {
-    data: Partial<PersistObject>;
-    where: TWhere<DataObject>;
-    options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    const { data, where, options } = opts;
-
-    if (options?.shouldReturn === false) {
-      return this.updateAll({ data, where, options: { ...options, shouldReturn: false } });
-    }
-
-    return this.updateAll<R>({ data, where, options });
-  }
 
   abstract override deleteById(opts: {
     id: IdType;
@@ -806,35 +781,13 @@ export abstract class RelationalBaseRepository<
     options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
 
-  abstract override deleteAll(opts: {
-    where?: TWhere<DataObject>;
+  abstract override deleteBy(opts: {
+    where: TWhere<DataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
 
-  abstract override deleteAll<R = DataObject>(opts: {
-    where?: TWhere<DataObject>;
+  abstract override deleteBy<R = DataObject>(opts: {
+    where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
-
-  // Same rationale as updateBy above: keep this alias surface at `Array<R>`.
-  override deleteBy(opts: {
-    where?: TWhere<DataObject>;
-    options: ExtraOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-  override deleteBy<R = DataObject>(opts: {
-    where?: TWhere<DataObject>;
-    options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
-  override deleteBy<R = DataObject>(opts: {
-    where?: TWhere<DataObject>;
-    options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    const { where, options } = opts;
-
-    if (options?.shouldReturn === false) {
-      return this.deleteAll({ where, options: { ...options, shouldReturn: false } });
-    }
-
-    return this.deleteAll<R>({ where, options });
-  }
 }

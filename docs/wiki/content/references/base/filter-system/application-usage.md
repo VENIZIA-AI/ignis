@@ -187,7 +187,7 @@ const queryOptions = repository.buildQuery({ filter: complexFilter });
 console.log('Generated query options:', queryOptions);
 ```
 
-`options.log` also traces repository calls, but only on the write path (`create`/`updateById`/`updateAll`/`deleteById`/`deleteAll`) - `find`/`findOne`/`findById`/`count` never read it. See [Advanced Repository Features -> Log option](../repositories/advanced.md#log-option) for the write-side form.
+`options.log` also traces repository calls, but only on the write path (`create`/`updateById`/`updateBy`/`deleteById`/`deleteBy`) - `find`/`findOne`/`findById`/`count` never read it. See [Advanced Repository Features -> Log option](../repositories/advanced.md#log-option) for the write-side form.
 
 ## See also
 

@@ -169,14 +169,14 @@ export class WriteCases extends BaseTestCases {
   }
 
   // ----------------------------------------------------------------
-  // CASE 9: UpdateAll (bulk update) excludes hidden properties
+  // CASE 9: UpdateBy (bulk update) excludes hidden properties
   // ----------------------------------------------------------------
-  async case9UpdateAllExcludesHidden(): Promise<void> {
+  async case9UpdateByExcludesHidden(): Promise<void> {
     const repo = this.context.userRepository;
-    this.context.logCase('[CASE 9] UpdateAll should exclude hidden properties from response');
+    this.context.logCase('[CASE 9] UpdateBy should exclude hidden properties from response');
 
     try {
-      const updated = await repo.updateAll({
+      const updated = await repo.updateBy({
         where: { realm: { like: 'HIDDEN_TEST_%' } },
         data: {
           password: 'updated_bulk_password',
@@ -206,7 +206,7 @@ export class WriteCases extends BaseTestCases {
         if (hasPassword || hasSecret) {
           hasFailed = true;
           this.context.logger.error(
-            '[CASE 9] FAILED | User %s has hidden fields in updateAll response',
+            '[CASE 9] FAILED | User %s has hidden fields in updateBy response',
             user.id,
           );
         }
@@ -214,7 +214,7 @@ export class WriteCases extends BaseTestCases {
 
       if (!hasFailed) {
         this.context.logger.info(
-          '[CASE 9] PASSED | UpdateAll excludes hidden from all %d records',
+          '[CASE 9] PASSED | UpdateBy excludes hidden from all %d records',
           updated.count,
         );
       }

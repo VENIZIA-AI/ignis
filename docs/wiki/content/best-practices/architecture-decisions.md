@@ -160,9 +160,9 @@ existsWith({ where })       // Existence check -> boolean
 create({ data })            // Create new -> { count, data }
 createAll({ data })         // Create many -> { count, data }
 updateById({ id, data })    // Update existing -> { count, data }
-updateAll({ data, where })  // Bulk update (updateBy is an alias)
+updateBy({ data, where })   // Bulk update -> { count, data }
 deleteById({ id })          // Delete -> { count, data }
-deleteAll({ where })        // Bulk delete (deleteBy is an alias)
+deleteBy({ where })         // Bulk delete -> { count, data }
 ```
 
 Reads return the record(s) directly; writes return `{ count, data }`. Pass `options: { shouldReturn: false }` on a write to skip the `RETURNING` round-trip.

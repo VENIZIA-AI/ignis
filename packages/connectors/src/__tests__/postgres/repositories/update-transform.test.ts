@@ -178,7 +178,7 @@ describe('PersistableRepository.updateBuilder (compatibility accessor)', () => {
  * `.set()`. The shared `fake-connector` discards its `set()` argument, so nothing else in the suite
  * would notice a repository that dropped the payload entirely.
  */
-describe('PersistableRepository.updateAll - the transform result reaches set()', () => {
+describe('PersistableRepository.updateBy - the transform result reaches set()', () => {
   class UpdatePayloadFixtureEntity extends BasePostgresEntity {
     static override schema = table;
     static override TABLE_NAME = 'update_transform_fixture';
@@ -214,7 +214,7 @@ describe('PersistableRepository.updateAll - the transform result reaches set()',
       entityClass: UpdatePayloadFixtureEntity,
     });
 
-    await repository.updateAll({
+    await repository.updateBy({
       data: { name: 'updated', 'metadata.tier': 'gold' },
       where: { id: 1 },
       options: { shouldReturn: false },

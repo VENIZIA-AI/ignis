@@ -2,7 +2,7 @@ import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
-// Update Cases - updateById and updateAll operations
+// Update Cases - updateById and updateBy operations
 // ----------------------------------------------------------------
 export class UpdateCases extends BaseTestCases {
   // ----------------------------------------------------------------
@@ -42,20 +42,20 @@ export class UpdateCases extends BaseTestCases {
         this.context.logger.error('[case6UpdateById] FAILED | Update not persisted: %j', verified);
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[case6UpdateById] FAILED | Error: %s', error);
     }
   }
 
   // ----------------------------------------------------------------
-  // CASE 7: UpdateAll / UpdateBy
+  // CASE 7: UpdateBy
   // ----------------------------------------------------------------
-  async case7UpdateAll(): Promise<void> {
+  async case7UpdateBy(): Promise<void> {
     const repo = this.context.configurationRepository;
-    this.context.logCase('[case7UpdateAll] UpdateAll / UpdateBy');
+    this.context.logCase('[case7UpdateBy] UpdateBy');
 
-    const group = `REPO_UPDATEALL_${ParseUtility.getUID()}`;
+    const group = `REPO_UPDATEBY_${ParseUtility.getUID()}`;
 
     try {
       await repo.createAll({
@@ -66,19 +66,19 @@ export class UpdateCases extends BaseTestCases {
         ],
       });
 
-      const updateResult = await repo.updateAll({
+      const updateResult = await repo.updateBy({
         where: { group },
         data: { nValue: 999 },
       });
 
       if (updateResult.count === 3) {
         this.context.logger.info(
-          '[case7UpdateAll] PASSED | UpdateAll affected | count: %d',
+          '[case7UpdateBy] PASSED | UpdateBy affected | count: %d',
           updateResult.count,
         );
       } else {
         this.context.logger.error(
-          '[case7UpdateAll] FAILED | Expected 3 | got: %d',
+          '[case7UpdateBy] FAILED | Expected 3 | got: %d',
           updateResult.count,
         );
       }
@@ -87,26 +87,17 @@ export class UpdateCases extends BaseTestCases {
       const allUpdated = verified.every((r) => r.nValue === 999);
 
       if (allUpdated) {
-        this.context.logger.info('[case7UpdateAll] PASSED | All records updated to nValue=999');
+        this.context.logger.info('[case7UpdateBy] PASSED | All records updated to nValue=999');
       } else {
         this.context.logger.error(
-          '[case7UpdateAll] FAILED | Not all records updated: %j',
+          '[case7UpdateBy] FAILED | Not all records updated: %j',
           verified.map((r) => r.nValue),
         );
       }
 
-      const updateByResult = await repo.updateBy({
-        where: { group },
-        data: { nValue: 888 },
-      });
-
-      if (updateByResult.count === 3) {
-        this.context.logger.info('[case7UpdateAll] PASSED | UpdateBy works as alias for UpdateAll');
-      }
-
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
-      this.context.logger.error('[case7UpdateAll] FAILED | Error: %s', error);
+      this.context.logger.error('[case7UpdateBy] FAILED | Error: %s', error);
     }
   }
 
@@ -188,7 +179,7 @@ export class UpdateCases extends BaseTestCases {
         );
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[case17UpdateWithPartialData] FAILED | Error: %s', error);
     }

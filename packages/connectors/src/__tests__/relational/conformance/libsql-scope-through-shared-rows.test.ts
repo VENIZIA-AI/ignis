@@ -209,7 +209,7 @@ describe('reads still reach the children of a shared parent', () => {
 
 describe('without write.sharedRows a child of a shared parent cannot be written', () => {
   test('update: only the children of the caller own parents change', async () => {
-    await variants.updateAll({
+    await variants.updateBy({
       where: {},
       data: { name: 'renamed' },
       options: { shouldReturn: false },
@@ -221,7 +221,7 @@ describe('without write.sharedRows a child of a shared parent cannot be written'
 
   test('delete: only the children of the caller own parents go', async () => {
     await client.execute(`DELETE FROM ${OPTION_TABLE}`);
-    await variants.deleteAll({ where: {}, options: { shouldReturn: false, force: true } });
+    await variants.deleteBy({ where: {}, options: { shouldReturn: false, force: true } });
 
     const result2 = await tableNames(VARIANT_TABLE);
     expect(result2).toEqual(['v2', 'v3']);
@@ -262,7 +262,7 @@ describe('without write.sharedRows a child of a shared parent cannot be written'
     const result6 = await parentOf({ table: OPTION_TABLE, column: 'variant_id', id: 1 });
     expect(result6).toBe(1);
 
-    await options.updateAll({
+    await options.updateBy({
       where: {},
       data: { name: 'renamed' },
       options: { shouldReturn: false },
@@ -270,7 +270,7 @@ describe('without write.sharedRows a child of a shared parent cannot be written'
     const result7 = await tableNames(OPTION_TABLE);
     expect(result7).toEqual(['renamed', 'o2', 'o3']);
 
-    await options.deleteAll({ where: {}, options: { shouldReturn: false, force: true } });
+    await options.deleteBy({ where: {}, options: { shouldReturn: false, force: true } });
     const result8 = await tableNames(OPTION_TABLE);
     expect(result8).toEqual(['o2', 'o3']);
   });
@@ -282,7 +282,7 @@ describe('with write.sharedRows on the parent the same writes are allowed', () =
   });
 
   test('update, delete, create and move reach the children of the shared parent', async () => {
-    await variants.updateAll({
+    await variants.updateBy({
       where: {},
       data: { name: 'renamed' },
       options: { shouldReturn: false },
@@ -296,14 +296,14 @@ describe('with write.sharedRows on the parent the same writes are allowed', () =
     expect(result2).toBe(2);
 
     await client.execute(`DELETE FROM ${OPTION_TABLE}`);
-    await variants.deleteAll({ where: {}, options: { shouldReturn: false, force: true } });
+    await variants.deleteBy({ where: {}, options: { shouldReturn: false, force: true } });
     const result3 = await tableNames(VARIANT_TABLE);
     expect(result3).toEqual(['v3']);
   });
 
   test('two hops: the options of a shared product are written, another merchant stays refused', async () => {
     await options.create({ data: { variantId: 2, name: 'in-shared' } });
-    await options.updateAll({
+    await options.updateBy({
       where: {},
       data: { name: 'renamed' },
       options: { shouldReturn: false },
@@ -322,7 +322,7 @@ describe('other shapes of the parent scope', () => {
 
     const created = await refusal(() => variants.create({ data: { productId: 1, name: 'x' } }));
     const updated = await refusal(() =>
-      variants.updateAll({
+      variants.updateBy({
         where: {},
         data: { name: 'renamed' },
         options: { shouldReturn: false },
@@ -342,7 +342,7 @@ describe('other shapes of the parent scope', () => {
 
     await variants.create({ data: { productId: 1, name: 'own' } });
     const shared = await refusal(() => variants.create({ data: { productId: 2, name: 'x' } }));
-    await variants.updateAll({
+    await variants.updateBy({
       where: {},
       data: { name: 'renamed' },
       options: { shouldReturn: false },
@@ -357,7 +357,7 @@ describe('other shapes of the parent scope', () => {
     productScope = { merchantId: null };
 
     const created = await refusal(() => variants.create({ data: { productId: 2, name: 'x' } }));
-    await variants.updateAll({
+    await variants.updateBy({
       where: {},
       data: { name: 'renamed' },
       options: { shouldReturn: false },
@@ -368,7 +368,7 @@ describe('other shapes of the parent scope', () => {
     expect(result3).toEqual(['v1', 'v2', 'v3']);
 
     productAccess.write.sharedRows = true;
-    await variants.updateAll({
+    await variants.updateBy({
       where: {},
       data: { name: 'renamed' },
       options: { shouldReturn: false },

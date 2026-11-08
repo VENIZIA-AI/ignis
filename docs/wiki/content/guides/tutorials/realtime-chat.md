@@ -344,7 +344,7 @@ export class RoomRepository extends DefaultCRUDRepository<typeof roomTable> {
   }
 
   async removeMember(opts: { roomId: string; userId: string }) {
-    return this._memberRepository.deleteAll({
+    return this._memberRepository.deleteBy({
       where: { roomId: opts.roomId, userId: opts.userId },
     });
   }

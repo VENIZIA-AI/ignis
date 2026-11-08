@@ -217,7 +217,7 @@ same requirement `directUpload` already has): with no configured bucket the four
 routes stay unscoped, so `keyPrefix` alone would isolate only part of the surface. Once `bucket` is
 set those four routes are not registered at all. Not scoped: `defineRoutesBefore`, `defineExtraRoutes`.
 `recreateMetaLink`'s refresh, in `meta-link.ts`: with `metaLink.createMetaLink` configured, one
-`updateAll` writes only `mimetype`/`size`/`etag`/`isSynced` and leaves `link`/`metadata` to the hook;
+`updateBy` writes only `mimetype`/`size`/`etag`/`isSynced` and leaves `link`/`metadata` to the hook;
 without one, that same statement also writes `link`, and one `updateById` per returned row then
 merges `metadata: { ...row.metadata, ...fileStat.metadata }` (skipped when the stat carries none) -
 a read-then-write, so a concurrent write to that row's `metadata` between the two statements is

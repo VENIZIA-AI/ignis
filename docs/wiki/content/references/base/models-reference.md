@@ -479,8 +479,8 @@ export class User extends BaseEntity<typeof User.schema> {
 |-----------|-------------------|
 | `find()`, `findOne()`, `findById()` | Excluded from SELECT |
 | `create()`, `createAll()` | Excluded from RETURNING |
-| `updateById()`, `updateAll()` | Excluded from RETURNING |
-| `deleteById()`, `deleteAll()` | Excluded from RETURNING |
+| `updateById()`, `updateBy()` | Excluded from RETURNING |
+| `deleteById()`, `deleteBy()` | Excluded from RETURNING |
 | `count()`, `existsWith()` | Can filter by hidden fields |
 | Direct connector query | Included (bypasses repository) |
 
@@ -533,8 +533,8 @@ export class Post extends BaseEntity<typeof Post.schema> {
 |-----------|----------------|
 | `find()`, `findOne()`, `findById()` | Applied to WHERE clause |
 | `count()`, `existsWith()` | Applied to WHERE clause |
-| `updateById()`, `updateAll()` | Applied to WHERE clause |
-| `deleteById()`, `deleteAll()` | Applied to WHERE clause |
+| `updateById()`, `updateBy()` | Applied to WHERE clause |
+| `deleteById()`, `deleteBy()` | Applied to WHERE clause |
 | `create()`, `createAll()` | Not applied |
 
 ### Bypassing

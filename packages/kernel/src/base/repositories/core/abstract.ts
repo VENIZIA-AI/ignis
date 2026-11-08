@@ -467,42 +467,17 @@ export abstract class AbstractRepository<
     options?: TOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
 
-  abstract updateAll(opts: {
+  abstract updateBy(opts: {
     data: Partial<TPersistObject>;
     where: TWhere<TDataObject>;
     options: TOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
 
-  abstract updateAll<R = TDataObject>(opts: {
+  abstract updateBy<R = TDataObject>(opts: {
     data: Partial<TPersistObject>;
     where: TWhere<TDataObject>;
     options?: TOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> | null }>;
-
-  /** Alias for updateAll. */
-  updateBy(opts: {
-    data: Partial<TPersistObject>;
-    where: TWhere<TDataObject>;
-    options: TOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-  updateBy<R = TDataObject>(opts: {
-    data: Partial<TPersistObject>;
-    where: TWhere<TDataObject>;
-    options?: TOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> | null }>;
-  updateBy<R = TDataObject>(opts: {
-    data: Partial<TPersistObject>;
-    where: TWhere<TDataObject>;
-    options?: TOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    const { data, where, options } = opts;
-
-    if (options?.shouldReturn === false) {
-      return this.updateAll({ data, where, options: { ...options, shouldReturn: false } });
-    }
-
-    return this.updateAll<R>({ data, where, options });
-  }
 
   abstract deleteById(opts: {
     id: IdType;
@@ -514,35 +489,13 @@ export abstract class AbstractRepository<
     options?: TOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
 
-  abstract deleteAll(opts: {
-    where?: TWhere<TDataObject>;
-    options: TOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-
-  abstract deleteAll<R = TDataObject>(opts: {
-    where?: TWhere<TDataObject>;
-    options?: TOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> | null }>;
-
-  /** Alias for deleteAll. */
-  deleteBy(opts: {
+  abstract deleteBy(opts: {
     where: TWhere<TDataObject>;
     options: TOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
-  deleteBy<R = TDataObject>(opts: {
+
+  abstract deleteBy<R = TDataObject>(opts: {
     where: TWhere<TDataObject>;
     options?: TOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> | null }>;
-  deleteBy<R = TDataObject>(opts: {
-    where: TWhere<TDataObject>;
-    options?: TOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    const { where, options } = opts;
-
-    if (options?.shouldReturn === false) {
-      return this.deleteAll({ where, options: { ...options, shouldReturn: false } });
-    }
-
-    return this.deleteAll<R>({ where, options });
-  }
 }

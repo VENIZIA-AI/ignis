@@ -42,7 +42,7 @@ export class EdgeCases extends BaseTestCases {
       let deletedJunctionCount = 0;
 
       if (testProductIds.length > 0) {
-        const deletedJunction = await saleChannelProductRepo.deleteAll({
+        const deletedJunction = await saleChannelProductRepo.deleteBy({
           where: { productId: { inq: testProductIds } },
           options: { force: true },
         });
@@ -53,7 +53,7 @@ export class EdgeCases extends BaseTestCases {
       let deletedProductsCount = 0;
 
       if (testProductIds.length > 0) {
-        const deletedProducts = await productRepo.deleteAll({
+        const deletedProducts = await productRepo.deleteBy({
           where: { id: { inq: testProductIds } },
           options: { force: true, shouldSkipDefaultFilter: true },
         });
@@ -64,7 +64,7 @@ export class EdgeCases extends BaseTestCases {
       let deletedChannelsCount = 0;
 
       if (testChannelIds.length > 0) {
-        const deletedChannels = await saleChannelRepo.deleteAll({
+        const deletedChannels = await saleChannelRepo.deleteBy({
           where: { id: { inq: testChannelIds } },
           options: { force: true },
         });
@@ -123,7 +123,7 @@ export class EdgeCases extends BaseTestCases {
       }
 
       // Cleanup
-      await productRepo.deleteAll({
+      await productRepo.deleteBy({
         where: { id: product.data.id },
         options: { force: true, shouldSkipDefaultFilter: true },
       });
@@ -185,8 +185,8 @@ export class EdgeCases extends BaseTestCases {
       }
 
       // Cleanup
-      await configRepo.deleteAll({ where: { id: config.data.id } });
-      await userRepo.deleteAll({ where: { id: user.data.id } });
+      await configRepo.deleteBy({ where: { id: config.data.id } });
+      await userRepo.deleteBy({ where: { id: user.data.id } });
     } catch (error) {
       this.context.logger.error('[CASE 11] FAILED | Error: %s', (error as Error).message);
     }
@@ -256,14 +256,14 @@ export class EdgeCases extends BaseTestCases {
       const productsData = products.data!;
 
       for (const p of productsData) {
-        await junctionRepo.deleteAll({ where: { productId: p.id }, options: { force: true } });
-        await productRepo.deleteAll({
+        await junctionRepo.deleteBy({ where: { productId: p.id }, options: { force: true } });
+        await productRepo.deleteBy({
           where: { id: p.id },
           options: { force: true, shouldSkipDefaultFilter: true },
         });
       }
 
-      await saleChannelRepo.deleteAll({ where: { id: channel.data.id }, options: { force: true } });
+      await saleChannelRepo.deleteBy({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {
       this.context.logger.error('[CASE 14] FAILED | Error: %s', (error as Error).message);
     }

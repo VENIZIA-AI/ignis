@@ -287,8 +287,8 @@ describe('access.resolve on SQLite - write verbs are scoped', () => {
     await seedTwoMerchants();
   });
 
-  test("updateAll only touches the current merchant's rows", async () => {
-    await buildSoft(SoftItem).updateAll({
+  test("updateBy only touches the current merchant's rows", async () => {
+    await buildSoft(SoftItem).updateBy({
       data: { name: 'renamed' },
       where: {},
       options: { shouldReturn: false },
@@ -298,8 +298,8 @@ describe('access.resolve on SQLite - write verbs are scoped', () => {
     expect(result).toEqual(['renamed', 'a-deleted', 'b-active', 'b-deleted']);
   });
 
-  test("a soft deleteAll only soft-deletes the current merchant's active row", async () => {
-    await buildSoft(SoftItem).deleteAll({ where: {}, options: { shouldReturn: false } });
+  test("a soft deleteBy only soft-deletes the current merchant's active row", async () => {
+    await buildSoft(SoftItem).deleteBy({ where: {}, options: { shouldReturn: false } });
 
     const result = await allRows();
     expect(result.map((row) => row.deletedAt !== null)).toEqual([true, true, false, true]);
@@ -329,15 +329,15 @@ describe('access.resolve on SQLite - write verbs are scoped', () => {
     expect(result.map((row) => row.deletedAt !== null)).toEqual([false, false, false, true]);
   });
 
-  test('restoreAll only reaches the current merchant', async () => {
-    await buildSoft(SoftItem).restoreAll({ where: {}, options: { shouldReturn: false } });
+  test('restoreBy only reaches the current merchant', async () => {
+    await buildSoft(SoftItem).restoreBy({ where: {}, options: { shouldReturn: false } });
 
     const result = await allRows();
     expect(result.map((row) => row.deletedAt !== null)).toEqual([false, false, false, true]);
   });
 
-  test('a hard deleteAll only reaches my rows', async () => {
-    const result = await build(RejectItem).deleteAll({
+  test('a hard deleteBy only reaches my rows', async () => {
+    const result = await build(RejectItem).deleteBy({
       where: {},
       options: { force: true },
     });
@@ -512,7 +512,7 @@ describe('access.resolve on SQLite - the write guard, reject mode', () => {
     await refusal(repository.createAll({ data: [{ merchantId: 'm-b', name: 'x' }] }));
     const mine = await repository.create({ data: { merchantId: 'm-a', name: 'mine' } });
     await refusal(repository.updateById({ id: mine.data.id, data: { merchantId: 'm-b' } }));
-    await refusal(repository.updateAll({ where: { name: 'mine' }, data: { merchantId: 'm-b' } }));
+    await refusal(repository.updateBy({ where: { name: 'mine' }, data: { merchantId: 'm-b' } }));
     await refusal(repository.updateBy({ where: { name: 'mine' }, data: { merchantId: 'm-b' } }));
 
     const result = await rows();
@@ -640,12 +640,12 @@ describe('access.resolve on SQLite - write.sharedRows', () => {
       expect(result).toEqual(['mine-2', 'shared', 'theirs']);
     });
 
-    test('updateAll and deleteAll touch only my rows', async () => {
+    test('updateBy and deleteBy touch only my rows', async () => {
       const repository = build(RejectItem);
 
-      await repository.updateAll({ where: {}, data: { name: 'all' }, options: { force: true } });
+      await repository.updateBy({ where: {}, data: { name: 'all' }, options: { force: true } });
       const afterUpdate = await names();
-      const deleted = await repository.deleteAll({ where: {}, options: { force: true } });
+      const deleted = await repository.deleteBy({ where: {}, options: { force: true } });
 
       expect(afterUpdate).toEqual(['all', 'shared', 'theirs']);
       expect(deleted.count).toBe(1);
@@ -845,11 +845,11 @@ describe('access.resolve on SQLite - UNRESTRICTED and an unresolved scope on a w
     expect(result).toEqual([{ merchantId: 'm-b', name: 'one' }]);
   });
 
-  test('updateBy and updateAll with a payload inside the scope touch only the scoped rows', async () => {
+  test('updateBy and updateBy with a payload inside the scope touch only the scoped rows', async () => {
     await seedTwoMerchants();
     const repository = build(RejectItem);
 
-    await repository.updateAll({ where: {}, data: { name: 'renamed' }, options: { force: true } });
+    await repository.updateBy({ where: {}, data: { name: 'renamed' }, options: { force: true } });
     await repository.updateBy({
       where: {},
       data: { name: 'renamed-by' },
@@ -1025,7 +1025,7 @@ describe('access.resolve on SQLite - a shared row, more write paths', () => {
   });
 
   test('a name filter cannot reach a shared row either', async () => {
-    const result = await build(RejectItem).updateAll({
+    const result = await build(RejectItem).updateBy({
       where: { name: 'shared' },
       data: { name: 'x' },
     });

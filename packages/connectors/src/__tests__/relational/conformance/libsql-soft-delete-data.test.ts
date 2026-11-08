@@ -45,6 +45,12 @@ class ScopedItem extends BaseSqliteEntity<typeof itemTable> {
 }
 
 @model({ type: 'entity' })
+class OpenItem extends BaseSqliteEntity<typeof itemTable> {
+  static override TABLE_NAME = TABLE_NAME;
+  static override schema = itemTable;
+}
+
+@model({ type: 'entity' })
 class PlainItem extends BaseSqliteEntity<typeof itemTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = itemTable;
@@ -80,11 +86,13 @@ afterAll(() => {
 });
 
 const items = new SoftDeletableSqliteRepository<AnyType>(dataSource, { entityClass: ScopedItem });
+const open = new SoftDeletableSqliteRepository<AnyType>(dataSource, { entityClass: OpenItem });
 const plain = new DefaultSqliteRepository<AnyType>(dataSource, { entityClass: PlainItem });
 
 defineSoftDeleteDataCases(() => ({
   items,
   plain,
+  open,
   codeKey: UniqueKeys.of({ table: itemTable, index: 'soft_delete_data_libsql_code' }),
   executor: dataSource.getQueryExecutor(),
   setResolver: (next) => {

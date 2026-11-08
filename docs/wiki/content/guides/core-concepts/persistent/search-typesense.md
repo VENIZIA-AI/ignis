@@ -247,8 +247,8 @@ AbstractRepository (engine-neutral)
        also exported as TypesenseBaseRepository
     -> ReadableSearchRepository (count, existsWith, find, findOne, findById, search<TResult>(),
                                  searchCount, facets, suggest)
-      -> PersistableSearchRepository (create, createAll, updateById, updateAll,
-                                      deleteById, deleteAll, import)
+      -> PersistableSearchRepository (create, createAll, updateById, updateBy,
+                                      deleteById, deleteBy, import)
         -> DefaultSearchRepository (convenience alias, adds nothing)
 ```
 
@@ -287,8 +287,8 @@ Same options, same rules as PostgreSQL - see [Read Retry](/references/base/repos
 |                                            | PostgreSQL repositories                             | Search repositories                                                                                                                            |
 | ------------------------------------------ | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | Range queries                              | Extra `COUNT(*)` query for `shouldQueryRange: true` | Single search call already returns `found` - no second query needed                                                                            |
-| `updateAll`/`deleteAll` with empty `where` | Requires `force: true`                              | `updateAll` **refuses** an unfiltered bulk update outright (throws, no override). `deleteAll` with no effective filter (no `where` and no `@model` `query.filter`) also throws. Passing `options.force: true` truncates the whole collection instead |
-| Returning updated/deleted rows             | Native SQL `RETURNING`                              | No `RETURNING` equivalent - `updateAll`/`deleteAll` are **count-only**: `data` is always `null` and `shouldReturn` is rejected at the type level (no hidden engine read is bolted on). Read the affected documents explicitly before the write when you need them |
+| `updateBy`/`deleteBy` with empty `where` | Requires `force: true`                              | `updateBy` **refuses** an unfiltered bulk update outright (throws, no override). `deleteBy` with no effective filter (no `where` and no `@model` `query.filter`) also throws. Passing `options.force: true` truncates the whole collection instead |
+| Returning updated/deleted rows             | Native SQL `RETURNING`                              | No `RETURNING` equivalent - `updateBy`/`deleteBy` are **count-only**: `data` is always `null` and `shouldReturn` is rejected at the type level (no hidden engine read is bolted on). Read the affected documents explicitly before the write when you need them |
 | `createAll`                                | Native bulk insert, returns each row                | Delegates to Typesense's bulk import; "created" rows are the input rows whose per-row response didn't report `success: false`                  |
 
 ### Write error semantics (shared by both search engines)

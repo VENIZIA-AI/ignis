@@ -337,26 +337,6 @@ export declare class HttpRepository<E extends object = AnyType, P extends object
     }): Promise<TCount & {
         data: R;
     }>;
-    updateAll(opts: {
-        data: Partial<P>;
-        where: TWhere<E>;
-        options: THttpRepositoryOptions & {
-            shouldReturn: false;
-            force?: boolean;
-        };
-    }): Promise<TCount & {
-        data: undefined | null;
-    }>;
-    updateAll<R = E>(opts: {
-        data: Partial<P>;
-        where: TWhere<E>;
-        options?: THttpRepositoryOptions & {
-            shouldReturn?: true;
-            force?: boolean;
-        };
-    }): Promise<TCount & {
-        data: Array<R> | null;
-    }>;
     updateBy(opts: {
         data: Partial<P>;
         where: TWhere<E>;
@@ -403,26 +383,8 @@ export declare class HttpRepository<E extends object = AnyType, P extends object
     }): Promise<TCount & {
         data: R;
     }>;
-    deleteAll(opts: {
-        where?: TWhere<E>;
-        options: THttpRepositoryOptions & {
-            shouldReturn: false;
-            force?: boolean;
-        };
-    }): Promise<TCount & {
-        data: undefined | null;
-    }>;
-    deleteAll<R = E>(opts: {
-        where?: TWhere<E>;
-        options?: THttpRepositoryOptions & {
-            shouldReturn?: true;
-            force?: boolean;
-        };
-    }): Promise<TCount & {
-        data: Array<R> | null;
-    }>;
     deleteBy(opts: {
-        where?: TWhere<E>;
+        where: TWhere<E>;
         options: THttpRepositoryOptions & {
             shouldReturn: false;
             force?: boolean;
@@ -431,7 +393,7 @@ export declare class HttpRepository<E extends object = AnyType, P extends object
         data: undefined | null;
     }>;
     deleteBy<R = E>(opts: {
-        where?: TWhere<E>;
+        where: TWhere<E>;
         options?: THttpRepositoryOptions & {
             shouldReturn?: true;
             force?: boolean;
@@ -441,7 +403,7 @@ export declare class HttpRepository<E extends object = AnyType, P extends object
     }>;
     protected deleteWhere(opts: {
         method: string;
-        where?: TWhere<E>;
+        where: TWhere<E>;
         options?: THttpRepositoryOptions & {
             shouldReturn?: boolean;
         };

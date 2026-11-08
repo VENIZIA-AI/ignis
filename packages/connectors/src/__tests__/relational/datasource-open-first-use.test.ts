@@ -194,11 +194,11 @@ describe('the first repository call opens the datasource', () => {
     ['count', (repository: TNoteRepository) => repository.count({ where: {} })],
     ['create', (repository: TNoteRepository) => repository.create({ data: { title: 'x' } })],
     [
-      'updateAll',
+      'updateBy',
       (repository: TNoteRepository) =>
-        repository.updateAll({ data: { rank: 1 }, where: { title: 'x' } }),
+        repository.updateBy({ data: { rank: 1 }, where: { title: 'x' } }),
     ],
-    ['deleteAll', (repository: TNoteRepository) => repository.deleteAll({ where: { title: 'x' } })],
+    ['deleteBy', (repository: TNoteRepository) => repository.deleteBy({ where: { title: 'x' } })],
     ['findById', (repository: TNoteRepository) => repository.findById({ id: 1 })],
     ['upsert', (repository: TNoteRepository) => repository.upsert({ data: { id: 1, title: 'x' } })],
   ])('%s as the very first call opens it, once', async (_name, firstCall) => {

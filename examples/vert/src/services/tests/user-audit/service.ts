@@ -49,7 +49,7 @@ export class UserAuditTestService extends BaseTestService {
     // UPDATE operation tests
     await modifiedByCases.case4UpdateByIdModifiedByChanges();
     await createdByCases.case5UpdateByIdCreatedByUnchanged();
-    await modifiedByCases.case6UpdateAllBulkModifiedByChanges();
+    await modifiedByCases.case6UpdateByBulkModifiedByChanges();
     await modifiedByCases.case7UpdateWithDifferentUser();
 
     // Edge cases

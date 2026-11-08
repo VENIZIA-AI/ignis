@@ -134,11 +134,11 @@ describe('Typesense repository verbs reject options.transaction (NotSupported)',
     expectNotSupported(caught);
   });
 
-  test('updateAll', async () => {
+  test('updateBy', async () => {
     let caught: unknown;
 
     try {
-      await repository.updateAll({
+      await repository.updateBy({
         data: { title: 'A' },
         where: { title: 'B' },
         options: { transaction: fakeTransaction },
@@ -162,11 +162,11 @@ describe('Typesense repository verbs reject options.transaction (NotSupported)',
     expectNotSupported(caught);
   });
 
-  test('deleteAll', async () => {
+  test('deleteBy', async () => {
     let caught: unknown;
 
     try {
-      await repository.deleteAll({
+      await repository.deleteBy({
         where: { title: 'B' },
         options: { transaction: fakeTransaction },
       });

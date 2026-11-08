@@ -476,7 +476,7 @@ export class CombinedCases extends BaseTestCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { tags: { contains: [testTag] } } });
+      await repo.deleteBy({ where: { tags: { contains: [testTag] } } });
     } catch (error) {
       this.context.logger.error('[COMBO-PRODUCT] FAILED | Error: %s', (error as Error).message);
     }

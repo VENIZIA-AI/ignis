@@ -50,8 +50,8 @@ export class CompositeCases extends BaseTestCases {
       }
 
       // Cleanup
-      await configRepo.deleteAll({ where: { code: configCode } });
-      await productRepo.deleteAll({
+      await configRepo.deleteBy({ where: { code: configCode } });
+      await productRepo.deleteBy({
         where: { code: productCode },
         options: { force: true, shouldSkipDefaultFilter: true },
       });
@@ -119,15 +119,15 @@ export class CompositeCases extends BaseTestCases {
       }
 
       // Cleanup
-      await junctionRepo.deleteAll({
+      await junctionRepo.deleteBy({
         where: { productId: product.data.id },
         options: { force: true },
       });
-      await productRepo.deleteAll({
+      await productRepo.deleteBy({
         where: { code: productCode },
         options: { force: true, shouldSkipDefaultFilter: true },
       });
-      await saleChannelRepo.deleteAll({ where: { code: channelCode }, options: { force: true } });
+      await saleChannelRepo.deleteBy({ where: { code: channelCode }, options: { force: true } });
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 17] FAILED with error: %o', error);

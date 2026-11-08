@@ -122,7 +122,7 @@ export class RelationsCases extends BaseTestCases {
       await configRepo.deleteById({ id: createdConfig.data.id });
       this.context.logger.info('[CASE 21] Cleaned up test configuration');
 
-      await this.context.userRepository.deleteAll({
+      await this.context.userRepository.deleteBy({
         where: { realm: testRealm },
         options: { force: true },
       });

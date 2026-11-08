@@ -14,7 +14,7 @@ export class EdgeCases extends BaseTestCases {
     this.context.logCase('[CASE 12] Cleanup array operator test data');
 
     try {
-      const deleted = await repo.deleteAll({ where: { description: 'ARRAY_OPERATOR_TEST' } });
+      const deleted = await repo.deleteBy({ where: { description: 'ARRAY_OPERATOR_TEST' } });
       this.context.logger.info('[CASE 12] PASSED | Deleted %d records', deleted.count);
     } catch (error) {
       this.context.logger.error('[CASE 12] FAILED | Error: %s', (error as Error).message);

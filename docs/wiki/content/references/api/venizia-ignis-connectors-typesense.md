@@ -1278,9 +1278,9 @@ export declare class PersistableSearchRepository<TDocument extends object = obje
         data: R;
     }>;
     /** Count-only: search engines have no RETURNING and no extra read is bolted on, so `data` is always `null` and `shouldReturn` is rejected at the type level - callers wanting the affected documents read them before updating. */
-    updateAll(opts: {
+    updateBy(opts: {
         data: Partial<TDocument>;
-        where?: TWhere;
+        where: TWhere;
         options?: Omit<IExtraOptions, 'shouldReturn'> & {
             force?: boolean;
         };
@@ -1303,9 +1303,9 @@ export declare class PersistableSearchRepository<TDocument extends object = obje
     }): Promise<TCount & {
         data: R;
     }>;
-    /** Count-only like updateAll: filter-delete when there is an effective where, truncating the whole collection only when neither where nor settings.query.filter is present - truncate reports no per-document count, so that path returns { count: 0, data: null }. */
-    deleteAll(opts?: {
-        where?: TWhere;
+    /** Count-only like updateBy: filter-delete when there is an effective where, truncating the whole collection only when neither where nor settings.query.filter is present - truncate reports no per-document count, so that path returns { count: 0, data: null }. */
+    deleteBy(opts: {
+        where: TWhere;
         options?: Omit<IExtraOptions, 'shouldReturn'> & {
             force?: boolean;
         };
@@ -1317,16 +1317,16 @@ export declare class PersistableSearchRepository<TDocument extends object = obje
         documents: TDocument[];
         batchSize?: number;
     }): Promise<IImportResult<unknown>>;
-    /** Resolves filterBy, AND-merging defaultWhere unless shouldSkipDefaultFilter. Returns undefined when there's no effective where - callers decide (updateAll refuses; deleteAll truncates). */
+    /** Resolves filterBy, AND-merging defaultWhere unless shouldSkipDefaultFilter. Returns undefined when there's no effective where - callers decide (updateBy refuses; deleteBy truncates). */
     protected buildFilterBy(opts: {
         where?: TWhere;
         shouldSkipDefaultFilter?: boolean;
     }): string | undefined;
     /**
      * The write-path filter as THREE outcomes, because two of them are catastrophically different
-     * here: `filterBy: undefined` means "no effective where", which `deleteAll` treats as licence to
+     * here: `filterBy: undefined` means "no effective where", which `deleteBy` treats as licence to
      * truncate when `force` is set. An absorbing where must never land there -
-     * `deleteAll({ where: { or: permittedIds.map(...) } })` on an EMPTY permission list has to
+     * `deleteBy({ where: { or: permittedIds.map(...) } })` on an EMPTY permission list has to
      * delete nothing, not the entire collection. `matchNone` is what keeps the two apart.
      */
     protected buildScopedFilter(opts: {
@@ -1484,14 +1484,10 @@ export declare class ReadableSearchRepository<TDocument extends object = object,
     }): Promise<TCount & {
         data: R;
     }>;
-    /**
-     * @throws Error - disabled in a read-only repository. `where` is optional where the base contract
-     * requires it: the `@model` `settings.query.filter` alone can supply the effective filter, and Persistable
-     * refuses the write outright when neither is present.
-     */
-    updateAll(_opts: {
+    /** @throws Error - disabled in a read-only repository. */
+    updateBy(_opts: {
         data: Partial<TDocument>;
-        where?: TWhere;
+        where: TWhere;
         options?: Omit<IExtraOptions, 'shouldReturn'> & {
             force?: boolean;
         };
@@ -1516,8 +1512,8 @@ export declare class ReadableSearchRepository<TDocument extends object = object,
         data: R;
     }>;
     /** @throws Error - disabled in a read-only repository. Unlocked by DefaultSearchRepository. */
-    deleteAll(_opts?: {
-        where?: TWhere;
+    deleteBy(_opts: {
+        where: TWhere;
         options?: Omit<IExtraOptions, 'shouldReturn'> & {
             force?: boolean;
         };

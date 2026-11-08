@@ -478,25 +478,6 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     return this.toWriteResult({ result, options: opts.options });
   }
 
-  async updateAll(opts: {
-    data: Partial<P>;
-    where: TWhere<E>;
-    options: THttpRepositoryOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-  async updateAll<R = E>(opts: {
-    data: Partial<P>;
-    where: TWhere<E>;
-    options?: THttpRepositoryOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> | null }>;
-  /** PATCH `/<resource>`, the `where` in the body beside the data - a long id list outgrows a URL. */
-  async updateAll(opts: {
-    data: Partial<P>;
-    where: TWhere<E>;
-    options?: THttpRepositoryOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: AnyType }> {
-    return this.patchWhere({ ...opts, method: 'updateAll' });
-  }
-
   async updateBy(opts: {
     data: Partial<P>;
     where: TWhere<E>;
@@ -507,7 +488,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     where: TWhere<E>;
     options?: THttpRepositoryOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> | null }>;
-  /** Alias for `updateAll`. */
+  /** PATCH `/<resource>`, the `where` in the body beside the data - a long id list outgrows a URL. */
   async updateBy(opts: {
     data: Partial<P>;
     where: TWhere<E>;
@@ -556,33 +537,17 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     return this.toWriteResult({ result, options: opts.options });
   }
 
-  async deleteAll(opts: {
-    where?: TWhere<E>;
-    options: THttpRepositoryOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-  async deleteAll<R = E>(opts: {
-    where?: TWhere<E>;
-    options?: THttpRepositoryOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> | null }>;
-  /** DELETE `/<resource>`, the `where` in the body. */
-  async deleteAll(opts: {
-    where?: TWhere<E>;
-    options?: THttpRepositoryOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: AnyType }> {
-    return this.deleteWhere({ ...opts, method: 'deleteAll' });
-  }
-
   async deleteBy(opts: {
-    where?: TWhere<E>;
+    where: TWhere<E>;
     options: THttpRepositoryOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
   async deleteBy<R = E>(opts: {
-    where?: TWhere<E>;
+    where: TWhere<E>;
     options?: THttpRepositoryOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> | null }>;
-  /** Alias for `deleteAll`. */
+  /** DELETE `/<resource>`, the `where` in the body. */
   async deleteBy(opts: {
-    where?: TWhere<E>;
+    where: TWhere<E>;
     options?: THttpRepositoryOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: AnyType }> {
     return this.deleteWhere({ ...opts, method: 'deleteBy' });
@@ -590,7 +555,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
 
   protected async deleteWhere(opts: {
     method: string;
-    where?: TWhere<E>;
+    where: TWhere<E>;
     options?: THttpRepositoryOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: AnyType }> {
     const where = this.assertBulkWhere({ method: opts.method, where: opts.where });

@@ -96,15 +96,15 @@ export class FilteredCases extends BaseTestCases {
       }
 
       // Cleanup
-      await junctionRepo.deleteAll({
+      await junctionRepo.deleteBy({
         where: { productId: product.data.id },
         options: { force: true },
       });
-      await productRepo.deleteAll({
+      await productRepo.deleteBy({
         where: { id: product.data.id },
         options: { force: true, shouldSkipDefaultFilter: true },
       });
-      await saleChannelRepo.deleteAll({
+      await saleChannelRepo.deleteBy({
         where: { code: { like: 'SCOPE_FILTER_CH%' } },
         options: { force: true },
       });
@@ -184,15 +184,15 @@ export class FilteredCases extends BaseTestCases {
       }
 
       // Cleanup
-      await junctionRepo.deleteAll({
+      await junctionRepo.deleteBy({
         where: { productId: product.data.id },
         options: { force: true },
       });
-      await productRepo.deleteAll({
+      await productRepo.deleteBy({
         where: { id: product.data.id },
         options: { force: true, shouldSkipDefaultFilter: true },
       });
-      await saleChannelRepo.deleteAll({
+      await saleChannelRepo.deleteBy({
         where: { code: { like: 'SCOPE_ORDER_CH_%' } },
         options: { force: true },
       });
@@ -263,15 +263,15 @@ export class FilteredCases extends BaseTestCases {
       }
 
       // Cleanup
-      await junctionRepo.deleteAll({
+      await junctionRepo.deleteBy({
         where: { productId: product.data.id },
         options: { force: true },
       });
-      await productRepo.deleteAll({
+      await productRepo.deleteBy({
         where: { id: product.data.id },
         options: { force: true, shouldSkipDefaultFilter: true },
       });
-      await saleChannelRepo.deleteAll({
+      await saleChannelRepo.deleteBy({
         where: { code: { like: 'SCOPE_LIMIT_CH_%' } },
         options: { force: true },
       });
@@ -344,15 +344,15 @@ export class FilteredCases extends BaseTestCases {
       }
 
       // Cleanup
-      await junctionRepo.deleteAll({
+      await junctionRepo.deleteBy({
         where: { productId: product.data.id },
         options: { force: true },
       });
-      await productRepo.deleteAll({
+      await productRepo.deleteBy({
         where: { id: product.data.id },
         options: { force: true, shouldSkipDefaultFilter: true },
       });
-      await saleChannelRepo.deleteAll({ where: { id: channel.data.id }, options: { force: true } });
+      await saleChannelRepo.deleteBy({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {
       this.context.logger.error('[CASE 12] FAILED | Error: %s', (error as Error).message);
     }
@@ -418,14 +418,14 @@ export class FilteredCases extends BaseTestCases {
       const productsData = products.data!;
 
       for (const p of productsData) {
-        await junctionRepo.deleteAll({ where: { productId: p.id }, options: { force: true } });
-        await productRepo.deleteAll({
+        await junctionRepo.deleteBy({ where: { productId: p.id }, options: { force: true } });
+        await productRepo.deleteBy({
           where: { id: p.id },
           options: { force: true, shouldSkipDefaultFilter: true },
         });
       }
 
-      await saleChannelRepo.deleteAll({ where: { id: channel.data.id }, options: { force: true } });
+      await saleChannelRepo.deleteBy({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {
       this.context.logger.error('[CASE 15] FAILED | Error: %s', (error as Error).message);
     }

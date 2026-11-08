@@ -132,9 +132,9 @@ export class PersistableSearchRepository<
   }
 
   /** Count-only: search engines have no RETURNING and no extra read is bolted on, so `data` is always `null` and `shouldReturn` is rejected at the type level - callers wanting the affected documents read them before updating. */
-  override async updateAll(opts: {
+  override async updateBy(opts: {
     data: Partial<TDocument>;
-    where?: TWhere;
+    where: TWhere;
     options?: Omit<IExtraOptions, 'shouldReturn'> & { force?: boolean };
   }): Promise<TCount & { data: null }> {
     this.assertNoTransaction(opts.options);
@@ -154,7 +154,7 @@ export class PersistableSearchRepository<
 
     if (filterBy === undefined) {
       throw getError({
-        message: `[${this.constructor.name}][updateAll] DENY to perform | Collection: ${this.collectionName} | No effective where condition (no where and no @model settings.query.filter) - refusing an unfiltered bulk update`,
+        message: `[${this.constructor.name}][updateBy] DENY to perform | Collection: ${this.collectionName} | No effective where condition (no where and no @model settings.query.filter) - refusing an unfiltered bulk update`,
       });
     }
 
@@ -212,16 +212,16 @@ export class PersistableSearchRepository<
     return { count: 1, data };
   }
 
-  /** Count-only like updateAll: filter-delete when there is an effective where, truncating the whole collection only when neither where nor settings.query.filter is present - truncate reports no per-document count, so that path returns { count: 0, data: null }. */
-  override async deleteAll(opts?: {
-    where?: TWhere;
+  /** Count-only like updateBy: filter-delete when there is an effective where, truncating the whole collection only when neither where nor settings.query.filter is present - truncate reports no per-document count, so that path returns { count: 0, data: null }. */
+  override async deleteBy(opts: {
+    where: TWhere;
     options?: Omit<IExtraOptions, 'shouldReturn'> & { force?: boolean };
   }): Promise<TCount & { data: null }> {
-    this.assertNoTransaction(opts?.options);
-    this.assertNoLock(opts?.options);
+    this.assertNoTransaction(opts.options);
+    this.assertNoLock(opts.options);
 
-    const logger = this.logger.for(this.deleteAll.name);
-    const { where, options } = opts ?? {};
+    const logger = this.logger.for(this.deleteBy.name);
+    const { where, options } = opts;
     const { filterBy, matchNone } = this.buildScopedFilter({
       where,
       shouldSkipDefaultFilter: options?.shouldSkipDefaultFilter,
@@ -238,7 +238,7 @@ export class PersistableSearchRepository<
       // `where: {}` compiles to NO filter; wiping a collection must be asked for explicitly, exactly as Postgres demands `force` for an empty-where delete.
       if (!options?.force) {
         throw getError({
-          message: `[${this.constructor.name}][deleteAll] DENY to perform | Collection: ${this.collectionName} | No effective where condition (no where and no @model settings.query.filter) - pass options.force to truncate the collection`,
+          message: `[${this.constructor.name}][deleteBy] DENY to perform | Collection: ${this.collectionName} | No effective where condition (no where and no @model settings.query.filter) - pass options.force to truncate the collection`,
         });
       }
 
@@ -283,7 +283,7 @@ export class PersistableSearchRepository<
     return this.connector.document.import<TDocument>(importOpts);
   }
 
-  /** Resolves filterBy, AND-merging defaultWhere unless shouldSkipDefaultFilter. Returns undefined when there's no effective where - callers decide (updateAll refuses; deleteAll truncates). */
+  /** Resolves filterBy, AND-merging defaultWhere unless shouldSkipDefaultFilter. Returns undefined when there's no effective where - callers decide (updateBy refuses; deleteBy truncates). */
   protected buildFilterBy(opts: {
     where?: TWhere;
     shouldSkipDefaultFilter?: boolean;
@@ -293,9 +293,9 @@ export class PersistableSearchRepository<
 
   /**
    * The write-path filter as THREE outcomes, because two of them are catastrophically different
-   * here: `filterBy: undefined` means "no effective where", which `deleteAll` treats as licence to
+   * here: `filterBy: undefined` means "no effective where", which `deleteBy` treats as licence to
    * truncate when `force` is set. An absorbing where must never land there -
-   * `deleteAll({ where: { or: permittedIds.map(...) } })` on an EMPTY permission list has to
+   * `deleteBy({ where: { or: permittedIds.map(...) } })` on an EMPTY permission list has to
    * delete nothing, not the entire collection. `matchNone` is what keeps the two apart.
    */
   protected buildScopedFilter(opts: { where?: TWhere; shouldSkipDefaultFilter?: boolean }): {

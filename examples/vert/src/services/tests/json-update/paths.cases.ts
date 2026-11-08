@@ -50,7 +50,7 @@ export class PathsCases extends BaseTestCases {
         this.context.logger.error('[CASE 1] FAILED | Update count: %d', updateResult.count);
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[CASE 1] FAILED | Error: %s', (error as Error).message);
     }
@@ -100,7 +100,7 @@ export class PathsCases extends BaseTestCases {
         this.context.logger.error('[CASE 2] FAILED | Update count: %d', updateResult.count);
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[CASE 2] FAILED | Error: %s', (error as Error).message);
     }
@@ -157,7 +157,7 @@ export class PathsCases extends BaseTestCases {
         this.context.logger.error('[CASE 3] FAILED | Update count: %d', updateResult.count);
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[CASE 3] FAILED | Error: %s', (error as Error).message);
     }
@@ -214,7 +214,7 @@ export class PathsCases extends BaseTestCases {
         this.context.logger.error('[CASE 4] FAILED | Update count: %d', updateResult.count);
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[CASE 4] FAILED | Error: %s', (error as Error).message);
     }

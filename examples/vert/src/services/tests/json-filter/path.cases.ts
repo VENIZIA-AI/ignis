@@ -221,12 +221,12 @@ export class PathCases extends BaseTestCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       this.context.logger.error('[CASE 17] FAILED | Error: %s', (error as Error).message);
 
       try {
-        await repo.deleteAll({ where: { group } });
+        await repo.deleteBy({ where: { group } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }

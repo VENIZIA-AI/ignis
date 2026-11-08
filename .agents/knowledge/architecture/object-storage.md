@@ -131,13 +131,13 @@ derives one, because reading `max(sequence)` and writing `max + 1` is the same n
 `recreate-metalink` below. It defaults to 0, so `ORDER BY sequence, createdAt` reproduces the order
 legacy rows already had; drop the tiebreak and they come back arbitrary.
 
-`recreate-metalink` refreshes, then creates. `updateAll` over `(bucketName, objectName)` rewrites
+`recreate-metalink` refreshes, then creates. `updateBy` over `(bucketName, objectName)` rewrites
 stored-object facts on EVERY row of the pair, and keeps each row's own labels and `storageType`; the
 earlier `findOne` + `updateById` touched only the first row found and overwrote its `storageType`
 with the controller's own backend. What a refresh writes depends on `metaLink.createMetaLink`: with
-one configured, ONE `updateAll` writes only `mimetype`, `size`, `etag`, `isSynced` - the hook owns
+one configured, ONE `updateBy` writes only `mimetype`, `size`, `etag`, `isSynced` - the hook owns
 `link` and `metadata` on that row (an enrichment such as a consumer's inventory width/height/placeholder
-survives a recreate); without one, that same `updateAll` also writes `link`, and then ONE `updateById`
+survives a recreate); without one, that same `updateBy` also writes `link`, and then ONE `updateById`
 PER ROW merges `metadata: { ...row.metadata, ...fileStat.metadata }` (the stat's keys win, skipped
 entirely when the stat carries none) - fed from the first statement's own `RETURNING`, not a second
 read, because `find` applies `DEFAULT_LIMIT` (10) and would silently refresh only part of a larger

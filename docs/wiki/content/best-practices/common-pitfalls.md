@@ -147,7 +147,6 @@ await userRepository.updateBy({
   where: {},  // Empty where = targets ALL records
 });
 // Error: [_update] Entity: User | DENY to perform update | Empty where condition
-// (updateBy is an alias that delegates to updateAll)
 
 // ✅ GOOD - Explicit where condition
 await userRepository.updateBy({

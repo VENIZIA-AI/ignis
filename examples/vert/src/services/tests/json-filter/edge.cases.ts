@@ -13,7 +13,7 @@ export class EdgeCases extends BaseTestCases {
     this.context.logCase('[CASE 16] Cleanup JSON filter test data');
 
     try {
-      const deleted = await repo.deleteAll({ where: { group: 'JSON_FILTER_TEST' } });
+      const deleted = await repo.deleteBy({ where: { group: 'JSON_FILTER_TEST' } });
       this.context.logger.info('[CASE 16] PASSED | Deleted %d records', deleted.count);
     } catch (error) {
       this.context.logger.error('[CASE 16] FAILED | Error: %s', (error as Error).message);
@@ -81,12 +81,12 @@ export class EdgeCases extends BaseTestCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       this.context.logger.error('[CASE 18] FAILED | Error: %s', (error as Error).message);
 
       try {
-        await repo.deleteAll({ where: { group } });
+        await repo.deleteBy({ where: { group } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }
@@ -150,12 +150,12 @@ export class EdgeCases extends BaseTestCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       this.context.logger.error('[CASE 19] FAILED | Error: %s', (error as Error).message);
 
       try {
-        await repo.deleteAll({ where: { group } });
+        await repo.deleteBy({ where: { group } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }
@@ -246,7 +246,7 @@ export class EdgeCases extends BaseTestCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       this.context.logger.error('[CASE 20] FAILED | Error: %s', (error as Error).message);
       this.context.logger.error(
@@ -254,7 +254,7 @@ export class EdgeCases extends BaseTestCases {
       );
 
       try {
-        await repo.deleteAll({ where: { group } });
+        await repo.deleteBy({ where: { group } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }

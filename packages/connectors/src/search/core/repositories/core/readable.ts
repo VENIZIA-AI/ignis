@@ -487,17 +487,13 @@ export class ReadableSearchRepository<
     return this.denyOperation({ methodName: this.updateById.name });
   }
 
-  /**
-   * @throws Error - disabled in a read-only repository. `where` is optional where the base contract
-   * requires it: the `@model` `settings.query.filter` alone can supply the effective filter, and Persistable
-   * refuses the write outright when neither is present.
-   */
-  updateAll(_opts: {
+  /** @throws Error - disabled in a read-only repository. */
+  updateBy(_opts: {
     data: Partial<TDocument>;
-    where?: TWhere;
+    where: TWhere;
     options?: Omit<IExtraOptions, 'shouldReturn'> & { force?: boolean };
   }): Promise<TCount & { data: null }> {
-    return this.denyOperation({ methodName: this.updateAll.name });
+    return this.denyOperation({ methodName: this.updateBy.name });
   }
 
   /** @throws Error - disabled in a read-only repository. */
@@ -517,10 +513,10 @@ export class ReadableSearchRepository<
   }
 
   /** @throws Error - disabled in a read-only repository. Unlocked by DefaultSearchRepository. */
-  deleteAll(_opts?: {
-    where?: TWhere;
+  deleteBy(_opts: {
+    where: TWhere;
     options?: Omit<IExtraOptions, 'shouldReturn'> & { force?: boolean };
   }): Promise<TCount & { data: null }> {
-    return this.denyOperation({ methodName: this.deleteAll.name });
+    return this.denyOperation({ methodName: this.deleteBy.name });
   }
 }

@@ -2,15 +2,15 @@ import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
-// Delete Cases - deleteById and deleteAll operations
+// Delete Cases - deleteById and deleteBy operations
 // ----------------------------------------------------------------
 export class DeleteCases extends BaseTestCases {
   // ----------------------------------------------------------------
-  // CASE 8: DeleteById and DeleteAll
+  // CASE 8: DeleteById and DeleteBy
   // ----------------------------------------------------------------
-  async case8DeleteByIdAndDeleteAll(): Promise<void> {
+  async case8DeleteByIdAndDeleteBy(): Promise<void> {
     const repo = this.context.configurationRepository;
-    this.context.logCase('[case8DeleteByIdAndDeleteAll] DeleteById and DeleteAll');
+    this.context.logCase('[case8DeleteByIdAndDeleteBy] DeleteById and DeleteBy');
 
     const group = `REPO_DELETE_${ParseUtility.getUID()}`;
 
@@ -28,12 +28,12 @@ export class DeleteCases extends BaseTestCases {
 
       if (deleteByIdResult.count === 1 && deleteByIdResult.data?.id === firstId) {
         this.context.logger.info(
-          '[case8DeleteByIdAndDeleteAll] PASSED | DeleteById removed record | id: %s',
+          '[case8DeleteByIdAndDeleteBy] PASSED | DeleteById removed record | id: %s',
           firstId,
         );
       } else {
         this.context.logger.error(
-          '[case8DeleteByIdAndDeleteAll] FAILED | DeleteById result: %j',
+          '[case8DeleteByIdAndDeleteBy] FAILED | DeleteById result: %j',
           deleteByIdResult,
         );
       }
@@ -42,40 +42,40 @@ export class DeleteCases extends BaseTestCases {
 
       if (verifyDeleted === null) {
         this.context.logger.info(
-          '[case8DeleteByIdAndDeleteAll] PASSED | DeleteById verified (record not found)',
+          '[case8DeleteByIdAndDeleteBy] PASSED | DeleteById verified (record not found)',
         );
       } else {
         this.context.logger.error(
-          '[case8DeleteByIdAndDeleteAll] FAILED | Record still exists after DeleteById',
+          '[case8DeleteByIdAndDeleteBy] FAILED | Record still exists after DeleteById',
         );
       }
 
-      const deleteAllResult = await repo.deleteAll({ where: { group } });
+      const deleteByResult = await repo.deleteBy({ where: { group } });
 
-      if (deleteAllResult.count === 2) {
+      if (deleteByResult.count === 2) {
         this.context.logger.info(
-          '[case8DeleteByIdAndDeleteAll] PASSED | DeleteAll removed remaining records | count: %d',
-          deleteAllResult.count,
+          '[case8DeleteByIdAndDeleteBy] PASSED | DeleteBy removed remaining records | count: %d',
+          deleteByResult.count,
         );
       } else {
         this.context.logger.error(
-          '[case8DeleteByIdAndDeleteAll] FAILED | DeleteAll expected 2 | got: %d',
-          deleteAllResult.count,
+          '[case8DeleteByIdAndDeleteBy] FAILED | DeleteBy expected 2 | got: %d',
+          deleteByResult.count,
         );
       }
 
       const remaining = await repo.find({ filter: { where: { group } } });
 
       if (remaining.length === 0) {
-        this.context.logger.info('[case8DeleteByIdAndDeleteAll] PASSED | All records deleted');
+        this.context.logger.info('[case8DeleteByIdAndDeleteBy] PASSED | All records deleted');
       } else {
         this.context.logger.error(
-          '[case8DeleteByIdAndDeleteAll] FAILED | Records still remain | count: %d',
+          '[case8DeleteByIdAndDeleteBy] FAILED | Records still remain | count: %d',
           remaining.length,
         );
       }
     } catch (error) {
-      this.context.logger.error('[case8DeleteByIdAndDeleteAll] FAILED | Error: %s', error);
+      this.context.logger.error('[case8DeleteByIdAndDeleteBy] FAILED | Error: %s', error);
     }
   }
 

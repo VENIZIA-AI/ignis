@@ -237,17 +237,17 @@ describe('vert', async () => {
       const policies = repository<PolicyDefinitionRepository>({
         name: PolicyDefinitionRepository.name,
       });
-      await policies.deleteAll({ where: { domainId: seeded.organizationId } });
+      await policies.deleteBy({ where: { domainId: seeded.organizationId } });
       await repository<RoleRepository>({ name: RoleRepository.name }).deleteById({
         id: seeded.roleId,
       });
       await repository<OrganizationRepository>({ name: OrganizationRepository.name }).deleteById({
         id: seeded.organizationId,
       });
-      await repository<ConfigurationRepository>({ name: ConfigurationRepository.name }).deleteAll({
+      await repository<ConfigurationRepository>({ name: ConfigurationRepository.name }).deleteBy({
         where: { code: configurationCode },
       });
-      await repository<UserRepository>({ name: UserRepository.name }).deleteAll({
+      await repository<UserRepository>({ name: UserRepository.name }).deleteBy({
         where: { username: { inq: [reader, outsider] } },
       });
       await application.stop();

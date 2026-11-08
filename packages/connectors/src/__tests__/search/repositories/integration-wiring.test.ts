@@ -209,12 +209,12 @@ describe('End-to-end search wiring - dual-schema, @repository, controller factor
       expect(params['filter_by']).toBe('(isActive:=true && title:=`foo`)');
     });
 
-    test('deleteAll with no where falls back to filter-delete (defaultWhere), not truncate', async () => {
+    test('deleteBy with no where falls back to filter-delete (defaultWhere), not truncate', async () => {
       const dataSource = new AppSearchDataSource({ name: 'wiring-search-ds-6', config: {} });
       const repositoryInstance = new SprocketSearchRepository(dataSource);
       dataSource.fakeConnector.deleteByFilterResponse = 2;
 
-      const result = await repositoryInstance.deleteAll();
+      const result = await repositoryInstance.deleteBy({ where: {} });
 
       expect(result).toEqual({ count: 2, data: null });
       expect(dataSource.fakeConnector.deleteByFilterCalls[0]?.filterBy).toBe('isActive:=true');

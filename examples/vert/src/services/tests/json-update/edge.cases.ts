@@ -44,7 +44,7 @@ export class EdgeCases extends BaseTestCases {
         }
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[CASE 12] FAILED | Setup error: %s', (error as Error).message);
     }
@@ -90,7 +90,7 @@ export class EdgeCases extends BaseTestCases {
         }
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[CASE 13] FAILED | Setup error: %s', (error as Error).message);
     }
@@ -145,7 +145,7 @@ export class EdgeCases extends BaseTestCases {
         this.context.logger.info('[CASE 14] PASSED | All invalid paths rejected');
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[CASE 14] FAILED | Setup error: %s', (error as Error).message);
     }
@@ -203,7 +203,7 @@ export class EdgeCases extends BaseTestCases {
         this.context.logger.info('[CASE 15] PASSED | All SQL injection paths rejected');
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[CASE 15] FAILED | Setup error: %s', (error as Error).message);
     }
@@ -260,7 +260,7 @@ export class EdgeCases extends BaseTestCases {
         this.context.logger.info('[CASE 16] PASSED | Database intact after injection attempt');
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[CASE 16] FAILED | Error: %s', (error as Error).message);
     }

@@ -859,7 +859,7 @@ export class AssetControllerFactory extends BaseHelper {
                 value: metaLink.repository,
               });
               deleteRepository
-                .deleteAll({
+                .deleteBy({
                   where: {
                     bucketName,
                     objectName,

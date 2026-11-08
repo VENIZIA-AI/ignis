@@ -292,11 +292,11 @@ describe('HttpRepository - the write verbs map to the IGNIS CRUD routes', () => 
     expect(attempts[0].body).toBe(JSON.stringify({ title: 'x' }));
   });
 
-  test('updateAll is PATCH / with where in the body beside the data', async () => {
+  test('updateBy is PATCH / with where in the body beside the data', async () => {
     const attempts = stubFetch([{ status: 200, body: [], headers: { 'x-response-count': '0' } }]);
     const where = { status: 'open' };
 
-    await buildRepository().updateAll({ where, data: { status: 'closed' } });
+    await buildRepository().updateBy({ where, data: { status: 'closed' } });
 
     expect(attempts[0]).toMatchObject({ url: `${BASE_URL}/tickets`, method: 'PATCH' });
     expect(JSON.parse(String(attempts[0].body))).toEqual({ where, status: 'closed' });
@@ -321,11 +321,11 @@ describe('HttpRepository - the write verbs map to the IGNIS CRUD routes', () => 
     expect(rs).toEqual({ count: 1, data: { id: 't1', title: 'a' } });
   });
 
-  test('deleteAll is DELETE / with where in the body, so a long id list fits', async () => {
+  test('deleteBy is DELETE / with where in the body, so a long id list fits', async () => {
     const attempts = stubFetch([{ status: 200, body: [], headers: { 'x-response-count': '0' } }]);
     const ids = Array.from({ length: 2000 }, (_, index) => `id-${index}`);
 
-    await buildRepository().deleteAll({ where: { id: { inq: ids } } });
+    await buildRepository().deleteBy({ where: { id: { inq: ids } } });
 
     expect(attempts[0]).toMatchObject({ url: `${BASE_URL}/tickets`, method: 'DELETE' });
     expect(JSON.parse(String(attempts[0].body))).toEqual({ where: { id: { inq: ids } } });
@@ -343,11 +343,11 @@ describe('HttpRepository - the write verbs map to the IGNIS CRUD routes', () => 
     const attempts = stubFetch([{ status: 200, body: [] }]);
 
     await RejectionHelper.expectRejection({
-      task: buildRepository().updateAll({ where: {}, data: { status: 'closed' } }),
+      task: buildRepository().updateBy({ where: {}, data: { status: 'closed' } }),
       message: /where is required/,
     });
     await RejectionHelper.expectRejection({
-      task: buildRepository().deleteAll({ where: {} }),
+      task: buildRepository().deleteBy({ where: {} }),
       message: /where is required/,
     });
     expect(attempts).toHaveLength(0);

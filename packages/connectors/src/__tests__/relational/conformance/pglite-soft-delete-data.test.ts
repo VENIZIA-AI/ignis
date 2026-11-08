@@ -42,6 +42,12 @@ class ScopedItem extends BasePostgresEntity<typeof itemTable> {
 }
 
 @model({ type: 'entity' })
+class OpenItem extends BasePostgresEntity<typeof itemTable> {
+  static override TABLE_NAME = TABLE_NAME;
+  static override schema = itemTable;
+}
+
+@model({ type: 'entity' })
 class PlainItem extends BasePostgresEntity<typeof itemTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = itemTable;
@@ -85,11 +91,13 @@ afterAll(async () => {
 const items = new SoftDeletableRelationalRepository<AnyType>(dataSource, {
   entityClass: ScopedItem,
 });
+const open = new SoftDeletableRelationalRepository<AnyType>(dataSource, { entityClass: OpenItem });
 const plain = new PGliteCRUDRepository<AnyType>(dataSource, { entityClass: PlainItem });
 
 defineSoftDeleteDataCases(() => ({
   items,
   plain,
+  open,
   codeKey: UniqueKeys.of({ table: itemTable, index: 'soft_delete_data_pg_code' }),
   executor: dataSource.getQueryExecutor(),
   setResolver: (next) => {
