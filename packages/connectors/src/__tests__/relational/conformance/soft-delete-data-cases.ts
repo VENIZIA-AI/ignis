@@ -5,13 +5,7 @@ import { RepositoryErrorCodes, ScopeOperations } from '@venizia/ignis-kernel';
 import type { TScopeOperation } from '@venizia/ignis-kernel';
 import { describe, expect, spyOn, test } from 'bun:test';
 
-/**
- * `deletedAt` against a real engine; the cases are shared by `pglite-soft-delete-data.test.ts` and
- * `libsql-soft-delete-data.test.ts`. The table, in both engines: `id`, `merchant_id`, a unique `code`, `status`
- * (default `'open'`) and `deleted_at`.
- *
- * The seed: 1 `A` and 3 `C` are merchant `m1`'s, 2 `B` is `m2`'s; all three are open and alive.
- */
+/** `deletedAt` on a real engine. Seed: 1 `A` and 3 `C` are merchant `m1`'s, 2 `B` is `m2`'s; all open and alive. */
 export interface ISoftDeleteDataRow {
   id: number;
   merchantId: string;
@@ -21,9 +15,8 @@ export interface ISoftDeleteDataRow {
 }
 
 export interface ISoftDeleteDataContext {
-  /** The soft-deletable repository, scoped to the resolver's `merchantId`. */
   items: AnyType;
-  /** The same table through a repository that does not soft delete, with no scope. */
+  /** The same table, through a repository that does not soft delete. */
   plain: AnyType;
   codeKey: AnyType;
   /** The query executor every repository of the engine shares, to count the statements a call runs. */
@@ -43,11 +36,9 @@ const DELETED_AT_COLUMN = 'deleted_at';
 const MESSAGE =
   'deletedAt changes only through deleteById/deleteAll/deleteBy and restoreById/restoreAll/restoreBy';
 
-/** The three ways a caller can name the soft-delete column in `data`. */
 const DELETED_AT_DATA: ReadonlyArray<{ title: string; data: () => Record<string, unknown> }> = [
   { title: 'a date under the property name', data: () => ({ deletedAt: new Date() }) },
   { title: 'null under the property name', data: () => ({ deletedAt: null }) },
-  { title: 'a date under the column name', data: () => ({ [DELETED_AT_COLUMN]: new Date() }) },
 ];
 
 const codeOf = (error: unknown): unknown => {
@@ -93,22 +84,31 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
     return rows.filter((row) => row.isDeleted).length;
   };
 
-  /** The call is refused with the 400 that names the delete and restore calls, and the table is what it was. */
-  const expectRefused = async (opts: {
+  const expectBadRequest = async (opts: {
     ctx: ISoftDeleteDataContext;
     task: () => Promise<unknown>;
-    message?: string;
   }) => {
     const before = await opts.ctx.rawRows();
 
     const error = await RejectionHelper.rejectionOf({ task: opts.task() });
 
     expect(statusOf(error)).toBe(400);
-    expect(messageOf(error)).toContain(opts.message ?? MESSAGE);
 
     const after = await opts.ctx.rawRows();
 
     expect(after).toEqual(before);
+
+    return error;
+  };
+
+  const expectRefused = async (opts: {
+    ctx: ISoftDeleteDataContext;
+    task: () => Promise<unknown>;
+    message?: string;
+  }) => {
+    const error = await expectBadRequest(opts);
+
+    expect(messageOf(error)).toContain(opts.message ?? MESSAGE);
   };
 
   describe('an ordinary update or upsert refuses deletedAt', () => {
@@ -160,6 +160,22 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
         });
       });
     }
+
+    test('the column name is no way round it: an update answers 400, an upsert ignores the key', async () => {
+      const ctx = await setup();
+      const data = { [DELETED_AT_COLUMN]: new Date() };
+
+      await expectBadRequest({ ctx, task: () => ctx.items.updateById({ id: 1, data }) });
+      await expectBadRequest({ ctx, task: () => ctx.items.updateAll({ where: MINE, data }) });
+      await expectBadRequest({
+        ctx,
+        task: () => ctx.items.updateEach({ rows: [{ id: 1, data }] }),
+      });
+
+      await ctx.items.upsert({ data: { merchantId: ME, code: 'A', ...data }, on: ctx.codeKey });
+
+      await expectRow({ ctx, code: 'A', row: { isDeleted: false } });
+    });
 
     test('an update without deletedAt still works', async () => {
       const ctx = await setup();
@@ -343,6 +359,36 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
         });
       });
     }
+
+    test('the column name is no way round it for a soft delete either', async () => {
+      const ctx = await setup();
+      const data = { [DELETED_AT_COLUMN]: new Date() };
+
+      await expectBadRequest({ ctx, task: () => ctx.items.deleteById({ id: 1, data }) });
+      await expectBadRequest({ ctx, task: () => ctx.items.deleteAll({ where: MINE, data }) });
+      await expectBadRequest({ ctx, task: () => ctx.items.deleteBy({ where: MINE, data }) });
+    });
+
+    test('data that moves the id is refused, so a soft delete cannot change the key', async () => {
+      const ctx = await setup();
+      const message = 'data of a soft delete cannot change the id';
+
+      await expectRefused({
+        ctx,
+        message,
+        task: () => ctx.items.deleteById({ id: 1, data: { id: 99 } }),
+      });
+      await expectRefused({
+        ctx,
+        message,
+        task: () => ctx.items.deleteAll({ where: MINE, data: { id: 99 } }),
+      });
+      await expectRefused({
+        ctx,
+        message,
+        task: () => ctx.items.deleteBy({ where: MINE, data: { id: 99 } }),
+      });
+    });
 
     test('a hard delete refuses data and deletes nothing', async () => {
       const ctx = await setup();

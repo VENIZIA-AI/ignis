@@ -47,7 +47,7 @@ export class PersistableRelationalRepository<
     return (this.queryDialect as { updateBuilder?: AnyType }).updateBuilder;
   }
 
-  /** Runs before every public update and upsert, with the `data` it was given; throw to refuse the call. Accepts everything by default. */
+  /** Throw to refuse an update's data. */
   protected validateUpdateData(_opts: { data: object }): void {}
 
   /** Guards id-based operations against a null/undefined id */

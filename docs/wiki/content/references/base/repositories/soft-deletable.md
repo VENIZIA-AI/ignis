@@ -242,7 +242,7 @@ const category = await repository.findById({
 
 ## Writing deletedAt
 
-`deletedAt` changes only through `deleteById`, `deleteAll`, `deleteBy` and the restore methods. `updateById`, `updateAll`, `updateBy`, `updateEach` and `upsert` refuse a `data` that carries it, under the property name or the column name, with any value including `null`: the call fails with a 400 and writes nothing.
+`deletedAt` changes only through `deleteById`, `deleteAll`, `deleteBy` and the restore methods. `updateById`, `updateAll`, `updateBy`, `updateEach` and `upsert` refuse a `data` that carries it, with any value including `null`: the call fails with a 400 and writes nothing.
 
 A model with a `deletedAt` column also reports it as server-stamped, like the audit columns, so the default `POST` and `PATCH` bodies of `ControllerFactory.defineCrudController` leave it out. A route you give your own `request.body` keeps whatever that body declares.
 
@@ -260,7 +260,7 @@ await repository.deleteAll({ where: { status: 'DRAFT' }, data: { status: 'ARCHIV
 
 A soft delete is a delete to the row scope, so the row selection and the values in `data` are checked against the `DELETE` scope, not the `UPDATE` one. A value outside that scope is refused with a 403, and a row outside it is not touched.
 
-- **`data` may not carry `deletedAt`.** The call fails with the same 400 as an update.
+- **`data` may not carry `deletedAt` or `id`.** The call fails with a 400.
 - **`data` and `shouldHardDelete` do not mix.** A hard delete writes no columns, so the call fails with a 400.
 - **Restore takes no `data`.**
 

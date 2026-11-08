@@ -111,10 +111,7 @@ export declare class BaseRelationalEntity<Schema extends TTableSchemaWithId = TT
     });
     /** Maps the schema's id column's Drizzle `dataType` to 'number' (serial/integer) or 'string' (everything else, including bigint/unknown). */
     getIdType(): TIdSchemaType;
-    /**
-     * The audit keys whose column carries a default or `$onUpdate` (an audit column with neither is left to the client),
-     * and `deletedAt` whenever the table has that column: it changes only through the delete and restore calls.
-     */
+    /** The audit keys whose column has a default or `$onUpdate`, and `deletedAt` whenever the table has that column. */
     getServerStampedKeys(): string[];
     getSchema<T = unknown>(opts: {
         type: TSchemaType;
@@ -1174,7 +1171,7 @@ export declare class PersistableRelationalRepository<EntitySchema extends TTable
     });
     /** Reach the engine's update transform through `dataSource.getQueryDialect()`. Engines without an update builder return `undefined`. `AnyType` rather than `unknown`: the concrete builder is engine-specific, and `unknown` breaks every `updateBuilder.transform(...)` call site. */
     get updateBuilder(): AnyType;
-    /** Runs before every public update and upsert, with the `data` it was given; throw to refuse the call. Accepts everything by default. */
+    /** Throw to refuse an update's data. */
     protected validateUpdateData(_opts: {
         data: object;
     }): void;
@@ -2406,11 +2403,10 @@ Repository that soft-deletes (sets `deletedAt`) instead of physically removing r
 ````ts
 export declare class SoftDeletableRelationalRepository<EntitySchema extends TSoftDeletableTableSchema = TSoftDeletableTableSchema, DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>, PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>, ExtraOptions extends IExtraOptions = IRelationalExtraOptions, TDataSource extends IRelationalDataSource = IRelationalDataSource> extends DefaultRelationalRepository<EntitySchema, DataObject, PersistObject, ExtraOptions, TDataSource> {
     private softDeletePatch;
-    /** Refuses `data` that carries the soft-delete column, by property or column name, with any value: it changes only through the delete and restore calls. */
+    /** `deletedAt` changes only through delete and restore. */
     protected validateUpdateData(opts: {
         data: object;
     }): void;
-    /** A soft delete writes `data` in the same statement as `deletedAt`: `data` may not carry `deletedAt`, and a hard delete writes nothing. */
     private validateDeleteData;
     /** `isStrict` is evaluated AFTER `options.retry` has been exhausted - the retry loop lives inside `super.findById` -> `findOne`, so a strict read waits out replica lag before it 404s. */
     findById<R = unknown, const F extends TFields<DataObject> = TFields<DataObject>>(opts: {
@@ -2429,7 +2425,7 @@ export declare class SoftDeletableRelationalRepository<EntitySchema extends TSof
     }): Promise<TRow<DataObject, R, F>>;
     deleteById(opts: {
         id: DataObject['id'];
-        data?: Partial<Omit<PersistObject, 'deletedAt'>>;
+        data?: TSoftDeleteData<PersistObject>;
         options: ExtraOptions & {
             shouldReturn: false;
             shouldHardDelete?: boolean;
@@ -2439,7 +2435,7 @@ export declare class SoftDeletableRelationalRepository<EntitySchema extends TSof
     }>;
     deleteById<R = DataObject>(opts: {
         id: DataObject['id'];
-        data?: Partial<Omit<PersistObject, 'deletedAt'>>;
+        data?: TSoftDeleteData<PersistObject>;
         options?: ExtraOptions & {
             shouldReturn?: true;
             shouldHardDelete?: boolean;
@@ -2449,7 +2445,7 @@ export declare class SoftDeletableRelationalRepository<EntitySchema extends TSof
     }>;
     deleteAll(opts: {
         where?: TWhere<DataObject>;
-        data?: Partial<Omit<PersistObject, 'deletedAt'>>;
+        data?: TSoftDeleteData<PersistObject>;
         options: ExtraOptions & {
             shouldReturn: false;
             force?: boolean;
@@ -2460,7 +2456,7 @@ export declare class SoftDeletableRelationalRepository<EntitySchema extends TSof
     }>;
     deleteAll<R = DataObject>(opts: {
         where?: TWhere<DataObject>;
-        data?: Partial<Omit<PersistObject, 'deletedAt'>>;
+        data?: TSoftDeleteData<PersistObject>;
         options?: ExtraOptions & {
             shouldReturn?: true;
             force?: boolean;
@@ -2471,7 +2467,7 @@ export declare class SoftDeletableRelationalRepository<EntitySchema extends TSof
     }>;
     deleteBy(opts: {
         where: TWhere<DataObject>;
-        data?: Partial<Omit<PersistObject, 'deletedAt'>>;
+        data?: TSoftDeleteData<PersistObject>;
         options: ExtraOptions & {
             shouldReturn: false;
             force?: boolean;
@@ -2482,7 +2478,7 @@ export declare class SoftDeletableRelationalRepository<EntitySchema extends TSof
     }>;
     deleteBy<R = DataObject>(opts: {
         where: TWhere<DataObject>;
-        data?: Partial<Omit<PersistObject, 'deletedAt'>>;
+        data?: TSoftDeleteData<PersistObject>;
         options?: ExtraOptions & {
             shouldReturn?: true;
             force?: boolean;
@@ -2555,6 +2551,10 @@ export declare class SoftDeletableRelationalRepository<EntitySchema extends TSof
         data: TNullable<Array<R>>;
     }>;
 }
+
+type TSoftDeleteData<PersistObject> = Partial<Omit<PersistObject, typeof ID_KEY | 'deletedAt'>>;
+
+declare const ID_KEY = "id";
 ````
 
 Source: `packages/connectors/src/relational/core/repositories/core/soft-deletable.ts`

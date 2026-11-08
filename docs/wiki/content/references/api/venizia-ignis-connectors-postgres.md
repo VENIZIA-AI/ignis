@@ -89,10 +89,7 @@ export declare class BaseRelationalEntity<Schema extends TTableSchemaWithId = TT
     });
     /** Maps the schema's id column's Drizzle `dataType` to 'number' (serial/integer) or 'string' (everything else, including bigint/unknown). */
     getIdType(): TIdSchemaType;
-    /**
-     * The audit keys whose column carries a default or `$onUpdate` (an audit column with neither is left to the client),
-     * and `deletedAt` whenever the table has that column: it changes only through the delete and restore calls.
-     */
+    /** The audit keys whose column has a default or `$onUpdate`, and `deletedAt` whenever the table has that column. */
     getServerStampedKeys(): string[];
     getSchema<T = unknown>(opts: {
         type: TSchemaType;
@@ -163,10 +160,7 @@ export declare class BaseRelationalEntity<Schema extends TTableSchemaWithId = TT
     });
     /** Maps the schema's id column's Drizzle `dataType` to 'number' (serial/integer) or 'string' (everything else, including bigint/unknown). */
     getIdType(): TIdSchemaType;
-    /**
-     * The audit keys whose column carries a default or `$onUpdate` (an audit column with neither is left to the client),
-     * and `deletedAt` whenever the table has that column: it changes only through the delete and restore calls.
-     */
+    /** The audit keys whose column has a default or `$onUpdate`, and `deletedAt` whenever the table has that column. */
     getServerStampedKeys(): string[];
     getSchema<T = unknown>(opts: {
         type: TSchemaType;
