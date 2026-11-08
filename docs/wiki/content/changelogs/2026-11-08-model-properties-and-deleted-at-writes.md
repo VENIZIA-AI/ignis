@@ -14,7 +14,7 @@ packages: ['@venizia/ignis', '@venizia/ignis-connectors']
 
 ## What changed
 
-- **`hiddenProperties` is now `properties.hidden`.** There is no alias. A typed `@model` that still writes `hiddenProperties` fails the typecheck; an untyped one stops hiding the properties without any error.
+- **`hiddenProperties` is now `properties.hidden`.** There is no alias. A typed `@model` that still writes `hiddenProperties` fails the typecheck, and any `@model` that still sets it throws when the class is declared: "hiddenProperties was replaced by properties.hidden".
 - **`properties.stamped` replaces `getServerStampedKeys()`.** It lists the properties the server fills, which the generated create and update bodies leave out. It takes an array or a Set. Without it the list is `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt` and `deletedAt`, for every model whatever its engine; a key the schema does not hold is ignored. `getServerStampedKeys()` is removed from `AbstractEntity` and `BaseRelationalEntity`, and so is the rule that counted an audit column only when it had a default or `$onUpdate`: an audit column you declare by hand is now dropped from the bodies too.
 - **`AuditFields` moves to the kernel.** It holds the default list and is exported from `@venizia/ignis-kernel`.
 - **The generated bodies drop `deletedAt`.** It is in the default list. A client that still sends it is not refused: validation strips it and the request goes on. A route with its own `request.body` is unchanged.
@@ -59,12 +59,12 @@ The extra `data` of a soft delete is checked against the `DELETE` scope only. A 
 
 ## Not covered
 
-- Data built to trick the check, such as an inherited key, a getter that changes between reads, or a Proxy, can still set `deletedAt` in server code. Server code is trusted, and a request body cannot be built that way.
+- Data built to trick the check, such as a getter that changes between reads or a Proxy, can still set `deletedAt` in server code. Server code is trusted, and a request body cannot be built that way.
 - `create` and `createAll` can still insert a row with `deletedAt` set. Only the generated route body drops it.
 
 ## Who is affected
 
-- **Every model that sets `hiddenProperties`.** Rename it to `properties.hidden`. Search for the old name: an untyped caller gets no error.
+- **Every model that sets `hiddenProperties`.** The application throws at boot. Rename it to `properties.hidden`.
 - **Code that calls `getServerStampedKeys()`, or an entity that overrides it.** Declare `properties.stamped` on the model instead.
 - **Models with a hand-declared audit column the client used to supply** (a required `createdBy`, say). They are dropped from the bodies now. Declare `properties: { stamped: [...] }` without that key.
 - **Search collections with a field named like an audit key.** Declare `properties: { stamped: [] }`.

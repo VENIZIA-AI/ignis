@@ -197,7 +197,7 @@ export interface IModelProperties {
    *
    * @default AuditFields.SCHEME_SET
    */
-  stamped?: Iterable<string>;
+  stamped?: ReadonlyArray<string> | ReadonlySet<string>;
 }
 
 /** Per-model settings passed to `@model` as `settings`. */

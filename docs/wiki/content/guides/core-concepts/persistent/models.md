@@ -335,7 +335,7 @@ The `@model` decorator accepts the following metadata:
 | `tableName` | `string` | Optional explicit table name |
 | `migration.use` | `boolean` | Default `true`. `false` marks the model for your migration tooling to skip (see [Migrations](#migrations)) |
 | `settings.properties.hidden` | `string[]` | Properties excluded from all query results |
-| `settings.properties.stamped` | `Iterable<string>` | Properties the generated create and update bodies leave out. Default: `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt`, `deletedAt` |
+| `settings.properties.stamped` | `ReadonlyArray<string> \| ReadonlySet<string>` | Properties the generated create and update bodies leave out. Default: `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt`, `deletedAt` |
 | `settings.query.filter` | `TFilter` | Default filter auto-applied to all queries |
 | `settings.query.limit.default` | `number` | Default row limit when a query omits `limit` (must be a positive integer; falls back to `10`) |
 | `settings.authorize.principal` | `string` | Authorization subject name for this model |
