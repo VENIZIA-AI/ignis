@@ -1307,12 +1307,12 @@ generated:
 - `Container` class
 - `ContextUtility` class
 - `controller` const
-- `ControllerFactory` class
 - `ControllerTransports` class
 - `CoreBindings` class
 - `CoreErrorCodes` class
 - `countableHeaders` const
 - `CountSchema` const
+- `CrudControllerFactory` class
 - `CrudRoutes` class
 - `DATA_SOURCE_BRAND` const
 - `DataRangeUtility` class
@@ -2575,7 +2575,6 @@ generated:
 - `ContentTypeTable` class
 - `ContextUtility` class
 - `controller` const
-- `ControllerFactory` class
 - `ControllerTransports` class
 - `CoreBindings` class
 - `CoreErrorCodes` class
@@ -2583,6 +2582,7 @@ generated:
 - `CountSchema` const
 - `CredentialAlgorithms` class
 - `CredentialHelper` class
+- `CrudControllerFactory` class
 - `CrudRoutes` class
 - `CustomGrantExpander` class
 - `D_STROKE_REPLACEMENTS` const

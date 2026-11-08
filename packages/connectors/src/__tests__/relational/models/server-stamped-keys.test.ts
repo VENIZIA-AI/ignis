@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import {
   controller,
-  ControllerFactory,
+  CrudControllerFactory,
   model,
   repository as repositoryDecorator,
 } from '@venizia/ignis-kernel';
@@ -112,7 +112,7 @@ const postgresBodies = async (opts: {
   entity: typeof PostgresRow;
   repositoryClass: typeof PostgresRowRepository;
 }) => {
-  const Controller = ControllerFactory.crud({
+  const Controller = CrudControllerFactory.build({
     repository: opts.repositoryClass,
     routes: { create: true, updateById: true },
   });
@@ -136,7 +136,7 @@ const handDeclaredBodies = async (opts: {
   entity: typeof HandDeclaredRow;
   repositoryClass: typeof HandDeclaredRowRepository;
 }) => {
-  const Controller = ControllerFactory.crud({
+  const Controller = CrudControllerFactory.build({
     repository: opts.repositoryClass,
     routes: { create: true },
   });
@@ -165,7 +165,7 @@ describe('the generated write bodies leave out the stamped keys', () => {
   });
 
   test('by default: the audit keys and deletedAt, on sqlite', async () => {
-    const Controller = ControllerFactory.crud({
+    const Controller = CrudControllerFactory.build({
       repository: SqliteRowRepository,
       routes: { create: true, updateById: true },
     });

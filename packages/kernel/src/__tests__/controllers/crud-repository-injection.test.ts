@@ -1,5 +1,5 @@
 import { CrudRoutes } from '@/base/controllers/common';
-import { ControllerFactory } from '@/base/controllers/factory/controller';
+import { CrudControllerFactory } from '@/base/controllers/factory/controller';
 import {
   controller as controllerDecorator,
   inject,
@@ -47,7 +47,7 @@ const buildContainer = () => {
   return container;
 };
 
-const ItemCrudController = ControllerFactory.crud({
+const ItemCrudController = CrudControllerFactory.build({
   repository: InjectionProbeItemRepository,
   routes: CrudRoutes.READ,
 });
@@ -77,7 +77,7 @@ const countThrough = async (opts: { controller: ItemController }) => {
   return { status: response.status, body: result };
 };
 
-describe('ControllerFactory.crud injects the repository class it is given', () => {
+describe('CrudControllerFactory.build injects the repository class it is given', () => {
   test('a subclass with no constructor resolves its repository and serves GET /count', async () => {
     const container = buildContainer();
     const resolved = container.resolve(ItemController);
@@ -117,17 +117,17 @@ describe('ControllerFactory.crud injects the repository class it is given', () =
 
     Object.defineProperty(Anonymous, 'name', { value: '' });
 
-    expect(() => ControllerFactory.crud({ repository: Anonymous })).toThrow(
-      '[ControllerFactory.crud] Invalid repository name',
+    expect(() => CrudControllerFactory.build({ repository: Anonymous })).toThrow(
+      '[CrudControllerFactory.build] Invalid repository name',
     );
   });
 });
 
-describe('ControllerFactory.registerRepositoryInjection - the one injection every generated controller uses', () => {
+describe('CrudControllerFactory.registerRepositoryInjection - the one injection every generated controller uses', () => {
   test('records repositories.<name> at parameter 0, required', () => {
     class GeneratedProbeController {}
 
-    ControllerFactory.registerRepositoryInjection({
+    CrudControllerFactory.registerRepositoryInjection({
       target: GeneratedProbeController,
       factoryName: 'defineProbeController',
       repositoryName: 'ProbeRepository',
@@ -141,7 +141,7 @@ describe('ControllerFactory.registerRepositoryInjection - the one injection ever
   test('the target is a class - a plain function is a compile error', () => {
     const plainFunction = () => undefined;
 
-    ControllerFactory.registerRepositoryInjection({
+    CrudControllerFactory.registerRepositoryInjection({
       // @ts-expect-error - a factory registers the injection on the class it generated, never on a plain function
       target: plainFunction,
       factoryName: 'defineProbeController',
@@ -157,7 +157,7 @@ describe('ControllerFactory.registerRepositoryInjection - the one injection ever
     class NamelessProbeController {}
 
     expect(() =>
-      ControllerFactory.registerRepositoryInjection({
+      CrudControllerFactory.registerRepositoryInjection({
         target: NamelessProbeController,
         factoryName: 'defineProbeController',
         repositoryName: '',

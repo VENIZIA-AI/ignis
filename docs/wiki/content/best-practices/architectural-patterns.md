@@ -355,11 +355,11 @@ Two more interfaces live in the same file and are **not** part of `IRestApplicat
 
 ## 7. Controller Factory Pattern
 
-`ControllerFactory.crud()` generates a CRUD controller from a repository class, with the routes you list. This reduces boilerplate while maintaining full customization.
+`CrudControllerFactory.build()` generates a CRUD controller from a repository class, with the routes you list. This reduces boilerplate while maintaining full customization.
 
 **Basic Usage:**
 ```typescript
-const _Controller = ControllerFactory.crud({
+const _Controller = CrudControllerFactory.build({
   repository: UserRepository, // The entity comes from @repository({ model }) on the class
   // Default: { path: true, requestSchema: true }
   isStrict: { path: true, requestSchema: true },
@@ -373,7 +373,7 @@ export class UserController extends _Controller {}
 
 **Per-Route Authentication:**
 ```typescript
-const _Controller = ControllerFactory.crud({
+const _Controller = CrudControllerFactory.build({
   repository: UserRepository,
 
   // Apply JWT to all listed routes by default
@@ -396,7 +396,7 @@ const _Controller = ControllerFactory.crud({
 
 **Custom Schemas Per Route:**
 ```typescript
-const _Controller = ControllerFactory.crud({
+const _Controller = CrudControllerFactory.build({
   repository: UserRepository,
 
   routes: {

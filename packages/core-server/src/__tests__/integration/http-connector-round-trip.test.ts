@@ -7,7 +7,7 @@ import { Hono } from 'hono';
 import { pgTable, serial, text } from 'drizzle-orm/pg-core';
 import {
   controller,
-  ControllerFactory,
+  CrudControllerFactory,
   CrudRoutes,
   datasource,
   model,
@@ -87,7 +87,7 @@ beforeAll(async () => {
     entityClass: HttpRoundTripNote,
   });
 
-  const NoteCrudController = ControllerFactory.crud({
+  const NoteCrudController = CrudControllerFactory.build({
     repository: HttpRoundTripNoteRepository,
     routes: {
       ...CrudRoutes.READ,

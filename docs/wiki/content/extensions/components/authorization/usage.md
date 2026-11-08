@@ -204,12 +204,12 @@ authorize: { action: AuthorizationActions.DELETE, resource: 'Article', allowedRo
 
 ## CRUD factory integration
 
-**Apply to every listed route.** Set `authorize` at the controller level in `ControllerFactory.crud`. A write route (`create`, `updateById`, `updateBy`, `deleteById`, `deleteBy`) must not inherit a `read` spec, so give each listed write route its own, or do not list it.
+**Apply to every listed route.** Set `authorize` at the controller level in `CrudControllerFactory.build`. A write route (`create`, `updateById`, `updateBy`, `deleteById`, `deleteBy`) must not inherit a `read` spec, so give each listed write route its own, or do not list it.
 
 ```typescript
 import { AuthorizationActions, CrudRoutes } from '@venizia/ignis';
 
-ControllerFactory.crud({
+CrudControllerFactory.build({
   repository: ArticleRepository,
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   authorize: { action: AuthorizationActions.READ, resource: 'Article' },
@@ -225,7 +225,7 @@ ControllerFactory.crud({
 ```
 
 > [!WARNING] A write route cannot inherit a `read` authorize
-> `ControllerFactory.crud` throws at boot when a listed write route would inherit a controller-level spec whose action is `read` (every spec, for an array). The error names the repository and the routes. Declare `routes.<route>.authorize` (a spec, an array or `{ skip: true }`), or leave the route out of `routes`.
+> `CrudControllerFactory.build` throws at boot when a listed write route would inherit a controller-level spec whose action is `read` (every spec, for an array). The error names the repository and the routes. Declare `routes.<route>.authorize` (a spec, an array or `{ skip: true }`), or leave the route out of `routes`.
 
 **Override per endpoint.** `routes.<endpoint>.authorize` takes precedence over the controller-level spec.
 

@@ -1,4 +1,4 @@
-import { ControllerFactory } from '@/base/controllers/factory/controller';
+import { CrudControllerFactory } from '@/base/controllers/factory/controller';
 import type { TRepositoryDataObject, TRepositoryPersistObject } from '@/base/controllers/common';
 import { controller, repository } from '@/base/metadata';
 import { AbstractEntity } from '@/base/models';
@@ -36,7 +36,7 @@ class TypedProbeWidget extends AbstractEntity<typeof widgetSchema> {
 @repository({ model: TypedProbeWidget, dataSource: 'ProbeDataSource' })
 class WidgetRepository extends StubRepository<IWidget> {}
 
-describe('ControllerFactory.crud - the row types come from the repository class', () => {
+describe('CrudControllerFactory.build - the row types come from the repository class', () => {
   test('TRepositoryDataObject and TRepositoryPersistObject read the row and persist types exactly', () => {
     assertType<TEqual<TRepositoryDataObject<WidgetRepository>, IWidget>>();
     // @ts-expect-error control: the equality helper really tells the row type from `object`
@@ -54,7 +54,7 @@ describe('ControllerFactory.crud - the row types come from the repository class'
   });
 
   test('this.repository is typed with the row of the repository class', () => {
-    const CrudController = ControllerFactory.crud({
+    const CrudController = CrudControllerFactory.build({
       repository: WidgetRepository,
       routes: { find: true },
     });
@@ -90,7 +90,7 @@ describe('ControllerFactory.crud - the row types come from the repository class'
       }
     }
 
-    const CrudController = ControllerFactory.crud({
+    const CrudController = CrudControllerFactory.build({
       repository: WidgetRepository,
       routes: { find: true },
     });

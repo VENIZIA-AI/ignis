@@ -18,7 +18,7 @@ The app listens on `http://localhost:3000` (set `PORT` to change it). Browse the
 |---|---|
 | `src/models/note.model.ts` | Two tables and their entities. `one(noteTable)` finds its columns from the `note_id` foreign key |
 | `src/repositories/*.repository.ts` | An empty class under `@repository({ model, dataSource })` |
-| `src/controllers/*.controller.ts` | The CRUD routes from `ControllerFactory.crud` |
+| `src/controllers/*.controller.ts` | The CRUD routes from `CrudControllerFactory.build` |
 | `src/datasources/sqlite.datasource.ts` | The only libsql-specific file: opens the client and applies migrations |
 | `src/application.ts` | The application class: it turns on the API docs and health check components |
 | `src/index.ts` | Starts the server; `artifacts: AutoArtifacts` registers every decorated class under `src` |

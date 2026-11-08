@@ -5,7 +5,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   controller,
-  ControllerFactory,
+  CrudControllerFactory,
   CrudRoutes,
   model,
   repository,
@@ -76,7 +76,7 @@ describe('a search-backed CRUD controller keeps the document type of its reposit
   });
 
   test('this.repository and its payloads are typed with the document', () => {
-    const CrudController = ControllerFactory.crud({
+    const CrudController = CrudControllerFactory.build({
       repository: RowTypesArticleRepository,
       routes: { ...CrudRoutes.READ, create: true },
     });
@@ -112,7 +112,7 @@ describe('a relational CRUD controller keeps the table row type of its repositor
   });
 
   test('this.repository and its payloads are typed with the table', () => {
-    const CrudController = ControllerFactory.crud({
+    const CrudController = CrudControllerFactory.build({
       repository: RowTypesNoteRepository,
       routes: { ...CrudRoutes.READ, create: true },
     });

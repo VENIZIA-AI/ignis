@@ -18,7 +18,7 @@ end-to-end evidence that the lift worked.
 - **Two connectors, one tier** - imports come from `@venizia/ignis-connectors/sqlite` and
   `@venizia/ignis-connectors/sqlite/libsql`, never from `@venizia/ignis-connectors/postgres`. The repository is still an
   empty class under `@repository({ model, dataSource })`, and the controller is the unmodified
-  `ControllerFactory.crud` output, because both live above the engine boundary. The
+  `CrudControllerFactory.build` output, because both live above the engine boundary. The
   model has the same shape as PGlite's: `notes` and `comments` tables, `Comment.note` a `one()`
   reading its foreign key, `Note.comments` a `many()`.
 - **Storage classes have neighbours, not equivalents** - SQLite has five, so the model uses `text`
@@ -54,7 +54,7 @@ artifact.
 
 - Deleting a note that does not exist still answers `200`: a read for that id afterward returns
   `{ count: 0, data: null }`, not `404`.
-- `ControllerFactory.crud` needs no constructor on the subclass - same as
+- `CrudControllerFactory.build` needs no constructor on the subclass - same as
   `pglite-quickstart`, since both use the same factory.
 - The fourth type parameter of `BaseSqliteDataSource` is libsql's `Client`, matching the PGlite
   example's use of the slot for its own raw client type.

@@ -4,7 +4,7 @@ import { RejectionHelper } from '@venizia/dev-configs/testing';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   BaseAppErrorMiddleware,
-  ControllerFactory,
+  CrudControllerFactory,
   controller,
   CrudRoutes,
   datasource,
@@ -116,7 +116,7 @@ describe('SQLite - a generated CRUD route', () => {
   let router: AnyType;
 
   beforeAll(async () => {
-    const RouteController = ControllerFactory.crud({
+    const RouteController = CrudControllerFactory.build({
       repository: TimestampEventRepository,
       routes: CrudRoutes.READ,
     });

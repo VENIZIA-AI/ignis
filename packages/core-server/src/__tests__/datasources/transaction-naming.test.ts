@@ -94,7 +94,7 @@ describe('Transaction naming (user-locked): ITransaction neutral / IDatabaseTran
     const asNeutralInterface: ICrudRepository<TNamingCheckObject, TNamingCheckInsert> = repo;
     expect(asNeutralInterface).toBe(repo);
 
-    // ...and to the neutral AbstractRepository class (ControllerFactory's field type) - TS's bivariant method-parameter checking lets the narrower IDatabaseExtraOptions satisfy it.
+    // ...and to the neutral AbstractRepository class (CrudControllerFactory's field type) - TS's bivariant method-parameter checking lets the narrower IDatabaseExtraOptions satisfy it.
     const asAbstractClass: AbstractRepository<TNamingCheckObject, TNamingCheckInsert> = repo;
     expect(asAbstractClass).toBe(repo);
   });

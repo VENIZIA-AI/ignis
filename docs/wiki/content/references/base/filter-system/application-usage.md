@@ -24,16 +24,16 @@ Repository Layer       applyDefaultFilter() merges the @model default filter,
 
 ## Generate a CRUD controller from an entity
 
-For a standard `GET`/`POST`/`PATCH`/`DELETE` resource, generate the controller instead of writing filter parsing by hand. `ControllerFactory.crud` builds it from a repository class:
+For a standard `GET`/`POST`/`PATCH`/`DELETE` resource, generate the controller instead of writing filter parsing by hand. `CrudControllerFactory.build` builds it from a repository class:
 
 ```typescript
 // src/controllers/product.controller.ts
 import { ProductRepository } from '@/repositories';
-import { controller, ControllerFactory, CrudRoutes } from '@venizia/ignis';
+import { controller, CrudControllerFactory, CrudRoutes } from '@venizia/ignis';
 
 const BASE_PATH = '/products';
 
-const _Controller = ControllerFactory.crud({
+const _Controller = CrudControllerFactory.build({
   repository: ProductRepository,
   isStrict: { path: true, requestSchema: true },
   routes: {
@@ -198,7 +198,7 @@ console.log('Generated query options:', queryOptions);
 
 **Files:**
 
-- [`packages/kernel/src/base/controllers/factory/controller.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/factory/controller.ts) - `ControllerFactory.defineCrudController`
+- [`packages/kernel/src/base/controllers/factory/controller.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/factory/controller.ts) - `CrudControllerFactory.defineCrudController`
 - [`packages/kernel/src/base/repositories/query-schemas/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/query-schemas/index.ts) - `FilterSchema`, `WhereSchema`, `FilterQuerySchema`, `WhereQuerySchema`
 - [`packages/filter/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/types.ts) - `TFilter`, `TInclusion`
 - [`packages/connectors/src/relational/core/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/base.ts) - `RelationalBaseRepository.buildQuery`

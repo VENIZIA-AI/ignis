@@ -4,7 +4,7 @@ import '@venizia/ignis-kernel';
 import { describe, test, expect } from 'bun:test';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
-import { controller, ControllerFactory } from '@venizia/ignis-kernel';
+import { controller, CrudControllerFactory } from '@venizia/ignis-kernel';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { model, repository } from '@venizia/ignis-kernel';
 import { BasePostgresEntity } from '@/relational/postgres/models';
@@ -160,12 +160,12 @@ describe('End-to-end search wiring - dual-schema, @repository, controller factor
     });
   });
 
-  describe('3. ControllerFactory.crud over a search entity/repository', () => {
+  describe('3. CrudControllerFactory.build over a search entity/repository', () => {
     test('constructs without throwing and mounts the six CRUD routes', async () => {
       const dataSource = new AppSearchDataSource({ name: 'wiring-search-ds-3', config: {} });
       const repositoryInstance = new ProductSearchRepository(dataSource);
 
-      const ProductSearchCrudController = ControllerFactory.crud({
+      const ProductSearchCrudController = CrudControllerFactory.build({
         repository: ProductSearchRepository,
         routes: {
           count: true,

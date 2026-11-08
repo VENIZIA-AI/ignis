@@ -6,7 +6,7 @@ import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
 import type { TRouteContext } from '@/base/controllers';
 import { BaseRestController } from '@/base/controllers';
-import { ControllerFactory, CrudRoutes } from '@venizia/ignis-kernel';
+import { CrudControllerFactory, CrudRoutes } from '@venizia/ignis-kernel';
 import { api, controller, del, get, model, patch, post, put, repository } from '@/base/metadata';
 import { OpenApiResponses } from '@venizia/ignis-kernel';
 import {
@@ -183,7 +183,7 @@ class RouteOrderSubscriberRepository extends DefaultCRUDRepository<
   typeof RouteOrderSubscriber.schema
 > {}
 
-const SubscriberCrudController = ControllerFactory.crud({
+const SubscriberCrudController = CrudControllerFactory.build({
   repository: RouteOrderSubscriberRepository,
   routes: { ...CrudRoutes.READ, create: true, updateById: true, deleteById: true },
 });
@@ -202,7 +202,7 @@ applyMethodDecorator({
 });
 
 // The shape consumer apps use to hand-write an id endpoint: the generated findById is disabled and a decorator route takes its place, while the generated static routes (/count) stay enabled.
-const CountOnlyCrudController = ControllerFactory.crud({
+const CountOnlyCrudController = CrudControllerFactory.build({
   repository: RouteOrderSubscriberRepository,
   routes: { count: true },
 });

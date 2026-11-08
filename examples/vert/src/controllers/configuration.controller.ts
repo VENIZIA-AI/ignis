@@ -3,7 +3,7 @@ import { ConfigurationRepository } from '@/repositories';
 import {
   Authentication,
   controller,
-  ControllerFactory,
+  CrudControllerFactory,
   type TInferSchema,
   type TRouteContext,
 } from '@venizia/ignis';
@@ -24,7 +24,7 @@ const CreateConfigurationSchema = z
  * The CRUD routes from the factory, with per-route authentication: every route takes a JWT or
  * Basic credentials, `count` is public, `create` takes Basic only, and both deletes take a JWT only.
  */
-const BaseCrudController = ControllerFactory.crud({
+const BaseCrudController = CrudControllerFactory.build({
   repository: ConfigurationRepository,
   authenticate: { strategies: [Authentication.STRATEGY_JWT, Authentication.STRATEGY_BASIC] },
   routes: {

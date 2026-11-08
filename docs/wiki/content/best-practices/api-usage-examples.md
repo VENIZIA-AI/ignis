@@ -126,18 +126,18 @@ export class TestController extends BaseRestController {
 
 ### Example 3: Auto-Generated CRUD Controller
 
-For standard database entities, you can use `ControllerFactory.crud` to instantly generate a controller with the CRUD endpoints you list.
+For standard database entities, you can use `CrudControllerFactory.build` to instantly generate a controller with the CRUD endpoints you list.
 
 **`src/controllers/configuration.controller.ts`**
 ```typescript
 import { ConfigurationRepository } from '@/repositories';
-import { controller, ControllerFactory, CrudRoutes } from '@venizia/ignis';
+import { controller, CrudControllerFactory, CrudRoutes } from '@venizia/ignis';
 
 const BASE_PATH = '/configurations';
 
 // 1. The factory generates a controller class with the routes you list.
 //    The entity (for the OpenAPI schemas) comes from @repository({ model }) on the repository.
-const _Controller = ControllerFactory.crud({
+const _Controller = CrudControllerFactory.build({
   repository: ConfigurationRepository,
   routes: {
     ...CrudRoutes.READ,

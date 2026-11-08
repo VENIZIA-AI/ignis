@@ -1,10 +1,10 @@
 import { CommentRepository } from '@/repositories/comment.repository';
-import { controller, ControllerFactory, CrudRoutes } from '@venizia/ignis-kernel';
+import { controller, CrudControllerFactory, CrudRoutes } from '@venizia/ignis-kernel';
 
 const BASE_PATH = '/comments';
 
 /** Generates GET /count, GET /, GET /find-one, GET /:id, POST /, PATCH /:id, PATCH /, DELETE /:id, DELETE /. */
-const BaseCrudController = ControllerFactory.crud({
+const BaseCrudController = CrudControllerFactory.build({
   repository: CommentRepository,
   routes: {
     ...CrudRoutes.READ,

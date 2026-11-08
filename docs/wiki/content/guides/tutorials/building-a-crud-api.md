@@ -305,20 +305,20 @@ Dependency Injection (DI) is a design pattern where objects receive their depend
 [Learn more →](/guides/core-concepts/dependency-injection)
 :::
 
-`ControllerFactory` generates a full CRUD controller with automatic validation and OpenAPI docs.
+`CrudControllerFactory` generates a full CRUD controller with automatic validation and OpenAPI docs.
 
 Create `src/controllers/todo/definitions.ts`:
 
 ```typescript
 // src/controllers/todo/definitions.ts
 import { TodoRepository } from '@/repositories/todo.repository';
-import { ControllerFactory, CrudRoutes } from '@venizia/ignis';
+import { CrudControllerFactory, CrudRoutes } from '@venizia/ignis';
 
 export const BASE_PATH = '/todos';
 
 // The factory generates a controller class with the routes you list.
 // The entity (for the OpenAPI schemas) comes from @repository({ model }) on TodoRepository.
-export const _Controller = ControllerFactory.crud({
+export const _Controller = CrudControllerFactory.build({
   repository: TodoRepository,
   routes: {
     ...CrudRoutes.READ,
@@ -360,7 +360,7 @@ export * from './todo.controller';
 | DELETE | `/todos/{id}` | Delete todo by ID (deleteById) |
 | DELETE | `/todos` | Delete multiple todos by filter (deleteBy) |
 
-> **Deep Dive:** See [ControllerFactory Reference](/references/base/controllers#controllerfactory) for customization options.
+> **Deep Dive:** See [CrudControllerFactory Reference](/references/base/controllers#crudcontrollerfactory) for customization options.
 
 ## Step 6: Register Components
 
@@ -581,7 +581,7 @@ Now that you've built the Todo API, try building a **User** feature on your own!
 **Requirements:**
 - Create `/api/users` endpoint
 - Users should have: `id`, `email`, `name`, `createdAt`, `modifiedAt`
-- Use `ControllerFactory` for CRUD operations
+- Use `CrudControllerFactory` for CRUD operations
 
 **Challenge checklist:**
 

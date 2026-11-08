@@ -22,7 +22,7 @@ import { PersistableCrudController } from './crud';
 import { RouteConfigResolver } from './definition';
 
 /** Factory for generating typed CRUD controllers from entity definitions. */
-export class ControllerFactory extends BaseHelper {
+export class CrudControllerFactory extends BaseHelper {
   /** The generated routes that change data: the ones that must never be answered by a `read` permission. */
   private static readonly WRITE_VERBS = [
     'create',
@@ -35,7 +35,7 @@ export class ControllerFactory extends BaseHelper {
   ] as const;
 
   constructor() {
-    super({ scope: ControllerFactory.name });
+    super({ scope: CrudControllerFactory.name });
   }
 
   /**
@@ -68,7 +68,7 @@ export class ControllerFactory extends BaseHelper {
     });
   }
 
-  static crud<
+  static build<
     Repository extends TCrudRepositoryClass,
     RouteEnv extends Env = Env,
     RouteSchema extends Schema = {},
@@ -79,12 +79,12 @@ export class ControllerFactory extends BaseHelper {
   >(opts: ICrudControllerOptions<Repository>) {
     const { repository, authenticate, authorize, routes, isStrict = {} } = opts;
 
-    ControllerFactory.assertWriteVerbsDeclareAuthorize({
+    CrudControllerFactory.assertWriteVerbsDeclareAuthorize({
       repositoryName: repository.name,
       authorize,
       routes,
     });
-    ControllerFactory.assertRestoreRoutesSupported({ repository, routes });
+    CrudControllerFactory.assertRestoreRoutesSupported({ repository, routes });
 
     const model = MetadataRegistry.getInstance().getRepositoryBinding({
       target: repository,
@@ -92,7 +92,7 @@ export class ControllerFactory extends BaseHelper {
 
     if (!model) {
       throw getError({
-        message: `[ControllerFactory.crud] Cannot resolve the entity | repository: ${repository.name} | declare it with @repository({ model })`,
+        message: `[CrudControllerFactory.build] Cannot resolve the entity | repository: ${repository.name} | declare it with @repository({ model })`,
       });
     }
 
@@ -219,9 +219,9 @@ export class ControllerFactory extends BaseHelper {
       }
     };
 
-    ControllerFactory.registerRepositoryInjection({
+    CrudControllerFactory.registerRepositoryInjection({
       target: controllerClass,
-      factoryName: 'ControllerFactory.crud',
+      factoryName: 'CrudControllerFactory.build',
       repositoryName: repository.name,
     });
 
@@ -242,7 +242,7 @@ export class ControllerFactory extends BaseHelper {
 
     if (isRestoreListed && !isRestorable) {
       throw getError({
-        message: `[ControllerFactory.crud] a restore route needs a repository with both restoreById and restoreBy | repository: ${repository.name}`,
+        message: `[CrudControllerFactory.build] a restore route needs a repository with both restoreById and restoreBy | repository: ${repository.name}`,
       });
     }
   }
@@ -280,7 +280,7 @@ export class ControllerFactory extends BaseHelper {
       return;
     }
 
-    const offending = ControllerFactory.WRITE_VERBS.filter((verb) => {
+    const offending = CrudControllerFactory.WRITE_VERBS.filter((verb) => {
       const route = routes?.[verb];
 
       if (route === undefined) {
@@ -294,12 +294,12 @@ export class ControllerFactory extends BaseHelper {
       return;
     }
 
-    const inherited = specs.map((spec) => ControllerFactory.describeSpec({ spec })).join(', ');
+    const inherited = specs.map((spec) => CrudControllerFactory.describeSpec({ spec })).join(', ');
     const verbs = offending.map((verb) => `${repositoryName}.${verb}`).join(', ');
 
     throw getError({
       message: [
-        `[ControllerFactory.crud] Write routes would inherit a read-only authorize | repository: ${repositoryName} | routes: ${verbs} | inherited: ${inherited}`,
+        `[CrudControllerFactory.build] Write routes would inherit a read-only authorize | repository: ${repositoryName} | routes: ${verbs} | inherited: ${inherited}`,
         'Anyone allowed to read could then create, update, delete or restore.',
         'Fix: declare routes.<verb>.authorize for each of them (a spec, an array or { skip: true }), or leave them out of routes.',
       ].join(' | '),

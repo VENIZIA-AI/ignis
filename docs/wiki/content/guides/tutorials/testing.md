@@ -116,7 +116,7 @@ describe('Todo API', () => {
     const response = await testServer().request('/todos', { method: 'GET' });
 
     expect(response.status).toBe(200);
-    // ControllerFactory's generated GET / wraps reads in { count, data } by default too
+    // CrudControllerFactory's generated GET / wraps reads in { count, data } by default too
     // (unless the caller sends `x-request-count: false`) - unlike the repository API,
     // where find()/findOne()/findById() return rows directly.
     const body = await response.json();

@@ -1,5 +1,5 @@
 import { AuthorizationActions } from '@/base/auth/authorize/common/constants';
-import { ControllerFactory } from '@/base/controllers/factory/controller';
+import { CrudControllerFactory } from '@/base/controllers/factory/controller';
 import { CrudRoutes } from '@/base/controllers/common';
 import { repository } from '@/base/metadata';
 import { AbstractEntity } from '@/base/models';
@@ -33,7 +33,7 @@ const WRITE_VERBS = ['create', 'updateById', 'updateBy', 'deleteById', 'deleteBy
 
 const define = (opts: { authorize?: AnyType; routes?: Record<string, AnyType> }) => {
   return () =>
-    ControllerFactory.crud({
+    CrudControllerFactory.build({
       repository: ItemRepository,
       authorize: opts.authorize,
       routes: opts.routes,
@@ -46,7 +46,7 @@ const listed = (opts: { value: AnyType; verbs?: ReadonlyArray<string> }) =>
 const ALL_TRUE = listed({ value: true });
 const OVERRIDE_ALL = listed({ value: { authorize: WRITE } });
 
-describe('ControllerFactory.crud - a write verb must not inherit a read-only authorize', () => {
+describe('CrudControllerFactory.build - a write verb must not inherit a read-only authorize', () => {
   test('refuses all five write verbs when none declares its own authorize', () => {
     expect(define({ authorize: READ, routes: ALL_TRUE })).toThrow(
       /ItemRepository\.create.*ItemRepository\.updateById.*ItemRepository\.updateBy.*ItemRepository\.deleteById.*ItemRepository\.deleteBy/,
@@ -131,7 +131,7 @@ describe('ControllerFactory.crud - a write verb must not inherit a read-only aut
 
   test('the restore routes are write verbs too', () => {
     const attempt = () =>
-      ControllerFactory.crud({
+      CrudControllerFactory.build({
         repository: SoftItemRepository,
         authorize: READ,
         routes: { restoreById: true, restoreBy: { authorize: WRITE } },

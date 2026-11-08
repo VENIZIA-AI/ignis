@@ -64,10 +64,10 @@ export class Application extends BaseApplication {
 ```
 
 ```typescript
-import { Authentication, AuthorizationActions, ControllerFactory, CrudRoutes } from '@venizia/ignis';
+import { Authentication, AuthorizationActions, CrudControllerFactory, CrudRoutes } from '@venizia/ignis';
 
 // A CRUD controller with a route protected by authentication + authorization
-export const ArticleController = ControllerFactory.crud({
+export const ArticleController = CrudControllerFactory.build({
   repository: ArticleRepository,
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   routes: {

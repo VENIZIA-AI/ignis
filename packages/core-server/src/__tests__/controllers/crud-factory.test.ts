@@ -4,7 +4,7 @@ import '@/base/applications';
 import { describe, expect, test } from 'bun:test';
 import { pgTable, serial, text, varchar } from 'drizzle-orm/pg-core';
 
-import { CrudRoutes, ControllerFactory } from '@venizia/ignis-kernel';
+import { CrudRoutes, CrudControllerFactory } from '@venizia/ignis-kernel';
 import { controller, model, repository } from '@/base/metadata';
 import { SchemaTypes } from '@venizia/ignis-kernel';
 import {
@@ -60,9 +60,9 @@ const mountedRoutes = (opts: { router: { routes: Array<{ method: string; path: s
   return new Set(opts.router.routes.map((route) => `${route.method} ${route.path}`));
 };
 
-describe('ControllerFactory.crud - generated routes', () => {
+describe('CrudControllerFactory.build - generated routes', () => {
   test('mounts the nine CRUD routes, with /count and /find-one ahead of the /:id param route', async () => {
-    const AccountCrudController = ControllerFactory.crud({
+    const AccountCrudController = CrudControllerFactory.build({
       repository: CrudFactoryAccountRepository,
       routes: {
         ...CrudRoutes.READ,
@@ -100,7 +100,7 @@ describe('ControllerFactory.crud - generated routes', () => {
   });
 
   test('CrudRoutes.READ registers only the four read routes', async () => {
-    const ReadCrudController = ControllerFactory.crud({
+    const ReadCrudController = CrudControllerFactory.build({
       repository: CrudFactoryAccountRepository,
       routes: CrudRoutes.READ,
     });
@@ -117,7 +117,7 @@ describe('ControllerFactory.crud - generated routes', () => {
   });
 
   test('a listed route exists and an unlisted one does not', async () => {
-    const ListedCrudController = ControllerFactory.crud({
+    const ListedCrudController = CrudControllerFactory.build({
       repository: CrudFactoryAccountRepository,
       routes: { count: true, create: true },
     });
@@ -134,7 +134,9 @@ describe('ControllerFactory.crud - generated routes', () => {
   });
 
   test('no routes map mounts no route', async () => {
-    const BareCrudController = ControllerFactory.crud({ repository: CrudFactoryAccountRepository });
+    const BareCrudController = CrudControllerFactory.build({
+      repository: CrudFactoryAccountRepository,
+    });
 
     @controller({ path: '/accounts' })
     class BareController extends BareCrudController {}
@@ -148,11 +150,11 @@ describe('ControllerFactory.crud - generated routes', () => {
   test('defining the controller twice for one repository yields independent classes and routers', async () => {
     const routes = { count: true, create: true } satisfies TCrudRoutes;
 
-    const FirstCrudController = ControllerFactory.crud({
+    const FirstCrudController = CrudControllerFactory.build({
       repository: CrudFactoryAccountRepository,
       routes,
     });
-    const SecondCrudController = ControllerFactory.crud({
+    const SecondCrudController = CrudControllerFactory.build({
       repository: CrudFactoryAccountRepository,
       routes,
     });
@@ -178,9 +180,9 @@ describe('ControllerFactory.crud - generated routes', () => {
   });
 });
 
-describe('ControllerFactory.crud - request schemas', () => {
+describe('CrudControllerFactory.build - request schemas', () => {
   test('GET /:id accepts a numeric id from the path (params arrive as strings)', async () => {
-    const AccountCrudController = ControllerFactory.crud({
+    const AccountCrudController = CrudControllerFactory.build({
       repository: CrudFactoryAccountRepository,
       routes: { findById: true },
     });
@@ -202,7 +204,7 @@ describe('ControllerFactory.crud - request schemas', () => {
   });
 
   test('GET /:id accepts a string id when the entity id is text', async () => {
-    const DocumentCrudController = ControllerFactory.crud({
+    const DocumentCrudController = CrudControllerFactory.build({
       repository: CrudFactoryDocumentRepository,
       routes: { findById: true },
     });
@@ -228,7 +230,7 @@ describe('ControllerFactory.crud - request schemas', () => {
       id: z.string().openapi({ param: { name: 'id', in: 'path' } }),
     });
 
-    const OverriddenCrudController = ControllerFactory.crud({
+    const OverriddenCrudController = CrudControllerFactory.build({
       repository: CrudFactoryAccountRepository,
       routes: { findById: { request: { params: paramsSchema } } },
     });
@@ -250,12 +252,12 @@ describe('ControllerFactory.crud - request schemas', () => {
   });
 
   test('the count route honors isStrict.requestSchema for its where param', async () => {
-    const StrictCrudController = ControllerFactory.crud({
+    const StrictCrudController = CrudControllerFactory.build({
       repository: CrudFactoryAccountRepository,
       isStrict: { path: true, requestSchema: true },
       routes: { count: true },
     });
-    const LooseCrudController = ControllerFactory.crud({
+    const LooseCrudController = CrudControllerFactory.build({
       repository: CrudFactoryAccountRepository,
       isStrict: { path: true, requestSchema: false },
       routes: { count: true },
@@ -292,7 +294,7 @@ describe('ControllerFactory.crud - request schemas', () => {
   });
 });
 
-describe('ControllerFactory.crud - bulk where in the query or the body', () => {
+describe('CrudControllerFactory.build - bulk where in the query or the body', () => {
   const buildBulkController = async () => {
     const calls: Array<{ verb: string; where: unknown; data?: unknown }> = [];
     const recordingRepository = {
@@ -309,7 +311,7 @@ describe('ControllerFactory.crud - bulk where in the query or the body', () => {
       },
     };
 
-    const BulkCrudController = ControllerFactory.crud({
+    const BulkCrudController = CrudControllerFactory.build({
       repository: CrudFactoryAccountRepository,
       routes: { updateBy: true, deleteBy: true },
     });

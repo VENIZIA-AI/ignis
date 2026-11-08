@@ -1,5 +1,5 @@
 import { CrudRoutes } from '@/base/controllers/common';
-import { ControllerFactory } from '@/base/controllers/factory/controller';
+import { CrudControllerFactory } from '@/base/controllers/factory/controller';
 import { controller, repository } from '@/base/metadata';
 import { AbstractEntity } from '@/base/models';
 import { BindingNamespaces } from '@/common/bindings';
@@ -79,9 +79,9 @@ const statusOf = async (opts: { router: AnyType; method: string; path: string })
   return response.status;
 };
 
-describe('ControllerFactory.crud - a route exists only when it is listed', () => {
+describe('CrudControllerFactory.build - a route exists only when it is listed', () => {
   test('a listed route is served, every other route answers 404', async () => {
-    const CrudController = ControllerFactory.crud({
+    const CrudController = CrudControllerFactory.build({
       repository: PlainProbeRepository,
       routes: { count: true },
     });
@@ -109,7 +109,7 @@ describe('ControllerFactory.crud - a route exists only when it is listed', () =>
   });
 
   test('no routes at all means no route', async () => {
-    const CrudController = ControllerFactory.crud({ repository: PlainProbeRepository });
+    const CrudController = CrudControllerFactory.build({ repository: PlainProbeRepository });
 
     @controller({ path: '/none' })
     class NoRoutesController extends CrudController {}
@@ -128,7 +128,7 @@ describe('ControllerFactory.crud - a route exists only when it is listed', () =>
   test('CrudRoutes.READ lists the four read routes and no write route', async () => {
     expect(Object.keys(CrudRoutes.READ).sort()).toEqual(['count', 'find', 'findById', 'findOne']);
 
-    const CrudController = ControllerFactory.crud({
+    const CrudController = CrudControllerFactory.build({
       repository: PlainProbeRepository,
       routes: { ...CrudRoutes.READ },
     });
@@ -156,22 +156,22 @@ describe('ControllerFactory.crud - a route exists only when it is listed', () =>
   });
 
   test('enabled, readonly and enabledRoutes no longer exist', () => {
-    ControllerFactory.crud({
+    CrudControllerFactory.build({
       repository: PlainProbeRepository,
       // @ts-expect-error a route is on when it is listed: there is no `enabled`
       routes: { find: { enabled: false } },
     });
-    ControllerFactory.crud({
+    CrudControllerFactory.build({
       repository: PlainProbeRepository,
       // @ts-expect-error there is no `readonly`: list the routes you want
       readonly: true,
     });
-    ControllerFactory.crud({
+    CrudControllerFactory.build({
       repository: PlainProbeRepository,
       // @ts-expect-error there is no `enabledRoutes`: list the routes you want
       enabledRoutes: ['find'],
     });
-    ControllerFactory.crud({
+    CrudControllerFactory.build({
       repository: PlainProbeRepository,
       // @ts-expect-error the path is on @controller, and the name is the class
       controller: { name: 'X', basePath: '/x' },
@@ -181,9 +181,9 @@ describe('ControllerFactory.crud - a route exists only when it is listed', () =>
   });
 });
 
-describe('ControllerFactory.crud - the restore routes', () => {
+describe('CrudControllerFactory.build - the restore routes', () => {
   test('restoreById and restoreBy are listed on a repository that has the restore methods', async () => {
-    const CrudController = ControllerFactory.crud({
+    const CrudController = CrudControllerFactory.build({
       repository: SoftProbeRepository,
       routes: { restoreById: true, restoreBy: true },
     });
@@ -215,7 +215,7 @@ describe('ControllerFactory.crud - the restore routes', () => {
   });
 
   test('restoreBy without a where is a 400, and restores nothing', async () => {
-    const CrudController = ControllerFactory.crud({
+    const CrudController = CrudControllerFactory.build({
       repository: SoftProbeRepository,
       routes: { restoreBy: true },
     });
@@ -238,14 +238,14 @@ describe('ControllerFactory.crud - the restore routes', () => {
 
   test('a repository without restore methods is a compile error, and a throw when the controller is built', () => {
     expect(() =>
-      ControllerFactory.crud({
+      CrudControllerFactory.build({
         repository: PlainProbeRepository,
         // @ts-expect-error this repository has no restoreById
         routes: { restoreById: true },
       }),
     ).toThrow('a restore route needs a repository with both restoreById and restoreBy');
     expect(() =>
-      ControllerFactory.crud({
+      CrudControllerFactory.build({
         repository: PlainProbeRepository,
         // @ts-expect-error this repository has no restoreBy
         routes: { restoreBy: true },
@@ -255,14 +255,14 @@ describe('ControllerFactory.crud - the restore routes', () => {
 
   test('a repository with only one restore method refuses both restore routes', () => {
     expect(() =>
-      ControllerFactory.crud({
+      CrudControllerFactory.build({
         repository: HalfRestorableRepository,
         // @ts-expect-error restoreBy is missing, and the route needs both methods
         routes: { restoreById: true },
       }),
     ).toThrow('a restore route needs a repository with both restoreById and restoreBy');
     expect(() =>
-      ControllerFactory.crud({
+      CrudControllerFactory.build({
         repository: HalfRestorableRepository,
         // @ts-expect-error restoreBy is missing
         routes: { restoreBy: true },
@@ -271,9 +271,9 @@ describe('ControllerFactory.crud - the restore routes', () => {
   });
 });
 
-describe('ControllerFactory.crud - routes of the subclass come first', () => {
+describe('CrudControllerFactory.build - routes of the subclass come first', () => {
   test('a custom static path declared in binding() wins over GET /{id}', async () => {
-    const CrudController = ControllerFactory.crud({
+    const CrudController = CrudControllerFactory.build({
       repository: SoftProbeRepository,
       routes: { ...CrudRoutes.READ },
     });

@@ -1,20 +1,20 @@
 ---
-title: ControllerFactory.crud replaces defineCrudController, and a CRUD controller has the routes you list
+title: CrudControllerFactory.build replaces ControllerFactory.defineCrudController, and a CRUD controller has the routes you list
 description: "One call takes the repository class and a routes map. The path is on @controller, the entity comes from @repository, and restore routes are new."
-packages: ['@venizia/ignis', '@venizia/ignis-kernel', '@venizia/ignis-connectors']
+packages: ['@venizia/ignis', '@venizia/ignis-kernel', '@venizia/ignis-connectors', '@venizia/dev-configs']
 ---
 
 # Changelog - 2026-11-08
 
-## ControllerFactory.crud replaces defineCrudController, and a CRUD controller has the routes you list
+## CrudControllerFactory.build replaces ControllerFactory.defineCrudController, and a CRUD controller has the routes you list
 
 <Badge type="warning" text="Breaking" /> <Badge type="tip" text="New Feature" />
 
-**In one line.** `ControllerFactory.crud({ repository, routes })` builds a CRUD controller from the repository class. A route you list exists and a route you do not list does not. `defineCrudController` is gone, with no alias.
+**In one line.** `CrudControllerFactory.build({ repository, routes })` builds a CRUD controller from the repository class. A route you list exists and a route you do not list does not. The class `ControllerFactory` is renamed `CrudControllerFactory` and `defineCrudController` is gone, with no alias: `ControllerFactory` is no longer exported.
 
 ## What changed
 
-- **`ControllerFactory.crud` takes the repository class.** The entity comes from `@repository({ model })` on that class, so you name it once. The container injects the repository by the class name.
+- **`CrudControllerFactory.build` takes the repository class.** The entity comes from `@repository({ model })` on that class, so you name it once. The container injects the repository by the class name.
 - **The path is only on `@controller({ path })`.** The name is the class name. `controller.basePath` and `controller.name` are gone.
 - **`routes` is the whole list.** `routes: { find: true, create: true }` builds those two routes. A route takes `true` or a config (`authenticate`, `authorize`, `request`, `response`), and a route's own `authenticate` and `authorize` replace the controller's.
 - **`CrudRoutes.READ` lists the four read routes:** `count`, `find`, `findById`, `findOne`. `routes: { ...CrudRoutes.READ, create: true }` adds one write route.
@@ -23,22 +23,23 @@ packages: ['@venizia/ignis', '@venizia/ignis-kernel', '@venizia/ignis-connectors
 - **The generated routes register after the subclass's `binding()`.** A custom static path you declare there, such as `GET /featured`, is no longer taken by `GET /{id}`. The same order means a custom `GET /count` in `binding()` now shadows the generated `count` route, where before the generated one came first.
 - **A new hook, `bindDefaultRoutes()`, on `BaseRestController`.** It registers the routes a generated controller brings, after `binding()`. A hand-written controller does not need it.
 - **The row types come from the repository class.** `AbstractRepository` carries two phantom markers, `$inferData` and `$inferPersist` (no runtime value), the way an entity does, and `TRepositoryDataObject` and `TRepositoryPersistObject` read them. `this.repository` and the payloads of a generated controller are typed with the exact row of a relational table or a search document.
-- **The write-route check covers only listed routes.** `ControllerFactory.crud` still refuses to boot when a listed write route would inherit a controller-level `authorize` whose action is `read`. A route you do not list is not checked.
+- **The write-route check covers only listed routes.** `CrudControllerFactory.build` still refuses to boot when a listed write route would inherit a controller-level `authorize` whose action is `read`. A route you do not list is not checked.
 - **An update reads its `data` once.** `updateById`, `updateBy`, `updateEach`, `upsert` and a soft delete copy the caller's `data` into a plain object, check that copy for `deletedAt`, and write that same copy.
+- **The old-function-names codemod follows the rename.** `registerFactoryRepositoryInjection` is rewritten to `CrudControllerFactory.registerRepositoryInjection`.
 - **Search is next.** `defineSearchController` keeps its current form until its own change, in the same release line.
 
 ## Who is affected
 
-- **Every call to `ControllerFactory.defineCrudController`.** Rewrite it to `ControllerFactory.crud`, as below.
+- **Every call to `ControllerFactory.defineCrudController`, and every other use of the name `ControllerFactory`** (an import, a type, a static such as `registerRepositoryInjection`). Rewrite the call to `CrudControllerFactory.build`, as below, and rename the rest to `CrudControllerFactory`.
 - **A CRUD controller that used `controller.readonly`, `controller.enabledRoutes` or a route's `enabled`.** List the routes instead.
 - **A CRUD controller subclass that called `super.binding()`.** The generated `binding()` is now empty, so the call does nothing: delete it.
 - **A call that gave `controller.isStrict`, an `entity` that is not the model of the repository, or type arguments** (`defineCrudController<TRecord>`). See the three rewrites below.
 - **Code that imports `ICrudControllerOptions`.** Its type parameter is now the repository class, not the route map.
-- **Code that extends `AbstractCrudController`, or calls `ControllerFactory.assertWriteVerbsDeclareAuthorize` or `RouteConfigResolver.defineControllerRouteConfigs`.** `AbstractCrudController` no longer takes a `path` option (the path is the `@controller` one). `assertWriteVerbsDeclareAuthorize` takes `{ repositoryName, authorize, routes }` instead of `{ controllerName, authorize, routes, readonly, enabledRoutes }`. `defineControllerRouteConfigs` lost its `Routes` type parameter, and builds a definition only for a listed route.
+- **Code that extends `AbstractCrudController`, or calls `CrudControllerFactory.assertWriteVerbsDeclareAuthorize` (before: `ControllerFactory.`) or `RouteConfigResolver.defineControllerRouteConfigs`.** `AbstractCrudController` no longer takes a `path` option (the path is the `@controller` one). `assertWriteVerbsDeclareAuthorize` takes `{ repositoryName, authorize, routes }` instead of `{ controllerName, authorize, routes, readonly, enabledRoutes }`. `defineControllerRouteConfigs` lost its `Routes` type parameter, and builds a definition only for a listed route.
 - **A repository class that subclasses `AbstractRepository` and declares a member named `$inferData` or `$inferPersist`.** Rename it.
 - **A `defineSearchController` controller whose repository class has a different document type from the entity** (for example `extends DefaultSearchRepository` with no type argument). The constructor now checks the repository against the entity's document type, so it fails to compile until the repository names that type: `DefaultSearchRepository<TArticle>`.
-- **A custom controller factory that calls `ControllerFactory.registerRepositoryInjection`.** The option `controllerName` is removed.
-- **A repository class with no `@repository({ model })`.** `ControllerFactory.crud` cannot resolve the entity and throws at build.
+- **A custom controller factory that calls `ControllerFactory.registerRepositoryInjection`.** It is now `CrudControllerFactory.registerRepositoryInjection`, and the option `controllerName` is removed.
+- **A repository class with no `@repository({ model })`.** `CrudControllerFactory.build` cannot resolve the entity and throws at build.
 - **Everyone else.** No action needed.
 
 ## Breaking changes
@@ -60,7 +61,7 @@ const _Controller = ControllerFactory.defineCrudController({
 export class NoteController extends _Controller {}
 
 // After
-const _Controller = ControllerFactory.crud({
+const _Controller = CrudControllerFactory.build({
   repository: NoteRepository, // @repository({ model: Note, ... }) supplies the entity
   routes: { ...CrudRoutes.READ, create: true, updateById: true, updateBy: true, deleteById: true, deleteBy: true },
 });
@@ -91,17 +92,17 @@ ControllerFactory.defineCrudController({ entity: () => Note, repository: { name:
 @repository({ model: () => Note, dataSource: PostgresDataSource })
 export class NoteRepository extends DefaultCRUDRepository<typeof noteTable> {}
 
-ControllerFactory.crud({ repository: NoteRepository, ... });
+CrudControllerFactory.build({ repository: NoteRepository, ... });
 ```
 
-**Type arguments are gone.** `ControllerFactory.crud` takes the row types from the repository class, so drop them:
+**Type arguments are gone.** `CrudControllerFactory.build` takes the row types from the repository class, so drop them:
 
 ```typescript
 // Before
 ControllerFactory.defineCrudController<TNote>({ ... });
 
 // After
-ControllerFactory.crud({ ... });
+CrudControllerFactory.build({ ... });
 ```
 
 **`controller.readonly`:**
@@ -171,7 +172,7 @@ ControllerFactory.registerRepositoryInjection({
 });
 
 // After
-ControllerFactory.registerRepositoryInjection({
+CrudControllerFactory.registerRepositoryInjection({
   target: GeneratedController,
   factoryName: 'defineReportController',
   repositoryName: ReportRepository.name,
@@ -181,7 +182,7 @@ ControllerFactory.registerRepositoryInjection({
 Find the call sites:
 
 ```bash
-rg -n 'defineCrudController' --glob '*.{ts,tsx,js,mjs,cjs}' --glob '!node_modules'
+rg -n '\bControllerFactory\b|defineCrudController' --glob '*.{ts,tsx,js,mjs,cjs}' --glob '!node_modules'   # SearchControllerFactory is another class and stays
 rg -n 'enabledRoutes|\breadonly:\s*true|\benabled:\s*(true|false)' --glob '*.{ts,tsx,js,mjs,cjs}' --glob '!node_modules'   # enabled: also matches unrelated options; read each hit
 rg -n 'basePath|controller:\s*\{|isStrict' --glob '*.{ts,tsx,js,mjs,cjs}' --glob '!node_modules'   # controller: { name, basePath, isStrict } of a CRUD factory call
 rg -n 'super\.binding\(\)' --glob '*.{ts,tsx,js,mjs,cjs}' --glob '!node_modules'

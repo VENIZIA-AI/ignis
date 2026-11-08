@@ -1979,14 +1979,79 @@ export declare const controller: (metadata: TControllerMetadata) => ClassDecorat
 
 Source: `packages/kernel/src/base/metadata/routes/controller.ts`
 
-## `ControllerFactory`
+## `ControllerTransports`
+
+*class*
+
+Transport protocol constants for controllers.
+
+```ts
+export declare class ControllerTransports {
+    static readonly REST = "rest";
+    static readonly GRPC = "grpc";
+}
+```
+
+Source: `packages/kernel/src/base/controllers/common/constants.ts`
+
+## `CoreBindings`
+
+*class*
+
+Core binding keys for fundamental application components and configuration.
+
+```ts
+export declare class CoreBindings extends BindingKeys {
+    static readonly APPLICATION_INSTANCE = "@app/instance";
+    static readonly APPLICATION_SERVER = "@app/server";
+    static readonly APPLICATION_CONFIG = "@app/config";
+    static readonly APPLICATION_PROJECT_ROOT = "@app/project_root";
+    static readonly APPLICATION_ROOT_ROUTER = "@app/router/root";
+    static readonly APPLICATION_ENVIRONMENTS = "@app/environments";
+    static readonly APPLICATION_MIDDLEWARE_OPTIONS = "@app/middleware_options";
+}
+```
+
+Source: `packages/kernel/src/common/bindings.ts`
+
+## `countableHeaders`
+
+*const*
+
+Request header schema for the `x-request-count-data` header, which switches a response between `{ count, data }` and the raw payload.
+
+```ts
+export declare const countableHeaders: z.ZodObject<{
+    "x-request-count": z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
+```
+
+Source: `packages/kernel/src/base/controllers/common/schemas.ts`
+
+## `CountSchema`
+
+*const*
+
+The zod-backed result schema, kept apart from `results.ts` ON PURPOSE. `z.object()` runs at module
+load, so any bundle reaching this file carries the whole of zod - and `results.ts` is on
+`AbstractRepository`'s path, which a consumer that never serves HTTP still needs.
+
+```ts
+export declare const CountSchema: z.ZodObject<{
+    count: z.ZodDefault<z.ZodNumber>;
+}, z.core.$strip>;
+```
+
+Source: `packages/kernel/src/base/repositories/common/types/result-schemas.ts`
+
+## `CrudControllerFactory`
 
 *class*
 
 Factory for generating typed CRUD controllers from entity definitions.
 
 ```ts
-export declare class ControllerFactory extends BaseHelper {
+export declare class CrudControllerFactory extends BaseHelper {
     /** The generated routes that change data: the ones that must never be answered by a `read` permission. */
     private static readonly WRITE_VERBS;
     constructor();
@@ -2001,7 +2066,7 @@ export declare class ControllerFactory extends BaseHelper {
         factoryName: string;
         repositoryName: string;
     }): void;
-    static crud<Repository extends TCrudRepositoryClass, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TRepositoryDataObject<InstanceType<Repository>>, TPersistObject extends object = TRepositoryPersistObject<InstanceType<Repository>>>(opts: ICrudControllerOptions<Repository>): {
+    static build<Repository extends TCrudRepositoryClass, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TRepositoryDataObject<InstanceType<Repository>>, TPersistObject extends object = TRepositoryPersistObject<InstanceType<Repository>>>(opts: ICrudControllerOptions<Repository>): {
         new (repositoryInstance: AbstractRepository<TDataObject, TPersistObject, AnyType>): {
             /** The routes of a generated controller come from `routes`; a subclass adds its own here. */
             binding(): ValueOrPromise<void>;
@@ -2234,71 +2299,6 @@ export declare class ControllerFactory extends BaseHelper {
 ```
 
 Source: `packages/kernel/src/base/controllers/factory/controller.ts`
-
-## `ControllerTransports`
-
-*class*
-
-Transport protocol constants for controllers.
-
-```ts
-export declare class ControllerTransports {
-    static readonly REST = "rest";
-    static readonly GRPC = "grpc";
-}
-```
-
-Source: `packages/kernel/src/base/controllers/common/constants.ts`
-
-## `CoreBindings`
-
-*class*
-
-Core binding keys for fundamental application components and configuration.
-
-```ts
-export declare class CoreBindings extends BindingKeys {
-    static readonly APPLICATION_INSTANCE = "@app/instance";
-    static readonly APPLICATION_SERVER = "@app/server";
-    static readonly APPLICATION_CONFIG = "@app/config";
-    static readonly APPLICATION_PROJECT_ROOT = "@app/project_root";
-    static readonly APPLICATION_ROOT_ROUTER = "@app/router/root";
-    static readonly APPLICATION_ENVIRONMENTS = "@app/environments";
-    static readonly APPLICATION_MIDDLEWARE_OPTIONS = "@app/middleware_options";
-}
-```
-
-Source: `packages/kernel/src/common/bindings.ts`
-
-## `countableHeaders`
-
-*const*
-
-Request header schema for the `x-request-count-data` header, which switches a response between `{ count, data }` and the raw payload.
-
-```ts
-export declare const countableHeaders: z.ZodObject<{
-    "x-request-count": z.ZodOptional<z.ZodString>;
-}, z.core.$strip>;
-```
-
-Source: `packages/kernel/src/base/controllers/common/schemas.ts`
-
-## `CountSchema`
-
-*const*
-
-The zod-backed result schema, kept apart from `results.ts` ON PURPOSE. `z.object()` runs at module
-load, so any bundle reaching this file carries the whole of zod - and `results.ts` is on
-`AbstractRepository`'s path, which a consumer that never serves HTTP still needs.
-
-```ts
-export declare const CountSchema: z.ZodObject<{
-    count: z.ZodDefault<z.ZodNumber>;
-}, z.core.$strip>;
-```
-
-Source: `packages/kernel/src/base/repositories/common/types/result-schemas.ts`
 
 ## `CrudRoutes`
 
@@ -3481,7 +3481,7 @@ Source: `packages/kernel/src/base/applications/common/types/middlewares.ts`
 
 *interface*
 
-Configuration options for creating a CRUD controller via ControllerFactory.crud.
+Configuration options for creating a CRUD controller via CrudControllerFactory.build.
 
 ```ts
 export interface ICrudControllerOptions<Repository extends TCrudRepositoryClass = TCrudRepositoryClass> {

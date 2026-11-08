@@ -1,7 +1,7 @@
 import { CrudRoutes } from '@/base/controllers/common';
 import type { TCrudRoutes } from '@/base/controllers/common';
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
-import { ControllerFactory } from '@/base/controllers/factory/controller';
+import { CrudControllerFactory } from '@/base/controllers/factory/controller';
 import { RouteConfigResolver } from '@/base/controllers/factory/definition';
 import {
   controller as controllerDecorator,
@@ -323,7 +323,7 @@ const resolveVariantController = (opts: {
   const { entity, controllerName } = opts;
   const repositoryName = `${controllerName}Repository`;
   const VariantRepository = repositoryClassOf({ entity, name: repositoryName });
-  const VariantCrudController = ControllerFactory.crud({
+  const VariantCrudController = CrudControllerFactory.build({
     repository: VariantRepository,
     routes: { ...CrudRoutes.READ, create: true, updateById: true },
   });
@@ -358,7 +358,7 @@ const toRouteBodySchemas = async (opts: {
   };
 };
 
-describe('ControllerFactory.crud reads which keys the model stamps', () => {
+describe('CrudControllerFactory.build reads which keys the model stamps', () => {
   test('the default stamped list is the audit keys and deletedAt', () => {
     expect([...AuditFields.SCHEME_SET]).toEqual([
       'createdBy',

@@ -5,7 +5,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   controller as controllerDecorator,
-  ControllerFactory,
+  CrudControllerFactory,
   repository,
   model,
 } from '@venizia/ignis-kernel';
@@ -246,7 +246,7 @@ describe('a CRUD controller over a search repository', () => {
       name: `hidden-filter-crud-${sequence}`,
       config: {},
     });
-    const Controller = ControllerFactory.crud({
+    const Controller = CrudControllerFactory.build({
       repository: HiddenFilterNestedRepository,
       routes: { count: true },
     });

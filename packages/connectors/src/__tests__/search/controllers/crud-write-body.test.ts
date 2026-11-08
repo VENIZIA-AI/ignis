@@ -6,7 +6,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   BaseAppErrorMiddleware,
   controller,
-  ControllerFactory,
+  CrudControllerFactory,
   CrudRoutes,
   model,
   repository,
@@ -40,7 +40,7 @@ class VariantSearchRepository extends DefaultSearchRepository<
   TSearchDocument<ISearchCollectionDefinition>
 > {}
 
-const VariantCrudController = ControllerFactory.crud({
+const VariantCrudController = CrudControllerFactory.build({
   repository: VariantSearchRepository,
   routes: { ...CrudRoutes.READ, create: true, updateById: true },
 });
@@ -66,7 +66,7 @@ const openRoutes = async () => {
   return { send, engine: dataSource.fakeConnector };
 };
 
-describe('ControllerFactory.crud over a search entity keeps the audit-named fields', () => {
+describe('CrudControllerFactory.build over a search entity keeps the audit-named fields', () => {
   test('POST keeps the required createdAt and hands it to the engine', async () => {
     const { send, engine } = await openRoutes();
     const document = {

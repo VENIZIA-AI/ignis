@@ -219,19 +219,19 @@ this.bindRoute({
 });
 ```
 
-## `ControllerFactory` for CRUD Operations
+## `CrudControllerFactory` for CRUD Operations
 
-For standard CRUD (Create, Read, Update, Delete) operations, `IGNIS` provides a `ControllerFactory` that can generate a full-featured controller for any given entity. This significantly reduces boilerplate code.
+For standard CRUD (Create, Read, Update, Delete) operations, `IGNIS` provides a `CrudControllerFactory` that can generate a full-featured controller for any given entity. This significantly reduces boilerplate code.
 
 ```typescript
 // src/controllers/configuration.controller.ts (Example from @examples/vert)
 import { ConfigurationRepository } from '@/repositories';
-import { controller, ControllerFactory, CrudRoutes } from '@venizia/ignis';
+import { controller, CrudControllerFactory, CrudRoutes } from '@venizia/ignis';
 
 const BASE_PATH = '/configurations';
 
 // The entity comes from @repository({ model }) on ConfigurationRepository.
-const _Controller = ControllerFactory.crud({
+const _Controller = CrudControllerFactory.build({
   repository: ConfigurationRepository,
   isStrict: { path: true, requestSchema: true },
   routes: {
@@ -248,7 +248,7 @@ const _Controller = ControllerFactory.crud({
 @controller({ path: BASE_PATH })
 export class ConfigurationController extends _Controller {}
 ```
-`ControllerFactory.crud` sets up the routes you list in `routes`, with schemas taken from the entity of the repository. A route that is not listed does not exist. `CrudRoutes.READ` lists the first four:
+`CrudControllerFactory.build` sets up the routes you list in `routes`, with schemas taken from the entity of the repository. A route that is not listed does not exist. `CrudRoutes.READ` lists the first four:
 
 | Route Name | Method | Path | Description |
 | :--- | :--- | :--- | :--- |
@@ -265,9 +265,9 @@ export class ConfigurationController extends _Controller {}
 | `restoreBy` | `POST` | `/restore` | Restore the soft-deleted records matching a `where` in the query. |
 
 :::info Customization
-The `ControllerFactory` is highly customizable. You can override the Zod schemas for any of the generated routes to add, remove, or modify fields for request validation and response shapes. You can also configure other behaviors, like making delete operations return the deleted records.
+The `CrudControllerFactory` is highly customizable. You can override the Zod schemas for any of the generated routes to add, remove, or modify fields for request validation and response shapes. You can also configure other behaviors, like making delete operations return the deleted records.
 
-For a full list of customization options, see the [**Deep Dive: `ControllerFactory`**](../../references/base/controllers.md#controllerfactory) documentation.
+For a full list of customization options, see the [**Deep Dive: `CrudControllerFactory`**](../../references/base/controllers.md#crudcontrollerfactory) documentation.
 :::
 
 ### `defineJSXRoute` (Server-Side Rendered HTML)

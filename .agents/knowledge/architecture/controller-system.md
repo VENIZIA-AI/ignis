@@ -35,7 +35,7 @@ application does unless `configs.transports` says otherwise. Do not model it as 
 - `BaseRestController extends AbstractRestController` - the recommended base. Adds the concrete
   `bindRoute` / `defineRoute` / `defineJSXRoute` implementations plus `measure()`.
 
-`AbstractRestController`, `BaseRestController`, `ControllerFactory` and the CRUD tiers all live in
+`AbstractRestController`, `BaseRestController`, `CrudControllerFactory` and the CRUD tiers all live in
 `@venizia/ignis-kernel`, under `packages/kernel/src/base/controllers`. gRPC is the one tier left in
 core, at `packages/core-server/src/base/controllers/grpc`, where a parallel `AbstractGrpcController` /
 `BaseGrpcController` pair sits: ConnectRPC reaches for `node:async_hooks` and `node:module`, so it
@@ -81,7 +81,7 @@ always sits between the two decorator passes, and a custom static path there win
 
 ## The CRUD controller factory
 
-`ControllerFactory.crud({ repository, authenticate, authorize, isStrict, routes })` generates a
+`CrudControllerFactory.build({ repository, authenticate, authorize, isStrict, routes })` generates a
 fully typed CRUD controller from a repository class. The entity comes from the class's
 `@repository({ model })` metadata (a class or a thunk, which is how circular model imports are
 broken). The path is only on `@controller({ path })` of the subclass; the name is the class name.
@@ -96,7 +96,7 @@ mirroring the read/write split on the repository side.
 The default create and update bodies leave out the keys of the model's `properties.stamped` (default
 `AuditFields.SCHEME_SET`: the audit keys and `deletedAt`) and an update body never carries `id`; see
 [kernel](/packages/kernel.md). A factory of your own injects its
-repository through `ControllerFactory.registerRepositoryInjection`.
+repository through `CrudControllerFactory.registerRepositoryInjection`.
 
 The factory generates NO body-filter twin of `find` or `count`. `POST /find` and `POST /count`
 shipped in `@venizia/ignis@0.2.1-2` and were removed the same day as a security defect: the twin

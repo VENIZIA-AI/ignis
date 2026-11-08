@@ -61,7 +61,7 @@ export const TimestampMixin = <
 Generate classes dynamically with configuration:
 
 ```typescript
-class ControllerFactory extends BaseHelper {
+class CrudControllerFactory extends BaseHelper {
   static crud<Repository extends TClass<IRepository>>(opts: ICrudControllerOptions<Repository>) {
     const { repository, routes } = opts;
 
@@ -101,7 +101,7 @@ class ControllerFactory extends BaseHelper {
 }
 
 // Usage - the entity comes from the repository's @repository({ model }), the path from @controller
-const UserCrudController = ControllerFactory.crud({
+const UserCrudController = CrudControllerFactory.build({
   repository: UserRepository,
   routes: CrudRoutes.READ,
 });

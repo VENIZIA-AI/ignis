@@ -9,7 +9,7 @@ import {
   Authentication,
   BaseAppErrorMiddleware,
   controller,
-  ControllerFactory,
+  CrudControllerFactory,
   CrudRoutes,
   datasource,
   model,
@@ -300,7 +300,7 @@ describe.each(ROUTE_TIERS)('a generated CRUD route on $name stamps the signed-in
     repository = opened.repository;
     close = opened.close;
 
-    const RouteController = ControllerFactory.crud({
+    const RouteController = CrudControllerFactory.build({
       repository: tier.repositoryClass,
       routes: {
         ...CrudRoutes.READ,

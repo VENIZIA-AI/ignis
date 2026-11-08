@@ -79,7 +79,7 @@ export type TRepositoryPersistObject<Repository> = Repository extends {
     : object
   : object;
 
-/** Configuration options for creating a CRUD controller via ControllerFactory.crud. */
+/** Configuration options for creating a CRUD controller via CrudControllerFactory.build. */
 export interface ICrudControllerOptions<
   Repository extends TCrudRepositoryClass = TCrudRepositoryClass,
 > {
