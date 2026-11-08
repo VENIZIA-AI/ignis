@@ -19,11 +19,12 @@ packages: ['@venizia/ignis', '@venizia/ignis-kernel', '@venizia/ignis-connectors
 - **`routes` is the whole list.** `routes: { find: true, create: true }` builds those two routes. A route takes `true` or a config (`authenticate`, `authorize`, `request`, `response`), and a route's own `authenticate` and `authorize` replace the controller's.
 - **`CrudRoutes.READ` lists the four read routes:** `count`, `find`, `findById`, `findOne`. `routes: { ...CrudRoutes.READ, create: true }` adds one write route.
 - **Restore routes are new.** `restoreById` is `POST /{id}/restore`, and `restoreBy` is `POST /restore` with `where` in the query. They are checked against the UPDATE scope of the model. There is no route that lists deleted rows.
-- **A restore route needs a repository that has the restore methods.** The types refuse `restoreById` and `restoreBy` for a repository class without them, and the build throws for a caller the types do not reach.
-- **The generated routes register after the subclass's `binding()`.** A custom static path you declare there, such as `GET /featured`, is no longer taken by `GET /{id}`.
+- **A restore route needs a repository that has both restore methods.** The types refuse `restoreById` and `restoreBy` for a repository class that lacks either one, and the build throws for a caller the types do not reach.
+- **The generated routes register after the subclass's `binding()`.** A custom static path you declare there, such as `GET /featured`, is no longer taken by `GET /{id}`. The same order means a custom `GET /count` in `binding()` now shadows the generated `count` route, where before the generated one came first.
+- **A new hook, `bindDefaultRoutes()`, on `BaseRestController`.** It registers the routes a generated controller brings, after `binding()`. A hand-written controller does not need it.
+- **The row types come from the repository class.** `AbstractRepository` carries two phantom markers, `$inferData` and `$inferPersist` (no runtime value), the way an entity does, and `TRepositoryDataObject` and `TRepositoryPersistObject` read them. `this.repository` and the payloads of a generated controller are typed with the exact row of a relational table or a search document.
 - **The write-route check covers only listed routes.** `ControllerFactory.crud` still refuses to boot when a listed write route would inherit a controller-level `authorize` whose action is `read`. A route you do not list is not checked.
 - **An update reads its `data` once.** `updateById`, `updateBy`, `updateEach`, `upsert` and a soft delete copy the caller's `data` into a plain object, check that copy for `deletedAt`, and write that same copy.
-- **New repository methods:** checkedUpdateData.
 - **Search is next.** `defineSearchController` keeps its current form until its own change, in the same release line.
 
 ## Who is affected
@@ -33,6 +34,9 @@ packages: ['@venizia/ignis', '@venizia/ignis-kernel', '@venizia/ignis-connectors
 - **A CRUD controller subclass that called `super.binding()`.** The generated `binding()` is now empty, so the call does nothing: delete it.
 - **A call that gave `controller.isStrict`, an `entity` that is not the model of the repository, or type arguments** (`defineCrudController<TRecord>`). See the three rewrites below.
 - **Code that imports `ICrudControllerOptions`.** Its type parameter is now the repository class, not the route map.
+- **Code that extends `AbstractCrudController`, or calls `ControllerFactory.assertWriteVerbsDeclareAuthorize` or `RouteConfigResolver.defineControllerRouteConfigs`.** `AbstractCrudController` no longer takes a `path` option (the path is the `@controller` one). `assertWriteVerbsDeclareAuthorize` takes `{ repositoryName, authorize, routes }` instead of `{ controllerName, authorize, routes, readonly, enabledRoutes }`. `defineControllerRouteConfigs` lost its `Routes` type parameter, and builds a definition only for a listed route.
+- **A repository class that subclasses `AbstractRepository` and declares a member named `$inferData` or `$inferPersist`.** Rename it.
+- **A `defineSearchController` controller whose repository class has a different document type from the entity** (for example `extends DefaultSearchRepository` with no type argument). The constructor now checks the repository against the entity's document type, so it fails to compile until the repository names that type: `DefaultSearchRepository<TArticle>`.
 - **A custom controller factory that calls `ControllerFactory.registerRepositoryInjection`.** The option `controllerName` is removed.
 - **A repository class with no `@repository({ model })`.** `ControllerFactory.crud` cannot resolve the entity and throws at build.
 - **Everyone else.** No action needed.

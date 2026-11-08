@@ -25,6 +25,14 @@ class RoutesProbeItem extends AbstractEntity<typeof itemSchema> {
 @repository({ model: RoutesProbeItem, dataSource: 'ProbeDataSource' })
 class PlainProbeRepository extends StubRepository {}
 
+/** Has `restoreById` and not `restoreBy`: the restore routes need both. */
+@repository({ model: RoutesProbeItem, dataSource: 'ProbeDataSource' })
+class HalfRestorableRepository extends StubRepository {
+  restoreById(_opts?: AnyType): Promise<AnyType> {
+    return Promise.resolve({ count: 0, data: null });
+  }
+}
+
 /** Answers the restore verbs and `findById`, the verbs the tests reach over HTTP. */
 @repository({ model: RoutesProbeItem, dataSource: 'ProbeDataSource' })
 class SoftProbeRepository extends RestorableStubRepository {
@@ -235,14 +243,31 @@ describe('ControllerFactory.crud - the restore routes', () => {
         // @ts-expect-error this repository has no restoreById
         routes: { restoreById: true },
       }),
-    ).toThrow('routes.restoreById needs a repository with restoreById and restoreBy');
+    ).toThrow('a restore route needs a repository with both restoreById and restoreBy');
     expect(() =>
       ControllerFactory.crud({
         repository: PlainProbeRepository,
         // @ts-expect-error this repository has no restoreBy
         routes: { restoreBy: true },
       }),
-    ).toThrow('routes.restoreBy needs a repository with restoreById and restoreBy');
+    ).toThrow('a restore route needs a repository with both restoreById and restoreBy');
+  });
+
+  test('a repository with only one restore method refuses both restore routes', () => {
+    expect(() =>
+      ControllerFactory.crud({
+        repository: HalfRestorableRepository,
+        // @ts-expect-error restoreBy is missing, and the route needs both methods
+        routes: { restoreById: true },
+      }),
+    ).toThrow('a restore route needs a repository with both restoreById and restoreBy');
+    expect(() =>
+      ControllerFactory.crud({
+        repository: HalfRestorableRepository,
+        // @ts-expect-error restoreBy is missing
+        routes: { restoreBy: true },
+      }),
+    ).toThrow('a restore route needs a repository with both restoreById and restoreBy');
   });
 });
 

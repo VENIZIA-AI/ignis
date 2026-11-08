@@ -1,8 +1,7 @@
-import type { AbstractRepository } from '@/base/repositories';
 import type { IRepository } from '@/base/repositories/common/types/contracts';
 import type { TAuthMode, TAuthStrategy } from '@/base/auth/authenticate/common/constants';
 import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
-import type { AnyType, IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Hook, OpenAPIHono } from '@hono/zod-openapi';
 import type { Env, Schema } from 'hono';
 import type { TRouteHandler } from './context';
@@ -64,13 +63,21 @@ export type TEntityPersistObject<TEntity> = TEntity extends { $inferPersist?: in
 /** The repository classes a CRUD controller can be built over. */
 export type TCrudRepositoryClass = TClass<IRepository>;
 
-/** Read object of a repository: the `TDataObject` its `AbstractRepository` base declares; falls back to `object`. */
-export type TRepositoryDataObject<Repository> =
-  Repository extends AbstractRepository<infer TData, AnyType, AnyType> ? TData : object;
+/** Read object of a repository, from its `$inferData` phantom marker (the `TDataObject` its `AbstractRepository` base declares); falls back to `object`. */
+export type TRepositoryDataObject<Repository> = Repository extends { $inferData?: infer TData }
+  ? TData extends object
+    ? TData
+    : object
+  : object;
 
-/** Persist object of a repository: the `TPersistObject` its `AbstractRepository` base declares; falls back to `object`. */
-export type TRepositoryPersistObject<Repository> =
-  Repository extends AbstractRepository<AnyType, infer TPersist, AnyType> ? TPersist : object;
+/** Persist object of a repository, from its `$inferPersist` phantom marker; same contract and `object` fallback as {@link TRepositoryDataObject}. */
+export type TRepositoryPersistObject<Repository> = Repository extends {
+  $inferPersist?: infer TPersist;
+}
+  ? TPersist extends object
+    ? TPersist
+    : object
+  : object;
 
 /** Configuration options for creating a CRUD controller via ControllerFactory.crud. */
 export interface ICrudControllerOptions<

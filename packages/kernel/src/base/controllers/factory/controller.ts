@@ -1,3 +1,5 @@
+import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { AbstractRepository } from '@/base/repositories';
 import { AuthorizationActions } from '@/base/auth/authorize/common/constants';
 import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
 import type { AbstractEntity } from '@/base/models';
@@ -123,7 +125,8 @@ export class ControllerFactory extends BaseHelper {
       TDataObject,
       TPersistObject
     > {
-      constructor(repositoryInstance: InstanceType<Repository>) {
+      // Any extra options: a repository whose options narrow `IExtraOptions` (a typed transaction) must fit.
+      constructor(repositoryInstance: AbstractRepository<TDataObject, TPersistObject, AnyType>) {
         super({
           scope: new.target.name,
           isStrict: isStrict.path ?? true,
@@ -232,12 +235,15 @@ export class ControllerFactory extends BaseHelper {
   }): void {
     const { repository, routes } = opts;
 
-    for (const verb of ['restoreById', 'restoreBy'] as const) {
-      if (routes?.[verb] !== undefined && typeof repository.prototype[verb] !== 'function') {
-        throw getError({
-          message: `[ControllerFactory.crud] routes.${verb} needs a repository with restoreById and restoreBy | repository: ${repository.name}`,
-        });
-      }
+    const isRestoreListed = routes?.restoreById !== undefined || routes?.restoreBy !== undefined;
+    const isRestorable =
+      typeof repository.prototype.restoreById === 'function' &&
+      typeof repository.prototype.restoreBy === 'function';
+
+    if (isRestoreListed && !isRestorable) {
+      throw getError({
+        message: `[ControllerFactory.crud] a restore route needs a repository with both restoreById and restoreBy | repository: ${repository.name}`,
+      });
     }
   }
 

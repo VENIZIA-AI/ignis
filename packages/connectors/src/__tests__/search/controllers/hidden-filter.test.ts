@@ -15,7 +15,11 @@ import { SearchModes } from '@/search/core/repositories/common';
 import { BaseSearchEntity, SearchCollectionFactory, field } from '@/search/core/models';
 import { DefaultSearchRepository } from '@/search/typesense/repositories';
 
-import { FakeSearchDataSource, ProductDocument } from '../repositories/fake-search-connector';
+import {
+  FakeSearchDataSource,
+  ProductDocument,
+  type TProductDocument,
+} from '../repositories/fake-search-connector';
 
 /**
  * A search request's own filter cannot name a field the model hides: its `where` and `order` answer 400 and the engine is not
@@ -26,7 +30,7 @@ class HiddenFilterDataSource extends FakeSearchDataSource {}
 
 // Distinctly named: the model registry is keyed by class name across the whole test process.
 @repository({ model: ProductDocument, dataSource: HiddenFilterDataSource })
-class HiddenFilterProductRepository extends DefaultSearchRepository {}
+class HiddenFilterProductRepository extends DefaultSearchRepository<TProductDocument> {}
 
 // A model that hides one nested field of a dotted document (`meta.pin`), as an engine with nested fields reads it.
 @model({

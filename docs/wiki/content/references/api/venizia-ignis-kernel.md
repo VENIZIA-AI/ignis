@@ -112,8 +112,7 @@ export declare abstract class AbstractCrudController<TEntity extends AbstractEnt
     constructor(opts: {
         scope: string;
         isStrict?: boolean;
-        /** Typed by the repository class the generated controller was built over, so any row and option types fit. */
-        repository: AnyType;
+        repository: AbstractRepository<TDataObject, TPersistObject, AnyType>;
         definitions: AnyType;
     });
     /**
@@ -2003,7 +2002,7 @@ export declare class ControllerFactory extends BaseHelper {
         repositoryName: string;
     }): void;
     static crud<Repository extends TCrudRepositoryClass, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TRepositoryDataObject<InstanceType<Repository>>, TPersistObject extends object = TRepositoryPersistObject<InstanceType<Repository>>>(opts: ICrudControllerOptions<Repository>): {
-        new (repositoryInstance: InstanceType<Repository>): {
+        new (repositoryInstance: AbstractRepository<TDataObject, TPersistObject, AnyType>): {
             /** The routes of a generated controller come from `routes`; a subclass adds its own here. */
             binding(): ValueOrPromise<void>;
             /** Registers each listed CRUD route, after `binding()`: a custom static path is never taken by `/{id}`. */
@@ -2048,7 +2047,7 @@ export declare class ControllerFactory extends BaseHelper {
             findOne(opts: {
                 context: import("../index.js").TRouteContext<RouteEnv>;
             }): Promise<import("../index.js").TJsonResponse<unknown, 200>>;
-            repository: import("../../index.js").AbstractRepository<TDataObject, TPersistObject, import("../../index.js").IExtraOptions>;
+            repository: AbstractRepository<TDataObject, TPersistObject, import("../../repositories/index.js").IExtraOptions>;
             assertRequestFilter(opts: {
                 filter?: {
                     where?: unknown;
@@ -2098,7 +2097,7 @@ export declare class ControllerFactory extends BaseHelper {
                     count: number;
                     data?: import("@venizia/ignis-helpers/common").TNullable<R>;
                 };
-                range?: import("../../index.js").TDataRange;
+                range?: import("../../repositories/index.js").TDataRange;
                 extra?: never;
             }): R | {
                 count: number;
@@ -2111,7 +2110,7 @@ export declare class ControllerFactory extends BaseHelper {
                     count: number;
                     data?: import("@venizia/ignis-helpers/common").TNullable<R>;
                 };
-                range?: import("../../index.js").TDataRange;
+                range?: import("../../repositories/index.js").TDataRange;
                 extra: Extra;
             }): Promise<R | {
                 count: number;
@@ -2128,7 +2127,7 @@ export declare class ControllerFactory extends BaseHelper {
                     count: number;
                     data?: import("@venizia/ignis-helpers/common").TNullable<R>;
                 };
-                range?: import("../../index.js").TDataRange;
+                range?: import("../../repositories/index.js").TDataRange;
                 extra?: Record<string, import("../index.js").TResponseExtra>;
             }): ValueOrPromise<R | {
                 count?: number;
@@ -2158,7 +2157,7 @@ export declare class ControllerFactory extends BaseHelper {
                 context: import("../index.js").TRouteContext<RouteEnv>;
                 count: number;
             } & ({
-                range: import("../../index.js").TDataRange;
+                range: import("../../repositories/index.js").TDataRange;
             } | {
                 offset: number;
                 total: number;
@@ -6296,7 +6295,7 @@ export declare class RouteConfigResolver {
         selectSchema: FindSchema;
     }): {
         request: {
-            query: z.ZodObject<{
+            query: TAnyObjectSchema | z.ZodObject<{
                 filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
@@ -6320,7 +6319,7 @@ export declare class RouteConfigResolver {
                     offset: z.ZodOptional<z.ZodNumber>;
                     skip: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>]>>;
-            }, z.core.$strip> | TAnyObjectSchema;
+            }, z.core.$strip>;
             headers: TAnyObjectSchema | z.ZodObject<{
                 "x-request-id": z.ZodOptional<z.ZodString>;
                 "x-request-channel": z.ZodOptional<z.ZodString>;
@@ -6348,7 +6347,7 @@ export declare class RouteConfigResolver {
             }, z.core.$strip> | TAnyObjectSchema | z.ZodObject<{
                 id: z.ZodCoercedNumber<unknown>;
             }, z.core.$strip>;
-            query: z.ZodObject<{
+            query: TAnyObjectSchema | z.ZodObject<{
                 filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
@@ -6372,7 +6371,7 @@ export declare class RouteConfigResolver {
                     offset: z.ZodOptional<z.ZodNumber>;
                     skip: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>]>>;
-            }, z.core.$strip> | TAnyObjectSchema;
+            }, z.core.$strip>;
             headers: TAnyObjectSchema | z.ZodObject<{
                 "x-request-id": z.ZodOptional<z.ZodString>;
                 "x-request-channel": z.ZodOptional<z.ZodString>;
@@ -6394,7 +6393,7 @@ export declare class RouteConfigResolver {
         selectSchema: FindOneSchema;
     }): {
         request: {
-            query: z.ZodObject<{
+            query: TAnyObjectSchema | z.ZodObject<{
                 filter: z.ZodOptional<z.ZodUnion<readonly [z.ZodObject<{
                     where: z.ZodOptional<z.ZodUnion<readonly [z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>, z.ZodPipe<z.ZodPipe<z.ZodString, z.ZodTransform<any, string>>, z.ZodPipe<z.ZodPipe<z.ZodAny, z.ZodTransform<any, any>>, z.ZodType<any, unknown, z.core.$ZodTypeInternals<any, unknown>>>>]>>;
                     fields: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodBoolean>, z.ZodArray<z.ZodString>]>>;
@@ -6418,7 +6417,7 @@ export declare class RouteConfigResolver {
                     offset: z.ZodOptional<z.ZodNumber>;
                     skip: z.ZodOptional<z.ZodNumber>;
                 }, z.core.$strip>>]>>;
-            }, z.core.$strip> | TAnyObjectSchema;
+            }, z.core.$strip>;
             headers: TAnyObjectSchema | z.ZodObject<{
                 "x-request-id": z.ZodOptional<z.ZodString>;
                 "x-request-channel": z.ZodOptional<z.ZodString>;
@@ -7823,12 +7822,13 @@ Source: `packages/kernel/src/base/controllers/common/types/controller.ts`
 *type*
 
 The routes of a CRUD controller: only a listed route exists, as `true` (on, with its defaults) or a config
-(on, with overrides). `restoreById` and `restoreBy` are listed only for a repository that has those methods.
+(on, with overrides). `restoreById` and `restoreBy` are listed only for a repository that has both methods.
 
 ```ts
 export type TCrudRoutes<Repository extends object = AnyType> = {
     [Key in keyof ICustomizableRoutes]?: Key extends 'restoreById' | 'restoreBy' ? Repository extends {
-        [Name in Key]: unknown;
+        restoreById: unknown;
+        restoreBy: unknown;
     } ? true | TCustomizableRouteConfig : never : true | TCustomizableRouteConfig;
 };
 ```
@@ -8629,10 +8629,12 @@ Source: `packages/kernel/src/base/repositories/common/constants.ts`
 
 *type*
 
-Read object of a repository: the `TDataObject` its `AbstractRepository` base declares; falls back to `object`.
+Read object of a repository, from its `$inferData` phantom marker (the `TDataObject` its `AbstractRepository` base declares); falls back to `object`.
 
 ```ts
-export type TRepositoryDataObject<Repository> = Repository extends AbstractRepository<infer TData, AnyType, AnyType> ? TData : object;
+export type TRepositoryDataObject<Repository> = Repository extends {
+    $inferData?: infer TData;
+} ? TData extends object ? TData : object : object;
 ```
 
 Source: `packages/kernel/src/base/controllers/common/types/controller.ts`
@@ -8692,10 +8694,12 @@ Source: `packages/kernel/src/base/repositories/common/constants.ts`
 
 *type*
 
-Persist object of a repository: the `TPersistObject` its `AbstractRepository` base declares; falls back to `object`.
+Persist object of a repository, from its `$inferPersist` phantom marker; same contract and `object` fallback as {@link TRepositoryDataObject}.
 
 ```ts
-export type TRepositoryPersistObject<Repository> = Repository extends AbstractRepository<AnyType, infer TPersist, AnyType> ? TPersist : object;
+export type TRepositoryPersistObject<Repository> = Repository extends {
+    $inferPersist?: infer TPersist;
+} ? TPersist extends object ? TPersist : object : object;
 ```
 
 Source: `packages/kernel/src/base/controllers/common/types/controller.ts`

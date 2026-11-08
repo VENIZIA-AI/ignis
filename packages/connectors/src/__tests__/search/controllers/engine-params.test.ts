@@ -10,7 +10,11 @@ import { SearchEngineParams } from '@/search/core/controllers/engine-params';
 import { SearchModes } from '@/search/core/repositories/common';
 import { DefaultSearchRepository } from '@/search/typesense/repositories';
 
-import { FakeSearchDataSource, ProductDocument } from '../repositories/fake-search-connector';
+import {
+  FakeSearchDataSource,
+  ProductDocument,
+  type TProductDocument,
+} from '../repositories/fake-search-connector';
 
 /**
  * A search request's `engineParams` is refused (400) on every search controller, scoped or not, unless the controller
@@ -21,7 +25,7 @@ class EngineParamsDataSource extends FakeSearchDataSource {}
 
 // Distinctly named: the model registry is keyed by class name across the whole test process.
 @repository({ model: ProductDocument, dataSource: EngineParamsDataSource })
-class EngineParamsProductRepository extends DefaultSearchRepository {}
+class EngineParamsProductRepository extends DefaultSearchRepository<TProductDocument> {}
 
 const fakeContext = <TInput>(input: TInput) => ({
   req: { valid: () => input, header: () => undefined },

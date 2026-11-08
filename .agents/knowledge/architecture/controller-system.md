@@ -89,7 +89,7 @@ broken). The path is only on `@controller({ path })` of the subclass; the name i
 `authenticate`, `authorize` and `request`), one that is not listed does not. `CrudRoutes.READ` lists
 the four read routes. `restoreById` (`POST /{id}/restore`) and `restoreBy` (`POST /restore`, `where`
 in the query) are listed like the others and are checked against the UPDATE scope; the types refuse
-them for a repository class without the restore methods, and the build throws as a backstop. Under
+them for a repository class without both restore methods, and the build throws as a backstop. The row types come from the repository class: `AbstractRepository` carries the phantom markers `$inferData` and `$inferPersist` (as an entity does), `TRepositoryDataObject` and `TRepositoryPersistObject` read them, and the generated constructor takes `AbstractRepository<TDataObject, TPersistObject, any>`, so `this.repository` and the payloads are typed with the exact table row or search document. Under
 the factory sit `AbstractCrudController`, `ReadableCrudController` and `PersistableCrudController`,
 mirroring the read/write split on the repository side.
 

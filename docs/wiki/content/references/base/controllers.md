@@ -744,7 +744,7 @@ Returns a `BaseRestController` subclass with the routes you list. It is named af
 
 `CrudRoutes.READ` lists the four read routes (`count`, `find`, `findById`, `findOne`): `routes: CrudRoutes.READ`, or `routes: { ...CrudRoutes.READ, create: true }`.
 
-The restore routes check the UPDATE scope of the model, the same one an update uses. There is no route that lists deleted rows. The repository class must have `restoreById` and `restoreBy` (a `SoftDeletableRepository` has them): the types refuse the two routes for a class without them, and `ControllerFactory.crud` throws when it builds, for a caller the types do not reach.
+The restore routes check the UPDATE scope of the model, the same one an update uses. There is no route that lists deleted rows. The repository class must have both `restoreById` and `restoreBy` (a `SoftDeletableRepository` has them): the types refuse the two routes for a class that lacks either, and `ControllerFactory.crud` throws when it builds, for a caller the types do not reach.
 
 ### Default request bodies
 
@@ -804,6 +804,8 @@ The method is public, not protected: a generated controller's declaration file c
 | `authenticate` | `{ strategies?: TAuthStrategy[]; mode?: TAuthMode }` | Authentication default for the listed routes; a route's own `authenticate` replaces it |
 | `authorize` | `IAuthorizationSpec \| IAuthorizationSpec[]` | Authorization default for the listed routes; a route's own `authorize` replaces it |
 | `routes` | `TCrudRoutes<InstanceType<Repository>>` | The routes to generate: `true` for the defaults, or a config with its own `authenticate`, `authorize` and `request`/`response` schemas |
+
+The row types of `this.repository` and of the generated handlers come from the repository class: `AbstractRepository` carries `$inferData` and `$inferPersist` phantom markers (as an entity does), and `TRepositoryDataObject` and `TRepositoryPersistObject` read them. A relational repository gives the table row, a search repository gives its document type.
 
 The path and the name are not options. Declare them on the subclass:
 
