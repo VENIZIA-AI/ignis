@@ -119,7 +119,8 @@ describe('the generated create and update bodies leave deletedAt out, with the a
         entityClass: PostgresEnrichedRow,
       }),
     );
-    const document = documentOf({ router: await controller.configure() });
+    const router = await controller.configure();
+    const document = documentOf({ router });
 
     expect(bodyKeysOf({ requestBody: document.paths?.['/']?.post?.requestBody })).toEqual([
       'code',
@@ -143,7 +144,8 @@ describe('the generated create and update bodies leave deletedAt out, with the a
         entityClass: SqliteEnrichedRow,
       }),
     );
-    const document = documentOf({ router: await controller.configure() });
+    const router = await controller.configure();
+    const document = documentOf({ router });
 
     expect(bodyKeysOf({ requestBody: document.paths?.['/']?.post?.requestBody })).toEqual([
       'code',
