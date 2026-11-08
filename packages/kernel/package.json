@@ -60,6 +60,10 @@
       "types": "./dist/esm/repository.d.ts",
       "default": "./dist/esm/repository.js"
     },
+    "./statuses": {
+      "types": "./dist/esm/statuses.d.ts",
+      "default": "./dist/esm/statuses.js"
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {

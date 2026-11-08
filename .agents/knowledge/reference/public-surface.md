@@ -1748,6 +1748,11 @@ generated:
 - `TSelectedRow` type
 - `TWhere` type
 
+### `@venizia/ignis-kernel/statuses` (2)
+
+- `CommonStatuses` class
+- `Statuses` class
+
 ## connectors
 
 ### `@venizia/ignis-connectors` (137)
