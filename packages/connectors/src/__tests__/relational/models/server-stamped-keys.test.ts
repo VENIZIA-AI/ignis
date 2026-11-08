@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import type { OpenAPIHono } from '@hono/zod-openapi';
 import { ControllerFactory } from '@venizia/ignis-kernel';
 import { integer, pgTable, text } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
@@ -100,25 +101,11 @@ const bodyKeysOf = (opts: { requestBody: unknown }): string[] => {
   return Object.keys(body.content['application/json'].schema.properties).sort();
 };
 
-const documentOf = async (opts: {
-  controller: {
-    configure(): Promise<{
-      getOpenAPI31Document(config: {
-        openapi: '3.1.0';
-        info: { title: string; version: string };
-      }): {
-        paths?: Record<string, Record<string, { requestBody?: unknown } | undefined> | undefined>;
-      };
-    }>;
-  };
-}) => {
-  const router = await opts.controller.configure();
-
-  return router.getOpenAPI31Document({
+const documentOf = (opts: { router: OpenAPIHono }) =>
+  opts.router.getOpenAPI31Document({
     openapi: '3.1.0',
     info: { title: 'write-bodies', version: '1' },
   });
-};
 
 describe('the generated create and update bodies leave deletedAt out, with the audit stamps', () => {
   test('on postgres', async () => {
@@ -127,13 +114,12 @@ describe('the generated create and update bodies leave deletedAt out, with the a
       repository: { name: 'PostgresEnrichedRowRepository' },
       controller: { name: 'PostgresEnrichedRowController', basePath: '/rows' },
     });
-    const document = await documentOf({
-      controller: new PostgresController(
-        new DefaultCRUDRepository<typeof postgresEnrichedTable>(undefined, {
-          entityClass: PostgresEnrichedRow,
-        }),
-      ),
-    });
+    const controller = new PostgresController(
+      new DefaultCRUDRepository<typeof postgresEnrichedTable>(undefined, {
+        entityClass: PostgresEnrichedRow,
+      }),
+    );
+    const document = documentOf({ router: await controller.configure() });
 
     expect(bodyKeysOf({ requestBody: document.paths?.['/']?.post?.requestBody })).toEqual([
       'code',
@@ -152,13 +138,12 @@ describe('the generated create and update bodies leave deletedAt out, with the a
       repository: { name: 'SqliteEnrichedRowRepository' },
       controller: { name: 'SqliteEnrichedRowController', basePath: '/rows' },
     });
-    const document = await documentOf({
-      controller: new SqliteController(
-        new DefaultSqliteRepository<typeof sqliteEnrichedTable>(undefined, {
-          entityClass: SqliteEnrichedRow,
-        }),
-      ),
-    });
+    const controller = new SqliteController(
+      new DefaultSqliteRepository<typeof sqliteEnrichedTable>(undefined, {
+        entityClass: SqliteEnrichedRow,
+      }),
+    );
+    const document = documentOf({ router: await controller.configure() });
 
     expect(bodyKeysOf({ requestBody: document.paths?.['/']?.post?.requestBody })).toEqual([
       'code',
