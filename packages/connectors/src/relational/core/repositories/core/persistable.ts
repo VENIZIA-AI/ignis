@@ -48,7 +48,7 @@ export class PersistableRelationalRepository<
   }
 
   /** Runs before every public update and upsert, with the `data` it was given; throw to refuse the call. Accepts everything by default. */
-  protected validateUpdateData(_opts: { data: Partial<PersistObject> }): void {}
+  protected validateUpdateData(_opts: { data: object }): void {}
 
   /** Guards id-based operations against a null/undefined id */
   protected validateId(opts: { id: unknown; operationName: string }): void {
@@ -565,7 +565,7 @@ export class PersistableRelationalRepository<
     where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
-  override updateAll<R = DataObject>(opts: {
+  override async updateAll<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };

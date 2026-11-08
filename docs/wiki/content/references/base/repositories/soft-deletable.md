@@ -65,7 +65,8 @@ export class CategoryRepository extends SoftDeletableRepository<typeof Category.
 
 ## Delete Operations
 
-- **Delete sets a timestamp, not a `DELETE`.** All delete methods set `deletedAt = new Date()` instead of removing the row - `deleteById` calls `updateById` internally, `deleteAll`/`deleteBy` call `updateAll`.
+- **Delete sets a timestamp, not a `DELETE`.** All delete methods set `deletedAt = new Date()` instead of removing the row, in one `UPDATE`. They do not go through `updateById` or `updateAll`, which refuse `deletedAt`.
+- **Extra columns in the same statement.** `deleteById`, `deleteAll` and `deleteBy` take an optional `data`, written with `deletedAt` in that one `UPDATE`. See [Writing other columns with a soft delete](#writing-other-columns-with-a-soft-delete).
 - **Bypass with `shouldHardDelete`.** Pass `options.shouldHardDelete: true` to skip soft delete and delegate to the parent's real `DELETE`.
 
 ### deleteById
@@ -80,6 +81,9 @@ const result = await repository.deleteById({
   id: '123',
   options: { shouldReturn: false },
 });
+
+// Soft delete and set another column in the same statement
+const result = await repository.deleteById({ id: '123', data: { status: 'ARCHIVED' } });
 
 // Hard delete - physically removes the row
 const result = await repository.deleteById({
@@ -207,7 +211,7 @@ const category = await repository.findById({
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `shouldHardDelete` | `boolean` | `false` | Bypass soft delete and physically remove the row |
+| `shouldHardDelete` | `boolean` | `false` | Bypass soft delete and physically remove the row. Refused when the call also passes `data` |
 | `shouldReturn` | `boolean` | `true` | Return the updated/deleted record |
 | `force` | `boolean` | `false` | Allow an empty `where` condition (`deleteAll`/`deleteBy`) |
 | `transaction` | `ITransaction` | - | Transaction context |
@@ -226,8 +230,8 @@ const category = await repository.findById({
 
 | Operation | SQL Behavior |
 |-----------|-------------|
-| `deleteById` | `UPDATE SET deletedAt = NOW() WHERE id = ?` (via `updateById`) |
-| `deleteAll` / `deleteBy` | `UPDATE SET deletedAt = NOW() WHERE ...` (via `updateAll`) |
+| `deleteById` | `UPDATE SET deletedAt = NOW() [, ...data] WHERE id = ?` |
+| `deleteAll` / `deleteBy` | `UPDATE SET deletedAt = NOW() [, ...data] WHERE ...` |
 | `restoreById` | `UPDATE SET deletedAt = NULL WHERE id = ?` (with `shouldSkipDefaultFilter: true`) |
 | `restoreAll` / `restoreBy` | `UPDATE SET deletedAt = NULL WHERE ...` (with `shouldSkipDefaultFilter: true`) |
 | `find` / `findOne` / `count` | Default filter automatically adds `WHERE deletedAt IS NULL` |
@@ -236,12 +240,29 @@ const category = await repository.findById({
 > [!TIP]
 > `shouldHardDelete` bypasses soft delete entirely and calls `super`, which is `DefaultRelationalRepository`'s delete implementation - a real SQL `DELETE`.
 
-## deletedAt in the generated routes
+## Writing deletedAt
 
-A model with a `deletedAt` column reports it as server-stamped, like the audit columns, so the default `POST` and `PATCH` bodies of `ControllerFactory.defineCrudController` leave it out. A client cannot soft-delete or restore a row by sending `deletedAt` to a generated route; the delete and restore calls change it. A route you give your own `request.body` keeps whatever that body declares.
+`deletedAt` changes only through `deleteById`, `deleteAll`, `deleteBy` and the restore methods. `updateById`, `updateAll`, `updateBy`, `updateEach` and `upsert` refuse a `data` that carries it, under the property name or the column name, with any value including `null`: the call fails with a 400 and writes nothing.
+
+A model with a `deletedAt` column also reports it as server-stamped, like the audit columns, so the default `POST` and `PATCH` bodies of `ControllerFactory.defineCrudController` leave it out. A route you give your own `request.body` keeps whatever that body declares.
 
 > [!NOTE]
-> This is a property of the model, not of the repository: it holds for any entity whose schema has a `deletedAt` column. A direct `updateById` or `updateAll` call that writes `deletedAt` is not refused.
+> The server-stamped part follows the column, so it holds for any entity whose schema has a `deletedAt` column. The 400 is raised by `SoftDeletableRepository` and `SoftDeletableSqliteRepository`; another repository over the same table still accepts `deletedAt` in an update.
+
+### Writing other columns with a soft delete
+
+A call that must change another column when it deletes passes `data`. It is written in the same `UPDATE` as `deletedAt`, so the two cannot be torn apart, for example to move a row out of a partial unique index in one statement:
+
+```typescript
+await repository.deleteById({ id: '123', data: { status: 'ARCHIVED' } });
+await repository.deleteAll({ where: { status: 'DRAFT' }, data: { status: 'ARCHIVED' } });
+```
+
+A soft delete is a delete to the row scope, so the row selection and the values in `data` are checked against the `DELETE` scope, not the `UPDATE` one. A value outside that scope is refused with a 403, and a row outside it is not touched.
+
+- **`data` may not carry `deletedAt`.** The call fails with the same 400 as an update.
+- **`data` and `shouldHardDelete` do not mix.** A hard delete writes no columns, so the call fails with a 400.
+- **Restore takes no `data`.**
 
 ## With Transactions
 
@@ -309,6 +330,7 @@ It rebinds `ExtraOptions` to `IDatabaseExtraOptions` and `TDataSource` to `IPost
 | Soft delete by ID | `repository.deleteById({ id })` |
 | Hard delete by ID | `repository.deleteById({ id, options: { shouldHardDelete: true } })` |
 | Soft delete by condition | `repository.deleteAll({ where })` |
+| Soft delete and set a column | `repository.deleteById({ id, data: { status } })` |
 | Restore by ID | `repository.restoreById({ id })` |
 | Restore by condition | `repository.restoreAll({ where })` |
 | Find including deleted | `repository.find({ filter, options: { shouldSkipDefaultFilter: true } })` |

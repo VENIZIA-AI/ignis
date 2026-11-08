@@ -7,7 +7,6 @@ export class AuditFields {
   static readonly MODIFIED_BY = 'modifiedBy';
   static readonly CREATED_AT = 'createdAt';
   static readonly MODIFIED_AT = 'modifiedAt';
-  /** The soft-delete column's key. It is not an audit stamp, so it stays out of `SCHEME_SET`. */
   static readonly DELETED_AT = 'deletedAt';
 
   static readonly SCHEME_SET = new Set<string>([
@@ -15,6 +14,7 @@ export class AuditFields {
     this.MODIFIED_BY,
     this.CREATED_AT,
     this.MODIFIED_AT,
+    this.DELETED_AT,
   ]);
 
   static isValid(value: string): boolean {

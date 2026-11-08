@@ -50,20 +50,21 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
   }
 
   /**
-   * The audit keys whose column carries a default or `$onUpdate`; an audit column with neither is left to the client.
-   * A `deletedAt` column is always listed: it changes only through the delete and restore calls.
+   * The audit keys whose column carries a default or `$onUpdate` (an audit column with neither is left to the client),
+   * and `deletedAt` whenever the table has that column: it changes only through the delete and restore calls.
    */
   override getServerStampedKeys(): string[] {
     const columns: Record<string, Column | undefined> = getTableColumns(this.schema);
-    const stamped = [...AuditFields.SCHEME_SET].filter((key) => {
+
+    return [...AuditFields.SCHEME_SET].filter((key) => {
       const column = columns[key];
 
-      return column !== undefined && (column.hasDefault || column.onUpdateFn !== undefined);
-    });
+      if (column === undefined) {
+        return false;
+      }
 
-    return columns[AuditFields.DELETED_AT] === undefined
-      ? stamped
-      : [...stamped, AuditFields.DELETED_AT];
+      return key === AuditFields.DELETED_AT || column.hasDefault || column.onUpdateFn !== undefined;
+    });
   }
 
   getSchema<T = unknown>(opts: { type: TSchemaType }): T {
