@@ -25,7 +25,6 @@ export declare abstract class AbstractSearchController<TEntity extends AbstractE
     isRawAllowed: boolean;
     constructor(opts: {
         scope: string;
-        path: string;
         isStrict?: boolean;
         repository: ReadableSearchRepository<TDataObject>;
         definitions: AnyType;
@@ -53,20 +52,14 @@ Source: `packages/connectors/src/search/core/controllers/abstract.ts`
 
 *interface*
 
-Configuration options for creating a search controller via SearchControllerFactory.defineSearchController.
+Configuration options for creating a search controller via SearchControllerFactory.build.
 
 ```ts
-export interface ISearchControllerOptions<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>> {
-    /** Entity class or resolver returning it; its SELECT schema drives the `hits[].document` shape in the generated route's response. */
-    entity: TClass<TEntity> | TResolver<TClass<TEntity>>;
-    repository: {
-        name: string;
-    };
-    controller: {
-        name: string;
-        basePath: string;
-        isStrict?: boolean;
-    };
+export interface ISearchControllerOptions<Repository extends TCrudRepositoryClass = TCrudRepositoryClass> {
+    /** The repository class; its name is the binding the container injects, and its `@repository({ model })` supplies the entity whose SELECT schema drives the `hits[].document` shape in the response. */
+    repository: Repository;
+    /** When true, /search and /search/ are different routes. @default true */
+    isStrict?: boolean;
     /** Authentication config applied to both generated routes. */
     authenticate?: {
         strategies?: TAuthStrategy[];
@@ -74,8 +67,8 @@ export interface ISearchControllerOptions<TEntity extends AbstractEntity<TAnyObj
     };
     /** Authorization config applied to both generated routes. */
     authorize?: IAuthorizationSpec | IAuthorizationSpec[];
-    /** Per-route enable/disable configuration. */
-    routes?: ISearchCustomizableRoutes;
+    /** The routes to generate. */
+    routes: ISearchRoutes;
     /**
      * A function of the request context returning the filter this caller may search within. It is
      * ANDed into `input.filter.where` on the server: the client's own `where` can narrow it, never
@@ -84,7 +77,7 @@ export interface ISearchControllerOptions<TEntity extends AbstractEntity<TAnyObj
      *
      * `raw` mode hands the engine its own wire parameters, and a multi-search entry carries a raw
      * `filterBy`; neither can take a scope, so a scoped controller refuses `raw` (400) and must disable the
-     * multi-search route (`routes.multiSearch.enabled: false`), which `defineSearchController` requires.
+     * multi-search route (leave `routes.multiSearch` out), which `SearchControllerFactory.build` requires.
      * `engineParams` is refused on every controller unless `engineParams.allow` lists it.
      */
     scope?: TSearchScopeResolver;
@@ -115,20 +108,16 @@ export interface ISearchControllerOptions<TEntity extends AbstractEntity<TAnyObj
 
 Source: `packages/connectors/src/search/core/controllers/factory.ts`
 
-## `ISearchCustomizableRoutes`
+## `ISearchRoutes`
 
 *interface*
 
-Per-route enable/disable switches for the generated search controller.
+The routes of a search controller: only a listed route exists.
 
 ```ts
-export interface ISearchCustomizableRoutes {
-    search?: {
-        enabled?: boolean;
-    };
-    multiSearch?: {
-        enabled?: boolean;
-    };
+export interface ISearchRoutes {
+    search?: true;
+    multiSearch?: true;
 }
 ```
 
@@ -443,11 +432,13 @@ export declare class SearchControllerFactory extends BaseHelper {
             };
         };
     };
-    /** Creates a search controller with two endpoints: `POST {basePath}/search` via `repository.search()`, and `POST {basePath}/multi-search` via `repository.dataSource.multiSearch()`. */
-    static defineSearchController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEntity>>(defOpts: ISearchControllerOptions<TEntity>): {
-        new (repository: ReadableSearchRepository<TDataObject>): {
-            /** Registers the search + multiSearch route handlers, honoring per-route enable flags. */
+    /** Creates a search controller with the routes you list: `POST /search` via `repository.search()`, and `POST /multi-search` via `repository.dataSource.multiSearch()`. The path is the `@controller({ path })` of the subclass. */
+    static build<Repository extends TCrudRepositoryClass, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TRepositoryDataObject<InstanceType<Repository>>>(opts: ISearchControllerOptions<Repository>): {
+        new (repositoryInstance: ReadableSearchRepository<TDataObject>): {
+            /** The routes of a generated controller come from `routes`; a subclass adds its own here. */
             binding(): ValueOrPromise<void>;
+            /** Registers each listed route, after the subclass's `binding()`. */
+            bindDefaultRoutes(): ValueOrPromise<void>;
             repository: ReadableSearchRepository<TDataObject, import("../index.js").AbstractSearchDataSource<{}>>;
             searchScope?: TSearchScopeResolver<RouteEnv> | undefined;
             allowedEngineParams: ReadonlySet<string>;
@@ -592,7 +583,6 @@ export declare class SearchControllerFactory extends BaseHelper {
             }): RouteConfig & {
                 getRoutingPath(): RouteConfig["path"] extends infer T ? T extends RouteConfig["path"] ? T extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start_1}/{${infer Param_1}}${infer Rest_1}` ? `${Start_1}/:${Param_1}${Rest_1 extends `${infer Start_2}/{${infer Param_2}}${infer Rest_2}` ? `${Start_2}/:${Param_2}${Rest_2 extends `${infer Start_3}/{${infer Param_3}}${infer Rest_3}` ? `${Start_3}/:${Param_3}${Rest_3 extends `${infer Start_4}/{${infer Param_4}}${infer Rest_4}` ? `${Start_4}/:${Param_4}${Rest_4 extends `${infer Start_5}/{${infer Param_5}}${infer Rest_5}` ? `${Start_5}/:${Param_5}${Rest_5 extends `${infer Start_6}/{${infer Param_6}}${infer Rest_6}` ? `${Start_6}/:${Param_6}${Rest_6 extends `${infer Start_7}/{${infer Param_7}}${infer Rest_7}` ? `${Start_7}/:${Param_7}${Rest_7 extends `${infer Start_8}/{${infer Param_8}}${infer Rest_8}` ? `${Start_8}/:${Param_8}${Rest_8 extends `${infer Start_9}/{${infer Param_9}}${infer Rest_9}` ? `${Start_9}/:${Param_9}${Rest_9 extends `${infer Start_10}/{${infer Param_10}}${infer Rest_10}` ? `${Start_10}/:${Param_10}${any}` : Rest_9}` : Rest_8}` : Rest_7}` : Rest_6}` : Rest_5}` : Rest_4}` : Rest_3}` : Rest_2}` : Rest_1}` : Rest}` : T : never : never;
             };
-            bindDefaultRoutes(): ValueOrPromise<void>;
             scope: string;
             identifier: string;
             get logger(): import("@venizia/ignis-helpers").ILogger;

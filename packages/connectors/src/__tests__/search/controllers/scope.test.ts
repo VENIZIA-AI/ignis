@@ -3,10 +3,10 @@ import '@venizia/ignis-kernel';
 
 import { describe, expect, test } from 'bun:test';
 
-import { repository, ScopeFilters } from '@venizia/ignis-kernel';
+import { repository, ScopeFilters, controller as controllerDecorator } from '@venizia/ignis-kernel';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
-import { SearchControllerFactory } from '@/search/core/controllers/factory';
+import { SearchControllerFactory, type ISearchRoutes } from '@/search/core/controllers/factory';
 import { SearchModes } from '@/search/core/repositories/common';
 import { DefaultSearchRepository } from '@/search/typesense/repositories';
 
@@ -43,21 +43,22 @@ let sequence = 0;
 
 const build = (opts: {
   scope?: (ctx: { context: unknown }) => unknown;
-  routes?: Record<string, { enabled?: boolean }>;
+  routes?: ISearchRoutes;
   isRawAllowed?: boolean;
 }) => {
   sequence += 1;
   const dataSource = new SearchScopeDataSource({ name: `search-scope-ds-${sequence}`, config: {} });
   const repositoryInstance = new SearchScopeProductRepository(dataSource);
 
-  const Controller = SearchControllerFactory.defineSearchController({
-    entity: ProductDocument,
-    repository: { name: SearchScopeProductRepository.name },
-    controller: { name: 'ScopedProductSearchController', basePath: '/products' },
-    routes: opts.routes ?? { multiSearch: { enabled: false } },
+  const BuiltController = SearchControllerFactory.build({
+    repository: SearchScopeProductRepository,
+    routes: opts.routes ?? { search: true },
     scope: opts.scope as any,
     modes: opts.isRawAllowed ? { raw: { allow: true } } : undefined,
   });
+
+  @controllerDecorator({ path: '/products' })
+  class Controller extends BuiltController {}
 
   return { controller: new Controller(repositoryInstance), dataSource };
 };
@@ -255,15 +256,14 @@ describe('SearchControllerFactory - scope', () => {
     expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
   });
 
-  test('defining a scoped controller without disabling multi-search throws', () => {
+  test('defining a scoped controller that lists multi-search throws', () => {
     expect(() =>
-      SearchControllerFactory.defineSearchController({
-        entity: ProductDocument,
-        repository: { name: SearchScopeProductRepository.name },
-        controller: { name: 'ScopedNoRoutes', basePath: '/products' },
+      SearchControllerFactory.build({
+        repository: SearchScopeProductRepository,
+        routes: { search: true, multiSearch: true },
         scope: () => ({ status: 'm-a' }),
       }),
-    ).toThrow(/multiSearch\.enabled/);
+    ).toThrow(/routes\.multiSearch/);
   });
 
   test('the multi-search handler refuses a scoped controller even if called directly', async () => {
@@ -279,7 +279,10 @@ describe('SearchControllerFactory - scope', () => {
   });
 
   test('a controller without a scope behaves as before', async () => {
-    const { controller, dataSource } = build({ routes: {}, isRawAllowed: true });
+    const { controller, dataSource } = build({
+      routes: { search: true, multiSearch: true },
+      isRawAllowed: true,
+    });
 
     await controller['search']({
       context: fakeContext({ mode: SearchModes.KEYWORD, query: 'foo', queryBy: ['title'] }).context,

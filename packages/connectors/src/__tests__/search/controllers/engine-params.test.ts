@@ -3,9 +3,9 @@ import '@venizia/ignis-kernel';
 
 import { describe, expect, test } from 'bun:test';
 
-import { repository } from '@venizia/ignis-kernel';
+import { repository, controller as controllerDecorator } from '@venizia/ignis-kernel';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
-import { SearchControllerFactory } from '@/search/core/controllers/factory';
+import { SearchControllerFactory, type ISearchRoutes } from '@/search/core/controllers/factory';
 import { SearchEngineParams } from '@/search/core/controllers/engine-params';
 import { SearchModes } from '@/search/core/repositories/common';
 import { DefaultSearchRepository } from '@/search/typesense/repositories';
@@ -38,7 +38,7 @@ let sequence = 0;
 const build = (opts: {
   scope?: () => unknown;
   allow?: string[];
-  routes?: Record<string, { enabled?: boolean }>;
+  routes?: ISearchRoutes;
   isRawAllowed?: boolean;
 }) => {
   sequence += 1;
@@ -48,15 +48,16 @@ const build = (opts: {
   });
   const repositoryInstance = new EngineParamsProductRepository(dataSource);
 
-  const Controller = SearchControllerFactory.defineSearchController({
-    entity: ProductDocument,
-    repository: { name: EngineParamsProductRepository.name },
-    controller: { name: `EngineParamsController${sequence}`, basePath: '/products' },
-    routes: opts.routes ?? (opts.scope ? { multiSearch: { enabled: false } } : undefined),
+  const BuiltController = SearchControllerFactory.build({
+    repository: EngineParamsProductRepository,
+    routes: opts.routes ?? (opts.scope ? { search: true } : { search: true, multiSearch: true }),
     scope: opts.scope as never,
     engineParams: opts.allow === undefined ? undefined : { allow: opts.allow },
     modes: opts.isRawAllowed ? { raw: { allow: true } } : undefined,
   });
+
+  @controllerDecorator({ path: '/products' })
+  class Controller extends BuiltController {}
 
   return { controller: new Controller(repositoryInstance), dataSource };
 };
@@ -263,10 +264,9 @@ describe('the server keeps engineParams on the repository call', () => {
 
 describe('an allowlist is validated when the controller is defined', () => {
   const define = (allow: unknown) =>
-    SearchControllerFactory.defineSearchController({
-      entity: ProductDocument,
-      repository: { name: EngineParamsProductRepository.name },
-      controller: { name: 'AllowlistProbe', basePath: '/products' },
+    SearchControllerFactory.build({
+      repository: EngineParamsProductRepository,
+      routes: { search: true },
       engineParams: { allow: allow as string[] },
     });
 

@@ -3,7 +3,7 @@ import '@venizia/ignis-kernel';
 
 import { describe, expect, test } from 'bun:test';
 
-import { repository } from '@venizia/ignis-kernel';
+import { repository, controller as controllerDecorator } from '@venizia/ignis-kernel';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { SearchControllerFactory } from '@/search/core/controllers/factory';
 import { SearchRawAccess } from '@/search/core/controllers/raw-access';
@@ -53,14 +53,15 @@ const build = (opts: { modes?: unknown; scope?: () => unknown }) => {
   const dataSource = new RawAccessDataSource({ name: `raw-access-ds-${sequence}`, config: {} });
   const repositoryInstance = new RawAccessProductRepository(dataSource);
 
-  const Controller = SearchControllerFactory.defineSearchController({
-    entity: ProductDocument,
-    repository: { name: RawAccessProductRepository.name },
-    controller: { name: `RawAccessController${sequence}`, basePath: '/products' },
-    routes: opts.scope ? { multiSearch: { enabled: false } } : undefined,
+  const BuiltController = SearchControllerFactory.build({
+    repository: RawAccessProductRepository,
+    routes: opts.scope ? { search: true } : { search: true, multiSearch: true },
     scope: opts.scope as never,
     modes: opts.modes as never,
   });
+
+  @controllerDecorator({ path: '/products' })
+  class Controller extends BuiltController {}
 
   return { controller: new Controller(repositoryInstance), dataSource, repositoryInstance };
 };

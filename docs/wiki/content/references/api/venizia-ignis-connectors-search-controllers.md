@@ -13,7 +13,7 @@ description: "Every export of @venizia/ignis-connectors/search/controllers, from
 
 - `AbstractSearchController` from [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers)
 - `ISearchControllerOptions` from [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers)
-- `ISearchCustomizableRoutes` from [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers)
+- `ISearchRoutes` from [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers)
 - `SearchControllerFactory` from [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers)
 - `SearchEngineParams` from [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers)
 - `SearchRawAccess` from [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers)

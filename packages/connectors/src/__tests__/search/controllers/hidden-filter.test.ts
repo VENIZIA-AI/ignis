@@ -69,13 +69,14 @@ const build = (opts: { scope?: () => unknown } = {}) => {
   });
   const repositoryInstance = new HiddenFilterProductRepository(dataSource);
 
-  const Controller = SearchControllerFactory.defineSearchController({
-    entity: ProductDocument,
-    repository: { name: HiddenFilterProductRepository.name },
-    controller: { name: `HiddenFilterController${sequence}`, basePath: '/products' },
-    routes: opts.scope ? { multiSearch: { enabled: false } } : undefined,
+  const BuiltController = SearchControllerFactory.build({
+    repository: HiddenFilterProductRepository,
+    routes: opts.scope ? { search: true } : { search: true, multiSearch: true },
     scope: opts.scope as never,
   });
+
+  @controllerDecorator({ path: '/products' })
+  class Controller extends BuiltController {}
 
   return { controller: new Controller(repositoryInstance), dataSource, repositoryInstance };
 };
@@ -167,13 +168,13 @@ describe('byte for byte the error of an undeclared field', () => {
     const repositoryInstance = isNested
       ? new HiddenFilterNestedRepository(dataSource)
       : new HiddenFilterProductRepository(dataSource);
-    const Controller = SearchControllerFactory.defineSearchController({
-      entity: isNested ? HiddenFilterNestedDocument : ProductDocument,
-      repository: {
-        name: isNested ? HiddenFilterNestedRepository.name : HiddenFilterProductRepository.name,
-      },
-      controller: { name: `HiddenFilterBytes${sequence}`, basePath: '/x' },
+    const BuiltController = SearchControllerFactory.build({
+      repository: isNested ? HiddenFilterNestedRepository : HiddenFilterProductRepository,
+      routes: { search: true },
     });
+
+    @controllerDecorator({ path: '/x' })
+    class Controller extends BuiltController {}
     const controller = new Controller(repositoryInstance as never);
 
     return refusal(controller['search']({ context: fakeContext(body) as never }));
@@ -204,11 +205,13 @@ describe('a hidden nested field', () => {
       name: `hidden-filter-nested-${sequence}`,
       config: {},
     });
-    const Controller = SearchControllerFactory.defineSearchController({
-      entity: HiddenFilterNestedDocument,
-      repository: { name: HiddenFilterNestedRepository.name },
-      controller: { name: `HiddenFilterNested${sequence}`, basePath: '/x' },
+    const BuiltController = SearchControllerFactory.build({
+      repository: HiddenFilterNestedRepository,
+      routes: { search: true, multiSearch: true },
     });
+
+    @controllerDecorator({ path: '/x' })
+    class Controller extends BuiltController {}
     const controller = new Controller(new HiddenFilterNestedRepository(dataSource) as never);
 
     await controller['search']({ context: fakeContext(keyword(filter)) as never });

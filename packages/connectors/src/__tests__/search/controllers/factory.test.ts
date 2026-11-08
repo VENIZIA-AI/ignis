@@ -3,7 +3,7 @@ import '@venizia/ignis-kernel';
 
 import { describe, expect, test } from 'bun:test';
 
-import { repository } from '@venizia/ignis-kernel';
+import { repository, controller as controllerDecorator } from '@venizia/ignis-kernel';
 import { SearchControllerFactory } from '@/search/core/controllers/factory';
 import { DefaultSearchRepository } from '@/search/typesense/repositories';
 import { SearchModes } from '@/search/core/repositories/common';
@@ -70,19 +70,21 @@ const fakeContext = <TInput>(input: TInput, requestHeaders: Record<string, strin
   };
 };
 
-describe('SearchControllerFactory.defineSearchController', () => {
+describe('SearchControllerFactory.build', () => {
   test('registers exactly the search + multiSearch POST routes', async () => {
     const dataSource = new SearchFactoryDataSource({ name: 'factory-test-ds-1', config: {} });
     const repositoryInstance = new SearchFactoryProductRepository(dataSource);
 
-    const ProductSearchController = SearchControllerFactory.defineSearchController({
-      entity: ProductDocument,
-      repository: { name: SearchFactoryProductRepository.name },
-      controller: { name: 'ProductSearchController', basePath: '/products' },
+    const BuiltProductSearchController = SearchControllerFactory.build({
+      repository: SearchFactoryProductRepository,
+      routes: { search: true, multiSearch: true },
     });
 
+    @controllerDecorator({ path: '/products' })
+    class ProductSearchController extends BuiltProductSearchController {}
+
     const controller = new ProductSearchController(repositoryInstance);
-    await controller['binding']();
+    await controller.configure();
 
     // OpenAPIHono.openapi() registers more than one internal `.routes` entry per call (pre-existing Hono behavior), so route counts dedupe via Set.
     const distinctRoutes = new Set(
@@ -93,19 +95,20 @@ describe('SearchControllerFactory.defineSearchController', () => {
     expect(distinctRoutes).toContain('POST /multi-search');
   });
 
-  test('routes.multiSearch.enabled: false disables only the multi-search route', async () => {
+  test('a route that is not listed is not registered', async () => {
     const dataSource = new SearchFactoryDataSource({ name: 'factory-test-ds-2', config: {} });
     const repositoryInstance = new SearchFactoryProductRepository(dataSource);
 
-    const SearchOnlyController = SearchControllerFactory.defineSearchController({
-      entity: ProductDocument,
-      repository: { name: SearchFactoryProductRepository.name },
-      controller: { name: 'SearchOnlyController', basePath: '/products' },
-      routes: { multiSearch: { enabled: false } },
+    const BuiltSearchOnlyController = SearchControllerFactory.build({
+      repository: SearchFactoryProductRepository,
+      routes: { search: true },
     });
 
+    @controllerDecorator({ path: '/products' })
+    class SearchOnlyController extends BuiltSearchOnlyController {}
+
     const controller = new SearchOnlyController(repositoryInstance);
-    await controller['binding']();
+    await controller.configure();
 
     const distinctRoutes = new Set(
       controller.router.routes.map((route) => `${route.method} ${route.path}`),
@@ -122,11 +125,13 @@ describe('SearchControllerFactory.defineSearchController', () => {
     };
     const repositoryInstance = new SearchFactoryProductRepository(dataSource);
 
-    const ProductSearchController = SearchControllerFactory.defineSearchController({
-      entity: ProductDocument,
-      repository: { name: SearchFactoryProductRepository.name },
-      controller: { name: 'ProductSearchController', basePath: '/products' },
+    const BuiltProductSearchController = SearchControllerFactory.build({
+      repository: SearchFactoryProductRepository,
+      routes: { search: true, multiSearch: true },
     });
+
+    @controllerDecorator({ path: '/products' })
+    class ProductSearchController extends BuiltProductSearchController {}
     const controller = new ProductSearchController(repositoryInstance);
 
     const { context, getJsonBody, getJsonStatus } = fakeContext({
@@ -151,13 +156,15 @@ describe('SearchControllerFactory.defineSearchController', () => {
     const dataSource = new SearchFactoryDataSource({ name: 'factory-test-ds-4', config: {} });
     const repositoryInstance = new SearchFactoryProductRepository(dataSource);
 
-    const ProductSearchController = SearchControllerFactory.defineSearchController({
-      entity: ProductDocument,
-      repository: { name: SearchFactoryProductRepository.name },
-      controller: { name: 'ProductSearchController', basePath: '/products' },
+    const BuiltProductSearchController = SearchControllerFactory.build({
+      repository: SearchFactoryProductRepository,
+      routes: { search: true, multiSearch: true },
       // Multi-search hands the engine its own parameters, so a controller serves it only when it opts in.
       modes: { raw: { allow: true } },
     });
+
+    @controllerDecorator({ path: '/products' })
+    class ProductSearchController extends BuiltProductSearchController {}
     const controller = new ProductSearchController(repositoryInstance);
 
     const searches = [{ collection: 'products', query: 'foo' }];
@@ -196,12 +203,14 @@ describe('AbstractSearchController list headers', () => {
       isFoundExact: opts.isFoundExact,
       hits: opts.hits,
     };
-    const Controller = SearchControllerFactory.defineSearchController({
-      entity: ProductDocument,
-      repository: { name: SearchFactoryProductRepository.name },
-      controller: { name: `${opts.name}-controller`, basePath: '/products' },
+    const BuiltController = SearchControllerFactory.build({
+      repository: SearchFactoryProductRepository,
+      routes: { search: true, multiSearch: true },
       modes: opts.isRawAllowed ? { raw: { allow: true } } : undefined,
     });
+
+    @controllerDecorator({ path: '/products' })
+    class Controller extends BuiltController {}
 
     return new Controller(new SearchFactoryProductRepository(dataSource));
   };

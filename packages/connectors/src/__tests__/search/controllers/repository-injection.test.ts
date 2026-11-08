@@ -9,10 +9,24 @@ import {
   Container,
   controller,
   inject,
+  repository as repositoryDecorator,
 } from '@venizia/ignis-kernel';
 import { SearchControllerFactory } from '@/search/core/controllers/factory';
+import { DefaultSearchRepository } from '@/search/typesense/repositories';
 
-import { ProductDocument } from '../repositories/fake-search-connector';
+import {
+  FakeSearchDataSource,
+  ProductDocument,
+  type TProductDocument,
+} from '../repositories/fake-search-connector';
+
+class InjectionProbeDataSource extends FakeSearchDataSource {}
+
+@repositoryDecorator({ model: ProductDocument, dataSource: InjectionProbeDataSource })
+class InjectionProbeSearchRepository extends DefaultSearchRepository<TProductDocument> {}
+
+/** A repository class that declares no model. */
+class ModelessSearchRepository extends DefaultSearchRepository<TProductDocument> {}
 
 /** Stands in for a search repository; the tag tells the bound instances apart. */
 class TaggedSearchRepository {
@@ -38,10 +52,9 @@ const buildContainer = () => {
   return container;
 };
 
-const ProbeSearchBase = SearchControllerFactory.defineSearchController({
-  entity: ProductDocument,
-  repository: { name: 'InjectionProbeSearchRepository' },
-  controller: { name: 'ProbeSearchController', basePath: '/probe-products' },
+const ProbeSearchBase = SearchControllerFactory.build({
+  repository: InjectionProbeSearchRepository,
+  routes: { search: true },
 });
 
 @controller({ path: '/probe-products' })
@@ -61,7 +74,7 @@ class ExplicitProbeSearchController extends ProbeSearchBase {
 @controller({ path: '/probe-products' })
 class SiblingProbeSearchController extends ProbeSearchBase {}
 
-describe('defineSearchController injects the repository named in repository.name', () => {
+describe('SearchControllerFactory.build injects the repository class', () => {
   test('a subclass with no constructor resolves the named repository', () => {
     const resolved = buildContainer().resolve(ProbeSearchController);
 
@@ -80,13 +93,12 @@ describe('defineSearchController injects the repository named in repository.name
     expect<unknown>(resolved.repository).toBe(namedRepository);
   });
 
-  test('an empty repository name is refused when the controller is defined', () => {
+  test('a repository class without @repository({ model }) is refused when the controller is built', () => {
     expect(() =>
-      SearchControllerFactory.defineSearchController({
-        entity: ProductDocument,
-        repository: { name: '' },
-        controller: { name: 'NamelessSearchController', basePath: '/nameless' },
+      SearchControllerFactory.build({
+        repository: ModelessSearchRepository,
+        routes: { search: true },
       }),
-    ).toThrow('[defineSearchController] Invalid repository name');
+    ).toThrow('[SearchControllerFactory.build] Cannot resolve the entity');
   });
 });

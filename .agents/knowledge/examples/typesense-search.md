@@ -21,7 +21,7 @@ under `@repository({ model, dataSource })`).
   `CrudControllerFactory.build` exactly as the Postgres examples do; `TFilter`/`where`
   translates to Typesense `filter_by` instead of SQL.
 - **Factory search endpoints** -
-  `SearchControllerFactory.defineSearchController` in `src/controllers/search.controller.ts`
+  `SearchControllerFactory.build` in `src/controllers/search.controller.ts`
   generates `POST /articles/search` (keyword/semantic/hybrid/raw, dispatched to
   `repository.search()`) and `POST /articles/multi-search` (forwarded to `dataSource.multiSearch()`; it and `mode: 'raw'` answer 400 until the controller sets `modes.raw.allow`).
   Like `CrudControllerFactory.build`, it injects the repository named in
