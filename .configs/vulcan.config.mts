@@ -44,7 +44,6 @@ export default {
     bundle: '.agents/knowledge',
     wiki: 'docs/wiki/content',
     changelogs: 'docs/wiki/content/changelogs',
-    syncAreas: '.agents/knowledge/process/knowledge-sync-areas.md',
   },
   okf: {
     renderers: [
