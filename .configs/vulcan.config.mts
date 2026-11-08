@@ -12,6 +12,8 @@ export default {
     },
   },
   rules: { 'V-W-01': 'on-user-word' },
+  // The Venizia-stack rules (V-B-05, V-B-09, V-C-07, V-C-08, V-C-20) ship as a pack, not in the base rules.
+  packs: ['venizia'],
   // The wiki's accent family; vulcan sync writes the resolved tokens into the manifest, which config.mts reads.
   theme: { accent: '#af5f5f', accentDark: '#c98a8a', accentText: '#a15757' },
   // Agents may not sign commits: vulcan sync prints the hook line that enforces it.
