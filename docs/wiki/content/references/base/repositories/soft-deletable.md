@@ -31,7 +31,7 @@ import {
 
 @model({
   settings: {
-    hiddenProperties: ['deletedAt'],
+    properties: { hidden: ['deletedAt'] },
     query: { filter: { where: { deletedAt: null } } },
   },
 })
@@ -49,7 +49,7 @@ export class Category extends BaseEntity<typeof Category.schema> {
 > [!IMPORTANT]
 > - The model **must** have a `deletedAt` column. `SoftDeletableRepository` requires `TSoftDeletableTableSchema`, which enforces `{ deletedAt: AnyColumn<{ data: Date | string | null }> }`. The bound is Drizzle's dialect-free `AnyColumn`, the exact twin of `AnyPgColumn`, so the same column satisfies it on SQLite too.
 > - Set `query: { filter: { where: { deletedAt: null } } }` in `@model` settings so soft-deleted records are excluded by default.
-> - Optionally add `deletedAt` to `hiddenProperties` to hide it from API responses.
+> - Optionally add `deletedAt` to `properties.hidden` to hide it from API responses.
 > - Use `PostgresTzEnricher.generateColumnDefs` with `deleted: { enable: true, ... }` to add the column, or define it manually with `timestamp('deleted_at', { mode: 'date', withTimezone: true })`.
 
 ### 2. Extend `SoftDeletableRepository`
@@ -244,10 +244,10 @@ const category = await repository.findById({
 
 `deletedAt` changes only through `deleteById`, `deleteAll`, `deleteBy` and the restore methods. `updateById`, `updateAll`, `updateBy`, `updateEach` and `upsert` refuse a `data` that carries it, with any value including `null`: the call fails with a 400 and writes nothing.
 
-A model with a `deletedAt` column also reports it as server-stamped, like the audit columns, so the default `POST` and `PATCH` bodies of `ControllerFactory.defineCrudController` leave it out. A route you give your own `request.body` keeps whatever that body declares.
+`deletedAt` is in the default `properties.stamped` list of a model, so the default `POST` and `PATCH` bodies of `ControllerFactory.defineCrudController` leave it out. A route you give your own `request.body` keeps whatever that body declares.
 
 > [!NOTE]
-> The server-stamped part follows the column, so it holds for any entity whose schema has a `deletedAt` column. The 400 is raised by `SoftDeletableRepository` and `SoftDeletableSqliteRepository`; another repository over the same table still accepts `deletedAt` in an update.
+> The default bodies follow the model, not the repository. The 400 is raised by `SoftDeletableRepository` and `SoftDeletableSqliteRepository`; another repository over the same table still accepts `deletedAt` in an update.
 
 ### Writing other columns with a soft delete
 

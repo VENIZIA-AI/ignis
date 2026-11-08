@@ -74,7 +74,7 @@ const ArticleTable = pgTable('EntityArticle', {
 
 let policyRelationCalls = 0;
 
-@model({ type: 'entity', settings: { hiddenProperties: ['secret'] } })
+@model({ type: 'entity', settings: { properties: { hidden: ['secret'] } } })
 class EntityPolicy extends ModelFactory.defineEntity({
   table: PolicyTable,
   relations: () => {

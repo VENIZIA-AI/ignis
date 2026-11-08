@@ -35,7 +35,7 @@ class SoftAccountEntity extends BaseRelationalEntity<typeof softAccounts> {
   static override TABLE_NAME = 'data_safety_soft_accounts';
 }
 
-@model({ type: 'entity', settings: { hiddenProperties: ['secret'] } })
+@model({ type: 'entity', settings: { properties: { hidden: ['secret'] } } })
 class SecretAccountEntity extends BaseRelationalEntity<typeof secretAccounts> {
   static override schema = secretAccounts;
   static override TABLE_NAME = 'data_safety_secret_accounts';

@@ -24,7 +24,7 @@ class CrudFactoryDataSource extends BasePostgresDataSource<{}> {
 }
 
 /** Numeric primary key - `getIdType()` resolves to 'number', the path-param branch under test. */
-@model({ type: 'entity', settings: { hiddenProperties: ['secret'] } })
+@model({ type: 'entity', settings: { properties: { hidden: ['secret'] } } })
 class CrudFactoryAccount extends BasePostgresEntity<typeof CrudFactoryAccount.schema> {
   static override schema = pgTable('crud_factory_account', {
     id: serial('id').primaryKey(),
@@ -278,7 +278,7 @@ describe('ControllerFactory.defineCrudController - request schemas', () => {
     expect(result).toEqual({ count: 0 });
   });
 
-  test('the generated select schema still declares @model hiddenProperties - they are stripped at SQL level, not by the schema', () => {
+  test('the generated select schema still declares @model hidden properties - they are stripped at SQL level, not by the schema', () => {
     const entity = new CrudFactoryAccount();
     const selectSchema = entity.getSchema<TAnyObjectSchema>({ type: SchemaTypes.SELECT });
 

@@ -88,11 +88,11 @@ describe('normalizeModelMetadata - migration', () => {
     const result = normalize({
       migration: { use: false },
       tableName: 'Item',
-      settings: { hiddenProperties: ['a'] },
+      settings: { properties: { hidden: ['a'] } },
     });
 
     expect(result.tableName).toBe('Item');
-    expect(result.settings).toEqual({ hiddenProperties: ['a'] });
+    expect(result.settings).toEqual({ properties: { hidden: ['a'] } });
   });
 });
 

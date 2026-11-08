@@ -141,7 +141,7 @@ export abstract class AbstractRepository<
   }
 
   protected get hiddenFields(): string[] {
-    return this.modelSettings?.hiddenProperties ?? [];
+    return this.modelSettings?.properties?.hidden ?? [];
   }
 
   /**

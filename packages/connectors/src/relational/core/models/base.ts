@@ -4,11 +4,9 @@ import type { TRelationConfig } from '@/relational/core/repositories/common';
 import type { TValueOrResolver } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { createSchemaFactory } from 'drizzle-zod';
-import type { Column, Table } from 'drizzle-orm';
-import { getTableColumns } from 'drizzle-orm';
+import type { Table } from 'drizzle-orm';
 import type { IEntity, TTableInsert, TTableObject, TTableSchemaWithId } from './common';
 import { RelationalEntityUtility } from './common';
-import { AuditFields } from './common/constants';
 
 /** Lazy singleton, shared by every entity. */
 let schemaFactory: ReturnType<typeof createSchemaFactory> | undefined;
@@ -47,21 +45,6 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
     return RelationalEntityUtility.getIdType({ entity: this.schema }) === 'number'
       ? 'number'
       : 'string';
-  }
-
-  /** The audit keys whose column has a default or `$onUpdate`, and `deletedAt` whenever the table has that column. */
-  override getServerStampedKeys(): string[] {
-    const columns: Record<string, Column | undefined> = getTableColumns(this.schema);
-
-    return [...AuditFields.SCHEME_SET].filter((key) => {
-      const column = columns[key];
-
-      if (column === undefined) {
-        return false;
-      }
-
-      return key === AuditFields.DELETED_AT || column.hasDefault || column.onUpdateFn !== undefined;
-    });
   }
 
   getSchema<T = unknown>(opts: { type: TSchemaType }): T {

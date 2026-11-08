@@ -1,7 +1,9 @@
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
 import { ControllerFactory } from '@/base/controllers/factory/controller';
 import { RouteConfigResolver } from '@/base/controllers/factory/definition';
+import { model } from '@/base/metadata';
 import { AbstractEntity } from '@/base/models';
+import { AuditFields } from '@/base/models/common/constants';
 import { BindingNamespaces } from '@/common/bindings';
 import { BindingKeys, Container } from '@/helpers/inversion';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
@@ -257,7 +259,7 @@ const variantSchema = z.object({
 /** Held untyped so the generic abstract `getSchema` returns it without a cast. */
 const entitySchemas: Record<string, AnyType> = { variant: variantSchema };
 
-/** Stamps nothing - the engine-neutral default a search collection keeps. */
+/** Declares no settings, so the default stamped keys apply. */
 class VariantDocument extends AbstractEntity<typeof variantSchema> {
   constructor() {
     super({ name: VariantDocument.name });
@@ -268,12 +270,13 @@ class VariantDocument extends AbstractEntity<typeof variantSchema> {
   }
 }
 
-/** Reports the two timestamps, as a relational entity with the timestamp enricher does. */
-class StampedVariantDocument extends VariantDocument {
-  override getServerStampedKeys(): string[] {
-    return ['createdAt', 'modifiedAt'];
-  }
-}
+/** Declares that nothing is stamped, as a search collection does. */
+@model({ settings: { properties: { stamped: [] } } })
+class UnstampedVariantDocument extends VariantDocument {}
+
+/** Declares one stamped key, as a Set. */
+@model({ settings: { properties: { stamped: new Set(['createdAt']) } } })
+class StampedVariantDocument extends VariantDocument {}
 
 /** Records what the create route hands over. */
 class RecordingRepository {
@@ -325,14 +328,38 @@ const toRouteBodySchemas = async (opts: {
   };
 };
 
-describe('defineCrudController asks the entity which keys it stamps', () => {
-  test('the engine-neutral entity stamps nothing', () => {
-    expect(new VariantDocument().getServerStampedKeys()).toEqual([]);
+describe('defineCrudController reads which keys the model stamps', () => {
+  test('the default stamped list is the audit keys and deletedAt', () => {
+    expect([...AuditFields.SCHEME_SET]).toEqual([
+      'createdBy',
+      'modifiedBy',
+      'createdAt',
+      'modifiedAt',
+      'deletedAt',
+    ]);
   });
 
-  test('an entity that stamps nothing keeps a required createdAt in POST, and it reaches the repository', async () => {
-    const { controller, repository } = resolveVariantController({
+  test('an entity without settings loses the default stamped keys from POST and PATCH', async () => {
+    const { controller } = resolveVariantController({
       entity: VariantDocument,
+      controllerName: 'DefaultVariantController',
+    });
+    const { create, updateById } = await toRouteBodySchemas({ controller });
+
+    expect(create).toMatchObject({
+      content: { 'application/json': { schema: { required: ['id', 'name'] } } },
+    });
+    expect(create).not.toMatchObject({
+      content: { 'application/json': { schema: { properties: { createdAt: {} } } } },
+    });
+    expect(updateById).not.toMatchObject({
+      content: { 'application/json': { schema: { properties: { modifiedAt: {} } } } },
+    });
+  });
+
+  test('an entity that declares stamped: [] keeps a required createdAt in POST, and it reaches the repository', async () => {
+    const { controller, repository } = resolveVariantController({
+      entity: UnstampedVariantDocument,
       controllerName: 'VariantController',
     });
     const { router, create, updateById } = await toRouteBodySchemas({ controller });
@@ -361,7 +388,7 @@ describe('defineCrudController asks the entity which keys it stamps', () => {
     expect(repository.created).toEqual([document]);
   });
 
-  test('an entity that reports keys loses exactly those from POST and PATCH', async () => {
+  test('an entity that declares keys loses exactly those from POST and PATCH', async () => {
     const { controller } = resolveVariantController({
       entity: StampedVariantDocument,
       controllerName: 'StampedVariantController',
@@ -374,7 +401,7 @@ describe('defineCrudController asks the entity which keys it stamps', () => {
     expect(create).not.toMatchObject({
       content: { 'application/json': { schema: { properties: { createdAt: {} } } } },
     });
-    expect(updateById).not.toMatchObject({
+    expect(updateById).toMatchObject({
       content: { 'application/json': { schema: { properties: { modifiedAt: {} } } } },
     });
   });

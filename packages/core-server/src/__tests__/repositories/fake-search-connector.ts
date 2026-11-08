@@ -287,7 +287,7 @@ export class FakeSearchDataSource extends TypesenseDataSource {
   type: 'entity',
   tableName: 'products',
   settings: {
-    hiddenProperties: ['secret'],
+    properties: { hidden: ['secret'] },
     query: { filter: { where: { isActive: true } } },
   },
 })

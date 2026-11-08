@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel/repository, from the built d
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-35 exports, 35 with TSDoc. 7 more are re-exported from other entries (listed at the end).
+36 exports, 36 with TSDoc. 7 more are re-exported from other entries (listed at the end).
 
 ## `AbstractDataSource`
 
@@ -128,8 +128,6 @@ export declare abstract class AbstractEntity<Schema = unknown> extends BaseHelpe
     }): T;
     /** Path-param id shape for this entity - default 'string' (every document-family id, e.g. Typesense's). */
     getIdType(): TIdSchemaType;
-    /** Keys the server fills on every write, which a generated create or update body leaves out. None here. */
-    getServerStampedKeys(): string[];
     toObject(): this;
     toJSON(): this;
 }
@@ -438,6 +436,25 @@ export declare abstract class AbstractRepository<TDataObject extends object, TPe
 ```
 
 Source: `packages/kernel/src/base/repositories/core/abstract.ts`
+
+## `AuditFields`
+
+*class*
+
+The keys a write stamps, which a generated create or update body leaves out by default (`@model` `settings.properties.stamped`).
+
+```ts
+export declare class AuditFields {
+    static readonly CREATED_BY = "createdBy";
+    static readonly MODIFIED_BY = "modifiedBy";
+    static readonly CREATED_AT = "createdAt";
+    static readonly MODIFIED_AT = "modifiedAt";
+    static readonly DELETED_AT = "deletedAt";
+    static readonly SCHEME_SET: Set<string>;
+}
+```
+
+Source: `packages/kernel/src/base/models/common/constants.ts`
 
 ## `CoreErrorCodes`
 

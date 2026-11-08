@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-99 exports, 99 with TSDoc. 935 more are re-exported from other entries (listed at the end).
+99 exports, 99 with TSDoc. 937 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3075,6 +3075,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `ArtifactIndexFields` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `ArtifactNamespaces` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `ArtifactTypes` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
+- `AuditFields` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `authenticate` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `AuthenticateBindingKeys` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `AuthenticateStrategy` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -3353,6 +3354,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IModelAuthorizeSettings` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IModelMetadata` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IModelMigrationSettings` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `IModelProperties` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IModelQuerySettings` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IModelRegistryEntry` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IModelSettings` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)

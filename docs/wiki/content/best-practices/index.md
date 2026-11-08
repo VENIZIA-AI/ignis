@@ -138,7 +138,7 @@ const data: any = await fetchData(); // Use proper types!
 | Secrets | Store in environment variables, never in code |
 | Input | Validate with Zod schemas at API boundaries |
 | Auth | Protect routes with `authenticate: { strategies: [Authentication.STRATEGY_JWT] }` |
-| Sensitive data | Use `hiddenProperties` in model settings |
+| Sensitive data | Use `properties.hidden` in model settings |
 | File uploads | Use `RequestUtility.sanitizeFilename()` for all user-provided filenames |
 | CORS | Configure allowed origins explicitly |
 

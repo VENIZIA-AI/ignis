@@ -63,6 +63,18 @@ describe('@model - the removed keys are type errors', () => {
     expect(D).toBeDefined();
   });
 
+  test('settings.hiddenProperties', () => {
+    // @ts-expect-error hiddenProperties is not a key of IModelSettings: use settings.properties.hidden
+    @model({ settings: { hiddenProperties: ['secret'] } })
+    class H extends AbstractEntity {
+      getSchema<T>(): T {
+        return {} as T;
+      }
+    }
+
+    expect(H).toBeDefined();
+  });
+
   test('skipMigrate', () => {
     // @ts-expect-error skipMigrate is not a key of IModelMetadata: use migration: { use: false }
     @model({ skipMigrate: true })
@@ -82,6 +94,7 @@ describe('@model - an untyped caller loses the runtime error', () => {
     ['defaultLimit', { settings: { defaultLimit: 20 } }],
     ['maxLimit', { settings: { maxLimit: 100 } }],
     ['scopeFilter', { settings: { scopeFilter: { resolve: () => null } } }],
+    ['hiddenProperties', { settings: { hiddenProperties: ['secret'] } }],
     ['skipMigrate', { skipMigrate: true }],
   ])('%s is ignored: the decorator neither throws nor applies it', (_key, metadata) => {
     const declare = () => {
@@ -102,5 +115,6 @@ describe('@model - an untyped caller loses the runtime error', () => {
     expect(entry?.migration).toBeUndefined();
     expect(entry?.settings?.query).toBeUndefined();
     expect(entry?.settings?.access).toBeUndefined();
+    expect(entry?.settings?.properties).toBeUndefined();
   });
 });

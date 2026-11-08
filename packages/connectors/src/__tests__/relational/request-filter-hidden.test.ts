@@ -34,14 +34,14 @@ const PostBase = ModelFactory.defineEntity({
   table: postTable,
   relations: () => ({ comments: many(commentTable, { relationName: 'post' }) }),
 });
-@model({ type: 'entity', settings: { hiddenProperties: ['secret', 'meta'] } })
+@model({ type: 'entity', settings: { properties: { hidden: ['secret', 'meta'] } } })
 class RfhPost extends PostBase {}
 
 const CommentBase = ModelFactory.defineEntity({
   table: commentTable,
   relations: () => ({ post: one(postTable) }),
 });
-@model({ type: 'entity', settings: { hiddenProperties: ['internalNote'] } })
+@model({ type: 'entity', settings: { properties: { hidden: ['internalNote'] } } })
 class RfhComment extends CommentBase {}
 
 const relationsOf = (source: AnyType, entity: AnyType) =>

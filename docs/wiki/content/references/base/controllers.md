@@ -733,15 +733,15 @@ Returns a `BaseRestController` subclass with standard CRUD endpoints pre-configu
 
 ### Default request bodies
 
-The write routes leave out the keys the entity says the server fills, from `AbstractEntity.getServerStampedKeys()`:
+The write routes leave out the keys the model says the server fills, `@model` `settings.properties.stamped`:
 
 | Route | Default body |
 | :--- | :--- |
-| `create` | The entity's insert schema without the keys `getServerStampedKeys()` reports |
+| `create` | The entity's insert schema without the stamped keys |
 | `updateById` | The entity's update schema without those keys and without `id` |
 | `updateBy` | The same as `updateById`, plus an optional `where` |
 
-A relational entity (`BaseEntity`, `defineEntity`) reports `createdBy`, `modifiedBy`, `createdAt` and `modifiedAt` - each one whose column has a default or `$onUpdate` - and `deletedAt` whenever the table has that column, so a client cannot soft-delete or restore a row through a generated route. A search entity (`BaseSearchEntity`) reports none: nothing stamps a document, so a required `createdAt` stays in its `POST` body. An update never rewrites `id`: the path or the `where` names the rows.
+Without `properties.stamped` the list is `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt` and `deletedAt`, whatever the engine, so a client cannot soft-delete or restore a row through a generated route. A key the schema does not hold is ignored. A model that fills other keys, or none, declares the list: `properties: { stamped: ['createdAt', 'modifiedAt'] }`. A search collection (`BaseSearchEntity`) that keeps a required `createdAt` in its `POST` body declares `properties: { stamped: [] }`, because nothing stamps a document. An update never rewrites `id`: the path or the `where` names the rows.
 
 A refined entity schema that holds none of the keys to leave out is used as it is - the refinement and an OpenAPI name survive. A refined schema that holds one, and any transformed schema, cannot be trimmed: defining the controller throws and names `routes.<route>.request.body` - pass your own body there. A transformed update schema always hits this, because the update routes always leave out `id`, even on a read-only controller.
 

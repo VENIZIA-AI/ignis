@@ -287,7 +287,7 @@ export class FakeSearchDataSource extends TypesenseDataSource {
   type: 'entity',
   tableName: 'products',
   settings: {
-    hiddenProperties: ['secret'],
+    properties: { hidden: ['secret'] },
     query: { filter: { where: { isActive: true } } },
   },
 })
@@ -309,7 +309,7 @@ export class ProductDocument extends BaseSearchEntity {
   type: 'entity',
   tableName: 'products_no_default_filter',
   settings: {
-    hiddenProperties: ['secret'],
+    properties: { hidden: ['secret'] },
   },
 })
 export class ProductDocumentNoDefaultFilter extends BaseSearchEntity {

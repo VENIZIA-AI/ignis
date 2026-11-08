@@ -90,7 +90,7 @@ class RegistryEmptyDataSource extends BasePostgresDataSource<{}> {
   }
 }
 
-@model({ type: 'entity', settings: { hiddenProperties: ['secret'] } })
+@model({ type: 'entity', settings: { properties: { hidden: ['secret'] } } })
 class RegistryAccount extends BasePostgresEntity<typeof RegistryAccount.schema> {
   static override schema = pgTable('registry_account', {
     id: serial('id').primaryKey(),
@@ -185,14 +185,14 @@ describe('MetadataRegistry - models, repositories, schema', () => {
     const entry = registry.getModelEntry({ name: RegistryAccount.name });
 
     expect(entry).toBeDefined();
-    expect(entry?.metadata.settings?.hiddenProperties).toEqual(['secret']);
+    expect(entry?.metadata.settings?.properties?.hidden).toEqual(['secret']);
     expect(registry.getModelEntry({ name: 'registry_account' })).toBeUndefined();
   });
 
   test('registerModel twice for the same class does not duplicate the entry', () => {
     const before = registry.getAllModels().size;
 
-    model({ type: 'entity', settings: { hiddenProperties: ['secret'] } })(RegistryAccount);
+    model({ type: 'entity', settings: { properties: { hidden: ['secret'] } } })(RegistryAccount);
 
     expect(registry.getAllModels().size).toBe(before);
   });

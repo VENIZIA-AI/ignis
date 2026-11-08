@@ -1,6 +1,6 @@
 ---
 title: Model Settings
-description: One guide to every @model setting - hiddenProperties, query, access (row scope and write guard), limits and authorization - walked through a multi-merchant Product model
+description: One guide to every @model setting - properties.hidden, query, access (row scope and write guard), limits and authorization - walked through a multi-merchant Product model
 difficulty: intermediate
 ---
 
@@ -17,7 +17,7 @@ import { productTable } from './product.table';
 
 @model({
   settings: {
-    hiddenProperties: ['costPrice'],
+    properties: { hidden: ['costPrice'] },
     query: {
       filter: { where: { isDeleted: false } },
       limit: { default: 20, max: 200 },
@@ -90,7 +90,8 @@ export class ProductRepository extends DefaultCRUDRepository<typeof Product.sche
 
 | Setting | Default | What it does |
 |---|---|---|
-| `hiddenProperties` | none | Property names removed from every result, in SQL |
+| `properties.hidden` | none | Property names removed from every result, in SQL |
+| `properties.stamped` | `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt`, `deletedAt` | Property names the server fills; the generated create and update bodies leave them out |
 | `query.filter` | none | A filter merged into every query for the model, usually a soft-delete `where` |
 | `query.limit.default` | `10` | Row limit for a query that names none |
 | `query.limit.max` | `1000` | Largest `limit` a caller may ask for |
@@ -102,11 +103,11 @@ export class ProductRepository extends DefaultCRUDRepository<typeof Product.sche
 | `access.write.sharedRows` | `false` | Lets a restricted caller create, change and delete rows with no owner (`null` scope column) |
 | `authorize.principal` | none | The authorization subject name of the model |
 
-Settings are grouped by what they do. `query` shapes what a query returns. `access` decides who may read and write rows. `hiddenProperties` and `authorize` stand alone. The old flat names (`defaultFilter`, `defaultLimit`, `maxLimit`, `scopeFilter`) are removed; the [changelog](/changelogs/2026-11-03-old-model-settings-keys-are-removed) maps each to its new key.
+Settings are grouped by what they do. `query` shapes what a query returns. `access` decides who may read and write rows. `properties` names the properties that are hidden or stamped, and `authorize` stands alone. The old flat names (`hiddenProperties`, `defaultFilter`, `defaultLimit`, `maxLimit`, `scopeFilter`) are removed; the [changelog](/changelogs/2026-11-03-old-model-settings-keys-are-removed) maps each to its new key.
 
-## 2. hiddenProperties
+## 2. properties.hidden
 
-`hiddenProperties` lists properties that must never leave the database through this model.
+`properties.hidden` lists properties that must never leave the database through this model.
 
 ```typescript
 // src/models/product.model.ts
@@ -114,7 +115,7 @@ import { model } from '@venizia/ignis';
 import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { productTable } from './product.table';
 
-@model({ settings: { hiddenProperties: ['costPrice'] } })
+@model({ settings: { properties: { hidden: ['costPrice'] } } })
 export class Product extends ModelFactory.defineEntity({ table: productTable }) {}
 ```
 
@@ -123,6 +124,19 @@ The repository leaves the column out of the `SELECT`, so the value is never read
 A client cannot ask about a hidden property either. A `where` or an `order` on one would reveal its value one question at a time, so the generated CRUD controllers and the generated search controllers answer a request filter that names a hidden property with `400`, the very error a column that does not exist gets: in the `where` (at any depth of `and` and `or`, JSON paths in any spelling included), in the `order`, and in the `scope` of an `include`, where each level is judged by the properties its own model hides. When the same filter also names something the query refuses on its own (a column that does not exist, an unknown relation), the answer is the first refusal in the order the query reads the filter, the same answer as with a missing name in place of the hidden one. So adding a bogus key does not reveal which name is hidden. The repository's own methods are not held to this, so server code can still filter and sort on a hidden property.
 
 Use it for values a client must never receive: cost prices, password hashes, internal notes. It does not stop code that queries the table directly with drizzle, and it does not change what you may write: `create({ data: { costPrice: 120 } })` still stores the value.
+
+### properties.stamped
+
+`properties.stamped` lists the properties the server fills on a write. The generated create and update bodies leave them out, so a client cannot send them. Without it the list is `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt` and `deletedAt`; a key the table does not have is ignored. It takes an array or a Set.
+
+```typescript
+@model({ settings: { properties: { stamped: ['createdAt', 'modifiedAt'] } } })
+export class Event extends ModelFactory.defineEntity({ table: eventTable }) {}
+
+// Nothing is stamped: a client may send createdAt, as a search collection's client does.
+@model({ settings: { properties: { stamped: [] } } })
+export class Article extends BaseSearchEntity {}
+```
 
 ## 3. query.filter
 
@@ -729,7 +743,7 @@ export const runAsSystem = <T>(task: () => Promise<T>): Promise<T> => {
 
 @model({
   settings: {
-    hiddenProperties: ['costPrice'],
+    properties: { hidden: ['costPrice'] },
     query: {
       filter: { where: { isDeleted: false } },
       limit: { default: 20, max: 200 },
@@ -757,7 +771,7 @@ export class Product extends ModelFactory.defineEntity({ table: productTable }) 
 
 | I want to ... | Use |
 |---|---|
-| Never return a column | `hiddenProperties` |
+| Never return a column | `properties.hidden` |
 | Hide soft-deleted rows from ordinary queries | `query.filter` |
 | Make a rule hold for every caller | `access` (not `query.filter`) |
 | Show each merchant only its own rows | `access.resolve` returning a `where` |

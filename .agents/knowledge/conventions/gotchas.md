@@ -40,7 +40,7 @@ tags: [conventions, gotchas, debugging]
 - [Under `path.isStrict: false`, a route declared with a trailing slash is unreachable](#under-pathisstrict-false-a-route-declared-with-a-trailing-slash-is-unreachable)
 - [drizzle refuses an empty UPDATE with `No values to set`](#drizzle-refuses-an-empty-update-with-no-values-to-set)
 - [Do not name a schema `ErrorResponse`](#do-not-name-a-schema-errorresponse)
-- [Only the entity knows what the server stamps](#only-the-entity-knows-what-the-server-stamps)
+- [The model says what the server stamps](#the-model-says-what-the-server-stamps)
 - [Only tsconfig.json stays at a project root](#only-tsconfigjson-stays-at-a-project-root)
 - [tsc-alias must read the root tsconfig.json](#tsc-alias-must-read-the-root-tsconfigjson)
 - [A stale .configs/builders/*.tsbuildinfo makes tsc emit nothing](#a-stale-configsbuilderstsbuildinfo-makes-tsc-emit-nothing)
@@ -599,10 +599,11 @@ repository directly still gets the 500.
 The kernel's `ErrorSchema` owns that OpenAPI component; a second schema with the same refId is
 silently replaced by a `$ref` to the first.
 
-## Only the entity knows what the server stamps
+## The model says what the server stamps
 
-The CRUD factory reads `getServerStampedKeys()`; never match audit keys by name in the kernel. A
-search document is stamped by nothing, so its `createdAt` must stay writable.
+The CRUD factory reads `settings.properties.stamped` from the model metadata and falls back to
+`AuditFields.SCHEME_SET`. A search document is stamped by nothing, so its model declares `stamped: []`
+to keep a writable `createdAt`.
 
 ## Only tsconfig.json stays at a project root
 

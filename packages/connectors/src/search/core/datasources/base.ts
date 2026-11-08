@@ -142,7 +142,7 @@ export abstract class BaseSearchDataSource<
     return isSearchCollectionDefinition(model.schema) ? model.schema : undefined;
   }
 
-  /** Collection name -> `@model` hiddenProperties for cross-collection operations. Collections with none are omitted, so callers own exclusion for absent entries; memoized per instance and never invalidated because the metadata is frozen after boot. */
+  /** Collection name -> `@model` properties.hidden for cross-collection operations. Collections with none are omitted, so callers own exclusion for absent entries; memoized per instance and never invalidated because the metadata is frozen after boot. */
   protected hiddenFieldsByCollection(): Record<string, string[]> {
     this.hiddenFieldsByCollectionMap ??= this.discoverHiddenFieldsByCollection();
 
@@ -163,11 +163,11 @@ export abstract class BaseSearchDataSource<
         continue;
       }
 
-      const hiddenProperties = registry.getModelMetadata({ target: modelClass })?.settings
-        ?.hiddenProperties;
+      const hidden = registry.getModelMetadata({ target: modelClass })?.settings?.properties
+        ?.hidden;
 
-      if (hiddenProperties && hiddenProperties.length > 0) {
-        result[definition.name] = hiddenProperties;
+      if (hidden && hidden.length > 0) {
+        result[definition.name] = hidden;
       }
     }
 

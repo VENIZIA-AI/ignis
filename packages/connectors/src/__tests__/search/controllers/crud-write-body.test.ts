@@ -21,7 +21,7 @@ class VariantSearchDataSource extends FakeSearchDataSource {}
 const COLLECTION = 'crud-body-variants';
 
 /** A collection that requires `createdAt`, as a sort key often is. Nothing on the search path stamps it. */
-@model({ type: 'entity' })
+@model({ type: 'entity', settings: { properties: { stamped: [] } } })
 class VariantDocument extends BaseSearchEntity {
   static override schema = SearchCollectionFactory.define({
     name: COLLECTION,
@@ -63,10 +63,6 @@ const openRoutes = async () => {
 };
 
 describe('defineCrudController over a search entity keeps the audit-named fields', () => {
-  test('a search entity stamps nothing', () => {
-    expect(new VariantDocument().getServerStampedKeys()).toEqual([]);
-  });
-
   test('POST keeps the required createdAt and hands it to the engine', async () => {
     const { send, engine } = await openRoutes();
     const document = {

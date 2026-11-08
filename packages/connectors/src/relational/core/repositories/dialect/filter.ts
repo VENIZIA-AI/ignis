@@ -302,7 +302,7 @@ export abstract class FilterBuilder extends BaseHelper {
       opts.modelEntry ??
       this.resolveModelEntry({ schema: opts.schema, methodName: 'resolveHiddenProperties' });
 
-    return new Set(modelEntry?.metadata?.settings?.hiddenProperties ?? []);
+    return new Set(modelEntry?.metadata?.settings?.properties?.hidden ?? []);
   }
 
   /** Resolves default filter for a schema from MetadataRegistry. */

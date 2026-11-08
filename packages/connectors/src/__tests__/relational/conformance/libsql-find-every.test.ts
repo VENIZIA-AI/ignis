@@ -33,7 +33,7 @@ let currentTenant = 'a';
 @model({
   type: 'entity',
   settings: {
-    hiddenProperties: ['secret'],
+    properties: { hidden: ['secret'] },
     access: { resolve: () => ({ tenant: currentTenant }) },
     query: { filter: { where: { deletedAt: null } } },
   },
@@ -55,7 +55,7 @@ class CappedItem extends BaseSqliteEntity<typeof itemsTable> {
   static override schema = itemsTable;
 }
 
-@model({ type: 'entity', settings: { hiddenProperties: ['id'] } })
+@model({ type: 'entity', settings: { properties: { hidden: ['id'] } } })
 class HiddenKeyItem extends BaseSqliteEntity<typeof itemsTable> {
   static override TABLE_NAME = ITEMS;
   static override schema = itemsTable;

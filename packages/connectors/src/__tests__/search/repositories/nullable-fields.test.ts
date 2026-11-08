@@ -16,7 +16,7 @@ import { FakeSearchDataSource } from './fake-search-connector';
 @model({
   type: 'entity',
   tableName: 'nullable_documents',
-  settings: { hiddenProperties: ['secret'] },
+  settings: { properties: { hidden: ['secret'] } },
 })
 class NullableDocument extends BaseSearchEntity {
   static override schema = SearchCollectionFactory.define({

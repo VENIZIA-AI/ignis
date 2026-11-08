@@ -161,7 +161,7 @@ describe('SearchControllerFactory.defineSearchController', () => {
 
     await controller['multiSearch']({ context });
 
-    // The controller passes the friendly body through; the datasource maps `query` -> wire `q` and injects the collection's @model hiddenProperties (`secret`) into exclude_fields.
+    // The controller passes the friendly body through; the datasource maps `query` -> wire `q` and injects the collection's @model hidden properties (`secret`) into exclude_fields.
     expect(dataSource.multiSearchCalls).toEqual([
       {
         searches: [{ collection: 'products', q: 'foo', ['exclude_fields']: 'secret' }],

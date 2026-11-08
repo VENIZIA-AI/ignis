@@ -1,7 +1,7 @@
 import { AuthorizationActions } from '@/base/auth/authorize/common/constants';
 import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
 import type { AbstractEntity } from '@/base/models';
-import { SchemaTypes } from '@/base/models/common/constants';
+import { AuditFields, SchemaTypes } from '@/base/models/common/constants';
 import type { AbstractRepository } from '@/base/repositories';
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
 import { BindingNamespaces } from '@/common/bindings';
@@ -99,6 +99,9 @@ export class ControllerFactory extends BaseHelper {
 
     const entityClass = isClass(entity) ? entity : entity();
     const entityInstance = new entityClass();
+    const settings = MetadataRegistry.getInstance().getModelMetadata({
+      target: entityClass,
+    })?.settings;
 
     const routeDefinitions = RouteConfigResolver.defineControllerRouteConfigs({
       isStrict: isStrict.requestSchema ?? true,
@@ -111,7 +114,7 @@ export class ControllerFactory extends BaseHelper {
         create: entityInstance.getSchema({ type: SchemaTypes.CREATE }),
         update: entityInstance.getSchema({ type: SchemaTypes.UPDATE }),
       },
-      serverStampedKeys: entityInstance.getServerStampedKeys(),
+      serverStampedKeys: [...(settings?.properties?.stamped ?? AuditFields.SCHEME_SET)],
     });
 
     const controllerClass = class extends PersistableCrudController<

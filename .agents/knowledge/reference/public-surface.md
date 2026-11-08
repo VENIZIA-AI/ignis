@@ -1234,7 +1234,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (437)
+### `@venizia/ignis-kernel` (439)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1249,6 +1249,7 @@ generated:
 - `ArtifactIndexFields` class
 - `ArtifactNamespaces` class
 - `ArtifactTypes` class
+- `AuditFields` class
 - `authenticate` const
 - `AuthenticateBindingKeys` class
 - `AuthenticateStrategy` class
@@ -1410,6 +1411,7 @@ generated:
 - `IModelAuthorizeSettings` interface
 - `IModelMetadata` interface
 - `IModelMigrationSettings` interface
+- `IModelProperties` interface
 - `IModelQuerySettings` interface
 - `IModelRegistryEntry` interface
 - `IModelSettings` interface
@@ -1700,11 +1702,12 @@ generated:
 - `TBindingNamespace` type
 - `TBindingScope` type
 
-### `@venizia/ignis-kernel/repository` (42)
+### `@venizia/ignis-kernel/repository` (43)
 
 - `AbstractDataSource` class
 - `AbstractEntity` class
 - `AbstractRepository` class
+- `AuditFields` class
 - `CoreErrorCodes` class
 - `DataRangeUtility` class
 - `DEFAULT_LIMIT` const
@@ -2421,7 +2424,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1035)
+### `@venizia/ignis` (1037)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2462,6 +2465,7 @@ generated:
 - `ArtifactIndexFields` class
 - `ArtifactNamespaces` class
 - `ArtifactTypes` class
+- `AuditFields` class
 - `AuthControllerFactory` class
 - `authenticate` const
 - `AuthenticateBindingKeys` class
@@ -2778,6 +2782,7 @@ generated:
 - `IModelAuthorizeSettings` interface
 - `IModelMetadata` interface
 - `IModelMigrationSettings` interface
+- `IModelProperties` interface
 - `IModelQuerySettings` interface
 - `IModelRegistryEntry` interface
 - `IModelSettings` interface

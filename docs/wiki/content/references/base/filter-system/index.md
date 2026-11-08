@@ -152,7 +152,7 @@ Each operator family and every long-form topic has its own page:
 ## See also
 
 - [Repositories](../repositories/) - the `find`/`count`/`updateAll`/`deleteAll` verbs that take a `filter`
-- [Models](/references/base/models) - `settings.query.filter` and `settings.hiddenProperties`
+- [Models](/references/base/models) - `settings.query.filter` and `settings.properties.hidden`
 - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - filters in a real endpoint
 - [Quick Reference Card](/references/quick-reference.md) - all IGNIS APIs on one page
 

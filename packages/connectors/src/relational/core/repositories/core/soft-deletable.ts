@@ -7,10 +7,9 @@ import type {
   TRow,
   TWhere,
 } from '@venizia/ignis-kernel';
-import { RepositoryErrors, ScopeOperations } from '@venizia/ignis-kernel';
+import { AuditFields, RepositoryErrors, ScopeOperations } from '@venizia/ignis-kernel';
 import type { IRelationalDataSource } from '@/relational/core/datasources/common';
 import type { TTableInsert, TTableObject, TTableSchemaWithId } from '@/relational/core/models';
-import { AuditFields } from '@/relational/core/models/common/constants';
 import type { TNullable } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';

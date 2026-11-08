@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import { ControllerFactory } from '@venizia/ignis-kernel';
+import { ControllerFactory, model } from '@venizia/ignis-kernel';
 import { integer, pgTable, text } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 import { sqliteTable, text as sqliteText } from 'drizzle-orm/sqlite-core';
@@ -17,10 +17,7 @@ import {
   SqliteUserAuditEnricher,
 } from '@/relational/sqlite/models';
 
-const ENRICHED_KEYS = ['createdBy', 'modifiedBy', 'createdAt', 'modifiedAt'];
-const SOFT_DELETE_KEY = 'deletedAt';
-
-const postgresEnrichedTable = pgTable('stamped_keys_pg_enriched', {
+const postgresTable = pgTable('stamped_keys_pg', {
   id: text('id').primaryKey(),
   code: text('code').notNull(),
   status: text('status').default('draft'),
@@ -30,61 +27,42 @@ const postgresEnrichedTable = pgTable('stamped_keys_pg_enriched', {
   ...PostgresUserAuditEnricher.generateColumnDefs(),
 });
 
-class PostgresEnrichedRow extends BasePostgresEntity<typeof postgresEnrichedTable> {
-  static override schema = postgresEnrichedTable;
+class PostgresRow extends BasePostgresEntity<typeof postgresTable> {
+  static override schema = postgresTable;
 }
 
-const sqliteEnrichedTable = sqliteTable('stamped_keys_sqlite_enriched', {
+/** Declares `status` and `createdAt` as the stamped keys, as a Set: the default list no longer applies. */
+@model({ settings: { properties: { stamped: new Set(['status', 'createdAt']) } } })
+class PostgresOverriddenRow extends PostgresRow {}
+
+/** Declares that nothing is stamped. */
+@model({ settings: { properties: { stamped: [] } } })
+class PostgresUnstampedRow extends PostgresRow {}
+
+const sqliteEnrichedTable = sqliteTable('stamped_keys_sqlite', {
   id: sqliteText('id').primaryKey(),
   code: sqliteText('code').notNull(),
   ...SqliteTzEnricher.generateColumnDefs({ deleted: { enable: true, columnName: 'deleted_at' } }),
   ...SqliteUserAuditEnricher.generateColumnDefs(),
 });
 
-class SqliteEnrichedRow extends BaseSqliteEntity<typeof sqliteEnrichedTable> {
+class SqliteRow extends BaseSqliteEntity<typeof sqliteEnrichedTable> {
   static override schema = sqliteEnrichedTable;
 }
 
-/** `modifiedAt` switched off: only the creation time is stamped. */
-const createdOnlyTable = pgTable('stamped_keys_created_only', {
-  id: text('id').primaryKey(),
-  ...PostgresTzEnricher.generateColumnDefs({ modified: { enable: false } }),
-});
-
-class CreatedOnlyRow extends BasePostgresEntity<typeof createdOnlyTable> {
-  static override schema = createdOnlyTable;
-}
-
-/** Audit names declared by hand: a constant default and a `$onUpdate` stamp; a bare NOT NULL does not. */
+/** Audit names declared by hand, with no default and no `$onUpdate`. */
 const handDeclaredTable = pgTable('stamped_keys_hand_declared', {
   id: text('id').primaryKey(),
   createdBy: text('created_by').notNull(),
-  modifiedBy: text('modified_by').default('SYSTEM'),
-  modifiedAt: integer('modified_at').$onUpdate(() => Date.now()),
+  modifiedAt: integer('modified_at'),
 });
 
 class HandDeclaredRow extends BasePostgresEntity<typeof handDeclaredTable> {
   static override schema = handDeclaredTable;
 }
 
-/** The body a generated route documents, read from the controller's own OpenAPI document. */
-const toCreateBody = async (opts: { entity: typeof HandDeclaredRow }) => {
-  const HandDeclaredController = ControllerFactory.defineCrudController({
-    entity: opts.entity,
-    repository: { name: 'HandDeclaredRowRepository' },
-    controller: { name: 'HandDeclaredRowController', basePath: '/hand-declared' },
-  });
-  const controller = new HandDeclaredController(
-    new DefaultCRUDRepository<typeof handDeclaredTable>(undefined, { entityClass: opts.entity }),
-  );
-  const router = await controller.configure();
-  const document = router.getOpenAPI31Document({
-    openapi: '3.1.0',
-    info: { title: 'server-stamped-keys', version: '1' },
-  });
-
-  return document.paths?.['/']?.post?.requestBody;
-};
+@model({ settings: { properties: { stamped: [] } } })
+class HandDeclaredUnstampedRow extends HandDeclaredRow {}
 
 /** The property names of the JSON body one generated write route documents. */
 const bodyKeysOf = (opts: { requestBody: unknown }): string[] => {
@@ -107,41 +85,56 @@ const documentOf = (opts: { router: OpenAPIHono }) =>
     info: { title: 'write-bodies', version: '1' },
   });
 
-describe('the generated create and update bodies leave deletedAt out, with the audit stamps', () => {
-  test('on postgres', async () => {
-    const PostgresController = ControllerFactory.defineCrudController({
-      entity: PostgresEnrichedRow,
-      repository: { name: 'PostgresEnrichedRowRepository' },
-      controller: { name: 'PostgresEnrichedRowController', basePath: '/rows' },
-    });
-    const controller = new PostgresController(
-      new DefaultCRUDRepository<typeof postgresEnrichedTable>(undefined, {
-        entityClass: PostgresEnrichedRow,
-      }),
-    );
-    const router = await controller.configure();
-    const document = documentOf({ router });
+const postgresBodies = async (opts: { entity: typeof PostgresRow }) => {
+  const Controller = ControllerFactory.defineCrudController({
+    entity: opts.entity,
+    repository: { name: `${opts.entity.name}Repository` },
+    controller: { name: `${opts.entity.name}Controller`, basePath: '/rows' },
+  });
+  const controller = new Controller(
+    new DefaultCRUDRepository<typeof postgresTable>(undefined, { entityClass: opts.entity }),
+  );
+  const router = await controller.configure();
+  const document = documentOf({ router });
 
-    expect(bodyKeysOf({ requestBody: document.paths?.['/']?.post?.requestBody })).toEqual([
-      'code',
-      'id',
-      'status',
-    ]);
-    expect(bodyKeysOf({ requestBody: document.paths?.['/{id}']?.patch?.requestBody })).toEqual([
-      'code',
-      'status',
-    ]);
+  return {
+    create: bodyKeysOf({ requestBody: document.paths?.['/']?.post?.requestBody }),
+    update: bodyKeysOf({ requestBody: document.paths?.['/{id}']?.patch?.requestBody }),
+  };
+};
+
+const handDeclaredBodies = async (opts: { entity: typeof HandDeclaredRow }) => {
+  const Controller = ControllerFactory.defineCrudController({
+    entity: opts.entity,
+    repository: { name: `${opts.entity.name}Repository` },
+    controller: { name: `${opts.entity.name}Controller`, basePath: '/rows' },
+  });
+  const controller = new Controller(
+    new DefaultCRUDRepository<typeof handDeclaredTable>(undefined, { entityClass: opts.entity }),
+  );
+  const router = await controller.configure();
+  const document = documentOf({ router });
+
+  return bodyKeysOf({ requestBody: document.paths?.['/']?.post?.requestBody });
+};
+
+describe('the generated write bodies leave out the stamped keys', () => {
+  test('by default: the audit keys and deletedAt, on postgres', async () => {
+    const { create, update } = await postgresBodies({ entity: PostgresRow });
+
+    expect(create).toEqual(['code', 'id', 'status']);
+    expect(update).toEqual(['code', 'status']);
   });
 
-  test('on sqlite', async () => {
+  test('by default: the audit keys and deletedAt, on sqlite', async () => {
     const SqliteController = ControllerFactory.defineCrudController({
-      entity: SqliteEnrichedRow,
-      repository: { name: 'SqliteEnrichedRowRepository' },
-      controller: { name: 'SqliteEnrichedRowController', basePath: '/rows' },
+      entity: SqliteRow,
+      repository: { name: 'SqliteRowRepository' },
+      controller: { name: 'SqliteRowController', basePath: '/rows' },
     });
     const controller = new SqliteController(
       new DefaultSqliteRepository<typeof sqliteEnrichedTable>(undefined, {
-        entityClass: SqliteEnrichedRow,
+        entityClass: SqliteRow,
       }),
     );
     const router = await controller.configure();
@@ -155,43 +148,43 @@ describe('the generated create and update bodies leave deletedAt out, with the a
       'code',
     ]);
   });
-});
 
-describe('a relational entity reports the audit keys its columns stamp', () => {
-  test('the user-audit and timestamp enrichers stamp all four, on either engine', () => {
-    expect(new PostgresEnrichedRow().getServerStampedKeys()).toEqual([
-      ...ENRICHED_KEYS,
-      SOFT_DELETE_KEY,
+  test('a model that declares properties.stamped replaces the default list, as an array or a Set', async () => {
+    const { create, update } = await postgresBodies({ entity: PostgresOverriddenRow });
+
+    expect(create).toEqual(['code', 'createdBy', 'deletedAt', 'id', 'modifiedAt', 'modifiedBy']);
+    expect(update).toEqual(['code', 'createdBy', 'deletedAt', 'modifiedAt', 'modifiedBy']);
+  });
+
+  test('stamped: [] leaves every key in the bodies', async () => {
+    const { create, update } = await postgresBodies({ entity: PostgresUnstampedRow });
+
+    expect(create).toEqual([
+      'code',
+      'createdAt',
+      'createdBy',
+      'deletedAt',
+      'id',
+      'modifiedAt',
+      'modifiedBy',
+      'status',
     ]);
-    expect(new SqliteEnrichedRow().getServerStampedKeys()).toEqual([
-      ...ENRICHED_KEYS,
-      SOFT_DELETE_KEY,
+    expect(update).toEqual([
+      'code',
+      'createdAt',
+      'createdBy',
+      'deletedAt',
+      'modifiedAt',
+      'modifiedBy',
+      'status',
     ]);
   });
 
-  test('a deletedAt column is reported too, on either engine, and a table without one does not report it', () => {
-    expect(new PostgresEnrichedRow().getServerStampedKeys()).toContain(SOFT_DELETE_KEY);
-    expect(new SqliteEnrichedRow().getServerStampedKeys()).toContain(SOFT_DELETE_KEY);
-    expect(new CreatedOnlyRow().getServerStampedKeys()).not.toContain(SOFT_DELETE_KEY);
-    expect(new HandDeclaredRow().getServerStampedKeys()).not.toContain(SOFT_DELETE_KEY);
-  });
+  test('a hand-declared audit column is dropped by default and kept with stamped: []', async () => {
+    const byDefault = await handDeclaredBodies({ entity: HandDeclaredRow });
+    const unstamped = await handDeclaredBodies({ entity: HandDeclaredUnstampedRow });
 
-  test('a timestamp enricher without modifiedAt stamps createdAt alone', () => {
-    expect(new CreatedOnlyRow().getServerStampedKeys()).toEqual(['createdAt']);
-  });
-
-  test('a hand-declared audit column counts only with a default or $onUpdate', () => {
-    expect(new HandDeclaredRow().getServerStampedKeys()).toEqual(['modifiedBy', 'modifiedAt']);
-  });
-
-  test('a NOT NULL createdBy with no default stays in the POST body, so a client can supply it', async () => {
-    const result = await toCreateBody({ entity: HandDeclaredRow });
-    expect(result).toMatchObject({
-      content: {
-        'application/json': {
-          schema: { properties: { createdBy: {} }, required: ['id', 'createdBy'] },
-        },
-      },
-    });
+    expect(byDefault).toEqual(['id']);
+    expect(unstamped).toEqual(['createdBy', 'id', 'modifiedAt']);
   });
 });

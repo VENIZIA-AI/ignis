@@ -31,7 +31,7 @@ const conformanceTable = sqliteTable(TABLE_NAME, {
   metadata: text('metadata', { mode: 'json' }),
 });
 
-@model({ type: 'entity', settings: { hiddenProperties: ['secret'] } })
+@model({ type: 'entity', settings: { properties: { hidden: ['secret'] } } })
 class ConformanceEntity extends BaseSqliteEntity {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = conformanceTable;
@@ -39,7 +39,10 @@ class ConformanceEntity extends BaseSqliteEntity {
 
 @model({
   type: 'entity',
-  settings: { hiddenProperties: ['secret'], query: { filter: { where: { tenant: 'acme' } } } },
+  settings: {
+    properties: { hidden: ['secret'] },
+    query: { filter: { where: { tenant: 'acme' } } },
+  },
 })
 class ScopedConformanceEntity extends BaseSqliteEntity {
   static override TABLE_NAME = TABLE_NAME;
