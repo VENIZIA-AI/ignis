@@ -4,8 +4,11 @@ import '@venizia/ignis-kernel';
 import { describe, expect, test } from 'bun:test';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 
-import { repository } from '@venizia/ignis-kernel';
-import { SearchControllerFactory } from '@/search/core/controllers/factory';
+import { repository, controller as controllerDecorator } from '@venizia/ignis-kernel';
+import {
+  SearchControllerFactory,
+  type ISearchControllerOptions,
+} from '@/search/core/controllers/factory';
 import { DefaultSearchRepository } from '@/search/typesense/repositories';
 
 import {
@@ -71,12 +74,14 @@ const mount = async (opts: { modes?: unknown } = {}) => {
     hits: [{ document: { id: '1', title: 'foo', secret: 'S3CRET', isActive: true } }],
   } as never;
 
-  const Controller = SearchControllerFactory.defineSearchController({
-    entity: ProductDocument,
-    repository: { name: HttpRawAccessProductRepository.name },
-    controller: { name: `HttpRawAccessController${sequence}`, basePath: '/products' },
+  const BuiltController = SearchControllerFactory.build({
+    repository: HttpRawAccessProductRepository,
+    routes: { search: true, multiSearch: true },
     modes: opts.modes as never,
   });
+
+  @controllerDecorator({ path: '/products' })
+  class Controller extends BuiltController {}
 
   const controller = new Controller(new HttpRawAccessProductRepository(dataSource));
   await controller.configure();
@@ -297,10 +302,9 @@ describe('opting in', () => {
     ['a Boolean object', { raw: { allow: new Boolean(true) } }],
   ])('%s is refused when the controller is defined', (_name, modes) => {
     expect(() =>
-      SearchControllerFactory.defineSearchController({
-        entity: ProductDocument,
-        repository: { name: HttpRawAccessProductRepository.name },
-        controller: { name: `HttpRawAccessRejected${(sequence += 1)}`, basePath: '/products' },
+      SearchControllerFactory.build({
+        repository: HttpRawAccessProductRepository,
+        routes: { search: true },
         modes: modes as never,
       }),
     ).toThrow();
@@ -309,13 +313,15 @@ describe('opting in', () => {
   test('changing the definition options after the controller is defined does not open raw mode', async () => {
     sequence += 1;
 
-    const definition = {
-      entity: ProductDocument,
-      repository: { name: HttpRawAccessProductRepository.name },
-      controller: { name: `HttpRawAccessLate${sequence}`, basePath: '/products' },
-    } as Parameters<typeof SearchControllerFactory.defineSearchController>[0];
-    const Controller = SearchControllerFactory.defineSearchController(definition);
-    (definition as { modes?: unknown }).modes = { raw: { allow: true } };
+    const definition: ISearchControllerOptions<typeof HttpRawAccessProductRepository> = {
+      repository: HttpRawAccessProductRepository,
+      routes: { search: true },
+    };
+    const BuiltController = SearchControllerFactory.build(definition);
+    definition.modes = { raw: { allow: true } };
+
+    @controllerDecorator({ path: '/products' })
+    class Controller extends BuiltController {}
 
     const dataSource = new HttpRawAccessDataSource({
       name: `http-raw-access-late-${sequence}`,

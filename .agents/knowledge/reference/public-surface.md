@@ -2275,7 +2275,7 @@ generated:
 
 - `AbstractSearchController` class
 - `ISearchControllerOptions` interface
-- `ISearchCustomizableRoutes` interface
+- `ISearchRoutes` interface
 - `SearchControllerFactory` class
 - `SearchEngineParams` class
 - `SearchRawAccess` class
@@ -2370,7 +2370,7 @@ generated:
 
 - `AbstractSearchController` class
 - `ISearchControllerOptions` interface
-- `ISearchCustomizableRoutes` interface
+- `ISearchRoutes` interface
 - `SearchControllerFactory` class
 - `SearchEngineParams` class
 - `SearchRawAccess` class

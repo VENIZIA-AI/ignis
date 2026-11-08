@@ -1,12 +1,13 @@
-import type { TEntityDataObject } from '@venizia/ignis-kernel';
+import type { TRepositoryDataObject } from '@venizia/ignis-kernel';
 import type { AbstractEntity } from '@venizia/ignis-kernel';
-import { OpenApiResponses, CrudControllerFactory, SchemaTypes } from '@venizia/ignis-kernel';
+import { CrudControllerFactory, OpenApiResponses, SchemaTypes } from '@venizia/ignis-kernel';
+import { MetadataRegistry } from '@venizia/ignis-kernel/metadata';
 import type { TAuthMode, TAuthStrategy } from '@venizia/ignis-kernel';
 import type { IAuthorizationSpec } from '@venizia/ignis-kernel';
-import type { TAnyObjectSchema } from '@venizia/ignis-kernel';
+import type { TCrudRepositoryClass } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import type { TClass, TResolver, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { isClass } from '@venizia/ignis-inversion';
 import type { Env, Schema } from 'hono';
@@ -17,28 +18,21 @@ import { SearchEngineParams } from './engine-params';
 import { SearchRawAccess } from './raw-access';
 import type { TSearchScopeResolver } from './scope';
 
-/** Per-route enable/disable switches for the generated search controller. */
-export interface ISearchCustomizableRoutes {
-  search?: { enabled?: boolean };
-  multiSearch?: { enabled?: boolean };
+/** The routes of a search controller: only a listed route exists. */
+export interface ISearchRoutes {
+  search?: true;
+  multiSearch?: true;
 }
 
-/** Configuration options for creating a search controller via SearchControllerFactory.defineSearchController. */
+/** Configuration options for creating a search controller via SearchControllerFactory.build. */
 export interface ISearchControllerOptions<
-  TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>,
+  Repository extends TCrudRepositoryClass = TCrudRepositoryClass,
 > {
-  /** Entity class or resolver returning it; its SELECT schema drives the `hits[].document` shape in the generated route's response. */
-  entity: TClass<TEntity> | TResolver<TClass<TEntity>>;
+  /** The repository class; its name is the binding the container injects, and its `@repository({ model })` supplies the entity whose SELECT schema drives the `hits[].document` shape in the response. */
+  repository: Repository;
 
-  repository: {
-    name: string; // Repository binding name in the IoC container
-  };
-
-  controller: {
-    name: string;
-    basePath: string;
-    isStrict?: boolean;
-  };
+  /** When true, /search and /search/ are different routes. @default true */
+  isStrict?: boolean;
 
   /** Authentication config applied to both generated routes. */
   authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
@@ -46,8 +40,8 @@ export interface ISearchControllerOptions<
   /** Authorization config applied to both generated routes. */
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
 
-  /** Per-route enable/disable configuration. */
-  routes?: ISearchCustomizableRoutes;
+  /** The routes to generate. */
+  routes: ISearchRoutes;
 
   /**
    * A function of the request context returning the filter this caller may search within. It is
@@ -57,7 +51,7 @@ export interface ISearchControllerOptions<
    *
    * `raw` mode hands the engine its own wire parameters, and a multi-search entry carries a raw
    * `filterBy`; neither can take a scope, so a scoped controller refuses `raw` (400) and must disable the
-   * multi-search route (`routes.multiSearch.enabled: false`), which `defineSearchController` requires.
+   * multi-search route (leave `routes.multiSearch` out), which `SearchControllerFactory.build` requires.
    * `engineParams` is refused on every controller unless `engineParams.allow` lists it.
    */
   scope?: TSearchScopeResolver;
@@ -145,44 +139,48 @@ export class SearchControllerFactory extends BaseHelper {
     } as const;
   }
 
-  /** Creates a search controller with two endpoints: `POST {basePath}/search` via `repository.search()`, and `POST {basePath}/multi-search` via `repository.dataSource.multiSearch()`. */
-  static defineSearchController<
-    TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>,
+  /** Creates a search controller with the routes you list: `POST /search` via `repository.search()`, and `POST /multi-search` via `repository.dataSource.multiSearch()`. The path is the `@controller({ path })` of the subclass. */
+  static build<
+    Repository extends TCrudRepositoryClass,
     RouteEnv extends Env = Env,
     RouteSchema extends Schema = {},
     BasePath extends string = '/',
     ConfigurableOptions extends object = {},
-    TDataObject extends object = TEntityDataObject<TEntity>,
-  >(defOpts: ISearchControllerOptions<TEntity>) {
-    const { controller, entity, authenticate, authorize, routes, scope } = defOpts;
+    TDataObject extends object = TRepositoryDataObject<InstanceType<Repository>>,
+  >(opts: ISearchControllerOptions<Repository>) {
+    const { repository, authenticate, authorize, routes, scope, isStrict = true } = opts;
 
-    const { name, basePath = 'unknown_path', isStrict = true } = controller;
+    const factoryScope = `SearchControllerFactory.build | repository: ${repository.name}`;
     const isRawAllowed = SearchRawAccess.resolve({
-      scope: `defineSearchController | name: ${name}`,
-      modes: defOpts.modes,
+      scope: factoryScope,
+      modes: opts.modes,
       isScoped: scope !== undefined,
     });
     const allowedEngineParams = SearchEngineParams.resolveAllowlist({
-      scope: `defineSearchController | name: ${name}`,
-      allow: defOpts.engineParams?.allow,
+      scope: factoryScope,
+      allow: opts.engineParams?.allow,
     });
 
-    if (!basePath || basePath === 'unknown_path') {
+    if (scope && routes.multiSearch) {
       throw getError({
-        message: `[defineSearchController] Invalid controller basePath | name: ${name} | basePath: ${basePath}`,
+        message: `[SearchControllerFactory.build] A scoped search controller cannot serve multi-search | repository: ${repository.name} | leave routes.multiSearch out`,
       });
     }
 
-    if (scope && routes?.multiSearch?.enabled !== false) {
+    const model = MetadataRegistry.getInstance().getRepositoryBinding({
+      target: repository,
+    })?.model;
+
+    if (!model) {
       throw getError({
-        message: `[defineSearchController] A scoped search controller cannot serve multi-search | name: ${name} | set routes.multiSearch.enabled to false`,
+        message: `[SearchControllerFactory.build] Cannot resolve the entity | repository: ${repository.name} | declare it with @repository({ model })`,
       });
     }
 
-    const entityClass = isClass(entity) ? entity : entity();
+    const entityClass: TClass<AbstractEntity> = isClass(model) ? model : model();
     const entityInstance = new entityClass();
 
-    const selectSchema = entityInstance.getSchema({ type: SchemaTypes.SELECT });
+    const selectSchema = entityInstance.getSchema<z.ZodType>({ type: SchemaTypes.SELECT });
     const routeDefinitions = SearchControllerFactory.defineRouteConfigs({
       selectSchema,
       authenticate,
@@ -190,19 +188,18 @@ export class SearchControllerFactory extends BaseHelper {
     });
 
     const controllerClass = class extends AbstractSearchController<
-      TEntity,
+      AbstractEntity,
       RouteEnv,
       RouteSchema,
       BasePath,
       ConfigurableOptions,
       TDataObject
     > {
-      constructor(repository: ReadableSearchRepository<TDataObject>) {
+      constructor(repositoryInstance: ReadableSearchRepository<TDataObject>) {
         super({
-          scope: name,
-          path: basePath,
+          scope: new.target.name,
           isStrict,
-          repository,
+          repository: repositoryInstance,
           definitions: routeDefinitions,
           searchScope: scope as TSearchScopeResolver<RouteEnv> | undefined,
           allowedEngineParams,
@@ -210,20 +207,19 @@ export class SearchControllerFactory extends BaseHelper {
         });
       }
 
-      /** Registers the search + multiSearch route handlers, honoring per-route enable flags. */
-      override binding(): ValueOrPromise<void> {
-        const isEnabled = (routeKey: keyof ISearchCustomizableRoutes) => {
-          return routes?.[routeKey]?.enabled !== false;
-        };
+      /** The routes of a generated controller come from `routes`; a subclass adds its own here. */
+      override binding(): ValueOrPromise<void> {}
 
-        if (isEnabled('search')) {
+      /** Registers each listed route, after the subclass's `binding()`. */
+      override bindDefaultRoutes(): ValueOrPromise<void> {
+        if (routes.search) {
           this.defineRoute({
             configs: routeDefinitions.SEARCH,
             handler: async (context) => this.search({ context }),
           });
         }
 
-        if (isEnabled('multiSearch')) {
+        if (routes.multiSearch) {
           this.defineRoute({
             configs: routeDefinitions.MULTI_SEARCH,
             handler: async (context) => this.multiSearch({ context }),
@@ -232,11 +228,10 @@ export class SearchControllerFactory extends BaseHelper {
       }
     };
 
-    Object.defineProperty(controllerClass, 'name', { value: name, configurable: true });
     CrudControllerFactory.registerRepositoryInjection({
       target: controllerClass,
-      factoryName: 'defineSearchController',
-      repositoryName: defOpts.repository.name,
+      factoryName: 'SearchControllerFactory.build',
+      repositoryName: repository.name,
     });
 
     return controllerClass;

@@ -831,7 +831,7 @@ CrudControllerFactory.registerRepositoryInjection({
 });
 ```
 
-`target` is the generated class itself, typed `TClass<unknown>` - a bare function or an abstract class is refused. `CrudControllerFactory.build` and `SearchControllerFactory.defineSearchController` call it too. An empty `repositoryName` throws a message that names `factoryName`.
+`target` is the generated class itself, typed `TClass<unknown>` - a bare function or an abstract class is refused. `CrudControllerFactory.build` and `SearchControllerFactory.build` call it too. An empty `repositoryName` throws a message that names `factoryName`.
 
 ### Routes Configuration
 

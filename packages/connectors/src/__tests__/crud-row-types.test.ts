@@ -15,6 +15,7 @@ import { integer, pgTable, text } from 'drizzle-orm/pg-core';
 import { BasePostgresEntity } from '@/relational/postgres/models';
 import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 import { BaseSearchEntity, SearchCollectionFactory, field } from '@/search/core/models';
+import { SearchControllerFactory } from '@/search/core/controllers/factory';
 import { DefaultSearchRepository } from '@/search/typesense/repositories';
 import { FakeSearchDataSource } from './search/repositories/fake-search-connector';
 
@@ -129,5 +130,29 @@ describe('a relational CRUD controller keeps the table row type of its repositor
     }
 
     expect(NoteController).toBeDefined();
+  });
+});
+
+describe('a search controller keeps the document type of its repository', () => {
+  test('this.repository is typed with the document, and another repository is refused', () => {
+    const SearchController = SearchControllerFactory.build({
+      repository: RowTypesArticleRepository,
+      routes: { search: true },
+    });
+
+    @controller({ path: '/search-articles' })
+    class ArticleSearchController extends SearchController {}
+
+    type TControllerDocument = NonNullable<
+      InstanceType<typeof ArticleSearchController>['repository']['$inferData']
+    >;
+
+    expect(assertType<TEqual<TControllerDocument, TArticle>>()).toBeUndefined();
+
+    // @ts-expect-error a relational repository is not a repository of articles
+    const refused = new ArticleSearchController(new RowTypesNoteRepository());
+
+    expect(ArticleSearchController).toBeDefined();
+    expect(refused).toBeDefined();
   });
 });

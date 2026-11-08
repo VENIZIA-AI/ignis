@@ -62,7 +62,6 @@ export abstract class AbstractSearchController<
 
   constructor(opts: {
     scope: string;
-    path: string;
     isStrict?: boolean;
     repository: ReadableSearchRepository<TDataObject>;
     definitions: AnyType;
@@ -73,7 +72,7 @@ export abstract class AbstractSearchController<
     /** `modes.raw.allow`, as `SearchRawAccess.resolve` answers it. */
     isRawAllowed?: boolean;
   }) {
-    super({ scope: opts.scope, path: opts.path, isStrict: opts.isStrict });
+    super({ scope: opts.scope, isStrict: opts.isStrict });
     this.repository = opts.repository;
     this.searchScope = opts.searchScope;
     this.allowedEngineParams = opts.allowedEngineParams ?? new Set();
