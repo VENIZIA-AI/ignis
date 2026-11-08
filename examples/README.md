@@ -4,7 +4,7 @@ Runnable projects for IGNIS. Each folder has its own README.
 
 | Example | What it shows | Smoke test |
 | :--- | :--- | :--- |
-| [5-mins-qs](5-mins-qs/) | The single-file hello world | Its own `bun test` |
+| [5-mins-qs](5-mins-qs/) | The hello world: one controller, one route, generated API docs | Its own `bun test` |
 | [pglite-quickstart](pglite-quickstart/) | CRUD and a relation on PGlite - PostgreSQL in-process, no database server | Its own `bun test` |
 | [sqlite-quickstart](sqlite-quickstart/) | The same CRUD and relation on SQLite through libsql | Its own `bun test` |
 | [browser-bff](browser-bff/) | The same controllers answering from PGlite inside a browser Worker, with no server | Its own `bun test` (Bun Worker) |

@@ -249,9 +249,9 @@ looks like it works until it doesn't).
 The probe spawns the `bun` on `PATH`, so the bundler's own bugs are part of the measurement. Bun
 1.4.0 emitted `connectors/postgres/supabase` under `--target=browser` with the `drizzle-orm/supabase`
 re-exports listed but unbound, and the row was waived as impure; Bun 1.4.1 binds them, and the same
-waiver failed a connectors release with "STALE WAIVER" because the workflow installs
-`bun-version: latest`. Before a release, run `make purity-<package>` on the Bun version CI will
-use, and when a waiver goes stale, delete it rather than loosening the gate.
+waiver failed a connectors release with "STALE WAIVER" because the workflow then installed
+`bun-version: latest`; the release workflow now pins `'1.4.4'` and `ci.yml` installs `latest`. Before a
+release, run `make purity-<package>` on the Bun version the release workflow pins, and when a waiver goes stale, delete it rather than loosening the gate.
 
 ## `bun update` rewrites peerDependencies floors, not only devDependencies
 

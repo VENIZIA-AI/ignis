@@ -33,7 +33,7 @@ on it - `@venizia/ignis` dropped its `ignis-boot` dependency once the runtime bo
 so an application that runs `ignis-artifacts` declares `@venizia/ignis-boot` as its own
 devDependency. Runtime dependency: `@venizia/ignis-helpers` only (the logger). `typescript` 5 or 6 (peer `^5.0.0 || ^6.0.0`; TypeScript 7 drops the JS API the scanner calls) is
 a peer dependency because the scanner is an AST walk. ES modules only (`dist/esm`), sub-path exports
-`./generator` and `./build-info`, and one bin with a `bun` shebang (the scanner uses `Bun.Glob`):
+`./generator`, `./bun`, `./auto`, `./vite` and `./build-info`, and one bin with a `bun` shebang (the scanner reads files with `node:fs` `globSync`):
 `ignis-artifacts -> dist/esm/clis/artifacts.js`. The build stamp has no bin: `ignis-build-info` and its
 file emitter were removed, see [Build stamp](#build-stamp).
 

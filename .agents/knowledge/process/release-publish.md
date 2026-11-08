@@ -71,16 +71,15 @@ npm gives another version, and a stable run refuses a packed manifest that pins 
   versions pinned to the consumer's own resolved copies, or two `zod`/`hono` trees land in one
   program), run `tsc --noEmit` per consumer package, and diff against the same run with the
   pinned versions. Every new error must map to a documented breaking change; the rest is the
-  finding. The public-surface snapshot tracks names and kinds only, so this is the check for
-  signatures.
+  finding. The API pages carry the signatures, so this is the check for what a consumer's types see.
 
 ## What atlas reads after a release
 
 Nothing is regenerated or committed after a chain. VULCAN's atlas computes the releases from the
 git tags the workflow pushes, and reads symbols from the built or installed `.d.ts`. `make
 atlas-releases` and `make atlas-symbols` print what it sees (both come from
-`node_modules/@venizia/vulcan/base/make/vulcan.mk`). Only the public-surface snapshot
-(`reference/public-surface.md`, `make surface-gen`) is committed, and `make build-all` gates it.
+`node_modules/@venizia/vulcan/base/make/vulcan.mk`). The API pages (`make api-gen`) are the only
+generated export reference that is committed, and `make build-all` gates them with `api-check`.
 
 - **Package names on the command line.** `release.ts <pkg>` means "from this package on"; `--plan` carries its own
   packages and cannot be combined with names. The parsing lives in `scripts/release/release-args.ts` with its own test.

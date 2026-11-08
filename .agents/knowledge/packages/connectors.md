@@ -12,7 +12,7 @@ tags: [packages, connectors, drizzle, relational, search, browser]
 - [The root barrel is the abstract tiers, and only those](#the-root-barrel-is-the-abstract-tiers-and-only-those)
 - [`./http` - a datasource whose transport is not a database](#http---a-datasource-whose-transport-is-not-a-database)
 - [`./testing` - test doubles, never a production import](#testing---test-doubles-never-a-production-import)
-- [The 15 published sub-paths](#the-15-published-sub-paths)
+- [The 16 published sub-paths](#the-16-published-sub-paths)
 - [`core` re-exports it, and the two roots carry different symbols](#core-re-exports-it-and-the-two-roots-carry-different-symbols)
 - [Two ways to declare a model, both supported](#two-ways-to-declare-a-model-both-supported)
 - [What it owns](#what-it-owns)
@@ -27,7 +27,7 @@ tags: [packages, connectors, drizzle, relational, search, browser]
 
 `@venizia/ignis-connectors` holds every datasource, driver, entity base and repository chain that
 reaches a backing engine. Wave 3 of the kernel refactor carved it out of
-`packages/core-server/src/connectors` - 168 source files outside `__tests__`, around 14,200 lines.
+`packages/core-server/src/connectors`. Today it is 244 source files outside `__tests__`, around 23,400 lines.
 
 It depends on `kernel`, `filter`, `helpers`, and `inversion`, and sits between `kernel` and `core`:
 `dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core` (`boot` is a leaf off
@@ -171,7 +171,7 @@ count goes up, before `commitError`/`rollbackError`; a throw from a hook fails t
 of its own: its connector is the Postgres `TRelationalConnector`, so `PostgresTransactionDouble` is its double.
 `RepositoryDouble.withTransactions({ repository, transaction, source, logger? })` gives a hand-made repository double the real `runInTransaction`, `rollbackOwnedTransaction` and `resolveEndedByExecute` read off `source.prototype`, a repository class the caller passes (never reimplemented, and the testing entry imports no repository code: the clean-install check loads it without `drizzle-orm`), plus a `beginTransaction` that returns `transaction` and a logger.
 
-## The 15 published sub-paths
+## The 16 published sub-paths
 
 Every peer is optional in `peerDependenciesMeta`; a sub-path needs what it imports. Measured on
 `dist` (static import graph, 2026-09-19): the root barrel imports `drizzle-orm` (with `/pg-core` and
@@ -571,8 +571,8 @@ the cache.
 
 ## Every published sub-path is probed, and eight rows are waived
 
-`scripts/checks/purity/manifest.ts` derives its rows from this package's `exports` map, so all 14 sub-paths
-are measured. It used to carry three hand-written rows - the root, `relational/core` and the PGlite
+`scripts/checks/purity/manifest.ts` derives its rows from this package's `exports` map, so all 17 entries
+(the root and the 16 sub-paths) are measured. It used to carry three hand-written rows - the root, `relational/core` and the PGlite
 driver - and reported `11/11` green while saying nothing about the other eleven. No ESLint rule
 guards this package either: `.configs/lints/eslint.config.mjs` is `namingConventionConfigs` alone, unlike `core-worker`,
 which adds a `no-restricted-globals` and `no-restricted-imports` layer.
@@ -596,8 +596,8 @@ dropped the `export { anonRole, ... } from 'drizzle-orm/supabase'` re-export und
 `--target=browser` while still listing the names in the bundle's export block, and the row failed
 with `drizzle-orm/supabase` as an unresolved external import. Bun 1.4.1 binds them and the row is
 pure. The row carried a waiver for the 1.4.0 defect until a connectors release on 1.4.1 failed the
-gate with "STALE WAIVER"; the gate needs Bun >= 1.4.1 for that row, and the release workflow runs
-`bun-version: latest`.
+gate with "STALE WAIVER"; the gate needs Bun >= 1.4.1 for that row. The release workflow pins
+`bun-version: '1.4.4'`; `ci.yml` installs `latest`.
 
 `/postgres` and `/sqlite` were red too, on `node:async_hooks`. Both user-audit enrichers imported
 `tryGetContext` from `hono/context-storage`, whose module body runs `var asyncLocalStorage = new
