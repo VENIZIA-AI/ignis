@@ -4,7 +4,7 @@ description: "isValidSegment measures a name in UTF-8 bytes, and isValidObjectKe
 packages: ['@venizia/ignis-helpers', '@venizia/ignis']
 ---
 
-# Changelog - 2026-11-09
+# Changelog - 2026-11-08
 
 ## A storage key segment is limited to 255 bytes, and a key cannot end with a slash
 
