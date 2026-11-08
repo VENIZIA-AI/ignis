@@ -1,6 +1,6 @@
 import { EchoUtility } from '@/common/internal';
 import type { IUniqueKey, TTableSchemaWithId } from '@/relational/core/models/common';
-import { AuditFields } from '@/relational/core/models/common/constants';
+import { AuditFields } from '@venizia/ignis-kernel/repository';
 import { UniqueKeyReader } from '@/relational/core/models/common/unique-key-reader';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';

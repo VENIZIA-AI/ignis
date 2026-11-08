@@ -192,9 +192,9 @@ is where the model registry, the repository bindings, and datasource auto-discov
 The model registry is keyed by registered name (`@model({ tableName })` > `TABLE_NAME` > class name)
 AND by schema object (`getModelEntryBySchema`, a WeakMap). A schema claimed by a SECOND model drops
 out of that map rather than answering with whichever registered last - two models over one drizzle
-table would otherwise apply the wrong `hiddenProperties`/`access`. A relation carries only its schema, and
+table would otherwise apply the wrong `properties.hidden`/`access`. A relation carries only its schema, and
 a lookup by SQL table name missed every model whose table name differed from its registered name -
-`include` then dropped its `hiddenProperties` and `access`.
+`include` then dropped its `properties.hidden` and `access`.
 
 ## Generated bulk routes take `where` in the query or the body
 
@@ -261,13 +261,12 @@ in some configurations. An empty name throws `[<factoryName>] Invalid repository
 `defineCrudController` and connectors' `defineSearchController` both call it. An own `@inject` at
 parameter 0 in a subclass wins.
 
-The CRUD factory's DEFAULT write bodies leave out what the entity reports from
-`AbstractEntity.getServerStampedKeys()` (`[]` at the root and on search entities), and the two
+The CRUD factory's DEFAULT write bodies leave out the keys of the model's `settings.properties.stamped`
+(`ControllerFactory` reads it from the model metadata, like repositories read `properties.hidden`), and the two
 update bodies also leave out `id` - `RouteConfigResolver.toWriteBodySchema` in
-`base/controllers/factory/definition.ts`. The kernel names no audit key; connectors'
-`BaseRelationalEntity` reports `createdBy`/`modifiedBy`/`createdAt`/`modifiedAt` whose drizzle
-column has `hasDefault` or `onUpdateFn` (names in the internal
-`relational/core/models/common/constants.ts`).
+`base/controllers/factory/definition.ts`. Without `stamped` the list is `AuditFields.SCHEME_SET` (`createdBy`,
+`modifiedBy`, `createdAt`, `modifiedAt`, `deletedAt`), whatever the engine; a search collection that keeps a
+writable `createdAt` declares `stamped: []`. A key the schema does not hold is ignored.
 
 - Nothing to leave out returns the entity schema by identity, so a refinement or an OpenAPI name
   survives. A refined or transformed schema that needs an omission throws, naming

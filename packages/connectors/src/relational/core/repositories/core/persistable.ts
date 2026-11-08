@@ -47,6 +47,9 @@ export class PersistableRelationalRepository<
     return (this.queryDialect as { updateBuilder?: AnyType }).updateBuilder;
   }
 
+  /** Throw to refuse an update's data. */
+  protected validateUpdateData(_opts: { data: object }): void {}
+
   /** Guards id-based operations against a null/undefined id */
   protected validateId(opts: { id: unknown; operationName: string }): void {
     if (opts.id !== null && opts.id !== undefined) {
@@ -340,6 +343,8 @@ export class PersistableRelationalRepository<
     update?: ReadonlyArray<TUpsertUpdateKey<PersistObject>>;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
+    this.validateUpdateData({ data: opts.data });
+
     return this._upsert<R>({
       data: opts.data,
       on: opts.on,
@@ -470,6 +475,7 @@ export class PersistableRelationalRepository<
     data: Partial<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
+    this.validateUpdateData({ data: opts.data });
     this.validateId({ id: opts.id, operationName: 'updateById' });
 
     const rs = await this._update<R>({
@@ -503,6 +509,10 @@ export class PersistableRelationalRepository<
   }): Promise<TCount & { data: TNullable<Array<TNullable<R>>> }> {
     const { rows, options } = opts;
     const shouldReturn = options?.shouldReturn !== false;
+
+    for (const row of rows) {
+      this.validateUpdateData({ data: row.data });
+    }
 
     if (rows.length === 0) {
       return { count: 0, data: shouldReturn ? [] : null };
@@ -555,11 +565,13 @@ export class PersistableRelationalRepository<
     where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
-  override updateAll<R = DataObject>(opts: {
+  override async updateAll<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
+    this.validateUpdateData({ data: opts.data });
+
     return this._update<R>(opts);
   }
 

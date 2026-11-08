@@ -46,6 +46,12 @@ export const model = (input: IModelMetadata = {}): ClassDecorator => {
 
     const { settings } = metadata;
 
+    if (settings && Reflect.has(settings, 'hiddenProperties')) {
+      throw getError({
+        message: `[model][${target.name}] hiddenProperties was replaced by properties.hidden`,
+      });
+    }
+
     const defaultLimit = settings?.query?.limit?.default;
 
     if (defaultLimit !== undefined && (!Number.isInteger(defaultLimit) || defaultLimit <= 0)) {

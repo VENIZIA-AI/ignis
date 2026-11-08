@@ -69,7 +69,7 @@ Marks a class as a database entity and configures its behavior.
   tableName?: string,
   migration?: { use?: boolean },
   settings?: {
-    hiddenProperties?: string[],
+    properties?: { hidden?: string[]; stamped?: ReadonlyArray<string> | ReadonlySet<string> },
     query?: {
       filter?: TFilter,
       limit?: { default?: number, max?: number },
@@ -90,7 +90,8 @@ Marks a class as a database entity and configures its behavior.
 | `type` | `ModelTypes` (`'entity'`) | Optional. `ModelTypes.ENTITY` is the only value and the default; any other value throws when the decorator runs |
 | `tableName` | `string` | Optional custom table name. Resolution order: `tableName` > static `TABLE_NAME` > class name |
 | `migration.use` | `boolean` | Default `true`. `false` marks the model as one your migration tooling leaves alone. IGNIS generates no migrations: this is a marker in the public registry, see [Migrations](/guides/core-concepts/persistent/models#migrations). |
-| `settings.hiddenProperties` | `string[]` | Property names excluded from all repository query results (at SQL level) |
+| `settings.properties.hidden` | `string[]` | Property names excluded from all repository query results (at SQL level) |
+| `settings.properties.stamped` | `ReadonlyArray<string> \| ReadonlySet<string>` | Property names the server fills, which the generated create and update bodies leave out. Default: `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt`, `deletedAt` |
 | `settings.query.filter` | `TFilter` | Filter automatically applied to all repository queries (see [Default Filter](/references/base/filter-system/default-filter)). |
 | `settings.access` | `TModelAccessSettings` | Row scope resolved per query, ANDed into every read and write: a `resolve` (`IModelAccessSettings`) or a `through` (`IModelAccessThroughSettings`, see [Scope a child through its parent](/guides/core-concepts/persistent/model-settings#scope-a-child-through-its-parent)). `resolve()` returns the scope `where`, `ScopeFilters.UNRESTRICTED` for no scope this call, or null to fall to `onMissing` (default `deny`, matching zero rows). Relational repositories only |
 | `settings.query.limit.default` | `number` | Default row limit applied when a query omits `limit`. Must be a positive integer (validated at decoration time). Falls back to the global `DEFAULT_LIMIT` (10). See [Pagination](/references/base/filter-system/fields-order-pagination#default-limit-resolution) |
@@ -460,7 +461,7 @@ import { pgTable, text } from 'drizzle-orm/pg-core';
 import { BaseEntity, model, PostgresIdEnricher } from '@venizia/ignis';
 
 @model({
-  settings: { hiddenProperties: ['password', 'secret'] },
+  settings: { properties: { hidden: ['password', 'secret'] } },
 })
 export class User extends BaseEntity<typeof User.schema> {
   static override schema = pgTable('User', {

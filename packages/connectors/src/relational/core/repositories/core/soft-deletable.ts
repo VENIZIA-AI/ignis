@@ -7,10 +7,11 @@ import type {
   TRow,
   TWhere,
 } from '@venizia/ignis-kernel';
-import { RepositoryErrors, ScopeOperations } from '@venizia/ignis-kernel';
+import { AuditFields, RepositoryErrors, ScopeOperations } from '@venizia/ignis-kernel';
 import type { IRelationalDataSource } from '@/relational/core/datasources/common';
 import type { TTableInsert, TTableObject, TTableSchemaWithId } from '@/relational/core/models';
 import type { TNullable } from '@venizia/ignis-helpers/common';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { AnyColumn } from 'drizzle-orm';
 import type { IRelationalExtraOptions } from '../common';
@@ -20,6 +21,10 @@ import { DefaultRelationalRepository } from './default';
 export type TDeletedAtColumn = AnyColumn<{
   data: Date | string | null;
 }>;
+
+const ID_KEY = 'id';
+
+type TSoftDeleteData<PersistObject> = Partial<Omit<PersistObject, typeof ID_KEY | 'deletedAt'>>;
 
 /** A table schema with an `id` column and a nullable `deletedAt` column, as soft deletion requires. */
 export type TSoftDeletableTableSchema = TTableSchemaWithId & {
@@ -40,8 +45,46 @@ export class SoftDeletableRelationalRepository<
   ExtraOptions,
   TDataSource
 > {
-  private softDeletePatch(deletedAt: Date | null): Partial<PersistObject> {
-    return { deletedAt } as any;
+  private softDeletePatch(opts: {
+    data?: TSoftDeleteData<PersistObject>;
+    deletedAt: Date | null;
+  }): Partial<PersistObject> {
+    return { ...opts.data, deletedAt: opts.deletedAt } as any;
+  }
+
+  /** `deletedAt` changes only through delete and restore. */
+  protected override validateUpdateData(opts: { data: object }): void {
+    if (Reflect.get(opts.data, AuditFields.DELETED_AT) !== undefined) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `${AuditFields.DELETED_AT} changes only through deleteById/deleteAll/deleteBy and restoreById/restoreAll/restoreBy`,
+      });
+    }
+  }
+
+  private validateDeleteData(opts: {
+    data?: TSoftDeleteData<PersistObject>;
+    shouldHardDelete?: boolean;
+  }): void {
+    if (opts.data === undefined) {
+      return;
+    }
+
+    if (opts.shouldHardDelete) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: 'data is written by a soft delete; it cannot be combined with shouldHardDelete',
+      });
+    }
+
+    if (Reflect.get(opts.data, ID_KEY) !== undefined) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: 'data of a soft delete cannot change the id',
+      });
+    }
+
+    this.validateUpdateData({ data: opts.data });
   }
 
   /** `isStrict` is evaluated AFTER `options.retry` has been exhausted - the retry loop lives inside `super.findById` -> `findOne`, so a strict read waits out replica lag before it 404s. */
@@ -84,16 +127,21 @@ export class SoftDeletableRelationalRepository<
 
   override deleteById(opts: {
     id: DataObject['id'];
+    data?: TSoftDeleteData<PersistObject>;
     options: ExtraOptions & { shouldReturn: false; shouldHardDelete?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
   override deleteById<R = DataObject>(opts: {
     id: DataObject['id'];
+    data?: TSoftDeleteData<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: true; shouldHardDelete?: boolean };
   }): Promise<TCount & { data: R }>;
   override async deleteById<R = DataObject>(opts: {
     id: DataObject['id'];
+    data?: TSoftDeleteData<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; shouldHardDelete?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
+    this.validateDeleteData({ data: opts.data, shouldHardDelete: opts.options?.shouldHardDelete });
+
     if (opts.options?.shouldHardDelete) {
       return super.deleteById<R>(opts);
     }
@@ -103,7 +151,7 @@ export class SoftDeletableRelationalRepository<
     // A soft delete is a delete to the row scope: it passes DELETE, not UPDATE.
     const rs = await this._update<R>({
       where: this.whereById({ id: opts.id }),
-      data: this.softDeletePatch(new Date()),
+      data: this.softDeletePatch({ data: opts.data, deletedAt: new Date() }),
       options: opts.options,
       operation: ScopeOperations.DELETE,
     });
@@ -113,27 +161,32 @@ export class SoftDeletableRelationalRepository<
 
   override deleteAll(opts: {
     where?: TWhere<DataObject>;
+    data?: TSoftDeleteData<PersistObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean; shouldHardDelete?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
   override deleteAll<R = DataObject>(opts: {
     where?: TWhere<DataObject>;
+    data?: TSoftDeleteData<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean; shouldHardDelete?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
-  override deleteAll<R = DataObject>(opts: {
+  override async deleteAll<R = DataObject>(opts: {
     where?: TWhere<DataObject>;
+    data?: TSoftDeleteData<PersistObject>;
     options?: ExtraOptions & {
       shouldReturn?: boolean;
       force?: boolean;
       shouldHardDelete?: boolean;
     };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
+    this.validateDeleteData({ data: opts.data, shouldHardDelete: opts.options?.shouldHardDelete });
+
     if (opts.options?.shouldHardDelete) {
       return super.deleteAll<R>(opts);
     }
 
     return this._update<R>({
       where: opts.where ?? {},
-      data: this.softDeletePatch(new Date()),
+      data: this.softDeletePatch({ data: opts.data, deletedAt: new Date() }),
       options: opts.options,
       operation: ScopeOperations.DELETE,
     });
@@ -141,27 +194,32 @@ export class SoftDeletableRelationalRepository<
 
   override deleteBy(opts: {
     where: TWhere<DataObject>;
+    data?: TSoftDeleteData<PersistObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean; shouldHardDelete?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
   override deleteBy<R = DataObject>(opts: {
     where: TWhere<DataObject>;
+    data?: TSoftDeleteData<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean; shouldHardDelete?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
-  override deleteBy<R = DataObject>(opts: {
+  override async deleteBy<R = DataObject>(opts: {
     where: TWhere<DataObject>;
+    data?: TSoftDeleteData<PersistObject>;
     options?: ExtraOptions & {
       shouldReturn?: boolean;
       force?: boolean;
       shouldHardDelete?: boolean;
     };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
+    this.validateDeleteData({ data: opts.data, shouldHardDelete: opts.options?.shouldHardDelete });
+
     if (opts.options?.shouldHardDelete) {
       return super.deleteBy<R>(opts);
     }
 
     return this._update<R>({
       where: opts.where,
-      data: this.softDeletePatch(new Date()),
+      data: this.softDeletePatch({ data: opts.data, deletedAt: new Date() }),
       options: opts.options,
       operation: ScopeOperations.DELETE,
     });
@@ -197,7 +255,7 @@ export class SoftDeletableRelationalRepository<
 
     const rs = await this._update<R>({
       where: this.whereById({ id: opts.id }),
-      data: this.softDeletePatch(null),
+      data: this.softDeletePatch({ deletedAt: null }),
       options,
     });
 
@@ -234,7 +292,11 @@ export class SoftDeletableRelationalRepository<
       force?: boolean;
     };
 
-    return this._update<R>({ where: opts.where ?? {}, data: this.softDeletePatch(null), options });
+    return this._update<R>({
+      where: opts.where ?? {},
+      data: this.softDeletePatch({ deletedAt: null }),
+      options,
+    });
   }
 
   /**

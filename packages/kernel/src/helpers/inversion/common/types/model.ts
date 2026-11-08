@@ -187,10 +187,22 @@ export interface IModelQuerySettings {
   };
 }
 
+/** Property groups of `@model` settings. */
+export interface IModelProperties {
+  /** Properties excluded from all query results at SQL level. */
+  hidden?: string[];
+
+  /**
+   * Properties the server fills on every write, which a generated create or update body leaves out.
+   *
+   * @default AuditFields.SCHEME_SET
+   */
+  stamped?: ReadonlyArray<string> | ReadonlySet<string>;
+}
+
 /** Per-model settings passed to `@model` as `settings`. */
 export interface IModelSettings {
-  /** Properties excluded from all query results at SQL level. */
-  hiddenProperties?: string[];
+  properties?: IModelProperties;
 
   /** Default filter and limits of a query: `filter`, `limit.default`, `limit.max`. */
   query?: IModelQuerySettings;

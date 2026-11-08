@@ -37,11 +37,11 @@ Provisioning is opt-in and additive-only: `autoProvision` (constructor option, o
 - `keyword` / `semantic` / `hybrid` - `where` / default filter / hidden fields are translated through the dialect the same way `find()` does, then `ISearchQueryDialect.applySearchInput` applies every engine-specific parameter. Mode dispatch, the vector clause, and the tuning knobs all live in the dialect - nothing engine-specific leaks into the repository.
   A hit's `highlight` is shaped like its document: `BaseSearchRepository.shapeHighlight` drops the hidden fields from it (a snippet carries the value), and the Meilisearch dialect sends `attributesToRetrieve` built from the collection's declared fields minus the hidden ones, because that engine highlights from the retrieved fields.
 
-`multiSearch()` lives on the **datasource**, not a repository, because it spans collections. It unions each collection's `@model` hiddenProperties into that entry's `excludeFields` using a memoized `hiddenFieldsByCollection()` map; an entry naming an unknown collection passes through untouched.
+`multiSearch()` lives on the **datasource**, not a repository, because it spans collections. It unions each collection's `@model` properties.hidden into that entry's `excludeFields` using a memoized `hiddenFieldsByCollection()` map; an entry naming an unknown collection passes through untouched.
 
 ## Hidden fields on the write path
 
-This is the non-derivable one. Reads exclude `@model({ settings: { hiddenProperties } })` at query time via the engine's exclude-fields parameter - but **a write response comes back from the write itself and never passes through that filter**. Search write responses therefore used to leak hidden properties. The relational branch never had the bug, because it gets the same guarantee for free from `.returning(visibleProperties)`.
+This is the non-derivable one. Reads exclude `@model({ settings: { properties.hidden } })` at query time via the engine's exclude-fields parameter - but **a write response comes back from the write itself and never passes through that filter**. Search write responses therefore used to leak hidden properties. The relational branch never had the bug, because it gets the same guarantee for free from `.returning(visibleProperties)`.
 
 The fix lives in `SearchBaseRepository`:
 
@@ -51,7 +51,7 @@ protected shapeDocument<R>(document: R, opts?: { fields?: TFields }): R
 protected shapeDocuments<R>(documents: R[], opts?: { fields?: TFields }): R[]
 ```
 
-`shapeDocument` and `shapeDocuments` strip the hidden fields through `omitHiddenFields` and put back the `nullable` fields the engine keeps no null for. `create()`, `createAll()`, and `updateById()` in `PersistableSearchRepository` pass their returned documents through them, and `ReadableSearchRepository.find()` / `search()` apply them to hits as a second line of defence. The result is that `hiddenProperties` holds on every path except the explicit `raw` escape hatch.
+`shapeDocument` and `shapeDocuments` strip the hidden fields through `omitHiddenFields` and put back the `nullable` fields the engine keeps no null for. `create()`, `createAll()`, and `updateById()` in `PersistableSearchRepository` pass their returned documents through them, and `ReadableSearchRepository.find()` / `search()` apply them to hits as a second line of defence. The result is that `properties.hidden` holds on every path except the explicit `raw` escape hatch.
 
 ## Read-after-write is engine-specific
 

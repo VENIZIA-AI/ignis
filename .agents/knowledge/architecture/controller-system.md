@@ -86,9 +86,9 @@ generates a fully typed CRUD controller from an entity definition, with per-rout
 a class or a thunk returning one (`isClass(entity) ? entity : entity()`), which is how circular model
 imports are broken.
 
-The default create and update bodies leave out the keys the entity reports from
-`getServerStampedKeys()` - a relational entity's audit columns, none on a search entity - and an
-update body never carries `id`; see [kernel](/packages/kernel.md). A factory of your own injects its
+The default create and update bodies leave out the keys of the model's `properties.stamped` (default
+`AuditFields.SCHEME_SET`: the audit keys and `deletedAt`) and an update body never carries `id`; see
+[kernel](/packages/kernel.md). A factory of your own injects its
 repository through `ControllerFactory.registerRepositoryInjection`.
 
 The factory generates NO body-filter twin of `find` or `count`. `POST /find` and `POST /count`

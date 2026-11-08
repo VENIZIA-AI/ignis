@@ -32,7 +32,7 @@ const eachTable = pgTable(TABLE_NAME, {
 @model({
   type: 'entity',
   settings: {
-    hiddenProperties: ['secret'],
+    properties: { hidden: ['secret'] },
     access: {
       resolve: () => ({ merchantId: ME }),
     },

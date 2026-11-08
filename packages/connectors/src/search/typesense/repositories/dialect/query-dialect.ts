@@ -304,7 +304,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
   }): ITypesenseSearchQuery {
     const { filter, hiddenFields, capabilities } = opts;
 
-    // No early return on a missing filter: `search({ mode: 'keyword', query: 'john' })` carries none, and short-circuiting here skips the exclude-fields block below, leaking the model's `hiddenProperties`.
+    // No early return on a missing filter: `search({ mode: 'keyword', query: 'john' })` carries none, and short-circuiting here skips the exclude-fields block below, leaking the model's hidden properties.
     const { where, fields, order, limit, skip, offset, include } = filter ?? {};
 
     if (include) {

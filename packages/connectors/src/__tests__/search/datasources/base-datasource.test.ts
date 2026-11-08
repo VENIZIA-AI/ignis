@@ -313,7 +313,7 @@ describe('BaseSearchDataSource - multiSearch injects @model hidden fields into e
     }
   }
 
-  @model({ type: 'entity', settings: { hiddenProperties: ['secret'] } })
+  @model({ type: 'entity', settings: { properties: { hidden: ['secret'] } } })
   class SecretDocument extends BaseSearchEntity {
     static override schema = SearchCollectionFactory.define({
       name: 'secret-collection',
@@ -329,7 +329,7 @@ describe('BaseSearchDataSource - multiSearch injects @model hidden fields into e
     expect(registry.getRepositoryBinding({ name: SecretRepo.name })).toBeDefined();
   });
 
-  test("unions the collection's hiddenProperties into exclude_fields; unknown collections pass through", async () => {
+  test("unions the collection's hidden properties into exclude_fields; unknown collections pass through", async () => {
     const dataSource = new MultiSearchDataSource({ name: 'multi-search-hidden-ds', config: {} });
 
     await dataSource.multiSearch({

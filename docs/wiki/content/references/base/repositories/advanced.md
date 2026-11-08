@@ -260,7 +260,7 @@ Fields like `password` must never leave the database by accident. Declare them o
 ```typescript
 @model({
   settings: {
-    hiddenProperties: ['password', 'secret', 'apiKey'],
+    properties: { hidden: ['password', 'secret', 'apiKey'] },
   },
 })
 export class User extends BaseEntity<typeof User.schema> {

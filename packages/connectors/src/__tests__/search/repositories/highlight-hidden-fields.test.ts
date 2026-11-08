@@ -16,7 +16,7 @@ import { PersistableSearchRepository } from '@/search/typesense/repositories';
 @model({
   type: 'entity',
   tableName: 'highlight_documents',
-  settings: { hiddenProperties: ['secret'] },
+  settings: { properties: { hidden: ['secret'] } },
 })
 class HighlightDocument extends BaseSearchEntity {
   static override schema = SearchCollectionFactory.define({

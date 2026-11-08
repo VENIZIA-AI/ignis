@@ -52,7 +52,7 @@ export type { IDataSource } from '@/base/datasources/common/types';
 // `IRepository` names an entity, so a consumer implementing the contract needs the base to extend.
 // Engine-neutral like the datasource: a name, `getSchema({ type })`, and an id type.
 export { AbstractEntity } from '@/base/models/base';
-export { SchemaTypes } from '@/base/models/common/constants';
+export { AuditFields, SchemaTypes } from '@/base/models/common/constants';
 export type { TIdSchemaType, TSchemaType } from '@/base/models/common';
 
 // The query vocabulary both transports share.

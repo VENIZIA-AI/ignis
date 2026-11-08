@@ -361,10 +361,10 @@ product?.saleChannelProducts[0].saleChannel.name; // Fully typed access
 
 ## Hidden properties in relations
 
-`FilterBuilder.toInclude()` excludes hidden columns from every included relation at the SQL level, the same way the top-level query does. For each inclusion it resolves the related model's `hiddenProperties` and default filter, and merges the default filter with your `scope` via `mergeFilter()`. It then drops hidden columns from the nested `columns` selection.
+`FilterBuilder.toInclude()` excludes hidden columns from every included relation at the SQL level, the same way the top-level query does. For each inclusion it resolves the related model's `properties.hidden` and default filter, and merges the default filter with your `scope` via `mergeFilter()`. It then drops hidden columns from the nested `columns` selection.
 
 ```typescript
-// User model has hiddenProperties: ['password']
+// User model has properties: { hidden: ['password'] }
 const post = await postRepository.findOne({
   filter: { include: [{ relation: 'author' }] },
 });

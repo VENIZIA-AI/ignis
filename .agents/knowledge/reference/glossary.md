@@ -99,7 +99,7 @@ and `DefaultFilterMixin` no longer exist - their behaviour was folded into the r
 classes directly. See [kernel](/packages/kernel.md).
 
 **Model** - An `AbstractEntity` subclass (`packages/kernel/src/base/models/base.ts`) pairing a name
-with a Drizzle or document schema via `getSchema()`, plus `@model` settings (`hiddenProperties`,
+with a Drizzle or document schema via `getSchema()`, plus `@model` settings (`properties.hidden`,
 `query.filter`) read by the repository layer. See [kernel](/packages/kernel.md).
 
 **Namespace** - The fixed first segment of a binding key, one of the `BindingNamespaces` constants

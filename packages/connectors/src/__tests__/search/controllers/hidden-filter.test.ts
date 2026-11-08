@@ -27,7 +27,7 @@ class HiddenFilterProductRepository extends DefaultSearchRepository {}
 @model({
   type: 'entity',
   tableName: 'hidden_filter_nested_docs',
-  settings: { hiddenProperties: ['meta.pin'] },
+  settings: { properties: { hidden: ['meta.pin'] } },
 })
 class HiddenFilterNestedDocument extends BaseSearchEntity {
   static override schema = SearchCollectionFactory.define({

@@ -126,7 +126,7 @@ Configure model properties that should **never be returned** through repository 
 ```typescript
 @model({
   settings: {
-    hiddenProperties: ['password', 'apiSecret', 'internalToken'],
+    properties: { hidden: ['password', 'apiSecret', 'internalToken'] },
   },
 })
 export class User extends BaseRelationalEntity<typeof User.schema> {
@@ -551,7 +551,7 @@ Before deploying to production, verify:
 | **Logging** | Security events logged for monitoring |
 | **Dependencies** | No known vulnerabilities (`bun audit`) |
 | **HTTPS** | TLS configured for production |
-| **Hidden Data** | Sensitive fields use `hiddenProperties` |
+| **Hidden Data** | Sensitive fields use `properties.hidden` |
 | **Redaction** | `APP_ENV_LOGGER_DO_REDACT` is unset (never `false`) |
 | **Error Leakage** | `NODE_ENV` set to a production value so responses are sanitized |
 

@@ -391,7 +391,7 @@ Protect sensitive data by configuring properties that are excluded at the SQL le
 ```typescript
 @model({
   settings: {
-    hiddenProperties: ['password', 'secret'],
+    properties: { hidden: ['password', 'secret'] },
   },
 })
 export class User extends BaseRelationalEntity<typeof User.schema> {
@@ -421,7 +421,7 @@ Declare your model's authorization principal in `@model` settings to make the mo
 @model({
   settings: {
     authorize: { principal: 'user' },
-    hiddenProperties: ['password'],
+    properties: { hidden: ['password'] },
   },
 })
 export class User extends BaseRelationalEntity<typeof User.schema> {

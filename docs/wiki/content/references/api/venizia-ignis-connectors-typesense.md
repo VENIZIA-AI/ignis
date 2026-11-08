@@ -138,7 +138,7 @@ export declare abstract class BaseSearchDataSource<Settings extends object = {},
     protected discoverCollections(): TSearchSchema;
     /** Reads a bound model class's collection definition - dual-schema `searchCollection` first, then shape-guarded `schema`; undefined when it carries neither. */
     private readCollectionDefinition;
-    /** Collection name -> `@model` hiddenProperties for cross-collection operations. Collections with none are omitted, so callers own exclusion for absent entries; memoized per instance and never invalidated because the metadata is frozen after boot. */
+    /** Collection name -> `@model` properties.hidden for cross-collection operations. Collections with none are omitted, so callers own exclusion for absent entries; memoized per instance and never invalidated because the metadata is frozen after boot. */
     protected hiddenFieldsByCollection(): Record<string, string[]>;
     /** The registry/model walk behind `hiddenFieldsByCollection` - mirrors the `getSchema()` / `discoverCollections()` split. */
     protected discoverHiddenFieldsByCollection(): Record<string, string[]>;
@@ -1565,7 +1565,7 @@ export declare abstract class SearchBaseRepository<TDocument extends object = ob
     setDataSource(opts: {
         dataSource: TDataSource;
     }): void;
-    /** WRITE responses never pass through the engine's exclude-fields filter, so hiddenProperties are stripped here - the relational branch gets the same guarantee from `.returning(visibleProperties)`. */
+    /** WRITE responses never pass through the engine's exclude-fields filter, so the hidden properties are stripped here - the relational branch gets the same guarantee from `.returning(visibleProperties)`. */
     protected omitHiddenFields<R>(document: R): R;
     private _nullableFields?;
     /** Names of the fields declared `nullable`: the engine keeps no null, so a read puts it back. Memoized per repository instance, like `collectionFields`. */
@@ -2286,7 +2286,7 @@ export declare abstract class SearchBaseRepository<TDocument extends object = ob
     setDataSource(opts: {
         dataSource: TDataSource;
     }): void;
-    /** WRITE responses never pass through the engine's exclude-fields filter, so hiddenProperties are stripped here - the relational branch gets the same guarantee from `.returning(visibleProperties)`. */
+    /** WRITE responses never pass through the engine's exclude-fields filter, so the hidden properties are stripped here - the relational branch gets the same guarantee from `.returning(visibleProperties)`. */
     protected omitHiddenFields<R>(document: R): R;
     private _nullableFields?;
     /** Names of the fields declared `nullable`: the engine keeps no null, so a read puts it back. Memoized per repository instance, like `collectionFields`. */

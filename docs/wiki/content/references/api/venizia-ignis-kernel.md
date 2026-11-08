@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-353 exports, 353 with TSDoc. 83 more are re-exported from other entries (listed at the end).
+354 exports, 354 with TSDoc. 84 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -4335,6 +4335,27 @@ export interface IModelMigrationSettings {
 
 Source: `packages/kernel/src/helpers/inversion/common/types/model.ts`
 
+## `IModelProperties`
+
+*interface*
+
+Property groups of `@model` settings.
+
+```ts
+export interface IModelProperties {
+    /** Properties excluded from all query results at SQL level. */
+    hidden?: string[];
+    /**
+     * Properties the server fills on every write, which a generated create or update body leaves out.
+     *
+     * @default AuditFields.SCHEME_SET
+     */
+    stamped?: ReadonlyArray<string> | ReadonlySet<string>;
+}
+```
+
+Source: `packages/kernel/src/helpers/inversion/common/types/model.ts`
+
 ## `IModelQuerySettings`
 
 *interface*
@@ -4396,8 +4417,7 @@ Per-model settings passed to `@model` as `settings`.
 
 ```ts
 export interface IModelSettings {
-    /** Properties excluded from all query results at SQL level. */
-    hiddenProperties?: string[];
+    properties?: IModelProperties;
     /** Default filter and limits of a query: `filter`, `limit.default`, `limit.max`. */
     query?: IModelQuerySettings;
     /**
@@ -6377,7 +6397,7 @@ export declare class RouteConfigResolver {
             headers: import("../index.js").TResponseHeaders;
         };
     };
-    /** `serverStampedKeys` - what the entity reports from `getServerStampedKeys()`; the default body leaves them out. */
+    /** `serverStampedKeys` - the keys the default body leaves out. */
     static resolveCreateConfig<C extends ICustomizableRoutes['create'], SelectSchema extends TAnyObjectSchema, CreateSchema extends TAnyObjectSchema>(opts: {
         config: C;
         selectSchema: SelectSchema;
@@ -6407,8 +6427,8 @@ export declare class RouteConfigResolver {
     private static resolveDeleteByIdConfig;
     private static resolveDeleteByConfig;
     /**
-     * Generates complete route configurations for a CRUD controller. `serverStampedKeys` - what the
-     * entity reports from `getServerStampedKeys()`; the default write bodies leave them out.
+     * Generates complete route configurations for a CRUD controller. `serverStampedKeys` - the keys the default
+     * write bodies leave out.
      */
     static defineControllerRouteConfigs<Routes extends ICustomizableRoutes, SelectSchema extends TAnyObjectSchema, CreateSchema extends TAnyObjectSchema, UpdateSchema extends TAnyObjectSchema>(opts: {
         isStrict: boolean;
@@ -6848,6 +6868,8 @@ export declare class RouteConfigResolver {
             readonly description: "Create new record";
             readonly authenticate: {
                 strategies?: TAuthStrategy[];
+                mode?: TAuthMode;
+            };
 // ... cut
 ```
 
@@ -9030,6 +9052,7 @@ Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`
 - `ArtifactGroup` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `ArtifactNamespaces` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `ArtifactTypes` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
+- `AuditFields` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `Binding` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `BindingKeys` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `BindingNamespaces` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)

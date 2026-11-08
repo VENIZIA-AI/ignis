@@ -32,7 +32,7 @@ import {
 
 @model({
   settings: {
-    hiddenProperties: ['internalNote'],
+    properties: { hidden: ['internalNote'] },
     query: {
       filter: { where: { status: 'published' } },
       limit: { default: 20 },
@@ -60,7 +60,7 @@ export class ArticleDocument extends BaseSearchEntity<typeof ArticleDocument.sch
 export type TArticleDocument = TSearchDocument<typeof ArticleDocument.schema>;
 ```
 
-The same `@model` settings you use with Drizzle entities - `hiddenProperties`, `query.filter`, `query.limit.default` - work identically here. `hiddenProperties` compiles to Typesense's `exclude_fields`; `query.filter.where` is AND-merged into every read's `filter_by` unless the caller passes `shouldSkipDefaultFilter: true`.
+The same `@model` settings you use with Drizzle entities - `properties.hidden`, `query.filter`, `query.limit.default` - work identically here. `properties.hidden` compiles to Typesense's `exclude_fields`; `query.filter.where` is AND-merged into every read's `filter_by` unless the caller passes `shouldSkipDefaultFilter: true`.
 
 ### The `field` DSL
 
@@ -305,7 +305,7 @@ Same options, same rules as PostgreSQL - see [Read Retry](/references/base/repos
 
 Beyond the `find()` tier (filter-only reads that return documents), `search()` is the search-engine entry point. It is one method whose shape is selected by `mode`, so TypeScript narrows the options to just that mode's fields. You never juggle every parameter at once. `mode` defaults to `keyword`.
 
-The `keyword`/`semantic`/`hybrid` modes reuse the same filter translation as `find()` (`@model` `query.filter`, `hiddenProperties`, `where`/`order`/`limit`), then layer the search term or vector on top. The `raw` mode is a full passthrough with no translation.
+The `keyword`/`semantic`/`hybrid` modes reuse the same filter translation as `find()` (`@model` `query.filter`, `properties.hidden`, `where`/`order`/`limit`), then layer the search term or vector on top. The `raw` mode is a full passthrough with no translation.
 
 **`keyword`** - full-text search:
 
@@ -344,7 +344,7 @@ await repository.search({
 > [!NOTE]
 > `semantic` and `hybrid` default `prefix=false`: prefix matching is meaningless for vector search. Remote embedders (OpenAI/Google/...) reject it too (`Prefix search is not supported for remote embedders`). Pass `engineParams: { prefix: true }` to override.
 
-**`raw`** - native Typesense params, no `TFilter`/`query.filter`/`hiddenProperties` translation. Use it for any engine feature the modes above do not model:
+**`raw`** - native Typesense params, no `TFilter`/`query.filter`/`properties.hidden` translation. Use it for any engine feature the modes above do not model:
 
 ```typescript
 await repository.search({
@@ -455,7 +455,7 @@ await repository.search({
 
 `đ` has no decomposition, so it is replaced by hand; every other letter above decomposes into a base letter and combining marks. A query typed with diacritics still matches `title`, so the query needs no folding. Two things to know:
 
-- **Leave the shadow field visible.** `search()` refuses a field the model hides (`hiddenProperties`) in `queryBy`, so hiding `titleFolded` would block it. Choose the fields you return with `filter.fields` (`includeFields` in `suggest()`) instead.
+- **Leave the shadow field visible.** `search()` refuses a field the model hides (`properties.hidden`) in `queryBy`, so hiding `titleFolded` would block it. Choose the fields you return with `filter.fields` (`includeFields` in `suggest()`) instead.
 - **Index it from the same write.** A folded field that is not updated with `title` goes stale; compute it in the one place that writes the document, and fold again when you re-import.
 
 ### Count a search with `searchCount()`
@@ -487,7 +487,7 @@ const { facets, found } = await articleRepository.facets({
 });
 ```
 
-`facetBy` must name at least one field and `maxFacetValues` must be a positive integer; either breach throws before a request. A field the model hides (`hiddenProperties`) cannot be named in `facetBy`, in `facetQuery`, in `queryBy`, in `groupBy` or in `highlightFields` / `highlightFullFields`, here or in `search()`, because a count, a match, a group key or a highlight on it would tell the caller what it holds. `facets` is empty when the engine returned none. Meilisearch refuses `maxFacetValues` and `facetQuery`.
+`facetBy` must name at least one field and `maxFacetValues` must be a positive integer; either breach throws before a request. A field the model hides (`properties.hidden`) cannot be named in `facetBy`, in `facetQuery`, in `queryBy`, in `groupBy` or in `highlightFields` / `highlightFullFields`, here or in `search()`, because a count, a match, a group key or a highlight on it would tell the caller what it holds. `facets` is empty when the engine returned none. Meilisearch refuses `maxFacetValues` and `facetQuery`.
 
 ### Autocomplete with `suggest()`
 
@@ -565,7 +565,7 @@ await repository.dataSource.multiSearch({
 Both `searches` entries and `commonParams` are camelCase (`filterBy`, `queryBy`, `perPage`); the datasource maps them to Typesense's snake_case wire format the same way single-collection `search()` does. For native snake_case access, `getConnector().multiSearch(...)` takes the engine's own params.
 
 > [!NOTE]
-> `multiSearch` injects each collection's `@model hiddenProperties` into that entry's `excludeFields` automatically. Hidden fields never leak on the multi-search route, just as they don't on single-collection `search()`. An entry naming a collection IGNIS did not discover (not a bound `@repository` model) passes through untouched: the **caller owns exclusion** for unknown collections. The raw `getConnector().multiSearch(...)` escape hatch performs no injection at all.
+> `multiSearch` injects each collection's `@model properties.hidden` into that entry's `excludeFields` automatically. Hidden fields never leak on the multi-search route, just as they don't on single-collection `search()`. An entry naming a collection IGNIS did not discover (not a bound `@repository` model) passes through untouched: the **caller owns exclusion** for unknown collections. The raw `getConnector().multiSearch(...)` escape hatch performs no injection at all.
 
 ## Search Controller Factory
 
@@ -689,7 +689,7 @@ await file.end();
 
 A failure before the first line throws as `exportDocuments` does; one in the middle throws from the loop, after the lines you already have.
 
-**`excludeFields` next to `includeFields`.** Both `exportDocuments` and `streamDocuments` take `filterBy`, `includeFields` and `excludeFields`. A copy job drops its vector fields with `excludeFields: ['embedding']`. `search()` already takes `excludeFields` (and the model's `hiddenProperties` are added to it).
+**`excludeFields` next to `includeFields`.** Both `exportDocuments` and `streamDocuments` take `filterBy`, `includeFields` and `excludeFields`. A copy job drops its vector fields with `excludeFields: ['embedding']`. `search()` already takes `excludeFields` (and the model's `properties.hidden` are added to it).
 
 **A timeout for one call.** The client has one timeout (`connectionTimeoutSeconds`, 5 s by default). `timeoutMs` (a positive integer of milliseconds) overrides it for one call of `exportDocuments`, `streamDocuments`, `importDocuments`, `getCollection`, `createCollection` and `patchCollectionSchema`. It is how long to wait for the engine's answer (an import answers once the batch is processed; a schema change once it is applied) and then the longest silence on the connection: it is not a deadline for the whole transfer, so a download that keeps arriving never trips it. `typesense-js` has no timeout per call, so the connector runs that call on a second client with the timeout set; when you give the connector your own `client`, also pass `createClient` in its options, or a call with `timeoutMs` is refused. A client you wrote yourself also needs `documents().exportStream`.
 

@@ -89,8 +89,6 @@ export declare class BaseRelationalEntity<Schema extends TTableSchemaWithId = TT
     });
     /** Maps the schema's id column's Drizzle `dataType` to 'number' (serial/integer) or 'string' (everything else, including bigint/unknown). */
     getIdType(): TIdSchemaType;
-    /** The audit keys whose column carries a default or `$onUpdate`; an audit column with neither is left to the client. */
-    getServerStampedKeys(): string[];
     getSchema<T = unknown>(opts: {
         type: TSchemaType;
     }): T;
@@ -160,8 +158,6 @@ export declare class BaseRelationalEntity<Schema extends TTableSchemaWithId = TT
     });
     /** Maps the schema's id column's Drizzle `dataType` to 'number' (serial/integer) or 'string' (everything else, including bigint/unknown). */
     getIdType(): TIdSchemaType;
-    /** The audit keys whose column carries a default or `$onUpdate`; an audit column with neither is left to the client. */
-    getServerStampedKeys(): string[];
     getSchema<T = unknown>(opts: {
         type: TSchemaType;
     }): T;

@@ -86,9 +86,9 @@ must not be able to compose its way out of them.
 
 ## Hidden fields excluded at the SQL level
 
-`@model({ settings: { hiddenProperties: ['password'] } })` excludes those columns from the SQL
+`@model({ settings: { properties: { hidden: ['password'] } } })` excludes those columns from the SQL
 projection itself, not from the response after the query returns - `AbstractRepository` reads
-`hiddenProperties` from `modelSettings` to build the query, not to post-filter a result.
+`properties.hidden` from `modelSettings` to build the query, not to post-filter a result.
 Post-processing exclusion is a data leak waiting to happen: one code path forgets to call the
 filter and a password hash ships to a client. Excluding at the SQL layer means there is no such
 path, because the column was never fetched.

@@ -107,7 +107,7 @@ ReadableSearchRepository -> PersistableSearchRepository -> DefaultSearchReposito
 transaction support; `typesense` and `meilisearch` add no repository classes at all, only query
 dialects. See [Repository hierarchy](/architecture/repository-hierarchy.md).
 
-Hidden fields (`@model` `hiddenProperties`) and default filters (`@model` `query.filter`, e.g. soft
+Hidden fields (`@model` `properties.hidden`) and default filters (`@model` `query.filter`, e.g. soft
 delete) are applied at the SQL/query level by each connector's base repository, not by post-processing
 the result.
 

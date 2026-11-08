@@ -75,7 +75,7 @@ export class UserRepository extends ReadableRepository<typeof User.schema> {
 
 ```
 AbstractRepository (engine-neutral base in src/base - lazy dataSource/entity resolution,
-                    @model settings getters: hiddenProperties, query.filter, query.limit.default)
+                    @model settings getters: properties.hidden, query.filter, query.limit.default)
   ↓
 PostgresBaseRepository (postgres connector - filter building, hidden-column exclusion,
                         default-filter merging, transaction-aware connector resolution)
@@ -320,7 +320,7 @@ import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 @model({
   settings: {
-    hiddenProperties: ['deletedAt'],
+    properties: { hidden: ['deletedAt'] },
     query: { filter: { where: { deletedAt: null } } },
   },
 })

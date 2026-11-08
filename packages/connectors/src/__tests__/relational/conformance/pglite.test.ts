@@ -27,7 +27,7 @@ const conformanceTable = pgTable(TABLE_NAME, {
   metadata: jsonb('metadata'),
 });
 
-@model({ type: 'entity', settings: { hiddenProperties: ['secret'] } })
+@model({ type: 'entity', settings: { properties: { hidden: ['secret'] } } })
 class ConformanceEntity extends BasePostgresEntity {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = conformanceTable;
@@ -35,7 +35,10 @@ class ConformanceEntity extends BasePostgresEntity {
 
 @model({
   type: 'entity',
-  settings: { hiddenProperties: ['secret'], query: { filter: { where: { tenant: 'acme' } } } },
+  settings: {
+    properties: { hidden: ['secret'] },
+    query: { filter: { where: { tenant: 'acme' } } },
+  },
 })
 class ScopedConformanceEntity extends BasePostgresEntity {
   static override TABLE_NAME = TABLE_NAME;

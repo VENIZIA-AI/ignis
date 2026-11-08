@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 
-/** `datasourceModels` must hold model CLASSES: names round-tripped through the name-keyed `modelRegistry` collapse two same-named classes onto one entry, silently resolving the WRONG class (wrong settings, wrong hiddenProperties, empty schema). */
+/** `datasourceModels` must hold model CLASSES: names round-tripped through the name-keyed `modelRegistry` collapse two same-named classes onto one entry, silently resolving the WRONG class (wrong settings, wrong hidden properties, empty schema). */
 const buildModelClass = (opts: { name: string; hidden: string[] }): AnyType => {
   const { name, hidden } = opts;
 
@@ -15,7 +15,7 @@ const buildModelClass = (opts: { name: string; hidden: string[] }): AnyType => {
   const registry = MetadataRegistry.getInstance();
   registry.setModelMetadata({
     target: modelClass,
-    metadata: { settings: { hiddenProperties: hidden } } as AnyType,
+    metadata: { settings: { properties: { hidden } } } as AnyType,
   });
 
   return modelClass;
@@ -56,8 +56,8 @@ describe('MetadataRegistry - two datasources may own same-named model classes', 
     const alphaSettings = registry.getModelMetadata({ target: alphaClasses[0] as AnyType });
     const betaSettings = registry.getModelMetadata({ target: betaClasses[0] as AnyType });
 
-    expect(alphaSettings?.settings?.hiddenProperties).toEqual(['alphaSecret']);
-    expect(betaSettings?.settings?.hiddenProperties).toEqual(['betaSecret']);
+    expect(alphaSettings?.settings?.properties?.hidden).toEqual(['alphaSecret']);
+    expect(betaSettings?.settings?.properties?.hidden).toEqual(['betaSecret']);
   });
 
   test('hasModels reflects the datasource that actually owns models', () => {

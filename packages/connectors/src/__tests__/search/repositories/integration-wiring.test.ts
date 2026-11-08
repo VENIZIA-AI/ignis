@@ -68,11 +68,11 @@ class ProductSqlRepository {}
 class ProductDualSearchRepository {}
 
 // --- Scenario 3: class name / collection name diverge, no `tableName` alignment ------------
-// Class name and collection name diverge on purpose - settings are keyed by class, not name, so a name-keyed lookup would silently lose hiddenProperties/defaultFilter here.
+// Class name and collection name diverge on purpose - settings are keyed by class, not name, so a name-keyed lookup would silently lose hidden properties/defaultFilter here.
 @model({
   type: 'entity',
   settings: {
-    hiddenProperties: ['secretCode'],
+    properties: { hidden: ['secretCode'] },
     query: { filter: { where: { isActive: true } } },
   },
 })
@@ -195,7 +195,7 @@ describe('End-to-end search wiring - dual-schema, @repository, controller factor
       expect(schema['sprockets']).toBe(SprocketDocument.schema);
     });
 
-    test('find() applies hiddenProperties (exclude_fields) and defaultFilter (filter_by) on the wire', async () => {
+    test('find() applies hidden properties (exclude_fields) and defaultFilter (filter_by) on the wire', async () => {
       const dataSource = new AppSearchDataSource({ name: 'wiring-search-ds-5', config: {} });
       const repositoryInstance = new SprocketSearchRepository(dataSource);
 

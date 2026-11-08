@@ -153,7 +153,7 @@ Wiring:
 
 ## Hidden fields are excluded at query time
 
-`hiddenProperties` in `@model` settings is not post-query filtering. `RelationalBaseRepository`
+`properties.hidden` in `@model` settings is not post-query filtering. `RelationalBaseRepository`
 memoizes a `Set` view of `hiddenFields` and derives a Drizzle column-selection map from it
 (`_visibleColumns`). Hidden columns are simply never selected, so the value never leaves the
 database - a security property, not an optimization, since nothing downstream has to remember to

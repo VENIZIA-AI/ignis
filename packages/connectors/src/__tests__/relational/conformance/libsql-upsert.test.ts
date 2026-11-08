@@ -49,7 +49,7 @@ const twinTable = sqliteTable('upsert_lite_twin', columns(), (table) => [
 let resolver: (context: { operation: TScopeOperation }) => AnyType = () => ({});
 
 const SETTINGS = {
-  hiddenProperties: ['secret'],
+  properties: { hidden: ['secret'] },
   query: { filter: { where: { deletedAt: null } } },
 };
 

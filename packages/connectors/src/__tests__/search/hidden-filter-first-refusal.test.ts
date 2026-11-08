@@ -17,7 +17,7 @@ import { FakeSearchDataSource } from './repositories/fake-search-connector';
 @model({
   type: 'entity',
   tableName: 'first_refusal_documents',
-  settings: { hiddenProperties: ['secret'] },
+  settings: { properties: { hidden: ['secret'] } },
 })
 class FirstRefusalDocument extends BaseSearchEntity {
   static override schema = SearchCollectionFactory.define({

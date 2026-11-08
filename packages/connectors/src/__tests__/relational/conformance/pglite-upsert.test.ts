@@ -55,7 +55,7 @@ const nndTable = pgTable(
 let resolver: (context: { operation: TScopeOperation }) => AnyType = () => ({});
 
 const SETTINGS = {
-  hiddenProperties: ['secret'],
+  properties: { hidden: ['secret'] },
   query: { filter: { where: { deletedAt: null } } },
 };
 

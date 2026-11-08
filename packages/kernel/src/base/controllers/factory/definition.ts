@@ -210,7 +210,7 @@ export class RouteConfigResolver {
     };
   }
 
-  /** `serverStampedKeys` - what the entity reports from `getServerStampedKeys()`; the default body leaves them out. */
+  /** `serverStampedKeys` - the keys the default body leaves out. */
   static resolveCreateConfig<
     C extends ICustomizableRoutes['create'],
     SelectSchema extends TAnyObjectSchema,
@@ -373,8 +373,8 @@ export class RouteConfigResolver {
   }
 
   /**
-   * Generates complete route configurations for a CRUD controller. `serverStampedKeys` - what the
-   * entity reports from `getServerStampedKeys()`; the default write bodies leave them out.
+   * Generates complete route configurations for a CRUD controller. `serverStampedKeys` - the keys the default
+   * write bodies leave out.
    */
   static defineControllerRouteConfigs<
     Routes extends ICustomizableRoutes,

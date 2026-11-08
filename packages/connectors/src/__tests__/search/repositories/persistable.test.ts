@@ -32,8 +32,8 @@ describe('PersistableSearchRepository', () => {
       expect(call.document).toBe(data);
     });
 
-    test('strips hiddenProperties from the write response', async () => {
-      // A write response never passes through the engine's exclude-fields, so the repository must strip them itself or `hiddenProperties: ['secret']` leaks straight back to the caller.
+    test('strips hidden properties from the write response', async () => {
+      // A write response never passes through the engine's exclude-fields, so the repository must strip them itself or `properties: { hidden: ['secret'] }` leaks straight back to the caller.
       const data = { title: 'A', secret: 'do-not-leak' };
       const result = await repository.create({ data });
 
@@ -65,7 +65,7 @@ describe('PersistableSearchRepository', () => {
       expect(call.batchSize).toBeUndefined();
     });
 
-    test('strips hiddenProperties from every returned document', async () => {
+    test('strips hidden properties from every returned document', async () => {
       dataSource.fakeConnector.importDocumentsResponse = {
         count: { success: 2, fail: 0 },
         responses: [],
@@ -111,7 +111,7 @@ describe('PersistableSearchRepository', () => {
       expect(call.document).toBe(data);
     });
 
-    test('strips hiddenProperties from the write response', async () => {
+    test('strips hidden properties from the write response', async () => {
       seedFoundDocument({ id: '1', title: 'A' });
       const data = { title: 'Updated', secret: 'do-not-leak' };
 

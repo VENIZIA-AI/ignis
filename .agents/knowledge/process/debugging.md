@@ -17,7 +17,7 @@ tags: [process, debugging]
    not silently, when it fails at all.
 2. Check decorator metadata next. A wrong `@inject` key resolves to the wrong binding (or
    `undefined` if `isOptional` was set, hiding the problem further). Missing `@model({ settings:
-   {...} })` settings (e.g. `hiddenProperties`) show up as fields that leak in responses or fail to
+   {...} })` settings (e.g. `properties.hidden`) show up as fields that leak in responses or fail to
    validate, because the repository layer reads model settings at query-build time, not at
    response-serialization time. Also verify `experimentalDecorators` and `emitDecoratorMetadata`
    are actually active for the file in question - a `tsconfig` `extends` chain the runtime can't

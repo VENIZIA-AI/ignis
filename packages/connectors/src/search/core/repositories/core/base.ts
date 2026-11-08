@@ -117,7 +117,7 @@ export abstract class SearchBaseRepository<
     super.setDataSource(opts);
   }
 
-  /** WRITE responses never pass through the engine's exclude-fields filter, so hiddenProperties are stripped here - the relational branch gets the same guarantee from `.returning(visibleProperties)`. */
+  /** WRITE responses never pass through the engine's exclude-fields filter, so the hidden properties are stripped here - the relational branch gets the same guarantee from `.returning(visibleProperties)`. */
   protected omitHiddenFields<R>(document: R): R {
     const hiddenFields = this.hiddenFields;
 
