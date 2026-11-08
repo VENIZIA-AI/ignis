@@ -22,7 +22,7 @@ generated:
 | `make atlas-symbols` | - | Print the symbols atlas reads from the built .d.ts. |
 | `make boot` | `helpers` | Rebuild one package, after its dependencies. |
 | `make build` | `build-all` | Rebuilds all packages (alias for 'build-all'). |
-| `make build-all` | `core core-worker boot docs surface-check wiki-links-check wiki-anchors-check api-check api-undocumented` | Rebuilds all packages in order, then the wiki and its checks. |
+| `make build-all` | `core core-worker boot docs wiki-links-check wiki-anchors-check api-check api-undocumented` | Rebuilds all packages in order, then the wiki and its checks. |
 | `make build-checks` | - | Gate: the built output - self-contained sourcemaps, the oxlint subpath loads no ESLint, every value typed in an entry exists at runtime. Needs a build. |
 | `make catalog-check` | - | Gate: every catalogued dep is referenced as "catalog:", none drifted. |
 | `make clean` | - | Clean build artifacts from all packages. |
@@ -104,8 +104,8 @@ generated:
 | `make release-plan` | - | Print the release plan (dependency order), dispatch nothing. |
 | `make setup-hooks` | - | Configure git to use .githooks directory. |
 | `make split-report` | - | Report hub files, stray types, missing barrels, long files, cycles (informational). |
-| `make surface-check` | - | Gate: the public surface equals the snapshot. |
-| `make surface-gen` | - | Snapshot every exported symbol into .agents/knowledge/reference/public-surface.md. |
+| `make surface-check` | - | Fail when the public API surface differs from the committed one |
+| `make surface-gen` | - | Write the public API surface from the built .d.ts |
 | `make test-all` | `test-dev-configs test-inversion test-filter test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server` | test-<pkg> for every package with a suite (BUN_TEST_FLAGS, default --parallel). |
 | `make test-boot` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-connectors` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |

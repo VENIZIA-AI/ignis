@@ -29,7 +29,7 @@ PKG_NAME = $(shell sed -n 's/^  "name": "\(.*\)",$$/\1/p' packages/$(1)/package.
 # wiki links point into. The generated reference tables name symbols and paths of the code, not links, so the
 # link gate does not read them.
 WIKI_REPO := VENIZIA-AI/ignis
-WIKI_LINKS_FLAGS := --skip .agents/knowledge/reference/public-surface.md,.agents/knowledge/reference/source-map.md,.agents/knowledge/reference/components.md,.agents/knowledge/reference/helpers.md,.agents/knowledge/reference/binding-keys.md,.agents/knowledge/reference/makefile-targets.md
+WIKI_LINKS_FLAGS := --skip .agents/knowledge/reference/source-map.md,.agents/knowledge/reference/components.md,.agents/knowledge/reference/helpers.md,.agents/knowledge/reference/binding-keys.md,.agents/knowledge/reference/makefile-targets.md
 
 # VULCAN's shared targets (okf, atlas tables, agent setup, the wiki gates). `-include`: a fresh clone has no
 # node_modules yet, and `bun install` must still run.

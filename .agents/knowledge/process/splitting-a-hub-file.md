@@ -34,8 +34,9 @@ criterion is topics. A file whose exports all serve one concept stays (the kept 
    `types/` folder and `tsc-alias` resolves the barrel to the stale file; `ls dist/esm/<scope>/common`
    must show `types/` and no `types.js`.
 6. Gates: the package suite and every downstream suite (they load `dist/esm`), `make lint-<package>`,
-   `devz check module-cycles packages/<package>/dist/esm --max 0`, `make surface-check` (never
-   `surface-gen` for a split - a changed snapshot means a leak or a loss), `make okf-gen && make okf-check-strict`,
+   `devz check module-cycles packages/<package>/dist/esm --max 0`, `make api-gen` and a diff of the API pages that holds
+   only `Source:` lines (`git diff -U0 docs/wiki/content/references/api | rg '^[+-]' | rg -v '^(\+\+\+|---)' | rg -v 'Source:'`
+   prints nothing - any other changed line means a leak or a loss), `make okf-gen && make okf-check-strict`,
    `make wiki-links-check` (repoint every doc link at the topic file that declares the named symbol).
 7. Commit the move and the doc repoints separately: `refactor(<package>): <scope> types split by topic`
    and `docs(wiki): ...`. One line each.
@@ -52,4 +53,3 @@ criterion is topics. A file whose exports all serve one concept stays (the kept 
 
 - [File splitting](/conventions/file-splitting.md)
 - [Build system](/process/build-system.md)
-- [Public surface](/reference/public-surface.md)

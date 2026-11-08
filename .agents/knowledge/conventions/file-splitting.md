@@ -101,11 +101,11 @@ have to call back into a sibling, do not extract it - leave it in the parent.
   lines, cycles per package. Informational.
 - `devz check module-cycles packages/<p>/dist/esm --max 0` - fails on an import cycle. bun turns
   cycle members into lazy initializers; a barrel over one can export `undefined`.
-- `make surface-check` - the public surface equals `reference/public-surface.md`. The snapshot
-  records exported symbol names and kinds only, never a signature, generics, class members or a
-  type body, so "fresh" does not prove a signature is unchanged - it catches an export added,
-  removed or renamed. A split that changes the symbol list is wrong; an intended API change runs
-  `make surface-gen` and shows the diff in review.
+- `make api-gen`, then a diff of `docs/wiki/content/references/api` - a split moves files, so the
+  `Source:` line of each moved export changes and nothing else does. `git diff -U0
+  docs/wiki/content/references/api | rg '^[+-]' | rg -v '^(\+\+\+|---)' | rg -v 'Source:'` must print
+  nothing: an export, a signature or a TSDoc line that changed is a leak or a loss. Commit the
+  regenerated pages with the move; `make api-check` gates them.
 - `make wiki-links-check` - every `blob/main/<path>` link and backticked source path named in the
   wiki or the knowledge bundle still exists on disk. Catches paths a split forgot to update.
 
@@ -146,6 +146,5 @@ is caught early.
 ## Related
 
 - [Splitting a hub file by topic](/process/splitting-a-hub-file.md)
-- [Public surface](/reference/public-surface.md)
 - [Build system](/process/build-system.md)
 - [Coding style](/conventions/coding-style.md)
