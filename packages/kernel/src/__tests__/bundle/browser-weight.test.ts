@@ -161,3 +161,24 @@ describe('the application entry stays free of the OpenAPI layer', () => {
     ).toBe(false);
   });
 });
+
+/** The status codes import nothing, so their entry is the one a browser bundle takes for a constant. */
+describe('the statuses entry carries the status codes and nothing else', () => {
+  const STATUSES_ENTRY = join(process.cwd(), 'src/statuses.ts');
+  const STATUSES_CEILING_BYTES = 4 * 1024;
+
+  test(`it bundles under ${STATUSES_CEILING_BYTES / 1024} KB minified`, async () => {
+    const { bytes } = await bundle(STATUSES_ENTRY);
+
+    expect(
+      bytes,
+      `kernel/statuses bundles to ${bytes} bytes. Something it exports now imports another module - check src/statuses.ts and common/statuses/common.ts.`,
+    ).toBeLessThan(STATUSES_CEILING_BYTES);
+  });
+
+  test('it exports Statuses and CommonStatuses only', async () => {
+    const entry = await import('../../statuses.js');
+
+    expect(Object.keys(entry).sort()).toEqual(['CommonStatuses', 'Statuses']);
+  });
+});

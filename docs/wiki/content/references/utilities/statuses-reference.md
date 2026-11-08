@@ -12,6 +12,7 @@ Exhaustive reference for `Statuses`, its specialized subclasses, and the `Bindin
 **Files:**
 
 - [`packages/kernel/src/common/statuses/`](https://github.com/VENIZIA-AI/ignis/tree/main/packages/kernel/src/common/statuses)
+- [`packages/kernel/src/statuses.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/statuses.ts) - the `@venizia/ignis-kernel/statuses` entry
 - [`packages/kernel/src/common/bindings.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/common/bindings.ts)
 
 ## `Statuses`
@@ -19,6 +20,8 @@ Exhaustive reference for `Statuses`, its specialized subclasses, and the `Bindin
 A static class of `'NNN_NAME'` status code constants, grouped by an HTTP-inspired numeric prefix, plus `Set` groupings and validator methods.
 
 `Source ->` [`packages/kernel/src/common/statuses/`](https://github.com/VENIZIA-AI/ignis/tree/main/packages/kernel/src/common/statuses)
+
+A browser bundle imports `Statuses` and `CommonStatuses` from `@venizia/ignis-kernel/statuses`: the entry holds those two classes and imports nothing else. The root export is unchanged.
 
 ### Status code scheme
 
@@ -47,6 +50,8 @@ A static class of `'NNN_NAME'` status code constants, grouped by an HTTP-inspire
 | `SCHEDULED` | `'102_SCHEDULED'` | Scheduled for future execution |
 | `PENDING` | `'103_PENDING'` | Awaiting action or decision |
 | `IN_REVIEW` | `'104_IN_REVIEW'` | Under review or approval process |
+| `OPEN` | `'105_OPEN'` | Open for work, unlike `NEW`, which was only just created |
+| `SUBMITTED` | `'106_SUBMITTED'` | Handed in by its author and waiting for the next step, unlike `PENDING`, which waits for no one in particular |
 
 ### `2xx` - Active/running states
 
@@ -58,6 +63,9 @@ A static class of `'NNN_NAME'` status code constants, grouped by an HTTP-inspire
 | `PROCESSING` | `'203_PROCESSING'` | Being actively processed |
 | `SENT` | `'204_SENT'` | Message/item has been sent |
 | `RECEIVED` | `'205_RECEIVED'` | Message/item has been received |
+| `READY` | `'206_READY'` | Prepared and able to start, unlike `ENABLED`, which only says it is switched on |
+| `PUBLISHED` | `'207_PUBLISHED'` | Made visible to its audience |
+| `ISSUED` | `'208_ISSUED'` | Formally issued, such as an invoice or a ticket, and in force |
 
 ### `3xx` - Completed states
 
@@ -71,6 +79,7 @@ Positive terminal states.
 | `COMPLETED` | `'303_COMPLETED'` | Fully completed |
 | `SETTLED` | `'304_SETTLED'` | Finalized or settled |
 | `CONFIRMED` | `'305_CONFIRMED'` | Confirmed by user or system |
+| `RESOLVED` | `'306_RESOLVED'` | The problem or request is dealt with, unlike `COMPLETED`, which finishes a piece of work |
 
 ### `4xx` - Inactive states
 
@@ -102,6 +111,7 @@ Negative terminal states - permanent failure or cancellation.
 | `CANCELLED` | `'505_CANCELLED'` | Cancelled by user/admin |
 | `DELETED` | `'506_DELETED'` | Soft deleted |
 | `REJECTED` | `'507_REJECTED'` | Rejected by reviewer |
+| `VOIDED` | `'508_VOIDED'` | An issued document made void, unlike `CANCELLED`, which is stopped before it finishes |
 
 ### Group sets
 
@@ -110,11 +120,11 @@ Each phase has a static `Set<string>` of its member statuses, plus `SCHEME_SET`,
 | Set | Members |
 |-----|---------|
 | `INITIAL_SCHEME_SET` | `UNKNOWN`, `DRAFT` |
-| `PENDING_SCHEME_SET` | `NEW`, `QUEUED`, `SCHEDULED`, `PENDING`, `IN_REVIEW` |
-| `ACTIVE_SCHEME_SET` | `ENABLED`, `ACTIVATED`, `RUNNING`, `PROCESSING`, `SENT`, `RECEIVED` |
-| `COMPLETED_SCHEME_SET` | `COMPLETED`, `SUCCESS`, `PARTIAL`, `SETTLED`, `APPROVED`, `CONFIRMED` |
+| `PENDING_SCHEME_SET` | `NEW`, `QUEUED`, `SCHEDULED`, `PENDING`, `IN_REVIEW`, `OPEN`, `SUBMITTED` |
+| `ACTIVE_SCHEME_SET` | `ENABLED`, `ACTIVATED`, `RUNNING`, `PROCESSING`, `SENT`, `RECEIVED`, `READY`, `PUBLISHED`, `ISSUED` |
+| `COMPLETED_SCHEME_SET` | `COMPLETED`, `SUCCESS`, `PARTIAL`, `SETTLED`, `APPROVED`, `CONFIRMED`, `RESOLVED` |
 | `INACTIVE_SCHEME_SET` | `DISABLED`, `DEACTIVATED`, `SUSPENDED`, `BLOCKED`, `CLOSED`, `ARCHIVED`, `PAUSED`, `REVOKED`, `REFUNDED` |
-| `FAILED_SCHEME_SET` | `FAIL`, `EXPIRED`, `TIMEOUT`, `SKIPPED`, `ABORTED`, `CANCELLED`, `DELETED`, `REJECTED` |
+| `FAILED_SCHEME_SET` | `FAIL`, `EXPIRED`, `TIMEOUT`, `SKIPPED`, `ABORTED`, `CANCELLED`, `DELETED`, `REJECTED`, `VOIDED` |
 | `SCHEME_SET` | All statuses across all six sets combined |
 
 ```typescript
@@ -131,17 +141,21 @@ await jobRepository.find({
 
 ### Validation methods
 
-Each method checks membership in the matching `*_SCHEME_SET`; all take a `string` and return `boolean`.
+The leading digit of a code is its phase, so a category check reads the digit and not a list. All methods take a `string` and return `boolean`.
 
-| Method | Checks against |
-|--------|-----------------|
-| `isInitial(status)` | `INITIAL_SCHEME_SET` |
-| `isPending(status)` | `PENDING_SCHEME_SET` |
-| `isActive(status)` | `ACTIVE_SCHEME_SET` |
-| `isCompleted(status)` | `COMPLETED_SCHEME_SET` |
-| `isInactive(status)` | `INACTIVE_SCHEME_SET` |
-| `isFailed(status)` | `FAILED_SCHEME_SET` |
-| `isValid(status)` | `SCHEME_SET` (all statuses) |
+| Method | True when |
+|--------|-----------|
+| `isInitial(status)` | the code starts with `0` |
+| `isPending(status)` | the code starts with `1` |
+| `isActive(status)` | the code starts with `2` |
+| `isCompleted(status)` | the code starts with `3` |
+| `isInactive(status)` | the code starts with `4` |
+| `isFailed(status)` | the code starts with `5` |
+| `isValid(status)` | the code has the shape `NNN_NAME`: a digit `0`-`5`, two digits, an underscore, then upper-case letters, digits and underscores |
+
+The leading-digit rule belongs to `Statuses` and the classes that extend it. A domain class whose `NNN_` prefix is an ordinal step number, such as a ticket workflow that counts up to `900`, must not use these checks: its `9xx` codes mean nothing to them.
+
+`isValid` checks the shape, not membership of the built-in list. `Statuses.SCHEME_SET` and the group sets stay the list of the built-in statuses.
 
 ```typescript
 export class Statuses {
@@ -153,6 +167,22 @@ export class Statuses {
   static isFailed(status: string): boolean;
   static isValid(status: string): boolean;
 }
+```
+
+### Your own statuses
+
+Extend `Statuses` and add codes with the prefix of their phase. The built-in constants are inherited, and the checks work on the new codes:
+
+```typescript
+import { Statuses } from '@venizia/ignis-kernel/statuses';
+
+class OrderStatuses extends Statuses {
+  static readonly SHIPPING = '209_SHIPPING';
+}
+
+OrderStatuses.isActive(OrderStatuses.SHIPPING); // true
+OrderStatuses.isValid(OrderStatuses.SHIPPING); // true
+OrderStatuses.ACTIVATED; // '201_ACTIVATED'
 ```
 
 ## Specialized status classes
@@ -358,8 +388,8 @@ function validateStatusTransition(from: string, to: string) {
 ## Best practices
 
 - **Use the constants, not magic strings.** `Statuses.COMPLETED`, never `'303_COMPLETED'` - typos in a raw string pass type checking silently.
-- **Validate before writing.** Call `Statuses.isValid()` on any status that originates outside the constant catalog (request body, external system) before persisting it.
-- **Prefer the `is*` helpers over raw set checks.** `Statuses.isActive(x)` reads better than `Statuses.ACTIVE_SCHEME_SET.has(x)` at call sites, though both are equivalent.
+- **Validate before writing.** Call `Statuses.isValid()` on any status that originates outside the constant catalog (request body, external system) before persisting it. It rejects a malformed code and accepts any well-formed one; to accept only the built-in statuses, check `Statuses.SCHEME_SET.has(status)`.
+- **Prefer the `is*` helpers over raw set checks.** `Statuses.isActive(x)` reads better than `Statuses.ACTIVE_SCHEME_SET.has(x)`, and it is true for your own `2xx` codes too, which the set is not.
 - **Check terminal states before mutating.** `isCompleted()` and `isFailed()` both signal a terminal status - guard state-changing operations against both.
 
 ## See also

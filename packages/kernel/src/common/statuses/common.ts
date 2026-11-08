@@ -1,4 +1,7 @@
-/** Application statuses categorized by lifecycle phase (initial, pending, active, completed, inactive, failed). */
+/** The shape of a status code: a phase digit 0-5, two digits, then the name. */
+const STATUS_CODE = /^[0-5]\d{2}_[A-Z0-9_]+$/;
+
+/** Application statuses categorized by lifecycle phase: the leading digit of a code is its phase (0 initial, 1 pending, 2 active, 3 completed, 4 inactive, 5 failed). */
 export class Statuses {
   // 0xx - Initial
   static readonly UNKNOWN = '000_UNKNOWN';
@@ -10,6 +13,8 @@ export class Statuses {
   static readonly SCHEDULED = '102_SCHEDULED';
   static readonly PENDING = '103_PENDING';
   static readonly IN_REVIEW = '104_IN_REVIEW';
+  static readonly OPEN = '105_OPEN';
+  static readonly SUBMITTED = '106_SUBMITTED';
 
   // 2xx - Active/Running (in progress)
   static readonly ENABLED = '200_ENABLED';
@@ -18,6 +23,9 @@ export class Statuses {
   static readonly PROCESSING = '203_PROCESSING';
   static readonly SENT = '204_SENT';
   static readonly RECEIVED = '205_RECEIVED';
+  static readonly READY = '206_READY';
+  static readonly PUBLISHED = '207_PUBLISHED';
+  static readonly ISSUED = '208_ISSUED';
 
   // 3xx - Completed (positive terminal)
   static readonly PARTIAL = '300_PARTIAL';
@@ -26,6 +34,7 @@ export class Statuses {
   static readonly COMPLETED = '303_COMPLETED';
   static readonly SETTLED = '304_SETTLED';
   static readonly CONFIRMED = '305_CONFIRMED';
+  static readonly RESOLVED = '306_RESOLVED';
 
   // 4xx - Inactive (negative, reversible)
   static readonly DISABLED = '400_DISABLED';
@@ -47,6 +56,7 @@ export class Statuses {
   static readonly CANCELLED = '505_CANCELLED';
   static readonly DELETED = '506_DELETED';
   static readonly REJECTED = '507_REJECTED';
+  static readonly VOIDED = '508_VOIDED';
 
   static readonly INITIAL_SCHEME_SET = new Set([this.UNKNOWN, this.DRAFT]);
 
@@ -56,6 +66,8 @@ export class Statuses {
     this.SCHEDULED,
     this.PENDING,
     this.IN_REVIEW,
+    this.OPEN,
+    this.SUBMITTED,
   ]);
 
   static readonly ACTIVE_SCHEME_SET = new Set([
@@ -65,6 +77,9 @@ export class Statuses {
     this.PROCESSING,
     this.SENT,
     this.RECEIVED,
+    this.READY,
+    this.PUBLISHED,
+    this.ISSUED,
   ]);
 
   static readonly COMPLETED_SCHEME_SET = new Set([
@@ -74,6 +89,7 @@ export class Statuses {
     this.SETTLED,
     this.APPROVED,
     this.CONFIRMED,
+    this.RESOLVED,
   ]);
 
   static readonly INACTIVE_SCHEME_SET = new Set([
@@ -97,6 +113,7 @@ export class Statuses {
     this.CANCELLED,
     this.DELETED,
     this.REJECTED,
+    this.VOIDED,
   ]);
 
   static readonly SCHEME_SET = new Set([
@@ -109,31 +126,31 @@ export class Statuses {
   ]);
 
   static isInitial(status: string): boolean {
-    return this.INITIAL_SCHEME_SET.has(status);
+    return status.startsWith('0');
   }
 
   static isPending(status: string): boolean {
-    return this.PENDING_SCHEME_SET.has(status);
+    return status.startsWith('1');
   }
 
   static isActive(status: string): boolean {
-    return this.ACTIVE_SCHEME_SET.has(status);
+    return status.startsWith('2');
   }
 
   static isCompleted(status: string): boolean {
-    return this.COMPLETED_SCHEME_SET.has(status);
+    return status.startsWith('3');
   }
 
   static isInactive(status: string): boolean {
-    return this.INACTIVE_SCHEME_SET.has(status);
+    return status.startsWith('4');
   }
 
   static isFailed(status: string): boolean {
-    return this.FAILED_SCHEME_SET.has(status);
+    return status.startsWith('5');
   }
 
   static isValid(status: string): boolean {
-    return this.SCHEME_SET.has(status);
+    return STATUS_CODE.test(status);
   }
 }
 
