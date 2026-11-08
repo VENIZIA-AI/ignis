@@ -1399,11 +1399,11 @@ export declare class PersistableRelationalRepository<EntitySchema extends TTable
      *
      * const users = pgTable('User', { id: serial('id').primaryKey(), status: text('status') });
      * declare const repo: DefaultCRUDRepository<typeof users>;
-     * await repo.updateAll({ where: { status: 'ACTIVE' }, data: { status: 'DONE' } });
-     * await repo.updateAll({ where: {}, data: { status: 'DONE' }, options: { force: true } });
+     * await repo.updateBy({ where: { status: 'ACTIVE' }, data: { status: 'DONE' } });
+     * await repo.updateBy({ where: {}, data: { status: 'DONE' }, options: { force: true } });
      * ```
      */
-    updateAll(opts: {
+    updateBy(opts: {
         data: Partial<PersistObject>;
         where: TWhere<DataObject>;
         options: ExtraOptions & {
@@ -1413,7 +1413,7 @@ export declare class PersistableRelationalRepository<EntitySchema extends TTable
     }): Promise<TCount & {
         data: undefined | null;
     }>;
-    updateAll<R = DataObject>(opts: {
+    updateBy<R = DataObject>(opts: {
         data: Partial<PersistObject>;
         where: TWhere<DataObject>;
         options?: ExtraOptions & {
@@ -1461,7 +1461,7 @@ export declare class PersistableRelationalRepository<EntitySchema extends TTable
         data: R;
     }>;
     /**
-     * Deletes the rows matching `where`; without `where` it needs `options.force`.
+     * Deletes the rows matching `where`; an empty `where` needs `options.force`.
      * @example
      * ```typescript
      * import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
@@ -1469,38 +1469,8 @@ export declare class PersistableRelationalRepository<EntitySchema extends TTable
      *
      * const users = pgTable('User', { id: serial('id').primaryKey(), status: text('status') });
      * declare const repo: DefaultCRUDRepository<typeof users>;
-     * await repo.deleteAll({ where: { status: 'DONE' } });
-     * await repo.deleteAll({ options: { force: true } });
-     * ```
-     */
-    deleteAll(opts: {
-        where?: TWhere<DataObject>;
-        options: ExtraOptions & {
-            shouldReturn: false;
-            force?: boolean;
-        };
-    }): Promise<TCount & {
-        data: undefined | null;
-    }>;
-    deleteAll<R = DataObject>(opts: {
-        where?: TWhere<DataObject>;
-        options?: ExtraOptions & {
-            shouldReturn?: true;
-            force?: boolean;
-        };
-    }): Promise<TCount & {
-        data: Array<R>;
-    }>;
-    /**
-     * Deletes the rows matching `where`.
-     * @example
-     * ```typescript
-     * import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
-     * import { pgTable, serial, text } from 'drizzle-orm/pg-core';
-     *
-     * const users = pgTable('User', { id: serial('id').primaryKey(), status: text('status') });
-     * declare const repo: DefaultCRUDRepository<typeof users>;
-     * const { count } = await repo.deleteBy({ where: { status: 'DONE' } });
+     * await repo.deleteBy({ where: { status: 'DONE' } });
+     * await repo.deleteBy({ where: {}, options: { force: true } });
      * ```
      */
     deleteBy(opts: {
@@ -1719,7 +1689,7 @@ export declare class ReadableRelationalRepository<EntitySchema extends TTableSch
         data: DataObject;
     }>;
     /** @throws Error - disabled in read-only repository. */
-    updateAll(opts: {
+    updateBy(opts: {
         data: Partial<PersistObject>;
         where: TWhere<DataObject>;
         options: ExtraOptions & {
@@ -1729,7 +1699,7 @@ export declare class ReadableRelationalRepository<EntitySchema extends TTableSch
     }): Promise<TCount & {
         data: undefined | null;
     }>;
-    updateAll<R = DataObject>(opts: {
+    updateBy<R = DataObject>(opts: {
         data: Partial<PersistObject>;
         where: TWhere<DataObject>;
         options?: ExtraOptions & {
@@ -1757,8 +1727,8 @@ export declare class ReadableRelationalRepository<EntitySchema extends TTableSch
         data: R;
     }>;
     /** @throws Error - disabled in read-only repository. */
-    deleteAll(opts: {
-        where?: TWhere<DataObject>;
+    deleteBy(opts: {
+        where: TWhere<DataObject>;
         options: ExtraOptions & {
             shouldReturn: false;
             force?: boolean;
@@ -1766,8 +1736,8 @@ export declare class ReadableRelationalRepository<EntitySchema extends TTableSch
     }): Promise<TCount & {
         data: undefined | null;
     }>;
-    deleteAll<R = DataObject>(opts: {
-        where?: TWhere<DataObject>;
+    deleteBy<R = DataObject>(opts: {
+        where: TWhere<DataObject>;
         options?: ExtraOptions & {
             shouldReturn?: true;
             force?: boolean;
@@ -2054,7 +2024,7 @@ export declare abstract class RelationalBaseRepository<EntitySchema extends TTab
     }): Promise<TCount & {
         data: R;
     }>;
-    abstract updateAll(opts: {
+    abstract updateBy(opts: {
         data: Partial<PersistObject>;
         where: TWhere<DataObject>;
         options: ExtraOptions & {
@@ -2064,27 +2034,7 @@ export declare abstract class RelationalBaseRepository<EntitySchema extends TTab
     }): Promise<TCount & {
         data: undefined | null;
     }>;
-    abstract updateAll<R = DataObject>(opts: {
-        data: Partial<PersistObject>;
-        where: TWhere<DataObject>;
-        options?: ExtraOptions & {
-            shouldReturn?: true;
-            force?: boolean;
-        };
-    }): Promise<TCount & {
-        data: Array<R>;
-    }>;
-    updateBy(opts: {
-        data: Partial<PersistObject>;
-        where: TWhere<DataObject>;
-        options: ExtraOptions & {
-            shouldReturn: false;
-            force?: boolean;
-        };
-    }): Promise<TCount & {
-        data: undefined | null;
-    }>;
-    updateBy<R = DataObject>(opts: {
+    abstract updateBy<R = DataObject>(opts: {
         data: Partial<PersistObject>;
         where: TWhere<DataObject>;
         options?: ExtraOptions & {
@@ -2110,8 +2060,8 @@ export declare abstract class RelationalBaseRepository<EntitySchema extends TTab
     }): Promise<TCount & {
         data: R;
     }>;
-    abstract deleteAll(opts: {
-        where?: TWhere<DataObject>;
+    abstract deleteBy(opts: {
+        where: TWhere<DataObject>;
         options: ExtraOptions & {
             shouldReturn: false;
             force?: boolean;
@@ -2119,26 +2069,8 @@ export declare abstract class RelationalBaseRepository<EntitySchema extends TTab
     }): Promise<TCount & {
         data: undefined | null;
     }>;
-    abstract deleteAll<R = DataObject>(opts: {
-        where?: TWhere<DataObject>;
-        options?: ExtraOptions & {
-            shouldReturn?: true;
-            force?: boolean;
-        };
-    }): Promise<TCount & {
-        data: Array<R>;
-    }>;
-    deleteBy(opts: {
-        where?: TWhere<DataObject>;
-        options: ExtraOptions & {
-            shouldReturn: false;
-            force?: boolean;
-        };
-    }): Promise<TCount & {
-        data: undefined | null;
-    }>;
-    deleteBy<R = DataObject>(opts: {
-        where?: TWhere<DataObject>;
+    abstract deleteBy<R = DataObject>(opts: {
+        where: TWhere<DataObject>;
         options?: ExtraOptions & {
             shouldReturn?: true;
             force?: boolean;
@@ -2441,28 +2373,6 @@ export declare class SoftDeletableRelationalRepository<EntitySchema extends TSof
     }): Promise<TCount & {
         data: R;
     }>;
-    deleteAll(opts: {
-        where?: TWhere<DataObject>;
-        data?: TSoftDeleteData<PersistObject>;
-        options: ExtraOptions & {
-            shouldReturn: false;
-            force?: boolean;
-            shouldHardDelete?: boolean;
-        };
-    }): Promise<TCount & {
-        data: undefined | null;
-    }>;
-    deleteAll<R = DataObject>(opts: {
-        where?: TWhere<DataObject>;
-        data?: TSoftDeleteData<PersistObject>;
-        options?: ExtraOptions & {
-            shouldReturn?: true;
-            force?: boolean;
-            shouldHardDelete?: boolean;
-        };
-    }): Promise<TCount & {
-        data: Array<R>;
-    }>;
     deleteBy(opts: {
         where: TWhere<DataObject>;
         data?: TSoftDeleteData<PersistObject>;
@@ -2514,29 +2424,8 @@ export declare class SoftDeletableRelationalRepository<EntitySchema extends TSof
      *
      * const users = pgTable('User', { id: serial('id').primaryKey(), deletedAt: timestamp('deleted_at') });
      * declare const repo: SoftDeletableRepository<typeof users>;
-     * await repo.restoreAll({ where: { id: { gt: 10 } } });
-     * await repo.restoreAll({ options: { force: true, shouldReturn: false } });
-     * ```
-     */
-    restoreAll<R = DataObject>(opts: {
-        where?: TWhere<DataObject>;
-        options?: ExtraOptions & {
-            shouldReturn?: boolean;
-            force?: boolean;
-        };
-    }): Promise<TCount & {
-        data: TNullable<Array<R>>;
-    }>;
-    /**
-     * Clears `deletedAt` on the soft-deleted rows matching `where`.
-     * @example
-     * ```typescript
-     * import { SoftDeletableRepository } from '@venizia/ignis-connectors/postgres';
-     * import { pgTable, serial, timestamp } from 'drizzle-orm/pg-core';
-     *
-     * const users = pgTable('User', { id: serial('id').primaryKey(), deletedAt: timestamp('deleted_at') });
-     * declare const repo: SoftDeletableRepository<typeof users>;
-     * const { count } = await repo.restoreBy({ where: { id: { inq: [1, 2] } } });
+     * await repo.restoreBy({ where: { id: { gt: 10 } } });
+     * await repo.restoreBy({ where: {}, options: { force: true, shouldReturn: false } });
      * ```
      */
     restoreBy<R = DataObject>(opts: {

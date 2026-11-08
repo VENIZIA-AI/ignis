@@ -221,7 +221,7 @@ export class CreatedByCases extends UserAuditCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { group: 'AUDIT_BULK_TEST' } });
+      await repo.deleteBy({ where: { group: 'AUDIT_BULK_TEST' } });
     } catch (error) {
       this.context.logger.error('[CASE 3] FAILED | Error: %s', (error as Error).message);
     }

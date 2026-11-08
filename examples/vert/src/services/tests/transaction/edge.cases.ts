@@ -203,14 +203,14 @@ export class EdgeCases extends BaseTestCases {
       await Promise.all(createPromises);
 
       // Update some records
-      await repo.updateAll({
+      await repo.updateBy({
         where: { group, nValue: { gt: 250 } },
         data: { nValue: 999 },
         options: { transaction },
       });
 
       // Delete some records
-      await repo.deleteAll({
+      await repo.deleteBy({
         where: { group, nValue: { lt: 100 } },
         options: { transaction },
       });
@@ -256,7 +256,7 @@ export class EdgeCases extends BaseTestCases {
         );
       }
 
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       try {
         await transaction.rollback();
@@ -267,7 +267,7 @@ export class EdgeCases extends BaseTestCases {
       this.context.logger.error('[CASE 20] FAILED with error: %o', error);
 
       try {
-        await repo.deleteAll({ where: { group } });
+        await repo.deleteBy({ where: { group } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }

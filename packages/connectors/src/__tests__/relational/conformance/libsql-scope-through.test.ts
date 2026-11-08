@@ -265,7 +265,7 @@ describe('a write to a through model on SQLite', () => {
   });
 
   test('an update and a delete reach only the rows the parent scope allows', async () => {
-    await variants.updateAll({
+    await variants.updateBy({
       where: {},
       data: { name: 'renamed' },
       options: { shouldReturn: false },
@@ -273,7 +273,7 @@ describe('a write to a through model on SQLite', () => {
     const afterUpdate = await variantNames();
 
     await client.execute(`DELETE FROM ${OPTION_TABLE}`);
-    await variants.deleteAll({ where: {}, options: { shouldReturn: false, force: true } });
+    await variants.deleteBy({ where: {}, options: { shouldReturn: false, force: true } });
     const afterDelete = await variantNames();
 
     expect(afterUpdate).toEqual(['renamed', 'renamed', 'v3']);

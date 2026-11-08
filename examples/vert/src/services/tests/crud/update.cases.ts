@@ -2,7 +2,7 @@ import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
-// Update Cases - updateById and updateAll operations
+// Update Cases - updateById and updateBy operations
 // ----------------------------------------------------------------
 export class UpdateCases extends BaseTestCases {
   // ----------------------------------------------------------------
@@ -42,7 +42,7 @@ export class UpdateCases extends BaseTestCases {
         this.context.logger.error('[case6UpdateById] FAILED | Update not persisted: %j', verified);
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[case6UpdateById] FAILED | Error: %s', error);
     }
@@ -66,7 +66,7 @@ export class UpdateCases extends BaseTestCases {
         ],
       });
 
-      const updateResult = await repo.updateAll({
+      const updateResult = await repo.updateBy({
         where: { group },
         data: { nValue: 999 },
       });
@@ -104,7 +104,7 @@ export class UpdateCases extends BaseTestCases {
         this.context.logger.info('[case7UpdateAll] PASSED | UpdateBy works as alias for UpdateAll');
       }
 
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       this.context.logger.error('[case7UpdateAll] FAILED | Error: %s', error);
     }
@@ -188,7 +188,7 @@ export class UpdateCases extends BaseTestCases {
         );
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[case17UpdateWithPartialData] FAILED | Error: %s', error);
     }

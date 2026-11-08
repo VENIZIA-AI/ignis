@@ -15,7 +15,7 @@ export class EdgeCases extends BaseTestCases {
     this.context.logCase('[CLEANUP] Cleanup hidden properties test data');
 
     try {
-      const deleted = await repo.deleteAll({
+      const deleted = await repo.deleteBy({
         where: { realm: { like: 'HIDDEN_TEST_%' } },
       });
 

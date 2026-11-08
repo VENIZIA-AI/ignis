@@ -21,7 +21,7 @@ import { PostgresDataSource } from '../datasources/postgres.datasource';
 export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {}
 ```
 
-That's it - `UserRepository` already has `find`, `findOne`, `findById`, `create`, `createAll`, `updateById`, `updateEach`, `updateAll`, `deleteById`, `deleteAll`, `count`, and `existsWith`.
+That's it - `UserRepository` already has `find`, `findOne`, `findById`, `create`, `createAll`, `updateById`, `updateEach`, `updateBy`, `deleteById`, `deleteBy`, `count`, and `existsWith`.
 
 ## How it works
 
@@ -187,14 +187,14 @@ The same repository writes through the IGNIS CRUD routes the other service gener
 |---|---|
 | `create({ data })` | `POST /products` |
 | `updateById({ id, data })` | `PATCH /products/:id` |
-| `updateAll({ where, data })` / `updateBy` | `PATCH /products`, `where` in the body beside the data |
+| `updateBy({ where, data })` / `updateBy` | `PATCH /products`, `where` in the body beside the data |
 | `deleteById({ id })` | `DELETE /products/:id` |
-| `deleteAll({ where })` / `deleteBy` | `DELETE /products`, `where` in the body |
+| `deleteBy({ where })` / `deleteBy` | `DELETE /products`, `where` in the body |
 
 ```typescript
 const { data: product } = await productRepository.create({ data: { name: 'Lamp' } });
 await productRepository.updateById({ id: product.id, data: { name: 'Desk lamp' } });
-await productRepository.deleteAll({ where: { id: { inq: staleIds } } });
+await productRepository.deleteBy({ where: { id: { inq: staleIds } } });
 ```
 
 - A write sends a partial row by default (`HttpRepository<TRow, TWrite = Partial<TRow>>`), since the server fills ids and defaults.

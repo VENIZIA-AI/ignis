@@ -404,7 +404,7 @@ describe('a write to a through model must name a parent the caller may reach', (
   });
 
   test('an update reaches only the rows the parent scope allows', async () => {
-    await variants.updateAll({
+    await variants.updateBy({
       where: {},
       data: { name: 'renamed' },
       options: { shouldReturn: false },
@@ -433,7 +433,7 @@ describe('a write to a through model must name a parent the caller may reach', (
 
   test('a delete reaches only the rows the parent scope allows', async () => {
     await client.exec('DELETE FROM through_option');
-    await variants.deleteAll({ where: {}, options: { shouldReturn: false, force: true } });
+    await variants.deleteBy({ where: {}, options: { shouldReturn: false, force: true } });
 
     const afterDelete = await variantNames();
     expect(afterDelete).toEqual(['v3']);
@@ -450,7 +450,7 @@ describe('a write to a through model must name a parent the caller may reach', (
     await client.exec('DELETE FROM through_option');
     await variants.create({ data: { productId: 1, name: 'a' } });
     await variants.updateById({ id: 1, data: { productId: 2 } });
-    await variants.deleteAll({ where: {}, options: { shouldReturn: false, force: true } });
+    await variants.deleteBy({ where: {}, options: { shouldReturn: false, force: true } });
 
     // The update names a new parent, so its operation reaches the parent twice: for the new parent and for the rows to change.
     expect(operations).toEqual(['create', 'update', 'update', 'delete']);

@@ -126,7 +126,7 @@ export class ModifiedByCases extends UserAuditCases {
       });
 
       // Bulk update with new modifiedBy
-      await repo.updateAll({
+      await repo.updateBy({
         where: { group },
         data: {
           nValue: 999,
@@ -174,7 +174,7 @@ export class ModifiedByCases extends UserAuditCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       this.context.logger.error('[CASE 6] FAILED | Error: %s', (error as Error).message);
     }
@@ -361,7 +361,7 @@ export class ModifiedByCases extends UserAuditCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { group: 'AUDIT_CONCURRENT_TEST' } });
+      await repo.deleteBy({ where: { group: 'AUDIT_CONCURRENT_TEST' } });
     } catch (error) {
       this.context.logger.error('[CASE 13] FAILED | Error: %s', (error as Error).message);
     }
@@ -462,7 +462,7 @@ export class ModifiedByCases extends UserAuditCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { group: 'AUDIT_SEQUENTIAL_TEST' } });
+      await repo.deleteBy({ where: { group: 'AUDIT_SEQUENTIAL_TEST' } });
     } catch (error) {
       this.context.logger.error('[CASE 15] FAILED | Error: %s', (error as Error).message);
     }

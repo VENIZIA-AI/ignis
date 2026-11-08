@@ -190,7 +190,7 @@ export class NullAndBooleanCases extends BaseTestCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[JSON-BOOL] FAILED | Error: %s', (error as Error).message);
     }

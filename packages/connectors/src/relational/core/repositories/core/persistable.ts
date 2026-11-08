@@ -551,21 +551,21 @@ export class PersistableRelationalRepository<
    *
    * const users = pgTable('User', { id: serial('id').primaryKey(), status: text('status') });
    * declare const repo: DefaultCRUDRepository<typeof users>;
-   * await repo.updateAll({ where: { status: 'ACTIVE' }, data: { status: 'DONE' } });
-   * await repo.updateAll({ where: {}, data: { status: 'DONE' }, options: { force: true } });
+   * await repo.updateBy({ where: { status: 'ACTIVE' }, data: { status: 'DONE' } });
+   * await repo.updateBy({ where: {}, data: { status: 'DONE' }, options: { force: true } });
    * ```
    */
-  override updateAll(opts: {
+  override updateBy(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
-  override updateAll<R = DataObject>(opts: {
+  override updateBy<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
-  override async updateAll<R = DataObject>(opts: {
+  override async updateBy<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
@@ -668,7 +668,7 @@ export class PersistableRelationalRepository<
   }
 
   /**
-   * Deletes the rows matching `where`; without `where` it needs `options.force`.
+   * Deletes the rows matching `where`; an empty `where` needs `options.force`.
    * @example
    * ```typescript
    * import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
@@ -676,35 +676,8 @@ export class PersistableRelationalRepository<
    *
    * const users = pgTable('User', { id: serial('id').primaryKey(), status: text('status') });
    * declare const repo: DefaultCRUDRepository<typeof users>;
-   * await repo.deleteAll({ where: { status: 'DONE' } });
-   * await repo.deleteAll({ options: { force: true } });
-   * ```
-   */
-  override deleteAll(opts: {
-    where?: TWhere<DataObject>;
-    options: ExtraOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-  override deleteAll<R = DataObject>(opts: {
-    where?: TWhere<DataObject>;
-    options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
-  override deleteAll<R = DataObject>(opts: {
-    where?: TWhere<DataObject>;
-    options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    return this._delete<R>({ where: opts.where ?? {}, options: opts.options });
-  }
-
-  /**
-   * Deletes the rows matching `where`.
-   * @example
-   * ```typescript
-   * import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
-   * import { pgTable, serial, text } from 'drizzle-orm/pg-core';
-   *
-   * const users = pgTable('User', { id: serial('id').primaryKey(), status: text('status') });
-   * declare const repo: DefaultCRUDRepository<typeof users>;
-   * const { count } = await repo.deleteBy({ where: { status: 'DONE' } });
+   * await repo.deleteBy({ where: { status: 'DONE' } });
+   * await repo.deleteBy({ where: {}, options: { force: true } });
    * ```
    */
   override deleteBy(opts: {
@@ -719,12 +692,6 @@ export class PersistableRelationalRepository<
     where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    const { where, options } = opts;
-
-    if (options?.shouldReturn === false) {
-      return this.deleteAll({ where, options: { ...options, shouldReturn: false } });
-    }
-
-    return this.deleteAll<R>({ where, options });
+    return this._delete<R>(opts);
   }
 }

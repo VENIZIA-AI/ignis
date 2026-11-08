@@ -145,15 +145,15 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
 
   private async cleanupData() {
     this.logCase('[CLEANUP] Removing advanced test data');
-    await this.configurationRepository.deleteAll({ where: { group: 'ADVANCED_TEST' } });
+    await this.configurationRepository.deleteBy({ where: { group: 'ADVANCED_TEST' } });
     // The relation scenario links a product to a channel; the junction row goes first.
     const products = await this.productRepository.find({
       filter: { where: { code: { like: 'P_ADV_%' } } },
     });
-    await this.saleChannelProductRepository.deleteAll({
+    await this.saleChannelProductRepository.deleteBy({
       where: { productId: { inq: products.map((product) => product.id) } },
     });
-    await this.saleChannelRepository.deleteAll({ where: { name: 'AdvChannel' } });
-    await this.productRepository.deleteAll({ where: { code: { like: 'P_ADV_%' } } });
+    await this.saleChannelRepository.deleteBy({ where: { name: 'AdvChannel' } });
+    await this.productRepository.deleteBy({ where: { code: { like: 'P_ADV_%' } } });
   }
 }

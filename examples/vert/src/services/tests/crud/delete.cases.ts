@@ -2,7 +2,7 @@ import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
-// Delete Cases - deleteById and deleteAll operations
+// Delete Cases - deleteById and deleteBy operations
 // ----------------------------------------------------------------
 export class DeleteCases extends BaseTestCases {
   // ----------------------------------------------------------------
@@ -50,7 +50,7 @@ export class DeleteCases extends BaseTestCases {
         );
       }
 
-      const deleteAllResult = await repo.deleteAll({ where: { group } });
+      const deleteAllResult = await repo.deleteBy({ where: { group } });
 
       if (deleteAllResult.count === 2) {
         this.context.logger.info(

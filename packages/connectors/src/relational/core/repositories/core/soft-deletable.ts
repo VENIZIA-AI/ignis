@@ -57,7 +57,7 @@ export class SoftDeletableRelationalRepository<
     if (Reflect.get(opts.data, AuditFields.DELETED_AT) !== undefined) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-        message: `${AuditFields.DELETED_AT} changes only through deleteById/deleteAll/deleteBy and restoreById/restoreAll/restoreBy`,
+        message: `${AuditFields.DELETED_AT} changes only through deleteById/deleteBy and restoreById/restoreBy`,
       });
     }
   }
@@ -159,39 +159,6 @@ export class SoftDeletableRelationalRepository<
     return { count: rs.count, data: rs.data?.[0] ?? null };
   }
 
-  override deleteAll(opts: {
-    where?: TWhere<DataObject>;
-    data?: TSoftDeleteData<PersistObject>;
-    options: ExtraOptions & { shouldReturn: false; force?: boolean; shouldHardDelete?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-  override deleteAll<R = DataObject>(opts: {
-    where?: TWhere<DataObject>;
-    data?: TSoftDeleteData<PersistObject>;
-    options?: ExtraOptions & { shouldReturn?: true; force?: boolean; shouldHardDelete?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
-  override async deleteAll<R = DataObject>(opts: {
-    where?: TWhere<DataObject>;
-    data?: TSoftDeleteData<PersistObject>;
-    options?: ExtraOptions & {
-      shouldReturn?: boolean;
-      force?: boolean;
-      shouldHardDelete?: boolean;
-    };
-  }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    this.validateDeleteData({ data: opts.data, shouldHardDelete: opts.options?.shouldHardDelete });
-
-    if (opts.options?.shouldHardDelete) {
-      return super.deleteAll<R>(opts);
-    }
-
-    return this._update<R>({
-      where: opts.where ?? {},
-      data: this.softDeletePatch({ data: opts.data, deletedAt: new Date() }),
-      options: opts.options,
-      operation: ScopeOperations.DELETE,
-    });
-  }
-
   override deleteBy(opts: {
     where: TWhere<DataObject>;
     data?: TSoftDeleteData<PersistObject>;
@@ -271,17 +238,17 @@ export class SoftDeletableRelationalRepository<
    *
    * const users = pgTable('User', { id: serial('id').primaryKey(), deletedAt: timestamp('deleted_at') });
    * declare const repo: SoftDeletableRepository<typeof users>;
-   * await repo.restoreAll({ where: { id: { gt: 10 } } });
-   * await repo.restoreAll({ options: { force: true, shouldReturn: false } });
+   * await repo.restoreBy({ where: { id: { gt: 10 } } });
+   * await repo.restoreBy({ where: {}, options: { force: true, shouldReturn: false } });
    * ```
    */
-  async restoreAll<R = DataObject>(opts: {
-    where?: TWhere<DataObject>;
+  async restoreBy<R = DataObject>(opts: {
+    where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
     const { shouldReturn = true, force, ...restOptions } = opts.options ?? {};
 
-    // `updateAll` forwards straight to `_update`, so calling it here directly is behavior-identical.
+    // `updateBy` forwards straight to `_update`, so calling it here directly is behavior-identical.
     const options = {
       ...restOptions,
       shouldReturn,
@@ -293,28 +260,9 @@ export class SoftDeletableRelationalRepository<
     };
 
     return this._update<R>({
-      where: opts.where ?? {},
+      where: opts.where,
       data: this.softDeletePatch({ deletedAt: null }),
       options,
     });
-  }
-
-  /**
-   * Clears `deletedAt` on the soft-deleted rows matching `where`.
-   * @example
-   * ```typescript
-   * import { SoftDeletableRepository } from '@venizia/ignis-connectors/postgres';
-   * import { pgTable, serial, timestamp } from 'drizzle-orm/pg-core';
-   *
-   * const users = pgTable('User', { id: serial('id').primaryKey(), deletedAt: timestamp('deleted_at') });
-   * declare const repo: SoftDeletableRepository<typeof users>;
-   * const { count } = await repo.restoreBy({ where: { id: { inq: [1, 2] } } });
-   * ```
-   */
-  async restoreBy<R = DataObject>(opts: {
-    where: TWhere<DataObject>;
-    options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    return this.restoreAll<R>(opts);
   }
 }

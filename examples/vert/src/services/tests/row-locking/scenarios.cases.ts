@@ -57,7 +57,7 @@ export class ScenariosCases extends BaseTestCases {
 
       await tx1.commit();
       await tx2.commit();
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       try {
         await tx1.rollback();
@@ -74,7 +74,7 @@ export class ScenariosCases extends BaseTestCases {
       this.context.logger.error('[CASE 7] FAILED with error: %o', error);
 
       try {
-        await repo.deleteAll({ where: { group } });
+        await repo.deleteBy({ where: { group } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }
@@ -127,7 +127,7 @@ export class ScenariosCases extends BaseTestCases {
 
       await tx1.commit();
       await tx2.rollback();
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       try {
         await tx1.rollback();
@@ -144,7 +144,7 @@ export class ScenariosCases extends BaseTestCases {
       this.context.logger.error('[CASE 8] FAILED with error: %o', error);
 
       try {
-        await repo.deleteAll({ where: { code } });
+        await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }
@@ -185,7 +185,7 @@ export class ScenariosCases extends BaseTestCases {
 
       // Update based on locked value
       const newValue = locked.nValue! + 50;
-      await repo.updateAll({
+      await repo.updateBy({
         where: { code },
         data: { nValue: newValue },
         options: { transaction },
@@ -202,13 +202,13 @@ export class ScenariosCases extends BaseTestCases {
         this.context.logger.error('[CASE 12] FAILED - Expected 150, got: %d', updated?.nValue);
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 12] FAILED with error: %o', error);
 
       try {
-        await repo.deleteAll({ where: { code } });
+        await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }
@@ -265,8 +265,8 @@ export class ScenariosCases extends BaseTestCases {
       }
 
       await transaction.commit();
-      await configRepo.deleteAll({ where: { code: configCode } });
-      await productRepo.deleteAll({
+      await configRepo.deleteBy({ where: { code: configCode } });
+      await productRepo.deleteBy({
         where: { code: productCode },
         options: { force: true, shouldSkipDefaultFilter: true },
       });
@@ -275,13 +275,13 @@ export class ScenariosCases extends BaseTestCases {
       this.context.logger.error('[CASE 13] FAILED with error: %o', error);
 
       try {
-        await configRepo.deleteAll({ where: { code: configCode } });
+        await configRepo.deleteBy({ where: { code: configCode } });
       } catch (configError) {
         this.context.logger.error('Config cleanup failed: %s', (configError as Error).message);
       }
 
       try {
-        await productRepo.deleteAll({
+        await productRepo.deleteBy({
           where: { code: productCode },
           options: { force: true, shouldSkipDefaultFilter: true },
         });
@@ -336,7 +336,7 @@ export class ScenariosCases extends BaseTestCases {
 
       await tx1.commit();
       await tx2.commit();
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       try {
         await tx1.rollback();
@@ -353,7 +353,7 @@ export class ScenariosCases extends BaseTestCases {
       this.context.logger.error('[CASE 14] FAILED with error: %o', error);
 
       try {
-        await repo.deleteAll({ where: { code } });
+        await repo.deleteBy({ where: { code } });
       } catch (cleanupError) {
         this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
       }

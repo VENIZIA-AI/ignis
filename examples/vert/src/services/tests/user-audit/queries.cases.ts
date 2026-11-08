@@ -171,7 +171,7 @@ export class QueriesCases extends UserAuditCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       this.context.logger.error('[CASE 10] FAILED | Error: %s', (error as Error).message);
     }
@@ -257,7 +257,7 @@ export class QueriesCases extends UserAuditCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { group: 'AUDIT_RELATION_TEST' } });
+      await repo.deleteBy({ where: { group: 'AUDIT_RELATION_TEST' } });
     } catch (error) {
       this.context.logger.error('[CASE 14] FAILED | Error: %s', (error as Error).message);
     }
@@ -346,7 +346,7 @@ export class QueriesCases extends UserAuditCases {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       this.context.logger.error('[CASE 17] FAILED | Error: %s', (error as Error).message);
     }

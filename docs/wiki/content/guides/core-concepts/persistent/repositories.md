@@ -82,7 +82,7 @@ PostgresBaseRepository (postgres connector - filter building, hidden-column excl
   ↓
 ReadableRepository (read-only: find, findOne, findById, findEvery, count, existsWith)
   ↓
-PersistableRepository (+ create, createAll, updateById, updateEach, updateAll, deleteById, deleteAll)
+PersistableRepository (+ create, createAll, updateById, updateEach, updateBy, deleteById, deleteBy)
   ↓
 DefaultCRUDRepository (no additional methods - recommended default)
   ↓
@@ -155,7 +155,7 @@ await repo.deleteById({ id: 'uuid-here' });
 
 ### Different data for each row with `updateEach`
 
-`updateAll` writes one `data` to every row it matches. `updateEach` gives each row its own:
+`updateBy` writes one `data` to every row it matches. `updateEach` gives each row its own:
 
 ```typescript
 const { count, data } = await repo.updateEach({
@@ -245,7 +245,7 @@ All repository operations accept an `options` parameter with these fields:
 | `shouldReturn` | `boolean` | Write methods only - whether to return created/updated data (default: `true`) |
 | `shouldQueryRange` | `boolean` | `find` only - return `{ data, range: { start, end, total } }` for pagination |
 | `shouldSkipDefaultFilter` | `boolean` | Bypass the model's default filter (e.g., soft delete) |
-| `force` | `boolean` | `updateAll`/`deleteAll` only - allow an empty `where` (table-wide operation) |
+| `force` | `boolean` | `updateBy`/`deleteBy` only - allow an empty `where` (table-wide operation) |
 | `lock` | `TLockOptions` | Row-level locking for reads (`{ strength: 'update' }`, ...). Requires a transaction; incompatible with `include`/`fields` |
 | `log` | `TRepositoryLogOptions` | Per-operation logging (`{ use: true, level?: 'info' }`) |
 
@@ -337,7 +337,7 @@ export class Category extends BasePostgresEntity<typeof Category.schema> {
 export class CategoryRepository extends SoftDeletableRepository<typeof Category.schema> {}
 ```
 
-Delete operations accept `shouldHardDelete: true` in options to physically remove a row, and soft-deleted records can be restored via `restoreById`/`restoreAll`.
+Delete operations accept `shouldHardDelete: true` in options to physically remove a row, and soft-deleted records can be restored via `restoreById`/`restoreBy`.
 
 ## Repository Template
 

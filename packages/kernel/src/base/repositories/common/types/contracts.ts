@@ -90,26 +90,12 @@ export interface IUpdatableRepository<
     options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
 
-  updateAll(opts: {
-    data: Partial<TPersistObject>;
-    where: TWhere<TDataObject>;
-    options: ExtraOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-
-  updateAll<R = TDataObject>(opts: {
-    data: Partial<TPersistObject>;
-    where: TWhere<TDataObject>;
-    options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> | null }>;
-
-  /** Alias for updateAll. */
   updateBy(opts: {
     data: Partial<TPersistObject>;
     where: TWhere<TDataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
 
-  /** Alias for updateAll. */
   updateBy<R = TDataObject>(opts: {
     data: Partial<TPersistObject>;
     where: TWhere<TDataObject>;
@@ -132,25 +118,13 @@ export interface IDeletableRepository<
     options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
 
-  deleteAll(opts: {
-    where?: TWhere<TDataObject>;
-    options: ExtraOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-
-  deleteAll<R = TDataObject>(opts: {
-    where?: TWhere<TDataObject>;
-    options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> | null }>;
-
-  /** Alias for deleteAll. */
   deleteBy(opts: {
-    where?: TWhere<TDataObject>;
+    where: TWhere<TDataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
 
-  /** Alias for deleteAll. */
   deleteBy<R = TDataObject>(opts: {
-    where?: TWhere<TDataObject>;
+    where: TWhere<TDataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> | null }>;
 }

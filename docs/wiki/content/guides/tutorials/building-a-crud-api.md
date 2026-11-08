@@ -283,9 +283,9 @@ export class TodoRepository extends DefaultCRUDRepository<typeof todoTable> {
 | `findOne()` | Get single record by filter |
 | `findById()` | Get record by ID |
 | `updateById()` | Update record by ID |
-| `updateAll()` | Update multiple records |
+| `updateBy()` | Update multiple records |
 | `deleteById()` | Delete record by ID |
-| `deleteAll()` | Delete multiple records |
+| `deleteBy()` | Delete multiple records |
 | `count()` | Count matching records |
 
 Reads return their result directly: `find()` returns an array of rows, `findOne()` and `findById()` return a row or `null`. The `{ count, data }` shape is what the generated HTTP routes answer (and what write methods such as `create()` return), not what `find()` returns.

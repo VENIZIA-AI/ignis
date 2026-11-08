@@ -112,7 +112,7 @@ export class DefaultFilterTestService extends BaseTestService {
       ];
 
       for (const prefix of prefixes) {
-        await repo.deleteAll({
+        await repo.deleteBy({
           where: { code: { like: prefix } },
           options: { force: true, shouldSkipDefaultFilter: true },
         });

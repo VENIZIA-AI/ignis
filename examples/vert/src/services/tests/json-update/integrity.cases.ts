@@ -2,7 +2,7 @@ import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
-// Integrity Cases - value-type coverage, sibling/auto-vivification guarantees and bulk updateAll
+// Integrity Cases - value-type coverage, sibling/auto-vivification guarantees and bulk updateBy
 // ----------------------------------------------------------------
 export class IntegrityCases extends BaseTestCases {
   // ----------------------------------------------------------------
@@ -64,7 +64,7 @@ export class IntegrityCases extends BaseTestCases {
         this.context.logger.error('[CASE 8] FAILED | Update count: %d', updateResult.count);
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[CASE 8] FAILED | Error: %s', (error as Error).message);
     }
@@ -131,7 +131,7 @@ export class IntegrityCases extends BaseTestCases {
         this.context.logger.error('[CASE 9] FAILED | jValue: %j', jValue);
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[CASE 9] FAILED | Error: %s', (error as Error).message);
     }
@@ -177,14 +177,14 @@ export class IntegrityCases extends BaseTestCases {
         this.context.logger.error('[CASE 10] FAILED | jValue: %j', jValue);
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[CASE 10] FAILED | Error: %s', (error as Error).message);
     }
   }
 
   // ----------------------------------------------------------------
-  // CASE 11: updateAll with JSON paths
+  // CASE 11: updateBy with JSON paths
   // ----------------------------------------------------------------
   async case11UpdateAllWithJsonPaths(): Promise<void> {
     const repo = this.context.configurationRepository;
@@ -218,7 +218,7 @@ export class IntegrityCases extends BaseTestCases {
       });
 
       // Bulk update using JSON path
-      const updateResult = await repo.updateAll({
+      const updateResult = await repo.updateBy({
         where: { group: groupId },
         data: { 'jValue.verified': true } as any,
       });
@@ -241,12 +241,12 @@ export class IntegrityCases extends BaseTestCases {
         }
       } else {
         this.context.logger.info(
-          '[CASE 11] INFO | updateAll returned count: %d (expected 3)',
+          '[CASE 11] INFO | updateBy returned count: %d (expected 3)',
           updateResult.count,
         );
       }
 
-      await repo.deleteAll({ where: { group: groupId } });
+      await repo.deleteBy({ where: { group: groupId } });
     } catch (error) {
       this.context.logger.error('[CASE 11] FAILED | Error: %s', (error as Error).message);
     }

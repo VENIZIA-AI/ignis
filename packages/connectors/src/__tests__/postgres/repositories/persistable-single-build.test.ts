@@ -41,11 +41,11 @@ const pgQueryResult = { rows: [], rowCount: 2 };
  * compiled condition back rather than leaving the caller to recompile it.
  */
 describe('PersistableRepository - where SQL is built once per update/delete', () => {
-  test('updateAll builds toWhere exactly once', async () => {
+  test('updateBy builds toWhere exactly once', async () => {
     const { repository, dialect } = buildSetup({ result: pgQueryResult });
     const spy = spyOn(dialect, 'toWhere');
 
-    await repository.updateAll({
+    await repository.updateBy({
       data: { name: 'x' },
       where: { status: 'active' },
       options: { shouldReturn: false },
@@ -55,11 +55,11 @@ describe('PersistableRepository - where SQL is built once per update/delete', ()
     spy.mockRestore();
   });
 
-  test('deleteAll builds toWhere exactly once', async () => {
+  test('deleteBy builds toWhere exactly once', async () => {
     const { repository, dialect } = buildSetup({ result: pgQueryResult });
     const spy = spyOn(dialect, 'toWhere');
 
-    await repository.deleteAll({
+    await repository.deleteBy({
       where: { status: 'active' },
       options: { shouldReturn: false },
     });
@@ -68,10 +68,10 @@ describe('PersistableRepository - where SQL is built once per update/delete', ()
     spy.mockRestore();
   });
 
-  test('updateAll still reports the driver count (behavior unchanged)', async () => {
+  test('updateBy still reports the driver count (behavior unchanged)', async () => {
     const { repository } = buildSetup({ result: pgQueryResult });
 
-    const result = await repository.updateAll({
+    const result = await repository.updateBy({
       data: { name: 'x' },
       where: { status: 'active' },
       options: { shouldReturn: false },

@@ -104,7 +104,7 @@ export class ValueCases extends BaseTestCases {
         );
       }
 
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       this.context.logger.error('[case13BoundaryValues] FAILED | Error: %s', error);
     }
@@ -278,7 +278,7 @@ export class ValueCases extends BaseTestCases {
         );
       }
 
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       this.context.logger.error('[case19DoublePrecisionValues] FAILED | Error: %s', error);
     }

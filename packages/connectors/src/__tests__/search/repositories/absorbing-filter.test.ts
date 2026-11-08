@@ -9,8 +9,8 @@ import { FakeSearchDataSource, ProductDocumentNoDefaultFilter } from './fake-sea
  * indistinguishable: both compiled to no `filterBy` at all.
  *
  * On the read path that silently widened the query to the whole collection. On the write path it
- * was worse - `deleteAll` treats a missing filter as licence to TRUNCATE when `force` is set, so
- * `deleteAll({ where: { or: permittedIds.map(...) }, options: { force: true } })` on an empty
+ * was worse - `deleteBy` treats a missing filter as licence to TRUNCATE when `force` is set, so
+ * `deleteBy({ where: { or: permittedIds.map(...) }, options: { force: true } })` on an empty
  * permission list would have destroyed the collection it was scoped to protect.
  *
  * Every assertion checks BOTH the returned value and that the engine was never asked: a
@@ -93,10 +93,10 @@ describe('absorbing filter - read path', () => {
 });
 
 describe('absorbing filter - write path', () => {
-  test('deleteAll does NOT truncate, even with force', async () => {
+  test('deleteBy does NOT truncate, even with force', async () => {
     const { repository, connector } = buildRepository();
 
-    const result = await repository.deleteAll({
+    const result = await repository.deleteBy({
       where: emptyPermissionScope(),
       options: { force: true },
     });
@@ -109,19 +109,19 @@ describe('absorbing filter - write path', () => {
     expect(connector.deleteByFilterCalls).toHaveLength(0);
   });
 
-  test('deleteAll without force is a no-op, not a DENY - the where IS effective', async () => {
+  test('deleteBy without force is a no-op, not a DENY - the where IS effective', async () => {
     const { repository, connector } = buildRepository();
 
-    const result = await repository.deleteAll({ where: emptyPermissionScope() });
+    const result = await repository.deleteBy({ where: emptyPermissionScope() });
 
     expect(result).toEqual({ count: 0, data: null });
     expect(connector.deleteAllDocumentsCalls).toHaveLength(0);
   });
 
-  test('updateAll updates nothing and never calls the engine', async () => {
+  test('updateBy updates nothing and never calls the engine', async () => {
     const { repository, connector } = buildRepository();
 
-    const result = await repository.updateAll({
+    const result = await repository.updateBy({
       data: { title: 'x' },
       where: emptyPermissionScope(),
     });

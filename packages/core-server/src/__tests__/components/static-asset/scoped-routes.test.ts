@@ -67,8 +67,8 @@ class FakeMetaLinkRepository {
     return { count: 1, data: row };
   }
 
-  async updateAll(opts: { data: TMetaLinkRow; where: TMetaLinkRow }) {
-    this.updateCalls.push('updateAll');
+  async updateBy(opts: { data: TMetaLinkRow; where: TMetaLinkRow }) {
+    this.updateCalls.push('updateBy');
     const matched = this.matchRows({ where: opts.where });
 
     for (const row of matched) {
@@ -765,7 +765,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
     const response = await router.request('/assets/meta-links/photo.jpg', { method: 'PUT' });
 
     expect(response.status).toBe(200);
-    expect(repository.updateCalls).toEqual(['updateAll']);
+    expect(repository.updateCalls).toEqual(['updateBy']);
 
     for (const row of repository.rows) {
       expect(row).toMatchObject({
@@ -793,7 +793,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
     const body = result as Record<string, AnyType>;
 
     expect(body).toMatchObject({ action: MetaLinkRecreateActions.REFRESHED, count: 2 });
-    expect(repository.updateCalls).toEqual(['updateAll', 'updateById', 'updateById']);
+    expect(repository.updateCalls).toEqual(['updateBy', 'updateById', 'updateById']);
     expect(repository.rows[0].metadata).toEqual({
       width: 640,
       mimetype: 'image/jpeg',

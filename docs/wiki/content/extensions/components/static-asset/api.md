@@ -900,15 +900,15 @@ Both classes come from the separate `@venizia/ignis-connectors` package, importe
   - If the insert throws, the upload still succeeds. The file's response entry gets <code v-pre>metaLink: { error: 'META_LINK_CREATE_FAILED' }</code> - a fixed code, never the driver's text - and the real error is logged in full. This handler returns `200`, so it bypasses the error middleware that strips `detail`/`table`/`constraint`; returning a code is what keeps raw constraint names off the wire.
 - **On delete:**
   - The storage delete happens first and is awaited.
-  - The MetaLink row delete (`deleteAll({ where: { bucketName, objectName } })`) fires without being awaited.
+  - The MetaLink row delete (`deleteBy({ where: { bucketName, objectName } })`) fires without being awaited.
   - The HTTP response returns as soon as the storage delete resolves - the database delete may still be in flight.
   - Errors there are logged, never surfaced to the client.
 - **On sync (`PUT meta-links/:objectName`, `recreateMetaLink`):** refreshes first, creates only if nothing was there to refresh. `MetaLinkRecreateActions` names the two outcomes: `'refreshed'` and `'created'`, and the OpenAPI document types `action` as that literal enum, not a bare `string`.
 
   | Step | What runs | Rows touched |
   |------|-----------|--------------|
-  | Refresh, `metaLink.createMetaLink` configured | One `repository.updateAll({ data: { mimetype, size, etag, isSynced: true }, where: { bucketName, objectName } })` - `link` and `metadata` are left alone, because the hook owns them | Every row for that `(bucketName, objectName)` pair |
-  | Refresh, no hook | The same `updateAll`, plus `link` in the same statement; then one `updateById` **per row**, `{ metadata: { ...row.metadata, ...fileStat.metadata } }` - the stat's keys win, the row's other keys survive. Skipped entirely when the stat carries no metadata | Every row for that `(bucketName, objectName)` pair |
+  | Refresh, `metaLink.createMetaLink` configured | One `repository.updateBy({ data: { mimetype, size, etag, isSynced: true }, where: { bucketName, objectName } })` - `link` and `metadata` are left alone, because the hook owns them | Every row for that `(bucketName, objectName)` pair |
+  | Refresh, no hook | The same `updateBy`, plus `link` in the same statement; then one `updateById` **per row**, `{ metadata: { ...row.metadata, ...fileStat.metadata } }` - the stat's keys win, the row's other keys survive. Skipped entirely when the stat carries no metadata | Every row for that `(bucketName, objectName)` pair |
   | Create | Only when the refresh updated `0` rows: `AssetMetaLink.createRow` - the same builder `upload` and `upload-commit` use, so `metaLink.createMetaLink` runs when provided, with a fresh `getStat()` result | One row, with no principal and no labels |
 
   Rows per pair are deliberately not unique, and a refresh keeps each row's own `storageType` and labels (`variant`, `principalType`, `principalId`, `sequence`) either way.
@@ -918,7 +918,7 @@ Both classes come from the separate `@venizia/ignis-connectors` package, importe
   Refresh-then-create is not atomic: two concurrent calls on an object with no existing row can both create one. Rows per pair are deliberately not unique, so the table allows it.
 
   > [!WARNING]
-  > Without a hook, the `metadata` merge is a read-then-write per row: the `updateAll`'s own `RETURNING` supplies the "read", and each row's `updateById` is a separate statement after it. An application write to that row's `metadata` landing between the two is overwritten by the merge.
+  > Without a hook, the `metadata` merge is a read-then-write per row: the `updateBy`'s own `RETURNING` supplies the "read", and each row's `updateById` is a separate statement after it. An application write to that row's `metadata` landing between the two is overwritten by the merge.
 
 ## Component lifecycle
 

@@ -308,7 +308,7 @@ export class OverrideCases extends BaseTestCases {
       });
 
       // UpdateAll without skip - should only update priced product
-      const updateResult = await repo.updateAll({
+      const updateResult = await repo.updateBy({
         where: { code: { like: `${testCode}%` } },
         data: { description: 'Updated' },
       });
@@ -364,7 +364,7 @@ export class OverrideCases extends BaseTestCases {
       });
 
       // DeleteAll without skip - should only delete priced product
-      const deleteResult = await repo.deleteAll({
+      const deleteResult = await repo.deleteBy({
         where: { code: { like: `${testCode}%` } },
       });
 
@@ -391,7 +391,7 @@ export class OverrideCases extends BaseTestCases {
           '[CASE 22] PASSED | Free product still exists (excluded by default filter)',
         );
         // Clean up the remaining product
-        await repo.deleteAll({
+        await repo.deleteBy({
           where: { code: `${testCode}_FREE` },
           options: { force: true, shouldSkipDefaultFilter: true },
         });

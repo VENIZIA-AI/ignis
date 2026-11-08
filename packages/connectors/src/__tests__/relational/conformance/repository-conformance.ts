@@ -133,7 +133,7 @@ export const runRepositoryConformance = (opts: {
       harness = build();
       ({ repository, scopedRepository } = harness);
 
-      await repository.deleteAll({ where: {}, options: { force: true, shouldReturn: false } });
+      await repository.deleteBy({ where: {}, options: { force: true, shouldReturn: false } });
 
       const seeded = await repository.createAll<IConformanceRow>({ data: SEED });
 
@@ -258,8 +258,8 @@ export const runRepositoryConformance = (opts: {
     // The discriminating case: with `shouldReturn: false` there are no
     // rows to count, so `count` can only come from the driver's own
     // affected-row field. An engine that guessed would answer 1 or 0.
-    test('updateAll() reports a truthful count for a multi-row match without RETURNING', async () => {
-      const updated = await repository.updateAll({
+    test('updateBy() reports a truthful count for a multi-row match without RETURNING', async () => {
+      const updated = await repository.updateBy({
         data: { score: 99 },
         where: { tenant: 'acme' },
         options: { shouldReturn: false },
@@ -270,8 +270,8 @@ export const runRepositoryConformance = (opts: {
       expect(result).toEqual({ count: 2 });
     });
 
-    test('updateAll() matching nothing reports zero and changes nothing', async () => {
-      const updated = await repository.updateAll({
+    test('updateBy() matching nothing reports zero and changes nothing', async () => {
+      const updated = await repository.updateBy({
         data: { score: 99 },
         where: { tenant: 'no-such-tenant' },
         options: { shouldReturn: false },
@@ -292,8 +292,8 @@ export const runRepositoryConformance = (opts: {
       expect(result2).toEqual({ count: 2 });
     });
 
-    test('deleteAll() reports a truthful count for a multi-row match without RETURNING', async () => {
-      const deleted = await repository.deleteAll({
+    test('deleteBy() reports a truthful count for a multi-row match without RETURNING', async () => {
+      const deleted = await repository.deleteBy({
         where: { tenant: 'acme' },
         options: { shouldReturn: false },
       });

@@ -260,7 +260,7 @@ export class SecurityCases extends BaseTestCases {
       }
 
       // Cleanup
-      await repo.deleteAll({
+      await repo.deleteBy({
         where: { code: { like: `${testCode}%` } },
         options: { force: true, shouldSkipDefaultFilter: true },
       });
@@ -329,7 +329,7 @@ export class SecurityCases extends BaseTestCases {
       }
 
       // Cleanup
-      await repo.deleteAll({
+      await repo.deleteBy({
         where: { code: testCode },
         options: { force: true, shouldSkipDefaultFilter: true },
       });
@@ -418,7 +418,7 @@ export class SecurityCases extends BaseTestCases {
       }
 
       // Cleanup
-      await repo.deleteAll({
+      await repo.deleteBy({
         where: { code: testCode },
         options: { force: true, shouldSkipDefaultFilter: true },
       });

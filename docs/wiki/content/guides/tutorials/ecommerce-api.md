@@ -432,7 +432,7 @@ export class CartRepository extends DefaultCRUDRepository<typeof cartTable> {
   }
 
   async clearCart(opts: { cartId: string }) {
-    return this._cartItemRepository.deleteAll({ where: { cartId: opts.cartId } });
+    return this._cartItemRepository.deleteBy({ where: { cartId: opts.cartId } });
   }
 }
 ```

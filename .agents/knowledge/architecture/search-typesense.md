@@ -72,9 +72,9 @@ Method parameters are bivariant in TypeScript, so a search repository can drop a
 | Verb | Search signature | Why |
 | --- | --- | --- |
 | `findById` | matches the base, including `filter?: Omit<TFilter, 'where'>` | `fields` becomes the engine's include-fields; only `include` is unsupported, and the dialect throws for it |
-| `updateAll` | `where?` where the base requires it | the `@model` `settings.query.filter` alone can supply the effective filter; Persistable refuses the write when neither is present |
-| `deleteAll` | the whole options object is optional | same rule, plus `deleteAll()` with no argument must refuse rather than truncate |
-| `updateAll` / `deleteAll` | return `data: null`, no `shouldReturn` overloads | no engine here has RETURNING, and no extra read is bolted on |
+| `updateBy` | `where?` where the base requires it | the `@model` `settings.query.filter` alone can supply the effective filter; Persistable refuses the write when neither is present |
+| `deleteBy` | the whole options object is optional | same rule, plus `deleteBy()` with no argument must refuse rather than truncate |
+| `updateBy` / `deleteBy` | return `data: null`, no `shouldReturn` overloads | no engine here has RETURNING, and no extra read is bolted on |
 
 ## Big collections: streaming export, per-call timeout, import errors
 

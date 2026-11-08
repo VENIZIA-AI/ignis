@@ -108,7 +108,7 @@ const { success } = await fetch(
 ```
 
 > [!NOTE]
-> When MetaLink is enabled, the database record deletion is **fire-and-forget**. The response returns as soon as the storage delete completes - it does not wait on the `deleteAll()` call. Deletion errors are logged but never fail the request.
+> When MetaLink is enabled, the database record deletion is **fire-and-forget**. The response returns as soon as the storage delete completes - it does not wait on the `deleteBy()` call. Deletion errors are logged but never fail the request.
 
 ## Sync a MetaLink record manually
 

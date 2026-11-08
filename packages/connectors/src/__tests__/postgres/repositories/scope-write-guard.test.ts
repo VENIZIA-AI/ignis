@@ -589,21 +589,21 @@ describe('scopeFilter write guard', () => {
       expect(result).toEqual([]);
     });
 
-    test('updateById, updateAll and updateBy: a payload naming another scope is refused', async () => {
+    test('updateById, updateBy and updateBy: a payload naming another scope is refused', async () => {
       const { repository, mine } = await seed();
 
       await refusal(repository.updateById({ id: mine, data: { merchantId: 'm-b' } }));
-      await refusal(repository.updateAll({ where: { name: 'mine' }, data: { merchantId: 'm-b' } }));
+      await refusal(repository.updateBy({ where: { name: 'mine' }, data: { merchantId: 'm-b' } }));
       await refusal(repository.updateBy({ where: { name: 'mine' }, data: { merchantId: 'm-b' } }));
 
       const result = await rows();
       expect(result.map((row) => row.merchantId)).toEqual(['m-a', 'm-b']);
     });
 
-    test('updateAll and updateBy with a payload that stays in scope touch only the scoped rows', async () => {
+    test('updateBy and updateBy with a payload that stays in scope touch only the scoped rows', async () => {
       const { repository } = await seed();
 
-      await repository.updateAll({
+      await repository.updateBy({
         where: {},
         data: { name: 'renamed' },
         options: { force: true },
@@ -618,14 +618,14 @@ describe('scopeFilter write guard', () => {
       expect(result.map((row) => row.name)).toEqual(['renamed-by', 'theirs']);
     });
 
-    test('deleteById, deleteAll and deleteBy only reach rows inside the scope', async () => {
+    test('deleteById, deleteBy and deleteBy only reach rows inside the scope', async () => {
       const { repository, mine, theirs } = await seed();
 
       const result = await repository.deleteById({ id: theirs });
       expect(result.count).toBe(0);
       const result2 = await repository.deleteBy({ where: { name: 'theirs' } });
       expect(result2.count).toBe(0);
-      const result3 = await repository.deleteAll({ where: {}, options: { force: true } });
+      const result3 = await repository.deleteBy({ where: {}, options: { force: true } });
       expect(result3.count).toBe(1);
       expect(mine).toBeDefined();
       const result4 = await rows();
@@ -701,10 +701,10 @@ describe('scopeFilter write guard', () => {
       expect(result3).toEqual(['shared', 'theirs']);
     });
 
-    test('updateAll and updateBy touch only my rows', async () => {
+    test('updateBy and updateBy touch only my rows', async () => {
       const { repository } = await seed();
 
-      await repository.updateAll({ where: {}, data: { name: 'all' }, options: { force: true } });
+      await repository.updateBy({ where: {}, data: { name: 'all' }, options: { force: true } });
       const result = await names();
       expect(result).toEqual(['all', 'shared', 'theirs']);
 
@@ -713,10 +713,10 @@ describe('scopeFilter write guard', () => {
       expect(result2).toEqual(['by', 'shared', 'theirs']);
     });
 
-    test('deleteAll and deleteBy touch only my rows', async () => {
+    test('deleteBy and deleteBy touch only my rows', async () => {
       const { repository } = await seed();
 
-      const result = await repository.deleteAll({ where: {}, options: { force: true } });
+      const result = await repository.deleteBy({ where: {}, options: { force: true } });
       expect(result.count).toBe(1);
       const result2 = await names();
       expect(result2).toEqual(['shared', 'theirs']);
@@ -730,7 +730,7 @@ describe('scopeFilter write guard', () => {
     test('a payload that does not name the scope column cannot reach a shared row through a name filter either', async () => {
       const { repository } = await seed();
 
-      const result = await repository.updateAll({ where: { name: 'shared' }, data: { name: 'x' } });
+      const result = await repository.updateBy({ where: { name: 'shared' }, data: { name: 'x' } });
 
       expect(result.count).toBe(0);
       const result2 = await names();

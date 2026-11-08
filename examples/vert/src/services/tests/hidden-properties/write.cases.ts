@@ -176,7 +176,7 @@ export class WriteCases extends BaseTestCases {
     this.context.logCase('[CASE 9] UpdateAll should exclude hidden properties from response');
 
     try {
-      const updated = await repo.updateAll({
+      const updated = await repo.updateBy({
         where: { realm: { like: 'HIDDEN_TEST_%' } },
         data: {
           password: 'updated_bulk_password',
@@ -206,7 +206,7 @@ export class WriteCases extends BaseTestCases {
         if (hasPassword || hasSecret) {
           hasFailed = true;
           this.context.logger.error(
-            '[CASE 9] FAILED | User %s has hidden fields in updateAll response',
+            '[CASE 9] FAILED | User %s has hidden fields in updateBy response',
             user.id,
           );
         }

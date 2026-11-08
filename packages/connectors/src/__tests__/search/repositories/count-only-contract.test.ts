@@ -6,15 +6,15 @@ import type { DefaultCRUDRepository } from '@/relational/postgres';
 declare const searchRepository: DefaultSearchRepository<AnyType>;
 declare const postgresRepository: DefaultCRUDRepository<AnyType>;
 
-/** Compile-time contract: bulk writes on search engines are count-only - `shouldReturn` is rejected at the TYPE level for search updateAll/deleteAll, while postgres keeps its full overloads. */
+/** Compile-time contract: bulk writes on search engines are count-only - `shouldReturn` is rejected at the TYPE level for search updateBy/deleteBy, while postgres keeps its full overloads. */
 async function probeCompileOnly() {
-  const updated = await searchRepository.updateAll({ data: { title: 'x' }, where: { id: '1' } });
+  const updated = await searchRepository.updateBy({ data: { title: 'x' }, where: { id: '1' } });
   const updatedData: null = updated.data;
 
-  const deleted = await searchRepository.deleteAll({ where: { id: '1' } });
+  const deleted = await searchRepository.deleteBy({ where: { id: '1' } });
   const deletedData: null = deleted.data;
 
-  await searchRepository.updateAll({
+  await searchRepository.updateBy({
     data: { title: 'x' },
     where: { id: '1' },
     options: {
@@ -22,7 +22,7 @@ async function probeCompileOnly() {
       shouldReturn: true,
     },
   });
-  await searchRepository.deleteAll({
+  await searchRepository.deleteBy({
     where: { id: '1' },
     options: {
       // @ts-expect-error shouldReturn is not part of the search bulk-write contract
@@ -30,7 +30,7 @@ async function probeCompileOnly() {
     },
   });
 
-  const postgresUpdated = await postgresRepository.updateAll({
+  const postgresUpdated = await postgresRepository.updateBy({
     data: { title: 'x' },
     where: { id: '1' },
   });

@@ -605,22 +605,22 @@ export class ReadableRelationalRepository<
   }
 
   /** @throws Error - disabled in read-only repository. */
-  override updateAll(opts: {
+  override updateBy(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
-  override updateAll<R = DataObject>(opts: {
+  override updateBy<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
-  override updateAll<R = DataObject>(_opts: {
+  override updateBy<R = DataObject>(_opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    return this.denyOperation({ methodName: this.updateAll.name });
+    return this.denyOperation({ methodName: this.updateBy.name });
   }
 
   /** @throws Error - disabled in read-only repository. */
@@ -640,18 +640,18 @@ export class ReadableRelationalRepository<
   }
 
   /** @throws Error - disabled in read-only repository. */
-  override deleteAll(opts: {
-    where?: TWhere<DataObject>;
+  override deleteBy(opts: {
+    where: TWhere<DataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
-  override deleteAll<R = DataObject>(opts: {
-    where?: TWhere<DataObject>;
+  override deleteBy<R = DataObject>(opts: {
+    where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
-  override deleteAll<R = DataObject>(_opts: {
-    where?: TWhere<DataObject>;
+  override deleteBy<R = DataObject>(_opts: {
+    where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    return this.denyOperation({ methodName: this.deleteAll.name });
+    return this.denyOperation({ methodName: this.deleteBy.name });
   }
 }

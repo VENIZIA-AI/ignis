@@ -270,7 +270,7 @@ export class FieldSelectionTestService extends BaseTestService {
     this.logCase('[CASE 6] Cleanup field selection test data');
 
     try {
-      const deleted = await repo.deleteAll({ where: { group: 'FIELDS_TEST' } });
+      const deleted = await repo.deleteBy({ where: { group: 'FIELDS_TEST' } });
       this.logger.info('[CASE 6] PASSED | Deleted %d records', deleted.count);
     } catch (error) {
       this.logger.error('[CASE 6] FAILED | Error: %s', (error as Error).message);

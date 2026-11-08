@@ -18,6 +18,8 @@ export interface ISoftDeleteDataContext {
   items: AnyType;
   /** The same table, through a repository that does not soft delete. */
   plain: AnyType;
+  /** The soft-deletable repository of a model with no scope and no default filter. */
+  open: AnyType;
   codeKey: AnyType;
   /** The query executor every repository of the engine shares, to count the statements a call runs. */
   executor: AnyType;
@@ -33,8 +35,7 @@ const MINE = { merchantId: ME };
 
 const DELETED_AT_COLUMN = 'deleted_at';
 
-const MESSAGE =
-  'deletedAt changes only through deleteById/deleteAll/deleteBy and restoreById/restoreAll/restoreBy';
+const MESSAGE = 'deletedAt changes only through deleteById/deleteBy and restoreById/restoreBy';
 
 const DELETED_AT_DATA: ReadonlyArray<{ title: string; data: () => Record<string, unknown> }> = [
   { title: 'a date under the property name', data: () => ({ deletedAt: new Date() }) },
@@ -119,13 +120,9 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
         await expectRefused({ ctx, task: () => ctx.items.updateById({ id: 1, data: data() }) });
       });
 
-      test(`updateAll and updateBy refuse ${title}`, async () => {
+      test(`updateBy refuses ${title}`, async () => {
         const ctx = await setup();
 
-        await expectRefused({
-          ctx,
-          task: () => ctx.items.updateAll({ where: MINE, data: data() }),
-        });
         await expectRefused({
           ctx,
           task: () => ctx.items.updateBy({ where: MINE, data: data() }),
@@ -166,7 +163,7 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
       const data = { [DELETED_AT_COLUMN]: new Date() };
 
       await expectBadRequest({ ctx, task: () => ctx.items.updateById({ id: 1, data }) });
-      await expectBadRequest({ ctx, task: () => ctx.items.updateAll({ where: MINE, data }) });
+      await expectBadRequest({ ctx, task: () => ctx.items.updateBy({ where: MINE, data }) });
       await expectBadRequest({
         ctx,
         task: () => ctx.items.updateEach({ rows: [{ id: 1, data }] }),
@@ -196,6 +193,55 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
     });
   });
 
+  describe('the whole table is where: {} with options.force', () => {
+    test('updateBy, deleteBy and restoreBy refuse an empty where without force, and change nothing', async () => {
+      const ctx = await setup();
+      const before = await ctx.rawRows();
+
+      for (const task of [
+        () => ctx.open.updateBy({ where: {}, data: { status: 'closed' } }),
+        () => ctx.open.deleteBy({ where: {} }),
+        () => ctx.open.restoreBy({ where: {} }),
+      ]) {
+        const error = await RejectionHelper.rejectionOf({ task: task() });
+
+        expect(messageOf(error)).toContain('Empty where condition');
+      }
+
+      const after = await ctx.rawRows();
+
+      expect(after).toEqual(before);
+    });
+
+    test('with force they reach every row of the table', async () => {
+      const ctx = await setup();
+
+      const updated = await ctx.open.updateBy({
+        where: {},
+        data: { status: 'closed' },
+        options: { force: true },
+      });
+
+      expect(updated.count).toBe(3);
+
+      const deleted = await ctx.open.deleteBy({ where: {}, options: { force: true } });
+
+      expect(deleted.count).toBe(3);
+
+      const deletedRows = await deletedCountOf({ ctx });
+
+      expect(deletedRows).toBe(3);
+
+      const restored = await ctx.open.restoreBy({ where: {}, options: { force: true } });
+
+      expect(restored.count).toBe(3);
+
+      const remainingRows = await deletedCountOf({ ctx });
+
+      expect(remainingRows).toBe(0);
+    });
+  });
+
   describe('a soft delete writes extra columns in the same statement', () => {
     test('deleteById writes status and deletedAt in one UPDATE', async () => {
       const ctx = await setup();
@@ -210,10 +256,10 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
       await expectRow({ ctx, code: 'C', row: { status: 'open', isDeleted: false } });
     });
 
-    test('deleteAll and deleteBy write the data on every matched row and no other', async () => {
+    test('deleteBy writes the data on every matched row and no other', async () => {
       const ctx = await setup();
 
-      const all = await ctx.items.deleteAll({ where: { code: 'A' }, data: { status: 'closed' } });
+      const all = await ctx.items.deleteBy({ where: { code: 'A' }, data: { status: 'closed' } });
 
       expect(all.count).toBe(1);
 
@@ -238,16 +284,16 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
       await expectRow({ ctx, code: 'A', row: { status: 'open', isDeleted: true } });
     });
 
-    test('restoreById, restoreAll and restoreBy still clear deletedAt', async () => {
+    test('restoreById and restoreBy still clear deletedAt', async () => {
       const ctx = await setup();
 
-      await ctx.items.deleteAll({ where: MINE, data: { status: 'closed' } });
+      await ctx.items.deleteBy({ where: MINE, data: { status: 'closed' } });
       const deleted = await deletedCountOf({ ctx });
 
       expect(deleted).toBe(2);
 
       const byId = await ctx.items.restoreById({ id: 1 });
-      const all = await ctx.items.restoreAll({ where: { code: 'C' } });
+      const all = await ctx.items.restoreBy({ where: { code: 'C' } });
 
       expect(byId.count).toBe(1);
       expect(all.count).toBe(1);
@@ -280,16 +326,12 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
       expect(after).toEqual(before);
     };
 
-    test('a merchantId outside the scope is refused with 403 by all three soft deletes', async () => {
+    test('a merchantId outside the scope is refused with 403 by both soft deletes', async () => {
       const ctx = await setup();
 
       await expectDenied({
         ctx,
         task: () => ctx.items.deleteById({ id: 1, data: { merchantId: OTHER } }),
-      });
-      await expectDenied({
-        ctx,
-        task: () => ctx.items.deleteAll({ where: MINE, data: { merchantId: OTHER } }),
       });
       await expectDenied({
         ctx,
@@ -342,16 +384,12 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
 
   describe('a soft delete refuses data it cannot write', () => {
     for (const { title, data } of DELETED_AT_DATA) {
-      test(`deleteById, deleteAll and deleteBy refuse ${title}`, async () => {
+      test(`deleteById and deleteBy refuse ${title}`, async () => {
         const ctx = await setup();
 
         await expectRefused({
           ctx,
           task: () => ctx.items.deleteById({ id: 1, data: data() }),
-        });
-        await expectRefused({
-          ctx,
-          task: () => ctx.items.deleteAll({ where: MINE, data: data() }),
         });
         await expectRefused({
           ctx,
@@ -365,7 +403,6 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
       const data = { [DELETED_AT_COLUMN]: new Date() };
 
       await expectBadRequest({ ctx, task: () => ctx.items.deleteById({ id: 1, data }) });
-      await expectBadRequest({ ctx, task: () => ctx.items.deleteAll({ where: MINE, data }) });
       await expectBadRequest({ ctx, task: () => ctx.items.deleteBy({ where: MINE, data }) });
     });
 
@@ -377,11 +414,6 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
         ctx,
         message,
         task: () => ctx.items.deleteById({ id: 1, data: { id: 99 } }),
-      });
-      await expectRefused({
-        ctx,
-        message,
-        task: () => ctx.items.deleteAll({ where: MINE, data: { id: 99 } }),
       });
       await expectRefused({
         ctx,
@@ -401,16 +433,6 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
         task: () =>
           ctx.items.deleteById({
             id: 1,
-            data: { status: 'closed' },
-            options: { shouldHardDelete: true },
-          }),
-      });
-      await expectRefused({
-        ctx,
-        message,
-        task: () =>
-          ctx.items.deleteAll({
-            where: MINE,
             data: { status: 'closed' },
             options: { shouldHardDelete: true },
           }),

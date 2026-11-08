@@ -27,7 +27,7 @@ class ValidateWhereFixtureEntity extends BasePostgresEntity {
 
 /**
  * validateWhereCondition must treat a where as empty when it resolves to NO SQL condition ({} and
- * all-undefined wheres) - otherwise updateAll/updateBy/deleteAll/deleteBy run table-wide.
+ * all-undefined wheres) - otherwise updateBy/updateBy/deleteBy/deleteBy run table-wide.
  */
 class TestRepository extends PersistableRepository<any> {
   constructor() {
@@ -70,7 +70,7 @@ describe('PersistableRepository.validateWhereCondition (resolved-SQL emptiness)'
   });
 });
 
-describe('updateAll / deleteAll reject an all-undefined where without force', () => {
+describe('updateBy / deleteBy reject an all-undefined where without force', () => {
   const repo = new TestRepository();
 
   async function rejectionMessage(op: Promise<unknown>): Promise<string | null> {
@@ -83,15 +83,15 @@ describe('updateAll / deleteAll reject an all-undefined where without force', ()
     }
   }
 
-  test('updateAll rejects { status: undefined }', async () => {
+  test('updateBy rejects { status: undefined }', async () => {
     const message = await rejectionMessage(
-      repo.updateAll({ data: { name: 'x' }, where: { status: undefined } }),
+      repo.updateBy({ data: { name: 'x' }, where: { status: undefined } }),
     );
     expect(message).toMatch(/Empty where condition/);
   });
 
-  test('deleteAll rejects { status: undefined }', async () => {
-    const message = await rejectionMessage(repo.deleteAll({ where: { status: undefined } }));
+  test('deleteBy rejects { status: undefined }', async () => {
+    const message = await rejectionMessage(repo.deleteBy({ where: { status: undefined } }));
     expect(message).toMatch(/Empty where condition/);
   });
 

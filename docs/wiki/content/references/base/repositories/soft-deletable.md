@@ -65,8 +65,8 @@ export class CategoryRepository extends SoftDeletableRepository<typeof Category.
 
 ## Delete Operations
 
-- **Delete sets a timestamp, not a `DELETE`.** All delete methods set `deletedAt = new Date()` instead of removing the row, in one `UPDATE`. They do not go through `updateById` or `updateAll`, which refuse `deletedAt`.
-- **Extra columns in the same statement.** `deleteById`, `deleteAll` and `deleteBy` take an optional `data`, written with `deletedAt` in that one `UPDATE`. See [Writing other columns with a soft delete](#writing-other-columns-with-a-soft-delete).
+- **Delete sets a timestamp, not a `DELETE`.** All delete methods set `deletedAt = new Date()` instead of removing the row, in one `UPDATE`. They do not go through `updateById` or `updateBy`, which refuse `deletedAt`.
+- **Extra columns in the same statement.** `deleteById`, `deleteBy` take an optional `data`, written with `deletedAt` in that one `UPDATE`. See [Writing other columns with a soft delete](#writing-other-columns-with-a-soft-delete).
 - **Bypass with `shouldHardDelete`.** Pass `options.shouldHardDelete: true` to skip soft delete and delegate to the parent's real `DELETE`.
 
 ### deleteById
@@ -92,24 +92,24 @@ const result = await repository.deleteById({
 });
 ```
 
-### deleteAll
+### deleteBy
 
 `where` only needs `options.force: true` when `where` is empty - a non-empty condition never needs `force`.
 
 ```typescript
 // Soft delete matching records - non-empty where, no force needed
-const result = await repository.deleteAll({
+const result = await repository.deleteBy({
   where: { status: 'archived' },
 });
 
 // Soft delete every row - empty where requires force
-const result = await repository.deleteAll({
+const result = await repository.deleteBy({
   where: {},
   options: { force: true },
 });
 
 // Hard delete matching records
-const result = await repository.deleteAll({
+const result = await repository.deleteBy({
   where: { status: 'archived' },
   options: { shouldHardDelete: true },
 });
@@ -117,7 +117,7 @@ const result = await repository.deleteAll({
 
 ### deleteBy
 
-Same behavior as `deleteAll`, but `where` is a required parameter instead of optional.
+Same behavior as `deleteBy`, but `where` is a required parameter instead of optional.
 
 ```typescript
 // Soft delete by where condition
@@ -150,17 +150,17 @@ const result = await repository.restoreById({
 });
 ```
 
-### restoreAll
+### restoreBy
 
 ```typescript
 // Restore all soft-deleted records (empty where requires force)
-const result = await repository.restoreAll({
+const result = await repository.restoreBy({
   where: {},
   options: { force: true },
 });
 
 // Restore matching records
-const result = await repository.restoreAll({
+const result = await repository.restoreBy({
   where: { name: 'Electronics' },
 });
 ```
@@ -168,7 +168,7 @@ const result = await repository.restoreAll({
 ### restoreBy
 
 ```typescript
-// Calls restoreAll internally
+// Calls restoreBy internally
 const result = await repository.restoreBy({
   where: { status: 'archived' },
 });
@@ -213,7 +213,7 @@ const category = await repository.findById({
 |--------|------|---------|-------------|
 | `shouldHardDelete` | `boolean` | `false` | Bypass soft delete and physically remove the row. Refused when the call also passes `data` |
 | `shouldReturn` | `boolean` | `true` | Return the updated/deleted record |
-| `force` | `boolean` | `false` | Allow an empty `where` condition (`deleteAll`/`deleteBy`) |
+| `force` | `boolean` | `false` | Allow an empty `where` condition (`deleteBy`) |
 | `transaction` | `ITransaction` | - | Transaction context |
 | `log` | `{ use: boolean; level?: TLogLevel }` | - | Enable operation logging |
 | `shouldSkipDefaultFilter` | `boolean` | `false` | Bypass the default filter |
@@ -223,7 +223,7 @@ const category = await repository.findById({
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `shouldReturn` | `boolean` | `true` | Return the restored record |
-| `force` | `boolean` | `false` | Allow an empty `where` condition (`restoreAll` only - `restoreById` has no `force` option) |
+| `force` | `boolean` | `false` | Allow an empty `where` condition (`restoreBy` only - `restoreById` has no `force` option) |
 | `transaction` | `ITransaction` | - | Transaction context |
 
 ## How It Works
@@ -231,9 +231,9 @@ const category = await repository.findById({
 | Operation | SQL Behavior |
 |-----------|-------------|
 | `deleteById` | `UPDATE SET deletedAt = NOW() [, ...data] WHERE id = ?` |
-| `deleteAll` / `deleteBy` | `UPDATE SET deletedAt = NOW() [, ...data] WHERE ...` |
+| `deleteBy` | `UPDATE SET deletedAt = NOW() [, ...data] WHERE ...` |
 | `restoreById` | `UPDATE SET deletedAt = NULL WHERE id = ?` (with `shouldSkipDefaultFilter: true`) |
-| `restoreAll` / `restoreBy` | `UPDATE SET deletedAt = NULL WHERE ...` (with `shouldSkipDefaultFilter: true`) |
+| `restoreBy` | `UPDATE SET deletedAt = NULL WHERE ...` (with `shouldSkipDefaultFilter: true`) |
 | `find` / `findOne` / `count` | Default filter automatically adds `WHERE deletedAt IS NULL` |
 | `deleteById({ shouldHardDelete: true })` | `DELETE FROM ... WHERE id = ?` (delegates to the parent repository) |
 
@@ -242,7 +242,7 @@ const category = await repository.findById({
 
 ## Writing deletedAt
 
-`deletedAt` changes only through `deleteById`, `deleteAll`, `deleteBy` and the restore methods. `updateById`, `updateAll`, `updateBy`, `updateEach` and `upsert` refuse a `data` that carries it, with any value including `null`: the call fails with a 400 and writes nothing.
+`deletedAt` changes only through `deleteById`, `deleteBy` and the restore methods. `updateById`, `updateBy`, `updateEach` and `upsert` refuse a `data` that carries it, with any value including `null`: the call fails with a 400 and writes nothing.
 
 `deletedAt` is in the default `properties.stamped` list of a model, so the default `POST` and `PATCH` bodies of `ControllerFactory.defineCrudController` leave it out. A route you give your own `request.body` keeps whatever that body declares.
 
@@ -255,7 +255,7 @@ A call that must change another column when it deletes passes `data`. It is writ
 
 ```typescript
 await repository.deleteById({ id: '123', data: { status: 'ARCHIVED' } });
-await repository.deleteAll({ where: { status: 'DRAFT' }, data: { status: 'ARCHIVED' } });
+await repository.deleteBy({ where: { status: 'DRAFT' }, data: { status: 'ARCHIVED' } });
 ```
 
 A soft delete is a delete to the row scope, so the row selection and the values in `data` are checked against the `DELETE` scope, not the `UPDATE` one. A value outside that scope is refused with a 403, and a row outside it is not touched.
@@ -329,10 +329,10 @@ It rebinds `ExtraOptions` to `IDatabaseExtraOptions` and `TDataSource` to `IPost
 |------------|------|
 | Soft delete by ID | `repository.deleteById({ id })` |
 | Hard delete by ID | `repository.deleteById({ id, options: { shouldHardDelete: true } })` |
-| Soft delete by condition | `repository.deleteAll({ where })` |
+| Soft delete by condition | `repository.deleteBy({ where })` |
 | Soft delete and set a column | `repository.deleteById({ id, data: { status } })` |
 | Restore by ID | `repository.restoreById({ id })` |
-| Restore by condition | `repository.restoreAll({ where })` |
+| Restore by condition | `repository.restoreBy({ where })` |
 | Find including deleted | `repository.find({ filter, options: { shouldSkipDefaultFilter: true } })` |
 | Strict findById (404) | `repository.findById({ id, options: { isStrict: true } })` |
 

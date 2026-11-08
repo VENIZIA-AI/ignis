@@ -117,7 +117,7 @@ export class AssetMetaLink {
     });
     const statColumns = { mimetype, size, etag, isSynced };
 
-    const updated = await repository.updateAll({
+    const updated = await repository.updateBy({
       data: metaLink.createMetaLink ? statColumns : { ...statColumns, link },
       where: { bucketName: bucket.name, objectName: object.key },
     });

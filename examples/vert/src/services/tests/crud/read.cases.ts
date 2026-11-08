@@ -39,7 +39,7 @@ export class ReadCases extends BaseTestCases {
         this.context.logger.error('[case3FindOne] FAILED | Expected null for non-existent record');
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[case3FindOne] FAILED | Error: %s', error);
     }
@@ -134,7 +134,7 @@ export class ReadCases extends BaseTestCases {
         );
       }
 
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       this.context.logger.error('[case4FindWithFilter] FAILED | Error: %s', error);
     }
@@ -171,7 +171,7 @@ export class ReadCases extends BaseTestCases {
         this.context.logger.error('[case5FindById] FAILED | Expected null for non-existent id');
       }
 
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
     } catch (error) {
       this.context.logger.error('[case5FindById] FAILED | Error: %s', error);
     }
@@ -240,7 +240,7 @@ export class ReadCases extends BaseTestCases {
         );
       }
 
-      await repo.deleteAll({ where: { group } });
+      await repo.deleteBy({ where: { group } });
     } catch (error) {
       this.context.logger.error('[case14CountOperation] FAILED | Error: %s', error);
     }
@@ -284,7 +284,7 @@ export class ReadCases extends BaseTestCases {
       }
 
       // Delete and check again
-      await repo.deleteAll({ where: { code } });
+      await repo.deleteBy({ where: { code } });
 
       const existsAfterDelete = await repo.existsWith({ where: { code } });
 

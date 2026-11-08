@@ -68,11 +68,11 @@ describe('PersistableRepository - create() reports count from the driver result 
   });
 });
 
-describe('PersistableRepository - updateAll() reports count from the driver result (no RETURNING)', () => {
+describe('PersistableRepository - updateBy() reports count from the driver result (no RETURNING)', () => {
   test('a pg.QueryResult shape ({ rows, rowCount }) reports count from rowCount', async () => {
     const repository = buildRepository({ result: pgQueryResult });
 
-    const result = await repository.updateAll({
+    const result = await repository.updateBy({
       data: { name: 'updated' },
       where: { status: 'active' },
       options: { shouldReturn: false },
@@ -84,7 +84,7 @@ describe('PersistableRepository - updateAll() reports count from the driver resu
   test('a postgres-js RowList shape (array + count) reports count from count', async () => {
     const repository = buildRepository({ result: postgresJsRowList });
 
-    const result = await repository.updateAll({
+    const result = await repository.updateBy({
       data: { name: 'updated' },
       where: { status: 'active' },
       options: { shouldReturn: false },
@@ -94,11 +94,11 @@ describe('PersistableRepository - updateAll() reports count from the driver resu
   });
 });
 
-describe('PersistableRepository - deleteAll() reports count from the driver result (no RETURNING)', () => {
+describe('PersistableRepository - deleteBy() reports count from the driver result (no RETURNING)', () => {
   test('a pg.QueryResult shape ({ rows, rowCount }) reports count from rowCount', async () => {
     const repository = buildRepository({ result: pgQueryResult });
 
-    const result = await repository.deleteAll({
+    const result = await repository.deleteBy({
       where: { status: 'active' },
       options: { shouldReturn: false },
     });
@@ -109,7 +109,7 @@ describe('PersistableRepository - deleteAll() reports count from the driver resu
   test('a postgres-js RowList shape (array + count) reports count from count', async () => {
     const repository = buildRepository({ result: postgresJsRowList });
 
-    const result = await repository.deleteAll({
+    const result = await repository.deleteBy({
       where: { status: 'active' },
       options: { shouldReturn: false },
     });

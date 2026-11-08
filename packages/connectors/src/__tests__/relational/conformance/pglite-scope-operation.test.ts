@@ -212,9 +212,9 @@ const METHODS: Array<{
     run: (repo) => repo.updateEach({ rows: [{ id: 1, data: { name: 'renamed-each' } }] }),
   },
   {
-    name: 'updateAll',
+    name: 'updateBy',
     expected: 'update',
-    run: (repo) => repo.updateAll({ where: {}, data: { name: 'renamed-all' } }),
+    run: (repo) => repo.updateBy({ where: {}, data: { name: 'renamed-all' } }),
   },
   {
     name: 'deleteById (hard)',
@@ -222,17 +222,17 @@ const METHODS: Array<{
     run: (repo) => repo.deleteById({ id: 1, options: { shouldHardDelete: true } }),
   },
   {
-    name: 'deleteAll (hard)',
+    name: 'deleteBy (hard)',
     expected: 'delete',
-    run: (repo) => repo.deleteAll({ where: {}, options: { shouldHardDelete: true } }),
+    run: (repo) => repo.deleteBy({ where: {}, options: { shouldHardDelete: true } }),
   },
   // A soft delete is stored as an update of the row but is a delete to the caller: it passes DELETE.
   { name: 'deleteById (soft)', expected: 'delete', run: (repo) => repo.deleteById({ id: 1 }) },
-  { name: 'deleteAll (soft)', expected: 'delete', run: (repo) => repo.deleteAll({ where: {} }) },
+  { name: 'deleteBy (soft)', expected: 'delete', run: (repo) => repo.deleteBy({ where: {} }) },
   { name: 'deleteBy (soft)', expected: 'delete', run: (repo) => repo.deleteBy({ where: {} }) },
   // A restore brings a row back: it stays an update.
   { name: 'restoreById', expected: 'update', run: (repo) => repo.restoreById({ id: 4 }) },
-  { name: 'restoreAll', expected: 'update', run: (repo) => repo.restoreAll({ where: {} }) },
+  { name: 'restoreBy', expected: 'update', run: (repo) => repo.restoreBy({ where: {} }) },
 ];
 
 beforeEach(async () => {
@@ -278,11 +278,11 @@ describe('a zero-argument resolver is unchanged on every operation', () => {
     expect(found.map((row) => row.name)).toEqual(['mine']);
 
     await zeroArgRepository.create({ data: { merchantId: ME, name: 'created' } });
-    await zeroArgRepository.updateAll({ where: {}, data: { name: 'updated' } });
+    await zeroArgRepository.updateBy({ where: {}, data: { name: 'updated' } });
     const result = await rawNames();
     expect(result).toEqual(['updated', 'theirs-with-me', 'unrelated', 'mine-deleted', 'updated']);
 
-    await zeroArgRepository.deleteAll({ where: {}, options: { shouldHardDelete: true } });
+    await zeroArgRepository.deleteBy({ where: {}, options: { shouldHardDelete: true } });
     const result2 = await rawNames();
     expect(result2).toEqual(['theirs-with-me', 'unrelated', 'mine-deleted']);
   });
@@ -303,9 +303,9 @@ describe('write.sharedRows keeps the refusal of a scope the guard cannot read', 
     resolver = () => OR_OVER_TWO_COLUMNS;
 
     const writes = [
-      sharedRowsRepository.deleteAll({ where: {}, options: { shouldHardDelete: true } }),
-      sharedRowsRepository.deleteAll({ where: {} }),
-      sharedRowsRepository.updateAll({ where: {}, data: { name: 'x' } }),
+      sharedRowsRepository.deleteBy({ where: {}, options: { shouldHardDelete: true } }),
+      sharedRowsRepository.deleteBy({ where: {} }),
+      sharedRowsRepository.updateBy({ where: {}, data: { name: 'x' } }),
     ];
 
     for (const write of writes) {
@@ -321,7 +321,7 @@ describe('write.sharedRows keeps the refusal of a scope the guard cannot read', 
     await client.exec(`UPDATE ${TABLE_NAME} SET merchant_id = '${ME}' WHERE id = 3`);
     resolver = () => ({ or: [{ merchantId: ME }, { merchantId: 'm2' }] });
 
-    await sharedRowsRepository.deleteAll({
+    await sharedRowsRepository.deleteBy({
       where: {},
       options: { shouldReturn: false, shouldHardDelete: true },
     });
@@ -343,7 +343,7 @@ describe('one model reads wider than it writes', () => {
   });
 
   test('an update reaches only my rows, not the counterpart rows the read can see', async () => {
-    await repository.updateAll({
+    await repository.updateBy({
       where: {},
       data: { name: 'renamed' },
       options: { shouldReturn: false },
@@ -354,7 +354,7 @@ describe('one model reads wider than it writes', () => {
   });
 
   test('a delete reaches only my rows', async () => {
-    await repository.deleteAll({
+    await repository.deleteBy({
       where: {},
       options: { shouldReturn: false, shouldHardDelete: true },
     });
@@ -382,8 +382,8 @@ describe('one model reads wider than it writes', () => {
 
     const writes = [
       repository.create({ data: { merchantId: ME, name: 'x' } }),
-      repository.updateAll({ where: {}, data: { name: 'x' }, options: { shouldReturn: false } }),
-      repository.deleteAll({ where: {}, options: { shouldHardDelete: true } }),
+      repository.updateBy({ where: {}, data: { name: 'x' }, options: { shouldReturn: false } }),
+      repository.deleteBy({ where: {}, options: { shouldHardDelete: true } }),
     ];
 
     for (const write of writes) {
@@ -400,7 +400,7 @@ describe('one model reads wider than it writes', () => {
         : { merchantId: ME };
     };
 
-    await repository.deleteAll({ where: {}, options: { shouldReturn: false } });
+    await repository.deleteBy({ where: {}, options: { shouldReturn: false } });
     const { rows: afterSoftDelete } = await client.query<{ name: string; deletedAt: Date | null }>(
       `SELECT name, deleted_at AS "deletedAt" FROM ${TABLE_NAME} ORDER BY id`,
     );
@@ -412,7 +412,7 @@ describe('one model reads wider than it writes', () => {
     ]);
 
     // The same resolver lets an update reach the other merchant's row: only the operation differs.
-    await repository.updateAll({
+    await repository.updateBy({
       where: {},
       data: { name: 'touched' },
       options: { shouldReturn: false },
@@ -438,7 +438,7 @@ describe('one model reads wider than it writes', () => {
     const rows = await repository.find({ filter: {} });
     expect(rows.length).toBe(3);
 
-    await repository.updateAll({
+    await repository.updateBy({
       where: {},
       data: { name: 'renamed' },
       options: { shouldReturn: false },

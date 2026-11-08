@@ -372,7 +372,7 @@ export class JsonOrderByTestService extends BaseTestService {
     this.logCase('[CASE 7] Cleanup JSON test data');
 
     try {
-      const deleted = await repo.deleteAll({ where: { group: 'JSON_ORDER_TEST' } });
+      const deleted = await repo.deleteBy({ where: { group: 'JSON_ORDER_TEST' } });
       this.logger.info('[CASE 7] PASSED | Deleted %d records', deleted.count);
     } catch (error) {
       this.logger.error('[CASE 7] FAILED | Error: %s', (error as Error).message);
