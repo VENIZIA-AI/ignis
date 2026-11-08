@@ -21,10 +21,9 @@ This guide helps you make informed architectural decisions when building applica
 ```typescript
 // Simple CRUD with no business logic
 @controller({ path: '/items' })
-export class ItemController extends ControllerFactory.defineCrudController({
-  entity: Item,
-  repository: { name: ItemRepository.name },
-  controller: { name: 'ItemController', basePath: '/items' },
+export class ItemController extends CrudControllerFactory.build({
+  repository: ItemRepository,
+  routes: CrudRoutes.READ,
 }) {}
 ```
 

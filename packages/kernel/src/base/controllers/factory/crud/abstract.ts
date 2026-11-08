@@ -25,12 +25,11 @@ export abstract class AbstractCrudController<
 
   constructor(opts: {
     scope: string;
-    path: string;
     isStrict?: boolean;
     repository: AbstractRepository<TDataObject, TPersistObject, AnyType>;
     definitions: AnyType;
   }) {
-    super({ scope: opts.scope, path: opts.path, isStrict: opts.isStrict });
+    super({ scope: opts.scope, isStrict: opts.isStrict });
     this.repository = opts.repository;
     this.definitions = opts.definitions;
   }

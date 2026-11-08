@@ -25,7 +25,7 @@ const itemTable = sqliteTable(
     merchantId: text('merchant_id').notNull(),
     code: text('code').notNull(),
     status: text('status').notNull().default('open'),
-    deletedAt: integer('deleted_at', { mode: 'timestamp_ms' }),
+    deletedAt: integer('removed_at', { mode: 'timestamp_ms' }),
   },
   (table) => [uniqueIndex('soft_delete_data_libsql_code').on(table.code)],
 );
@@ -76,7 +76,7 @@ const dataSource = new SoftDeleteDataSource({ client });
 
 beforeAll(async () => {
   await client.batch([
-    `CREATE TABLE ${TABLE_NAME} (id integer primary key autoincrement, merchant_id text not null, code text not null, status text not null default 'open', deleted_at integer)`,
+    `CREATE TABLE ${TABLE_NAME} (id integer primary key autoincrement, merchant_id text not null, code text not null, status text not null default 'open', removed_at integer)`,
     `CREATE UNIQUE INDEX soft_delete_data_libsql_code ON ${TABLE_NAME} (code)`,
   ]);
 });
@@ -93,6 +93,7 @@ defineSoftDeleteDataCases(() => ({
   items,
   plain,
   open,
+  deletedAtColumn: 'removed_at',
   codeKey: UniqueKeys.of({ table: itemTable, index: 'soft_delete_data_libsql_code' }),
   executor: dataSource.getQueryExecutor(),
   setResolver: (next) => {
@@ -102,7 +103,7 @@ defineSoftDeleteDataCases(() => ({
     await client.batch([
       `DELETE FROM ${TABLE_NAME}`,
       `DELETE FROM sqlite_sequence WHERE name = '${TABLE_NAME}'`,
-      `INSERT INTO ${TABLE_NAME} (merchant_id, code, status, deleted_at) VALUES ('m1', 'A', 'open', NULL), ('m2', 'B', 'open', NULL), ('m1', 'C', 'open', NULL)`,
+      `INSERT INTO ${TABLE_NAME} (merchant_id, code, status, removed_at) VALUES ('m1', 'A', 'open', NULL), ('m2', 'B', 'open', NULL), ('m1', 'C', 'open', NULL)`,
     ]);
   },
   rawRows: async () => {
@@ -113,7 +114,7 @@ defineSoftDeleteDataCases(() => ({
       merchantId: String(row.merchant_id),
       code: String(row.code),
       status: String(row.status),
-      isDeleted: row.deleted_at !== null,
+      isDeleted: row.removed_at !== null,
     }));
   },
 }));

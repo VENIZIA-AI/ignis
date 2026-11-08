@@ -9,7 +9,11 @@ import { DefaultSearchRepository } from '@/search/typesense/repositories';
 import { SearchModes } from '@/search/core/repositories/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 
-import { FakeSearchDataSource, ProductDocument } from '../repositories/fake-search-connector';
+import {
+  FakeSearchDataSource,
+  ProductDocument,
+  type TProductDocument,
+} from '../repositories/fake-search-connector';
 
 // Own datasource class: the model registry is a process-wide singleton keyed by class name.
 // `FakeSearchEngineHelper.multiSearch()` returns `Promise<never>`, which no subclass override can widen, so it is patched onto the fake instance directly.
@@ -34,7 +38,7 @@ class SearchFactoryDataSource extends FakeSearchDataSource {
 
 // Distinctly named because MetadataRegistry keys repository bindings by class name and the CRUD-factory wiring test loaded in the same process already uses `ProductSearchRepository`.
 @repository({ model: ProductDocument, dataSource: SearchFactoryDataSource })
-class SearchFactoryProductRepository extends DefaultSearchRepository {}
+class SearchFactoryProductRepository extends DefaultSearchRepository<TProductDocument> {}
 
 /** Minimal `TRouteContext`-shaped fake: records the JSON body/status the handler responds with. */
 const fakeContext = <TInput>(input: TInput, requestHeaders: Record<string, string> = {}) => {

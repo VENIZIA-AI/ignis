@@ -86,7 +86,7 @@ were deleted on 2026-09-11: they fed one log line and selected no datasource.
 `BaseRestController` (`packages/kernel/src/base/controllers/rest/`) wraps an `OpenAPIHono` router.
 Routes can be defined three ways in the same controller: decorator (`@get`, `@post`, `@put`,
 `@patch`, `@del`), imperative (`this.defineRoute({ configs, handler })`), or fluent
-(`this.bindRoute({ configs }).to({ handler })`). `ControllerFactory.defineCrudController()`
+(`this.bindRoute({ configs }).to({ handler })`). `CrudControllerFactory.build()`
 (`packages/kernel/src/base/controllers/factory/`) generates a full CRUD controller from an entity and
 repository. gRPC controllers (ConnectRPC) are the one controller tier left in core
 (`src/base/controllers/grpc/`) and register through the same `@controller` decorator with

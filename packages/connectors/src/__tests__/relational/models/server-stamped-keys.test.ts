@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import { ControllerFactory, model } from '@venizia/ignis-kernel';
+import {
+  controller,
+  CrudControllerFactory,
+  model,
+  repository as repositoryDecorator,
+} from '@venizia/ignis-kernel';
 import { integer, pgTable, text } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 import { sqliteTable, text as sqliteText } from 'drizzle-orm/sqlite-core';
@@ -64,6 +69,24 @@ class HandDeclaredRow extends BasePostgresEntity<typeof handDeclaredTable> {
 @model({ settings: { properties: { stamped: [] } } })
 class HandDeclaredUnstampedRow extends HandDeclaredRow {}
 
+@repositoryDecorator({ model: PostgresRow, dataSource: 'StampedDataSource' })
+class PostgresRowRepository extends DefaultCRUDRepository<typeof postgresTable> {}
+
+@repositoryDecorator({ model: PostgresOverriddenRow, dataSource: 'StampedDataSource' })
+class PostgresOverriddenRowRepository extends DefaultCRUDRepository<typeof postgresTable> {}
+
+@repositoryDecorator({ model: PostgresUnstampedRow, dataSource: 'StampedDataSource' })
+class PostgresUnstampedRowRepository extends DefaultCRUDRepository<typeof postgresTable> {}
+
+@repositoryDecorator({ model: SqliteRow, dataSource: 'StampedDataSource' })
+class SqliteRowRepository extends DefaultSqliteRepository<typeof sqliteEnrichedTable> {}
+
+@repositoryDecorator({ model: HandDeclaredRow, dataSource: 'StampedDataSource' })
+class HandDeclaredRowRepository extends DefaultCRUDRepository<typeof handDeclaredTable> {}
+
+@repositoryDecorator({ model: HandDeclaredUnstampedRow, dataSource: 'StampedDataSource' })
+class HandDeclaredUnstampedRowRepository extends DefaultCRUDRepository<typeof handDeclaredTable> {}
+
 /** The property names of the JSON body one generated write route documents. */
 const bodyKeysOf = (opts: { requestBody: unknown }): string[] => {
   const body = z
@@ -85,16 +108,22 @@ const documentOf = (opts: { router: OpenAPIHono }) =>
     info: { title: 'write-bodies', version: '1' },
   });
 
-const postgresBodies = async (opts: { entity: typeof PostgresRow }) => {
-  const Controller = ControllerFactory.defineCrudController({
-    entity: opts.entity,
-    repository: { name: `${opts.entity.name}Repository` },
-    controller: { name: `${opts.entity.name}Controller`, basePath: '/rows' },
+const postgresBodies = async (opts: {
+  entity: typeof PostgresRow;
+  repositoryClass: typeof PostgresRowRepository;
+}) => {
+  const Controller = CrudControllerFactory.build({
+    repository: opts.repositoryClass,
+    routes: { create: true, updateById: true },
   });
-  const controller = new Controller(
-    new DefaultCRUDRepository<typeof postgresTable>(undefined, { entityClass: opts.entity }),
+
+  @controller({ path: '/rows' })
+  class RowsController extends Controller {}
+
+  const crudController = new RowsController(
+    new opts.repositoryClass(undefined, { entityClass: opts.entity }),
   );
-  const router = await controller.configure();
+  const router = await crudController.configure();
   const document = documentOf({ router });
 
   return {
@@ -103,16 +132,22 @@ const postgresBodies = async (opts: { entity: typeof PostgresRow }) => {
   };
 };
 
-const handDeclaredBodies = async (opts: { entity: typeof HandDeclaredRow }) => {
-  const Controller = ControllerFactory.defineCrudController({
-    entity: opts.entity,
-    repository: { name: `${opts.entity.name}Repository` },
-    controller: { name: `${opts.entity.name}Controller`, basePath: '/rows' },
+const handDeclaredBodies = async (opts: {
+  entity: typeof HandDeclaredRow;
+  repositoryClass: typeof HandDeclaredRowRepository;
+}) => {
+  const Controller = CrudControllerFactory.build({
+    repository: opts.repositoryClass,
+    routes: { create: true },
   });
-  const controller = new Controller(
-    new DefaultCRUDRepository<typeof handDeclaredTable>(undefined, { entityClass: opts.entity }),
+
+  @controller({ path: '/rows' })
+  class RowsController extends Controller {}
+
+  const crudController = new RowsController(
+    new opts.repositoryClass(undefined, { entityClass: opts.entity }),
   );
-  const router = await controller.configure();
+  const router = await crudController.configure();
   const document = documentOf({ router });
 
   return bodyKeysOf({ requestBody: document.paths?.['/']?.post?.requestBody });
@@ -120,24 +155,28 @@ const handDeclaredBodies = async (opts: { entity: typeof HandDeclaredRow }) => {
 
 describe('the generated write bodies leave out the stamped keys', () => {
   test('by default: the audit keys and deletedAt, on postgres', async () => {
-    const { create, update } = await postgresBodies({ entity: PostgresRow });
+    const { create, update } = await postgresBodies({
+      entity: PostgresRow,
+      repositoryClass: PostgresRowRepository,
+    });
 
     expect(create).toEqual(['code', 'id', 'status']);
     expect(update).toEqual(['code', 'status']);
   });
 
   test('by default: the audit keys and deletedAt, on sqlite', async () => {
-    const SqliteController = ControllerFactory.defineCrudController({
-      entity: SqliteRow,
-      repository: { name: 'SqliteRowRepository' },
-      controller: { name: 'SqliteRowController', basePath: '/rows' },
+    const Controller = CrudControllerFactory.build({
+      repository: SqliteRowRepository,
+      routes: { create: true, updateById: true },
     });
-    const controller = new SqliteController(
-      new DefaultSqliteRepository<typeof sqliteEnrichedTable>(undefined, {
-        entityClass: SqliteRow,
-      }),
+
+    @controller({ path: '/rows' })
+    class SqliteRowsController extends Controller {}
+
+    const crudController = new SqliteRowsController(
+      new SqliteRowRepository(undefined, { entityClass: SqliteRow }),
     );
-    const router = await controller.configure();
+    const router = await crudController.configure();
     const document = documentOf({ router });
 
     expect(bodyKeysOf({ requestBody: document.paths?.['/']?.post?.requestBody })).toEqual([
@@ -150,14 +189,20 @@ describe('the generated write bodies leave out the stamped keys', () => {
   });
 
   test('a model that declares properties.stamped replaces the default list, as an array or a Set', async () => {
-    const { create, update } = await postgresBodies({ entity: PostgresOverriddenRow });
+    const { create, update } = await postgresBodies({
+      entity: PostgresOverriddenRow,
+      repositoryClass: PostgresOverriddenRowRepository,
+    });
 
     expect(create).toEqual(['code', 'createdBy', 'deletedAt', 'id', 'modifiedAt', 'modifiedBy']);
     expect(update).toEqual(['code', 'createdBy', 'deletedAt', 'modifiedAt', 'modifiedBy']);
   });
 
   test('stamped: [] leaves every key in the bodies', async () => {
-    const { create, update } = await postgresBodies({ entity: PostgresUnstampedRow });
+    const { create, update } = await postgresBodies({
+      entity: PostgresUnstampedRow,
+      repositoryClass: PostgresUnstampedRowRepository,
+    });
 
     expect(create).toEqual([
       'code',
@@ -181,8 +226,14 @@ describe('the generated write bodies leave out the stamped keys', () => {
   });
 
   test('a hand-declared audit column is dropped by default and kept with stamped: []', async () => {
-    const byDefault = await handDeclaredBodies({ entity: HandDeclaredRow });
-    const unstamped = await handDeclaredBodies({ entity: HandDeclaredUnstampedRow });
+    const byDefault = await handDeclaredBodies({
+      entity: HandDeclaredRow,
+      repositoryClass: HandDeclaredRowRepository,
+    });
+    const unstamped = await handDeclaredBodies({
+      entity: HandDeclaredUnstampedRow,
+      repositoryClass: HandDeclaredUnstampedRowRepository,
+    });
 
     expect(byDefault).toEqual(['id']);
     expect(unstamped).toEqual(['createdBy', 'id', 'modifiedAt']);

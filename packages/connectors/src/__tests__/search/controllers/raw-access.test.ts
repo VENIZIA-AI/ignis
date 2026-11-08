@@ -10,7 +10,11 @@ import { SearchRawAccess } from '@/search/core/controllers/raw-access';
 import { SearchModes } from '@/search/core/repositories/common';
 import { DefaultSearchRepository } from '@/search/typesense/repositories';
 
-import { FakeSearchDataSource, ProductDocument } from '../repositories/fake-search-connector';
+import {
+  FakeSearchDataSource,
+  ProductDocument,
+  type TProductDocument,
+} from '../repositories/fake-search-connector';
 
 /**
  * `mode: 'raw'` and multi-search hand the engine their parameters as they are: the model's default filter and hidden fields
@@ -34,7 +38,7 @@ class RawAccessDataSource extends FakeSearchDataSource {
 
 // Distinctly named: the model registry is keyed by class name across the whole test process.
 @repository({ model: ProductDocument, dataSource: RawAccessDataSource })
-class RawAccessProductRepository extends DefaultSearchRepository {}
+class RawAccessProductRepository extends DefaultSearchRepository<TProductDocument> {}
 
 const fakeContext = <TInput>(input: TInput) => ({
   req: { valid: () => input, header: () => undefined },

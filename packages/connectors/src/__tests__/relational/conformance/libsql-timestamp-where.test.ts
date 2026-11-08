@@ -4,9 +4,12 @@ import { RejectionHelper } from '@venizia/dev-configs/testing';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   BaseAppErrorMiddleware,
-  ControllerFactory,
+  CrudControllerFactory,
+  controller,
+  CrudRoutes,
   datasource,
   model,
+  repository as repositoryDecorator,
 } from '@venizia/ignis-kernel';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
@@ -46,6 +49,9 @@ class TimestampDataSource extends BaseSqliteDataSource<{ url: string }, AnyType,
   override configure(): ValueOrPromise<void> {}
 }
 
+@repositoryDecorator({ model: TimestampEvent, dataSource: 'TimestampDataSource' })
+class TimestampEventRepository extends DefaultSqliteRepository<AnyType> {}
+
 let client: Client;
 let repository: AnyType;
 
@@ -66,7 +72,7 @@ beforeAll(async () => {
       (4, NULL, NULL, NULL);
   `);
 
-  repository = new DefaultSqliteRepository<AnyType>(new TimestampDataSource({ client }), {
+  repository = new TimestampEventRepository(new TimestampDataSource({ client }), {
     entityClass: TimestampEvent,
   });
 });
@@ -110,15 +116,17 @@ describe('SQLite - a generated CRUD route', () => {
   let router: AnyType;
 
   beforeAll(async () => {
-    const RouteController = ControllerFactory.defineCrudController({
-      entity: TimestampEvent,
-      repository: { name: 'TimestampEventRepository' },
-      controller: { name: 'TimestampEventController', basePath: '/events' },
+    const RouteController = CrudControllerFactory.build({
+      repository: TimestampEventRepository,
+      routes: CrudRoutes.READ,
     });
 
-    const controller = new RouteController(repository);
-    await controller.configure();
-    router = controller.getRouter();
+    @controller({ path: '/events' })
+    class EventsController extends RouteController {}
+
+    const eventsController = new EventsController(repository);
+    await eventsController.configure();
+    router = eventsController.getRouter();
     router.onError(new BaseAppErrorMiddleware().value());
   });
 

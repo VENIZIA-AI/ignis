@@ -1,7 +1,7 @@
 ---
 type: Example
 title: vert
-description: The production-ready reference application - JWKS-signed JWT, scoped Casbin RBAC cached in Redis, CRUD from ControllerFactory, transactions, row locks, relations and file uploads, on a generated artifact index.
+description: The production-ready reference application - JWKS-signed JWT, scoped Casbin RBAC cached in Redis, CRUD from CrudControllerFactory, transactions, row locks, relations and file uploads, on a generated artifact index.
 resource: examples/vert
 tags: [examples, reference-app]
 ---
@@ -24,7 +24,7 @@ hidden columns, a default filter and per-route authentication all show up togeth
   Redis-backed policy cache (5-minute TTL, keyed per user). `src/controllers/authorization-example/`
   is the controller these routes are drawn from.
 - **CRUD from one factory call, with overrides** - `src/controllers/configuration.controller.ts`
-  calls `ControllerFactory.defineCrudController` with per-route `authenticate`, a custom create
+  calls `CrudControllerFactory.build` with per-route `authenticate`, a custom create
   body, then overrides `create` and `deleteById` to add logging around the generated handler.
 - **Relations two ways** - `sale-channel-product.model.ts`: `one(productTable)` reads its columns
   off the foreign key. `configuration.model.ts`: `modifier` names its columns by hand, because

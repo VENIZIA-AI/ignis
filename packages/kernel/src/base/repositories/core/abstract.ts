@@ -48,6 +48,10 @@ export abstract class AbstractRepository<
   extends BaseHelper
   implements IPersistableRepository<TDataObject, TPersistObject, TOptions>
 {
+  /** Phantom type markers, never set at runtime: the row and persist shapes, for the types that read them off a repository class (as an entity's `$inferData`). */
+  declare readonly $inferData?: TDataObject;
+  declare readonly $inferPersist?: TPersistObject;
+
   protected _operationScope: TRepositoryOperationScope;
 
   /** Lazy-resolved on first access if not provided in constructor. */

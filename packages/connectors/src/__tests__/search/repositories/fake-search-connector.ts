@@ -304,6 +304,9 @@ export class ProductDocument extends BaseSearchEntity {
   });
 }
 
+/** The document shape of `ProductDocument`, for a repository class that serves it. */
+export type TProductDocument = NonNullable<ProductDocument['$inferData']>;
+
 /** Same shape as `ProductDocument` but with no `defaultFilter` - for truncate-path tests. */
 @model({
   type: 'entity',

@@ -569,7 +569,7 @@ Both `searches` entries and `commonParams` are camelCase (`filterBy`, `queryBy`,
 
 ## Search Controller Factory
 
-`SearchControllerFactory.defineSearchController` generates turnkey search endpoints, mirroring how `ControllerFactory.defineCrudController` generates CRUD endpoints:
+`SearchControllerFactory.defineSearchController` generates turnkey search endpoints, mirroring how `CrudControllerFactory.build` generates CRUD endpoints:
 
 ```typescript
 // src/controllers/search.controller.ts
@@ -589,7 +589,7 @@ const BaseSearchController = SearchControllerFactory.defineSearchController({
 export class ArticleSearchController extends BaseSearchController {}
 ```
 
-The subclass needs no constructor. The factory injects the repository bound under `repository.name`, the same way `defineCrudController` does. To inject a different repository, declare your own constructor with `@inject` on its first parameter - that wins.
+The subclass needs no constructor. The factory injects the repository bound under `repository.name`, the same way `CrudControllerFactory.build` does. To inject a different repository, declare your own constructor with `@inject` on its first parameter - that wins.
 
 Import the factory from `@venizia/ignis-connectors/typesense/controllers` (or `@venizia/ignis-connectors/search/controllers`), never from `@venizia/ignis-connectors/typesense`. That entry loads without `hono`, so it carries no controller.
 

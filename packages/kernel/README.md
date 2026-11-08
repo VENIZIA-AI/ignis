@@ -70,7 +70,7 @@ of a package path.
 
 | Import | What it gives | Extra peers |
 |---|---|---|
-| `@venizia/ignis-kernel` | Everything: `Container`, `AbstractApplication`, `RestApplication`, `BaseRestController`, `ControllerFactory`, `BaseComponent`, `BaseService`, the route and artifact decorators, `AbstractRepository`, `CoreBindings`, the auth seams | `hono`, `@hono/zod-openapi` |
+| `@venizia/ignis-kernel` | Everything: `Container`, `AbstractApplication`, `RestApplication`, `BaseRestController`, `CrudControllerFactory`, `BaseComponent`, `BaseService`, the route and artifact decorators, `AbstractRepository`, `CoreBindings`, the auth seams | `hono`, `@hono/zod-openapi` |
 | `@venizia/ignis-kernel/metadata` | How a class is marked as an artifact: `@injectable`, `@service`, `@component`, `@configuration`, `@provide`, `@model`, `@datasource`, `@repository`, `@inject`, `BindingNamespaces`, `BindingKeys`, `ArtifactTypes`, `MetadataRegistry` | none |
 | `@venizia/ignis-kernel/repository` | The persistence contract without the OpenAPI layer: `AbstractRepository`, `AbstractDataSource`, `AbstractEntity`, the CRUD repository interfaces, `DEFAULT_LIMIT`, `DEFAULT_MAX_LIMIT`, the repository error codes, and the `TFilter`/`TWhere` vocabulary from `@venizia/ignis-filter` | none |
 

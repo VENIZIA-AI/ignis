@@ -1,6 +1,6 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import type { TResponseHeaders } from './types';
+import type { TCrudRoutes, TResponseHeaders } from './types';
 
 /**
  * Constants with NO zod import, deliberately. The container's controller mixin imports
@@ -37,6 +37,18 @@ export class RestPaths {
   static readonly ROOT = '/';
   static readonly COUNT = '/count';
   static readonly FIND_ONE = '/find-one';
+  static readonly RESTORE = '/restore';
+}
+
+/** Route groups to spread into the `routes` of a CRUD controller. */
+export class CrudRoutes {
+  /** The four read routes: `count`, `find`, `findById` and `findOne`. */
+  static readonly READ = {
+    count: true,
+    find: true,
+    findById: true,
+    findOne: true,
+  } satisfies TCrudRoutes;
 }
 
 /** OpenAPI response headers every CRUD route documents: the request tracing id, the record count and the response format. */

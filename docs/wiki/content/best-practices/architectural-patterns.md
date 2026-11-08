@@ -355,34 +355,28 @@ Two more interfaces live in the same file and are **not** part of `IRestApplicat
 
 ## 7. Controller Factory Pattern
 
-`ControllerFactory.defineCrudController()` generates a complete CRUD controller from an entity definition. This reduces boilerplate while maintaining full customization.
+`CrudControllerFactory.build()` generates a CRUD controller from a repository class, with the routes you list. This reduces boilerplate while maintaining full customization.
 
 **Basic Usage:**
 ```typescript
-const _Controller = ControllerFactory.defineCrudController({
-  entity: () => User, // Entity class or resolver function
-  repository: { name: UserRepository.name },
-  controller: {
-    name: 'UserController',
-    basePath: '/users',
-    // Default: { path: true, requestSchema: true }
-    isStrict: { path: true, requestSchema: true },
-  },
+const _Controller = CrudControllerFactory.build({
+  repository: UserRepository, // The entity comes from @repository({ model }) on the class
+  // Default: { path: true, requestSchema: true }
+  isStrict: { path: true, requestSchema: true },
+  routes: CrudRoutes.READ, // A listed route exists; one that is not listed does not
 });
 
-// No constructor: the container injects the repository named in repository.name.
+// No constructor: the container injects the repository class. The path is only here.
 @controller({ path: '/users' })
 export class UserController extends _Controller {}
 ```
 
 **Per-Route Authentication:**
 ```typescript
-const _Controller = ControllerFactory.defineCrudController({
-  entity: () => User,
-  repository: { name: UserRepository.name },
-  controller: { name: 'UserController', basePath: '/users' },
+const _Controller = CrudControllerFactory.build({
+  repository: UserRepository,
 
-  // Apply JWT to all routes by default
+  // Apply JWT to all listed routes by default
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
 
   // Override per-route
@@ -393,19 +387,17 @@ const _Controller = ControllerFactory.defineCrudController({
     count: { authenticate: { skip: true } },
 
     // Protected write endpoints (use controller-level auth)
-    create: {},
-    updateById: {},
-    deleteById: {},
+    create: true,
+    updateById: true,
+    deleteById: true,
   },
 });
 ```
 
 **Custom Schemas Per Route:**
 ```typescript
-const _Controller = ControllerFactory.defineCrudController({
-  entity: () => User,
-  repository: { name: UserRepository.name },
-  controller: { name: 'UserController', basePath: '/users' },
+const _Controller = CrudControllerFactory.build({
+  repository: UserRepository,
 
   routes: {
     // Custom request body schema for create
@@ -448,6 +440,8 @@ const _Controller = ControllerFactory.defineCrudController({
 | `updateBy` | PATCH | `/` | Bulk update by filter |
 | `deleteById` | DELETE | `/{id}` | Delete by ID |
 | `deleteBy` | DELETE | `/` | Bulk delete by filter |
+| `restoreById` | POST | `/{id}/restore` | Restore a soft-deleted record |
+| `restoreBy` | POST | `/restore` | Restore soft-deleted records by `where` in the query |
 
 > [!TIP]
-> `TDataObject`/`TPersistObject` cannot be inferred from `entity` - pass them explicitly for typed handlers: `ControllerFactory.defineCrudController<TUserRecord>({ ... })`. Use `controller.enabledRoutes` to whitelist routes and `controller.readonly` to disable all write routes.
+> The routes you list are the routes that exist: `CrudRoutes.READ` lists the four read routes, and a write route is listed by name. There is no `enabled`, `enabledRoutes` or `readonly`.

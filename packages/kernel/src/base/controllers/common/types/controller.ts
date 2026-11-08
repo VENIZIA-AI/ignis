@@ -1,20 +1,15 @@
-import type { AbstractEntity } from '@/base/models';
+import type { IRepository } from '@/base/repositories/common/types/contracts';
 import type { TAuthMode, TAuthStrategy } from '@/base/auth/authenticate/common/constants';
 import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
-import type {
-  IConfigurable,
-  TClass,
-  TResolver,
-  ValueOrPromise,
-} from '@venizia/ignis-helpers/common';
+import type { IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Hook, OpenAPIHono } from '@hono/zod-openapi';
 import type { Env, Schema } from 'hono';
 import type { TRouteHandler } from './context';
 import type {
   IAuthRouteConfig,
   IBindRouteOptions,
-  ICustomizableRoutes,
   IDefineRouteOptions,
+  TCrudRoutes,
 } from './route';
 
 /** Base controller interface defining route registration and configuration contract. */
@@ -65,31 +60,35 @@ export type TEntityPersistObject<TEntity> = TEntity extends { $inferPersist?: in
     : object
   : object;
 
-/** Configuration options for creating a CRUD controller via ControllerFactory.defineCrudController. */
+/** The repository classes a CRUD controller can be built over. */
+export type TCrudRepositoryClass = TClass<IRepository>;
+
+/** Read object of a repository, from its `$inferData` phantom marker (the `TDataObject` its `AbstractRepository` base declares); falls back to `object`. */
+export type TRepositoryDataObject<Repository> = Repository extends { $inferData?: infer TData }
+  ? TData extends object
+    ? TData
+    : object
+  : object;
+
+/** Persist object of a repository, from its `$inferPersist` phantom marker; same contract and `object` fallback as {@link TRepositoryDataObject}. */
+export type TRepositoryPersistObject<Repository> = Repository extends {
+  $inferPersist?: infer TPersist;
+}
+  ? TPersist extends object
+    ? TPersist
+    : object
+  : object;
+
+/** Configuration options for creating a CRUD controller via CrudControllerFactory.build. */
 export interface ICrudControllerOptions<
-  TEntity extends AbstractEntity = AbstractEntity,
-  Routes extends ICustomizableRoutes = ICustomizableRoutes,
+  Repository extends TCrudRepositoryClass = TCrudRepositoryClass,
 > {
-  /** Entity class or resolver returning it - its schema drives the inferred DataObject/PersistObject types of the generated controller's `repository`. */
-  entity: TClass<TEntity> | TResolver<TClass<TEntity>>;
+  /** The repository class; its name is the binding key and its `@repository` model drives the schemas. */
+  repository: Repository;
 
-  /** Repository binding configuration */
-  repository: {
-    name: string; // Repository binding name in the IoC container
-  };
-
-  controller: {
-    name: string;
-    basePath: string;
-    readonly?: boolean;
-
-    /** Whitelist of routes to register; overrides per-route `enabled` flags in `routes` when set. */
-    enabledRoutes?: Array<keyof ICustomizableRoutes>;
-
-    isStrict?: {
-      path?: boolean;
-      requestSchema?: boolean;
-    };
+  isStrict?: {
+    path?: boolean;
+    requestSchema?: boolean;
   };
 
   /** Authentication config applied to all routes (unless overridden per-route). */
@@ -98,6 +97,6 @@ export interface ICrudControllerOptions<
   /** Authorization config applied to all routes (unless overridden per-route). */
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
 
-  /** Per-route configuration combining schema and auth overrides. */
-  routes?: Routes;
+  /** The routes the controller has: a route exists only when listed. */
+  routes?: TCrudRoutes<InstanceType<Repository>>;
 }

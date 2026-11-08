@@ -8,7 +8,11 @@ import { repository } from '@venizia/ignis-kernel';
 import { SearchControllerFactory } from '@/search/core/controllers/factory';
 import { DefaultSearchRepository } from '@/search/typesense/repositories';
 
-import { FakeSearchDataSource, ProductDocument } from '../repositories/fake-search-connector';
+import {
+  FakeSearchDataSource,
+  ProductDocument,
+  type TProductDocument,
+} from '../repositories/fake-search-connector';
 
 /**
  * Raw mode and multi-search are closed by default, and they stay closed through the real router: the JSON validator, route
@@ -33,7 +37,7 @@ class HttpRawAccessDataSource extends FakeSearchDataSource {
 
 // Distinctly named: the model registry is keyed by class name across the whole test process.
 @repository({ model: ProductDocument, dataSource: HttpRawAccessDataSource })
-class HttpRawAccessProductRepository extends DefaultSearchRepository {}
+class HttpRawAccessProductRepository extends DefaultSearchRepository<TProductDocument> {}
 
 /** What a raw or multi-search request would ask the engine for: a filter the default filter and the model's visibility rules would never allow. */
 const FORBIDDEN_FILTER = 'isActive:false';

@@ -22,8 +22,8 @@ The example exists to make that visible: only the datasource is PGlite-aware.
 - **The fourth type parameter is the raw client** - `BasePostgresDataSource<IPGliteSettings,
   TAnyDataSourceSchema, {}, PGlite>`. Leaving it off makes `getClient()` return `pg.Pool` and the
   assignment in `configure()` fails to typecheck.
-- **`ControllerFactory.defineCrudController` needs no constructor on the subclass** - the factory
-  injects `repository.name` at parameter 0 itself; `NoteController extends BaseCrudController {}` is
+- **`CrudControllerFactory.build` needs no constructor on the subclass** - the factory
+  injects the repository class name at parameter 0 itself; `NoteController extends BaseCrudController {}` is
   the whole class body.
 - **Real migrations, applied in-process** - `src/migration.ts` is a drizzle-kit config with
   `driver: 'pglite'` and a data directory as `dbCredentials.url`; `migrate()` from

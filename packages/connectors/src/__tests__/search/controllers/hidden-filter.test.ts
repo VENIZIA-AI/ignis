@@ -3,14 +3,23 @@ import '@venizia/ignis-kernel';
 
 import { describe, expect, test } from 'bun:test';
 
-import { ControllerFactory, repository, model } from '@venizia/ignis-kernel';
+import {
+  controller as controllerDecorator,
+  CrudControllerFactory,
+  repository,
+  model,
+} from '@venizia/ignis-kernel';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { SearchControllerFactory } from '@/search/core/controllers/factory';
 import { SearchModes } from '@/search/core/repositories/common';
 import { BaseSearchEntity, SearchCollectionFactory, field } from '@/search/core/models';
 import { DefaultSearchRepository } from '@/search/typesense/repositories';
 
-import { FakeSearchDataSource, ProductDocument } from '../repositories/fake-search-connector';
+import {
+  FakeSearchDataSource,
+  ProductDocument,
+  type TProductDocument,
+} from '../repositories/fake-search-connector';
 
 /**
  * A search request's own filter cannot name a field the model hides: its `where` and `order` answer 400 and the engine is not
@@ -21,7 +30,7 @@ class HiddenFilterDataSource extends FakeSearchDataSource {}
 
 // Distinctly named: the model registry is keyed by class name across the whole test process.
 @repository({ model: ProductDocument, dataSource: HiddenFilterDataSource })
-class HiddenFilterProductRepository extends DefaultSearchRepository {}
+class HiddenFilterProductRepository extends DefaultSearchRepository<TProductDocument> {}
 
 // A model that hides one nested field of a dotted document (`meta.pin`), as an engine with nested fields reads it.
 @model({
@@ -237,15 +246,20 @@ describe('a CRUD controller over a search repository', () => {
       name: `hidden-filter-crud-${sequence}`,
       config: {},
     });
-    const Controller = ControllerFactory.defineCrudController({
-      entity: HiddenFilterNestedDocument as never,
-      repository: { name: HiddenFilterNestedRepository.name },
-      controller: { name: `HiddenFilterCrud${sequence}`, basePath: '/x' },
+    const Controller = CrudControllerFactory.build({
+      repository: HiddenFilterNestedRepository,
+      routes: { count: true },
     });
-    const controller = new Controller(new HiddenFilterNestedRepository(dataSource) as never);
+
+    @controllerDecorator({ path: '/x' })
+    class HiddenFilterCrudController extends Controller {}
+
+    const crudController = new HiddenFilterCrudController(
+      new HiddenFilterNestedRepository(dataSource),
+    );
 
     expect(() =>
-      controller.assertRequestFilter({ filter: { where: { 'meta.pin': '1111' } } }),
+      crudController.assertRequestFilter({ filter: { where: { 'meta.pin': '1111' } } }),
     ).toThrow('NOT FOUND');
     expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
   });

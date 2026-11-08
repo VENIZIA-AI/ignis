@@ -70,7 +70,7 @@ Everything under `src/base/` was the engine-neutral half of `packages/core-serve
 | `auth/` | The authentication and authorization seams - registries, middlewares, providers, policy builders |
 | `components/` | `BaseComponent` and its `binding()` contract |
 | `configurations/` | `BaseConfiguration` and the `@configuration({ after? })` artifact kind, drained at the `registerConfigurations` boot step - between `registerDefaultMiddlewares` and `registerDataSources`, so it is where a datasource or a component's inputs get settled. `ArtifactIndexHelper.sortConfigurationsTopologically` orders them by their declared `after` - the graph keyed by the class itself, so two same-named (minified) configurations are both kept - ties broken by class name, so an order that must survive minification belongs in `after`; an `after` naming a class that is not itself a registered configuration, and a dependency cycle, each throw naming what they found. `@provide` binds off a configuration the same as off a component, and lazily, so a provided key can be read long before the configuration's own turn |
-| `controllers/` | `AbstractRestController`, `BaseRestController` (route helpers and the response helpers `respond({ context, format, payload, range? })` and `setListHeaders({ context, count } & ({ range } | { offset, total }))`, plus the exported `DataRangeUtility.toContentRange` - the one home of the `Content-Range` / `X-Response-Count` / `X-Response-Format` contract; `respond({ extra })` offers figures beside a list's rows (`ResponseExtras` in `rest/extras.ts` parses and resolves): plain `() => v` when named, `{ isDefault, compute }` always unless `-name`/`-*`, `{ keys, compute({ keys }) }` a group named `name(k,k)` - keys required, never "all", never a default (the union forbids `isDefault` on it, and resolve skips groups), matched against the declared list, never evaluated; `-name(keys)` is a 400. The client half - `HttpExtraRequest.toHeader`, `HttpResponseReader.readExtra`, `TExtraRequest`/`TExtraResult` - lives in `/repository`. `readExtra` strips only `extra`: `body` is `{ count, data }` when the count was asked for in the body, the rows otherwise. Answers `{ data, extra }` (+`count`) and `x-response-extra` when anything ran, the unchanged body when nothing did, 400 on anything unknown or malformed; with `extra` it returns a promise, and every extra runs through an async wrapper so a synchronous throw beside a running one leaves no unhandled rejection; `format` is the `ResponseFormats` const class), `ControllerFactory`, and `ReadableCrudController.getBaseWhere({ context })` - the per-controller scope every read verb ANDs into the request filter as `{ and: [baseWhere, requestWhere] }`, public rather than protected because a generated controller's declaration cannot carry a protected member (TS4094) |
+| `controllers/` | `AbstractRestController`, `BaseRestController` (route helpers and the response helpers `respond({ context, format, payload, range? })` and `setListHeaders({ context, count } & ({ range } | { offset, total }))`, plus the exported `DataRangeUtility.toContentRange` - the one home of the `Content-Range` / `X-Response-Count` / `X-Response-Format` contract; `respond({ extra })` offers figures beside a list's rows (`ResponseExtras` in `rest/extras.ts` parses and resolves): plain `() => v` when named, `{ isDefault, compute }` always unless `-name`/`-*`, `{ keys, compute({ keys }) }` a group named `name(k,k)` - keys required, never "all", never a default (the union forbids `isDefault` on it, and resolve skips groups), matched against the declared list, never evaluated; `-name(keys)` is a 400. The client half - `HttpExtraRequest.toHeader`, `HttpResponseReader.readExtra`, `TExtraRequest`/`TExtraResult` - lives in `/repository`. `readExtra` strips only `extra`: `body` is `{ count, data }` when the count was asked for in the body, the rows otherwise. Answers `{ data, extra }` (+`count`) and `x-response-extra` when anything ran, the unchanged body when nothing did, 400 on anything unknown or malformed; with `extra` it returns a promise, and every extra runs through an async wrapper so a synchronous throw beside a running one leaves no unhandled rejection; `format` is the `ResponseFormats` const class), `CrudControllerFactory`, and `ReadableCrudController.getBaseWhere({ context })` - the per-controller scope every read verb ANDs into the request filter as `{ and: [baseWhere, requestWhere] }`, public rather than protected because a generated controller's declaration cannot carry a protected member (TS4094) |
 | `datasources/` | `AbstractDataSource` - the engine-neutral root with no SQL members |
 | `events/` | `EventBus` - in-process, fire-and-forget domain event bus with per-registration retry |
 | `metadata/` | The decorator layer: `@controller`, `@model`, `@datasource`, `@repository`, `@configuration`, `@inject`, the REST verbs, the RPC verbs |
@@ -253,16 +253,16 @@ metadata type is a union discriminated on it (`TRepositoryMetadata`):
 - Keep the two values only in `RepositoryTypes`. Tests and messages reference the constant, never
   the literal.
 
-`ControllerFactory.registerRepositoryInjection({ target, factoryName, controllerName, repositoryName })`
+`CrudControllerFactory.registerRepositoryInjection({ target, factoryName, repositoryName })`
 (`base/controllers/factory/controller.ts`, kernel root and `@venizia/ignis`) is the one home
 of the factory injection: `repositories.<repositoryName>` at constructor parameter 0, `isOptional:
 false`, recorded through `MetadataRegistry.setInjectMetadata` because Bun drops parameter decorators
 in some configurations. An empty name throws `[<factoryName>] Invalid repository name`.
-`defineCrudController` and connectors' `defineSearchController` both call it. An own `@inject` at
+`CrudControllerFactory.build` and connectors' `defineSearchController` both call it. An own `@inject` at
 parameter 0 in a subclass wins.
 
 The CRUD factory's DEFAULT write bodies leave out the keys of the model's `settings.properties.stamped`
-(`ControllerFactory` reads it from the model metadata, like repositories read `properties.hidden`), and the two
+(`CrudControllerFactory` reads it from the model metadata, like repositories read `properties.hidden`), and the two
 update bodies also leave out `id` - `RouteConfigResolver.toWriteBodySchema` in
 `base/controllers/factory/definition.ts`. Without `stamped` the list is `AuditFields.SCHEME_SET` (`createdBy`,
 `modifiedBy`, `createdAt`, `modifiedAt`, `deletedAt`), whatever the engine; a search collection that keeps a
@@ -288,7 +288,7 @@ The public helper functions of the kernel are static methods of classes: `OpenAp
 (`buildDataRange`, `toContentRange`), `ModelUtility` (`toEntityId`, `snakeToCamel`),
 `RequestDomainResolver` (`readDeclarative`, `resolveRequestDomain`),
 `InjectableUtility.pickRegistrationOptions`, `EmojiFaviconMiddleware.create`,
-`NotSupportedUtility.throwNotSupported` and `ControllerFactory.registerRepositoryInjection`, and
+`NotSupportedUtility.throwNotSupported` and `CrudControllerFactory.registerRepositoryInjection`, and
 `RouteConfigResolver` holds the route-config resolvers. The old function names are not exported:
 `devz codemod namespace-functions --write` moves a caller to the class form, from the table in
 `packages/dev-configs/src/cli/codemod/namespace-functions/mappings/kernel.ts`, and

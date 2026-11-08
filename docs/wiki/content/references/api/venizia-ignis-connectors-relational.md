@@ -1173,6 +1173,10 @@ export declare class PersistableRelationalRepository<EntitySchema extends TTable
     protected validateUpdateData(_opts: {
         data: object;
     }): void;
+    /** Reads the caller's `data` once into a plain copy, checks that copy and returns it: the check and the write see the same values, even when `data` is a getter or a proxy. */
+    protected checkedUpdateData<Data extends object>(opts: {
+        data: Data;
+    }): Data;
     /** Guards id-based operations against a null/undefined id */
     protected validateId(opts: {
         id: unknown;
@@ -2337,7 +2341,8 @@ export declare class SoftDeletableRelationalRepository<EntitySchema extends TSof
     protected validateUpdateData(opts: {
         data: object;
     }): void;
-    private validateDeleteData;
+    /** The `data` a soft delete writes, read once into a plain copy and checked: the check and the write see the same values. */
+    private checkedDeleteData;
     /** `isStrict` is evaluated AFTER `options.retry` has been exhausted - the retry loop lives inside `super.findById` -> `findOne`, so a strict read waits out replica lag before it 404s. */
     findById<R = unknown, const F extends TFields<DataObject> = TFields<DataObject>>(opts: {
         id: DataObject['id'];
@@ -2439,7 +2444,7 @@ export declare class SoftDeletableRelationalRepository<EntitySchema extends TSof
     }>;
 }
 
-type TSoftDeleteData<PersistObject> = Partial<Omit<PersistObject, typeof ID_KEY | 'deletedAt'>>;
+type TSoftDeleteData<PersistObject> = Partial<Omit<PersistObject, typeof ID_KEY | typeof AuditFields.DELETED_AT>>;
 
 declare const ID_KEY = "id";
 ````

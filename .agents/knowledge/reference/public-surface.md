@@ -1234,7 +1234,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (439)
+### `@venizia/ignis-kernel` (445)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1307,12 +1307,13 @@ generated:
 - `Container` class
 - `ContextUtility` class
 - `controller` const
-- `ControllerFactory` class
 - `ControllerTransports` class
 - `CoreBindings` class
 - `CoreErrorCodes` class
 - `countableHeaders` const
 - `CountSchema` const
+- `CrudControllerFactory` class
+- `CrudRoutes` class
 - `DATA_SOURCE_BRAND` const
 - `DataRangeUtility` class
 - `datasource` const
@@ -1441,6 +1442,7 @@ generated:
 - `IRestApplication` interface
 - `IRestComponentConfig` interface
 - `IRestControllerMetadata` interface
+- `IRestorableRepository` interface
 - `IRpcMetadata` interface
 - `isClass` const
 - `isClassProvider` const
@@ -1568,6 +1570,8 @@ generated:
 - `TCoreErrorCode` type
 - `TCount` type
 - `TCountResponse` type
+- `TCrudRepositoryClass` type
+- `TCrudRoutes` type
 - `TCustomGrantMetadata` type
 - `TCustomizableRouteConfig` type
 - `TDataRange` type
@@ -1631,10 +1635,12 @@ generated:
 - `TRegistryDescriptor` type
 - `TRelationBuilder` type
 - `TRelationType` type
+- `TRepositoryDataObject` type
 - `TRepositoryErrorCode` type
 - `TRepositoryLogOptions` type
 - `TRepositoryMetadata` type
 - `TRepositoryOperationScope` type
+- `TRepositoryPersistObject` type
 - `TRepositoryType` type
 - `TRequestContextResolver` type
 - `TRequestFilterKeyKind` type
@@ -2429,7 +2435,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1037)
+### `@venizia/ignis` (1043)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2569,7 +2575,6 @@ generated:
 - `ContentTypeTable` class
 - `ContextUtility` class
 - `controller` const
-- `ControllerFactory` class
 - `ControllerTransports` class
 - `CoreBindings` class
 - `CoreErrorCodes` class
@@ -2577,6 +2582,8 @@ generated:
 - `CountSchema` const
 - `CredentialAlgorithms` class
 - `CredentialHelper` class
+- `CrudControllerFactory` class
+- `CrudRoutes` class
 - `CustomGrantExpander` class
 - `D_STROKE_REPLACEMENTS` const
 - `DATA_SOURCE_BRAND` const
@@ -2864,6 +2871,7 @@ generated:
 - `IRestApplication` interface
 - `IRestComponentConfig` interface
 - `IRestControllerMetadata` interface
+- `IRestorableRepository` interface
 - `IRetryBackoffOptions` interface
 - `IRetryContext` interface
 - `IRpcMetadata` interface
@@ -3192,6 +3200,8 @@ generated:
 - `TcpClientStates` class
 - `TCreateRedisHelperOptions` type
 - `TCredentialAlgorithm` type
+- `TCrudRepositoryClass` type
+- `TCrudRoutes` type
 - `TCustomGrantMetadata` type
 - `TCustomGrantRow` type
 - `TCustomizableRouteConfig` type
@@ -3344,10 +3354,12 @@ generated:
 - `TRelationMetadata` type
 - `TRelationType` type
 - `TRelativeUnit` type
+- `TRepositoryDataObject` type
 - `TRepositoryErrorCode` type
 - `TRepositoryLogOptions` type
 - `TRepositoryMetadata` type
 - `TRepositoryOperationScope` type
+- `TRepositoryPersistObject` type
 - `TRepositoryType` type
 - `TRequestContextResolver` type
 - `TRequestFilterKeyKind` type

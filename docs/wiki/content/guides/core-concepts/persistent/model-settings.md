@@ -699,17 +699,17 @@ The decorator sets `Product.AUTHORIZATION_SUBJECT` to `'Product'`, so a route ca
 
 ```typescript
 // src/controllers/product.controller.ts
-import { AuthorizationActions, ControllerFactory } from '@venizia/ignis';
+import { AuthorizationActions, CrudControllerFactory, CrudRoutes } from '@venizia/ignis';
 import { Product } from '@/models/product.model';
+import { ProductRepository } from '@/repositories/product.repository';
 
 const resource = Product.AUTHORIZATION_SUBJECT ?? 'Product';
 
-export const ProductController = ControllerFactory.defineCrudController({
-  entity: Product,
-  repository: { name: 'ProductRepository' },
-  controller: { name: 'ProductController', basePath: '/products' },
+export const ProductController = CrudControllerFactory.build({
+  repository: ProductRepository,
   authorize: { action: AuthorizationActions.READ, resource },
   routes: {
+    ...CrudRoutes.READ,
     create: { authorize: { action: AuthorizationActions.CREATE, resource } },
     updateById: { authorize: { action: AuthorizationActions.UPDATE, resource } },
     updateBy: { authorize: { action: AuthorizationActions.UPDATE, resource } },
@@ -721,7 +721,7 @@ export const ProductController = ControllerFactory.defineCrudController({
 
 The principal only names the model. It decides nothing by itself: the checks come from the `authorize` of the controller and its routes, which say who may call which route. `access` is the second, separate layer: it says which rows that caller reaches. Authorization asks "may this role update products at all"; `access` asks "which products".
 
-The controller-level `authorize` is a default for the routes that declare none, and a write route may not inherit a `read` spec: `defineCrudController` refuses to boot in that case. See [A CRUD write route no longer inherits a read-only authorize](/changelogs/2026-10-25-crud-write-routes-read-authorize) and [Authorization usage](/extensions/components/authorization/usage#crud-factory-integration).
+The controller-level `authorize` is a default for the routes that declare none, and a listed write route may not inherit a `read` spec: `CrudControllerFactory.build` refuses to boot in that case. See [A CRUD write route no longer inherits a read-only authorize](/changelogs/2026-10-25-crud-write-routes-read-authorize) and [Authorization usage](/extensions/components/authorization/usage#crud-factory-integration).
 
 ## 7. All together
 

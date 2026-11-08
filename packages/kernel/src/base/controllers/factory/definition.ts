@@ -8,7 +8,7 @@ import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import type { ICustomizableRoutes } from '../common';
+import type { ICustomizableRoutes, TCrudRoutes } from '../common';
 import {
   commonResponseHeaders,
   defaultRequestHeaders,
@@ -372,12 +372,54 @@ export class RouteConfigResolver {
     };
   }
 
+  private static resolveRestoreByIdConfig<
+    C extends ICustomizableRoutes['restoreById'],
+    SelectSchema extends TAnyObjectSchema,
+  >(opts: { idType: TIdSchemaType; config: C; selectSchema: SelectSchema }) {
+    const { config, selectSchema, idType } = opts;
+    const defaultSchema = RouteConfigResolver.conditionalCountResponse(selectSchema);
+
+    return {
+      request: {
+        params: RouteConfigResolver.resolveIdParams({ config, idType }),
+        headers: config?.request?.headers ?? defaultRequestHeaders,
+      },
+      response: {
+        description: 'Restored record data',
+        schema: RouteConfigResolver.resolveResponseSchema({ config, defaultSchema }),
+        headers: config?.response?.headers ?? commonResponseHeaders,
+      },
+    };
+  }
+
+  private static resolveRestoreByConfig<
+    C extends ICustomizableRoutes['restoreBy'],
+    SelectSchema extends TAnyObjectSchema,
+  >(opts: { config: C; selectSchema: SelectSchema }) {
+    const { config, selectSchema } = opts;
+    const defaultQuery = z.object({ where: WhereSchema.optional() }).openapi({
+      description: 'Where condition selecting the deleted records to restore',
+    });
+    const defaultSchema = RouteConfigResolver.conditionalCountResponse(z.array(selectSchema));
+
+    return {
+      request: {
+        query: config?.request?.query ?? defaultQuery,
+        headers: config?.request?.headers ?? defaultRequestHeaders,
+      },
+      response: {
+        description: 'Array of restored records',
+        schema: RouteConfigResolver.resolveResponseSchema({ config, defaultSchema }),
+        headers: config?.response?.headers ?? commonResponseHeaders,
+      },
+    };
+  }
+
   /**
-   * Generates complete route configurations for a CRUD controller. `serverStampedKeys` - the keys the default
-   * write bodies leave out.
+   * Generates the route configurations of a CRUD controller: one for each route listed in `routes`, none for
+   * the rest. `serverStampedKeys` - the keys the default write bodies leave out.
    */
   static defineControllerRouteConfigs<
-    Routes extends ICustomizableRoutes,
     SelectSchema extends TAnyObjectSchema,
     CreateSchema extends TAnyObjectSchema,
     UpdateSchema extends TAnyObjectSchema,
@@ -388,7 +430,7 @@ export class RouteConfigResolver {
     authorize?: IAuthorizationSpec | IAuthorizationSpec[];
     schema: { select: SelectSchema; create: CreateSchema; update: UpdateSchema };
     serverStampedKeys?: string[];
-    routes?: Routes;
+    routes?: TCrudRoutes;
   }) {
     const {
       isStrict,
@@ -401,15 +443,18 @@ export class RouteConfigResolver {
     } = opts;
     const { strategies: defaultStrategies = [], mode: defaultMode } = controllerAuth;
 
-    // `Routes` is caller-bound but otherwise unconstrained here, so `{}` cannot be proven to satisfy it structurally even though every field ICustomizableRoutes declares is optional.
-    const routesConfig = (routes ?? {}) as Routes;
+    /** The overrides of a listed route (`true` has none), or `undefined` for a route that is not listed. */
+    const configOf = (routeKey: keyof ICustomizableRoutes) => {
+      const value = routes?.[routeKey];
+
+      return value === true ? {} : value;
+    };
 
     type TAuthenticateConfig = { strategies?: TAuthStrategy[]; mode?: TAuthMode };
 
     /** Priority: endpoint authenticate > controller authenticate. */
     const resolveRouteAuth = (routeKey: keyof ICustomizableRoutes): TAuthenticateConfig => {
-      const endpointConfig = routesConfig[routeKey];
-      const authConfig = endpointConfig?.authenticate;
+      const authConfig = configOf(routeKey)?.authenticate;
 
       if (authConfig == null) {
         return { strategies: defaultStrategies, mode: defaultMode };
@@ -429,7 +474,7 @@ export class RouteConfigResolver {
 
     /** Priority: endpoint authenticate.skip > endpoint authorize.skip > endpoint authorize > controller authorize. */
     const resolveRouteAuthorize = (routeKey: keyof ICustomizableRoutes): TAuthorizeConfig => {
-      const endpointConfig = routesConfig[routeKey];
+      const endpointConfig = configOf(routeKey);
 
       if (endpointConfig?.authenticate?.skip === true) {
         return undefined;
@@ -452,168 +497,237 @@ export class RouteConfigResolver {
       return authorize;
     };
 
-    const count = RouteConfigResolver.resolveCountConfig({ config: routesConfig.count, isStrict });
-    const find = RouteConfigResolver.resolveFindConfig({ config: routesConfig.find, selectSchema });
-    const findById = RouteConfigResolver.resolveFindByIdConfig({
-      config: routesConfig.findById,
-      selectSchema,
-      idType,
-    });
-    const findOne = RouteConfigResolver.resolveFindOneConfig({
-      config: routesConfig.findOne,
-      selectSchema,
-    });
-    const create = RouteConfigResolver.resolveCreateConfig({
-      config: routesConfig.create,
-      selectSchema,
-      createSchema,
-      serverStampedKeys,
-    });
-    const updateById = RouteConfigResolver.resolveUpdateByIdConfig({
-      config: routesConfig.updateById,
-      selectSchema,
-      updateSchema,
-      idType,
-      serverStampedKeys,
-    });
-    const updateBy = RouteConfigResolver.resolveUpdateByConfig({
-      config: routesConfig.updateBy,
-      selectSchema,
-      updateSchema,
-      serverStampedKeys,
-    });
-    const deleteById = RouteConfigResolver.resolveDeleteByIdConfig({
-      config: routesConfig.deleteById,
-      selectSchema,
-      idType,
-    });
-    const deleteBy = RouteConfigResolver.resolveDeleteByConfig({
-      config: routesConfig.deleteBy,
-      selectSchema,
-    });
+    const countConfig = configOf('count');
+    const count =
+      countConfig && RouteConfigResolver.resolveCountConfig({ config: countConfig, isStrict });
+    const findConfig = configOf('find');
+    const find =
+      findConfig && RouteConfigResolver.resolveFindConfig({ config: findConfig, selectSchema });
+    const findByIdConfig = configOf('findById');
+    const findById =
+      findByIdConfig &&
+      RouteConfigResolver.resolveFindByIdConfig({ config: findByIdConfig, selectSchema, idType });
+    const findOneConfig = configOf('findOne');
+    const findOne =
+      findOneConfig &&
+      RouteConfigResolver.resolveFindOneConfig({ config: findOneConfig, selectSchema });
+    const createConfig = configOf('create');
+    const create =
+      createConfig &&
+      RouteConfigResolver.resolveCreateConfig({
+        config: createConfig,
+        selectSchema,
+        createSchema,
+        serverStampedKeys,
+      });
+    const updateByIdConfig = configOf('updateById');
+    const updateById =
+      updateByIdConfig &&
+      RouteConfigResolver.resolveUpdateByIdConfig({
+        config: updateByIdConfig,
+        selectSchema,
+        updateSchema,
+        idType,
+        serverStampedKeys,
+      });
+    const updateByConfig = configOf('updateBy');
+    const updateBy =
+      updateByConfig &&
+      RouteConfigResolver.resolveUpdateByConfig({
+        config: updateByConfig,
+        selectSchema,
+        updateSchema,
+        serverStampedKeys,
+      });
+    const deleteByIdConfig = configOf('deleteById');
+    const deleteById =
+      deleteByIdConfig &&
+      RouteConfigResolver.resolveDeleteByIdConfig({
+        config: deleteByIdConfig,
+        selectSchema,
+        idType,
+      });
+    const deleteByConfig = configOf('deleteBy');
+    const deleteBy =
+      deleteByConfig &&
+      RouteConfigResolver.resolveDeleteByConfig({ config: deleteByConfig, selectSchema });
+    const restoreByIdConfig = configOf('restoreById');
+    const restoreById =
+      restoreByIdConfig &&
+      RouteConfigResolver.resolveRestoreByIdConfig({
+        config: restoreByIdConfig,
+        selectSchema,
+        idType,
+      });
+    const restoreByConfig = configOf('restoreBy');
+    const restoreBy =
+      restoreByConfig &&
+      RouteConfigResolver.resolveRestoreByConfig({ config: restoreByConfig, selectSchema });
 
     const rs = {
-      COUNT: {
-        method: HTTP.Methods.GET,
-        path: RestPaths.COUNT,
-        description: 'Count records matching where condition',
-        authenticate: resolveRouteAuth('count'),
-        authorize: resolveRouteAuthorize('count'),
-        request: count.request,
-        responses: OpenApiResponses.jsonResponse(count.response),
-      },
-
-      FIND: {
-        method: HTTP.Methods.GET,
-        path: RestPaths.ROOT,
-        description: 'Find records with filter, pagination, sorting, and relations',
-        authenticate: resolveRouteAuth('find'),
-        authorize: resolveRouteAuthorize('find'),
-        request: find.request,
-        responses: OpenApiResponses.jsonResponse(find.response),
-      },
-
-      FIND_BY_ID: {
-        method: HTTP.Methods.GET,
-        path: '/{id}',
-        description: 'Find single record by ID',
-        authenticate: resolveRouteAuth('findById'),
-        authorize: resolveRouteAuthorize('findById'),
-        request: findById.request,
-        responses: OpenApiResponses.jsonResponse(findById.response),
-      },
-
-      FIND_ONE: {
-        method: HTTP.Methods.GET,
-        path: RestPaths.FIND_ONE,
-        description: 'Find first record matching filter',
-        authenticate: resolveRouteAuth('findOne'),
-        authorize: resolveRouteAuthorize('findOne'),
-        request: findOne.request,
-        responses: OpenApiResponses.jsonResponse(findOne.response),
-      },
-
-      CREATE: {
-        method: HTTP.Methods.POST,
-        path: RestPaths.ROOT,
-        description: 'Create new record',
-        authenticate: resolveRouteAuth('create'),
-        authorize: resolveRouteAuthorize('create'),
-        request: {
-          body: OpenApiResponses.jsonContent({
-            description: 'Record data (required fields must be provided)',
-            schema: create.request.body,
-          }),
-          headers: create.request.headers,
+      ...(count && {
+        COUNT: {
+          method: HTTP.Methods.GET,
+          path: RestPaths.COUNT,
+          description: 'Count records matching where condition',
+          authenticate: resolveRouteAuth('count'),
+          authorize: resolveRouteAuthorize('count'),
+          request: count.request,
+          responses: OpenApiResponses.jsonResponse(count.response),
         },
-        responses: OpenApiResponses.jsonResponse(create.response),
-      },
+      }),
 
-      UPDATE_BY_ID: {
-        method: HTTP.Methods.PATCH,
-        path: '/{id}',
-        description: 'Partial update record by ID',
-        authenticate: resolveRouteAuth('updateById'),
-        authorize: resolveRouteAuthorize('updateById'),
-        request: {
-          params: updateById.request.params,
-          body: OpenApiResponses.jsonContent({
-            description: 'Partial data (only changed fields)',
-            schema: updateById.request.body,
-          }),
-          headers: updateById.request.headers,
+      ...(find && {
+        FIND: {
+          method: HTTP.Methods.GET,
+          path: RestPaths.ROOT,
+          description: 'Find records with filter, pagination, sorting, and relations',
+          authenticate: resolveRouteAuth('find'),
+          authorize: resolveRouteAuthorize('find'),
+          request: find.request,
+          responses: OpenApiResponses.jsonResponse(find.response),
         },
-        responses: OpenApiResponses.jsonResponse(updateById.response),
-      },
+      }),
 
-      UPDATE_BY: {
-        method: HTTP.Methods.PATCH,
-        path: RestPaths.ROOT,
-        description: 'Bulk update records matching where condition',
-        authenticate: resolveRouteAuth('updateBy'),
-        authorize: resolveRouteAuthorize('updateBy'),
-        request: {
-          query: updateBy.request.query,
-          body: OpenApiResponses.jsonContent({
-            description: 'Partial data to apply to all matches',
-            schema: updateBy.request.body,
-          }),
-          headers: updateBy.request.headers,
+      ...(findById && {
+        FIND_BY_ID: {
+          method: HTTP.Methods.GET,
+          path: '/{id}',
+          description: 'Find single record by ID',
+          authenticate: resolveRouteAuth('findById'),
+          authorize: resolveRouteAuthorize('findById'),
+          request: findById.request,
+          responses: OpenApiResponses.jsonResponse(findById.response),
         },
-        responses: OpenApiResponses.jsonResponse(updateBy.response),
-      },
+      }),
 
-      DELETE_BY_ID: {
-        method: HTTP.Methods.DELETE,
-        path: '/{id}',
-        description: 'Delete record by ID (irreversible)',
-        authenticate: resolveRouteAuth('deleteById'),
-        authorize: resolveRouteAuthorize('deleteById'),
-        request: deleteById.request,
-        responses: OpenApiResponses.jsonResponse(deleteById.response),
-      },
-
-      DELETE_BY: {
-        method: HTTP.Methods.DELETE,
-        path: RestPaths.ROOT,
-        description: 'Bulk delete records matching where condition (irreversible)',
-        authenticate: resolveRouteAuth('deleteBy'),
-        authorize: resolveRouteAuthorize('deleteBy'),
-        request: {
-          query: deleteBy.request.query,
-          ...(deleteBy.request.body
-            ? {
-                body: OpenApiResponses.jsonContent({
-                  description: 'Where condition, when it does not fit in the query',
-                  schema: deleteBy.request.body,
-                  required: false,
-                }),
-              }
-            : {}),
-          headers: deleteBy.request.headers,
+      ...(findOne && {
+        FIND_ONE: {
+          method: HTTP.Methods.GET,
+          path: RestPaths.FIND_ONE,
+          description: 'Find first record matching filter',
+          authenticate: resolveRouteAuth('findOne'),
+          authorize: resolveRouteAuthorize('findOne'),
+          request: findOne.request,
+          responses: OpenApiResponses.jsonResponse(findOne.response),
         },
-        responses: OpenApiResponses.jsonResponse(deleteBy.response),
-      },
+      }),
+
+      ...(create && {
+        CREATE: {
+          method: HTTP.Methods.POST,
+          path: RestPaths.ROOT,
+          description: 'Create new record',
+          authenticate: resolveRouteAuth('create'),
+          authorize: resolveRouteAuthorize('create'),
+          request: {
+            body: OpenApiResponses.jsonContent({
+              description: 'Record data (required fields must be provided)',
+              schema: create.request.body,
+            }),
+            headers: create.request.headers,
+          },
+          responses: OpenApiResponses.jsonResponse(create.response),
+        },
+      }),
+
+      ...(updateById && {
+        UPDATE_BY_ID: {
+          method: HTTP.Methods.PATCH,
+          path: '/{id}',
+          description: 'Partial update record by ID',
+          authenticate: resolveRouteAuth('updateById'),
+          authorize: resolveRouteAuthorize('updateById'),
+          request: {
+            params: updateById.request.params,
+            body: OpenApiResponses.jsonContent({
+              description: 'Partial data (only changed fields)',
+              schema: updateById.request.body,
+            }),
+            headers: updateById.request.headers,
+          },
+          responses: OpenApiResponses.jsonResponse(updateById.response),
+        },
+      }),
+
+      ...(updateBy && {
+        UPDATE_BY: {
+          method: HTTP.Methods.PATCH,
+          path: RestPaths.ROOT,
+          description: 'Bulk update records matching where condition',
+          authenticate: resolveRouteAuth('updateBy'),
+          authorize: resolveRouteAuthorize('updateBy'),
+          request: {
+            query: updateBy.request.query,
+            body: OpenApiResponses.jsonContent({
+              description: 'Partial data to apply to all matches',
+              schema: updateBy.request.body,
+            }),
+            headers: updateBy.request.headers,
+          },
+          responses: OpenApiResponses.jsonResponse(updateBy.response),
+        },
+      }),
+
+      ...(deleteById && {
+        DELETE_BY_ID: {
+          method: HTTP.Methods.DELETE,
+          path: '/{id}',
+          description: 'Delete record by ID (irreversible)',
+          authenticate: resolveRouteAuth('deleteById'),
+          authorize: resolveRouteAuthorize('deleteById'),
+          request: deleteById.request,
+          responses: OpenApiResponses.jsonResponse(deleteById.response),
+        },
+      }),
+
+      ...(deleteBy && {
+        DELETE_BY: {
+          method: HTTP.Methods.DELETE,
+          path: RestPaths.ROOT,
+          description: 'Bulk delete records matching where condition (irreversible)',
+          authenticate: resolveRouteAuth('deleteBy'),
+          authorize: resolveRouteAuthorize('deleteBy'),
+          request: {
+            query: deleteBy.request.query,
+            ...(deleteBy.request.body
+              ? {
+                  body: OpenApiResponses.jsonContent({
+                    description: 'Where condition, when it does not fit in the query',
+                    schema: deleteBy.request.body,
+                    required: false,
+                  }),
+                }
+              : {}),
+            headers: deleteBy.request.headers,
+          },
+          responses: OpenApiResponses.jsonResponse(deleteBy.response),
+        },
+      }),
+
+      ...(restoreById && {
+        RESTORE_BY_ID: {
+          method: HTTP.Methods.POST,
+          path: '/{id}/restore',
+          description: 'Restore a soft-deleted record by ID',
+          authenticate: resolveRouteAuth('restoreById'),
+          authorize: resolveRouteAuthorize('restoreById'),
+          request: restoreById.request,
+          responses: OpenApiResponses.jsonResponse(restoreById.response),
+        },
+      }),
+
+      ...(restoreBy && {
+        RESTORE_BY: {
+          method: HTTP.Methods.POST,
+          path: RestPaths.RESTORE,
+          description: 'Restore the soft-deleted records matching where condition',
+          authenticate: resolveRouteAuth('restoreBy'),
+          authorize: resolveRouteAuthorize('restoreBy'),
+          request: restoreBy.request,
+          responses: OpenApiResponses.jsonResponse(restoreBy.response),
+        },
+      }),
     } as const;
 
     return rs;

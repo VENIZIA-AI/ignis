@@ -92,7 +92,7 @@ export const KERNEL_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
   {
     modules: ROOT,
     oldName: 'registerFactoryRepositoryInjection',
-    className: 'ControllerFactory',
+    className: 'CrudControllerFactory',
     method: 'registerRepositoryInjection',
     params: [],
     keepsOptions: true,

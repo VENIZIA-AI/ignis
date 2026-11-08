@@ -29,7 +29,7 @@ Technical reference for REST controller classes - the foundation for creating HT
 | **AbstractRestController** | Base class with Hono router, auth middleware, and OpenAPI integration | `binding()`, `registerRoutesFromRegistry()`, `getRouteConfigs()`, `getJSXRouteConfigs()`, `buildRouteMiddlewares()` |
 | **BaseRestController** | Concrete implementation with route registration methods | `defineRoute()`, `bindRoute()`, `defineJSXRoute()`, `toHonoHandler()` |
 | **RestComponent** | Configures and mounts all REST controllers onto the application router | `binding()` |
-| **ControllerFactory** | Generates typed CRUD controllers from entity definitions | `defineCrudController()` |
+| **CrudControllerFactory** | Generates typed CRUD controllers from a repository class | `crud()` |
 
 ## Controller Transport System
 
@@ -434,8 +434,6 @@ Per-route customization for CRUD controller endpoints:
 
 ```typescript
 type TCustomizableRouteConfig = TRouteAuthConfig & {
-  /** Whether this route is registered. Defaults to true. */
-  enabled?: boolean;
   request?: {
     params?: TAnyObjectSchema;
     query?: TAnyObjectSchema;
@@ -464,7 +462,18 @@ interface ICustomizableRoutes<
   updateBy?: RouteConfig;
   deleteById?: RouteConfig;
   deleteBy?: RouteConfig;
+  restoreById?: RouteConfig;
+  restoreBy?: RouteConfig;
 }
+
+/** What `routes` of `CrudControllerFactory.build` takes: a listed route is `true` or a config; the restore keys only for a repository that has those methods. */
+type TCrudRoutes<Repository extends object = any> = {
+  [Key in keyof ICustomizableRoutes]?: Key extends 'restoreById' | 'restoreBy'
+    ? Repository extends { [Name in Key]: unknown }
+      ? true | TCustomizableRouteConfig
+      : never
+    : true | TCustomizableRouteConfig;
+};
 ```
 
 ## Route Decorators
@@ -709,15 +718,15 @@ class RestPaths {
 | `commonResponseHeaders` | `x-request-id` (echo), `x-response-count`, `x-response-format` |
 | `findResponseHeaders` | `commonResponseHeaders` + `content-range` for pagination |
 
-## `ControllerFactory`
+## `CrudControllerFactory`
 
-The `ControllerFactory` provides a static method `defineCrudController` to quickly generate a pre-configured CRUD controller for any given `AbstractEntity` subclass (e.g. `BaseEntity` for Postgres) and its corresponding repository.
+`CrudControllerFactory.build` generates a CRUD controller from a repository class. The entity comes from the class's `@repository({ model })` decorator, so you name the repository once and nothing else.
 
 **File:** `packages/kernel/src/base/controllers/factory/controller.ts`
 
-### `static defineCrudController<TDataObject, TPersistObject = TDataObject, Routes extends ICustomizableRoutes = ICustomizableRoutes>(opts: ICrudControllerOptions<Routes>)`
+### `static crud<Repository extends TClass<IRepository>>(opts: ICrudControllerOptions<Repository>)`
 
-Returns a `BaseRestController` subclass with standard CRUD endpoints pre-configured. The returned class is dynamically named using `controller.name` from the options. `TDataObject`/`TPersistObject` can't be inferred from `entity` - pass them explicitly for typed fields.
+Returns a `BaseRestController` subclass with the routes you list. It is named after the subclass you declare on top of it, and its path comes only from that subclass's `@controller({ path })`. A route that is listed exists; a route that is not listed does not. There is no `enabled`, `enabledRoutes` or `readonly`.
 
 | Route Name | Method | Path | Description |
 | :--- | :--- | :--- | :--- |
@@ -730,6 +739,12 @@ Returns a `BaseRestController` subclass with standard CRUD endpoints pre-configu
 | `updateBy` | `PATCH` | `/` | Bulk update records matching a `where` filter |
 | `deleteById` | `DELETE` | `/{id}` | Delete a record by its ID |
 | `deleteBy` | `DELETE` | `/` | Bulk delete records matching a `where` filter |
+| `restoreById` | `POST` | `/{id}/restore` | Clear `deletedAt` on a soft-deleted record |
+| `restoreBy` | `POST` | `/restore` | Restore the soft-deleted records matching a `where` in the query |
+
+`CrudRoutes.READ` lists the four read routes (`count`, `find`, `findById`, `findOne`): `routes: CrudRoutes.READ`, or `routes: { ...CrudRoutes.READ, create: true }`.
+
+The restore routes check the UPDATE scope of the model, the same one an update uses. There is no route that lists deleted rows. The repository class must have both `restoreById` and `restoreBy` (a `SoftDeletableRepository` has them): the types refuse the two routes for a class that lacks either, and `CrudControllerFactory.build` throws when it builds, for a caller the types do not reach.
 
 ### Default request bodies
 
@@ -743,7 +758,7 @@ The write routes leave out the keys the model says the server fills, `@model` `s
 
 Without `properties.stamped` the list is `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt` and `deletedAt`, whatever the engine, so a client cannot soft-delete or restore a row through a generated route. A key the schema does not hold is ignored. A model that fills other keys, or none, declares the list: `properties: { stamped: ['createdAt', 'modifiedAt'] }`. A search collection (`BaseSearchEntity`) that keeps a required `createdAt` in its `POST` body declares `properties: { stamped: [] }`, because nothing stamps a document. An update never rewrites `id`: the path or the `where` names the rows.
 
-A refined entity schema that holds none of the keys to leave out is used as it is - the refinement and an OpenAPI name survive. A refined schema that holds one, and any transformed schema, cannot be trimmed: defining the controller throws and names `routes.<route>.request.body` - pass your own body there. A transformed update schema always hits this, because the update routes always leave out `id`, even on a read-only controller.
+A refined entity schema that holds none of the keys to leave out is used as it is - the refinement and an OpenAPI name survive. A refined schema that holds one, and any transformed schema, cannot be trimmed: defining the controller throws and names `routes.<route>.request.body` - pass your own body there. A transformed update schema always hits this, because the update routes always leave out `id`.
 
 A client that still sends one of these keys is not refused: validation strips it, and the request goes on without it. On a `z.strictObject` entity schema, that key is refused instead - the client gets `422`. To accept one from a client, pass your own `routes.<route>.request.body`, which replaces the default and is not filtered by this rule - built from an insert or update schema, it still carries the keys, so `.omit()` them yourself. Server code keeps every column: `repository.create()` and `repository.updateById()` still take them, except that a `SoftDeletableRepository` refuses `deletedAt` in an update or upsert; use its delete and restore methods.
 
@@ -754,7 +769,7 @@ An update left with nothing to write answers `400` with code `core.request.nothi
 Narrows every read of one controller. Override it to scope rows to a tenant, an owner or a status. The default returns `undefined`, and then every read verb passes the request filter through untouched.
 
 ```typescript
-class OrderController extends ControllerFactory.defineCrudController({ ... }) {
+class OrderController extends CrudControllerFactory.build({ ... }) {
   override async getBaseWhere(opts: { context: TRouteContext }) {
     const tenantId = opts.context.req.header('x-tenant-id');
     // Fail closed: a request with no tenant reads nothing, never every tenant.
@@ -767,7 +782,7 @@ Each read verb combines the two sides as `{ and: [baseWhere, requestWhere] }`. A
 
 Returning `undefined` reads every row. Write a scope that fails closed: a request missing the value your scope keys on must narrow to nothing, not widen to everything.
 
-**Only the read verbs are scoped.** `create`, `updateById`, `deleteById` and `deleteBy` do not call `getBaseWhere`. A controller that must reject a write outside its scope checks that in the verb or in an authorization strategy.
+**Only the read verbs are scoped.** `create`, `updateById`, `updateBy`, `deleteById`, `deleteBy`, `restoreById` and `restoreBy` do not call `getBaseWhere`. A controller that must reject a write outside its scope checks that in the verb or in an authorization strategy.
 
 | Verb | How the base where is applied |
 | :--- | :--- |
@@ -784,31 +799,39 @@ The method is public, not protected: a generated controller's declaration file c
 
 | Option | Type | Description |
 | :--- | :--- | :--- |
-| `entity` | `TClass<AbstractEntity> \| TResolver<TClass<AbstractEntity>>` | Entity class or resolver function returning it. Used to derive request/response schemas |
-| `repository.name` | `string` | The repository's binding name (e.g., `ConfigurationRepository.name`). The container injects `repositories.<name>` into constructor parameter 0, so a subclass needs no constructor. A subclass that declares its own `@inject` at parameter 0 overrides it. Takes the name string, not the class. An empty name throws when the controller is defined |
-| `controller.name` | `string` | Unique name for the generated controller (e.g., `'ConfigurationController'`) |
-| `controller.basePath` | `string` | Base path for all routes (e.g., `'/configurations'`). Required |
-| `controller.readonly` | `boolean` | If `true`, only read operations (count, find, findOne, findById) are generated. Defaults to `false` |
-| `controller.enabledRoutes` | `Array<keyof ICustomizableRoutes>` | Whitelist of routes to register; overrides per-route `enabled` flags in `routes` when set |
-| `controller.isStrict` | `{ path?: boolean; requestSchema?: boolean }` | `path`: no effect once mounted - the application's `path.isStrict` decides trailing-slash matching. `requestSchema` (default `true`): strict query parameter validation |
-| `authenticate` | `{ strategies?: TAuthStrategy[]; mode?: TAuthMode }` | Authentication config applied to all routes (unless overridden per-route) |
-| `authorize` | `IAuthorizationSpec \| IAuthorizationSpec[]` | Authorization config applied to all routes (unless overridden per-route) |
-| `routes` | `ICustomizableRoutes` | Per-route configuration combining schema and auth overrides |
+| `repository` | `TClass<IRepository>` | The repository class, not its name. Its class name is the binding the container injects into constructor parameter 0, so a subclass needs no constructor (a subclass that declares its own `@inject` at parameter 0 overrides it). Its `@repository({ model })` supplies the entity, the schemas and the id type; a class without `model` throws when the controller is built |
+| `isStrict` | `{ path?: boolean; requestSchema?: boolean }` | `path`: no effect once mounted - the application's `path.isStrict` decides trailing-slash matching. `requestSchema` (default `true`): strict query parameter validation |
+| `authenticate` | `{ strategies?: TAuthStrategy[]; mode?: TAuthMode }` | Authentication default for the listed routes; a route's own `authenticate` replaces it |
+| `authorize` | `IAuthorizationSpec \| IAuthorizationSpec[]` | Authorization default for the listed routes; a route's own `authorize` replaces it |
+| `routes` | `TCrudRoutes<InstanceType<Repository>>` | The routes to generate: `true` for the defaults, or a config with its own `authenticate`, `authorize` and `request`/`response` schemas |
+
+The row types of `this.repository` and of the generated handlers come from the repository class: `AbstractRepository` carries `$inferData` and `$inferPersist` phantom markers (as an entity does), and `TRepositoryDataObject` and `TRepositoryPersistObject` read them. A relational repository gives the table row, a search repository gives its document type.
+
+The path and the name are not options. Declare them on the subclass:
+
+```typescript
+@controller({ path: '/configurations' })
+export class ConfigurationController extends CrudControllerFactory.build({
+  repository: ConfigurationRepository,
+  routes: CrudRoutes.READ,
+}) {}
+```
+
+The generated routes are registered after the subclass's `binding()`, so a route you declare there wins a path the defaults also match (a custom `GET /featured` is not taken by `GET /{id}`). `binding()` of a generated controller is empty: do not call `super.binding()`.
 
 To write a controller factory of your own, record the same injection on the class it generates:
 
 ```typescript
-import { ControllerFactory } from '@venizia/ignis';
+import { CrudControllerFactory } from '@venizia/ignis';
 
-ControllerFactory.registerRepositoryInjection({
+CrudControllerFactory.registerRepositoryInjection({
   target: GeneratedController,
   factoryName: 'defineReportController',
-  controllerName: 'ReportController',
   repositoryName: ReportRepository.name,
 });
 ```
 
-`target` is the generated class itself, typed `TClass<unknown>` - a bare function or an abstract class is refused. `defineCrudController` and `SearchControllerFactory.defineSearchController` call it too. An empty `repositoryName` throws a message that names `factoryName`.
+`target` is the generated class itself, typed `TClass<unknown>` - a bare function or an abstract class is refused. `CrudControllerFactory.build` and `SearchControllerFactory.defineSearchController` call it too. An empty `repositoryName` throws a message that names `factoryName`.
 
 ### Routes Configuration
 
@@ -821,8 +844,6 @@ type TRouteAuthConfig = {
 };
 
 type TCustomizableRouteConfig = TRouteAuthConfig & {
-  /** Whether this route is registered. Defaults to true. */
-  enabled?: boolean;
   request?: {
     params?: TAnyObjectSchema;
     query?: TAnyObjectSchema;
@@ -847,6 +868,8 @@ type TCustomizableRouteConfig = TRouteAuthConfig & {
 | `updateBy` | query, headers, body, response | Config for updateBy endpoint |
 | `deleteById` | headers, params, response | Config for deleteById endpoint |
 | `deleteBy` | query, headers, response | Config for deleteBy endpoint (body: optional `{ where }`) |
+| `restoreById` | headers, params, response | Config for restoreById endpoint |
+| `restoreBy` | query, headers, response | Config for restoreBy endpoint |
 
 ### Auth Resolution Priority
 
@@ -861,40 +884,37 @@ When resolving authorization for a route:
 1. **Endpoint `authenticate: { skip: true }`** - No authorize (auth skipped entirely)
 2. **Endpoint `authorize: { skip: true }`** - No authorize (explicitly skipped)
 3. **Endpoint `authorize: { ... }`** - Override controller authorize
-4. **Controller `authorize`** - Default fallback. A write route (`create`, `updateById`, `updateBy`, `deleteById`, `deleteBy`) cannot take a controller-level spec whose action is `read`: `defineCrudController` throws at boot unless the route declares its own `authorize`, the controller is `readonly`, or the route is not enabled.
+4. **Controller `authorize`** - Default fallback. A write route (`create`, `updateById`, `updateBy`, `deleteById`, `deleteBy`) cannot take a controller-level spec whose action is `read`: `CrudControllerFactory.build` throws at boot unless the route declares its own `authorize` or is not listed in `routes`.
 
 ### Authentication Examples
 
 ```typescript
-import { Authentication, ControllerFactory } from '@venizia/ignis';
+import { Authentication, CrudControllerFactory, CrudRoutes } from '@venizia/ignis';
 
-// 1. JWT auth on ALL routes
-const UserController = ControllerFactory.defineCrudController({
-  entity: UserEntity,
-  repository: { name: 'UserRepository' },
-  controller: { name: 'UserController', basePath: '/users' },
+// 1. JWT auth on ALL listed routes
+const UserController = CrudControllerFactory.build({
+  repository: UserRepository,
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+  routes: CrudRoutes.READ,
 });
 
 // 2. JWT auth on all, but skip for public read endpoints
-const ProductController = ControllerFactory.defineCrudController({
-  entity: ProductEntity,
-  repository: { name: 'ProductRepository' },
-  controller: { name: 'ProductController', basePath: '/products' },
+const ProductController = CrudControllerFactory.build({
+  repository: ProductRepository,
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   routes: {
     find: { authenticate: { skip: true } },
     findById: { authenticate: { skip: true } },
     count: { authenticate: { skip: true } },
+    create: true,
   },
 });
 
 // 3. No controller auth, require JWT only for write operations
-const ArticleController = ControllerFactory.defineCrudController({
-  entity: ArticleEntity,
-  repository: { name: 'ArticleRepository' },
-  controller: { name: 'ArticleController', basePath: '/articles' },
+const ArticleController = CrudControllerFactory.build({
+  repository: ArticleRepository,
   routes: {
+    ...CrudRoutes.READ,
     create: { authenticate: { strategies: [Authentication.STRATEGY_JWT] } },
     updateById: { authenticate: { strategies: [Authentication.STRATEGY_JWT] } },
     deleteById: { authenticate: { strategies: [Authentication.STRATEGY_JWT] } },
@@ -902,10 +922,8 @@ const ArticleController = ControllerFactory.defineCrudController({
 });
 
 // 4. Custom request/response schemas with auth and authorization
-const OrderController = ControllerFactory.defineCrudController({
-  entity: OrderEntity,
-  repository: { name: 'OrderRepository' },
-  controller: { name: 'OrderController', basePath: '/orders' },
+const OrderController = CrudControllerFactory.build({
+  repository: OrderRepository,
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   authorize: { action: 'read', resource: 'orders' },
   routes: {
@@ -918,7 +936,7 @@ const OrderController = ControllerFactory.defineCrudController({
       request: { body: CustomOrderCreateSchema },
       response: { schema: CustomOrderResponseSchema },
     },
-    // The other write routes need their own authorize too: a controller-level `read` is refused on them
+    // A listed write route needs its own authorize too: a controller-level `read` is refused on it
     updateById: { authorize: { action: 'write', resource: 'orders' } },
     updateBy: { authorize: { action: 'write', resource: 'orders' } },
     deleteById: { authorize: { action: 'write', resource: 'orders' } },
@@ -930,7 +948,7 @@ const OrderController = ControllerFactory.defineCrudController({
 ### Route Customization Examples
 
 ```typescript
-import { Authentication, ControllerFactory } from '@venizia/ignis';
+import { Authentication, CrudControllerFactory } from '@venizia/ignis';
 import { z } from '@hono/zod-openapi';
 
 const CreateUserSchema = z.object({
@@ -946,10 +964,8 @@ const PublicUserSchema = z.object({
   createdAt: z.string(),
 });
 
-const UserController = ControllerFactory.defineCrudController({
-  entity: UserEntity,
-  repository: { name: 'UserRepository' },
-  controller: { name: 'UserController', basePath: '/users' },
+const UserController = CrudControllerFactory.build({
+  repository: UserRepository,
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   routes: {
     find: {
@@ -975,20 +991,20 @@ const UserController = ControllerFactory.defineCrudController({
 
 ```typescript
 // src/controllers/configuration.controller.ts
-import { Configuration } from '@/models';
 import { ConfigurationRepository } from '@/repositories';
-import { controller, ControllerFactory } from '@venizia/ignis';
+import { controller, CrudControllerFactory, CrudRoutes } from '@venizia/ignis';
 
 const BASE_PATH = '/configurations';
 
-const _ConfigurationController = ControllerFactory.defineCrudController({
-  repository: { name: ConfigurationRepository.name },
-  controller: {
-    name: 'ConfigurationController',
-    basePath: BASE_PATH,
-    isStrict: { path: true, requestSchema: true },
+const _ConfigurationController = CrudControllerFactory.build({
+  repository: ConfigurationRepository,
+  isStrict: { path: true, requestSchema: true },
+  routes: {
+    ...CrudRoutes.READ,
+    create: true,
+    updateById: true,
+    deleteById: true,
   },
-  entity: () => Configuration,
 });
 
 @controller({ path: BASE_PATH })
@@ -1000,9 +1016,8 @@ export class ConfigurationController extends _ConfigurationController {}
 When extending a generated CRUD controller, you can override methods using `TRouteContext` and explicit type arguments for validation.
 
 ```typescript
-import { Configuration } from '@/models';
 import { ConfigurationRepository } from '@/repositories';
-import { Authentication, controller, ControllerFactory, TRouteContext } from '@venizia/ignis';
+import { Authentication, controller, CrudControllerFactory, TRouteContext } from '@venizia/ignis';
 import { z } from '@hono/zod-openapi';
 
 const BASE_PATH = '/configurations';
@@ -1021,17 +1036,17 @@ const CreateResponseSchema = z.object({
   message: z.string(),
 });
 
-const _Controller = ControllerFactory.defineCrudController({
-  repository: { name: ConfigurationRepository.name },
-  controller: { name: 'ConfigurationController', basePath: BASE_PATH },
+const _Controller = CrudControllerFactory.build({
+  repository: ConfigurationRepository,
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
-  entity: () => Configuration,
   routes: {
     count: { authenticate: { skip: true } },
     create: {
       request: { body: CreateConfigurationSchema },
       response: { schema: CreateResponseSchema },
     },
+    updateById: true,
+    deleteById: true,
   },
 });
 

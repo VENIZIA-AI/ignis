@@ -6,10 +6,14 @@ import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
 import type { TRouteContext } from '@/base/controllers';
 import { BaseRestController } from '@/base/controllers';
-import { ControllerFactory } from '@venizia/ignis-kernel';
+import { CrudControllerFactory, CrudRoutes } from '@venizia/ignis-kernel';
 import { api, controller, del, get, model, patch, post, put, repository } from '@/base/metadata';
 import { OpenApiResponses } from '@venizia/ignis-kernel';
-import { BasePostgresDataSource, BasePostgresEntity } from '@venizia/ignis-connectors/postgres';
+import {
+  BasePostgresDataSource,
+  BasePostgresEntity,
+  DefaultCRUDRepository,
+} from '@venizia/ignis-connectors/postgres';
 import { z } from '@hono/zod-openapi';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
@@ -175,12 +179,13 @@ class RouteOrderSubscriber extends BasePostgresEntity<typeof RouteOrderSubscribe
 
 // Registered purely for the @repository decorator's side effect (binding registration).
 @repository({ model: RouteOrderSubscriber, dataSource: RouteOrderDataSource })
-class RouteOrderSubscriberRepository {}
+class RouteOrderSubscriberRepository extends DefaultCRUDRepository<
+  typeof RouteOrderSubscriber.schema
+> {}
 
-const SubscriberCrudController = ControllerFactory.defineCrudController({
-  entity: RouteOrderSubscriber,
-  repository: { name: RouteOrderSubscriberRepository.name },
-  controller: { name: 'RouteOrderSubscriberController', basePath: '/subscribers' },
+const SubscriberCrudController = CrudControllerFactory.build({
+  repository: RouteOrderSubscriberRepository,
+  routes: { ...CrudRoutes.READ, create: true, updateById: true, deleteById: true },
 });
 
 @controller({ path: '/subscribers' })
@@ -197,14 +202,9 @@ applyMethodDecorator({
 });
 
 // The shape consumer apps use to hand-write an id endpoint: the generated findById is disabled and a decorator route takes its place, while the generated static routes (/count) stay enabled.
-const CountOnlyCrudController = ControllerFactory.defineCrudController({
-  entity: RouteOrderSubscriber,
-  repository: { name: RouteOrderSubscriberRepository.name },
-  controller: {
-    name: 'RouteOrderCountOnlyController',
-    basePath: '/subscribers',
-    enabledRoutes: ['count'],
-  },
+const CountOnlyCrudController = CrudControllerFactory.build({
+  repository: RouteOrderSubscriberRepository,
+  routes: { count: true },
 });
 
 @controller({ path: '/subscribers' })

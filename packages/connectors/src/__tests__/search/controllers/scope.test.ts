@@ -10,13 +10,17 @@ import { SearchControllerFactory } from '@/search/core/controllers/factory';
 import { SearchModes } from '@/search/core/repositories/common';
 import { DefaultSearchRepository } from '@/search/typesense/repositories';
 
-import { FakeSearchDataSource, ProductDocument } from '../repositories/fake-search-connector';
+import {
+  FakeSearchDataSource,
+  ProductDocument,
+  type TProductDocument,
+} from '../repositories/fake-search-connector';
 
 class SearchScopeDataSource extends FakeSearchDataSource {}
 
 // Distinctly named: the model registry is keyed by class name across the whole test process.
 @repository({ model: ProductDocument, dataSource: SearchScopeDataSource })
-class SearchScopeProductRepository extends DefaultSearchRepository {}
+class SearchScopeProductRepository extends DefaultSearchRepository<TProductDocument> {}
 
 /** Minimal `TRouteContext`-shaped fake: the validated body in, the JSON response out. */
 const fakeContext = <TInput>(input: TInput) => {

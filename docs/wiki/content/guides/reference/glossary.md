@@ -218,7 +218,7 @@ class TodoController extends BaseRestController {
 }
 ```
 
-Plain CRUD like this needs no hand-written controller: [`ControllerFactory.defineCrudController`](../core-concepts/rest-controllers#controllerfactory-for-crud-operations) generates all five routes from the model.
+Plain CRUD like this needs no hand-written controller: [`CrudControllerFactory.build`](../core-concepts/rest-controllers#crudcontrollerfactory-for-crud-operations) generates the routes you list from the model of the repository.
 
 | Term | Description |
 |------|-------------|

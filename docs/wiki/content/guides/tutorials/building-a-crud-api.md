@@ -305,26 +305,27 @@ Dependency Injection (DI) is a design pattern where objects receive their depend
 [Learn more →](/guides/core-concepts/dependency-injection)
 :::
 
-`ControllerFactory` generates a full CRUD controller with automatic validation and OpenAPI docs.
+`CrudControllerFactory` generates a full CRUD controller with automatic validation and OpenAPI docs.
 
 Create `src/controllers/todo/definitions.ts`:
 
 ```typescript
 // src/controllers/todo/definitions.ts
-import { Todo } from '@/models/todo.model';
 import { TodoRepository } from '@/repositories/todo.repository';
-import { ControllerFactory } from '@venizia/ignis';
+import { CrudControllerFactory, CrudRoutes } from '@venizia/ignis';
 
 export const BASE_PATH = '/todos';
 
-// The factory generates a controller class with all CRUD routes
-export const _Controller = ControllerFactory.defineCrudController({
-  repository: { name: TodoRepository.name },
-  controller: {
-    name: 'TodoController',
-    basePath: BASE_PATH,
+// The factory generates a controller class with the routes you list.
+// The entity (for the OpenAPI schemas) comes from @repository({ model }) on TodoRepository.
+export const _Controller = CrudControllerFactory.build({
+  repository: TodoRepository,
+  routes: {
+    ...CrudRoutes.READ,
+    create: true,
+    updateById: true,
+    deleteById: true,
   },
-  entity: () => Todo, // The entity is used to generate OpenAPI schemas
 });
 ```
 
@@ -335,7 +336,7 @@ Create `src/controllers/todo/todo.controller.ts`:
 import { controller } from '@venizia/ignis';
 import { BASE_PATH, _Controller } from './definitions';
 
-// No constructor: the container injects the repository named in repository.name
+// No constructor: the container injects the repository class
 @controller({ path: BASE_PATH })
 export class TodoController extends _Controller {}
 ```
@@ -359,7 +360,7 @@ export * from './todo.controller';
 | DELETE | `/todos/{id}` | Delete todo by ID (deleteById) |
 | DELETE | `/todos` | Delete multiple todos by filter (deleteBy) |
 
-> **Deep Dive:** See [ControllerFactory Reference](/references/base/controllers#controllerfactory) for customization options.
+> **Deep Dive:** See [CrudControllerFactory Reference](/references/base/controllers#crudcontrollerfactory) for customization options.
 
 ## Step 6: Register Components
 
@@ -580,7 +581,7 @@ Now that you've built the Todo API, try building a **User** feature on your own!
 **Requirements:**
 - Create `/api/users` endpoint
 - Users should have: `id`, `email`, `name`, `createdAt`, `modifiedAt`
-- Use `ControllerFactory` for CRUD operations
+- Use `CrudControllerFactory` for CRUD operations
 
 **Challenge checklist:**
 

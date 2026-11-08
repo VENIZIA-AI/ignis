@@ -145,6 +145,9 @@ while staying assignable to this base.
 
 ```ts
 export declare abstract class AbstractRepository<TDataObject extends object, TPersistObject extends object = TDataObject, TOptions extends IExtraOptions = IExtraOptions> extends BaseHelper implements IPersistableRepository<TDataObject, TPersistObject, TOptions> {
+    /** Phantom type markers, never set at runtime: the row and persist shapes, for the types that read them off a repository class (as an entity's `$inferData`). */
+    readonly $inferData?: TDataObject;
+    readonly $inferPersist?: TPersistObject;
     protected _operationScope: TRepositoryOperationScope;
     /** Lazy-resolved on first access if not provided in constructor. */
     protected _dataSource?: AbstractDataSource;
