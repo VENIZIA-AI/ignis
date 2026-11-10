@@ -1,69 +1,77 @@
 import 'reflect-metadata';
 
 import { describe, expect, test } from 'bun:test';
-import { AssetCommitToken } from '@/components/static-asset/common';
+import { StaticAssetCommitTokenUtility } from '@/components/static-asset/utilities';
 
 const SECRET = 'a-secret-nobody-else-has';
 const PAYLOAD = { bucket: 'uploads', key: 'pending/2026/a.png', expiresAt: Date.now() + 60_000 };
 
 describe('the commit token', () => {
   test('a token this secret signed reads back to what it signed', () => {
-    const token = AssetCommitToken.build({ payload: PAYLOAD, secretKey: SECRET });
+    const token = StaticAssetCommitTokenUtility.build({ payload: PAYLOAD, secretKey: SECRET });
 
-    expect(AssetCommitToken.read({ token, secretKey: SECRET })).toEqual(PAYLOAD);
+    expect(StaticAssetCommitTokenUtility.read({ token, secretKey: SECRET })).toEqual(PAYLOAD);
   });
 
   /** The whole point: a caller cannot name an object it was never granted a policy for. */
   test('a payload edited after signing is refused', () => {
-    const token = AssetCommitToken.build({ payload: PAYLOAD, secretKey: SECRET });
+    const token = StaticAssetCommitTokenUtility.build({ payload: PAYLOAD, secretKey: SECRET });
     const [, signature] = token.split('.');
     const forged = Buffer.from(
       JSON.stringify({ ...PAYLOAD, key: 'invoices/2026/someone-elses.pdf' }),
     ).toString('base64url');
 
     expect(() =>
-      AssetCommitToken.read({ token: `${forged}.${signature}`, secretKey: SECRET }),
+      StaticAssetCommitTokenUtility.read({ token: `${forged}.${signature}`, secretKey: SECRET }),
     ).toThrow();
   });
 
   test('another secret cannot mint one', () => {
-    const token = AssetCommitToken.build({ payload: PAYLOAD, secretKey: 'some-other-secret' });
+    const token = StaticAssetCommitTokenUtility.build({
+      payload: PAYLOAD,
+      secretKey: 'some-other-secret',
+    });
 
-    expect(() => AssetCommitToken.read({ token, secretKey: SECRET })).toThrow();
+    expect(() => StaticAssetCommitTokenUtility.read({ token, secretKey: SECRET })).toThrow();
   });
 
   test('a signature of a different length is refused, not crashed on', () => {
-    const [body] = AssetCommitToken.build({ payload: PAYLOAD, secretKey: SECRET }).split('.');
+    const [body] = StaticAssetCommitTokenUtility.build({
+      payload: PAYLOAD,
+      secretKey: SECRET,
+    }).split('.');
 
-    expect(() => AssetCommitToken.read({ token: `${body}.short`, secretKey: SECRET })).toThrow(
-      /Invalid commit token/,
-    );
+    expect(() =>
+      StaticAssetCommitTokenUtility.read({ token: `${body}.short`, secretKey: SECRET }),
+    ).toThrow(/Invalid commit token/);
   });
 
   test('a token with no signature at all is refused', () => {
-    expect(() => AssetCommitToken.read({ token: 'no-dot-here', secretKey: SECRET })).toThrow(
-      /Invalid commit token/,
-    );
+    expect(() =>
+      StaticAssetCommitTokenUtility.read({ token: 'no-dot-here', secretKey: SECRET }),
+    ).toThrow(/Invalid commit token/);
   });
 
   test('an expired token is refused, and says so', () => {
-    const token = AssetCommitToken.build({
+    const token = StaticAssetCommitTokenUtility.build({
       payload: { ...PAYLOAD, expiresAt: Date.now() - 1 },
       secretKey: SECRET,
     });
 
-    expect(() => AssetCommitToken.read({ token, secretKey: SECRET })).toThrow(/expired/i);
+    expect(() => StaticAssetCommitTokenUtility.read({ token, secretKey: SECRET })).toThrow(
+      /expired/i,
+    );
   });
 
   /** Expiry is read from the payload, so a clock the caller does not control decides. */
   test('a token valid now is refused once the clock passes its expiry', () => {
-    const token = AssetCommitToken.build({ payload: PAYLOAD, secretKey: SECRET });
+    const token = StaticAssetCommitTokenUtility.build({ payload: PAYLOAD, secretKey: SECRET });
 
-    expect(AssetCommitToken.read({ token, secretKey: SECRET, now: PAYLOAD.expiresAt - 1 })).toEqual(
-      PAYLOAD,
-    );
+    expect(
+      StaticAssetCommitTokenUtility.read({ token, secretKey: SECRET, now: PAYLOAD.expiresAt - 1 }),
+    ).toEqual(PAYLOAD);
     expect(() =>
-      AssetCommitToken.read({ token, secretKey: SECRET, now: PAYLOAD.expiresAt + 1 }),
+      StaticAssetCommitTokenUtility.read({ token, secretKey: SECRET, now: PAYLOAD.expiresAt + 1 }),
     ).toThrow(/expired/i);
   });
 });
@@ -76,10 +84,16 @@ describe('the commit token needs a secret', () => {
 
     for (const secretKey of [undefined, null, '']) {
       expect(() =>
-        AssetCommitToken.build({ payload: PAYLOAD, secretKey: secretKey as unknown as string }),
+        StaticAssetCommitTokenUtility.build({
+          payload: PAYLOAD,
+          secretKey: secretKey as unknown as string,
+        }),
       ).toThrow();
       expect(() =>
-        AssetCommitToken.read({ token: forged, secretKey: secretKey as unknown as string }),
+        StaticAssetCommitTokenUtility.read({
+          token: forged,
+          secretKey: secretKey as unknown as string,
+        }),
       ).toThrow();
     }
   });
@@ -93,11 +107,11 @@ describe('the commit token keeps its format', () => {
         'eyJidWNrZXQiOiJiIiwia2V5Ijoiay8xIiwiZXhwaXJlc0F0Ijo0MTAyNDQ0ODAwMDAwfQ.rDqsHgFcNylg-VS8Mbq_RWkg7eKER5YsqFU8pdJprpg',
     };
 
-    expect(AssetCommitToken.read({ token: KNOWN.token, secretKey: 'secret-key', now: 0 })).toEqual(
-      KNOWN.payload,
-    );
-    expect(AssetCommitToken.build({ payload: KNOWN.payload, secretKey: 'secret-key' })).toBe(
-      KNOWN.token,
-    );
+    expect(
+      StaticAssetCommitTokenUtility.read({ token: KNOWN.token, secretKey: 'secret-key', now: 0 }),
+    ).toEqual(KNOWN.payload);
+    expect(
+      StaticAssetCommitTokenUtility.build({ payload: KNOWN.payload, secretKey: 'secret-key' }),
+    ).toBe(KNOWN.token);
   });
 });

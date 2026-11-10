@@ -128,8 +128,8 @@ The two routes are thin wrappers over two services. The component binds one of e
 
 | Service | Key | Method |
 |---|---|---|
-| `AssetUploadPolicyService` | `StaticAssetComponentBindingKeys.policyService({ name })` | `issuePolicies({ files })` - the `upload-policy` body: one signed policy per file. |
-| `AssetUploadCommitService` | `StaticAssetComponentBindingKeys.commitService({ name })` | `commit({ commitToken, labels })` - the `upload-commit` body: verify the token, copy to the final key, remove the pending object, write the MetaLink row. Answers `{ bucket, object, link, metaLink? }`. |
+| `StaticAssetUploadPolicyService` | `StaticAssetBindingKeys.policyService({ name })` | `issuePolicies({ files })` - the `upload-policy` body: one signed policy per file. |
+| `StaticAssetUploadCommitService` | `StaticAssetBindingKeys.commitService({ name })` | `commit({ commitToken, labels })` - the `upload-commit` body: verify the token, copy to the final key, remove the pending object, write the MetaLink row. Answers `{ bucket, object, link, metaLink? }`. |
 
 `name` is the entry's key in the options object (`assets` above), not the controller name.
 
@@ -138,14 +138,14 @@ The common case: the client sends `commitToken` along with the record, and the s
 ```ts
 import { BaseService, inject } from '@venizia/ignis';
 import {
-  AssetUploadCommitService,
-  StaticAssetComponentBindingKeys,
+  StaticAssetUploadCommitService,
+  StaticAssetBindingKeys,
 } from '@venizia/ignis/static-asset';
 
 export class ProductService extends BaseService {
   constructor(
-    @inject({ key: StaticAssetComponentBindingKeys.commitService({ name: 'assets' }) })
-    private assetCommit: AssetUploadCommitService,
+    @inject({ key: StaticAssetBindingKeys.commitService({ name: 'assets' }) })
+    private assetCommit: StaticAssetUploadCommitService,
     // Your own binding of the helper the entry was configured with.
     @inject({ key: 'helpers.AssetStorage' }) private storage: IStorageHelper,
     @inject({ key: 'repositories.ProductRepository' }) private products: ProductRepository,
@@ -173,7 +173,7 @@ export class ProductService extends BaseService {
 ```
 
 > [!WARNING]
-> **A commit token carries no owner.** It proves a policy was issued for that key, nothing about who holds it, so anyone who has the token can commit it. Check that the current user may act on the key before you call `commit`: record each `objectName` against the user it was issued to and look it up here. `AssetCommitToken.read({ token, secretKey })` returns the key a token names.
+> **A commit token carries no owner.** It proves a policy was issued for that key, nothing about who holds it, so anyone who has the token can commit it. Check that the current user may act on the key before you call `commit`: record each `objectName` against the user it was issued to and look it up here. `StaticAssetCommitTokenUtility.read({ token, secretKey })` returns the key a token names.
 
 > [!WARNING]
 > **`issuePolicies` does not call `directUpload.authorize`.** That check belongs to the route; code that calls the service decides for itself who may ask for a policy. `commit` still verifies the token and the `keyPrefix` scope, so a forged, expired or out-of-scope token is refused before any storage call.
@@ -252,6 +252,6 @@ commit token carrying business fields.
 **Files:**
 
 - [`packages/helpers/src/modules/storage/bun-s3/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/utility.ts) - `S3SignatureUtility.buildPostPolicy`
-- [`packages/core-server/src/components/static-asset/services/policy.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/services/policy.service.ts) - `AssetUploadPolicyService.issuePolicies`
-- [`packages/core-server/src/components/static-asset/services/commitment.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/services/commitment.service.ts) - `AssetUploadCommitService.commit`
-- [`packages/core-server/src/components/static-asset/common/commit-token.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/commit-token.ts) - `AssetCommitToken.build`, `AssetCommitToken.read`
+- [`packages/core-server/src/components/static-asset/services/policy.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/services/policy.service.ts) - `StaticAssetUploadPolicyService.issuePolicies`
+- [`packages/core-server/src/components/static-asset/services/commitment.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/services/commitment.service.ts) - `StaticAssetUploadCommitService.commit`
+- [`packages/core-server/src/components/static-asset/utilities/commit-token.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/commit-token.utility.ts) - `StaticAssetCommitTokenUtility.build`, `StaticAssetCommitTokenUtility.read`

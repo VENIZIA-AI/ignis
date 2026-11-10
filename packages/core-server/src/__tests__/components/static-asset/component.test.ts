@@ -5,8 +5,8 @@ import { ControllerTransports } from '@venizia/ignis-kernel';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { StaticAssetComponent } from '@/components/static-asset';
 import {
-  StaticAssetComponentBindingKeys,
-  type TStaticAssetsComponentOptions,
+  StaticAssetBindingKeys,
+  type TStaticAssetComponentOptions,
 } from '@/components/static-asset/common';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 import type { OpenAPIHono } from '@hono/zod-openapi';
@@ -46,7 +46,7 @@ const bootStaticAssetApplication = async (opts: {
   });
   application.init();
 
-  const componentOptions: TStaticAssetsComponentOptions = {
+  const componentOptions: TStaticAssetComponentOptions = {
     default: {
       storage: 'disk',
       helper: helper as never,
@@ -55,8 +55,8 @@ const bootStaticAssetApplication = async (opts: {
   };
 
   application
-    .bind<TStaticAssetsComponentOptions>({
-      key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+    .bind<TStaticAssetComponentOptions>({
+      key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
     })
     .toValue(componentOptions);
 

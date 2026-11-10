@@ -1,17 +1,17 @@
 import 'reflect-metadata';
 import { BaseApplication } from '@/base/applications';
 import { AppErrorMiddleware } from '@/base/middlewares';
-import { AssetControllerFactory } from '@/components/static-asset/controller';
+import { StaticAssetControllerFactory } from '@/components/static-asset/controller';
 import {
-  AssetCommitToken,
-  META_LINK_CREATE_FAILED,
+  StaticAssetMetaLinkCodes,
   StaticAssetStorageTypes,
 } from '@/components/static-asset/common';
+import { StaticAssetCommitTokenUtility } from '@/components/static-asset/utilities';
 import { BaseMetaLinkModel } from '@/components/static-asset/models';
 import type {
-  TDirectUploadOptions,
+  TStaticAssetDirectUploadOptions,
   TMetaLinkConfig,
-  TStaticAssetsComponentOptions,
+  TStaticAssetComponentOptions,
 } from '@/components/static-asset/common';
 import type { IAuthorizationSpec } from '@/base';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
@@ -44,7 +44,7 @@ class DirectUploadApplication extends BaseApplication {
 
 const mount = async (opts: {
   helper: FakeStorageHelper;
-  directUpload: TDirectUploadOptions;
+  directUpload: TStaticAssetDirectUploadOptions;
   metaLink?: TMetaLinkConfig;
 }): Promise<OpenAPIHono> => {
   MetadataRegistry.getInstance().clearAll();
@@ -63,7 +63,7 @@ const mount = async (opts: {
   };
 
   application.controller(
-    AssetControllerFactory.defineAssetController({
+    StaticAssetControllerFactory.build({
       controller,
       storage: StaticAssetStorageTypes.DISK,
       helper: opts.helper as never,
@@ -85,7 +85,11 @@ const mount = async (opts: {
   return server;
 };
 
-const ALLOW: TDirectUploadOptions = { authorize: () => true, secretKey: SECRET, maxBytes: 1024 };
+const ALLOW: TStaticAssetDirectUploadOptions = {
+  authorize: () => true,
+  secretKey: SECRET,
+  maxBytes: 1024,
+};
 
 const askPolicy = (router: OpenAPIHono, files: unknown[]) =>
   router.request('/assets/upload-policy', {
@@ -207,7 +211,7 @@ describe('the upload-commit route', () => {
   test('a forged token is refused without a single storage call', async () => {
     const helper = new FakeStorageHelper();
     const router = await mount({ helper, directUpload: ALLOW });
-    const forged = AssetCommitToken.build({
+    const forged = StaticAssetCommitTokenUtility.build({
       payload: { bucket: 'uploads', key: 'pending/x/a.png', expiresAt: Date.now() + 60_000 },
       secretKey: 'not-the-secret',
     });
@@ -398,7 +402,7 @@ describe('a direct upload lands a MetaLink row, like every other upload', () => 
     const body = result3 as { metaLink: { error: string }; link: string };
 
     expect(response.status).toBe(200);
-    expect(body.metaLink).toEqual({ error: META_LINK_CREATE_FAILED });
+    expect(body.metaLink).toEqual({ error: StaticAssetMetaLinkCodes.CREATE_FAILED });
     // The object IS committed - the response still describes it.
     expect(body.link).toBeTruthy();
   });
@@ -430,7 +434,7 @@ describe('the routes exist only when directUpload is configured', () => {
     });
     application.init();
     application.controller(
-      AssetControllerFactory.defineAssetController({
+      StaticAssetControllerFactory.build({
         controller: { name: 'PlainAssetController', basePath: '/assets', bucket: 'uploads' },
         storage: StaticAssetStorageTypes.DISK,
         helper: helper as never,
@@ -457,7 +461,7 @@ describe('the routes exist only when directUpload is configured', () => {
 export const routeAuthorizeAssertions = () => {
   const spec: IAuthorizationSpec = { action: 'delete', resource: 'asset' };
 
-  const options: TStaticAssetsComponentOptions = {
+  const options: TStaticAssetComponentOptions = {
     assets: {
       controller: {
         name: 'AssetController',

@@ -18,13 +18,13 @@ import {
  * This does NOT write a meta link. The columns an application attaches to an object - a principal,
  * a variant - come from its own domain, not from the object, so the row stays the caller's.
  */
-export interface IIngestFromUrlResult {
+export interface IStaticAssetIngestFromUrlResult {
   upload: IUploadResult;
   stat: IFileStat;
 }
 
 /** Where a fetched object lands, and what it is attached to. */
-export interface IIngestFromUrlOptions {
+export interface IStaticAssetIngestFromUrlOptions {
   helper: IStorageHelper;
   url: string;
   bucket: IBucketRef;
@@ -65,7 +65,7 @@ const readKeyFromUrl = (opts: { url: URL; folderPath?: string }): string => {
 };
 
 /** Storing an object that came from somewhere else. */
-export class AssetIngest {
+export class StaticAssetIngestUtility {
   /**
    * Fetches an untrusted url and stores what comes back, without the bytes passing through this
    * process: the guarded body is capped and handed to `writeStream` as a stream.
@@ -77,7 +77,9 @@ export class AssetIngest {
    * The served content type is decided from the stored KEY, never from what the remote host
    * claimed - the same rule the asset routes apply, and for the same reason.
    */
-  static async fromUrl(opts: IIngestFromUrlOptions): Promise<IIngestFromUrlResult> {
+  static async fromUrl(
+    opts: IStaticAssetIngestFromUrlOptions,
+  ): Promise<IStaticAssetIngestFromUrlResult> {
     const { helper, url, bucket, folderPath, policy, resolveKey, normalizeLinkFn } = opts;
 
     const response = await UrlIngest.fetchGuarded({ url, policy });
@@ -92,7 +94,9 @@ export class AssetIngest {
     // the same depth rule as one arriving through the upload route.
     if (!helper.isValidObjectKey({ object: { key }, maxDepth: opts.maxFolderDepth })) {
       await response.body?.cancel();
-      throw getError({ message: `[AssetIngest.fromUrl] Invalid object key | key: ${key}` });
+      throw getError({
+        message: `[StaticAssetIngestUtility.fromUrl] Invalid object key | key: ${key}`,
+      });
     }
 
     // Refused BEFORE the write starts, so a body that declares its size never opens a multipart
@@ -106,12 +110,14 @@ export class AssetIngest {
       await response.body?.cancel();
       throw getError({
         error: UrlSafetyErrors.URL_REFUSED,
-        message: `[AssetIngest.fromUrl] Body exceeds the cap | declared: ${declaredLength} | max: ${maxBytes}`,
+        message: `[StaticAssetIngestUtility.fromUrl] Body exceeds the cap | declared: ${declaredLength} | max: ${maxBytes}`,
       });
     }
 
     if (!response.body) {
-      throw getError({ message: `[AssetIngest.fromUrl] Response carried no body | url: ${url}` });
+      throw getError({
+        message: `[StaticAssetIngestUtility.fromUrl] Response carried no body | url: ${url}`,
+      });
     }
 
     const object: IObjectRef = { key };
@@ -130,7 +136,7 @@ export class AssetIngest {
 
     if (!link) {
       throw getError({
-        message: `[AssetIngest.fromUrl] normalizeLinkFn returned an empty link | key: ${key}`,
+        message: `[StaticAssetIngestUtility.fromUrl] normalizeLinkFn returned an empty link | key: ${key}`,
       });
     }
 

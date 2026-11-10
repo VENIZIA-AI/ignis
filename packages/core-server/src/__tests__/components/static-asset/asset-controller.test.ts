@@ -3,11 +3,11 @@ import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import { BaseMetaLinkModel } from '@/components/static-asset/models';
-import { AssetControllerFactory } from '@/components/static-asset/controller';
+import { StaticAssetControllerFactory } from '@/components/static-asset/controller';
 import type {
-  TDefineExtraRoutes,
+  TStaticAssetDefineExtraRoutes,
   TMetaLinkConfig,
-  TObjectNameResolver,
+  TStaticAssetObjectNameResolver,
   TStaticAssetExtraOptions,
 } from '@/components/static-asset/common';
 import { StaticAssetStorageTypes } from '@/components/static-asset/common';
@@ -119,9 +119,9 @@ const mountAssetController = async (opts: {
   options?: TStaticAssetExtraOptions;
   isStrict?: boolean;
   metaLink?: TMetaLinkConfig;
-  resolveObjectName?: TObjectNameResolver;
-  defineRoutesBefore?: TDefineExtraRoutes;
-  defineExtraRoutes?: TDefineExtraRoutes;
+  resolveObjectName?: TStaticAssetObjectNameResolver;
+  defineRoutesBefore?: TStaticAssetDefineExtraRoutes;
+  defineExtraRoutes?: TStaticAssetDefineExtraRoutes;
   bucket?: string | (() => string);
   rawObjectPath?: boolean;
 }): Promise<OpenAPIHono> => {
@@ -141,7 +141,7 @@ const mountAssetController = async (opts: {
   const application = new TestApplication({ scope: 'StaticAssetTestApp', config: TEST_CONFIGS });
   application.init();
 
-  const AssetController = AssetControllerFactory.defineAssetController({
+  const AssetController = StaticAssetControllerFactory.build({
     controller: {
       name: 'TestAssetController',
       basePath: '/assets',
@@ -799,7 +799,7 @@ describe('StaticAsset controller — resolveObjectName hook', () => {
   });
 
   test('the hook is offered the file, the default key and the bucket', async () => {
-    const seen: Array<Parameters<TObjectNameResolver>[0]> = [];
+    const seen: Array<Parameters<TStaticAssetObjectNameResolver>[0]> = [];
     const helper = new FakeStorageHelper();
     const router = await mountAssetController({
       helper,
@@ -1469,14 +1469,14 @@ describe('the upload query carries a display order', () => {
   });
 });
 
-describe('AssetControllerFactory.findLabelsInQuery names a caller that never migrated', () => {
+describe('StaticAssetControllerFactory.findLabelsInQuery names a caller that never migrated', () => {
   /**
    * Labels belong in the body. This predicate names the ones a caller still puts in the URL, which
    * the upload routes refuse.
    */
   test('it names every label still arriving in the query', () => {
     expect(
-      AssetControllerFactory.findLabelsInQuery({
+      StaticAssetControllerFactory.findLabelsInQuery({
         query: { principalId: '42', variant: 'original' },
       }),
     ).toEqual(['principalId', 'variant']);
@@ -1484,7 +1484,7 @@ describe('AssetControllerFactory.findLabelsInQuery names a caller that never mig
 
   test('it returns them in a stable order, not the order they were sent', () => {
     expect(
-      AssetControllerFactory.findLabelsInQuery({
+      StaticAssetControllerFactory.findLabelsInQuery({
         query: { variant: 'a', principalType: 'Product' },
       }),
     ).toEqual(['principalType', 'variant']);
@@ -1492,13 +1492,15 @@ describe('AssetControllerFactory.findLabelsInQuery names a caller that never mig
 
   test('an unrelated query parameter is not a label', () => {
     expect(
-      AssetControllerFactory.findLabelsInQuery({ query: { prefix: 'photos/', maxKeys: '10' } }),
+      StaticAssetControllerFactory.findLabelsInQuery({
+        query: { prefix: 'photos/', maxKeys: '10' },
+      }),
     ).toEqual([]);
   });
 
   /** An empty value still means the caller put it there, so it is still the wrong place. */
   test('an empty value still counts', () => {
-    expect(AssetControllerFactory.findLabelsInQuery({ query: { folderPath: '' } })).toEqual([
+    expect(StaticAssetControllerFactory.findLabelsInQuery({ query: { folderPath: '' } })).toEqual([
       'folderPath',
     ]);
   });

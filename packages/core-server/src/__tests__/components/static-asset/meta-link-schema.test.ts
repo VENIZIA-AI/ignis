@@ -7,7 +7,7 @@ import { StaticAssetStorageTypes } from '@/components/static-asset/common';
 import type { DiskHelper } from '@venizia/ignis-helpers';
 import type {
   TMetaLinkConfig,
-  TStaticAssetsComponentOptions,
+  TStaticAssetComponentOptions,
 } from '@/components/static-asset/common';
 import { BaseMetaLinkModel } from '@/components/static-asset/models';
 import {
@@ -91,7 +91,7 @@ export const metaLinkTypeAssertions = () => {
   };
 
   /** And the component options carry that table through, which is the shape an application binds. */
-  const namespacedOptions: TStaticAssetsComponentOptions<typeof NamespacedMetaLinkModel.schema> = {
+  const namespacedOptions: TStaticAssetComponentOptions<typeof NamespacedMetaLinkModel.schema> = {
     asset: {
       controller: { name: 'AssetController', basePath: '/assets' },
       storage: StaticAssetStorageTypes.DISK,
@@ -104,7 +104,7 @@ export const metaLinkTypeAssertions = () => {
   /**
    * The shape a consumer reaches for after `component(Ctor, { options })` landed: options carrying
    * a namespaced table, handed straight to the component. The class has to be generic for this -
-   * a bare `BaseComponent<TStaticAssetsComponentOptions>` pins the options to the shipped table.
+   * a bare `BaseComponent<TStaticAssetComponentOptions>` pins the options to the shipped table.
    */
   const componentRegistration = () =>
     application.component(StaticAssetComponent, { options: namespacedOptions });

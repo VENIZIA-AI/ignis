@@ -1,36 +1,42 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 
-/** `content-type` is absent on purpose: it is decided from the object name, never from the backend. */
-export const WHITELIST_HEADERS = [
-  HTTP.Headers.CONTENT_ENCODING,
-  HTTP.Headers.CACHE_CONTROL,
-  HTTP.Headers.ETAG,
-  HTTP.Headers.LAST_MODIFIED,
-] as const;
+/** The response headers a controller echoes from the backend's metadata. */
+export class StaticAssetHeaders {
+  /** `content-type` is absent on purpose: it is decided from the object name, never from the backend. */
+  static readonly ALLOWED = [
+    HTTP.Headers.CONTENT_ENCODING,
+    HTTP.Headers.CACHE_CONTROL,
+    HTTP.Headers.ETAG,
+    HTTP.Headers.LAST_MODIFIED,
+  ] as const;
+}
 
-/**
- * Types the controller will let a browser render, keyed off the object name. Anything absent here is
- * served as an attachment, because a renderable upload on the API origin is stored XSS - and `nosniff`
- * cannot stop a type we declared ourselves. `image/svg+xml` is deliberately excluded: SVG carries script.
- */
-export const RENDERABLE_CONTENT_TYPES = new Set<string>([
-  'image/png',
-  'image/jpeg',
-  'image/gif',
-  'image/webp',
-  'image/avif',
-  'image/bmp',
-  'image/x-icon',
-  'video/mp4',
-  'video/webm',
-  'audio/mpeg',
-  'audio/wav',
-  'audio/ogg',
-  'application/pdf',
-  'text/plain',
-  'text/csv',
-]);
+/** Content types the controller serves. */
+export class StaticAssetContentTypes {
+  /**
+   * Types the controller will let a browser render, keyed off the object name. Anything absent here is
+   * served as an attachment, because a renderable upload on the API origin is stored XSS - and `nosniff`
+   * cannot stop a type we declared ourselves. `image/svg+xml` is deliberately excluded: SVG carries script.
+   */
+  static readonly RENDERABLE = new Set<string>([
+    'image/png',
+    'image/jpeg',
+    'image/gif',
+    'image/webp',
+    'image/avif',
+    'image/bmp',
+    'image/x-icon',
+    'video/mp4',
+    'video/webm',
+    'audio/mpeg',
+    'audio/wav',
+    'audio/ogg',
+    'application/pdf',
+    'text/plain',
+    'text/csv',
+  ]);
+}
 
 /** Storage backends a static asset controller can serve from. `isValid` checks a string against them. */
 export class StaticAssetStorageTypes {
@@ -62,11 +68,17 @@ export class MetaLinkRecreateActions {
 /** One of the `MetaLinkRecreateActions` values. */
 export type TMetaLinkRecreateAction = TConstValue<typeof MetaLinkRecreateActions>;
 
-/** Where a signed policy may write. The final key is never inside it, so content cannot be replaced after the commit. */
-export const DEFAULT_PENDING_PREFIX = 'pending/';
+/** Defaults of the static asset component. */
+export class StaticAssetDefaults {
+  /** Where a signed policy may write. The final key is never inside it, so content cannot be replaced after the commit. */
+  static readonly PENDING_PREFIX = 'pending/';
 
-/** The most file parts one upload request may carry unless `parseMultipartBody.maxFiles` says otherwise. */
-export const DEFAULT_MAX_UPLOAD_FILES = 20;
+  /** The most file parts one upload request may carry unless `parseMultipartBody.maxFiles` says otherwise. */
+  static readonly MAX_UPLOAD_FILES = 20;
+}
 
-/** Reported in the body, never thrown: the bytes are stored, only the row is not. A CODE, because a 200 bypasses the middleware that strips the driver's `detail`/`table`/`constraint`. */
-export const META_LINK_CREATE_FAILED = 'META_LINK_CREATE_FAILED';
+/** Codes the component reports in a body instead of throwing. */
+export class StaticAssetMetaLinkCodes {
+  /** Reported in the body, never thrown: the bytes are stored, only the row is not. A CODE, because a 200 bypasses the middleware that strips the driver's `detail`/`table`/`constraint`. */
+  static readonly CREATE_FAILED = 'META_LINK_CREATE_FAILED';
+}

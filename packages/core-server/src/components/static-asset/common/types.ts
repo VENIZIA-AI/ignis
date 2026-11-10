@@ -29,7 +29,7 @@ export type TStaticAssetExtraOptions = {
     /**
      * The most file parts one upload request may carry; more is refused with 413 before anything is written. The upload-policy request is bounded by the same number (more is a 422).
      *
-     * @default DEFAULT_MAX_UPLOAD_FILES (20)
+     * @default StaticAssetDefaults.MAX_UPLOAD_FILES (20)
      */
     maxFiles?: number;
   };
@@ -51,7 +51,7 @@ export type TStaticAssetExtraOptions = {
 };
 
 /** Decides the key one uploaded file is stored under. `defaultKey` is what IGNIS would have written. */
-export type TObjectNameResolver = (opts: {
+export type TStaticAssetObjectNameResolver = (opts: {
   bucket: IBucketRef;
   file: TUploadNaming;
   defaultKey: string;
@@ -59,7 +59,7 @@ export type TObjectNameResolver = (opts: {
 
 /** Adds routes of the application's own to a generated asset controller. Runs after every built-in route, so a built-in route always wins a path collision. `basePath` is the mount path with exactly one leading slash. */
 /** Adds routes of the application's own. Registration order decides a path collision, so the same shape serves both the before and the after hook. */
-export type TDefineExtraRoutes = (opts: {
+export type TStaticAssetDefineExtraRoutes = (opts: {
   controller: BaseRestController;
   helper: IStorageHelper;
   basePath: string;
@@ -67,11 +67,11 @@ export type TDefineExtraRoutes = (opts: {
 
 // Declared by hand rather than inferred: RouteHandler inference here is heavy.
 /** Path parameters of the bucket routes. */
-export type TBucketParams = { bucketName: string };
+export type TStaticAssetBucketParams = { bucketName: string };
 /** Path parameters of the object routes. */
-export type TObjectParams = { bucketName: string; objectName: string };
+export type TStaticAssetObjectParams = { bucketName: string; objectName: string };
 /** Labels recorded on the MetaLink row of an uploaded object. */
-export type TUploadQuery = {
+export type TStaticAssetUploadQuery = {
   principalType?: string;
   principalId?: string;
   variant?: string;
@@ -80,10 +80,10 @@ export type TUploadQuery = {
   folderPath?: string;
 };
 /** Query of the list objects route. Every value arrives as a string. */
-export type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string };
+export type TStaticAssetListQuery = { prefix?: string; recursive?: string; maxKeys?: string };
 
 /** Enables the signed-policy upload flow, where the client posts bytes straight to the storage and IGNIS only signs the permission and verifies the commit. */
-export type TDirectUploadOptions = {
+export type TStaticAssetDirectUploadOptions = {
   /** Who may ask for a policy. REQUIRED, not defaulted: this route hands out a write credential, and there is no safe default for that. */
   authorize: (opts: { context: TRouteContext }) => ValueOrPromise<boolean>;
 
@@ -116,7 +116,7 @@ export type TDirectUploadOptions = {
 };
 
 /** Body of the upload policy route: the files the client intends to upload. */
-export type TUploadPolicyRequest = {
+export type TStaticAssetUploadPolicyRequest = {
   files: Array<{ fileName: string; contentType?: string; size?: number }>;
 };
 
@@ -128,7 +128,7 @@ export type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLink
     uploadResult: IUploadResult;
     fileStat: IFileStat;
     /** The caller's labels. Named for where they used to travel - they arrive in the request BODY now, as form fields on an upload and beside the commit token on a direct one. */
-    query: TUploadQuery;
+    query: TStaticAssetUploadQuery;
   }) => ValueOrPromise<{ count: number; data: TTableObject<Schema> }>;
 };
 
@@ -164,7 +164,7 @@ export type TStaticAssetRoutes = {
 };
 
 /** Static asset controllers keyed by an application-chosen name. Each entry pairs a storage type with its matching helper, and `useMetaLink: true` requires a `metaLink` config. */
-export type TStaticAssetsComponentOptions<
+export type TStaticAssetComponentOptions<
   Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema,
 > = {
   [key: string]: {
@@ -203,18 +203,18 @@ export type TStaticAssetsComponentOptions<
       routes?: TStaticAssetRoutes;
 
       /** Direct upload: the browser posts the bytes to the storage and IGNIS only signs the permission. Absent leaves both routes unregistered. Requires `bucket` - a policy names one bucket, and a bucket in the URL is a bucket the caller chooses. */
-      directUpload?: TDirectUploadOptions;
+      directUpload?: TStaticAssetDirectUploadOptions;
     };
     extra?: TStaticAssetExtraOptions;
 
     /** Decides the stored object name of each uploaded file; absent keeps the storage helper's own naming. */
-    resolveObjectName?: TObjectNameResolver;
+    resolveObjectName?: TStaticAssetObjectNameResolver;
 
     /** Registers the application's own routes BEFORE every built-in one, so a literal path wins over the catch-all `rawObjectPath` produces. Hono matches in registration order. */
-    defineRoutesBefore?: TDefineExtraRoutes;
+    defineRoutesBefore?: TStaticAssetDefineExtraRoutes;
 
     /** Registers the application's own routes on the generated controller, after every built-in one. */
-    defineExtraRoutes?: TDefineExtraRoutes;
+    defineExtraRoutes?: TStaticAssetDefineExtraRoutes;
   } & (
     | { storage: typeof StaticAssetStorageTypes.BUN_S3; helper: BunS3Helper }
     | { storage: typeof StaticAssetStorageTypes.DISK; helper: DiskHelper }
@@ -224,3 +224,10 @@ export type TStaticAssetsComponentOptions<
       | { useMetaLink: true; metaLink: TMetaLinkConfig<Schema> }
     );
 };
+
+/** What a commit token binds. Business fields are deliberately absent - which order or tenant an upload belongs to is the application's, and a token the framework signs is the wrong place to put its authorization. */
+export interface IStaticAssetCommitTokenPayload {
+  bucket: string;
+  key: string;
+  expiresAt: number;
+}

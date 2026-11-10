@@ -1,6 +1,6 @@
 import type { IObjectLocation } from '@venizia/ignis-helpers';
 
-export class AssetObjectLink {
+export class StaticAssetObjectLinkUtility {
   /** The mount path may be declared with or without a leading slash; a link must carry exactly one. */
   static normalizeBasePath(opts: { basePath: string }): string {
     return opts.basePath.startsWith('/') ? opts.basePath : `/${opts.basePath}`;
@@ -25,7 +25,7 @@ export class AssetObjectLink {
     const bucketSegment = hasConfiguredBucket ? '' : `/buckets/${bucket.name}`;
     const objectSegment = rawObjectPath
       ? object.key
-      : AssetObjectLink.encodeObjectPath({ objectPath: object.key });
+      : StaticAssetObjectLinkUtility.encodeObjectPath({ objectPath: object.key });
 
     return `${basePath}${bucketSegment}/objects/${objectSegment}`;
   }

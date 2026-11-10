@@ -17,16 +17,16 @@ difficulty: intermediate
 import { BaseApplication } from '@venizia/ignis';
 import {
   StaticAssetComponent,
-  StaticAssetComponentBindingKeys,
+  StaticAssetBindingKeys,
   StaticAssetStorageTypes,
 } from '@venizia/ignis/static-asset';
-import type { TStaticAssetsComponentOptions } from '@venizia/ignis/static-asset';
+import type { TStaticAssetComponentOptions } from '@venizia/ignis/static-asset';
 import { DiskHelper } from '@venizia/ignis-helpers';
 
 export class Application extends BaseApplication {
   preConfigure() {
-    this.bind<TStaticAssetsComponentOptions>({
-      key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+    this.bind<TStaticAssetComponentOptions>({
+      key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
     }).toValue({
       staticAsset: {
         controller: { name: 'AssetController', basePath: '/assets', isStrict: true },
@@ -45,7 +45,7 @@ This registers `GET`/`POST`/`DELETE` on `/assets/buckets/:bucketName`, `POST /as
 
 ## How it works
 
-- **One options key, one generated controller.** `TStaticAssetsComponentOptions` is a record. Each key (`staticAsset` above) becomes an independently configured storage backend with its own `basePath`. `AssetControllerFactory.defineAssetController()` builds the controller inside `StaticAssetComponent.binding()`.
+- **One options key, one generated controller.** `TStaticAssetComponentOptions` is a record. Each key (`staticAsset` above) becomes an independently configured storage backend with its own `basePath`. `StaticAssetControllerFactory.build()` builds the controller inside `StaticAssetComponent.binding()`.
 - **`storage` and `helper` are a discriminated pair.** Mismatching them fails at compile time, not at runtime:
 
   | `storage` | Required `helper` |
@@ -58,7 +58,7 @@ This registers `GET`/`POST`/`DELETE` on `/assets/buckets/:bucketName`, `POST /as
 - **Every backend implements the same `IStorageHelper` contract.** `DiskHelper` and `BunS3Helper` both extend `BaseStorageHelper`. Bucket/object operations, name validation (`isValidBucketName`/`isValidObjectKey`), and upload normalization behave identically regardless of backend.
 - **Object names can embed folder paths, encoded as one segment.** `objects/{objectName}` percent-encodes the whole `folder/file.ext` string via `encodeURIComponent()`, which also escapes `/`. Hono decodes it before your handler runs - encode the name client-side, and never decode it again.
 - **MetaLink is opt-in.** Set `useMetaLink: true` and provide `metaLink.repository`. IGNIS then persists a database row (`bucket/object/mimetype/size/etag/principal/variant`) alongside every upload. That row lets you query "which files does user X own" without listing a whole bucket.
-- **The default binding is empty.** `StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS` defaults to `{}`. Bind it with at least one storage backend before `this.component(StaticAssetComponent)` - an empty binding produces zero routes.
+- **The default binding is empty.** `StaticAssetBindingKeys.STATIC_ASSET_OPTIONS` defaults to `{}`. Bind it with at least one storage backend before `this.component(StaticAssetComponent)` - an empty binding produces zero routes.
 
 ## Common tasks
 
@@ -69,8 +69,8 @@ Each key in the options object is independent - mix disk and S3 under different 
 ```typescript
 import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 
-this.bind<TStaticAssetsComponentOptions>({
-  key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+this.bind<TStaticAssetComponentOptions>({
+  key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
 }).toValue({
   uploads: {
     controller: { name: 'UploadsController', basePath: '/uploads' },
@@ -161,8 +161,8 @@ extra: {
 **Files:**
 
 - [`packages/core-server/src/components/static-asset/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/component.ts) - `StaticAssetComponent`
-- [`packages/core-server/src/components/static-asset/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/types.ts) - `TStaticAssetsComponentOptions`, `TStaticAssetExtraOptions`, `TMetaLinkConfig`
+- [`packages/core-server/src/components/static-asset/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/types.ts) - `TStaticAssetComponentOptions`, `TStaticAssetExtraOptions`, `TMetaLinkConfig`
 - [`packages/core-server/src/components/static-asset/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/constants.ts) - `StaticAssetStorageTypes`
-- [`packages/core-server/src/components/static-asset/controller/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/factory.ts) - `AssetControllerFactory`
+- [`packages/core-server/src/components/static-asset/controller/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/factory.ts) - `StaticAssetControllerFactory`
 - [`packages/core-server/src/components/static-asset/models/base.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/models/base.model.ts) - `BaseMetaLinkModel`
 - [`packages/helpers/src/modules/storage/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/base.ts) - `BaseStorageHelper`, `IStorageHelper`

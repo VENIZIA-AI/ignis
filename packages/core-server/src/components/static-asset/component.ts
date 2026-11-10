@@ -4,15 +4,15 @@ import { inject } from '@/base/metadata';
 import { CoreBindings } from '@venizia/ignis-kernel';
 import { Binding } from '@venizia/ignis-kernel';
 import { type ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { StaticAssetComponentBindingKeys, type TStaticAssetsComponentOptions } from './common';
+import { StaticAssetBindingKeys, type TStaticAssetComponentOptions } from './common';
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from './models';
-import { AssetControllerFactory } from './controller';
-import { AssetUploadCommitService, AssetUploadPolicyService } from './services';
+import { StaticAssetControllerFactory } from './controller';
+import { StaticAssetUploadCommitService, StaticAssetUploadPolicyService } from './services';
 
 /** `Schema` is the MetaLink table the application binds. It has to live on the CLASS, not only on the options: `component(Ctor, { options })` infers the options from the class, so a class pinned to the shipped table can only carry options for that table. */
 export class StaticAssetComponent<
   Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema,
-> extends BaseComponent<TStaticAssetsComponentOptions<Schema>> {
+> extends BaseComponent<TStaticAssetComponentOptions<Schema>> {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
   ) {
@@ -20,10 +20,9 @@ export class StaticAssetComponent<
       scope: StaticAssetComponent.name,
       initDefault: { enable: true, container: application },
       bindings: {
-        [StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS]:
-          Binding.bind<TStaticAssetsComponentOptions>({
-            key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
-          }).toValue({}),
+        [StaticAssetBindingKeys.STATIC_ASSET_OPTIONS]: Binding.bind<TStaticAssetComponentOptions>({
+          key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
+        }).toValue({}),
       },
     });
   }
@@ -33,8 +32,8 @@ export class StaticAssetComponent<
     // through `configs.artifacts`, where an index carries classes and no options.
     const componentOptions =
       this.options ??
-      this.application.get<TStaticAssetsComponentOptions<Schema>>({
-        key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+      this.application.get<TStaticAssetComponentOptions<Schema>>({
+        key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
       });
 
     const componentOptionsEntries = Object.entries(componentOptions);
@@ -53,7 +52,7 @@ export class StaticAssetComponent<
       const directUploadServices = this.bindDirectUploadServices({ key, entry: opt });
 
       this.application.controller(
-        AssetControllerFactory.defineAssetController({
+        StaticAssetControllerFactory.build({
           controller,
           ...directUploadServices,
           storage,
@@ -69,7 +68,7 @@ export class StaticAssetComponent<
               extra?.normalizeLinkFn ??
               // The link follows the URL shape the controller serves: `{objectName}` is one Hono path segment unless `rawObjectPath` widens it, and a configured bucket leaves the path.
               ((linkOptions) =>
-                AssetControllerFactory.buildObjectLink({
+                StaticAssetControllerFactory.buildObjectLink({
                   basePath: controller.basePath,
                   bucket: linkOptions.bucket,
                   object: linkOptions.object,
@@ -92,9 +91,12 @@ export class StaticAssetComponent<
   /** One pair of services per entry that turns direct upload on. The routes run the very objects an application's service resolves from the keys. An entry without a bucket binds nothing: the controller refuses it, with the reason. */
   private bindDirectUploadServices(opts: {
     key: string;
-    entry: TStaticAssetsComponentOptions<Schema>[string];
+    entry: TStaticAssetComponentOptions<Schema>[string];
   }):
-    | { policyService: AssetUploadPolicyService; commitService: AssetUploadCommitService<Schema> }
+    | {
+        policyService: StaticAssetUploadPolicyService;
+        commitService: StaticAssetUploadCommitService<Schema>;
+      }
     | undefined {
     const { key, entry } = opts;
     const { controller, helper, storage } = entry;
@@ -104,14 +106,14 @@ export class StaticAssetComponent<
       return undefined;
     }
 
-    const policyService = new AssetUploadPolicyService({
+    const policyService = new StaticAssetUploadPolicyService({
       scope: controller.name,
       helper,
       bucket,
       keyPrefix: controller.keyPrefix,
       directUpload,
     });
-    const commitService = new AssetUploadCommitService<Schema>({
+    const commitService = new StaticAssetUploadCommitService<Schema>({
       scope: controller.name,
       helper,
       keyPrefix: controller.keyPrefix,
@@ -124,10 +126,10 @@ export class StaticAssetComponent<
     });
 
     this.application
-      .bind({ key: StaticAssetComponentBindingKeys.policyService({ name: key }) })
+      .bind({ key: StaticAssetBindingKeys.policyService({ name: key }) })
       .toValue(policyService);
     this.application
-      .bind({ key: StaticAssetComponentBindingKeys.commitService({ name: key }) })
+      .bind({ key: StaticAssetBindingKeys.commitService({ name: key }) })
       .toValue(commitService);
 
     return { policyService, commitService };

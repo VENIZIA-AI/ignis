@@ -1,17 +1,17 @@
 import type {
   TMetaLinkConfig,
-  TStaticAssetsComponentOptions,
+  TStaticAssetComponentOptions,
 } from '@/components/static-asset/common';
 import {
-  AssetUploadCommitService,
-  AssetUploadPolicyService,
+  StaticAssetUploadCommitService,
+  StaticAssetUploadPolicyService,
 } from '@/components/static-asset/services';
 import type { IStorageHelper } from '@venizia/ignis-helpers';
 
-/** What the component does for an entry: builds the pair the controller runs. A test that calls `defineAssetController` directly passes the result in. */
+/** What the component does for an entry: builds the pair the controller runs. A test that calls `StaticAssetControllerFactory.build` directly passes the result in. */
 export const buildDirectUploadServices = (opts: {
   helper: IStorageHelper;
-  controller: TStaticAssetsComponentOptions[string]['controller'];
+  controller: TStaticAssetComponentOptions[string]['controller'];
   metaLink?: TMetaLinkConfig;
 }) => {
   const { helper, controller, metaLink } = opts;
@@ -22,14 +22,14 @@ export const buildDirectUploadServices = (opts: {
   }
 
   return {
-    policyService: new AssetUploadPolicyService({
+    policyService: new StaticAssetUploadPolicyService({
       scope: controller.name,
       helper,
       bucket,
       keyPrefix: controller.keyPrefix,
       directUpload,
     }),
-    commitService: new AssetUploadCommitService({
+    commitService: new StaticAssetUploadCommitService({
       scope: controller.name,
       helper,
       keyPrefix: controller.keyPrefix,

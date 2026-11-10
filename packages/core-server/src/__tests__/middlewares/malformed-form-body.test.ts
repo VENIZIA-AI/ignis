@@ -3,7 +3,7 @@ import { BaseApplication } from '@/base/applications';
 import type { TRouteContext } from '@/base/controllers';
 import { BaseRestController } from '@/base/controllers';
 import { controller } from '@/base/metadata';
-import { AssetControllerFactory } from '@/components/static-asset/controller';
+import { StaticAssetControllerFactory } from '@/components/static-asset/controller';
 import { StaticAssetStorageTypes } from '@/components/static-asset/common';
 import { RequestTrackerComponent } from '@/components/request-tracker';
 import { z } from '@hono/zod-openapi';
@@ -84,7 +84,7 @@ const boot = async (opts: { environment: string; helper: FakeStorageHelper }) =>
 
   application.controller(HandParsedController);
   application.controller(
-    AssetControllerFactory.defineAssetController({
+    StaticAssetControllerFactory.build({
       controller: { name: 'MalformedAssetController', basePath: '/assets', bucket: 'images' },
       storage: StaticAssetStorageTypes.DISK,
       helper: opts.helper,

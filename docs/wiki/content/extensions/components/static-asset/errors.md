@@ -156,12 +156,12 @@ url.searchParams.set('maxKeys', '50'); // OK
 
 ### Controller not registering / no routes appear
 
-- **Cause:** `STATIC_ASSET_COMPONENT_OPTIONS` was never bound, or was bound to `{}` - the component's default. `binding()` iterates the options object and produces zero controllers for an empty map, without throwing.
+- **Cause:** `STATIC_ASSET_OPTIONS` was never bound, or was bound to `{}` - the component's default. `binding()` iterates the options object and produces zero controllers for an empty map, without throwing.
 - **Fix:** bind a non-empty options object before `this.component(StaticAssetComponent)`:
 
 ```typescript
-this.bind<TStaticAssetsComponentOptions>({
-  key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+this.bind<TStaticAssetComponentOptions>({
+  key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
 }).toValue({
   [uniqueKey]: {
     controller: { name: 'AssetController', basePath: '/assets' },

@@ -636,7 +636,7 @@ export class AuthenticateComponent extends BaseComponent {
         });
       }
 
-      this.application.controller(AuthControllerFactory.define(restOptions.controllerOpts));
+      this.application.controller(AuthControllerFactory.build(restOptions.controllerOpts));
     }
   }
 }
@@ -649,8 +649,8 @@ When controllers need to be dynamically configured:
 ```typescript
 // src/components/static-asset/component.ts (condensed)
 override binding(): ValueOrPromise<void> {
-  const componentOptions = this.application.get<TStaticAssetsComponentOptions>({
-    key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+  const componentOptions = this.application.get<TStaticAssetComponentOptions>({
+    key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
   });
 
   // Create multiple controllers from configuration
@@ -658,7 +658,7 @@ override binding(): ValueOrPromise<void> {
     const { storage, controller, helper, extra } = opt;
 
     this.application.controller(
-      AssetControllerFactory.defineAssetController({
+      StaticAssetControllerFactory.build({
         controller,
         storage,
         helper,

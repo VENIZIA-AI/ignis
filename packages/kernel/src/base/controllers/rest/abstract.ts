@@ -152,7 +152,7 @@ export abstract class AbstractRestController<
     const { strategies = [], mode = AuthenticationModes.ANY } = authenticate;
 
     // Boot-time and NON-fatal: names a misspelled strategy at error level instead of leaving it as
-    // a 401 nobody can explain. Deliberately not a throw - `AuthControllerFactory.define` hard-codes `jwt`
+    // a 401 nobody can explain. Deliberately not a throw - `AuthControllerFactory.build` hard-codes `jwt`
     // on four routes, and ANY mode tolerates a strategy that does not resolve, so failing here would
     // stop applications booting that work today. `assertRegistered` is there for an application that
     // does want the hard failure.
