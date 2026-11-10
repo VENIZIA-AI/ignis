@@ -36,6 +36,7 @@ export interface IAssetCommitResult {
   metaLink?: IUploadResult['metaLink'];
 }
 
+/** What an `AssetDirectUpload` needs, all of it one options entry already carries. */
 export interface IAssetDirectUploadOptions {
   /** Names the logger; the controller's own name is the usual value. */
   scope: string;
