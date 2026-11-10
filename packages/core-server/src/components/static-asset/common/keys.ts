@@ -4,7 +4,7 @@ export class StaticAssetComponentBindingKeys {
   static readonly STATIC_ASSET_COMPONENT_OPTIONS = '@app/static-asset-component/options';
 
   /** The `AssetDirectUploadService` of one options entry, bound only for an entry that sets `controller.directUpload`. `name` is the entry's KEY in the options object, not the controller name. */
-  static directUploadService(opts: { name: string }): string {
-    return `@app/static-asset-component/direct-upload-service/${opts.name}`;
+  static directService(opts: { name: string }): string {
+    return `@app/static-asset-component/direct-service/${opts.name}`;
   }
 }

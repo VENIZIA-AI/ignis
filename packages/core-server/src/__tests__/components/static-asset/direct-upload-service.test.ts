@@ -88,7 +88,7 @@ const boot = async (opts: {
   server.route(TEST_CONFIGS.path.base, application.getRootRouter());
 
   const service = application.get<AssetDirectUploadService>({
-    key: StaticAssetComponentBindingKeys.directUploadService({ name: 'photos' }),
+    key: StaticAssetComponentBindingKeys.directService({ name: 'photos' }),
   });
 
   return { application, server, service };
@@ -106,9 +106,9 @@ const messageOf = async (call: () => Promise<unknown>): Promise<string> => {
 };
 
 describe('the AssetDirectUploadService binding', () => {
-  test('the key is `@app/static-asset-component/direct-upload-service/<entry key>`', () => {
-    expect(StaticAssetComponentBindingKeys.directUploadService({ name: 'photos' })).toBe(
-      '@app/static-asset-component/direct-upload-service/photos',
+  test('the key is `@app/static-asset-component/direct-service/<entry key>`', () => {
+    expect(StaticAssetComponentBindingKeys.directService({ name: 'photos' })).toBe(
+      '@app/static-asset-component/direct-service/photos',
     );
   });
 
@@ -118,7 +118,7 @@ describe('the AssetDirectUploadService binding', () => {
     expect(service).toBeInstanceOf(AssetDirectUploadService);
     expect(
       application.get({
-        key: StaticAssetComponentBindingKeys.directUploadService({ name: 'plain' }),
+        key: StaticAssetComponentBindingKeys.directService({ name: 'plain' }),
         isOptional: true,
       }),
     ).toBeUndefined();

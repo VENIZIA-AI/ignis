@@ -226,7 +226,7 @@ Direct upload's two routes are wrappers over `AssetDirectUploadService` (`servic
 `issuePolicies({ files })` is the policy body without `authorize`, `commit({ commitToken, labels })`
 is the commit body and answers `{ bucket, object, link, metaLink? }`. `StaticAssetComponent.binding()`
 builds ONE instance per entry that has `controller.directUpload` and a `bucket`, binds it at
-`StaticAssetComponentBindingKeys.directUploadService({ name })` (`name` = the entry's key in the options
+`StaticAssetComponentBindingKeys.directService({ name })` (`name` = the entry's key in the options
 object, not the controller name) and hands the same instance to `defineAssetController` as
 `directUploadService`; without one the factory builds its own. The class normalizes `keyPrefix`
 itself and never calls `authorize`: a caller that reaches it directly owns that decision. Link

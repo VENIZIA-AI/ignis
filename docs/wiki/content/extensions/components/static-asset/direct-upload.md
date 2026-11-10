@@ -126,7 +126,7 @@ runs and watch step 2 leave without touching the backend.
 
 The two routes are thin wrappers over one object, `AssetDirectUploadService`. The component binds one per entry that sets `directUpload`, so a service can issue a policy or commit an upload without making an HTTP call to its own server.
 
-The key is `StaticAssetComponentBindingKeys.directUploadService({ name })`, where `name` is the entry's key in the options object (`assets` above), not the controller name.
+The key is `StaticAssetComponentBindingKeys.directService({ name })`, where `name` is the entry's key in the options object (`assets` above), not the controller name.
 
 The common case: the client sends `commitToken` along with the record, and the service commits while it saves.
 
@@ -136,7 +136,7 @@ import { AssetDirectUploadService, StaticAssetComponentBindingKeys } from '@veni
 
 export class ProductService extends BaseService {
   constructor(
-    @inject({ key: StaticAssetComponentBindingKeys.directUploadService({ name: 'assets' }) })
+    @inject({ key: StaticAssetComponentBindingKeys.directService({ name: 'assets' }) })
     private assetUpload: AssetDirectUploadService,
     @inject({ key: 'repositories.ProductRepository' }) private products: ProductRepository,
   ) {

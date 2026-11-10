@@ -116,7 +116,7 @@ export class StaticAssetComponent<
     });
 
     this.application
-      .bind({ key: StaticAssetComponentBindingKeys.directUploadService({ name: key }) })
+      .bind({ key: StaticAssetComponentBindingKeys.directService({ name: key }) })
       .toValue(instance);
 
     return instance;

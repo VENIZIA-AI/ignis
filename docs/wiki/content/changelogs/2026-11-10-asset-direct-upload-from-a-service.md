@@ -15,7 +15,7 @@ packages: ['@venizia/ignis']
 ## What changed
 
 - **`AssetDirectUploadService`.** `issuePolicies({ files })` and `commit({ commitToken, labels })` do what the two routes do. `commit` answers `{ bucket, object, link, metaLink? }`.
-- **One instance per entry, bound for you.** Every static-asset entry that sets `controller.directUpload` gets an instance at `StaticAssetComponentBindingKeys.directUploadService({ name })`, where `name` is the entry's key in the options object. The routes run that same instance.
+- **One instance per entry, bound for you.** Every static-asset entry that sets `controller.directUpload` gets an instance at `StaticAssetComponentBindingKeys.directService({ name })`, where `name` is the entry's key in the options object. The routes run that same instance.
 - **The routes behave as before.** Paths, schemas, responses and error codes are unchanged.
 
 ## Who is affected
@@ -26,7 +26,7 @@ packages: ['@venizia/ignis']
 ## Details
 
 ```typescript
-@inject({ key: StaticAssetComponentBindingKeys.directUploadService({ name: 'assets' }) })
+@inject({ key: StaticAssetComponentBindingKeys.directService({ name: 'assets' }) })
 private assetUpload: AssetDirectUploadService,
 
 const committed = await this.assetUpload.commit({ commitToken, labels: { principalType: 'Product', principalId: sku } });
