@@ -222,6 +222,19 @@ without one, that same statement also writes `link`, and one `updateById` per re
 merges `metadata: { ...row.metadata, ...fileStat.metadata }` (skipped when the stat carries none) -
 a read-then-write, so a concurrent write to that row's `metadata` between the two statements is
 lost. `action` in the OpenAPI response is `z.enum([...REFRESHED, ...CREATED])`, not a bare `string`.
+Direct upload's two routes are wrappers over two services in `services/`: `AssetUploadPolicyService`
+(`issuePolicies({ files })`, the policy body without `authorize`) and `AssetUploadCommitService`
+(`commit({ commitToken, labels })`, answering `{ bucket, object, link, metaLink? }`; generic over the
+MetaLink `Schema` like the component). `StaticAssetComponent.binding()` builds one of each per entry
+that has `controller.directUpload` and a `bucket`, binds them at
+`StaticAssetComponentBindingKeys.policyService({ name })` / `.commitService({ name })` (`name` = the
+entry's key in the options object, not the controller name) and hands the same instances to
+`defineAssetController` as `policyService` / `commitService`. That is the ONLY construction path: the
+factory throws when `directUpload` is set without them. The pending and scope prefixes come from one
+place, `AssetKeyScope.resolveDirectUploadPrefixes` - the commit slices exactly what the policy
+prefixed. Neither service calls `authorize`, and a commit token carries no owner: a caller that
+reaches them directly owns both decisions. Link building lives in `object-link.ts` so the services
+and the factory share it without importing each other.
 See [object storage](/architecture/object-storage.md) for the signing model behind the second path.
 See [component model](/architecture/component-model.md) and the
 [components catalog](/reference/components.md).

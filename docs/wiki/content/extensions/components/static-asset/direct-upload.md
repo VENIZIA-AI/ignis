@@ -122,6 +122,66 @@ runs and watch step 2 leave without touching the backend.
 | `expiresIn` | `IDuration` | 15 minutes | How long a policy and its commit token stay good. |
 | `onCommit` | `({ bucket, pendingObject, object }) => ValueOrPromise<void>` | - | Runs **before** the copy. |
 
+## Use from a service
+
+The two routes are thin wrappers over two services. The component binds one of each per entry that sets `directUpload` (and a `bucket`), so your code can issue a policy or commit an upload without an HTTP call to its own server.
+
+| Service | Key | Method |
+|---|---|---|
+| `AssetUploadPolicyService` | `StaticAssetComponentBindingKeys.policyService({ name })` | `issuePolicies({ files })` - the `upload-policy` body: one signed policy per file. |
+| `AssetUploadCommitService` | `StaticAssetComponentBindingKeys.commitService({ name })` | `commit({ commitToken, labels })` - the `upload-commit` body: verify the token, copy to the final key, remove the pending object, write the MetaLink row. Answers `{ bucket, object, link, metaLink? }`. |
+
+`name` is the entry's key in the options object (`assets` above), not the controller name.
+
+The common case: the client sends `commitToken` along with the record, and the service commits while it saves. The example injects the storage helper to clean up on failure; `'helpers.AssetStorage'` is a placeholder for the key your own application bound that helper under, not one IGNIS provides.
+
+```ts
+import { BaseService, inject } from '@venizia/ignis';
+import {
+  AssetUploadCommitService,
+  StaticAssetComponentBindingKeys,
+} from '@venizia/ignis/static-asset';
+
+export class ProductService extends BaseService {
+  constructor(
+    @inject({ key: StaticAssetComponentBindingKeys.commitService({ name: 'assets' }) })
+    private assetCommit: AssetUploadCommitService,
+    // Your own binding of the helper the entry was configured with.
+    @inject({ key: 'helpers.AssetStorage' }) private storage: IStorageHelper,
+    @inject({ key: 'repositories.ProductRepository' }) private products: ProductRepository,
+  ) {
+    super({ scope: ProductService.name });
+  }
+
+  async create(opts: { data: TProductInput; commitToken: string }) {
+    const committed = await this.assetCommit.commit({
+      commitToken: opts.commitToken,
+      labels: { principalType: 'Product', principalId: opts.data.sku },
+    });
+
+    try {
+      return await this.products.create({ data: { ...opts.data, imageLink: committed.link } });
+    } catch (error) {
+      // The object now sits at its FINAL key, where the pending-prefix lifecycle rule never looks.
+      await this.storage
+        .removeObject({ bucket: committed.bucket, object: committed.object })
+        .catch(() => undefined);
+      throw error;
+    }
+  }
+}
+```
+
+> [!WARNING]
+> **A commit token carries no owner.** It proves a policy was issued for that key, nothing about who holds it, so anyone who has the token can commit it. Check that the current user may act on the key before you call `commit`: record each `objectName` against the user it was issued to and look it up here. `AssetCommitToken.read({ token, secretKey })` returns the key a token names.
+
+> [!WARNING]
+> **`issuePolicies` does not call `directUpload.authorize`.** That check belongs to the route; code that calls the service decides for itself who may ask for a policy. `commit` still verifies the token and the `keyPrefix` scope, so a forged, expired or out-of-scope token is refused before any storage call.
+
+**Order matters.** `commit` is the point of no return: the object leaves `pending/` for its final key. If saving your record fails afterwards, nothing removes that object for you, so remove it in the failure path as above. The cleanup is best effort: if it fails too, one object stays at the final key until you collect it.
+
+If the MetaLink row cannot be written, `commit` still resolves, with `metaLink: { error }`: the object is committed by then, and a throw would send the caller back with a token whose source no longer exists.
+
 ## Why a policy and not a presigned PUT
 
 A signed PUT binds each header to an **exact** value. `content-length: 2048` means exactly 2048
@@ -192,4 +252,6 @@ commit token carrying business fields.
 **Files:**
 
 - [`packages/helpers/src/modules/storage/bun-s3/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/utility.ts) - `S3SignatureUtility.buildPostPolicy`
+- [`packages/core-server/src/components/static-asset/services/policy.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/services/policy.service.ts) - `AssetUploadPolicyService.issuePolicies`
+- [`packages/core-server/src/components/static-asset/services/commitment.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/services/commitment.service.ts) - `AssetUploadCommitService.commit`
 - [`packages/core-server/src/components/static-asset/common/commit-token.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/commit-token.ts) - `AssetCommitToken.build`, `AssetCommitToken.read`

@@ -20,6 +20,7 @@ import { ControllerTransports } from '@venizia/ignis-kernel';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
+import { buildDirectUploadServices } from './direct-upload-services';
 import { FakeStorageHelper } from './fake-storage.helper';
 
 const SECRET = 'a-secret-nobody-else-has';
@@ -53,19 +54,26 @@ const mount = async (opts: {
   });
   application.init();
 
+  const controller = {
+    name: 'DirectAssetController',
+    basePath: '/assets',
+    isStrict: false,
+    bucket: 'uploads',
+    directUpload: opts.directUpload,
+  };
+
   application.controller(
     AssetControllerFactory.defineAssetController({
-      controller: {
-        name: 'DirectAssetController',
-        basePath: '/assets',
-        isStrict: false,
-        bucket: 'uploads',
-        directUpload: opts.directUpload,
-      },
+      controller,
       storage: StaticAssetStorageTypes.DISK,
       helper: opts.helper as never,
       useMetaLink: opts.metaLink !== undefined,
       metaLink: opts.metaLink,
+      ...buildDirectUploadServices({
+        helper: opts.helper as never,
+        controller,
+        metaLink: opts.metaLink,
+      }),
     }),
   );
   await application['registerControllers']();

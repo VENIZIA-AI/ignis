@@ -17,6 +17,7 @@ import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
+import { buildDirectUploadServices } from './direct-upload-services';
 import { FakeStorageHelper } from './fake-storage.helper';
 
 const TEST_CONFIGS: IApplicationConfigs = {
@@ -111,19 +112,22 @@ const mount = async (opts: {
   });
   application.init();
 
+  const controller = {
+    name: 'ScopedAssetController',
+    basePath: '/assets',
+    isStrict: false,
+    bucket: 'images',
+    ...opts.controller,
+  };
+
   application.controller(
     AssetControllerFactory.defineAssetController({
-      controller: {
-        name: 'ScopedAssetController',
-        basePath: '/assets',
-        isStrict: false,
-        bucket: 'images',
-        ...opts.controller,
-      },
+      controller,
       storage: StaticAssetStorageTypes.DISK,
       helper: opts.helper,
       useMetaLink: opts.metaLink !== undefined,
       metaLink: opts.metaLink,
+      ...buildDirectUploadServices({ helper: opts.helper, controller, metaLink: opts.metaLink }),
       resolveObjectName: opts.resolveObjectName,
       options: opts.options,
     }),

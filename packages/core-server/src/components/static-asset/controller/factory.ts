@@ -9,13 +9,12 @@ import {
   type IObjectRef,
   type IStorageHelper,
   type IUploadFile,
-  type IPostPolicy,
   type IUploadResult,
   type TUploadNaming,
 } from '@venizia/ignis-helpers';
 import { HTTP, ResolverUtility, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { AnyType, TValueOrAsyncResolver } from '@venizia/ignis-helpers/common';
-import { BaseHelper, getError, UuidHelper } from '@venizia/ignis-helpers/core';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { type Env } from 'hono';
 import { readFileSync, rmSync } from 'node:fs';
 import {
@@ -25,7 +24,6 @@ import {
   type TDefineExtraRoutes,
   type TListQuery,
   type TMetaLinkConfig,
-  DEFAULT_PENDING_PREFIX,
   META_LINK_CREATE_FAILED,
   type TObjectParams,
   type TUploadPolicyRequest,
@@ -36,10 +34,12 @@ import {
   type TUploadQuery,
   WHITELIST_HEADERS,
 } from '../common';
-import { AssetCommitToken, DEFAULT_MAX_UPLOAD_FILES, MetaLinkRecreateActions } from '../common';
+import { DEFAULT_MAX_UPLOAD_FILES, MetaLinkRecreateActions } from '../common';
 import { AssetDefinitionBuilder } from './base.definition';
+import type { AssetUploadCommitService, AssetUploadPolicyService } from '../services';
 import { AssetKeyScope } from './key-scope';
 import { AssetMetaLink } from './meta-link';
+import { AssetObjectLink } from './object-link';
 import { AssetRouteOptions } from './route-options';
 
 /** Input of `AssetControllerFactory.defineAssetController`: one entry of `TStaticAssetsComponentOptions` with its storage type and helper. */
@@ -51,6 +51,10 @@ export interface IAssetControllerOptions {
   /** The table is erased at this seam on purpose. The public option types carry the real `Schema` and check it; inside the controller every read and write is on MetaLink COLUMNS, and threading a table type nobody here constrains through 700 lines of handler buys nothing. */
   metaLink?: TMetaLinkConfig<AnyType>;
   options?: TStaticAssetExtraOptions;
+
+  /** What the two direct upload routes run: the instances the component bound, so an application service resolving them from the container and the routes share them. Required when `controller.directUpload` is set. */
+  policyService?: Pick<AssetUploadPolicyService, 'issuePolicies'>;
+  commitService?: Pick<AssetUploadCommitService, 'commit'>;
 
   /** Decides the stored object name of each uploaded file. Absent leaves the storage helper's own naming untouched. */
   resolveObjectName?: TObjectNameResolver;
@@ -121,11 +125,6 @@ const readUploadLabels = (opts: {
 };
 
 const readObjectName: (rawObjectName: string) => string = (rawObjectName) => rawObjectName;
-
-/** Encodes an object path into a SINGLE url segment: `{objectName}` matches one segment only, so `/` must be percent-encoded too (Hono decodes it back before the handler reads the param). */
-const encodeObjectPath: (objectPath: string) => string = (objectPath) => {
-  return encodeURIComponent(objectPath);
-};
 
 /** The bucket one request works on: a configured value wins - called on every request, so an application may read an environment variable lazily - else the path param, which is only registered when there is no configured bucket. */
 const resolveBucket = async (opts: {
@@ -233,13 +232,7 @@ export class AssetControllerFactory extends BaseHelper {
       rawObjectPath?: boolean;
     },
   ): string {
-    const { basePath, bucket, object } = opts;
-    const { hasConfiguredBucket = false, rawObjectPath = false } = opts;
-
-    const bucketSegment = hasConfiguredBucket ? '' : `/buckets/${bucket.name}`;
-    const objectSegment = rawObjectPath ? object.key : encodeObjectPath(object.key);
-
-    return `${basePath}${bucketSegment}/objects/${objectSegment}`;
+    return AssetObjectLink.build(opts);
   }
 
   /**
@@ -299,7 +292,7 @@ export class AssetControllerFactory extends BaseHelper {
     });
 
     // The mount path may be declared with or without a leading slash; a link must carry exactly one.
-    const normalizedBasePath = basePath.startsWith('/') ? basePath : `/${basePath}`;
+    const normalizedBasePath = AssetObjectLink.normalizeBasePath({ basePath });
 
     /** Only when the URL shape deviates: with neither option the storage helper's own link is left untouched. */
     const shapedLinkFn =
@@ -943,9 +936,13 @@ export class AssetControllerFactory extends BaseHelper {
             });
           }
 
-          const pendingPrefix = directUpload.pendingPrefix ?? DEFAULT_PENDING_PREFIX;
-          // The scope rides inside the pending key, so the commit, which strips `pendingPrefix`, lands inside it.
-          const policyKeyPrefix = `${pendingPrefix}${keyPrefix ?? ''}`;
+          const { policyService, commitService } = opts;
+
+          if (!policyService || !commitService) {
+            throw getError({
+              message: `[${name}] directUpload needs policyService and commitService | the component builds and binds them; a caller of defineAssetController passes its own`,
+            });
+          }
 
           const uploadPolicyRoute = AssetRouteOptions.readOverride({ route: routes?.uploadPolicy });
 
@@ -961,43 +958,7 @@ export class AssetControllerFactory extends BaseHelper {
                 }
 
                 const { files } = ctx.req.valid<TUploadPolicyRequest>('json');
-                const bucketName = await resolveBucket({ configured: bucket });
-
-                const policies: Array<IPostPolicy & { objectName: string; commitToken: string }> =
-                  [];
-
-                for (const file of files) {
-                  if (file.size !== undefined && file.size > directUpload.maxBytes) {
-                    throw getError({
-                      error: StaticAssetErrors.UPLOAD_TOO_LARGE,
-                      message: `File '${file.fileName}' is ${file.size} bytes, over the ${directUpload.maxBytes} the policy allows`,
-                    });
-                  }
-
-                  // Generated, never taken from the caller: a key the caller picks is a key the caller
-                  // can collide with, and the pending object is the one thing a policy authorizes.
-                  const objectName = `${policyKeyPrefix}${UuidHelper.getInstance().v4()}/${file.fileName}`;
-                  const policy = await helper.presignPost({
-                    bucket: { name: bucketName },
-                    keyPrefix: policyKeyPrefix,
-                    maxBytes: directUpload.maxBytes,
-                    contentType: file.contentType,
-                    expiresIn: directUpload.expiresIn,
-                  });
-
-                  policies.push({
-                    ...policy,
-                    objectName,
-                    commitToken: AssetCommitToken.build({
-                      payload: {
-                        bucket: bucketName,
-                        key: objectName,
-                        expiresAt: new Date(policy.expiresAt).getTime(),
-                      },
-                      secretKey: directUpload.secretKey,
-                    }),
-                  });
-                }
+                const policies = await policyService.issuePolicies({ files });
 
                 return ctx.json(policies, HTTP.ResultCodes.RS_2.Ok);
               },
@@ -1024,103 +985,12 @@ export class AssetControllerFactory extends BaseHelper {
                   { commitToken: string } & TUploadQuery
                 >('json');
 
-                // Verified BEFORE any storage call. That is what keeps this route from being a name
-                // prober: a forged token fails without a round trip, so timing says nothing.
-                const payload = AssetCommitToken.read({
-                  token: commitToken,
-                  secretKey: directUpload.secretKey,
+                const result = await commitService.commit({
+                  commitToken,
+                  labels: readUploadLabels({ fields: labels }),
                 });
 
-                // Labels, not authorization - the token deliberately carries no business fields, so
-                // they travel beside it rather than inside it.
-                const query = readUploadLabels({ fields: labels });
-
-                const bucketRef = { name: payload.bucket };
-                const pendingObject = { key: payload.key };
-                const object = { key: payload.key.slice(pendingPrefix.length) };
-
-                // A token another controller signed with the same secret must not land outside this scope.
-                AssetKeyScope.assertInScope({ key: object.key, keyPrefix });
-
-                // Before the copy, so a hook that throws leaves the object under the pending prefix
-                // for a lifecycle rule, rather than stranding it at the final key.
-                await directUpload.onCommit?.({ bucket: bucketRef, pendingObject, object });
-
-                await helper.copyObject({
-                  bucket: bucketRef,
-                  source: pendingObject,
-                  destination: object,
-                });
-
-                // The copy IS the commit; removing the temporary object is cleanup. A failure here
-                // leaves one object for the lifecycle rule, and failing the request would tell the
-                // caller their upload did not work when it did.
-                try {
-                  await helper.removeObject({ bucket: bucketRef, object: pendingObject });
-                } catch (error) {
-                  this.logger
-                    .for('UPLOAD_COMMIT')
-                    .warn(
-                      'Committed, but the pending object remains | key: %s | error: %s',
-                      pendingObject.key,
-                      error,
-                    );
-                }
-
-                const link = AssetControllerFactory.buildObjectLink({
-                  basePath: normalizedBasePath,
-                  bucket: bucketRef,
-                  object,
-                  hasConfiguredBucket,
-                  rawObjectPath,
-                });
-
-                // The two paths have to agree: without this a client reading `metaLink` off the
-                // response renders an empty state with no error - the failure nobody reports.
-                let metaLinkResult: IUploadResult['metaLink'];
-
-                if (useMetaLink && metaLink) {
-                  try {
-                    const fileStat = await helper.getStat({ bucket: bucketRef, object });
-                    const data = await AssetMetaLink.createRow({
-                      metaLink,
-                      helper,
-                      storage,
-                      uploadResult: AssetMetaLink.buildStoredUploadResult({
-                        helper,
-                        bucket: bucketRef,
-                        object,
-                        link,
-                        fileStat,
-                      }),
-                      fileStat,
-                      query,
-                    });
-
-                    metaLinkResult = { data };
-                  } catch (error) {
-                    // The object IS committed by now. A 500 would send the caller back with a token
-                    // whose source no longer exists, so this rides the body as a code, like UPLOAD.
-                    this.logger
-                      .for('UPLOAD_COMMIT')
-                      .error(
-                        'Failed to create MetaLink | objectName: %s | Error: %s',
-                        object.key,
-                        error,
-                      );
-                    metaLinkResult = { error: META_LINK_CREATE_FAILED };
-                  }
-                }
-
-                return ctx.json(
-                  {
-                    bucket: bucketRef,
-                    object,
-                    link,
-                    ...(metaLinkResult === undefined ? {} : { metaLink: metaLinkResult }),
-                  },
-                  HTTP.ResultCodes.RS_2.Ok,
-                );
+                return ctx.json(result, HTTP.ResultCodes.RS_2.Ok);
               },
             });
           }
