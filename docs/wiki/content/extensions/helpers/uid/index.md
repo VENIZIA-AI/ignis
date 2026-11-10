@@ -1,18 +1,22 @@
 ---
 title: UID
-description: Three ID generators - UUIDs behind one helper, time-sortable Snowflake IDs, and short random IDs a human can read back
+description: ID generators - UUIDs, time-sortable Snowflake IDs, short readable IDs, secret tokens and numeric codes
 difficulty: beginner
 ---
 
 # UID
 
-Three generators, and they answer different questions.
+Five generators, and they answer different questions.
 
 | Helper | Reads back as | Pick it when |
 |---|---|---|
-| `UuidHelper` | The version, and for a v7 the creation time | You want a UUID - a database key, an idempotency key, or a public token |
 | `SnowflakeUidHelper` | Timestamp, worker ID, sequence | The ID is a primary key and you want insert order for free |
 | `OpaqueUidHelper` | Nothing | The ID leaves your system - a human reads it, or a stranger sees it |
+| `UuidHelper` | The version, and for a v7 the creation time | You want a UUID - a database key, an idempotency key, or a public identifier |
+| `TokenUidHelper` | Nothing | The value is a **secret** - a verification link, an API key, a session, a password reset |
+| `NumericUidHelper` | Nothing | A human types it - a one-time code from an email or an app |
+
+The rule that separates them: if the value must not be guessable, it is a token. Nothing else here is a secret.
 
 A Snowflake ID is transparent by design. `parseId()` gives back the exact millisecond it was minted and the worker that minted it. That is what you want in a log, and what you do not want printed on an invoice a customer keeps.
 
@@ -30,7 +34,7 @@ import { UuidHelper, UuidNamespaces } from '@venizia/ignis-helpers/core';
 const uuid = UuidHelper.getInstance();
 
 uuid.v7(); // '01a0b2ab-26d1-750c-98fb-10b72633ac2c' - database primary key
-uuid.v4(); // 'e6911088-8524-4b57-9fe6-2acaec5e0be4' - public identifier, token
+uuid.v4(); // 'e6911088-8524-4b57-9fe6-2acaec5e0be4' - public identifier
 uuid.v5({ namespace: UuidNamespaces.URL, name: 'orders/4711/refund' }); // always the same ID
 ```
 
@@ -38,7 +42,7 @@ uuid.v5({ namespace: UuidNamespaces.URL, name: 'orders/4711/refund' }); // alway
 |---|---|---|
 | Database primary key | `v7()` | Time-ordered, so a B-tree appends instead of splitting pages. This is what `PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } })` fills a string ID with |
 | Idempotency key, deterministic ID | `v5({ namespace, name })` | The same inputs answer the same ID on every host, forever - there is no state to store |
-| Public identifier, random token | `v4()` | No clock, nothing to correlate a caller by, 122 random bits |
+| Public identifier | `v4()` | No clock, nothing to correlate a caller by, 122 random bits. For a secret, use [`TokenUidHelper`](#tokenuidhelper) |
 
 `getInstance()` answers one instance per copy of the module. The instance holds no state of its own: every caller draws v7 IDs from one sequence shared by the whole realm, so two installed copies of this package still climb together.
 
@@ -96,7 +100,7 @@ const idempotencyKey = uuid.v5({
 
 Two things to hold onto:
 
-- **It is not a secret.** Anyone with the namespace and the name computes the same ID. Never use one as a share link, a reset token or an API key - that is what `v4()` is for.
+- **It is not a secret.** Anyone with the namespace and the name computes the same ID. Never use one as a share link, a reset token or an API key - that is what [`TokenUidHelper`](#tokenuidhelper) is for.
 - **It gives a stable key, not exclusivity.** What enforces idempotency is the unique index on the column plus handling the conflict on insert. The ID only makes the second attempt recognisable.
 
 The namespace is read case-insensitively, and the nil UUID is accepted as one. A name holding a lone surrogate (malformed UTF-16) is refused with a 400: encoding would turn it into U+FFFD, and two different names would share an ID.
@@ -363,6 +367,107 @@ Each of these fails loudly at construction, because each one fails silently at r
 
 Unlike `crypto.randomUUID`, `getRandomValues` works outside a secure context. The generator runs on a plain-http origin and inside a browser Worker.
 
+## TokenUidHelper
+
+Secret tokens: random bytes from the platform CSPRNG, written as text. Use it for a verification link, an API key, a session id or a password reset.
+
+```typescript
+import { TokenUidHelper } from '@venizia/ignis-helpers/core';
+
+new TokenUidHelper().nextId();
+// => "pGUoqQANg4StAyyBQsRA9KJ1NZDR3rXeq490SP0rKC3" (43 characters, 256 bits)
+
+const apiKeys = new TokenUidHelper({
+  prefix: { enable: true, value: 'sk' },
+  delimiter: { enable: true },
+  checksum: true,
+});
+
+apiKeys.nextId();
+// => "sk_D4NQkNXTZSa4pqKWK6zcx98xdxYYzuzowbxRQLU3nQe1NilbF" (3 + 43 + 6 characters)
+```
+
+Three rules for a token:
+
+- **Store a hash, not the token.** A database leak then leaks nothing a caller can replay.
+- **Compare in constant time** with `Hash.equals` (see [Crypto Helper](/extensions/helpers/crypto/)), never `===`.
+- **Use `OpaqueUidHelper` for a short ID a human reads**, and `NumericUidHelper` for a code a human types.
+
+### Options
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `bytes` | `number` | `32` | Entropy in bytes. A safe integer of at least `16` (128 bits), or the constructor throws |
+| `encoding` | `'base62' \| 'hex' \| 'base64url'` | `'base62'` | How the token is written. See below |
+| `prefix` | `{ enable, value? }` | disabled | Leads the token. Same rules as `OpaqueUidHelper` |
+| `delimiter` | `{ enable, value? }` | disabled, `_` | Separates prefix from body. Requires a prefix, and must not share characters with the encoding |
+| `checksum` | `boolean` | `false` | Appends a CRC-32 of the body. Not with `base64url`. See [Checksum](#checksum) |
+
+`nextId({ prefix })` replaces the configured prefix for one call, the same way `OpaqueUidHelper` does.
+
+### Encodings
+
+| Encoding | 32 bytes is | Characters | Pick it when |
+|---|---|---|---|
+| `base62` (default) | 43 characters | `0-9 A-Z a-z` | Almost always. No `_` or `-`, so a delimiter and a URL both take it cleanly |
+| `hex` | 64 characters | `0-9 a-f` | The token goes through a case-insensitive column or a system that lowercases |
+| `base64url` | 43 characters | `A-Z a-z 0-9 - _` | A format that already is base64url. The mail verification token keeps it |
+
+A `base62` token is sampled character by character with rejection, so every character is equally likely: 62 is not a power of two, and converting the bytes to base 62 would favour some characters. Its length is `ceil(bytes * 8 / log2(62))`, which makes 32 bytes 43 characters and 16 bytes 22.
+
+`base64url` holds `-` and `_`, the characters a delimiter is made of. With it, a delimiter is refused unless it avoids both (for example `.`), and `checksum` is refused.
+
+### Checksum
+
+`checksum: true` appends a CRC-32 of the body, written in the token's own alphabet: 6 `base62` characters or 8 `hex` characters, always the same width. The checksum covers the body only, never the prefix.
+
+It buys two things. `isWellFormed({ key: token })` rejects a mistyped or truncated token before any database lookup, and a secret scanner can recognise the token by its shape.
+
+Turn it on for **long-lived API keys that users copy and paste**. Leave it off for one-shot verification links: nobody types those, and the lookup is as cheap as the check.
+
+```typescript
+apiKeys.isWellFormed({ key: 'sk_D4NQkNXTZSa4pqKWK6zcx98xdxYYzuzowbxRQLU3nQe1NilbF' }); // true
+apiKeys.isWellFormed({ key: 'sk_D4NQkNXTZSa4pqKWK6zcx98xdxYYzuzowbxRQLU3nQe1Nilba' }); // false - one character off
+```
+
+`isWellFormed` checks the configured prefix and delimiter, the body length and alphabet for the configured `bytes` and `encoding`, and the checksum when enabled. It returns `false` for anything else and never throws, even for a value that is not a string.
+
+> [!WARNING]
+> `isWellFormed` is a **format filter, not authentication**. CRC-32 is public, so anyone can compute a checksum and build a token that passes. A well-formed token must still be looked up by its hash and compared in constant time.
+
+### What the constructor refuses
+
+| Input | Why |
+|---|---|
+| `bytes` below `16`, or not a safe integer | Fewer than 128 bits can be guessed offline |
+| `checksum` that is not a boolean | A config-derived `"false"` is truthy |
+| `checksum` with `base64url` | It has no fixed-width alphabet for the suffix |
+| `delimiter` sharing a character with the encoding | The token can no longer be split back into prefix and body |
+| `delimiter` enabled, `prefix` disabled | The delimiter would lead the token and separate nothing |
+
+## NumericUidHelper
+
+Zero-padded numeric codes, uniformly distributed. Use it for a code a human types.
+
+```typescript
+import { NumericUidHelper } from '@venizia/ignis-helpers/core';
+
+new NumericUidHelper().nextId(); // => "627100"
+new NumericUidHelper({ length: 8 }).nextId(); // => "22867114"
+```
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `length` | `number` | `6` | Digits in the code. `10 ** length` must not exceed `2 ** 48`, so `14` at most. The constructor throws otherwise |
+
+Six digits is a million codes. The digits are not the defence: give the code an expiry and an attempt limit. For a secret nobody types, use `TokenUidHelper`.
+
+The code is a uniform integer in `[0, 10 ** length)`. A draw in the biased tail of the 48-bit range is thrown away and drawn again, so no code is likelier than another.
+
+### Randomness
+
+`OpaqueUidHelper`, `TokenUidHelper` and `NumericUidHelper` all draw through one internal source over `crypto.getRandomValues`. It throws when Web Crypto is missing and never falls back to `Math.random`.
+
 ## See also
 
 - [Models](/guides/core-concepts/persistent/models) - using UIDs as primary keys
@@ -384,5 +489,7 @@ Unlike `crypto.randomUUID`, `getRandomValues` works outside a secure context. Th
 - [`packages/helpers/src/modules/uid/request-id.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/request-id.ts) - `RequestIdGenerator`, a delegate over `v4()`
 - [`packages/helpers/src/modules/uid/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/helper.ts) - `SnowflakeUidHelper`, `SnowflakeConfig`
 - [`packages/helpers/src/modules/uid/opaque.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/opaque.ts) - `OpaqueUidHelper`
-- [`packages/helpers/src/modules/uid/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/common/constants.ts) - `UidAlphabets`, `UidCaseForms`
+- [`packages/helpers/src/modules/uid/token.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/token.ts) - `TokenUidHelper`
+- [`packages/helpers/src/modules/uid/numeric.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/numeric.ts) - `NumericUidHelper`
+- [`packages/helpers/src/modules/uid/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/common/constants.ts) - `UidAlphabets`, `UidCaseForms`, `UidTokenEncodings`
 - [`packages/helpers/src/modules/uid/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/index.ts) - module barrel

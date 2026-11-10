@@ -220,3 +220,39 @@ describe('RequestUtility.parseMultipartBody - a failure part-way removes what it
     expect(readdirSync(uploadDir)).toEqual([]);
   });
 });
+
+describe('RequestUtility.parseMultipartBody - the spooled filename', () => {
+  test('is `<timestamp>-<32 hex characters>-<sanitized name>`, and never reads Math.random', async () => {
+    const uploadDir = spoolDir();
+    const formData = new FormData();
+    formData.append('files', new File(['one'], 'my report.txt'));
+    formData.append('files', new File(['two'], 'my report.txt'));
+
+    const realRandom = Math.random;
+
+    Math.random = () => {
+      throw new Error('the upload filename must not use Math.random');
+    };
+
+    try {
+      await RequestUtility.parseMultipartBody({
+        context: contextOf(formData),
+        storage: 'disk',
+        uploadDir,
+      });
+    } finally {
+      Math.random = realRandom;
+    }
+
+    const names = readdirSync(uploadDir);
+
+    expect(names).toHaveLength(2);
+
+    for (const name of names) {
+      expect(name).toMatch(/^\d{13}-[0-9a-f]{32}-my_report\.txt$/);
+    }
+
+    // Same name, same millisecond or not: the random part keeps the two files apart.
+    expect(new Set(names).size).toBe(2);
+  });
+});

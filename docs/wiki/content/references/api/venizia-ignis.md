@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-107 exports, 107 with TSDoc. 943 more are re-exported from other entries (listed at the end).
+107 exports, 107 with TSDoc. 953 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3401,9 +3401,11 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `DEFAULT_KDF_SALT` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `DEFAULT_LIMIT` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `DEFAULT_MAX_LIMIT` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
+- `DEFAULT_NUMERIC_LENGTH` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `DEFAULT_TEMPORAL_LOCALE` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `DEFAULT_TEMPORAL_PATTERN` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `DEFAULT_TEMPORAL_TZ` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
+- `DEFAULT_TOKEN_BYTES` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `DEFAULT_UID_DELIMITER` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `DEFAULT_UID_LENGTH` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `DEFAULT_UID_MAX_ATTEMPTS` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -3576,6 +3578,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `InclusionSchema` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `INetworkTcpClientProps` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `INextOpaqueUidOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `INextTokenUidOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `inject` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `injectable` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `InjectableUtility` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
@@ -3583,6 +3586,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `INodeFetchRequestOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `INodeWithPath` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IntlTemporalAdapter` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
+- `INumericUidOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IObjectInfo` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IObjectLocation` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IObjectMetadata` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -3687,6 +3691,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `ITemporalParts` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `ITemporalZonedDateTime` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `ITimerAdapter` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `ITokenUidOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `ITransaction` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `ITransactionOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `ITransformedUpdateData` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
@@ -3736,6 +3741,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `MetadataRegistry` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `MigrationStatuses` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `MimeTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `MIN_TOKEN_BYTES` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `MIN_UID_ALPHABET_SIZE` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `MINIMUM_KDF_SALT_BYTES` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `MINIMUM_RSA_MODULUS_BITS` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -3757,6 +3763,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `notFoundHandler` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `NotSupportedUtility` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `NumberIdType` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `NumericUidHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `ObjectUtility` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `OffsetSchema` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `one` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
@@ -4042,6 +4049,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TNullable` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TNumberConstValue` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TObjectFromFieldMappings` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `TokenUidHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TOneRelationNameOf` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TOnVisit` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TOnVisitAsync` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -4144,6 +4152,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TTzEnricherOptions` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TTzEnricherResult` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TUidCaseForm` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `TUidTokenEncoding` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TUpdateData` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TUploadNaming` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TUrlScheme` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -4168,6 +4177,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TWhereValue` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
 - `UidAlphabets` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UidCaseForms` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `UidTokenEncodings` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `unary` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `UpdateBuilder` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `UrlIngest` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)

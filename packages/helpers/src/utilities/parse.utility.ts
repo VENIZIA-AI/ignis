@@ -1,4 +1,8 @@
 import { getError } from '@/modules/error';
+import { UidRandom } from '@/modules/uid/common/random';
+
+const UID_BASE = 36;
+const UID_HALF_LENGTH = 5;
 
 /** Number, string and key conversions that tolerate bad input; no node import, so it ships on `/core`. */
 export class ParseUtility {
@@ -49,8 +53,23 @@ export class ParseUtility {
     return camelized;
   }
 
+  /**
+   * Ten uppercase base36 characters (`0-9A-Z`) from the platform CSPRNG, about 51 bits. Two draws of
+   * five characters, because one draw covers at most `2 ** 48` and ten base36 characters need more.
+   * A throwaway key for a test or a label, not a secret: use `TokenUidHelper` for a secret.
+   */
   static getUID() {
-    return Math.random().toString(36).slice(2).toUpperCase();
+    const half = Math.pow(UID_BASE, UID_HALF_LENGTH);
+    let uid = '';
+
+    for (let draw = 0; draw < 2; draw++) {
+      uid += UidRandom.below({ max: half })
+        .toString(UID_BASE)
+        .padStart(UID_HALF_LENGTH, '0')
+        .toUpperCase();
+    }
+
+    return uid;
   }
 
   static toCamel(opts: { input: string }) {

@@ -1,6 +1,7 @@
 /** Sizes and lifetimes for generated verification data: code digits, token bytes, code lifetime in minutes, token lifetime in hours. */
 export interface IVerificationGenerationOptions {
   codeLength: number;
+  /** Random bytes of the verification token; an integer of at least 16 (128 bits), or generation throws. */
   tokenBytes: number;
   codeExpiryMinutes: number;
   tokenExpiryHours: number;

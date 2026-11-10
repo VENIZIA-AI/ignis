@@ -1,8 +1,6 @@
-import { afterEach, describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import type { AnyType } from '@/common/types';
 import { ParseUtility } from '@/utilities/parse.utility';
-
-const realRandom = Math.random;
 
 /** Snake-cased wire payloads are exactly what `keysToCamel` converts, but a snake_case object literal is banned in this codebase - parse the fixture from its JSON wire form instead. */
 const wirePayload = (json: string): Record<string, unknown> => {
@@ -227,14 +225,9 @@ describe('parseArrayToMapWithKey', () => {
 });
 
 describe('getUID', () => {
-  afterEach(() => {
-    Math.random = realRandom;
-  });
-
-  test('produces an uppercase alphanumeric, non-empty id', () => {
+  test('is ten uppercase base36 characters', () => {
     for (let index = 0; index < 200; index += 1) {
-      const uid = ParseUtility.getUID();
-      expect(uid).toMatch(/^[0-9A-Z]+$/);
+      expect(ParseUtility.getUID()).toMatch(/^[0-9A-Z]{10}$/);
     }
   });
 
@@ -243,11 +236,29 @@ describe('getUID', () => {
     expect(ids.size).toBe(5_000);
   });
 
-  test('degenerate Math.random values yield a degenerate id (pinned - not a collision-safe id source)', () => {
-    Math.random = () => 0;
-    expect(ParseUtility.getUID()).toBe('');
+  test('never reads Math.random', () => {
+    const realRandom = Math.random;
 
-    Math.random = () => 0.5;
-    expect(ParseUtility.getUID()).toBe('I');
+    Math.random = () => {
+      throw new Error('getUID must not use Math.random');
+    };
+
+    try {
+      expect(ParseUtility.getUID()).toMatch(/^[0-9A-Z]{10}$/);
+    } finally {
+      Math.random = realRandom;
+    }
+  });
+
+  test('every base36 character shows up across a batch, so neither half is stuck', () => {
+    const seen = new Set<string>();
+
+    for (let index = 0; index < 500; index += 1) {
+      for (const character of ParseUtility.getUID()) {
+        seen.add(character);
+      }
+    }
+
+    expect(seen.size).toBe(36);
   });
 });

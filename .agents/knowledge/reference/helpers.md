@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Package: [helpers](/packages/helpers.md).
 
-**46 helper classes across 18 modules, 12 utilities.**
+**48 helper classes across 18 modules, 12 utilities.**
 
 ## Modules
 
@@ -32,7 +32,7 @@ generated:
 | `storage/` | `BaseStorageHelper` · `BunS3Helper` · `DiskHelper` · `MemoryStorageHelper` |
 | `temporal/` | `AbstractTemporalHelper` · `TemporalHelper` |
 | `tree/` | _(see source)_ |
-| `uid/` | `OpaqueUidHelper` · `SnowflakeUidHelper` · `UuidHelper` |
+| `uid/` | `NumericUidHelper` · `OpaqueUidHelper` · `SnowflakeUidHelper` · `TokenUidHelper` · `UuidHelper` |
 | `worker-thread/` | `AbstractWorkerBusHelper` · `AbstractWorkerHelper` · `AbstractWorkerMessageBusHandlerHelper` · `AbstractWorkerThreadHelper` · `BaseWorkerBusHelper` · `BaseWorkerHelper` · `BaseWorkerMessageBusHandlerHelper` · `BaseWorkerThreadHelper` · `WorkerPoolHelper` |
 
 ## Utilities

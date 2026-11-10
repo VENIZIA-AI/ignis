@@ -1,5 +1,5 @@
 import type { ValueOrPromise } from '@/common/types';
-import type { TUidCaseForm } from './constants';
+import type { TUidCaseForm, TUidTokenEncoding } from './constants';
 
 /**
  * A segment an id may or may not carry. `enable` decides; `value` survives being turned off, so a
@@ -80,4 +80,55 @@ export interface INextOpaqueUidOptions<
    * @default DEFAULT_UID_MAX_ATTEMPTS
    */
   maxAttempts?: number;
+}
+
+/** Options for generating a secret token. Every field is optional. */
+export interface ITokenUidOptions {
+  /**
+   * Random bytes before encoding. At least `MIN_TOKEN_BYTES`.
+   *
+   * @default DEFAULT_TOKEN_BYTES
+   */
+  bytes?: number;
+
+  /** @default UidTokenEncodings.BASE62 */
+  encoding?: TUidTokenEncoding;
+
+  /** Same rules as {@link IOpaqueUidOptions.prefix}. @default { enable: false } */
+  prefix?: IUidSegment;
+
+  /**
+   * Same rules as {@link IOpaqueUidOptions.delimiter}, checked against the characters of `encoding`:
+   * `_` (the default) and `-` work with `base62` and `hex`. `base64url` holds both, so with it only a
+   * character outside `A-Z a-z 0-9 - _` (for example `.`) is accepted.
+   *
+   * @default { enable: false }
+   */
+  delimiter?: IUidSegment;
+
+  /**
+   * Appends a fixed-width CRC-32 of the body, GitHub-style: 6 base62 characters (`base62`) or 8 hex
+   * characters (`hex`). `isWellFormed` then rejects a mistyped token without a database lookup, and a
+   * secret scanner can spot the token by its shape. Refused with `base64url`, whose alphabet has no
+   * fixed width to give it. The checksum covers the body only, never the prefix.
+   *
+   * @default false
+   */
+  checksum?: boolean;
+}
+
+/** Per-call options of `TokenUidHelper.nextId`. */
+export interface INextTokenUidOptions {
+  /** Replaces the configured prefix for this call and turns it on. An empty string is refused. */
+  prefix?: string;
+}
+
+/** Options for generating a numeric code. */
+export interface INumericUidOptions {
+  /**
+   * Digits in the code. `10 ** length` must not exceed `2 ** 48`, so 14 at most.
+   *
+   * @default DEFAULT_NUMERIC_LENGTH
+   */
+  length?: number;
 }
