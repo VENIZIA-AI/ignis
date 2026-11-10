@@ -1,5 +1,6 @@
 export * from './auth';
 export * from './health-check';
+export * from './server-info';
 export * from './request-tracker';
 export * from './api-reference';
 

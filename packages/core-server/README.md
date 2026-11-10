@@ -110,6 +110,7 @@ Register a component with `this.component(...)` in `preConfigure()`.
 |---|---|---|
 | `ApiReferenceComponent` | `@venizia/ignis` | The OpenAPI document and a Scalar or Swagger UI explorer (`@scalar/hono-api-reference` or `@hono/swagger-ui`) |
 | `HealthCheckComponent` | `@venizia/ignis` | `GET /health`, `POST /health/ping`, and `GET /health/stats` (closed outside development unless you enable it) |
+| `ServerInfoComponent` | `@venizia/ignis` | `GET /server/info/time`, a public route that carries only data safe to publish (the server clock) |
 | `AuthenticateComponent` | `@venizia/ignis` | JWT, Basic, and service-to-service authentication strategies |
 | `AuthorizeComponent` | `@venizia/ignis` | Casbin-based authorization (`casbin`) |
 | `RequestTrackerComponent` | `@venizia/ignis` | Logs each request and response - registered for you by `BaseApplication` |

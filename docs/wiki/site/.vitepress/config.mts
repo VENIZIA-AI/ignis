@@ -198,6 +198,7 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
         ],
       },
       { text: 'Health Check', link: '/extensions/components/health-check' },
+      { text: 'Server Info', link: '/extensions/components/server-info' },
       {
         text: 'Mail',
         collapsed: true,
