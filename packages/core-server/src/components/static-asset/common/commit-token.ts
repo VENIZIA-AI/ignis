@@ -1,3 +1,4 @@
+import { Hash, HashAlgorithms, HashOutputEncodings } from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers/core';
 import { StaticAssetErrors } from './errors';
 
@@ -14,16 +15,13 @@ export class AssetCommitToken {
     return Buffer.from(JSON.stringify(payload)).toString('base64url');
   }
 
+  // `Hash.hmac` refuses an empty secret: an unkeyed signature is one anyone can compute.
   private static sign(opts: { body: string; secretKey: string }): string {
-    // `Bun.CryptoHasher` given no key answers a plain SHA-256 instead of throwing, which anyone can compute: a
-    // missing secret must stop here, as `createHmac` did, or a forged token would pass.
-    if (typeof opts.secretKey !== 'string') {
-      throw getError({
-        message: '[AssetCommitToken][sign] Invalid secretKey | Expected a string',
-      });
-    }
-
-    return new Bun.CryptoHasher('sha256', opts.secretKey).update(opts.body).digest('base64url');
+    return Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({
+      message: opts.body,
+      secret: opts.secretKey,
+      opts: { outputEncoding: HashOutputEncodings.BASE64URL },
+    });
   }
 
   /** Signs `{ bucket, key, expiresAt }` so the commit route can trust the key it is handed. */
@@ -47,11 +45,7 @@ export class AssetCommitToken {
       throw getError(StaticAssetErrors.INVALID_COMMIT_TOKEN);
     }
 
-    const expected = Buffer.from(AssetCommitToken.sign({ body, secretKey }));
-    const given = Buffer.from(signature);
-
-    // Length-checked first: `timingSafeEqual` throws on a length mismatch instead of answering false.
-    if (expected.length !== given.length || !crypto.timingSafeEqual(expected, given)) {
+    if (!Hash.equals({ value: signature, expected: AssetCommitToken.sign({ body, secretKey }) })) {
       throw getError(StaticAssetErrors.INVALID_COMMIT_TOKEN);
     }
 
