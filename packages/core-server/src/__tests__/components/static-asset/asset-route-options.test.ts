@@ -1,4 +1,4 @@
-import { StaticAssetRouteOptionsUtility } from '@/components/static-asset/utilities';
+import { StaticAssetRouteOptionsUtility } from '@/components/static-asset/utilities/route-options.utility';
 import { BodyLimits } from '@venizia/ignis-kernel';
 import { Hono } from 'hono';
 import type { MiddlewareHandler } from 'hono';

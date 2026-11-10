@@ -7,9 +7,7 @@ description: "Every export of @venizia/ignis/static-asset, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-46 exports, 42 with TSDoc.
-
-Without TSDoc (4): `StaticAssetKeyScopeUtility`, `StaticAssetMetaLinkUtility`, `StaticAssetObjectLinkUtility`, `StaticAssetRouteOptionsUtility`.
+42 exports, 42 with TSDoc.
 
 ## `BaseMetaLinkModel`
 
@@ -1249,58 +1247,6 @@ export declare class StaticAssetIngestUtility {
 
 Source: `packages/core-server/src/components/static-asset/utilities/ingest.utility.ts`
 
-## `StaticAssetKeyScopeUtility`
-
-*class*
-
-```ts
-export declare class StaticAssetKeyScopeUtility {
-    /** `tenant-a`, `/tenant-a` and `tenant-a/` all become `tenant-a/`: without the slash, `tenant-a` would also own `tenant-ab/`. */
-    static normalizePrefix(opts: {
-        keyPrefix: string;
-        helper: IStorageHelper;
-        scope: string;
-    }): {
-        keyPrefix: string;
-        depth: number;
-    };
-    /**
-     * The two prefixes of a direct upload, in ONE place: the policy signs `policyKeyPrefix`, and the
-     * commit strips `pendingPrefix` from the key it reads back, so the two have to be computed alike.
-     * The scope rides inside the pending key, so a commit lands inside it.
-     */
-    static resolveDirectUploadPrefixes(opts: {
-        keyPrefix?: string;
-        pendingPrefix?: string;
-        helper: IStorageHelper;
-        scope: string;
-    }): {
-        keyPrefix?: string;
-        pendingPrefix: string;
-        policyKeyPrefix: string;
-    };
-    static isInScope(opts: {
-        key: string;
-        keyPrefix?: string;
-    }): boolean;
-    /** A key outside the scope answers as a missing object does, so a caller learns nothing about keys it does not own. */
-    static assertInScope(opts: {
-        key: string;
-        keyPrefix?: string;
-    }): void;
-    /** A caller prefix wider than the scope is narrowed to it; one wholly outside it lists nothing. */
-    static resolveListPrefix(opts: {
-        prefix?: string;
-        keyPrefix?: string;
-    }): {
-        prefix?: string;
-        isOutOfScope: boolean;
-    };
-}
-```
-
-Source: `packages/core-server/src/components/static-asset/utilities/key-scope.utility.ts`
-
 ## `StaticAssetMetaLinkCodes`
 
 *class*
@@ -1315,111 +1261,6 @@ export declare class StaticAssetMetaLinkCodes {
 ```
 
 Source: `packages/core-server/src/components/static-asset/common/constants.ts`
-
-## `StaticAssetMetaLinkUtility`
-
-*class*
-
-```ts
-export declare class StaticAssetMetaLinkUtility {
-    /** What a stat says about one stored object: the columns a refresh rewrites and a new row starts from. */
-    private static buildStoredObjectFacts;
-    /** The upload result of an object already in storage, so a commit or a recreate writes its row the way an upload does. */
-    static buildStoredUploadResult(opts: {
-        helper: IStorageHelper;
-        bucket: IBucketRef;
-        object: IObjectRef;
-        link: string;
-        fileStat: IFileStat;
-    }): IUploadResult;
-    /** The MetaLink row for one stored object. Every path that creates a row goes through here, so each lands exactly the row an ordinary upload does. */
-    static createRow(opts: {
-        metaLink: TMetaLinkConfig<AnyType>;
-        helper: IStorageHelper;
-        storage: TStaticAssetStorageType;
-        uploadResult: IUploadResult;
-        fileStat: IFileStat;
-        query: TStaticAssetUploadQuery;
-    }): Promise<AnyType>;
-    /**
-     * Rewrites the stored-object facts on every row of the pair. Rows per pair are deliberately not
-     * unique, and each keeps its own labels and storage type. A `createMetaLink` hook owns `link` and
-     * `metadata`, so with one only the stat columns change; without one, `metadata` is merged per row.
-     */
-    static refreshRows(opts: {
-        metaLink: TMetaLinkConfig<AnyType>;
-        helper: IStorageHelper;
-        bucket: IBucketRef;
-        object: IObjectRef;
-        link: string;
-        fileStat: IFileStat;
-    }): Promise<{
-        count: number;
-        data: AnyType[];
-    }>;
-}
-```
-
-Source: `packages/core-server/src/components/static-asset/utilities/meta-link.utility.ts`
-
-## `StaticAssetObjectLinkUtility`
-
-*class*
-
-```ts
-export declare class StaticAssetObjectLinkUtility {
-    /** The mount path may be declared with or without a leading slash; a link must carry exactly one. */
-    static normalizeBasePath(opts: {
-        basePath: string;
-    }): string;
-    /** Encodes an object path into a SINGLE url segment: `{objectName}` matches one segment only, so `/` must be percent-encoded too (Hono decodes it back before the handler reads the param). */
-    private static encodeObjectPath;
-    /** The URL of one object, in the shape its controller serves: no `/buckets/<name>` with a configured bucket, and a raw path with `rawObjectPath`. */
-    static build(opts: IObjectLocation & {
-        basePath: string;
-        hasConfiguredBucket?: boolean;
-        rawObjectPath?: boolean;
-    }): string;
-}
-```
-
-Source: `packages/core-server/src/components/static-asset/utilities/object-link.utility.ts`
-
-## `StaticAssetRouteOptionsUtility`
-
-*class*
-
-```ts
-export declare class StaticAssetRouteOptionsUtility {
-    /** Multipart framing of one file (boundary, `Content-Disposition` with a file name, `Content-Type`), allowed on top of its `maxBytes` in the route's body limit. */
-    static readonly ENVELOPE_BYTES_PER_FILE: number;
-    /** The non-file parts of an upload (policy fields, the closing boundary), allowed once in the route's body limit. */
-    static readonly ENVELOPE_BYTES_BASE: number;
-    /** Splits the `enabled` switch off the route config: it is this component's field, never a Hono one. */
-    static readOverride(opts: {
-        route?: TStaticAssetRouteConfig;
-    }): {
-        isEnabled: boolean;
-        override: Omit<TStaticAssetRouteConfig, 'enabled'>;
-    };
-    /**
-     * The route's body validator reads the whole multipart body, so a declared length checked in the
-     * handler arrives too late to save any memory. Appended after the application's own middleware, so
-     * a check of its own still answers first.
-     *
-     * The route also sets its own body limit: `maxFiles` files of `maxBytes` each, plus their multipart framing. An
-     * upload route that accepts more than the 5 MiB default would otherwise be held to the default, and a chunked body,
-     * which has no declared length, is counted too. The per-file check in the handler still decides each file.
-     */
-    static appendLengthGuard(opts: {
-        middleware: TStaticAssetRouteConfig['middleware'];
-        maxBytes: number;
-        maxFiles: number;
-    }): NonNullable<TStaticAssetRouteConfig['middleware']>;
-}
-```
-
-Source: `packages/core-server/src/components/static-asset/utilities/route-options.utility.ts`
 
 ## `StaticAssetStorageTypes`
 
