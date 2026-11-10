@@ -69,12 +69,12 @@ describe('the commit token', () => {
 });
 
 describe('the commit token needs a secret', () => {
-  test('a missing secret throws on build and on read, so no unkeyed signature is ever accepted', () => {
+  test('a missing or empty secret throws on build and on read, so no unkeyed signature is ever accepted', () => {
     const body = Buffer.from(JSON.stringify(PAYLOAD)).toString('base64url');
     const unkeyed = new Bun.CryptoHasher('sha256').update(body).digest('base64url');
     const forged = `${body}.${unkeyed}`;
 
-    for (const secretKey of [undefined, null]) {
+    for (const secretKey of [undefined, null, '']) {
       expect(() =>
         AssetCommitToken.build({ payload: PAYLOAD, secretKey: secretKey as unknown as string }),
       ).toThrow();
