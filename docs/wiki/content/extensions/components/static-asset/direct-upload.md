@@ -124,20 +124,20 @@ runs and watch step 2 leave without touching the backend.
 
 ## Use from a service
 
-The two routes are thin wrappers over one object, `AssetDirectUpload`. The component binds one per entry that sets `directUpload`, so a service can issue a policy or commit an upload without making an HTTP call to its own server.
+The two routes are thin wrappers over one object, `AssetDirectUploadService`. The component binds one per entry that sets `directUpload`, so a service can issue a policy or commit an upload without making an HTTP call to its own server.
 
-The key is `StaticAssetComponentBindingKeys.directUpload({ name })`, where `name` is the entry's key in the options object (`assets` above), not the controller name.
+The key is `StaticAssetComponentBindingKeys.directUploadService({ name })`, where `name` is the entry's key in the options object (`assets` above), not the controller name.
 
 The common case: the client sends `commitToken` along with the record, and the service commits while it saves.
 
 ```ts
 import { BaseService, inject } from '@venizia/ignis';
-import { AssetDirectUpload, StaticAssetComponentBindingKeys } from '@venizia/ignis/static-asset';
+import { AssetDirectUploadService, StaticAssetComponentBindingKeys } from '@venizia/ignis/static-asset';
 
 export class ProductService extends BaseService {
   constructor(
-    @inject({ key: StaticAssetComponentBindingKeys.directUpload({ name: 'assets' }) })
-    private assetUpload: AssetDirectUpload,
+    @inject({ key: StaticAssetComponentBindingKeys.directUploadService({ name: 'assets' }) })
+    private assetUpload: AssetDirectUploadService,
     @inject({ key: 'repositories.ProductRepository' }) private products: ProductRepository,
   ) {
     super({ scope: ProductService.name });
@@ -234,5 +234,5 @@ commit token carrying business fields.
 **Files:**
 
 - [`packages/helpers/src/modules/storage/bun-s3/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/utility.ts) - `S3SignatureUtility.buildPostPolicy`
-- [`packages/core-server/src/components/static-asset/controller/direct-upload.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/direct-upload.ts) - `AssetDirectUpload.issuePolicies`, `AssetDirectUpload.commit`
+- [`packages/core-server/src/components/static-asset/services/direct-upload.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/services/direct-upload.service.ts) - `AssetDirectUploadService.issuePolicies`, `AssetDirectUploadService.commit`
 - [`packages/core-server/src/components/static-asset/common/commit-token.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/commit-token.ts) - `AssetCommitToken.build`, `AssetCommitToken.read`

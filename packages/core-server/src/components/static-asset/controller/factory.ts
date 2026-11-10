@@ -36,7 +36,7 @@ import {
 } from '../common';
 import { DEFAULT_MAX_UPLOAD_FILES, MetaLinkRecreateActions } from '../common';
 import { AssetDefinitionBuilder } from './base.definition';
-import { AssetDirectUpload } from './direct-upload';
+import { AssetDirectUploadService } from '../services';
 import { AssetKeyScope } from './key-scope';
 import { AssetMetaLink } from './meta-link';
 import { AssetObjectLink } from './object-link';
@@ -53,7 +53,7 @@ export interface IAssetControllerOptions {
   options?: TStaticAssetExtraOptions;
 
   /** The instance the direct upload routes run, so a service resolving it from the container and the routes share one. Absent builds one from `controller.directUpload`; the component passes the one it bound. */
-  directUploadService?: AssetDirectUpload;
+  directUploadService?: AssetDirectUploadService;
 
   /** Decides the stored object name of each uploaded file. Absent leaves the storage helper's own naming untouched. */
   resolveObjectName?: TObjectNameResolver;
@@ -938,7 +938,7 @@ export class AssetControllerFactory extends BaseHelper {
           // Built here only when nothing handed one in; the component builds the one it also binds.
           const directUploadService =
             opts.directUploadService ??
-            new AssetDirectUpload({
+            new AssetDirectUploadService({
               scope: name,
               helper,
               bucket,

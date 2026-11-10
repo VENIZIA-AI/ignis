@@ -7,7 +7,8 @@ import type {
 } from '@venizia/ignis-helpers';
 import { ResolverUtility } from '@venizia/ignis-helpers/common';
 import type { AnyType, TValueOrAsyncResolver } from '@venizia/ignis-helpers/common';
-import { BaseHelper, getError, UuidHelper } from '@venizia/ignis-helpers/core';
+import { getError, UuidHelper } from '@venizia/ignis-helpers/core';
+import { BaseService } from '@venizia/ignis-kernel';
 import {
   AssetCommitToken,
   DEFAULT_PENDING_PREFIX,
@@ -21,9 +22,9 @@ import type {
   TUploadPolicyRequest,
   TUploadQuery,
 } from '../common';
-import { AssetKeyScope } from './key-scope';
-import { AssetMetaLink } from './meta-link';
-import { AssetObjectLink } from './object-link';
+import { AssetKeyScope } from '../controller/key-scope';
+import { AssetMetaLink } from '../controller/meta-link';
+import { AssetObjectLink } from '../controller/object-link';
 
 /** What the client posts to the storage, plus the key it lands under and the token that commits it. */
 export type TAssetUploadPolicy = IPostPolicy & { objectName: string; commitToken: string };
@@ -36,8 +37,8 @@ export interface IAssetCommitResult {
   metaLink?: IUploadResult['metaLink'];
 }
 
-/** What an `AssetDirectUpload` needs, all of it one options entry already carries. */
-export interface IAssetDirectUploadOptions {
+/** What an `AssetDirectUploadService` needs, all of it one options entry already carries. */
+export interface IAssetDirectUploadServiceOptions {
   /** Names the logger; the controller's own name is the usual value. */
   scope: string;
   helper: IStorageHelper;
@@ -64,14 +65,14 @@ export interface IAssetDirectUploadOptions {
  * the route's `directUpload.authorize`; a caller that reaches this class directly has decided that
  * for itself.
  */
-export class AssetDirectUpload extends BaseHelper {
-  private readonly options: IAssetDirectUploadOptions;
+export class AssetDirectUploadService extends BaseService {
+  private readonly options: IAssetDirectUploadServiceOptions;
   private readonly pendingPrefix: string;
   private readonly policyKeyPrefix: string;
   private readonly basePath: string;
   private readonly keyPrefix?: string;
 
-  constructor(opts: IAssetDirectUploadOptions) {
+  constructor(opts: IAssetDirectUploadServiceOptions) {
     super({ scope: opts.scope });
 
     this.options = opts;

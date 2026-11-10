@@ -9,7 +9,7 @@ import {
   type TMetaLinkConfig,
   type TStaticAssetsComponentOptions,
 } from '@/components/static-asset/common';
-import { AssetDirectUpload } from '@/components/static-asset/controller';
+import { AssetDirectUploadService } from '@/components/static-asset/services';
 import { BaseMetaLinkModel } from '@/components/static-asset/models';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
@@ -87,27 +87,38 @@ const boot = async (opts: {
   server.onError(new AppErrorMiddleware({ logger: application.logger }).value());
   server.route(TEST_CONFIGS.path.base, application.getRootRouter());
 
-  const service = application.get<AssetDirectUpload>({
-    key: StaticAssetComponentBindingKeys.directUpload({ name: 'photos' }),
+  const service = application.get<AssetDirectUploadService>({
+    key: StaticAssetComponentBindingKeys.directUploadService({ name: 'photos' }),
   });
 
   return { application, server, service };
 };
 
-describe('the AssetDirectUpload binding', () => {
-  test('the key is `@app/static-asset-component/direct-upload/<entry key>`', () => {
-    expect(StaticAssetComponentBindingKeys.directUpload({ name: 'photos' })).toBe(
-      '@app/static-asset-component/direct-upload/photos',
+/** The message a call rejects with, or an empty string when it resolves. */
+const messageOf = async (call: () => Promise<unknown>): Promise<string> => {
+  try {
+    await call();
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+
+  return '';
+};
+
+describe('the AssetDirectUploadService binding', () => {
+  test('the key is `@app/static-asset-component/direct-upload-service/<entry key>`', () => {
+    expect(StaticAssetComponentBindingKeys.directUploadService({ name: 'photos' })).toBe(
+      '@app/static-asset-component/direct-upload-service/photos',
     );
   });
 
   test('an entry that sets directUpload resolves to an instance, and one that does not binds nothing', async () => {
     const { application, service } = await boot({ helper: new FakeStorageHelper() });
 
-    expect(service).toBeInstanceOf(AssetDirectUpload);
+    expect(service).toBeInstanceOf(AssetDirectUploadService);
     expect(
       application.get({
-        key: StaticAssetComponentBindingKeys.directUpload({ name: 'plain' }),
+        key: StaticAssetComponentBindingKeys.directUploadService({ name: 'plain' }),
         isOptional: true,
       }),
     ).toBeUndefined();
@@ -125,10 +136,13 @@ describe('issuePolicies', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ files: [{ fileName: 'a.png' }] }),
     });
-    const viaRoute = (await response.json()) as typeof direct;
+    const viaRoute = await response.json();
+    const directShape = Object.fromEntries(
+      Object.keys(direct[0]).map((key) => [key, expect.anything()]),
+    );
 
     expect(response.status).toBe(200);
-    expect(Object.keys(direct[0]).sort()).toEqual(Object.keys(viaRoute[0]).sort());
+    expect(viaRoute).toEqual([expect.objectContaining(directShape)]);
     expect(direct[0].objectName).toStartWith('pending/');
     expect(direct[0].commitToken).toContain('.');
   });
@@ -137,9 +151,11 @@ describe('issuePolicies', () => {
     const helper = new FakeStorageHelper();
     const { service } = await boot({ helper });
 
-    await expect(
+    const message = await messageOf(() =>
       service.issuePolicies({ files: [{ fileName: 'big.bin', size: 1025 }] }),
-    ).rejects.toThrow(/over the 1024/);
+    );
+
+    expect(message).toMatch(/over the 1024/);
     expect(helper.calls).toHaveLength(0);
   });
 
@@ -205,7 +221,9 @@ describe('commit', () => {
     const helper = new FakeStorageHelper();
     const { service } = await boot({ helper });
 
-    await expect(service.commit({ commitToken: 'forged.token' })).rejects.toThrow();
+    const message = await messageOf(() => service.commit({ commitToken: 'forged.token' }));
+
+    expect(message).toMatch(/Invalid commit token/);
     expect(helper.calls).toHaveLength(0);
   });
 
@@ -217,7 +235,9 @@ describe('commit', () => {
       secretKey: SECRET,
     });
 
-    await expect(service.commit({ commitToken })).rejects.toThrow(/expired/i);
+    const message = await messageOf(() => service.commit({ commitToken }));
+
+    expect(message).toMatch(/expired/i);
     expect(helper.calls).toHaveLength(0);
   });
 
@@ -234,7 +254,9 @@ describe('commit', () => {
       secretKey: SECRET,
     });
 
-    await expect(service.commit({ commitToken })).rejects.toThrow(/not found/i);
+    const message = await messageOf(() => service.commit({ commitToken }));
+
+    expect(message).toMatch(/not found/i);
     expect(helper.calls.find((call) => call.method === 'copyObject')).toBeUndefined();
   });
 });

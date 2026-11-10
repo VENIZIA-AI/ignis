@@ -6,7 +6,8 @@ import { Binding } from '@venizia/ignis-kernel';
 import { type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { StaticAssetComponentBindingKeys, type TStaticAssetsComponentOptions } from './common';
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from './models';
-import { AssetControllerFactory, AssetDirectUpload } from './controller';
+import { AssetControllerFactory } from './controller';
+import { AssetDirectUploadService } from './services';
 
 /** `Schema` is the MetaLink table the application binds. It has to live on the CLASS, not only on the options: `component(Ctor, { options })` infers the options from the class, so a class pinned to the shipped table can only carry options for that table. */
 export class StaticAssetComponent<
@@ -92,7 +93,7 @@ export class StaticAssetComponent<
   private bindDirectUpload(opts: {
     key: string;
     entry: TStaticAssetsComponentOptions<Schema>[string];
-  }): AssetDirectUpload | undefined {
+  }): AssetDirectUploadService | undefined {
     const { key, entry } = opts;
     const { controller, helper, storage } = entry;
     const { bucket, directUpload } = controller;
@@ -101,7 +102,7 @@ export class StaticAssetComponent<
       return undefined;
     }
 
-    const instance = new AssetDirectUpload({
+    const instance = new AssetDirectUploadService({
       scope: controller.name,
       helper,
       bucket,
@@ -115,7 +116,7 @@ export class StaticAssetComponent<
     });
 
     this.application
-      .bind({ key: StaticAssetComponentBindingKeys.directUpload({ name: key }) })
+      .bind({ key: StaticAssetComponentBindingKeys.directUploadService({ name: key }) })
       .toValue(instance);
 
     return instance;

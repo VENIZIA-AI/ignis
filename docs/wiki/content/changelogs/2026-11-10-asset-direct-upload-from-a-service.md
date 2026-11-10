@@ -10,24 +10,24 @@ packages: ['@venizia/ignis']
 
 <Badge type="tip" text="New Feature" />
 
-**In one line.** `AssetDirectUpload` runs the `upload-policy` and `upload-commit` logic without a request, so a service can commit an upload in the same call that saves its record.
+**In one line.** `AssetDirectUploadService` runs the `upload-policy` and `upload-commit` logic without a request, so a service can commit an upload in the same call that saves its record.
 
 ## What changed
 
-- **`AssetDirectUpload`.** `issuePolicies({ files })` and `commit({ commitToken, labels })` do what the two routes do. `commit` answers `{ bucket, object, link, metaLink? }`.
-- **One instance per entry, bound for you.** Every static-asset entry that sets `controller.directUpload` gets an instance at `StaticAssetComponentBindingKeys.directUpload({ name })`, where `name` is the entry's key in the options object. The routes run that same instance.
+- **`AssetDirectUploadService`.** `issuePolicies({ files })` and `commit({ commitToken, labels })` do what the two routes do. `commit` answers `{ bucket, object, link, metaLink? }`.
+- **One instance per entry, bound for you.** Every static-asset entry that sets `controller.directUpload` gets an instance at `StaticAssetComponentBindingKeys.directUploadService({ name })`, where `name` is the entry's key in the options object. The routes run that same instance.
 - **The routes behave as before.** Paths, schemas, responses and error codes are unchanged.
 
 ## Who is affected
 
-- **Apps that copied the route code to commit from a service.** Replace the copy with an injected `AssetDirectUpload`. Code that calls it directly skips `directUpload.authorize`, so decide who may ask for a policy yourself.
+- **Apps that copied the route code to commit from a service.** Replace the copy with an injected `AssetDirectUploadService`. Code that calls it directly skips `directUpload.authorize`, so decide who may ask for a policy yourself.
 - **Everyone else.** No action needed.
 
 ## Details
 
 ```typescript
-@inject({ key: StaticAssetComponentBindingKeys.directUpload({ name: 'assets' }) })
-private assetUpload: AssetDirectUpload,
+@inject({ key: StaticAssetComponentBindingKeys.directUploadService({ name: 'assets' }) })
+private assetUpload: AssetDirectUploadService,
 
 const committed = await this.assetUpload.commit({ commitToken, labels: { principalType: 'Product', principalId: sku } });
 ```
