@@ -230,7 +230,7 @@ declare const UPLOAD_LABEL_NAMES: readonly ["principalType", "principalId", "var
 
 Source: `packages/core-server/src/components/static-asset/controller/factory.ts`
 
-## `AssetDirectUpload`
+## `AssetDirectUploadService`
 
 *class*
 
@@ -243,13 +243,13 @@ the route's `directUpload.authorize`; a caller that reaches this class directly 
 for itself.
 
 ```ts
-export declare class AssetDirectUpload extends BaseHelper {
+export declare class AssetDirectUploadService extends BaseService {
     private readonly options;
     private readonly pendingPrefix;
     private readonly policyKeyPrefix;
     private readonly basePath;
     private readonly keyPrefix?;
-    constructor(opts: IAssetDirectUploadOptions);
+    constructor(opts: IAssetDirectUploadServiceOptions);
     /** One signed policy per file. A size over `maxBytes` is refused before any policy is signed. */
     issuePolicies(opts: {
         files: TUploadPolicyRequest['files'];
@@ -262,7 +262,7 @@ export declare class AssetDirectUpload extends BaseHelper {
 }
 ```
 
-Source: `packages/core-server/src/components/static-asset/controller/direct-upload.ts`
+Source: `packages/core-server/src/components/static-asset/services/direct-upload.service.ts`
 
 ## `AssetIngest`
 
@@ -919,7 +919,7 @@ export interface IAssetCommitResult {
 }
 ```
 
-Source: `packages/core-server/src/components/static-asset/controller/direct-upload.ts`
+Source: `packages/core-server/src/components/static-asset/services/direct-upload.service.ts`
 
 ## `IAssetControllerOptions`
 
@@ -937,7 +937,7 @@ export interface IAssetControllerOptions {
     metaLink?: TMetaLinkConfig<AnyType>;
     options?: TStaticAssetExtraOptions;
     /** The instance the direct upload routes run, so a service resolving it from the container and the routes share one. Absent builds one from `controller.directUpload`; the component passes the one it bound. */
-    directUploadService?: AssetDirectUpload;
+    directUploadService?: AssetDirectUploadService;
     /** Decides the stored object name of each uploaded file. Absent leaves the storage helper's own naming untouched. */
     resolveObjectName?: TObjectNameResolver;
     /** Registers the application's own routes on the generated controller, after every built-in one. */
@@ -949,14 +949,14 @@ export interface IAssetControllerOptions {
 
 Source: `packages/core-server/src/components/static-asset/controller/factory.ts`
 
-## `IAssetDirectUploadOptions`
+## `IAssetDirectUploadServiceOptions`
 
 *interface*
 
-What an `AssetDirectUpload` needs, all of it one options entry already carries.
+What an `AssetDirectUploadService` needs, all of it one options entry already carries.
 
 ```ts
-export interface IAssetDirectUploadOptions {
+export interface IAssetDirectUploadServiceOptions {
     /** Names the logger; the controller's own name is the usual value. */
     scope: string;
     helper: IStorageHelper;
@@ -975,7 +975,7 @@ export interface IAssetDirectUploadOptions {
 }
 ```
 
-Source: `packages/core-server/src/components/static-asset/controller/direct-upload.ts`
+Source: `packages/core-server/src/components/static-asset/services/direct-upload.service.ts`
 
 ## `ICommitTokenPayload`
 
@@ -1127,8 +1127,8 @@ Container keys of the static asset component.
 export declare class StaticAssetComponentBindingKeys {
     /** The options an application registers through `configs.artifacts` land here, because an artifact index carries classes and no options. `application.component(StaticAssetComponent, { options })` passes them directly and wins over this key. */
     static readonly STATIC_ASSET_COMPONENT_OPTIONS = "@app/static-asset-component/options";
-    /** The `AssetDirectUpload` of one options entry, bound only for an entry that sets `controller.directUpload`. `name` is the entry's KEY in the options object, not the controller name. */
-    static directUpload(opts: {
+    /** The `AssetDirectUploadService` of one options entry, bound only for an entry that sets `controller.directUpload`. `name` is the entry's KEY in the options object, not the controller name. */
+    static directUploadService(opts: {
         name: string;
     }): string;
 }
@@ -1287,7 +1287,7 @@ export type TAssetUploadPolicy = IPostPolicy & {
 };
 ```
 
-Source: `packages/core-server/src/components/static-asset/controller/direct-upload.ts`
+Source: `packages/core-server/src/components/static-asset/services/direct-upload.service.ts`
 
 ## `TBucketParams`
 
