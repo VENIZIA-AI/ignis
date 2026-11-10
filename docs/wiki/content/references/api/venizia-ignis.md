@@ -239,7 +239,7 @@ Builds the decorated REST controller of the authentication routes (sign-in, sign
 
 ```ts
 export declare class AuthControllerFactory {
-    static define(opts: TDefineAuthControllerOpts): {
+    static build(opts: TDefineAuthControllerOpts): {
         new (authService: IAuthService): {
             service: IAuthService;
             binding(): ValueOrPromise<void>;
