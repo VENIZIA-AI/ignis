@@ -9,6 +9,7 @@ Optional pieces you add on top of IGNIS core: components you register once, help
 | [Authentication](./components/authentication/) | Verifies who is calling - JWT, Basic, JWKS, service-assertion strategies | `@venizia/ignis` | A route needs to know who the caller is |
 | [Authorization](./components/authorization/) | Casbin-based RBAC, per-route policies | `@venizia/ignis` | A route needs a permission check beyond authentication |
 | [Health Check](./components/health-check) | `GET /health` and `POST /health/ping` | `@venizia/ignis` | A load balancer or Kubernetes needs a liveness probe |
+| [Server Info](./components/server-info) | `GET /server/info/time` - the public server clock | `@venizia/ignis` | A client needs the server time or its clock skew |
 | [Mail](./components/mail/) | Sends email via Nodemailer, Mailgun, Amazon SES, or a queue | `@venizia/ignis/mail` | The app sends transactional or templated email |
 | [Request Tracker](./components/request-tracker) | Tags every request with an ID, logs method/path/timing | `@venizia/ignis` | Always on - registered automatically, nothing to configure |
 | [Socket.IO](./components/socket-io/) | Real-time messaging over Socket.IO, Redis adapter | `@venizia/ignis/socket-io` | Clients need rooms or Socket.IO-specific features |

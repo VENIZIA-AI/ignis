@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-99 exports, 99 with TSDoc. 943 more are re-exported from other entries (listed at the end).
+107 exports, 107 with TSDoc. 943 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -1746,6 +1746,39 @@ export interface IServerApplicationConfigs extends IKernelApplicationConfigs {
 
 Source: `packages/core-server/src/base/applications/common/types.ts`
 
+## `IServerInfoOptions`
+
+*interface*
+
+Options of `ServerInfoComponent`, bound at `ServerInfoBindingKeys.SERVER_INFO_OPTIONS`.
+
+**Example**
+```typescript
+import { ServerInfoBindingKeys, type BaseApplication, type IServerInfoOptions } from '@venizia/ignis';
+
+export const bindServerInfo = (application: BaseApplication) => {
+  application
+    .bind<IServerInfoOptions>({ key: ServerInfoBindingKeys.SERVER_INFO_OPTIONS })
+    .toValue({ restOptions: { path: '/clock' } });
+};
+```
+
+```ts
+export interface IServerInfoOptions {
+    /** Partially-filled bindings are accepted; every missing field falls back to its default. */
+    restOptions?: {
+        /**
+         * Base path the server info routes mount under. The routes are public by design.
+         *
+         * @default '/server/info'
+         */
+        path?: string;
+    };
+}
+```
+
+Source: `packages/core-server/src/components/server-info/common/types.ts`
+
 ## `IServerRuntimeConfigs`
 
 *interface*
@@ -1762,6 +1795,56 @@ export interface IServerRuntimeConfigs {
 ```
 
 Source: `packages/core-server/src/base/applications/common/types.ts`
+
+## `IServerTime`
+
+*interface*
+
+Body of `GET <path>/time`. Every field comes from ONE captured instant, so they never disagree.
+
+**Example**
+```json
+{
+  "server": {
+    "date": "2026-11-10",
+    "time": "15:00:00.123",
+    "epoch": 1794297600123,
+    "iso": "2026-11-10T15:00:00.123+07:00"
+  },
+  "tz": "Asia/Ho_Chi_Minh",
+  "utc": { "offset": "+07:00", "minutes": 420, "iso": "2026-11-10T08:00:00.123Z" }
+}
+```
+
+```ts
+export interface IServerTime {
+    server: {
+        /** Calendar date in the server time zone, `YYYY-MM-DD`. */
+        date: string;
+        /** Wall-clock time in the server time zone, `HH:mm:ss.SSS`. */
+        time: string;
+        /** Milliseconds since 1970-01-01T00:00:00Z (`Date.now()`). Compute clock skew from this field. */
+        epoch: number;
+        /** `date`, `time` and `utc.offset` joined as ISO-8601, e.g. `2026-11-10T15:00:00.123+07:00`. */
+        iso: string;
+    };
+    /** IANA time zone the server process resolved, e.g. `Asia/Ho_Chi_Minh`. */
+    tz: string;
+    utc: {
+        /** Offset of `tz` from UTC at response time, `+07:00` style. */
+        offset: string;
+        /**
+         * The same offset in minutes, POSITIVE east of UTC (`420` for `+07:00`). This is the opposite
+         * sign of JavaScript's `Date.prototype.getTimezoneOffset()`.
+         */
+        minutes: number;
+        /** The same instant in UTC, ISO-8601 with milliseconds (`toISOString()`). */
+        iso: string;
+    };
+}
+```
+
+Source: `packages/core-server/src/components/server-info/common/types.ts`
 
 ## `IShutdownSignalsOptions`
 
@@ -2421,6 +2504,136 @@ export declare class ServerBootSteps extends BootSteps {
 ```
 
 Source: `packages/core-server/src/base/applications/boot-steps.ts`
+
+## `ServerInfoBindingKeys`
+
+*class*
+
+Container keys of the server info component.
+
+```ts
+export declare class ServerInfoBindingKeys {
+    static readonly SERVER_INFO_OPTIONS = "@app/server-info/options";
+}
+```
+
+Source: `packages/core-server/src/components/server-info/common/keys.ts`
+
+## `ServerInfoCacheControls`
+
+*class*
+
+`Cache-Control` values the server info controller sends.
+
+```ts
+export declare class ServerInfoCacheControls {
+    /** A cached server time is a wrong server time: no cache and no service worker may store the answer. */
+    static readonly NO_STORE = "no-store";
+}
+```
+
+Source: `packages/core-server/src/components/server-info/common/constants.ts`
+
+## `ServerInfoComponent`
+
+*class*
+
+Mounts the server info controller: `GET <path>/time`, public, no authentication.
+
+The rule of this component: it carries only data that is safe to publish and does not help an
+attacker. No version, runtime, pid, memory or environment - those stay in the gated
+`/health/stats`. It is separate from `HealthCheckComponent` on purpose: operators may lock
+`/health/*` away, and client features must not depend on it. `/server/info/*` is public by design.
+
+**Example**
+```typescript
+import { BaseApplication, ServerInfoComponent, type IServerInfoOptions } from '@venizia/ignis';
+
+abstract class App extends BaseApplication {
+  preConfigure(): void {
+    const options: IServerInfoOptions = { restOptions: { path: '/clock' } };
+    this.component(ServerInfoComponent, { options });
+  }
+}
+```
+
+```ts
+export declare class ServerInfoComponent extends BaseComponent<IServerInfoOptions> {
+    private application;
+    constructor(application: BaseApplication);
+    /** Options given at the call site win over anything bound earlier, as in `HealthCheckComponent`. */
+    configure(opts?: IServerInfoOptions): Promise<void>;
+    binding(): void;
+}
+```
+
+Source: `packages/core-server/src/components/server-info/component.ts`
+
+## `ServerInfoController`
+
+*class*
+
+Serves `GET <path>/time`, a PUBLIC route with no authentication.
+
+Everything this controller answers must be safe to publish and must not help an attacker: a
+clock and a time zone, nothing else. No version, runtime, pid, memory or environment - those
+belong to the gated `/health/stats`. A new route here needs that same test.
+
+```ts
+export declare class ServerInfoController extends BaseRestController {
+    constructor();
+    binding(): ValueOrPromise<void>;
+}
+```
+
+Source: `packages/core-server/src/components/server-info/controller.ts`
+
+## `ServerInfoReporter`
+
+*class*
+
+Assembles what `GET <path>/time` answers. Reads the clock and the process time zone, nothing else.
+
+```ts
+export declare class ServerInfoReporter {
+    private static readonly MINUTES_PER_HOUR;
+    private static readonly MS_PER_SECOND;
+    private static readonly MS_PER_MINUTE;
+    private static readonly formatters;
+    private static getFormatter;
+    /** `+07:00` style text for an offset in minutes, positive east of UTC; `+00:00` for UTC itself. */
+    static formatUtcOffset(opts: {
+        minutes: number;
+    }): string;
+    /** The process time zone as the runtime resolved it (`TZ`, or the host setting). */
+    static resolveTimeZone(): string;
+    /**
+     * Every field comes from the one `now`, so `server.iso`, `server.epoch` and `utc.iso` name the
+     * same instant. The offset is read from the zone AT that instant (a DST change moves it), not
+     * from the zone's standard offset.
+     */
+    static buildTime(opts?: {
+        now?: Date;
+        timeZone?: string;
+    }): IServerTime;
+}
+```
+
+Source: `packages/core-server/src/components/server-info/reporter.ts`
+
+## `ServerInfoRestPaths`
+
+*class*
+
+Routes of the server info controller, relative to the configured base path.
+
+```ts
+export declare class ServerInfoRestPaths {
+    static readonly TIME = "/time";
+}
+```
+
+Source: `packages/core-server/src/components/server-info/common/rest-paths.ts`
 
 ## `ServerLoggerStartup`
 

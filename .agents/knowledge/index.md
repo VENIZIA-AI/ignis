@@ -62,6 +62,7 @@ How the pieces fit.
 - [Application lifecycle](/architecture/application-lifecycle.md) - the startup sequence
 - [Artifact registration](/architecture/boot-lifecycle.md) - stereotype -> generated index -> configs.artifacts -> registerArtifacts step
 - [Component model](/architecture/component-model.md) - what a component is and how it wires
+- [Server info component](/architecture/server-info.md) - the public server-time route and the rule that keeps it safe to publish
 - [Controller system](/architecture/controller-system.md) - the route APIs over Hono
 - [Repository hierarchy](/architecture/repository-hierarchy.md) - abstract to CRUD, plus mixins
 - [DataSource hierarchy](/architecture/datasource-hierarchy.md) - the connector and driver seams
