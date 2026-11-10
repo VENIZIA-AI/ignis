@@ -15,7 +15,7 @@ export class AssetCommitToken {
     return Buffer.from(JSON.stringify(payload)).toString('base64url');
   }
 
-  /** `Hash.hmac` refuses an empty secret: an unkeyed signature is one anyone can compute. */
+  // `Hash.hmac` refuses an empty secret: an unkeyed signature is one anyone can compute.
   private static sign(opts: { body: string; secretKey: string }): string {
     return Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({
       message: opts.body,
