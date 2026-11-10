@@ -4,25 +4,43 @@ import { AppErrorMiddleware } from '@/base/middlewares';
 import { AssetControllerFactory } from '@/components/static-asset/controller';
 import {
   AssetCommitToken,
-  META_LINK_CREATE_FAILED,
+  AssetTokenCodecs,
+  StaticAssetErrors,
   StaticAssetStorageTypes,
 } from '@/components/static-asset/common';
-import { BaseMetaLinkModel } from '@/components/static-asset/models';
 import type {
   TDirectUploadOptions,
-  TMetaLinkConfig,
   TStaticAssetsComponentOptions,
 } from '@/components/static-asset/common';
+import { AssetPresignService } from '@/components/static-asset/service';
 import type { IAuthorizationSpec } from '@/base';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { ControllerTransports } from '@venizia/ignis-kernel';
+import { RecordUtility } from '@venizia/ignis-helpers';
+import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { z } from '@hono/zod-openapi';
 import { describe, expect, test } from 'bun:test';
 import { FakeStorageHelper } from './fake-storage.helper';
 
-const SECRET = 'a-secret-nobody-else-has';
+// -----------------------------------------------------------------------------
+// The presign route: a thin layer over AssetPresignService. These tests pin what the ROUTE adds - who may ask, how the body
+// becomes files and a context, how the answer is shaped, what is published - and leave extensions, sizes, keys and tokens to
+// the service suite.
+// -----------------------------------------------------------------------------
+interface IPayload {
+  key: string;
+  ownerId?: string;
+  expiresAt: number;
+}
+
+interface IContext {
+  tenant: string;
+}
+
+const NOW = 1_700_000_000_000;
 const TEST_CONFIGS: IApplicationConfigs = {
   host: '0.0.0.0',
   port: 0,
@@ -41,10 +59,49 @@ class DirectUploadApplication extends BaseApplication {
   setupMiddlewares() {}
 }
 
+const isPayload = (value: unknown): value is IPayload =>
+  RecordUtility.isPlainRecord(value) &&
+  typeof value.key === 'string' &&
+  typeof value.expiresAt === 'number';
+
+const signer = new BunS3Helper({
+  accessKey: 'AK',
+  secretKey: 'SK',
+  endpoint: { default: 'http://internal:9000', public: 'https://files.example.com' },
+  region: 'us-east-1',
+});
+
+const buildPresign = (over: { maxFiles?: number } = {}) =>
+  AssetPresignService.build<IPayload, IContext>({
+    helper: signer,
+    bucket: 'uploads',
+    token: new AssetCommitToken<IPayload>({
+      secretKey: 'test-secret-not-real',
+      codec: AssetTokenCodecs.signedJson<IPayload>({ isPayload }),
+      expiresAtOf: ({ payload }) => payload.expiresAt,
+      ownerOf: ({ payload }) => payload.ownerId,
+      now: () => NOW,
+    }),
+    allowedExtensions: ['.png'],
+    maxBytes: 1024,
+    maxFolderDepth: 5,
+    maxFiles: over.maxFiles,
+    resolvePath: ({ context }) => `tenants/${context.tenant}`,
+    buildPayload: ({ key, issuedAt, ownerId }) => ({ key, ownerId, expiresAt: issuedAt + 60_000 }),
+    tagging: { temp: 'true' },
+    signedContentType: 'application/octet-stream',
+    expiresIn: { unit: 'second', value: 600 },
+    now: () => NOW,
+  });
+
+const ALLOW: TDirectUploadOptions<IContext, IPayload> = {
+  authorize: () => ({ tenant: 't1' }),
+  presign: buildPresign(),
+};
+
 const mount = async (opts: {
-  helper: FakeStorageHelper;
-  directUpload: TDirectUploadOptions;
-  metaLink?: TMetaLinkConfig;
+  directUpload?: TDirectUploadOptions<AnyContext, AnyContext, AnyContext>;
+  controller?: Record<string, unknown>;
 }): Promise<OpenAPIHono> => {
   MetadataRegistry.getInstance().clearAll();
   const application = new DirectUploadApplication({
@@ -61,11 +118,10 @@ const mount = async (opts: {
         isStrict: false,
         bucket: 'uploads',
         directUpload: opts.directUpload,
+        ...opts.controller,
       },
       storage: StaticAssetStorageTypes.DISK,
-      helper: opts.helper as never,
-      useMetaLink: opts.metaLink !== undefined,
-      metaLink: opts.metaLink,
+      helper: new FakeStorageHelper() as never,
     }),
   );
   await application['registerControllers']();
@@ -77,364 +133,323 @@ const mount = async (opts: {
   return server;
 };
 
-const ALLOW: TDirectUploadOptions = { authorize: () => true, secretKey: SECRET, maxBytes: 1024 };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyContext = any;
 
-const askPolicy = (router: OpenAPIHono, files: unknown[]) =>
-  router.request('/assets/upload-policy', {
+/** What registering said, as text; `'registered'` when it said nothing - so an accepted combination fails on the ASSERTION, not on a helper. */
+const refusalOf = async (task: Promise<unknown>): Promise<string> => {
+  try {
+    await task;
+
+    return 'registered';
+  } catch (error) {
+    return String(error);
+  }
+};
+
+const ask = (router: OpenAPIHono, body: unknown) =>
+  router.request('/assets/upload-presign', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ files }),
+    body: JSON.stringify(body),
   });
 
-const commit = (router: OpenAPIHono, commitToken: string, labels: Record<string, unknown> = {}) =>
-  router.request('/assets/upload-commit', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    // The labels sit beside the token in the body, not in the URL.
-    body: JSON.stringify({ commitToken, ...labels }),
-  });
+const png = (name = 'a.png') => ({ fileName: name, contentType: 'image/png', size: 100 });
 
-describe('the upload-policy route', () => {
-  test('it hands back one policy per file, each with the token its commit is claimed with', async () => {
-    const helper = new FakeStorageHelper();
-    const router = await mount({ helper, directUpload: ALLOW });
+interface IPresigned {
+  preSignUrl: string;
+  fileKeyToken: string;
+  key: string;
+}
 
-    const response = await askPolicy(router, [{ fileName: 'a.png' }, { fileName: 'b.png' }]);
+describe('the presign route', () => {
+  test('answers one signed URL, token and key per file, under the folder the service decided', async () => {
+    const router = await mount({ directUpload: ALLOW });
+
+    const response = await ask(router, { files: [png('a.png'), png('b.png')] });
     const result = await response.json();
-    const policies = result as Array<{ objectName: string; commitToken: string }>;
+    const results = result as IPresigned[];
 
     expect(response.status).toBe(200);
-    expect(policies).toHaveLength(2);
-    expect(policies[0].commitToken).toContain('.');
-    expect(policies[0].objectName).toStartWith('pending/');
+    expect(results).toHaveLength(2);
+    expect(results[0]?.key).toStartWith('tenants/t1/');
+    expect(results[0]?.preSignUrl).toContain('https://files.example.com/uploads/tenants/t1/');
+    expect(results[0]?.fileKeyToken).toContain('.');
   });
 
-  test('a request that names more files than the limit is refused before the storage is asked', async () => {
-    const helper = new FakeStorageHelper();
-    const router = await mount({ helper, directUpload: ALLOW });
-    const files = Array.from({ length: 21 }, (_, index) => ({ fileName: `f${index}.png` }));
-
-    const response = await askPolicy(router, files);
-
-    expect(response.status).toBe(422);
-    expect(helper.calls).toHaveLength(0);
-  });
-
-  test('exactly the limit is accepted', async () => {
-    const helper = new FakeStorageHelper();
-    const router = await mount({ helper, directUpload: ALLOW });
-    const files = Array.from({ length: 20 }, (_, index) => ({ fileName: `f${index}.png` }));
-
-    const response = await askPolicy(router, files);
-
-    expect(response.status).toBe(200);
-  });
-
-  /** The key is generated, never taken from the caller - a key the caller picks is a key it can collide with. */
-  test('the policy only ever authorizes the pending prefix', async () => {
-    const helper = new FakeStorageHelper();
-    const router = await mount({ helper, directUpload: ALLOW });
-
-    await askPolicy(router, [{ fileName: 'a.png' }]);
-
-    expect(helper.calls.filter((call) => call.method === 'presignPost')).toEqual([
-      { method: 'presignPost', args: { bucket: 'uploads', keyPrefix: 'pending/', maxBytes: 1024 } },
-    ]);
-  });
-
-  test('a refused caller gets nothing, and the storage is never asked', async () => {
-    const helper = new FakeStorageHelper();
+  test('a file with no content type is signed as a binary, and the caller context reaches the service', async () => {
+    const seen: unknown[] = [];
     const router = await mount({
-      helper,
-      directUpload: { ...ALLOW, authorize: () => false },
-    });
-
-    const response = await askPolicy(router, [{ fileName: 'a.png' }]);
-
-    expect(response.status).toBe(403);
-    expect(helper.calls).toHaveLength(0);
-  });
-
-  test('a file over the ceiling is refused before a policy is signed', async () => {
-    const helper = new FakeStorageHelper();
-    const router = await mount({ helper, directUpload: ALLOW });
-
-    const response = await askPolicy(router, [{ fileName: 'big.bin', size: 1025 }]);
-
-    // 413, the same code and status the ordinary upload answers - one condition, one branch.
-    expect(response.status).toBe(413);
-    expect(helper.calls).toHaveLength(0);
-  });
-});
-
-describe('the upload-commit route', () => {
-  test('it copies out of the pending prefix and removes the temporary object', async () => {
-    const helper = new FakeStorageHelper();
-    const router = await mount({ helper, directUpload: ALLOW });
-
-    const result2 = await askPolicy(router, [{ fileName: 'a.png' }]);
-    const result = await result2.json();
-    const policies = result as Array<{
-      objectName: string;
-      commitToken: string;
-    }>;
-    helper.calls.length = 0;
-
-    helper.seedObject({ bucket: 'uploads', key: policies[0].objectName });
-    const response = await commit(router, policies[0].commitToken);
-
-    expect(response.status).toBe(200);
-    const copy = helper.calls.find((call) => call.method === 'copyObject');
-    expect(copy?.args).toMatchObject({
-      bucket: 'uploads',
-      source: policies[0].objectName,
-      destination: policies[0].objectName.slice('pending/'.length),
-    });
-    expect(helper.calls.find((call) => call.method === 'removeObject')?.args).toMatchObject({
-      name: policies[0].objectName,
-    });
-  });
-
-  /** A forged token must fail BEFORE any storage call, or the route becomes a name prober. */
-  test('a forged token is refused without a single storage call', async () => {
-    const helper = new FakeStorageHelper();
-    const router = await mount({ helper, directUpload: ALLOW });
-    const forged = AssetCommitToken.build({
-      payload: { bucket: 'uploads', key: 'pending/x/a.png', expiresAt: Date.now() + 60_000 },
-      secretKey: 'not-the-secret',
-    });
-    helper.calls.length = 0;
-
-    const response = await commit(router, forged);
-
-    expect(response.status).toBe(400);
-    expect(helper.calls).toHaveLength(0);
-  });
-
-  /** onCommit runs BEFORE the copy, so a throwing hook leaves the object under the pending prefix. */
-  test('a hook that throws leaves nothing at the final key', async () => {
-    const helper = new FakeStorageHelper();
-    const router = await mount({
-      helper,
       directUpload: {
         ...ALLOW,
-        onCommit: () => {
-          throw new Error('hook refused');
+        authorize: () => ({ tenant: 't9' }),
+        presign: {
+          presign: async (opts) => {
+            seen.push(opts);
+
+            return [];
+          },
         },
       },
     });
 
-    const result2 = await askPolicy(router, [{ fileName: 'a.png' }]);
-    const result = await result2.json();
-    const policies = result as Array<{
-      commitToken: string;
-    }>;
-    helper.calls.length = 0;
+    await ask(router, { files: [{ fileName: 'a.png', size: 5 }] });
 
-    const response = await commit(router, policies[0].commitToken);
+    expect(seen).toEqual([
+      {
+        files: [{ fileName: 'a.png', contentType: 'application/octet-stream', size: 5 }],
+        context: { tenant: 't9' },
+      },
+    ]);
+  });
 
-    expect(response.status).toBeGreaterThanOrEqual(400);
-    expect(helper.calls.filter((call) => call.method === 'copyObject')).toHaveLength(0);
-    expect(helper.calls.filter((call) => call.method === 'removeObject')).toHaveLength(0);
+  test('a refused caller gets a 403 and the service is never asked', async () => {
+    let asked = 0;
+    const router = await mount({
+      directUpload: {
+        ...ALLOW,
+        authorize: () => false,
+        presign: {
+          presign: async () => {
+            asked += 1;
+
+            return [];
+          },
+        },
+      },
+    });
+
+    const response = await ask(router, { files: [png()] });
+
+    expect(response.status).toBe(403);
+    expect(asked).toBe(0);
+  });
+
+  test('a body the schema refuses is a 422 before authorize reaches the service', async () => {
+    const router = await mount({ directUpload: ALLOW });
+
+    for (const body of [{}, { files: [] }, { files: [{ fileName: 'a.png' }] }]) {
+      const result2 = await ask(router, body);
+      expect(result2.status).toBe(422);
+    }
+  });
+
+  test('the service refusals come through with their own code: too many files, wrong extension', async () => {
+    const router = await mount({
+      directUpload: { ...ALLOW, presign: buildPresign({ maxFiles: 1 }) },
+    });
+
+    const many = await ask(router, { files: [png('a.png'), png('b.png')] });
+    const ext = await ask(router, { files: [png('a.exe')] });
+
+    expect(many.status).toBeGreaterThanOrEqual(400);
+    expect(ext.status).toBe(400);
+    const result3 = await ext.json();
+    expect(JSON.stringify(result3)).toContain(
+      StaticAssetErrors.PRESIGN_EXTENSION_NOT_ALLOWED.message.code,
+    );
   });
 });
 
-describe('a direct upload lands a MetaLink row, like every other upload', () => {
-  /**
-   * Without this the two upload paths disagree: the ordinary one writes a row, the direct one does
-   * not, and a client that reads `metaLink` off the response renders an empty state with no error.
-   */
-  test('commit creates the row through the configured repository', async () => {
-    const helper = new FakeStorageHelper();
-    const created: Array<Record<string, unknown>> = [];
+describe("request.toInput and response.map are the application's", () => {
+  test('a body of its own shape is mapped into files and context, and the answer is reshaped', async () => {
     const router = await mount({
-      helper,
-      directUpload: ALLOW,
-      metaLink: {
-        model: BaseMetaLinkModel,
-        repository: {
-          create: async (opts: { data: Record<string, unknown> }) => {
-            created.push(opts.data);
-
-            return { count: 1, data: { id: 'meta-1', ...opts.data } };
-          },
-        } as never,
+      directUpload: {
+        authorize: () => ({ tenant: 't1' }),
+        presign: buildPresign(),
+        request: {
+          schema: z.object({ names: z.array(z.string()).min(1), tenant: z.string() }),
+          toInput: ({ body }: { body: { names: string[]; tenant: string } }) => ({
+            files: body.names.map((fileName) => ({
+              fileName,
+              contentType: 'image/png',
+              size: 10,
+            })),
+            context: { tenant: body.tenant },
+            ownerId: 'u1',
+          }),
+        },
+        response: {
+          schema: z.object({ urls: z.array(z.string()) }),
+          map: ({ results }: { results: IPresigned[] }) => ({
+            urls: results.map((result) => result.preSignUrl),
+          }),
+        },
       },
     });
 
-    const result2 = await askPolicy(router, [{ fileName: 'a.png' }]);
-    const result = await result2.json();
-    const policies = result as Array<{
-      objectName: string;
-      commitToken: string;
-    }>;
-    helper.seedObject({ bucket: 'uploads', key: policies[0].objectName });
-
-    const response = await commit(router, policies[0].commitToken);
+    const response = await ask(router, { names: ['a.png'], tenant: 'acme' });
+    const result2 = await response.json();
+    const result = result2 as { urls: string[] };
 
     expect(response.status).toBe(200);
-    expect(created).toHaveLength(1);
-    expect(created[0]).toMatchObject({
-      bucketName: 'uploads',
-      objectName: policies[0].objectName.slice('pending/'.length),
-    });
-    const result3 = await response.json();
-    expect(result3).toHaveProperty('metaLink');
+    expect(result.urls[0]).toContain('/uploads/tenants/acme/');
+
+    // The default body shape no longer validates: the schema published is the application's.
+    const result3 = await ask(router, { files: [png()] });
+    expect(result3.status).toBe(422);
   });
 
-  test('a label in the commit query is a 400, and nothing is recorded', async () => {
-    const helper = new FakeStorageHelper();
-    const created: Array<Record<string, unknown>> = [];
+  test('toInput may refuse with its own error, and nothing is signed', async () => {
     const router = await mount({
-      helper,
-      directUpload: ALLOW,
-      metaLink: {
-        model: BaseMetaLinkModel,
-        repository: {
-          create: async (opts: { data: Record<string, unknown> }) => {
-            created.push(opts.data);
-
-            return { count: 1, data: { id: 'meta-1', ...opts.data } };
+      directUpload: {
+        ...ALLOW,
+        request: {
+          schema: z.object({ files: z.array(z.any()) }),
+          toInput: () => {
+            throw new Error('tenant is closed');
           },
-        } as never,
+        },
       },
     });
 
-    const result2 = await askPolicy(router, [{ fileName: 'a.png' }]);
-    const result = await result2.json();
-    const policies = result as Array<{
-      objectName: string;
-      commitToken: string;
-    }>;
-    helper.seedObject({ bucket: 'uploads', key: policies[0].objectName });
+    const response = await ask(router, { files: [] });
 
-    const response = await router.request('/assets/upload-commit?principalId=42', {
+    expect(response.status).toBe(500);
+  });
+});
+
+describe("what authorize answers is what the application's hooks get", () => {
+  test('request.toInput and response.map receive the very object authorize returned', async () => {
+    const caller = { tenant: 't1' };
+    const seen: { input?: unknown; map?: unknown } = {};
+    const router = await mount({
+      directUpload: {
+        authorize: () => caller,
+        presign: buildPresign(),
+        request: {
+          schema: z.object({ names: z.array(z.string()).min(1) }),
+          toInput: ({ body, context }: { body: { names: string[] }; context: object }) => {
+            seen.input = context;
+
+            return {
+              files: body.names.map((fileName) => ({
+                fileName,
+                contentType: 'image/png',
+                size: 10,
+              })),
+              context: { tenant: 't1' },
+            };
+          },
+        },
+        response: {
+          schema: z.array(z.string()),
+          map: ({ results, context }: { results: IPresigned[]; context: object }) => {
+            seen.map = context;
+
+            return results.map((result) => result.key);
+          },
+        },
+      },
+    });
+
+    const response = await ask(router, { names: ['a.png'] });
+
+    expect(response.status).toBe(200);
+    expect(seen.input).toBe(caller);
+    expect(seen.map).toBe(caller);
+  });
+});
+
+describe('what is mounted', () => {
+  test('without directUpload there is no presign route', async () => {
+    const router = await mount({});
+
+    const result = await ask(router, { files: [png()] });
+    expect(result.status).toBe(404);
+  });
+
+  test('routes.uploadPresign moves the route and carries the rest of the override: the default path is gone, the document shows it', async () => {
+    const router = await mount({
+      directUpload: ALLOW,
+      controller: { routes: { uploadPresign: { path: '/attachments', summary: 'The door' } } },
+    });
+
+    const moved = await router.request('/assets/attachments', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ commitToken: policies[0].commitToken }),
+      body: JSON.stringify({ files: [png()] }),
     });
-
-    expect(response.status).toBe(400);
-    expect(created).toEqual([]);
-  });
-
-  test('labels in the commit body reach the row, so a direct upload can be attributed too', async () => {
-    const helper = new FakeStorageHelper();
-    const created: Array<Record<string, unknown>> = [];
-    const router = await mount({
-      helper,
-      directUpload: ALLOW,
-      metaLink: {
-        model: BaseMetaLinkModel,
-        repository: {
-          create: async (opts: { data: Record<string, unknown> }) => {
-            created.push(opts.data);
-
-            return { count: 1, data: { id: 'meta-1', ...opts.data } };
-          },
-        } as never,
-      },
-    });
-
-    const result2 = await askPolicy(router, [{ fileName: 'a.png' }]);
-    const result = await result2.json();
-    const policies = result as Array<{
-      objectName: string;
-      commitToken: string;
-    }>;
-    helper.seedObject({ bucket: 'uploads', key: policies[0].objectName });
-
-    const response = await commit(router, policies[0].commitToken, {
-      principalType: 'User',
-      principalId: '42',
-      variant: 'thumbnail',
-    });
-
-    expect(response.status).toBe(200);
-    expect(created[0]).toMatchObject({
-      principalType: 'User',
-      principalId: '42',
-      variant: 'thumbnail',
-    });
-  });
-
-  /**
-   * The bytes are already at the final key and the pending copy is gone by the time the row is
-   * written. Answering 500 would send the caller back with a token whose source no longer exists.
-   */
-  test('a repository failure still answers 200, with the code in the body', async () => {
-    const helper = new FakeStorageHelper();
-    const router = await mount({
-      helper,
-      directUpload: ALLOW,
-      metaLink: {
-        model: BaseMetaLinkModel,
-        repository: {
-          create: async () => {
-            throw new Error('duplicate key value violates unique constraint "MetaLink_pkey"');
-          },
-        } as never,
-      },
-    });
-
-    const result2 = await askPolicy(router, [{ fileName: 'a.png' }]);
-    const result = await result2.json();
-    const policies = result as Array<{
-      objectName: string;
-      commitToken: string;
-    }>;
-    helper.seedObject({ bucket: 'uploads', key: policies[0].objectName });
-
-    const response = await commit(router, policies[0].commitToken);
-    const result3 = await response.json();
-    const body = result3 as { metaLink: { error: string }; link: string };
-
-    expect(response.status).toBe(200);
-    expect(body.metaLink).toEqual({ error: META_LINK_CREATE_FAILED });
-    // The object IS committed - the response still describes it.
-    expect(body.link).toBeTruthy();
-  });
-
-  test('with no metaLink configured the commit still succeeds', async () => {
-    const helper = new FakeStorageHelper();
-    const router = await mount({ helper, directUpload: ALLOW });
-
-    const result2 = await askPolicy(router, [{ fileName: 'a.png' }]);
-    const result = await result2.json();
-    const policies = result as Array<{
-      objectName: string;
-      commitToken: string;
-    }>;
-    helper.seedObject({ bucket: 'uploads', key: policies[0].objectName });
-
-    const result3 = await commit(router, policies[0].commitToken);
-    expect(result3.status).toBe(200);
-  });
-});
-
-describe('the routes exist only when directUpload is configured', () => {
-  test('without it, neither route is mounted', async () => {
-    const helper = new FakeStorageHelper();
-    MetadataRegistry.getInstance().clearAll();
-    const application = new DirectUploadApplication({
-      scope: 'NoDirectUploadApp',
-      config: TEST_CONFIGS,
-    });
-    application.init();
-    application.controller(
-      AssetControllerFactory.defineAssetController({
-        controller: { name: 'PlainAssetController', basePath: '/assets', bucket: 'uploads' },
-        storage: StaticAssetStorageTypes.DISK,
-        helper: helper as never,
-      }),
+    const old = await ask(router, { files: [png()] });
+    const operation = Reflect.get(
+      Object(
+        Reflect.get(
+          Object(
+            router.getOpenAPIDocument({ openapi: '3.0.0', info: { title: 't', version: '0' } })
+              .paths,
+          ),
+          '/assets/attachments',
+        ),
+      ),
+      'post',
     );
-    await application['registerControllers']();
 
-    const server = application.getServer() as OpenAPIHono;
-    server.route(TEST_CONFIGS.path.base, application.getRootRouter());
+    expect(moved.status).toBe(200);
+    expect(old.status).toBe(404);
+    expect(Reflect.get(Object(operation), 'summary')).toBe('The door');
+  });
 
-    const result = await askPolicy(server, [{ fileName: 'a.png' }]);
-    expect(result.status).toBe(404);
+  test('routes.uploadPresign.enabled false removes it', async () => {
+    const router = await mount({
+      directUpload: ALLOW,
+      controller: { routes: { uploadPresign: { enabled: false } } },
+    });
+
+    const result2 = await ask(router, { files: [png()] });
+    expect(result2.status).toBe(404);
+  });
+
+  test('the old policy and commit routes are gone', async () => {
+    const router = await mount({ directUpload: ALLOW });
+
+    for (const path of ['/assets/upload-policy', '/assets/upload-commit']) {
+      const response = await router.request(path, { method: 'POST', body: '{}' });
+      expect(response.status).toBe(404);
+    }
+  });
+
+  test('without controller.bucket it refuses to register', async () => {
+    const refusal = await refusalOf(
+      mount({ directUpload: ALLOW, controller: { bucket: undefined } }),
+    );
+
+    expect(refusal).toContain('directUpload needs controller.bucket');
+  });
+
+  test('keyPrefix and directUpload together refuse to register: the scope would not apply to the key', async () => {
+    const refusal = await refusalOf(
+      mount({ directUpload: ALLOW, controller: { keyPrefix: 'tenant-a' } }),
+    );
+
+    expect(refusal).toContain('keyPrefix does not apply to directUpload');
+  });
+
+  test('the route is published in the OpenAPI document with the schema of the application', async () => {
+    const router = await mount({
+      directUpload: {
+        ...ALLOW,
+        request: {
+          schema: z.object({ names: z.array(z.string()) }),
+          toInput: () => ({ files: [], context: { tenant: 't1' } }),
+        },
+        response: {
+          schema: z.object({ urls: z.array(z.string()) }),
+          map: () => ({ urls: [] }),
+        },
+      },
+    });
+    const document = router.getOpenAPIDocument({
+      openapi: '3.0.0',
+      info: { title: 't', version: '0' },
+    });
+    const operation = RecordUtility.isRecord(document.paths['/assets/upload-presign'])
+      ? document.paths['/assets/upload-presign']
+      : undefined;
+
+    expect(JSON.stringify(operation)).toContain('names');
+    expect(JSON.stringify(operation)).not.toContain('fileName');
+    expect(JSON.stringify(operation)).toContain('urls');
+    expect(JSON.stringify(operation)).not.toContain('preSignUrl');
   });
 });
 
@@ -460,8 +475,7 @@ export const routeAuthorizeAssertions = () => {
           deleteObject: { authorize: spec },
           upload: { authorize: [spec] },
           recreateMetaLink: { authorize: spec },
-          uploadPolicy: { authorize: spec },
-          uploadCommit: { authorize: spec },
+          uploadPresign: { authorize: spec },
         },
       },
       storage: StaticAssetStorageTypes.DISK,
@@ -471,28 +485,3 @@ export const routeAuthorizeAssertions = () => {
 
   return options;
 };
-
-describe('routes that take no labels say so', () => {
-  test('folderPath at commit names the reason it cannot be honoured', async () => {
-    const helper = new FakeStorageHelper();
-    const router = await mount({ helper, directUpload: ALLOW });
-
-    const result2 = await askPolicy(router, [{ fileName: 'a.png' }]);
-    const result = await result2.json();
-    const policies = result as Array<{
-      objectName: string;
-      commitToken: string;
-    }>;
-    helper.seedObject({ bucket: 'uploads', key: policies[0].objectName });
-
-    const response = await router.request('/assets/upload-commit?folderPath=photos', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ commitToken: policies[0].commitToken }),
-    });
-
-    expect(response.status).toBe(400);
-    const result3 = await response.json();
-    expect(JSON.stringify(result3)).toContain('upload policy was issued');
-  });
-});

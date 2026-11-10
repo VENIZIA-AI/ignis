@@ -53,6 +53,8 @@ const PINNED = [
   'core.static_asset.folder_depth_exceeded',
   'core.static_asset.file_empty',
   'core.static_asset.max_keys_invalid',
+  'core.static_asset.presign_extension_not_allowed',
+  'core.static_asset.presign_file_size_invalid',
   'core.static_asset.object_key_out_of_scope',
   'core.repository.entity_not_found',
   'core.request.body_malformed',

@@ -422,43 +422,6 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     expect(storageMethods(helper)).not.toContain('writeObject');
   });
 
-  test('a direct upload lands under the prefix, and the policy only covers it', async () => {
-    const helper = new FakeStorageHelper();
-    const router = await mount({
-      helper,
-      controller: {
-        keyPrefix: 'tenant-a',
-        directUpload: { authorize: () => true, secretKey: 'a-secret', maxBytes: 1024 },
-      },
-    });
-
-    const policyResponse = await router.request('/assets/upload-policy', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ files: [{ fileName: 'a.png' }] }),
-    });
-    const policyBody = await policyResponse.json();
-    const [policy] = policyBody as Array<{
-      objectName: string;
-      commitToken: string;
-    }>;
-    helper.seedObject({ bucket: 'images', key: policy.objectName });
-
-    const commitResponse = await router.request('/assets/upload-commit', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ commitToken: policy.commitToken }),
-    });
-    const result = await commitResponse.json();
-    const committed = result as { object: { key: string } };
-
-    expect(policy.objectName).toStartWith('pending/tenant-a/');
-    expect(helper.calls.find((call) => call.method === 'presignPost')?.args['keyPrefix']).toBe(
-      'pending/tenant-a/',
-    );
-    expect(committed.object.key).toStartWith('tenant-a/');
-  });
-
   test('with the default naming, a name carrying a slash is refused exactly as without a prefix', async () => {
     const answers: Array<{ status: number; text: string; methods: string[] }> = [];
 
