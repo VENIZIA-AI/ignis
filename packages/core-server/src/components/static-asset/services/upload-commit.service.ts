@@ -1,33 +1,16 @@
-import type {
-  IBucketRef,
-  IObjectRef,
-  IPostPolicy,
-  IStorageHelper,
-  IUploadResult,
-} from '@venizia/ignis-helpers';
-import { ResolverUtility } from '@venizia/ignis-helpers/common';
-import type { AnyType, TValueOrAsyncResolver } from '@venizia/ignis-helpers/common';
-import { getError, UuidHelper } from '@venizia/ignis-helpers/core';
+import type { IBucketRef, IObjectRef, IStorageHelper, IUploadResult } from '@venizia/ignis-helpers';
 import { BaseService } from '@venizia/ignis-kernel';
-import {
-  AssetCommitToken,
-  DEFAULT_PENDING_PREFIX,
-  META_LINK_CREATE_FAILED,
-  StaticAssetErrors,
-} from '../common';
+import { AssetCommitToken, META_LINK_CREATE_FAILED } from '../common';
 import type {
   TDirectUploadOptions,
   TMetaLinkConfig,
   TStaticAssetStorageType,
-  TUploadPolicyRequest,
   TUploadQuery,
 } from '../common';
 import { AssetKeyScope } from '../controller/key-scope';
 import { AssetMetaLink } from '../controller/meta-link';
 import { AssetObjectLink } from '../controller/object-link';
-
-/** What the client posts to the storage, plus the key it lands under and the token that commits it. */
-export type TAssetUploadPolicy = IPostPolicy & { objectName: string; commitToken: string };
+import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../models';
 
 /** What a commit answers. `metaLink` is absent when the entry keeps no MetaLink table. */
 export interface IAssetCommitResult {
@@ -37,102 +20,54 @@ export interface IAssetCommitResult {
   metaLink?: IUploadResult['metaLink'];
 }
 
-/** What an `AssetDirectUploadService` needs, all of it one options entry already carries. */
-export interface IAssetDirectUploadServiceOptions {
+/** `Schema` is the MetaLink table the application bound, the same type parameter the component carries. */
+export interface IAssetUploadCommitServiceOptions<
+  Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema,
+> {
   /** Names the logger; the controller's own name is the usual value. */
   scope: string;
   helper: IStorageHelper;
-  /** A policy names ONE bucket, so a direct upload has no bucket in its URL. */
-  bucket: TValueOrAsyncResolver<string>;
-  /** The controller's `keyPrefix` as configured; this class normalizes it the way the controller does. */
+  /** The controller's `keyPrefix` as configured; normalized here the way the controller does. */
   keyPrefix?: string;
-  directUpload: TDirectUploadOptions;
+  directUpload: Pick<TDirectUploadOptions, 'secretKey' | 'pendingPrefix' | 'onCommit'>;
   storage: TStaticAssetStorageType;
   useMetaLink?: boolean;
-  /** The table is erased here for the reason it is at the controller seam: this class only reads and writes MetaLink columns. */
-  metaLink?: TMetaLinkConfig<AnyType>;
+  metaLink?: TMetaLinkConfig<Schema>;
   /** The controller mount path, the base of the link a commit returns. */
   basePath: string;
   rawObjectPath?: boolean;
 }
 
 /**
- * The signed-policy upload flow, callable without a request: the controller's two routes and an
- * application service run the same code. A service that saves its own record commits the upload in
- * the same call instead of asking the client for a second request.
+ * Moves a pending upload to its final key and records it: the body of the `upload-commit` route,
+ * callable without a request. A service that saves its own record commits the upload in the same
+ * call instead of asking the client for a second request.
  *
- * Authorization is NOT here. `issuePolicies` hands out a write credential, and who may ask for one is
- * the route's `directUpload.authorize`; a caller that reaches this class directly has decided that
- * for itself.
+ * The token proves the key was issued by a policy; it carries no owner. Whether the current caller
+ * may commit that key is the application's decision, made before it calls `commit`.
  */
-export class AssetDirectUploadService extends BaseService {
-  private readonly options: IAssetDirectUploadServiceOptions;
-  private readonly pendingPrefix: string;
-  private readonly policyKeyPrefix: string;
-  private readonly basePath: string;
+export class AssetUploadCommitService<
+  Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema,
+> extends BaseService {
+  private readonly options: IAssetUploadCommitServiceOptions<Schema>;
   private readonly keyPrefix?: string;
+  private readonly pendingPrefix: string;
+  private readonly basePath: string;
 
-  constructor(opts: IAssetDirectUploadServiceOptions) {
+  constructor(opts: IAssetUploadCommitServiceOptions<Schema>) {
     super({ scope: opts.scope });
 
     this.options = opts;
     this.basePath = AssetObjectLink.normalizeBasePath({ basePath: opts.basePath });
-    this.keyPrefix =
-      opts.keyPrefix === undefined
-        ? undefined
-        : AssetKeyScope.normalizePrefix({
-            keyPrefix: opts.keyPrefix,
-            helper: opts.helper,
-            scope: opts.scope,
-          }).keyPrefix;
-    this.pendingPrefix = opts.directUpload.pendingPrefix ?? DEFAULT_PENDING_PREFIX;
-    // The scope rides inside the pending key, so the commit, which strips `pendingPrefix`, lands inside it.
-    this.policyKeyPrefix = `${this.pendingPrefix}${this.keyPrefix ?? ''}`;
-  }
 
-  /** One signed policy per file. A size over `maxBytes` is refused before any policy is signed. */
-  async issuePolicies(opts: {
-    files: TUploadPolicyRequest['files'];
-  }): Promise<TAssetUploadPolicy[]> {
-    const { helper, bucket, directUpload } = this.options;
-    const bucketName = await ResolverUtility.resolveValueAsync({ value: bucket });
-
-    const policies: TAssetUploadPolicy[] = [];
-
-    for (const file of opts.files) {
-      if (file.size !== undefined && file.size > directUpload.maxBytes) {
-        throw getError({
-          error: StaticAssetErrors.UPLOAD_TOO_LARGE,
-          message: `File '${file.fileName}' is ${file.size} bytes, over the ${directUpload.maxBytes} the policy allows`,
-        });
-      }
-
-      // Generated, never taken from the caller: a key the caller picks is a key the caller
-      // can collide with, and the pending object is the one thing a policy authorizes.
-      const objectName = `${this.policyKeyPrefix}${UuidHelper.getInstance().v4()}/${file.fileName}`;
-      const policy = await helper.presignPost({
-        bucket: { name: bucketName },
-        keyPrefix: this.policyKeyPrefix,
-        maxBytes: directUpload.maxBytes,
-        contentType: file.contentType,
-        expiresIn: directUpload.expiresIn,
-      });
-
-      policies.push({
-        ...policy,
-        objectName,
-        commitToken: AssetCommitToken.build({
-          payload: {
-            bucket: bucketName,
-            key: objectName,
-            expiresAt: new Date(policy.expiresAt).getTime(),
-          },
-          secretKey: directUpload.secretKey,
-        }),
-      });
-    }
-
-    return policies;
+    const prefixes = AssetKeyScope.resolveDirectUploadPrefixes({
+      keyPrefix: opts.keyPrefix,
+      pendingPrefix: opts.directUpload.pendingPrefix,
+      helper: opts.helper,
+      scope: opts.scope,
+    });
+    this.keyPrefix = prefixes.keyPrefix;
+    this.pendingPrefix = prefixes.pendingPrefix;
   }
 
   /** Moves the pending object to its final key and, when the entry keeps a MetaLink table, writes the row. A MetaLink failure rides the result as a code: the object IS committed by then. */

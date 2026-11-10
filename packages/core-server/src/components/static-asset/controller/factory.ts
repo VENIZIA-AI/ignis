@@ -36,7 +36,7 @@ import {
 } from '../common';
 import { DEFAULT_MAX_UPLOAD_FILES, MetaLinkRecreateActions } from '../common';
 import { AssetDefinitionBuilder } from './base.definition';
-import { AssetDirectUploadService } from '../services';
+import type { AssetUploadCommitService, AssetUploadPolicyService } from '../services';
 import { AssetKeyScope } from './key-scope';
 import { AssetMetaLink } from './meta-link';
 import { AssetObjectLink } from './object-link';
@@ -52,8 +52,9 @@ export interface IAssetControllerOptions {
   metaLink?: TMetaLinkConfig<AnyType>;
   options?: TStaticAssetExtraOptions;
 
-  /** The instance the direct upload routes run, so a service resolving it from the container and the routes share one. Absent builds one from `controller.directUpload`; the component passes the one it bound. */
-  directUploadService?: AssetDirectUploadService;
+  /** What the two direct upload routes run: the instances the component bound, so an application service resolving them from the container and the routes share them. Required when `controller.directUpload` is set. */
+  policyService?: Pick<AssetUploadPolicyService, 'issuePolicies'>;
+  commitService?: Pick<AssetUploadCommitService, 'commit'>;
 
   /** Decides the stored object name of each uploaded file. Absent leaves the storage helper's own naming untouched. */
   resolveObjectName?: TObjectNameResolver;
@@ -935,21 +936,13 @@ export class AssetControllerFactory extends BaseHelper {
             });
           }
 
-          // Built here only when nothing handed one in; the component builds the one it also binds.
-          const directUploadService =
-            opts.directUploadService ??
-            new AssetDirectUploadService({
-              scope: name,
-              helper,
-              bucket,
-              keyPrefix: controller.keyPrefix,
-              directUpload,
-              storage,
-              useMetaLink,
-              metaLink,
-              basePath: normalizedBasePath,
-              rawObjectPath,
+          const { policyService, commitService } = opts;
+
+          if (!policyService || !commitService) {
+            throw getError({
+              message: `[${name}] directUpload needs policyService and commitService | the component builds and binds them; a caller of defineAssetController passes its own`,
             });
+          }
 
           const uploadPolicyRoute = AssetRouteOptions.readOverride({ route: routes?.uploadPolicy });
 
@@ -965,7 +958,7 @@ export class AssetControllerFactory extends BaseHelper {
                 }
 
                 const { files } = ctx.req.valid<TUploadPolicyRequest>('json');
-                const policies = await directUploadService.issuePolicies({ files });
+                const policies = await policyService.issuePolicies({ files });
 
                 return ctx.json(policies, HTTP.ResultCodes.RS_2.Ok);
               },
@@ -992,7 +985,7 @@ export class AssetControllerFactory extends BaseHelper {
                   { commitToken: string } & TUploadQuery
                 >('json');
 
-                const result = await directUploadService.commit({
+                const result = await commitService.commit({
                   commitToken,
                   labels: readUploadLabels({ fields: labels }),
                 });

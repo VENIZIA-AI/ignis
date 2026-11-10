@@ -9,7 +9,10 @@ import {
   type TMetaLinkConfig,
   type TStaticAssetsComponentOptions,
 } from '@/components/static-asset/common';
-import { AssetDirectUploadService } from '@/components/static-asset/services';
+import {
+  AssetUploadCommitService,
+  AssetUploadPolicyService,
+} from '@/components/static-asset/services';
 import { BaseMetaLinkModel } from '@/components/static-asset/models';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
@@ -43,6 +46,7 @@ const ALLOW: TDirectUploadOptions = { authorize: () => true, secretKey: SECRET, 
 const boot = async (opts: {
   helper: FakeStorageHelper;
   keyPrefix?: string;
+  pendingPrefix?: string;
   metaLink?: TMetaLinkConfig;
 }) => {
   MetadataRegistry.getInstance().clearAll();
@@ -58,7 +62,7 @@ const boot = async (opts: {
     isStrict: false,
     bucket: 'uploads',
     keyPrefix: opts.keyPrefix,
-    directUpload: ALLOW,
+    directUpload: { ...ALLOW, pendingPrefix: opts.pendingPrefix },
   };
   const photos: TStaticAssetsComponentOptions[string] = opts.metaLink
     ? {
@@ -87,11 +91,14 @@ const boot = async (opts: {
   server.onError(new AppErrorMiddleware({ logger: application.logger }).value());
   server.route(TEST_CONFIGS.path.base, application.getRootRouter());
 
-  const service = application.get<AssetDirectUploadService>({
-    key: StaticAssetComponentBindingKeys.directService({ name: 'photos' }),
+  const policyService = application.get<AssetUploadPolicyService>({
+    key: StaticAssetComponentBindingKeys.policyService({ name: 'photos' }),
+  });
+  const commitService = application.get<AssetUploadCommitService>({
+    key: StaticAssetComponentBindingKeys.commitService({ name: 'photos' }),
   });
 
-  return { application, server, service };
+  return { application, server, policyService, commitService };
 };
 
 /** The message a call rejects with, or an empty string when it resolves. */
@@ -105,32 +112,39 @@ const messageOf = async (call: () => Promise<unknown>): Promise<string> => {
   return '';
 };
 
-describe('the AssetDirectUploadService binding', () => {
-  test('the key is `@app/static-asset-component/direct-service/<entry key>`', () => {
-    expect(StaticAssetComponentBindingKeys.directService({ name: 'photos' })).toBe(
-      '@app/static-asset-component/direct-service/photos',
+describe('the policy and commit service bindings', () => {
+  test('the keys are `@app/static-asset-component/{policy,commit}-service/<entry key>`', () => {
+    expect(StaticAssetComponentBindingKeys.policyService({ name: 'photos' })).toBe(
+      '@app/static-asset-component/policy-service/photos',
+    );
+    expect(StaticAssetComponentBindingKeys.commitService({ name: 'photos' })).toBe(
+      '@app/static-asset-component/commit-service/photos',
     );
   });
 
-  test('an entry that sets directUpload resolves to an instance, and one that does not binds nothing', async () => {
-    const { application, service } = await boot({ helper: new FakeStorageHelper() });
+  test('an entry that sets directUpload resolves to both services, and one that does not binds nothing', async () => {
+    const { application, policyService, commitService } = await boot({
+      helper: new FakeStorageHelper(),
+    });
 
-    expect(service).toBeInstanceOf(AssetDirectUploadService);
-    expect(
-      application.get({
-        key: StaticAssetComponentBindingKeys.directService({ name: 'plain' }),
-        isOptional: true,
-      }),
-    ).toBeUndefined();
+    expect(policyService).toBeInstanceOf(AssetUploadPolicyService);
+    expect(commitService).toBeInstanceOf(AssetUploadCommitService);
+
+    for (const key of [
+      StaticAssetComponentBindingKeys.policyService({ name: 'plain' }),
+      StaticAssetComponentBindingKeys.commitService({ name: 'plain' }),
+    ]) {
+      expect(application.get({ key, isOptional: true })).toBeUndefined();
+    }
   });
 });
 
 describe('issuePolicies', () => {
   test('answers with the shape the upload-policy route answers with', async () => {
     const helper = new FakeStorageHelper();
-    const { server, service } = await boot({ helper });
+    const { server, policyService } = await boot({ helper });
 
-    const direct = await service.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    const direct = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
     const response = await server.request('/photos/upload-policy', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -149,10 +163,10 @@ describe('issuePolicies', () => {
 
   test('a file over the ceiling is refused before a policy is signed', async () => {
     const helper = new FakeStorageHelper();
-    const { service } = await boot({ helper });
+    const { policyService } = await boot({ helper });
 
     const message = await messageOf(() =>
-      service.issuePolicies({ files: [{ fileName: 'big.bin', size: 1025 }] }),
+      policyService.issuePolicies({ files: [{ fileName: 'big.bin', size: 1025 }] }),
     );
 
     expect(message).toMatch(/over the 1024/);
@@ -160,9 +174,12 @@ describe('issuePolicies', () => {
   });
 
   test('the scope rides inside the pending key', async () => {
-    const { service } = await boot({ helper: new FakeStorageHelper(), keyPrefix: 'tenant-a' });
+    const { policyService } = await boot({
+      helper: new FakeStorageHelper(),
+      keyPrefix: 'tenant-a',
+    });
 
-    const [policy] = await service.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
 
     expect(policy.objectName).toStartWith('pending/tenant-a/');
   });
@@ -172,7 +189,7 @@ describe('commit', () => {
   test('copies to the final key, removes the pending object and writes the MetaLink row', async () => {
     const helper = new FakeStorageHelper();
     const created: Array<Record<string, unknown>> = [];
-    const { service } = await boot({
+    const { policyService, commitService } = await boot({
       helper,
       metaLink: {
         model: BaseMetaLinkModel,
@@ -186,11 +203,11 @@ describe('commit', () => {
       },
     });
 
-    const [policy] = await service.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
     helper.seedObject({ bucket: 'uploads', key: policy.objectName });
     helper.calls.length = 0;
 
-    const result = await service.commit({
+    const result = await commitService.commit({
       commitToken: policy.commitToken,
       labels: { principalType: 'user', principalId: '7' },
     });
@@ -219,9 +236,9 @@ describe('commit', () => {
 
   test('a forged token is refused before any storage call', async () => {
     const helper = new FakeStorageHelper();
-    const { service } = await boot({ helper });
+    const { commitService } = await boot({ helper });
 
-    const message = await messageOf(() => service.commit({ commitToken: 'forged.token' }));
+    const message = await messageOf(() => commitService.commit({ commitToken: 'forged.token' }));
 
     expect(message).toMatch(/Invalid commit token/);
     expect(helper.calls).toHaveLength(0);
@@ -229,13 +246,13 @@ describe('commit', () => {
 
   test('an expired token is refused before any storage call', async () => {
     const helper = new FakeStorageHelper();
-    const { service } = await boot({ helper });
+    const { commitService } = await boot({ helper });
     const commitToken = AssetCommitToken.build({
       payload: { bucket: 'uploads', key: 'pending/x/a.png', expiresAt: Date.now() - 1000 },
       secretKey: SECRET,
     });
 
-    const message = await messageOf(() => service.commit({ commitToken }));
+    const message = await messageOf(() => commitService.commit({ commitToken }));
 
     expect(message).toMatch(/expired/i);
     expect(helper.calls).toHaveLength(0);
@@ -244,7 +261,7 @@ describe('commit', () => {
   /** A token another controller signed with the same secret must not land outside this scope. */
   test('a key outside keyPrefix is refused, and nothing is copied', async () => {
     const helper = new FakeStorageHelper();
-    const { service } = await boot({ helper, keyPrefix: 'tenant-a' });
+    const { commitService } = await boot({ helper, keyPrefix: 'tenant-a' });
     const commitToken = AssetCommitToken.build({
       payload: {
         bucket: 'uploads',
@@ -254,9 +271,27 @@ describe('commit', () => {
       secretKey: SECRET,
     });
 
-    const message = await messageOf(() => service.commit({ commitToken }));
+    const message = await messageOf(() => commitService.commit({ commitToken }));
 
     expect(message).toMatch(/not found/i);
     expect(helper.calls.find((call) => call.method === 'copyObject')).toBeUndefined();
+  });
+
+  /** The commit strips what the policy prefixed; both read it from one place, so they cannot drift. */
+  test('a custom pendingPrefix and a scope round-trip from policy to commit', async () => {
+    const helper = new FakeStorageHelper();
+    const { policyService, commitService } = await boot({
+      helper,
+      keyPrefix: 'tenant-a',
+      pendingPrefix: 'tmp/',
+    });
+
+    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName });
+    const result = await commitService.commit({ commitToken: policy.commitToken });
+
+    expect(policy.objectName).toStartWith('tmp/tenant-a/');
+    expect(result.object.key).toStartWith('tenant-a/');
+    expect(result.object.key).toBe(policy.objectName.slice('tmp/'.length));
   });
 });

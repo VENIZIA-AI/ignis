@@ -1,5 +1,6 @@
 import { StorageErrors, type IStorageHelper } from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers/core';
+import { DEFAULT_PENDING_PREFIX } from '../common';
 
 export class AssetKeyScope {
   /** `tenant-a`, `/tenant-a` and `tenant-a/` all become `tenant-a/`: without the slash, `tenant-a` would also own `tenant-ab/`. */
@@ -18,6 +19,27 @@ export class AssetKeyScope {
     }
 
     return { keyPrefix: `${trimmed}/`, depth: segments.length };
+  }
+
+  /**
+   * The two prefixes of a direct upload, in ONE place: the policy signs `policyKeyPrefix`, and the
+   * commit strips `pendingPrefix` from the key it reads back, so the two have to be computed alike.
+   * The scope rides inside the pending key, so a commit lands inside it.
+   */
+  static resolveDirectUploadPrefixes(opts: {
+    keyPrefix?: string;
+    pendingPrefix?: string;
+    helper: IStorageHelper;
+    scope: string;
+  }): { keyPrefix?: string; pendingPrefix: string; policyKeyPrefix: string } {
+    const { helper, scope } = opts;
+    const keyPrefix =
+      opts.keyPrefix === undefined
+        ? undefined
+        : AssetKeyScope.normalizePrefix({ keyPrefix: opts.keyPrefix, helper, scope }).keyPrefix;
+    const pendingPrefix = opts.pendingPrefix ?? DEFAULT_PENDING_PREFIX;
+
+    return { keyPrefix, pendingPrefix, policyKeyPrefix: `${pendingPrefix}${keyPrefix ?? ''}` };
   }
 
   static isInScope(opts: { key: string; keyPrefix?: string }): boolean {

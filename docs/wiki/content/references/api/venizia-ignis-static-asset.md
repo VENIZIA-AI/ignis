@@ -7,7 +7,9 @@ description: "Every export of @venizia/ignis/static-asset, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-41 exports, 41 with TSDoc.
+43 exports, 42 with TSDoc.
+
+Without TSDoc (1): `IAssetUploadPolicyServiceOptions`.
 
 ## `AssetCommitToken`
 
@@ -230,40 +232,6 @@ declare const UPLOAD_LABEL_NAMES: readonly ["principalType", "principalId", "var
 
 Source: `packages/core-server/src/components/static-asset/controller/factory.ts`
 
-## `AssetDirectUploadService`
-
-*class*
-
-The signed-policy upload flow, callable without a request: the controller's two routes and an
-application service run the same code. A service that saves its own record commits the upload in
-the same call instead of asking the client for a second request.
-
-Authorization is NOT here. `issuePolicies` hands out a write credential, and who may ask for one is
-the route's `directUpload.authorize`; a caller that reaches this class directly has decided that
-for itself.
-
-```ts
-export declare class AssetDirectUploadService extends BaseService {
-    private readonly options;
-    private readonly pendingPrefix;
-    private readonly policyKeyPrefix;
-    private readonly basePath;
-    private readonly keyPrefix?;
-    constructor(opts: IAssetDirectUploadServiceOptions);
-    /** One signed policy per file. A size over `maxBytes` is refused before any policy is signed. */
-    issuePolicies(opts: {
-        files: TUploadPolicyRequest['files'];
-    }): Promise<TAssetUploadPolicy[]>;
-    /** Moves the pending object to its final key and, when the entry keeps a MetaLink table, writes the row. A MetaLink failure rides the result as a code: the object IS committed by then. */
-    commit(opts: {
-        commitToken: string;
-        labels?: TUploadQuery;
-    }): Promise<IAssetCommitResult>;
-}
-```
-
-Source: `packages/core-server/src/components/static-asset/services/direct-upload.service.ts`
-
 ## `AssetIngest`
 
 *class*
@@ -288,6 +256,58 @@ export declare class AssetIngest {
 ```
 
 Source: `packages/core-server/src/components/static-asset/ingest.ts`
+
+## `AssetUploadCommitService`
+
+*class*
+
+Moves a pending upload to its final key and records it: the body of the `upload-commit` route,
+callable without a request. A service that saves its own record commits the upload in the same
+call instead of asking the client for a second request.
+
+The token proves the key was issued by a policy; it carries no owner. Whether the current caller
+may commit that key is the application's decision, made before it calls `commit`.
+
+```ts
+export declare class AssetUploadCommitService<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> extends BaseService {
+    private readonly options;
+    private readonly keyPrefix?;
+    private readonly pendingPrefix;
+    private readonly basePath;
+    constructor(opts: IAssetUploadCommitServiceOptions<Schema>);
+    /** Moves the pending object to its final key and, when the entry keeps a MetaLink table, writes the row. A MetaLink failure rides the result as a code: the object IS committed by then. */
+    commit(opts: {
+        commitToken: string;
+        labels?: TUploadQuery;
+    }): Promise<IAssetCommitResult>;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/services/upload-commit.service.ts`
+
+## `AssetUploadPolicyService`
+
+*class*
+
+Signs the permission for a browser to post bytes straight to storage: the body of the
+`upload-policy` route, callable without a request.
+
+Authorization is NOT here. A policy is a write credential, and who may ask for one is the route's
+`directUpload.authorize`; code that calls this service has decided that for itself.
+
+```ts
+export declare class AssetUploadPolicyService extends BaseService {
+    private readonly options;
+    private readonly policyKeyPrefix;
+    constructor(opts: IAssetUploadPolicyServiceOptions);
+    /** One signed policy per file. A size over `maxBytes` is refused before any policy is signed. */
+    issuePolicies(opts: {
+        files: TUploadPolicyRequest['files'];
+    }): Promise<TAssetUploadPolicy[]>;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/services/upload-policy.service.ts`
 
 ## `BaseMetaLinkModel`
 
@@ -919,7 +939,7 @@ export interface IAssetCommitResult {
 }
 ```
 
-Source: `packages/core-server/src/components/static-asset/services/direct-upload.service.ts`
+Source: `packages/core-server/src/components/static-asset/services/upload-commit.service.ts`
 
 ## `IAssetControllerOptions`
 
@@ -936,8 +956,9 @@ export interface IAssetControllerOptions {
     /** The table is erased at this seam on purpose. The public option types carry the real `Schema` and check it; inside the controller every read and write is on MetaLink COLUMNS, and threading a table type nobody here constrains through 700 lines of handler buys nothing. */
     metaLink?: TMetaLinkConfig<AnyType>;
     options?: TStaticAssetExtraOptions;
-    /** The instance the direct upload routes run, so a service resolving it from the container and the routes share one. Absent builds one from `controller.directUpload`; the component passes the one it bound. */
-    directUploadService?: AssetDirectUploadService;
+    /** What the two direct upload routes run: the instances the component bound, so an application service resolving them from the container and the routes share them. Required when `controller.directUpload` is set. */
+    policyService?: Pick<AssetUploadPolicyService, 'issuePolicies'>;
+    commitService?: Pick<AssetUploadCommitService, 'commit'>;
     /** Decides the stored object name of each uploaded file. Absent leaves the storage helper's own naming untouched. */
     resolveObjectName?: TObjectNameResolver;
     /** Registers the application's own routes on the generated controller, after every built-in one. */
@@ -949,33 +970,49 @@ export interface IAssetControllerOptions {
 
 Source: `packages/core-server/src/components/static-asset/controller/factory.ts`
 
-## `IAssetDirectUploadServiceOptions`
+## `IAssetUploadCommitServiceOptions`
 
 *interface*
 
-What an `AssetDirectUploadService` needs, all of it one options entry already carries.
+`Schema` is the MetaLink table the application bound, the same type parameter the component carries.
 
 ```ts
-export interface IAssetDirectUploadServiceOptions {
+export interface IAssetUploadCommitServiceOptions<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> {
     /** Names the logger; the controller's own name is the usual value. */
     scope: string;
     helper: IStorageHelper;
-    /** A policy names ONE bucket, so a direct upload has no bucket in its URL. */
-    bucket: TValueOrAsyncResolver<string>;
-    /** The controller's `keyPrefix` as configured; this class normalizes it the way the controller does. */
+    /** The controller's `keyPrefix` as configured; normalized here the way the controller does. */
     keyPrefix?: string;
-    directUpload: TDirectUploadOptions;
+    directUpload: Pick<TDirectUploadOptions, 'secretKey' | 'pendingPrefix' | 'onCommit'>;
     storage: TStaticAssetStorageType;
     useMetaLink?: boolean;
-    /** The table is erased here for the reason it is at the controller seam: this class only reads and writes MetaLink columns. */
-    metaLink?: TMetaLinkConfig<AnyType>;
+    metaLink?: TMetaLinkConfig<Schema>;
     /** The controller mount path, the base of the link a commit returns. */
     basePath: string;
     rawObjectPath?: boolean;
 }
 ```
 
-Source: `packages/core-server/src/components/static-asset/services/direct-upload.service.ts`
+Source: `packages/core-server/src/components/static-asset/services/upload-commit.service.ts`
+
+## `IAssetUploadPolicyServiceOptions`
+
+*interface*
+
+```ts
+export interface IAssetUploadPolicyServiceOptions {
+    /** Names the logger; the controller's own name is the usual value. */
+    scope: string;
+    helper: IStorageHelper;
+    /** A policy names ONE bucket, so a direct upload has no bucket in its URL. */
+    bucket: TValueOrAsyncResolver<string>;
+    /** The controller's `keyPrefix` as configured; normalized here the way the controller does. */
+    keyPrefix?: string;
+    directUpload: Pick<TDirectUploadOptions, 'maxBytes' | 'expiresIn' | 'secretKey' | 'pendingPrefix'>;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/services/upload-policy.service.ts`
 
 ## `ICommitTokenPayload`
 
@@ -1110,8 +1147,8 @@ export declare class StaticAssetComponent<Schema extends TMetaLinkCompatibleSche
     private application;
     constructor(application: BaseApplication);
     binding(): ValueOrPromise<void>;
-    /** One instance per entry that turns direct upload on. The routes run the very object an application's service resolves from the key. An entry without a bucket binds nothing: the controller refuses it, with the reason. */
-    private bindDirectUpload;
+    /** One pair of services per entry that turns direct upload on. The routes run the very objects an application's service resolves from the keys. An entry without a bucket binds nothing: the controller refuses it, with the reason. */
+    private bindDirectUploadServices;
 }
 ```
 
@@ -1127,8 +1164,12 @@ Container keys of the static asset component.
 export declare class StaticAssetComponentBindingKeys {
     /** The options an application registers through `configs.artifacts` land here, because an artifact index carries classes and no options. `application.component(StaticAssetComponent, { options })` passes them directly and wins over this key. */
     static readonly STATIC_ASSET_COMPONENT_OPTIONS = "@app/static-asset-component/options";
-    /** The `AssetDirectUploadService` of one options entry, bound only for an entry that sets `controller.directUpload`. `name` is the entry's KEY in the options object, not the controller name. */
-    static directService(opts: {
+    /** The `AssetUploadPolicyService` of one options entry, bound only for an entry that sets `controller.directUpload` with a `bucket`. `name` is the entry's KEY in the options object, not the controller name. */
+    static policyService(opts: {
+        name: string;
+    }): string;
+    /** The `AssetUploadCommitService` of one options entry, bound with its policy service. */
+    static commitService(opts: {
         name: string;
     }): string;
 }
@@ -1287,7 +1328,7 @@ export type TAssetUploadPolicy = IPostPolicy & {
 };
 ```
 
-Source: `packages/core-server/src/components/static-asset/services/direct-upload.service.ts`
+Source: `packages/core-server/src/components/static-asset/services/upload-policy.service.ts`
 
 ## `TBucketParams`
 
