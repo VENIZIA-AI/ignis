@@ -3,7 +3,6 @@ import type { ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '../base';
 import { getError } from '../error';
 import {
-  DEFAULT_UID_DELIMITER,
   DEFAULT_UID_LENGTH,
   DEFAULT_UID_MAX_ATTEMPTS,
   MIN_UID_ALPHABET_SIZE,
@@ -11,10 +10,9 @@ import {
   UidCaseForms,
 } from './common/constants';
 import type { TUidCaseForm } from './common/constants';
-import type { INextOpaqueUidOptions, IOpaqueUidOptions, IUidSegment } from './common/types';
-
-/** How many random bytes to draw per refill, per remaining character. Rejection throws some away, so asking for exactly `length` would round-trip to the entropy source repeatedly. */
-const SAMPLING_OVERDRAW = 2;
+import { UidRandom } from './common/random';
+import { UidSegments } from './common/segments';
+import type { INextOpaqueUidOptions, IOpaqueUidOptions } from './common/types';
 
 /** Local, not `@/utilities/promise.utility`: that module imports the logger BARREL, which reaches `node:module` and would take this browser-pure module with it. */
 const isPromiseLike = (value: unknown): value is PromiseLike<boolean> => {
@@ -41,9 +39,6 @@ export class OpaqueUidHelper extends BaseHelper {
   private readonly prefix: string;
   private readonly delimiter: string;
 
-  /** Rejection mask: the smallest `2^n - 1` that covers every alphabet index. A plain `byte % size` would favour the first `256 % size` characters, which is a bias a caller cannot see and cannot undo. */
-  private readonly mask: number;
-
   constructor(opts?: IOpaqueUidOptions) {
     super({ scope: OpaqueUidHelper.name });
 
@@ -65,14 +60,17 @@ export class OpaqueUidHelper extends BaseHelper {
       });
     }
 
-    this.prefix = OpaqueUidHelper.resolvePrefix({ prefix: opts?.prefix, caseForm });
-    this.delimiter = OpaqueUidHelper.resolveDelimiter({
+    this.prefix = UidSegments.resolvePrefix({
+      scope: OpaqueUidHelper.name,
+      prefix: opts?.prefix,
+      caseForm,
+    });
+    this.delimiter = UidSegments.resolveDelimiter({
+      scope: OpaqueUidHelper.name,
       delimiter: opts?.delimiter,
       hasPrefix: this.prefix.length > 0,
       alphabet: this.alphabet,
     });
-
-    this.mask = (1 << Math.ceil(Math.log2(this.alphabet.length))) - 1;
   }
 
   /**
@@ -156,18 +154,12 @@ export class OpaqueUidHelper extends BaseHelper {
   }
 
   private resolveHead(opts: { prefix?: string }): string {
-    const override = opts.prefix;
-
-    if (override === '') {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: `[${OpaqueUidHelper.name}][nextId] An empty prefix is not how a prefix is turned off | Construct with \`prefix: { enable: false }\``,
-      });
-    }
-
-    const prefix = override ?? this.prefix;
-
-    return prefix.length > 0 ? `${prefix}${this.delimiter}` : '';
+    return UidSegments.resolveHead({
+      scope: OpaqueUidHelper.name,
+      override: opts.prefix,
+      prefix: this.prefix,
+      delimiter: this.delimiter,
+    });
   }
 
   private static resolveMaxAttempts(opts: { maxAttempts?: number }): number {
@@ -197,49 +189,7 @@ export class OpaqueUidHelper extends BaseHelper {
   }
 
   private randomBody(): string {
-    const size = this.alphabet.length;
-    let body = '';
-
-    while (body.length < this.length) {
-      const bytes = OpaqueUidHelper.randomBytes({
-        count: (this.length - body.length) * SAMPLING_OVERDRAW,
-      });
-
-      for (const byte of bytes) {
-        const index = byte & this.mask;
-
-        // Rejection, not wrap-around: an index past the alphabet is discarded so every character
-        // stays equally likely.
-        if (index >= size) {
-          continue;
-        }
-
-        body += this.alphabet[index];
-
-        if (body.length === this.length) {
-          break;
-        }
-      }
-    }
-
-    return body;
-  }
-
-  /**
-   * `crypto.getRandomValues`, never `Math.random`. Unlike `crypto.randomUUID`, this one is NOT
-   * restricted to a secure context, so it works on a plain-http origin and inside a browser Worker.
-   */
-  private static randomBytes(opts: { count: number }): Uint8Array {
-    const source = globalThis.crypto;
-
-    if (typeof source?.getRandomValues !== 'function') {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: `[${OpaqueUidHelper.name}] No Web Crypto available | \`crypto.getRandomValues\` is required and \`Math.random\` is not an acceptable substitute for an identifier`,
-      });
-    }
-
-    return source.getRandomValues(new Uint8Array(opts.count));
+    return UidRandom.sample({ alphabet: this.alphabet, length: this.length });
   }
 
   private static hasBothCases(opts: { alphabet: string }): boolean {
@@ -311,83 +261,5 @@ export class OpaqueUidHelper extends BaseHelper {
     }
 
     return resolved;
-  }
-
-  /** An enabled prefix in the wrong case defeats the reason for choosing one: an id meant to survive a case-insensitive column stops being one the moment its prefix disagrees. */
-  private static resolvePrefix(opts: { prefix?: IUidSegment; caseForm: TUidCaseForm }): string {
-    const { prefix, caseForm } = opts;
-
-    if (!prefix?.enable) {
-      return '';
-    }
-
-    const value = prefix.value ?? '';
-
-    if (value.length === 0) {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: `[${OpaqueUidHelper.name}] prefix is enabled but carries no value`,
-      });
-    }
-
-    const expected =
-      caseForm === UidCaseForms.UPPER
-        ? value.toUpperCase()
-        : caseForm === UidCaseForms.LOWER
-          ? value.toLowerCase()
-          : value;
-
-    if (value !== expected) {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: `[${OpaqueUidHelper.name}] prefix does not match caseForm | prefix: ${value} | caseForm: ${caseForm} | expected: ${expected}`,
-      });
-    }
-
-    return value;
-  }
-
-  /**
-   * Two refusals here, both because the alternative fails silently: a delimiter with no prefix is a
-   * leading character that separates nothing, and a delimiter drawn from the alphabet makes the id
-   * impossible to split back into prefix and body.
-   */
-  private static resolveDelimiter(opts: {
-    delimiter?: IUidSegment;
-    hasPrefix: boolean;
-    alphabet: string;
-  }): string {
-    const { delimiter, hasPrefix, alphabet } = opts;
-
-    if (!delimiter?.enable) {
-      return '';
-    }
-
-    if (!hasPrefix) {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: `[${OpaqueUidHelper.name}] delimiter is enabled without a prefix | It would lead the id and separate nothing | Put the character in \`prefix.value\` if that is what you want`,
-      });
-    }
-
-    const value = delimiter.value ?? DEFAULT_UID_DELIMITER;
-
-    if (value.length === 0) {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: `[${OpaqueUidHelper.name}] delimiter is enabled but carries no value`,
-      });
-    }
-
-    const shared = [...new Set(value)].filter((character) => alphabet.includes(character));
-
-    if (shared.length > 0) {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: `[${OpaqueUidHelper.name}] delimiter shares characters with the alphabet | shared: ${shared.join('')} | An id built with it cannot be split back into prefix and body`,
-      });
-    }
-
-    return value;
   }
 }

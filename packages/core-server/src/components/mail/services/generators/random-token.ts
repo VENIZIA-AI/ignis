@@ -1,20 +1,28 @@
-import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import {
+  BaseHelper,
+  getError,
+  TokenUidHelper,
+  UidTokenEncodings,
+} from '@venizia/ignis-helpers/core';
 import type { IVerificationTokenGenerator } from '../../common';
 
-/** Generates base64url tokens from random bytes; `generateToken` throws unless `bytes` is a non-negative integer. */
+/**
+ * Generates base64url tokens from random bytes, through `TokenUidHelper`. `generateToken` throws
+ * unless `bytes` is an integer of at least 16 (128 bits): a shorter token can be guessed offline.
+ */
 export class RandomTokenGenerator extends BaseHelper implements IVerificationTokenGenerator {
   constructor() {
     super({ scope: RandomTokenGenerator.name });
   }
 
   generateToken(bytes: number): string {
-    // `new Uint8Array(NaN)` is empty: without this check a misconfigured size would give an empty token.
-    if (!Number.isSafeInteger(bytes) || bytes < 0) {
+    // `TokenUidHelper` reads a missing size as its 32-byte default; here a missing size is a misconfiguration, as it always was.
+    if (typeof bytes !== 'number') {
       throw getError({
-        message: `[RandomTokenGenerator][generateToken] Invalid bytes | Expected a non-negative integer | Got: ${bytes}`,
+        message: `[RandomTokenGenerator][generateToken] Invalid bytes | Expected an integer of at least 16 | Got: ${bytes}`,
       });
     }
 
-    return Buffer.from(crypto.getRandomValues(new Uint8Array(bytes))).toString('base64url');
+    return new TokenUidHelper({ bytes, encoding: UidTokenEncodings.BASE64URL }).nextId();
   }
 }

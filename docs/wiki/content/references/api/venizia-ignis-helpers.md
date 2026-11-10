@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-203 exports, 203 with TSDoc. 217 more are re-exported from other entries (listed at the end).
+203 exports, 203 with TSDoc. 227 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -4010,6 +4010,10 @@ Multipart body parsing and `Content-Disposition` header building and parsing for
 
 ```ts
 export declare class RequestUtility {
+    /** Built on first use: a helper opens a logger, which is work an import alone should not do. */
+    private static uploadTokens?;
+    /** Uniqueness for a spooled filename, not a secret; the helper's 16-byte floor is the shortest it makes. */
+    private static getUploadTokens;
     static parseMultipartBody<C extends {
         req: any;
     } = {
@@ -5304,9 +5308,11 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `ContentTypeTable` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `DataTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `DayjsTemporalAdapter` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
+- `DEFAULT_NUMERIC_LENGTH` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `DEFAULT_TEMPORAL_LOCALE` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `DEFAULT_TEMPORAL_PATTERN` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `DEFAULT_TEMPORAL_TZ` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
+- `DEFAULT_TOKEN_BYTES` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `DEFAULT_UID_DELIMITER` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `DEFAULT_UID_LENGTH` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `DEFAULT_UID_MAX_ATTEMPTS` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -5348,10 +5354,12 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `ILuxonDateTime` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `ILuxonDateTimeFactory` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `INextOpaqueUidOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `INextTokenUidOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `INodeFetchNetworkRequestOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `INodeFetchRequestOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `INodeWithPath` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IntlTemporalAdapter` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
+- `INumericUidOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IOpaqueUidOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IPool` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IPoolControlOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -5374,6 +5382,7 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `ITemporalNamespace` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `ITemporalParts` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `ITemporalZonedDateTime` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
+- `ITokenUidOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `ITreeNode` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IUidSegment` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IUrlSafetyPolicy` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -5387,10 +5396,12 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `MessageCode` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `MessageTemplate` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `MimeTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `MIN_TOKEN_BYTES` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `MIN_UID_ALPHABET_SIZE` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `NativeTemporalAdapter` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `NodeFetcher` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `NodeFetchNetworkRequest` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `NumericUidHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `ObjectUtility` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `OpaqueUidHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `ParseUtility` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -5458,6 +5469,7 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `TNullable` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TNumberConstValue` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TObjectFromFieldMappings` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `TokenUidHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TOnVisit` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TOnVisitAsync` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TOptions` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
@@ -5483,11 +5495,13 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `TTemporalUnit` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `TTemporalWrittenDateStyle` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `TUidCaseForm` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `TUidTokenEncoding` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TUrlScheme` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TValueOrAsyncResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TValueOrResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `UidAlphabets` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UidCaseForms` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `UidTokenEncodings` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UrlPolicy` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UrlSafetyDefaults` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `UrlSchemes` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)

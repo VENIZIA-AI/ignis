@@ -129,14 +129,27 @@ describe('RandomTokenGenerator', () => {
     expect(generator.generateToken(16)).not.toBe(generator.generateToken(16));
   });
 
-  test('a size that is not a non-negative integer is refused, not turned into an empty token', () => {
+  test('a size that is not an integer is refused, not turned into an empty token', () => {
     for (const size of [Number.NaN, Number.POSITIVE_INFINITY, -1, 1.5, undefined, null, '8']) {
       expect(() => generator.generateToken(size as unknown as number)).toThrow();
     }
   });
 
-  test('no bytes is the empty text', () => {
-    expect(generator.generateToken(0)).toBe('');
+  test('fewer than 16 bytes is refused, and 16 is the smallest token', () => {
+    for (const size of [0, 1, 8, 15]) {
+      expect(() => generator.generateToken(size)).toThrow(/at least 16/);
+    }
+
+    expect(Buffer.from(generator.generateToken(16), 'base64url')).toHaveLength(16);
+  });
+
+  test('the output has no prefix and no padding, the format it always had', () => {
+    for (const size of [16, 17, 32, 33]) {
+      const token = generator.generateToken(size);
+
+      expect(token).toMatch(/^[A-Za-z0-9_-]+$/);
+      expect(token).toBe(Buffer.from(token, 'base64url').toString('base64url'));
+    }
   });
 
   test('a token longer than one fill of getRandomValues is random all the way through', () => {
@@ -175,9 +188,9 @@ describe('the MIME message ids', () => {
     expect(idOf(first)).not.toBe(idOf(second));
   });
 
-  test('a multipart boundary is 12 random bytes in hex after its label', async () => {
+  test('a multipart boundary is 16 random bytes in hex after its label', async () => {
     const raw = await buildRaw();
 
-    expect(raw).toMatch(/boundary="?----=_Alt_[0-9a-f]{24}"?/);
+    expect(raw).toMatch(/boundary="?----=_Alt_[0-9a-f]{32}"?/);
   });
 });

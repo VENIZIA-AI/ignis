@@ -1,5 +1,5 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, TokenUidHelper, UidTokenEncodings } from '@venizia/ignis-helpers/core';
 import { MailErrorCodes, type IMailAttachment, type IMailMessage } from '../common';
 import { MailAddressUtility } from './address.utility';
 import { MailAttachmentUtility } from './attachment.utility';
@@ -19,9 +19,9 @@ const MAX_HEADER_HARD_LIMIT = 990;
 /** RFC 2047 caps one encoded-word (`=?charset?B?...?=` included) at 75 characters. */
 const ENCODED_WORD_MAX_LENGTH = 75;
 
-/** `bytes` random bytes as lowercase hex, from the platform CSPRNG. */
+/** `bytes` random bytes as lowercase hex, from the platform CSPRNG. `bytes` is at least 16, the floor of `TokenUidHelper`. */
 function generateRandomHex(opts: { bytes: number }): string {
-  return Buffer.from(crypto.getRandomValues(new Uint8Array(opts.bytes))).toString('hex');
+  return new TokenUidHelper({ bytes: opts.bytes, encoding: UidTokenEncodings.HEX }).nextId();
 }
 
 function isAscii(value: string): boolean {
@@ -362,7 +362,7 @@ async function attachmentPart(attachment: IMailAttachment, boundary: string): Pr
 
 /** Every boundary is generated the same way - a fixed prefix plus random hex - so no two nested multipart sections in one message can ever collide. */
 function newBoundary(label: string): string {
-  return `----=_${label}_${generateRandomHex({ bytes: 12 })}`;
+  return `----=_${label}_${generateRandomHex({ bytes: 16 })}`;
 }
 
 /** Builds the MIME pieces the Amazon SES transport sends: the raw message and RFC 5322 address headers. */

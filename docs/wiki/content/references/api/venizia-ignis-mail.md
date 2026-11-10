@@ -625,6 +625,7 @@ Sizes and lifetimes for generated verification data: code digits, token bytes, c
 ```ts
 export interface IVerificationGenerationOptions {
     codeLength: number;
+    /** Random bytes of the verification token; an integer of at least 16 (128 bits), or generation throws. */
     tokenBytes: number;
     codeExpiryMinutes: number;
     tokenExpiryHours: number;
@@ -1081,17 +1082,12 @@ Source: `packages/core-server/src/components/mail/helpers/transporters/nodemail-
 
 *class*
 
-Generates zero-padded numeric codes from a cryptographic source, uniformly distributed. `generateCode` throws unless `10 ** length` is an integer up to 2 ** 48.
+Generates zero-padded numeric codes through `NumericUidHelper`, uniformly distributed. `generateCode` throws unless `10 ** length` is an integer up to 2 ** 48.
 
 ```ts
 export declare class NumericCodeGenerator extends BaseHelper implements IVerificationCodeGenerator {
     constructor();
     generateCode(length: number): string;
-    /**
-     * A uniform integer in `[0, max)`. A draw at or above the largest multiple of `max` is thrown away and drawn
-     * again, so no code is likelier than another (`value % max` alone favours the low codes).
-     */
-    private static getRandomBelow;
 }
 ```
 
@@ -1101,7 +1097,8 @@ Source: `packages/core-server/src/components/mail/services/generators/numeric-co
 
 *class*
 
-Generates base64url tokens from random bytes; `generateToken` throws unless `bytes` is a non-negative integer.
+Generates base64url tokens from random bytes, through `TokenUidHelper`. `generateToken` throws
+unless `bytes` is an integer of at least 16 (128 bits): a shorter token can be guessed offline.
 
 ```ts
 export declare class RandomTokenGenerator extends BaseHelper implements IVerificationTokenGenerator {

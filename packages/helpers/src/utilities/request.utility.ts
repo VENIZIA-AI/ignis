@@ -1,5 +1,6 @@
 import type { TConstValue } from '@/common/types';
 import { getError } from '@/modules/error';
+import { MIN_TOKEN_BYTES, TokenUidHelper, UidTokenEncodings } from '@/modules/uid';
 import { FormBodyUtility, RequestBodyErrors } from './form-body.utility';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -73,6 +74,19 @@ export type TContentDispositionType = TConstValue<typeof ContentDispositionTypes
 
 /** Multipart body parsing and `Content-Disposition` header building and parsing for requests and uploads. */
 export class RequestUtility {
+  /** Built on first use: a helper opens a logger, which is work an import alone should not do. */
+  private static uploadTokens?: TokenUidHelper;
+
+  /** Uniqueness for a spooled filename, not a secret; the helper's 16-byte floor is the shortest it makes. */
+  private static getUploadTokens(): TokenUidHelper {
+    RequestUtility.uploadTokens ??= new TokenUidHelper({
+      bytes: MIN_TOKEN_BYTES,
+      encoding: UidTokenEncodings.HEX,
+    });
+
+    return RequestUtility.uploadTokens;
+  }
+
   static async parseMultipartBody<C extends { req: any } = { req: any }>(
     opts: IParseMultipartOptions<C>,
   ): Promise<IParsedMultipartBody> {
@@ -172,7 +186,7 @@ export class RequestUtility {
         }
         case MultipartStorages.DISK: {
           const timestamp = Date.now();
-          const randomString = Math.random().toString(36).substring(7);
+          const randomString = RequestUtility.getUploadTokens().nextId();
           // Sanitize filename to prevent path traversal
           const sanitizedName = path.basename(file.name).replace(/[^a-zA-Z0-9._-]/g, '_');
           const filename = `${timestamp}-${randomString}-${sanitizedName}`;

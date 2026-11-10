@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/core, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-101 exports, 101 with TSDoc. 59 more are re-exported from other entries (listed at the end).
+111 exports, 111 with TSDoc. 59 more are re-exported from other entries (listed at the end).
 
 ## `AbstractCryptoAlgorithm`
 
@@ -296,6 +296,30 @@ export declare class ConsoleLogger extends AbstractLogger {
 ```
 
 Source: `packages/helpers/src/modules/logger/base/console.ts`
+
+## `DEFAULT_NUMERIC_LENGTH`
+
+*const*
+
+Six digits is the length of a one-time code in an email or an app: 10^6 combinations, which is why it needs an expiry and an attempt limit.
+
+```ts
+export declare const DEFAULT_NUMERIC_LENGTH = 6;
+```
+
+Source: `packages/helpers/src/modules/uid/common/constants.ts`
+
+## `DEFAULT_TOKEN_BYTES`
+
+*const*
+
+32 bytes is 256 bits, the size of a SHA-256 output and of an AES-256 key: no brute force reaches it.
+
+```ts
+export declare const DEFAULT_TOKEN_BYTES = 32;
+```
+
+Source: `packages/helpers/src/modules/uid/common/constants.ts`
 
 ## `DEFAULT_UID_DELIMITER`
 
@@ -772,6 +796,21 @@ export interface INextOpaqueUidOptions<TVerdict extends ValueOrPromise<boolean> 
 
 Source: `packages/helpers/src/modules/uid/common/types.ts`
 
+## `INextTokenUidOptions`
+
+*interface*
+
+Per-call options of `TokenUidHelper.nextId`.
+
+```ts
+export interface INextTokenUidOptions {
+    /** Replaces the configured prefix for this call and turns it on. An empty string is refused. */
+    prefix?: string;
+}
+```
+
+Source: `packages/helpers/src/modules/uid/common/types.ts`
+
 ## `INodeFetchNetworkRequestOptions`
 
 *interface*
@@ -821,6 +860,25 @@ export interface INodeWithPath<T> {
 ```
 
 Source: `packages/helpers/src/modules/tree/common/types.ts`
+
+## `INumericUidOptions`
+
+*interface*
+
+Options for generating a numeric code.
+
+```ts
+export interface INumericUidOptions {
+    /**
+     * Digits in the code. `10 ** length` must not exceed `2 ** 48`, so 14 at most.
+     *
+     * @default DEFAULT_NUMERIC_LENGTH
+     */
+    length?: number;
+}
+```
+
+Source: `packages/helpers/src/modules/uid/common/types.ts`
 
 ## `IOpaqueUidOptions`
 
@@ -1113,6 +1171,46 @@ export interface ISnowflakeParsedId {
 
 Source: `packages/helpers/src/modules/uid/helper.ts`
 
+## `ITokenUidOptions`
+
+*interface*
+
+Options for generating a secret token. Every field is optional.
+
+```ts
+export interface ITokenUidOptions {
+    /**
+     * Random bytes before encoding. At least `MIN_TOKEN_BYTES`.
+     *
+     * @default DEFAULT_TOKEN_BYTES
+     */
+    bytes?: number;
+    /** @default UidTokenEncodings.BASE62 */
+    encoding?: TUidTokenEncoding;
+    /** Same rules as {@link IOpaqueUidOptions.prefix}. @default { enable: false } */
+    prefix?: IUidSegment;
+    /**
+     * Same rules as {@link IOpaqueUidOptions.delimiter}, checked against the characters of `encoding`:
+     * `_` (the default) and `-` work with `base62` and `hex`. `base64url` holds both, so with it only a
+     * character outside `A-Z a-z 0-9 - _` (for example `.`) is accepted.
+     *
+     * @default { enable: false }
+     */
+    delimiter?: IUidSegment;
+    /**
+     * Appends a fixed-width CRC-32 of the body, GitHub-style: 6 base62 characters (`base62`) or 8 hex
+     * characters (`hex`). `isWellFormed` then rejects a mistyped token without a database lookup, and a
+     * secret scanner can spot the token by its shape. Refused with `base64url`, whose alphabet has no
+     * fixed width to give it. The checksum covers the body only, never the prefix.
+     *
+     * @default false
+     */
+    checksum?: boolean;
+}
+```
+
+Source: `packages/helpers/src/modules/uid/common/types.ts`
+
 ## `ITreeNode`
 
 *interface*
@@ -1317,6 +1415,18 @@ export declare class LogLevels {
 
 Source: `packages/helpers/src/modules/logger/common/types.ts`
 
+## `MIN_TOKEN_BYTES`
+
+*const*
+
+128 bits. Below this a token can be guessed offline, so the constructor refuses it.
+
+```ts
+export declare const MIN_TOKEN_BYTES = 16;
+```
+
+Source: `packages/helpers/src/modules/uid/common/constants.ts`
+
 ## `MIN_UID_ALPHABET_SIZE`
 
 *const*
@@ -1370,6 +1480,29 @@ export declare class NodeFetchNetworkRequest extends BaseNetworkRequest<'node-fe
 
 Source: `packages/helpers/src/modules/network/http-request/fetcher/node-fetcher.ts`
 
+## `NumericUidHelper`
+
+*class*
+
+Zero-padded numeric codes, uniformly distributed: `042917`. Use it for a code a human types - a
+one-time password, an email verification code.
+
+Six digits is a million codes, so a code needs an expiry and an attempt limit; the digits alone
+are not the defence. For a secret that is not typed, use `TokenUidHelper`.
+
+`10 ** length` must be an integer up to `2 ** 48` (`length` 14 at most), the range one draw covers.
+
+```ts
+export declare class NumericUidHelper extends BaseHelper {
+    private readonly length;
+    private readonly max;
+    constructor(opts?: INumericUidOptions);
+    nextId(): string;
+}
+```
+
+Source: `packages/helpers/src/modules/uid/numeric.ts`
+
 ## `OpaqueUidHelper`
 
 *class*
@@ -1393,8 +1526,6 @@ export declare class OpaqueUidHelper extends BaseHelper {
     private readonly length;
     private readonly prefix;
     private readonly delimiter;
-    /** Rejection mask: the smallest `2^n - 1` that covers every alphabet index. A plain `byte % size` would favour the first `256 % size` characters, which is a bias a caller cannot see and cannot undo. */
-    private readonly mask;
     constructor(opts?: IOpaqueUidOptions);
     /**
      * `prefix` replaces the configured value for this call and turns the prefix on for it; the
@@ -1417,11 +1548,6 @@ export declare class OpaqueUidHelper extends BaseHelper {
     /** The alphabet actually in use, after the case fold and every exclusion - what `length` is measured against. */
     getAlphabet(): string;
     private randomBody;
-    /**
-     * `crypto.getRandomValues`, never `Math.random`. Unlike `crypto.randomUUID`, this one is NOT
-     * restricted to a secure context, so it works on a plain-http origin and inside a browser Worker.
-     */
-    private static randomBytes;
     private static hasBothCases;
     private static assertKnownCaseForm;
     /**
@@ -1435,14 +1561,6 @@ export declare class OpaqueUidHelper extends BaseHelper {
      * cleanly because there is nothing to collide with.
      */
     private static resolveAlphabet;
-    /** An enabled prefix in the wrong case defeats the reason for choosing one: an id meant to survive a case-insensitive column stops being one the moment its prefix disagrees. */
-    private static resolvePrefix;
-    /**
-     * Two refusals here, both because the alternative fails silently: a delimiter with no prefix is a
-     * leading character that separates nothing, and a delimiter drawn from the alphabet makes the id
-     * impossible to split back into prefix and body.
-     */
-    private static resolveDelimiter;
 }
 ```
 
@@ -1468,6 +1586,11 @@ export declare class ParseUtility {
     private static round;
     /** Arrays stay arrays - mapping one through the object branch would turn it into an index-keyed object - but their object elements still need their keys camelized. Dates are opaque values. */
     private static camelizeValue;
+    /**
+     * Ten uppercase base36 characters (`0-9A-Z`) from the platform CSPRNG, about 51 bits. Two draws of
+     * five characters, because one draw covers at most `2 ** 48` and ten base36 characters need more.
+     * A throwaway key for a test or a label, not a secret: use `TokenUidHelper` for a secret.
+     */
     static getUID(): string;
     static toCamel(opts: {
         input: string;
@@ -2064,6 +2187,68 @@ export type TNodePredicate<T> = (node: ITreeNode<T>, depth: number) => boolean;
 
 Source: `packages/helpers/src/modules/tree/common/types.ts`
 
+## `TokenUidHelper`
+
+*class*
+
+Secret tokens: random bytes from the platform CSPRNG, written as base62 (the default), hex or
+base64url, optionally prefixed. Use it for a secret - a verification link, an API key, a session id, a password reset.
+
+- STORE A HASH, not the token. A database leak then leaks nothing a caller can replay.
+- COMPARE IN CONSTANT TIME with `Hash.equals` (`crypto/algorithms/hash.algorithm.ts`), never `===`.
+- Use `OpaqueUidHelper` for a short id a human reads, and `NumericUidHelper` for a code a human types.
+
+`bytes` is the entropy, not the text length: the constructor refuses anything under
+{@link MIN_TOKEN_BYTES} (128 bits). The finished string is `prefix + delimiter + body`. A base62
+body is `ceil(bytes * 8 / log2(62))` characters (32 bytes is 43), a hex body `bytes * 2`, a
+base64url body `ceil(bytes * 4 / 3)`.
+
+`checksum: true` appends a CRC-32 of the body, so `isWellFormed` can reject a mistyped token before
+any lookup. Enable it for a long-lived key a person copies, not for a one-shot link.
+
+The prefix and delimiter follow `OpaqueUidHelper`'s rules, with no `caseForm`: a token's case is
+its encoding's. A delimiter must sit outside the encoding's characters. `_` and `-` work with
+base62 and hex; base64url holds both, so it takes only a delimiter such as `.`.
+
+```ts
+export declare class TokenUidHelper extends BaseHelper {
+    private readonly bytes;
+    private readonly encoding;
+    private readonly prefix;
+    private readonly delimiter;
+    private readonly checksum;
+    constructor(opts?: ITokenUidOptions);
+    /** `prefix` replaces the configured value for this call and turns the prefix on for it; the delimiter follows its own switch. */
+    nextId(opts?: INextTokenUidOptions): string;
+    /**
+     * A FORMAT filter, nothing more: does `opts.key` have the configured prefix and delimiter, the body
+     * length and alphabet of the configured `bytes` and `encoding`, and (when enabled) a matching
+     * checksum. Returns `false` on anything else, never throws, including for a value that is not a
+     * string.
+     *
+     * It is NOT authentication. CRC-32 is public and forgeable, so anyone can build a token that passes.
+     * A well-formed token still has to be looked up by its HASH and compared in constant time with
+     * `Hash.equals`. Use this to refuse a mistyped or truncated token before spending a lookup on it.
+     *
+     * The head checked is the CONFIGURED prefix and delimiter (none when the instance has no prefix); a
+     * token minted with a per-call prefix is checked by an instance configured with that prefix.
+     */
+    isWellFormed(opts: {
+        key: string;
+    }): boolean;
+    private bodyLength;
+    private checksumLength;
+    /** The suffix for `body`: empty when the checksum is off, otherwise the CRC-32 of the body in the token's own alphabet, left-padded to a fixed width. */
+    private checksumOf;
+    private static alphabetOf;
+    private randomBody;
+    /** Hand-written, not `Buffer`: this module ships to a browser, where `Buffer` does not exist. */
+    private static encode;
+}
+```
+
+Source: `packages/helpers/src/modules/uid/token.ts`
+
 ## `TOnVisit`
 
 *type*
@@ -2215,6 +2400,18 @@ export type TUidCaseForm = TConstValue<typeof UidCaseForms>;
 
 Source: `packages/helpers/src/modules/uid/common/constants.ts`
 
+## `TUidTokenEncoding`
+
+*type*
+
+A value of {@link UidTokenEncodings}.
+
+```ts
+export type TUidTokenEncoding = TConstValue<typeof UidTokenEncodings>;
+```
+
+Source: `packages/helpers/src/modules/uid/common/constants.ts`
+
 ## `TUrlScheme`
 
 *type*
@@ -2266,6 +2463,34 @@ export declare class UidCaseForms {
     static readonly MIXED = "mixed";
     static readonly SCHEME_SET: Set<string>;
     static isValid(input: string): input is TUidCaseForm;
+}
+```
+
+Source: `packages/helpers/src/modules/uid/common/constants.ts`
+
+## `UidTokenEncodings`
+
+*class*
+
+How a token is written as text.
+
+```ts
+export declare class UidTokenEncodings {
+    /**
+     * `0-9 A-Z a-z`, each character equally likely ({@link UidAlphabets.BASE62}). 32 bytes of entropy is
+     * 43 characters. The default: its alphabet holds no `_` or `-`, so a prefix delimiter and a URL both take it cleanly.
+     */
+    static readonly BASE62 = "base62";
+    /** Lowercase `0-9 a-f`. 32 bytes is 64 characters. Safe anywhere text is, including a case-insensitive column. */
+    static readonly HEX = "hex";
+    /**
+     * URL-safe base64 without padding: `A-Z a-z 0-9 - _`. 32 bytes is 43 characters. Kept for a token
+     * whose format already is base64url (the mail verification token). It holds `-` and `_`, the
+     * characters a delimiter is made of, so a prefix delimiter is refused unless it avoids both.
+     */
+    static readonly BASE64URL = "base64url";
+    static readonly SCHEME_SET: Set<string>;
+    static isValid(input: string): input is TUidTokenEncoding;
 }
 ```
 
@@ -2387,7 +2612,8 @@ Source: `packages/helpers/src/modules/uid/uuid/common/constants.ts`
 *class*
 
 One door for every UUID IGNIS mints: `v7()` for a database key, `v5()` for a deterministic key,
-`v4()` for a random token.
+`v4()` for a random public identifier. For a secret (a verification link, an API key, a session id)
+use `TokenUidHelper` instead: a UUID v4 carries 122 random bits and a fixed, recognisable shape.
 
 A facade over {@link UuidV4Generator}, {@link UuidV5Generator} and {@link UuidV7Generator} - importing one of those from
 `@venizia/ignis-helpers/uuid` leaves the other two out of a browser bundle.

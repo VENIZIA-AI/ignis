@@ -70,3 +70,41 @@ export const DEFAULT_UID_MAX_ATTEMPTS = 10;
 
 /** Separates the prefix from the body when both are enabled. Not in any {@link UidAlphabets} set, so an id splits back apart cleanly. */
 export const DEFAULT_UID_DELIMITER = '_';
+
+// -------------------------------------------------------------
+/** How a token is written as text. */
+export class UidTokenEncodings {
+  /**
+   * `0-9 A-Z a-z`, each character equally likely ({@link UidAlphabets.BASE62}). 32 bytes of entropy is
+   * 43 characters. The default: its alphabet holds no `_` or `-`, so a prefix delimiter and a URL both take it cleanly.
+   */
+  static readonly BASE62 = 'base62';
+
+  /** Lowercase `0-9 a-f`. 32 bytes is 64 characters. Safe anywhere text is, including a case-insensitive column. */
+  static readonly HEX = 'hex';
+
+  /**
+   * URL-safe base64 without padding: `A-Z a-z 0-9 - _`. 32 bytes is 43 characters. Kept for a token
+   * whose format already is base64url (the mail verification token). It holds `-` and `_`, the
+   * characters a delimiter is made of, so a prefix delimiter is refused unless it avoids both.
+   */
+  static readonly BASE64URL = 'base64url';
+
+  static readonly SCHEME_SET = new Set([this.BASE62, this.HEX, this.BASE64URL]);
+
+  static isValid(input: string): input is TUidTokenEncoding {
+    return this.SCHEME_SET.has(input);
+  }
+}
+
+/** A value of {@link UidTokenEncodings}. */
+export type TUidTokenEncoding = TConstValue<typeof UidTokenEncodings>;
+
+/** 32 bytes is 256 bits, the size of a SHA-256 output and of an AES-256 key: no brute force reaches it. */
+export const DEFAULT_TOKEN_BYTES = 32;
+
+/** 128 bits. Below this a token can be guessed offline, so the constructor refuses it. */
+export const MIN_TOKEN_BYTES = 16;
+
+/** Six digits is the length of a one-time code in an email or an app: 10^6 combinations, which is why it needs an expiry and an attempt limit. */
+export const DEFAULT_NUMERIC_LENGTH = 6;
