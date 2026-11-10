@@ -6,7 +6,7 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 export const StaticAssetErrors = {
   UPLOAD_NOT_AUTHORIZED: {
     message: {
-      text: 'Not allowed to request an upload policy',
+      text: 'Not allowed to request a signed upload',
       code: 'core.static_asset.upload_not_authorized',
     },
     statusCode: HTTP.ResultCodes.RS_4.Forbidden,
@@ -93,6 +93,24 @@ export const StaticAssetErrors = {
     message: {
       text: 'Invalid maxKeys - expected a positive integer',
       code: 'core.static_asset.max_keys_invalid',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.VALIDATION,
+  },
+  /** A presigned upload was announced under an extension the application does not accept. */
+  PRESIGN_EXTENSION_NOT_ALLOWED: {
+    message: {
+      text: 'Files ending in "%{extension}" cannot be uploaded',
+      code: 'core.static_asset.presign_extension_not_allowed',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.VALIDATION,
+  },
+  /** A presigned upload was announced with a size that is not a positive whole number of bytes. */
+  PRESIGN_FILE_SIZE_INVALID: {
+    message: {
+      text: 'The file size must be a positive whole number of bytes',
+      code: 'core.static_asset.presign_file_size_invalid',
     },
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,
     category: ErrorScopes.VALIDATION,

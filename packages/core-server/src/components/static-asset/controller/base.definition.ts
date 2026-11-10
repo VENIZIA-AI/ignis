@@ -2,7 +2,7 @@ import type { IAuthRouteConfig } from '@/base';
 import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { DEFAULT_MAX_UPLOAD_FILES, MetaLinkRecreateActions } from '../common/constants';
+import { MetaLinkRecreateActions } from '../common/constants';
 
 type TRouteRequest = NonNullable<IAuthRouteConfig['request']>;
 
@@ -71,8 +71,7 @@ export interface IAssetDefinitions {
   DELETE_BUCKET: IAuthRouteConfig;
   GET_OBJECT_BY_NAME: IAuthRouteConfig;
   DOWNLOAD_OBJECT_BY_NAME: IAuthRouteConfig;
-  UPLOAD_POLICY: IAuthRouteConfig;
-  UPLOAD_COMMIT: IAuthRouteConfig;
+  UPLOAD_PRESIGN: IAuthRouteConfig;
   UPLOAD: IAuthRouteConfig;
   DELETE_OBJECT: IAuthRouteConfig;
   LIST_OBJECTS: IAuthRouteConfig;
@@ -88,14 +87,8 @@ export class AssetDefinitionBuilder {
   static build(opts: {
     hasConfiguredBucket?: boolean;
     rawObjectPath?: boolean;
-    /** The most files one upload-policy request may name. */
-    maxPolicyFiles?: number;
   }): IAssetDefinitions {
-    const {
-      hasConfiguredBucket = false,
-      rawObjectPath = false,
-      maxPolicyFiles = DEFAULT_MAX_UPLOAD_FILES,
-    } = opts;
+    const { hasConfiguredBucket = false, rawObjectPath = false } = opts;
 
     const bucketPrefix = hasConfiguredBucket ? '' : '/buckets/{bucketName}';
 
@@ -180,9 +173,9 @@ export class AssetDefinitionBuilder {
         request: objectRequest(),
         responses: fileStreamResponses(),
       },
-      UPLOAD_POLICY: {
+      UPLOAD_PRESIGN: {
         method: 'post',
-        path: `${bucketPrefix}/upload-policy`,
+        path: `${bucketPrefix}/upload-presign`,
         request: {
           body: {
             content: {
@@ -193,10 +186,10 @@ export class AssetDefinitionBuilder {
                       z.object({
                         fileName: z.string().min(1),
                         contentType: z.string().optional(),
-                        size: z.number().int().nonnegative().optional(),
+                        size: z.number(),
                       }),
                     )
-                    .max(maxPolicyFiles),
+                    .min(1),
                 }),
               },
             },
@@ -205,40 +198,13 @@ export class AssetDefinitionBuilder {
         responses: OpenApiResponses.jsonResponse({
           schema: z.array(
             z.object({
-              postURL: z.string(),
-              formData: z.record(z.string(), z.string()),
-              objectName: z.string(),
-              commitToken: z.string(),
-              expiresAt: z.string(),
+              preSignUrl: z.string(),
+              fileKeyToken: z.string(),
+              key: z.string(),
             }),
           ),
-          description: 'One signed POST policy per file, plus the token its commit is claimed with',
-        }),
-      },
-      UPLOAD_COMMIT: {
-        method: 'post',
-        path: `${bucketPrefix}/upload-commit`,
-        request: {
-          body: {
-            content: {
-              'application/json': {
-                // The labels sit beside the token, not inside it: the token is an HMAC over
-                // { bucket, key, expiresAt } and deliberately carries no business fields.
-                schema: z.object({ commitToken: z.string().min(1), ...uploadLabels() }),
-              },
-            },
-          },
-        },
-        responses: OpenApiResponses.jsonResponse({
-          schema: z.object({
-            bucket: z.object({ name: z.string() }),
-            object: z.object({ key: z.string() }),
-            link: z.string(),
-            metaLink: z
-              .union([z.object({ data: z.any() }), z.object({ error: z.string() })])
-              .optional(),
-          }),
-          description: 'The object at its final key, copied out of the pending prefix',
+          description:
+            'One signed PUT URL per file, plus the token that names the upload. The client PUTs the bytes to the URL with the signed headers',
         }),
       },
       UPLOAD: {

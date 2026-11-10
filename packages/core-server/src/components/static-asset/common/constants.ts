@@ -62,8 +62,20 @@ export class MetaLinkRecreateActions {
 /** One of the `MetaLinkRecreateActions` values. */
 export type TMetaLinkRecreateAction = TConstValue<typeof MetaLinkRecreateActions>;
 
-/** Where a signed policy may write. The final key is never inside it, so content cannot be replaced after the commit. */
-export const DEFAULT_PENDING_PREFIX = 'pending/';
+/** The failures of the presigned-URL proxy itself that `proxy.errorResponse` is offered. */
+export class AssetProxyFailures {
+  static readonly PATH_REFUSED = 'PATH_REFUSED';
+  static readonly UPSTREAM_FAILED = 'UPSTREAM_FAILED';
+
+  static readonly SCHEME_SET = new Set([this.PATH_REFUSED, this.UPSTREAM_FAILED]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+/** One of the `AssetProxyFailures` values. */
+export type TAssetProxyFailure = TConstValue<typeof AssetProxyFailures>;
 
 /** The most file parts one upload request may carry unless `parseMultipartBody.maxFiles` says otherwise. */
 export const DEFAULT_MAX_UPLOAD_FILES = 20;

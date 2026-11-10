@@ -4,3 +4,5 @@ export * from './controller';
 export * from './models';
 export * from './repositories';
 export * from './ingest';
+export * from './proxy';
+export * from './service';

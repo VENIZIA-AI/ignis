@@ -1,5 +1,5 @@
+import type { z } from '@hono/zod-openapi';
 import type { BaseRestController, IAuthRouteConfig, TRouteContext } from '@/base';
-import type { IDuration } from '@venizia/ignis-helpers/common';
 import type {
   BaseRelationalEntity,
   DefaultCRUDRepository,
@@ -10,7 +10,6 @@ import type {
   IBucketRef,
   IFileStat,
   IObjectLocation,
-  IObjectRef,
   IStorageHelper,
   IUploadResult,
   TUploadNaming,
@@ -19,6 +18,13 @@ import type { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 import type { AnyType, TValueOrAsyncResolver, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { TMultipartStorage } from '@venizia/ignis-helpers';
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../models';
+import type { IAssetProxyOptions } from '../proxy/proxy';
+import type {
+  AssetPresignService,
+  IAssetPresignRequest,
+  IAssetPresignResult,
+} from '../service/presign';
+import type { ICommitTokenPayload } from './commit-token';
 import type { StaticAssetStorageTypes } from './constants';
 
 /** Per-controller upload tuning: multipart parsing, name and link normalization, folder depth and size ceiling. */
@@ -27,7 +33,7 @@ export type TStaticAssetExtraOptions = {
     storage?: TMultipartStorage;
     uploadDir?: string;
     /**
-     * The most file parts one upload request may carry; more is refused with 413 before anything is written. The upload-policy request is bounded by the same number (more is a 422).
+     * The most file parts one upload request may carry; more is refused with 413 before anything is written.
      *
      * @default DEFAULT_MAX_UPLOAD_FILES (20)
      */
@@ -82,42 +88,78 @@ export type TUploadQuery = {
 /** Query of the list objects route. Every value arrives as a string. */
 export type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string };
 
-/** Enables the signed-policy upload flow, where the client posts bytes straight to the storage and IGNIS only signs the permission and verifies the commit. */
-export type TDirectUploadOptions = {
-  /** Who may ask for a policy. REQUIRED, not defaulted: this route hands out a write credential, and there is no safe default for that. */
-  authorize: (opts: { context: TRouteContext }) => ValueOrPromise<boolean>;
-
-  /** Signs the commit token. Keep it out of the repository and out of the client. */
-  secretKey: string;
-
-  /** The ceiling the policy carries as `content-length-range`. A signed PUT cannot express this at all, which is why this is a POST policy. */
-  maxBytes: number;
-
-  /**
-   * Where a policy may write. The final key is NEVER in a policy, so content cannot be replaced after the commit.
-   *
-   * @default 'pending/'
-   */
-  pendingPrefix?: string;
-
-  /**
-   * How long a policy and its commit token stay good.
-   *
-   * @default StoragePresignDefaults.POST_EXPIRES_IN
-   */
-  expiresIn?: IDuration;
-
-  /** Runs BEFORE the copy to the final key, so a hook that throws leaves the object under the pending prefix for a lifecycle rule to collect, rather than stranding it at the final key. */
-  onCommit?: (opts: {
-    bucket: IBucketRef;
-    pendingObject: IObjectRef;
-    object: IObjectRef;
-  }) => ValueOrPromise<void>;
+/** Body of the presign route when the application configures none: the files the client intends to upload. */
+export type TPresignRequestBody = {
+  files: Array<{ fileName: string; contentType?: string; size: number }>;
 };
 
-/** Body of the upload policy route: the files the client intends to upload. */
-export type TUploadPolicyRequest = {
-  files: Array<{ fileName: string; contentType?: string; size?: number }>;
+/** What the presign route needs of a presign service: the one method it calls. */
+export type TAssetPresigner<TPayload extends object, TContext> = Pick<
+  AssetPresignService<TPayload, TContext>,
+  'presign'
+>;
+
+/**
+ * Enables the presigned-PUT upload flow: the client asks this route for one signed URL per file, then PUTs the bytes straight to the
+ * storage. The object is written to its FINAL key with a pending tag, and the application keeps it by settling it
+ * (`AssetSettleService`) once the record that owns it is saved; an object never settled is left to the storage's lifecycle rule.
+ *
+ * The route is a thin layer over `AssetPresignService`: authorize, map the request into files and a context, presign, map the answer.
+ * Everything else (extensions, size, count, key, token, signed headers, URL rewrite, errors) is configured on the presign service.
+ *
+ * `TCaller` is what `authorize` answers: the caller, as the application knows it (principal, roles, tenants). `TContext` is what the
+ * presign service is given (the folder's tenant, what the upload is for); it is the caller itself unless `request.toInput` builds another.
+ * `TBody` is the request body.
+ */
+export type TDirectUploadOptions<
+  TCaller extends object = object,
+  TPayload extends object = ICommitTokenPayload,
+  TBody = TPresignRequestBody,
+  TContext = TCaller,
+> = {
+  /**
+   * Who may ask for a signed URL, and as whom. REQUIRED, not defaulted: this route hands out a write credential, and there is no safe
+   * default for that. Answer the caller context (an object, `{}` when there is nothing to say) to allow, or a falsy value to refuse
+   * with a 403; the storage is not touched on a refusal. The answer reaches `request.toInput` and `response.map`, and without a
+   * `request` it is the context the presign service gets.
+   */
+  authorize: (opts: {
+    context: TRouteContext;
+  }) => ValueOrPromise<TCaller | false | null | undefined>;
+
+  /**
+   * Prepares the uploads: an `AssetPresignService` built with the token, the extensions, the size ceiling and the key rule of the
+   * application, or any object with its `presign` method (to answer the service's refusals in the application's own codes).
+   */
+  presign: TAssetPresigner<TPayload, TContext>;
+
+  /**
+   * How the request body becomes the files to sign and the context the presign service gets (and the user a token is issued for).
+   * It may ask the application something (read a row, check a tenant): throw the application's own error to refuse.
+   *
+   * @default the body `{ files: [{ fileName, contentType?, size }] }`, a `contentType` of `application/octet-stream` when absent, and the
+   * caller from `authorize` unchanged as the presign context (so `TContext` is `TCaller`)
+   */
+  request?: {
+    /** The body schema, validated before `toInput` runs and published in the OpenAPI document. */
+    schema: z.ZodType<TBody>;
+    toInput: (opts: {
+      body: TBody;
+      /** What `authorize` answered. */
+      context: TCaller;
+    }) => ValueOrPromise<IAssetPresignRequest<TContext>>;
+  };
+
+  /**
+   * How the results become the response body.
+   *
+   * @default the results as the presign service answers them: `[{ preSignUrl, fileKeyToken, key }]`
+   */
+  response?: {
+    /** The response schema, published in the OpenAPI document. */
+    schema: z.ZodType;
+    map: (opts: { results: IAssetPresignResult[]; context: TCaller }) => unknown;
+  };
 };
 
 /** The MetaLink table belongs to the application. `Schema` defaults to the table IGNIS ships, and widens to any table whose row carries the same fields. */
@@ -127,7 +169,7 @@ export type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLink
   createMetaLink?: (opts: {
     uploadResult: IUploadResult;
     fileStat: IFileStat;
-    /** The caller's labels. Named for where they used to travel - they arrive in the request BODY now, as form fields on an upload and beside the commit token on a direct one. */
+    /** The caller's labels. Named for where they used to travel - they arrive in the request BODY now, as form fields on an upload. */
     query: TUploadQuery;
   }) => ValueOrPromise<{ count: number; data: TTableObject<Schema> }>;
 };
@@ -157,8 +199,7 @@ export type TStaticAssetRoutes = {
   getObjectByName?: TStaticAssetRouteConfig;
   downloadObjectByName?: TStaticAssetRouteConfig;
 
-  uploadPolicy?: TStaticAssetRouteConfig;
-  uploadCommit?: TStaticAssetRouteConfig;
+  uploadPresign?: TStaticAssetRouteConfig;
 
   recreateMetaLink?: TStaticAssetRouteConfig;
 };
@@ -202,8 +243,11 @@ export type TStaticAssetsComponentOptions<
 
       routes?: TStaticAssetRoutes;
 
-      /** Direct upload: the browser posts the bytes to the storage and IGNIS only signs the permission. Absent leaves both routes unregistered. Requires `bucket` - a policy names one bucket, and a bucket in the URL is a bucket the caller chooses. */
-      directUpload?: TDirectUploadOptions;
+      /** Presigned-PUT upload: the browser PUTs the bytes straight to the storage and this route only signs the permission. Absent leaves the route unregistered. */
+      directUpload?: TDirectUploadOptions<AnyType, AnyType, AnyType, AnyType>;
+
+      /** A proxy for presigned storage URLs, switched on by `proxy.enable`. Absent registers no proxy route. */
+      proxy?: IAssetProxyOptions;
     };
     extra?: TStaticAssetExtraOptions;
 

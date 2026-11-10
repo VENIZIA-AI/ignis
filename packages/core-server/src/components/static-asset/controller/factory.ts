@@ -9,13 +9,13 @@ import {
   type IObjectRef,
   type IStorageHelper,
   type IUploadFile,
-  type IPostPolicy,
   type IUploadResult,
   type TUploadNaming,
 } from '@venizia/ignis-helpers';
 import { HTTP, ResolverUtility, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { AnyType, TValueOrAsyncResolver } from '@venizia/ignis-helpers/common';
-import { BaseHelper, getError, UuidHelper } from '@venizia/ignis-helpers/core';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { type Env } from 'hono';
 import { readFileSync, rmSync } from 'node:fs';
 import {
@@ -25,10 +25,9 @@ import {
   type TDefineExtraRoutes,
   type TListQuery,
   type TMetaLinkConfig,
-  DEFAULT_PENDING_PREFIX,
   META_LINK_CREATE_FAILED,
   type TObjectParams,
-  type TUploadPolicyRequest,
+  type TPresignRequestBody,
   type TObjectNameResolver,
   type TStaticAssetExtraOptions,
   type TStaticAssetsComponentOptions,
@@ -36,7 +35,9 @@ import {
   type TUploadQuery,
   WHITELIST_HEADERS,
 } from '../common';
-import { AssetCommitToken, DEFAULT_MAX_UPLOAD_FILES, MetaLinkRecreateActions } from '../common';
+import { DEFAULT_MAX_UPLOAD_FILES, MetaLinkRecreateActions } from '../common';
+import { AssetPresignProxy } from '../proxy/proxy';
+import type { IAssetPresignRequest } from '../service/presign';
 import { AssetDefinitionBuilder } from './base.definition';
 import { AssetKeyScope } from './key-scope';
 import { AssetMetaLink } from './meta-link';
@@ -94,10 +95,7 @@ const refuseLabelsInQuery = (opts: {
   }
 };
 
-/** The commit body carries four of the five: the object key - and so `folderPath` - was fixed when the policy was issued. */
-const COMMIT_LABEL_NAMES = UPLOAD_LABEL_NAMES.filter((name) => name !== 'folderPath');
-
-// A multipart form hands strings; a JSON commit body may hand `sequence` as a number.
+// A multipart form hands strings; a JSON body may hand `sequence` as a number.
 const readUploadLabels = (opts: {
   fields: Partial<Record<(typeof UPLOAD_LABEL_NAMES)[number], string | number>>;
 }): TUploadQuery => {
@@ -282,6 +280,18 @@ export class AssetControllerFactory extends BaseHelper {
       });
     }
 
+    // The presigned key is decided by `directUpload.presign` (its `resolvePath`), never by this controller; a scope that
+    // silently did not apply to it would be a tenant boundary that is not one.
+    if (controller.keyPrefix !== undefined && directUpload) {
+      throw getError({
+        message: `[${name}] keyPrefix does not apply to directUpload | the key of a presigned upload comes from directUpload.presign (resolvePath)`,
+      });
+    }
+
+    if (controller.proxy?.enable) {
+      AssetPresignProxy.assertOptions({ name, proxy: controller.proxy, bucket });
+    }
+
     const scope =
       controller.keyPrefix === undefined
         ? undefined
@@ -292,11 +302,7 @@ export class AssetControllerFactory extends BaseHelper {
     // The component's own name under a scope: the original name must stay one segment, as without one.
     const isScopedDefaultNaming =
       keyPrefix !== undefined && !resolveObjectName && !options?.normalizeNameFn;
-    const definitions = AssetDefinitionBuilder.build({
-      hasConfiguredBucket,
-      rawObjectPath,
-      maxPolicyFiles: options?.parseMultipartBody?.maxFiles ?? DEFAULT_MAX_UPLOAD_FILES,
-    });
+    const definitions = AssetDefinitionBuilder.build({ hasConfiguredBucket, rawObjectPath });
 
     // The mount path may be declared with or without a leading slash; a link must carry exactly one.
     const normalizedBasePath = basePath.startsWith('/') ? basePath : `/${basePath}`;
@@ -939,186 +945,63 @@ export class AssetControllerFactory extends BaseHelper {
         if (directUpload) {
           if (!hasConfiguredBucket) {
             throw getError({
-              message: `[${name}] directUpload needs controller.bucket | a policy names one bucket, and a bucket in the URL is a bucket the caller chooses`,
+              message: `[${name}] directUpload needs controller.bucket | a presign route names one bucket, and a bucket in the URL is a bucket the caller chooses`,
             });
           }
 
-          const pendingPrefix = directUpload.pendingPrefix ?? DEFAULT_PENDING_PREFIX;
-          // The scope rides inside the pending key, so the commit, which strips `pendingPrefix`, lands inside it.
-          const policyKeyPrefix = `${pendingPrefix}${keyPrefix ?? ''}`;
+          const uploadPresignRoute = AssetRouteOptions.readOverride({
+            route: routes?.uploadPresign,
+          });
 
-          const uploadPolicyRoute = AssetRouteOptions.readOverride({ route: routes?.uploadPolicy });
+          if (uploadPresignRoute.isEnabled) {
+            const { presign, request, response } = directUpload;
+            const baseConfigs = definitions.UPLOAD_PRESIGN;
 
-          if (uploadPolicyRoute.isEnabled) {
-            this.bindRoute({
-              configs: { ...definitions.UPLOAD_POLICY, ...uploadPolicyRoute.override },
-            }).to({
+            // The published schemas follow the application's own: a body the route validates but the document
+            // does not show is a contract nobody can read.
+            const configs = {
+              ...baseConfigs,
+              request: request
+                ? { body: { content: { 'application/json': { schema: request.schema } } } }
+                : baseConfigs.request,
+              responses: response
+                ? OpenApiResponses.jsonResponse({
+                    schema: response.schema,
+                    description: 'One signed PUT URL per file, mapped by the application',
+                  })
+                : baseConfigs.responses,
+              ...uploadPresignRoute.override,
+            };
+
+            this.bindRoute({ configs }).to({
               handler: async (ctx) => {
-                const result = await directUpload.authorize({ context: ctx });
+                const context = await directUpload.authorize({ context: ctx });
 
-                if (!result) {
+                if (!context) {
                   throw getError({ error: StaticAssetErrors.UPLOAD_NOT_AUTHORIZED });
                 }
 
-                const { files } = ctx.req.valid<TUploadPolicyRequest>('json');
-                const bucketName = await resolveBucket({ configured: bucket });
+                const body = ctx.req.valid<TPresignRequestBody>('json');
+                let input: IAssetPresignRequest<AnyType>;
 
-                const policies: Array<IPostPolicy & { objectName: string; commitToken: string }> =
-                  [];
-
-                for (const file of files) {
-                  if (file.size !== undefined && file.size > directUpload.maxBytes) {
-                    throw getError({
-                      error: StaticAssetErrors.UPLOAD_TOO_LARGE,
-                      message: `File '${file.fileName}' is ${file.size} bytes, over the ${directUpload.maxBytes} the policy allows`,
-                    });
-                  }
-
-                  // Generated, never taken from the caller: a key the caller picks is a key the caller
-                  // can collide with, and the pending object is the one thing a policy authorizes.
-                  const objectName = `${policyKeyPrefix}${UuidHelper.getInstance().v4()}/${file.fileName}`;
-                  const policy = await helper.presignPost({
-                    bucket: { name: bucketName },
-                    keyPrefix: policyKeyPrefix,
-                    maxBytes: directUpload.maxBytes,
-                    contentType: file.contentType,
-                    expiresIn: directUpload.expiresIn,
-                  });
-
-                  policies.push({
-                    ...policy,
-                    objectName,
-                    commitToken: AssetCommitToken.build({
-                      payload: {
-                        bucket: bucketName,
-                        key: objectName,
-                        expiresAt: new Date(policy.expiresAt).getTime(),
-                      },
-                      secretKey: directUpload.secretKey,
-                    }),
-                  });
+                if (request) {
+                  const built = await request.toInput({ body, context });
+                  input = built;
+                } else {
+                  input = {
+                    files: body.files.map((file) => ({
+                      fileName: file.fileName,
+                      contentType: file.contentType ?? HTTP.HeaderValues.APPLICATION_OCTET_STREAM,
+                      size: file.size,
+                    })),
+                    context,
+                  };
                 }
 
-                return ctx.json(policies, HTTP.ResultCodes.RS_2.Ok);
-              },
-            });
-          }
-
-          const uploadCommitRoute = AssetRouteOptions.readOverride({ route: routes?.uploadCommit });
-
-          if (uploadCommitRoute.isEnabled) {
-            this.bindRoute({
-              configs: { ...definitions.UPLOAD_COMMIT, ...uploadCommitRoute.override },
-            }).to({
-              handler: async (ctx) => {
-                const commitQuery = ctx.req.query();
-                refuseLabelsInQuery({ query: commitQuery, names: COMMIT_LABEL_NAMES });
-                refuseLabelsInQuery({
-                  query: commitQuery,
-                  names: ['folderPath'],
-                  reason:
-                    'folderPath was decided when the upload policy was issued; the commit route cannot move the object',
-                });
-
-                const { commitToken, ...labels } = ctx.req.valid<
-                  { commitToken: string } & TUploadQuery
-                >('json');
-
-                // Verified BEFORE any storage call. That is what keeps this route from being a name
-                // prober: a forged token fails without a round trip, so timing says nothing.
-                const payload = AssetCommitToken.read({
-                  token: commitToken,
-                  secretKey: directUpload.secretKey,
-                });
-
-                // Labels, not authorization - the token deliberately carries no business fields, so
-                // they travel beside it rather than inside it.
-                const query = readUploadLabels({ fields: labels });
-
-                const bucketRef = { name: payload.bucket };
-                const pendingObject = { key: payload.key };
-                const object = { key: payload.key.slice(pendingPrefix.length) };
-
-                // A token another controller signed with the same secret must not land outside this scope.
-                AssetKeyScope.assertInScope({ key: object.key, keyPrefix });
-
-                // Before the copy, so a hook that throws leaves the object under the pending prefix
-                // for a lifecycle rule, rather than stranding it at the final key.
-                await directUpload.onCommit?.({ bucket: bucketRef, pendingObject, object });
-
-                await helper.copyObject({
-                  bucket: bucketRef,
-                  source: pendingObject,
-                  destination: object,
-                });
-
-                // The copy IS the commit; removing the temporary object is cleanup. A failure here
-                // leaves one object for the lifecycle rule, and failing the request would tell the
-                // caller their upload did not work when it did.
-                try {
-                  await helper.removeObject({ bucket: bucketRef, object: pendingObject });
-                } catch (error) {
-                  this.logger
-                    .for('UPLOAD_COMMIT')
-                    .warn(
-                      'Committed, but the pending object remains | key: %s | error: %s',
-                      pendingObject.key,
-                      error,
-                    );
-                }
-
-                const link = AssetControllerFactory.buildObjectLink({
-                  basePath: normalizedBasePath,
-                  bucket: bucketRef,
-                  object,
-                  hasConfiguredBucket,
-                  rawObjectPath,
-                });
-
-                // The two paths have to agree: without this a client reading `metaLink` off the
-                // response renders an empty state with no error - the failure nobody reports.
-                let metaLinkResult: IUploadResult['metaLink'];
-
-                if (useMetaLink && metaLink) {
-                  try {
-                    const fileStat = await helper.getStat({ bucket: bucketRef, object });
-                    const data = await AssetMetaLink.createRow({
-                      metaLink,
-                      helper,
-                      storage,
-                      uploadResult: AssetMetaLink.buildStoredUploadResult({
-                        helper,
-                        bucket: bucketRef,
-                        object,
-                        link,
-                        fileStat,
-                      }),
-                      fileStat,
-                      query,
-                    });
-
-                    metaLinkResult = { data };
-                  } catch (error) {
-                    // The object IS committed by now. A 500 would send the caller back with a token
-                    // whose source no longer exists, so this rides the body as a code, like UPLOAD.
-                    this.logger
-                      .for('UPLOAD_COMMIT')
-                      .error(
-                        'Failed to create MetaLink | objectName: %s | Error: %s',
-                        object.key,
-                        error,
-                      );
-                    metaLinkResult = { error: META_LINK_CREATE_FAILED };
-                  }
-                }
+                const results = await presign.presign(input);
 
                 return ctx.json(
-                  {
-                    bucket: bucketRef,
-                    object,
-                    link,
-                    ...(metaLinkResult === undefined ? {} : { metaLink: metaLinkResult }),
-                  },
+                  response ? response.map({ results, context }) : results,
                   HTTP.ResultCodes.RS_2.Ok,
                 );
               },
@@ -1232,6 +1115,10 @@ export class AssetControllerFactory extends BaseHelper {
               },
             });
           }
+        }
+
+        if (controller.proxy?.enable) {
+          AssetPresignProxy.register({ controller: this, proxy: controller.proxy, bucket });
         }
 
         // Last, so a built-in route always wins a path collision with an application's own.
