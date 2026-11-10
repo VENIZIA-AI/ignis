@@ -281,7 +281,7 @@ export declare class AssetUploadCommitService<Schema extends TMetaLinkCompatible
 }
 ```
 
-Source: `packages/core-server/src/components/static-asset/services/upload-commit.service.ts`
+Source: `packages/core-server/src/components/static-asset/services/commitment.service.ts`
 
 ## `AssetUploadPolicyService`
 
@@ -305,7 +305,7 @@ export declare class AssetUploadPolicyService extends BaseService {
 }
 ```
 
-Source: `packages/core-server/src/components/static-asset/services/upload-policy.service.ts`
+Source: `packages/core-server/src/components/static-asset/services/policy.service.ts`
 
 ## `BaseMetaLinkModel`
 
@@ -937,7 +937,7 @@ export interface IAssetCommitResult {
 }
 ```
 
-Source: `packages/core-server/src/components/static-asset/services/upload-commit.service.ts`
+Source: `packages/core-server/src/components/static-asset/services/commitment.service.ts`
 
 ## `IAssetControllerOptions`
 
@@ -991,7 +991,7 @@ export interface IAssetUploadCommitServiceOptions<Schema extends TMetaLinkCompat
 }
 ```
 
-Source: `packages/core-server/src/components/static-asset/services/upload-commit.service.ts`
+Source: `packages/core-server/src/components/static-asset/services/commitment.service.ts`
 
 ## `IAssetUploadPolicyServiceOptions`
 
@@ -1012,7 +1012,7 @@ export interface IAssetUploadPolicyServiceOptions {
 }
 ```
 
-Source: `packages/core-server/src/components/static-asset/services/upload-policy.service.ts`
+Source: `packages/core-server/src/components/static-asset/services/policy.service.ts`
 
 ## `ICommitTokenPayload`
 
@@ -1328,7 +1328,7 @@ export type TAssetUploadPolicy = IPostPolicy & {
 };
 ```
 
-Source: `packages/core-server/src/components/static-asset/services/upload-policy.service.ts`
+Source: `packages/core-server/src/components/static-asset/services/policy.service.ts`
 
 ## `TBucketParams`
 

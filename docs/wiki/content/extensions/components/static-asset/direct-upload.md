@@ -133,7 +133,7 @@ The two routes are thin wrappers over two services. The component binds one of e
 
 `name` is the entry's key in the options object (`assets` above), not the controller name.
 
-The common case: the client sends `commitToken` along with the record, and the service commits while it saves.
+The common case: the client sends `commitToken` along with the record, and the service commits while it saves. The example injects the storage helper to clean up on failure; `'helpers.AssetStorage'` is a placeholder for the key your own application bound that helper under, not one IGNIS provides.
 
 ```ts
 import { BaseService, inject } from '@venizia/ignis';
@@ -146,7 +146,7 @@ export class ProductService extends BaseService {
   constructor(
     @inject({ key: StaticAssetComponentBindingKeys.commitService({ name: 'assets' }) })
     private assetCommit: AssetUploadCommitService,
-    // The storage helper the entry was configured with, under whatever key you bound it.
+    // Your own binding of the helper the entry was configured with.
     @inject({ key: 'helpers.AssetStorage' }) private storage: IStorageHelper,
     @inject({ key: 'repositories.ProductRepository' }) private products: ProductRepository,
   ) {
@@ -178,7 +178,7 @@ export class ProductService extends BaseService {
 > [!WARNING]
 > **`issuePolicies` does not call `directUpload.authorize`.** That check belongs to the route; code that calls the service decides for itself who may ask for a policy. `commit` still verifies the token and the `keyPrefix` scope, so a forged, expired or out-of-scope token is refused before any storage call.
 
-**Order matters.** `commit` is the point of no return: the object leaves `pending/` for its final key. If saving your record fails afterwards, nothing removes that object for you, so remove it in the failure path as above. The cleanup is best effort: if it fails too, one object stays at the final key until you collect it. Committing inside the same unit of work as the save (a transaction around both) keeps the failure path in one place.
+**Order matters.** `commit` is the point of no return: the object leaves `pending/` for its final key. If saving your record fails afterwards, nothing removes that object for you, so remove it in the failure path as above. The cleanup is best effort: if it fails too, one object stays at the final key until you collect it.
 
 If the MetaLink row cannot be written, `commit` still resolves, with `metaLink: { error }`: the object is committed by then, and a throw would send the caller back with a token whose source no longer exists.
 
@@ -252,6 +252,6 @@ commit token carrying business fields.
 **Files:**
 
 - [`packages/helpers/src/modules/storage/bun-s3/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/utility.ts) - `S3SignatureUtility.buildPostPolicy`
-- [`packages/core-server/src/components/static-asset/services/upload-policy.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/services/upload-policy.service.ts) - `AssetUploadPolicyService.issuePolicies`
-- [`packages/core-server/src/components/static-asset/services/upload-commit.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/services/upload-commit.service.ts) - `AssetUploadCommitService.commit`
+- [`packages/core-server/src/components/static-asset/services/policy.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/services/policy.service.ts) - `AssetUploadPolicyService.issuePolicies`
+- [`packages/core-server/src/components/static-asset/services/commitment.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/services/commitment.service.ts) - `AssetUploadCommitService.commit`
 - [`packages/core-server/src/components/static-asset/common/commit-token.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/commit-token.ts) - `AssetCommitToken.build`, `AssetCommitToken.read`
