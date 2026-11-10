@@ -154,6 +154,7 @@ extra: {
 
 - [Usage & Examples](./usage) - task-oriented walkthroughs for every endpoint and MetaLink setup
 - [Full Reference](./api) - controller factory, `IStorageHelper` interface, MetaLink schema, internals
+- [Presigned Uploads, File Tokens and the Proxy](./presign-and-proxy) - file tokens, presigned PUT uploads, settling, binding without a route and a proxy for presigned URLs
 - [Error Reference](./errors) - name validation rules and troubleshooting
 - [Storage Helpers](/extensions/helpers/storage/) - `DiskHelper`, `BunS3Helper`, `BaseStorageHelper` reference
 - [Components Overview](/guides/core-concepts/components) - component system basics
@@ -164,5 +165,7 @@ extra: {
 - [`packages/core-server/src/components/static-asset/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/types.ts) - `TStaticAssetsComponentOptions`, `TStaticAssetExtraOptions`, `TMetaLinkConfig`
 - [`packages/core-server/src/components/static-asset/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/constants.ts) - `StaticAssetStorageTypes`
 - [`packages/core-server/src/components/static-asset/controller/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/factory.ts) - `AssetControllerFactory`
+- [`packages/core-server/src/components/static-asset/service/presign.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/service/presign.ts) - `AssetPresignService`, `AssetSettleService`, `AssetServicesComponent`
+- [`packages/core-server/src/components/static-asset/proxy/proxy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/proxy/proxy.ts) - `AssetPresignProxy`
 - [`packages/core-server/src/components/static-asset/models/base.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/models/base.model.ts) - `BaseMetaLinkModel`
 - [`packages/helpers/src/modules/storage/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/base.ts) - `BaseStorageHelper`, `IStorageHelper`

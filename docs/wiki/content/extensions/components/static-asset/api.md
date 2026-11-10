@@ -113,8 +113,7 @@ type TStaticAssetsComponentOptions<Schema extends TMetaLinkCompatibleSchema = TM
         deleteObject?: TStaticAssetRouteConfig;
         getObjectByName?: TStaticAssetRouteConfig;
         downloadObjectByName?: TStaticAssetRouteConfig;
-        uploadPolicy?: TStaticAssetRouteConfig;
-        uploadCommit?: TStaticAssetRouteConfig;
+        uploadPresign?: TStaticAssetRouteConfig;
         recreateMetaLink?: TStaticAssetRouteConfig;
       };
     };
@@ -171,8 +170,7 @@ Each key accepts a `TStaticAssetRouteConfig` - `Partial<Omit<IAuthRouteConfig, '
 | `getObjectByName` | `GET` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> | `enabled !== false` |
 | `downloadObjectByName` | `GET` | <code v-pre>/buckets/{bucketName}/download/{objectName}</code> | `enabled !== false` |
 | `deleteObject` | `DELETE` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> | `enabled !== false` |
-| `uploadPolicy` | `POST` | <code v-pre>/buckets/{bucketName}/upload-policy</code> | `controller.directUpload` set, `enabled !== false` |
-| `uploadCommit` | `POST` | <code v-pre>/buckets/{bucketName}/upload-commit</code> | `controller.directUpload` set, `enabled !== false` |
+| `uploadPresign` | `POST` | <code v-pre>/buckets/{bucketName}/upload-presign</code> | `controller.directUpload` set, `enabled !== false` |
 | `recreateMetaLink` | `PUT` | <code v-pre>/buckets/{bucketName}/meta-links/{objectName}</code> | `useMetaLink: true`, `enabled !== false` |
 
 `upload` and `listObjects` share one path and differ by method: `POST` writes, `GET` lists. Every route defaults to registered - set `enabled: false` to drop a built-in route entirely, the same switch name the CRUD controller factory uses.
@@ -184,7 +182,7 @@ routes: {
 }
 ```
 
-`uploadPolicy` and `uploadCommit` exist only when `controller.directUpload` is set - see [Direct upload](./direct-upload). `directUpload` without `controller.bucket` throws at registration: a policy names one bucket, and a bucket in the URL is a bucket the caller chooses.
+`uploadPresign` exists only when `controller.directUpload` is set - see [Direct upload](./direct-upload). `directUpload` without `controller.bucket` throws at registration: a presign names one bucket, and a bucket in the URL is a bucket the caller chooses. `directUpload` together with `controller.keyPrefix` also throws: the key of a presigned upload comes from the presign service, so the scope would not apply.
 
 ### URL shapes
 
@@ -220,9 +218,8 @@ controller throws at registration.
 | `getObjectByName`, `downloadObjectByName`, `deleteObject`, `recreateMetaLink` | `404 core.storage.object_not_found`, after the 400 name check, before any storage call - the code a real miss answers, so a caller learns nothing about a key it does not own |
 | `listObjects` | A caller `prefix` wider than the scope is narrowed to it; one disjoint from it returns `[]` without calling storage |
 | `upload` | The component's own default name is placed inside the prefix. A `resolveObjectName` or `extra.normalizeNameFn` key outside it is refused with `400 core.static_asset.object_key_out_of_scope` - never rewritten, because the application may have recorded that key elsewhere. With **neither** hook set (the component's own default naming), the original file name must still be one segment - a `/` in it is `400 [upload] Invalid original file name`, exactly as without a scope; set `resolveObjectName` or `extra.normalizeNameFn` to relax that |
-| `uploadPolicy` / `uploadCommit` | The pending key and the policy's `starts-with` condition become `pendingPrefix + keyPrefix`, so the committed key lands inside the scope. The commit also re-checks the scope, for a token another controller signed with the same secret |
 
-`maxFolderDepth` counts folders below the prefix: validation uses `maxFolderDepth + prefix depth`. Without that addition, a two-segment prefix plus a direct-upload key `<uuid>/<name>` would exceed the default depth of `2` and every read would answer `400`.
+`maxFolderDepth` counts folders below the prefix: validation uses `maxFolderDepth + prefix depth`. Without that addition, a two-segment prefix plus a generated key `<uuid>/<name>` would exceed the default depth of `2` and every read would answer `400`.
 
 Not scoped: `defineRoutesBefore` and `defineExtraRoutes`. The four bucket-management routes are not
 registered at all once `controller.bucket` is set, which `keyPrefix` now requires - see the note
@@ -575,7 +572,7 @@ interface IAssetControllerOptions {
 2. Renames it via `Object.defineProperty(GeneratedStaticAssetController, 'name', { value: name, configurable: true })` so logs and DI bindings show your configured `controller.name`, not a generic factory name.
 3. Calls `defineRoutesBefore` first, so a literal path of yours can win over the catch-all `rawObjectPath` registers.
 4. Binds every route in `binding()` with `this.bindRoute({ configs }).to({ handler })`, spread-merging each base definition with its `routes?.<key>` override.
-5. Registers `recreateMetaLink` only when `useMetaLink && metaLink` are both set, `uploadPolicy`/`uploadCommit` only when `controller.directUpload` is set, and the four bucket-management routes only when `controller.bucket` is unset - each one gated a second time by its own `routes?.<key>.enabled !== false`.
+5. Registers `recreateMetaLink` only when `useMetaLink && metaLink` are both set, `uploadPresign` only when `controller.directUpload` is set, and the four bucket-management routes only when `controller.bucket` is unset - each one gated a second time by its own `routes?.<key>.enabled !== false`.
 6. Calls `defineExtraRoutes` last, after every built-in route.
 7. `StaticAssetComponent.binding()` registers the resulting class with `this.application.controller(...)`.
 
@@ -672,8 +669,7 @@ The default shape. A configured `controller.bucket` drops the first four rows an
 | `GET` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> | Streams the file inline when the type is renderable, otherwise as an attachment. `objectName` is a single percent-encoded segment. Honours one `Range` header |
 | `GET` | <code v-pre>/buckets/{bucketName}/download/{objectName}</code> | Streams the file with `Content-Disposition: attachment`, always |
 | `DELETE` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> | Returns <code v-pre>{ success: boolean }</code>. Idempotent: a key that was never there still answers `200` |
-| `POST` | <code v-pre>/buckets/{bucketName}/upload-policy</code> | Only registered when `controller.directUpload` is set. Returns one signed POST policy per requested file - see [Direct upload](./direct-upload) |
-| `POST` | <code v-pre>/buckets/{bucketName}/upload-commit</code> | Only registered when `controller.directUpload` is set. Returns the object at its final key, and its MetaLink row when `useMetaLink: true` |
+| `POST` | <code v-pre>/buckets/{bucketName}/upload-presign</code> | Only registered when `controller.directUpload` is set. Returns one signed PUT URL, file token and key per requested file - see [Direct upload](./direct-upload) |
 | `PUT` | <code v-pre>/buckets/{bucketName}/meta-links/{objectName}</code> | Only registered when `useMetaLink: true`. Returns <code v-pre>{ success, action: 'refreshed' \| 'created', count, metaLink, metaLinks }</code> - see [MetaLink lifecycle](#metalink-lifecycle) |
 
 Upload and list share <code v-pre>/buckets/{bucketName}/objects</code> and differ by method. Every row registers only when its route's `enabled` is not `false` - see [Per-route overrides](#per-route-overrides).
@@ -896,7 +892,7 @@ Both classes come from the separate `@venizia/ignis-connectors` package, importe
 - **On upload:**
   - Creates one MetaLink row per uploaded file, after fetching fresh stats via `helper.getStat()`.
   - Uses `metaLink.createMetaLink()` when provided, otherwise a default insert that covers every standard field.
-  - `principalType`, `principalId`, `variant` and `sequence` come from the upload's **form fields** - an identifier in a URL lands in every access log on the way. A label in the query string is refused with `400 core.static_asset.labels_in_query`, before the body is read. `upload-commit` takes four of them in its JSON body, with the same refusal; `folderPath` is refused there with its own reason - the object key was fixed when the policy was issued. `PUT .../meta-links/{objectName}` takes no labels at all and refuses any.
+  - `principalType`, `principalId`, `variant` and `sequence` come from the upload's **form fields** - an identifier in a URL lands in every access log on the way. A label in the query string is refused with `400 core.static_asset.labels_in_query`, before the body is read.
   - If the insert throws, the upload still succeeds. The file's response entry gets <code v-pre>metaLink: { error: 'META_LINK_CREATE_FAILED' }</code> - a fixed code, never the driver's text - and the real error is logged in full. This handler returns `200`, so it bypasses the error middleware that strips `detail`/`table`/`constraint`; returning a code is what keeps raw constraint names off the wire.
 - **On delete:**
   - The storage delete happens first and is awaited.
@@ -909,7 +905,7 @@ Both classes come from the separate `@venizia/ignis-connectors` package, importe
   |------|-----------|--------------|
   | Refresh, `metaLink.createMetaLink` configured | One `repository.updateBy({ data: { mimetype, size, etag, isSynced: true }, where: { bucketName, objectName } })` - `link` and `metadata` are left alone, because the hook owns them | Every row for that `(bucketName, objectName)` pair |
   | Refresh, no hook | The same `updateBy`, plus `link` in the same statement; then one `updateById` **per row**, `{ metadata: { ...row.metadata, ...fileStat.metadata } }` - the stat's keys win, the row's other keys survive. Skipped entirely when the stat carries no metadata | Every row for that `(bucketName, objectName)` pair |
-  | Create | Only when the refresh updated `0` rows: `AssetMetaLink.createRow` - the same builder `upload` and `upload-commit` use, so `metaLink.createMetaLink` runs when provided, with a fresh `getStat()` result | One row, with no principal and no labels |
+  | Create | Only when the refresh updated `0` rows: `AssetMetaLink.createRow` - the same builder `upload` uses, so `metaLink.createMetaLink` runs when provided, with a fresh `getStat()` result | One row, with no principal and no labels |
 
   Rows per pair are deliberately not unique, and a refresh keeps each row's own `storageType` and labels (`variant`, `principalType`, `principalId`, `sequence`) either way.
 

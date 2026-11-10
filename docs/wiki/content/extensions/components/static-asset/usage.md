@@ -212,7 +212,7 @@ export class Application extends BaseApplication {
 
 ### Upload straight from the browser
 
-For video and other large files, `directUpload` lets the browser post the bytes to storage while IGNIS only signs the permission - see [Direct upload](./direct-upload).
+For video and other large files, `directUpload` lets the browser PUT the bytes to storage while IGNIS only signs the permission - see [Direct upload](./direct-upload).
 
 ### Your own MetaLink table
 

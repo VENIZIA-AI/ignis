@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Model: [component model](/architecture/component-model.md).
 
-**11 component classes across 10 component directories.**
+**12 component classes across 10 component directories.**
 
 | Directory | Classes |
 |---|---|
@@ -22,5 +22,5 @@ generated:
 | `request-tracker/` | `RequestTrackerComponent` |
 | `server-info/` | `ServerInfoComponent` |
 | `socket-io/` | `SocketIOComponent` |
-| `static-asset/` | `StaticAssetComponent` |
+| `static-asset/` | `AssetServicesComponent` · `StaticAssetComponent` |
 | `websocket/` | `WebSocketComponent` |

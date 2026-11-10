@@ -227,6 +227,7 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
           { text: 'Setup & Configuration', link: '/extensions/components/static-asset/' },
           { text: 'Usage & Examples', link: '/extensions/components/static-asset/usage' },
           { text: 'Direct Upload', link: '/extensions/components/static-asset/direct-upload' },
+          { text: 'Presigned Uploads and the Proxy', link: '/extensions/components/static-asset/presign-and-proxy' },
           { text: 'API Reference', link: '/extensions/components/static-asset/api' },
           { text: 'Error Reference', link: '/extensions/components/static-asset/errors' },
         ],

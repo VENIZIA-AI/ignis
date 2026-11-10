@@ -11,9 +11,10 @@ tags: [architecture, storage, s3, upload, signing, security]
 
 - [What a signature actually covers](#what-a-signature-actually-covers)
 - [The three paths](#the-three-paths)
-- [Direct upload, and why it is three round trips](#direct-upload-and-why-it-is-three-round-trips)
+- [Direct upload is a presigned PUT, signed by one route](#direct-upload-is-a-presigned-put-signed-by-one-route)
 - [Storage endpoint audiences {#storage-endpoint-audiences}](#storage-endpoint-audiences-storage-endpoint-audiences)
 - [Serving is where the XSS lives](#serving-is-where-the-xss-lives)
+- [Tokens, presigned PUT, settle and the proxy](#tokens-presigned-put-settle-and-the-proxy)
 - [Deliberately not built](#deliberately-not-built)
 <!-- okf:generated:contents end -->
 
@@ -77,7 +78,7 @@ above, not an oversight. `contentType` closes the same hole on the RECEIVING sid
 `AssetControllerFactory.resolveServedContentType` closes on the serving side: unsigned, the uploader picks the stored type. Built as a query-signed SigV4 URL, because `S3Client.presign` takes a method
 and an expiry and nothing else.
 
-### POST policy - what `directUpload` uses
+### POST policy - the storage helper still signs it, no route uses it
 
 The signature covers a POLICY DOCUMENT rather than a request, and conditions are a small language:
 
@@ -98,27 +99,21 @@ Two traps, both recorded in the code:
 - **Every field the browser posts must ALSO be a condition**, or S3 refuses the form it just signed.
 - **`file` must be the last field.** S3 reads the form in order and ignores anything after it.
 
-## Direct upload, and why it is three round trips
+## Direct upload is a presigned PUT, signed by one route
 
-`controller.directUpload` registers `POST {base}/upload-policy` and `POST {base}/upload-commit`.
-Absent, neither route exists.
+`controller.directUpload` registers `POST {base}/upload-presign` (`routes.uploadPresign`). Absent, the route
+does not exist. It was a POST policy plus `upload-commit` until 2026-11-10; both routes are removed.
 
-1. The browser asks for a policy. IGNIS runs `authorize`, refuses a size over `maxBytes` **before
-   signing anything**, generates `pending/<keyPrefix><uuid>/<name>` (the scope rides inside the
-   pending key, so the commit - which strips `pendingPrefix` - lands inside `controller.keyPrefix`
-   too), and signs both the policy and a commit token.
-2. The browser posts the form straight to storage. No byte passes through IGNIS.
-3. The browser presents the commit token. IGNIS verifies it, runs `onCommit`, copies server-side to
-   the final key, removes the temporary object, and writes the MetaLink row.
+1. The browser asks for URLs. IGNIS runs `authorize` (a falsy answer is a 403 and nothing is signed), maps the
+   body to files and a context (`request.toInput`, default `{ files: [{ fileName, contentType?, size }] }`), and
+   `AssetPresignService.presign` checks them, decides the key and signs a PUT URL plus a file token.
+2. The browser PUTs the bytes straight to storage (or to the proxy). No byte passes through IGNIS.
+3. The application - not IGNIS - verifies the token (`AssetCommitToken.verify`) and settles the object
+   (`AssetSettleService`) where the record that owns it is saved. There is NO commit route: it would only
+   duplicate `AssetSettleService`, and a direct upload no longer writes a MetaLink row.
 
-The third trip exists because S3 tells the backend nothing. Without it there is no MetaLink row and
-no way to attach the object to anything.
-
-Both paths write that row through ONE builder, `AssetMetaLink.createRow`. They diverged once and the
-symptom was a client rendering an empty state with no error. The labels
-`principalType`/`principalId`/`variant` reach the commit as QUERY, because the token carries no
-business fields. A failed row is `metaLink: { error: 'META_LINK_CREATE_FAILED' }` inside a 200 - the
-object IS committed by then, and a 500 would send the caller back with a token whose source is gone.
+`directUpload` needs `controller.bucket` and does not combine with `controller.keyPrefix` (the key comes from the
+presign service's `resolvePath`; both together throw at registration).
 
 ### A MetaLink row is one (object, owner) pairing
 
@@ -152,19 +147,16 @@ concurrent transactions both read "no row" and both insert - `FOR UPDATE` locks 
 exist, `ON CONFLICT` needs the index the data forbids. Closing it takes `pg_advisory_xact_lock`:
 Postgres-only, and the application's.
 
-### Four security properties, each with its reason
+### Security properties of the presign route, each with its reason
 
 | Property | Why |
 |---|---|
-| A policy authorizes only `pending/<generated>` | the final key is in NO policy, so content cannot be replaced after the commit |
-| The commit is claimed with an HMAC over `{bucket, key, expiresAt}`, verified BEFORE any storage call | naming someone else's object is impossible, and a forged token fails without a round trip, so timing leaks nothing |
-| The token carries no business fields | which order or tenant an upload belongs to is the application's authorization, not something the framework signs |
 | `authorize` is a REQUIRED property | a route that hands out a write credential has no safe default |
+| The key is decided by the presign service | the client announces names and sizes, never a key it could collide with |
+| The URL signs size, content type and tags | the holder cannot upload more, another type or other tags |
+| The token carries no business fields | which order or tenant an upload belongs to is the application's authorization, not something the framework signs |
 
-`onCommit` runs BEFORE the copy: a hook that throws leaves the object under the pending prefix for a
-lifecycle rule, rather than stranding it at the final key. Removing the temporary object is CLEANUP,
-not the commit - it is best-effort and logs, because failing the request would tell the caller their
-upload did not work when it did.
+A presigned PUT has no size range and is reusable until it expires, so the size is verified again where the token is read.
 
 ## Storage endpoint audiences {#storage-endpoint-audiences}
 
@@ -194,9 +186,35 @@ only the MetaLink `mimetype` fallback, `DiskHelper.getStat`, `writeStream`'s def
 `AssetIngest` change. `text/csv` and `text/plain` ARE on the renderable list and serve inline under
 `sandbox`.
 
+## Tokens, presigned PUT, settle and the proxy
+
+Four blocks sit beside the routes of `StaticAssetComponent`, in `packages/core-server/src/components/static-asset/`, and
+each is usable from a service that serves no asset route. IGNIS holds neutral defaults; the folder, the payload, the format,
+the tags and the extensions are options.
+
+| Block | Where | Notes |
+|---|---|---|
+| `AssetCommitToken` | `common/commit-token.ts` | the class behind the file tokens, made configurable: `codec` (`IAssetTokenCodec`, default `AssetTokenCodecs.signedJson`), `expiresAtOf`, `ownerOf`, `validate`, `errors`, `now`. Static `build`/`read` keep their signatures. Signs with `Hash.hmac`, compares with `Hash.equals` |
+| `AssetPresignService` | `service/presign.ts` | checks the announced files, `resolvePath` decides the folder, `presignPut` signs size, type and tags, the token names the object |
+| `AssetSettleService` | `service/settle.ts` | `replaceObjectTags` over every key, first failure thrown after all were tried |
+| `AssetServicesComponent` | `service/component.ts` | binds the instances by name under `AssetServiceBindingKeys.token/presign/settle`; no route |
+| `AssetPresignProxy` | `proxy/proxy.ts` | registered by the controller when `controller.proxy.enable`; no authentication, the storage signature is the authentication; `proxy.errorResponse({ reason, request })` lets the application answer `PATH_REFUSED` / `UPSTREAM_FAILED` with its own `Response` (e.g. plain 404 / 502) |
+
+Constraints that are easy to break:
+
+- Reading a token checks the signature, the owner, the expiry and `validate`, in that order. A failure of the first two is
+  `INVALID_COMMIT_TOKEN` whatever else is wrong, so a token that is not the caller's is never reported as expired.
+- A token with a payload other than `ICommitTokenPayload` must be given its own `codec` and `expiresAtOf` (the options
+  type requires them): the default codec accepts only the commit payload and answers invalid for anything else.
+- A presigned PUT signs `content-length`, `content-type` and the tags but has no size range, unlike a POST policy: the
+  announced size is the client's word until the storage enforces the signed length.
+- The proxy resolves dot segments (the URL parser does) BEFORE it checks `allowedPathPrefixes`, never forwards a header
+  outside `forwardRequestHeaders`, drops `set-cookie` and answers a dead storage with 502 and no endpoint in the body. With
+  neither `controller.bucket` nor prefixes, registration throws: an open proxy is not a default.
+
 ## Deliberately not built
 
-Multipart and resumable upload. Malware scanning - `onCommit` is the seam, the scanner belongs to the
+Multipart and resumable upload. Malware scanning - the settle step in the application is the seam, the scanner belongs to the
 application. A commit token carrying business fields.
 
 Related: [[component-model]], [[error-handling-flow]].

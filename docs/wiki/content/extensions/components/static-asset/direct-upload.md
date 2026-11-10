@@ -1,14 +1,23 @@
 ---
 title: Direct upload
-description: Let the browser send bytes straight to storage. What to configure, what the browser does, and why each safeguard is there.
+description: Let the browser PUT bytes straight to storage. One route signs the permission; what to configure, what the browser does, and why each safeguard is there.
 ---
 
 # Direct upload
 
-Every upload today travels twice - browser to IGNIS, IGNIS to storage - and the backend holds the
-whole file while it does. For a few megabytes that is the right model and this page is not for you.
+Every upload through `POST {base}/objects` travels twice - browser to IGNIS, IGNIS to storage - and the
+backend holds the whole file while it does. For a few megabytes that is the right model and this page
+is not for you.
 
-For video, turn on `directUpload` and the bytes never touch your process.
+For video and other large files, set `controller.directUpload`: the browser PUTs the bytes to a signed
+URL and your process never sees them.
+
+> [!NOTE]
+> **Changed on 2026-11-10.** Direct upload used to be a POST policy plus a commit route
+> (`upload-policy`, `upload-commit`). Both routes are gone: the route is now `POST {base}/upload-presign`
+> and the upload is a **presigned PUT**. There is no commit route - the application keeps the object
+> by [settling](./presign-and-proxy#settling) it once the record that owns it is saved.
+> See the [changelog](/changelogs/2026-11-10-static-asset-presigned-uploads-tokens-and-proxy).
 
 ```ts
 application.component(StaticAssetComponent, {
@@ -17,11 +26,14 @@ application.component(StaticAssetComponent, {
       controller: {
         name: 'AssetController',
         basePath: '/assets',
-        bucket: 'uploads',              // required: a policy names one bucket
+        bucket: 'uploads',              // required: a presign names one bucket
         directUpload: {
-          authorize: ({ context }) => Boolean(context.get('currentUser')),
-          secretKey: process.env.APP_ENV_UPLOAD_SECRET,
-          maxBytes: 100 * 1024 * 1024,
+          authorize: ({ context }) => {
+            const user = context.get('currentUser');
+
+            return user ? { tenantId: user.tenantId } : false;
+          },
+          presign: AssetPresignService.build({ /* see Presigned Uploads */ }),
         },
       },
       storage: StaticAssetStorageTypes.BUN_S3,
@@ -31,165 +43,94 @@ application.component(StaticAssetComponent, {
 });
 ```
 
-Two routes appear - `routes.uploadPolicy` and `routes.uploadCommit` in `controller.routes`, each overridable and each with its own `enabled` switch. Leave `directUpload` out and neither exists.
+One route appears, `POST {base}/upload-presign` (`routes.uploadPresign` in `controller.routes`,
+overridable, with its own `enabled` switch). Leave `directUpload` out and it does not exist.
 
-> [!TIP]
-> `controller.keyPrefix` scopes direct upload too: the pending key and the policy's `starts-with` condition both become `pendingPrefix + keyPrefix`, so the committed key lands inside the scope. The commit route re-checks the scope as well, in case a token was signed by another controller with the same `secretKey`. See [`controller.keyPrefix`](./api#controller-keyprefix).
+The route is a thin layer over [`AssetPresignService`](./presign-and-proxy): authorize, map the request
+into files and a context, presign, map the answer. Extensions, size ceiling, file count, the key, the
+token, the signed headers and the URL rewrite are all configured on the presign service.
 
-## The three round trips
+## The round trips
 
 ```
-1. browser -> IGNIS   POST {base}/upload-policy   { files: [...] }
-                   <- [{ postURL, formData, objectName, commitToken, expiresAt }]
+1. browser -> IGNIS    POST {base}/upload-presign   { files: [{ fileName, contentType?, size }] }
+                    <- [{ preSignUrl, fileKeyToken, key }]
 
-2. browser -> STORAGE  multipart POST to postURL        (IGNIS sees no byte)
+2. browser -> STORAGE  PUT preSignUrl                  (IGNIS sees no byte; the body is exactly `size` bytes)
 
-3. browser -> IGNIS   POST {base}/upload-commit   { commitToken }
-                   <- the object at its final key, and its MetaLink row
+3. browser -> YOUR API  (any route) { fileKeyToken }   -> your service verifies the token and settles the object
 ```
 
-The third trip is not ceremony. Storage tells your backend nothing, so without it there is no
-MetaLink row and no way to attach the object to an order, a ticket or a user.
-
-## The commit writes the row
-
-The response carries `metaLink` exactly as an ordinary upload does, so a client reading an `id` and
-a `link` off it needs no branch for which path the bytes took.
-
-```json
-{ "commitToken": "...", "principalType": "Product", "principalId": "42", "variant": "thumbnail" }
-```
-
-The labels are the ones the ordinary upload takes. They sit beside the token and not inside it: the
-token is an HMAC over `{ bucket, key, expiresAt }` and deliberately carries no business fields.
-Omit them and the row is still written, without the labels.
-
-If the row fails the response is still **200**, with the reason as a code:
-
-```json
-{ "bucket": { "name": "uploads" }, "object": { "key": "..." }, "link": "...",
-  "metaLink": { "error": "META_LINK_CREATE_FAILED" } }
-```
-
-By then the copy has happened and the pending object is gone - the object is committed. A 500 would
-send the caller back with a token whose source no longer exists.
+Step 3 is yours. Storage tells your backend nothing, so the token the browser hands back is how a record
+(an order, a ticket, a user) names the file. Verify it with `AssetCommitToken.verify` and keep the object
+with `AssetSettleService.settle`; an object nobody settles is left to the storage's lifecycle rule.
 
 ## What the browser does
 
 ```js
-const [policy] = await fetch('/assets/upload-policy', {
+const [file] = await fetch('/assets/upload-presign', {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
   body: JSON.stringify({
-    files: [{ fileName: file.name, contentType: file.type, size: file.size }],
+    files: [{ fileName: input.name, contentType: input.type, size: input.size }],
   }),
 }).then(response => response.json());
 
-const form = new FormData();
-for (const [key, value] of Object.entries(policy.formData)) form.append(key, value);
-form.append('key', policy.objectName);
-form.append('file', file);                       // LAST, always
-
-await fetch(policy.postURL, { method: 'POST', body: form });
-
-await fetch('/assets/upload-commit', {
-  method: 'POST',
-  headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({
-    commitToken: policy.commitToken,
-    principalType: 'Product',          // optional labels, beside the token
-    principalId: productId,
-    sequence: 0,
-  }),
+await fetch(file.preSignUrl, {
+  method: 'PUT',
+  headers: { 'content-type': 'application/octet-stream', 'x-amz-tagging': 'temp=true' },
+  body: input,
 });
+
+// then send file.fileKeyToken to the API that owns the record
 ```
 
-> [!WARNING]
-> `file` must be the last field. Storage reads the form in order and ignores everything after it.
-
-A runnable page that performs all three and prints each request is at
-[`/direct-upload-demo.html`](/direct-upload-demo.html) - open your browser's Network tab while it
-runs and watch step 2 leave without touching the backend.
+The headers the URL signs must be sent exactly as signed (see `signedContentType` and `tagging` on the
+presign service); storage answers 403 otherwise.
 
 ## Options
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `authorize` | `({ context }) => ValueOrPromise<boolean>` | - | **Required.** Who may ask for a policy. |
-| `secretKey` | `string` | - | Signs the commit token. Keep it out of the repository and out of the client. |
-| `maxBytes` | `number` | - | The ceiling the policy carries as `content-length-range`. Over it answers `413` with `core.static_asset.upload_too_large`, the same code the ordinary upload uses. |
-| `pendingPrefix` | `string` | `'pending/'` | Where a policy may write. The final key is never inside it. |
-| `expiresIn` | `IDuration` | 15 minutes | How long a policy and its commit token stay good. |
-| `onCommit` | `({ bucket, pendingObject, object }) => ValueOrPromise<void>` | - | Runs **before** the copy. |
+| `authorize` | `({ context }) => ValueOrPromise<TContext \| false \| null \| undefined>` | - | **Required.** Who may ask, and as whom. A falsy answer is `403` `core.static_asset.upload_not_authorized` and the storage is not touched. The context reaches `request.toInput`, `resolvePath` and `response.map`. |
+| `presign` | `AssetPresignService` (or any object with its `presign` method) | - | **Required.** Prepares the uploads. An object of your own can wrap the service to answer its refusals in the application's own error codes. |
+| `request` | `{ schema, toInput }` | body `{ files: [{ fileName, contentType?, size }] }` | How the body becomes files and a context. `schema` is published in the OpenAPI document; `toInput` may throw the application's own error to refuse. |
+| `response` | `{ schema, map }` | `[{ preSignUrl, fileKeyToken, key }]` | How the results become the response body. |
 
-## Why a policy and not a presigned PUT
-
-A signed PUT binds each header to an **exact** value. `content-length: 2048` means exactly 2048
-bytes; there is no way to say "at most 2 MB". The client would have to know the byte count before
-asking, and every retry or re-encode would become an opaque 403.
-
-A POST policy signs a document of conditions instead, and conditions are a small language:
-`content-length-range` and `starts-with` say things equality cannot.
-
-Worth knowing even if you never reach for it: a presigned PUT is also **reusable until it expires**
-and **overwrites** an existing key. Anyone who intercepts one can replace the object.
+`controller.keyPrefix` does **not** combine with `directUpload`: the key comes from the presign service,
+so registering a controller with both throws rather than leave a scope that silently does not apply.
 
 ## The safeguards, and what each is for
-
-**A policy only authorizes `pending/<generated>`.** On commit, IGNIS copies server-side to the final
-key. That key appears in **no policy**, so content cannot be replaced after the commit - the property
-a presigned PUT cannot give you.
-
-**The commit is claimed with a token, never with a key.** The token is an HMAC over
-`{ bucket, key, expiresAt }`, verified **before any storage call**. So a caller cannot name an object
-it was never granted, and the route is not a name prober - a forged token fails without a round trip,
-so timing says nothing about what exists.
-
-**The token carries no business fields.** Which order or tenant an upload belongs to is your
-authorization, and a token IGNIS signs is the wrong place to keep it.
 
 **`authorize` is required, not defaulted.** This route hands out a write credential; there is no safe
 default for who may ask, so the type system makes you decide.
 
-**`onCommit` runs before the copy.** A hook that throws leaves the object under the pending prefix
-for a lifecycle rule to collect, rather than stranding it at the final key forever.
+**The key is the server's.** The presign service decides the folder and a generated name; the client
+only announces names and sizes.
 
-**Removing the temporary object is cleanup, not the commit.** If it fails the commit still succeeds
-and logs a warning - failing the request would tell the caller their upload did not work when it did.
+**The URL pins what the client announced.** Size, content type and tags are signed: the holder cannot
+upload more, another type or other tags. A presigned PUT has no size *range*, unlike a POST policy, and
+it is reusable until it expires - verify the size again where the token is read.
+
+**The token carries no business fields.** Which order or tenant an upload belongs to is your
+authorization, and a token IGNIS signs is the wrong place to keep it.
 
 ## Behind a private endpoint
 
-`host` is inside every SigV4 signature, so the `postURL` your browser receives cannot be rewritten
-afterwards. Give the helper both hosts:
-
-```ts
-new BunS3Helper({
-  accessKey,
-  secretKey,
-  endpoint: {
-    default: 'http://minio:9000',        // what this process talks to
-    public: 'https://cdn.example.com',   // what the browser is handed
-  },
-});
-```
+`host` is inside every SigV4 signature, so the URL your browser receives cannot be rewritten
+afterwards. Give the helper both hosts (`endpoint.default` for this process, `endpoint.public` for the
+browser), or sign for the storage and rewrite with `rewriteUrl` to a [proxy](./presign-and-proxy#the-proxy).
 
 ## When step 2 answers 403
 
-The policy is doing its job. In order of likelihood:
-
 | Cause | Check |
 |---|---|
-| The bucket refuses cross-origin POST | your bucket's CORS rules - this one costs people an afternoon |
-| The file is over `maxBytes` | the `content-length-range` condition |
-| `key` does not start with the pending prefix | you changed `objectName` before posting |
-| The policy expired | `expiresAt`, and `expiresIn` |
-
-## Deliberately not built
-
-Multipart and resumable upload. Malware scanning - `onCommit` is the seam, the scanner is yours. A
-commit token carrying business fields.
+| A signed header is missing or different | `content-type`, `content-length` and `x-amz-tagging` must be the signed values |
+| The body is not exactly `size` bytes | the size announced in step 1 |
+| The bucket refuses cross-origin PUT | your bucket's (or the proxy's `cors`) rules |
+| The URL expired | `expiresIn` on the presign service |
 
 **Files:**
 
-- [`packages/helpers/src/modules/storage/bun-s3/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/utility.ts) - `S3SignatureUtility.buildPostPolicy`
-- [`packages/core-server/src/components/static-asset/common/commit-token.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/commit-token.ts) - `AssetCommitToken.build`, `AssetCommitToken.read`
+- [`packages/core-server/src/components/static-asset/service/presign.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/service/presign.ts) - `AssetPresignService`
+- [`packages/core-server/src/components/static-asset/common/commit-token.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/commit-token.ts) - `AssetCommitToken`

@@ -22,14 +22,18 @@ These carry a machine code a client can branch on, alongside the human message. 
 | `core.static_asset.file_empty` | `"Empty file content"` | `400` | `VALIDATION` |
 | `core.static_asset.max_keys_invalid` | `"Invalid maxKeys - expected a positive integer"` | `400` | `VALIDATION` |
 | `core.static_asset.upload_too_large` | `"File is larger than the maximum allowed"` | `413` | `VALIDATION` |
-| `core.static_asset.upload_not_authorized` | `"Not allowed to request an upload policy"` | `403` | `VALIDATION` |
+| `core.static_asset.upload_not_authorized` | `"Not allowed to request a signed upload"` | `403` | `VALIDATION` |
 | `core.static_asset.invalid_commit_token` | `"Invalid commit token"` | `400` | `VALIDATION` |
 | `core.static_asset.expired_commit_token` | `"Commit token has expired"` | `400` | `VALIDATION` |
 | `core.static_asset.labels_in_query` | `"Upload labels belong in the request body, not the query"` | `400` | `VALIDATION` |
+| `core.static_asset.presign_extension_not_allowed` | <code v-pre>"Files ending in \"%{extension}\" cannot be uploaded"</code> | `400` | `VALIDATION` |
+| `core.static_asset.presign_file_size_invalid` | `"The file size must be a positive whole number of bytes"` | `400` | `VALIDATION` |
+| `core.static_asset.proxy_path_refused` | `"Storage path is not served by this proxy"` | `404` | `VALIDATION` |
+| `core.static_asset.proxy_upstream_failed` | `"Storage is unreachable"` | `502` | `INTEGRATION` |
 | `core.static_asset.object_key_out_of_scope` | `"Object key is outside the key prefix of this controller"` | `400` | `VALIDATION` |
 | `core.storage.object_not_found` | `"Object not found"` | `404` | `BUSINESS` |
 
-The eight `core.static_asset.*` codes live on `StaticAssetErrors`; `core.storage.object_not_found` lives on `StorageErrors` in the helpers package. Both register with the shared key registry, so `messageCode` autocompletes.
+The `core.static_asset.*` codes in this table live on `StaticAssetErrors`, except `proxy_path_refused` and `proxy_upstream_failed`, which live on `AssetProxyErrors` (a dead storage is a 5xx, and `StaticAssetErrors` holds only caller-facing 4xx codes); `core.storage.object_not_found` lives on `StorageErrors` in the helpers package. Both register with the shared key registry, so `messageCode` autocompletes.
 
 > [!NOTE]
 > `core.request.body_too_large` (`413`) and `core.request.body_malformed` (`400`) are not static-asset codes - they live on the kernel's `RequestErrors`, alongside every other route. See [Middlewares Reference](/references/base/middlewares#body-limit-configs-middlewares-bodylimit).
@@ -210,7 +214,7 @@ extra: {
 ## The size ceiling, and the two token errors
 
 `upload_too_large` is **one** code for both upload paths: over `extra.maxBytes` on
-`POST {base}/objects`, and over `directUpload.maxBytes` when a policy is requested. A second code
+`POST {base}/objects`, and over the `maxBytes` of the presign service when a signed upload is requested. A second code
 would have been the same condition wearing two names.
 
 The ordinary route checks twice. The request's `content-length` is read before the body is spooled,

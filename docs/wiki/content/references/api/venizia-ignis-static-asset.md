@@ -7,29 +7,54 @@ description: "Every export of @venizia/ignis/static-asset, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-37 exports, 37 with TSDoc.
+60 exports, 60 with TSDoc.
 
 ## `AssetCommitToken`
 
 *class*
 
-Signs and reads the token the commit route trusts instead of a key a caller names.
+Signs and reads the token a route or a service trusts instead of a key a caller names. The default payload is what the
+commit route binds; an application with a token of its own shape, or of its own format, configures an instance (a
+codec, who the token is for, the expiry, a check of its own) and uses it from any service, with or without a route.
+
+Reading checks, in this order: the signature, the owner, the expiry, `validate`. A token that fails the first two is
+`INVALID` whatever else is wrong with it, so an expired token of someone else is not reported as expired.
 
 ```ts
-export declare class AssetCommitToken {
-    private static encode;
-    private static sign;
+export declare class AssetCommitToken<TPayload extends object = ICommitTokenPayload> {
+    private readonly secretKey;
+    private readonly codec;
+    private readonly expiresAtOf;
+    private readonly ownerOf?;
+    private readonly validate?;
+    private readonly errors;
+    private readonly now;
+    constructor(opts: TAssetCommitTokenOptions<TPayload>);
+    /** Signs a payload. */
+    sign(opts: {
+        payload: TPayload;
+    }): string;
+    /**
+     * Reads a token back, or throws.
+     *
+     * Verification happens BEFORE any storage call, which is what makes the commit route refuse to be a name
+     * prober: a forged token fails without a round trip, so timing says nothing about what exists.
+     */
+    verify(opts: {
+        token: string;
+        ownerId?: string;
+    }): TPayload;
+    /** `verify` for a list; the first token that fails throws, and nothing is returned. */
+    verifyMany(opts: {
+        tokens: readonly string[];
+        ownerId?: string;
+    }): TPayload[];
     /** Signs `{ bucket, key, expiresAt }` so the commit route can trust the key it is handed. */
     static build(opts: {
         payload: ICommitTokenPayload;
         secretKey: string;
     }): string;
-    /**
-     * Reads a commit token back, or throws.
-     *
-     * Verification happens BEFORE any storage call, which is what makes the commit route refuse to be a
-     * name prober: a forged token fails without a round trip, so timing says nothing about what exists.
-     */
+    /** Reads a commit token back, or throws. `now` is the clock, a test seam. */
     static read(opts: {
         token: string;
         secretKey: string;
@@ -254,6 +279,223 @@ export declare class AssetIngest {
 ```
 
 Source: `packages/core-server/src/components/static-asset/ingest.ts`
+
+## `AssetPresignProxy`
+
+*class*
+
+Forwards presigned storage requests under the limits of `IAssetProxyOptions`.
+
+```ts
+export declare class AssetPresignProxy {
+    /** The route path with exactly one leading slash and none at the end. */
+    static normalizePath(opts: {
+        path?: string;
+    }): string;
+    /** Throws when the options cannot be served safely, at registration rather than on the first request. */
+    static assertOptions(opts: {
+        name: string;
+        proxy: IAssetProxyOptions;
+        bucket?: TValueOrAsyncResolver<string>;
+    }): void;
+    /** Registers the proxy routes on a generated controller. Called after every built-in route, so a built-in wins a path collision. */
+    static register(opts: {
+        controller: BaseRestController;
+        proxy: IAssetProxyOptions;
+        bucket?: TValueOrAsyncResolver<string>;
+    }): void;
+    /** The storage path of the request: what follows the mount path of the URL, dot segments already resolved by the URL parser. */
+    private static resolveStoragePath;
+    private static buildCorsHeaders;
+    /** The prefixes a request may reach: the ones declared, else the bucket of the controller, read now. */
+    private static resolvePrefixes;
+    /** Forwards one request, or answers the preflight. A failure the proxy itself names is first offered to `proxy.errorResponse`. */
+    static forward(opts: {
+        request: Request;
+        mountPath: string;
+        proxy: IAssetProxyOptions;
+        bucket?: TValueOrAsyncResolver<string>;
+    }): Promise<Response>;
+    /** Which of the proxy's own failures this error is; any other error (a bug, an abort of the request) is not the proxy's to answer. */
+    private static readFailure;
+    private static forwardUnchecked;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/proxy/proxy.ts`
+
+## `AssetPresignService`
+
+*class*
+
+Prepares uploads straight to storage: it checks what the client announced, decides the key, signs a PUT URL whose
+size, content type and tags the client cannot change, and signs a token that names the object.
+
+A presigned PUT has a limit a POST policy does not: the storage enforces the signed `content-length`, but nothing
+bounds the size range, so what is announced is what is allowed. Verify the size again where the token is read.
+
+```ts
+export declare class AssetPresignService<TPayload extends object, TContext> {
+    private readonly options;
+    private readonly errors;
+    private readonly allowed;
+    constructor(opts: IAssetPresignServiceOptions<TPayload, TContext>);
+    /** Builds the service of one application. */
+    static build<TPayload extends object, TContext>(opts: IAssetPresignServiceOptions<TPayload, TContext>): AssetPresignService<TPayload, TContext>;
+    /** One URL and one token for each file. Nothing is signed unless every file passes. */
+    presign(opts: IAssetPresignRequest<TContext>): Promise<IAssetPresignResult[]>;
+    private checkFile;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/service/presign.ts`
+
+## `AssetProxyErrors`
+
+*const*
+
+Codes of the presigned-URL proxy. A separate catalog from `StaticAssetErrors`, which holds only caller-facing 4xx codes: a dead storage is a 5xx.
+
+```ts
+export declare const AssetProxyErrors: {
+    /** The proxy was asked for a storage path outside `allowedPathPrefixes`; nothing is forwarded. */
+    readonly PATH_REFUSED: {
+        readonly message: {
+            readonly text: "Storage path is not served by this proxy";
+            readonly code: "core.static_asset.proxy_path_refused";
+        };
+        readonly statusCode: 404;
+        readonly category: "validation";
+    };
+    /** The storage did not answer. The cause goes to the log, never to the response. */
+    readonly UPSTREAM_FAILED: {
+        readonly message: {
+            readonly text: "Storage is unreachable";
+            readonly code: "core.static_asset.proxy_upstream_failed";
+        };
+        readonly statusCode: 502;
+        readonly category: "integration";
+    };
+};
+```
+
+Source: `packages/core-server/src/components/static-asset/proxy/errors.ts`
+
+## `AssetProxyFailures`
+
+*class*
+
+The failures of the presigned-URL proxy itself that `proxy.errorResponse` is offered.
+
+```ts
+export declare class AssetProxyFailures {
+    static readonly PATH_REFUSED = "PATH_REFUSED";
+    static readonly UPSTREAM_FAILED = "UPSTREAM_FAILED";
+    static readonly SCHEME_SET: Set<string>;
+    static isValid(value: string): boolean;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/common/constants.ts`
+
+## `AssetServiceBindingKeys`
+
+*class*
+
+Container keys of the services `AssetServicesComponent` binds.
+
+```ts
+export declare class AssetServiceBindingKeys {
+    /** The options an application registers through `configs.artifacts` land here, because an artifact index carries classes and no options. */
+    static readonly ASSET_SERVICES_COMPONENT_OPTIONS = "@app/static-asset-services/options";
+    /** The key of the token service registered under `name`. */
+    static token(opts: {
+        name: string;
+    }): string;
+    /** The key of the presign service registered under `name`. */
+    static presign(opts: {
+        name: string;
+    }): string;
+    /** The key of the settle service registered under `name`. */
+    static settle(opts: {
+        name: string;
+    }): string;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/service/component.ts`
+
+## `AssetServicesComponent`
+
+*class*
+
+Binds `AssetTokenService`, `AssetPresignService` and `AssetSettleService` into the container, WITHOUT any route, so a
+service that only needs to verify a file token or settle an upload can inject them:
+
+`@inject({ key: AssetServiceBindingKeys.token({ name: 'attachments' }) })`
+
+The services are built where their options live; this component only gives them a place in the container.
+
+```ts
+export declare class AssetServicesComponent extends BaseComponent<TAssetServicesComponentOptions> {
+    private application;
+    constructor(application: BaseApplication);
+    binding(): ValueOrPromise<void>;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/service/component.ts`
+
+## `AssetSettleService`
+
+*class*
+
+Settles uploads written straight to their final key with a pending tag: the object is kept by replacing its tags, and
+an object never settled is left for the storage's lifecycle rule. Nothing is copied or moved.
+
+For uploads that wait under a pending prefix and are copied into place, use the `directUpload` routes of the
+component instead.
+
+```ts
+export declare class AssetSettleService {
+    private readonly options;
+    constructor(opts: IAssetSettleServiceOptions);
+    /** Builds the service of one application. */
+    static build(opts: IAssetSettleServiceOptions): AssetSettleService;
+    /**
+     * Replaces the tags of every key, all of them attempted. The first failure is thrown once every key has been tried,
+     * so one bad object does not leave the others unsettled.
+     *
+     * `tags` are merged over the configured ones, for a call that knows more (a file that passed a later check).
+     */
+    settle(opts: {
+        keys: readonly string[];
+        tags?: Record<string, string>;
+    }): Promise<void>;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/service/settle.ts`
+
+## `AssetTokenCodecs`
+
+*class*
+
+The codec IGNIS ships: `base64url(JSON payload) + '.' + base64url(HMAC-SHA256 of that text)`.
+
+```ts
+export declare class AssetTokenCodecs {
+    /**
+     * Builds the default codec. `isPayload` is the application's check that a signed JSON object has the shape it expects:
+     * the body is only read after its signature passed, but a payload of another shape must never reach the caller.
+     */
+    static signedJson<TPayload extends object>(opts: {
+        isPayload: (value: unknown) => value is TPayload;
+    }): IAssetTokenCodec<TPayload>;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/common/commit-token.ts`
 
 ## `BaseMetaLinkModel`
 
@@ -858,18 +1100,6 @@ export declare const DEFAULT_MAX_UPLOAD_FILES = 20;
 
 Source: `packages/core-server/src/components/static-asset/common/constants.ts`
 
-## `DEFAULT_PENDING_PREFIX`
-
-*const*
-
-Where a signed policy may write. The final key is never inside it, so content cannot be replaced after the commit.
-
-```ts
-export declare const DEFAULT_PENDING_PREFIX = "pending/";
-```
-
-Source: `packages/core-server/src/components/static-asset/common/constants.ts`
-
 ## `IAssetControllerOptions`
 
 *interface*
@@ -895,6 +1125,336 @@ export interface IAssetControllerOptions {
 ```
 
 Source: `packages/core-server/src/components/static-asset/controller/factory.ts`
+
+## `IAssetPresignErrors`
+
+*interface*
+
+The definitions `AssetPresignService` throws; the `errors` option takes any subset. `messageArgs` carry `extension`, `maxBytes`, `maxMegabytes` and `max`.
+
+```ts
+export interface IAssetPresignErrors {
+    /** @default StaticAssetErrors.PRESIGN_EXTENSION_NOT_ALLOWED */
+    EXTENSION_NOT_ALLOWED: TErrorDefinition;
+    /** @default StaticAssetErrors.PRESIGN_FILE_SIZE_INVALID */
+    FILE_SIZE_INVALID: TErrorDefinition;
+    /** @default StaticAssetErrors.UPLOAD_TOO_LARGE */
+    FILE_TOO_LARGE: TErrorDefinition;
+    /** @default RequestBodyErrors.TOO_MANY_FILES */
+    TOO_MANY_FILES: TErrorDefinition;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/service/presign.ts`
+
+## `IAssetPresignFile`
+
+*interface*
+
+One file a client announces it is about to upload. The server never trusts the name for the key, and the size is signed.
+
+```ts
+export interface IAssetPresignFile {
+    fileName: string;
+    contentType: string;
+    /** Bytes. Signed into the URL, so the upload must be exactly this long. */
+    size: number;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/service/presign.ts`
+
+## `IAssetPresignPayloadInput`
+
+*interface*
+
+What `buildPayload` is told about the file it signs a token for.
+
+```ts
+export interface IAssetPresignPayloadInput<TContext> {
+    /** The full object key. */
+    key: string;
+    /** The last segment of `key`: the name the server chose. */
+    name: string;
+    /** The folder `resolvePath` answered, `''` for the root. */
+    folder: string;
+    /** The extension of the announced name, with its dot, in lower case. */
+    extension: string;
+    file: IAssetPresignFile;
+    /** Epoch milliseconds the URL was issued at. */
+    issuedAt: number;
+    ownerId?: string;
+    context: TContext;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/service/presign.ts`
+
+## `IAssetPresignRequest`
+
+*interface*
+
+What a presign call takes: the files, what the application knows about the caller, and the user the token is issued for.
+
+```ts
+export interface IAssetPresignRequest<TContext> {
+    files: readonly IAssetPresignFile[];
+    /** Reaches `resolvePath` and `buildPayload`. */
+    context: TContext;
+    /** The user a token is issued for; absent for a service call, and a token with no owner cannot be claimed by anyone. */
+    ownerId?: string;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/service/presign.ts`
+
+## `IAssetPresignResult`
+
+*interface*
+
+What one prepared file gives its client.
+
+```ts
+export interface IAssetPresignResult {
+    /** Where the client PUTs the bytes. */
+    preSignUrl: string;
+    /** What the client hands back to name the file. */
+    fileKeyToken: string;
+    /** The object key, for the server's own use. */
+    key: string;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/service/presign.ts`
+
+## `IAssetPresignServiceOptions`
+
+*interface*
+
+Everything an application decides about presigned uploads.
+
+```ts
+export interface IAssetPresignServiceOptions<TPayload extends object, TContext> {
+    /** The storage. It has to support `presignPut` (`BunS3Helper` does). */
+    helper: IStorageHelper;
+    /** The bucket the objects go to, read per call. */
+    bucket: TValueOrAsyncResolver<string>;
+    /** Signs the token each URL comes with. */
+    token: AssetCommitToken<TPayload>;
+    /** The extensions that may be uploaded, with their dot and in lower case. */
+    allowedExtensions: readonly string[];
+    /** The largest file, in bytes. */
+    maxBytes: number;
+    /**
+     * The most files one call prepares.
+     *
+     * @default 10
+     */
+    maxFiles?: number;
+    /**
+     * The deepest folder nesting a key may have, as `isValidObjectKey` counts it. A tenant path is often deeper than the
+     * helper's own default.
+     *
+     * @default the storage helper's own default
+     */
+    maxFolderDepth?: number;
+    /**
+     * The folder an object goes under, decided from the context the application passes to `presign`: a tenant, a purpose,
+     * the extension. `''` is the root. Never taken from the client by this service.
+     *
+     * @default () => ''
+     */
+    resolvePath?: (opts: {
+        file: IAssetPresignFile;
+        extension: string;
+        context: TContext;
+    }) => ValueOrPromise<string>;
+    /**
+     * The stored name, with its extension. Answer a name the client cannot predict, or two uploads can collide.
+     *
+     * @default a v4 uuid plus the extension
+     */
+    resolveName?: (opts: {
+        file: IAssetPresignFile;
+        extension: string;
+    }) => string;
+    /** The payload of the token of one file: what the application needs to find the object again. */
+    buildPayload: (opts: IAssetPresignPayloadInput<TContext>) => TPayload;
+    /** Tags written with the object. They are signed, so the client must send them back unchanged. */
+    tagging?: Record<string, string>;
+    /**
+     * A content type that is signed instead of the one the client announced, so the holder of the URL cannot choose the
+     * stored type. Absent, the announced one is signed.
+     */
+    signedContentType?: string;
+    /** How long the URL is good. Absent, the storage helper's own default. */
+    expiresIn?: IDuration;
+    /** Rewrites the URL after it is signed, e.g. to send the browser through the asset proxy. */
+    rewriteUrl?: (opts: {
+        url: string;
+    }) => string;
+    /** Definitions thrown in place of the defaults, by name. */
+    errors?: Partial<IAssetPresignErrors>;
+    /** The clock, in epoch milliseconds. A test seam. */
+    now?: () => number;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/service/presign.ts`
+
+## `IAssetProxyCors`
+
+*interface*
+
+The CORS answer the proxy gives. Left out, the proxy sets no CORS header at all, so an application-wide CORS middleware stays in charge.
+
+```ts
+export interface IAssetProxyCors {
+    /** The `access-control-allow-origin` value, e.g. `*` or one origin. */
+    allowOrigin: string;
+    /** @default ['content-type', 'x-amz-tagging'] */
+    allowHeaders?: readonly string[];
+    /** @default ['ETag', 'Content-Length', 'Content-Type', 'Content-Disposition'] */
+    exposeHeaders?: readonly string[];
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/proxy/proxy.ts`
+
+## `IAssetProxyOptions`
+
+*interface*
+
+A storage proxy in front of presigned URLs: a browser that cannot reach the storage endpoint (it is internal) sends
+the presigned request to the application, which forwards it unchanged.
+
+The route carries NO authentication. The storage signature in the URL is the authentication, and the proxy forwards
+the request untouched, so a request the storage would refuse is refused there. What the proxy adds is only a limit
+on WHERE it forwards (`allowedPathPrefixes`) and on which headers it passes on.
+
+```ts
+export interface IAssetProxyOptions {
+    /** The flag. `false` (or an absent `proxy`) registers no proxy route. */
+    enable: boolean;
+    /** The storage endpoint requests are forwarded to, e.g. the internal host of the S3 service. Read per request. */
+    upstreamEndpoint: TValueOrAsyncResolver<string>;
+    /**
+     * The route path under the controller's base path: requests to `{basePath}{path}/<storage path>` are forwarded.
+     *
+     * @default '/proxy'
+     */
+    path?: string;
+    /**
+     * The storage paths a request may reach, after dot segments are resolved: a path that does not start with one of these
+     * is a 404 and is never forwarded. Absent, it is `/{bucket}/` of `controller.bucket`; with neither, registering the
+     * controller throws, because a proxy open to the whole storage endpoint is not something to default to.
+     */
+    allowedPathPrefixes?: readonly string[];
+    /**
+     * The request headers passed on. Everything else is dropped, so a caller cannot add a header that was not signed.
+     *
+     * @default ['content-type', 'content-length', 'x-amz-tagging']
+     */
+    forwardRequestHeaders?: readonly string[];
+    cors?: IAssetProxyCors;
+    /**
+     * Gives up on the storage after this long.
+     *
+     * @default 600_000
+     */
+    timeoutMs?: number;
+    /**
+     * Answers a failure of the proxy itself instead of the JSON error body: `PATH_REFUSED` (a storage path outside the allowed
+     * prefixes) or `UPSTREAM_FAILED` (the storage did not answer). The caller of a proxy is a browser PUTting bytes, not an
+     * application that branches on codes, so an application MAY answer a plain 404 / 502 here. Return `undefined` to keep the
+     * default error answer. Its response carries no CORS header of its own: add what the browser needs.
+     */
+    errorResponse?: (opts: {
+        reason: TAssetProxyFailure;
+        request: Request;
+    }) => Response | undefined;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/proxy/proxy.ts`
+
+## `IAssetServicesEntry`
+
+*interface*
+
+The services of one name: each is built by the application with its own `build` and bound as it is.
+
+```ts
+export interface IAssetServicesEntry {
+    token?: AssetCommitToken<AnyType>;
+    presign?: AssetPresignService<AnyType, AnyType>;
+    settle?: AssetSettleService;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/service/component.ts`
+
+## `IAssetSettleServiceOptions`
+
+*interface*
+
+What an application decides about settling uploads.
+
+```ts
+export interface IAssetSettleServiceOptions {
+    /** The storage. It has to support `replaceObjectTags` (`BunS3Helper` does). */
+    helper: IStorageHelper;
+    /** The bucket the objects are in, read per call. */
+    bucket: TValueOrAsyncResolver<string>;
+    /**
+     * The tags a settled object carries from then on, replacing the ones the upload was written with. A lifecycle rule
+     * that removes objects still tagged as pending is what keeps abandoned uploads from piling up.
+     */
+    tags: Record<string, string>;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/service/settle.ts`
+
+## `IAssetTokenCodec`
+
+*interface*
+
+How a token is written and read: the piece an application replaces when it must produce, or keep accepting, a token
+format of its own. `decode` answers `null` for anything it cannot trust (malformed, wrong signature) and never throws
+for bad input. A codec MUST compare signatures in constant time (`Hash.equals`).
+
+```ts
+export interface IAssetTokenCodec<TPayload extends object> {
+    encode: (opts: {
+        payload: TPayload;
+        secretKey: string;
+    }) => string;
+    decode: (opts: {
+        token: string;
+        secretKey: string;
+    }) => TPayload | null;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/common/commit-token.ts`
+
+## `IAssetTokenErrors`
+
+*interface*
+
+The definitions the token reader throws; the `errors` option takes any subset.
+
+```ts
+export interface IAssetTokenErrors {
+    /** Malformed, wrong signature, not the caller's, or refused by `validate`: all one answer, so the reader is no oracle. */
+    INVALID: TErrorDefinition;
+    /** Only for a token whose signature and owner are good. */
+    EXPIRED: TErrorDefinition;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/common/commit-token.ts`
 
 ## `ICommitTokenPayload`
 
@@ -1059,7 +1619,7 @@ Codes a client branches on for a rejected static-asset request. A throw site may
 export declare const StaticAssetErrors: {
     readonly UPLOAD_NOT_AUTHORIZED: {
         readonly message: {
-            readonly text: "Not allowed to request an upload policy";
+            readonly text: "Not allowed to request a signed upload";
             readonly code: "core.static_asset.upload_not_authorized";
         };
         readonly statusCode: 403;
@@ -1165,6 +1725,24 @@ export declare const StaticAssetErrors: {
         readonly statusCode: 400;
         readonly category: "validation";
     };
+    /** A presigned upload was announced under an extension the application does not accept. */
+    readonly PRESIGN_EXTENSION_NOT_ALLOWED: {
+        readonly message: {
+            readonly text: "Files ending in \"%{extension}\" cannot be uploaded";
+            readonly code: "core.static_asset.presign_extension_not_allowed";
+        };
+        readonly statusCode: 400;
+        readonly category: "validation";
+    };
+    /** A presigned upload was announced with a size that is not a positive whole number of bytes. */
+    readonly PRESIGN_FILE_SIZE_INVALID: {
+        readonly message: {
+            readonly text: "The file size must be a positive whole number of bytes";
+            readonly code: "core.static_asset.presign_file_size_invalid";
+        };
+        readonly statusCode: 400;
+        readonly category: "validation";
+    };
 };
 ```
 
@@ -1186,6 +1764,92 @@ export declare class StaticAssetStorageTypes {
 ```
 
 Source: `packages/core-server/src/components/static-asset/common/constants.ts`
+
+## `TAssetCommitTokenOptions`
+
+*type*
+
+The options of a token reader. With the default payload (`ICommitTokenPayload`) the format and the expiry are the
+default ones; any other payload names its own `codec` and `expiresAtOf`, so a token is never read with a shape it was
+not written in.
+
+```ts
+export type TAssetCommitTokenOptions<TPayload extends object> = [ICommitTokenPayload] extends [
+    TPayload
+] ? IAssetCommitTokenBaseOptions<TPayload> & {
+    /** The format. @default AssetTokenCodecs.signedJson for `ICommitTokenPayload` */
+    codec?: IAssetTokenCodec<TPayload>;
+    /** When a token stops being good, as epoch milliseconds; `undefined` or a non-number makes it invalid. @default payload.expiresAt */
+    expiresAtOf?: (opts: {
+        payload: TPayload;
+    }) => number | undefined;
+} : IAssetCommitTokenBaseOptions<TPayload> & {
+    codec: IAssetTokenCodec<TPayload>;
+    expiresAtOf: (opts: {
+        payload: TPayload;
+    }) => number | undefined;
+};
+
+interface IAssetCommitTokenBaseOptions<TPayload extends object> {
+    /** Signs every token. Keep it out of the repository and out of the client. An empty one is refused. */
+    secretKey: string;
+    /**
+     * Who a token was issued for. Present, `verify` demands the caller's id and refuses a token whose owner is another or
+     * absent. Absent, a token is not bound to anyone and `verify` refuses an `ownerId` it cannot compare.
+     */
+    ownerOf?: (opts: {
+        payload: TPayload;
+    }) => string | undefined;
+    /** A check on the payload of a token that is genuine, owned and alive (extension, size...). Throw the application's own error to refuse. */
+    validate?: (opts: {
+        payload: TPayload;
+    }) => void;
+    /** Definitions thrown in place of the defaults (`INVALID_COMMIT_TOKEN`, `EXPIRED_COMMIT_TOKEN`). */
+    errors?: Partial<IAssetTokenErrors>;
+    /** The clock, in epoch milliseconds. A test seam. */
+    now?: () => number;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/common/commit-token.ts`
+
+## `TAssetPresigner`
+
+*type*
+
+What the presign route needs of a presign service: the one method it calls.
+
+```ts
+export type TAssetPresigner<TPayload extends object, TContext> = Pick<AssetPresignService<TPayload, TContext>, 'presign'>;
+```
+
+Source: `packages/core-server/src/components/static-asset/common/types.ts`
+
+## `TAssetProxyFailure`
+
+*type*
+
+One of the `AssetProxyFailures` values.
+
+```ts
+export type TAssetProxyFailure = TConstValue<typeof AssetProxyFailures>;
+```
+
+Source: `packages/core-server/src/components/static-asset/common/constants.ts`
+
+## `TAssetServicesComponentOptions`
+
+*type*
+
+Asset services keyed by an application-chosen name.
+
+```ts
+export type TAssetServicesComponentOptions = {
+    [name: string]: IAssetServicesEntry;
+};
+```
+
+Source: `packages/core-server/src/components/static-asset/service/component.ts`
 
 ## `TBucketParams`
 
@@ -1221,36 +1885,62 @@ Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
 *type*
 
-Enables the signed-policy upload flow, where the client posts bytes straight to the storage and IGNIS only signs the permission and verifies the commit.
+Enables the presigned-PUT upload flow: the client asks this route for one signed URL per file, then PUTs the bytes straight to the
+storage. The object is written to its FINAL key with a pending tag, and the application keeps it by settling it
+(`AssetSettleService`) once the record that owns it is saved; an object never settled is left to the storage's lifecycle rule.
+
+The route is a thin layer over `AssetPresignService`: authorize, map the request into files and a context, presign, map the answer.
+Everything else (extensions, size, count, key, token, signed headers, URL rewrite, errors) is configured on the presign service.
+
+`TCaller` is what `authorize` answers: the caller, as the application knows it (principal, roles, tenants). `TContext` is what the
+presign service is given (the folder's tenant, what the upload is for); it is the caller itself unless `request.toInput` builds another.
+`TBody` is the request body.
 
 ```ts
-export type TDirectUploadOptions = {
-    /** Who may ask for a policy. REQUIRED, not defaulted: this route hands out a write credential, and there is no safe default for that. */
+export type TDirectUploadOptions<TCaller extends object = object, TPayload extends object = ICommitTokenPayload, TBody = TPresignRequestBody, TContext = TCaller> = {
+    /**
+     * Who may ask for a signed URL, and as whom. REQUIRED, not defaulted: this route hands out a write credential, and there is no safe
+     * default for that. Answer the caller context (an object, `{}` when there is nothing to say) to allow, or a falsy value to refuse
+     * with a 403; the storage is not touched on a refusal. The answer reaches `request.toInput` and `response.map`, and without a
+     * `request` it is the context the presign service gets.
+     */
     authorize: (opts: {
         context: TRouteContext;
-    }) => ValueOrPromise<boolean>;
-    /** Signs the commit token. Keep it out of the repository and out of the client. */
-    secretKey: string;
-    /** The ceiling the policy carries as `content-length-range`. A signed PUT cannot express this at all, which is why this is a POST policy. */
-    maxBytes: number;
+    }) => ValueOrPromise<TCaller | false | null | undefined>;
     /**
-     * Where a policy may write. The final key is NEVER in a policy, so content cannot be replaced after the commit.
-     *
-     * @default 'pending/'
+     * Prepares the uploads: an `AssetPresignService` built with the token, the extensions, the size ceiling and the key rule of the
+     * application, or any object with its `presign` method (to answer the service's refusals in the application's own codes).
      */
-    pendingPrefix?: string;
+    presign: TAssetPresigner<TPayload, TContext>;
     /**
-     * How long a policy and its commit token stay good.
+     * How the request body becomes the files to sign and the context the presign service gets (and the user a token is issued for).
+     * It may ask the application something (read a row, check a tenant): throw the application's own error to refuse.
      *
-     * @default StoragePresignDefaults.POST_EXPIRES_IN
+     * @default the body `{ files: [{ fileName, contentType?, size }] }`, a `contentType` of `application/octet-stream` when absent, and the
+     * caller from `authorize` unchanged as the presign context (so `TContext` is `TCaller`)
      */
-    expiresIn?: IDuration;
-    /** Runs BEFORE the copy to the final key, so a hook that throws leaves the object under the pending prefix for a lifecycle rule to collect, rather than stranding it at the final key. */
-    onCommit?: (opts: {
-        bucket: IBucketRef;
-        pendingObject: IObjectRef;
-        object: IObjectRef;
-    }) => ValueOrPromise<void>;
+    request?: {
+        /** The body schema, validated before `toInput` runs and published in the OpenAPI document. */
+        schema: z.ZodType<TBody>;
+        toInput: (opts: {
+            body: TBody;
+            /** What `authorize` answered. */
+            context: TCaller;
+        }) => ValueOrPromise<IAssetPresignRequest<TContext>>;
+    };
+    /**
+     * How the results become the response body.
+     *
+     * @default the results as the presign service answers them: `[{ preSignUrl, fileKeyToken, key }]`
+     */
+    response?: {
+        /** The response schema, published in the OpenAPI document. */
+        schema: z.ZodType;
+        map: (opts: {
+            results: IAssetPresignResult[];
+            context: TCaller;
+        }) => unknown;
+    };
 };
 ```
 
@@ -1311,7 +2001,7 @@ export type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLink
     createMetaLink?: (opts: {
         uploadResult: IUploadResult;
         fileStat: IFileStat;
-        /** The caller's labels. Named for where they used to travel - they arrive in the request BODY now, as form fields on an upload and beside the commit token on a direct one. */
+        /** The caller's labels. Named for where they used to travel - they arrive in the request BODY now, as form fields on an upload. */
         query: TUploadQuery;
     }) => ValueOrPromise<{
         count: number;
@@ -1946,6 +2636,24 @@ export type TObjectParams = {
 
 Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
+## `TPresignRequestBody`
+
+*type*
+
+Body of the presign route when the application configures none: the files the client intends to upload.
+
+```ts
+export type TPresignRequestBody = {
+    files: Array<{
+        fileName: string;
+        contentType?: string;
+        size: number;
+    }>;
+};
+```
+
+Source: `packages/core-server/src/components/static-asset/common/types.ts`
+
 ## `TStaticAssetExtraOptions`
 
 *type*
@@ -1958,7 +2666,7 @@ export type TStaticAssetExtraOptions = {
         storage?: TMultipartStorage;
         uploadDir?: string;
         /**
-         * The most file parts one upload request may carry; more is refused with 413 before anything is written. The upload-policy request is bounded by the same number (more is a 422).
+         * The most file parts one upload request may carry; more is refused with 413 before anything is written.
          *
          * @default DEFAULT_MAX_UPLOAD_FILES (20)
          */
@@ -2019,8 +2727,7 @@ export type TStaticAssetRoutes = {
     deleteObject?: TStaticAssetRouteConfig;
     getObjectByName?: TStaticAssetRouteConfig;
     downloadObjectByName?: TStaticAssetRouteConfig;
-    uploadPolicy?: TStaticAssetRouteConfig;
-    uploadCommit?: TStaticAssetRouteConfig;
+    uploadPresign?: TStaticAssetRouteConfig;
     recreateMetaLink?: TStaticAssetRouteConfig;
 };
 ```
@@ -2064,8 +2771,10 @@ export type TStaticAssetsComponentOptions<Schema extends TMetaLinkCompatibleSche
              */
             keyPrefix?: string;
             routes?: TStaticAssetRoutes;
-            /** Direct upload: the browser posts the bytes to the storage and IGNIS only signs the permission. Absent leaves both routes unregistered. Requires `bucket` - a policy names one bucket, and a bucket in the URL is a bucket the caller chooses. */
-            directUpload?: TDirectUploadOptions;
+            /** Presigned-PUT upload: the browser PUTs the bytes straight to the storage and this route only signs the permission. Absent leaves the route unregistered. */
+            directUpload?: TDirectUploadOptions<AnyType, AnyType, AnyType, AnyType>;
+            /** A proxy for presigned storage URLs, switched on by `proxy.enable`. Absent registers no proxy route. */
+            proxy?: IAssetProxyOptions;
         };
         extra?: TStaticAssetExtraOptions;
         /** Decides the stored object name of each uploaded file; absent keeps the storage helper's own naming. */
@@ -2102,24 +2811,6 @@ export type TStaticAssetStorageType = TConstValue<typeof StaticAssetStorageTypes
 ```
 
 Source: `packages/core-server/src/components/static-asset/common/constants.ts`
-
-## `TUploadPolicyRequest`
-
-*type*
-
-Body of the upload policy route: the files the client intends to upload.
-
-```ts
-export type TUploadPolicyRequest = {
-    files: Array<{
-        fileName: string;
-        contentType?: string;
-        size?: number;
-    }>;
-};
-```
-
-Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
 ## `TUploadQuery`
 

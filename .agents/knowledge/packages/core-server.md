@@ -186,6 +186,7 @@ helper, basePath })` runs after every built-in route so a built-in wins a path c
 `defineRoutesBefore({ controller, helper, basePath })` is its mirror - it registers before every
 built-in route, so an application route wins that collision instead (Hono matches in registration
 order, which is how a literal path beats the catch-all `rawObjectPath` produces).
+Outside the routes, `AssetCommitToken` (configurable file tokens), `AssetPresignService`, `AssetSettleService`, `AssetServicesComponent` and `AssetPresignProxy` (`controller.proxy`) are building blocks a service can use without serving an asset route; see [object storage](/architecture/object-storage.md#tokens-presigned-put-settle-and-the-proxy).
 Its URL shape is two more options, both off by default and independent: `controller.bucket`
 (`string | (() => string)`, read per request) takes the bucket out of the path AND leaves the four
 bucket-management routes unregistered, and `controller.rawObjectPath` widens the object segment to
@@ -193,11 +194,10 @@ the `{objectName}{.+}` catch-all so a raw nested path resolves - the percent-enc
 working either way. `AssetDefinitionBuilder.build(opts)` builds the twelve route configs from those two
 flags.
 The upload labels - `principalType`, `principalId`, `variant`, `sequence`, `folderPath` - travel in
-the BODY, not the query: form fields on `POST {base}/objects`, and beside the commit token in the
-JSON body on `upload-commit`. A query string is logged everywhere it passes, and an identifier
+the BODY, not the query: form fields on `POST {base}/objects`. A query string is logged everywhere it passes, and an identifier
 describing the payload belongs with the payload; the cost is that they are unreadable until the body
 is parsed, so `folderPath` is validated after parsing. `extra.maxBytes` is the upload ceiling and
-answers `413` with `core.static_asset.upload_too_large` - one code for both upload paths. Its
+answers `413` with `core.static_asset.upload_too_large` - one code for the ordinary upload and the presign service. Its
 `content-length` check is route middleware (`AssetRouteOptions.appendLengthGuard`), appended AFTER the
 application's own `routes.upload.middleware`: `@hono/zod-openapi`'s form validator reads the whole
 body before any handler runs, so a check in the handler saved no memory. The per-file
