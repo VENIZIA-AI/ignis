@@ -10,6 +10,7 @@ import { AssetKeyScope } from '../controller/key-scope';
 /** What the client posts to the storage, plus the key it lands under and the token that commits it. */
 export type TAssetUploadPolicy = IPostPolicy & { objectName: string; commitToken: string };
 
+/** What an `AssetUploadPolicyService` needs, all of it one options entry already carries. */
 export interface IAssetUploadPolicyServiceOptions {
   /** Names the logger; the controller's own name is the usual value. */
   scope: string;

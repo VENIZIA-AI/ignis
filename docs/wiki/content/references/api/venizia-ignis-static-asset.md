@@ -7,9 +7,7 @@ description: "Every export of @venizia/ignis/static-asset, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-43 exports, 42 with TSDoc.
-
-Without TSDoc (1): `IAssetUploadPolicyServiceOptions`.
+43 exports, 43 with TSDoc.
 
 ## `AssetCommitToken`
 
@@ -998,6 +996,8 @@ Source: `packages/core-server/src/components/static-asset/services/upload-commit
 ## `IAssetUploadPolicyServiceOptions`
 
 *interface*
+
+What an `AssetUploadPolicyService` needs, all of it one options entry already carries.
 
 ```ts
 export interface IAssetUploadPolicyServiceOptions {
