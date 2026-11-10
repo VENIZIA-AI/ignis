@@ -122,6 +122,48 @@ runs and watch step 2 leave without touching the backend.
 | `expiresIn` | `IDuration` | 15 minutes | How long a policy and its commit token stay good. |
 | `onCommit` | `({ bucket, pendingObject, object }) => ValueOrPromise<void>` | - | Runs **before** the copy. |
 
+## Use from a service
+
+The two routes are thin wrappers over one object, `AssetDirectUpload`. The component binds one per entry that sets `directUpload`, so a service can issue a policy or commit an upload without making an HTTP call to its own server.
+
+The key is `StaticAssetComponentBindingKeys.directUpload({ name })`, where `name` is the entry's key in the options object (`assets` above), not the controller name.
+
+The common case: the client sends `commitToken` along with the record, and the service commits while it saves.
+
+```ts
+import { BaseService, inject } from '@venizia/ignis';
+import { AssetDirectUpload, StaticAssetComponentBindingKeys } from '@venizia/ignis/static-asset';
+
+export class ProductService extends BaseService {
+  constructor(
+    @inject({ key: StaticAssetComponentBindingKeys.directUpload({ name: 'assets' }) })
+    private assetUpload: AssetDirectUpload,
+    @inject({ key: 'repositories.ProductRepository' }) private products: ProductRepository,
+  ) {
+    super({ scope: ProductService.name });
+  }
+
+  async create(opts: { data: TProductInput; commitToken: string }) {
+    const committed = await this.assetUpload.commit({
+      commitToken: opts.commitToken,
+      labels: { principalType: 'Product', principalId: opts.data.sku },
+    });
+
+    return this.products.create({ data: { ...opts.data, imageLink: committed.link } });
+  }
+}
+```
+
+| Method | Does |
+|---|---|
+| `issuePolicies({ files })` | The `upload-policy` body: one signed policy per file. |
+| `commit({ commitToken, labels })` | The `upload-commit` body: verify the token, copy to the final key, remove the pending object, write the MetaLink row. Answers `{ bucket, object, link, metaLink? }`. |
+
+> [!WARNING]
+> `issuePolicies` does not call `directUpload.authorize`. That check belongs to the route; code that calls the service decides for itself who may ask for a policy. `commit` still verifies the token and the `keyPrefix` scope, so a forged, expired or out-of-scope token is refused before any storage call.
+
+If the MetaLink row cannot be written, `commit` still resolves, with `metaLink: { error }`: the object is committed by then, and a throw would send the caller back with a token whose source no longer exists.
+
 ## Why a policy and not a presigned PUT
 
 A signed PUT binds each header to an **exact** value. `content-length: 2048` means exactly 2048
@@ -192,4 +234,5 @@ commit token carrying business fields.
 **Files:**
 
 - [`packages/helpers/src/modules/storage/bun-s3/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/utility.ts) - `S3SignatureUtility.buildPostPolicy`
+- [`packages/core-server/src/components/static-asset/controller/direct-upload.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/direct-upload.ts) - `AssetDirectUpload.issuePolicies`, `AssetDirectUpload.commit`
 - [`packages/core-server/src/components/static-asset/common/commit-token.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/commit-token.ts) - `AssetCommitToken.build`, `AssetCommitToken.read`
