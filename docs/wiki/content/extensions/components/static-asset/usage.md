@@ -1,24 +1,29 @@
 ---
 title: Static Asset Component - Usage & Examples
-description: Task-oriented walkthroughs for buckets, uploads, downloads, MetaLink tracking, and frontend integration
-difficulty: intermediate
+description: Read, list, delete and track objects - buckets, streaming and downloads, MetaLink tracking and sharing one bucket between entries. Uploads have their own pages.
 ---
 
 # Usage & Examples
 
-Task-oriented patterns for the endpoints `StaticAssetComponent` generates, plus the full MetaLink tracking setup. All examples assume a backend registered under `basePath: '/assets'` - see [Overview](./) for the binding.
+Task-oriented patterns for the routes `StaticAssetComponent` generates once a file is stored: reading, listing, deleting and tracking it. To put files in, see [Server upload](./server-upload) and [Direct upload](./direct-upload). All examples assume an entry mounted at `basePath: '/assets'` with no `bucket`, so the bucket is in the path: see [Getting started](./getting-started).
 
-## List and manage buckets
+## Manage buckets
 
-These four routes are **off by default**. Turn each one on in `controller.routes` with `enabled: true`, and put `auth` on the entry first: a route that lists or deletes buckets is not one to leave open.
+The four bucket-management routes are **off by default**: they list, create and delete buckets, and nothing about a file server needs them open. Turn each one on in `routes` - and put `auth` on the entry first.
 
-```typescript
-routes: {
-  getBuckets: { enabled: true },
-  getBucketByName: { enabled: true },
-  createBucket: { enabled: true },
-  deleteBucket: { enabled: true },
-},
+```ts
+import { Authentication } from '@venizia/ignis';
+import { DiskHelper } from '@venizia/ignis-helpers';
+import type { TStaticAssetComponentOptions } from '@venizia/ignis/static-asset';
+
+export const options: TStaticAssetComponentOptions = {
+  assets: {
+    basePath: '/assets',
+    helper: new DiskHelper({ basePath: './app_data/assets' }),
+    auth: { authenticate: { strategies: [Authentication.STRATEGY_JWT] } },
+    routes: { getBuckets: true, getBucketByName: true, createBucket: true, deleteBucket: true },
+  },
+};
 ```
 
 ```
@@ -28,70 +33,45 @@ POST   /assets/buckets/:bucketName     Create a bucket
 DELETE /assets/buckets/:bucketName     Delete a bucket
 ```
 
-```typescript
-const buckets = await fetch('/assets/buckets').then(r => r.json());
-// [{ name: 'user-uploads', creationDate: '2026-01-01T00:00:00.000Z' }]
+```ts
+export const manageBuckets = async (opts: { token: string }): Promise<void> => {
+  const headers = { authorization: `Bearer ${opts.token}` };
 
-await fetch('/assets/buckets/user-uploads', { method: 'POST' });
-const { isDeleted } = await fetch('/assets/buckets/user-uploads', { method: 'DELETE' }).then(r => r.json());
+  const buckets = await fetch('/assets/buckets', { headers }).then((response) => response.json());
+  // [{ name: 'user-uploads', creationDate: '2026-01-01T00:00:00.000Z' }]
+  console.log(buckets);
+
+  await fetch('/assets/buckets/user-uploads', { method: 'POST', headers });
+  await fetch('/assets/buckets/user-uploads', { method: 'DELETE', headers });
+};
 ```
 
-Every `bucketName` is validated with `isValidBucketName()` - single segment, no `..`/`/`/`\`, no shell metacharacters, 255 bytes or fewer in UTF-8. See [Error Reference](./errors) for the full rule set.
-
-## Upload files
-
-`POST /assets/buckets/:bucketName/objects` accepts `multipart/form-data`. `principalType`, `principalId`, `variant`, `sequence` and `folderPath` are optional **form fields** - an identifier in a URL lands in every access log on the way. A label in the query string is refused with `400 core.static_asset.labels_in_query`. The same path answers `GET` with a listing.
-
-```typescript
-const formData = new FormData();
-formData.append('file', fileBlob, 'document.pdf');
-formData.append('principalType', 'user');
-formData.append('principalId', '42');
-formData.append('variant', 'original');
-formData.append('folderPath', 'invoices/2026');
-
-const response = await fetch('/assets/buckets/user-uploads/objects', {
-  method: 'POST',
-  body: formData,
-});
-
-const [result] = await response.json();
-// {
-//   bucket: { name: 'user-uploads' },
-//   object: { key: 'invoices/2026/document.pdf', size: 20481, contentType: 'application/pdf' },
-//   link: '/assets/buckets/user-uploads/objects/invoices%2F2026%2Fdocument.pdf',
-// }
-```
-
-- **`folderPath` is validated separately from the filename.** Each segment must pass `isValidSegment()`. The segment count must stay within `maxFolderDepth` (default `2`). Both checks return `400` before the file is even parsed.
-- **`principalId` is always stored as a string**, coerced with `String()` regardless of whether you send a number or a string.
-- **With MetaLink enabled, the upload always succeeds - even if the tracking write fails.** `metaLink` is a union, so it carries one arm or the other, never both:
-
-  | Outcome | `metaLink` |
-  |---------|-----------------|
-  | MetaLink write succeeded | <code v-pre>{ data: &lt;the created database record&gt; }</code> |
-  | MetaLink write failed | <code v-pre>{ error: 'META_LINK_CREATE_FAILED' }</code> - a fixed code, never the driver's text |
+Every `bucketName` is validated with `isValidBucketName()` - single segment, no `..`/`/`/`\`, no shell metacharacters, 255 bytes or fewer in UTF-8. See [Error Reference](./errors) for the full rule set. An entry with a `bucket` never registers these routes.
 
 ## Stream or download an object
 
-```typescript
-const objectName = 'invoices/2026/document.pdf';
+```ts
+export const objectUrls = (opts: { objectName: string }) => {
+  const encodedName = encodeURIComponent(opts.objectName);
 
-// Streams inline only when the KEY's type is renderable; anything else downloads
-const streamUrl = `/assets/buckets/user-uploads/objects/${encodeURIComponent(objectName)}`;
-
-// Forces a browser download dialog via Content-Disposition: attachment, always
-const downloadUrl = `/assets/buckets/user-uploads/download/${encodeURIComponent(objectName)}`;
-window.open(downloadUrl, '_blank');
+  return {
+    // Streams inline only when the KEY's type is renderable; anything else downloads
+    stream: `/assets/buckets/user-uploads/objects/${encodedName}`,
+    // Forces a browser download dialog via Content-Disposition: attachment, always
+    download: `/assets/buckets/user-uploads/download/${encodedName}`,
+  };
+};
 ```
 
-Both routes validate `bucketName` with `isValidBucketName()` and `objectName` with `isValidObjectKey()`. Both then forward a fixed whitelist of metadata headers - `content-encoding`, `cache-control`, `etag`, `last-modified` - plus `X-Content-Type-Options: nosniff` and `Content-Security-Policy: sandbox`.
+Both routes validate `bucketName` with `isValidBucketName()` and `objectName` with `isValidObjectKey()`, and forward only `content-encoding`, `cache-control`, `etag` and `last-modified` from the storage metadata.
 
 > [!WARNING]
-> `content-type` is not forwarded from storage metadata, and it is not taken from what the uploader declared either. The served type is derived from the object KEY, and anything outside the renderable allow-list is forced to `application/octet-stream` with `Content-Disposition: attachment`. A renderable type a client could choose is stored cross-site scripting on the API origin. See [Header sanitization](./api#header-sanitization) for the allow-list.
+> `content-type` is not forwarded from storage metadata, and it is not taken from what the uploader declared either. The served type is derived from the object KEY, and anything outside the renderable allow list is forced to a download. See [Security](./security#served-content).
 
 > [!TIP]
-> `objectName` may embed folder segments, for example `invoices/2026/document.pdf`. Always pass the whole thing through `encodeURIComponent()`. Hono decodes it exactly once before the handler reads it - a second `decodeURIComponent()` on your end is wrong. It can corrupt names that contain a literal `%`.
+> `objectName` may embed folder segments, for example `invoices/2026/document.pdf`. Always pass the whole thing through `encodeURIComponent()`. Hono decodes it exactly once before the handler reads it - a second `decodeURIComponent` throws on `report_100%.pdf`.
+
+Who may read is the entry's [`auth`](./security#authentication-and-authorization): with `publicRead` these two routes need no token, which is how a browser shows an image.
 
 ## List objects in a bucket
 
@@ -123,7 +103,7 @@ const { success } = await fetch(
 
 ## Sync a MetaLink record manually
 
-`PUT /assets/buckets/:bucketName/meta-links/:objectName` is only registered when `useMetaLink: true`. It re-reads the file's current storage metadata via `helper.getStat()`, then refreshes every existing row for that object, or creates one if none exists.
+`PUT /assets/buckets/:bucketName/meta-links/:objectName` is only registered when the entry has a `metaLink`. It re-reads the file's current storage metadata via `helper.getStat()`, then refreshes every existing row for that object, or creates one if none exists.
 
 ```typescript
 const objectName = 'invoices/2026/document.pdf';
@@ -146,11 +126,11 @@ Useful for backfilling MetaLink rows for files that already exist in storage, or
 
 ## Enable MetaLink tracking
 
-MetaLink persists an upload's bucket, object name, link, mimetype, size, etag, storage type, principal, and variant to Postgres. `BaseMetaLinkModel` and `BaseMetaLinkRepository` cover the schema - you only write a repository subclass and the table.
+MetaLink persists an upload's bucket, object name, link, mimetype, size, etag, storage type, principal, and variant to Postgres. `BaseMetaLinkModel` and `BaseMetaLinkRepository` cover the schema - you only write a repository subclass that binds them to your datasource. Give the entry a `metaLink` and it is on; leave it out and it is off.
 
 **1. Repository.** `BaseMetaLinkModel` is used as-is - no model subclass needed:
 
-```typescript
+```ts
 import { repository } from '@venizia/ignis';
 import { BaseMetaLinkModel, BaseMetaLinkRepository } from '@venizia/ignis/static-asset';
 import { PostgresDataSource } from '@/datasources';
@@ -191,29 +171,38 @@ CREATE INDEX "IDX_MetaLink_principal_sequence" ON "MetaLink"(principal_type, pri
 > [!IMPORTANT]
 > The MetaLink type contract checks the **select row** only - the columns above, on whatever table you point `metaLink.model`/`metaLink.repository` at. A column you add of your own must be nullable or carry a default: the component's default insert writes exactly the columns above, so a NOT NULL column with no default passes the type check and then fails every insert the component makes without your own `createMetaLink` hook.
 
-**3. Register the repository and wire it into the component options:**
+**3. Register the repository and give the entry a `metaLink`:**
 
-```typescript
-export class Application extends BaseApplication {
-  preConfigure() {
+```ts
+import { BaseApplication } from '@venizia/ignis';
+import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
+import {
+  BaseMetaLinkModel,
+  StaticAssetComponent,
+  type TStaticAssetComponentOptions,
+} from '@venizia/ignis/static-asset';
+import { MetaLinkRepository } from '@/repositories/meta-link.repository';
+
+export abstract class Application extends BaseApplication {
+  override preConfigure(): void {
     this.repository(MetaLinkRepository);
 
-    this.bind<TStaticAssetComponentOptions>({
-      key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
-    }).toValue({
+    const options: TStaticAssetComponentOptions = {
       uploads: {
-        controller: { name: 'UploadsController', basePath: '/uploads' },
-        storage: StaticAssetStorageTypes.BUN_S3,
-        helper: new BunS3Helper({ /* ... */ }),
-        useMetaLink: true,
+        basePath: '/uploads',
+        helper: new BunS3Helper({
+          accessKey: 'access-key',
+          secretKey: 'secret-key',
+          endpoint: { default: 'http://minio:9000' },
+        }),
         metaLink: {
           model: BaseMetaLinkModel,
           repository: this.get<MetaLinkRepository>({ key: 'repositories.MetaLinkRepository' }),
         },
       },
-    });
+    };
 
-    this.component(StaticAssetComponent);
+    this.component(StaticAssetComponent, { options });
   }
 }
 ```
@@ -221,17 +210,16 @@ export class Application extends BaseApplication {
 > [!TIP]
 > Call `this.repository(MetaLinkRepository)` before `this.get({ key: 'repositories.MetaLinkRepository' })` - the binding has to exist in the container first.
 
-### Upload straight from the browser
-
-For video and other large files, `directUpload` lets the browser post the bytes to storage while IGNIS only signs the permission - see [Direct upload](./direct-upload).
-
 ### Your own MetaLink table
 
-The MetaLink table belongs to your application, so it does not have to be the one IGNIS ships. Put it
-under a Postgres schema of your own, or give it another name, and pass the table as the type
-argument:
+The MetaLink table belongs to your application, so it does not have to be the one IGNIS ships. Put it under a Postgres schema of your own, or give it another name, and pass the table as the type argument:
 
 ```typescript
+import { pgSchema } from 'drizzle-orm/pg-core';
+import { BaseRelationalEntity } from '@venizia/ignis-connectors/postgres';
+import { model } from '@venizia/ignis';
+import type { TStaticAssetComponentOptions } from '@venizia/ignis/static-asset';
+
 const commerceSchema = pgSchema('commerce');
 
 @model()
@@ -239,33 +227,32 @@ export class MetaLinkModel extends BaseRelationalEntity<typeof MetaLinkModel.sch
   static override schema = commerceSchema.table('MetaLink', { /* the MetaLink columns */ });
 }
 
-this.bind<TStaticAssetComponentOptions<typeof MetaLinkModel.schema>>({
-  key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
-}).toValue({ /* ... */ });
+export type TCommerceOptions = TStaticAssetComponentOptions<typeof MetaLinkModel.schema>;
 ```
 
-What the type checks is the ROW, never the table. A table whose row carries the MetaLink fields is
-accepted whatever its name or Postgres schema, and a table missing one of those fields is still
-refused before the code runs.
+What the type checks is the ROW, never the table. A table whose row carries the MetaLink fields is accepted whatever its name or Postgres schema, and a table missing one of those fields is still refused before the code runs.
 
 ### Custom MetaLink creation
 
-Provide `createMetaLink` on `TMetaLinkConfig` to fully replace the default insert - for example to add extra fields or run validation before persisting.
+Provide `createMetaLink` on the entry's `metaLink` to fully replace the default insert - for example to add extra fields or run validation before persisting.
 
-```typescript
-metaLink: {
+```ts
+import { BaseMetaLinkModel, StaticAssetStorageTypes } from '@venizia/ignis/static-asset';
+import type { BaseMetaLinkRepository, TMetaLinkConfig } from '@venizia/ignis/static-asset';
+
+export const buildMetaLink = (opts: { repository: BaseMetaLinkRepository }): TMetaLinkConfig => ({
   model: BaseMetaLinkModel,
-  repository: metaLinkRepository,
-  createMetaLink: async ({ uploadResult, fileStat, query }) =>
-    metaLinkRepository.create({
+  repository: opts.repository,
+  createMetaLink: ({ uploadResult, fileStat, query }) =>
+    opts.repository.create({
       data: {
         bucketName: uploadResult.bucket.name,
         objectName: uploadResult.object.key,
         link: uploadResult.link,
-        mimetype: fileStat.metadata?.['mimetype'],
+        mimetype: fileStat.metadata?.mimetype ?? uploadResult.object.contentType,
         size: fileStat.size,
         etag: fileStat.etag,
-        storageType: 'bun-s3',
+        storageType: StaticAssetStorageTypes.BUN_S3,
         isSynced: true,
         principalId: query.principalId ? String(query.principalId) : undefined,
         principalType: query.principalType,
@@ -273,85 +260,82 @@ metaLink: {
         sequence: query.sequence,
       },
     }),
-},
+});
 ```
 
 When `createMetaLink` is omitted, the component uses a default insert that covers every standard field.
 
 ### Query MetaLink records
 
-```typescript
-const userFiles = await metaLinkRepository.find({ filter: { where: { principalType: 'user', principalId: '42' } } });
-const thumbnails = await metaLinkRepository.find({ filter: { where: { variant: 'thumbnail' } } });
-const pdfs = await metaLinkRepository.find({ filter: { where: { mimetype: 'application/pdf' } } });
+```ts
+import type { BaseMetaLinkRepository } from '@venizia/ignis/static-asset';
+
+export const findFiles = async (opts: { repository: BaseMetaLinkRepository }) => {
+  const userFiles = await opts.repository.find({
+    filter: { where: { principalType: 'user', principalId: '42' } },
+  });
+  const thumbnails = await opts.repository.find({ filter: { where: { variant: 'thumbnail' } } });
+  const pdfs = await opts.repository.find({ filter: { where: { mimetype: 'application/pdf' } } });
+
+  return { userFiles, thumbnails, pdfs };
+};
 ```
 
-## Share one bucket between controllers
+## Share one bucket between entries
 
-`controller.keyPrefix` scopes every key a controller touches, and `routes.<key>.enabled: false` drops a built-in route entirely. Together they let two controllers - or two tenants - share one bucket without seeing each other's keys. `keyPrefix` requires `controller.bucket`: without a configured bucket, the four bucket-management routes stay unscoped, so the controller throws at registration rather than isolating only part of its surface.
+`keyPrefix` scopes every key an entry touches, and a route set to `false` drops it entirely. Together they let two entries - or two tenants - share one bucket without seeing each other.
 
-```typescript
-this.bind<TStaticAssetComponentOptions>({
-  key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
-}).toValue({
-  tenantA: {
-    controller: {
-      name: 'TenantAAssets',
+```ts
+import { Authentication } from '@venizia/ignis';
+import type { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
+import type { TStaticAssetComponentOptions } from '@venizia/ignis/static-asset';
+
+export const buildTenants = (opts: { storage: BunS3Helper }): TStaticAssetComponentOptions => {
+  const auth = { authenticate: { strategies: [Authentication.STRATEGY_JWT] } };
+
+  return {
+    tenantA: {
       basePath: '/tenant-a/assets',
+      helper: opts.storage,
       bucket: 'shared-uploads',
       keyPrefix: 'tenant-a',
-      routes: {
-        deleteObject: { enabled: false },
-      },
+      auth,
+      routes: { deleteObject: false },
     },
-    storage: StaticAssetStorageTypes.BUN_S3,
-    helper: bunS3Helper,
-  },
-  tenantB: {
-    controller: {
-      name: 'TenantBAssets',
+    tenantB: {
       basePath: '/tenant-b/assets',
+      helper: opts.storage,
       bucket: 'shared-uploads',
       keyPrefix: 'tenant-b',
+      auth,
     },
-    storage: StaticAssetStorageTypes.BUN_S3,
-    helper: bunS3Helper,
-  },
-});
+  };
+};
 ```
 
 - `tenantA`'s routes only ever see keys under `tenant-a/` - a request for a `tenant-b/...` key answers `404`, the same as a real miss, and `listObjects` never returns a `tenant-b/` key even without a `prefix` query.
-- An upload with no naming hook writes under `tenant-a/` automatically; a `resolveObjectName` or `extra.normalizeNameFn` that returns a key outside the prefix is refused, not rewritten.
-- **With no naming hook, the original file name still has to be one segment.** A `keyPrefix` alone does not relax it: `document.pdf` is fine, `folder/document.pdf` is `400 [upload] Invalid original file name`, exactly as it would be without `tenantA`'s prefix at all. Set `resolveObjectName` or `extra.normalizeNameFn` to accept a name carrying `/`.
-- `enabled: false` needs no `keyPrefix` - it works on any controller, to drop a route your application does not want exposed at all.
-- `keyPrefix` needs `bucket` - the earlier example, and this one, both set it. Leaving `bucket` unset (bucket-in-URL mode) with `keyPrefix` set throws when the controller is defined: the four bucket-management routes cannot be scoped, so `keyPrefix` would isolate only part of the surface.
+- An upload with no `objectKey` writes under `tenant-a/` automatically; an `objectKey` that returns a key outside the prefix is refused, not rewritten.
+- **With no `objectKey`, the original file name still has to be one segment.** A `keyPrefix` alone does not relax it: `document.pdf` is fine, `folder/document.pdf` is `400 [upload] Invalid original file name`.
+- `routes.<key>: false` needs no `keyPrefix` - it works on any entry, to drop a route your application does not want exposed at all.
+- `keyPrefix` needs `bucket`: the types refuse it without one, because the four bucket routes cannot be scoped.
 
-See [`controller.keyPrefix`](./api#controller-keyprefix) for the full per-route behavior.
+See [`keyPrefix`](./api#keyprefix) for the full per-route behavior.
 
 ## Frontend integration
 
-```typescript
-async function uploadFile(
-  file: File,
-  opts: { principalType?: string; principalId?: string; variant?: string } = {},
-) {
-  const formData = new FormData();
-  formData.append('file', file);
+```ts
+export const downloadUrl = (opts: { bucketName: string; objectName: string }): string => {
+  return `/assets/buckets/${opts.bucketName}/download/${encodeURIComponent(opts.objectName)}`;
+};
 
-  const url = new URL('/assets/buckets/user-uploads/objects', location.origin);
-  Object.entries(opts).forEach(([key, value]) => value && url.searchParams.set(key, value));
-
-  const [result] = await fetch(url, { method: 'POST', body: formData }).then(r => r.json());
-  return result.link;
-}
-
-function downloadFile(bucketName: string, objectName: string) {
-  window.open(`/assets/buckets/${bucketName}/download/${encodeURIComponent(objectName)}`, '_blank');
-}
+// In the browser: window.open(downloadUrl({ bucketName, objectName }), '_blank');
 ```
+
+To send a file, see [Server upload](./server-upload#the-request) and [Direct upload](./direct-upload#the-browser-step-by-step).
 
 ## See also
 
-- [Overview](./) - quick start, imports, and common configuration tasks
-- [Full Reference](./api) - request/response schemas, `IStorageHelper` interface, header sanitization, internals
+- [Overview](./) - what the component does and which upload to choose
+- [Security](./security) - auth, publicRead and served content
+- [Configuration reference](./api) - request/response schemas, `IStorageHelper` interface, header sanitization, internals
 - [Error Reference](./errors) - name validation rules and troubleshooting

@@ -12,25 +12,40 @@ Every error condition the static asset controller and storage helpers can raise,
 
 These carry a machine code a client can branch on, alongside the human message. The code is the stable contract; the message text may be overridden at a throw site to name the offending value.
 
-| Code | Message text | HTTP Status | Category |
-|------|--------------|-------------|----------|
-| `core.static_asset.bucket_name_invalid` | `"Invalid bucket name"` | `400` | `VALIDATION` |
-| `core.static_asset.object_name_invalid` | `"Invalid object name or path"` | `400` | `VALIDATION` |
-| `core.static_asset.folder_path_invalid` | `"Invalid folder path"` | `400` | `VALIDATION` |
-| `core.static_asset.folder_segment_invalid` | `"Invalid folder path segment"` | `400` | `VALIDATION` |
-| `core.static_asset.folder_depth_exceeded` | `"Folder path exceeds the maximum depth"` | `400` | `VALIDATION` |
-| `core.static_asset.file_empty` | `"Empty file content"` | `400` | `VALIDATION` |
-| `core.static_asset.max_keys_invalid` | `"Invalid maxKeys - expected a positive integer"` | `400` | `VALIDATION` |
-| `core.static_asset.upload_too_large` | `"File is larger than the maximum allowed"` | `413` | `VALIDATION` |
-| `core.static_asset.upload_invalid` | `"The uploaded file did not pass validation"` | `422` | `VALIDATION` |
-| `core.static_asset.upload_not_authorized` | `"Not allowed to upload"` | `403` | `VALIDATION` |
-| `core.static_asset.invalid_commit_token` | `"Invalid commit token"` | `400` | `VALIDATION` |
-| `core.static_asset.expired_commit_token` | `"Commit token has expired"` | `400` | `VALIDATION` |
-| `core.static_asset.labels_in_query` | `"Upload labels belong in the request body, not the query"` | `400` | `VALIDATION` |
-| `core.static_asset.object_key_out_of_scope` | `"Object key is outside the key prefix of this controller"` | `400` | `VALIDATION` |
-| `core.storage.object_not_found` | `"Object not found"` | `404` | `BUSINESS` |
+| Code | Status | When | What the client should do |
+|------|--------|------|---------------------------|
+| `core.static_asset.bucket_name_invalid` | `400` | `bucketName` fails `isValidBucketName()` | Send one valid segment. Do not retry as is. |
+| `core.static_asset.object_name_invalid` | `400` | `objectName` fails `isValidObjectKey()` | Fix the name. Do not retry as is. |
+| `core.static_asset.folder_path_invalid` | `400` | The upload's `folderPath` is empty after trimming slashes | Send a real folder or omit the field. |
+| `core.static_asset.folder_segment_invalid` | `400` | One `folderPath` segment fails `isValidSegment()` | Rename the segment. |
+| `core.static_asset.folder_depth_exceeded` | `400` | `folderPath` is deeper than `serverUpload.maxFolderDepth` | Flatten the folders, or raise the limit. |
+| `core.static_asset.file_empty` | `400` | A file is empty after parsing | Check the file has bytes before sending. |
+| `core.static_asset.max_keys_invalid` | `400` | `listObjects`'s `maxKeys` is not a positive integer | Send a positive integer or omit it. |
+| `core.static_asset.upload_too_large` | `413` | A file is over `serverUpload.maxBytes` (upload) or `directUpload.maxBytes` (policy request) | Send a smaller file. |
+| `core.static_asset.upload_invalid` | `422` | `commit` ran your `validation` and the file is invalid | Call `upload-validate` with the same token to read the issues, fix the file, upload again with a **new** policy. |
+| `core.static_asset.upload_not_authorized` | `403` | `directUpload.authorize` returned `false` on `upload-policy`, `upload-validate` or `upload-commit` | Do not retry: the caller may not use direct upload. |
+| `core.static_asset.invalid_commit_token` | `400` | The token is forged, malformed, in an old format, or issued to a different owner | Ask for a new policy. The answer is the same for all four, on purpose. |
+| `core.static_asset.expired_commit_token` | `400` | `expires.commit` has passed | Ask for a new policy and upload again. |
+| `core.static_asset.labels_in_query` | `400` | A label (`principalType`, `principalId`, `variant`, `sequence`, `folderPath`) is in the query string | Move the labels into the request body. |
+| `core.static_asset.object_key_out_of_scope` | `400` | An `objectKey` hook returned a key outside the `keyPrefix` | Server-side: build the key under the prefix. |
+| `core.storage.object_not_found` | `404` | No object at the key, or the key is outside the `keyPrefix` | Treat as absent. |
 
-The eight `core.static_asset.*` codes live on `StaticAssetErrors`; `core.storage.object_not_found` lives on `StorageErrors` in the helpers package. Both register with the shared key registry, so `messageCode` autocompletes.
+The `core.static_asset.*` codes live on `StaticAssetErrors`; `core.storage.object_not_found` lives on `StorageErrors` in the helpers package. Both register with the shared key registry, so `messageCode` autocompletes.
+
+### The statuses of `upload-validate`
+
+A valid token answers `200` `{ isValid, issues }` **even when the file has problems**: the call worked, and the issues ride the body. Your handler runs only then. Everything else answers before it:
+
+| Status | Code | Cause |
+|---|---|---|
+| `422` | - | The body is malformed |
+| `401` | - | Unauthenticated, per the entry's `auth` |
+| `403` | `upload_not_authorized` | `directUpload.authorize` returned `false` |
+| `400` | `invalid_commit_token` | A forged token or a different owner |
+| `400` | `expired_commit_token` | `expires.commit` has passed |
+| `404` | `object_not_found` | The key is outside the `keyPrefix` |
+
+With no `validation` configured the route does not exist and answers `404`.
 
 > [!NOTE]
 > `core.request.body_too_large` (`413`) and `core.request.body_malformed` (`400`) are not static-asset codes - they live on the kernel's `RequestErrors`, alongside every other route. See [Middlewares Reference](/references/base/middlewares#body-limit-configs-middlewares-bodylimit).
@@ -42,25 +57,25 @@ The eight `core.static_asset.*` codes live on `StaticAssetErrors`; `core.storage
 | `"Invalid bucket name"` | `bucketName` fails `isValidBucketName()` | `core.static_asset.bucket_name_invalid` | `400` |
 | `"Invalid object name or path"` | `objectName` fails `isValidObjectKey()` | `core.static_asset.object_name_invalid` | `400` |
 | `"Invalid folder path"` | Upload's `folderPath` form field is empty after trimming leading/trailing slashes | `core.static_asset.folder_path_invalid` | `400` |
-| <code v-pre>"Folder path exceeds max depth of {n}"</code> | Upload's `folderPath` has more segments than `maxFolderDepth` (default `2`) | `core.static_asset.folder_depth_exceeded` | `400` |
+| <code v-pre>"Folder path exceeds max depth of {n}"</code> | Upload's `folderPath` has more segments than `serverUpload.maxFolderDepth` (default `2`) | `core.static_asset.folder_depth_exceeded` | `400` |
 | <code v-pre>"Invalid folder path segment: {segment}"</code> | One `folderPath` segment fails `isValidSegment()` | `core.static_asset.folder_segment_invalid` | `400` |
 | <code v-pre>"Empty file content \| name: {originalName}"</code> | The uploaded file's buffer is empty after multipart parsing (or after re-reading a disk-spooled file) | `core.static_asset.file_empty` | `400` |
 | <code v-pre>"Invalid maxKeys \| Expected a positive integer \| value: {value}"</code> | `listObjects`'s `maxKeys` query param does not parse to a positive integer | `core.static_asset.max_keys_invalid` | `400` |
 | <code v-pre>[getObject] Object not found \| bucket: {bucket} \| key: {key}</code> (also `[getObjectStream]`, `[getStat]`, `[removeObject]`) | No object at that bucket and key. `DiskHelper` throws it directly; `BunS3Helper` maps the backend's own failure onto it through `asStorageError` | `core.storage.object_not_found` | `404` |
-| <code v-pre>Object not found \| key: {key}</code> | The key does not start with `controller.keyPrefix` - answered before any storage call, so a caller learns nothing about a key outside its scope | `core.storage.object_not_found` | `404` |
-| `"Object key is outside the key prefix of this controller"` | A `resolveObjectName` or `extra.normalizeNameFn` key falls outside `controller.keyPrefix` | `core.static_asset.object_key_out_of_scope` | `400` |
+| <code v-pre>Object not found \| key: {key}</code> | The key does not start with the `keyPrefix` - answered before any storage call, so a caller learns nothing about a key outside its scope | `core.storage.object_not_found` | `404` |
+| `"Object key is outside the key prefix of this controller"` | A `serverUpload.objectKey` key falls outside the `keyPrefix` | `core.static_asset.object_key_out_of_scope` | `400` |
 | <code v-pre>[upload] Bucket does not exist \| name: {bucket}</code> | `helper.upload()` found no matching bucket via `hasBucket()` | - | `400` (default) |
-| `[upload] Invalid original file name` | With no naming hook, a file's `originalName` becomes the key and fails `isValidSegment()` (single segment: no `/`). The static-asset controller with `resolveObjectName` or `extra.normalizeNameFn` set relaxes this - `originalName` is then metadata, checked by the looser `isValidOriginalName()` (not blank, at most 255 characters, no control character or lone surrogate). **One exception:** `controller.keyPrefix` set with *neither* hook (the component's own default naming under a scope) keeps the strict, single-segment rule - a `keyPrefix` alone does not relax it | - | `400` (default) |
+| `[upload] Invalid original file name` | With no naming hook, a file's `originalName` becomes the key and fails `isValidSegment()` (single segment: no `/`). The static-asset controller with `serverUpload.objectKey` set relaxes this - `originalName` is then metadata, checked by the looser `isValidOriginalName()` (not blank, at most 255 characters, no control character or lone surrogate). **One exception:** a `keyPrefix` with no `serverUpload.objectKey` (the component's own default naming under a scope) keeps the strict, single-segment rule - a `keyPrefix` alone does not relax it | - | `400` (default) |
 | <code v-pre>[upload] Invalid folder path \| depth: {n} \| max: {m}</code> | `helper.upload()`'s own check found more `folderPath` segments than `maxFolderDepth` allows | - | `400` (default) |
 | `[upload] Invalid folder path` | `helper.upload()`'s own path check failed for any other reason | - | `400` (default) |
 | <code v-pre>[upload] Invalid file size \| size: {size}</code> | A file's `size` is `undefined`, `null`, or negative | - | `400` (default) |
-| <code v-pre>[upload] Invalid normalized object name \| name: {name}</code> | The key returned by `normalizeNameFn` fails `isValidObjectKey()` | - | `400` (default) |
+| <code v-pre>[upload] Invalid normalized object name \| name: {name}</code> | The key returned by the naming hook fails `isValidObjectKey()` | - | `400` (default) |
 | `[createBucket] Invalid name to create bucket!` | `createBucket()` called with a name failing `isValidBucketName()` - only reachable calling a helper directly, the controller validates first | - | `400` (default) |
 | <code v-pre>[createBucket] Bucket already exists \| name: {name}</code> | `DiskHelper.createBucket()` called with a name that already exists on disk. `BunS3Helper` throws whatever the S3 endpoint returns for the same case instead | - | `400` (default) |
 | `[removeBucket] Invalid name to remove bucket!` | `removeBucket()` called with a name failing `isValidBucketName()` - only reachable calling a helper directly | - | `400` (default) |
 | <code v-pre>[removeBucket] Bucket does not exist \| name: {name}</code> | `DiskHelper.removeBucket()` - no directory at that bucket name | - | `400` (default) |
 | <code v-pre>[removeBucket] Bucket is not empty \| name: {name}</code> | `DiskHelper.removeBucket()` - the bucket directory still has files in it | - | `400` (default) |
-| <code v-pre>[parseMultipartBody] storage: {storage} \| Invalid storage type \| Valids: ['memory', 'disk']</code> | `extra.parseMultipartBody.storage` set to something other than `'memory'`/`'disk'` - a configuration error, not user input | - | `400` (default) |
+| <code v-pre>[parseMultipartBody] storage: {storage} \| Invalid storage type \| Valids: ['memory', 'disk']</code> | `serverUpload.spool.storage` set to something other than `'memory'`/`'disk'` - a configuration error, not user input | - | `400` (default) |
 
 > [!NOTE]
 > Entries marked "default" pass no explicit `statusCode` to `getError()`. `ApplicationError` defaults `statusCode` to `400` in that case.
@@ -99,15 +114,18 @@ await fetch('/assets/buckets/user-uploads', { method: 'POST' });
 
 ### "Folder path exceeds max depth" / "Invalid folder path segment"
 
-- **Cause:** the upload's `folderPath` form field has more segments than `maxFolderDepth` allows (default `2`), or one segment fails `isValidSegment()`.
-- **Fix:** flatten the folder structure, or raise the limit via `extra.maxFolderDepth` when registering the backend.
+- **Cause:** the upload's `folderPath` form field has more segments than `serverUpload.maxFolderDepth` allows (default `2`), or one segment fails `isValidSegment()`.
+- **Fix:** flatten the folder structure, or raise the limit via `serverUpload.maxFolderDepth` on the entry.
 
-```typescript
-{
-  storage: StaticAssetStorageTypes.DISK,
+```ts
+import { DiskHelper } from '@venizia/ignis-helpers';
+import type { TStaticAssetEntry } from '@venizia/ignis/static-asset';
+
+export const entry: TStaticAssetEntry = {
+  basePath: '/uploads',
   helper: new DiskHelper({ basePath: './uploads' }),
-  extra: { maxFolderDepth: 4 },
-}
+  serverUpload: { maxFolderDepth: 4 },
+};
 ```
 
 ### "Empty file content"
@@ -127,23 +145,28 @@ url.searchParams.set('maxKeys', '50'); // OK
 
 ### A key that should exist answers "Object not found" (404)
 
-- **Cause:** the controller has `controller.keyPrefix` set, and the requested key does not start with it. The route answers exactly as it would for a real miss, before calling storage, so a caller learns nothing about a key it does not own.
+- **Cause:** the entry has a `keyPrefix`, and the requested key does not start with it. The route answers exactly as it would for a real miss, before calling storage, so a caller learns nothing about a key it does not own.
 - **Fix:** request the key with its full prefix, for example `tenant-a/photos/2026/f.jpg` on a controller scoped to `tenant-a`.
 
 ### "Object key is outside the key prefix of this controller"
 
-- **Cause:** `controller.keyPrefix` is set, and `resolveObjectName` or `extra.normalizeNameFn` returned a key outside it. The component never rewrites the key into scope - the application may have recorded the out-of-scope key elsewhere.
-- **Fix:** have the hook build keys under the prefix, or drop `controller.keyPrefix` if the hook already scopes keys on its own.
+- **Cause:** the entry has a `keyPrefix`, and `serverUpload.objectKey` returned a key outside it. The component never rewrites the key into scope - the application may have recorded the out-of-scope key elsewhere.
+- **Fix:** have the hook build keys under the prefix, or drop the `keyPrefix` if the hook already scopes keys on its own.
 
-### "[upload] Invalid original file name" under `controller.keyPrefix`
+### "[upload] Invalid original file name" under a `keyPrefix`
 
-- **Cause:** `controller.keyPrefix` is set with neither `resolveObjectName` nor `extra.normalizeNameFn` - the component's own default naming under a scope. That path keeps the strict, single-segment rule a name has without any scope; `keyPrefix` alone does not relax it.
-- **Fix:** rename the file (drop the `/`), or set `resolveObjectName`/`extra.normalizeNameFn` to build the key yourself, which frees the original name to be metadata.
+- **Cause:** the entry has a `keyPrefix` and no `serverUpload.objectKey` - the component's own default naming under a scope. That path keeps the strict, single-segment rule a name has without any scope; `keyPrefix` alone does not relax it.
+- **Fix:** rename the file (drop the `/`), or set `serverUpload.objectKey` to build the key yourself, which frees the original name to be metadata.
 
-### "keyPrefix needs controller.bucket"
+### "keyPrefix needs bucket" / "directUpload needs bucket"
 
-- **Cause:** `controller.keyPrefix` is set without `controller.bucket` (bucket-in-URL mode). With no configured bucket, the four bucket-management routes cannot be scoped, so `keyPrefix` would isolate only part of the controller's surface - the controller refuses to register rather than isolate less than its name promises.
-- **Fix:** add `controller.bucket`, the same requirement `directUpload` already has.
+- **Cause:** the entry sets `keyPrefix` or `directUpload` without a `bucket` (bucket-in-URL mode). Without a configured bucket the bucket routes cannot be scoped, and a policy would name a bucket the caller chooses. The types refuse it; this is the start-up guard for a caller the types do not reach.
+- **Fix:** add `bucket` to the entry.
+
+### "directUpload needs authorize or auth"
+
+- **Cause:** the entry has `directUpload`, no `directUpload.authorize`, and an `auth` that neither authenticates nor authorizes (or no `auth` at all). A route that hands out a write credential has no safe default for who may call it.
+- **Fix:** set `auth.authenticate` or `auth.authorize` on the entry, or give `directUpload` its own `authorize`.
 
 ### "[upload] Bucket does not exist"
 
@@ -160,17 +183,21 @@ url.searchParams.set('maxKeys', '50'); // OK
 - **Cause:** `STATIC_ASSET_OPTIONS` was never bound, or was bound to `{}` - the component's default. `binding()` iterates the options object and produces zero controllers for an empty map, without throwing.
 - **Fix:** bind a non-empty options object before `this.component(StaticAssetComponent)`:
 
-```typescript
-this.bind<TStaticAssetComponentOptions>({
-  key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
-}).toValue({
-  [uniqueKey]: {
-    controller: { name: 'AssetController', basePath: '/assets' },
-    storage: StaticAssetStorageTypes.DISK,
-    helper: new DiskHelper({ basePath: './uploads' }),
-  },
-});
-this.component(StaticAssetComponent);
+```ts
+import { DiskHelper } from '@venizia/ignis-helpers';
+import { StaticAssetBindingKeys } from '@venizia/ignis/static-asset';
+import type { TStaticAssetComponentOptions } from '@venizia/ignis/static-asset';
+
+export const bindOptions = (opts: {
+  bind: (key: string, value: TStaticAssetComponentOptions) => void;
+}): void => {
+  opts.bind(StaticAssetBindingKeys.STATIC_ASSET_OPTIONS, {
+    uploads: {
+      basePath: '/uploads',
+      helper: new DiskHelper({ basePath: './uploads' }),
+    },
+  });
+};
 ```
 
 ### Files not uploading (`DiskHelper`)
@@ -188,13 +215,16 @@ this.component(StaticAssetComponent);
 
 ### Large file uploads failing or timing out
 
-- **Cause:** `parseMultipartBody: { storage: 'memory' }` (the default) buffers the entire file in process memory before writing it to the backend.
+- **Cause:** `serverUpload.spool` unset (memory, the default) buffers the entire file in process memory before writing it to the backend.
 - **Fix:** switch to disk-based spooling:
 
-```typescript
-extra: {
-  parseMultipartBody: { storage: 'disk', uploadDir: './tmp/uploads' },
-}
+```ts
+import { MultipartStorages } from '@venizia/ignis-helpers';
+import type { TStaticAssetServerUpload } from '@venizia/ignis/static-asset';
+
+export const serverUpload: TStaticAssetServerUpload = {
+  spool: { storage: MultipartStorages.DISK, dir: './tmp/uploads' },
+};
 ```
 
 ### `BunS3Helper` fails to construct or import
@@ -202,15 +232,9 @@ extra: {
 - **Cause:** running outside Bun. `BunS3Helper` imports `S3Client` from the `bun` builtin module, which only resolves under the Bun runtime.
 - **Fix:** run the app under Bun, or use `DiskHelper` outside it.
 
-## See also
+## The size ceiling, and the token errors
 
-- [Overview](./) - quick start, imports, and common configuration tasks
-- [Usage & Examples](./usage) - task-oriented walkthroughs for every endpoint and MetaLink setup
-- [Full Reference](./api) - controller factory, `IStorageHelper` interface, MetaLink schema, internals
-
-## The size ceiling, and the two token errors
-
-`upload_too_large` is **one** code for both upload paths: over `extra.maxBytes` on
+`upload_too_large` is **one** code for both upload paths: over `serverUpload.maxBytes` on
 `POST {base}/objects`, and over `directUpload.maxBytes` when a policy is requested. A second code
 would have been the same condition wearing two names.
 
@@ -219,6 +243,13 @@ so an oversized upload is refused without first landing on disk; then each parse
 against its actual byte length, which is the authoritative one - a multipart envelope is larger than
 the files inside it, and a declared length is whatever the client declared.
 
-`invalid_commit_token` and `expired_commit_token` are both `400` and neither is a `404`. A caller
+`invalid_commit_token` and `expired_commit_token` are both `400` and neither is a `404`. A token issued to another owner answers `invalid_commit_token`, the same as a forged one. A caller
 learns only that the token is no good, never whether the key it names exists - the route is not a
 name prober, and a forged token fails before any storage call, so timing leaks nothing either.
+
+## See also
+
+- [Overview](./) - what the component does and which upload to choose
+- [Getting started](./getting-started) - three complete declarations
+- [Security](./security) - auth and the direct-upload safeguards
+- [Configuration reference](./api) - every option, route and key

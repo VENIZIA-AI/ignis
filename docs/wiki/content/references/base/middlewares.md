@@ -227,12 +227,12 @@ this.defineRoute({
 });
 ```
 
-Raise `configs.server.maxRequestBodySize` to at least the largest route limit: Bun's own limit (default 128 MiB) answers first when it is lower. The static-asset upload route sets its own limit from `extra.maxBytes`, see [the upload route](/extensions/components/static-asset/api).
+Raise `configs.server.maxRequestBodySize` to at least the largest route limit: Bun's own limit (default 128 MiB) answers first when it is lower. The static-asset upload route sets its own limit from `serverUpload.maxBytes`, see [the upload route](/extensions/components/static-asset/api).
 
 Over the limit, and with no `onError`, the request answers `413` with `core.request.body_too_large` (`RequestErrors.BODY_TOO_LARGE`). Every other `IMiddlewareConfigs` key - `compress`, `csrf`, `ipRestriction` - is a type only; wire it yourself in `setupMiddlewares()`, as in [User-Defined Middlewares](#user-defined-middlewares).
 
 > [!WARNING]
-> `extra.maxBytes` on a static-asset upload route bounds a declared `Content-Length` early, and the route now also carries its own body limit (`maxFiles` files of `maxBytes` plus multipart framing), so a chunked request with none is counted too. Raise `configs.server.maxRequestBodySize` above the largest limit, or Bun's own limit (default 128 MiB) answers `413` first, with no IGNIS envelope and no `core.request.body_too_large` code. A route that streams a body through is held to the 5 MiB default: give it `BodyLimits.route({ maxSize })`, or `enable: false` for an application that must not limit.
+> `serverUpload.maxBytes` on a static-asset upload route bounds a declared `Content-Length` early, and the route now also carries its own body limit (`maxFiles` files of `maxBytes` plus multipart framing), so a chunked request with none is counted too. Raise `configs.server.maxRequestBodySize` above the largest limit, or Bun's own limit (default 128 MiB) answers `413` first, with no IGNIS envelope and no `core.request.body_too_large` code. A route that streams a body through is held to the 5 MiB default: give it `BodyLimits.route({ maxSize })`, or `enable: false` for an application that must not limit.
 
 ## Form body reader
 

@@ -102,18 +102,19 @@ Two traps, both recorded in the code:
 
 ## Direct upload, and why it is three round trips
 
-`controller.directUpload` registers `POST {base}/upload-policy` and `POST {base}/upload-commit`.
-Absent, neither route exists.
+`directUpload` on an entry registers `POST {base}/upload-policy` and `POST {base}/upload-commit`, and
+`POST {base}/upload-validate` when it has a `validation`. Absent, none exists.
 
-1. The browser asks for a policy. IGNIS runs `authorize` (the commit route runs it too), refuses a size over `maxBytes` **before
-   signing anything**, generates `pending/<keyPrefix><uuid>/<name>` (the scope rides inside the
-   pending key, so the commit - which strips `pendingPrefix` - lands inside `controller.keyPrefix`
+1. The browser asks for a policy. IGNIS runs `authorize` (every direct-upload route runs it), refuses a size over
+   `maxBytes` **before signing anything**, generates `pending/<keyPrefix><uuid>/<name>` (the scope rides inside the
+   pending key, so the commit - which strips `pendingPrefix` - lands inside the `keyPrefix`
    too), and signs both the policy and a commit token. The token carries the owner `directUpload.resolveOwner`
    names, and lives for `expires.commit` (default `expires.upload`), which may outlast the policy.
 2. The browser posts the form straight to storage. No byte passes through IGNIS.
-3. The browser presents the commit token. IGNIS verifies it (`verify`: signature, expiry, owner, scope),
-   runs `onCommit`, copies server-side to
-   the final key, removes the temporary object, and writes the MetaLink row.
+3. The app validates (optional: `upload-validate`, which can be called repeatedly), then the browser or the
+   server presents the commit token. IGNIS verifies it (`verify`: signature, expiry, owner, scope), runs the
+   `validation` again (an invalid file is refused, 422), copies server-side to the final key, removes the
+   temporary object, and writes the MetaLink row.
 
 The third trip exists because S3 tells the backend nothing. Without it there is no MetaLink row and
 no way to attach the object to anything.
@@ -164,10 +165,13 @@ Postgres-only, and the application's.
 | The commit is claimed with an HMAC over `{bucket, object, expiresAt, owner?}`, verified BEFORE any storage call | naming someone else's object is impossible, and a forged token fails without a round trip, so timing leaks nothing |
 | With `resolveOwner`, only the owner commits, and every other caller gets the forged-token error | a leaked token is no use to anyone else, and the answer reveals nothing |
 | The token carries no business fields | which order or tenant an upload belongs to is the application's authorization, not something the framework signs |
-| `authorize` is a REQUIRED property and guards both routes | a route that hands out a write credential has no safe default, and a commit promotes an object |
+| `authorize` guards every direct-upload route, and is optional only when the entry's `auth` authenticates or authorizes | a route that hands out a write credential has no safe default, and a commit promotes an object |
+| `commit` runs `validation` again | an invalid file can never be committed, whatever the client skipped |
 
-`onCommit` runs BEFORE the copy: a hook that throws leaves the object under the pending prefix for a
-lifecycle rule, rather than stranding it at the final key. Removing the temporary object is CLEANUP,
+The validation runs BEFORE the copy: a refused file stays under the pending prefix for a lifecycle rule,
+rather than being stranded at the final key; the lifecycle rule must outlast `expires.commit`. There is no
+`onCommit` hook: content checks live in `validation.handler`, and work after a commit belongs to the
+caller of `commit`. Removing the temporary object is CLEANUP,
 not the commit - it is best-effort and logs, because failing the request would tell the caller their
 upload did not work when it did.
 
@@ -201,7 +205,7 @@ only the MetaLink `mimetype` fallback, `DiskHelper.getStat`, `writeStream`'s def
 
 ## Deliberately not built
 
-Multipart and resumable upload. Malware scanning - `onCommit` is the seam, the scanner belongs to the
+Multipart and resumable upload. Malware scanning - a `validation.handler` is the seam, the scanner belongs to the
 application. A commit token carrying business fields.
 
 Related: [[component-model]], [[error-handling-flow]].

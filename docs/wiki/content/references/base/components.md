@@ -654,25 +654,17 @@ override binding(): ValueOrPromise<void> {
   });
 
   // Create multiple controllers from configuration
-  for (const [key, opt] of Object.entries(componentOptions)) {
-    const { storage, controller, helper, extra } = opt;
+  for (const [key, entry] of Object.entries(componentOptions)) {
+    const services = this.bindDirectUploadServices({ key, entry });
 
-    this.application.controller(
-      StaticAssetControllerFactory.build({
-        controller,
-        storage,
-        helper,
-        useMetaLink: opt.useMetaLink,
-        metaLink: opt.useMetaLink ? opt.metaLink : undefined,
-        options: { ...extra /* , normalizeLinkFn fallback */ },
-      }),
-    );
+    this.application.controller(StaticAssetControllerFactory.build({ key, entry, ...services }));
 
     this.application.logger.info(
-      `[binding] Asset storage is bound | Key: %s | Storage type: %s | UseMetaLink: %s`,
+      `[binding] Asset storage is bound | Key: %s | Mount: %s | Direct upload: %s | MetaLink: %s`,
       key,
-      storage,
-      Boolean(opt.useMetaLink),
+      entry.basePath,
+      Boolean(entry.directUpload),
+      Boolean(entry.metaLink),
     );
   }
 }

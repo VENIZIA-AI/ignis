@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis/static-asset, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-47 exports, 47 with TSDoc.
+50 exports, 50 with TSDoc.
 
 ## `BaseMetaLinkModel`
 
@@ -641,28 +641,16 @@ Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
 *interface*
 
-Input of `StaticAssetControllerFactory.build`: one entry of `TStaticAssetComponentOptions` with its storage type and helper.
+Input of `StaticAssetControllerFactory.build`: one entry of `TStaticAssetComponentOptions` under its key, and the services its direct-upload routes run.
 
 ```ts
-export interface IStaticAssetControllerOptions {
-    controller: TStaticAssetComponentOptions[string]['controller'];
-    storage: TStaticAssetStorageType;
-    helper: IStorageHelper;
-    useMetaLink?: boolean;
-    /** The table is erased at this seam on purpose. The public option types carry the real `Schema` and check it; inside the controller every read and write is on MetaLink COLUMNS, and threading a table type nobody here constrains through 700 lines of handler buys nothing. */
-    metaLink?: TMetaLinkConfig<AnyType>;
-    options?: TStaticAssetExtraOptions;
-    /** Authentication and authorization of every built-in route; see `TStaticAssetAuth`. */
-    auth?: TStaticAssetAuth;
-    /** What the two direct upload routes run: the instances the component bound, so an application service resolving them from the container and the routes share them. Required when `controller.directUpload` is set. */
+export interface IStaticAssetControllerOptions<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> {
+    /** The entry's key in the options object; it names the controller when the entry has no `name`. */
+    key: string;
+    entry: TStaticAssetEntry<Schema>;
+    /** What the direct-upload routes run: the instances the component bound, so an application service resolving them from the container and the routes share them. Required when the entry has `directUpload`. */
     policyService?: Pick<StaticAssetUploadPolicyService, 'issuePolicies'>;
     commitService?: Pick<StaticAssetUploadCommitService, 'commit' | 'validate'>;
-    /** Decides the stored object name of each uploaded file. Absent leaves the storage helper's own naming untouched. */
-    resolveObjectName?: TStaticAssetObjectNameResolver;
-    /** Registers the application's own routes on the generated controller, after every built-in one. */
-    /** Registers the application's own routes BEFORE every built-in one, so a literal path wins over the catch-all `rawObjectPath` produces. */
-    defineRoutesBefore?: TStaticAssetDefineExtraRoutes;
-    defineExtraRoutes?: TStaticAssetDefineExtraRoutes;
 }
 ```
 
@@ -744,13 +732,11 @@ export interface IStaticAssetUploadCommitServiceOptions<Schema extends TMetaLink
     helper: IStorageHelper;
     /** The controller's `keyPrefix` as configured; normalized here the way the controller does. */
     keyPrefix?: string;
-    directUpload: Pick<TStaticAssetDirectUploadOptions, 'secretKey' | 'pendingPrefix' | 'onCommit' | 'validation'>;
+    directUpload: Pick<TStaticAssetDirectUploadOptions, 'secretKey' | 'pendingPrefix' | 'validation'>;
     storage: TStaticAssetStorageType;
-    useMetaLink?: boolean;
     metaLink?: TMetaLinkConfig<Schema>;
-    /** The controller mount path, the base of the link a commit returns. */
-    basePath: string;
-    rawObjectPath?: boolean;
+    /** The link a commit returns for the committed object: the entry's own, so a commit and an upload agree. */
+    link: (opts: IObjectLocation) => string;
 }
 ```
 
@@ -898,7 +884,7 @@ export declare class StaticAssetComponent<Schema extends TMetaLinkCompatibleSche
     private application;
     constructor(application: BaseApplication);
     binding(): ValueOrPromise<void>;
-    /** One pair of services per entry that turns direct upload on. The routes run the very objects an application's service resolves from the keys. An entry without a bucket binds nothing: the controller refuses it, with the reason. */
+    /** One pair of services per entry that turns direct upload on. The routes run the very objects an application's service resolves from the keys. */
     private bindDirectUploadServices;
 }
 ```
@@ -956,7 +942,7 @@ export declare class StaticAssetControllerFactory extends BaseHelper {
         contentType: string;
         isRenderable: boolean;
     };
-    static build(opts: IStaticAssetControllerOptions): {
+    static build<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema>(opts: IStaticAssetControllerOptions<Schema>): {
         new (): {
             /** Clears the multipart spool files written by `parseMultipartBody({ storage: 'disk' })`. */
             removeSpoolFiles(spoolOptions: {
@@ -1316,6 +1302,32 @@ export declare class StaticAssetMetaLinkCodes {
 
 Source: `packages/core-server/src/components/static-asset/common/constants.ts`
 
+## `StaticAssetRouteKeys`
+
+*class*
+
+The built-in routes of a generated controller, the keys of `routes`.
+
+```ts
+export declare class StaticAssetRouteKeys {
+    static readonly GET_BUCKETS = "getBuckets";
+    static readonly GET_BUCKET_BY_NAME = "getBucketByName";
+    static readonly CREATE_BUCKET = "createBucket";
+    static readonly DELETE_BUCKET = "deleteBucket";
+    static readonly UPLOAD = "upload";
+    static readonly LIST_OBJECTS = "listObjects";
+    static readonly DELETE_OBJECT = "deleteObject";
+    static readonly GET_OBJECT_BY_NAME = "getObjectByName";
+    static readonly DOWNLOAD_OBJECT_BY_NAME = "downloadObjectByName";
+    static readonly UPLOAD_POLICY = "uploadPolicy";
+    static readonly UPLOAD_COMMIT = "uploadCommit";
+    static readonly UPLOAD_VALIDATE = "uploadValidate";
+    static readonly RECREATE_META_LINK = "recreateMetaLink";
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/common/constants.ts`
+
 ## `StaticAssetStorageTypes`
 
 *class*
@@ -1349,7 +1361,6 @@ export declare class StaticAssetUploadCommitService<Schema extends TMetaLinkComp
     private readonly options;
     private readonly keyPrefix?;
     private readonly pendingPrefix;
-    private readonly basePath;
     constructor(opts: IStaticAssetUploadCommitServiceOptions<Schema>);
     /**
      * Everything `commit` checks before it touches storage, and nothing else: the signature, the
@@ -2109,64 +2120,10 @@ Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
 *type*
 
-Static asset controllers keyed by an application-chosen name. Each entry pairs a storage type with its matching helper, and `useMetaLink: true` requires a `metaLink` config.
+Static asset entries keyed by an application-chosen name; each key becomes one controller.
 
 ```ts
-export type TStaticAssetComponentOptions<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
-    [key: string]: {
-        /** Authentication and authorization of every built-in route of this entry. Absent leaves every route open, as before; `publicRead` is the only way a read route is public on purpose. */
-        auth?: TStaticAssetAuth;
-        controller: {
-            name: string;
-            basePath: string;
-            /**
-             * Whether `/path` and `/path/` are different routes on this controller.
-             *
-             * @default true
-             */
-            isStrict?: boolean;
-            /**
-             * `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`) - a URL shape change; a percent-encoded path keeps working either way.
-             *
-             * @default false
-             */
-            rawObjectPath?: boolean;
-            /** The single bucket every object route uses. It leaves the URL (`/objects/{objectName}`) and the four bucket-management routes are not registered. The function form is read per request, so an environment variable can be read lazily. */
-            bucket?: TValueOrAsyncResolver<string>;
-            /**
-             * The key scope this controller owns, e.g. `inventory/`. Every route refuses a key outside it
-             * as a 404 without calling the storage, `listObjects` lists only inside it, and an upload key
-             * must land inside it: the default name is placed there, a `resolveObjectName` or
-             * `extra.normalizeNameFn` key outside it is refused. `maxFolderDepth` counts the folders below
-             * it.
-             *
-             * @default every key in the bucket
-             */
-            keyPrefix?: string;
-            routes?: TStaticAssetRoutes;
-            /** Direct upload: the browser posts the bytes to the storage and IGNIS only signs the permission. Absent leaves both routes unregistered. Requires `bucket` - a policy names one bucket, and a bucket in the URL is a bucket the caller chooses. */
-            directUpload?: TStaticAssetDirectUploadOptions;
-        };
-        extra?: TStaticAssetExtraOptions;
-        /** Decides the stored object name of each uploaded file; absent keeps the storage helper's own naming. */
-        resolveObjectName?: TStaticAssetObjectNameResolver;
-        /** Registers the application's own routes BEFORE every built-in one, so a literal path wins over the catch-all `rawObjectPath` produces. Hono matches in registration order. */
-        defineRoutesBefore?: TStaticAssetDefineExtraRoutes;
-        /** Registers the application's own routes on the generated controller, after every built-in one. */
-        defineExtraRoutes?: TStaticAssetDefineExtraRoutes;
-    } & ({
-        storage: typeof StaticAssetStorageTypes.BUN_S3;
-        helper: BunS3Helper;
-    } | {
-        storage: typeof StaticAssetStorageTypes.DISK;
-        helper: DiskHelper;
-    }) & ({
-        useMetaLink?: false | undefined;
-    } | {
-        useMetaLink: true;
-        metaLink: TMetaLinkConfig<Schema>;
-    });
-};
+export type TStaticAssetComponentOptions<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = Record<string, TStaticAssetEntry<Schema>>;
 ```
 
 Source: `packages/core-server/src/components/static-asset/common/types.ts`
@@ -2195,8 +2152,13 @@ Enables the signed-policy upload flow, where the client posts bytes straight to 
 
 ```ts
 export type TStaticAssetDirectUploadOptions = {
-    /** Who may use direct upload. Guards BOTH routes. REQUIRED, not defaulted: the policy route hands out a write credential, and there is no safe default for that. */
-    authorize: (opts: {
+    /**
+     * Who may use direct upload. Guards every direct-upload route. There is no safe default for a
+     * route that hands out a write credential, so leaving it out is allowed only when the entry's
+     * `auth` already authenticates or authorizes: then `auth` is the gate. With neither, the
+     * component refuses to start.
+     */
+    authorize?: (opts: {
         context: TRouteContext;
     }) => ValueOrPromise<boolean>;
     /**
@@ -2211,6 +2173,12 @@ export type TStaticAssetDirectUploadOptions = {
     secretKey: string;
     /** The ceiling the policy carries as `content-length-range`. A signed PUT cannot express this at all, which is why this is a POST policy. */
     maxBytes: number;
+    /**
+     * The most files one upload-policy request may name; more is a 422.
+     *
+     * @default StaticAssetDefaults.MAX_UPLOAD_FILES (20)
+     */
+    maxFiles?: number;
     /**
      * Where a policy may write. The final key is NEVER in a policy, so content cannot be replaced after the commit.
      *
@@ -2237,49 +2205,66 @@ export type TStaticAssetDirectUploadOptions = {
      * `commit` runs the same check first and refuses an invalid file with `UPLOAD_INVALID`.
      */
     validation?: IStaticAssetValidation<z.ZodType>;
-    /** Runs BEFORE the copy to the final key, so a hook that throws leaves the object under the pending prefix for a lifecycle rule to collect, rather than stranding it at the final key. */
-    onCommit?: (opts: {
-        bucket: IBucketRef;
-        pendingObject: IObjectRef;
-        object: IObjectRef;
-    }) => ValueOrPromise<void>;
 };
 ```
 
 Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
-## `TStaticAssetExtraOptions`
+## `TStaticAssetEntry`
 
 *type*
 
-Per-controller upload tuning: multipart parsing, name and link normalization, folder depth and size ceiling.
+One storage backend with its generated controller. The storage type is the helper's; `metaLink` present turns the MetaLink table on.
 
 ```ts
-export type TStaticAssetExtraOptions = {
-    parseMultipartBody?: {
-        storage?: TMultipartStorage;
-        uploadDir?: string;
-        /**
-         * The most file parts one upload request may carry; more is refused with 413 before anything is written. The upload-policy request is bounded by the same number (more is a 422).
-         *
-         * @default StaticAssetDefaults.MAX_UPLOAD_FILES (20)
-         */
-        maxFiles?: number;
+export type TStaticAssetEntry<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
+    /** Where the controller is mounted. */
+    basePath: string;
+    /** The controller's name. Absent, it is derived from the entry's key. */
+    name?: string;
+    url?: TStaticAssetUrl;
+    /** Authentication and authorization of every built-in route of this entry. Absent leaves every route open; `publicRead` is the only way a read route is public on purpose. */
+    auth?: TStaticAssetAuth;
+    routes?: TStaticAssetRoutes;
+    /** `false` turns the upload route off. */
+    serverUpload?: false | TStaticAssetServerUpload;
+    /** Present, every upload also writes a MetaLink row. */
+    metaLink?: TMetaLinkConfig<Schema>;
+    /** Routes of the application's own on the generated controller. */
+    extend?: {
+        /** Registered BEFORE every built-in route, so a literal path wins over the catch-all `rawObjectPath` produces. Hono matches in registration order. */
+        before?: TStaticAssetDefineExtraRoutes;
+        /** Registered after every built-in route. */
+        after?: TStaticAssetDefineExtraRoutes;
     };
-    /** `folderPath` carries the upload query's target folder - dropping it flattens nested uploads. */
-    normalizeNameFn?: (opts: {
-        file: TUploadNaming;
-    }) => string;
-    normalizeLinkFn?: (opts: IObjectLocation) => string;
+} & TStaticAssetBucketScope & TStaticAssetHelper;
+
+/** `directUpload` and `keyPrefix` need a `bucket`: a policy names one bucket, and a bucket in the URL is a bucket the caller chooses. */
+type TStaticAssetBucketScope = {
+    bucket?: undefined;
+    keyPrefix?: undefined;
+    directUpload?: undefined;
+} | {
+    /** The single bucket every object route uses. It leaves the URL (`/objects/{objectName}`). The function form is read per request, so an environment variable can be read lazily. */
+    bucket: TValueOrAsyncResolver<string>;
     /**
-     * Maximum folder nesting depth allowed in object paths.
+     * The key scope this entry owns, e.g. `inventory/`. Every route refuses a key outside it as a
+     * 404 without calling the storage, `listObjects` lists only inside it, and an upload key must
+     * land inside it. `serverUpload.maxFolderDepth` counts the folders below it.
      *
-     * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
+     * @default every key in the bucket
      */
-    maxFolderDepth?: number;
-    /** Largest file the UPLOAD route accepts. Absent means no ceiling. Checked against `content-length` before spooling, then per file after parsing. */
-    maxBytes?: number;
-    [key: string]: AnyType;
+    keyPrefix?: string;
+    /** Direct upload: the browser posts the bytes to the storage and IGNIS only signs the permission. Absent leaves its routes unregistered. */
+    directUpload?: TStaticAssetDirectUploadOptions;
+};
+
+/** The storage helper. Direct upload is a POST policy, which only S3 can sign, so a disk helper cannot take `directUpload`. */
+type TStaticAssetHelper = {
+    helper: BunS3Helper;
+} | {
+    helper: DiskHelper;
+    directUpload?: never;
 };
 ```
 
@@ -2301,14 +2286,14 @@ export type TStaticAssetListQuery = {
 
 Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
-## `TStaticAssetObjectNameResolver`
+## `TStaticAssetObjectKeyResolver`
 
 *type*
 
-Decides the key one uploaded file is stored under. `defaultKey` is what IGNIS would have written.
+Decides the key one uploaded file is stored under. `defaultKey` is what IGNIS would have written - the scope and the default naming - so the hook may keep it, extend it or ignore it.
 
 ```ts
-export type TStaticAssetObjectNameResolver = (opts: {
+export type TStaticAssetObjectKeyResolver = (opts: {
     bucket: IBucketRef;
     file: TUploadNaming;
     defaultKey: string;
@@ -2339,15 +2324,7 @@ Source: `packages/core-server/src/components/static-asset/common/types.ts`
 The part of a built-in route an application may change. `authenticate` and `authorize` replace the entry's `auth` for this route, and `{ skip: true }` leaves it open.
 
 ```ts
-export type TStaticAssetRouteConfig = Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses' | 'authenticate' | 'authorize'>> & TRouteAuthConfig & {
-    /**
-     * Whether this route is registered. The four bucket-management routes are OFF unless this is
-     * `true`; every other route is on unless this is `false`.
-     *
-     * @default true
-     */
-    enabled?: boolean;
-};
+export type TStaticAssetRouteConfig = Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses' | 'authenticate' | 'authorize'>> & TRouteAuthConfig;
 ```
 
 Source: `packages/core-server/src/components/static-asset/common/types.ts`
@@ -2359,7 +2336,7 @@ Source: `packages/core-server/src/components/static-asset/common/types.ts`
 The name of a built-in route, the key of `routes`.
 
 ```ts
-export type TStaticAssetRouteKey = keyof TStaticAssetRoutes;
+export type TStaticAssetRouteKey = TConstValue<typeof StaticAssetRouteKeys>;
 ```
 
 Source: `packages/core-server/src/components/static-asset/common/types.ts`
@@ -2368,24 +2345,51 @@ Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
 *type*
 
-Per-route overrides for the built-in routes of a generated asset controller. A key left out keeps that route as built, except the four bucket-management routes, which stay off until enabled.
+What each built-in route does: `false` turns it off, `true` turns it on as built, and an object
+turns it on with those overrides. A route left out is on, except the four bucket-management
+routes, which stay off until they are listed.
 
 ```ts
-export type TStaticAssetRoutes = {
-    getBuckets?: TStaticAssetRouteConfig;
-    getBucketByName?: TStaticAssetRouteConfig;
-    createBucket?: TStaticAssetRouteConfig;
-    deleteBucket?: TStaticAssetRouteConfig;
-    upload?: TStaticAssetRouteConfig;
-    listObjects?: TStaticAssetRouteConfig;
-    deleteObject?: TStaticAssetRouteConfig;
-    getObjectByName?: TStaticAssetRouteConfig;
-    downloadObjectByName?: TStaticAssetRouteConfig;
-    uploadPolicy?: TStaticAssetRouteConfig;
-    uploadCommit?: TStaticAssetRouteConfig;
-    /** Registered only when `directUpload.validation` is set. */
-    uploadValidate?: TStaticAssetRouteConfig;
-    recreateMetaLink?: TStaticAssetRouteConfig;
+export type TStaticAssetRoutes = Partial<Record<TStaticAssetRouteKey, boolean | TStaticAssetRouteConfig>>;
+```
+
+Source: `packages/core-server/src/components/static-asset/common/types.ts`
+
+## `TStaticAssetServerUpload`
+
+*type*
+
+Uploading through the application: the browser sends the bytes to `POST /objects` and the application writes them to the storage.
+
+```ts
+export type TStaticAssetServerUpload = {
+    /** Largest file the route accepts. Absent means no ceiling. Checked against `content-length` before spooling, then per file after parsing. */
+    maxBytes?: number;
+    /**
+     * The most file parts one request may carry; more is refused with 413 before anything is written.
+     *
+     * @default StaticAssetDefaults.MAX_UPLOAD_FILES (20)
+     */
+    maxFiles?: number;
+    /**
+     * Maximum folder nesting depth allowed in object paths, for every route of the entry.
+     *
+     * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
+     */
+    maxFolderDepth?: number;
+    /**
+     * Where a request body waits while it is parsed.
+     *
+     * @default { storage: MultipartStorages.MEMORY }
+     */
+    spool?: {
+        storage: typeof MultipartStorages.MEMORY;
+    } | {
+        storage: typeof MultipartStorages.DISK;
+        dir: string;
+    };
+    /** The one hook that decides the key an uploaded file is stored under. Absent keeps the default naming. Under a `keyPrefix` a key outside the scope is refused, never rewritten. */
+    objectKey?: TStaticAssetObjectKeyResolver;
 };
 ```
 
@@ -2450,6 +2454,33 @@ export type TStaticAssetUploadQuery = {
     /** Display order within the principal. Caller-supplied: deriving it would be a non-atomic read of `max(sequence)` then a write of `max + 1`. */
     sequence?: number;
     folderPath?: string;
+};
+```
+
+Source: `packages/core-server/src/components/static-asset/common/types.ts`
+
+## `TStaticAssetUrl`
+
+*type*
+
+How an entry's objects are addressed.
+
+```ts
+export type TStaticAssetUrl = {
+    /**
+     * Whether `/path` and `/path/` are different routes on this controller.
+     *
+     * @default true
+     */
+    isStrict?: boolean;
+    /**
+     * `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`) - a URL shape change; a percent-encoded path keeps working either way.
+     *
+     * @default false
+     */
+    rawObjectPath?: boolean;
+    /** The link stored and returned for an object. Absent builds the URL of this controller's own object route. */
+    link?: (opts: IObjectLocation) => string;
 };
 ```
 

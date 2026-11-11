@@ -1,12 +1,12 @@
 ---
-title: Static Asset Component - Full Reference
-description: Controller factory, IStorageHelper interface, storage helper options, MetaLink schema, and per-endpoint request/response reference
+title: Static Asset Component - Configuration Reference
+description: Every option of a static-asset entry with its type, default and meaning, the full route table, the binding keys and services, and the storage helpers and endpoints behind them.
 difficulty: intermediate
 ---
 
 # Static Asset Component Reference
 
-Every binding, endpoint, type, and internal mechanism of `StaticAssetComponent`. For task-oriented walkthroughs, see [Usage & Examples](./usage).
+Every option, route, binding key and mechanism of `StaticAssetComponent`. For walkthroughs, see [Getting started](./getting-started), [Server upload](./server-upload) and [Direct upload](./direct-upload).
 
 **Files:**
 
@@ -14,11 +14,15 @@ Every binding, endpoint, type, and internal mechanism of `StaticAssetComponent`.
 - [`packages/core-server/src/components/static-asset/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/types.ts)
 - [`packages/core-server/src/components/static-asset/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/constants.ts)
 - [`packages/core-server/src/components/static-asset/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/keys.ts)
+- [`packages/core-server/src/components/static-asset/common/validation.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/validation.ts)
 - [`packages/core-server/src/components/static-asset/controller/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/factory.ts)
 - [`packages/core-server/src/components/static-asset/controller/base.definition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/base.definition.ts)
-- [`packages/core-server/src/components/static-asset/utilities/key-scope.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/key-scope.utility.ts) - `controller.keyPrefix`
+- [`packages/core-server/src/components/static-asset/services/policy.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/services/policy.service.ts)
+- [`packages/core-server/src/components/static-asset/services/commitment.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/services/commitment.service.ts)
+- [`packages/core-server/src/components/static-asset/utilities/entry.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/entry.utility.ts) - the defaults and cross-checks
+- [`packages/core-server/src/components/static-asset/utilities/key-scope.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/key-scope.utility.ts) - `keyPrefix`
 - [`packages/core-server/src/components/static-asset/utilities/meta-link.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/meta-link.utility.ts) - `StaticAssetMetaLinkUtility.createRow`, `StaticAssetMetaLinkUtility.refreshRows`
-- [`packages/core-server/src/components/static-asset/utilities/route-options.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/route-options.utility.ts) - `enabled`, the `maxBytes` route guard
+- [`packages/core-server/src/components/static-asset/utilities/route-options.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/route-options.utility.ts) - `readRoute`, the `maxBytes` route guard
 - [`packages/core-server/src/components/static-asset/utilities/ingest.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/ingest.utility.ts)
 - [`packages/core-server/src/components/static-asset/common/errors.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/errors.ts)
 - [`packages/core-server/src/components/static-asset/models/base.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/models/base.model.ts)
@@ -41,32 +45,27 @@ Every binding, endpoint, type, and internal mechanism of `StaticAssetComponent`.
 
 ## Import paths
 
-```typescript
-// Core - subpath import only
+```ts
 import {
-  StaticAssetComponent,
-  StaticAssetBindingKeys,
-  StaticAssetStorageTypes,
-  StaticAssetControllerFactory,
-  StaticAssetIngestUtility,
   BaseMetaLinkModel,
   BaseMetaLinkRepository,
-  StaticAssetCommitTokenUtility,
-  StaticAssetContentTypes,
+  StaticAssetBindingKeys,
+  StaticAssetComponent,
+  StaticAssetControllerFactory,
   StaticAssetErrors,
-  StaticAssetHeaders,
+  StaticAssetIngestUtility,
+  StaticAssetValidation,
 } from '@venizia/ignis/static-asset';
-
 import type {
-  TStaticAssetComponentOptions,
-  TStaticAssetExtraOptions,
+  IStaticAssetValidation,
+  StaticAssetUploadCommitService,
+  StaticAssetUploadPolicyService,
   TMetaLinkConfig,
-  TStaticAssetObjectNameResolver,
-  TStaticAssetDefineExtraRoutes,
-  TStaticAssetStorageType,
-  IStaticAssetControllerOptions,
-  IStaticAssetIngestFromUrlOptions,
-  IStaticAssetIngestFromUrlResult,
+  TStaticAssetComponentOptions,
+  TStaticAssetDirectUploadOptions,
+  TStaticAssetEntry,
+  TStaticAssetRoutes,
+  TStaticAssetServerUpload,
 } from '@venizia/ignis/static-asset';
 
 // Helpers - main entry + storage-backend subpaths
@@ -74,150 +73,38 @@ import { DiskHelper } from '@venizia/ignis-helpers';
 import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 ```
 
-## Binding keys
+## Entry options
 
-| Key | Constant | Type | Required | Default |
-|-----|----------|------|----------|---------|
-| `@app/static-asset/options` | `StaticAssetBindingKeys.STATIC_ASSET_OPTIONS` | `TStaticAssetComponentOptions` | Yes | `{}` |
+`TStaticAssetComponentOptions` is a record: each key is an entry, and each entry builds one controller. `Schema` defaults to the MetaLink table IGNIS ships and widens to any table whose row carries the same fields.
 
-> [!NOTE]
-> `StaticAssetComponent`'s constructor binds an empty `{}` default for this key. `binding()` iterates `Object.entries(componentOptions)` - an empty object produces zero controllers, no error. Bind your configuration in `preConfigure()` before `this.component(StaticAssetComponent)`.
+| Option | Type | Default | Required | Meaning |
+|---|---|---|---|---|
+| `basePath` | `string` | - | yes | Where the controller is mounted. A missing leading slash is added. |
+| `helper` | `DiskHelper` or `BunS3Helper` | - | yes | The storage. Its type is the storage type recorded in MetaLink: S3 for an S3 helper, `disk` otherwise. A `DiskHelper` cannot take `directUpload`. |
+| `name` | `string` | derived from the entry key | no | The controller's name. `staticAsset` and `static-asset` both become `StaticAssetController`; a key already ending in `Controller` keeps it. |
+| `bucket` | `string` or `() => string \| Promise<string>` | none | no | The one bucket the entry works on. It leaves the URL; the function form is read per request. |
+| `keyPrefix` | `string` | every key in the bucket | no | The folder of the bucket the entry owns. Needs `bucket`. |
+| `url` | object | see below | no | How objects are addressed. |
+| `auth` | object | none: every route open | no | Authentication and authorization of every built-in route. |
+| `routes` | record | see [Routes](#routes) | no | Turn routes off, on, or override them. |
+| `serverUpload` | `false` or object | on, with defaults | no | Upload through the app. `false` removes `POST /objects`. |
+| `directUpload` | object | none | no | Upload straight to S3. Needs `bucket` and an S3 helper. |
+| `metaLink` | object | none | no | Present: every upload writes a row. |
+| `extend` | object | none | no | Routes of your own on the generated controller. |
 
-## `TStaticAssetComponentOptions`
+The types enforce three pairings: `directUpload` and `keyPrefix` need `bucket`, and `directUpload` needs a `BunS3Helper`. The component refuses the same combinations at start-up for callers the types do not reach.
 
-```typescript
-/** The part of a built-in route an application may change. `authenticate` and `authorize` replace the entry's `auth` for this route; `{ skip: true }` leaves it open. */
-type TStaticAssetRouteConfig = Partial<
-  Omit<IAuthRouteConfig, 'method' | 'request' | 'responses' | 'authenticate' | 'authorize'>
-> &
-  TRouteAuthConfig & {
-    /** Whether this route is registered. Defaults to true; the four bucket-management routes default to false. */
-    enabled?: boolean;
-  };
+### `url`
 
-/** Authentication and authorization of every built-in route of an entry. */
-type TStaticAssetAuth = TRouteAuthConfig & {
-  /** Leaves `getObjectByName` and `downloadObjectByName` unauthenticated. `listObjects` is not public. Defaults to false. */
-  publicRead?: boolean;
-};
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `isStrict` | `boolean` | `true` | Whether `/path` and `/path/` are different routes. |
+| `rawObjectPath` | `boolean` | `false` | `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`); the percent-encoded form keeps working. |
+| `link` | `({ bucket, object }) => string` | the controller's own object route | The link stored and returned for an object. |
 
-type TStaticAssetComponentOptions<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
-  [key: string]: {
-    auth?: TStaticAssetAuth;
-    controller: {
-      name: string;
-      basePath: string;
-      isStrict?: boolean;
-      bucket?: TValueOrAsyncResolver<string>;
-      rawObjectPath?: boolean;
-      keyPrefix?: string;
-      routes?: {
-        getBuckets?: TStaticAssetRouteConfig;
-        getBucketByName?: TStaticAssetRouteConfig;
-        createBucket?: TStaticAssetRouteConfig;
-        deleteBucket?: TStaticAssetRouteConfig;
-        upload?: TStaticAssetRouteConfig;
-        listObjects?: TStaticAssetRouteConfig;
-        deleteObject?: TStaticAssetRouteConfig;
-        getObjectByName?: TStaticAssetRouteConfig;
-        downloadObjectByName?: TStaticAssetRouteConfig;
-        uploadPolicy?: TStaticAssetRouteConfig;
-        uploadCommit?: TStaticAssetRouteConfig;
-        uploadValidate?: TStaticAssetRouteConfig;
-        recreateMetaLink?: TStaticAssetRouteConfig;
-      };
-    };
-    extra?: TStaticAssetExtraOptions;
-    resolveObjectName?: TStaticAssetObjectNameResolver;
-    defineRoutesBefore?: TStaticAssetDefineExtraRoutes;
-    defineExtraRoutes?: TStaticAssetDefineExtraRoutes;
-  } & (
-    | { storage: typeof StaticAssetStorageTypes.BUN_S3; helper: BunS3Helper }
-    | { storage: typeof StaticAssetStorageTypes.DISK; helper: DiskHelper }
-  ) &
-    ({ useMetaLink?: false | undefined } | { useMetaLink: true; metaLink: TMetaLinkConfig<Schema> });
-};
-```
+#### URL shapes
 
-`Schema` defaults to the table IGNIS ships. Pass your own to put the MetaLink table under a Postgres schema of your own, or to give it another name:
-
-```typescript
-this.bind<TStaticAssetComponentOptions<typeof MetaLinkModel.schema>>({ key: ... });
-```
-
-The constraint is the ROW, not the table: any table whose row carries the MetaLink fields is accepted, and a table missing one of them is still refused at compile time.
-
-| Field | Type | Default | Description |
-|-------|------|---------|--------------|
-| `controller.name` | `string` | - | Class name given to the generated controller (via `Object.defineProperty`) |
-| `controller.basePath` | `string` | - | Mount path, for example `'/assets'` |
-| `controller.isStrict` | `boolean` | `true` | Passed through to `BaseRestController`'s strict routing mode |
-| `controller.bucket` | `string \| (() => string)` | `undefined` | The one bucket every object route uses. It leaves the URL, and the four bucket-management routes are not registered. The function form runs on every request, so it can read an environment variable |
-| `controller.rawObjectPath` | `boolean` | `false` | `true` serves a raw nested path, <code v-pre>/objects/photos/2024/f.jpg</code>. A percent-encoded path keeps working either way |
-| `controller.keyPrefix` | `string` | `undefined` | The key scope this controller owns inside a shared bucket, for example `'tenant-a'`. Absent means every key in the bucket. See [`controller.keyPrefix`](#controller-keyprefix) |
-| `controller.routes` | object | `undefined` | Per-route overrides, including the `enabled` switch - see [Per-route overrides](#per-route-overrides) |
-| `storage` | `'disk' \| 'bun-s3'` | - | Selects which `helper` type is required (discriminated union) |
-| `helper` | `DiskHelper \| BunS3Helper` | - | Storage backend instance matching `storage` |
-| `extra` | `TStaticAssetExtraOptions` | `undefined` | Multipart parsing mode, name/link normalization, max folder depth, upload size ceiling |
-| `useMetaLink` | `boolean` | `false` | Enables the `PUT .../meta-links/:objectName` route and DB tracking on upload/delete |
-| `metaLink` | `TMetaLinkConfig<Schema>` | - | Required when `useMetaLink: true`; ignored otherwise |
-| `resolveObjectName` | `TStaticAssetObjectNameResolver` | `undefined` | Decides the stored object name - see [`resolveObjectName`](#resolveobjectname) |
-| `defineRoutesBefore` | `TStaticAssetDefineExtraRoutes` | `undefined` | Adds your own routes BEFORE every built-in one. A literal path then wins over the catch-all `rawObjectPath` registers |
-| `defineExtraRoutes` | `TStaticAssetDefineExtraRoutes` | `undefined` | Adds your own routes after every built-in one - see [`defineExtraRoutes`](#defineextraroutes) |
-
-### Authentication: `auth` and per-route overrides
-
-`auth` sits beside `controller` on an entry and applies to **every** built-in route of it: `authenticate` (`{ strategies, mode }`), `authorize` (a spec or a list) and `publicRead`. A route's own `authenticate` or `authorize` in `controller.routes.<key>` replaces the entry's for that route, field by field, and `{ skip: true }` opens it. The resolution is the CRUD controller factory's own (`RouteConfigResolver.resolveAuthenticate` and `resolveAuthorize`), so a route here and a route there answer the same way.
-
-```typescript
-assets: {
-  auth: { authenticate: { strategies: ['jwt'] }, publicRead: true },
-  controller: {
-    // ...
-    routes: { deleteObject: { authorize: { action: 'delete', resource: 'asset' } } },
-  },
-  // ...
-},
-```
-
-`publicRead` opens reading one object (`getObjectByName`, `downloadObjectByName`) and nothing else: **listing is not public**. It is a default, so a route that sets its own `authenticate` or `authorize` keeps it. Without `auth` every route is as open as it was before.
-
-The four bucket-management routes are **off by default**, with or without a `controller.bucket`: turn each one on with `enabled: true`. They never register on a controller with a configured `bucket`.
-
-### Per-route overrides
-
-Each key accepts a `TStaticAssetRouteConfig` - `Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>` (typically `authenticate`, `authorize`, `path`, and `middleware`) plus `enabled`. `StaticAssetRouteOptionsUtility.readRoute` splits `enabled` and the auth fields off, resolves the auth, and the rest is shallow-merged onto the base definition the factory built for this controller: `{ ...definitions.UPLOAD, ...routes?.upload }`.
-
-| Route key | HTTP Method | Base Path | Registered when |
-|-----------|-------------|-----------|------------------|
-| `getBuckets` | `GET` | `/buckets` | no `controller.bucket`, **`enabled: true`** (off by default) |
-| `getBucketByName` | `GET` | <code v-pre>/buckets/{bucketName}</code> | no `controller.bucket`, **`enabled: true`** (off by default) |
-| `createBucket` | `POST` | <code v-pre>/buckets/{bucketName}</code> | no `controller.bucket`, **`enabled: true`** (off by default) |
-| `deleteBucket` | `DELETE` | <code v-pre>/buckets/{bucketName}</code> | no `controller.bucket`, **`enabled: true`** (off by default) |
-| `upload` | `POST` | <code v-pre>/buckets/{bucketName}/objects</code> | `enabled !== false` |
-| `listObjects` | `GET` | <code v-pre>/buckets/{bucketName}/objects</code> | `enabled !== false` |
-| `getObjectByName` | `GET` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> | `enabled !== false` |
-| `downloadObjectByName` | `GET` | <code v-pre>/buckets/{bucketName}/download/{objectName}</code> | `enabled !== false` |
-| `deleteObject` | `DELETE` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> | `enabled !== false` |
-| `uploadPolicy` | `POST` | <code v-pre>/buckets/{bucketName}/upload-policy</code> | `controller.directUpload` set, `enabled !== false` |
-| `uploadCommit` | `POST` | <code v-pre>/buckets/{bucketName}/upload-commit</code> | `controller.directUpload` set, `enabled !== false` |
-| `uploadValidate` | `POST` | <code v-pre>/buckets/{bucketName}/upload-validate</code> | `controller.directUpload.validation` set, `enabled !== false` |
-| `recreateMetaLink` | `PUT` | <code v-pre>/buckets/{bucketName}/meta-links/{objectName}</code> | `useMetaLink: true`, `enabled !== false` |
-
-`upload` and `listObjects` share one path and differ by method: `POST` writes, `GET` lists. Every route defaults to registered - set `enabled: false` to drop a built-in route entirely, the same switch name the CRUD controller factory uses.
-
-```typescript
-routes: {
-  deleteBucket: { enabled: false },
-  deleteObject: { enabled: false },
-}
-```
-
-`uploadPolicy` and `uploadCommit` exist only when `controller.directUpload` is set - see [Direct upload](./direct-upload). `directUpload` without `controller.bucket` throws at registration: a policy names one bucket, and a bucket in the URL is a bucket the caller chooses.
-
-### URL shapes
-
-`bucket` and `rawObjectPath` are independent. Both default to off, which is the shape in the table above.
+`bucket` and `rawObjectPath` are independent. Both default to off.
 
 | `bucket` | `rawObjectPath` | The object route |
 |---|---|---|
@@ -226,107 +113,159 @@ routes: {
 | `'images'` | `false` | <code v-pre>/assets/objects/photos%2F2024%2Ff.jpg</code> |
 | `'images'` | `true` | <code v-pre>/assets/objects/photos/2024/f.jpg</code> |
 
-A configured `bucket` shortens `upload`, `listObjects`, `getObjectByName`, `downloadObjectByName`, `deleteObject` and `recreateMetaLink` the same way. Those routes also lose the `bucketName` path param. `getBuckets`, `getBucketByName`, `createBucket` and `deleteBucket` are not registered at all - a single-bucket application exposes no bucket management.
+A configured `bucket` shortens every object route the same way, and those routes lose the `bucketName` path param. `rawObjectPath` turns the object segment into the <code v-pre>{objectName}{.+}</code> catch-all; every validation still runs on the joined path, `serverUpload.maxFolderDepth` included.
 
-`rawObjectPath` turns the object segment into the <code v-pre>{objectName}{.+}</code> catch-all. Every validation still runs on the joined path, `maxFolderDepth` included.
+### `auth`
 
-### `controller.keyPrefix`
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `authenticate` | `{ strategies, mode }` or `{ skip: true }` | none | Authentication of every built-in route. |
+| `authorize` | an authorization spec, a list, or `{ skip: true }` | none | Authorization of every built-in route. |
+| `publicRead` | `boolean` | `false` | Leaves `getObjectByName` and `downloadObjectByName` unauthenticated. `listObjects` stays guarded. |
 
-Splits one shared bucket between controllers. `StaticAssetKeyScopeUtility.normalizePrefix` normalizes the value to exactly
-one trailing slash (`'tenant-a'`, `'/tenant-a'` and `'tenant-a/'` all become `'tenant-a/'`, so
-`tenant-a` never also owns `tenant-ab/`), and every segment must pass `isValidSegment()` or the
-controller throws at registration.
+A route's own `authenticate` or `authorize` replaces the entry's for that route. See [Security](./security#authentication-and-authorization).
 
-> [!IMPORTANT]
-> `controller.keyPrefix` requires `controller.bucket`, the same requirement `directUpload` already
-> has, and for the same reason: without a configured bucket, the four bucket-management routes stay
-> unscoped (a caller can still `createBucket`/`deleteBucket` any name), so `keyPrefix` would isolate
-> only part of the surface. The controller throws at registration when `keyPrefix` is set without
-> `bucket`.
+### `routes`
+
+A record keyed by [route key](#routes). Each value is:
+
+| Value | Meaning |
+|---|---|
+| `false` | The route is not registered. |
+| `true` | The route is registered as built. |
+| an object | The route is registered with these overrides. |
+
+A key left out is on, except the four bucket-management routes, which are off. An object override takes any Hono route-config field except `method`, `request` and `responses` (typically `path`, `middleware`, `tags`, `summary`, `description`), and `authenticate` / `authorize`, which replace the entry's `auth` for that route.
+
+### `serverUpload`
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `maxBytes` | `number` | no ceiling | Largest file. Over it answers `413`. |
+| `maxFiles` | `number` | `20` | Most file parts per request. |
+| `maxFolderDepth` | `number` | `2` | Folder nesting allowed in object paths, for every route of the entry. |
+| `spool` | `{ storage: 'memory' }` or `{ storage: 'disk'; dir: string }` | memory | Where a request body waits while it is parsed. |
+| `objectKey` | `({ bucket, file, defaultKey }) => string` | the default naming | The one hook that decides the stored key. |
+
+See [Server upload](./server-upload).
+
+### `directUpload`
+
+| Option | Type | Default | Required | Meaning |
+|---|---|---|---|---|
+| `secretKey` | `string` | - | yes | Signs the commit token. |
+| `maxBytes` | `number` | - | yes | The `content-length-range` ceiling of a policy. |
+| `authorize` | `({ context }) => ValueOrPromise<boolean>` | the entry's `auth` | only without `auth` | Who may use direct upload. |
+| `resolveOwner` | `({ context }) => ValueOrPromise<string>` | none | no | Who an upload belongs to; signed into the token. |
+| `maxFiles` | `number` | `20` | no | Most files one policy request may name. |
+| `pendingPrefix` | `string` | `'pending/'` | no | Where a policy may write. |
+| `expires.upload` | `IDuration` | 15 minutes | no | The policy's lifetime. |
+| `expires.commit` | `IDuration` | `expires.upload` | no | The commit token's lifetime. |
+| `validation` | `IStaticAssetValidation` | none | no | Your check of the pending file; registers `upload-validate`. |
+
+See [Direct upload](./direct-upload#options).
+
+### `metaLink`
+
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `model` | `typeof BaseRelationalEntity<Schema>` or a resolver | - | The table's model. Required. |
+| `repository` | `DefaultCRUDRepository<Schema>` or a resolver | - | The repository that writes rows. Required. |
+| `createMetaLink` | `({ uploadResult, fileStat, query }) => ValueOrPromise<{ count, data }>` | a default insert of every standard field | Replaces the insert. |
+
+See [`TMetaLinkConfig`](#tmetalinkconfig) and the [MetaLink SQL schema](#metalink-sql-schema).
+
+### `extend`
+
+| Option | Type | Meaning |
+|---|---|---|
+| `before` | `({ controller, helper, basePath }) => void` | Registers routes BEFORE every built-in one, so a literal path wins over the `rawObjectPath` catch-all. |
+| `after` | `({ controller, helper, basePath }) => void` | Registers routes after every built-in one; a built-in route wins a path collision with yours. |
+
+Both share one shape. Registration order is the only difference, and Hono matches in registration order. `basePath` is the mount path with exactly one leading slash.
+
+```ts
+import { z } from '@hono/zod-openapi';
+import { OpenApiResponses } from '@venizia/ignis';
+import type { TStaticAssetEntry } from '@venizia/ignis/static-asset';
+
+export const extend: TStaticAssetEntry['extend'] = {
+  after: ({ controller, helper }) => {
+    controller.defineRoute({
+      configs: {
+        method: 'get',
+        path: '/health',
+        responses: OpenApiResponses.jsonResponse({ schema: z.object({ buckets: z.number() }) }),
+      },
+      handler: async (context) => {
+        const buckets = await helper.getBuckets();
+
+        return context.json({ buckets: buckets.length }, 200);
+      },
+    });
+  },
+};
+```
+
+### `keyPrefix`
+
+Splits one shared bucket between entries. `StaticAssetKeyScopeUtility.normalizePrefix` normalizes the value to exactly one trailing slash (`'tenant-a'`, `'/tenant-a'` and `'tenant-a/'` all become `'tenant-a/'`, so `tenant-a` never also owns `tenant-ab/`), and every segment must pass `isValidSegment()` or the entry refuses to start.
 
 | Route | A key outside the prefix |
 |---|---|
 | `getObjectByName`, `downloadObjectByName`, `deleteObject`, `recreateMetaLink` | `404 core.storage.object_not_found`, after the 400 name check, before any storage call - the code a real miss answers, so a caller learns nothing about a key it does not own |
 | `listObjects` | A caller `prefix` wider than the scope is narrowed to it; one disjoint from it returns `[]` without calling storage |
-| `upload` | The component's own default name is placed inside the prefix. A `resolveObjectName` or `extra.normalizeNameFn` key outside it is refused with `400 core.static_asset.object_key_out_of_scope` - never rewritten, because the application may have recorded that key elsewhere. With **neither** hook set (the component's own default naming), the original file name must still be one segment - a `/` in it is `400 [upload] Invalid original file name`, exactly as without a scope; set `resolveObjectName` or `extra.normalizeNameFn` to relax that |
-| `uploadPolicy` / `uploadCommit` | The pending key becomes `pendingPrefix + keyPrefix`, so the committed key lands inside the scope. The commit also re-checks the scope, for a token another controller signed with the same secret |
+| `upload` | The component's own default name is placed inside the prefix. An `objectKey` key outside it is refused with `400 core.static_asset.object_key_out_of_scope` - never rewritten, because the application may have recorded that key elsewhere |
+| `uploadPolicy`, `uploadValidate`, `uploadCommit` | The pending key becomes `pendingPrefix + keyPrefix`, so the committed key lands inside the scope. The token's scope is re-checked, for a token another entry signed with the same secret |
 
-`maxFolderDepth` counts folders below the prefix: validation uses `maxFolderDepth + prefix depth`. Without that addition, a two-segment prefix plus a direct-upload key `<uuid>/<name>` would exceed the default depth of `2` and every read would answer `400`.
+`serverUpload.maxFolderDepth` counts folders below the prefix: validation uses `maxFolderDepth` plus the prefix depth. Without that addition, a two-segment prefix plus a direct-upload key `<uuid>/<name>` would exceed the default depth of `2` and every read would answer `400`.
 
-Not scoped: `defineRoutesBefore` and `defineExtraRoutes`. The four bucket-management routes are not
-registered at all once `controller.bucket` is set, which `keyPrefix` now requires - see the note
-above.
+## Routes
+
+Every built-in route, with the path under `/buckets/{bucketName}` dropped when the entry has a `bucket`.
+
+| Key | Method | Path | Registered when | Auth |
+|---|---|---|---|---|
+| `getBuckets` | `GET` | `/buckets` | no `bucket`, and `true` or an object | the entry's `auth` |
+| `getBucketByName` | `GET` | <code v-pre>/buckets/{bucketName}</code> | no `bucket`, and `true` or an object | the entry's `auth` |
+| `createBucket` | `POST` | <code v-pre>/buckets/{bucketName}</code> | no `bucket`, and `true` or an object | the entry's `auth` |
+| `deleteBucket` | `DELETE` | <code v-pre>/buckets/{bucketName}</code> | no `bucket`, and `true` or an object | the entry's `auth` |
+| `upload` | `POST` | <code v-pre>/buckets/{bucketName}/objects</code> | `serverUpload` is not `false`, `routes.upload` is not `false` | the entry's `auth` |
+| `listObjects` | `GET` | <code v-pre>/buckets/{bucketName}/objects</code> | not `false` | the entry's `auth`, never public |
+| `getObjectByName` | `GET` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> | not `false` | the entry's `auth`; open with `publicRead` |
+| `downloadObjectByName` | `GET` | <code v-pre>/buckets/{bucketName}/download/{objectName}</code> | not `false` | the entry's `auth`; open with `publicRead` |
+| `deleteObject` | `DELETE` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> | not `false` | the entry's `auth` |
+| `recreateMetaLink` | `PUT` | <code v-pre>/buckets/{bucketName}/meta-links/{objectName}</code> | the entry has a `metaLink`, not `false` | the entry's `auth` |
+| `uploadPolicy` | `POST` | <code v-pre>/buckets/{bucketName}/upload-policy</code> | the entry has `directUpload`, not `false` | the entry's `auth`, then `directUpload.authorize` |
+| `uploadValidate` | `POST` | <code v-pre>/buckets/{bucketName}/upload-validate</code> | `directUpload.validation` is set, not `false` | the entry's `auth`, then `directUpload.authorize` |
+| `uploadCommit` | `POST` | <code v-pre>/buckets/{bucketName}/upload-commit</code> | the entry has `directUpload`, not `false` | the entry's `auth`, then `directUpload.authorize` |
+
+With a `bucket`, the four bucket routes never register, whatever `routes` says. Upload and list share <code v-pre>/buckets/{bucketName}/objects</code> and differ by method. A route's `authenticate` and `authorize` replace the entry's `auth` for it.
+
+## Binding keys and services
 
 ```typescript
-{
-  controller: { name: 'TenantAssets', basePath: '/assets', bucket: 'shared', keyPrefix: 'tenant-a' },
-  storage: StaticAssetStorageTypes.BUN_S3,
-  helper: bunS3Helper,
+class StaticAssetBindingKeys {
+  static readonly STATIC_ASSET_OPTIONS = '@app/static-asset/options';
+  static policyService(opts: { name: string }): string; // '@app/static-asset/policy-service/<name>'
+  static commitService(opts: { name: string }): string; // '@app/static-asset/commit-service/<name>'
 }
 ```
 
-## `TStaticAssetExtraOptions`
+| Key | Resolves to |
+|---|---|
+| `STATIC_ASSET_OPTIONS` | The options object an application registering through `configs.artifacts` binds. `component(StaticAssetComponent, { options })` passes it directly and wins over the key. |
+| `policyService({ name })` | `StaticAssetUploadPolicyService`, for an entry with `directUpload`. |
+| `commitService({ name })` | `StaticAssetUploadCommitService`, for the same entry. |
 
-```typescript
-type TStaticAssetExtraOptions = {
-  parseMultipartBody?: {
-    storage?: 'memory' | 'disk';
-    uploadDir?: string;
-    maxFiles?: number;
-  };
-  normalizeNameFn?: (opts: { file: TUploadNaming }) => string;
-  normalizeLinkFn?: (opts: IObjectLocation) => string;
-  /** Maximum folder nesting depth allowed in object paths. Default: 2 */
-  maxFolderDepth?: number;
-  /** Largest file the upload route accepts, in bytes. Absent means no ceiling. */
-  maxBytes?: number;
-  [key: string]: AnyType;
-};
-```
+`name` is the entry's key in the options object, not the controller name. The component binds both services and hands the **same instances** to the controller, so a service you inject and the routes share them. `StaticAssetComponent`'s constructor binds an empty `{}` default for `STATIC_ASSET_OPTIONS`: an empty object produces zero controllers, no error. Bind your options in `preConfigure()` before `this.component(StaticAssetComponent)`.
 
-> [!NOTE]
-> `normalizeNameFn` receives one `file` object carrying **both** `originalName` and `folderPath` - that is `TUploadNaming`, which is `Pick<IUploadFile, 'originalName' | 'folderPath'>`. The folder field lets a custom implementation decide how to fold the target folder into the stored key. Drop `folderPath` handling and nested uploads flatten into the bucket root.
-
-| Option | Type | Default | Meaning |
-|---|---|---|---|
-| `parseMultipartBody.storage` | `'memory' \| 'disk'` | `'memory'` | `'disk'` spools to `uploadDir`, then the controller reads the file back with `readFileSync` before handing it to the storage helper |
-| `parseMultipartBody.uploadDir` | `string` | `'./uploads'` | Created with <code v-pre>fs.mkdirSync({ recursive: true })</code> if missing |
-| `parseMultipartBody.maxFiles` | `number` | `20` | The most file parts one upload request may carry. More is refused with `413` before anything is written. Spool files are removed on every exit, a refused request included |
-| `normalizeNameFn` | `(opts: { file: TUploadNaming }) => string` | `BaseStorageHelper`'s lowercase + `_`-for-space normalizer | Runs before the file is written; its output is re-validated with `isValidObjectKey()` |
-| `normalizeLinkFn` | `(opts: IObjectLocation) => string` | Component-generated - see below | Runs after the write to build the returned `link` |
-| `maxFolderDepth` | `number` | `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH` (`2`) | Folder segments only - the filename itself does not count against this limit |
-| `maxBytes` | `number` | none | Refuses a request over the ceiling with `413 core.static_asset.upload_too_large`. Checked twice: `content-length` in route middleware, before the body is spooled; then each parsed file's actual byte length, in the handler - see [Where `maxBytes` runs](#where-maxbytes-runs) |
-
-### Default `normalizeLinkFn`
-
-`StaticAssetComponent.binding()` always supplies a `normalizeLinkFn` to the factory - your own `extra.normalizeLinkFn` if set, otherwise this default:
-
-```typescript
-(linkOptions: IObjectLocation) =>
-  StaticAssetControllerFactory.buildObjectLink({
-    basePath: controller.basePath,
-    bucket: linkOptions.bucket,
-    object: linkOptions.object,
-    hasConfiguredBucket: controller.bucket !== undefined,
-    rawObjectPath: controller.rawObjectPath,
-  });
-```
-
-`StaticAssetControllerFactory.buildObjectLink` is public, so a hand-written route can build the same link.
-
-```typescript
-static buildObjectLink(
-  opts: IObjectLocation & {
-    basePath: string;
-    hasConfiguredBucket?: boolean;
-    rawObjectPath?: boolean;
-  },
-): string;
-```
-
-This is why every generated link points back at the `objects/{objectName}` stream route by default, regardless of storage backend. `StaticAssetControllerFactory.buildObjectLink` follows the [URL shapes](#url-shapes) above, so a link always resolves against the routes that controller registered. The `PUT .../meta-links/{objectName}` route builds its fallback link with the same function.
-
-`BaseStorageHelper` has its own backend-specific `normalizeObjectLink()`. It only runs when you call a helper's `upload()` directly, outside the component. Through `StaticAssetComponent`, the component's default `normalizeLinkFn` always takes priority instead.
+| Service | Method | Does |
+|---|---|---|
+| `StaticAssetUploadPolicyService` | `issuePolicies({ files, owner? })` | One signed policy per file. Does not call `authorize`. |
+| `StaticAssetUploadCommitService` | `verify({ token, owner? })` | Signature, expiry, owner, scope; answers the pending `IObjectLocation`; no storage call. |
+| | `validate({ token, owner? })` | `verify`, then `validation`. |
+| | `commit({ token, owner?, labels? })` | `verify`, `validate`, copy, remove pending, MetaLink row. |
 
 ## Storage types
 
@@ -584,94 +523,28 @@ To use a MinIO server, point `endpoint.default` at it (`'http://localhost:9000'`
 
 ## Controller factory
 
-`StaticAssetControllerFactory.build(opts: IStaticAssetControllerOptions)` builds one controller class per call:
+`StaticAssetControllerFactory.build({ key, entry, policyService?, commitService? })` builds one controller class per call. `key` names the controller when the entry has no `name`; `policyService` and `commitService` are required for an entry with `directUpload`, and `StaticAssetComponent` passes the ones it bound.
 
-```typescript
-interface IStaticAssetControllerOptions {
-  controller: TStaticAssetComponentOptions[string]['controller'];
-  storage: TStaticAssetStorageType;
-  helper: IStorageHelper;
-  useMetaLink?: boolean;
-  metaLink?: TMetaLinkConfig;
-  options?: TStaticAssetExtraOptions;
-  resolveObjectName?: TStaticAssetObjectNameResolver;
-  defineRoutesBefore?: TStaticAssetDefineExtraRoutes;
-  defineExtraRoutes?: TStaticAssetDefineExtraRoutes;
-}
-```
-
-1. Creates a class extending `BaseRestController`, decorated `@controller({ path: basePath })`.
-2. Renames it via `Object.defineProperty(GeneratedStaticAssetController, 'name', { value: name, configurable: true })` so logs and DI bindings show your configured `controller.name`, not a generic factory name.
-3. Calls `defineRoutesBefore` first, so a literal path of yours can win over the catch-all `rawObjectPath` registers.
-4. Binds every route in `binding()` with `this.bindRoute({ configs }).to({ handler })`, spread-merging each base definition with its `routes?.<key>` override.
-5. Registers `recreateMetaLink` only when `useMetaLink && metaLink` are both set, `uploadPolicy`/`uploadCommit` only when `controller.directUpload` is set, and the four bucket-management routes only when `controller.bucket` is unset - each one gated a second time by its own `routes?.<key>.enabled !== false`.
-6. Calls `defineExtraRoutes` last, after every built-in route.
+1. Resolves the entry once (`StaticAssetEntryUtility.resolve`): the defaults, the name, the link, the cross-checks.
+2. Creates a class extending `BaseRestController`, decorated `@controller({ path: basePath })`, and renames it to the resolved name so logs and DI bindings show it.
+3. Calls `extend.before` first, so a literal path of yours can win over the catch-all `rawObjectPath` registers.
+4. Binds every route in `binding()` with `this.bindRoute({ configs }).to({ handler })`, spread-merging each base definition with the route's overrides and its resolved auth.
+5. Registers each route only where [Routes](#routes) says it is registered.
+6. Calls `extend.after` last.
 7. `StaticAssetComponent.binding()` registers the resulting class with `this.application.controller(...)`.
-
-`defineRoutesBefore` and `defineExtraRoutes` share the `TStaticAssetDefineExtraRoutes` shape. Registration order is the only difference, and Hono matches in registration order, so it decides every path collision.
 
 ```
 StaticAssetComponent.binding()
-    | iterates componentOptions
-StaticAssetControllerFactory.build({ controller, storage, helper, ... })
+    | for each entry
+StaticAssetEntryUtility.resolve({ key, entry })      defaults, name, link, cross-checks
+StaticAssetEntryUtility.buildDirectUploadServices    the pair bound under the service keys
+StaticAssetControllerFactory.build({ key, entry, policyService, commitService })
     | creates
 @controller({ path: basePath })
 class GeneratedStaticAssetController extends BaseRestController { ... }
     | registered via
 this.application.controller(GeneratedStaticAssetController)
 ```
-
-### `resolveObjectName`
-
-Decides the key one uploaded file is stored under. Set it instead of copying the factory to rename a single upload.
-
-```typescript
-type TStaticAssetObjectNameResolver = (opts: {
-  bucket: IBucketRef;
-  file: TUploadNaming;
-  defaultKey: string;
-}) => string;
-```
-
-`defaultKey` is the key IGNIS would have written without the hook. That is your `extra.normalizeNameFn` output when you configured one. Otherwise it is the storage helper's lowercase, `_`-for-space key. Return `defaultKey` and nothing changes.
-
-```typescript
-resolveObjectName: ({ file, defaultKey }) => {
-  return file.originalName.startsWith('invoice-') ? file.originalName : defaultKey;
-};
-```
-
-The hook is rebuilt per request, because `bucket` is something only the route knows. The returned key is still validated with `isValidObjectKey()` before the write, so a traversal cannot leave the bucket.
-
-### `defineExtraRoutes`
-
-Adds routes of your own to the generated controller.
-
-```typescript
-type TStaticAssetDefineExtraRoutes = (opts: {
-  controller: BaseRestController;
-  helper: IStorageHelper;
-  basePath: string;
-}) => void;
-```
-
-```typescript
-defineExtraRoutes: ({ controller, helper }) => {
-  controller.defineRoute({
-    configs: {
-      method: 'get',
-      path: '/health',
-      responses: OpenApiResponses.jsonResponse({ schema: z.object({ buckets: z.number() }) }),
-    },
-    handler: async context => {
-      const buckets = await helper.getBuckets();
-      return context.json({ buckets: buckets.length }, HTTP.ResultCodes.RS_2.Ok);
-    },
-  });
-};
-```
-
-The hook runs after every built-in route, so a built-in route wins a path collision with yours. `basePath` is the mount path with exactly one leading slash, the same value the default `normalizeLinkFn` builds links from.
 
 ### `MultipartBodySchema`
 
@@ -686,30 +559,9 @@ const MultipartBodySchema = z.object({
 });
 ```
 
-### Endpoint reference
-
-The default shape. A configured `controller.bucket` drops the first four rows and the <code v-pre>/buckets/{bucketName}</code> prefix - see [URL shapes](#url-shapes).
-
-| Method | Path | Notes |
-|--------|------|-------|
-| `GET` | `/buckets` | No params. Returns `IBucketInfo[]` |
-| `GET` | <code v-pre>/buckets/{bucketName}</code> | Returns `IBucketInfo \| null` |
-| `POST` | <code v-pre>/buckets/{bucketName}</code> | Returns the created `IBucketInfo`. Throws if the bucket already exists or the name is invalid - see [Error Reference](./errors) |
-| `DELETE` | <code v-pre>/buckets/{bucketName}</code> | Returns <code v-pre>{ isDeleted: boolean }</code> |
-| `POST` | <code v-pre>/buckets/{bucketName}/objects</code> | `multipart/form-data` body. Optional **form fields** beside the file: `principalType`, `principalId`, `variant`, `sequence`, `folderPath`. The same names in the query string are refused with `400 core.static_asset.labels_in_query`. Returns `IUploadResult[]` |
-| `GET` | <code v-pre>/buckets/{bucketName}/objects</code> | Query: `prefix?`, `recursive?` (`'true'` string only), `maxKeys?` (positive integer string). Returns `IObjectInfo[]` |
-| `GET` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> | Streams the file inline when the type is renderable, otherwise as an attachment. `objectName` is a single percent-encoded segment. Honours one `Range` header |
-| `GET` | <code v-pre>/buckets/{bucketName}/download/{objectName}</code> | Streams the file with `Content-Disposition: attachment`, always |
-| `DELETE` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> | Returns <code v-pre>{ success: boolean }</code>. Idempotent: a key that was never there still answers `200` |
-| `POST` | <code v-pre>/buckets/{bucketName}/upload-policy</code> | Only registered when `controller.directUpload` is set. Returns one signed POST policy per requested file - see [Direct upload](./direct-upload) |
-| `POST` | <code v-pre>/buckets/{bucketName}/upload-commit</code> | Only registered when `controller.directUpload` is set. Returns the object at its final key, and its MetaLink row when `useMetaLink: true` |
-| `PUT` | <code v-pre>/buckets/{bucketName}/meta-links/{objectName}</code> | Only registered when `useMetaLink: true`. Returns <code v-pre>{ success, action: 'refreshed' \| 'created', count, metaLink, metaLinks }</code> - see [MetaLink lifecycle](#metalink-lifecycle) |
-
-Upload and list share <code v-pre>/buckets/{bucketName}/objects</code> and differ by method. Every row registers only when its route's `enabled` is not `false` - see [Per-route overrides](#per-route-overrides).
-
 ### Where `maxBytes` runs
 
-`extra.maxBytes`'s `content-length` check is route middleware, built by `StaticAssetRouteOptionsUtility.appendLengthGuard`
+`serverUpload.maxBytes`'s `content-length` check is route middleware, built by `StaticAssetRouteOptionsUtility.appendLengthGuard`
 and appended AFTER your own `routes.upload.middleware` - so an application check of its own (for
 example inventory `REQUEST_TOO_LARGE`) still answers first. It runs before the route's body
 validator and before the handler.
@@ -721,12 +573,12 @@ a multipart envelope is larger than the files inside it, and only the parsed fil
 authoritative.
 
 > [!WARNING]
-> `extra.maxBytes` bounds a **declared** `content-length` early. The upload route also carries its own
+> `serverUpload.maxBytes` bounds a **declared** `content-length` early. The upload route also carries its own
 > body limit (`BodyLimits.route`): `maxFiles` files of `maxBytes` each plus their multipart framing
 > (4 KiB per file and 64 KiB for the other parts), so a chunked request that omits the header is
 > counted too, and the 5 MiB default limit stands aside for it (see
 > [Body limit](/references/base/middlewares#body-limit-configs-middlewares-bodylimit)). Without
-> `extra.maxBytes` the upload route is held to that default. Raise `configs.server.maxRequestBodySize`
+> `serverUpload.maxBytes` the upload route is held to that default. Raise `configs.server.maxRequestBodySize`
 > above the route's limit, or Bun's own limit answers first.
 
 ### Upload validation order
@@ -740,9 +592,9 @@ authoritative.
    | Segment count vs. `maxFolderDepth` | `400 "Folder path exceeds max depth of {n}"` if over |
    | Each segment via `isValidSegment()` | `400 "Invalid folder path segment: {segment}"` if any fails |
 
-3. `multipart/form-data` parsed via `RequestUtility.parseMultipartBody()`.
+3. `multipart/form-data` parsed via `RequestUtility.parseMultipartBody()`, spooled as `serverUpload.spool` says.
 4. Each file's effective buffer is checked non-empty - direct `buffer`, or `readFileSync(file.path)` when `storage: 'disk'` was used. Empty content returns `400 "Empty file content | name: {originalName}"`. The same pass checks `buffer.length` against `maxBytes`, the authoritative size check - see [Where `maxBytes` runs](#where-maxbytes-runs).
-5. `helper.upload()` runs the storage-helper-level checks below. Under `controller.keyPrefix`, a key outside the scope is refused there too, with `400 core.static_asset.object_key_out_of_scope` - see [`controller.keyPrefix`](#controller-keyprefix).
+5. `helper.upload()` runs the storage-helper-level checks below. Under a `keyPrefix`, a key outside the scope is refused there too, with `400 core.static_asset.object_key_out_of_scope` - see [`keyPrefix`](#keyprefix).
 6. Spool files written by `storage: 'disk'` parsing are removed in a `finally` block via `rmSync({ force: true })` - regardless of success or failure. Removal errors are logged, never thrown.
 
 ### Storage-helper-level upload checks (`BaseStorageHelper.upload`)
@@ -752,17 +604,17 @@ These run inside `helper.upload()`, separate from the controller checks above. T
 | Check | Error message | Default status |
 |-------|----------------|-----------------|
 | Bucket does not exist (`hasBucket()` false) | <code v-pre>[upload] Bucket does not exist \| name: {bucket}</code> | `400` |
-| No naming hook (`normalizeNameFn` unset): `originalName` fails `isValidSegment()`, because it becomes the key | `[upload] Invalid original file name` | `400` |
+| No naming hook (no `serverUpload.objectKey`, no `keyPrefix`): `originalName` fails `isValidSegment()`, because it becomes the key | `[upload] Invalid original file name` | `400` |
 | A naming hook is set: `originalName` is metadata only, and fails `isValidOriginalName()` - not blank, at most 255 characters, no control character or lone surrogate | `[upload] Invalid original file name` | `400` |
 | `folderPath` segment count exceeds `maxFolderDepth` | <code v-pre>[upload] Invalid folder path \| depth: {n} \| max: {m}</code> | `400` |
 | `folderPath` fails the path rule for any other reason | `[upload] Invalid folder path` | `400` |
 | `size` is `undefined`, `null`, or negative | <code v-pre>[upload] Invalid file size \| size: {size}</code> | `400` |
-| Normalized key (post `normalizeNameFn`) fails `isValidObjectKey()` | <code v-pre>[upload] Invalid normalized object name \| name: {name}</code> | `400` |
+| Normalized key (post naming hook) fails `isValidObjectKey()` | <code v-pre>[upload] Invalid normalized object name \| name: {name}</code> | `400` |
 
 > [!NOTE]
-> The static-asset controller passes a naming hook to `helper.upload()` whenever `resolveObjectName` or `controller.keyPrefix` is configured, or `extra.normalizeNameFn` is set - then `originalName` is metadata at the storage-helper layer, not the key, and `Báo cáo [Q3] & tổng hợp #1!.xlsx` uploads. With none of the three, the controller passes no hook, the storage helper's own lowercase-and-underscore normalizer decides the key, and `originalName` must still pass `isValidSegment()`.
+> The static-asset controller passes a naming hook to `helper.upload()` whenever `serverUpload.objectKey` or a `keyPrefix` is configured - then `originalName` is metadata at the storage-helper layer, not the key, and names like `Báo cáo.pdf` pass.
 >
-> **One exception, at the controller layer:** `controller.keyPrefix` set with *neither* `resolveObjectName` nor `extra.normalizeNameFn` - the component's own default naming under a scope - still refuses a `/` in the original name with `400 [upload] Invalid original file name`, before the storage-helper layer is even reached. Add either hook to relax it.
+> **One exception, at the controller layer:** a `keyPrefix` with no `serverUpload.objectKey` - the component's own default naming under a scope - still refuses a `/` in the original name with `400 [upload] Invalid original file name`, exactly as without a scope. An `objectKey` hook lifts it.
 
 `getError()` defaults `statusCode` to `400` when the caller does not pass one explicitly. Every message above is thrown without an explicit status, so all resolve to `400`.
 
@@ -951,16 +803,16 @@ Both classes come from the separate `@venizia/ignis-connectors` package, importe
 
 ## Component lifecycle
 
-1. `binding()` reads `STATIC_ASSET_OPTIONS` from the DI container.
-2. Iterates each key in the options object.
-3. For each entry, builds a `normalizeLinkFn` default if the caller did not supply one (see [Default normalizeLinkFn](#default-normalizelinkfn)).
-4. Calls `StaticAssetControllerFactory.build()` and registers the result with `this.application.controller()`.
-5. Logs the storage key, storage type, and whether MetaLink is enabled for each registered backend.
+1. `binding()` reads `STATIC_ASSET_OPTIONS` from the DI container, unless options were passed directly.
+2. For each entry, resolves it and, for an entry with `directUpload` and a `bucket`, builds and binds the two services.
+3. Calls `StaticAssetControllerFactory.build()` and registers the result with `this.application.controller()`.
+4. Logs the entry key, its mount path, and whether direct upload and MetaLink are on.
 
-`StaticAssetComponent` itself performs no eager configuration validation beyond the options type. A missing `metaLink` when `useMetaLink: true` is caught at compile time by the discriminated union, not at `binding()` runtime.
+An entry that breaks a rule the types cannot catch (a `keyPrefix` or `directUpload` without a `bucket`, or a `directUpload` with no `authorize` and no `auth`) throws at this point, naming the entry.
 
 ## See also
 
-- [Overview](./) - quick start, imports, and common configuration tasks
-- [Usage & Examples](./usage) - task-oriented walkthroughs for every endpoint and MetaLink setup
-- [Error Reference](./errors) - name validation rules and troubleshooting
+- [Overview](./) - what the component does and which upload to choose
+- [Getting started](./getting-started) - three complete declarations
+- [Security](./security) - auth, publicRead and the direct-upload safeguards
+- [Error Reference](./errors) - every code and what to do about it
