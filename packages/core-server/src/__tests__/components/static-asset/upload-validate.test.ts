@@ -3,9 +3,9 @@ import { BaseApplication } from '@/base/applications';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { StaticAssetControllerFactory } from '@/components/static-asset/controller';
 import {
-  StaticAssetStorageTypes,
   StaticAssetValidation,
   type TStaticAssetDirectUploadOptions,
+  type TStaticAssetEntry,
   type TStaticAssetRoutes,
 } from '@/components/static-asset/common';
 import type { OpenAPIHono } from '@hono/zod-openapi';
@@ -95,21 +95,20 @@ const mount = async (opts: {
   const application = new ValidateApplication({ scope: 'ValidateApp', config: TEST_CONFIGS });
   application.init();
 
-  const controller = {
-    name: 'ValidateAssetController',
+  const entry: TStaticAssetEntry = {
     basePath: '/assets',
-    isStrict: false,
+    url: { isStrict: false },
     bucket: 'uploads',
     directUpload: opts.directUpload,
     routes: opts.routes,
+    helper: opts.helper as never,
   };
 
   application.controller(
     StaticAssetControllerFactory.build({
-      controller,
-      storage: StaticAssetStorageTypes.DISK,
-      helper: opts.helper as never,
-      ...buildDirectUploadServices({ helper: opts.helper as never, controller }),
+      key: 'validate',
+      entry,
+      ...buildDirectUploadServices({ key: 'validate', entry }),
     }),
   );
   await application['registerControllers']();
@@ -272,13 +271,13 @@ describe('the upload-validate route', () => {
     expect(spy.calls).toHaveLength(0);
   });
 
-  test('routes.uploadValidate.enabled: false drops it', async () => {
+  test('routes.uploadValidate: false drops it', async () => {
     const helper = new FakeStorageHelper();
     const spy: IValidationSpy = { calls: [] };
     const router = await mount({
       helper,
       directUpload: { ...ALLOW, validation: buildValidation(spy) },
-      routes: { uploadValidate: { enabled: false } },
+      routes: { uploadValidate: false },
     });
 
     const response = await postJson(router, '/assets/upload-validate', { commitToken: 'x.y' });
@@ -334,7 +333,7 @@ describe('commit re-runs the validation', () => {
     const router = await mount({
       helper,
       directUpload: { ...ALLOW, validation: buildValidation(spy) },
-      routes: { uploadValidate: { enabled: false } },
+      routes: { uploadValidate: false },
     });
     const policy = await upload({ router, helper, fileName: 'bad.xlsx' });
 

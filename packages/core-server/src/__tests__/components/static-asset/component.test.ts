@@ -48,9 +48,9 @@ const bootStaticAssetApplication = async (opts: {
 
   const componentOptions: TStaticAssetComponentOptions = {
     default: {
-      storage: 'disk',
       helper: helper as never,
-      controller: { name: 'AssetController', basePath, isStrict: false },
+      basePath,
+      url: { isStrict: false },
     },
   };
 
@@ -82,9 +82,9 @@ describe('StaticAssetComponent takes its options directly', () => {
     const component = new StaticAssetComponent(application);
     await component.configure({
       default: {
-        storage: 'disk',
         helper: helper as never,
-        controller: { name: 'DirectAssetController', basePath: '/direct', isStrict: false },
+        basePath: '/direct',
+        url: { isStrict: false },
       },
     });
     await application['registerControllers']();

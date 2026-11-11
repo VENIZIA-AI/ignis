@@ -8,7 +8,6 @@ import { StaticAssetBindingKeys, type TStaticAssetComponentOptions } from './com
 import { StaticAssetEntryUtility } from './utilities/entry.utility';
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from './models';
 import { StaticAssetControllerFactory } from './controller';
-import { StaticAssetUploadCommitService, StaticAssetUploadPolicyService } from './services';
 
 /** `Schema` is the MetaLink table the application binds. It has to live on the CLASS, not only on the options: `component(Ctor, { options })` infers the options from the class, so a class pinned to the shipped table can only carry options for that table. */
 export class StaticAssetComponent<
@@ -58,44 +57,22 @@ export class StaticAssetComponent<
   private bindDirectUploadServices(opts: {
     key: string;
     entry: TStaticAssetComponentOptions<Schema>[string];
-  }):
-    | {
-        policyService: StaticAssetUploadPolicyService;
-        commitService: StaticAssetUploadCommitService<Schema>;
-      }
-    | undefined {
-    const { key } = opts;
-    const resolved = StaticAssetEntryUtility.resolve({ key, entry: opts.entry });
-    const { bucket, directUpload } = resolved;
+  }) {
+    const { key, entry } = opts;
+    const resolved = StaticAssetEntryUtility.resolve({ key, entry });
+    const services = StaticAssetEntryUtility.buildDirectUploadServices({ resolved });
 
-    if (!directUpload || bucket === undefined) {
+    if (!services) {
       return undefined;
     }
 
-    const policyService = new StaticAssetUploadPolicyService({
-      scope: resolved.name,
-      helper: resolved.helper,
-      bucket,
-      keyPrefix: resolved.keyPrefix,
-      directUpload,
-    });
-    const commitService = new StaticAssetUploadCommitService<Schema>({
-      scope: resolved.name,
-      helper: resolved.helper,
-      keyPrefix: resolved.keyPrefix,
-      directUpload,
-      storage: resolved.storage,
-      metaLink: resolved.metaLink,
-      link: resolved.link,
-    });
-
     this.application
       .bind({ key: StaticAssetBindingKeys.policyService({ name: key }) })
-      .toValue(policyService);
+      .toValue(services.policyService);
     this.application
       .bind({ key: StaticAssetBindingKeys.commitService({ name: key }) })
-      .toValue(commitService);
+      .toValue(services.commitService);
 
-    return { policyService, commitService };
+    return services;
   }
 }

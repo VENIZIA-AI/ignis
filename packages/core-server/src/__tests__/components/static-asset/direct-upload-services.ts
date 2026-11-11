@@ -1,44 +1,13 @@
-import type {
-  TMetaLinkConfig,
-  TStaticAssetComponentOptions,
-} from '@/components/static-asset/common';
-import {
-  StaticAssetUploadCommitService,
-  StaticAssetUploadPolicyService,
-} from '@/components/static-asset/services';
-import type { IStorageHelper } from '@venizia/ignis-helpers';
+import type { TStaticAssetEntry } from '@/components/static-asset/common';
+import type { TMetaLinkCompatibleSchema } from '@/components/static-asset/models';
+import { StaticAssetEntryUtility } from '@/components/static-asset/utilities/entry.utility';
 
 /** What the component does for an entry: builds the pair the controller runs. A test that calls `StaticAssetControllerFactory.build` directly passes the result in. */
-export const buildDirectUploadServices = (opts: {
-  helper: IStorageHelper;
-  controller: TStaticAssetComponentOptions[string]['controller'];
-  metaLink?: TMetaLinkConfig;
+export const buildDirectUploadServices = <Schema extends TMetaLinkCompatibleSchema>(opts: {
+  key: string;
+  entry: TStaticAssetEntry<Schema>;
 }) => {
-  const { helper, controller, metaLink } = opts;
-  const { bucket, directUpload } = controller;
+  const resolved = StaticAssetEntryUtility.resolve(opts);
 
-  if (!directUpload || bucket === undefined) {
-    return {};
-  }
-
-  return {
-    policyService: new StaticAssetUploadPolicyService({
-      scope: controller.name,
-      helper,
-      bucket,
-      keyPrefix: controller.keyPrefix,
-      directUpload,
-    }),
-    commitService: new StaticAssetUploadCommitService({
-      scope: controller.name,
-      helper,
-      keyPrefix: controller.keyPrefix,
-      directUpload,
-      storage: 'disk',
-      useMetaLink: metaLink !== undefined,
-      metaLink,
-      basePath: controller.basePath,
-      rawObjectPath: controller.rawObjectPath,
-    }),
-  };
+  return StaticAssetEntryUtility.buildDirectUploadServices({ resolved }) ?? {};
 };

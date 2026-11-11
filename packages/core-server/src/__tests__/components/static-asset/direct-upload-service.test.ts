@@ -62,30 +62,20 @@ const boot = async (opts: {
   });
   application.init();
 
-  const photoController = {
-    name: 'PhotoController',
-    basePath: '/photos',
-    isStrict: false,
-    bucket: 'uploads',
-    keyPrefix: opts.keyPrefix,
-    directUpload: { ...ALLOW, pendingPrefix: opts.pendingPrefix, ...opts.directUpload },
-  };
-  const photos: TStaticAssetComponentOptions[string] = opts.metaLink
-    ? {
-        storage: 'disk',
-        helper: opts.helper as never,
-        useMetaLink: true,
-        metaLink: opts.metaLink,
-        controller: photoController,
-      }
-    : { storage: 'disk', helper: opts.helper as never, controller: photoController };
-
   const options: TStaticAssetComponentOptions = {
-    photos,
+    photos: {
+      basePath: '/photos',
+      url: { isStrict: false },
+      bucket: 'uploads',
+      keyPrefix: opts.keyPrefix,
+      directUpload: { ...ALLOW, pendingPrefix: opts.pendingPrefix, ...opts.directUpload },
+      metaLink: opts.metaLink,
+      helper: opts.helper as never,
+    },
     plain: {
-      storage: 'disk',
+      basePath: '/plain',
+      url: { isStrict: false },
       helper: new FakeStorageHelper() as never,
-      controller: { name: 'PlainController', basePath: '/plain', isStrict: false },
     },
   };
 

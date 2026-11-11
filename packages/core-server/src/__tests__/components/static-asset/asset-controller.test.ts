@@ -5,13 +5,13 @@ import { ControllerTransports } from '@venizia/ignis-kernel';
 import { BaseMetaLinkModel } from '@/components/static-asset/models';
 import { StaticAssetControllerFactory } from '@/components/static-asset/controller';
 import type {
-  TStaticAssetDefineExtraRoutes,
   TMetaLinkConfig,
-  TStaticAssetObjectNameResolver,
-  TStaticAssetExtraOptions,
+  TStaticAssetEntry,
+  TStaticAssetObjectKeyResolver,
   TStaticAssetRoutes,
+  TStaticAssetServerUpload,
 } from '@/components/static-asset/common';
-import { StaticAssetStorageTypes } from '@/components/static-asset/common';
+import { MultipartStorages } from '@venizia/ignis-helpers';
 import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
@@ -116,33 +116,29 @@ class FakeMetaLinkRepository {
 
 /** The four bucket-management routes are off until an application turns each one on. */
 const BUCKET_ROUTES_ON: TStaticAssetRoutes = {
-  getBuckets: { enabled: true },
-  getBucketByName: { enabled: true },
-  createBucket: { enabled: true },
-  deleteBucket: { enabled: true },
+  getBuckets: true,
+  getBucketByName: true,
+  createBucket: true,
+  deleteBucket: true,
 };
 
 /** Mounts a generated static-asset controller on a fresh application and returns the server router wired as start() does - root router under the app base path plus the real application error handler. */
 const mountAssetController = async (opts: {
   helper: FakeStorageHelper;
-  options?: TStaticAssetExtraOptions;
+  serverUpload?: TStaticAssetServerUpload;
+  extend?: TStaticAssetEntry['extend'];
   isStrict?: boolean;
   metaLink?: TMetaLinkConfig;
-  resolveObjectName?: TStaticAssetObjectNameResolver;
-  defineRoutesBefore?: TStaticAssetDefineExtraRoutes;
-  defineExtraRoutes?: TStaticAssetDefineExtraRoutes;
   bucket?: string | (() => string);
   rawObjectPath?: boolean;
   routes?: TStaticAssetRoutes;
 }): Promise<OpenAPIHono> => {
   const {
     helper,
-    options,
+    serverUpload,
+    extend,
     isStrict = false,
     metaLink,
-    resolveObjectName,
-    defineRoutesBefore,
-    defineExtraRoutes,
     bucket,
     rawObjectPath,
     routes,
@@ -152,24 +148,17 @@ const mountAssetController = async (opts: {
   const application = new TestApplication({ scope: 'StaticAssetTestApp', config: TEST_CONFIGS });
   application.init();
 
-  const AssetController = StaticAssetControllerFactory.build({
-    controller: {
-      name: 'TestAssetController',
-      basePath: '/assets',
-      isStrict,
-      bucket,
-      rawObjectPath,
-      routes,
-    },
-    storage: StaticAssetStorageTypes.DISK,
-    helper,
-    options,
-    useMetaLink: Boolean(metaLink),
+  const entry: TStaticAssetEntry = {
+    basePath: '/assets',
+    url: { isStrict, rawObjectPath },
+    bucket,
+    routes,
+    serverUpload,
     metaLink,
-    resolveObjectName,
-    defineRoutesBefore,
-    defineExtraRoutes,
-  });
+    extend,
+    helper: helper as never,
+  };
+  const AssetController = StaticAssetControllerFactory.build({ key: 'test', entry });
 
   application.controller(AssetController);
   await application['registerControllers']();
@@ -506,13 +495,13 @@ describe('StaticAsset controller — multipart upload edge cases', () => {
     );
   });
 
-  test('custom normalizeNameFn receives the requested folderPath', async () => {
+  test('the objectKey hook receives the requested folderPath', async () => {
     const seen: Array<{ originalName: string; folderPath?: string }> = [];
     const localHelper = new FakeStorageHelper();
     const localRouter = await mountAssetController({
       helper: localHelper,
-      options: {
-        normalizeNameFn: ({ file }) => {
+      serverUpload: {
+        objectKey: ({ file }) => {
           seen.push({ originalName: file.originalName, folderPath: file.folderPath });
 
           return file.folderPath ? `${file.folderPath}/${file.originalName}` : file.originalName;
@@ -660,7 +649,7 @@ describe('StaticAsset controller — disk-buffered multipart storage', () => {
       const helper = new FakeStorageHelper();
       const router = await mountAssetController({
         helper,
-        options: { parseMultipartBody: { storage: 'disk', uploadDir } },
+        serverUpload: { spool: { storage: MultipartStorages.DISK, dir: uploadDir } },
       });
 
       const response = await uploadFiles({
@@ -683,7 +672,7 @@ describe('StaticAsset controller — disk spool cleanup and the part limit', () 
   const mountDisk = async (uploadDir: string, maxFiles?: number) => {
     return mountAssetController({
       helper: new FakeStorageHelper(),
-      options: { parseMultipartBody: { storage: 'disk', uploadDir, maxFiles } },
+      serverUpload: { spool: { storage: MultipartStorages.DISK, dir: uploadDir }, maxFiles },
     });
   };
 
@@ -767,7 +756,7 @@ describe('StaticAsset controller — disk spool cleanup and the part limit', () 
   });
 });
 
-describe('StaticAsset controller — resolveObjectName hook', () => {
+describe('StaticAsset controller — serverUpload.objectKey hook', () => {
   test('no hook keeps the generated name', async () => {
     const helper = new FakeStorageHelper();
     const router = await mountAssetController({ helper });
@@ -790,7 +779,7 @@ describe('StaticAsset controller — resolveObjectName hook', () => {
     const helper = new FakeStorageHelper();
     const router = await mountAssetController({
       helper,
-      resolveObjectName: () => 'fixed-name.bin',
+      serverUpload: { objectKey: () => 'fixed-name.bin' },
     });
 
     const response = await uploadFiles({
@@ -811,14 +800,16 @@ describe('StaticAsset controller — resolveObjectName hook', () => {
   });
 
   test('the hook is offered the file, the default key and the bucket', async () => {
-    const seen: Array<Parameters<TStaticAssetObjectNameResolver>[0]> = [];
+    const seen: Array<Parameters<TStaticAssetObjectKeyResolver>[0]> = [];
     const helper = new FakeStorageHelper();
     const router = await mountAssetController({
       helper,
-      resolveObjectName: (hookOptions) => {
-        seen.push({ ...hookOptions });
+      serverUpload: {
+        objectKey: (hookOptions) => {
+          seen.push({ ...hookOptions });
 
-        return hookOptions.file.originalName;
+          return hookOptions.file.originalName;
+        },
       },
     });
 
@@ -851,48 +842,29 @@ describe('StaticAsset controller — resolveObjectName hook', () => {
     const plainUploaded = result as Array<{ object: { key: string } }>;
     expect(plainUploaded[0].object.key).toBe(seen[0].defaultKey);
   });
-
-  test('a configured normalizeNameFn is what the hook sees as the default key', async () => {
-    const seen: Array<string> = [];
-    const helper = new FakeStorageHelper();
-    const router = await mountAssetController({
-      helper,
-      options: { normalizeNameFn: ({ file }) => `custom-${file.originalName}` },
-      resolveObjectName: (hookOptions) => {
-        seen.push(hookOptions.defaultKey);
-
-        return hookOptions.defaultKey;
-      },
-    });
-
-    const response = await uploadFiles({
-      router,
-      files: [new File(['x'], 'photo.jpg', { type: 'image/jpeg' })],
-    });
-    expect(response.status).toBe(200);
-    expect(seen).toEqual(['custom-photo.jpg']);
-  });
 });
 
-describe('StaticAsset controller — defineExtraRoutes hook', () => {
+describe('StaticAsset controller — extend.after hook', () => {
   test('the hook runs once and its route answers', async () => {
     const helper = new FakeStorageHelper();
     let callCount = 0;
 
     const router = await mountAssetController({
       helper,
-      defineExtraRoutes: ({ controller, basePath }) => {
-        callCount += 1;
-        controller.defineRoute({
-          configs: {
-            method: 'get',
-            path: '/health',
-            responses: OpenApiResponses.jsonResponse({
-              schema: z.object({ basePath: z.string() }),
-            }),
-          },
-          handler: (context) => context.json({ basePath }, HTTP.ResultCodes.RS_2.Ok),
-        });
+      extend: {
+        after: ({ controller, basePath }) => {
+          callCount += 1;
+          controller.defineRoute({
+            configs: {
+              method: 'get',
+              path: '/health',
+              responses: OpenApiResponses.jsonResponse({
+                schema: z.object({ basePath: z.string() }),
+              }),
+            },
+            handler: (context) => context.json({ basePath }, HTTP.ResultCodes.RS_2.Ok),
+          });
+        },
       },
     });
 
@@ -908,20 +880,24 @@ describe('StaticAsset controller — defineExtraRoutes hook', () => {
     const helper = new FakeStorageHelper();
     const router = await mountAssetController({
       helper,
-      resolveObjectName: (hookOptions) => `scoped/${hookOptions.defaultKey}`,
-      defineExtraRoutes: ({ controller, helper: hookHelper }) => {
-        controller.defineRoute({
-          configs: {
-            method: 'get',
-            path: '/health',
-            responses: OpenApiResponses.jsonResponse({ schema: z.object({ buckets: z.number() }) }),
-          },
-          handler: async (context) => {
-            const buckets = await hookHelper.getBuckets();
+      serverUpload: { objectKey: (hookOptions) => `scoped/${hookOptions.defaultKey}` },
+      extend: {
+        after: ({ controller, helper: hookHelper }) => {
+          controller.defineRoute({
+            configs: {
+              method: 'get',
+              path: '/health',
+              responses: OpenApiResponses.jsonResponse({
+                schema: z.object({ buckets: z.number() }),
+              }),
+            },
+            handler: async (context) => {
+              const buckets = await hookHelper.getBuckets();
 
-            return context.json({ buckets: buckets.length }, HTTP.ResultCodes.RS_2.Ok);
-          },
-        });
+              return context.json({ buckets: buckets.length }, HTTP.ResultCodes.RS_2.Ok);
+            },
+          });
+        },
       },
     });
 
@@ -1087,7 +1063,7 @@ describe('StaticAsset controller — raw nested object paths', () => {
     const router = await mountAssetController({
       helper,
       rawObjectPath: true,
-      options: { maxFolderDepth: 2 },
+      serverUpload: { maxFolderDepth: 2 },
     });
 
     const uploadResponse = await uploadFiles({
@@ -1115,7 +1091,7 @@ describe('StaticAsset controller — raw nested object paths', () => {
     const router = await mountAssetController({
       helper,
       rawObjectPath: true,
-      options: { maxFolderDepth: 1 },
+      serverUpload: { maxFolderDepth: 1 },
     });
 
     const response = await router.request('/assets/buckets/images/objects/a/b/c/photo.jpg');
@@ -1212,22 +1188,24 @@ describe('StaticAsset controller — strict routing', () => {
   });
 });
 
-describe('StaticAsset controller - defineRoutesBefore wins a path collision', () => {
+describe('StaticAsset controller - extend.before wins a path collision', () => {
   test('a literal route registered before the catch-all answers its own path, and the catch-all still serves the rest', async () => {
     const helper = new FakeStorageHelper();
     const router = await mountAssetController({
       helper,
       bucket: 'images',
       rawObjectPath: true,
-      defineRoutesBefore: ({ controller }) => {
-        controller.defineRoute({
-          configs: {
-            method: 'get',
-            path: '/objects/i18n',
-            responses: { 200: { description: 'translations' } },
-          },
-          handler: (context) => context.json({ translations: true }),
-        });
+      extend: {
+        before: ({ controller }) => {
+          controller.defineRoute({
+            configs: {
+              method: 'get',
+              path: '/objects/i18n',
+              responses: { 200: { description: 'translations' } },
+            },
+            handler: (context) => context.json({ translations: true }),
+          });
+        },
       },
     });
 
@@ -1257,15 +1235,17 @@ describe('StaticAsset controller - defineRoutesBefore wins a path collision', ()
       helper,
       bucket: 'images',
       rawObjectPath: true,
-      defineExtraRoutes: ({ controller }) => {
-        controller.defineRoute({
-          configs: {
-            method: 'get',
-            path: '/objects/i18n',
-            responses: { 200: { description: 'translations' } },
-          },
-          handler: (context) => context.json({ translations: true }),
-        });
+      extend: {
+        after: ({ controller }) => {
+          controller.defineRoute({
+            configs: {
+              method: 'get',
+              path: '/objects/i18n',
+              responses: { 200: { description: 'translations' } },
+            },
+            handler: (context) => context.json({ translations: true }),
+          });
+        },
       },
     });
 
@@ -1356,7 +1336,7 @@ describe('the upload route refuses a file over maxBytes', () => {
   /** Without a ceiling the ordinary upload accepted any size, while `directUpload` had one all along. */
   test('a file over the ceiling is refused with 413, and nothing is stored', async () => {
     const helper = new FakeStorageHelper();
-    const router = await mountAssetController({ helper, options: { maxBytes: 16 } });
+    const router = await mountAssetController({ helper, serverUpload: { maxBytes: 16 } });
 
     const response = await uploadFiles({
       router,
@@ -1371,7 +1351,7 @@ describe('the upload route refuses a file over maxBytes', () => {
 
   test('a file at the ceiling is accepted', async () => {
     const helper = new FakeStorageHelper();
-    const router = await mountAssetController({ helper, options: { maxBytes: 16 } });
+    const router = await mountAssetController({ helper, serverUpload: { maxBytes: 16 } });
 
     const response = await uploadFiles({
       router,
@@ -1387,7 +1367,7 @@ describe('the upload route refuses a file over maxBytes', () => {
    */
   test('a declared content-length over the ceiling is refused before parsing', async () => {
     const helper = new FakeStorageHelper();
-    const router = await mountAssetController({ helper, options: { maxBytes: 16 } });
+    const router = await mountAssetController({ helper, serverUpload: { maxBytes: 16 } });
 
     const boundary = '----ignis-test-boundary';
     const body =

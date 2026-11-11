@@ -3,7 +3,6 @@ import 'reflect-metadata';
 import { model } from '@/base/metadata';
 import type { BaseApplication } from '@/base/applications';
 import { StaticAssetComponent } from '@/components/static-asset';
-import { StaticAssetStorageTypes } from '@/components/static-asset/common';
 import type { DiskHelper } from '@venizia/ignis-helpers';
 import type {
   TMetaLinkConfig,
@@ -93,10 +92,8 @@ export const metaLinkTypeAssertions = () => {
   /** And the component options carry that table through, which is the shape an application binds. */
   const namespacedOptions: TStaticAssetComponentOptions<typeof NamespacedMetaLinkModel.schema> = {
     asset: {
-      controller: { name: 'AssetController', basePath: '/assets' },
-      storage: StaticAssetStorageTypes.DISK,
+      basePath: '/assets',
       helper: diskHelper,
-      useMetaLink: true,
       metaLink: namespacedTable,
     },
   };

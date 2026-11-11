@@ -5,9 +5,11 @@ import { StaticAssetControllerFactory } from '@/components/static-asset/controll
 import { MetaLinkRecreateActions, StaticAssetStorageTypes } from '@/components/static-asset/common';
 import type {
   TMetaLinkConfig,
-  TStaticAssetObjectNameResolver,
-  TStaticAssetExtraOptions,
-  TStaticAssetComponentOptions,
+  TStaticAssetDirectUploadOptions,
+  TStaticAssetEntry,
+  TStaticAssetRoutes,
+  TStaticAssetServerUpload,
+  TStaticAssetUrl,
 } from '@/components/static-asset/common';
 import { BaseMetaLinkModel } from '@/components/static-asset/models';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
@@ -100,10 +102,14 @@ const toMetaLinkConfig = (opts: {
 
 const mount = async (opts: {
   helper: FakeStorageHelper;
-  controller?: Partial<TStaticAssetComponentOptions[string]['controller']>;
+  entry?: {
+    keyPrefix?: string;
+    routes?: TStaticAssetRoutes;
+    url?: TStaticAssetUrl;
+    directUpload?: TStaticAssetDirectUploadOptions;
+  };
+  serverUpload?: TStaticAssetServerUpload;
   metaLink?: TMetaLinkConfig<AnyType>;
-  resolveObjectName?: TStaticAssetObjectNameResolver;
-  options?: TStaticAssetExtraOptions;
 }): Promise<OpenAPIHono> => {
   MetadataRegistry.getInstance().clearAll();
   const application = new ScopedAssetApplication({
@@ -112,24 +118,21 @@ const mount = async (opts: {
   });
   application.init();
 
-  const controller = {
-    name: 'ScopedAssetController',
+  const entry: TStaticAssetEntry = {
     basePath: '/assets',
-    isStrict: false,
     bucket: 'images',
-    ...opts.controller,
+    helper: opts.helper as never,
+    serverUpload: opts.serverUpload,
+    metaLink: opts.metaLink,
+    ...opts.entry,
+    url: { isStrict: false, ...opts.entry?.url },
   };
 
   application.controller(
     StaticAssetControllerFactory.build({
-      controller,
-      storage: StaticAssetStorageTypes.DISK,
-      helper: opts.helper,
-      useMetaLink: opts.metaLink !== undefined,
-      metaLink: opts.metaLink,
-      ...buildDirectUploadServices({ helper: opts.helper, controller, metaLink: opts.metaLink }),
-      resolveObjectName: opts.resolveObjectName,
-      options: opts.options,
+      key: 'scoped',
+      entry,
+      ...buildDirectUploadServices({ key: 'scoped', entry }),
     }),
   );
   await application['registerControllers']();
@@ -162,12 +165,12 @@ const objectPath = (opts: { route: string; key: string }) =>
 const storageMethods = (helper: FakeStorageHelper) => helper.calls.map((call) => call.method);
 
 describe('a route can be switched off one by one', () => {
-  test('enabled: false leaves the route unregistered, and the storage is never asked', async () => {
+  test('a route set to false is left unregistered, and the storage is never asked', async () => {
     const helper = new FakeStorageHelper();
     helper.seedObject({ bucket: 'images', key: 'photo.jpg' });
     const router = await mount({
       helper,
-      controller: { routes: { deleteObject: { enabled: false } } },
+      entry: { routes: { deleteObject: false } },
     });
 
     const response = await router.request(objectPath({ route: 'objects', key: 'photo.jpg' }), {
@@ -181,13 +184,13 @@ describe('a route can be switched off one by one', () => {
     );
   });
 
-  test('the other routes stay registered, and enabled: true changes nothing', async () => {
+  test('the other routes stay registered, and a route set to true changes nothing', async () => {
     const helper = new FakeStorageHelper();
     helper.seedObject({ bucket: 'images', key: 'photo.jpg', mimetype: 'image/jpeg' });
     const router = await mount({
       helper,
-      controller: {
-        routes: { deleteObject: { enabled: false }, getObjectByName: { enabled: true } },
+      entry: {
+        routes: { deleteObject: false, getObjectByName: true },
       },
     });
 
@@ -201,13 +204,12 @@ describe('a route can be switched off one by one', () => {
     const router = await mount({
       helper,
       metaLink: toMetaLinkConfig({ repository: new FakeMetaLinkRepository() }),
-      controller: {
-        bucket: undefined,
+      entry: {
         routes: {
-          getBuckets: { enabled: false },
-          listObjects: { enabled: false },
-          upload: { enabled: false },
-          recreateMetaLink: { enabled: false },
+          getBuckets: false,
+          listObjects: false,
+          upload: false,
+          recreateMetaLink: false,
         },
       },
     });
@@ -247,7 +249,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
       seedBoth(helper);
       const router = await mount({
         helper,
-        controller: { keyPrefix: 'tenant-a' },
+        entry: { keyPrefix: 'tenant-a' },
         metaLink: toMetaLinkConfig({ repository: new FakeMetaLinkRepository() }),
       });
 
@@ -268,7 +270,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
   test('a prefix without its slash does not own a sibling that merely starts the same', async () => {
     const helper = new FakeStorageHelper();
     seedBoth(helper);
-    const router = await mount({ helper, controller: { keyPrefix: 'tenant-a' } });
+    const router = await mount({ helper, entry: { keyPrefix: 'tenant-a' } });
 
     const response = await router.request(
       objectPath({ route: 'objects', key: 'tenant-ab/photo.jpg' }),
@@ -280,7 +282,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
   test('a key inside the prefix is served as before', async () => {
     const helper = new FakeStorageHelper();
     seedBoth(helper);
-    const router = await mount({ helper, controller: { keyPrefix: '/tenant-a/' } });
+    const router = await mount({ helper, entry: { keyPrefix: '/tenant-a/' } });
 
     const response = await router.request(
       objectPath({ route: 'objects', key: 'tenant-a/photo.jpg' }),
@@ -291,7 +293,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
 
   test('the prefix does not count against maxFolderDepth: the caller keeps its own depth', async () => {
     const helper = new FakeStorageHelper();
-    const router = await mount({ helper, controller: { keyPrefix: 'inventory/material-images' } });
+    const router = await mount({ helper, entry: { keyPrefix: 'inventory/material-images' } });
 
     const uploaded = await upload({ router, labels: { folderPath: 'shop/2024' } });
     const uploadedBody = await uploaded.json();
@@ -305,7 +307,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
   test('listObjects without a prefix lists only the scope', async () => {
     const helper = new FakeStorageHelper();
     seedBoth(helper);
-    const router = await mount({ helper, controller: { keyPrefix: 'tenant-a' } });
+    const router = await mount({ helper, entry: { keyPrefix: 'tenant-a' } });
 
     const response = await router.request('/assets/objects');
     const result = await response.json();
@@ -317,7 +319,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
   test('listObjects narrows a wider prefix to the scope and keeps a narrower one', async () => {
     const helper = new FakeStorageHelper();
     seedBoth(helper);
-    const router = await mount({ helper, controller: { keyPrefix: 'tenant-a' } });
+    const router = await mount({ helper, entry: { keyPrefix: 'tenant-a' } });
 
     await router.request('/assets/objects?prefix=tenant');
     await router.request(`/assets/objects?prefix=${encodeURIComponent('tenant-a/pho')}`);
@@ -331,7 +333,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
   test('listObjects outside the scope is empty, and the storage is never asked', async () => {
     const helper = new FakeStorageHelper();
     seedBoth(helper);
-    const router = await mount({ helper, controller: { keyPrefix: 'tenant-a' } });
+    const router = await mount({ helper, entry: { keyPrefix: 'tenant-a' } });
 
     const response = await router.request('/assets/objects?prefix=tenant-b/');
 
@@ -343,7 +345,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
 
   test('the default upload key is placed under the prefix', async () => {
     const helper = new FakeStorageHelper();
-    const router = await mount({ helper, controller: { keyPrefix: 'tenant-a' } });
+    const router = await mount({ helper, entry: { keyPrefix: 'tenant-a' } });
 
     const response = await upload({ router, labels: { folderPath: 'photos' } });
     const responseBody = await response.json();
@@ -352,16 +354,18 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     expect(result.object.key).toBe('tenant-a/photos/photo.jpg');
   });
 
-  test('resolveObjectName is offered the scoped default and may return a key inside the prefix', async () => {
+  test('serverUpload.objectKey is offered the scoped default and may return a key inside the prefix', async () => {
     const helper = new FakeStorageHelper();
     const offered: string[] = [];
     const router = await mount({
       helper,
-      controller: { keyPrefix: 'tenant-a' },
-      resolveObjectName: ({ defaultKey }) => {
-        offered.push(defaultKey);
+      entry: { keyPrefix: 'tenant-a' },
+      serverUpload: {
+        objectKey: ({ defaultKey }) => {
+          offered.push(defaultKey);
 
-        return 'tenant-a/generated.jpg';
+          return 'tenant-a/generated.jpg';
+        },
       },
     });
 
@@ -373,12 +377,12 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     expect(result.object.key).toBe('tenant-a/generated.jpg');
   });
 
-  test('a resolveObjectName key outside the prefix is refused, and nothing is written', async () => {
+  test('a serverUpload.objectKey key outside the prefix is refused, and nothing is written', async () => {
     const helper = new FakeStorageHelper();
     const router = await mount({
       helper,
-      controller: { keyPrefix: 'tenant-a' },
-      resolveObjectName: () => 'tenant-b/escaped.jpg',
+      entry: { keyPrefix: 'tenant-a' },
+      serverUpload: { objectKey: () => 'tenant-b/escaped.jpg' },
     });
 
     const response = await upload({ router });
@@ -393,9 +397,11 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const helper = new FakeStorageHelper();
     const router = await mount({
       helper,
-      controller: { keyPrefix: 'tenant-a' },
-      resolveObjectName: ({ file, defaultKey }) =>
-        file.originalName === 'second.jpg' ? 'tenant-b/second.jpg' : defaultKey,
+      entry: { keyPrefix: 'tenant-a' },
+      serverUpload: {
+        objectKey: ({ file, defaultKey }) =>
+          file.originalName === 'second.jpg' ? 'tenant-b/second.jpg' : defaultKey,
+      },
     });
 
     const form = new FormData();
@@ -412,12 +418,12 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     ).toBe(false);
   });
 
-  test('an extra.normalizeNameFn key outside the prefix is refused the same way', async () => {
+  test('a second objectKey that ignores the default and lands outside the prefix is refused the same way', async () => {
     const helper = new FakeStorageHelper();
     const router = await mount({
       helper,
-      controller: { keyPrefix: 'tenant-a' },
-      options: { normalizeNameFn: () => 'elsewhere.jpg' },
+      entry: { keyPrefix: 'tenant-a' },
+      serverUpload: { objectKey: () => 'elsewhere.jpg' },
     });
 
     const response = await upload({ router });
@@ -430,7 +436,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const helper = new FakeStorageHelper();
     const router = await mount({
       helper,
-      controller: {
+      entry: {
         keyPrefix: 'tenant-a',
         directUpload: { authorize: () => true, secretKey: 'a-secret', maxBytes: 1024 },
       },
@@ -468,7 +474,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
 
     for (const controller of [{ keyPrefix: 'tenant-a' }, {}]) {
       const helper = new FakeStorageHelper();
-      const router = await mount({ helper, controller });
+      const router = await mount({ helper, entry: controller });
 
       const response = await upload({ router, fileName: 'evil/x.jpg' });
       const result = await response.json();
@@ -490,8 +496,8 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const helper = new FakeStorageHelper();
     const router = await mount({
       helper,
-      controller: { keyPrefix: 'tenant-a' },
-      resolveObjectName: () => 'tenant-a/generated.jpg',
+      entry: { keyPrefix: 'tenant-a' },
+      serverUpload: { objectKey: () => 'tenant-a/generated.jpg' },
     });
 
     const response = await upload({ router, fileName: 'evil/x.jpg' });
@@ -499,14 +505,14 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     expect(response.status).toBe(200);
   });
 
-  test('keyPrefix without controller.bucket is refused when the controller is defined', () => {
+  test('keyPrefix without a bucket is refused when the controller is defined', () => {
     expect(() =>
       StaticAssetControllerFactory.build({
-        controller: { name: 'UnboundScope', basePath: '/assets', keyPrefix: 'tenant-a' },
-        storage: StaticAssetStorageTypes.DISK,
-        helper: new FakeStorageHelper(),
+        key: 'unbound',
+        // @ts-expect-error the types already refuse a keyPrefix without a bucket; this is the guard for a caller they do not reach
+        entry: { basePath: '/assets', keyPrefix: 'tenant-a', helper: new FakeStorageHelper() },
       }),
-    ).toThrow('keyPrefix needs controller.bucket');
+    ).toThrow('keyPrefix needs bucket');
   });
 
   /** A tenant-b object is seeded under both; the scope must never let a request reach it. */
@@ -529,7 +535,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
       seedBoth(helper);
       const router = await mount({
         helper,
-        controller: { keyPrefix: 'tenant-a', rawObjectPath: true },
+        entry: { keyPrefix: 'tenant-a', url: { rawObjectPath: true } },
       });
 
       const response = await router.request(`/assets/objects/${path}`);
@@ -547,7 +553,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     test(`encoded path: the key ${key} answers ${status}, never reaching another tenant`, async () => {
       const helper = new FakeStorageHelper();
       seedBoth(helper);
-      const router = await mount({ helper, controller: { keyPrefix: 'tenant-a' } });
+      const router = await mount({ helper, entry: { keyPrefix: 'tenant-a' } });
 
       const response = await router.request(objectPath({ route: 'objects', key }));
 
@@ -560,16 +566,20 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     test(`an unusable keyPrefix '${keyPrefix}' is refused when the controller is defined`, () => {
       expect(() =>
         StaticAssetControllerFactory.build({
-          controller: { name: 'BadScope', basePath: '/assets', bucket: 'images', keyPrefix },
-          storage: StaticAssetStorageTypes.DISK,
-          helper: new FakeStorageHelper(),
+          key: 'badScope',
+          entry: {
+            basePath: '/assets',
+            bucket: 'images',
+            keyPrefix,
+            helper: new FakeStorageHelper() as never,
+          },
         }),
       ).toThrow('controller.keyPrefix');
     });
   }
 });
 
-describe('extra.maxBytes refuses a declared length before the body is read', () => {
+describe('serverUpload.maxBytes refuses a declared length before the body is read', () => {
   /** A body that counts how often it was pulled: zero means nothing buffered it. */
   const countingBody = () => {
     const state = { pulled: 0 };
@@ -590,7 +600,7 @@ describe('extra.maxBytes refuses a declared length before the body is read', () 
 
   test('an oversized content-length is a 413 and the body is never pulled', async () => {
     const helper = new FakeStorageHelper();
-    const router = await mount({ helper, options: { maxBytes: 16 } });
+    const router = await mount({ helper, serverUpload: { maxBytes: 16 } });
     const { state, body } = countingBody();
 
     const response = await router.request('/assets/objects', {
@@ -611,8 +621,8 @@ describe('extra.maxBytes refuses a declared length before the body is read', () 
     const seen: string[] = [];
     const router = await mount({
       helper,
-      options: { maxBytes: 16 },
-      controller: {
+      serverUpload: { maxBytes: 16 },
+      entry: {
         routes: {
           upload: {
             middleware: async (_context, next) => {

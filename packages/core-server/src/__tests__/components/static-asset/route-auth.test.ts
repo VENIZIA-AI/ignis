@@ -3,14 +3,20 @@ import { BaseApplication } from '@/base/applications';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { StaticAssetControllerFactory } from '@/components/static-asset/controller';
 import {
-  StaticAssetStorageTypes,
   StaticAssetValidation,
   type TMetaLinkConfig,
   type TStaticAssetAuth,
-  type TStaticAssetComponentOptions,
+  type TStaticAssetEntry,
   type TStaticAssetRoutes,
 } from '@/components/static-asset/common';
 import { BaseMetaLinkModel } from '@/components/static-asset/models';
+import type { IAuthorizationSpec, IAuthorizeOptions } from '@venizia/ignis-kernel';
+import {
+  Authentication,
+  AuthorizationEnforcerTypes,
+  AuthorizeBindingKeys,
+  Container,
+} from '@venizia/ignis-kernel';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
@@ -18,6 +24,7 @@ import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kerne
 import { ControllerTransports, MetadataRegistry } from '@venizia/ignis-kernel';
 import { describe, expect, test } from 'bun:test';
 import { buildDirectUploadServices } from './direct-upload-services';
+import { createFreshRegistry, TestAuthorizationEnforcer } from '../../authorize/helpers';
 import { FakeStorageHelper } from './fake-storage.helper';
 
 const TEST_CONFIGS: IApplicationConfigs = {
@@ -39,10 +46,10 @@ class RouteAuthApplication extends BaseApplication {
 }
 
 const BUCKET_ROUTES_ON: TStaticAssetRoutes = {
-  getBuckets: { enabled: true },
-  getBucketByName: { enabled: true },
-  createBucket: { enabled: true },
-  deleteBucket: { enabled: true },
+  getBuckets: true,
+  getBucketByName: true,
+  createBucket: true,
+  deleteBucket: true,
 };
 
 const META_LINK: TMetaLinkConfig = {
@@ -76,52 +83,55 @@ const securityOfRoutes = (router: OpenAPIHono): Record<string, TOperationSecurit
 const JWT: TOperationSecurity = [{ jwt: [] }];
 
 const mount = async (opts: {
+  onServer?: (server: OpenAPIHono) => void;
   auth?: TStaticAssetAuth;
   routes?: TStaticAssetRoutes;
   bucket?: string;
   isDirectUpload?: boolean;
   isMetaLink?: boolean;
+  serverUpload?: false;
 }): Promise<OpenAPIHono> => {
   MetadataRegistry.getInstance().clearAll();
   const application = new RouteAuthApplication({ scope: 'RouteAuthApp', config: TEST_CONFIGS });
   application.init();
 
   const helper = new FakeStorageHelper();
-  const controller: TStaticAssetComponentOptions[string]['controller'] = {
-    name: 'AuthAssetController',
+  const base = {
     basePath: '/assets',
-    isStrict: false,
-    bucket: opts.bucket,
+    url: { isStrict: false },
+    auth: opts.auth,
     routes: opts.routes,
-    ...(opts.isDirectUpload
-      ? {
-          directUpload: {
-            authorize: () => true,
-            secretKey: 'a-secret-nobody-else-has',
-            maxBytes: 1024,
-            validation: StaticAssetValidation.define({
-              issueSchema: z.object({ message: z.string() }),
-              handler: () => ({ isValid: true, issues: [] }),
-            }),
-          },
-        }
-      : {}),
+    metaLink: opts.isMetaLink ? META_LINK : undefined,
+    serverUpload: opts.serverUpload,
+    helper: helper as never,
   };
+  const validation = StaticAssetValidation.define({
+    issueSchema: z.object({ message: z.string() }),
+    handler: () => ({ isValid: true, issues: [] }),
+  });
+  const entry: TStaticAssetEntry =
+    opts.bucket === undefined
+      ? base
+      : {
+          ...base,
+          bucket: opts.bucket,
+          directUpload: opts.isDirectUpload
+            ? { secretKey: 'a-secret-nobody-else-has', maxBytes: 1024, validation }
+            : undefined,
+        };
 
   application.controller(
     StaticAssetControllerFactory.build({
-      controller,
-      storage: StaticAssetStorageTypes.DISK,
-      helper: helper as never,
-      auth: opts.auth,
-      ...(opts.isMetaLink ? { useMetaLink: true, metaLink: META_LINK } : {}),
-      ...buildDirectUploadServices({ helper: helper as never, controller }),
+      key: 'authed',
+      entry,
+      ...buildDirectUploadServices({ key: 'authed', entry }),
     }),
   );
   await application['registerControllers']();
 
   const server = application.getServer() as OpenAPIHono;
   server.onError(new AppErrorMiddleware({ logger: application.logger }).value());
+  opts.onServer?.(server);
   server.route(TEST_CONFIGS.path.base, application.getRootRouter());
 
   return server;
@@ -141,12 +151,22 @@ describe('the bucket-management routes are off by default', () => {
   });
 
   test('each is registered once it is enabled, and only that one', async () => {
-    const router = await mount({ routes: { getBuckets: { enabled: true } } });
+    const router = await mount({ routes: { getBuckets: true } });
 
     const routes = Object.keys(securityOfRoutes(router));
 
     expect(routes).toContain('GET /assets/buckets');
     expect(routes).not.toContain('GET /assets/buckets/{bucketName}');
+    expect(routes).not.toContain('DELETE /assets/buckets/{bucketName}');
+  });
+
+  test('an object override is an opt-in too, and it moves the route', async () => {
+    const router = await mount({ routes: { getBuckets: { path: '/list' }, deleteBucket: false } });
+
+    const routes = Object.keys(securityOfRoutes(router));
+
+    expect(routes).toContain('GET /assets/list');
+    expect(routes).not.toContain('GET /assets/buckets');
     expect(routes).not.toContain('DELETE /assets/buckets/{bucketName}');
   });
 
@@ -161,6 +181,30 @@ describe('the bucket-management routes are off by default', () => {
         'GET /assets/buckets/{bucketName}',
         'POST /assets/buckets/{bucketName}',
         'DELETE /assets/buckets/{bucketName}',
+      ]),
+    );
+  });
+});
+
+describe('serverUpload: false and a route set to false', () => {
+  test('the Excel-import setup: no upload route, no commit route, the rest stays', async () => {
+    const router = await mount({
+      bucket: 'uploads',
+      isDirectUpload: true,
+      auth: { authenticate: { strategies: ['jwt'] } },
+      serverUpload: false,
+      routes: { uploadCommit: false },
+    });
+
+    const routes = Object.keys(securityOfRoutes(router));
+
+    expect(routes).not.toContain('POST /assets/objects');
+    expect(routes).not.toContain('POST /assets/upload-commit');
+    expect(routes).toEqual(
+      expect.arrayContaining([
+        'POST /assets/upload-policy',
+        'POST /assets/upload-validate',
+        'GET /assets/objects/{objectName}',
       ]),
     );
   });
@@ -272,5 +316,78 @@ describe('publicRead', () => {
     const security = securityOfRoutes(router);
 
     expect(security['GET /assets/buckets/{bucketName}/objects/{objectName}']).toEqual(JWT);
+  });
+});
+
+describe('an entry-level auth.authorize runs through a real authorization enforcer', () => {
+  const READ: IAuthorizationSpec = { action: 'read', resource: 'asset' };
+  const DELETE: IAuthorizationSpec = { action: 'delete', resource: 'asset' };
+
+  /** The signed-in user is whoever `x-user` names: what the authentication step would have put on the context. */
+  const mountAuthorized = async (opts: { routes?: TStaticAssetRoutes }) => {
+    const registry = createFreshRegistry();
+    const container = new Container({ scope: 'route-auth-test' });
+    container
+      .bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS })
+      .toValue({ defaultDecision: 'deny' });
+    registry.register({
+      container,
+      enforcers: [
+        {
+          enforcer: TestAuthorizationEnforcer,
+          name: 'test',
+          type: AuthorizationEnforcerTypes.CUSTOM,
+        },
+      ],
+    });
+    // Reads are granted; nothing grants a delete.
+    TestAuthorizationEnforcer.rules = [{ action: 'read', resource: 'asset', effect: 'allow' }];
+
+    return mount({
+      auth: { authorize: READ },
+      bucket: 'images',
+      routes: opts.routes,
+      onServer: (server) => {
+        server.use('*', async (context, next) => {
+          const userId = context.req.header('x-user');
+
+          if (userId) {
+            context.set(Authentication.CURRENT_USER, { userId, principalType: 'user' });
+          }
+
+          await next();
+        });
+      },
+    });
+  };
+
+  test('a granted spec reaches the handler, a spec nothing grants is a 403, and no user is a 401', async () => {
+    const router = await mountAuthorized({ routes: { deleteObject: { authorize: DELETE } } });
+
+    const granted = await router.request('/assets/objects/photo.jpg', {
+      headers: { 'x-user': '7' },
+    });
+    const denied = await router.request('/assets/objects/photo.jpg', {
+      method: 'DELETE',
+      headers: { 'x-user': '7' },
+    });
+    const anonymous = await router.request('/assets/objects/photo.jpg');
+
+    // The object does not exist, so a granted request reaches the handler and answers 404.
+    expect(granted.status).toBe(404);
+    expect(denied.status).toBe(403);
+    expect(anonymous.status).toBe(401);
+  });
+
+  test('the entry spec covers a route that sets nothing, and skip opens one route', async () => {
+    const router = await mountAuthorized({
+      routes: { getObjectByName: { authorize: { skip: true } } },
+    });
+
+    const skipped = await router.request('/assets/objects/photo.jpg');
+    const covered = await router.request('/assets/objects', { headers: {} });
+
+    expect(skipped.status).toBe(404);
+    expect(covered.status).toBe(401);
   });
 });

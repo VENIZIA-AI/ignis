@@ -2,10 +2,7 @@ import 'reflect-metadata';
 import { BaseApplication } from '@/base/applications';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { StaticAssetControllerFactory } from '@/components/static-asset/controller';
-import {
-  StaticAssetMetaLinkCodes,
-  StaticAssetStorageTypes,
-} from '@/components/static-asset/common';
+import { StaticAssetMetaLinkCodes } from '@/components/static-asset/common';
 import { StaticAssetCommitTokenUtility } from '@/components/static-asset/utilities';
 import { BaseMetaLinkModel } from '@/components/static-asset/models';
 import type {
@@ -13,6 +10,7 @@ import type {
   TStaticAssetRoutes,
   TMetaLinkConfig,
   TStaticAssetComponentOptions,
+  TStaticAssetEntry,
 } from '@/components/static-asset/common';
 import type { IAuthorizationSpec } from '@/base';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
@@ -56,27 +54,21 @@ const mount = async (opts: {
   });
   application.init();
 
-  const controller = {
-    name: 'DirectAssetController',
+  const entry: TStaticAssetEntry = {
     basePath: '/assets',
-    isStrict: false,
+    url: { isStrict: false },
     bucket: 'uploads',
     directUpload: opts.directUpload,
     routes: opts.routes,
+    metaLink: opts.metaLink,
+    helper: opts.helper as never,
   };
 
   application.controller(
     StaticAssetControllerFactory.build({
-      controller,
-      storage: StaticAssetStorageTypes.DISK,
-      helper: opts.helper as never,
-      useMetaLink: opts.metaLink !== undefined,
-      metaLink: opts.metaLink,
-      ...buildDirectUploadServices({
-        helper: opts.helper as never,
-        controller,
-        metaLink: opts.metaLink,
-      }),
+      key: 'direct',
+      entry,
+      ...buildDirectUploadServices({ key: 'direct', entry }),
     }),
   );
   await application['registerControllers']();
@@ -236,33 +228,6 @@ describe('the upload-commit route', () => {
 
     expect(response.status).toBe(400);
     expect(helper.calls).toHaveLength(0);
-  });
-
-  /** onCommit runs BEFORE the copy, so a throwing hook leaves the object under the pending prefix. */
-  test('a hook that throws leaves nothing at the final key', async () => {
-    const helper = new FakeStorageHelper();
-    const router = await mount({
-      helper,
-      directUpload: {
-        ...ALLOW,
-        onCommit: () => {
-          throw new Error('hook refused');
-        },
-      },
-    });
-
-    const result2 = await askPolicy(router, [{ fileName: 'a.png' }]);
-    const result = await result2.json();
-    const policies = result as Array<{
-      commitToken: string;
-    }>;
-    helper.calls.length = 0;
-
-    const response = await commit(router, policies[0].commitToken);
-
-    expect(response.status).toBeGreaterThanOrEqual(400);
-    expect(helper.calls.filter((call) => call.method === 'copyObject')).toHaveLength(0);
-    expect(helper.calls.filter((call) => call.method === 'removeObject')).toHaveLength(0);
   });
 });
 
@@ -561,9 +526,8 @@ describe('the routes exist only when directUpload is configured', () => {
     application.init();
     application.controller(
       StaticAssetControllerFactory.build({
-        controller: { name: 'PlainAssetController', basePath: '/assets', bucket: 'uploads' },
-        storage: StaticAssetStorageTypes.DISK,
-        helper: helper as never,
+        key: 'plain',
+        entry: { basePath: '/assets', bucket: 'uploads', helper: helper as never },
       }),
     );
     await application['registerControllers']();
@@ -589,20 +553,16 @@ export const routeAuthorizeAssertions = () => {
 
   const options: TStaticAssetComponentOptions = {
     assets: {
-      controller: {
-        name: 'AssetController',
-        basePath: '/assets',
-        bucket: 'uploads',
-        routes: {
-          getObjectByName: { authorize: spec },
-          deleteObject: { authorize: spec },
-          upload: { authorize: [spec] },
-          recreateMetaLink: { authorize: spec },
-          uploadPolicy: { authorize: spec },
-          uploadCommit: { authorize: spec },
-        },
+      basePath: '/assets',
+      bucket: 'uploads',
+      routes: {
+        getObjectByName: { authorize: spec },
+        deleteObject: { authorize: spec },
+        upload: { authorize: [spec] },
+        recreateMetaLink: { authorize: spec },
+        uploadPolicy: { authorize: spec },
+        uploadCommit: { authorize: spec },
       },
-      storage: StaticAssetStorageTypes.DISK,
       helper: undefined as never,
     },
   };

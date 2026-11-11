@@ -1,5 +1,6 @@
-import { BaseStorageHelper, DiskHelper } from '@venizia/ignis-helpers';
+import { BaseStorageHelper } from '@venizia/ignis-helpers';
 import type { IObjectLocation, IStorageHelper } from '@venizia/ignis-helpers';
+import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 import type { TValueOrAsyncResolver } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { StaticAssetDefaults, StaticAssetStorageTypes } from '../common';
@@ -15,6 +16,7 @@ import type {
   TStaticAssetStorageType,
 } from '../common';
 import type { TMetaLinkCompatibleSchema } from '../models';
+import { StaticAssetUploadCommitService, StaticAssetUploadPolicyService } from '../services';
 import { StaticAssetObjectLinkUtility } from './object-link.utility';
 
 /** An entry with every default applied and every cross-check made, so the component, the controller and the services read one thing. */
@@ -111,10 +113,11 @@ export class StaticAssetEntryUtility {
       auth,
       routes: entry.routes,
       helper,
+      // The row records where the bytes live: S3 for an S3 helper, the disk otherwise.
       storage:
-        helper instanceof DiskHelper
-          ? StaticAssetStorageTypes.DISK
-          : StaticAssetStorageTypes.BUN_S3,
+        helper instanceof BunS3Helper
+          ? StaticAssetStorageTypes.BUN_S3
+          : StaticAssetStorageTypes.DISK,
       // The link points at this controller's own object route: that is where the object can be read.
       link:
         url?.link ??
@@ -140,6 +143,46 @@ export class StaticAssetEntryUtility {
       },
       metaLink: entry.metaLink,
       extend: entry.extend,
+    };
+  }
+
+  /**
+   * The pair of services an entry's direct-upload routes run, or `undefined` when the entry has no
+   * direct upload. The one place they are constructed: the component binds what this returns and
+   * hands the same instances to the controller.
+   */
+  static buildDirectUploadServices<Schema extends TMetaLinkCompatibleSchema>(opts: {
+    resolved: IStaticAssetResolvedEntry<Schema>;
+  }):
+    | {
+        policyService: StaticAssetUploadPolicyService;
+        commitService: StaticAssetUploadCommitService<Schema>;
+      }
+    | undefined {
+    const { resolved } = opts;
+    const { bucket, directUpload } = resolved;
+
+    if (!directUpload || bucket === undefined) {
+      return undefined;
+    }
+
+    return {
+      policyService: new StaticAssetUploadPolicyService({
+        scope: resolved.name,
+        helper: resolved.helper,
+        bucket,
+        keyPrefix: resolved.keyPrefix,
+        directUpload,
+      }),
+      commitService: new StaticAssetUploadCommitService<Schema>({
+        scope: resolved.name,
+        helper: resolved.helper,
+        keyPrefix: resolved.keyPrefix,
+        directUpload,
+        storage: resolved.storage,
+        metaLink: resolved.metaLink,
+        link: resolved.link,
+      }),
     };
   }
 }

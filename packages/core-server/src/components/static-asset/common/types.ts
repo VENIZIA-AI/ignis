@@ -59,8 +59,13 @@ export type TStaticAssetListQuery = { prefix?: string; recursive?: string; maxKe
 
 /** Enables the signed-policy upload flow, where the client posts bytes straight to the storage and IGNIS only signs the permission and verifies the commit. */
 export type TStaticAssetDirectUploadOptions = {
-  /** Who may use direct upload. Guards BOTH routes. REQUIRED, not defaulted: the policy route hands out a write credential, and there is no safe default for that. */
-  authorize: (opts: { context: TRouteContext }) => ValueOrPromise<boolean>;
+  /**
+   * Who may use direct upload. Guards every direct-upload route. There is no safe default for a
+   * route that hands out a write credential, so leaving it out is allowed only when the entry's
+   * `auth` already authenticates or authorizes: then `auth` is the gate. With neither, the
+   * component refuses to start.
+   */
+  authorize?: (opts: { context: TRouteContext }) => ValueOrPromise<boolean>;
 
   /**
    * Who the upload belongs to. Called on both routes: the policy route signs the answer into the
