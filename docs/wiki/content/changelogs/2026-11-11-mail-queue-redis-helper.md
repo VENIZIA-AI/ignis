@@ -16,6 +16,7 @@ packages: ['@venizia/ignis']
 
 - **`redis` is an `IRedisHelper`.** Pass a `RedisSingleHelper`, `RedisSentinelHelper` or `RedisClusterHelper`. The executor builds no connection of its own.
 - **You close it.** The queue and workers duplicate the helper's client. The executor's `close()` closes workers and queue, and leaves the helper open.
+- **Reconnecting.** Set `maxRetry: -1` on a single or sentinel helper so it keeps reconnecting. The old executor built its helper with `maxRetry` unset, which is `0`, so ioredis gave up on the first failed reconnect; a Sentinel failover or a brief network drop could end the queue.
 - **Cluster queue names.** On a cluster the queue name is wrapped in a `{hash tag}` so its keys share one slot.
 - **`ioredis` for a compiled binary** is now the Redis helper's `module` option. `bullmq`'s `module` stays on the executor.
 
@@ -48,7 +49,13 @@ packages: ['@venizia/ignis']
 {
   type: MailQueueExecutorTypes.BULLMQ,
   bullmq: {
-    redis: new RedisSingleHelper({ name: 'mail-redis', host: 'redis', port: 6379, password }),
+    redis: new RedisSingleHelper({
+      name: 'mail-redis',
+      host: 'redis',
+      port: 6379,
+      password,
+      maxRetry: -1, // keep reconnecting: the old executor effectively had 0
+    }),
     queue: { identifier: 'mail-queue', name: 'mail-queue' },
     mode: BullMQExecutorModes.BOTH,
   },

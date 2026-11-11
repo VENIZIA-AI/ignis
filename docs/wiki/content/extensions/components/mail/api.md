@@ -377,7 +377,7 @@ interface IMailQueueExecutorConfig {
     identifier: string;
   };
   bullmq?: {
-    redis: IRedisHelper; // a ready single, cluster or sentinel helper; the application closes it
+    redis: IRedisHelper; // a ready single, cluster or sentinel helper; the application closes it, and sets maxRetry: -1 so it keeps reconnecting
     queue: { identifier: string; name: string };
     mode: TConstValue<typeof BullMQExecutorModes>; // REQUIRED -- no default
     module?: typeof import('bullmq'); // bullmq itself, for a compiled binary
