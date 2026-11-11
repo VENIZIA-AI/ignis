@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { BaseApplication } from '@/base/applications';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { StaticAssetControllerFactory } from '@/components/static-asset/controller';
-import { StaticAssetMetaLinkCodes } from '@/components/static-asset/common';
+import { StaticAssetMetaLinkCodes, StaticAssetTokenStages } from '@/components/static-asset/common';
 import { StaticAssetCommitTokenUtility } from '@/components/static-asset/utilities';
 import type {
   TStaticAssetRoutes,
@@ -219,6 +219,7 @@ describe('the upload-commit route', () => {
         bucket: { name: 'uploads' },
         object: { key: 'pending/files/x/a.png' },
         expiresAt: Date.now() + 60_000,
+        stage: StaticAssetTokenStages.ISSUED,
       },
       secretKey: 'not-the-secret',
     });

@@ -20,7 +20,7 @@ Every public method takes one options object with nested refs: `{ bucket: { name
 - [`packages/helpers/src/modules/storage/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/common/types.ts) - `IStorageHelper` and every option/result type
 - [`packages/helpers/src/modules/storage/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/common/constants.ts) - `StoragePresignDefaults`, `StoragePresignLimits`, `StorageConcurrency`
 - [`packages/helpers/src/modules/storage/common/errors.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/common/errors.ts) - `StorageErrors`
-- [`packages/helpers/src/modules/storage/common/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/common/utility.ts) - `StorageUtility` (`isNotFoundError`, `toExpirySeconds`)
+- [`packages/helpers/src/modules/storage/common/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/common/utility.ts) - `StorageUtility` (`isNotFoundError`, `isPreconditionFailedError`, `realVersionId`, `toExpirySeconds`)
 - [`packages/helpers/src/common/constants/mime.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/mime.ts) - `ContentTypeTable`, `MimeTypes`
 
 ## Find what you need
@@ -302,7 +302,7 @@ Implemented once on `BaseStorageHelper`; no backend overrides it. Steps, in orde
 
 ```typescript
 getObjectStream(
-  opts: IObjectLocation & { range?: { start: number; end?: number } },
+  opts: IObjectLocation & { range?: { start: number; end?: number } } & IStorageReadCondition,
 ): Promise<ReadableStream<Uint8Array>>;
 
 writeStream(
@@ -315,6 +315,7 @@ writeStream(
 ```
 
 - **`getObjectStream` returns a web stream**, which is what a `Response` body wants. `range` includes `end`, exactly like the HTTP header. The base implementation takes the window off the front of the full stream one chunk at a time; `BunS3Helper` and `DiskHelper` each override it with a native ranged read.
+- **`getObjectStream` can require the content it reads.** `IStorageReadCondition` is `{ ifMatch?: string; versionId?: string }`: read only if the object still has this ETag, or read this exact version. Other content fails with `StorageErrors.PRECONDITION_FAILED` (`412`). `DiskHelper` has no ETag or versions, so it refuses a conditional read with an error.
 - **`writeStream` writes an object without its body landing in this process.** The base implementation buffers, which is the thing to avoid, so `BunS3Helper` overrides it and hands Bun the stream directly. `contentType` falls back to `getMimeType({ filename: object.key })`.
 
 ### Protected extension points (implemented per backend)
@@ -535,9 +536,11 @@ Converts the Bun S3 file's web `ReadableStream` via `Readable.fromWeb()`. The `o
 
 ```typescript
 override async getObjectStream(
-  opts: IObjectLocation & { range?: { start: number; end?: number } },
+  opts: IObjectLocation & { range?: { start: number; end?: number } } & IStorageReadCondition,
 ): Promise<ReadableStream<Uint8Array>>
 ```
+
+With `ifMatch` or `versionId` set, the read is a signed GET that sends `If-Match` or `?versionId=`, because `S3File` sends neither. A `412` becomes `StorageErrors.PRECONDITION_FAILED`.
 
 Returns `file.stream()` directly, so no Node `Readable` sits in between. A `range` becomes `file.slice(start, end + 1)`, a genuine ranged GET - only the requested bytes leave S3. HTTP ranges include `end`; `slice` excludes it, which is why the helper adds one.
 
@@ -547,16 +550,17 @@ Returns `file.stream()` directly, so no Node `Readable` sits in between. A `rang
 async getStat(opts: IObjectLocation): Promise<IFileStat>
 ```
 
-`client.stat(object.key, { bucket })`. Returns:
+A signed `HEAD`, because Bun's `stat` does not report the version id. Returns:
 
 ```typescript
 {
   size: number;
   lastModified: Date;
   metadata: {
-    mimetype: string;    // from stat.type, diagnostic only
+    mimetype: string;    // from the content-type header, diagnostic only
   };
-  etag: string;
+  etag: string;        // quoted, as S3 sends it
+  versionId?: string;  // only a real version: absent when versioning is off or suspended
 }
 ```
 
@@ -564,6 +568,20 @@ A missing object throws the catalogued `core.storage.object_not_found` via `asSt
 
 > [!NOTE]
 > `metadata.mimetype` is one key, not two spellings, and it is diagnostic. The type a route actually serves is derived from the object key - see [Header sanitization](/extensions/components/static-asset/api#header-sanitization).
+
+#### copyObject
+
+```typescript
+override async copyObject(opts: {
+  bucket: IBucketRef;
+  source: IObjectRef;
+  destination: IObjectRef;
+  ifMatch?: string;
+  sourceVersionId?: string;
+}): Promise<void>
+```
+
+A server-side copy inside one bucket: S3 reads the source, so the bytes never pass through this process. `ifMatch` copies only if the source still has that ETag. `sourceVersionId` copies that exact version. Other content fails with `StorageErrors.PRECONDITION_FAILED`, and nothing is written. A missing source throws the catalogued `core.storage.object_not_found` (`404`) via `asStorageError`. `BaseStorageHelper.copyObject` throws, so `DiskHelper` does not copy.
 
 #### listObjects
 
@@ -709,11 +727,11 @@ async getObject(opts: IObjectLocation & { options?: any }): Promise<Readable>
 
 ```typescript
 override async getObjectStream(
-  opts: IObjectLocation & { range?: { start: number; end?: number } },
+  opts: IObjectLocation & { range?: { start: number; end?: number } } & IStorageReadCondition,
 ): Promise<ReadableStream<Uint8Array>>
 ```
 
-`fs.createReadStream(objectPath, { start, end })` seeks natively, so a range never reads the bytes before it. Throws `` `[getObjectStream] Object not found | bucket: {bucket} | key: {key}` `` if the file is missing.
+`fs.createReadStream(objectPath, { start, end })` seeks natively, so a range never reads the bytes before it. Throws `` `[getObjectStream] Object not found | bucket: {bucket} | key: {key}` `` if the file is missing. A conditional read (`ifMatch`, `versionId`) is refused with an error: a disk has no ETag or versions to condition on, and ignoring the condition would read unpinned.
 
 #### getStat
 
@@ -955,10 +973,18 @@ const StorageErrors = {
     statusCode: 404,
     category: ErrorScopes.BUSINESS,
   },
+  PRECONDITION_FAILED: {
+    message: {
+      text: 'The object no longer matches what was expected',
+      code: 'core.storage.precondition_failed',
+    },
+    statusCode: 412,
+    category: ErrorScopes.BUSINESS,
+  },
 };
 ```
 
-The one catalogued storage error. `StorageUtility.isNotFoundError({ error })` is the matching predicate: it accepts a `404` status, or a `code`/`name` containing `nosuchkey`, `nosuchbucket` or `notfound`.
+`PRECONDITION_FAILED` is what a conditional read or copy (`ifMatch`, `versionId`, `sourceVersionId`) throws when it finds other content. `StorageUtility.isPreconditionFailedError({ error })` is its predicate, and `StorageUtility.realVersionId({ value })` answers `undefined` for a missing, empty or literal `null` version id. `OBJECT_NOT_FOUND` has its own predicate, `StorageUtility.isNotFoundError({ error })`: it accepts a `404` status, or a `code`/`name` containing `nosuchkey`, `nosuchbucket` or `notfound`.
 
 ### IUploadFile
 
@@ -1068,12 +1094,12 @@ interface IBunS3HelperOptions extends IStorageHelperOptions {
 |---|---|---|
 | Default link prefix | `/static-assets/` | `/static-resources/` |
 | `getStat().etag` | Yes | Never (`undefined`) |
-| `getStat().versionId` | No | No |
+| `getStat().versionId` | Only a real version: absent when versioning is off or suspended | No |
 | Upload metadata persisted | Content type only | None (mimetype detected at read time) |
 | `removeObjects` concurrency | Bounded fan-out, limit `16` | Bounded fan-out, limit `16` |
 | `listObjects.useRecursive` default | `false`, which sends `delimiter: '/'` | `false` |
 | `listObjects` pagination | Loops on `nextContinuationToken` | Full directory scan |
-| Missing object | Catalogued `core.storage.object_not_found` via `asStorageError` on `getStat` and `removeObject`. `getObject` is lazy, so its failure arrives on the stream | Catalogued `core.storage.object_not_found`, thrown directly by every read and by `removeObject` |
+| Missing object | Catalogued `core.storage.object_not_found` via `asStorageError` on `getStat`, `removeObject` and a `copyObject` source. `getObject` is lazy, so its failure arrives on the stream | Catalogued `core.storage.object_not_found`, thrown directly by every read and by `removeObject` |
 | `writeStream` | Native streaming write to S3 | Inherits the buffering default |
 | `getObjectStream` range | Native, via `file.slice` | Native, via `createReadStream({ start, end })` |
 | Bucket-management transport | Hand-built AWS SigV4 signed requests | Node `fs`/`fs/promises` |
@@ -1198,7 +1224,7 @@ const file: IUploadFile = {
 
 ### "[getObject] Object not found | bucket: {bucket} | key: {key}"
 
-**Cause:** The object is not there. `DiskHelper` checks existence before opening a read stream and throws directly; `BunS3Helper` maps the backend's own "not there" failure onto the same error. Either way it is the catalogued `core.storage.object_not_found`: status `404`, category `BUSINESS`. The same message shape covers `[getObjectStream]`, `[getStat]` and `[removeObject]`.
+**Cause:** The object is not there. `DiskHelper` checks existence before opening a read stream and throws directly; `BunS3Helper` maps the backend's own "not there" failure onto the same error. Either way it is the catalogued `core.storage.object_not_found`: status `404`, category `BUSINESS`. The same message shape covers `[getObjectStream]`, `[getStat]`, `[removeObject]` and, for a missing source, `[copyObject]`.
 
 **Fix:** Handle the rejection, or check first.
 

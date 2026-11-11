@@ -36,11 +36,11 @@ That registers upload, stream, download, list and delete under `/documents`. Eve
 | | `serverUpload` | `directUpload` |
 |---|---|---|
 | Path | browser, then your app, then storage | browser, then storage (your app signs a permission) |
-| Route | `POST /objects` | `POST /upload-policy`, then `POST /upload-validate`, then `POST /upload-commit` |
+| Route | `POST /objects` | `POST /upload-policy`, then `POST /upload-validate` (with a `validation`), then `POST /upload-commit` |
 | Your process sees the bytes | yes, the whole body in memory | no |
 | Storage | disk or S3 | S3 only (a signed POST policy) |
 | Needs a `keyPrefix` | no | yes |
-| Check the file before accepting it | in your own code after the upload | `validation`, run before commit, and again at commit |
+| Check the file before accepting it | in your own code after the upload | `validation`, run once at `upload-validate`; commit takes the token it returns |
 | Good for | images, documents, anything small | video, large files, imports that must be checked first |
 
 An entry can turn either one on, both, or neither.

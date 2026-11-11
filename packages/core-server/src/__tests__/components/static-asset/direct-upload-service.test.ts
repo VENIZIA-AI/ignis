@@ -4,6 +4,8 @@ import { AppErrorMiddleware } from '@/base/middlewares';
 import { StaticAssetComponent } from '@/components/static-asset';
 import {
   StaticAssetBindingKeys,
+  StaticAssetTokenStages,
+  StaticAssetValidation,
   type TMetaLinkConfig,
   type TStaticAssetComponentOptions,
 } from '@/components/static-asset/common';
@@ -12,7 +14,9 @@ import {
   StaticAssetUploadCommitService,
   StaticAssetUploadPolicyService,
 } from '@/components/static-asset/services';
+import { z } from '@hono/zod-openapi';
 import type { OpenAPIHono } from '@hono/zod-openapi';
+import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { DurationUnits } from '@venizia/ignis-helpers/common';
 import type { IDuration, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
@@ -117,6 +121,27 @@ const messageOf = async (call: () => Promise<unknown>): Promise<string> => {
   }
 
   return '';
+};
+
+/** What a call rejects with: the message, the HTTP status and the machine code a client branches on. */
+const failureOf = async (
+  call: () => Promise<unknown>,
+): Promise<{ message: string; statusCode?: number; code?: string }> => {
+  try {
+    await call();
+  } catch (error) {
+    if (error instanceof ApplicationError) {
+      return {
+        message: error.message,
+        statusCode: error.statusCode,
+        code: error.normalized.code,
+      };
+    }
+
+    return { message: String(error) };
+  }
+
+  return { message: '' };
 };
 
 describe('the policy and commit service bindings', () => {
@@ -258,6 +283,7 @@ describe('commit', () => {
         bucket: { name: 'uploads' },
         object: { key: 'pending/files/x/a.png' },
         expiresAt: Date.now() - 1000,
+        stage: StaticAssetTokenStages.ISSUED,
       },
       secretKey: SECRET,
     });
@@ -277,6 +303,7 @@ describe('commit', () => {
         bucket: { name: 'uploads' },
         object: { key: 'pending/tenant-b/x/a.png' },
         expiresAt: Date.now() + 60_000,
+        stage: StaticAssetTokenStages.ISSUED,
       },
       secretKey: SECRET,
     });
@@ -387,6 +414,7 @@ describe('verify', () => {
         bucket: { name: 'uploads' },
         object: { key: 'pending/files/x/a.png' },
         expiresAt: Date.now() - 1000,
+        stage: StaticAssetTokenStages.ISSUED,
       },
       secretKey: SECRET,
     });
@@ -419,6 +447,7 @@ describe('verify', () => {
         bucket: { name: 'uploads' },
         object: { key: 'pending/tenant-b/x/a.png' },
         expiresAt: Date.now() + 60_000,
+        stage: StaticAssetTokenStages.ISSUED,
       },
       secretKey: SECRET,
     });
@@ -433,14 +462,442 @@ describe('validate', () => {
     const helper = new FakeStorageHelper();
     const { policyService, commitService } = await boot({ helper });
     const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
-    helper.calls.length = 0;
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName });
 
     const answer = await commitService.validate({ token: policy.commitToken });
+    helper.calls.length = 0;
     const forged = await messageOf(() => commitService.validate({ token: 'forged.token' }));
 
-    expect(answer).toEqual({ isValid: true, issues: [] });
+    expect(answer).toEqual({ isValid: true, issues: [], commitToken: expect.any(String) });
     expect(forged).toBe('Invalid commit token');
     expect(helper.calls).toHaveLength(0);
+  });
+
+  test('with no validation configured the validated token still pins, and commit copies conditionally', async () => {
+    const helper = new FakeStorageHelper();
+    const { policyService, commitService } = await boot({ helper });
+    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName });
+
+    const answer = await commitService.validate({ token: policy.commitToken });
+    const payload = StaticAssetCommitTokenUtility.read({
+      token: answer.commitToken ?? '',
+      secretKey: SECRET,
+    });
+    await commitService.commit({ token: answer.commitToken ?? '' });
+
+    expect(payload.stage).toBe(StaticAssetTokenStages.VALIDATED);
+    expect(helper.calls.find((call) => call.method === 'copyObject')?.args).toMatchObject({
+      ifMatch: payload.pin?.etag,
+    });
+  });
+
+  test('a token another owner holds is refused before any storage call', async () => {
+    const helper = new FakeStorageHelper();
+    const { policyService, commitService } = await boot({ helper });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: 'user-a',
+    });
+    helper.calls.length = 0;
+
+    const message = await messageOf(() =>
+      commitService.validate({ token: policy.commitToken, owner: 'user-b' }),
+    );
+
+    expect(message).toBe('Invalid commit token');
+    expect(helper.calls).toHaveLength(0);
+  });
+});
+
+const PendingIssueSchema = z.object({ code: z.string() });
+
+interface IHandlerCall {
+  key: string;
+  size: number;
+  owner?: string;
+}
+
+/** A validation that records what it was handed and then reads the file, which is what a real one does. `beforeRead` runs between the two: the moment an overwrite would land. */
+const buildPinnedValidation = (opts: { calls: IHandlerCall[]; beforeRead?: () => void }) =>
+  StaticAssetValidation.define({
+    issueSchema: PendingIssueSchema,
+    handler: async ({ file, owner }) => {
+      opts.calls.push({
+        key: file.key,
+        size: file.size,
+        owner,
+      });
+      opts.beforeRead?.();
+
+      const stream = await file.stream();
+      const response = new Response(stream);
+      const text = await response.text();
+
+      if (text.includes('invalid')) {
+        return { isValid: false, issues: [{ code: 'INVALID_CONTENT' }] };
+      }
+
+      return { isValid: true, issues: [] };
+    },
+  });
+
+/** Asks for one policy, seeds what a browser would have posted, and boots with the validation on. */
+const bootValidated = async (opts: {
+  helper: FakeStorageHelper;
+  calls: IHandlerCall[];
+  owner?: string;
+  beforeRead?: () => void;
+}) => {
+  const { helper, calls, owner, beforeRead } = opts;
+  const booted = await boot({
+    helper,
+    directUpload: { validation: buildPinnedValidation({ calls, beforeRead }) },
+  });
+  const [policy] = await booted.policyService.issuePolicies({
+    files: [{ fileName: 'a.png' }],
+    owner,
+  });
+  helper.seedObject({ bucket: 'uploads', key: policy.objectName });
+
+  return { ...booted, policy, destination: { key: policy.objectName.slice('pending/'.length) } };
+};
+
+const readToken = (token: string | undefined) =>
+  StaticAssetCommitTokenUtility.read({ token: token ?? '', secretKey: SECRET });
+
+describe('a validation that pins the content', () => {
+  test('hands the handler the file as it is now, and answers a validated token bound to it', async () => {
+    const helper = new FakeStorageHelper();
+    const calls: IHandlerCall[] = [];
+    const { commitService, policy } = await bootValidated({ helper, calls, owner: 'user-a' });
+    const incoming = readToken(policy.commitToken);
+    const stat = await helper.getStat({
+      bucket: { name: 'uploads' },
+      object: { key: policy.objectName },
+    });
+
+    const answer = await commitService.validate({ token: policy.commitToken, owner: 'user-a' });
+    const payload = readToken(answer.commitToken);
+
+    expect(answer.isValid).toBe(true);
+    expect(calls).toEqual([
+      {
+        key: policy.objectName,
+        size: 'seeded'.length,
+        owner: 'user-a',
+      },
+    ]);
+    expect(incoming.stage).toBe(StaticAssetTokenStages.ISSUED);
+    expect(incoming.pin).toBeUndefined();
+    expect(payload).toEqual({
+      bucket: { name: 'uploads' },
+      object: { key: policy.objectName },
+      owner: 'user-a',
+      expiresAt: incoming.expiresAt,
+      stage: StaticAssetTokenStages.VALIDATED,
+      pin: { etag: stat.etag ?? '', versionId: undefined },
+    });
+  });
+
+  test('an invalid file gets its issues and no token', async () => {
+    const helper = new FakeStorageHelper();
+    const calls: IHandlerCall[] = [];
+    const { commitService, policy } = await bootValidated({ helper, calls });
+    helper.overwriteObject({
+      bucket: 'uploads',
+      key: policy.objectName,
+      content: 'invalid cell',
+    });
+
+    const answer = await commitService.validate({ token: policy.commitToken });
+
+    expect(answer).toEqual({ isValid: false, issues: [{ code: 'INVALID_CONTENT' }] });
+    expect(answer.commitToken).toBeUndefined();
+  });
+
+  test('a stat that reports no ETag fails validate with a clear error, and the handler never runs', async () => {
+    const helper = new FakeStorageHelper();
+    const calls: IHandlerCall[] = [];
+    const { commitService, policy } = await bootValidated({ helper, calls });
+    helper.omitEtag = true;
+
+    const failure = await failureOf(() => commitService.validate({ token: policy.commitToken }));
+
+    expect(failure.message).toMatch(/no ETag/);
+    expect(calls).toHaveLength(0);
+  });
+
+  test('validating twice pins again: the second token carries the new ETag', async () => {
+    const helper = new FakeStorageHelper();
+    const calls: IHandlerCall[] = [];
+    const { commitService, policy } = await bootValidated({ helper, calls });
+
+    const first = await commitService.validate({ token: policy.commitToken });
+    helper.overwriteObject({ bucket: 'uploads', key: policy.objectName });
+    const second = await commitService.validate({ token: first.commitToken ?? '' });
+
+    expect(readToken(first.commitToken).pin?.etag).not.toBe(
+      readToken(second.commitToken).pin?.etag,
+    );
+    expect(calls).toHaveLength(2);
+  });
+
+  test('a validated token is refused for another owner before any storage call', async () => {
+    const helper = new FakeStorageHelper();
+    const calls: IHandlerCall[] = [];
+    const { commitService, policy } = await bootValidated({ helper, calls, owner: 'user-a' });
+    const answer = await commitService.validate({ token: policy.commitToken, owner: 'user-a' });
+    helper.calls.length = 0;
+
+    for (const owner of ['user-b', undefined]) {
+      const message = await messageOf(() =>
+        commitService.commit({ token: answer.commitToken ?? '', owner }),
+      );
+
+      expect(message).toBe('Invalid commit token');
+    }
+
+    expect(helper.calls).toHaveLength(0);
+  });
+
+  test('a validated token is refused once it expires, as an expired token', async () => {
+    const helper = new FakeStorageHelper();
+    const calls: IHandlerCall[] = [];
+    const { commitService, policy } = await bootValidated({ helper, calls });
+    const expired = StaticAssetCommitTokenUtility.build({
+      payload: {
+        bucket: { name: 'uploads' },
+        object: { key: policy.objectName },
+        expiresAt: Date.now() - 1000,
+        stage: StaticAssetTokenStages.VALIDATED,
+        pin: { etag: '"x"' },
+      },
+      secretKey: SECRET,
+    });
+    helper.calls.length = 0;
+
+    const failure = await failureOf(() => commitService.commit({ token: expired }));
+
+    expect(failure.code).toBe('core.static_asset.expired_commit_token');
+    expect(helper.calls).toHaveLength(0);
+  });
+
+  test('an overwrite inside the handler, before it reads, makes file.stream() fail as changed', async () => {
+    const helper = new FakeStorageHelper();
+    const calls: IHandlerCall[] = [];
+    const { commitService, policy } = await bootValidated({
+      helper,
+      calls,
+      beforeRead: () => {
+        helper.overwriteObject({ bucket: 'uploads', key: policy.objectName });
+      },
+    });
+
+    const failure = await failureOf(() => commitService.validate({ token: policy.commitToken }));
+
+    expect(failure.code).toBe('core.static_asset.upload_changed');
+    expect(failure.statusCode).toBe(409);
+  });
+
+  test('a pending object removed inside the handler also reads as changed', async () => {
+    const helper = new FakeStorageHelper();
+    const calls: IHandlerCall[] = [];
+    const { commitService, policy } = await bootValidated({
+      helper,
+      calls,
+      beforeRead: () => {
+        helper.discardObject({ bucket: 'uploads', key: policy.objectName });
+      },
+    });
+
+    const failure = await failureOf(() => commitService.validate({ token: policy.commitToken }));
+
+    expect(failure.code).toBe('core.static_asset.upload_changed');
+  });
+
+  test('a read that fails for any other reason is not reported as a change', async () => {
+    const helper = new FakeStorageHelper();
+    const calls: IHandlerCall[] = [];
+    const { commitService, policy } = await bootValidated({ helper, calls });
+    helper.failReadsWith = 'storage is down';
+
+    const failure = await failureOf(() => commitService.validate({ token: policy.commitToken }));
+
+    expect(failure.message).toBe('storage is down');
+    expect(failure.code).not.toBe('core.static_asset.upload_changed');
+  });
+});
+
+describe('commit with a validation on', () => {
+  test('refuses the token the policy issued, and touches nothing', async () => {
+    const helper = new FakeStorageHelper();
+    const calls: IHandlerCall[] = [];
+    const { commitService, policy, destination } = await bootValidated({ helper, calls });
+    helper.calls.length = 0;
+
+    const failure = await failureOf(() => commitService.commit({ token: policy.commitToken }));
+
+    expect(failure.code).toBe('core.static_asset.upload_not_validated');
+    expect(failure.statusCode).toBe(422);
+    expect(calls).toHaveLength(0);
+    expect(helper.calls).toHaveLength(0);
+    expect(helper.hasObject({ bucket: { name: 'uploads' }, object: destination })).toBe(false);
+  });
+
+  test('commits the validated token and never runs the handler again', async () => {
+    const helper = new FakeStorageHelper();
+    const calls: IHandlerCall[] = [];
+    const { commitService, policy, destination } = await bootValidated({ helper, calls });
+    const answer = await commitService.validate({ token: policy.commitToken });
+    helper.calls.length = 0;
+
+    const result = await commitService.commit({ token: answer.commitToken ?? '' });
+
+    expect(calls).toHaveLength(1);
+    expect(result.object).toEqual(destination);
+    expect(helper.hasObject({ bucket: { name: 'uploads' }, object: destination })).toBe(true);
+    expect(helper.calls.map((call) => call.method)).not.toContain('getObjectStream');
+  });
+
+  test('an overwrite between validate and commit is refused as changed, and nothing is copied or removed', async () => {
+    const helper = new FakeStorageHelper();
+    const calls: IHandlerCall[] = [];
+    const { commitService, policy, destination } = await bootValidated({ helper, calls });
+    const answer = await commitService.validate({ token: policy.commitToken });
+    helper.overwriteObject({ bucket: 'uploads', key: policy.objectName });
+    helper.calls.length = 0;
+
+    const failure = await failureOf(() =>
+      commitService.commit({ token: answer.commitToken ?? '' }),
+    );
+
+    expect(failure.code).toBe('core.static_asset.upload_changed');
+    expect(failure.statusCode).toBe(409);
+    expect(helper.calls.find((call) => call.method === 'removeObject')).toBeUndefined();
+    expect(helper.hasObject({ bucket: { name: 'uploads' }, object: destination })).toBe(false);
+    expect(
+      helper.hasObject({ bucket: { name: 'uploads' }, object: { key: policy.objectName } }),
+    ).toBe(true);
+  });
+
+  /** With a pin, a pending object that is gone is a change, like other content. */
+  test('a pending object removed after validate fails the commit as UPLOAD_CHANGED, and nothing is committed', async () => {
+    const helper = new FakeStorageHelper();
+    const calls: IHandlerCall[] = [];
+    const { commitService, policy, destination } = await bootValidated({ helper, calls });
+    const answer = await commitService.validate({ token: policy.commitToken });
+    helper.discardObject({ bucket: 'uploads', key: policy.objectName });
+
+    const failure = await failureOf(() =>
+      commitService.commit({ token: answer.commitToken ?? '' }),
+    );
+
+    expect(failure.statusCode).toBe(409);
+    expect(failure.code).toBe('core.static_asset.upload_changed');
+    expect(helper.hasObject({ bucket: { name: 'uploads' }, object: destination })).toBe(false);
+  });
+
+  test('a versioned bucket pins the version: reads and the copy ask for it, and carry no ETag', async () => {
+    const helper = new FakeStorageHelper();
+    helper.isVersioned = true;
+    const calls: IHandlerCall[] = [];
+    const { commitService, policy } = await bootValidated({ helper, calls });
+
+    const answer = await commitService.validate({ token: policy.commitToken });
+    const payload = readToken(answer.commitToken);
+    await commitService.commit({ token: answer.commitToken ?? '' });
+    const read = helper.calls.find((call) => call.method === 'getObjectStream');
+    const copy = helper.calls.find((call) => call.method === 'copyObject');
+
+    expect(payload.pin?.versionId).toStartWith('fake-version-');
+    expect(read?.args.versionId).toBe(payload.pin?.versionId);
+    expect(read?.args.ifMatch).toBeUndefined();
+    expect(copy?.args.sourceVersionId).toBe(payload.pin?.versionId);
+    expect(copy?.args.ifMatch).toBeUndefined();
+  });
+
+  test('an overwrite on a versioned bucket is refused as changed too', async () => {
+    const helper = new FakeStorageHelper();
+    helper.isVersioned = true;
+    const calls: IHandlerCall[] = [];
+    const { commitService, policy } = await bootValidated({ helper, calls });
+    const answer = await commitService.validate({ token: policy.commitToken });
+    helper.overwriteObject({ bucket: 'uploads', key: policy.objectName });
+
+    const failure = await failureOf(() =>
+      commitService.commit({ token: answer.commitToken ?? '' }),
+    );
+
+    expect(failure.code).toBe('core.static_asset.upload_changed');
+  });
+
+  /** A bucket where versioning is off or suspended answers no version id, an empty one or the literal `null`. None of them names a version, so the ETag is the pin. */
+  test.each([
+    ['no version id', undefined],
+    ['an empty version id', ''],
+    ['the literal null', 'null'],
+  ])('%s: the ETag is the pin, and no version is asked for', async (_label, reported) => {
+    const helper = new FakeStorageHelper();
+    helper.reportedVersionId = reported;
+    const calls: IHandlerCall[] = [];
+    const { commitService, policy } = await bootValidated({ helper, calls });
+
+    const answer = await commitService.validate({ token: policy.commitToken });
+    const payload = readToken(answer.commitToken);
+    await commitService.commit({ token: answer.commitToken ?? '' });
+    const read = helper.calls.find((call) => call.method === 'getObjectStream');
+    const copy = helper.calls.find((call) => call.method === 'copyObject');
+
+    expect(payload.pin?.versionId).toBeUndefined();
+    expect(payload.pin?.etag).toStartWith('"fake-etag-');
+    expect(read?.args.ifMatch).toBe(payload.pin?.etag);
+    expect(read?.args.versionId).toBeUndefined();
+    expect(copy?.args.ifMatch).toBe(payload.pin?.etag);
+    expect(copy?.args.sourceVersionId).toBeUndefined();
+  });
+
+  test('the literal null from a versioned-looking stat does not make the pin unmatchable', async () => {
+    const helper = new FakeStorageHelper();
+    helper.isVersioned = true;
+    helper.reportedVersionId = 'null';
+    const calls: IHandlerCall[] = [];
+    const { commitService, policy, destination } = await bootValidated({ helper, calls });
+
+    const answer = await commitService.validate({ token: policy.commitToken });
+    const result = await commitService.commit({ token: answer.commitToken ?? '' });
+
+    expect(result.object).toEqual(destination);
+  });
+});
+
+describe('commit with no validation', () => {
+  test('an issued token commits with an unconditional copy', async () => {
+    const helper = new FakeStorageHelper();
+    const { policyService, commitService } = await boot({ helper });
+    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName });
+
+    await commitService.commit({ token: policy.commitToken });
+    const copy = helper.calls.find((call) => call.method === 'copyObject');
+
+    expect(copy?.args.ifMatch).toBeUndefined();
+    expect(copy?.args.sourceVersionId).toBeUndefined();
+  });
+
+  test('a validated token still guards the copy: an overwrite after validate is refused', async () => {
+    const helper = new FakeStorageHelper();
+    const { policyService, commitService } = await boot({ helper });
+    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName });
+    const answer = await commitService.validate({ token: policy.commitToken });
+    helper.overwriteObject({ bucket: 'uploads', key: policy.objectName });
+
+    const failure = await failureOf(() =>
+      commitService.commit({ token: answer.commitToken ?? '' }),
+    );
+
+    expect(failure.code).toBe('core.static_asset.upload_changed');
   });
 });
 

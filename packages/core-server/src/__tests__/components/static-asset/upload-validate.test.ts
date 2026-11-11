@@ -45,22 +45,30 @@ const CellIssueSchema = z.object({
 });
 
 interface IValidationSpy {
-  calls: Array<{ bucket: string; key: string; owner?: string; hasHelper: boolean }>;
+  calls: Array<{
+    key: string;
+    size: number;
+    content: string;
+    owner?: string;
+  }>;
 }
 
 /** A file whose name contains `bad` has one broken cell; every other file is clean. Only the file name counts: the key carries a random UUID, and `bad` is valid hex. */
 const buildValidation = (spy: IValidationSpy) =>
   StaticAssetValidation.define({
     issueSchema: CellIssueSchema,
-    handler: ({ bucket, object, owner, helper }) => {
+    handler: async ({ file, owner }) => {
+      const stream = await file.stream();
+      const response = new Response(stream);
+      const content = await response.text();
       spy.calls.push({
-        bucket: bucket.name,
-        key: object.key,
+        key: file.key,
+        size: file.size,
+        content,
         owner,
-        hasHelper: helper !== undefined,
       });
 
-      if (!object.key.split('/').pop()?.includes('bad')) {
+      if (!file.key.split('/').pop()?.includes('bad')) {
         return { isValid: true, issues: [] };
       }
 
@@ -175,10 +183,10 @@ describe('the upload-validate route', () => {
     const answer = await response.json();
 
     expect(response.status).toBe(200);
-    expect(answer).toEqual({ isValid: true, issues: [] });
+    expect(answer).toEqual({ isValid: true, issues: [], commitToken: expect.any(String) });
   });
 
-  test('hands the app the pending object, the helper and the owner, and returns its issues in its own shape', async () => {
+  test('hands the app a pinned file and the owner, and returns its issues in its own shape, with no token', async () => {
     const helper = new FakeStorageHelper();
     const spy: IValidationSpy = { calls: [] };
     const router = await mount({
@@ -218,8 +226,14 @@ describe('the upload-validate route', () => {
         },
       ],
     });
+    expect(answer).not.toHaveProperty('commitToken');
     expect(spy.calls).toEqual([
-      { bucket: 'uploads', key: policy.objectName, owner: 'user-a', hasHelper: true },
+      {
+        key: policy.objectName,
+        size: 'seeded'.length,
+        content: 'seeded',
+        owner: 'user-a',
+      },
     ]);
   });
 
@@ -288,29 +302,48 @@ describe('the upload-validate route', () => {
   });
 });
 
-describe('commit re-runs the validation', () => {
-  test('an invalid file is refused with UPLOAD_INVALID, and nothing is copied or removed', async () => {
+const commitWith = (router: OpenAPIHono, commitToken: string | undefined, headers = {}) =>
+  postJson(router, '/assets/upload-commit', { commitToken }, headers);
+
+const validateAs = async (opts: {
+  router: OpenAPIHono;
+  commitToken: string;
+  headers?: Record<string, string>;
+}) => {
+  const response = await postJson(
+    opts.router,
+    '/assets/upload-validate',
+    { commitToken: opts.commitToken },
+    opts.headers,
+  );
+  const answer = await response.json();
+  const { commitToken } = answer as { commitToken?: string };
+
+  return { response, answer, commitToken };
+};
+
+describe('commit takes the validated token', () => {
+  test('the token the policy issued is refused with UPLOAD_NOT_VALIDATED, and nothing is copied or removed', async () => {
     const helper = new FakeStorageHelper();
     const spy: IValidationSpy = { calls: [] };
     const router = await mount({
       helper,
       directUpload: { ...ALLOW, validation: buildValidation(spy) },
     });
-    const policy = await upload({ router, helper, fileName: 'bad.xlsx' });
+    const policy = await upload({ router, helper, fileName: 'orders.xlsx' });
     helper.calls.length = 0;
 
-    const response = await postJson(router, '/assets/upload-commit', {
-      commitToken: policy.commitToken,
-    });
+    const response = await commitWith(router, policy.commitToken);
     const answer = await response.json();
 
     expect(response.status).toBe(422);
-    expect(JSON.stringify(answer)).toContain('core.static_asset.upload_invalid');
+    expect(JSON.stringify(answer)).toContain('core.static_asset.upload_not_validated');
+    expect(spy.calls).toHaveLength(0);
     expect(helper.calls.find((call) => call.method === 'copyObject')).toBeUndefined();
     expect(helper.calls.find((call) => call.method === 'removeObject')).toBeUndefined();
   });
 
-  test('a valid file is committed, and the validation ran once more on the way', async () => {
+  test('the token validate returned commits, and the handler is not run again', async () => {
     const helper = new FakeStorageHelper();
     const spy: IValidationSpy = { calls: [] };
     const router = await mount({
@@ -319,17 +352,148 @@ describe('commit re-runs the validation', () => {
     });
     const policy = await upload({ router, helper, fileName: 'orders.xlsx' });
 
-    await postJson(router, '/assets/upload-validate', { commitToken: policy.commitToken });
-    const response = await postJson(router, '/assets/upload-commit', {
-      commitToken: policy.commitToken,
-    });
+    const validated = await validateAs({ router, commitToken: policy.commitToken });
+    const response = await commitWith(router, validated.commitToken);
 
+    expect(validated.commitToken).toBeString();
+    expect(validated.commitToken).not.toBe(policy.commitToken);
     expect(response.status).toBe(200);
-    expect(spy.calls).toHaveLength(2);
-    expect(helper.calls.find((call) => call.method === 'copyObject')).toBeDefined();
+    expect(spy.calls).toHaveLength(1);
+    expect(helper.calls.find((call) => call.method === 'copyObject')?.args).toMatchObject({
+      ifMatch: expect.stringContaining('fake-etag'),
+    });
   });
 
-  test('with the validate route disabled, commit still refuses an invalid file', async () => {
+  test('an overwrite between validate and commit is refused with UPLOAD_CHANGED, and nothing is copied or removed', async () => {
+    const helper = new FakeStorageHelper();
+    const spy: IValidationSpy = { calls: [] };
+    const router = await mount({
+      helper,
+      directUpload: { ...ALLOW, validation: buildValidation(spy) },
+    });
+    const policy = await upload({ router, helper, fileName: 'orders.xlsx' });
+    const validated = await validateAs({ router, commitToken: policy.commitToken });
+    helper.overwriteObject({ bucket: 'uploads', key: policy.objectName });
+    helper.calls.length = 0;
+
+    const response = await commitWith(router, validated.commitToken);
+    const answer = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(JSON.stringify(answer)).toContain('core.static_asset.upload_changed');
+    expect(helper.calls.find((call) => call.method === 'removeObject')).toBeUndefined();
+    expect(
+      helper.hasObject({
+        bucket: { name: 'uploads' },
+        object: { key: policy.objectName.slice('pending/'.length) },
+      }),
+    ).toBe(false);
+  });
+
+  test('an overwrite inside the handler is a 409 from validate itself', async () => {
+    const helper = new FakeStorageHelper();
+    const policyKey: { value?: string } = {};
+    const router = await mount({
+      helper,
+      directUpload: {
+        ...ALLOW,
+        validation: StaticAssetValidation.define({
+          issueSchema: CellIssueSchema,
+          handler: async ({ file }) => {
+            helper.overwriteObject({ bucket: 'uploads', key: policyKey.value ?? '' });
+            const stream = await file.stream();
+            const response2 = new Response(stream);
+            await response2.text();
+
+            return { isValid: true, issues: [] };
+          },
+        }),
+      },
+    });
+    const policy = await upload({ router, helper, fileName: 'orders.xlsx' });
+    policyKey.value = policy.objectName;
+
+    const response = await postJson(router, '/assets/upload-validate', {
+      commitToken: policy.commitToken,
+    });
+    const answer = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(JSON.stringify(answer)).toContain('core.static_asset.upload_changed');
+  });
+
+  test('an invalid file gets no token, so there is nothing to commit with', async () => {
+    const helper = new FakeStorageHelper();
+    const spy: IValidationSpy = { calls: [] };
+    const router = await mount({
+      helper,
+      directUpload: { ...ALLOW, validation: buildValidation(spy) },
+    });
+    const policy = await upload({ router, helper, fileName: 'bad.xlsx' });
+
+    const validated = await validateAs({ router, commitToken: policy.commitToken });
+    const response = await commitWith(router, policy.commitToken);
+
+    expect(validated.answer).not.toHaveProperty('commitToken');
+    expect(response.status).toBe(422);
+    expect(helper.calls.find((call) => call.method === 'copyObject')).toBeUndefined();
+  });
+
+  test('validating again pins again: the second token commits the new content', async () => {
+    const helper = new FakeStorageHelper();
+    const spy: IValidationSpy = { calls: [] };
+    const router = await mount({
+      helper,
+      directUpload: { ...ALLOW, validation: buildValidation(spy) },
+    });
+    const policy = await upload({ router, helper, fileName: 'orders.xlsx' });
+
+    const first = await validateAs({ router, commitToken: policy.commitToken });
+    helper.overwriteObject({ bucket: 'uploads', key: policy.objectName, content: 'second' });
+    const second = await validateAs({ router, commitToken: first.commitToken ?? '' });
+    const stale = await commitWith(router, first.commitToken);
+    const fresh = await commitWith(router, second.commitToken);
+
+    expect(second.commitToken).not.toBe(first.commitToken);
+    expect(spy.calls.map((call) => call.content)).toEqual(['seeded', 'second']);
+    expect(stale.status).toBe(409);
+    expect(fresh.status).toBe(200);
+  });
+
+  test('a validated token held by another owner is refused as an invalid token', async () => {
+    const helper = new FakeStorageHelper();
+    const spy: IValidationSpy = { calls: [] };
+    const router = await mount({
+      helper,
+      directUpload: {
+        ...ALLOW,
+        resolveOwner: ({ context }) => context.req.header('x-user') ?? '',
+        validation: buildValidation(spy),
+      },
+    });
+    const policy = await upload({
+      router,
+      helper,
+      fileName: 'orders.xlsx',
+      headers: { 'x-user': 'user-a' },
+    });
+    const validated = await validateAs({
+      router,
+      commitToken: policy.commitToken,
+      headers: { 'x-user': 'user-a' },
+    });
+
+    const refused = await commitWith(router, validated.commitToken, { 'x-user': 'user-b' });
+    const answer = await refused.json();
+    const accepted = await commitWith(router, validated.commitToken, { 'x-user': 'user-a' });
+
+    expect(refused.status).toBe(400);
+    expect(JSON.stringify(answer)).toContain('core.static_asset.invalid_commit_token');
+    expect(accepted.status).toBe(200);
+  });
+
+  /** The route is how a client reaches `validate`; without it no token ever becomes validated, so a commit is refused. An app that disables it commits through the service. */
+  test('with the validate route disabled, commit has no validated token to take and refuses the issued one', async () => {
     const helper = new FakeStorageHelper();
     const spy: IValidationSpy = { calls: [] };
     const router = await mount({
@@ -339,11 +503,11 @@ describe('commit re-runs the validation', () => {
     });
     const policy = await upload({ router, helper, fileName: 'bad.xlsx' });
 
-    const response = await postJson(router, '/assets/upload-commit', {
-      commitToken: policy.commitToken,
-    });
+    const response = await commitWith(router, policy.commitToken);
+    const answer = await response.json();
 
     expect(response.status).toBe(422);
+    expect(JSON.stringify(answer)).toContain('core.static_asset.upload_not_validated');
   });
 });
 

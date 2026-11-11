@@ -7,11 +7,12 @@ description: Move a static-asset declaration from the old controller/extra shape
 
 An entry is now one flat object, and every switch is a toggle: `{ use: false }` or `{ use: true, ...options }`. Nothing is aliased. An old option fails type-checking until you move it. This page maps every one.
 
-Three changes need more than a rename:
+Four changes need more than a rename:
 
 - **One bucket per entry.** `bucket` is required and leaves the URL. The four bucket routes are gone. Stored links that contain `/buckets/<name>/` stop working. See [Links already stored](#links-already-stored).
 - **Direct upload needs a `keyPrefix`.** Committed keys move under it. See [Direct upload entries](#direct-upload-entries).
 - **No more `onCommit`, no more spool.** Check the file in `validation`, and do work after a commit in the code that calls `commit`.
+- **A validation handler gets a pinned file, and validate returns the token commit needs.** See [The validation handler](#the-validation-handler).
 
 ## Old to new
 
@@ -63,7 +64,7 @@ The folder, labels and `maxKeys` changes also change codes. See the [error refer
 
 ### Unchanged, on purpose
 
-`StaticAssetIngestUtility.fromUrl`, `rawObjectPath`, `extend.before` and `extend.after`, and the `recreateMetaLink` route stay. `commit({ token, owner?, labels? })`, `verify` and `validate` keep their shape.
+`StaticAssetIngestUtility.fromUrl`, `rawObjectPath`, `extend.before` and `extend.after`, and the `recreateMetaLink` route stay. `commit({ token, owner?, labels? })`, `verify` and `validate({ token, owner? })` keep their parameters. `validate` now also answers a `commitToken`: see [The validation handler](#the-validation-handler).
 
 ### New and not breaking
 
@@ -150,8 +151,8 @@ export const migrated = (opts: {
       // onCommit is gone: the check that ran there is the validation.
       validation: StaticAssetValidation.define({
         issueSchema: z.object({ message: z.string() }),
-        handler: async ({ object }) => {
-          const problems = await opts.scanForViruses({ bucketName: 'uploads', key: object.key });
+        handler: async ({ file }) => {
+          const problems = await opts.scanForViruses({ bucketName: 'uploads', key: file.key });
 
           return { isValid: problems.length === 0, issues: problems.map((message) => ({ message })) };
         },
@@ -177,9 +178,58 @@ What changed besides names:
 `keyPrefix` is now required with `directUpload`. It keeps the pending files out of everything the routes serve. An entry that had no `keyPrefix` must add one, and that has two effects:
 
 - **Committed keys move under the prefix.** An object already committed at the bucket root (`<generated>/<name>`) is outside the new scope, so the entry answers `404` for it. Move the object under the prefix, and update its MetaLink row, or keep the old objects reachable through another entry on the same bucket without a prefix.
-- **Tokens issued before the upgrade fail.** A commit token names the old pending key, which is outside the new scope. The commit answers `404`. Users upload again.
+- **Tokens issued before the upgrade fail.** A commit token names the old pending key, which is outside the new scope. The commit refuses it. Users upload again.
 
 An entry that already had a `keyPrefix` keeps its keys. Check that `pendingPrefix` (default `pending/`) and `keyPrefix` do not contain one another, or the entry refuses to start. See [The pending prefix](./security#the-pending-prefix).
+
+## The validation handler
+
+The handler takes `{ file, owner }` and reads through `file`. It no longer receives `helper`, `bucket` or `object`. `file` is a `StaticAssetPinnedFile`: `key`, `size` and `stream({ range? })`. See [Validation](./direct-upload#validation).
+
+```typescript
+// Before
+handler: async ({ bucket, object, owner, helper }) => {
+  const fileStream = await helper.getObject({ bucket, object });
+  const issues = await checkWorkbook({ fileStream, owner });
+
+  return { isValid: issues.length === 0, issues };
+},
+```
+
+```ts
+import { z } from '@hono/zod-openapi';
+import { StaticAssetValidation } from '@venizia/ignis/static-asset';
+
+export const workbookValidation = (opts: {
+  checkWorkbook: (opts: {
+    stream: ReadableStream<Uint8Array>;
+    owner?: string;
+  }) => Promise<string[]>;
+}) =>
+  StaticAssetValidation.define({
+    issueSchema: z.string(),
+    // After
+    handler: async ({ file, owner }) => {
+      const stream = await file.stream();
+      const issues = await opts.checkWorkbook({ stream, owner });
+
+      return { isValid: issues.length === 0, issues };
+    },
+  });
+```
+
+`file.stream()` returns a web `ReadableStream`, where `helper.getObject` returned a Node `Readable`. Convert with `Readable.fromWeb` if your parser needs a Node stream.
+
+`upload-validate` now answers `{ isValid, issues, commitToken? }`, and `upload-commit` takes only that token when `validation` is on:
+
+| Step | Before | Now |
+|---|---|---|
+| `upload-validate` answer | `{ isValid, issues }` | `{ isValid, issues, commitToken }`, the token present only when valid |
+| `upload-commit` body | the policy's `commitToken` | the `commitToken` validate returned |
+| `commit` with the policy's token | ran the handler again | `422` `core.static_asset.upload_not_validated` |
+| A file that changed after validate | copied | `409` `core.static_asset.upload_changed`, nothing copied |
+
+Update every client that posts to `upload-commit`: send the token from the validate answer. With `validation` off nothing changes. A token issued before the upgrade does not carry the new fields, so it answers `400` `invalid_commit_token` and the user uploads again.
 
 ## Links already stored
 
@@ -218,6 +268,7 @@ Search a file at a time and read each hit: these move options between objects, s
 | `defineExtraRoutes` | `extend.after` |
 | `publicRead: true` | `publicRead: { use: true }` |
 | `onCommit` | delete, and move the check into `validation.handler` |
+| `handler: async ({ bucket, object, helper })` | `handler: async ({ file, owner })`, and read through `await file.stream()` |
 | `model: BaseMetaLinkModel` (in a `metaLink`) | delete the line |
 | `query` (in a `createMetaLink` hook) | `labels` |
 | `StaticAssetStorageTypes` | `StorageTypes` |

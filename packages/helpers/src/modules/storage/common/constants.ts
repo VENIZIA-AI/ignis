@@ -9,6 +9,13 @@ export class StorageTypes {
 /** One of the `StorageTypes` values. */
 export type TStorageType = TConstValue<typeof StorageTypes>;
 
+/** The `x-amz-*` request and response headers the S3 helper reads and sends. */
+export class S3Headers {
+  static readonly COPY_SOURCE = 'x-amz-copy-source';
+  static readonly COPY_SOURCE_IF_MATCH = 'x-amz-copy-source-if-match';
+  static readonly VERSION_ID = 'x-amz-version-id';
+}
+
 /** Presign expiry defaults - a PUT or a POST form carries a file and needs more time; a GET is a redirect. */
 export class StoragePresignDefaults {
   static readonly PUT_EXPIRES_IN: IDuration = { unit: DurationUnits.MINUTE, value: 10 };

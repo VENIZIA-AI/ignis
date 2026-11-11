@@ -141,8 +141,15 @@ const uploadValidate: IStaticAssetRoute = {
         method: HTTP.Methods.POST,
         path: '/upload-validate',
         body: CommitTokenSchema,
-        response: z.object({ isValid: z.boolean(), issues: z.array(validation.issueSchema) }),
-        description: 'Whether the pending file may be committed, and the issues found',
+        response: z.object({
+          isValid: z.boolean(),
+          issues: z.array(validation.issueSchema),
+          commitToken: z.string().optional().openapi({
+            description: 'Present only when the file is valid: commit with this token',
+          }),
+        }),
+        description:
+          'Whether the pending file may be committed, the issues found, and the token to commit it with',
       }),
       handler: async (ctx) => {
         const owner = await StaticAssetDirectUploadGuard.guard({ ctx, direct });

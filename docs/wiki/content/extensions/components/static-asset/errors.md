@@ -18,22 +18,24 @@ These carry a machine code a client can branch on, alongside the human message. 
 | `core.static_asset.bucket_name_invalid` | `400` | The entry's configured `bucket` fails `isValidBucketName()` | Nothing a client can fix: correct `bucket` on the entry. |
 | `core.static_asset.file_empty` | `400` | A file is empty after parsing | Check the file has bytes before sending. |
 | `core.static_asset.upload_too_large` | `413` | A file is over `serverUpload.maxBytes` (upload) or `directUpload.maxBytes` (policy request) | Send a smaller file. |
-| `core.static_asset.upload_invalid` | `422` | `commit` ran your `validation` and the file is invalid | Call `upload-validate` with the same token to read the issues, fix the file, upload again with a **new** policy. |
+| `core.static_asset.upload_not_validated` | `422` | `validation` is on and `commit` got a token that `upload-validate` did not return, for example the one the policy issued | Call `upload-validate`, then commit with the `commitToken` it answers. |
+| `core.static_asset.upload_changed` | `409` | The pending object is not the content that was pinned: it was overwritten or removed after `upload-validate`. Raised by a `file.stream()` read and by the copy `commit` makes. Needs a pin: a missing pending object with an `issued` token (no pin) is `core.storage.object_not_found` instead | Upload again with a **new** policy, or call `upload-validate` again to pin what is there now. Nothing was copied or removed. |
 | `core.static_asset.upload_not_authorized` | `403` | `directUpload.authorize` returned `false` on `upload-policy`, `upload-validate` or `upload-commit` | Do not retry: the caller may not use direct upload. |
 | `core.static_asset.invalid_commit_token` | `400` | The token is forged, malformed, in an old format, or issued to a different owner | Ask for a new policy. The answer is the same for all four, on purpose. |
 | `core.static_asset.expired_commit_token` | `400` | `expires.commit` has passed | Ask for a new policy and upload again. |
 | `core.static_asset.object_key_out_of_scope` | `400` | A `serverUpload.objectKey` hook returned a key outside the `keyPrefix` | Server-side: build the key under the prefix. |
-| `core.storage.object_not_found` | `404` | No object at the key, or the key is outside the `keyPrefix` | Treat as absent. |
+| `core.storage.object_not_found` | `404` | No object at the key, or the key is outside the `keyPrefix`. Also a `copyObject` of a missing source, such as a `commit` with an `issued` token whose pending object is gone | Treat as absent. |
+| `core.storage.precondition_failed` | `412` | A helper read or copy named the content it expects (`ifMatch`, `versionId`, `sourceVersionId`) and found other content | The static-asset component turns it into `upload_changed`. Called directly on a helper: re-read the object, or give up the operation. |
 | `core.storage.folder_path_invalid` | `400` | The upload's `folderPath` is empty after trimming slashes, or a segment is not valid | Send a real folder with valid segments, or omit the field. |
 | `core.storage.folder_depth_exceeded` | `400` | The folder path is deeper than the entry's `maxFolderDepth` | Flatten the folders, or raise the limit. |
 
-The `core.static_asset.*` codes live on `StaticAssetErrors`; the `core.storage.*` codes live on `StorageErrors` in the helpers package, because the storage helper does the folder checks. Both register with the shared key registry, so `messageCode` autocompletes.
+The `core.static_asset.*` codes live on `StaticAssetErrors`; the `core.storage.*` codes live on `StorageErrors` in the helpers package, because the storage helper does the folder checks and the conditional reads. Both register with the shared key registry, so `messageCode` autocompletes.
 
 A malformed JSON body, a `maxKeys` that is not a positive integer, or a `sequence` on `upload-commit` that is not an integer are the standard validation error (`422`). The route's schema reports them, and no catalogued code applies.
 
 ### The statuses of `upload-validate`
 
-A valid token answers `200` `{ isValid, issues }` **even when the file has problems**: the call worked, and the issues ride the body. Your handler runs only then. Everything else answers before it:
+A valid token answers `200` **even when the file has problems**: the call worked, and the issues ride the body. A valid file also carries a `commitToken`. Your handler runs once per call, after the checks below. The `409` is the one answer that comes from the handler's own read:
 
 | Status | Code | Cause |
 |---|---|---|
@@ -42,7 +44,8 @@ A valid token answers `200` `{ isValid, issues }` **even when the file has probl
 | `403` | `upload_not_authorized` | `directUpload.authorize` returned `false` |
 | `400` | `invalid_commit_token` | A forged token or a different owner |
 | `400` | `expired_commit_token` | `expires.commit` has passed |
-| `404` | `object_not_found` | The key is outside the `keyPrefix` |
+| `404` | `object_not_found` | The key is outside the `keyPrefix`, or no object is there |
+| `409` | `upload_changed` | The object changed or was removed while the handler read it |
 
 With `validation` off the route does not exist and answers `404`.
 
@@ -75,9 +78,12 @@ An empty options object is not an error: it produces zero controllers. See [Cont
 | `"Empty file content \| name: {originalName}"` | The uploaded file's buffer is empty after multipart parsing | `core.static_asset.file_empty` | `400` |
 | `[upload] Invalid folder path \| depth: {n} \| max: {m}` | The folder path has more segments than `maxFolderDepth` allows | `core.storage.folder_depth_exceeded` | `400` |
 | `[upload] Invalid folder path` | The folder path is empty after trimming slashes, or a segment fails `isValidSegment()` | `core.storage.folder_path_invalid` | `400` |
-| `[getObject] Object not found \| bucket: {bucket} \| key: {key}` (also `[getObjectStream]`, `[getStat]`, `[removeObject]`) | No object at that bucket and key. `DiskHelper` throws it directly; `BunS3Helper` maps the backend's own failure onto it | `core.storage.object_not_found` | `404` |
+| `[getObject] Object not found \| bucket: {bucket} \| key: {key}` (also `[getObjectStream]`, `[getStat]`, `[removeObject]`, and `[copyObject]` for the source) | No object at that bucket and key. `DiskHelper` throws it directly; `BunS3Helper` maps the backend's own failure onto it | `core.storage.object_not_found` | `404` |
 | `Object not found \| key: {key}` | The key does not start with the `keyPrefix` - answered before any storage call, so a caller learns nothing about a key outside its scope | `core.storage.object_not_found` | `404` |
 | `"Object key is outside the key prefix of this controller"` | A `serverUpload.objectKey` key falls outside the `keyPrefix` | `core.static_asset.object_key_out_of_scope` | `400` |
+| `"The uploaded file changed after it was validated"` | The pending object was overwritten or removed after the pin | `core.static_asset.upload_changed` | `409` |
+| `"The upload has not been validated"` | `validation` is on and `commit` got a token `upload-validate` did not return | `core.static_asset.upload_not_validated` | `422` |
+| `"The object no longer matches what was expected"` (`[getObjectStream] The object changed`, `[copyObject] The source changed`) | A conditional read or copy found other content than `ifMatch` or the version asked for | `core.storage.precondition_failed` | `412` |
 | `[upload] Bucket does not exist \| name: {bucket}` | `helper.upload()` found no matching bucket via `hasBucket()` | - | `400` (default) |
 | `[upload] Invalid original file name` | With no naming hook, a file's `originalName` becomes the key and fails `isValidSegment()` (single segment: no `/`). With `serverUpload.objectKey` set, `originalName` is metadata, checked by the looser `isValidOriginalName()` (not blank, at most 255 characters, no control character or lone surrogate). **One exception:** a `keyPrefix` with no `serverUpload.objectKey` keeps the strict, single-segment rule | - | `400` (default) |
 | `[upload] Invalid file size \| size: {size}` | A file's `size` is `undefined`, `null`, or negative | - | `400` (default) |

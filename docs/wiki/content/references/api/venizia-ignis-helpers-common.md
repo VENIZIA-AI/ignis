@@ -450,6 +450,7 @@ export declare class HTTP {
         readonly AUTHORIZATION: "authorization";
         readonly COOKIE: "cookie";
         readonly HOST: "host";
+        readonly IF_MATCH: "if-match";
         readonly IF_MODIFIED_SINCE: "if-modified-since";
         readonly IF_NONE_MATCH: "if-none-match";
         readonly ORIGIN: "origin";
@@ -529,6 +530,7 @@ export declare class HTTP {
         readonly IMAGE_PNG: "image/png";
         readonly IMAGE_SVG: "image/svg+xml";
         readonly IMAGE_WEBP: "image/webp";
+        readonly RANGE_UNIT_BYTES: "bytes";
     };
     /** Standard HTTP methods (lowercase). */
     static readonly Methods: {
@@ -1068,6 +1070,7 @@ export declare class HTTP {
         readonly AUTHORIZATION: "authorization";
         readonly COOKIE: "cookie";
         readonly HOST: "host";
+        readonly IF_MATCH: "if-match";
         readonly IF_MODIFIED_SINCE: "if-modified-since";
         readonly IF_NONE_MATCH: "if-none-match";
         readonly ORIGIN: "origin";
@@ -1147,6 +1150,7 @@ export declare class HTTP {
         readonly IMAGE_PNG: "image/png";
         readonly IMAGE_SVG: "image/svg+xml";
         readonly IMAGE_WEBP: "image/webp";
+        readonly RANGE_UNIT_BYTES: "bytes";
     };
     /** Standard HTTP methods (lowercase). */
     static readonly Methods: {
@@ -1265,6 +1269,7 @@ export declare class HTTP {
         readonly AUTHORIZATION: "authorization";
         readonly COOKIE: "cookie";
         readonly HOST: "host";
+        readonly IF_MATCH: "if-match";
         readonly IF_MODIFIED_SINCE: "if-modified-since";
         readonly IF_NONE_MATCH: "if-none-match";
         readonly ORIGIN: "origin";
@@ -1344,6 +1349,7 @@ export declare class HTTP {
         readonly IMAGE_PNG: "image/png";
         readonly IMAGE_SVG: "image/svg+xml";
         readonly IMAGE_WEBP: "image/webp";
+        readonly RANGE_UNIT_BYTES: "bytes";
     };
     /** Standard HTTP methods (lowercase). */
     static readonly Methods: {
@@ -1462,6 +1468,7 @@ export declare class HTTP {
         readonly AUTHORIZATION: "authorization";
         readonly COOKIE: "cookie";
         readonly HOST: "host";
+        readonly IF_MATCH: "if-match";
         readonly IF_MODIFIED_SINCE: "if-modified-since";
         readonly IF_NONE_MATCH: "if-none-match";
         readonly ORIGIN: "origin";
@@ -1541,6 +1548,7 @@ export declare class HTTP {
         readonly IMAGE_PNG: "image/png";
         readonly IMAGE_SVG: "image/svg+xml";
         readonly IMAGE_WEBP: "image/webp";
+        readonly RANGE_UNIT_BYTES: "bytes";
     };
     /** Standard HTTP methods (lowercase). */
     static readonly Methods: {

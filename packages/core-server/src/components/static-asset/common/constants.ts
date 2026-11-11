@@ -14,7 +14,7 @@ export class StaticAssetHeaders {
   /** Of what a controller sends with every object. */
   static readonly NOSNIFF = 'nosniff';
   static readonly CSP_SANDBOX = 'sandbox';
-  static readonly RANGE_UNIT = 'bytes';
+  static readonly RANGE_UNIT = HTTP.HeaderValues.RANGE_UNIT_BYTES;
 }
 
 /** Content types the controller serves. */
@@ -79,6 +79,15 @@ export class MetaLinkRecreateActions {
 
 /** One of the `MetaLinkRecreateActions` values. */
 export type TMetaLinkRecreateAction = TConstValue<typeof MetaLinkRecreateActions>;
+
+/** Where a commit token is in its life: issued with the policy, then validated against the content it pins. */
+export class StaticAssetTokenStages {
+  static readonly ISSUED = 'issued';
+  static readonly VALIDATED = 'validated';
+}
+
+/** One of the `StaticAssetTokenStages` values. */
+export type TStaticAssetTokenStage = TConstValue<typeof StaticAssetTokenStages>;
 
 /** Defaults of the static asset component. */
 export class StaticAssetDefaults {

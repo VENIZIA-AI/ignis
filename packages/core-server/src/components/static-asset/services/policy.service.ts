@@ -4,7 +4,7 @@ import { DurationMultipliers, ResolverUtility } from '@venizia/ignis-helpers/com
 import type { TValueOrAsyncResolver } from '@venizia/ignis-helpers/common';
 import { getError, UuidHelper } from '@venizia/ignis-helpers/core';
 import { BaseService } from '@venizia/ignis-kernel';
-import { StaticAssetErrors } from '../common';
+import { StaticAssetErrors, StaticAssetTokenStages } from '../common';
 import { StaticAssetCommitTokenUtility } from '../utilities';
 import type { TStaticAssetDirectUploadOptions, TStaticAssetUploadPolicyRequest } from '../common';
 import { StaticAssetKeyScopeUtility } from '../utilities/key-scope.utility';
@@ -118,6 +118,7 @@ export class StaticAssetUploadPolicyService extends BaseService {
                 ? new Date(policy.expiresAt).getTime()
                 : Date.now() + this.commitLifetimeMs,
             owner: opts.owner,
+            stage: StaticAssetTokenStages.ISSUED,
           },
           secretKey: directUpload.secretKey,
         }),

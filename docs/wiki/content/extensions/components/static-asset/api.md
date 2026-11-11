@@ -160,7 +160,7 @@ See [Server upload](./server-upload).
 |---|---|---|---|---|
 | `secretKey` | `string` | - | yes | Signs the commit token. |
 | `maxBytes` | `number` | - | yes | The `content-length-range` ceiling of a policy. |
-| `validation` | `TToggle` | - | yes | `{ use: false }`, or `StaticAssetValidation.define({ issueSchema, handler })`; registers `upload-validate`. |
+| `validation` | `TToggle` | - | yes | `{ use: false }`, or `StaticAssetValidation.define({ issueSchema, handler })`; registers `upload-validate`. The handler is `({ file, owner })` with `file` a `StaticAssetPinnedFile`. On, `commit` takes only the validated token: see [Who commits, and with which token](./direct-upload#who-commits-and-with-which-token). |
 | `authorize` | `({ context }) => ValueOrPromise<boolean>` | the entry's `auth` | only without `auth` | Who may use direct upload. |
 | `resolveOwner` | `({ context }) => ValueOrPromise<string>` | none | no | Who an upload belongs to; signed into the token. |
 | `maxFiles` | `number` | `20` | no | Most files one policy request may name. |
@@ -240,6 +240,8 @@ Every built-in route, mounted under the entry's `basePath`. The bucket is the en
 | `uploadValidate` | `POST` | `/upload-validate` | `directUpload.validation` is on | the entry's `auth`, then `directUpload.authorize` |
 | `uploadCommit` | `POST` | `/upload-commit` | `directUpload` is on | the entry's `auth`, then `directUpload.authorize` |
 
+With `routes.uploadCommit: { use: false }` the commit route does not exist and your code commits through the service. See [Who commits, and with which token](./direct-upload#who-commits-and-with-which-token).
+
 `upload` and `listObjects` share `/objects` and differ by method. A route's `authenticate` and `authorize` replace the entry's `auth` for it. `getObjectByName` and `downloadObjectByName` both honour a `Range` header.
 
 ## Binding keys and services
@@ -264,8 +266,41 @@ class StaticAssetBindingKeys {
 |---|---|---|
 | `StaticAssetUploadPolicyService` | `issuePolicies({ files, owner? })` | One signed policy per file. Does not call `authorize`. |
 | `StaticAssetUploadCommitService` | `verify({ token, owner? })` | Signature, expiry, owner, scope; answers the pending `IObjectLocation`; no storage call. |
-| | `validate({ token, owner? })` | `verify`, then `validation`. |
-| | `commit({ token, owner?, labels? })` | `verify`, `validate`, copy, remove pending, MetaLink row. |
+| | `validate({ token, owner? })` | `verify`, pin the content, run `validation` once. A valid file answers `{ isValid, issues, commitToken }`. |
+| | `commit({ token, owner?, labels? })` | `verify`, conditional copy of the pinned content, remove pending, MetaLink row. Never runs `validation`; with it on, needs the validated token. |
+
+## Validation and the pin
+
+```typescript
+interface IStaticAssetValidation<IssueSchema extends z.ZodType> {
+  issueSchema: IssueSchema;
+  handler: (opts: {
+    file: StaticAssetPinnedFile;
+    owner?: string;
+  }) => ValueOrPromise<IStaticAssetValidationResult<z.infer<IssueSchema>>>;
+}
+
+interface IStaticAssetValidateResult<Issue> extends IStaticAssetValidationResult<Issue> {
+  commitToken?: string; // present only when isValid is true
+}
+
+interface IStaticAssetPin {
+  etag: string;
+  versionId?: string; // only when the storage reports a real version
+}
+
+class StaticAssetTokenStages {
+  static readonly ISSUED = 'issued'; // from upload-policy
+  static readonly VALIDATED = 'validated'; // from upload-validate, carries the pin
+}
+```
+
+`StaticAssetPinnedFile` has `key`, `size` and `stream({ range? })`. Its static `pinOf({ stat, scope })` builds the pin from a stat and `conditionOf({ pin })` turns a pin into the `{ ifMatch?, versionId? }` a read or copy sends. See [Direct upload](./direct-upload#validation) and [Security](./security#the-pin-binds-the-token-to-the-content).
+
+| Error | Status | Raised when |
+|---|---|---|
+| `core.static_asset.upload_not_validated` | `422` | `validation` is on and `commit` got a token that is not validated. |
+| `core.static_asset.upload_changed` | `409` | A pinned read or the commit copy finds content other than the pin, or finds no object. |
 
 ## Storage types
 
@@ -315,7 +350,7 @@ interface IStorageHelper {
 
   getObject(opts: IObjectLocation & { options?: any }): Promise<Readable>;
   getObjectStream(
-    opts: IObjectLocation & { range?: { start: number; end?: number } },
+    opts: IObjectLocation & { range?: { start: number; end?: number } } & IStorageReadCondition,
   ): Promise<ReadableStream<Uint8Array>>;
   getStat(opts: IObjectLocation): Promise<IFileStat>;
   listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
@@ -336,6 +371,14 @@ interface IStorageHelper {
       maxFolderDepth?: number;
     },
   ): Promise<void>;
+
+  copyObject(opts: {
+    bucket: IBucketRef;
+    source: IObjectRef;
+    destination: IObjectRef;
+    ifMatch?: string;
+    sourceVersionId?: string;
+  }): Promise<void>;
 
   removeObject(opts: IObjectLocation): Promise<void>;
   removeObjects(opts: { bucket: IBucketRef; objects: IObjectRef[] }): Promise<void>;
@@ -372,6 +415,16 @@ BaseStorageHelper (abstract - implements the validators, upload, the stream meth
     +-- DiskHelper    (local filesystem)
     +-- BunS3Helper   (Bun-native S3, Bun only)
 ```
+
+`IStorageReadCondition` is `{ ifMatch?: string; versionId?: string }`. A read or copy that names the content it expects fails with `StorageErrors.PRECONDITION_FAILED` (`core.storage.precondition_failed`, `412`) when it finds other content:
+
+| Option | On | Meaning |
+|---|---|---|
+| `ifMatch` | `getObjectStream`, `copyObject` | Read or copy only if the object still has this ETag. |
+| `versionId` | `getObjectStream` | Read this exact version. |
+| `sourceVersionId` | `copyObject` | Copy this exact version of the source. |
+
+`BunS3Helper.getStat` is a signed `HEAD`. It reports `etag` (quoted, as S3 sends it) and `versionId`, which is absent for an object with no real version: `StorageUtility.realVersionId` reads a missing value, an empty one and the literal `null` as no version. `DiskHelper` has neither ETag nor versions, so it refuses a conditional `getObjectStream` with an error instead of reading unpinned.
 
 `expiresIn` is an `IDuration` (`{ unit, value }`), not seconds. `presignPut`, `presignGet`, `getObjectTags` and `replaceObjectTags` throw on `DiskHelper`; only `BunS3Helper` implements them. See the [Storage full reference](/extensions/helpers/storage/api#presign-and-object-tagging).
 

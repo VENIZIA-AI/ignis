@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-107 exports, 107 with TSDoc. 955 more are re-exported from other entries (listed at the end).
+107 exports, 107 with TSDoc. 957 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3681,6 +3681,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IStaticServeMixin` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IStorageHelper` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IStorageHelperOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `IStorageReadCondition` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `ITcpSocketClient` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `ITcpSocketServerOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `ITemporalAdapter` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
@@ -3852,6 +3853,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `RSAAlgorithmType` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `RuntimeModules` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `S3Audiences` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `S3Headers` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `SchemaTypes` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `ScopeFilterMissingBehaviors` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `ScopeFilters` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)

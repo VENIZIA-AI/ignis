@@ -41,7 +41,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers) | 7 | 7 |
 | [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter) | 19 | 19 |
 | [`@venizia/ignis-filter/schemas`](/references/api/venizia-ignis-filter-schemas) | 11 | 11 |
-| [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers) | 205 | 205 |
+| [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers) | 207 | 207 |
 | [`@venizia/ignis-helpers/axios`](/references/api/venizia-ignis-helpers-axios) | 4 | 4 |
 | [`@venizia/ignis-helpers/bullmq`](/references/api/venizia-ignis-helpers-bullmq) | 2 | 2 |
 | [`@venizia/ignis-helpers/bun-s3`](/references/api/venizia-ignis-helpers-bun-s3) | 2 | 2 |
@@ -67,6 +67,6 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis/grpc`](/references/api/venizia-ignis-grpc) | 4 | 4 |
 | [`@venizia/ignis/mail`](/references/api/venizia-ignis-mail) | 65 | 65 |
 | [`@venizia/ignis/socket-io`](/references/api/venizia-ignis-socket-io) | 2 | 2 |
-| [`@venizia/ignis/static-asset`](/references/api/venizia-ignis-static-asset) | 49 | 49 |
+| [`@venizia/ignis/static-asset`](/references/api/venizia-ignis-static-asset) | 54 | 54 |
 | [`@venizia/ignis/testing`](/references/api/venizia-ignis-testing) | 3 | 3 |
 | [`@venizia/ignis/websocket`](/references/api/venizia-ignis-websocket) | 2 | 2 |
