@@ -54,7 +54,7 @@ export interface IStaticAssetControllerOptions {
 
   /** What the two direct upload routes run: the instances the component bound, so an application service resolving them from the container and the routes share them. Required when `controller.directUpload` is set. */
   policyService?: Pick<StaticAssetUploadPolicyService, 'issuePolicies'>;
-  commitService?: Pick<StaticAssetUploadCommitService, 'commit'>;
+  commitService?: Pick<StaticAssetUploadCommitService, 'commit' | 'validate'>;
 
   /** Decides the stored object name of each uploaded file. Absent leaves the storage helper's own naming untouched. */
   resolveObjectName?: TStaticAssetObjectNameResolver;
@@ -297,6 +297,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
       hasConfiguredBucket,
       rawObjectPath,
       maxPolicyFiles: options?.parseMultipartBody?.maxFiles ?? StaticAssetDefaults.MAX_UPLOAD_FILES,
+      issueSchema: directUpload?.validation?.issueSchema,
     });
 
     // The mount path may be declared with or without a leading slash; a link must carry exactly one.
@@ -1023,6 +1024,32 @@ export class StaticAssetControllerFactory extends BaseHelper {
                   owner,
                   labels: readUploadLabels({ fields: labels }),
                 });
+
+                return ctx.json(result, HTTP.ResultCodes.RS_2.Ok);
+              },
+            });
+          }
+
+          const validateDefinition = definitions.UPLOAD_VALIDATE;
+          const uploadValidateRoute = StaticAssetRouteOptionsUtility.readOverride({
+            route: routes?.uploadValidate,
+          });
+
+          // Only with a `validation`: the application adds logic, never a route of its own.
+          if (validateDefinition && uploadValidateRoute.isEnabled) {
+            this.bindRoute({
+              configs: { ...validateDefinition, ...uploadValidateRoute.override },
+            }).to({
+              handler: async (ctx) => {
+                const isAuthorized = await directUpload.authorize({ context: ctx });
+
+                if (!isAuthorized) {
+                  throw getError({ error: StaticAssetErrors.UPLOAD_NOT_AUTHORIZED });
+                }
+
+                const owner = await directUpload.resolveOwner?.({ context: ctx });
+                const { commitToken } = ctx.req.valid<{ commitToken: string }>('json');
+                const result = await commitService.validate({ token: commitToken, owner });
 
                 return ctx.json(result, HTTP.ResultCodes.RS_2.Ok);
               },

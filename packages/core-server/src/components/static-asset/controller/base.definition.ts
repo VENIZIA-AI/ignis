@@ -73,6 +73,8 @@ export interface IStaticAssetDefinitions {
   DOWNLOAD_OBJECT_BY_NAME: IAuthRouteConfig;
   UPLOAD_POLICY: IAuthRouteConfig;
   UPLOAD_COMMIT: IAuthRouteConfig;
+  /** Present only when the application configured a validation. */
+  UPLOAD_VALIDATE?: IAuthRouteConfig;
   UPLOAD: IAuthRouteConfig;
   DELETE_OBJECT: IAuthRouteConfig;
   LIST_OBJECTS: IAuthRouteConfig;
@@ -90,11 +92,14 @@ export class StaticAssetDefinitionBuilder {
     rawObjectPath?: boolean;
     /** The most files one upload-policy request may name. */
     maxPolicyFiles?: number;
+    /** The application's issue shape; present, the upload-validate route exists and documents it. */
+    issueSchema?: z.ZodType;
   }): IStaticAssetDefinitions {
     const {
       hasConfiguredBucket = false,
       rawObjectPath = false,
       maxPolicyFiles = StaticAssetDefaults.MAX_UPLOAD_FILES,
+      issueSchema,
     } = opts;
 
     const bucketPrefix = hasConfiguredBucket ? '' : '/buckets/{bucketName}';
@@ -241,6 +246,25 @@ export class StaticAssetDefinitionBuilder {
           description: 'The object at its final key, copied out of the pending prefix',
         }),
       },
+      ...(issueSchema === undefined
+        ? {}
+        : {
+            UPLOAD_VALIDATE: {
+              method: 'post' as const,
+              path: `${bucketPrefix}/upload-validate`,
+              request: {
+                body: {
+                  content: {
+                    'application/json': { schema: z.object({ commitToken: z.string().min(1) }) },
+                  },
+                },
+              },
+              responses: OpenApiResponses.jsonResponse({
+                schema: z.object({ isValid: z.boolean(), issues: z.array(issueSchema) }),
+                description: 'Whether the pending file may be committed, and the issues found',
+              }),
+            },
+          }),
       UPLOAD: {
         method: 'post',
         path: `${bucketPrefix}/objects`,

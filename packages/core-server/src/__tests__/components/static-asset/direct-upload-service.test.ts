@@ -428,6 +428,22 @@ describe('verify', () => {
   });
 });
 
+describe('validate', () => {
+  test('with no validation configured every file is valid, and the token is still verified', async () => {
+    const helper = new FakeStorageHelper();
+    const { policyService, commitService } = await boot({ helper });
+    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    helper.calls.length = 0;
+
+    const answer = await commitService.validate({ token: policy.commitToken });
+    const forged = await messageOf(() => commitService.validate({ token: 'forged.token' }));
+
+    expect(answer).toEqual({ isValid: true, issues: [] });
+    expect(forged).toBe('Invalid commit token');
+    expect(helper.calls).toHaveLength(0);
+  });
+});
+
 describe('expires.commit', () => {
   const POLICY_WINDOW: IDuration = { unit: DurationUnits.MINUTE, value: 1 };
   const COMMIT_WINDOW: IDuration = { unit: DurationUnits.HOUR, value: 2 };

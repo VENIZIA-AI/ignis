@@ -243,7 +243,16 @@ so a token signed before the shape changed fails as invalid. `directUpload.resol
 owner on both routes, and a token with an owner commits only for that owner (anything else, or none, is
 `INVALID_COMMIT_TOKEN`, the forged-token error). `directUpload.expires.upload` is the policy's lifetime,
 `expires.commit` the token's (default `upload`). Both routes call `directUpload.authorize` first; the
-services never do, so a caller that reaches them directly owns that decision. Link building lives in
+services never do, so a caller that reaches them directly owns that decision.
+
+`directUpload.validation` (`StaticAssetValidation.define({ issueSchema, handler })`; typed as
+`IStaticAssetValidation<z.ZodType>` so no `AnyType` is needed - the handler's answer is covariant, and
+`define` is what types it from the schema) adds the app's check of the PENDING object. The commit
+service's `validate({ token, owner? })` is `verify` plus the handler (valid when none is configured);
+`commit` runs the handler after `verify` and before `onCommit`, and throws `UPLOAD_INVALID` (422) on an
+invalid file. The route `UPLOAD_VALIDATE` (`POST {base}/upload-validate`, `routes.uploadValidate`) exists
+only when `validation` is set: `StaticAssetDefinitionBuilder.build` takes `issueSchema` and documents the
+response with it; the handler is `authorize`, `resolveOwner`, `validate`. Link building lives in
 `object-link.utility.ts` so the services and the factory share it without importing each other.
 See [object storage](/architecture/object-storage.md) for the signing model behind the second path.
 See [component model](/architecture/component-model.md) and the

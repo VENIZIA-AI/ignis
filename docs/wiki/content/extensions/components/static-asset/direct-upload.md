@@ -32,7 +32,7 @@ application.component(StaticAssetComponent, {
 });
 ```
 
-Two routes appear - `routes.uploadPolicy` and `routes.uploadCommit` in `controller.routes`, each overridable and each with its own `enabled` switch. Leave `directUpload` out and neither exists.
+Two routes appear - `routes.uploadPolicy` and `routes.uploadCommit` in `controller.routes`, each overridable and each with its own `enabled` switch. A third, `routes.uploadValidate`, appears when you set `directUpload.validation`; see [Validate, then commit](#validate-then-commit). Leave `directUpload` out and none exists.
 
 > [!TIP]
 > `controller.keyPrefix` scopes direct upload too: the pending key becomes `pendingPrefix + keyPrefix`, so the committed key lands inside the scope. The commit route re-checks the scope as well, in case a token was signed by another controller with the same `secretKey`. See [`controller.keyPrefix`](./api#controller-keyprefix).
@@ -128,6 +128,7 @@ runs and watch step 2 leave without touching the backend.
 | `pendingPrefix` | `string` | `'pending/'` | Where a policy may write. The final key is never inside it. |
 | `expires.upload` | `IDuration` | 15 minutes | How long the browser may post the bytes: the policy's lifetime. |
 | `expires.commit` | `IDuration` | `expires.upload` | How long the commit token stays good, for validating and committing after the upload. Set it longer when users validate, fix and confirm after the file landed. |
+| `validation` | `IStaticAssetValidation` | - | Your check of the pending file; made with `StaticAssetValidation.define`. Present, it registers `upload-validate`, and `commit` refuses an invalid file with `UPLOAD_INVALID`. |
 | `onCommit` | `({ bucket, pendingObject, object }) => ValueOrPromise<void>` | - | Runs **before** the copy. |
 
 ## Use from a service
@@ -194,27 +195,52 @@ If the MetaLink row cannot be written, `commit` still resolves, with `metaLink: 
 
 ## Validate, then commit
 
-When the file has to be checked before it is accepted - an Excel import whose cells must parse, say - the user should see the problems first and nothing should be committed until the file is good. `verify` makes that possible: it runs the checks a commit starts with and touches nothing.
+When the file has to be checked before it is accepted - an Excel import whose cells must parse, say - the user should see the problems first, and nothing should be committed until the file is good. You write only the check; the component adds the route and the refusal.
 
-1. The browser asks for a policy and posts the file, as above.
-2. Your own validate endpoint receives the `commitToken`, calls `verify({ token, owner })`, reads the pending object and answers with the errors.
-3. The user fixes the file and uploads again. That is a **new policy**; the abandoned pending object is left for the lifecycle rule.
-4. When the file is valid, the user confirms - or your server commits by itself - with `commit({ token, owner, labels })`. The commit **is** the "accepted" mark: an object at a final key was accepted, so no tags are needed.
-5. A job picks the committed object up from the commit result.
+Define the shape of one issue and the check with `StaticAssetValidation.define`, and set it as `directUpload.validation`:
 
 ```ts
-async validateUpload(opts: { token: string; userId: string }) {
-  // No storage call here: a forged, expired, foreign or out-of-scope token throws.
-  const pending = this.assetCommit.verify({ token: opts.token, owner: opts.userId });
+import { z } from '@hono/zod-openapi';
+import { StaticAssetValidation } from '@venizia/ignis/static-asset';
 
-  const fileStream = await this.storage.getObject(pending);
+const CellIssueSchema = z.object({
+  sheet: z.string(),
+  row: z.number().int(),
+  column: z.string(),
+  code: z.string(),
+  message: z.string(),
+});
 
-  // Your own parser: returns the cell errors to show the user.
-  return this.workbookChecker.check({ fileStream });
-}
+const workbookValidation = StaticAssetValidation.define({
+  issueSchema: CellIssueSchema,
+  handler: async ({ bucket, object, owner, helper }) => {
+    const fileStream = await helper.getObject({ bucket, object });
+
+    // Your own parser: one issue per broken cell.
+    const issues = await workbookChecker.check({ fileStream, owner });
+
+    return { isValid: issues.length === 0, issues };
+  },
+});
+
+// directUpload: { authorize, resolveOwner, secretKey, maxBytes, validation: workbookValidation }
 ```
 
-`verify` answers `{ bucket, object }` of the **pending** object, the shape `getObject` takes. For a server-commits-only setup, drop the commit route so the browser cannot confirm on its own:
+`issueSchema` is the shape of **one** issue. It types the handler - an issue of another shape fails type-checking - and it documents the route's response. The handler gets the **pending** object (`bucket` and `object`, the shape `getObject` takes), the storage `helper` and the `owner` the token was issued to.
+
+Setting `validation` registers `POST {base}/upload-validate`, which takes `{ commitToken }` and answers `{ isValid, issues }` with your issues in your shape. It is overridable through `routes.uploadValidate`, with the same `enabled`, `path` and `middleware` as the other routes, and it calls `authorize` first, like them.
+
+1. The browser asks for a policy and posts the file, as above.
+2. It calls `upload-validate` with the `commitToken` and shows the issues.
+3. The user fixes the file and uploads again. That is a **new policy**; the abandoned pending object is left for the lifecycle rule.
+4. When the file is valid, the user confirms - or your server commits by itself - with `upload-commit`, or `commit({ token, owner, labels })` from a service. The commit **is** the "accepted" mark: an object at a final key was accepted, so no tags are needed.
+5. A job picks the committed object up from the commit result.
+
+**Commit runs the validation again.** An invalid file is refused with `422` `core.static_asset.upload_invalid` before `onCommit` and before any copy, so an invalid file can never be committed - not by skipping the validate call, not by a forged client. The error carries no issues; the validate route is where a user reads them.
+
+From a service, `validate({ token, owner })` is the same check without a route: it calls `verify`, then your handler, and with no `validation` configured it answers `{ isValid: true, issues: [] }`.
+
+For a server-commits-only setup, drop the commit route so the browser cannot confirm on its own, and call `commit` from your service when you are satisfied:
 
 ```ts
 controller: {
