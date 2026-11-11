@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, spyOn, test } from 'bun:test';
 import fs, { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -254,5 +254,41 @@ describe('RequestUtility.parseMultipartBody - the spooled filename', () => {
 
     // Same name, same millisecond or not: the random part keeps the two files apart.
     expect(new Set(names).size).toBe(2);
+  });
+});
+
+/**
+ * Why the static-asset component no longer offers a disk spool: the whole form is parsed into
+ * memory by `formData()` before the first file is written, so spooling saves none of it. It only
+ * adds a write, and the caller reads the file back.
+ */
+describe('RequestUtility.parseMultipartBody - disk spool', () => {
+  test('every file is already in memory when the first one is written to disk', async () => {
+    const uploadDir = spoolDir();
+    const events: string[] = [];
+    const formData = filesOf(3);
+    const context = {
+      req: {
+        formData: async () => {
+          events.push('form parsed');
+
+          return formData;
+        },
+      },
+    };
+    const original = fs.writeFileSync.bind(fs);
+    const writeSpy = spyOn(fs, 'writeFileSync').mockImplementation((...args) => {
+      events.push('file written');
+
+      return original(...args);
+    });
+
+    try {
+      await RequestUtility.parseMultipartBody({ context, storage: 'disk', uploadDir });
+    } finally {
+      writeSpy.mockRestore();
+    }
+
+    expect(events).toEqual(['form parsed', 'file written', 'file written', 'file written']);
   });
 });

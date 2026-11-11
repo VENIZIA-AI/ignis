@@ -333,12 +333,16 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
       if (folderSegments.length > depthLimit) {
         throw getError({
+          error: StorageErrors.FOLDER_DEPTH_EXCEEDED,
           message: `[upload] Invalid folder path | depth: ${folderSegments.length} | max: ${depthLimit}`,
         });
       }
 
       if (!this.isValidKeyPath({ path: folderPath, maxDepth: depthLimit })) {
-        throw getError({ message: '[upload] Invalid folder path' });
+        throw getError({
+          error: StorageErrors.FOLDER_PATH_INVALID,
+          message: '[upload] Invalid folder path',
+        });
       }
     }
 

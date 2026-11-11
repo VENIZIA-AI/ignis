@@ -17,7 +17,7 @@ import type {
   IStorageHelperOptions,
   IUploadFile,
 } from '../common';
-import { S3Audiences, StorageUtility, StoragePresignDefaults } from '../common';
+import { S3Audiences, StorageTypes, StorageUtility, StoragePresignDefaults } from '../common';
 import type { TS3Audience } from '../common';
 import { S3SignatureUtility } from './utility';
 
@@ -53,6 +53,8 @@ export interface IBunS3HelperOptions extends IStorageHelperOptions {
 
 /** Storage helper for S3-compatible object stores through Bun's `S3Client`. Uses separate hosts for calls this process makes and for URLs handed to browsers. */
 export class BunS3Helper extends BaseStorageHelper {
+  readonly storageType = StorageTypes.BUN_S3;
+
   private client: S3Client;
   private credentials: {
     accessKey: string;

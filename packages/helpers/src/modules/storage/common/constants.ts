@@ -1,5 +1,14 @@
 import { DurationUnits, type IDuration, type TConstValue } from '@/common';
 
+/** The backend a storage helper writes to. A helper declares its own, so a caller never tells one apart with `instanceof`. */
+export class StorageTypes {
+  static readonly DISK = 'disk';
+  static readonly BUN_S3 = 'bun-s3';
+}
+
+/** One of the `StorageTypes` values. */
+export type TStorageType = TConstValue<typeof StorageTypes>;
+
 /** Presign expiry defaults - a PUT or a POST form carries a file and needs more time; a GET is a redirect. */
 export class StoragePresignDefaults {
   static readonly PUT_EXPIRES_IN: IDuration = { unit: DurationUnits.MINUTE, value: 10 };
