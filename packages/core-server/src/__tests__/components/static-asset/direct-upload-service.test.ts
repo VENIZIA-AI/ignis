@@ -4,7 +4,6 @@ import { AppErrorMiddleware } from '@/base/middlewares';
 import { StaticAssetComponent } from '@/components/static-asset';
 import {
   StaticAssetBindingKeys,
-  type TStaticAssetDirectUploadOptions,
   type TMetaLinkConfig,
   type TStaticAssetComponentOptions,
 } from '@/components/static-asset/common';
@@ -13,13 +12,13 @@ import {
   StaticAssetUploadCommitService,
   StaticAssetUploadPolicyService,
 } from '@/components/static-asset/services';
-import { BaseMetaLinkModel } from '@/components/static-asset/models';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { DurationUnits } from '@venizia/ignis-helpers/common';
 import type { IDuration, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { ControllerTransports, MetadataRegistry } from '@venizia/ignis-kernel';
 import { describe, expect, test } from 'bun:test';
+import type { TDirectUploadOptions } from './direct-upload-services';
 import { FakeStorageHelper } from './fake-storage.helper';
 
 const SECRET = 'a-secret-nobody-else-has';
@@ -41,7 +40,7 @@ class ServiceApplication extends BaseApplication {
   setupMiddlewares() {}
 }
 
-const ALLOW: TStaticAssetDirectUploadOptions = {
+const ALLOW: TDirectUploadOptions = {
   authorize: () => true,
   secretKey: SECRET,
   maxBytes: 1024,
@@ -52,9 +51,12 @@ const boot = async (opts: {
   helper: FakeStorageHelper;
   keyPrefix?: string;
   pendingPrefix?: string;
-  directUpload?: Partial<TStaticAssetDirectUploadOptions>;
+  directUpload?: Partial<TDirectUploadOptions>;
   metaLink?: TMetaLinkConfig;
 }) => {
+  // Direct upload needs a scope of its own: the pending prefix stays outside it.
+  const keyPrefix = opts.keyPrefix ?? 'files/';
+
   MetadataRegistry.getInstance().clearAll();
   const application = new ServiceApplication({
     scope: 'DirectUploadServiceApp',
@@ -62,30 +64,29 @@ const boot = async (opts: {
   });
   application.init();
 
-  const photoController = {
-    name: 'PhotoController',
-    basePath: '/photos',
-    isStrict: false,
-    bucket: 'uploads',
-    keyPrefix: opts.keyPrefix,
-    directUpload: { ...ALLOW, pendingPrefix: opts.pendingPrefix, ...opts.directUpload },
-  };
-  const photos: TStaticAssetComponentOptions[string] = opts.metaLink
-    ? {
-        storage: 'disk',
-        helper: opts.helper as never,
-        useMetaLink: true,
-        metaLink: opts.metaLink,
-        controller: photoController,
-      }
-    : { storage: 'disk', helper: opts.helper as never, controller: photoController };
-
   const options: TStaticAssetComponentOptions = {
-    photos,
+    photos: {
+      basePath: '/photos',
+      bucket: 'uploads',
+      keyPrefix,
+      serverUpload: { use: true },
+      directUpload: {
+        use: true,
+        validation: { use: false },
+        ...ALLOW,
+        pendingPrefix: opts.pendingPrefix,
+        ...opts.directUpload,
+      },
+      metaLink: opts.metaLink ? { use: true, ...opts.metaLink } : { use: false },
+      helper: opts.helper as never,
+    },
     plain: {
-      storage: 'disk',
+      basePath: '/plain',
+      bucket: 'plain',
+      serverUpload: { use: true },
+      directUpload: { use: false },
+      metaLink: { use: false },
       helper: new FakeStorageHelper() as never,
-      controller: { name: 'PlainController', basePath: '/plain', isStrict: false },
     },
   };
 
@@ -163,7 +164,7 @@ describe('issuePolicies', () => {
 
     expect(response.status).toBe(200);
     expect(viaRoute).toEqual([expect.objectContaining(directShape)]);
-    expect(direct[0].objectName).toStartWith('pending/');
+    expect(direct[0].objectName).toStartWith('pending/files/');
     expect(direct[0].commitToken).toContain('.');
   });
 
@@ -198,7 +199,6 @@ describe('commit', () => {
     const { policyService, commitService } = await boot({
       helper,
       metaLink: {
-        model: BaseMetaLinkModel,
         repository: {
           create: async (opts: { data: Record<string, unknown> }) => {
             created.push(opts.data);
@@ -256,7 +256,7 @@ describe('commit', () => {
     const commitToken = StaticAssetCommitTokenUtility.build({
       payload: {
         bucket: { name: 'uploads' },
-        object: { key: 'pending/x/a.png' },
+        object: { key: 'pending/files/x/a.png' },
         expiresAt: Date.now() - 1000,
       },
       secretKey: SECRET,
@@ -385,7 +385,7 @@ describe('verify', () => {
     const token = StaticAssetCommitTokenUtility.build({
       payload: {
         bucket: { name: 'uploads' },
-        object: { key: 'pending/x/a.png' },
+        object: { key: 'pending/files/x/a.png' },
         expiresAt: Date.now() - 1000,
       },
       secretKey: SECRET,

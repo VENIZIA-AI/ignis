@@ -5,10 +5,18 @@ import type { MiddlewareHandler } from 'hono';
 import type { IAuthRouteConfig, TRouteAuthConfig } from '@/base';
 import {
   StaticAssetErrors,
-  type TStaticAssetAuth,
+  StaticAssetRouteKeys,
   type TStaticAssetRouteConfig,
   type TStaticAssetRouteKey,
 } from '../common';
+import type { IStaticAssetResolvedEntry, IStaticAssetResolvedRoute } from './entry.utility';
+
+/** What a route is registered with: the application's overrides, and the auth it ends up with. */
+export type TStaticAssetRouteOverride = Omit<
+  TStaticAssetRouteConfig,
+  'authenticate' | 'authorize'
+> &
+  Pick<IAuthRouteConfig, 'authenticate' | 'authorize'>;
 
 export class StaticAssetRouteOptionsUtility {
   /** Multipart framing of one file (boundary, `Content-Disposition` with a file name, `Content-Type`), allowed on top of its `maxBytes` in the route's body limit. */
@@ -19,35 +27,28 @@ export class StaticAssetRouteOptionsUtility {
 
   /** The routes `auth.publicRead` leaves open: reading ONE object. Listing is not reading an object. */
   private static readonly PUBLIC_READ_ROUTES: ReadonlySet<TStaticAssetRouteKey> = new Set([
-    'getObjectByName',
-    'downloadObjectByName',
+    StaticAssetRouteKeys.GET_OBJECT_BY_NAME,
+    StaticAssetRouteKeys.DOWNLOAD_OBJECT_BY_NAME,
   ]);
 
   /**
    * Reads one built-in route's configuration: whether it is registered, the Hono overrides, and the
    * authentication and authorization it ends up with.
    *
-   * The `enabled` switch and the auth fields are this component's, never Hono's, so they are split
-   * off. Auth is resolved by the same resolver the CRUD factory uses: a route's own config beats the
+   * Auth is resolved by the same resolver the CRUD factory uses: a route's own config beats the
    * entry's `auth`, and `{ skip: true }` opens the route. `publicRead` is the entry's default for
    * the two read routes and loses to any auth the route sets itself.
    */
   static readRoute(opts: {
     key: TStaticAssetRouteKey;
-    route?: TStaticAssetRouteConfig;
-    auth?: TStaticAssetAuth;
-    /** The route is registered only when its own `enabled` is `true`. */
-    isOffByDefault?: boolean;
-  }): {
-    isEnabled: boolean;
-    override: Omit<TStaticAssetRouteConfig, 'enabled' | 'authenticate' | 'authorize'> &
-      Pick<IAuthRouteConfig, 'authenticate' | 'authorize'>;
-  } {
-    const { key, route, auth, isOffByDefault = false } = opts;
-    const { enabled, authenticate, authorize, ...override } = route ?? {};
+    route?: IStaticAssetResolvedRoute;
+    auth?: IStaticAssetResolvedEntry<never>['auth'];
+  }): { isEnabled: boolean; override: TStaticAssetRouteOverride } {
+    const { key, route, auth } = opts;
+    const { authenticate, authorize, ...override } = route?.override ?? {};
 
     const isPublicRead =
-      auth?.publicRead === true &&
+      auth?.isPublicRead === true &&
       StaticAssetRouteOptionsUtility.PUBLIC_READ_ROUTES.has(key) &&
       authenticate == null &&
       authorize == null;
@@ -64,7 +65,7 @@ export class StaticAssetRouteOptionsUtility {
         : auth.authorize;
 
     return {
-      isEnabled: isOffByDefault ? enabled === true : enabled !== false,
+      isEnabled: route?.isEnabled ?? true,
       override: {
         ...override,
         authenticate: RouteConfigResolver.resolveAuthenticate({

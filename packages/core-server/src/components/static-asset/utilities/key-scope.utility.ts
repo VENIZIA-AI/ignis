@@ -14,7 +14,7 @@ export class StaticAssetKeyScopeUtility {
 
     if (segments.length === 0 || segments.some((segment) => !helper.isValidSegment({ segment }))) {
       throw getError({
-        message: `[${scope}] controller.keyPrefix must be one or more valid key segments | value: ${keyPrefix}`,
+        message: `[${scope}] keyPrefix must be one or more valid key segments | value: ${keyPrefix}`,
       });
     }
 
@@ -25,22 +25,43 @@ export class StaticAssetKeyScopeUtility {
    * The two prefixes of a direct upload, in ONE place: the policy signs `policyKeyPrefix`, and the
    * commit strips `pendingPrefix` from the key it reads back, so the two have to be computed alike.
    * The scope rides inside the pending key, so a commit lands inside it.
+   *
+   * A pending object must never be readable through the entry's own routes, so `pendingPrefix` is
+   * refused unless it is a valid key prefix of its own, disjoint from `keyPrefix`: neither starts
+   * with the other. Both are checked once, at boot, with the entry's name.
    */
   static resolveDirectUploadPrefixes(opts: {
-    keyPrefix?: string;
+    keyPrefix: string;
     pendingPrefix?: string;
     helper: IStorageHelper;
     scope: string;
-  }): { keyPrefix?: string; pendingPrefix: string; policyKeyPrefix: string } {
+  }): { keyPrefix: string; pendingPrefix: string; policyKeyPrefix: string } {
     const { helper, scope } = opts;
-    const keyPrefix =
-      opts.keyPrefix === undefined
-        ? undefined
-        : StaticAssetKeyScopeUtility.normalizePrefix({ keyPrefix: opts.keyPrefix, helper, scope })
-            .keyPrefix;
+    const { keyPrefix } = StaticAssetKeyScopeUtility.normalizePrefix({
+      keyPrefix: opts.keyPrefix,
+      helper,
+      scope,
+    });
     const pendingPrefix = opts.pendingPrefix ?? StaticAssetDefaults.PENDING_PREFIX;
+    const segments = pendingPrefix.slice(0, -1).split('/');
 
-    return { keyPrefix, pendingPrefix, policyKeyPrefix: `${pendingPrefix}${keyPrefix ?? ''}` };
+    if (
+      pendingPrefix.length < 2 ||
+      !pendingPrefix.endsWith('/') ||
+      segments.some((segment) => !helper.isValidSegment({ segment }))
+    ) {
+      throw getError({
+        message: `[${scope}] directUpload.pendingPrefix must be one or more valid key segments, each followed by a slash | value: '${pendingPrefix}'`,
+      });
+    }
+
+    if (pendingPrefix.startsWith(keyPrefix) || keyPrefix.startsWith(pendingPrefix)) {
+      throw getError({
+        message: `[${scope}] directUpload.pendingPrefix and keyPrefix must not contain one another | pendingPrefix: '${pendingPrefix}' | keyPrefix: '${keyPrefix}' | a pending object would be readable through this entry's routes`,
+      });
+    }
+
+    return { keyPrefix, pendingPrefix, policyKeyPrefix: `${pendingPrefix}${keyPrefix}` };
   }
 
   static isInScope(opts: { key: string; keyPrefix?: string }): boolean {

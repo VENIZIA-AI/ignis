@@ -7,7 +7,7 @@ import type {
 } from '@venizia/ignis-helpers';
 import { ResolverUtility } from '@venizia/ignis-helpers/common';
 import type { AnyType } from '@venizia/ignis-helpers/common';
-import type { TMetaLinkConfig, TStaticAssetStorageType, TStaticAssetUploadQuery } from '../common';
+import type { TMetaLinkConfig, TStaticAssetStorageType, TStaticAssetUploadLabels } from '../common';
 
 export class StaticAssetMetaLinkUtility {
   /** What a stat says about one stored object: the columns a refresh rewrites and a new row starts from. */
@@ -58,12 +58,12 @@ export class StaticAssetMetaLinkUtility {
     storage: TStaticAssetStorageType;
     uploadResult: IUploadResult;
     fileStat: IFileStat;
-    query: TStaticAssetUploadQuery;
+    labels: TStaticAssetUploadLabels;
   }): Promise<AnyType> {
-    const { metaLink, helper, storage, uploadResult, fileStat, query } = opts;
+    const { metaLink, helper, storage, uploadResult, fileStat, labels } = opts;
 
     if (metaLink.createMetaLink) {
-      const created = await metaLink.createMetaLink({ uploadResult, fileStat, query });
+      const created = await metaLink.createMetaLink({ uploadResult, fileStat, labels });
 
       return created.data;
     }
@@ -81,12 +81,12 @@ export class StaticAssetMetaLinkUtility {
           fileStat,
         }),
         storageType: storage,
-        principalId: query.principalId ? String(query.principalId) : undefined,
-        principalType: query.principalType ? String(query.principalType) : undefined,
-        variant: query.variant ? String(query.variant) : undefined,
+        principalId: labels.principalId,
+        principalType: labels.principalType,
+        variant: labels.variant,
         // Absent leaves the column default rather than writing 0, so a row the caller never
         // ordered is indistinguishable from a legacy one.
-        sequence: query.sequence === undefined ? undefined : Number(query.sequence),
+        sequence: labels.sequence,
       },
     });
 

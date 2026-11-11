@@ -19,6 +19,7 @@ import {
   type IStorageHelperOptions,
   type IUploadFile,
   StorageErrors,
+  StorageTypes,
 } from '../common';
 
 /** Options for `DiskHelper`; `basePath` is created when missing. */
@@ -29,6 +30,8 @@ export interface IDiskHelperOptions extends IStorageHelperOptions {
 
 /** Storage backed by the local filesystem: each bucket is a directory under `basePath`, each object a file whose key is its relative path. Names are validated and resolved paths must stay inside the bucket. */
 export class DiskHelper extends BaseStorageHelper {
+  readonly storageType = StorageTypes.DISK;
+
   private basePath: string;
 
   constructor(options: IDiskHelperOptions) {

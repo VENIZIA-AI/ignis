@@ -9,6 +9,20 @@ export const StorageErrors = {
     statusCode: HTTP.ResultCodes.RS_4.NotFound,
     category: ErrorScopes.BUSINESS,
   },
+  /** An upload named a folder the storage refuses: a segment it cannot hold, or an empty path. */
+  FOLDER_PATH_INVALID: {
+    message: { text: 'Invalid folder path', code: 'core.storage.folder_path_invalid' },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.VALIDATION,
+  },
+  FOLDER_DEPTH_EXCEEDED: {
+    message: {
+      text: 'Folder path exceeds the maximum depth',
+      code: 'core.storage.folder_depth_exceeded',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.VALIDATION,
+  },
 } as const satisfies Record<string, TErrorDefinition>;
 
 /** Augments inversion, not helpers: TS only treats this as an augmentation when the file imports that module. */

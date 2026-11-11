@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis/static-asset, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-48 exports, 48 with TSDoc.
+49 exports, 49 with TSDoc.
 
 ## `BaseMetaLinkModel`
 
@@ -641,28 +641,16 @@ Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
 *interface*
 
-Input of `StaticAssetControllerFactory.build`: one entry of `TStaticAssetComponentOptions` with its storage type and helper.
+Input of `StaticAssetControllerFactory.build`: one entry of `TStaticAssetComponentOptions` and its key.
 
 ```ts
-export interface IStaticAssetControllerOptions {
-    controller: TStaticAssetComponentOptions[string]['controller'];
-    storage: TStaticAssetStorageType;
-    helper: IStorageHelper;
-    useMetaLink?: boolean;
-    /** The table is erased at this seam on purpose. The public option types carry the real `Schema` and check it; inside the controller every read and write is on MetaLink COLUMNS, and threading a table type nobody here constrains through 700 lines of handler buys nothing. */
-    metaLink?: TMetaLinkConfig<AnyType>;
-    options?: TStaticAssetExtraOptions;
-    /** Authentication and authorization of every built-in route; see `TStaticAssetAuth`. */
-    auth?: TStaticAssetAuth;
-    /** What the two direct upload routes run: the instances the component bound, so an application service resolving them from the container and the routes share them. Required when `controller.directUpload` is set. */
+export interface IStaticAssetControllerOptions<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> {
+    /** The entry's key in the options object: the controller's name is derived from it. */
+    key: string;
+    entry: TStaticAssetEntry<Schema>;
+    /** What the direct upload routes run: the instances the component bound, so an application service resolving them from the container and the routes share them. Required when the entry turns `directUpload` on. */
     policyService?: Pick<StaticAssetUploadPolicyService, 'issuePolicies'>;
-    commitService?: Pick<StaticAssetUploadCommitService, 'commit' | 'validate'>;
-    /** Decides the stored object name of each uploaded file. Absent leaves the storage helper's own naming untouched. */
-    resolveObjectName?: TStaticAssetObjectNameResolver;
-    /** Registers the application's own routes BEFORE every built-in one, so a literal path wins over the catch-all `rawObjectPath` produces. */
-    defineRoutesBefore?: TStaticAssetDefineExtraRoutes;
-    /** Registers the application's own routes on the generated controller, after every built-in one. */
-    defineExtraRoutes?: TStaticAssetDefineExtraRoutes;
+    commitService?: Pick<StaticAssetUploadCommitService<Schema>, 'commit' | 'validate'>;
 }
 ```
 
@@ -742,15 +730,16 @@ export interface IStaticAssetUploadCommitServiceOptions<Schema extends TMetaLink
     /** Names the logger; the controller's own name is the usual value. */
     scope: string;
     helper: IStorageHelper;
-    /** The controller's `keyPrefix` as configured; normalized here the way the controller does. */
-    keyPrefix?: string;
-    directUpload: Pick<TStaticAssetDirectUploadOptions, 'secretKey' | 'pendingPrefix' | 'onCommit' | 'validation'>;
+    /** The entry's `keyPrefix` as configured; normalized here the way the controller does. */
+    keyPrefix: string;
+    directUpload: Pick<TStaticAssetDirectUploadOptions, 'secretKey' | 'pendingPrefix'> & {
+        /** Absent, every file is valid. */
+        validation?: IStaticAssetValidation<z.ZodType>;
+    };
     storage: TStaticAssetStorageType;
-    useMetaLink?: boolean;
     metaLink?: TMetaLinkConfig<Schema>;
-    /** The controller mount path, the base of the link a commit returns. */
-    basePath: string;
-    rawObjectPath?: boolean;
+    /** The link a commit returns for the committed object: the entry's own, so a commit and an upload agree. */
+    link: (opts: IObjectLocation) => string;
 }
 ```
 
@@ -769,8 +758,8 @@ export interface IStaticAssetUploadPolicyServiceOptions {
     helper: IStorageHelper;
     /** A policy names ONE bucket, so a direct upload has no bucket in its URL. */
     bucket: TValueOrAsyncResolver<string>;
-    /** The controller's `keyPrefix` as configured; normalized here the way the controller does. */
-    keyPrefix?: string;
+    /** The entry's `keyPrefix` as configured; normalized here the way the controller does. Required: it keeps the pending prefix out of everything the routes serve. */
+    keyPrefix: string;
     directUpload: Pick<TStaticAssetDirectUploadOptions, 'maxBytes' | 'expires' | 'secretKey' | 'pendingPrefix'>;
 }
 ```
@@ -838,7 +827,7 @@ Container keys of the static asset component.
 export declare class StaticAssetBindingKeys {
     /** The options an application registers through `configs.artifacts` land here, because an artifact index carries classes and no options. `application.component(StaticAssetComponent, { options })` passes them directly and wins over this key. */
     static readonly STATIC_ASSET_OPTIONS = "@app/static-asset/options";
-    /** The `StaticAssetUploadPolicyService` of one options entry, bound only for an entry that sets `controller.directUpload` with a `bucket`. `name` is the entry's KEY in the options object, not the controller name. */
+    /** The `StaticAssetUploadPolicyService` of one options entry, bound only for an entry that turns `directUpload` on. `name` is the entry's KEY in the options object, not the controller name. */
     static policyService(opts: {
         name: string;
     }): string;
@@ -896,7 +885,7 @@ export declare class StaticAssetComponent<Schema extends TMetaLinkCompatibleSche
     private application;
     constructor(application: BaseApplication);
     binding(): ValueOrPromise<void>;
-    /** One pair of services per entry that turns direct upload on. The routes run the very objects an application's service resolves from the keys. An entry without a bucket binds nothing: the controller refuses it, with the reason. */
+    /** One pair of services per entry that turns direct upload on. The routes run the very objects an application's service resolves from the keys. */
     private bindDirectUploadServices;
 }
 ```
@@ -942,19 +931,16 @@ export declare class StaticAssetControllerFactory {
         contentType: string;
         isRenderable: boolean;
     };
-    static build(opts: IStaticAssetControllerOptions): {
+    /** Resolves the entry, then builds its controller. A caller that already holds the resolved entry uses `buildResolved`. */
+    static build<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema>(opts: IStaticAssetControllerOptions<Schema>): {
         new (): {
-            /** Clears the multipart spool files written by `parseMultipartBody({ storage: 'disk' })`. */
-            removeSpoolFiles(spoolOptions: {
-                paths: string[];
-            }): void;
             binding(): ValueOrPromise<void>;
             measure<R>(opts: {
                 scope: string;
                 args: unknown;
                 task: () => Promise<R>;
             }): Promise<any>;
-            normalizeCountData<ResponseSchema extends unknown, RequestContext extends TRouteContext<Env> = TRouteContext<Env>, ResponseData extends {
+            normalizeCountData<ResponseSchema extends unknown, RequestContext extends import("@venizia/ignis-kernel").TRouteContext<import("hono").Env> = import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>, ResponseData extends {
                 count: number;
                 data?: import("@venizia/ignis-helpers").TNullable<ResponseSchema>;
             } = {
@@ -965,10 +951,10 @@ export declare class StaticAssetControllerFactory {
                 payload: ResponseData;
             }): ResponseData | import("@venizia/ignis-helpers").TNullable<ResponseSchema>;
             getRequestedExtras(opts: {
-                context: TRouteContext<Env>;
+                context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
             }): Array<import("@venizia/ignis-kernel").IRequestedExtra>;
             respond<R>(opts: {
-                context: TRouteContext<Env>;
+                context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
                 format: import("@venizia/ignis-kernel").TResponseFormat;
                 payload: {
                     count: number;
@@ -981,7 +967,7 @@ export declare class StaticAssetControllerFactory {
                 data?: import("@venizia/ignis-helpers").TNullable<R>;
             } | null | undefined;
             respond<R, Extra extends Record<string, import("@venizia/ignis-kernel").TResponseExtra>>(opts: {
-                context: TRouteContext<Env>;
+                context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
                 format: import("@venizia/ignis-kernel").TResponseFormat;
                 payload: {
                     count: number;
@@ -998,7 +984,7 @@ export declare class StaticAssetControllerFactory {
                 extra: Partial<Record<keyof Extra, unknown>>;
             } | null | undefined>;
             respond<R>(opts: {
-                context: TRouteContext<Env>;
+                context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
                 format: import("@venizia/ignis-kernel").TResponseFormat;
                 payload: {
                     count: number;
@@ -1012,7 +998,7 @@ export declare class StaticAssetControllerFactory {
                 extra?: Record<string, unknown>;
             } | null | undefined>;
             respondWithExtra<R>(opts: {
-                context: TRouteContext<Env>;
+                context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
                 payload: {
                     count: number;
                     data?: import("@venizia/ignis-helpers").TNullable<R>;
@@ -1031,7 +1017,7 @@ export declare class StaticAssetControllerFactory {
                 count?: undefined;
             } | null | undefined>;
             setListHeaders(opts: {
-                context: TRouteContext<Env>;
+                context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
                 count: number;
             } & ({
                 range: import("@venizia/ignis-kernel").TDataRange;
@@ -1040,30 +1026,30 @@ export declare class StaticAssetControllerFactory {
                 total: number;
             })): void;
             toHonoHandler<ResponseType = unknown>(opts: {
-                handler: import("@venizia/ignis-kernel").TRouteHandler<ResponseType, Env>;
-            }): import("hono").Handler<Env, string, import("hono").Input, (Response | Promise<Response>) | (import("@hono/zod-openapi").RouteConfigToTypedResponse<import("@hono/zod-openapi").RouteConfig> | Promise<import("@hono/zod-openapi").RouteConfigToTypedResponse<import("@hono/zod-openapi").RouteConfig>>)>;
+                handler: import("@venizia/ignis-kernel").TRouteHandler<ResponseType, import("hono").Env>;
+            }): import("hono").Handler<import("hono").Env, string, import("hono").Input, (Response | Promise<Response>) | (import("@hono/zod-openapi").RouteConfigToTypedResponse<import("@hono/zod-openapi").RouteConfig> | Promise<import("@hono/zod-openapi").RouteConfigToTypedResponse<import("@hono/zod-openapi").RouteConfig>>)>;
             bindRoute<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
-            }): import("@venizia/ignis-kernel").IBindRouteOptions<RouteConfig, Env, {}, "/">;
+            }): import("@venizia/ignis-kernel").IBindRouteOptions<RouteConfig, import("hono").Env, {}, "/">;
             defineRoute<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig, ResponseType = unknown>(opts: {
                 configs: RouteConfig;
-                handler: import("@venizia/ignis-kernel").TRouteHandler<ResponseType, Env>;
-                hook?: import("@hono/zod-openapi").Hook<any, Env, string, any> | undefined;
-            }): import("@venizia/ignis-kernel").IDefineRouteOptions<RouteConfig, Env, {}, "/">;
+                handler: import("@venizia/ignis-kernel").TRouteHandler<ResponseType, import("hono").Env>;
+                hook?: import("@hono/zod-openapi").Hook<any, import("hono").Env, string, any> | undefined;
+            }): import("@venizia/ignis-kernel").IDefineRouteOptions<RouteConfig, import("hono").Env, {}, "/">;
             defineJSXRoute<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig, ResponseType = unknown>(opts: {
                 configs: RouteConfig;
-                handler: import("@venizia/ignis-kernel").TRouteHandler<ResponseType, Env>;
-                hook?: import("@hono/zod-openapi").Hook<any, Env, string, any> | undefined;
-            }): import("@venizia/ignis-kernel").IDefineRouteOptions<RouteConfig, Env, {}, "/">;
+                handler: import("@venizia/ignis-kernel").TRouteHandler<ResponseType, import("hono").Env>;
+                hook?: import("@hono/zod-openapi").Hook<any, import("hono").Env, string, any> | undefined;
+            }): import("@venizia/ignis-kernel").IDefineRouteOptions<RouteConfig, import("hono").Env, {}, "/">;
             isConfigured: boolean;
-            router: import("@hono/zod-openapi").OpenAPIHono<Env, {}, "/">;
+            router: import("@hono/zod-openapi").OpenAPIHono<import("hono").Env, {}, "/">;
             path: string;
             definitions: Record<string, import("@venizia/ignis-kernel").IAuthRouteConfig>;
-            getRouter(): import("@hono/zod-openapi").OpenAPIHono<Env, {}, "/">;
+            getRouter(): import("@hono/zod-openapi").OpenAPIHono<import("hono").Env, {}, "/">;
             registerRoutesFromRegistry(opts?: {
                 paths?: import("@venizia/ignis-kernel").TRoutePathScope;
             }): void;
-            configure(opts?: {} | undefined): Promise<import("@hono/zod-openapi").OpenAPIHono<Env, {}, "/">>;
+            configure(opts?: {} | undefined): Promise<import("@hono/zod-openapi").OpenAPIHono<import("hono").Env, {}, "/">>;
             buildRouteMiddlewares<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
             }): {
@@ -1071,7 +1057,157 @@ export declare class StaticAssetControllerFactory {
                 security: {
                     [x: string]: never[];
                 }[];
-                mws: import("hono").MiddlewareHandler<Env>[];
+                mws: import("hono").MiddlewareHandler<import("hono").Env>[];
+            };
+            getRouteConfigs<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
+                configs: RouteConfig;
+            }): RouteConfig & {
+                getRoutingPath(): RouteConfig["path"] extends infer T ? T extends RouteConfig["path"] ? T extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start_1}/{${infer Param_1}}${infer Rest_1}` ? `${Start_1}/:${Param_1}${Rest_1 extends `${infer Start_2}/{${infer Param_2}}${infer Rest_2}` ? `${Start_2}/:${Param_2}${Rest_2 extends `${infer Start_3}/{${infer Param_3}}${infer Rest_3}` ? `${Start_3}/:${Param_3}${Rest_3 extends `${infer Start_4}/{${infer Param_4}}${infer Rest_4}` ? `${Start_4}/:${Param_4}${Rest_4 extends `${infer Start_5}/{${infer Param_5}}${infer Rest_5}` ? `${Start_5}/:${Param_5}${Rest_5 extends `${infer Start_6}/{${infer Param_6}}${infer Rest_6}` ? `${Start_6}/:${Param_6}${Rest_6 extends `${infer Start_7}/{${infer Param_7}}${infer Rest_7}` ? `${Start_7}/:${Param_7}${Rest_7 extends `${infer Start_8}/{${infer Param_8}}${infer Rest_8}` ? `${Start_8}/:${Param_8}${Rest_8 extends `${infer Start_9}/{${infer Param_9}}${infer Rest_9}` ? `${Start_9}/:${Param_9}${Rest_9 extends `${infer Start_10}/{${infer Param_10}}${infer Rest_10}` ? `${Start_10}/:${Param_10}${any}` : Rest_9}` : Rest_8}` : Rest_7}` : Rest_6}` : Rest_5}` : Rest_4}` : Rest_3}` : Rest_2}` : Rest_1}` : Rest}` : T : never : never;
+            };
+            getJSXRouteConfigs<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
+                configs: RouteConfig;
+            }): RouteConfig & {
+                getRoutingPath(): RouteConfig["path"] extends infer T ? T extends RouteConfig["path"] ? T extends `${infer Start}/{${infer Param}}${infer Rest}` ? `${Start}/:${Param}${Rest extends `${infer Start_1}/{${infer Param_1}}${infer Rest_1}` ? `${Start_1}/:${Param_1}${Rest_1 extends `${infer Start_2}/{${infer Param_2}}${infer Rest_2}` ? `${Start_2}/:${Param_2}${Rest_2 extends `${infer Start_3}/{${infer Param_3}}${infer Rest_3}` ? `${Start_3}/:${Param_3}${Rest_3 extends `${infer Start_4}/{${infer Param_4}}${infer Rest_4}` ? `${Start_4}/:${Param_4}${Rest_4 extends `${infer Start_5}/{${infer Param_5}}${infer Rest_5}` ? `${Start_5}/:${Param_5}${Rest_5 extends `${infer Start_6}/{${infer Param_6}}${infer Rest_6}` ? `${Start_6}/:${Param_6}${Rest_6 extends `${infer Start_7}/{${infer Param_7}}${infer Rest_7}` ? `${Start_7}/:${Param_7}${Rest_7 extends `${infer Start_8}/{${infer Param_8}}${infer Rest_8}` ? `${Start_8}/:${Param_8}${Rest_8 extends `${infer Start_9}/{${infer Param_9}}${infer Rest_9}` ? `${Start_9}/:${Param_9}${Rest_9 extends `${infer Start_10}/{${infer Param_10}}${infer Rest_10}` ? `${Start_10}/:${Param_10}${any}` : Rest_9}` : Rest_8}` : Rest_7}` : Rest_6}` : Rest_5}` : Rest_4}` : Rest_3}` : Rest_2}` : Rest_1}` : Rest}` : T : never : never;
+            };
+            bindDefaultRoutes(): ValueOrPromise<void>;
+            scope: string;
+            identifier: string;
+            get logger(): import("@venizia/ignis-helpers").ILogger;
+            set logger(value: import("@venizia/ignis-helpers").ILogger);
+            getIdentifier(): string;
+            getLogger(): import("@venizia/ignis-helpers").ILogger;
+        };
+    };
+    static buildResolved<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema>(opts: {
+        resolved: IStaticAssetResolvedEntry<Schema>;
+        policyService?: Pick<StaticAssetUploadPolicyService, 'issuePolicies'>;
+        commitService?: Pick<StaticAssetUploadCommitService<Schema>, 'commit' | 'validate'>;
+    }): {
+        new (): {
+            binding(): ValueOrPromise<void>;
+            measure<R>(opts: {
+                scope: string;
+                args: unknown;
+                task: () => Promise<R>;
+            }): Promise<any>;
+            normalizeCountData<ResponseSchema extends unknown, RequestContext extends import("@venizia/ignis-kernel").TRouteContext<import("hono").Env> = import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>, ResponseData extends {
+                count: number;
+                data?: import("@venizia/ignis-helpers").TNullable<ResponseSchema>;
+            } = {
+                count: number;
+                data?: import("@venizia/ignis-helpers").TNullable<ResponseSchema>;
+            }>(opts: {
+                context: RequestContext;
+                payload: ResponseData;
+            }): ResponseData | import("@venizia/ignis-helpers").TNullable<ResponseSchema>;
+            getRequestedExtras(opts: {
+                context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
+            }): Array<import("@venizia/ignis-kernel").IRequestedExtra>;
+            respond<R>(opts: {
+                context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
+                format: import("@venizia/ignis-kernel").TResponseFormat;
+                payload: {
+                    count: number;
+                    data?: import("@venizia/ignis-helpers").TNullable<R>;
+                };
+                range?: import("@venizia/ignis-kernel").TDataRange;
+                extra?: never;
+            }): R | {
+                count: number;
+                data?: import("@venizia/ignis-helpers").TNullable<R>;
+            } | null | undefined;
+            respond<R, Extra extends Record<string, import("@venizia/ignis-kernel").TResponseExtra>>(opts: {
+                context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
+                format: import("@venizia/ignis-kernel").TResponseFormat;
+                payload: {
+                    count: number;
+                    data?: import("@venizia/ignis-helpers").TNullable<R>;
+                };
+                range?: import("@venizia/ignis-kernel").TDataRange;
+                extra: Extra;
+            }): Promise<R | {
+                count: number;
+                data?: import("@venizia/ignis-helpers").TNullable<R>;
+            } | {
+                count?: number;
+                data?: import("@venizia/ignis-helpers").TNullable<R>;
+                extra: Partial<Record<keyof Extra, unknown>>;
+            } | null | undefined>;
+            respond<R>(opts: {
+                context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
+                format: import("@venizia/ignis-kernel").TResponseFormat;
+                payload: {
+                    count: number;
+                    data?: import("@venizia/ignis-helpers").TNullable<R>;
+                };
+                range?: import("@venizia/ignis-kernel").TDataRange;
+                extra?: Record<string, import("@venizia/ignis-kernel").TResponseExtra>;
+            }): ValueOrPromise<R | {
+                count?: number;
+                data?: import("@venizia/ignis-helpers").TNullable<R>;
+                extra?: Record<string, unknown>;
+            } | null | undefined>;
+            respondWithExtra<R>(opts: {
+                context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
+                payload: {
+                    count: number;
+                    data?: import("@venizia/ignis-helpers").TNullable<R>;
+                };
+                extra: Record<string, import("@venizia/ignis-kernel").TResponseExtra>;
+            }): Promise<R | {
+                count: number;
+                data?: import("@venizia/ignis-helpers").TNullable<R>;
+            } | {
+                count: number;
+                data: import("@venizia/ignis-helpers").TNullable<R>;
+                extra: Record<string, unknown>;
+            } | {
+                data: import("@venizia/ignis-helpers").TNullable<R>;
+                extra: Record<string, unknown>;
+                count?: undefined;
+            } | null | undefined>;
+            setListHeaders(opts: {
+                context: import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>;
+                count: number;
+            } & ({
+                range: import("@venizia/ignis-kernel").TDataRange;
+            } | {
+                offset: number;
+                total: number;
+            })): void;
+            toHonoHandler<ResponseType = unknown>(opts: {
+                handler: import("@venizia/ignis-kernel").TRouteHandler<ResponseType, import("hono").Env>;
+            }): import("hono").Handler<import("hono").Env, string, import("hono").Input, (Response | Promise<Response>) | (import("@hono/zod-openapi").RouteConfigToTypedResponse<import("@hono/zod-openapi").RouteConfig> | Promise<import("@hono/zod-openapi").RouteConfigToTypedResponse<import("@hono/zod-openapi").RouteConfig>>)>;
+            bindRoute<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
+                configs: RouteConfig;
+            }): import("@venizia/ignis-kernel").IBindRouteOptions<RouteConfig, import("hono").Env, {}, "/">;
+            defineRoute<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig, ResponseType = unknown>(opts: {
+                configs: RouteConfig;
+                handler: import("@venizia/ignis-kernel").TRouteHandler<ResponseType, import("hono").Env>;
+                hook?: import("@hono/zod-openapi").Hook<any, import("hono").Env, string, any> | undefined;
+            }): import("@venizia/ignis-kernel").IDefineRouteOptions<RouteConfig, import("hono").Env, {}, "/">;
+            defineJSXRoute<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig, ResponseType = unknown>(opts: {
+                configs: RouteConfig;
+                handler: import("@venizia/ignis-kernel").TRouteHandler<ResponseType, import("hono").Env>;
+                hook?: import("@hono/zod-openapi").Hook<any, import("hono").Env, string, any> | undefined;
+            }): import("@venizia/ignis-kernel").IDefineRouteOptions<RouteConfig, import("hono").Env, {}, "/">;
+            isConfigured: boolean;
+            router: import("@hono/zod-openapi").OpenAPIHono<import("hono").Env, {}, "/">;
+            path: string;
+            definitions: Record<string, import("@venizia/ignis-kernel").IAuthRouteConfig>;
+            getRouter(): import("@hono/zod-openapi").OpenAPIHono<import("hono").Env, {}, "/">;
+            registerRoutesFromRegistry(opts?: {
+                paths?: import("@venizia/ignis-kernel").TRoutePathScope;
+            }): void;
+            configure(opts?: {} | undefined): Promise<import("@hono/zod-openapi").OpenAPIHono<import("hono").Env, {}, "/">>;
+            buildRouteMiddlewares<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
+                configs: RouteConfig;
+            }): {
+                restConfig: Omit<RouteConfig, "authenticate" | "authorize">;
+                security: {
+                    [x: string]: never[];
+                }[];
+                mws: import("hono").MiddlewareHandler<import("hono").Env>[];
             };
             getRouteConfigs<RouteConfig extends import("@venizia/ignis-kernel").IAuthRouteConfig>(opts: {
                 configs: RouteConfig;
@@ -1107,7 +1243,7 @@ Defaults of the static asset component.
 export declare class StaticAssetDefaults {
     /** Where a signed policy may write. The final key is never inside it, so content cannot be replaced after the commit. */
     static readonly PENDING_PREFIX = "pending/";
-    /** The most file parts one upload request may carry unless `parseMultipartBody.maxFiles` says otherwise. */
+    /** The most file parts one upload request may carry unless `serverUpload.maxFiles` says otherwise. */
     static readonly MAX_UPLOAD_FILES = 20;
 }
 ```
@@ -1165,15 +1301,6 @@ export declare const StaticAssetErrors: {
         readonly statusCode: 400;
         readonly category: "validation";
     };
-    /** Labels ride the body; one in the URL would otherwise leave the row unlabelled without a word. */
-    readonly LABELS_IN_QUERY: {
-        readonly message: {
-            readonly text: "Upload labels belong in the request body, not the query";
-            readonly code: "core.static_asset.labels_in_query";
-        };
-        readonly statusCode: 400;
-        readonly category: "validation";
-    };
     readonly BUCKET_NAME_INVALID: {
         readonly message: {
             readonly text: "Invalid bucket name";
@@ -1190,7 +1317,7 @@ export declare const StaticAssetErrors: {
         readonly statusCode: 400;
         readonly category: "validation";
     };
-    /** The application's naming hook produced a key outside `controller.keyPrefix`; nothing is written. */
+    /** The application's naming hook produced a key outside the entry's `keyPrefix`; nothing is written. */
     readonly OBJECT_KEY_OUT_OF_SCOPE: {
         readonly message: {
             readonly text: "Object key is outside the key prefix of this controller";
@@ -1199,42 +1326,10 @@ export declare const StaticAssetErrors: {
         readonly statusCode: 400;
         readonly category: "validation";
     };
-    readonly FOLDER_PATH_INVALID: {
-        readonly message: {
-            readonly text: "Invalid folder path";
-            readonly code: "core.static_asset.folder_path_invalid";
-        };
-        readonly statusCode: 400;
-        readonly category: "validation";
-    };
-    readonly FOLDER_SEGMENT_INVALID: {
-        readonly message: {
-            readonly text: "Invalid folder path segment";
-            readonly code: "core.static_asset.folder_segment_invalid";
-        };
-        readonly statusCode: 400;
-        readonly category: "validation";
-    };
-    readonly FOLDER_DEPTH_EXCEEDED: {
-        readonly message: {
-            readonly text: "Folder path exceeds the maximum depth";
-            readonly code: "core.static_asset.folder_depth_exceeded";
-        };
-        readonly statusCode: 400;
-        readonly category: "validation";
-    };
     readonly FILE_EMPTY: {
         readonly message: {
             readonly text: "Empty file content";
             readonly code: "core.static_asset.file_empty";
-        };
-        readonly statusCode: 400;
-        readonly category: "validation";
-    };
-    readonly MAX_KEYS_INVALID: {
-        readonly message: {
-            readonly text: "Invalid maxKeys - expected a positive integer";
-            readonly code: "core.static_asset.max_keys_invalid";
         };
         readonly statusCode: 400;
         readonly category: "validation";
@@ -1317,10 +1412,9 @@ export declare class StaticAssetObjectLinkUtility {
     }): string;
     /** Encodes an object path into a SINGLE url segment: `{objectName}` matches one segment only, so `/` must be percent-encoded too (Hono decodes it back before the handler reads the param). */
     private static encodeObjectPath;
-    /** The URL of one object, in the shape its controller serves: no `/buckets/<name>` with a configured bucket, and a raw path with `rawObjectPath`. */
+    /** The URL of one object, in the shape its controller serves: a raw path with `rawObjectPath`, a percent-encoded one without. */
     static build(opts: IObjectLocation & {
         basePath: string;
-        hasConfiguredBucket?: boolean;
         rawObjectPath?: boolean;
     }): string;
 }
@@ -1328,20 +1422,50 @@ export declare class StaticAssetObjectLinkUtility {
 
 Source: `packages/core-server/src/components/static-asset/utilities/object-link.utility.ts`
 
-## `StaticAssetStorageTypes`
+## `StaticAssetRouteKeys`
 
 *class*
 
-Storage backends a static asset controller can serve from.
+The built-in routes of a generated controller, the keys of `routes`.
 
 ```ts
-export declare class StaticAssetStorageTypes {
-    static readonly DISK = "disk";
-    static readonly BUN_S3 = "bun-s3";
+export declare class StaticAssetRouteKeys {
+    static readonly UPLOAD = "upload";
+    static readonly LIST_OBJECTS = "listObjects";
+    static readonly DELETE_OBJECT = "deleteObject";
+    static readonly GET_OBJECT_BY_NAME = "getObjectByName";
+    static readonly DOWNLOAD_OBJECT_BY_NAME = "downloadObjectByName";
+    static readonly UPLOAD_POLICY = "uploadPolicy";
+    static readonly UPLOAD_COMMIT = "uploadCommit";
+    static readonly UPLOAD_VALIDATE = "uploadValidate";
+    static readonly RECREATE_META_LINK = "recreateMetaLink";
+    /** Every key, in registration order. */
+    static readonly ALL: readonly ["getObjectByName", "downloadObjectByName", "upload", "deleteObject", "listObjects", "uploadPolicy", "uploadCommit", "uploadValidate", "recreateMetaLink"];
 }
 ```
 
 Source: `packages/core-server/src/components/static-asset/common/constants.ts`
+
+## `StaticAssetToggleUtility`
+
+*class*
+
+Reads the `{ use }` switches an entry is written with.
+
+```ts
+export declare class StaticAssetToggleUtility {
+    /** The only place a toggle's `use` is read. Narrowing here is what lets every caller reach the options without a cast. */
+    static isUsed<Options extends object>(toggle: TToggle<Options> | undefined): toggle is Extract<TToggle<Options>, {
+        use: true;
+    }>;
+    /** The options of a toggle that is on, without `use`; `undefined` when it is off or absent. */
+    static pick<Options extends object>(toggle: TToggle<Options> | undefined): Omit<Extract<TToggle<Options>, {
+        use: true;
+    }>, 'use'> | undefined;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/utilities/toggle.utility.ts`
 
 ## `StaticAssetUploadCommitService`
 
@@ -1358,9 +1482,8 @@ holds the token can.
 ```ts
 export declare class StaticAssetUploadCommitService<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> extends BaseService {
     private readonly options;
-    private readonly keyPrefix?;
+    private readonly keyPrefix;
     private readonly pendingPrefix;
-    private readonly basePath;
     constructor(opts: IStaticAssetUploadCommitServiceOptions<Schema>);
     /**
      * Everything `commit` checks before it touches storage, and nothing else: the signature, the
@@ -1389,7 +1512,7 @@ export declare class StaticAssetUploadCommitService<Schema extends TMetaLinkComp
         token: string;
         /** Who is committing. A token issued to an owner commits only for that owner. */
         owner?: string;
-        labels?: TStaticAssetUploadQuery;
+        labels?: TStaticAssetUploadLabels;
     }): Promise<IStaticAssetCommitResult>;
 }
 ```
@@ -1432,8 +1555,10 @@ Defines the application's check of an uploaded file; see `directUpload.validatio
 
 ```ts
 export declare class StaticAssetValidation {
-    /** Returns `opts` unchanged. It exists to infer `IssueSchema`, so a handler that answers another shape of issue fails type-checking. */
-    static define<IssueSchema extends z.ZodType>(opts: IStaticAssetValidation<IssueSchema>): IStaticAssetValidation<IssueSchema>;
+    /** Returns `opts` switched on. It exists to infer `IssueSchema`, so a handler that answers another shape of issue fails type-checking. */
+    static define<IssueSchema extends z.ZodType>(opts: IStaticAssetValidation<IssueSchema>): IStaticAssetValidation<IssueSchema> & {
+        use: true;
+    };
 }
 ```
 
@@ -1473,13 +1598,12 @@ The MetaLink table belongs to the application. `Schema` defaults to the table IG
 
 ```ts
 export type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
-    model: TValueOrAsyncResolver<typeof BaseRelationalEntity<Schema>>;
     repository: TValueOrAsyncResolver<DefaultCRUDRepository<Schema>>;
     createMetaLink?: (opts: {
         uploadResult: IUploadResult;
         fileStat: IFileStat;
-        /** The caller's labels. Named for where they used to travel - they arrive in the request BODY now, as form fields on an upload and beside the commit token on a direct one. */
-        query: TStaticAssetUploadQuery;
+        /** The caller's labels: form fields on an upload, beside the commit token on a direct one. */
+        labels: TStaticAssetUploadLabels;
     }) => ValueOrPromise<{
         count: number;
         data: TTableObject<Schema>;
@@ -2091,26 +2215,13 @@ Authentication and authorization for every built-in route of an entry; a route's
 ```ts
 export type TStaticAssetAuth = TRouteAuthConfig & {
     /**
-     * Leaves `getObjectByName` and `downloadObjectByName` unauthenticated, so a browser can show an
-     * image without a token. `listObjects` is NOT public: listing a bucket is not reading an object.
+     * `{ use: true }` leaves `getObjectByName` and `downloadObjectByName` unauthenticated, so a
+     * browser can show an image without a token. `listObjects` is NOT public: listing a bucket is not
+     * reading an object.
      *
-     * @default false
+     * @default { use: false }
      */
-    publicRead?: boolean;
-};
-```
-
-Source: `packages/core-server/src/components/static-asset/common/types.ts`
-
-## `TStaticAssetBucketParams`
-
-*type*
-
-Path parameters of the bucket routes.
-
-```ts
-export type TStaticAssetBucketParams = {
-    bucketName: string;
+    publicRead?: TToggle;
 };
 ```
 
@@ -2120,64 +2231,10 @@ Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
 *type*
 
-Static asset controllers keyed by an application-chosen name. Each entry pairs a storage type with its matching helper, and `useMetaLink: true` requires a `metaLink` config.
+Static asset entries keyed by an application-chosen name; each key becomes one controller.
 
 ```ts
-export type TStaticAssetComponentOptions<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
-    [key: string]: {
-        /** Authentication and authorization of every built-in route of this entry. Absent leaves every route open, as before; `publicRead` is the only way a read route is public on purpose. */
-        auth?: TStaticAssetAuth;
-        controller: {
-            name: string;
-            basePath: string;
-            /**
-             * Whether `/path` and `/path/` are different routes on this controller.
-             *
-             * @default true
-             */
-            isStrict?: boolean;
-            /**
-             * `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`) - a URL shape change; a percent-encoded path keeps working either way.
-             *
-             * @default false
-             */
-            rawObjectPath?: boolean;
-            /** The single bucket every object route uses. It leaves the URL (`/objects/{objectName}`) and the four bucket-management routes are not registered. The function form is read per request, so an environment variable can be read lazily. */
-            bucket?: TValueOrAsyncResolver<string>;
-            /**
-             * The key scope this controller owns, e.g. `inventory/`. Every route refuses a key outside it
-             * as a 404 without calling the storage, `listObjects` lists only inside it, and an upload key
-             * must land inside it: the default name is placed there, a `resolveObjectName` or
-             * `extra.normalizeNameFn` key outside it is refused. `maxFolderDepth` counts the folders below
-             * it.
-             *
-             * @default every key in the bucket
-             */
-            keyPrefix?: string;
-            routes?: TStaticAssetRoutes;
-            /** Direct upload: the browser posts the bytes to the storage and IGNIS only signs the permission. Absent leaves both routes unregistered. Requires `bucket` - a policy names one bucket, and a bucket in the URL is a bucket the caller chooses. */
-            directUpload?: TStaticAssetDirectUploadOptions;
-        };
-        extra?: TStaticAssetExtraOptions;
-        /** Decides the stored object name of each uploaded file; absent keeps the storage helper's own naming. */
-        resolveObjectName?: TStaticAssetObjectNameResolver;
-        /** Registers the application's own routes BEFORE every built-in one, so a literal path wins over the catch-all `rawObjectPath` produces. Hono matches in registration order. */
-        defineRoutesBefore?: TStaticAssetDefineExtraRoutes;
-        /** Registers the application's own routes on the generated controller, after every built-in one. */
-        defineExtraRoutes?: TStaticAssetDefineExtraRoutes;
-    } & ({
-        storage: typeof StaticAssetStorageTypes.BUN_S3;
-        helper: BunS3Helper;
-    } | {
-        storage: typeof StaticAssetStorageTypes.DISK;
-        helper: DiskHelper;
-    }) & ({
-        useMetaLink?: false | undefined;
-    } | {
-        useMetaLink: true;
-        metaLink: TMetaLinkConfig<Schema>;
-    });
-};
+export type TStaticAssetComponentOptions<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = Record<string, TStaticAssetEntry<Schema>>;
 ```
 
 Source: `packages/core-server/src/components/static-asset/common/types.ts`
@@ -2206,14 +2263,19 @@ Enables the signed-policy upload flow, where the client posts bytes straight to 
 
 ```ts
 export type TStaticAssetDirectUploadOptions = {
-    /** Who may use direct upload. Guards BOTH routes. REQUIRED, not defaulted: the policy route hands out a write credential, and there is no safe default for that. */
-    authorize: (opts: {
+    /**
+     * Who may use direct upload. Guards every direct-upload route. There is no safe default for a
+     * route that hands out a write credential, so leaving it out is allowed only when the entry's
+     * `auth` already authenticates or authorizes: then `auth` is the gate. With neither, the
+     * component refuses to start.
+     */
+    authorize?: (opts: {
         context: TRouteContext;
     }) => ValueOrPromise<boolean>;
     /**
-     * Who the upload belongs to. Called on both routes: the policy route signs the answer into the
-     * commit token, and the commit route refuses a token whose owner differs. Absent, a token commits
-     * for whoever holds it.
+     * Who the upload belongs to. Called on every direct-upload route: the policy route signs the
+     * answer into the commit token, and the other routes refuse a token whose owner differs. Absent,
+     * a token commits for whoever holds it.
      */
     resolveOwner?: (opts: {
         context: TRouteContext;
@@ -2223,7 +2285,16 @@ export type TStaticAssetDirectUploadOptions = {
     /** The ceiling the policy carries as `content-length-range`. A signed PUT cannot express this at all, which is why this is a POST policy. */
     maxBytes: number;
     /**
-     * Where a policy may write. The final key is NEVER in a policy, so content cannot be replaced after the commit.
+     * The most files one upload-policy request may name; more is a 422.
+     *
+     * @default StaticAssetDefaults.MAX_UPLOAD_FILES (20)
+     */
+    maxFiles?: number;
+    /**
+     * Where a policy may write: not empty, ends with `/`, made of valid key segments, and neither
+     * inside the entry's `keyPrefix` nor containing it - a pending object must never be readable
+     * through the entry's own routes. The final key is NEVER in a policy, so content cannot be
+     * replaced after the commit. The lifecycle rule that collects abandoned uploads targets this prefix.
      *
      * @default 'pending/'
      */
@@ -2244,82 +2315,102 @@ export type TStaticAssetDirectUploadOptions = {
         commit?: IDuration;
     };
     /**
-     * Checks the pending file. Present, the component registers `POST {base}/upload-validate`, and
+     * Checks the pending file. On, the component registers `POST {base}/upload-validate`, and
      * `commit` runs the same check first and refuses an invalid file with `UPLOAD_INVALID`.
+     * Build it with `StaticAssetValidation.define`.
      */
-    validation?: IStaticAssetValidation<z.ZodType>;
-    /** Runs BEFORE the copy to the final key, so a hook that throws leaves the object under the pending prefix for a lifecycle rule to collect, rather than stranding it at the final key. */
-    onCommit?: (opts: {
-        bucket: IBucketRef;
-        pendingObject: IObjectRef;
-        object: IObjectRef;
-    }) => ValueOrPromise<void>;
+    validation: TToggle<IStaticAssetValidation<z.ZodType>>;
 };
 ```
 
 Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
-## `TStaticAssetExtraOptions`
+## `TStaticAssetEntry`
 
 *type*
 
-Per-controller upload tuning: multipart parsing, name and link normalization, folder depth and size ceiling.
+One storage backend with its generated controller. Every switch is a toggle; a toggle left out is a type error, so nothing is on or off by accident.
 
 ```ts
-export type TStaticAssetExtraOptions = {
-    parseMultipartBody?: {
-        storage?: TMultipartStorage;
-        uploadDir?: string;
-        /**
-         * The most file parts one upload request may carry; more is refused with 413 before anything is written. The upload-policy request is bounded by the same number (more is a 422).
-         *
-         * @default StaticAssetDefaults.MAX_UPLOAD_FILES (20)
-         */
-        maxFiles?: number;
-    };
-    /** `folderPath` carries the upload query's target folder - dropping it flattens nested uploads. */
-    normalizeNameFn?: (opts: {
-        file: TUploadNaming;
-    }) => string;
-    normalizeLinkFn?: (opts: IObjectLocation) => string;
+export type TStaticAssetEntry<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
+    basePath: string;
+    /** The controller's name. Absent, it is derived from the entry's key. */
+    name?: string;
+    /** The single bucket every route uses. The function form is read per request, so an environment variable can be read lazily. */
+    bucket: TValueOrAsyncResolver<string>;
     /**
-     * Maximum folder nesting depth allowed in object paths.
+     * The key scope this entry owns, e.g. `inventory/`. Every route refuses a key outside it as a
+     * 404 without calling the storage, `listObjects` lists only inside it, and an upload key must
+     * land inside it. `maxFolderDepth` counts the folders below it. Required with
+     * `directUpload`: it keeps the pending prefix outside everything the routes serve.
+     *
+     * @default every key in the bucket
+     */
+    keyPrefix?: string;
+    /**
+     * Folders a key may nest below the `keyPrefix`, for every route of the entry: reads and deletes
+     * too, so it holds for keys that arrive by direct upload or ingest.
      *
      * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
      */
     maxFolderDepth?: number;
-    /** Largest file the UPLOAD route accepts. Absent means no ceiling. Checked against `content-length` before spooling, then per file after parsing. */
-    maxBytes?: number;
-    [key: string]: AnyType;
+    /**
+     * `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`) - a URL shape change; a percent-encoded path keeps working either way.
+     *
+     * @default false
+     */
+    rawObjectPath?: boolean;
+    /** The link stored and returned for an object. Absent builds the URL of this controller's own object route. */
+    link?: (opts: IObjectLocation) => string;
+    /** Authentication and authorization of every built-in route of this entry. Absent leaves every route open; `publicRead` is the only way a read route is public on purpose. */
+    auth?: TStaticAssetAuth;
+    serverUpload: TToggle<TStaticAssetServerUploadOptions>;
+    /** Every upload also writes a MetaLink row, and the object's deletion removes it. */
+    metaLink: TToggle<TMetaLinkConfig<Schema>>;
+    routes?: TStaticAssetRoutes;
+    extend?: {
+        /** Registered BEFORE every built-in route, so a literal path wins over the catch-all `rawObjectPath` produces. Hono matches in registration order. */
+        before?: TStaticAssetDefineExtraRoutes;
+        /** Registered after every built-in route. */
+        after?: TStaticAssetDefineExtraRoutes;
+    };
+} & TStaticAssetStorage;
+
+/** The storage helper decides which direct upload shapes are possible. */
+type TStaticAssetStorage = ({
+    helper: BunS3Helper;
+} & TStaticAssetDirectUploadScope) | {
+    helper: DiskHelper;
+    keyPrefix?: string;
+    directUpload: {
+        use: false;
+    };
+};
+
+/** Direct upload is a POST policy, which only S3 can sign, and its pending objects stay out of the served scope only when the entry has a `keyPrefix`. */
+type TStaticAssetDirectUploadScope = {
+    keyPrefix?: string;
+    directUpload: {
+        use: false;
+    };
+} | {
+    keyPrefix: string;
+    directUpload: {
+        use: true;
+    } & TStaticAssetDirectUploadOptions;
 };
 ```
 
 Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
-## `TStaticAssetListQuery`
+## `TStaticAssetObjectKeyResolver`
 
 *type*
 
-Query of the list objects route. Every value arrives as a string.
+Decides the key one uploaded file is stored under. `defaultKey` is what IGNIS would have written - the scope and the default naming - so the hook may keep it, extend it or ignore it.
 
 ```ts
-export type TStaticAssetListQuery = {
-    prefix?: string;
-    recursive?: string;
-    maxKeys?: string;
-};
-```
-
-Source: `packages/core-server/src/components/static-asset/common/types.ts`
-
-## `TStaticAssetObjectNameResolver`
-
-*type*
-
-Decides the key one uploaded file is stored under. `defaultKey` is what IGNIS would have written.
-
-```ts
-export type TStaticAssetObjectNameResolver = (opts: {
+export type TStaticAssetObjectKeyResolver = (opts: {
     bucket: IBucketRef;
     file: TUploadNaming;
     defaultKey: string;
@@ -2336,7 +2427,6 @@ Path parameters of the object routes.
 
 ```ts
 export type TStaticAssetObjectParams = {
-    bucketName: string;
     objectName: string;
 };
 ```
@@ -2350,15 +2440,7 @@ Source: `packages/core-server/src/components/static-asset/common/types.ts`
 The part of a built-in route an application may change. `authenticate` and `authorize` replace the entry's `auth` for this route, and `{ skip: true }` leaves it open.
 
 ```ts
-export type TStaticAssetRouteConfig = Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses' | 'authenticate' | 'authorize'>> & TRouteAuthConfig & {
-    /**
-     * Whether this route is registered. The four bucket-management routes are OFF unless this is
-     * `true`; every other route is on unless this is `false`.
-     *
-     * @default true
-     */
-    enabled?: boolean;
-};
+export type TStaticAssetRouteConfig = Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses' | 'authenticate' | 'authorize'>> & TRouteAuthConfig;
 ```
 
 Source: `packages/core-server/src/components/static-asset/common/types.ts`
@@ -2370,7 +2452,7 @@ Source: `packages/core-server/src/components/static-asset/common/types.ts`
 The name of a built-in route, the key of `routes`.
 
 ```ts
-export type TStaticAssetRouteKey = keyof TStaticAssetRoutes;
+export type TStaticAssetRouteKey = TConstValue<typeof StaticAssetRouteKeys>;
 ```
 
 Source: `packages/core-server/src/components/static-asset/common/types.ts`
@@ -2379,24 +2461,33 @@ Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
 *type*
 
-Per-route overrides for the built-in routes of a generated asset controller. A key left out keeps that route as built, except the four bucket-management routes, which stay off until enabled.
+What each built-in route does: `{ use: false }` turns it off, `{ use: true, ... }` turns it on
+with those overrides. A route left out is on as built.
 
 ```ts
-export type TStaticAssetRoutes = {
-    getBuckets?: TStaticAssetRouteConfig;
-    getBucketByName?: TStaticAssetRouteConfig;
-    createBucket?: TStaticAssetRouteConfig;
-    deleteBucket?: TStaticAssetRouteConfig;
-    upload?: TStaticAssetRouteConfig;
-    listObjects?: TStaticAssetRouteConfig;
-    deleteObject?: TStaticAssetRouteConfig;
-    getObjectByName?: TStaticAssetRouteConfig;
-    downloadObjectByName?: TStaticAssetRouteConfig;
-    uploadPolicy?: TStaticAssetRouteConfig;
-    uploadCommit?: TStaticAssetRouteConfig;
-    /** Registered only when `directUpload.validation` is set. */
-    uploadValidate?: TStaticAssetRouteConfig;
-    recreateMetaLink?: TStaticAssetRouteConfig;
+export type TStaticAssetRoutes = Partial<Record<TStaticAssetRouteKey, TToggle<TStaticAssetRouteConfig>>>;
+```
+
+Source: `packages/core-server/src/components/static-asset/common/types.ts`
+
+## `TStaticAssetServerUploadOptions`
+
+*type*
+
+Uploading through the application: the browser sends the bytes to `POST /objects` and the application writes them to the storage.
+
+```ts
+export type TStaticAssetServerUploadOptions = {
+    /** Largest file the route accepts. Absent means no ceiling. Checked against `content-length` before the body is read, then per file after parsing. */
+    maxBytes?: number;
+    /**
+     * The most file parts one request may carry; more is refused with 413 before anything is written.
+     *
+     * @default StaticAssetDefaults.MAX_UPLOAD_FILES (20)
+     */
+    maxFiles?: number;
+    /** The one hook that decides the key an uploaded file is stored under. Absent keeps the default naming. Under a `keyPrefix` a key outside the scope is refused, never rewritten. */
+    objectKey?: TStaticAssetObjectKeyResolver;
 };
 ```
 
@@ -2406,13 +2497,31 @@ Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
 *type*
 
-One of the `StaticAssetStorageTypes` values.
+The storage backends a static asset entry can serve from: the helpers that declare one.
 
 ```ts
-export type TStaticAssetStorageType = TConstValue<typeof StaticAssetStorageTypes>;
+export type TStaticAssetStorageType = typeof StorageTypes.DISK | typeof StorageTypes.BUN_S3;
 ```
 
-Source: `packages/core-server/src/components/static-asset/common/constants.ts`
+Source: `packages/core-server/src/components/static-asset/common/types.ts`
+
+## `TStaticAssetUploadLabels`
+
+*type*
+
+Labels recorded on the MetaLink row of an uploaded object.
+
+```ts
+export type TStaticAssetUploadLabels = {
+    principalType?: string;
+    principalId?: string;
+    variant?: string;
+    /** Display order within the principal. Caller-supplied: deriving it would be a non-atomic read of `max(sequence)` then a write of `max + 1`. */
+    sequence?: number;
+};
+```
+
+Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
 ## `TStaticAssetUploadPolicy`
 
@@ -2447,21 +2556,19 @@ export type TStaticAssetUploadPolicyRequest = {
 
 Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
-## `TStaticAssetUploadQuery`
+## `TToggle`
 
 *type*
 
-Labels recorded on the MetaLink row of an uploaded object.
+A feature that is on or off. `{ use: false }` is the whole off state; `{ use: true, ... }` carries
+the options. One shape for every switch, so an option is never read from a feature that is off.
 
 ```ts
-export type TStaticAssetUploadQuery = {
-    principalType?: string;
-    principalId?: string;
-    variant?: string;
-    /** Display order within the principal. Caller-supplied: deriving it would be a non-atomic read of `max(sequence)` then a write of `max + 1`. */
-    sequence?: number;
-    folderPath?: string;
-};
+export type TToggle<Options extends object = Record<never, never>> = {
+    use: false;
+} | ({
+    use: true;
+} & Options);
 ```
 
 Source: `packages/core-server/src/components/static-asset/common/types.ts`

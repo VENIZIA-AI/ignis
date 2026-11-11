@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-107 exports, 107 with TSDoc. 953 more are re-exported from other entries (listed at the end).
+107 exports, 107 with TSDoc. 955 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3879,6 +3879,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `StorageErrors` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `StoragePresignDefaults` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `StoragePresignLimits` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `StorageTypes` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `StorageUtility` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `StringIdType` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `SystemEnvsHelper` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -4132,6 +4133,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TSoftDeletableTableSchema` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TSortDirection` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
 - `TSqlFragment` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
+- `TStorageType` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TStringConstValue` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TSubsetGrantMetadata` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TTableColumns` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)

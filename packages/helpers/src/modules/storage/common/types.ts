@@ -1,5 +1,6 @@
 import { type IDuration } from '@/common';
 import { type Readable } from 'node:stream';
+import type { TStorageType } from './constants';
 
 /** One file handed to `upload`. `buffer` is the whole body; `folderPath`, when set, nests the object under that folder and is depth-checked. */
 export interface IUploadFile {
@@ -98,6 +99,9 @@ export interface IStorageHelperOptions {
 
 /** The contract every storage backend (disk, in-memory, S3) implements. Buckets and objects are addressed by `IBucketRef` and `IObjectRef`. */
 export interface IStorageHelper {
+  /** The backend this helper writes to. The helpers IGNIS ships declare it; a custom helper may leave it out. */
+  readonly storageType?: TStorageType;
+
   isValidSegment(opts: { segment: string }): boolean;
   isValidBucketName(opts: { bucket: IBucketRef }): boolean;
   isValidObjectKey(opts: { object: IObjectRef; maxDepth?: number }): boolean;
@@ -120,7 +124,14 @@ export interface IStorageHelper {
   upload(opts: {
     bucket: IBucketRef;
     files: IUploadFile[];
+    /** Folders the caller's `folderPath` may carry. */
     maxFolderDepth?: number;
+    /**
+     * Folders the finished key may carry, a scope the `normalizeNameFn` adds included.
+     *
+     * @default `maxFolderDepth`
+     */
+    maxKeyDepth?: number;
     normalizeNameFn?: (opts: { file: TUploadNaming }) => string;
     normalizeLinkFn?: (opts: IObjectLocation) => string;
   }): Promise<IUploadResult[]>;

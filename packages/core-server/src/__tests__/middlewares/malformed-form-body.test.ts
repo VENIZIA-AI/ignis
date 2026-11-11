@@ -4,7 +4,6 @@ import type { TRouteContext } from '@/base/controllers';
 import { BaseRestController } from '@/base/controllers';
 import { controller } from '@/base/metadata';
 import { StaticAssetControllerFactory } from '@/components/static-asset/controller';
-import { StaticAssetStorageTypes } from '@/components/static-asset/common';
 import { RequestTrackerComponent } from '@/components/request-tracker';
 import { z } from '@hono/zod-openapi';
 import type { OpenAPIHono } from '@hono/zod-openapi';
@@ -85,9 +84,15 @@ const boot = async (opts: { environment: string; helper: FakeStorageHelper }) =>
   application.controller(HandParsedController);
   application.controller(
     StaticAssetControllerFactory.build({
-      controller: { name: 'MalformedAssetController', basePath: '/assets', bucket: 'images' },
-      storage: StaticAssetStorageTypes.DISK,
-      helper: opts.helper,
+      key: 'malformed',
+      entry: {
+        basePath: '/assets',
+        bucket: 'images',
+        serverUpload: { use: true },
+        directUpload: { use: false },
+        metaLink: { use: false },
+        helper: opts.helper as never,
+      },
     }),
   );
   await application['registerControllers']();

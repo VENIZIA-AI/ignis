@@ -17,6 +17,7 @@ Storage helper for S3-compatible object stores through Bun's `S3Client`. Uses se
 
 ```ts
 export declare class BunS3Helper extends BaseStorageHelper {
+    readonly storageType = "bun-s3";
     private client;
     private credentials;
     /** Undefined leaves Bun's own defaults in force. */

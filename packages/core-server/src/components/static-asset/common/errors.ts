@@ -41,15 +41,6 @@ export const StaticAssetErrors = {
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,
     category: ErrorScopes.VALIDATION,
   },
-  /** Labels ride the body; one in the URL would otherwise leave the row unlabelled without a word. */
-  LABELS_IN_QUERY: {
-    message: {
-      text: 'Upload labels belong in the request body, not the query',
-      code: 'core.static_asset.labels_in_query',
-    },
-    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-    category: ErrorScopes.VALIDATION,
-  },
   BUCKET_NAME_INVALID: {
     message: { text: 'Invalid bucket name', code: 'core.static_asset.bucket_name_invalid' },
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,
@@ -63,7 +54,7 @@ export const StaticAssetErrors = {
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,
     category: ErrorScopes.VALIDATION,
   },
-  /** The application's naming hook produced a key outside `controller.keyPrefix`; nothing is written. */
+  /** The application's naming hook produced a key outside the entry's `keyPrefix`; nothing is written. */
   OBJECT_KEY_OUT_OF_SCOPE: {
     message: {
       text: 'Object key is outside the key prefix of this controller',
@@ -72,37 +63,8 @@ export const StaticAssetErrors = {
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,
     category: ErrorScopes.VALIDATION,
   },
-  FOLDER_PATH_INVALID: {
-    message: { text: 'Invalid folder path', code: 'core.static_asset.folder_path_invalid' },
-    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-    category: ErrorScopes.VALIDATION,
-  },
-  FOLDER_SEGMENT_INVALID: {
-    message: {
-      text: 'Invalid folder path segment',
-      code: 'core.static_asset.folder_segment_invalid',
-    },
-    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-    category: ErrorScopes.VALIDATION,
-  },
-  FOLDER_DEPTH_EXCEEDED: {
-    message: {
-      text: 'Folder path exceeds the maximum depth',
-      code: 'core.static_asset.folder_depth_exceeded',
-    },
-    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-    category: ErrorScopes.VALIDATION,
-  },
   FILE_EMPTY: {
     message: { text: 'Empty file content', code: 'core.static_asset.file_empty' },
-    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-    category: ErrorScopes.VALIDATION,
-  },
-  MAX_KEYS_INVALID: {
-    message: {
-      text: 'Invalid maxKeys - expected a positive integer',
-      code: 'core.static_asset.max_keys_invalid',
-    },
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,
     category: ErrorScopes.VALIDATION,
   },

@@ -333,12 +333,16 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
       if (folderSegments.length > depthLimit) {
         throw getError({
+          error: StorageErrors.FOLDER_DEPTH_EXCEEDED,
           message: `[upload] Invalid folder path | depth: ${folderSegments.length} | max: ${depthLimit}`,
         });
       }
 
       if (!this.isValidKeyPath({ path: folderPath, maxDepth: depthLimit })) {
-        throw getError({ message: '[upload] Invalid folder path' });
+        throw getError({
+          error: StorageErrors.FOLDER_PATH_INVALID,
+          message: '[upload] Invalid folder path',
+        });
       }
     }
 
@@ -359,8 +363,15 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
      * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
      */
     maxFolderDepth?: number;
+    /**
+     * Folders the finished key may carry, a scope the `normalizeNameFn` adds included.
+     *
+     * @default `maxFolderDepth`
+     */
+    maxKeyDepth?: number;
   }): Promise<IUploadResult[]> {
     const { bucket, files, normalizeNameFn, normalizeLinkFn, maxFolderDepth } = opts;
+    const maxKeyDepth = opts.maxKeyDepth ?? maxFolderDepth;
 
     if (!files || files.length === 0) {
       return [];
@@ -390,7 +401,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
         ? normalizeNameFn({ file: naming })
         : BaseStorageHelper.normalizeObjectName({ file: naming });
 
-      if (!this.isValidObjectKey({ object: { key }, maxDepth: maxFolderDepth })) {
+      if (!this.isValidObjectKey({ object: { key }, maxDepth: maxKeyDepth })) {
         throw getError({
           message: `[upload] Invalid normalized object name | name: ${EchoUtility.toSafeText({ value: key })}`,
         });

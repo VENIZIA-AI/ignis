@@ -102,26 +102,27 @@ Two traps, both recorded in the code:
 
 ## Direct upload, and why it is three round trips
 
-`controller.directUpload` registers `POST {base}/upload-policy` and `POST {base}/upload-commit`.
-Absent, neither route exists.
+`directUpload: { use: true, ... }` registers `POST {base}/upload-policy` and `POST {base}/upload-commit`, and
+`POST {base}/upload-validate` when `directUpload.validation` is on. `{ use: false }`: none of them exists. It
+needs a `BunS3Helper` (only S3 signs a POST policy) and a `keyPrefix`.
 
 1. The browser asks for a policy. IGNIS runs `authorize` (the commit route runs it too), refuses a size over `maxBytes` **before
-   signing anything**, generates `pending/<keyPrefix><uuid>/<name>` (the scope rides inside the
-   pending key, so the commit - which strips `pendingPrefix` - lands inside `controller.keyPrefix`
+   signing anything**, generates `<pendingPrefix><keyPrefix><uuid>/<name>` (the scope rides inside the
+   pending key, so the commit - which strips `pendingPrefix` - lands inside `keyPrefix`
    too), and signs both the policy and a commit token. The token carries the owner `directUpload.resolveOwner`
    names, and lives for `expires.commit` (default `expires.upload`), which may outlast the policy.
 2. The browser posts the form straight to storage. No byte passes through IGNIS.
-3. The browser presents the commit token. IGNIS verifies it (`verify`: signature, expiry, owner, scope),
-   runs `onCommit`, copies server-side to
-   the final key, removes the temporary object, and writes the MetaLink row.
+3. The browser (or the server, with the commit route off) presents the commit token. IGNIS verifies it
+   (`verify`: signature, expiry, owner, scope), runs the `validation` again when it is on, copies server-side
+   to the final key, removes the temporary object, and writes the MetaLink row. There is no `onCommit`.
 
 The third trip exists because S3 tells the backend nothing. Without it there is no MetaLink row and
 no way to attach the object to anything.
 
 Both paths write that row through ONE builder, `StaticAssetMetaLinkUtility.createRow`. They diverged once and the
 symptom was a client rendering an empty state with no error. The labels
-`principalType`/`principalId`/`variant` reach the commit as QUERY, because the token carries no
-business fields. A failed row is `metaLink: { error: 'META_LINK_CREATE_FAILED' }` inside a 200 - the
+`principalType`/`principalId`/`variant`/`sequence` reach the commit in the JSON BODY beside the token,
+because the token carries no business fields. A failed row is `metaLink: { error: 'META_LINK_CREATE_FAILED' }` inside a 200 - the
 object IS committed by then, and a 500 would send the caller back with a token whose source is gone.
 
 ### A MetaLink row is one (object, owner) pairing
@@ -147,8 +148,8 @@ entirely when the stat carries none) - fed from the first statement's own `RETUR
 read, because `find` applies `DEFAULT_LIMIT` (10) and would silently refresh only part of a larger
 pair. That merge is a read-then-write: a concurrent write to a row's `metadata` landing between the
 two statements is lost. Only when the refresh counts zero rows does it create one, through
-`StaticAssetMetaLinkUtility.createRow` - the same builder `upload` uses, so `createMetaLink` and the entry's `storage`
-apply. The response carries `MetaLinkRecreateActions.REFRESHED`/`.CREATED` (a real
+`StaticAssetMetaLinkUtility.createRow` - the same builder `upload` uses, so `createMetaLink` and the helper's
+`storageType` apply. The response carries `MetaLinkRecreateActions.REFRESHED`/`.CREATED` (a real
 `z.enum(...)` in the OpenAPI document, not `string`), `count`, and every touched row as `metaLinks`
 (`metaLink` stays `metaLinks[0]`, for existing callers). The two steps are still not atomic: two
 concurrent calls on an object with no existing row can both create. Without a unique index two
@@ -160,14 +161,17 @@ Postgres-only, and the application's.
 
 | Property | Why |
 |---|---|
-| A policy authorizes exactly one key, `pending/<generated>` | the final key is in NO policy, so content cannot be replaced after the commit, and a policy cannot be spent on a second object |
+| A policy authorizes exactly one key, `<pendingPrefix><keyPrefix><generated>` | the final key is in NO policy, so content cannot be replaced after the commit, and a policy cannot be spent on a second object |
 | The commit is claimed with an HMAC over `{bucket, object, expiresAt, owner?}`, verified BEFORE any storage call | naming someone else's object is impossible, and a forged token fails without a round trip, so timing leaks nothing |
 | With `resolveOwner`, only the owner commits, and every other caller gets the forged-token error | a leaked token is no use to anyone else, and the answer reveals nothing |
 | The token carries no business fields | which order or tenant an upload belongs to is the application's authorization, not something the framework signs |
-| `authorize` is a REQUIRED property and guards both routes | a route that hands out a write credential has no safe default, and a commit promotes an object |
+| `authorize` guards every direct-upload route, and may be left out only when the entry's `auth` authenticates or authorizes | a route that hands out a write credential has no safe default, and a commit promotes an object |
 
-`onCommit` runs BEFORE the copy: a hook that throws leaves the object under the pending prefix for a
-lifecycle rule, rather than stranding it at the final key. Removing the temporary object is CLEANUP,
+`pendingPrefix` (default `pending/`) is disjoint from `keyPrefix` (neither starts with the other; boot refuses
+an entry otherwise), so the routes can never serve a pending object, and the bucket's lifecycle rule must
+target the configured `pendingPrefix`, longer than `expires.commit`. A failed `validation` leaves the object
+under it for that rule, and a service that fails after `commit` removes the object at its final key itself.
+Removing the temporary object at commit is CLEANUP,
 not the commit - it is best-effort and logs, because failing the request would tell the caller their
 upload did not work when it did.
 
@@ -201,7 +205,7 @@ only the MetaLink `mimetype` fallback, `DiskHelper.getStat`, `writeStream`'s def
 
 ## Deliberately not built
 
-Multipart and resumable upload. Malware scanning - `onCommit` is the seam, the scanner belongs to the
+Multipart and resumable upload. Malware scanning - `validation` is the seam, the scanner belongs to the
 application. A commit token carrying business fields.
 
 Related: [[component-model]], [[error-handling-flow]].
