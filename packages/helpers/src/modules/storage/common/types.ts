@@ -152,14 +152,19 @@ export interface IStorageHelper {
   removeObject(opts: IObjectLocation): Promise<void>;
   removeObjects(opts: { bucket: IBucketRef; objects: IObjectRef[] }): Promise<void>;
 
-  /** The form a browser posts straight to the storage. Unlike a presigned PUT, a policy carries `content-length-range`, so "at most N bytes" is expressible - a signed PUT binds the length to one exact value. */
-  presignPost(opts: {
-    bucket: IBucketRef;
-    keyPrefix: string;
-    maxBytes: number;
-    contentType?: string;
-    expiresIn?: IDuration;
-  }): Promise<IPostPolicy>;
+  /**
+   * The form a browser posts straight to the storage, good for exactly ONE object: the policy signs
+   * `object.key` as it stands, and `formData` carries that key, so the client does not add it.
+   * Unlike a presigned PUT, a policy carries `content-length-range`, so "at most N bytes" is
+   * expressible - a signed PUT binds the length to one exact value.
+   */
+  presignPost(
+    opts: IObjectLocation & {
+      maxBytes: number;
+      contentType?: string;
+      expiresIn?: IDuration;
+    },
+  ): Promise<IPostPolicy>;
 
   /** A URL a browser may PUT one object to. Every extra option below is SIGNED - the client must send it back unchanged. A pinned size is exact, never a ceiling; for a ceiling use {@link IStorageHelper.presignPost}. */
   presignPut(

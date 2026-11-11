@@ -973,14 +973,15 @@ export class StaticAssetControllerFactory extends BaseHelper {
               configs: { ...definitions.UPLOAD_POLICY, ...uploadPolicyRoute.override },
             }).to({
               handler: async (ctx) => {
-                const result = await directUpload.authorize({ context: ctx });
+                const isAuthorized = await directUpload.authorize({ context: ctx });
 
-                if (!result) {
+                if (!isAuthorized) {
                   throw getError({ error: StaticAssetErrors.UPLOAD_NOT_AUTHORIZED });
                 }
 
+                const owner = await directUpload.resolveOwner?.({ context: ctx });
                 const { files } = ctx.req.valid<TStaticAssetUploadPolicyRequest>('json');
-                const policies = await policyService.issuePolicies({ files });
+                const policies = await policyService.issuePolicies({ files, owner });
 
                 return ctx.json(policies, HTTP.ResultCodes.RS_2.Ok);
               },
@@ -996,6 +997,13 @@ export class StaticAssetControllerFactory extends BaseHelper {
               configs: { ...definitions.UPLOAD_COMMIT, ...uploadCommitRoute.override },
             }).to({
               handler: async (ctx) => {
+                // First, as on the policy route: nothing below runs for a caller who may not use direct upload.
+                const isAuthorized = await directUpload.authorize({ context: ctx });
+
+                if (!isAuthorized) {
+                  throw getError({ error: StaticAssetErrors.UPLOAD_NOT_AUTHORIZED });
+                }
+
                 const commitQuery = ctx.req.query();
                 refuseLabelsInQuery({ query: commitQuery, names: COMMIT_LABEL_NAMES });
                 refuseLabelsInQuery({
@@ -1009,8 +1017,10 @@ export class StaticAssetControllerFactory extends BaseHelper {
                   { commitToken: string } & TStaticAssetUploadQuery
                 >('json');
 
+                const owner = await directUpload.resolveOwner?.({ context: ctx });
                 const result = await commitService.commit({
-                  commitToken,
+                  token: commitToken,
+                  owner,
                   labels: readUploadLabels({ fields: labels }),
                 });
 

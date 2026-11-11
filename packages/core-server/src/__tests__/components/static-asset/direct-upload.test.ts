@@ -10,6 +10,7 @@ import { StaticAssetCommitTokenUtility } from '@/components/static-asset/utiliti
 import { BaseMetaLinkModel } from '@/components/static-asset/models';
 import type {
   TStaticAssetDirectUploadOptions,
+  TStaticAssetRoutes,
   TMetaLinkConfig,
   TStaticAssetComponentOptions,
 } from '@/components/static-asset/common';
@@ -45,6 +46,7 @@ class DirectUploadApplication extends BaseApplication {
 const mount = async (opts: {
   helper: FakeStorageHelper;
   directUpload: TStaticAssetDirectUploadOptions;
+  routes?: TStaticAssetRoutes;
   metaLink?: TMetaLinkConfig;
 }): Promise<OpenAPIHono> => {
   MetadataRegistry.getInstance().clearAll();
@@ -60,6 +62,7 @@ const mount = async (opts: {
     isStrict: false,
     bucket: 'uploads',
     directUpload: opts.directUpload,
+    routes: opts.routes,
   };
 
   application.controller(
@@ -143,15 +146,23 @@ describe('the upload-policy route', () => {
   });
 
   /** The key is generated, never taken from the caller - a key the caller picks is a key it can collide with. */
-  test('the policy only ever authorizes the pending prefix', async () => {
+  test('each policy signs exactly the one pending key it hands back', async () => {
     const helper = new FakeStorageHelper();
     const router = await mount({ helper, directUpload: ALLOW });
 
-    await askPolicy(router, [{ fileName: 'a.png' }]);
+    const response = await askPolicy(router, [{ fileName: 'a.png' }, { fileName: 'b.png' }]);
+    const result = await response.json();
+    const policies = result as Array<{ objectName: string; formData: Record<string, string> }>;
 
-    expect(helper.calls.filter((call) => call.method === 'presignPost')).toEqual([
-      { method: 'presignPost', args: { bucket: 'uploads', keyPrefix: 'pending/', maxBytes: 1024 } },
-    ]);
+    const signed = helper.calls.filter((call) => call.method === 'presignPost');
+
+    expect(signed.map((call) => call.args['key'])).toEqual(
+      policies.map((policy) => policy.objectName),
+    );
+    expect(policies[0].objectName).toStartWith('pending/');
+    expect(policies[0].objectName).not.toBe(policies[1].objectName);
+    // The client posts the form as it is: the key is in it, so nothing is appended.
+    expect(policies[0].formData['key']).toBe(policies[0].objectName);
   });
 
   test('a refused caller gets nothing, and the storage is never asked', async () => {
@@ -212,7 +223,11 @@ describe('the upload-commit route', () => {
     const helper = new FakeStorageHelper();
     const router = await mount({ helper, directUpload: ALLOW });
     const forged = StaticAssetCommitTokenUtility.build({
-      payload: { bucket: 'uploads', key: 'pending/x/a.png', expiresAt: Date.now() + 60_000 },
+      payload: {
+        bucket: { name: 'uploads' },
+        object: { key: 'pending/x/a.png' },
+        expiresAt: Date.now() + 60_000,
+      },
       secretKey: 'not-the-secret',
     });
     helper.calls.length = 0;
@@ -248,6 +263,117 @@ describe('the upload-commit route', () => {
     expect(response.status).toBeGreaterThanOrEqual(400);
     expect(helper.calls.filter((call) => call.method === 'copyObject')).toHaveLength(0);
     expect(helper.calls.filter((call) => call.method === 'removeObject')).toHaveLength(0);
+  });
+});
+
+describe('a route override may carry middleware', () => {
+  /** The documented place to rate-limit upload-policy: a policy is a write credential. */
+  test('middleware on routes.uploadPolicy runs before the handler', async () => {
+    const helper = new FakeStorageHelper();
+    let seen = 0;
+    const router = await mount({
+      helper,
+      directUpload: ALLOW,
+      routes: {
+        uploadPolicy: {
+          middleware: [
+            async (context, next) => {
+              seen += 1;
+
+              if (seen > 1) {
+                return context.json({ message: 'slow down' }, 429);
+              }
+
+              return next();
+            },
+          ],
+        },
+      },
+    });
+
+    const first = await askPolicy(router, [{ fileName: 'a.png' }]);
+    helper.calls.length = 0;
+    const second = await askPolicy(router, [{ fileName: 'b.png' }]);
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(429);
+    expect(helper.calls).toHaveLength(0);
+  });
+});
+
+describe('who may commit', () => {
+  /** The policy route has always asked; a commit that did not would let anyone holding a token in. */
+  test('authorize returning false on upload-commit is a 403, with no storage call', async () => {
+    const helper = new FakeStorageHelper();
+    let isOpen = true;
+    const router = await mount({
+      helper,
+      directUpload: { ...ALLOW, authorize: () => isOpen },
+    });
+    const response = await askPolicy(router, [{ fileName: 'a.png' }]);
+    const result = await response.json();
+    const [policy] = result as Array<{ commitToken: string }>;
+    isOpen = false;
+    helper.calls.length = 0;
+
+    const committed = await commit(router, policy.commitToken);
+
+    expect(committed.status).toBe(403);
+    expect(helper.calls).toHaveLength(0);
+  });
+
+  const ownedByHeader: TStaticAssetDirectUploadOptions = {
+    ...ALLOW,
+    resolveOwner: ({ context }) => context.req.header('x-user') ?? '',
+  };
+
+  const askPolicyAs = (router: OpenAPIHono, user: string) =>
+    router.request('/assets/upload-policy', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-user': user },
+      body: JSON.stringify({ files: [{ fileName: 'a.png' }] }),
+    });
+
+  const commitAs = (router: OpenAPIHono, commitToken: string, user?: string) =>
+    router.request('/assets/upload-commit', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(user === undefined ? {} : { 'x-user': user }),
+      },
+      body: JSON.stringify({ commitToken }),
+    });
+
+  test('resolveOwner on both routes: the owner commits', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mount({ helper, directUpload: ownedByHeader });
+    const response = await askPolicyAs(router, 'user-a');
+    const result = await response.json();
+    const [policy] = result as Array<{ objectName: string; commitToken: string }>;
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName });
+
+    const committed = await commitAs(router, policy.commitToken, 'user-a');
+
+    expect(committed.status).toBe(200);
+  });
+
+  test('another user, or none, is refused as an invalid token before any storage call', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mount({ helper, directUpload: ownedByHeader });
+    const response = await askPolicyAs(router, 'user-a');
+    const result = await response.json();
+    const [policy] = result as Array<{ commitToken: string }>;
+    helper.calls.length = 0;
+
+    for (const user of ['user-b', undefined]) {
+      const committed = await commitAs(router, policy.commitToken, user);
+      const body = JSON.stringify(await committed.json());
+
+      expect(committed.status).toBe(400);
+      expect(body).toContain('core.static_asset.invalid_commit_token');
+    }
+
+    expect(helper.calls).toHaveLength(0);
   });
 });
 

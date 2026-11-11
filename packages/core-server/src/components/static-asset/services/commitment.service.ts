@@ -1,6 +1,7 @@
 import type { IBucketRef, IObjectRef, IStorageHelper, IUploadResult } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers/core';
 import { BaseService } from '@venizia/ignis-kernel';
-import { StaticAssetMetaLinkCodes } from '../common';
+import { StaticAssetErrors, StaticAssetMetaLinkCodes } from '../common';
 import { StaticAssetCommitTokenUtility } from '../utilities';
 import type {
   TStaticAssetDirectUploadOptions,
@@ -71,30 +72,59 @@ export class StaticAssetUploadCommitService<
     this.pendingPrefix = prefixes.pendingPrefix;
   }
 
+  /**
+   * Everything `commit` checks before it touches storage, and nothing else: the signature, the
+   * expiry, the owner and the `keyPrefix` scope. Returns the PENDING object, with no storage call and
+   * no side effect, so an application can read an uploaded file and report its problems to the user
+   * before anything is committed.
+   *
+   * A token this refuses is refused the same way `commit` refuses it, and every refusal says no more
+   * than that the token is no good: a caller learns nothing about which keys exist.
+   */
+  verify(opts: { token: string; owner?: string }): {
+    bucket: IBucketRef;
+    object: IObjectRef;
+  } {
+    const payload = StaticAssetCommitTokenUtility.read({
+      token: opts.token,
+      secretKey: this.options.directUpload.secretKey,
+    });
+
+    // The same error as a forged token: a caller learns only that the token is no good for them.
+    if (payload.owner !== undefined && payload.owner !== opts.owner) {
+      throw getError(StaticAssetErrors.INVALID_COMMIT_TOKEN);
+    }
+
+    // A token another controller signed with the same secret must not land outside this scope.
+    StaticAssetKeyScopeUtility.assertInScope({
+      key: payload.object.key.slice(this.pendingPrefix.length),
+      keyPrefix: this.keyPrefix,
+    });
+
+    return { bucket: payload.bucket, object: payload.object };
+  }
+
   /** Moves the pending object to its final key and, when the entry keeps a MetaLink table, writes the row. A MetaLink failure rides the result as a code: the object IS committed by then. */
   async commit(opts: {
-    commitToken: string;
+    token: string;
+    /** Who is committing. A token issued to an owner commits only for that owner. */
+    owner?: string;
     labels?: TStaticAssetUploadQuery;
   }): Promise<IStaticAssetCommitResult> {
     const { helper, directUpload, storage, useMetaLink, metaLink } = this.options;
 
     // Verified BEFORE any storage call. That is what keeps this from being a name prober: a forged
     // token fails without a round trip, so timing says nothing.
-    const payload = StaticAssetCommitTokenUtility.read({
-      token: opts.commitToken,
-      secretKey: directUpload.secretKey,
+    const { bucket: bucketRef, object: pendingObject } = this.verify({
+      token: opts.token,
+      owner: opts.owner,
     });
 
     // Labels, not authorization - the token deliberately carries no business fields, so they travel
     // beside it rather than inside it.
     const query = opts.labels ?? {};
 
-    const bucketRef = { name: payload.bucket };
-    const pendingObject = { key: payload.key };
-    const object = { key: payload.key.slice(this.pendingPrefix.length) };
-
-    // A token another controller signed with the same secret must not land outside this scope.
-    StaticAssetKeyScopeUtility.assertInScope({ key: object.key, keyPrefix: this.keyPrefix });
+    const object = { key: pendingObject.key.slice(this.pendingPrefix.length) };
 
     // Before the copy, so a hook that throws leaves the object under the pending prefix
     // for a lifecycle rule, rather than stranding it at the final key.

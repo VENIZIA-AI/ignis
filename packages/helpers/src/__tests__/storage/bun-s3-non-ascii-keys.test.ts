@@ -281,21 +281,21 @@ describe('BunS3Helper.presignPut - a non-ASCII key signs the path the browser se
   });
 });
 
-describe('BunS3Helper.presignPost - a non-ASCII key travels as a form field', () => {
+describe('BunS3Helper.presignPost - a non-ASCII key is signed and travels as a form field', () => {
   test.each(COPY_SOURCE_CASES)('$key', async ({ key }) => {
     const policy = await buildHelper().presignPost({
       bucket: { name: BUCKET },
-      keyPrefix: 'pending/',
+      object: { key },
       maxBytes: 1024,
     });
 
     const form = new FormData();
+    const formFields = Object.entries(policy.formData);
 
-    for (const [name, value] of Object.entries(policy.formData)) {
-      form.append(name, value);
+    for (const [fieldName, fieldValue] of formFields) {
+      form.append(fieldName, fieldValue);
     }
 
-    form.append('key', key);
     form.append('file', new Blob(['bytes']), 'upload.bin');
 
     await fetch(policy.postURL, { method: 'POST', body: form });
@@ -303,6 +303,5 @@ describe('BunS3Helper.presignPost - a non-ASCII key travels as a form field', ()
     const request = takeReceived();
     expect(request?.isSignatureValid).toBe(true);
     expect(request?.form?.['key']).toBe(key);
-    expect(request?.form?.['key']?.startsWith('pending/')).toBe(true);
   });
 });

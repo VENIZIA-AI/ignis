@@ -1,5 +1,6 @@
 import type { IPostPolicy, IStorageHelper } from '@venizia/ignis-helpers';
-import { ResolverUtility } from '@venizia/ignis-helpers/common';
+import type { IDuration } from '@venizia/ignis-helpers/common';
+import { DurationMultipliers, ResolverUtility } from '@venizia/ignis-helpers/common';
 import type { TValueOrAsyncResolver } from '@venizia/ignis-helpers/common';
 import { getError, UuidHelper } from '@venizia/ignis-helpers/core';
 import { BaseService } from '@venizia/ignis-kernel';
@@ -22,7 +23,7 @@ export interface IStaticAssetUploadPolicyServiceOptions {
   keyPrefix?: string;
   directUpload: Pick<
     TStaticAssetDirectUploadOptions,
-    'maxBytes' | 'expiresIn' | 'secretKey' | 'pendingPrefix'
+    'maxBytes' | 'expiresIn' | 'commitExpiresIn' | 'secretKey' | 'pendingPrefix'
   >;
 }
 
@@ -36,11 +37,16 @@ export interface IStaticAssetUploadPolicyServiceOptions {
 export class StaticAssetUploadPolicyService extends BaseService {
   private readonly options: IStaticAssetUploadPolicyServiceOptions;
   private readonly policyKeyPrefix: string;
+  private readonly commitLifetimeMs?: number;
 
   constructor(opts: IStaticAssetUploadPolicyServiceOptions) {
     super({ scope: opts.scope });
 
     this.options = opts;
+    this.commitLifetimeMs = StaticAssetUploadPolicyService.resolveCommitLifetimeMs({
+      scope: opts.scope,
+      commitExpiresIn: opts.directUpload.commitExpiresIn,
+    });
     this.policyKeyPrefix = StaticAssetKeyScopeUtility.resolveDirectUploadPrefixes({
       keyPrefix: opts.keyPrefix,
       pendingPrefix: opts.directUpload.pendingPrefix,
@@ -49,9 +55,32 @@ export class StaticAssetUploadPolicyService extends BaseService {
     }).policyKeyPrefix;
   }
 
+  /** `undefined` when `commitExpiresIn` is not set: the token then dies with the policy. */
+  private static resolveCommitLifetimeMs(opts: {
+    scope: string;
+    commitExpiresIn?: IDuration;
+  }): number | undefined {
+    const { scope, commitExpiresIn } = opts;
+
+    if (commitExpiresIn === undefined) {
+      return undefined;
+    }
+
+    const lifetimeMs = DurationMultipliers.toMilliseconds(commitExpiresIn);
+
+    if (lifetimeMs === null || lifetimeMs <= 0) {
+      throw getError({
+        message: `[${scope}] directUpload.commitExpiresIn is not a usable duration | unit: ${commitExpiresIn.unit} | value: ${commitExpiresIn.value}`,
+      });
+    }
+
+    return lifetimeMs;
+  }
+
   /** One signed policy per file. A size over `maxBytes` is refused before any policy is signed. */
   async issuePolicies(opts: {
     files: TStaticAssetUploadPolicyRequest['files'];
+    owner?: string;
   }): Promise<TStaticAssetUploadPolicy[]> {
     const { helper, bucket, directUpload } = this.options;
     const bucketName = await ResolverUtility.resolveValueAsync({ value: bucket });
@@ -71,7 +100,7 @@ export class StaticAssetUploadPolicyService extends BaseService {
       const objectName = `${this.policyKeyPrefix}${UuidHelper.getInstance().v4()}/${file.fileName}`;
       const policy = await helper.presignPost({
         bucket: { name: bucketName },
-        keyPrefix: this.policyKeyPrefix,
+        object: { key: objectName },
         maxBytes: directUpload.maxBytes,
         contentType: file.contentType,
         expiresIn: directUpload.expiresIn,
@@ -82,9 +111,13 @@ export class StaticAssetUploadPolicyService extends BaseService {
         objectName,
         commitToken: StaticAssetCommitTokenUtility.build({
           payload: {
-            bucket: bucketName,
-            key: objectName,
-            expiresAt: new Date(policy.expiresAt).getTime(),
+            bucket: { name: bucketName },
+            object: { key: objectName },
+            expiresAt:
+              this.commitLifetimeMs === undefined
+                ? new Date(policy.expiresAt).getTime()
+                : Date.now() + this.commitLifetimeMs,
+            ...(opts.owner === undefined ? {} : { owner: opts.owner }),
           },
           secretKey: directUpload.secretKey,
         }),

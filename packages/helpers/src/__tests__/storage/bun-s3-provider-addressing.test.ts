@@ -200,7 +200,7 @@ describe('BunS3Helper - default is for this process, public is for a browser', (
     const put = await helper.presignPut({ bucket: { name: 'assets' }, object: { key: 'a.png' } });
     const post = await helper.presignPost({
       bucket: { name: 'assets' },
-      keyPrefix: 'pending/',
+      object: { key: 'pending/a.png' },
       maxBytes: 1024,
     });
 
@@ -243,7 +243,7 @@ describe('BunS3Helper.presignPost - the form posts to the bucket in either addre
 
     const { postURL } = await helper.presignPost({
       bucket: { name: 'uploads' },
-      keyPrefix: 'pending/',
+      object: { key: 'pending/a.png' },
       maxBytes: 1024,
     });
 
@@ -258,7 +258,7 @@ describe('BunS3Helper.presignPost - the form posts to the bucket in either addre
 
     const { postURL } = await helper.presignPost({
       bucket: { name: 'uploads' },
-      keyPrefix: 'pending/',
+      object: { key: 'pending/a.png' },
       maxBytes: 1024,
     });
 

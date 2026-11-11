@@ -340,31 +340,31 @@ export class BunS3Helper extends BaseStorageHelper {
     }
   }
 
-  override async presignPost(opts: {
-    bucket: IBucketRef;
-    keyPrefix: string;
-    maxBytes: number;
-    contentType?: string;
-    expiresIn?: IDuration;
-  }): Promise<IPostPolicy> {
+  override async presignPost(
+    opts: IObjectLocation & {
+      maxBytes: number;
+      contentType?: string;
+      expiresIn?: IDuration;
+    },
+  ): Promise<IPostPolicy> {
     const {
       bucket,
-      keyPrefix,
+      object,
       maxBytes,
       contentType,
       expiresIn = StoragePresignDefaults.POST_EXPIRES_IN,
     } = opts;
     const { accessKey, secretKey, region, sessionToken } = this.credentials;
 
-    // The browser posts to the BUCKET, not to an object - the key travels as a form field, because
-    // the policy only constrains its prefix.
+    // The browser posts to the BUCKET, not to an object - the key travels as a form field, which the
+    // policy pins to this one value.
     const { endpoint, pathPrefix } = this.objectEndpoint({
       bucket: bucket.name,
       audience: S3Audiences.BROWSER,
     });
     const { formData, expiresAt } = await S3SignatureUtility.buildPostPolicy({
       bucket: bucket.name,
-      keyPrefix,
+      key: object.key,
       maxBytes,
       expiresInSeconds: StorageUtility.toExpirySeconds({ expiresIn, operation: 'presignPost' }),
       accessKey,

@@ -18,7 +18,46 @@ export class StaticAssetCommitTokenUtility {
     });
   }
 
-  /** Signs `{ bucket, key, expiresAt }` so the commit route can trust the key it is handed. */
+  private static isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+  }
+
+  /** A signed body that is not the current payload shape is refused as invalid: a token minted before the shape changed still carries a good signature. */
+  private static parse(opts: { body: string }): IStaticAssetCommitTokenPayload {
+    let parsed: unknown;
+
+    try {
+      parsed = JSON.parse(Buffer.from(opts.body, 'base64url').toString('utf8'));
+    } catch {
+      throw getError(StaticAssetErrors.INVALID_COMMIT_TOKEN);
+    }
+
+    if (!StaticAssetCommitTokenUtility.isRecord(parsed)) {
+      throw getError(StaticAssetErrors.INVALID_COMMIT_TOKEN);
+    }
+
+    const { bucket, object, expiresAt, owner } = parsed;
+
+    if (
+      !StaticAssetCommitTokenUtility.isRecord(bucket) ||
+      typeof bucket.name !== 'string' ||
+      !StaticAssetCommitTokenUtility.isRecord(object) ||
+      typeof object.key !== 'string' ||
+      typeof expiresAt !== 'number' ||
+      (owner !== undefined && typeof owner !== 'string')
+    ) {
+      throw getError(StaticAssetErrors.INVALID_COMMIT_TOKEN);
+    }
+
+    return {
+      bucket: { name: bucket.name },
+      object: { key: object.key },
+      expiresAt,
+      ...(owner === undefined ? {} : { owner }),
+    };
+  }
+
+  /** Signs `{ bucket, object, expiresAt, owner? }` so the commit route can trust the key it is handed. */
   static build(opts: { payload: IStaticAssetCommitTokenPayload; secretKey: string }): string {
     const body = StaticAssetCommitTokenUtility.encode(opts.payload);
 
@@ -52,9 +91,7 @@ export class StaticAssetCommitTokenUtility {
       throw getError(StaticAssetErrors.INVALID_COMMIT_TOKEN);
     }
 
-    const payload: IStaticAssetCommitTokenPayload = JSON.parse(
-      Buffer.from(body, 'base64url').toString('utf8'),
-    );
+    const payload = StaticAssetCommitTokenUtility.parse({ body });
 
     if (payload.expiresAt <= now) {
       throw getError(StaticAssetErrors.EXPIRED_COMMIT_TOKEN);
