@@ -432,6 +432,7 @@ export class StaticAssetControllerFactory {
               ) {
                 throw getError({ error: StaticAssetErrors.OBJECT_NAME_INVALID });
               }
+
               StaticAssetKeyScopeUtility.assertInScope({ key: objectName, keyPrefix });
 
               const fileStat = await helper.getStat({
@@ -519,6 +520,7 @@ export class StaticAssetControllerFactory {
               ) {
                 throw getError({ error: StaticAssetErrors.OBJECT_NAME_INVALID });
               }
+
               StaticAssetKeyScopeUtility.assertInScope({ key: objectName, keyPrefix });
 
               const fileStat = await helper.getStat({
@@ -797,6 +799,7 @@ export class StaticAssetControllerFactory {
               ) {
                 throw getError({ error: StaticAssetErrors.OBJECT_NAME_INVALID });
               }
+
               StaticAssetKeyScopeUtility.assertInScope({ key: objectName, keyPrefix });
 
               // Deliberately idempotent: S3 answers 200 for a key that was never there, and consumers
@@ -1015,6 +1018,7 @@ export class StaticAssetControllerFactory {
                 ) {
                   throw getError({ error: StaticAssetErrors.OBJECT_NAME_INVALID });
                 }
+
                 StaticAssetKeyScopeUtility.assertInScope({ key: objectName, keyPrefix });
 
                 const bucketRef = { name: bucketName };
