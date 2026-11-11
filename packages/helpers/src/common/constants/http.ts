@@ -21,6 +21,7 @@ export class HTTP {
     AUTHORIZATION: 'authorization',
     COOKIE: 'cookie',
     HOST: 'host',
+    IF_MATCH: 'if-match',
     IF_MODIFIED_SINCE: 'if-modified-since',
     IF_NONE_MATCH: 'if-none-match',
     ORIGIN: 'origin',
@@ -135,6 +136,9 @@ export class HTTP {
     IMAGE_PNG: 'image/png',
     IMAGE_SVG: 'image/svg+xml',
     IMAGE_WEBP: 'image/webp',
+
+    // Range units
+    RANGE_UNIT_BYTES: 'bytes',
   } as const;
 
   /** Standard HTTP methods (lowercase). */

@@ -1395,7 +1395,7 @@ export declare class StaticAssetHeaders {
     /** Of what a controller sends with every object. */
     static readonly NOSNIFF = "nosniff";
     static readonly CSP_SANDBOX = "sandbox";
-    static readonly RANGE_UNIT = "bytes";
+    static readonly RANGE_UNIT: "bytes";
 }
 ```
 
@@ -1477,9 +1477,6 @@ a read that finds other content or no object throws `UPLOAD_CHANGED`.
 export declare class StaticAssetPinnedFile {
     readonly key: string;
     readonly size: number;
-    readonly etag: string;
-    /** Derived from the key, never from what the uploader declared. */
-    readonly contentType: string;
     private readonly helper;
     private readonly location;
     private readonly pin;

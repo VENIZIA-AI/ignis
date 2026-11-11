@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-206 exports, 206 with TSDoc. 227 more are re-exported from other entries (listed at the end).
+207 exports, 207 with TSDoc. 227 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -4180,6 +4180,22 @@ export declare class S3Audiences {
     static readonly BROWSER = "browser";
     static readonly SCHEME_SET: Set<string>;
     static isValid(audience: string): boolean;
+}
+```
+
+Source: `packages/helpers/src/modules/storage/common/constants.ts`
+
+## `S3Headers`
+
+*class*
+
+The `x-amz-*` request and response headers the S3 helper reads and sends.
+
+```ts
+export declare class S3Headers {
+    static readonly COPY_SOURCE = "x-amz-copy-source";
+    static readonly COPY_SOURCE_IF_MATCH = "x-amz-copy-source-if-match";
+    static readonly VERSION_ID = "x-amz-version-id";
 }
 ```
 

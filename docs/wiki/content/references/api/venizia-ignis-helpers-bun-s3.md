@@ -97,9 +97,13 @@ export declare class BunS3Helper extends BaseStorageHelper {
     } & IStorageReadCondition): Promise<ReadableStream<Uint8Array>>;
     /** The ETag with the quotes S3 sends and expects in `If-Match`. */
     private static quoteEtag;
+    /** Signs and sends one object-level request: the one place credentials, addressing, signing and the verb's case meet. */
+    private signedFetch;
+    /** The storage error a response stands for: 412 is a changed object, 404 a missing one, any other failure the backend's own. */
+    private assertObjectResponse;
     /** `S3File` cannot send `If-Match` or a version id, so a conditional read is a signed GET. */
     private getConditionalStream;
-    /** A signed HEAD rather than `client.stat`, because Bun's stat does not report the version id the pin needs. */
+    /** A signed HEAD rather than `client.stat`, because Bun's stat does not report the version id a pin needs. */
     getStat(opts: IObjectLocation): Promise<IFileStat>;
     removeObject(opts: IObjectLocation): Promise<void>;
     removeObjects(opts: {

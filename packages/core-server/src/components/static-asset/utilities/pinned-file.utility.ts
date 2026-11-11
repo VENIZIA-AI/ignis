@@ -15,9 +15,6 @@ import { StaticAssetErrors, type IStaticAssetPin } from '../common';
 export class StaticAssetPinnedFile {
   readonly key: string;
   readonly size: number;
-  readonly etag: string;
-  /** Derived from the key, never from what the uploader declared. */
-  readonly contentType: string;
 
   private readonly helper: IStorageHelper;
   private readonly location: IObjectLocation;
@@ -34,8 +31,6 @@ export class StaticAssetPinnedFile {
     this.pin = opts.pin;
     this.key = opts.location.object.key;
     this.size = opts.size;
-    this.etag = opts.pin.etag;
-    this.contentType = opts.helper.getMimeType({ filename: opts.location.object.key });
   }
 
   /** What a read or a copy requires of the object: the exact version when the pin has one, else the ETag. */

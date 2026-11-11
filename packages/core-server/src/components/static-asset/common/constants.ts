@@ -14,7 +14,7 @@ export class StaticAssetHeaders {
   /** Of what a controller sends with every object. */
   static readonly NOSNIFF = 'nosniff';
   static readonly CSP_SANDBOX = 'sandbox';
-  static readonly RANGE_UNIT = 'bytes';
+  static readonly RANGE_UNIT = HTTP.HeaderValues.RANGE_UNIT_BYTES;
 }
 
 /** Content types the controller serves. */

@@ -295,7 +295,7 @@ class StaticAssetTokenStages {
 }
 ```
 
-`StaticAssetPinnedFile` has `key`, `size`, `etag`, `contentType` (derived from the key) and `stream({ range? })`. Its static `pinOf({ stat, scope })` builds the pin from a stat and `conditionOf({ pin })` turns a pin into the `{ ifMatch?, versionId? }` a read or copy sends. See [Direct upload](./direct-upload#validation) and [Security](./security#the-pin-binds-the-token-to-the-content).
+`StaticAssetPinnedFile` has `key`, `size` and `stream({ range? })`. Its static `pinOf({ stat, scope })` builds the pin from a stat and `conditionOf({ pin })` turns a pin into the `{ ifMatch?, versionId? }` a read or copy sends. See [Direct upload](./direct-upload#validation) and [Security](./security#the-pin-binds-the-token-to-the-content).
 
 | Error | Status | Raised when |
 |---|---|---|

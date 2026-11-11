@@ -48,8 +48,6 @@ interface IValidationSpy {
   calls: Array<{
     key: string;
     size: number;
-    etag: string;
-    contentType: string;
     content: string;
     owner?: string;
   }>;
@@ -66,8 +64,6 @@ const buildValidation = (spy: IValidationSpy) =>
       spy.calls.push({
         key: file.key,
         size: file.size,
-        etag: file.etag,
-        contentType: file.contentType,
         content,
         owner,
       });
@@ -235,8 +231,6 @@ describe('the upload-validate route', () => {
       {
         key: policy.objectName,
         size: 'seeded'.length,
-        etag: expect.stringContaining('fake-etag'),
-        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         content: 'seeded',
         owner: 'user-a',
       },
@@ -366,7 +360,7 @@ describe('commit takes the validated token', () => {
     expect(response.status).toBe(200);
     expect(spy.calls).toHaveLength(1);
     expect(helper.calls.find((call) => call.method === 'copyObject')?.args).toMatchObject({
-      ifMatch: spy.calls[0].etag,
+      ifMatch: expect.stringContaining('fake-etag'),
     });
   });
 

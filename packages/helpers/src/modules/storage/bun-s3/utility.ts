@@ -59,14 +59,16 @@ export class S3SignatureUtility {
   }
 
   /** Empty or absent query must sign identically to today - callers of getBuckets/createBucket/removeBucket depend on it. */
-  private static buildCanonicalQueryString(opts: { query?: Record<string, string> }): string {
+  private static buildCanonicalQueryString(opts: {
+    query?: Record<string, string | undefined>;
+  }): string {
     const { query } = opts;
 
     if (!query) {
       return '';
     }
 
-    const keys = Object.keys(query);
+    const keys = Object.keys(query).filter((key) => query[key] !== undefined);
 
     if (keys.length === 0) {
       return '';
@@ -76,7 +78,7 @@ export class S3SignatureUtility {
       .sort()
       .map(
         (key) =>
-          `${S3SignatureUtility.encodeSigV4Component({ value: key })}=${S3SignatureUtility.encodeSigV4Component({ value: query[key] })}`,
+          `${S3SignatureUtility.encodeSigV4Component({ value: key })}=${S3SignatureUtility.encodeSigV4Component({ value: query[key] ?? '' })}`,
       )
       .join('&');
   }
@@ -117,9 +119,10 @@ export class S3SignatureUtility {
     region: string;
     sessionToken?: string;
     body?: string;
-    query?: Record<string, string>;
-    /** Extra headers to SIGN, not merely to send - anything outside `SignedHeaders` is refused by S3. */
-    headers?: Record<string, string>;
+    /** A key whose value is `undefined` is left out. */
+    query?: Record<string, string | undefined>;
+    /** Extra headers to SIGN, not merely to send - anything outside `SignedHeaders` is refused by S3. A key whose value is `undefined` is left out. */
+    headers?: Record<string, string | undefined>;
   }): Promise<{ url: string; headers: Record<string, string> }> {
     const {
       method,
@@ -156,7 +159,9 @@ export class S3SignatureUtility {
     const extraHeadersEntries = Object.entries(extraHeaders ?? {});
 
     for (const [key, value] of extraHeadersEntries) {
-      canonicalHeadersMap[key.toLowerCase()] = value;
+      if (value !== undefined) {
+        canonicalHeadersMap[key.toLowerCase()] = value;
+      }
     }
 
     const sortedKeys = Object.keys(canonicalHeadersMap).sort();

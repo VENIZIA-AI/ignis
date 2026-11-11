@@ -515,8 +515,6 @@ const PendingIssueSchema = z.object({ code: z.string() });
 interface IHandlerCall {
   key: string;
   size: number;
-  etag: string;
-  contentType: string;
   owner?: string;
 }
 
@@ -528,8 +526,6 @@ const buildPinnedValidation = (opts: { calls: IHandlerCall[]; beforeRead?: () =>
       opts.calls.push({
         key: file.key,
         size: file.size,
-        etag: file.etag,
-        contentType: file.contentType,
         owner,
       });
       opts.beforeRead?.();
@@ -589,8 +585,6 @@ describe('a validation that pins the content', () => {
       {
         key: policy.objectName,
         size: 'seeded'.length,
-        etag: stat.etag ?? '',
-        contentType: 'image/png',
         owner: 'user-a',
       },
     ]);
@@ -647,7 +641,6 @@ describe('a validation that pins the content', () => {
       readToken(second.commitToken).pin?.etag,
     );
     expect(calls).toHaveLength(2);
-    expect(calls[1].etag).toBe(readToken(second.commitToken).pin?.etag ?? '');
   });
 
   test('a validated token is refused for another owner before any storage call', async () => {

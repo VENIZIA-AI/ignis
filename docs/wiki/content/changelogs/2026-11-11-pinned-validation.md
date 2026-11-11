@@ -16,7 +16,7 @@ packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 
 - **Validate answers a token.** A valid file gets `{ isValid: true, issues: [], commitToken }`. The token is bound to the exact content the handler read and keeps the expiry of the token you sent. An invalid file gets no token.
 - **Commit takes that token.** With `validation` on, commit with the policy's token is refused `422` `core.static_asset.upload_not_validated`. Commit no longer runs the handler.
-- **A pinned file.** The handler takes `{ file, owner }`. `file` has `key`, `size`, `etag`, `contentType` and `stream({ range? })`, and every read is for the pinned content.
+- **A pinned file.** The handler takes `{ file, owner }`. `file` has `key`, `size` and `stream({ range? })`, and every read is for the pinned content.
 - **The pin.** The exact version id when the bucket has real versions, else the ETag. A read or the commit copy that finds other content, or no object, fails `409` `core.static_asset.upload_changed`, and nothing is copied. No extra object is created.
 - **Helpers.** `getObjectStream` takes `ifMatch` and `versionId`. `copyObject` takes `ifMatch` and `sourceVersionId`. `BunS3Helper.getStat` reports `versionId`. A failed condition throws `core.storage.precondition_failed` (`412`). `copyObject` of a missing source throws `core.storage.object_not_found` (`404`). `DiskHelper` refuses a conditional read.
 - **New errors.** `core.static_asset.upload_changed` (`409`), `core.static_asset.upload_not_validated` (`422`), `core.storage.precondition_failed` (`412`).

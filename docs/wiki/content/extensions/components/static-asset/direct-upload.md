@@ -225,8 +225,6 @@ Every read goes through `file`, and every read is for the content that was pinne
 |---|---|---|
 | `key` | `string` | The pending object's key. |
 | `size` | `number` | Its size in bytes. |
-| `etag` | `string` | Its ETag, as the storage reported it. |
-| `contentType` | `string` | The type of the key's name, never what the uploader declared. |
 | `stream({ range? })` | `Promise<ReadableStream<Uint8Array>>` | The content, or a byte window of it. `range` includes `end`, like the HTTP header. |
 
 A `stream` call that finds other content, or no object, fails with `409` `core.static_asset.upload_changed`. Call it as often as you need: each read is checked.

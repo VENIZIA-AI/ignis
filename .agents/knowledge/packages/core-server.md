@@ -242,7 +242,7 @@ the version id when `StorageUtility.realVersionId` finds a real one, else the ET
 token that is not `VALIDATED` throws `UPLOAD_NOT_VALIDATED` (422); with a pin the copy is conditional
 (`copyObject` `ifMatch`, or `sourceVersionId`) and a 412 becomes `UPLOAD_CHANGED` (409), nothing copied or removed.
 With `validation` off an `ISSUED` token commits with an unconditional copy. `StaticAssetPinnedFile` (`key`, `size`,
-`etag`, `contentType` from the key, `stream({ range? })`) makes every handler read conditional on the pin; a failed
+`stream({ range? })`) makes every handler read conditional on the pin; a failed
 condition or a missing object throws `UPLOAD_CHANGED`. The handler no longer gets `helper`, `bucket` or `object`.
 On a bucket without versioning the pin is the ETag (an MD5 for a plain upload): a crafted collision is a
 theoretical bypass, so a malware gate needs bucket versioning, and then a lifecycle rule that expires noncurrent

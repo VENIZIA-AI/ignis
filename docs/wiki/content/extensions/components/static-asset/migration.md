@@ -184,7 +184,7 @@ An entry that already had a `keyPrefix` keeps its keys. Check that `pendingPrefi
 
 ## The validation handler
 
-The handler takes `{ file, owner }` and reads through `file`. It no longer receives `helper`, `bucket` or `object`. `file` is a `StaticAssetPinnedFile`: `key`, `size`, `etag`, `contentType` and `stream({ range? })`. See [Validation](./direct-upload#validation).
+The handler takes `{ file, owner }` and reads through `file`. It no longer receives `helper`, `bucket` or `object`. `file` is a `StaticAssetPinnedFile`: `key`, `size` and `stream({ range? })`. See [Validation](./direct-upload#validation).
 
 ```typescript
 // Before
