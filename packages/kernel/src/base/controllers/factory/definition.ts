@@ -500,6 +500,7 @@ export class RouteConfigResolver {
       serverStampedKeys = [],
       routes,
     } = opts;
+
     /** The overrides of a listed route (`true` has none), or `undefined` for a route that is not listed. */
     const configOf = (routeKey: keyof ICustomizableRoutes) => {
       const value = routes?.[routeKey];
