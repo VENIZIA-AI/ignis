@@ -17,38 +17,27 @@ import { StaticAssetDefinition } from './definition';
 import { StaticAssetLabelsUtility, UploadLabelsSchema } from './labels';
 import { MetaLinkOutcomeSchema } from './upload';
 
-/** What the direct upload routes run, as the entry configured them. */
-type TDirectEnv = {
-  options: NonNullable<IStaticAssetRouteEnv['directUpload']>;
-  policyService: NonNullable<IStaticAssetRouteEnv['policyService']>;
-  commitService: NonNullable<IStaticAssetRouteEnv['commitService']>;
-};
-
 class StaticAssetDirectUploadGuard {
-  static require(opts: { env: IStaticAssetRouteEnv }): TDirectEnv {
-    const { env } = opts;
-    const feature = StaticAssetFeatures.DIRECT_UPLOAD;
-
-    return {
-      options: StaticAssetRouteUtility.requireFeature({ value: env.directUpload, feature }),
-      policyService: StaticAssetRouteUtility.requireFeature({ value: env.policyService, feature }),
-      commitService: StaticAssetRouteUtility.requireFeature({ value: env.commitService, feature }),
-    };
+  static require(opts: { env: IStaticAssetRouteEnv }) {
+    return StaticAssetRouteUtility.requireFeature({
+      value: opts.env.directUpload,
+      feature: StaticAssetFeatures.DIRECT_UPLOAD,
+    });
   }
 
   /** First on every direct upload route: nothing below runs for a caller who may not use direct upload. Returns the owner the token is signed for or checked against. */
   static async guard(opts: {
     ctx: TRouteContext;
-    direct: TDirectEnv;
+    direct: ReturnType<typeof StaticAssetDirectUploadGuard.require>;
   }): Promise<string | undefined> {
     const { ctx, direct } = opts;
-    const isAuthorized = await direct.options.authorize({ context: ctx });
+    const isAuthorized = await direct.authorize({ context: ctx });
 
     if (!isAuthorized) {
       throw getError({ error: StaticAssetErrors.UPLOAD_NOT_AUTHORIZED });
     }
 
-    return direct.options.resolveOwner?.({ context: ctx });
+    return direct.resolveOwner?.({ context: ctx });
   }
 }
 
@@ -73,7 +62,7 @@ const uploadPolicy: IStaticAssetRoute = {
                 size: z.number().int().nonnegative().optional(),
               }),
             )
-            .max(direct.options.maxFiles ?? StaticAssetDefaults.MAX_UPLOAD_FILES),
+            .max(direct.maxFiles ?? StaticAssetDefaults.MAX_UPLOAD_FILES),
         }),
         response: z.array(
           z.object({
@@ -142,7 +131,7 @@ const uploadValidate: IStaticAssetRoute = {
   build: (env) => {
     const direct = StaticAssetDirectUploadGuard.require({ env });
     const validation = StaticAssetRouteUtility.requireFeature({
-      value: direct.options.validation,
+      value: direct.validation,
       feature: StaticAssetFeatures.VALIDATION,
     });
 

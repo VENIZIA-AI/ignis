@@ -2,7 +2,7 @@ import type { TRouteContext } from '@/base/controllers';
 import { z } from '@hono/zod-openapi';
 import { StorageUtility } from '@venizia/ignis-helpers';
 import { HTTP, ResolverUtility } from '@venizia/ignis-helpers/common';
-import { MetaLinkRecreateActions } from '../../common';
+import { MetaLinkRecreateActions, type TMetaLinkRecreateAction } from '../../common';
 import { StaticAssetKeyScopeUtility } from '../../utilities/key-scope.utility';
 import { StaticAssetMetaLinkUtility } from '../../utilities/meta-link.utility';
 import {
@@ -82,7 +82,6 @@ const deleteObject: IStaticAssetRoute = {
       const repository = await ResolverUtility.resolveValueAsync({
         value: env.metaLink.repository,
       });
-      // Awaited: the object is gone and its removal is idempotent, so a retry removes the row.
       await repository.deleteBy({ where: { bucketName: bucket.name, objectName: object.key } });
       env.logger.for('DELETE_OBJECT').info('Deleted MetaLink for %s/%s', bucket.name, object.key);
 
@@ -138,6 +137,22 @@ const listObjects: IStaticAssetRoute = {
   }),
 };
 
+const reply = (opts: {
+  ctx: TRouteContext;
+  action: TMetaLinkRecreateAction;
+  rows: Array<Record<string, unknown>>;
+}) =>
+  opts.ctx.json(
+    {
+      success: true,
+      action: opts.action,
+      count: opts.rows.length,
+      metaLink: opts.rows[0],
+      metaLinks: opts.rows,
+    },
+    HTTP.ResultCodes.RS_2.Ok,
+  );
+
 const recreate = async (opts: { ctx: TRouteContext; env: IStaticAssetRouteEnv }) => {
   const { ctx, env } = opts;
   const metaLink = StaticAssetRouteUtility.requireFeature({
@@ -164,16 +179,7 @@ const recreate = async (opts: { ctx: TRouteContext; env: IStaticAssetRouteEnv })
   });
 
   if (refreshed.count > 0) {
-    return ctx.json(
-      {
-        success: true,
-        action: MetaLinkRecreateActions.REFRESHED,
-        count: refreshed.count,
-        metaLink: refreshed.data[0],
-        metaLinks: refreshed.data,
-      },
-      HTTP.ResultCodes.RS_2.Ok,
-    );
+    return reply({ ctx, action: MetaLinkRecreateActions.REFRESHED, rows: refreshed.data });
   }
 
   // Not atomic with the refresh above: two concurrent calls may both create, which the
@@ -193,16 +199,7 @@ const recreate = async (opts: { ctx: TRouteContext; env: IStaticAssetRouteEnv })
     labels: {},
   });
 
-  return ctx.json(
-    {
-      success: true,
-      action: MetaLinkRecreateActions.CREATED,
-      count: 1,
-      metaLink: created,
-      metaLinks: [created],
-    },
-    HTTP.ResultCodes.RS_2.Ok,
-  );
+  return reply({ ctx, action: MetaLinkRecreateActions.CREATED, rows: [created] });
 };
 
 const recreateMetaLink: IStaticAssetRoute = {

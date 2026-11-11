@@ -39,7 +39,6 @@ export interface IStaticAssetResolvedEntry<Schema extends TMetaLinkCompatibleSch
   keyPrefix?: string;
   /** Folders allowed in an object key: the caller's `maxFolderDepth` plus the scope's own. */
   objectKeyMaxDepth: number;
-  /** The caller's folders only. */
   maxFolderDepth: number;
   auth?: Pick<TStaticAssetAuth, 'authenticate' | 'authorize'> & { isPublicRead: boolean };
   routes: Partial<Record<TStaticAssetRouteKey, IStaticAssetResolvedRoute>>;
@@ -138,7 +137,6 @@ export class StaticAssetEntryUtility {
     const routes: IStaticAssetResolvedEntry<Schema>['routes'] = {};
 
     for (const [routeKey, toggle] of Object.entries(entry.routes ?? {})) {
-      // `Object.entries` widens the key; the type of `routes` is the only source of these.
       const { use, ...override } = toggle;
 
       routes[routeKey as TStaticAssetRouteKey] = { isEnabled: use, override };
@@ -166,9 +164,7 @@ export class StaticAssetEntryUtility {
       },
       routes,
       helper,
-      // The row records where the bytes live.
       storage: storageType,
-      // The link points at this controller's own object route: that is where the object can be read.
       link:
         entry.link ??
         ((location) =>

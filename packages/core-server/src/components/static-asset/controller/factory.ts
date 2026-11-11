@@ -41,14 +41,24 @@ export class StaticAssetControllerFactory {
     opts: IStaticAssetControllerOptions<Schema>,
   ) {
     const { policyService, commitService } = opts;
-    const resolved = StaticAssetEntryUtility.resolve({ key: opts.key, entry: opts.entry });
+    const { directUpload, ...resolved } = StaticAssetEntryUtility.resolve({
+      key: opts.key,
+      entry: opts.entry,
+    });
     const { name, basePath, helper, extend } = resolved;
 
-    if (resolved.directUpload && (!policyService || !commitService)) {
+    if (directUpload && (!policyService || !commitService)) {
       throw getError({
         message: `[${name}] directUpload needs policyService and commitService | the component builds and binds them; a caller of StaticAssetControllerFactory.build passes its own`,
       });
     }
+
+    const env = {
+      ...resolved,
+      directUpload: directUpload &&
+        policyService &&
+        commitService && { ...directUpload, policyService, commitService },
+    };
 
     @controllerDecorator({ path: basePath })
     class GeneratedStaticAssetController extends BaseRestController {
@@ -62,7 +72,7 @@ export class StaticAssetControllerFactory {
 
         StaticAssetRouteTable.register({
           controller: this,
-          env: { ...resolved, logger: this.logger, policyService, commitService },
+          env: { ...env, logger: this.logger },
         });
 
         // Last, so a built-in route always wins a path collision with an application's own.

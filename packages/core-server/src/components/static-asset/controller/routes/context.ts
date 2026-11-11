@@ -29,11 +29,16 @@ export class StaticAssetFeatures {
 export type TStaticAssetFeature = TConstValue<typeof StaticAssetFeatures>;
 
 /** What every route reads: the entry, resolved once, plus what only the running controller has. The table is erased at this seam on purpose: inside the routes every read and write is on MetaLink COLUMNS. */
-export interface IStaticAssetRouteEnv extends IStaticAssetResolvedEntry<AnyType> {
+export interface IStaticAssetRouteEnv extends Omit<
+  IStaticAssetResolvedEntry<AnyType>,
+  'directUpload'
+> {
   logger: BaseRestController['logger'];
-  /** What the direct upload routes run: the instances the component bound. */
-  policyService?: Pick<StaticAssetUploadPolicyService, 'issuePolicies'>;
-  commitService?: Pick<StaticAssetUploadCommitService, 'commit' | 'validate'>;
+  /** The resolved options with the services the component bound: the instances an application resolves from the container. */
+  directUpload?: NonNullable<IStaticAssetResolvedEntry<AnyType>['directUpload']> & {
+    policyService: Pick<StaticAssetUploadPolicyService, 'issuePolicies'>;
+    commitService: Pick<StaticAssetUploadCommitService, 'commit' | 'validate'>;
+  };
 }
 
 export interface IStaticAssetRoute {

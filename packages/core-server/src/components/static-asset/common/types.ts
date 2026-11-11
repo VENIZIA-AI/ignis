@@ -47,7 +47,6 @@ export type TStaticAssetDefineExtraRoutes = (opts: {
   basePath: string;
 }) => void;
 
-// Declared by hand rather than inferred: RouteHandler inference here is heavy.
 /** Path parameters of the object routes. */
 export type TStaticAssetObjectParams = { objectName: string };
 
@@ -224,7 +223,6 @@ type TStaticAssetStorage =
 
 /** One storage backend with its generated controller. Every switch is a toggle; a toggle left out is a type error, so nothing is on or off by accident. */
 export type TStaticAssetEntry<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
-  /** Where the controller is mounted. */
   basePath: string;
 
   /** The controller's name. Absent, it is derived from the entry's key. */
@@ -263,7 +261,6 @@ export type TStaticAssetEntry<Schema extends TMetaLinkCompatibleSchema = TMetaLi
 
   routes?: TStaticAssetRoutes;
 
-  /** Routes of the application's own on the generated controller. */
   extend?: {
     /** Registered BEFORE every built-in route, so a literal path wins over the catch-all `rawObjectPath` produces. Hono matches in registration order. */
     before?: TStaticAssetDefineExtraRoutes;

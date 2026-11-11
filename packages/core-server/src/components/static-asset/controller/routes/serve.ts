@@ -17,7 +17,6 @@ import {
 } from './context';
 import { StaticAssetDefinition, StaticAssetPaths } from './definition';
 
-/** The served type comes from the object name; the two stream routes share one serve path. */
 export class StaticAssetServe {
   /**
    * The served type comes from the object NAME, never the backend or the uploader: a renderable type on
