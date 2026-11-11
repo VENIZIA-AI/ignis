@@ -41,7 +41,7 @@ export class Application extends BaseApplication {
 }
 ```
 
-This registers `GET`/`POST`/`DELETE` on `/assets/buckets/:bucketName`, `POST /assets/buckets/:bucketName/objects`, `GET /assets/buckets/:bucketName/objects`, plus stream/download/delete-object routes - no controller class to write by hand.
+This registers `POST /assets/buckets/:bucketName/objects`, `GET /assets/buckets/:bucketName/objects`, plus stream/download/delete-object routes - no controller class to write by hand. Every route is open until you set `auth` on the entry (see [`auth`](./api#authentication-auth-and-per-route-overrides)), and the four bucket-management routes stay off until you turn each one on.
 
 ## How it works
 

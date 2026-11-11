@@ -57,6 +57,7 @@ export class StaticAssetComponent<
           ...directUploadServices,
           storage,
           helper,
+          auth: opt.auth,
           useMetaLink: opt.useMetaLink,
           metaLink: opt.useMetaLink ? opt.metaLink : undefined,
           resolveObjectName,

@@ -1,4 +1,4 @@
-import type { BaseRestController, IAuthRouteConfig, TRouteContext } from '@/base';
+import type { BaseRestController, IAuthRouteConfig, TRouteAuthConfig, TRouteContext } from '@/base';
 import type { z } from '@hono/zod-openapi';
 import type { IDuration } from '@venizia/ignis-helpers/common';
 import type {
@@ -175,19 +175,32 @@ export type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLink
   }) => ValueOrPromise<{ count: number; data: TTableObject<Schema> }>;
 };
 
-/** The part of a built-in route an application may change. */
+/** The part of a built-in route an application may change. `authenticate` and `authorize` replace the entry's `auth` for this route, and `{ skip: true }` leaves it open. */
 export type TStaticAssetRouteConfig = Partial<
-  Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>
-> & {
+  Omit<IAuthRouteConfig, 'method' | 'request' | 'responses' | 'authenticate' | 'authorize'>
+> &
+  TRouteAuthConfig & {
+    /**
+     * Whether this route is registered. The four bucket-management routes are OFF unless this is
+     * `true`; every other route is on unless this is `false`.
+     *
+     * @default true
+     */
+    enabled?: boolean;
+  };
+
+/** Authentication and authorization for every built-in route of an entry; a route's own `authenticate`/`authorize` replaces it for that route. */
+export type TStaticAssetAuth = TRouteAuthConfig & {
   /**
-   * Whether this route is registered.
+   * Leaves `getObjectByName` and `downloadObjectByName` unauthenticated, so a browser can show an
+   * image without a token. `listObjects` is NOT public: listing a bucket is not reading an object.
    *
-   * @default true
+   * @default false
    */
-  enabled?: boolean;
+  publicRead?: boolean;
 };
 
-/** Per-route overrides for the built-in routes of a generated asset controller. A key left out keeps that route as built. */
+/** Per-route overrides for the built-in routes of a generated asset controller. A key left out keeps that route as built, except the four bucket-management routes, which stay off until enabled. */
 export type TStaticAssetRoutes = {
   getBuckets?: TStaticAssetRouteConfig;
   getBucketByName?: TStaticAssetRouteConfig;
@@ -208,11 +221,16 @@ export type TStaticAssetRoutes = {
   recreateMetaLink?: TStaticAssetRouteConfig;
 };
 
+/** The name of a built-in route, the key of `routes`. */
+export type TStaticAssetRouteKey = keyof TStaticAssetRoutes;
+
 /** Static asset controllers keyed by an application-chosen name. Each entry pairs a storage type with its matching helper, and `useMetaLink: true` requires a `metaLink` config. */
 export type TStaticAssetComponentOptions<
   Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema,
 > = {
   [key: string]: {
+    /** Authentication and authorization of every built-in route of this entry. Absent leaves every route open, as before; `publicRead` is the only way a read route is public on purpose. */
+    auth?: TStaticAssetAuth;
     controller: {
       name: string;
       basePath: string;

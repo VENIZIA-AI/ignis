@@ -9,6 +9,7 @@ import type {
   TMetaLinkConfig,
   TStaticAssetObjectNameResolver,
   TStaticAssetExtraOptions,
+  TStaticAssetRoutes,
 } from '@/components/static-asset/common';
 import { StaticAssetStorageTypes } from '@/components/static-asset/common';
 import { OpenApiResponses } from '@venizia/ignis-kernel';
@@ -113,6 +114,14 @@ class FakeMetaLinkRepository {
   }
 }
 
+/** The four bucket-management routes are off until an application turns each one on. */
+const BUCKET_ROUTES_ON: TStaticAssetRoutes = {
+  getBuckets: { enabled: true },
+  getBucketByName: { enabled: true },
+  createBucket: { enabled: true },
+  deleteBucket: { enabled: true },
+};
+
 /** Mounts a generated static-asset controller on a fresh application and returns the server router wired as start() does - root router under the app base path plus the real application error handler. */
 const mountAssetController = async (opts: {
   helper: FakeStorageHelper;
@@ -124,6 +133,7 @@ const mountAssetController = async (opts: {
   defineExtraRoutes?: TStaticAssetDefineExtraRoutes;
   bucket?: string | (() => string);
   rawObjectPath?: boolean;
+  routes?: TStaticAssetRoutes;
 }): Promise<OpenAPIHono> => {
   const {
     helper,
@@ -135,6 +145,7 @@ const mountAssetController = async (opts: {
     defineExtraRoutes,
     bucket,
     rawObjectPath,
+    routes,
   } = opts;
 
   MetadataRegistry.getInstance().clearAll();
@@ -148,6 +159,7 @@ const mountAssetController = async (opts: {
       isStrict,
       bucket,
       rawObjectPath,
+      routes,
     },
     storage: StaticAssetStorageTypes.DISK,
     helper,
@@ -977,7 +989,7 @@ describe('StaticAsset controller — a configured bucket', () => {
 
   test('the default shape keeps the bucket in the URL and the management routes', async () => {
     const helper = new FakeStorageHelper();
-    const router = await mountAssetController({ helper });
+    const router = await mountAssetController({ helper, routes: BUCKET_ROUTES_ON });
 
     const result = await router.request('/assets/buckets');
     expect(result.status).toBe(200);
@@ -1151,7 +1163,10 @@ describe('StaticAsset controller — the OpenAPI document', () => {
   });
 
   test('file-stream and JSON routes reference the one ErrorResponse component under 4XX and 5XX', async () => {
-    const router = await mountAssetController({ helper: new FakeStorageHelper() });
+    const router = await mountAssetController({
+      helper: new FakeStorageHelper(),
+      routes: BUCKET_ROUTES_ON,
+    });
     const document = router.getOpenAPIDocument({
       openapi: '3.1.0',
       info: { title: 'assets', version: '1.0.0' },

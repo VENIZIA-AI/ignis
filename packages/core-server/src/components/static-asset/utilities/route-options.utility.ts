@@ -1,8 +1,14 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import { BodyLimits } from '@venizia/ignis-kernel';
+import { BodyLimits, RouteConfigResolver } from '@venizia/ignis-kernel';
 import type { MiddlewareHandler } from 'hono';
-import { StaticAssetErrors, type TStaticAssetRouteConfig } from '../common';
+import type { IAuthRouteConfig, TRouteAuthConfig } from '@/base';
+import {
+  StaticAssetErrors,
+  type TStaticAssetAuth,
+  type TStaticAssetRouteConfig,
+  type TStaticAssetRouteKey,
+} from '../common';
 
 export class StaticAssetRouteOptionsUtility {
   /** Multipart framing of one file (boundary, `Content-Disposition` with a file name, `Content-Type`), allowed on top of its `maxBytes` in the route's body limit. */
@@ -11,14 +17,66 @@ export class StaticAssetRouteOptionsUtility {
   /** The non-file parts of an upload (policy fields, the closing boundary), allowed once in the route's body limit. */
   static readonly ENVELOPE_BYTES_BASE = 64 * 1024;
 
-  /** Splits the `enabled` switch off the route config: it is this component's field, never a Hono one. */
-  static readOverride(opts: { route?: TStaticAssetRouteConfig }): {
-    isEnabled: boolean;
-    override: Omit<TStaticAssetRouteConfig, 'enabled'>;
-  } {
-    const { enabled, ...override } = opts.route ?? {};
+  /** The routes `auth.publicRead` leaves open: reading ONE object. Listing is not reading an object. */
+  private static readonly PUBLIC_READ_ROUTES: ReadonlySet<TStaticAssetRouteKey> = new Set([
+    'getObjectByName',
+    'downloadObjectByName',
+  ]);
 
-    return { isEnabled: enabled !== false, override };
+  /**
+   * Reads one built-in route's configuration: whether it is registered, the Hono overrides, and the
+   * authentication and authorization it ends up with.
+   *
+   * The `enabled` switch and the auth fields are this component's, never Hono's, so they are split
+   * off. Auth is resolved by the same resolver the CRUD factory uses: a route's own config beats the
+   * entry's `auth`, and `{ skip: true }` opens the route. `publicRead` is the entry's default for
+   * the two read routes and loses to any auth the route sets itself.
+   */
+  static readRoute(opts: {
+    key: TStaticAssetRouteKey;
+    route?: TStaticAssetRouteConfig;
+    auth?: TStaticAssetAuth;
+    /** The route is registered only when its own `enabled` is `true`. */
+    isOffByDefault?: boolean;
+  }): {
+    isEnabled: boolean;
+    override: Omit<TStaticAssetRouteConfig, 'enabled' | 'authenticate' | 'authorize'> &
+      Pick<IAuthRouteConfig, 'authenticate' | 'authorize'>;
+  } {
+    const { key, route, auth, isOffByDefault = false } = opts;
+    const { enabled, authenticate, authorize, ...override } = route ?? {};
+
+    const isPublicRead =
+      auth?.publicRead === true &&
+      StaticAssetRouteOptionsUtility.PUBLIC_READ_ROUTES.has(key) &&
+      authenticate == null &&
+      authorize == null;
+    const endpoint: TRouteAuthConfig = isPublicRead
+      ? { authenticate: { skip: true } }
+      : { authenticate, authorize };
+
+    // An entry-level `skip` is no default at all: nothing to inherit.
+    const entryAuthenticate =
+      auth?.authenticate == null || auth.authenticate.skip === true ? undefined : auth.authenticate;
+    const entryAuthorize =
+      auth?.authorize == null || (!Array.isArray(auth.authorize) && 'skip' in auth.authorize)
+        ? undefined
+        : auth.authorize;
+
+    return {
+      isEnabled: isOffByDefault ? enabled === true : enabled !== false,
+      override: {
+        ...override,
+        authenticate: RouteConfigResolver.resolveAuthenticate({
+          controller: entryAuthenticate,
+          endpoint: endpoint.authenticate,
+        }),
+        authorize: RouteConfigResolver.resolveAuthorize({
+          controller: entryAuthorize,
+          endpoint,
+        }),
+      },
+    };
   }
 
   /**
