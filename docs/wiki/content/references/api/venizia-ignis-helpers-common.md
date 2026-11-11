@@ -442,6 +442,8 @@ export declare class HTTP {
         readonly CONTENT_TYPE: "content-type";
         readonly CONTENT_RANGE: "content-range";
         readonly CONTENT_SECURITY_POLICY: "content-security-policy";
+        readonly ACCEPT_RANGES: "accept-ranges";
+        readonly RANGE: "range";
         readonly ACCEPT: "accept";
         readonly ACCEPT_ENCODING: "accept-encoding";
         readonly ACCEPT_LANGUAGE: "accept-language";
@@ -1058,6 +1060,8 @@ export declare class HTTP {
         readonly CONTENT_TYPE: "content-type";
         readonly CONTENT_RANGE: "content-range";
         readonly CONTENT_SECURITY_POLICY: "content-security-policy";
+        readonly ACCEPT_RANGES: "accept-ranges";
+        readonly RANGE: "range";
         readonly ACCEPT: "accept";
         readonly ACCEPT_ENCODING: "accept-encoding";
         readonly ACCEPT_LANGUAGE: "accept-language";
@@ -1253,6 +1257,8 @@ export declare class HTTP {
         readonly CONTENT_TYPE: "content-type";
         readonly CONTENT_RANGE: "content-range";
         readonly CONTENT_SECURITY_POLICY: "content-security-policy";
+        readonly ACCEPT_RANGES: "accept-ranges";
+        readonly RANGE: "range";
         readonly ACCEPT: "accept";
         readonly ACCEPT_ENCODING: "accept-encoding";
         readonly ACCEPT_LANGUAGE: "accept-language";
@@ -1448,6 +1454,8 @@ export declare class HTTP {
         readonly CONTENT_TYPE: "content-type";
         readonly CONTENT_RANGE: "content-range";
         readonly CONTENT_SECURITY_POLICY: "content-security-policy";
+        readonly ACCEPT_RANGES: "accept-ranges";
+        readonly RANGE: "range";
         readonly ACCEPT: "accept";
         readonly ACCEPT_ENCODING: "accept-encoding";
         readonly ACCEPT_LANGUAGE: "accept-language";

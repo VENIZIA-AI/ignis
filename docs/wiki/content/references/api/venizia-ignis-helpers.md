@@ -812,7 +812,8 @@ export declare abstract class BaseStorageHelper extends BaseHelper implements IS
     protected abstract writeObject(opts: IObjectLocation & {
         file: IUploadFile;
     }): Promise<void>;
-    protected normalizeObjectName(opts: {
+    /** The key `upload` writes when no naming hook is given: lowercase, spaces become `_`, under the folder when there is one. Public so a naming hook can start from the very key the helper would have written. */
+    static normalizeObjectName(opts: {
         file: TUploadNaming;
     }): string;
     protected normalizeObjectLink(opts: IObjectLocation): string;
