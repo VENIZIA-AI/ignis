@@ -19,6 +19,25 @@ export class StorageUtility {
     return ['nosuchkey', 'nosuchbucket', 'notfound'].some((needle) => marker.includes(needle));
   }
 
+  /** A version id that names a version. S3 and MinIO answer the literal `null`, or nothing, for an object in a bucket where versioning is off or suspended. */
+  static realVersionId(opts: { value?: string | null }): string | undefined {
+    const { value } = opts;
+
+    return value === undefined || value === null || value === '' || value === 'null'
+      ? undefined
+      : value;
+  }
+
+  /** "The expected content is gone", across SDKs: S3 and MinIO answer 412. */
+  static isPreconditionFailedError(opts: { error: unknown }): boolean {
+    const source = opts.error as { statusCode?: number; status?: number } | null | undefined;
+
+    return (
+      source?.statusCode === HTTP.ResultCodes.RS_4.PreconditionFailed ||
+      source?.status === HTTP.ResultCodes.RS_4.PreconditionFailed
+    );
+  }
+
   /** S3 presigns in whole seconds. An unknown unit is refused; `null` would read as "no expiry". */
   static toExpirySeconds(opts: { expiresIn: IDuration; operation: string }): number {
     const { expiresIn, operation } = opts;

@@ -1,4 +1,5 @@
 import type { IDuration } from '@/common';
+import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
 import { ErrorPrettier } from '@/modules/logger';
 import { EchoUtility } from '@/utilities/echo.utility';
@@ -15,9 +16,16 @@ import type {
   IObjectRef,
   IPostPolicy,
   IStorageHelperOptions,
+  IStorageReadCondition,
   IUploadFile,
 } from '../common';
-import { S3Audiences, StorageTypes, StorageUtility, StoragePresignDefaults } from '../common';
+import {
+  S3Audiences,
+  StorageErrors,
+  StorageTypes,
+  StorageUtility,
+  StoragePresignDefaults,
+} from '../common';
 import type { TS3Audience } from '../common';
 import { S3SignatureUtility } from './utility';
 
@@ -307,8 +315,10 @@ export class BunS3Helper extends BaseStorageHelper {
     bucket: IBucketRef;
     source: IObjectRef;
     destination: IObjectRef;
+    ifMatch?: string;
+    sourceVersionId?: string;
   }): Promise<void> {
-    const { bucket, source, destination } = opts;
+    const { bucket, source, destination, ifMatch, sourceVersionId } = opts;
     const { accessKey, secretKey, region, sessionToken } = this.credentials;
     const { endpoint, pathPrefix } = this.objectEndpoint({
       bucket: bucket.name,
@@ -329,11 +339,22 @@ export class BunS3Helper extends BaseStorageHelper {
         'x-amz-copy-source': S3SignatureUtility.buildCopySource({
           bucket: bucket.name,
           key: source.key,
+          versionId: sourceVersionId,
         }),
+        ...(ifMatch === undefined
+          ? {}
+          : { 'x-amz-copy-source-if-match': BunS3Helper.quoteEtag({ etag: ifMatch }) }),
       },
     });
 
     const response = await fetch(request.url, { method: 'PUT', headers: request.headers });
+
+    if (response.status === HTTP.ResultCodes.RS_4.PreconditionFailed) {
+      throw getError({
+        error: StorageErrors.PRECONDITION_FAILED,
+        message: `[copyObject] The source changed | bucket: ${EchoUtility.toSafeText({ value: bucket.name })} | source: ${EchoUtility.toSafeText({ value: source.key })}`,
+      });
+    }
 
     if (!response.ok) {
       throw getError({
@@ -581,8 +602,12 @@ export class BunS3Helper extends BaseStorageHelper {
 
   /** The conversion-free path a `Response` body wants. `slice` makes it a ranged GET, so only the requested bytes leave S3. */
   override async getObjectStream(
-    opts: IObjectLocation & { range?: { start: number; end?: number } },
+    opts: IObjectLocation & { range?: { start: number; end?: number } } & IStorageReadCondition,
   ): Promise<ReadableStream<Uint8Array>> {
+    if (opts.ifMatch !== undefined || opts.versionId !== undefined) {
+      return this.getConditionalStream(opts);
+    }
+
     const bucketName = opts.bucket.name;
     const key = opts.object.key;
     const { range } = opts;
@@ -599,28 +624,106 @@ export class BunS3Helper extends BaseStorageHelper {
     return window.stream() as ReadableStream<Uint8Array>;
   }
 
-  async getStat(opts: IObjectLocation): Promise<IFileStat> {
-    const bucketName = opts.bucket.name;
-    const key = opts.object.key;
+  /** The ETag with the quotes S3 sends and expects in `If-Match`. */
+  private static quoteEtag(opts: { etag: string }): string {
+    const { etag } = opts;
 
-    try {
-      const stat = await this.client.stat(key, this.callOptions({ bucket: bucketName }));
+    return etag.startsWith('"') || etag.startsWith('W/') ? etag : `"${etag}"`;
+  }
 
-      return {
-        size: stat.size,
-        // One key, not two spellings. The served type comes from the object name; this is diagnostic.
-        metadata: { mimetype: stat.type },
-        lastModified: stat.lastModified,
-        etag: stat.etag,
-      };
-    } catch (error) {
-      throw this.asStorageError({
-        error,
-        operation: 'getStat',
-        bucket: opts.bucket,
-        object: opts.object,
+  /** `S3File` cannot send `If-Match` or a version id, so a conditional read is a signed GET. */
+  private async getConditionalStream(
+    opts: IObjectLocation & { range?: { start: number; end?: number } } & IStorageReadCondition,
+  ): Promise<ReadableStream<Uint8Array>> {
+    const { bucket, object, range, ifMatch, versionId } = opts;
+    const { accessKey, secretKey, region, sessionToken } = this.credentials;
+    const { endpoint, pathPrefix } = this.objectEndpoint({
+      bucket: bucket.name,
+      audience: S3Audiences.SERVER,
+    });
+
+    const request = await S3SignatureUtility.buildSignedRequest({
+      method: 'GET',
+      endpoint,
+      path: `${pathPrefix}/${object.key}`,
+      accessKey,
+      secretKey,
+      region,
+      sessionToken,
+      ...(versionId === undefined ? {} : { query: { versionId } }),
+      headers: {
+        ...(ifMatch === undefined ? {} : { 'if-match': BunS3Helper.quoteEtag({ etag: ifMatch }) }),
+        ...(range === undefined ? {} : { range: `bytes=${range.start}-${range.end ?? ''}` }),
+      },
+    });
+
+    const response = await fetch(request.url, { method: 'GET', headers: request.headers });
+
+    if (response.status === HTTP.ResultCodes.RS_4.PreconditionFailed) {
+      throw getError({
+        error: StorageErrors.PRECONDITION_FAILED,
+        message: `[getObjectStream] The object changed | bucket: ${EchoUtility.toSafeText({ value: bucket.name })} | key: ${EchoUtility.toSafeText({ value: object.key })}`,
       });
     }
+
+    if (response.status === HTTP.ResultCodes.RS_4.NotFound) {
+      throw this.asStorageError({
+        error: { status: response.status },
+        operation: 'getObjectStream',
+        bucket,
+        object,
+      });
+    }
+
+    if (!response.ok || !response.body) {
+      throw getError({
+        message: `[getObjectStream] Read failed | bucket: ${EchoUtility.toSafeText({ value: bucket.name })} | key: ${EchoUtility.toSafeText({ value: object.key })} | status: ${response.status}`,
+      });
+    }
+
+    return response.body;
+  }
+
+  /** A signed HEAD rather than `client.stat`, because Bun's stat does not report the version id the pin needs. */
+  async getStat(opts: IObjectLocation): Promise<IFileStat> {
+    const { bucket, object } = opts;
+    const { accessKey, secretKey, region, sessionToken } = this.credentials;
+    const { endpoint, pathPrefix } = this.objectEndpoint({
+      bucket: bucket.name,
+      audience: S3Audiences.SERVER,
+    });
+
+    const request = await S3SignatureUtility.buildSignedRequest({
+      method: 'HEAD',
+      endpoint,
+      path: `${pathPrefix}/${object.key}`,
+      accessKey,
+      secretKey,
+      region,
+      sessionToken,
+    });
+
+    const response = await fetch(request.url, { method: 'HEAD', headers: request.headers });
+
+    if (!response.ok) {
+      throw this.asStorageError({
+        error: { status: response.status },
+        operation: 'getStat',
+        bucket,
+        object,
+      });
+    }
+
+    const lastModified = response.headers.get('last-modified');
+
+    return {
+      size: Number(response.headers.get('content-length') ?? 0),
+      // One key, not two spellings. The served type comes from the object name; this is diagnostic.
+      metadata: { mimetype: response.headers.get('content-type') ?? undefined },
+      lastModified: lastModified === null ? undefined : new Date(lastModified),
+      etag: response.headers.get('etag') ?? undefined,
+      versionId: StorageUtility.realVersionId({ value: response.headers.get('x-amz-version-id') }),
+    };
   }
 
   async removeObject(opts: IObjectLocation): Promise<void> {

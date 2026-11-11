@@ -17,6 +17,7 @@ import {
   type IObjectLocation,
   type IObjectRef,
   type IStorageHelperOptions,
+  type IStorageReadCondition,
   type IUploadFile,
   StorageErrors,
   StorageTypes,
@@ -382,9 +383,10 @@ export class DiskHelper extends BaseStorageHelper {
 
   /** `createReadStream` seeks natively, so a range never reads the bytes before it. */
   override async getObjectStream(
-    opts: IObjectLocation & { range?: { start: number; end?: number } },
+    opts: IObjectLocation & { range?: { start: number; end?: number } } & IStorageReadCondition,
   ): Promise<ReadableStream<Uint8Array>> {
     const { bucket, object, range } = opts;
+    this.refuseReadCondition({ condition: opts, operation: 'getObjectStream' });
     const objectPath = await this.resolveContainedObjectPath({ bucket, object });
 
     const result = await this.isFile({ target: objectPath });

@@ -50,8 +50,12 @@ export class S3SignatureUtility {
   }
 
   /** `x-amz-copy-source`: S3 URL-decodes it once and splits `?versionId=` off, so a raw `?`, `%` or `+` names another object and a non-Latin-1 key is not a legal header value. */
-  static buildCopySource(opts: { bucket: string; key: string }): string {
-    return S3SignatureUtility.encodeSigV4Path({ path: `/${opts.bucket}/${opts.key}` });
+  static buildCopySource(opts: { bucket: string; key: string; versionId?: string }): string {
+    const source = S3SignatureUtility.encodeSigV4Path({ path: `/${opts.bucket}/${opts.key}` });
+
+    return opts.versionId === undefined
+      ? source
+      : `${source}?versionId=${S3SignatureUtility.encodeSigV4Component({ value: opts.versionId })}`;
   }
 
   /** Empty or absent query must sign identically to today - callers of getBuckets/createBucket/removeBucket depend on it. */

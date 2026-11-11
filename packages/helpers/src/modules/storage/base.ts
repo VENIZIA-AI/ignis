@@ -15,6 +15,7 @@ import {
   type IPostPolicy,
   type IObjectRef,
   type IStorageHelper,
+  type IStorageReadCondition,
   type IUploadFile,
   type IUploadResult,
   type TUploadNaming,
@@ -443,9 +444,10 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
   /** Correct anywhere; overridden by a backend whose transport is already a web stream. */
   async getObjectStream(
-    opts: IObjectLocation & { range?: { start: number; end?: number } },
+    opts: IObjectLocation & { range?: { start: number; end?: number } } & IStorageReadCondition,
   ): Promise<ReadableStream<Uint8Array>> {
     const { bucket, object, range } = opts;
+    this.refuseReadCondition({ condition: opts, operation: 'getObjectStream' });
     const source = await this.getObject({ bucket, object });
 
     if (!range) {
@@ -586,11 +588,22 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     });
   }
 
+  /** For a backend with no ETag or versions to condition a read on: refusing is honest, ignoring would read unpinned. */
+  protected refuseReadCondition(opts: { condition: IStorageReadCondition; operation: string }) {
+    if (opts.condition.ifMatch !== undefined || opts.condition.versionId !== undefined) {
+      throw getError({
+        message: `[${this.constructor.name}.${opts.operation}] A conditional read (ifMatch, versionId) is not supported by this helper`,
+      });
+    }
+  }
+
   // No transport for these: throwing beats returning undefined, which reads as a valid empty result.
   async copyObject(_opts: {
     bucket: IBucketRef;
     source: IObjectRef;
     destination: IObjectRef;
+    ifMatch?: string;
+    sourceVersionId?: string;
   }): Promise<void> {
     throw getError({
       message: `[${this.constructor.name}.copyObject] Server-side copy is not supported by this helper`,

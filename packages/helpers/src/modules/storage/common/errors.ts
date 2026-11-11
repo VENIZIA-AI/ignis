@@ -9,6 +9,15 @@ export const StorageErrors = {
     statusCode: HTTP.ResultCodes.RS_4.NotFound,
     category: ErrorScopes.BUSINESS,
   },
+  /** A read or copy that named the content it expects (an ETag or a version) found other content. */
+  PRECONDITION_FAILED: {
+    message: {
+      text: 'The object no longer matches what was expected',
+      code: 'core.storage.precondition_failed',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.PreconditionFailed,
+    category: ErrorScopes.BUSINESS,
+  },
   /** An upload named a folder the storage refuses: a segment it cannot hold, or an empty path. */
   FOLDER_PATH_INVALID: {
     message: { text: 'Invalid folder path', code: 'core.storage.folder_path_invalid' },

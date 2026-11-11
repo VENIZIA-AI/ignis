@@ -97,6 +97,12 @@ export interface IStorageHelperOptions {
   identifier?: string;
 }
 
+/** What a read may require of the object: its ETag, or an exact version. A read that finds other content fails with `StorageErrors.PRECONDITION_FAILED`. A backend that cannot honour it refuses the read. */
+export interface IStorageReadCondition {
+  ifMatch?: string;
+  versionId?: string;
+}
+
 /** The contract every storage backend (disk, in-memory, S3) implements. Buckets and objects are addressed by `IBucketRef` and `IObjectRef`. */
 export interface IStorageHelper {
   /** The backend this helper writes to. The helpers IGNIS ships declare it; a custom helper may leave it out. */
@@ -116,7 +122,7 @@ export interface IStorageHelper {
 
   /** A web stream, what a `Response` body wants. `range` includes `end`, like the HTTP header. */
   getObjectStream(
-    opts: IObjectLocation & { range?: { start: number; end?: number } },
+    opts: IObjectLocation & { range?: { start: number; end?: number } } & IStorageReadCondition,
   ): Promise<ReadableStream<Uint8Array>>;
   getStat(opts: IObjectLocation): Promise<IFileStat>;
   listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
@@ -158,6 +164,10 @@ export interface IStorageHelper {
     bucket: IBucketRef;
     source: IObjectRef;
     destination: IObjectRef;
+    /** Copy only if the source still has this ETag; otherwise `StorageErrors.PRECONDITION_FAILED`. */
+    ifMatch?: string;
+    /** Copy this exact version of the source. */
+    sourceVersionId?: string;
   }): Promise<void>;
 
   removeObject(opts: IObjectLocation): Promise<void>;
