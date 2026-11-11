@@ -42,6 +42,7 @@ const PINNED = [
   'core.authorization.cache_key_invalid',
   'core.authorization.enforcer_not_registered',
   'core.static_asset.upload_not_authorized',
+  'core.static_asset.upload_invalid',
   'core.static_asset.upload_too_large',
   'core.static_asset.invalid_commit_token',
   'core.static_asset.expired_commit_token',

@@ -115,6 +115,7 @@ type TStaticAssetComponentOptions<Schema extends TMetaLinkCompatibleSchema = TMe
         downloadObjectByName?: TStaticAssetRouteConfig;
         uploadPolicy?: TStaticAssetRouteConfig;
         uploadCommit?: TStaticAssetRouteConfig;
+        uploadValidate?: TStaticAssetRouteConfig;
         recreateMetaLink?: TStaticAssetRouteConfig;
       };
     };
@@ -173,6 +174,7 @@ Each key accepts a `TStaticAssetRouteConfig` - `Partial<Omit<IAuthRouteConfig, '
 | `deleteObject` | `DELETE` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> | `enabled !== false` |
 | `uploadPolicy` | `POST` | <code v-pre>/buckets/{bucketName}/upload-policy</code> | `controller.directUpload` set, `enabled !== false` |
 | `uploadCommit` | `POST` | <code v-pre>/buckets/{bucketName}/upload-commit</code> | `controller.directUpload` set, `enabled !== false` |
+| `uploadValidate` | `POST` | <code v-pre>/buckets/{bucketName}/upload-validate</code> | `controller.directUpload.validation` set, `enabled !== false` |
 | `recreateMetaLink` | `PUT` | <code v-pre>/buckets/{bucketName}/meta-links/{objectName}</code> | `useMetaLink: true`, `enabled !== false` |
 
 `upload` and `listObjects` share one path and differ by method: `POST` writes, `GET` lists. Every route defaults to registered - set `enabled: false` to drop a built-in route entirely, the same switch name the CRUD controller factory uses.

@@ -10,6 +10,7 @@ import { BaseService } from '@venizia/ignis-kernel';
 import { StaticAssetErrors, StaticAssetMetaLinkCodes } from '../common';
 import { StaticAssetCommitTokenUtility } from '../utilities';
 import type {
+  IStaticAssetValidationResult,
   TStaticAssetDirectUploadOptions,
   TMetaLinkConfig,
   TStaticAssetStorageType,
@@ -37,7 +38,10 @@ export interface IStaticAssetUploadCommitServiceOptions<
   helper: IStorageHelper;
   /** The controller's `keyPrefix` as configured; normalized here the way the controller does. */
   keyPrefix?: string;
-  directUpload: Pick<TStaticAssetDirectUploadOptions, 'secretKey' | 'pendingPrefix' | 'onCommit'>;
+  directUpload: Pick<
+    TStaticAssetDirectUploadOptions,
+    'secretKey' | 'pendingPrefix' | 'onCommit' | 'validation'
+  >;
   storage: TStaticAssetStorageType;
   useMetaLink?: boolean;
   metaLink?: TMetaLinkConfig<Schema>;
@@ -107,6 +111,32 @@ export class StaticAssetUploadCommitService<
     return { bucket: payload.bucket, object: payload.object };
   }
 
+  /**
+   * `verify`, then the application's own check of the pending file. With no `validation` configured
+   * every file is valid. The issues are the application's, in the shape of its `issueSchema`.
+   */
+  async validate(opts: {
+    token: string;
+    owner?: string;
+  }): Promise<IStaticAssetValidationResult<unknown>> {
+    const pending = this.verify({ token: opts.token, owner: opts.owner });
+
+    return this.runValidation({ pending, owner: opts.owner });
+  }
+
+  private async runValidation(opts: {
+    pending: IObjectLocation;
+    owner?: string;
+  }): Promise<IStaticAssetValidationResult<unknown>> {
+    const { helper, directUpload } = this.options;
+
+    if (!directUpload.validation) {
+      return { isValid: true, issues: [] };
+    }
+
+    return directUpload.validation.handler({ ...opts.pending, owner: opts.owner, helper });
+  }
+
   /** Moves the pending object to its final key and, when the entry keeps a MetaLink table, writes the row. A MetaLink failure rides the result as a code: the object IS committed by then. */
   async commit(opts: {
     token: string;
@@ -118,10 +148,15 @@ export class StaticAssetUploadCommitService<
 
     // Verified BEFORE any storage call. That is what keeps this from being a name prober: a forged
     // token fails without a round trip, so timing says nothing.
-    const { bucket: bucketRef, object: pendingObject } = this.verify({
-      token: opts.token,
-      owner: opts.owner,
-    });
+    const pending = this.verify({ token: opts.token, owner: opts.owner });
+    const { bucket: bucketRef, object: pendingObject } = pending;
+
+    // An invalid file never leaves `pending/`: this runs before `onCommit` and before the copy.
+    const validation = await this.runValidation({ pending, owner: opts.owner });
+
+    if (!validation.isValid) {
+      throw getError(StaticAssetErrors.UPLOAD_INVALID);
+    }
 
     // Labels, not authorization - the token deliberately carries no business fields, so they travel
     // beside it rather than inside it.

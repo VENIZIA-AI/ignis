@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis/static-asset, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-42 exports, 42 with TSDoc.
+45 exports, 45 with TSDoc.
 
 ## `BaseMetaLinkModel`
 
@@ -654,7 +654,7 @@ export interface IStaticAssetControllerOptions {
     options?: TStaticAssetExtraOptions;
     /** What the two direct upload routes run: the instances the component bound, so an application service resolving them from the container and the routes share them. Required when `controller.directUpload` is set. */
     policyService?: Pick<StaticAssetUploadPolicyService, 'issuePolicies'>;
-    commitService?: Pick<StaticAssetUploadCommitService, 'commit'>;
+    commitService?: Pick<StaticAssetUploadCommitService, 'commit' | 'validate'>;
     /** Decides the stored object name of each uploaded file. Absent leaves the storage helper's own naming untouched. */
     resolveObjectName?: TStaticAssetObjectNameResolver;
     /** Registers the application's own routes on the generated controller, after every built-in one. */
@@ -742,7 +742,7 @@ export interface IStaticAssetUploadCommitServiceOptions<Schema extends TMetaLink
     helper: IStorageHelper;
     /** The controller's `keyPrefix` as configured; normalized here the way the controller does. */
     keyPrefix?: string;
-    directUpload: Pick<TStaticAssetDirectUploadOptions, 'secretKey' | 'pendingPrefix' | 'onCommit'>;
+    directUpload: Pick<TStaticAssetDirectUploadOptions, 'secretKey' | 'pendingPrefix' | 'onCommit' | 'validation'>;
     storage: TStaticAssetStorageType;
     useMetaLink?: boolean;
     metaLink?: TMetaLinkConfig<Schema>;
@@ -774,6 +774,42 @@ export interface IStaticAssetUploadPolicyServiceOptions {
 ```
 
 Source: `packages/core-server/src/components/static-asset/services/policy.service.ts`
+
+## `IStaticAssetValidation`
+
+*interface*
+
+The application's own check of an uploaded file, run on the PENDING object before anything is
+committed. The component owns the route and the refusal; the application owns only this logic.
+Build it with `StaticAssetValidation.define` so the handler is typed by `issueSchema`.
+
+```ts
+export interface IStaticAssetValidation<IssueSchema extends z.ZodType> {
+    /** The shape of ONE issue. It types the handler's answer and documents the route's response. */
+    issueSchema: IssueSchema;
+    handler: (opts: IObjectLocation & {
+        owner?: string;
+        helper: IStorageHelper;
+    }) => ValueOrPromise<IStaticAssetValidationResult<z.infer<IssueSchema>>>;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/common/types.ts`
+
+## `IStaticAssetValidationResult`
+
+*interface*
+
+What a validation answers: whether the file may be committed, and the problems the user should see.
+
+```ts
+export interface IStaticAssetValidationResult<Issue> {
+    isValid: boolean;
+    issues: Issue[];
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
 ## `MetaLinkRecreateActions`
 
@@ -1110,6 +1146,15 @@ export declare const StaticAssetErrors: {
         readonly category: "validation";
     };
     /** Both upload paths - one condition, one code to branch on. */
+    /** Raised by `commit`, never by the validate route: the route answers `{ isValid: false, issues }`, and an invalid file simply cannot be committed. */
+    readonly UPLOAD_INVALID: {
+        readonly message: {
+            readonly text: "The uploaded file did not pass validation";
+            readonly code: "core.static_asset.upload_invalid";
+        };
+        readonly statusCode: 422;
+        readonly category: "validation";
+    };
     readonly UPLOAD_TOO_LARGE: {
         readonly message: {
             readonly text: "File is larger than the maximum allowed";
@@ -1317,6 +1362,15 @@ export declare class StaticAssetUploadCommitService<Schema extends TMetaLinkComp
         token: string;
         owner?: string;
     }): IObjectLocation;
+    /**
+     * `verify`, then the application's own check of the pending file. With no `validation` configured
+     * every file is valid. The issues are the application's, in the shape of its `issueSchema`.
+     */
+    validate(opts: {
+        token: string;
+        owner?: string;
+    }): Promise<IStaticAssetValidationResult<unknown>>;
+    private runValidation;
     /** Moves the pending object to its final key and, when the entry keeps a MetaLink table, writes the row. A MetaLink failure rides the result as a code: the object IS committed by then. */
     commit(opts: {
         token: string;
@@ -1356,6 +1410,21 @@ export declare class StaticAssetUploadPolicyService extends BaseService {
 ```
 
 Source: `packages/core-server/src/components/static-asset/services/policy.service.ts`
+
+## `StaticAssetValidation`
+
+*class*
+
+Defines the application's check of an uploaded file; see `directUpload.validation`.
+
+```ts
+export declare class StaticAssetValidation {
+    /** Returns `opts` unchanged. It exists to infer `IssueSchema`, so a handler that answers another shape of issue fails type-checking. */
+    static define<IssueSchema extends z.ZodType>(opts: IStaticAssetValidation<IssueSchema>): IStaticAssetValidation<IssueSchema>;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/common/validation.ts`
 
 ## `TMetaLink`
 
@@ -2139,6 +2208,11 @@ export type TStaticAssetDirectUploadOptions = {
          */
         commit?: IDuration;
     };
+    /**
+     * Checks the pending file. Present, the component registers `POST {base}/upload-validate`, and
+     * `commit` runs the same check first and refuses an invalid file with `UPLOAD_INVALID`.
+     */
+    validation?: IStaticAssetValidation<z.ZodType>;
     /** Runs BEFORE the copy to the final key, so a hook that throws leaves the object under the pending prefix for a lifecycle rule to collect, rather than stranding it at the final key. */
     onCommit?: (opts: {
         bucket: IBucketRef;
@@ -2272,6 +2346,8 @@ export type TStaticAssetRoutes = {
     downloadObjectByName?: TStaticAssetRouteConfig;
     uploadPolicy?: TStaticAssetRouteConfig;
     uploadCommit?: TStaticAssetRouteConfig;
+    /** Registered only when `directUpload.validation` is set. */
+    uploadValidate?: TStaticAssetRouteConfig;
     recreateMetaLink?: TStaticAssetRouteConfig;
 };
 ```

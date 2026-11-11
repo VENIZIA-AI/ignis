@@ -1,4 +1,5 @@
 import type { BaseRestController, IAuthRouteConfig, TRouteContext } from '@/base';
+import type { z } from '@hono/zod-openapi';
 import type { IDuration } from '@venizia/ignis-helpers/common';
 import type {
   BaseRelationalEntity,
@@ -124,6 +125,12 @@ export type TStaticAssetDirectUploadOptions = {
     commit?: IDuration;
   };
 
+  /**
+   * Checks the pending file. Present, the component registers `POST {base}/upload-validate`, and
+   * `commit` runs the same check first and refuses an invalid file with `UPLOAD_INVALID`.
+   */
+  validation?: IStaticAssetValidation<z.ZodType>;
+
   /** Runs BEFORE the copy to the final key, so a hook that throws leaves the object under the pending prefix for a lifecycle rule to collect, rather than stranding it at the final key. */
   onCommit?: (opts: {
     bucket: IBucketRef;
@@ -131,6 +138,25 @@ export type TStaticAssetDirectUploadOptions = {
     object: IObjectRef;
   }) => ValueOrPromise<void>;
 };
+
+/** What a validation answers: whether the file may be committed, and the problems the user should see. */
+export interface IStaticAssetValidationResult<Issue> {
+  isValid: boolean;
+  issues: Issue[];
+}
+
+/**
+ * The application's own check of an uploaded file, run on the PENDING object before anything is
+ * committed. The component owns the route and the refusal; the application owns only this logic.
+ * Build it with `StaticAssetValidation.define` so the handler is typed by `issueSchema`.
+ */
+export interface IStaticAssetValidation<IssueSchema extends z.ZodType> {
+  /** The shape of ONE issue. It types the handler's answer and documents the route's response. */
+  issueSchema: IssueSchema;
+  handler: (
+    opts: IObjectLocation & { owner?: string; helper: IStorageHelper },
+  ) => ValueOrPromise<IStaticAssetValidationResult<z.infer<IssueSchema>>>;
+}
 
 /** Body of the upload policy route: the files the client intends to upload. */
 export type TStaticAssetUploadPolicyRequest = {
@@ -176,6 +202,8 @@ export type TStaticAssetRoutes = {
 
   uploadPolicy?: TStaticAssetRouteConfig;
   uploadCommit?: TStaticAssetRouteConfig;
+  /** Registered only when `directUpload.validation` is set. */
+  uploadValidate?: TStaticAssetRouteConfig;
 
   recreateMetaLink?: TStaticAssetRouteConfig;
 };
