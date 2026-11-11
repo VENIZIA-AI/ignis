@@ -254,10 +254,12 @@
       /** Luot 2: thang toi S3. Moi field trong formData deu la mot dieu kien trong policy da ky. */
       const postToStorage = async (opts) => {
         const form = new FormData();
-        for (const [key, value] of Object.entries(opts.policy.formData)) {
-          form.append(key, value);
+        const formFields = Object.entries(opts.policy.formData);
+
+        for (const [fieldName, fieldValue] of formFields) {
+          form.append(fieldName, fieldValue);
         }
-        form.append('key', opts.policy.objectName);
+
         form.append('file', opts.file);
 
         const response = await fetch(opts.policy.postURL, { method: 'POST', body: form });

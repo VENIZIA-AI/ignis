@@ -457,8 +457,8 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const committed = result as { object: { key: string } };
 
     expect(policy.objectName).toStartWith('pending/tenant-a/');
-    expect(helper.calls.find((call) => call.method === 'presignPost')?.args['keyPrefix']).toBe(
-      'pending/tenant-a/',
+    expect(helper.calls.find((call) => call.method === 'presignPost')?.args['key']).toBe(
+      policy.objectName,
     );
     expect(committed.object.key).toStartWith('tenant-a/');
   });

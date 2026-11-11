@@ -84,14 +84,16 @@ The signature covers a POLICY DOCUMENT rather than a request, and conditions are
 ```json
 { "expiration": "...", "conditions": [
   { "bucket": "uploads" },
-  ["starts-with", "$key", "pending/"],
+  { "key": "pending/<keyPrefix><uuid>/a.mp4" },
   ["content-length-range", 0, 104857600],
   { "Content-Type": "video/mp4" }
 ]}
 ```
 
-`starts-with` and `content-length-range` are the whole reason for the shape. Signing a request can
-only compare for equality; signing conditions can express a prefix and a range.
+`content-length-range` is the whole reason for the shape. Signing a request can only compare for
+equality; signing conditions can express a range. The `key` condition is an exact match on ONE key and
+`formData` carries that key, so a policy cannot be spent on a second object. (It was a `starts-with`
+prefix once, which let one policy upload any number of objects until it expired.)
 
 Two traps, both recorded in the code:
 
@@ -103,12 +105,14 @@ Two traps, both recorded in the code:
 `controller.directUpload` registers `POST {base}/upload-policy` and `POST {base}/upload-commit`.
 Absent, neither route exists.
 
-1. The browser asks for a policy. IGNIS runs `authorize`, refuses a size over `maxBytes` **before
+1. The browser asks for a policy. IGNIS runs `authorize` (the commit route runs it too), refuses a size over `maxBytes` **before
    signing anything**, generates `pending/<keyPrefix><uuid>/<name>` (the scope rides inside the
    pending key, so the commit - which strips `pendingPrefix` - lands inside `controller.keyPrefix`
-   too), and signs both the policy and a commit token.
+   too), and signs both the policy and a commit token. The token carries the owner `directUpload.resolveOwner`
+   names, and lives for `expires.commit` (default `expires.upload`), which may outlast the policy.
 2. The browser posts the form straight to storage. No byte passes through IGNIS.
-3. The browser presents the commit token. IGNIS verifies it, runs `onCommit`, copies server-side to
+3. The browser presents the commit token. IGNIS verifies it (`verify`: signature, expiry, owner, scope),
+   runs `onCommit`, copies server-side to
    the final key, removes the temporary object, and writes the MetaLink row.
 
 The third trip exists because S3 tells the backend nothing. Without it there is no MetaLink row and
@@ -152,14 +156,15 @@ concurrent transactions both read "no row" and both insert - `FOR UPDATE` locks 
 exist, `ON CONFLICT` needs the index the data forbids. Closing it takes `pg_advisory_xact_lock`:
 Postgres-only, and the application's.
 
-### Four security properties, each with its reason
+### Five security properties, each with its reason
 
 | Property | Why |
 |---|---|
-| A policy authorizes only `pending/<generated>` | the final key is in NO policy, so content cannot be replaced after the commit |
-| The commit is claimed with an HMAC over `{bucket, key, expiresAt}`, verified BEFORE any storage call | naming someone else's object is impossible, and a forged token fails without a round trip, so timing leaks nothing |
+| A policy authorizes exactly one key, `pending/<generated>` | the final key is in NO policy, so content cannot be replaced after the commit, and a policy cannot be spent on a second object |
+| The commit is claimed with an HMAC over `{bucket, object, expiresAt, owner?}`, verified BEFORE any storage call | naming someone else's object is impossible, and a forged token fails without a round trip, so timing leaks nothing |
+| With `resolveOwner`, only the owner commits, and every other caller gets the forged-token error | a leaked token is no use to anyone else, and the answer reveals nothing |
 | The token carries no business fields | which order or tenant an upload belongs to is the application's authorization, not something the framework signs |
-| `authorize` is a REQUIRED property | a route that hands out a write credential has no safe default |
+| `authorize` is a REQUIRED property and guards both routes | a route that hands out a write credential has no safe default, and a commit promotes an object |
 
 `onCommit` runs BEFORE the copy: a hook that throws leaves the object under the pending prefix for a
 lifecycle rule, rather than stranding it at the final key. Removing the temporary object is CLEANUP,

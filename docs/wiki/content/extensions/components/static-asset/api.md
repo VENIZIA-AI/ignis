@@ -220,7 +220,7 @@ controller throws at registration.
 | `getObjectByName`, `downloadObjectByName`, `deleteObject`, `recreateMetaLink` | `404 core.storage.object_not_found`, after the 400 name check, before any storage call - the code a real miss answers, so a caller learns nothing about a key it does not own |
 | `listObjects` | A caller `prefix` wider than the scope is narrowed to it; one disjoint from it returns `[]` without calling storage |
 | `upload` | The component's own default name is placed inside the prefix. A `resolveObjectName` or `extra.normalizeNameFn` key outside it is refused with `400 core.static_asset.object_key_out_of_scope` - never rewritten, because the application may have recorded that key elsewhere. With **neither** hook set (the component's own default naming), the original file name must still be one segment - a `/` in it is `400 [upload] Invalid original file name`, exactly as without a scope; set `resolveObjectName` or `extra.normalizeNameFn` to relax that |
-| `uploadPolicy` / `uploadCommit` | The pending key and the policy's `starts-with` condition become `pendingPrefix + keyPrefix`, so the committed key lands inside the scope. The commit also re-checks the scope, for a token another controller signed with the same secret |
+| `uploadPolicy` / `uploadCommit` | The pending key becomes `pendingPrefix + keyPrefix`, so the committed key lands inside the scope. The commit also re-checks the scope, for a token another controller signed with the same secret |
 
 `maxFolderDepth` counts folders below the prefix: validation uses `maxFolderDepth + prefix depth`. Without that addition, a two-segment prefix plus a direct-upload key `<uuid>/<name>` would exceed the default depth of `2` and every read would answer `400`.
 

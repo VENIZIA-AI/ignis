@@ -621,13 +621,17 @@ Source: `packages/core-server/src/components/static-asset/services/commitment.se
 
 *interface*
 
-What a commit token binds. Business fields are deliberately absent - which order or tenant an upload belongs to is the application's, and a token the framework signs is the wrong place to put its authorization.
+What a commit token binds: the pending object a policy was issued for, when the grant dies and,
+when the application supplies one, who it was issued to. Other business fields are deliberately
+absent - which order or tenant an upload belongs to is the application's.
 
 ```ts
 export interface IStaticAssetCommitTokenPayload {
-    bucket: string;
-    key: string;
+    bucket: IBucketRef;
+    object: IObjectRef;
     expiresAt: number;
+    /** Absent when `directUpload.resolveOwner` is not set; present, the token commits only for that owner. */
+    owner?: string;
 }
 ```
 
@@ -765,7 +769,7 @@ export interface IStaticAssetUploadPolicyServiceOptions {
     bucket: TValueOrAsyncResolver<string>;
     /** The controller's `keyPrefix` as configured; normalized here the way the controller does. */
     keyPrefix?: string;
-    directUpload: Pick<TStaticAssetDirectUploadOptions, 'maxBytes' | 'expiresIn' | 'secretKey' | 'pendingPrefix'>;
+    directUpload: Pick<TStaticAssetDirectUploadOptions, 'maxBytes' | 'expires' | 'secretKey' | 'pendingPrefix'>;
 }
 ```
 
@@ -821,7 +825,10 @@ Signs and reads the token the commit route trusts instead of a key a caller name
 export declare class StaticAssetCommitTokenUtility {
     private static encode;
     private static sign;
-    /** Signs `{ bucket, key, expiresAt }` so the commit route can trust the key it is handed. */
+    private static isRecord;
+    /** A signed body that is not the current payload shape is refused as invalid: a token minted before the shape changed still carries a good signature. */
+    private static parse;
+    /** Signs `{ bucket, object, expiresAt, owner? }` so the commit route can trust the key it is handed. */
     static build(opts: {
         payload: IStaticAssetCommitTokenPayload;
         secretKey: string;
@@ -1096,7 +1103,7 @@ Codes a client branches on for a rejected static-asset request. A throw site may
 export declare const StaticAssetErrors: {
     readonly UPLOAD_NOT_AUTHORIZED: {
         readonly message: {
-            readonly text: "Not allowed to request an upload policy";
+            readonly text: "Not allowed to upload";
             readonly code: "core.static_asset.upload_not_authorized";
         };
         readonly statusCode: 403;
@@ -1297,9 +1304,24 @@ export declare class StaticAssetUploadCommitService<Schema extends TMetaLinkComp
     private readonly pendingPrefix;
     private readonly basePath;
     constructor(opts: IStaticAssetUploadCommitServiceOptions<Schema>);
+    /**
+     * Everything `commit` checks before it touches storage, and nothing else: the signature, the
+     * expiry, the owner and the `keyPrefix` scope. Returns the PENDING object, with no storage call and
+     * no side effect, so an application can read an uploaded file and report its problems to the user
+     * before anything is committed.
+     *
+     * A token this refuses is refused the same way `commit` refuses it, and every refusal says no more
+     * than that the token is no good: a caller learns nothing about which keys exist.
+     */
+    verify(opts: {
+        token: string;
+        owner?: string;
+    }): IObjectLocation;
     /** Moves the pending object to its final key and, when the entry keeps a MetaLink table, writes the row. A MetaLink failure rides the result as a code: the object IS committed by then. */
     commit(opts: {
-        commitToken: string;
+        token: string;
+        /** Who is committing. A token issued to an owner commits only for that owner. */
+        owner?: string;
         labels?: TStaticAssetUploadQuery;
     }): Promise<IStaticAssetCommitResult>;
 }
@@ -1321,10 +1343,14 @@ Authorization is NOT here. A policy is a write credential, and who may ask for o
 export declare class StaticAssetUploadPolicyService extends BaseService {
     private readonly options;
     private readonly policyKeyPrefix;
+    private readonly commitLifetimeMs?;
     constructor(opts: IStaticAssetUploadPolicyServiceOptions);
+    /** `undefined` when `expires.commit` is not set: the token then dies with the policy. */
+    private static resolveCommitLifetimeMs;
     /** One signed policy per file. A size over `maxBytes` is refused before any policy is signed. */
     issuePolicies(opts: {
         files: TStaticAssetUploadPolicyRequest['files'];
+        owner?: string;
     }): Promise<TStaticAssetUploadPolicy[]>;
 }
 ```
@@ -2076,10 +2102,18 @@ Enables the signed-policy upload flow, where the client posts bytes straight to 
 
 ```ts
 export type TStaticAssetDirectUploadOptions = {
-    /** Who may ask for a policy. REQUIRED, not defaulted: this route hands out a write credential, and there is no safe default for that. */
+    /** Who may use direct upload. Guards BOTH routes. REQUIRED, not defaulted: the policy route hands out a write credential, and there is no safe default for that. */
     authorize: (opts: {
         context: TRouteContext;
     }) => ValueOrPromise<boolean>;
+    /**
+     * Who the upload belongs to. Called on both routes: the policy route signs the answer into the
+     * commit token, and the commit route refuses a token whose owner differs. Absent, a token commits
+     * for whoever holds it.
+     */
+    resolveOwner?: (opts: {
+        context: TRouteContext;
+    }) => ValueOrPromise<string>;
     /** Signs the commit token. Keep it out of the repository and out of the client. */
     secretKey: string;
     /** The ceiling the policy carries as `content-length-range`. A signed PUT cannot express this at all, which is why this is a POST policy. */
@@ -2090,12 +2124,21 @@ export type TStaticAssetDirectUploadOptions = {
      * @default 'pending/'
      */
     pendingPrefix?: string;
-    /**
-     * How long a policy and its commit token stay good.
-     *
-     * @default StoragePresignDefaults.POST_EXPIRES_IN
-     */
-    expiresIn?: IDuration;
+    expires?: {
+        /**
+         * How long the browser may post the bytes: the POST policy's lifetime.
+         *
+         * @default StoragePresignDefaults.POST_EXPIRES_IN
+         */
+        upload?: IDuration;
+        /**
+         * How long the commit token stays good, for validating and committing after the upload. The
+         * pending object must outlive it, so the lifecycle rule on `pendingPrefix` has to be longer still.
+         *
+         * @default `upload`
+         */
+        commit?: IDuration;
+    };
     /** Runs BEFORE the copy to the final key, so a hook that throws leaves the object under the pending prefix for a lifecycle rule to collect, rather than stranding it at the final key. */
     onCommit?: (opts: {
         bucket: IBucketRef;

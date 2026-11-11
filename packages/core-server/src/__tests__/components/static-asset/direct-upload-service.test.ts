@@ -15,7 +15,8 @@ import {
 } from '@/components/static-asset/services';
 import { BaseMetaLinkModel } from '@/components/static-asset/models';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { DurationUnits } from '@venizia/ignis-helpers/common';
+import type { IDuration, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { ControllerTransports, MetadataRegistry } from '@venizia/ignis-kernel';
 import { describe, expect, test } from 'bun:test';
@@ -51,6 +52,7 @@ const boot = async (opts: {
   helper: FakeStorageHelper;
   keyPrefix?: string;
   pendingPrefix?: string;
+  directUpload?: Partial<TStaticAssetDirectUploadOptions>;
   metaLink?: TMetaLinkConfig;
 }) => {
   MetadataRegistry.getInstance().clearAll();
@@ -66,7 +68,7 @@ const boot = async (opts: {
     isStrict: false,
     bucket: 'uploads',
     keyPrefix: opts.keyPrefix,
-    directUpload: { ...ALLOW, pendingPrefix: opts.pendingPrefix },
+    directUpload: { ...ALLOW, pendingPrefix: opts.pendingPrefix, ...opts.directUpload },
   };
   const photos: TStaticAssetComponentOptions[string] = opts.metaLink
     ? {
@@ -212,7 +214,7 @@ describe('commit', () => {
     helper.calls.length = 0;
 
     const result = await commitService.commit({
-      commitToken: policy.commitToken,
+      token: policy.commitToken,
       labels: { principalType: 'user', principalId: '7' },
     });
 
@@ -242,7 +244,7 @@ describe('commit', () => {
     const helper = new FakeStorageHelper();
     const { commitService } = await boot({ helper });
 
-    const message = await messageOf(() => commitService.commit({ commitToken: 'forged.token' }));
+    const message = await messageOf(() => commitService.commit({ token: 'forged.token' }));
 
     expect(message).toMatch(/Invalid commit token/);
     expect(helper.calls).toHaveLength(0);
@@ -252,11 +254,15 @@ describe('commit', () => {
     const helper = new FakeStorageHelper();
     const { commitService } = await boot({ helper });
     const commitToken = StaticAssetCommitTokenUtility.build({
-      payload: { bucket: 'uploads', key: 'pending/x/a.png', expiresAt: Date.now() - 1000 },
+      payload: {
+        bucket: { name: 'uploads' },
+        object: { key: 'pending/x/a.png' },
+        expiresAt: Date.now() - 1000,
+      },
       secretKey: SECRET,
     });
 
-    const message = await messageOf(() => commitService.commit({ commitToken }));
+    const message = await messageOf(() => commitService.commit({ token: commitToken }));
 
     expect(message).toMatch(/expired/i);
     expect(helper.calls).toHaveLength(0);
@@ -268,14 +274,14 @@ describe('commit', () => {
     const { commitService } = await boot({ helper, keyPrefix: 'tenant-a' });
     const commitToken = StaticAssetCommitTokenUtility.build({
       payload: {
-        bucket: 'uploads',
-        key: 'pending/tenant-b/x/a.png',
+        bucket: { name: 'uploads' },
+        object: { key: 'pending/tenant-b/x/a.png' },
         expiresAt: Date.now() + 60_000,
       },
       secretKey: SECRET,
     });
 
-    const message = await messageOf(() => commitService.commit({ commitToken }));
+    const message = await messageOf(() => commitService.commit({ token: commitToken }));
 
     expect(message).toMatch(/not found/i);
     expect(helper.calls.find((call) => call.method === 'copyObject')).toBeUndefined();
@@ -292,10 +298,183 @@ describe('commit', () => {
 
     const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
     helper.seedObject({ bucket: 'uploads', key: policy.objectName });
-    const result = await commitService.commit({ commitToken: policy.commitToken });
+    const result = await commitService.commit({ token: policy.commitToken });
 
     expect(policy.objectName).toStartWith('tmp/tenant-a/');
     expect(result.object.key).toStartWith('tenant-a/');
     expect(result.object.key).toBe(policy.objectName.slice('tmp/'.length));
+  });
+});
+
+describe('a token issued to an owner', () => {
+  test('commits for that owner', async () => {
+    const helper = new FakeStorageHelper();
+    const { policyService, commitService } = await boot({ helper });
+
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: 'user-a',
+    });
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName });
+
+    const result = await commitService.commit({ token: policy.commitToken, owner: 'user-a' });
+
+    expect(result.object.key).toBe(policy.objectName.slice('pending/'.length));
+  });
+
+  /** One error for every refusal, so a caller cannot tell a wrong owner from a forged token. */
+  test.each([
+    ['another owner', 'user-b'],
+    ['no owner', undefined],
+  ])('is refused for %s as an invalid token, before any storage call', async (_label, owner) => {
+    const helper = new FakeStorageHelper();
+    const { policyService, commitService } = await boot({ helper });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: 'user-a',
+    });
+    helper.calls.length = 0;
+
+    const message = await messageOf(() =>
+      commitService.commit({ token: policy.commitToken, owner }),
+    );
+
+    expect(message).toBe('Invalid commit token');
+    expect(helper.calls).toHaveLength(0);
+  });
+
+  test('a token issued with no owner commits for anyone, as before', async () => {
+    const helper = new FakeStorageHelper();
+    const { policyService, commitService } = await boot({ helper });
+    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName });
+
+    const result = await commitService.commit({ token: policy.commitToken, owner: 'user-b' });
+
+    expect(result.object.key).toBe(policy.objectName.slice('pending/'.length));
+  });
+});
+
+describe('verify', () => {
+  test('returns the pending object and touches no storage', async () => {
+    const helper = new FakeStorageHelper();
+    const { policyService, commitService } = await boot({ helper });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: 'user-a',
+    });
+    helper.calls.length = 0;
+
+    const pending = commitService.verify({ token: policy.commitToken, owner: 'user-a' });
+
+    expect(pending).toEqual({ bucket: { name: 'uploads' }, object: { key: policy.objectName } });
+    expect(helper.calls).toHaveLength(0);
+  });
+
+  test('refuses a forged token', async () => {
+    const helper = new FakeStorageHelper();
+    const { commitService } = await boot({ helper });
+
+    expect(() => commitService.verify({ token: 'forged.token' })).toThrow('Invalid commit token');
+    expect(helper.calls).toHaveLength(0);
+  });
+
+  test('refuses an expired token', async () => {
+    const helper = new FakeStorageHelper();
+    const { commitService } = await boot({ helper });
+    const token = StaticAssetCommitTokenUtility.build({
+      payload: {
+        bucket: { name: 'uploads' },
+        object: { key: 'pending/x/a.png' },
+        expiresAt: Date.now() - 1000,
+      },
+      secretKey: SECRET,
+    });
+
+    expect(() => commitService.verify({ token })).toThrow(/expired/i);
+    expect(helper.calls).toHaveLength(0);
+  });
+
+  test.each([
+    ['another owner', 'user-b'],
+    ['no owner', undefined],
+  ])('refuses %s', async (_label, owner) => {
+    const helper = new FakeStorageHelper();
+    const { policyService, commitService } = await boot({ helper });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: 'user-a',
+    });
+
+    expect(() => commitService.verify({ token: policy.commitToken, owner })).toThrow(
+      'Invalid commit token',
+    );
+  });
+
+  test('refuses a key outside keyPrefix', async () => {
+    const helper = new FakeStorageHelper();
+    const { commitService } = await boot({ helper, keyPrefix: 'tenant-a' });
+    const token = StaticAssetCommitTokenUtility.build({
+      payload: {
+        bucket: { name: 'uploads' },
+        object: { key: 'pending/tenant-b/x/a.png' },
+        expiresAt: Date.now() + 60_000,
+      },
+      secretKey: SECRET,
+    });
+
+    expect(() => commitService.verify({ token })).toThrow(/not found/i);
+    expect(helper.calls).toHaveLength(0);
+  });
+});
+
+describe('expires.commit', () => {
+  const POLICY_WINDOW: IDuration = { unit: DurationUnits.MINUTE, value: 1 };
+  const COMMIT_WINDOW: IDuration = { unit: DurationUnits.HOUR, value: 2 };
+  const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+
+  test('sets the token lifetime on its own, and leaves the policy expiry alone', async () => {
+    const { policyService } = await boot({
+      helper: new FakeStorageHelper(),
+      directUpload: { expires: { upload: POLICY_WINDOW, commit: COMMIT_WINDOW } },
+    });
+
+    const before = Date.now();
+    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    const payload = StaticAssetCommitTokenUtility.read({
+      token: policy.commitToken,
+      secretKey: SECRET,
+    });
+
+    expect(payload.expiresAt).toBeGreaterThanOrEqual(before + TWO_HOURS_MS);
+    expect(payload.expiresAt).toBeLessThan(before + TWO_HOURS_MS + 5000);
+    expect(new Date(policy.expiresAt).getTime()).toBeLessThan(payload.expiresAt);
+  });
+
+  test('absent, it falls back to upload: the token dies with the policy', async () => {
+    const { policyService } = await boot({ helper: new FakeStorageHelper() });
+
+    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    const payload = StaticAssetCommitTokenUtility.read({
+      token: policy.commitToken,
+      secretKey: SECRET,
+    });
+
+    expect(payload.expiresAt).toBe(new Date(policy.expiresAt).getTime());
+  });
+
+  test('an unusable duration is refused when the service is built', async () => {
+    let message = '';
+
+    try {
+      await boot({
+        helper: new FakeStorageHelper(),
+        directUpload: { expires: { commit: { unit: DurationUnits.HOUR, value: 0 } } },
+      });
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+
+    expect(message).toContain('expires.commit');
   });
 });

@@ -20,6 +20,7 @@ application.component(StaticAssetComponent, {
         bucket: 'uploads',              // required: a policy names one bucket
         directUpload: {
           authorize: ({ context }) => Boolean(context.get('currentUser')),
+          resolveOwner: ({ context }) => context.get('currentUser').id,
           secretKey: process.env.APP_ENV_UPLOAD_SECRET,
           maxBytes: 100 * 1024 * 1024,
         },
@@ -34,7 +35,7 @@ application.component(StaticAssetComponent, {
 Two routes appear - `routes.uploadPolicy` and `routes.uploadCommit` in `controller.routes`, each overridable and each with its own `enabled` switch. Leave `directUpload` out and neither exists.
 
 > [!TIP]
-> `controller.keyPrefix` scopes direct upload too: the pending key and the policy's `starts-with` condition both become `pendingPrefix + keyPrefix`, so the committed key lands inside the scope. The commit route re-checks the scope as well, in case a token was signed by another controller with the same `secretKey`. See [`controller.keyPrefix`](./api#controller-keyprefix).
+> `controller.keyPrefix` scopes direct upload too: the pending key becomes `pendingPrefix + keyPrefix`, so the committed key lands inside the scope. The commit route re-checks the scope as well, in case a token was signed by another controller with the same `secretKey`. See [`controller.keyPrefix`](./api#controller-keyprefix).
 
 ## The three round trips
 
@@ -61,7 +62,7 @@ a `link` off it needs no branch for which path the bytes took.
 ```
 
 The labels are the ones the ordinary upload takes. They sit beside the token and not inside it: the
-token is an HMAC over `{ bucket, key, expiresAt }` and deliberately carries no business fields.
+token is an HMAC over `{ bucket, object, expiresAt, owner? }` and deliberately carries no other business fields.
 Omit them and the row is still written, without the labels.
 
 If the row fails the response is still **200**, with the reason as a code:
@@ -86,8 +87,12 @@ const [policy] = await fetch('/assets/upload-policy', {
 }).then(response => response.json());
 
 const form = new FormData();
-for (const [key, value] of Object.entries(policy.formData)) form.append(key, value);
-form.append('key', policy.objectName);
+const formFields = Object.entries(policy.formData);
+
+for (const [fieldName, fieldValue] of formFields) {
+  form.append(fieldName, fieldValue);
+}
+
 form.append('file', file);                       // LAST, always
 
 await fetch(policy.postURL, { method: 'POST', body: form });
@@ -106,6 +111,7 @@ await fetch('/assets/upload-commit', {
 
 > [!WARNING]
 > `file` must be the last field. Storage reads the form in order and ignores everything after it.
+> The `key` is already in `formData`, signed: do not append your own, and do not change it. A policy is good for exactly that one object.
 
 A runnable page that performs all three and prints each request is at
 [`/direct-upload-demo.html`](/direct-upload-demo.html) - open your browser's Network tab while it
@@ -115,23 +121,26 @@ runs and watch step 2 leave without touching the backend.
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `authorize` | `({ context }) => ValueOrPromise<boolean>` | - | **Required.** Who may ask for a policy. |
+| `authorize` | `({ context }) => ValueOrPromise<boolean>` | - | **Required.** Who may use direct upload. Guards **both** routes: `false` answers `403` with `core.static_asset.upload_not_authorized` before the body is read or storage is touched. |
+| `resolveOwner` | `({ context }) => ValueOrPromise<string>` | - | Who the upload belongs to. The policy route signs the answer into the commit token; the commit route refuses a token whose owner differs, as an invalid token. Absent, a token commits for whoever holds it. |
 | `secretKey` | `string` | - | Signs the commit token. Keep it out of the repository and out of the client. |
 | `maxBytes` | `number` | - | The ceiling the policy carries as `content-length-range`. Over it answers `413` with `core.static_asset.upload_too_large`, the same code the ordinary upload uses. |
 | `pendingPrefix` | `string` | `'pending/'` | Where a policy may write. The final key is never inside it. |
-| `expiresIn` | `IDuration` | 15 minutes | How long a policy and its commit token stay good. |
+| `expires.upload` | `IDuration` | 15 minutes | How long the browser may post the bytes: the policy's lifetime. |
+| `expires.commit` | `IDuration` | `expires.upload` | How long the commit token stays good, for validating and committing after the upload. Set it longer when users validate, fix and confirm after the file landed. |
 | `onCommit` | `({ bucket, pendingObject, object }) => ValueOrPromise<void>` | - | Runs **before** the copy. |
 
 ## Use from a service
 
-The two routes are thin wrappers over two services. The component binds one of each per entry that sets `directUpload` (and a `bucket`), so your code can issue a policy or commit an upload without an HTTP call to its own server.
+The two routes are thin wrappers over two services. The component binds one of each per entry that sets `directUpload` (and a `bucket`), so your code can issue a policy, check an upload or commit it without an HTTP call to its own server.
 
 | Service | Key | Method |
 |---|---|---|
-| `StaticAssetUploadPolicyService` | `StaticAssetBindingKeys.policyService({ name })` | `issuePolicies({ files })` - the `upload-policy` body: one signed policy per file. |
-| `StaticAssetUploadCommitService` | `StaticAssetBindingKeys.commitService({ name })` | `commit({ commitToken, labels })` - the `upload-commit` body: verify the token, copy to the final key, remove the pending object, write the MetaLink row. Answers `{ bucket, object, link, metaLink? }`. |
+| `StaticAssetUploadPolicyService` | `StaticAssetBindingKeys.policyService({ name })` | `issuePolicies({ files, owner? })` - the `upload-policy` body: one signed policy per file, each good for one key. |
+| `StaticAssetUploadCommitService` | `StaticAssetBindingKeys.commitService({ name })` | `verify({ token, owner? })` - the checks a commit starts with, no storage call; answers the pending `{ bucket, object }`. |
+| | | `commit({ token, owner?, labels? })` - `verify`, then copy to the final key, remove the pending object, write the MetaLink row. Answers `{ bucket, object, link, metaLink? }`. |
 
-`name` is the entry's key in the options object (`assets` above), not the controller name.
+`name` is the entry's key in the options object (`assets` above), not the controller name. The HTTP field is still `commitToken`; only the service parameter is `token`.
 
 The common case: the client sends `commitToken` along with the record, and the service commits while it saves. The example injects the storage helper to clean up on failure; `'helpers.AssetStorage'` is a placeholder for the key your own application bound that helper under, not one IGNIS provides.
 
@@ -153,9 +162,10 @@ export class ProductService extends BaseService {
     super({ scope: ProductService.name });
   }
 
-  async create(opts: { data: TProductInput; commitToken: string }) {
+  async create(opts: { data: TProductInput; commitToken: string; userId: string }) {
     const committed = await this.assetCommit.commit({
-      commitToken: opts.commitToken,
+      token: opts.commitToken,
+      owner: opts.userId,
       labels: { principalType: 'Product', principalId: opts.data.sku },
     });
 
@@ -173,14 +183,47 @@ export class ProductService extends BaseService {
 ```
 
 > [!WARNING]
-> **A commit token carries no owner.** It proves a policy was issued for that key, nothing about who holds it, so anyone who has the token can commit it. Check that the current user may act on the key before you call `commit`: record each `objectName` against the user it was issued to and look it up here. `StaticAssetCommitTokenUtility.read({ token, secretKey })` returns the key a token names.
+> **A token commits for its owner only when you set one.** With `directUpload.resolveOwner` the token names the user it was issued to, and `commit` refuses any other `owner` (or none) as an invalid token. Without it a token carries no owner, so anyone who holds it can commit it. When you call the services yourself, pass the same `owner` you would have resolved: `issuePolicies({ files, owner })` signs it and `commit({ token, owner })` checks it.
 
 > [!WARNING]
-> **`issuePolicies` does not call `directUpload.authorize`.** That check belongs to the route; code that calls the service decides for itself who may ask for a policy. `commit` still verifies the token and the `keyPrefix` scope, so a forged, expired or out-of-scope token is refused before any storage call.
+> **`issuePolicies` does not call `directUpload.authorize`.** That check belongs to the routes; code that calls the services decides for itself who may use direct upload. `verify` and `commit` still check the token, the owner and the `keyPrefix` scope, so a forged, expired, foreign or out-of-scope token is refused before any storage call.
 
 **Order matters.** `commit` is the point of no return: the object leaves `pending/` for its final key. If saving your record fails afterwards, nothing removes that object for you, so remove it in the failure path as above. The cleanup is best effort: if it fails too, one object stays at the final key until you collect it.
 
 If the MetaLink row cannot be written, `commit` still resolves, with `metaLink: { error }`: the object is committed by then, and a throw would send the caller back with a token whose source no longer exists.
+
+## Validate, then commit
+
+When the file has to be checked before it is accepted - an Excel import whose cells must parse, say - the user should see the problems first and nothing should be committed until the file is good. `verify` makes that possible: it runs the checks a commit starts with and touches nothing.
+
+1. The browser asks for a policy and posts the file, as above.
+2. Your own validate endpoint receives the `commitToken`, calls `verify({ token, owner })`, reads the pending object and answers with the errors.
+3. The user fixes the file and uploads again. That is a **new policy**; the abandoned pending object is left for the lifecycle rule.
+4. When the file is valid, the user confirms - or your server commits by itself - with `commit({ token, owner, labels })`. The commit **is** the "accepted" mark: an object at a final key was accepted, so no tags are needed.
+5. A job picks the committed object up from the commit result.
+
+```ts
+async validateUpload(opts: { token: string; userId: string }) {
+  // No storage call here: a forged, expired, foreign or out-of-scope token throws.
+  const pending = this.assetCommit.verify({ token: opts.token, owner: opts.userId });
+
+  const fileStream = await this.storage.getObject(pending);
+
+  // Your own parser: returns the cell errors to show the user.
+  return this.workbookChecker.check({ fileStream });
+}
+```
+
+`verify` answers `{ bucket, object }` of the **pending** object, the shape `getObject` takes. For a server-commits-only setup, drop the commit route so the browser cannot confirm on its own:
+
+```ts
+controller: {
+  // ...
+  routes: { uploadCommit: { enabled: false } },
+},
+```
+
+`onCommit` stays the last gate before the copy - a magic-bytes check, a size check - and not the place for user-facing validation: a throw there is one error, and a user needs the whole list.
 
 ## Why a policy and not a presigned PUT
 
@@ -189,27 +232,32 @@ bytes; there is no way to say "at most 2 MB". The client would have to know the 
 asking, and every retry or re-encode would become an opaque 403.
 
 A POST policy signs a document of conditions instead, and conditions are a small language:
-`content-length-range` and `starts-with` say things equality cannot.
+`content-length-range` says what equality cannot, and the `key` condition pins the form to one object.
 
 Worth knowing even if you never reach for it: a presigned PUT is also **reusable until it expires**
 and **overwrites** an existing key. Anyone who intercepts one can replace the object.
 
 ## The safeguards, and what each is for
 
-**A policy only authorizes `pending/<generated>`.** On commit, IGNIS copies server-side to the final
-key. That key appears in **no policy**, so content cannot be replaced after the commit - the property
-a presigned PUT cannot give you.
+**One policy authorizes one object.** The policy signs the exact key `pending/<generated>` and `formData`
+carries it, so a policy cannot be spent on a second object, however long it lives. On commit, IGNIS
+copies server-side to the final key. That key appears in **no policy**, so content cannot be replaced
+after the commit - the property a presigned PUT cannot give you.
 
 **The commit is claimed with a token, never with a key.** The token is an HMAC over
-`{ bucket, key, expiresAt }`, verified **before any storage call**. So a caller cannot name an object
-it was never granted, and the route is not a name prober - a forged token fails without a round trip,
-so timing says nothing about what exists.
+`{ bucket, object, expiresAt, owner? }`, verified **before any storage call**. So a caller cannot name
+an object it was never granted, and the route is not a name prober - a forged token fails without a
+round trip, so timing says nothing about what exists.
 
-**The token carries no business fields.** Which order or tenant an upload belongs to is your
+**The token names its owner.** With `resolveOwner`, only that owner commits it, and every other
+caller gets the same invalid-token answer a forged token gets.
+
+**The token carries no other business fields.** Which order or tenant an upload belongs to is your
 authorization, and a token IGNIS signs is the wrong place to keep it.
 
-**`authorize` is required, not defaulted.** This route hands out a write credential; there is no safe
-default for who may ask, so the type system makes you decide.
+**`authorize` is required, not defaulted, and guards both routes.** The policy route hands out a write
+credential and the commit route promotes an object; there is no safe default for who may use either,
+so the type system makes you decide.
 
 **`onCommit` runs before the copy.** A hook that throws leaves the object under the pending prefix
 for a lifecycle rule to collect, rather than stranding it at the final key forever.
@@ -241,17 +289,30 @@ The policy is doing its job. In order of likelihood:
 |---|---|
 | The bucket refuses cross-origin POST | your bucket's CORS rules - this one costs people an afternoon |
 | The file is over `maxBytes` | the `content-length-range` condition |
-| `key` does not start with the pending prefix | you changed `objectName` before posting |
-| The policy expired | `expiresAt`, and `expiresIn` |
+| The `key` field is not the one the policy signed | you changed it, or posted a second object with one policy - a policy is good for one key |
+| The policy expired | `expiresAt`, and `expires.upload` |
+
+## Operating it
+
+- **Put a lifecycle rule on `pending/`.** Abandoned uploads, files a user replaced and objects whose commit never came all stay there; the rule is what collects them. Set it longer than `expires.commit` (`expires.upload` when that is unset), or an object can vanish under a token that is still good. One day is a sensible start.
+- **Keep `expires.upload` short.** It is only the time to upload in. Give users time to fix and confirm with `expires.commit` instead of a long policy.
+- **Rate-limit `upload-policy`.** A policy is a write credential. A route override takes `middleware`, and it runs before the handler, so it also runs before `authorize`:
+
+```ts
+controller: {
+  // ...
+  routes: { uploadPolicy: { middleware: [uploadPolicyRateLimit] } },
+},
+```
 
 ## Deliberately not built
 
 Multipart and resumable upload. Malware scanning - `onCommit` is the seam, the scanner is yours. A
-commit token carrying business fields.
+commit token carrying business fields beyond the owner.
 
 **Files:**
 
 - [`packages/helpers/src/modules/storage/bun-s3/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/utility.ts) - `S3SignatureUtility.buildPostPolicy`
 - [`packages/core-server/src/components/static-asset/services/policy.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/services/policy.service.ts) - `StaticAssetUploadPolicyService.issuePolicies`
-- [`packages/core-server/src/components/static-asset/services/commitment.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/services/commitment.service.ts) - `StaticAssetUploadCommitService.commit`
+- [`packages/core-server/src/components/static-asset/services/commitment.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/services/commitment.service.ts) - `StaticAssetUploadCommitService.verify`, `StaticAssetUploadCommitService.commit`
 - [`packages/core-server/src/components/static-asset/utilities/commit-token.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/commit-token.utility.ts) - `StaticAssetCommitTokenUtility.build`, `StaticAssetCommitTokenUtility.read`

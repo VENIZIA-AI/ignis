@@ -876,9 +876,7 @@ export declare abstract class BaseStorageHelper extends BaseHelper implements IS
         source: IObjectRef;
         destination: IObjectRef;
     }): Promise<void>;
-    presignPost(_opts: {
-        bucket: IBucketRef;
-        keyPrefix: string;
+    presignPost(_opts: IObjectLocation & {
         maxBytes: number;
         contentType?: string;
         expiresIn?: IDuration;
@@ -2951,10 +2949,13 @@ export interface IStorageHelper {
         bucket: IBucketRef;
         objects: IObjectRef[];
     }): Promise<void>;
-    /** The form a browser posts straight to the storage. Unlike a presigned PUT, a policy carries `content-length-range`, so "at most N bytes" is expressible - a signed PUT binds the length to one exact value. */
-    presignPost(opts: {
-        bucket: IBucketRef;
-        keyPrefix: string;
+    /**
+     * The form a browser posts straight to the storage, good for exactly ONE object: the policy signs
+     * `object.key` as it stands, and `formData` carries that key, so the client does not add it.
+     * Unlike a presigned PUT, a policy carries `content-length-range`, so "at most N bytes" is
+     * expressible - a signed PUT binds the length to one exact value.
+     */
+    presignPost(opts: IObjectLocation & {
         maxBytes: number;
         contentType?: string;
         expiresIn?: IDuration;

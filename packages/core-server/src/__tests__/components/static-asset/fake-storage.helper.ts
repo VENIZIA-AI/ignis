@@ -96,18 +96,18 @@ export class FakeStorageHelper extends BaseStorageHelper {
 
   override async presignPost(opts: {
     bucket: IBucketRef;
-    keyPrefix: string;
+    object: { key: string };
     maxBytes: number;
     contentType?: string;
   }) {
     this.calls.push({
       method: 'presignPost',
-      args: { bucket: opts.bucket.name, keyPrefix: opts.keyPrefix, maxBytes: opts.maxBytes },
+      args: { bucket: opts.bucket.name, key: opts.object.key, maxBytes: opts.maxBytes },
     });
 
     return {
       postURL: `https://fake-storage/${opts.bucket.name}`,
-      formData: { policy: 'fake-policy' },
+      formData: { key: opts.object.key, policy: 'fake-policy' },
       expiresAt: new Date(Date.now() + 900_000).toISOString(),
     };
   }

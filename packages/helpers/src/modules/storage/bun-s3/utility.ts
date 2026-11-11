@@ -274,7 +274,8 @@ export class S3SignatureUtility {
    */
   static async buildPostPolicy(opts: {
     bucket: string;
-    keyPrefix: string;
+    /** The ONE key the form may be posted under. */
+    key: string;
     maxBytes: number;
     expiresInSeconds: number;
     accessKey: string;
@@ -285,7 +286,7 @@ export class S3SignatureUtility {
   }): Promise<{ formData: Record<string, string>; expiresAt: string }> {
     const {
       bucket,
-      keyPrefix,
+      key,
       maxBytes,
       expiresInSeconds,
       accessKey,
@@ -311,9 +312,9 @@ export class S3SignatureUtility {
 
     const conditions: unknown[] = [
       { bucket },
-      ['starts-with', '$key', keyPrefix],
+      { key },
       ['content-length-range', 0, maxBytes],
-      ...Object.entries(fields).map(([key, value]) => ({ [key]: value })),
+      ...Object.entries(fields).map(([fieldName, fieldValue]) => ({ [fieldName]: fieldValue })),
       ...(contentType ? [{ 'Content-Type': contentType }] : []),
     ];
 
@@ -327,6 +328,7 @@ export class S3SignatureUtility {
 
     return {
       formData: {
+        key,
         ...fields,
         ...(contentType ? { 'Content-Type': contentType } : {}),
         policy,

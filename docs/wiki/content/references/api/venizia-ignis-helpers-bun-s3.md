@@ -51,9 +51,7 @@ export declare class BunS3Helper extends BaseStorageHelper {
         source: IObjectRef;
         destination: IObjectRef;
     }): Promise<void>;
-    presignPost(opts: {
-        bucket: IBucketRef;
-        keyPrefix: string;
+    presignPost(opts: IObjectLocation & {
         maxBytes: number;
         contentType?: string;
         expiresIn?: IDuration;

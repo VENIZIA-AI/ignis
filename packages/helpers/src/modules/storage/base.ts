@@ -585,13 +585,13 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     });
   }
 
-  async presignPost(_opts: {
-    bucket: IBucketRef;
-    keyPrefix: string;
-    maxBytes: number;
-    contentType?: string;
-    expiresIn?: IDuration;
-  }): Promise<IPostPolicy> {
+  async presignPost(
+    _opts: IObjectLocation & {
+      maxBytes: number;
+      contentType?: string;
+      expiresIn?: IDuration;
+    },
+  ): Promise<IPostPolicy> {
     throw getError({
       message: `[${this.constructor.name}.presignPost] Signed POST policies are not supported by this helper`,
     });

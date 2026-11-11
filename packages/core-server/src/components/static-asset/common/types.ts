@@ -84,8 +84,15 @@ export type TStaticAssetListQuery = { prefix?: string; recursive?: string; maxKe
 
 /** Enables the signed-policy upload flow, where the client posts bytes straight to the storage and IGNIS only signs the permission and verifies the commit. */
 export type TStaticAssetDirectUploadOptions = {
-  /** Who may ask for a policy. REQUIRED, not defaulted: this route hands out a write credential, and there is no safe default for that. */
+  /** Who may use direct upload. Guards BOTH routes. REQUIRED, not defaulted: the policy route hands out a write credential, and there is no safe default for that. */
   authorize: (opts: { context: TRouteContext }) => ValueOrPromise<boolean>;
+
+  /**
+   * Who the upload belongs to. Called on both routes: the policy route signs the answer into the
+   * commit token, and the commit route refuses a token whose owner differs. Absent, a token commits
+   * for whoever holds it.
+   */
+  resolveOwner?: (opts: { context: TRouteContext }) => ValueOrPromise<string>;
 
   /** Signs the commit token. Keep it out of the repository and out of the client. */
   secretKey: string;
@@ -100,12 +107,22 @@ export type TStaticAssetDirectUploadOptions = {
    */
   pendingPrefix?: string;
 
-  /**
-   * How long a policy and its commit token stay good.
-   *
-   * @default StoragePresignDefaults.POST_EXPIRES_IN
-   */
-  expiresIn?: IDuration;
+  expires?: {
+    /**
+     * How long the browser may post the bytes: the POST policy's lifetime.
+     *
+     * @default StoragePresignDefaults.POST_EXPIRES_IN
+     */
+    upload?: IDuration;
+
+    /**
+     * How long the commit token stays good, for validating and committing after the upload. The
+     * pending object must outlive it, so the lifecycle rule on `pendingPrefix` has to be longer still.
+     *
+     * @default `upload`
+     */
+    commit?: IDuration;
+  };
 
   /** Runs BEFORE the copy to the final key, so a hook that throws leaves the object under the pending prefix for a lifecycle rule to collect, rather than stranding it at the final key. */
   onCommit?: (opts: {
@@ -225,9 +242,15 @@ export type TStaticAssetComponentOptions<
     );
 };
 
-/** What a commit token binds. Business fields are deliberately absent - which order or tenant an upload belongs to is the application's, and a token the framework signs is the wrong place to put its authorization. */
+/**
+ * What a commit token binds: the pending object a policy was issued for, when the grant dies and,
+ * when the application supplies one, who it was issued to. Other business fields are deliberately
+ * absent - which order or tenant an upload belongs to is the application's.
+ */
 export interface IStaticAssetCommitTokenPayload {
-  bucket: string;
-  key: string;
+  bucket: IBucketRef;
+  object: IObjectRef;
   expiresAt: number;
+  /** Absent when `directUpload.resolveOwner` is not set; present, the token commits only for that owner. */
+  owner?: string;
 }

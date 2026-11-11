@@ -426,7 +426,7 @@ type stored on the object, and the stored type is what a browser later renders.
 
 `contentLength` carries the cost: a signature expresses equality and nothing else, so it is an exact
 byte count, never a ceiling, and a retry at another size is a bare 403. For a ceiling, use
-`presignPost` and its `content-length-range`.
+`presignPost` and its `content-length-range`. `presignPost` takes `object: { key }` and signs that one key; its `formData` carries the `key`, so the client posts the form as it is.
 
 Omit all three and the URL signs `host` alone, as it always did.
 
