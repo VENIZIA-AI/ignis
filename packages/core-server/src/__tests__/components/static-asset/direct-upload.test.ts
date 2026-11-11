@@ -367,10 +367,10 @@ describe('who may commit', () => {
 
     for (const user of ['user-b', undefined]) {
       const committed = await commitAs(router, policy.commitToken, user);
-      const body = JSON.stringify(await committed.json());
+      const answer = await committed.json();
 
       expect(committed.status).toBe(400);
-      expect(body).toContain('core.static_asset.invalid_commit_token');
+      expect(JSON.stringify(answer)).toContain('core.static_asset.invalid_commit_token');
     }
 
     expect(helper.calls).toHaveLength(0);

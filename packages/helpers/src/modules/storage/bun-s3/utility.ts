@@ -314,7 +314,7 @@ export class S3SignatureUtility {
       { bucket },
       { key },
       ['content-length-range', 0, maxBytes],
-      ...Object.entries(fields).map(([key, value]) => ({ [key]: value })),
+      ...Object.entries(fields).map(([fieldName, fieldValue]) => ({ [fieldName]: fieldValue })),
       ...(contentType ? [{ 'Content-Type': contentType }] : []),
     ];
 
