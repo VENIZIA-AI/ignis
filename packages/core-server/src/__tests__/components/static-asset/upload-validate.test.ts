@@ -48,7 +48,7 @@ interface IValidationSpy {
   calls: Array<{ bucket: string; key: string; owner?: string; hasHelper: boolean }>;
 }
 
-/** A file whose name contains `bad` has one broken cell; every other file is clean. */
+/** A file whose name contains `bad` has one broken cell; every other file is clean. Only the file name counts: the key carries a random UUID, and `bad` is valid hex. */
 const buildValidation = (spy: IValidationSpy) =>
   StaticAssetValidation.define({
     issueSchema: CellIssueSchema,
@@ -60,7 +60,7 @@ const buildValidation = (spy: IValidationSpy) =>
         hasHelper: helper !== undefined,
       });
 
-      if (!object.key.includes('bad')) {
+      if (!object.key.split('/').pop()?.includes('bad')) {
         return { isValid: true, issues: [] };
       }
 
