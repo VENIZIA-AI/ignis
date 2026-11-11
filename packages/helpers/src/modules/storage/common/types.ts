@@ -124,7 +124,14 @@ export interface IStorageHelper {
   upload(opts: {
     bucket: IBucketRef;
     files: IUploadFile[];
+    /** Folders the caller's `folderPath` may carry. */
     maxFolderDepth?: number;
+    /**
+     * Folders the finished key may carry, a scope the `normalizeNameFn` adds included.
+     *
+     * @default `maxFolderDepth`
+     */
+    maxKeyDepth?: number;
     normalizeNameFn?: (opts: { file: TUploadNaming }) => string;
     normalizeLinkFn?: (opts: IObjectLocation) => string;
   }): Promise<IUploadResult[]>;

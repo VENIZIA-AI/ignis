@@ -122,6 +122,32 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
     expect(writtenPaths).toHaveLength(0);
   });
 
+  test('maxKeyDepth lets a scope the naming adds sit on top of the caller folders', async () => {
+    const results = await helper.upload({
+      bucket: { name: 'assets' },
+      files: [buildFile({ folderPath: 'x/y' })],
+      maxFolderDepth: 2,
+      maxKeyDepth: 4,
+      normalizeNameFn: ({ file }) => `a/b/${file.folderPath}/${file.originalName}`,
+    });
+
+    expect(results).toHaveLength(1);
+  });
+
+  test('a folderPath over maxFolderDepth keeps its code even when maxKeyDepth is wider', async () => {
+    const task = helper.upload({
+      bucket: { name: 'assets' },
+      files: [buildFile({ folderPath: 'x/y/z' })],
+      maxFolderDepth: 2,
+      maxKeyDepth: 4,
+      normalizeNameFn: ({ file }) => `a/b/${file.folderPath}/${file.originalName}`,
+    });
+
+    const result = await captureError({ task });
+    expect(result).toMatch(/Invalid folder path \| depth: 3 \| max: 2/);
+    expect(writtenPaths).toHaveLength(0);
+  });
+
   test('with no maxFolderDepth the default still applies', async () => {
     const task = helper.upload({
       bucket: { name: 'assets' },
