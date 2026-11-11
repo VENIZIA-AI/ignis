@@ -5,6 +5,7 @@ import { CoreBindings } from '@venizia/ignis-kernel';
 import { Binding } from '@venizia/ignis-kernel';
 import { type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { StaticAssetBindingKeys, type TStaticAssetComponentOptions } from './common';
+import { StaticAssetEntryUtility } from './utilities/entry.utility';
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from './models';
 import { StaticAssetControllerFactory } from './controller';
 import { StaticAssetUploadCommitService, StaticAssetUploadPolicyService } from './services';
@@ -36,60 +37,24 @@ export class StaticAssetComponent<
         key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
       });
 
-    const componentOptionsEntries = Object.entries(componentOptions);
-
-    for (const [key, opt] of componentOptionsEntries) {
-      const {
-        storage,
-        controller,
-        helper,
-        extra,
-        resolveObjectName,
-        defineRoutesBefore,
-        defineExtraRoutes,
-      } = opt;
-
-      const directUploadServices = this.bindDirectUploadServices({ key, entry: opt });
+    for (const [key, entry] of Object.entries(componentOptions)) {
+      const services = this.bindDirectUploadServices({ key, entry });
 
       this.application.controller(
-        StaticAssetControllerFactory.build({
-          controller,
-          ...directUploadServices,
-          storage,
-          helper,
-          auth: opt.auth,
-          useMetaLink: opt.useMetaLink,
-          metaLink: opt.useMetaLink ? opt.metaLink : undefined,
-          resolveObjectName,
-          defineRoutesBefore,
-          defineExtraRoutes,
-          options: {
-            ...extra,
-            normalizeLinkFn:
-              extra?.normalizeLinkFn ??
-              // The link follows the URL shape the controller serves: `{objectName}` is one Hono path segment unless `rawObjectPath` widens it, and a configured bucket leaves the path.
-              ((linkOptions) =>
-                StaticAssetControllerFactory.buildObjectLink({
-                  basePath: controller.basePath,
-                  bucket: linkOptions.bucket,
-                  object: linkOptions.object,
-                  hasConfiguredBucket: controller.bucket !== undefined,
-                  rawObjectPath: controller.rawObjectPath,
-                })),
-          },
-        }),
+        StaticAssetControllerFactory.build<Schema>({ key, entry, ...services }),
       );
 
       this.application.logger.info(
-        `[binding] Asset storage is bound | Key: %s | Storage type: %s | UseMetaLink: %s`,
+        `[binding] Asset storage is bound | Key: %s | Mount: %s | Direct upload: %s | MetaLink: %s`,
         key,
-        storage,
-        Boolean(opt.useMetaLink),
+        entry.basePath,
+        Boolean(entry.directUpload),
+        Boolean(entry.metaLink),
       );
     }
   }
 
-  /** One pair of services per entry that turns direct upload on. The routes run the very objects an application's service resolves from the keys. An entry without a bucket binds nothing: the controller refuses it, with the reason. */
+  /** One pair of services per entry that turns direct upload on. The routes run the very objects an application's service resolves from the keys. */
   private bindDirectUploadServices(opts: {
     key: string;
     entry: TStaticAssetComponentOptions<Schema>[string];
@@ -99,31 +64,29 @@ export class StaticAssetComponent<
         commitService: StaticAssetUploadCommitService<Schema>;
       }
     | undefined {
-    const { key, entry } = opts;
-    const { controller, helper, storage } = entry;
-    const { bucket, directUpload } = controller;
+    const { key } = opts;
+    const resolved = StaticAssetEntryUtility.resolve({ key, entry: opts.entry });
+    const { bucket, directUpload } = resolved;
 
     if (!directUpload || bucket === undefined) {
       return undefined;
     }
 
     const policyService = new StaticAssetUploadPolicyService({
-      scope: controller.name,
-      helper,
+      scope: resolved.name,
+      helper: resolved.helper,
       bucket,
-      keyPrefix: controller.keyPrefix,
+      keyPrefix: resolved.keyPrefix,
       directUpload,
     });
     const commitService = new StaticAssetUploadCommitService<Schema>({
-      scope: controller.name,
-      helper,
-      keyPrefix: controller.keyPrefix,
+      scope: resolved.name,
+      helper: resolved.helper,
+      keyPrefix: resolved.keyPrefix,
       directUpload,
-      storage,
-      useMetaLink: entry.useMetaLink,
-      metaLink: entry.useMetaLink ? entry.metaLink : undefined,
-      basePath: controller.basePath,
-      rawObjectPath: controller.rawObjectPath,
+      storage: resolved.storage,
+      metaLink: resolved.metaLink,
+      link: resolved.link,
     });
 
     this.application

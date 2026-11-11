@@ -5,9 +5,11 @@ import type { MiddlewareHandler } from 'hono';
 import type { IAuthRouteConfig, TRouteAuthConfig } from '@/base';
 import {
   StaticAssetErrors,
+  StaticAssetRouteKeys,
   type TStaticAssetAuth,
   type TStaticAssetRouteConfig,
   type TStaticAssetRouteKey,
+  type TStaticAssetRoutes,
 } from '../common';
 
 export class StaticAssetRouteOptionsUtility {
@@ -19,32 +21,48 @@ export class StaticAssetRouteOptionsUtility {
 
   /** The routes `auth.publicRead` leaves open: reading ONE object. Listing is not reading an object. */
   private static readonly PUBLIC_READ_ROUTES: ReadonlySet<TStaticAssetRouteKey> = new Set([
-    'getObjectByName',
-    'downloadObjectByName',
+    StaticAssetRouteKeys.GET_OBJECT_BY_NAME,
+    StaticAssetRouteKeys.DOWNLOAD_OBJECT_BY_NAME,
+  ]);
+
+  /** The routes that are off until they are listed in `routes`. */
+  private static readonly BUCKET_ROUTES: ReadonlySet<TStaticAssetRouteKey> = new Set([
+    StaticAssetRouteKeys.GET_BUCKETS,
+    StaticAssetRouteKeys.GET_BUCKET_BY_NAME,
+    StaticAssetRouteKeys.CREATE_BUCKET,
+    StaticAssetRouteKeys.DELETE_BUCKET,
   ]);
 
   /**
    * Reads one built-in route's configuration: whether it is registered, the Hono overrides, and the
    * authentication and authorization it ends up with.
    *
-   * The `enabled` switch and the auth fields are this component's, never Hono's, so they are split
-   * off. Auth is resolved by the same resolver the CRUD factory uses: a route's own config beats the
-   * entry's `auth`, and `{ skip: true }` opens the route. `publicRead` is the entry's default for
-   * the two read routes and loses to any auth the route sets itself.
+   * `false` turns the route off, `true` turns it on as built, an object turns it on with those
+   * overrides, and a route left out is on - except the bucket-management routes, which stay off.
+   *
+   * The auth fields are this component's, never Hono's, so they are split off. Auth is resolved by
+   * the same resolver the CRUD factory uses: a route's own config beats the entry's `auth`, and
+   * `{ skip: true }` opens the route. `publicRead` is the entry's default for the two read routes
+   * and loses to any auth the route sets itself.
    */
   static readRoute(opts: {
     key: TStaticAssetRouteKey;
-    route?: TStaticAssetRouteConfig;
+    routes?: TStaticAssetRoutes;
     auth?: TStaticAssetAuth;
-    /** The route is registered only when its own `enabled` is `true`. */
-    isOffByDefault?: boolean;
   }): {
     isEnabled: boolean;
-    override: Omit<TStaticAssetRouteConfig, 'enabled' | 'authenticate' | 'authorize'> &
+    override: Omit<TStaticAssetRouteConfig, 'authenticate' | 'authorize'> &
       Pick<IAuthRouteConfig, 'authenticate' | 'authorize'>;
   } {
-    const { key, route, auth, isOffByDefault = false } = opts;
-    const { enabled, authenticate, authorize, ...override } = route ?? {};
+    const { key, routes, auth } = opts;
+    const route = routes?.[key];
+    const { authenticate, authorize, ...override }: TStaticAssetRouteConfig =
+      typeof route === 'object' ? route : {};
+
+    const isEnabled =
+      route === undefined
+        ? !StaticAssetRouteOptionsUtility.BUCKET_ROUTES.has(key)
+        : route !== false;
 
     const isPublicRead =
       auth?.publicRead === true &&
@@ -64,7 +82,7 @@ export class StaticAssetRouteOptionsUtility {
         : auth.authorize;
 
     return {
-      isEnabled: isOffByDefault ? enabled === true : enabled !== false,
+      isEnabled,
       override: {
         ...override,
         authenticate: RouteConfigResolver.resolveAuthenticate({

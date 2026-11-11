@@ -38,6 +38,26 @@ export class StaticAssetContentTypes {
   ]);
 }
 
+/** The built-in routes of a generated controller, the keys of `routes`. */
+export class StaticAssetRouteKeys {
+  static readonly GET_BUCKETS = 'getBuckets';
+  static readonly GET_BUCKET_BY_NAME = 'getBucketByName';
+  static readonly CREATE_BUCKET = 'createBucket';
+  static readonly DELETE_BUCKET = 'deleteBucket';
+
+  static readonly UPLOAD = 'upload';
+  static readonly LIST_OBJECTS = 'listObjects';
+  static readonly DELETE_OBJECT = 'deleteObject';
+  static readonly GET_OBJECT_BY_NAME = 'getObjectByName';
+  static readonly DOWNLOAD_OBJECT_BY_NAME = 'downloadObjectByName';
+
+  static readonly UPLOAD_POLICY = 'uploadPolicy';
+  static readonly UPLOAD_COMMIT = 'uploadCommit';
+  static readonly UPLOAD_VALIDATE = 'uploadValidate';
+
+  static readonly RECREATE_META_LINK = 'recreateMetaLink';
+}
+
 /** Storage backends a static asset controller can serve from. `isValid` checks a string against them. */
 export class StaticAssetStorageTypes {
   static readonly DISK = 'disk';
