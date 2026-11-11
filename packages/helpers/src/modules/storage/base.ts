@@ -248,7 +248,8 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
   /** Backend write step; owns its metadata and error handling. */
   protected abstract writeObject(opts: IObjectLocation & { file: IUploadFile }): Promise<void>;
 
-  protected normalizeObjectName(opts: { file: TUploadNaming }): string {
+  /** The key `upload` writes when no naming hook is given: lowercase, spaces become `_`, under the folder when there is one. Public so a naming hook can start from the very key the helper would have written. */
+  static normalizeObjectName(opts: { file: TUploadNaming }): string {
     const { originalName, folderPath } = opts.file;
     const normalizedFileName = originalName.toLowerCase().replace(/ /g, '_');
 
@@ -387,7 +388,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       };
       const key = normalizeNameFn
         ? normalizeNameFn({ file: naming })
-        : this.normalizeObjectName({ file: naming });
+        : BaseStorageHelper.normalizeObjectName({ file: naming });
 
       if (!this.isValidObjectKey({ object: { key }, maxDepth: maxFolderDepth })) {
         throw getError({

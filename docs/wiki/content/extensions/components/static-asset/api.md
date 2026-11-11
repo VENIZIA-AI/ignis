@@ -303,7 +303,7 @@ type TStaticAssetExtraOptions = {
 
 ```typescript
 (linkOptions: IObjectLocation) =>
-  StaticAssetControllerFactory.buildObjectLink({
+  StaticAssetObjectLinkUtility.build({
     basePath: controller.basePath,
     bucket: linkOptions.bucket,
     object: linkOptions.object,
@@ -312,10 +312,10 @@ type TStaticAssetExtraOptions = {
   });
 ```
 
-`StaticAssetControllerFactory.buildObjectLink` is public, so a hand-written route can build the same link.
+`StaticAssetObjectLinkUtility.build` is public, so a hand-written route can build the same link.
 
 ```typescript
-static buildObjectLink(
+static build(
   opts: IObjectLocation & {
     basePath: string;
     hasConfiguredBucket?: boolean;
@@ -324,7 +324,7 @@ static buildObjectLink(
 ): string;
 ```
 
-This is why every generated link points back at the `objects/{objectName}` stream route by default, regardless of storage backend. `StaticAssetControllerFactory.buildObjectLink` follows the [URL shapes](#url-shapes) above, so a link always resolves against the routes that controller registered. The `PUT .../meta-links/{objectName}` route builds its fallback link with the same function.
+This is why every generated link points back at the `objects/{objectName}` stream route by default, regardless of storage backend. `StaticAssetObjectLinkUtility.build` follows the [URL shapes](#url-shapes) above, so a link always resolves against the routes that controller registered. The `PUT .../meta-links/{objectName}` route builds its fallback link with the same function.
 
 `BaseStorageHelper` has its own backend-specific `normalizeObjectLink()`. It only runs when you call a helper's `upload()` directly, outside the component. Through `StaticAssetComponent`, the component's default `normalizeLinkFn` always takes priority instead.
 
@@ -334,12 +334,6 @@ This is why every generated link points back at the `objects/{objectName}` strea
 class StaticAssetStorageTypes {
   static readonly DISK = 'disk';
   static readonly BUN_S3 = 'bun-s3';
-
-  static readonly SCHEME_SET = new Set([this.DISK, this.BUN_S3]);
-
-  static isValid(orgType: string): boolean {
-    return this.SCHEME_SET.has(orgType);
-  }
 }
 
 type TStaticAssetStorageType = TConstValue<typeof StaticAssetStorageTypes>;
@@ -859,7 +853,7 @@ const { upload, stat } = await StaticAssetIngestUtility.fromUrl({
   url: 'https://cdn.example.com/logo.png',
   bucket: { name: 'uploads' },
   normalizeLinkFn: ({ bucket, object }) =>
-    StaticAssetControllerFactory.buildObjectLink({ basePath: '/assets', bucket, object }),
+    StaticAssetObjectLinkUtility.build({ basePath: '/assets', bucket, object }),
 });
 ```
 

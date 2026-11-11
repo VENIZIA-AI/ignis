@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis/static-asset, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-47 exports, 47 with TSDoc.
+48 exports, 48 with TSDoc.
 
 ## `BaseMetaLinkModel`
 
@@ -128,7 +128,7 @@ export declare class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseM
                 tableName: "MetaLink";
                 dataType: "json";
                 columnType: "PgJsonb";
-                data: Record<string, any>;
+                data: Record<string, unknown>;
                 driverParam: unknown;
                 notNull: false;
                 hasDefault: false;
@@ -140,7 +140,7 @@ export declare class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseM
                 identity: undefined;
                 generated: undefined;
             }, {}, {
-                $type: Record<string, any>;
+                $type: Record<string, unknown>;
             }>;
             storageType: import("drizzle-orm/pg-core").PgColumn<{
                 name: "storage_type";
@@ -407,7 +407,7 @@ export declare class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseM
                 tableName: "MetaLink";
                 dataType: "json";
                 columnType: "PgJsonb";
-                data: Record<string, any>;
+                data: Record<string, unknown>;
                 driverParam: unknown;
                 notNull: false;
                 hasDefault: false;
@@ -419,7 +419,7 @@ export declare class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseM
                 identity: undefined;
                 generated: undefined;
             }, {}, {
-                $type: Record<string, any>;
+                $type: Record<string, unknown>;
             }>;
             storageType: import("drizzle-orm/pg-core").PgColumn<{
                 name: "storage_type";
@@ -659,9 +659,9 @@ export interface IStaticAssetControllerOptions {
     commitService?: Pick<StaticAssetUploadCommitService, 'commit' | 'validate'>;
     /** Decides the stored object name of each uploaded file. Absent leaves the storage helper's own naming untouched. */
     resolveObjectName?: TStaticAssetObjectNameResolver;
-    /** Registers the application's own routes on the generated controller, after every built-in one. */
     /** Registers the application's own routes BEFORE every built-in one, so a literal path wins over the catch-all `rawObjectPath` produces. */
     defineRoutesBefore?: TStaticAssetDefineExtraRoutes;
+    /** Registers the application's own routes on the generated controller, after every built-in one. */
     defineExtraRoutes?: TStaticAssetDefineExtraRoutes;
 }
 ```
@@ -823,8 +823,6 @@ What `recreate-metalink` did: refreshed the rows of an object, or created its fi
 export declare class MetaLinkRecreateActions {
     static readonly CREATED = "created";
     static readonly REFRESHED = "refreshed";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -928,22 +926,10 @@ Source: `packages/core-server/src/components/static-asset/common/constants.ts`
 
 *class*
 
-Builds the REST controller class for a static asset entry. Static helpers also expose label checking, object link building and served content type resolution.
+Builds the REST controller class for a static asset entry, and decides the served content type.
 
 ```ts
-export declare class StaticAssetControllerFactory extends BaseHelper {
-    constructor();
-    /** Names any label a caller put in the query - where the upload routes refuse it. */
-    static findLabelsInQuery(opts: {
-        query: Record<string, string>;
-        names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>;
-    }): string[];
-    /** The URL of one object, in the shape its controller serves: no `/buckets/<name>` with a configured bucket, and a raw path with `rawObjectPath`. */
-    static buildObjectLink(opts: IObjectLocation & {
-        basePath: string;
-        hasConfiguredBucket?: boolean;
-        rawObjectPath?: boolean;
-    }): string;
+export declare class StaticAssetControllerFactory {
     /**
      * The served type comes from the object NAME, never the backend or the uploader: a renderable type on
      * the API origin is stored XSS. Public so a hand-written route makes the same decision - the
@@ -1107,9 +1093,6 @@ export declare class StaticAssetControllerFactory extends BaseHelper {
         };
     };
 }
-
-/** One list: the reader below and the stale-caller warning must agree. */
-declare const UPLOAD_LABEL_NAMES: readonly ["principalType", "principalId", "variant", "sequence", "folderPath"];
 ```
 
 Source: `packages/core-server/src/components/static-asset/controller/factory.ts`
@@ -1147,7 +1130,6 @@ export declare const StaticAssetErrors: {
         readonly statusCode: 403;
         readonly category: "validation";
     };
-    /** Both upload paths - one condition, one code to branch on. */
     /** Raised by `commit`, never by the validate route: the route answers `{ isValid: false, issues }`, and an invalid file simply cannot be committed. */
     readonly UPLOAD_INVALID: {
         readonly message: {
@@ -1157,6 +1139,7 @@ export declare const StaticAssetErrors: {
         readonly statusCode: 422;
         readonly category: "validation";
     };
+    /** Both upload paths - one condition, one code to branch on. */
     readonly UPLOAD_TOO_LARGE: {
         readonly message: {
             readonly text: "File is larger than the maximum allowed";
@@ -1271,6 +1254,10 @@ The response headers a controller echoes from the backend's metadata.
 export declare class StaticAssetHeaders {
     /** `content-type` is absent on purpose: it is decided from the object name, never from the backend. */
     static readonly ALLOWED: readonly ["content-encoding", "cache-control", "etag", "last-modified"];
+    /** Of what a controller sends with every object. */
+    static readonly NOSNIFF = "nosniff";
+    static readonly CSP_SANDBOX = "sandbox";
+    static readonly RANGE_UNIT = "bytes";
 }
 ```
 
@@ -1316,18 +1303,41 @@ export declare class StaticAssetMetaLinkCodes {
 
 Source: `packages/core-server/src/components/static-asset/common/constants.ts`
 
+## `StaticAssetObjectLinkUtility`
+
+*class*
+
+Builds the URL of an object in the shape its controller serves.
+
+```ts
+export declare class StaticAssetObjectLinkUtility {
+    /** The mount path may be declared with or without a leading slash; a link must carry exactly one. */
+    static normalizeBasePath(opts: {
+        basePath: string;
+    }): string;
+    /** Encodes an object path into a SINGLE url segment: `{objectName}` matches one segment only, so `/` must be percent-encoded too (Hono decodes it back before the handler reads the param). */
+    private static encodeObjectPath;
+    /** The URL of one object, in the shape its controller serves: no `/buckets/<name>` with a configured bucket, and a raw path with `rawObjectPath`. */
+    static build(opts: IObjectLocation & {
+        basePath: string;
+        hasConfiguredBucket?: boolean;
+        rawObjectPath?: boolean;
+    }): string;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/utilities/object-link.utility.ts`
+
 ## `StaticAssetStorageTypes`
 
 *class*
 
-Storage backends a static asset controller can serve from. `isValid` checks a string against them.
+Storage backends a static asset controller can serve from.
 
 ```ts
 export declare class StaticAssetStorageTypes {
     static readonly DISK = "disk";
     static readonly BUN_S3 = "bun-s3";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(orgType: string): boolean;
 }
 ```
 
@@ -1341,8 +1351,9 @@ Moves a pending upload to its final key and records it: the body of the `upload-
 callable without a request. A service that saves its own record commits the upload in the same
 call instead of asking the client for a second request.
 
-The token proves the key was issued by a policy; it carries no owner. Whether the current caller
-may commit that key is the application's decision, made before it calls `commit`.
+The token proves the key was issued by a policy. It names an owner only when
+`directUpload.resolveOwner` is set, and then only that owner may commit it; without one, anyone who
+holds the token can.
 
 ```ts
 export declare class StaticAssetUploadCommitService<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> extends BaseService {
@@ -1612,7 +1623,7 @@ export declare class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseM
                 tableName: "MetaLink";
                 dataType: "json";
                 columnType: "PgJsonb";
-                data: Record<string, any>;
+                data: Record<string, unknown>;
                 driverParam: unknown;
                 notNull: false;
                 hasDefault: false;
@@ -1624,7 +1635,7 @@ export declare class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseM
                 identity: undefined;
                 generated: undefined;
             }, {}, {
-                $type: Record<string, any>;
+                $type: Record<string, unknown>;
             }>;
             storageType: import("drizzle-orm/pg-core").PgColumn<{
                 name: "storage_type";
@@ -1891,7 +1902,7 @@ export declare class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseM
                 tableName: "MetaLink";
                 dataType: "json";
                 columnType: "PgJsonb";
-                data: Record<string, any>;
+                data: Record<string, unknown>;
                 driverParam: unknown;
                 notNull: false;
                 hasDefault: false;
@@ -1903,7 +1914,7 @@ export declare class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseM
                 identity: undefined;
                 generated: undefined;
             }, {}, {
-                $type: Record<string, any>;
+                $type: Record<string, unknown>;
             }>;
             storageType: import("drizzle-orm/pg-core").PgColumn<{
                 name: "storage_type";

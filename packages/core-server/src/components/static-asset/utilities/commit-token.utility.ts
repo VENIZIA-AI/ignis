@@ -53,7 +53,7 @@ export class StaticAssetCommitTokenUtility {
       bucket: { name: bucket.name },
       object: { key: object.key },
       expiresAt,
-      ...(owner === undefined ? {} : { owner }),
+      owner,
     };
   }
 

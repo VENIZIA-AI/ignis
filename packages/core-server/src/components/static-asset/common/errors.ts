@@ -12,7 +12,6 @@ export const StaticAssetErrors = {
     statusCode: HTTP.ResultCodes.RS_4.Forbidden,
     category: ErrorScopes.VALIDATION,
   },
-  /** Both upload paths - one condition, one code to branch on. */
   /** Raised by `commit`, never by the validate route: the route answers `{ isValid: false, issues }`, and an invalid file simply cannot be committed. */
   UPLOAD_INVALID: {
     message: {
@@ -22,6 +21,7 @@ export const StaticAssetErrors = {
     statusCode: HTTP.ResultCodes.RS_4.UnprocessableEntity,
     category: ErrorScopes.VALIDATION,
   },
+  /** Both upload paths - one condition, one code to branch on. */
   UPLOAD_TOO_LARGE: {
     message: {
       text: 'File is larger than the maximum allowed',

@@ -6,6 +6,9 @@ import { StaticAssetDefaults, MetaLinkRecreateActions } from '../common/constant
 
 type TRouteRequest = NonNullable<IAuthRouteConfig['request']>;
 
+/** A MetaLink row as a client sees it. The table is the application's, so the columns are not listed here. */
+const MetaLinkRowSchema = z.record(z.string(), z.unknown());
+
 /** The labels both upload paths take. They ride the BODY, not the URL - an identifier in a query string lands in every access log between the client and here. */
 const uploadLabels = () => ({
   principalType: z.string().optional(),
@@ -52,7 +55,7 @@ const fileStreamResponses = (): IAuthRouteConfig['responses'] => ({
   [HTTP.ResultCodes.RS_2.Ok]: {
     description: 'File stream response',
     content: {
-      'application/octet-stream': {
+      [HTTP.HeaderValues.APPLICATION_OCTET_STREAM]: {
         schema: {
           type: 'string',
           format: 'binary',
@@ -118,9 +121,30 @@ export class StaticAssetDefinitionBuilder {
         : z.object({ bucketName: bucketNameParam(), objectName: objectNameParam() }),
     });
 
+    const uploadValidate: IAuthRouteConfig | undefined =
+      issueSchema === undefined
+        ? undefined
+        : {
+            method: HTTP.Methods.POST,
+            path: `${bucketPrefix}/upload-validate`,
+            request: {
+              body: {
+                content: {
+                  [HTTP.HeaderValues.APPLICATION_JSON]: {
+                    schema: z.object({ commitToken: z.string().min(1) }),
+                  },
+                },
+              },
+            },
+            responses: OpenApiResponses.jsonResponse({
+              schema: z.object({ isValid: z.boolean(), issues: z.array(issueSchema) }),
+              description: 'Whether the pending file may be committed, and the issues found',
+            }),
+          };
+
     return {
       GET_BUCKETS: {
-        method: 'get',
+        method: HTTP.Methods.GET,
         path: '/buckets',
         responses: OpenApiResponses.jsonResponse({
           schema: z.array(
@@ -132,7 +156,7 @@ export class StaticAssetDefinitionBuilder {
         }),
       },
       GET_BUCKET_BY_NAME: {
-        method: 'get',
+        method: HTTP.Methods.GET,
         path: bucketPrefix,
         request: {
           params: z.object({ bucketName: bucketNameParam() }),
@@ -147,7 +171,7 @@ export class StaticAssetDefinitionBuilder {
         }),
       },
       CREATE_BUCKET: {
-        method: 'post',
+        method: HTTP.Methods.POST,
         path: bucketPrefix,
         request: {
           params: z.object({ bucketName: bucketNameParam() }),
@@ -162,7 +186,7 @@ export class StaticAssetDefinitionBuilder {
         }),
       },
       DELETE_BUCKET: {
-        method: 'delete',
+        method: HTTP.Methods.DELETE,
         path: bucketPrefix,
         request: {
           params: z.object({ bucketName: bucketNameParam() }),
@@ -174,24 +198,24 @@ export class StaticAssetDefinitionBuilder {
         }),
       },
       GET_OBJECT_BY_NAME: {
-        method: 'get',
+        method: HTTP.Methods.GET,
         path: `${bucketPrefix}/objects/${objectSegment}`,
         request: objectRequest(),
         responses: fileStreamResponses(),
       },
       DOWNLOAD_OBJECT_BY_NAME: {
-        method: 'get',
+        method: HTTP.Methods.GET,
         path: `${bucketPrefix}/download/${objectSegment}`,
         request: objectRequest(),
         responses: fileStreamResponses(),
       },
       UPLOAD_POLICY: {
-        method: 'post',
+        method: HTTP.Methods.POST,
         path: `${bucketPrefix}/upload-policy`,
         request: {
           body: {
             content: {
-              'application/json': {
+              [HTTP.HeaderValues.APPLICATION_JSON]: {
                 schema: z.object({
                   files: z
                     .array(
@@ -221,12 +245,12 @@ export class StaticAssetDefinitionBuilder {
         }),
       },
       UPLOAD_COMMIT: {
-        method: 'post',
+        method: HTTP.Methods.POST,
         path: `${bucketPrefix}/upload-commit`,
         request: {
           body: {
             content: {
-              'application/json': {
+              [HTTP.HeaderValues.APPLICATION_JSON]: {
                 // The labels sit beside the token, not inside it: the token is an HMAC over
                 // { bucket, key, expiresAt } and deliberately carries no business fields.
                 schema: z.object({ commitToken: z.string().min(1), ...uploadLabels() }),
@@ -240,39 +264,21 @@ export class StaticAssetDefinitionBuilder {
             object: z.object({ key: z.string() }),
             link: z.string(),
             metaLink: z
-              .union([z.object({ data: z.any() }), z.object({ error: z.string() })])
+              .union([z.object({ data: MetaLinkRowSchema }), z.object({ error: z.string() })])
               .optional(),
           }),
           description: 'The object at its final key, copied out of the pending prefix',
         }),
       },
-      ...(issueSchema === undefined
-        ? {}
-        : {
-            UPLOAD_VALIDATE: {
-              method: 'post' as const,
-              path: `${bucketPrefix}/upload-validate`,
-              request: {
-                body: {
-                  content: {
-                    'application/json': { schema: z.object({ commitToken: z.string().min(1) }) },
-                  },
-                },
-              },
-              responses: OpenApiResponses.jsonResponse({
-                schema: z.object({ isValid: z.boolean(), issues: z.array(issueSchema) }),
-                description: 'Whether the pending file may be committed, and the issues found',
-              }),
-            },
-          }),
+      UPLOAD_VALIDATE: uploadValidate,
       UPLOAD: {
-        method: 'post',
+        method: HTTP.Methods.POST,
         path: `${bucketPrefix}/objects`,
         request: {
           ...bucketRequest(),
           body: {
             content: {
-              'multipart/form-data': {
+              [HTTP.HeaderValues.MULTIPART_FORM_DATA]: {
                 schema: MultipartBodySchema,
               },
             },
@@ -289,14 +295,14 @@ export class StaticAssetDefinitionBuilder {
               }),
               link: z.string(),
               metaLink: z
-                .union([z.object({ data: z.any() }), z.object({ error: z.string() })])
+                .union([z.object({ data: MetaLinkRowSchema }), z.object({ error: z.string() })])
                 .optional(),
             }),
           ),
         }),
       },
       DELETE_OBJECT: {
-        method: 'delete',
+        method: HTTP.Methods.DELETE,
         path: `${bucketPrefix}/objects/${objectSegment}`,
         request: objectRequest(),
         responses: OpenApiResponses.jsonResponse({
@@ -306,7 +312,7 @@ export class StaticAssetDefinitionBuilder {
         }),
       },
       LIST_OBJECTS: {
-        method: 'get',
+        method: HTTP.Methods.GET,
         path: `${bucketPrefix}/objects`,
         request: {
           ...bucketRequest(),
@@ -359,7 +365,7 @@ export class StaticAssetDefinitionBuilder {
         }),
       },
       RECREATE_METALINK: {
-        method: 'put',
+        method: HTTP.Methods.PUT,
         path: `${bucketPrefix}/meta-links/${objectSegment}`,
         request: objectRequest(),
         responses: OpenApiResponses.jsonResponse({
@@ -373,8 +379,10 @@ export class StaticAssetDefinitionBuilder {
                 example: 'refreshed',
               }),
             count: z.number().openapi({ description: 'Rows refreshed or created' }),
-            metaLink: z.any().optional().openapi({ description: 'The first of `metaLinks`' }),
-            metaLinks: z.array(z.any()),
+            metaLink: MetaLinkRowSchema.optional().openapi({
+              description: 'The first of `metaLinks`',
+            }),
+            metaLinks: z.array(MetaLinkRowSchema),
           }),
         }),
       },
