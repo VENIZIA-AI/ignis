@@ -103,9 +103,11 @@ describe('direct upload needs a gate', () => {
     });
 
     const context = {} as never;
+    const isAuthenticatedAllowed = await authenticated.directUpload?.authorize({ context });
+    const isAuthorizedAllowed = await authorized.directUpload?.authorize({ context });
 
-    expect(await authenticated.directUpload?.authorize({ context })).toBe(true);
-    expect(await authorized.directUpload?.authorize({ context })).toBe(true);
+    expect(isAuthenticatedAllowed).toBe(true);
+    expect(isAuthorizedAllowed).toBe(true);
   });
 
   test('its own authorize is kept', async () => {
@@ -116,7 +118,9 @@ describe('direct upload needs a gate', () => {
       helper: fake,
     });
 
-    expect(await resolved.directUpload?.authorize({ context: {} as never })).toBe(false);
+    const isAllowed = await resolved.directUpload?.authorize({ context: {} as never });
+
+    expect(isAllowed).toBe(false);
   });
 });
 
