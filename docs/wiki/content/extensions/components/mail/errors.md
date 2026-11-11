@@ -183,7 +183,7 @@ if (!isConnected) {
 {
   type: 'bullmq',
   bullmq: {
-    redis: { host: 'localhost', port: 6379 /* ... */ },
+    redis: redisHelper, // a ready, connected Redis helper
     queue: { identifier: 'mail-queue', name: 'mail-queue' },
     mode: 'both', // must be 'both' or 'worker-only' to process
   },

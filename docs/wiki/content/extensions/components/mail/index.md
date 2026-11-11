@@ -176,7 +176,7 @@ const data = this.verificationGenerator.generateVerificationData({
 - [Error Reference](./errors) -- error codes and troubleshooting
 - [Components Overview](/guides/core-concepts/components) -- component system basics
 - [Queue Helper](/extensions/helpers/queue/) -- the in-memory/BullMQ primitives the queue executors are built on
-- [Redis Helper](/extensions/helpers/redis/) -- `RedisSingleHelper`, required by the BullMQ queue executor
+- [Redis Helper](/extensions/helpers/redis/) -- `RedisSingleHelper`, `RedisSentinelHelper` and `RedisClusterHelper`: the BullMQ queue executor takes any of them
 
 **Files:**
 

@@ -142,8 +142,11 @@ and - through the wholesale kernel re-export, not from `src/components/` - `Rest
 (`@venizia/ignis/grpc`, `/mail`, `/socket-io`, `/static-asset`, `/websocket`).
 `/mail` needs `bullmq` only when its BullMQ queue executor is used: `BullMQHelper` loads the peer
 when it builds a queue or worker, not at import. A compiled binary using that executor passes both
-peers in `IBullMQMailExecutorOpts` - `module` (bullmq) and `redis.module` (ioredis) - or registers
-them with `ModuleUtility.register({ modules: { ioredis, bullmq } })`.
+peers - `module` (bullmq) in `IBullMQMailExecutorOpts` and `module` (ioredis) in the Redis helper's own
+options - or registers them with `ModuleUtility.register({ modules: { ioredis, bullmq } })`. The
+executor's `redis` is a READY `IRedisHelper` (single, sentinel or cluster, never options): `BullMQHelper`
+duplicates its client per queue and worker and wraps a cluster queue name in a `{hash tag}`, and the
+executor never constructs, disconnects or closes the helper - the application owns it.
 Mail attachments are resolved in ONE place, `MailService.send()` via `MailAttachmentUtility.resolve`
 (`mail/utilities/attachment.utility.ts`, internal - not in the `/mail` barrel): every attachment
 becomes `content` bytes and loses `path`/`href`/`raw`/`encoding` before any transport sees it.

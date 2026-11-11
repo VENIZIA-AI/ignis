@@ -377,7 +377,7 @@ interface IMailQueueExecutorConfig {
     identifier: string;
   };
   bullmq?: {
-    redis: IRedisSingleHelperOptions; // redis.module takes ioredis itself
+    redis: IRedisHelper; // a ready single, cluster or sentinel helper; the application closes it
     queue: { identifier: string; name: string };
     mode: TConstValue<typeof BullMQExecutorModes>; // REQUIRED -- no default
     module?: typeof import('bullmq'); // bullmq itself, for a compiled binary
@@ -396,7 +396,12 @@ interface IMailQueueExecutorConfig {
 {
   type: 'bullmq',
   bullmq: {
-    redis: { name: 'mail-redis', host: 'localhost', port: 6379, password: 'your-redis-password' },
+    redis: new RedisSingleHelper({
+      name: 'mail-redis',
+      host: 'localhost',
+      port: 6379,
+      password: 'your-redis-password',
+    }), // or a RedisSentinelHelper / RedisClusterHelper
     queue: { identifier: 'mail-queue', name: 'mail-queue' },
     mode: 'both', // 'queue-only' | 'worker-only' | 'both' -- required, no default
   },
@@ -660,7 +665,7 @@ Pass the peer yourself through `module`, or let the transport find it. With `mod
 
 That fallback keeps the specifier invisible to `Bun.build`. Importing `@venizia/ignis/mail` for the Nodemailer transport drags neither `mailgun.js` nor `@aws-sdk/client-sesv2` into your bundle, and the same holds for every other pairing.
 
-The BullMQ queue executor reaches `bullmq` and `ioredis` the same lazy way, when it builds its Redis connection, its queue and its workers. `@venizia/ignis/mail` therefore needs `bullmq` installed only when `MAIL_QUEUE_EXECUTOR_CONFIG` selects `MailQueueExecutorTypes.BULLMQ`. A compiled application passes both peers in the executor config:
+The BullMQ queue executor reaches `bullmq` the same lazy way, when it builds its queue and its workers; the Redis helper you give it loads `ioredis` itself. `@venizia/ignis/mail` therefore needs `bullmq` installed only when `MAIL_QUEUE_EXECUTOR_CONFIG` selects `MailQueueExecutorTypes.BULLMQ`. A compiled application passes both peers: `module` in the executor config, and `module` in the Redis helper's own options:
 
 ```typescript
 import * as bullmq from 'bullmq';
@@ -669,7 +674,7 @@ import * as ioredis from 'ioredis';
 this.bind({ key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG }).toValue({
   type: MailQueueExecutorTypes.BULLMQ,
   bullmq: {
-    redis: { name: 'mail-redis', host, port, password, module: ioredis },
+    redis: new RedisSingleHelper({ name: 'mail-redis', host, port, password, module: ioredis }),
     queue: { identifier: 'mail-queue', name: 'mail-queue' },
     mode: BullMQExecutorModes.BOTH,
     module: bullmq,
@@ -780,11 +785,11 @@ Its enqueue options: `attempts: options?.attempts ?? 3`, `backoff: { type: optio
 | `getWorkerCount()` | Returns the current worker count |
 | `getMode()` | Returns the executor's `BullMQExecutorModes` value |
 
-`close()` tears down workers, then the queue, then the Redis connection. Every step runs even if an earlier one failed, and every failure is collected into one thrown error at the end.
+`close()` tears down workers, then the queue. Every step runs even if an earlier one failed, and every failure is collected into one thrown error at the end. It does **not** close the Redis helper: you created it, you close it.
 
 ```typescript
 interface IBullMQMailExecutorOpts {
-  redis: IRedisSingleHelperOptions; // from @venizia/ignis-helpers; redis.module takes ioredis itself
+  redis: IRedisHelper; // from @venizia/ignis-helpers: a ready single, cluster or sentinel helper
   queue: { identifier: string; name: string };
   mode: TConstValue<typeof BullMQExecutorModes>; // REQUIRED, no default
   module?: typeof import('bullmq'); // bullmq itself, for a compiled binary
