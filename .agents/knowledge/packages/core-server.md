@@ -182,87 +182,112 @@ mapping forwarded the `path` string as `data`.
   one allowed.
 - `SEND_FAILED`/`BATCH_SEND_FAILED`/`VERIFICATION_FAILED` carry a fixed message; the original
   error goes to `cause` (S-03 - the envelope sends an ApplicationError's message in production).
-`StaticAssetComponent`'s generated controller takes three optional extension hooks rather than being
-copied: `resolveObjectName({ originalName, defaultName, bucket })` decides the stored object name
-(`defaultName` is what the storage helper would have written), `defineExtraRoutes({ controller,
-helper, basePath })` runs after every built-in route so a built-in wins a path collision, and
-`defineRoutesBefore({ controller, helper, basePath })` is its mirror - it registers before every
-built-in route, so an application route wins that collision instead (Hono matches in registration
-order, which is how a literal path beats the catch-all `rawObjectPath` produces).
-Its URL shape is two more options, both off by default and independent: `controller.bucket`
-(`string | (() => string)`, read per request) takes the bucket out of the path AND leaves the four
-bucket-management routes unregistered, and `controller.rawObjectPath` widens the object segment to
-the `{objectName}{.+}` catch-all so a raw nested path resolves - the percent-encoded form keeps
-working either way. `StaticAssetDefinitionBuilder.build(opts)` builds the twelve route configs from those two
-flags.
-The upload labels - `principalType`, `principalId`, `variant`, `sequence`, `folderPath` - travel in
-the BODY, not the query: form fields on `POST {base}/objects`, and beside the commit token in the
-JSON body on `upload-commit`. A query string is logged everywhere it passes, and an identifier
-describing the payload belongs with the payload; the cost is that they are unreadable until the body
-is parsed, so `folderPath` is validated after parsing. `extra.maxBytes` is the upload ceiling and
-answers `413` with `core.static_asset.upload_too_large` - one code for both upload paths. Its
-`content-length` check is route middleware (`StaticAssetRouteOptionsUtility.appendLengthGuard`), appended AFTER the
-application's own `routes.upload.middleware`: `@hono/zod-openapi`'s form validator reads the whole
-body before any handler runs, so a check in the handler saved no memory. The per-file
-`buffer.length` check - the authoritative one - stays in the handler.
-Every built-in route takes `routes.<key>.enabled` (default `true`, except the four bucket-management routes,
-which are `false` and need `enabled: true`; `StaticAssetRouteOptionsUtility.readRoute` strips it, resolves the
-auth and hands the rest to `createRoute`). Auth is entry-level: `auth: { authenticate?, authorize?, publicRead? }`
-beside `controller` applies to EVERY built-in route, a route's own `authenticate`/`authorize` replaces it
-(`{ skip: true }` opens it), and the resolution is the kernel's `RouteConfigResolver.resolveAuthenticate` /
-`resolveAuthorize`, which the CRUD factory calls too - never a second copy. `publicRead` opens
-`getObjectByName` and `downloadObjectByName` only (`listObjects` is not public) and loses to a route's own
-auth. With no `auth` a route is as open as it always was. `controller.keyPrefix` scopes a controller inside a shared
-bucket: a key outside the prefix answers `404 core.storage.object_not_found` before any storage
-call; `listObjects` clamps to the prefix and lists `[]` for a disjoint one; the component's own
-default upload name lands under the prefix, and a `resolveObjectName`/`normalizeNameFn` key outside
-it is refused (`400 core.static_asset.object_key_out_of_scope`), never rewritten - the application
-may have recorded that key elsewhere; `maxFolderDepth` counts folders below the prefix. With
-`keyPrefix` set and neither `resolveObjectName` nor `extra.normalizeNameFn` (`isScopedDefaultNaming`
-in `factory.ts`), the component's own default naming keeps the original file name to one segment -
-a `/` in it is still `400 [upload] Invalid original file name`, exactly as without a scope; either
-hook relaxes it. `keyPrefix` requires `controller.bucket` (throws at registration without it, the
-same requirement `directUpload` already has): with no configured bucket the four bucket-management
-routes stay unscoped, so `keyPrefix` alone would isolate only part of the surface. Once `bucket` is
-set those four routes are not registered at all. Not scoped: `defineRoutesBefore`, `defineExtraRoutes`.
-`recreateMetaLink`'s refresh, in `meta-link.ts`: with `metaLink.createMetaLink` configured, one
-`updateBy` writes only `mimetype`/`size`/`etag`/`isSynced` and leaves `link`/`metadata` to the hook;
+`StaticAssetComponent` turns each key of `TStaticAssetComponentOptions` into one generated controller on ONE bucket.
+An entry is `{ basePath, name?, bucket, helper, keyPrefix?, rawObjectPath?, link?, auth?, serverUpload,
+directUpload, metaLink, routes?, extend? }`. Every switch is a `TToggle<Options>`: `{ use: false }` or
+`{ use: true, ...options }`. `serverUpload`, `directUpload`, `metaLink` and `directUpload.validation` are
+REQUIRED (a missing one is a type error); `routes`, `auth.publicRead` and `extend` are optional. The only
+place `use` is read is `StaticAssetToggleUtility.isUsed`.
+`StaticAssetEntryUtility.resolve({ key, entry })` (`utilities/entry.utility.ts`) is the one place that reads
+the toggles, applies the defaults and makes the cross-checks the types cannot (plain JavaScript, a cast, a
+custom helper); every boot error is thrown with the entry's name. `name` is optional and derived from the
+key (`staticAsset` -> `StaticAssetController`). The helper declares its backend: `helper.storageType`
+(`StorageTypes.DISK` or `BUN_S3`, from helpers; optional on `IStorageHelper`) replaces the old `storage`
+field, and the entry refuses a helper that declares neither. `StaticAssetControllerFactory.build<Schema>({
+key, entry, policyService?, commitService? })` resolves the entry itself.
+Types and boot both require: `directUpload` on needs a `BunS3Helper` (a POST policy is an S3 feature) AND a
+`keyPrefix`, and needs `authorize` unless `auth` authenticates or authorizes. `bucket` is required and never
+in a URL (`TValueOrAsyncResolver<string>`, read per request); the four bucket-management routes and
+bucket-in-URL mode are gone, and the component never creates a bucket. `rawObjectPath` widens the object
+segment to the `{objectName}{.+}` catch-all, and the percent-encoded form keeps working. Routes are strict
+(no `isStrict`).
+The route table is `controller/routes/table.ts`: each route names a feature (`object`, `serverUpload`,
+`directUpload`, `validation`, `metaLink`), `registerRoutes` binds it only when the feature is on and its
+`routes.<key>` toggle is not `{ use: false }`. Paths: `POST|GET /objects`, `GET|DELETE /objects/{objectName}`,
+`GET /download/{objectName}` (both reads honour `Range`), `PUT /meta-links/{objectName}`,
+`POST /upload-policy|/upload-validate|/upload-commit`. A `routes.<key>` override is `{ use: true, ...config }`;
+`StaticAssetRouteOptionsUtility.readRoute` resolves the auth and hands the rest to `createRoute`.
+`extend.before` registers before every built-in route (a literal path then wins over the `rawObjectPath`
+catch-all; Hono matches in registration order), `extend.after` after every one; they replace
+`defineRoutesBefore` and `defineExtraRoutes`.
+`serverUpload` takes `maxBytes`, `maxFiles`, `maxFolderDepth` and ONE naming hook, `objectKey({ bucket, file,
+defaultKey })`, which replaces `resolveObjectName` and `extra.normalizeNameFn`; `link` replaces
+`extra.normalizeLinkFn`. There is no spool: the multipart body is parsed whole into memory before the first
+file is written, so spooling to disk saved nothing. `maxBytes` answers `413` with
+`core.static_asset.upload_too_large` - one code for both upload paths. Its `content-length` check is route
+middleware (`StaticAssetRouteOptionsUtility.appendLengthGuard`), appended AFTER the application's own
+`routes.upload` middleware: `@hono/zod-openapi`'s form validator reads the whole body before any handler runs,
+so a check in the handler saved no memory. The per-file `buffer.length` check - the authoritative one - stays
+in the handler. The handler does not check folders: `BaseStorageHelper.upload` does, and throws
+`StorageErrors.FOLDER_PATH_INVALID` / `FOLDER_DEPTH_EXCEEDED` (`core.storage.folder_*`); the old
+`core.static_asset.folder_*`, `labels_in_query` and `max_keys_invalid` codes are gone. `listObjects`' `maxKeys`
+is parsed by the route schema (a bad value is the standard validation error).
+The upload labels - `principalType`, `principalId`, `variant`, `sequence` - travel in the BODY (form fields on
+`POST /objects`, beside the commit token on `upload-commit`) and are parsed by ONE schema
+(`StaticAssetLabelsUtility.parse`, type `TStaticAssetUploadLabels`; `folderPath` is not a label). A label in the
+URL is ignored, not refused. A bad one is the standard validation error (422) on both paths. `metaLink` is `{ use: true, repository, createMetaLink? }` (no `model`); the hook
+receives `labels`.
+Auth is entry-level: `auth: { authenticate?, authorize?, publicRead? }` applies to EVERY built-in route, a
+route's own `authenticate`/`authorize` replaces it (`{ skip: true }` opens it), and the resolution is the
+kernel's `RouteConfigResolver.resolveAuthenticate` / `resolveAuthorize`, which the CRUD factory calls too -
+never a second copy. `publicRead: { use: true }` opens `getObjectByName` and `downloadObjectByName` only
+(`listObjects` is not public) and loses to a route's own auth. With no `auth` a route is open.
+`keyPrefix` scopes an entry inside a shared bucket: a key outside the prefix answers `404
+core.storage.object_not_found` before any storage call; `listObjects` clamps to the prefix and lists `[]` for a
+disjoint one; the component's own default upload name lands under the prefix, and an `objectKey` key outside it
+is refused (`400 core.static_asset.object_key_out_of_scope`), never rewritten - the application may have
+recorded that key elsewhere; `maxFolderDepth` counts folders below the prefix. With `keyPrefix` set and no
+`objectKey`, the component's own default naming keeps the original file name to one segment - a `/` in it is
+still `400 [upload] Invalid original file name`; an `objectKey` hook relaxes it.
+`recreateMetaLink`'s refresh, in `utilities/meta-link.utility.ts`: with `metaLink.createMetaLink` configured,
+one `updateBy` writes only `mimetype`/`size`/`etag`/`isSynced` and leaves `link`/`metadata` to the hook;
 without one, that same statement also writes `link`, and one `updateById` per returned row then
 merges `metadata: { ...row.metadata, ...fileStat.metadata }` (skipped when the stat carries none) -
 a read-then-write, so a concurrent write to that row's `metadata` between the two statements is
 lost. `action` in the OpenAPI response is `z.enum([...REFRESHED, ...CREATED])`, not a bare `string`.
-Direct upload's two routes are wrappers over two services in `services/`:
-`StaticAssetUploadPolicyService` (`issuePolicies({ files, owner? })`, the policy body without
-`authorize`) and `StaticAssetUploadCommitService` (`verify({ token, owner? })` and
-`commit({ token, owner?, labels? })`, answering `{ bucket, object, link, metaLink? }`; generic over
-the MetaLink `Schema` like the component). The HTTP field stays `commitToken`; only the service
-parameter is `token`. `verify` is the checks a commit starts with (signature, expiry, owner,
-`keyPrefix` scope) and returns the PENDING `{ bucket, object }` with no storage call; `commit` calls it,
-so the checks live in one place. `StaticAssetBindingKeys.policyService({ name })` /
-`.commitService({ name })` (`name` = the entry's key in the options object, not the controller name)
-bind one of each per entry that has `controller.directUpload` and a `bucket`;
-`StaticAssetControllerFactory.build` receives the same instances as `policyService` / `commitService`.
-That is the ONLY construction path: the factory throws when `directUpload` is set without them. The
-pending and scope prefixes come from one place, `StaticAssetKeyScopeUtility.resolveDirectUploadPrefixes` -
-the commit slices exactly what the policy prefixed.
+`deleteObject` is idempotent (a missing object is `200`) and awaits the MetaLink row delete.
+Direct upload's routes are wrappers over two services in `services/`:
+`StaticAssetUploadPolicyService({ scope, helper, bucket, keyPrefix, directUpload: { maxBytes, expires?,
+secretKey, pendingPrefix? } })` (`issuePolicies({ files, owner? })`, the policy body without `authorize`) and
+`StaticAssetUploadCommitService({ scope, helper, keyPrefix, directUpload: { secretKey, pendingPrefix?,
+validation? }, storage, metaLink?, link })` (`verify({ token, owner? })`, `validate`, and
+`commit({ token, owner?, labels? })`, answering `{ bucket, object, link, metaLink? }`; generic over the MetaLink
+`Schema` like the component). There is NO `onCommit`: check the file with `validation`, and do work after a
+commit in the caller. The HTTP field stays `commitToken`; only the service parameter is `token`. `verify` is
+the checks a commit starts with (signature, expiry, owner, `keyPrefix` scope) and returns the PENDING `{
+bucket, object }` with no storage call; `commit` calls it, so the checks live in one place.
+`StaticAssetBindingKeys.policyService({ name })` / `.commitService({ name })` (`name` = the entry's key in the
+options object, not the controller name) bind one of each per entry with `directUpload` on, built by
+`StaticAssetEntryUtility.buildDirectUploadServices({ resolved })`; the factory receives the same instances.
+That is the ONLY construction path: the factory throws when `directUpload` is on without them.
+
+The pending prefix: a policy signs `pendingPrefix + keyPrefix + <uuid>/<name>` and the commit strips
+`pendingPrefix`, so the final key is `keyPrefix + <uuid>/<name>`. Both prefixes come from one place,
+`StaticAssetKeyScopeUtility.resolveDirectUploadPrefixes`. `pendingPrefix` (default `pending/`) must be
+non-empty, end with `/`, be valid key segments, and be DISJOINT from `keyPrefix` (neither starts with the
+other), else boot throws with the entry's name. Why: with `keyPrefix: 'products/'` and `pendingPrefix:
+'products/pending/'` the routes would serve pending objects; because `keyPrefix` is required with
+`directUpload`, the pending prefix is outside everything the routes serve by construction. The lifecycle
+rule that collects abandoned uploads must target the configured `pendingPrefix`. An entry with no `keyPrefix`
+that adds one moves its committed keys, and tokens signed for the old pending key fail with `404`.
 
 A policy signs ONE key (`presignPost({ bucket, object, ... })`; `formData` carries `key`). The token
-payload is `{ bucket: IBucketRef, object: IObjectRef, expiresAt, owner? }`; `read` refuses any other shape,
-so a token signed before the shape changed fails as invalid. `directUpload.resolveOwner` supplies the
-owner on both routes, and a token with an owner commits only for that owner (anything else, or none, is
-`INVALID_COMMIT_TOKEN`, the forged-token error). `directUpload.expires.upload` is the policy's lifetime,
-`expires.commit` the token's (default `upload`). Both routes call `directUpload.authorize` first; the
-services never do, so a caller that reaches them directly owns that decision.
+payload is `{ bucket: IBucketRef, object: IObjectRef, expiresAt, owner? }`; `read` refuses any other shape.
+`directUpload.resolveOwner` supplies the owner on every direct-upload route, and a token with an owner commits
+only for that owner (anything else, or none, is `INVALID_COMMIT_TOKEN`, the forged-token error).
+`directUpload.expires.upload` is the policy's lifetime, `expires.commit` the token's (default `upload`). Every
+direct-upload route calls `directUpload.authorize` first; the services never do, so a caller that reaches them
+directly owns that decision.
 
-`directUpload.validation` (`StaticAssetValidation.define({ issueSchema, handler })`; typed as
-`IStaticAssetValidation<z.ZodType>` so no `AnyType` is needed - the handler's answer is covariant, and
-`define` is what types it from the schema) adds the app's check of the PENDING object. The commit
-service's `validate({ token, owner? })` is `verify` plus the handler (valid when none is configured);
-`commit` runs the handler after `verify` and before `onCommit`, and throws `UPLOAD_INVALID` (422) on an
-invalid file. The route `UPLOAD_VALIDATE` (`POST {base}/upload-validate`, `routes.uploadValidate`) exists
-only when `validation` is set: `StaticAssetDefinitionBuilder.build` takes `issueSchema` and documents the
-response with it; the handler is `authorize`, `resolveOwner`, `validate`. Link building lives in
-`object-link.utility.ts` so the services and the factory share it without importing each other.
+`directUpload.validation` is `{ use: false }` or `StaticAssetValidation.define({ issueSchema, handler })`
+(which returns it `{ use: true, ... }`; typed as `IStaticAssetValidation<z.ZodType>` so no `AnyType` is needed -
+the handler's answer is covariant, and `define` is what types it from the schema). It adds the app's check of
+the PENDING object. The commit service's `validate({ token, owner? })` is `verify` plus the handler (valid when
+none is configured); `commit` runs the handler after `verify` and before the copy, and throws `UPLOAD_INVALID`
+(422) on an invalid file. The route `uploadValidate` (`POST /upload-validate`) exists only when `validation`
+is on: its response is documented with `issueSchema`; the handler is `authorize`, `resolveOwner`, `validate`.
+Link building lives in `object-link.utility.ts` so the services and the factory share it without importing
+each other.
 See [object storage](/architecture/object-storage.md) for the signing model behind the second path.
 See [component model](/architecture/component-model.md) and the
 [components catalog](/reference/components.md).

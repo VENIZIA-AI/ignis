@@ -38,4 +38,4 @@ const workbookValidation = StaticAssetValidation.define({
 });
 ```
 
-See [Direct upload](/extensions/components/static-asset/direct-upload#validate-then-commit) for the full flow.
+See [Direct upload](/extensions/components/static-asset/direct-upload#validation) for the full flow.

@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-203 exports, 203 with TSDoc. 227 more are re-exported from other entries (listed at the end).
+205 exports, 205 with TSDoc. 227 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -1280,6 +1280,7 @@ Storage backed by the local filesystem: each bucket is a directory under `basePa
 
 ```ts
 export declare class DiskHelper extends BaseStorageHelper {
+    readonly storageType = "disk";
     private basePath;
     constructor(options: IDiskHelperOptions);
     private getBucketPath;
@@ -2881,6 +2882,8 @@ The contract every storage backend (disk, in-memory, S3) implements. Buckets and
 
 ```ts
 export interface IStorageHelper {
+    /** The backend this helper writes to. The helpers IGNIS ships declare it; a custom helper may leave it out. */
+    readonly storageType?: TStorageType;
     isValidSegment(opts: {
         segment: string;
     }): boolean;
@@ -4261,6 +4264,23 @@ export declare const StorageErrors: {
         readonly statusCode: 404;
         readonly category: "business";
     };
+    /** An upload named a folder the storage refuses: a segment it cannot hold, or an empty path. */
+    readonly FOLDER_PATH_INVALID: {
+        readonly message: {
+            readonly text: "Invalid folder path";
+            readonly code: "core.storage.folder_path_invalid";
+        };
+        readonly statusCode: 400;
+        readonly category: "validation";
+    };
+    readonly FOLDER_DEPTH_EXCEEDED: {
+        readonly message: {
+            readonly text: "Folder path exceeds the maximum depth";
+            readonly code: "core.storage.folder_depth_exceeded";
+        };
+        readonly statusCode: 400;
+        readonly category: "validation";
+    };
 };
 ```
 
@@ -4292,6 +4312,21 @@ SigV4 refuses a presigned URL valid for longer than 7 days.
 ```ts
 export declare class StoragePresignLimits {
     static readonly MAX_EXPIRES_IN_SECONDS: number;
+}
+```
+
+Source: `packages/helpers/src/modules/storage/common/constants.ts`
+
+## `StorageTypes`
+
+*class*
+
+The backend a storage helper writes to. A helper declares its own, so a caller never tells one apart with `instanceof`.
+
+```ts
+export declare class StorageTypes {
+    static readonly DISK = "disk";
+    static readonly BUN_S3 = "bun-s3";
 }
 ```
 
@@ -4615,6 +4650,18 @@ export type TSecretRotationHandler = (event: ISecretRotationEvent) => ValueOrPro
 ```
 
 Source: `packages/helpers/src/modules/secrets/common/types/lease.ts`
+
+## `TStorageType`
+
+*type*
+
+One of the `StorageTypes` values.
+
+```ts
+export type TStorageType = TConstValue<typeof StorageTypes>;
+```
+
+Source: `packages/helpers/src/modules/storage/common/constants.ts`
 
 ## `TTask`
 

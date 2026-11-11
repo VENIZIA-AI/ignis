@@ -66,4 +66,4 @@ auth: { authenticate: { strategies: ['jwt'] }, publicRead: true },
 // every route needs a JWT, except reading one object
 ```
 
-See [Static Asset API](/extensions/components/static-asset/api#authentication-auth-and-per-route-overrides).
+See [Static Asset API](/extensions/components/static-asset/security#authentication-and-authorization).
