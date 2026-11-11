@@ -1,8 +1,8 @@
 import { StorageErrors, type IStorageHelper } from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers/core';
-import { DEFAULT_PENDING_PREFIX } from '../common';
+import { StaticAssetDefaults } from '../common';
 
-export class AssetKeyScope {
+export class StaticAssetKeyScopeUtility {
   /** `tenant-a`, `/tenant-a` and `tenant-a/` all become `tenant-a/`: without the slash, `tenant-a` would also own `tenant-ab/`. */
   static normalizePrefix(opts: { keyPrefix: string; helper: IStorageHelper; scope: string }): {
     keyPrefix: string;
@@ -36,8 +36,9 @@ export class AssetKeyScope {
     const keyPrefix =
       opts.keyPrefix === undefined
         ? undefined
-        : AssetKeyScope.normalizePrefix({ keyPrefix: opts.keyPrefix, helper, scope }).keyPrefix;
-    const pendingPrefix = opts.pendingPrefix ?? DEFAULT_PENDING_PREFIX;
+        : StaticAssetKeyScopeUtility.normalizePrefix({ keyPrefix: opts.keyPrefix, helper, scope })
+            .keyPrefix;
+    const pendingPrefix = opts.pendingPrefix ?? StaticAssetDefaults.PENDING_PREFIX;
 
     return { keyPrefix, pendingPrefix, policyKeyPrefix: `${pendingPrefix}${keyPrefix ?? ''}` };
   }
@@ -48,7 +49,7 @@ export class AssetKeyScope {
 
   /** A key outside the scope answers as a missing object does, so a caller learns nothing about keys it does not own. */
   static assertInScope(opts: { key: string; keyPrefix?: string }): void {
-    if (AssetKeyScope.isInScope(opts)) {
+    if (StaticAssetKeyScopeUtility.isInScope(opts)) {
       return;
     }
 

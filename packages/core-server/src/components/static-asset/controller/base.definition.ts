@@ -2,7 +2,7 @@ import type { IAuthRouteConfig } from '@/base';
 import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { DEFAULT_MAX_UPLOAD_FILES, MetaLinkRecreateActions } from '../common/constants';
+import { StaticAssetDefaults, MetaLinkRecreateActions } from '../common/constants';
 
 type TRouteRequest = NonNullable<IAuthRouteConfig['request']>;
 
@@ -64,7 +64,7 @@ const fileStreamResponses = (): IAuthRouteConfig['responses'] => ({
 });
 
 /** The ten built-in asset routes. Only `path` and `request.params` differ between option combinations. */
-export interface IAssetDefinitions {
+export interface IStaticAssetDefinitions {
   GET_BUCKETS: IAuthRouteConfig;
   GET_BUCKET_BY_NAME: IAuthRouteConfig;
   CREATE_BUCKET: IAuthRouteConfig;
@@ -84,17 +84,17 @@ export interface IAssetDefinitions {
  * `hasConfiguredBucket` drops `/buckets/{bucketName}` and its param from every object route.
  * `rawObjectPath` appends the `{.+}` catch-all, the spelling `@hono/zod-openapi` translates.
  */
-export class AssetDefinitionBuilder {
+export class StaticAssetDefinitionBuilder {
   static build(opts: {
     hasConfiguredBucket?: boolean;
     rawObjectPath?: boolean;
     /** The most files one upload-policy request may name. */
     maxPolicyFiles?: number;
-  }): IAssetDefinitions {
+  }): IStaticAssetDefinitions {
     const {
       hasConfiguredBucket = false,
       rawObjectPath = false,
-      maxPolicyFiles = DEFAULT_MAX_UPLOAD_FILES,
+      maxPolicyFiles = StaticAssetDefaults.MAX_UPLOAD_FILES,
     } = opts;
 
     const bucketPrefix = hasConfiguredBucket ? '' : '/buckets/{bucketName}';

@@ -155,7 +155,7 @@ Bearer token service hierarchy:
 | `defineJWKSAuth(opts)` | Switches on `mode`.<br>**Issuer:** validates keys/format/kid/getTokenExpiresFn/claims, binds to `JWKS_OPTIONS`, registers `JWKSIssuerTokenService` + `JWKSController`.<br>**Verifier:** validates `jwksUrl`, `claims` and `verify.algorithms`, binds to `JWKS_OPTIONS`, registers `JWKSVerifierTokenService` |
 | `defineServiceAuth(opts)` | Validates `name` and `resolvePrincipal`, registers the verifier and the `service` strategy. With `keys` present it also registers the signer and mounts the certs route. Absent options: does nothing |
 | `defineBasicAuth(opts)` | Validates `verifyCredentials` presence, registers `BasicTokenService`. Skips (debug log) if `basicOptions` not bound |
-| `defineControllers(opts)` | Requires `jwtOptions` when `useAuthController: true`. Calls `AuthControllerFactory.define()` and registers the generated controller |
+| `defineControllers(opts)` | Requires `jwtOptions` when `useAuthController: true`. Calls `AuthControllerFactory.build()` and registers the generated controller |
 | `defineOAuth2()` | Public stub, called during `binding()`, performs no action - not yet implemented |
 
 > [!NOTE]
@@ -594,7 +594,7 @@ The component applies `@controller({ path })` to `JWKSController` dynamically at
 
 ## Controller factory
 
-`AuthControllerFactory.define(opts: TDefineAuthControllerOpts): typeof AuthController` builds a `BaseRestController` subclass at runtime.
+`AuthControllerFactory.build(opts: TDefineAuthControllerOpts): typeof AuthController` builds a `BaseRestController` subclass at runtime.
 
 **File:** [`packages/core-server/src/components/auth/authenticate/controllers/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/controllers/factory.ts)
 

@@ -1,13 +1,13 @@
 import 'reflect-metadata';
 import { BaseApplication } from '@/base/applications';
 import { AppErrorMiddleware } from '@/base/middlewares';
-import { AssetControllerFactory } from '@/components/static-asset/controller';
+import { StaticAssetControllerFactory } from '@/components/static-asset/controller';
 import { MetaLinkRecreateActions, StaticAssetStorageTypes } from '@/components/static-asset/common';
 import type {
   TMetaLinkConfig,
-  TObjectNameResolver,
+  TStaticAssetObjectNameResolver,
   TStaticAssetExtraOptions,
-  TStaticAssetsComponentOptions,
+  TStaticAssetComponentOptions,
 } from '@/components/static-asset/common';
 import { BaseMetaLinkModel } from '@/components/static-asset/models';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
@@ -100,9 +100,9 @@ const toMetaLinkConfig = (opts: {
 
 const mount = async (opts: {
   helper: FakeStorageHelper;
-  controller?: Partial<TStaticAssetsComponentOptions[string]['controller']>;
+  controller?: Partial<TStaticAssetComponentOptions[string]['controller']>;
   metaLink?: TMetaLinkConfig<AnyType>;
-  resolveObjectName?: TObjectNameResolver;
+  resolveObjectName?: TStaticAssetObjectNameResolver;
   options?: TStaticAssetExtraOptions;
 }): Promise<OpenAPIHono> => {
   MetadataRegistry.getInstance().clearAll();
@@ -121,7 +121,7 @@ const mount = async (opts: {
   };
 
   application.controller(
-    AssetControllerFactory.defineAssetController({
+    StaticAssetControllerFactory.build({
       controller,
       storage: StaticAssetStorageTypes.DISK,
       helper: opts.helper,
@@ -501,7 +501,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
 
   test('keyPrefix without controller.bucket is refused when the controller is defined', () => {
     expect(() =>
-      AssetControllerFactory.defineAssetController({
+      StaticAssetControllerFactory.build({
         controller: { name: 'UnboundScope', basePath: '/assets', keyPrefix: 'tenant-a' },
         storage: StaticAssetStorageTypes.DISK,
         helper: new FakeStorageHelper(),
@@ -559,7 +559,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
   for (const keyPrefix of ['', '/', 'a/../b', 'tenant;a']) {
     test(`an unusable keyPrefix '${keyPrefix}' is refused when the controller is defined`, () => {
       expect(() =>
-        AssetControllerFactory.defineAssetController({
+        StaticAssetControllerFactory.build({
           controller: { name: 'BadScope', basePath: '/assets', bucket: 'images', keyPrefix },
           storage: StaticAssetStorageTypes.DISK,
           helper: new FakeStorageHelper(),

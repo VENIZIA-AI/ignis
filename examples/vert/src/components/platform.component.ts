@@ -27,7 +27,7 @@ import {
 } from '@venizia/ignis';
 import {
   BaseMetaLinkModel,
-  StaticAssetComponentBindingKeys,
+  StaticAssetBindingKeys,
   StaticAssetStorageTypes,
 } from '@venizia/ignis/static-asset';
 // Type-only: a decorated method's return type lands in `design:returntype`, and bun keeps a value
@@ -42,7 +42,7 @@ import type {
   TJWKSKeyFormat,
   TJWTTokenServiceOptions,
 } from '@venizia/ignis';
-import type { TStaticAssetsComponentOptions } from '@venizia/ignis/static-asset';
+import type { TStaticAssetComponentOptions } from '@venizia/ignis/static-asset';
 import { applicationEnvironment, DiskHelper, getError, ParseUtility } from '@venizia/ignis-helpers';
 import { MetaLinkRepository } from '@/repositories/meta-link.repository';
 
@@ -66,8 +66,8 @@ export class PlatformComponent extends BaseComponent {
    * writes a row through the application's own repository - the repository resolves here rather than
    * in the constructor because a provider runs on first read, after every repository is bound.
    */
-  @provide({ key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS })
-  staticAssetOptions(): TStaticAssetsComponentOptions {
+  @provide({ key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS })
+  staticAssetOptions(): TStaticAssetComponentOptions {
     return {
       staticAsset: {
         controller: { name: 'AssetController', basePath: '/assets', isStrict: true },

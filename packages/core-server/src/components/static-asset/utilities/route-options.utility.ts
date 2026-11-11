@@ -4,7 +4,7 @@ import { BodyLimits } from '@venizia/ignis-kernel';
 import type { MiddlewareHandler } from 'hono';
 import { StaticAssetErrors, type TStaticAssetRouteConfig } from '../common';
 
-export class AssetRouteOptions {
+export class StaticAssetRouteOptionsUtility {
   /** Multipart framing of one file (boundary, `Content-Disposition` with a file name, `Content-Type`), allowed on top of its `maxBytes` in the route's body limit. */
   static readonly ENVELOPE_BYTES_PER_FILE = 4 * 1024;
 
@@ -53,8 +53,8 @@ export class AssetRouteOptions {
 
     const limit = BodyLimits.route({
       maxSize:
-        maxFiles * (maxBytes + AssetRouteOptions.ENVELOPE_BYTES_PER_FILE) +
-        AssetRouteOptions.ENVELOPE_BYTES_BASE,
+        maxFiles * (maxBytes + StaticAssetRouteOptionsUtility.ENVELOPE_BYTES_PER_FILE) +
+        StaticAssetRouteOptionsUtility.ENVELOPE_BYTES_BASE,
     });
 
     if (!middleware) {

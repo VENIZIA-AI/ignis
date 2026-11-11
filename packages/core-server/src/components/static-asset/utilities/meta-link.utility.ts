@@ -7,9 +7,9 @@ import type {
 } from '@venizia/ignis-helpers';
 import { ResolverUtility } from '@venizia/ignis-helpers/common';
 import type { AnyType } from '@venizia/ignis-helpers/common';
-import type { TMetaLinkConfig, TStaticAssetStorageType, TUploadQuery } from '../common';
+import type { TMetaLinkConfig, TStaticAssetStorageType, TStaticAssetUploadQuery } from '../common';
 
-export class AssetMetaLink {
+export class StaticAssetMetaLinkUtility {
   /** What a stat says about one stored object: the columns a refresh rewrites and a new row starts from. */
   private static buildStoredObjectFacts(opts: {
     helper: IStorageHelper;
@@ -58,7 +58,7 @@ export class AssetMetaLink {
     storage: TStaticAssetStorageType;
     uploadResult: IUploadResult;
     fileStat: IFileStat;
-    query: TUploadQuery;
+    query: TStaticAssetUploadQuery;
   }): Promise<AnyType> {
     const { metaLink, helper, storage, uploadResult, fileStat, query } = opts;
 
@@ -74,7 +74,7 @@ export class AssetMetaLink {
       data: {
         bucketName: uploadResult.bucket.name,
         objectName: uploadResult.object.key,
-        ...AssetMetaLink.buildStoredObjectFacts({
+        ...StaticAssetMetaLinkUtility.buildStoredObjectFacts({
           helper,
           object: uploadResult.object,
           link: uploadResult.link,
@@ -109,7 +109,7 @@ export class AssetMetaLink {
     const { metaLink, helper, bucket, object, link, fileStat } = opts;
 
     const repository = await ResolverUtility.resolveValueAsync({ value: metaLink.repository });
-    const { mimetype, size, etag, isSynced } = AssetMetaLink.buildStoredObjectFacts({
+    const { mimetype, size, etag, isSynced } = StaticAssetMetaLinkUtility.buildStoredObjectFacts({
       helper,
       object,
       link,

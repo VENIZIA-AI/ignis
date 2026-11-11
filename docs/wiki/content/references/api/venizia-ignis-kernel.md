@@ -569,7 +569,7 @@ export declare class AuthenticationStrategyRegistry extends AbstractAuthRegistry
      *
      * The framework does NOT call this - it reports instead. A hard failure cannot be the default
      * here: a route listing several strategies in ANY mode tolerates one that does not resolve, and
-     * `AuthControllerFactory.define` hard-codes `'jwt'` on four of its routes, so an application that
+     * `AuthControllerFactory.build` hard-codes `'jwt'` on four of its routes, so an application that
      * registers its JWT strategy under a different name works today and would stop booting.
      */
     assertRegistered(opts: {

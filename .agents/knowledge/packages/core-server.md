@@ -190,7 +190,7 @@ Its URL shape is two more options, both off by default and independent: `control
 (`string | (() => string)`, read per request) takes the bucket out of the path AND leaves the four
 bucket-management routes unregistered, and `controller.rawObjectPath` widens the object segment to
 the `{objectName}{.+}` catch-all so a raw nested path resolves - the percent-encoded form keeps
-working either way. `AssetDefinitionBuilder.build(opts)` builds the twelve route configs from those two
+working either way. `StaticAssetDefinitionBuilder.build(opts)` builds the twelve route configs from those two
 flags.
 The upload labels - `principalType`, `principalId`, `variant`, `sequence`, `folderPath` - travel in
 the BODY, not the query: form fields on `POST {base}/objects`, and beside the commit token in the
@@ -198,11 +198,11 @@ JSON body on `upload-commit`. A query string is logged everywhere it passes, and
 describing the payload belongs with the payload; the cost is that they are unreadable until the body
 is parsed, so `folderPath` is validated after parsing. `extra.maxBytes` is the upload ceiling and
 answers `413` with `core.static_asset.upload_too_large` - one code for both upload paths. Its
-`content-length` check is route middleware (`AssetRouteOptions.appendLengthGuard`), appended AFTER the
+`content-length` check is route middleware (`StaticAssetRouteOptionsUtility.appendLengthGuard`), appended AFTER the
 application's own `routes.upload.middleware`: `@hono/zod-openapi`'s form validator reads the whole
 body before any handler runs, so a check in the handler saved no memory. The per-file
 `buffer.length` check - the authoritative one - stays in the handler.
-Every built-in route takes `routes.<key>.enabled` (default `true`; `AssetRouteOptions.readOverride` strips it
+Every built-in route takes `routes.<key>.enabled` (default `true`; `StaticAssetRouteOptionsUtility.readOverride` strips it
 before the rest reaches `createRoute`). `controller.keyPrefix` scopes a controller inside a shared
 bucket: a key outside the prefix answers `404 core.storage.object_not_found` before any storage
 call; `listObjects` clamps to the prefix and lists `[]` for a disjoint one; the component's own
@@ -222,16 +222,16 @@ without one, that same statement also writes `link`, and one `updateById` per re
 merges `metadata: { ...row.metadata, ...fileStat.metadata }` (skipped when the stat carries none) -
 a read-then-write, so a concurrent write to that row's `metadata` between the two statements is
 lost. `action` in the OpenAPI response is `z.enum([...REFRESHED, ...CREATED])`, not a bare `string`.
-Direct upload's two routes are wrappers over two services in `services/`: `AssetUploadPolicyService`
-(`issuePolicies({ files })`, the policy body without `authorize`) and `AssetUploadCommitService`
+Direct upload's two routes are wrappers over two services in `services/`: `StaticAssetUploadPolicyService`
+(`issuePolicies({ files })`, the policy body without `authorize`) and `StaticAssetUploadCommitService`
 (`commit({ commitToken, labels })`, answering `{ bucket, object, link, metaLink? }`; generic over the
 MetaLink `Schema` like the component). `StaticAssetComponent.binding()` builds one of each per entry
 that has `controller.directUpload` and a `bucket`, binds them at
-`StaticAssetComponentBindingKeys.policyService({ name })` / `.commitService({ name })` (`name` = the
+`StaticAssetBindingKeys.policyService({ name })` / `.commitService({ name })` (`name` = the
 entry's key in the options object, not the controller name) and hands the same instances to
-`defineAssetController` as `policyService` / `commitService`. That is the ONLY construction path: the
+`StaticAssetControllerFactory.build` as `policyService` / `commitService`. That is the ONLY construction path: the
 factory throws when `directUpload` is set without them. The pending and scope prefixes come from one
-place, `AssetKeyScope.resolveDirectUploadPrefixes` - the commit slices exactly what the policy
+place, `StaticAssetKeyScopeUtility.resolveDirectUploadPrefixes` - the commit slices exactly what the policy
 prefixed. Neither service calls `authorize`, and a commit token carries no owner: a caller that
 reaches them directly owns both decisions. Link building lives in `object-link.ts` so the services
 and the factory share it without importing each other.

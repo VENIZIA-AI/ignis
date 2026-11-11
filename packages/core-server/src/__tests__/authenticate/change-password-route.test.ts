@@ -95,7 +95,7 @@ const mountAuthController = async (opts: {
     strategies: [{ name: 'jwt', strategy: SignedInStrategy }],
   });
 
-  const AuthController = AuthControllerFactory.define({ serviceKey: SERVICE_KEY });
+  const AuthController = AuthControllerFactory.build({ serviceKey: SERVICE_KEY });
   application.controller(AuthController);
   await application.registerControllers();
 

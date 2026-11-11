@@ -26,7 +26,7 @@ export const CORE_SERVER_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
     modules: ['@venizia/ignis'],
     oldName: 'defineAuthController',
     className: 'AuthControllerFactory',
-    method: 'define',
+    method: 'build',
     params: [],
     keepsOptions: true,
   },
@@ -123,7 +123,7 @@ export const CORE_SERVER_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
   {
     modules: ['@venizia/ignis/static-asset'],
     oldName: 'buildCommitToken',
-    className: 'AssetCommitToken',
+    className: 'StaticAssetCommitTokenUtility',
     method: 'build',
     params: [],
     keepsOptions: true,
@@ -131,7 +131,7 @@ export const CORE_SERVER_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
   {
     modules: ['@venizia/ignis/static-asset'],
     oldName: 'readCommitToken',
-    className: 'AssetCommitToken',
+    className: 'StaticAssetCommitTokenUtility',
     method: 'read',
     params: [],
     keepsOptions: true,
@@ -139,7 +139,7 @@ export const CORE_SERVER_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
   {
     modules: ['@venizia/ignis/static-asset'],
     oldName: 'findLabelsInQuery',
-    className: 'AssetControllerFactory',
+    className: 'StaticAssetControllerFactory',
     method: 'findLabelsInQuery',
     params: [],
     keepsOptions: true,
@@ -147,7 +147,7 @@ export const CORE_SERVER_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
   {
     modules: ['@venizia/ignis/static-asset'],
     oldName: 'buildObjectLink',
-    className: 'AssetControllerFactory',
+    className: 'StaticAssetControllerFactory',
     method: 'buildObjectLink',
     params: [],
     keepsOptions: true,
@@ -155,7 +155,7 @@ export const CORE_SERVER_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
   {
     modules: ['@venizia/ignis/static-asset'],
     oldName: 'resolveServedContentType',
-    className: 'AssetControllerFactory',
+    className: 'StaticAssetControllerFactory',
     method: 'resolveServedContentType',
     params: [],
     keepsOptions: true,

@@ -18,33 +18,33 @@ import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { type Env } from 'hono';
 import { readFileSync, rmSync } from 'node:fs';
 import {
-  RENDERABLE_CONTENT_TYPES,
+  StaticAssetContentTypes,
   StaticAssetErrors,
-  type TBucketParams,
-  type TDefineExtraRoutes,
-  type TListQuery,
+  type TStaticAssetBucketParams,
+  type TStaticAssetDefineExtraRoutes,
+  type TStaticAssetListQuery,
   type TMetaLinkConfig,
-  META_LINK_CREATE_FAILED,
-  type TObjectParams,
-  type TUploadPolicyRequest,
-  type TObjectNameResolver,
+  StaticAssetMetaLinkCodes,
+  type TStaticAssetObjectParams,
+  type TStaticAssetUploadPolicyRequest,
+  type TStaticAssetObjectNameResolver,
   type TStaticAssetExtraOptions,
-  type TStaticAssetsComponentOptions,
+  type TStaticAssetComponentOptions,
   type TStaticAssetStorageType,
-  type TUploadQuery,
-  WHITELIST_HEADERS,
+  type TStaticAssetUploadQuery,
+  StaticAssetHeaders,
 } from '../common';
-import { DEFAULT_MAX_UPLOAD_FILES, MetaLinkRecreateActions } from '../common';
-import { AssetDefinitionBuilder } from './base.definition';
-import type { AssetUploadCommitService, AssetUploadPolicyService } from '../services';
-import { AssetKeyScope } from './key-scope';
-import { AssetMetaLink } from './meta-link';
-import { AssetObjectLink } from './object-link';
-import { AssetRouteOptions } from './route-options';
+import { StaticAssetDefaults, MetaLinkRecreateActions } from '../common';
+import { StaticAssetDefinitionBuilder } from './base.definition';
+import type { StaticAssetUploadCommitService, StaticAssetUploadPolicyService } from '../services';
+import { StaticAssetKeyScopeUtility } from '../utilities/key-scope.utility';
+import { StaticAssetMetaLinkUtility } from '../utilities/meta-link.utility';
+import { StaticAssetObjectLinkUtility } from '../utilities/object-link.utility';
+import { StaticAssetRouteOptionsUtility } from '../utilities/route-options.utility';
 
-/** Input of `AssetControllerFactory.defineAssetController`: one entry of `TStaticAssetsComponentOptions` with its storage type and helper. */
-export interface IAssetControllerOptions {
-  controller: TStaticAssetsComponentOptions[string]['controller'];
+/** Input of `StaticAssetControllerFactory.build`: one entry of `TStaticAssetComponentOptions` with its storage type and helper. */
+export interface IStaticAssetControllerOptions {
+  controller: TStaticAssetComponentOptions[string]['controller'];
   storage: TStaticAssetStorageType;
   helper: IStorageHelper;
   useMetaLink?: boolean;
@@ -53,16 +53,16 @@ export interface IAssetControllerOptions {
   options?: TStaticAssetExtraOptions;
 
   /** What the two direct upload routes run: the instances the component bound, so an application service resolving them from the container and the routes share them. Required when `controller.directUpload` is set. */
-  policyService?: Pick<AssetUploadPolicyService, 'issuePolicies'>;
-  commitService?: Pick<AssetUploadCommitService, 'commit'>;
+  policyService?: Pick<StaticAssetUploadPolicyService, 'issuePolicies'>;
+  commitService?: Pick<StaticAssetUploadCommitService, 'commit'>;
 
   /** Decides the stored object name of each uploaded file. Absent leaves the storage helper's own naming untouched. */
-  resolveObjectName?: TObjectNameResolver;
+  resolveObjectName?: TStaticAssetObjectNameResolver;
 
   /** Registers the application's own routes on the generated controller, after every built-in one. */
   /** Registers the application's own routes BEFORE every built-in one, so a literal path wins over the catch-all `rawObjectPath` produces. */
-  defineRoutesBefore?: TDefineExtraRoutes;
-  defineExtraRoutes?: TDefineExtraRoutes;
+  defineRoutesBefore?: TStaticAssetDefineExtraRoutes;
+  defineExtraRoutes?: TStaticAssetDefineExtraRoutes;
 }
 
 /** Hono ALREADY percent-decodes path params - a second decodeURIComponent throws on `report_100%.pdf` and turns `a%2Fb.png` into a DIFFERENT object; `isValidName`/`isValidPath` still run on this value, so traversal is still rejected. */
@@ -76,7 +76,7 @@ const UPLOAD_LABEL_NAMES = [
   'folderPath',
 ] as const;
 
-/** The body of `AssetControllerFactory.findLabelsInQuery`, callable from the helpers above the class. */
+/** The body of `StaticAssetControllerFactory.findLabelsInQuery`, callable from the helpers above the class. */
 const listLabelsInQuery = (opts: {
   query: Record<string, string>;
   names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>;
@@ -104,7 +104,7 @@ const COMMIT_LABEL_NAMES = UPLOAD_LABEL_NAMES.filter((name) => name !== 'folderP
 // A multipart form hands strings; a JSON commit body may hand `sequence` as a number.
 const readUploadLabels = (opts: {
   fields: Partial<Record<(typeof UPLOAD_LABEL_NAMES)[number], string | number>>;
-}): TUploadQuery => {
+}): TStaticAssetUploadQuery => {
   const { fields } = opts;
 
   const read = (name: (typeof UPLOAD_LABEL_NAMES)[number]) => {
@@ -202,7 +202,11 @@ const applyMetadataHeaders: (opts: {
   metadata: IObjectMetadata;
 }) => void = ({ ctx, metadata }) => {
   Object.entries(metadata).forEach(([key, value]) => {
-    if (!WHITELIST_HEADERS.includes(key.toLowerCase() as (typeof WHITELIST_HEADERS)[number])) {
+    if (
+      !StaticAssetHeaders.ALLOWED.includes(
+        key.toLowerCase() as (typeof StaticAssetHeaders.ALLOWED)[number],
+      )
+    ) {
       return;
     }
 
@@ -211,9 +215,9 @@ const applyMetadataHeaders: (opts: {
 };
 
 /** Builds the REST controller class for a static asset entry. Static helpers also expose label checking, object link building and served content type resolution. */
-export class AssetControllerFactory extends BaseHelper {
+export class StaticAssetControllerFactory extends BaseHelper {
   constructor() {
-    super({ scope: AssetControllerFactory.name });
+    super({ scope: StaticAssetControllerFactory.name });
   }
 
   /** Names any label a caller put in the query - where the upload routes refuse it. */
@@ -232,13 +236,13 @@ export class AssetControllerFactory extends BaseHelper {
       rawObjectPath?: boolean;
     },
   ): string {
-    return AssetObjectLink.build(opts);
+    return StaticAssetObjectLinkUtility.build(opts);
   }
 
   /**
    * The served type comes from the object NAME, never the backend or the uploader: a renderable type on
    * the API origin is stored XSS. Public so a hand-written route makes the same decision - the
-   * backend's own content-type is dropped by `WHITELIST_HEADERS`.
+   * backend's own content-type is dropped by `StaticAssetHeaders.ALLOWED`.
    */
   static resolveServedContentType(opts: { helper: IStorageHelper; object: IObjectRef }): {
     contentType: string;
@@ -251,14 +255,14 @@ export class AssetControllerFactory extends BaseHelper {
       .split(';')[0]
       .trim();
 
-    if (!RENDERABLE_CONTENT_TYPES.has(candidate)) {
+    if (!StaticAssetContentTypes.RENDERABLE.has(candidate)) {
       return { contentType: HTTP.HeaderValues.APPLICATION_OCTET_STREAM, isRenderable: false };
     }
 
     return { contentType: candidate, isRenderable: true };
   }
 
-  static defineAssetController(opts: IAssetControllerOptions) {
+  static build(opts: IStaticAssetControllerOptions) {
     const { controller, helper, options, useMetaLink, metaLink, storage } = opts;
     const { resolveObjectName, defineRoutesBefore, defineExtraRoutes } = opts;
     const { directUpload } = controller;
@@ -278,27 +282,31 @@ export class AssetControllerFactory extends BaseHelper {
     const scope =
       controller.keyPrefix === undefined
         ? undefined
-        : AssetKeyScope.normalizePrefix({ keyPrefix: controller.keyPrefix, helper, scope: name });
+        : StaticAssetKeyScopeUtility.normalizePrefix({
+            keyPrefix: controller.keyPrefix,
+            helper,
+            scope: name,
+          });
     const keyPrefix = scope?.keyPrefix;
     // `maxFolderDepth` counts the caller's folders; the scope's own are configuration, not input.
     const objectKeyMaxDepth = maxFolderDepth + (scope?.depth ?? 0);
     // The component's own name under a scope: the original name must stay one segment, as without one.
     const isScopedDefaultNaming =
       keyPrefix !== undefined && !resolveObjectName && !options?.normalizeNameFn;
-    const definitions = AssetDefinitionBuilder.build({
+    const definitions = StaticAssetDefinitionBuilder.build({
       hasConfiguredBucket,
       rawObjectPath,
-      maxPolicyFiles: options?.parseMultipartBody?.maxFiles ?? DEFAULT_MAX_UPLOAD_FILES,
+      maxPolicyFiles: options?.parseMultipartBody?.maxFiles ?? StaticAssetDefaults.MAX_UPLOAD_FILES,
     });
 
     // The mount path may be declared with or without a leading slash; a link must carry exactly one.
-    const normalizedBasePath = AssetObjectLink.normalizeBasePath({ basePath });
+    const normalizedBasePath = StaticAssetObjectLinkUtility.normalizeBasePath({ basePath });
 
     /** Only when the URL shape deviates: with neither option the storage helper's own link is left untouched. */
     const shapedLinkFn =
       hasConfiguredBucket || rawObjectPath
         ? (linkOptions: IObjectLocation) =>
-            AssetControllerFactory.buildObjectLink({
+            StaticAssetControllerFactory.buildObjectLink({
               basePath: normalizedBasePath,
               bucket: linkOptions.bucket,
               object: linkOptions.object,
@@ -338,7 +346,9 @@ export class AssetControllerFactory extends BaseHelper {
         // A single-bucket application has no reason to expose bucket creation or deletion, so the
         // four bucket-management routes are not registered once `bucket` is configured.
         if (!hasConfiguredBucket) {
-          const getBucketsRoute = AssetRouteOptions.readOverride({ route: routes?.getBuckets });
+          const getBucketsRoute = StaticAssetRouteOptionsUtility.readOverride({
+            route: routes?.getBuckets,
+          });
 
           if (getBucketsRoute.isEnabled) {
             this.bindRoute({
@@ -352,7 +362,7 @@ export class AssetControllerFactory extends BaseHelper {
             });
           }
 
-          const getBucketByNameRoute = AssetRouteOptions.readOverride({
+          const getBucketByNameRoute = StaticAssetRouteOptionsUtility.readOverride({
             route: routes?.getBucketByName,
           });
 
@@ -361,7 +371,7 @@ export class AssetControllerFactory extends BaseHelper {
               configs: { ...definitions.GET_BUCKET_BY_NAME, ...getBucketByNameRoute.override },
             }).to({
               handler: async (ctx) => {
-                const params = ctx.req.valid<TBucketParams>('param');
+                const params = ctx.req.valid<TStaticAssetBucketParams>('param');
                 const bucketName = await resolveBucket({
                   configured: bucket,
                   param: params.bucketName,
@@ -378,14 +388,16 @@ export class AssetControllerFactory extends BaseHelper {
             });
           }
 
-          const createBucketRoute = AssetRouteOptions.readOverride({ route: routes?.createBucket });
+          const createBucketRoute = StaticAssetRouteOptionsUtility.readOverride({
+            route: routes?.createBucket,
+          });
 
           if (createBucketRoute.isEnabled) {
             this.bindRoute({
               configs: { ...definitions.CREATE_BUCKET, ...createBucketRoute.override },
             }).to({
               handler: async (ctx) => {
-                const params = ctx.req.valid<TBucketParams>('param');
+                const params = ctx.req.valid<TStaticAssetBucketParams>('param');
                 const bucketName = await resolveBucket({
                   configured: bucket,
                   param: params.bucketName,
@@ -402,14 +414,16 @@ export class AssetControllerFactory extends BaseHelper {
             });
           }
 
-          const deleteBucketRoute = AssetRouteOptions.readOverride({ route: routes?.deleteBucket });
+          const deleteBucketRoute = StaticAssetRouteOptionsUtility.readOverride({
+            route: routes?.deleteBucket,
+          });
 
           if (deleteBucketRoute.isEnabled) {
             this.bindRoute({
               configs: { ...definitions.DELETE_BUCKET, ...deleteBucketRoute.override },
             }).to({
               handler: async (ctx) => {
-                const params = ctx.req.valid<TBucketParams>('param');
+                const params = ctx.req.valid<TStaticAssetBucketParams>('param');
                 const bucketName = await resolveBucket({
                   configured: bucket,
                   param: params.bucketName,
@@ -429,7 +443,7 @@ export class AssetControllerFactory extends BaseHelper {
           }
         }
 
-        const getObjectByNameRoute = AssetRouteOptions.readOverride({
+        const getObjectByNameRoute = StaticAssetRouteOptionsUtility.readOverride({
           route: routes?.getObjectByName,
         });
 
@@ -438,7 +452,7 @@ export class AssetControllerFactory extends BaseHelper {
             configs: { ...definitions.GET_OBJECT_BY_NAME, ...getObjectByNameRoute.override },
           }).to({
             handler: async (ctx) => {
-              const params = ctx.req.valid<TObjectParams>('param');
+              const params = ctx.req.valid<TStaticAssetObjectParams>('param');
               const bucketName = await resolveBucket({
                 configured: bucket,
                 param: params.bucketName,
@@ -459,7 +473,7 @@ export class AssetControllerFactory extends BaseHelper {
               }
 
               // Before any storage call: a key outside the scope must not even be probed.
-              AssetKeyScope.assertInScope({ key: objectName, keyPrefix });
+              StaticAssetKeyScopeUtility.assertInScope({ key: objectName, keyPrefix });
 
               const fileStat = await helper.getStat({
                 bucket: { name: bucketName },
@@ -468,7 +482,7 @@ export class AssetControllerFactory extends BaseHelper {
               const { size, metadata } = fileStat;
               applyMetadataHeaders({ ctx, metadata });
 
-              const served = AssetControllerFactory.resolveServedContentType({
+              const served = StaticAssetControllerFactory.resolveServedContentType({
                 helper,
                 object: { key: objectName },
               });
@@ -515,7 +529,7 @@ export class AssetControllerFactory extends BaseHelper {
           });
         }
 
-        const downloadObjectByNameRoute = AssetRouteOptions.readOverride({
+        const downloadObjectByNameRoute = StaticAssetRouteOptionsUtility.readOverride({
           route: routes?.downloadObjectByName,
         });
 
@@ -527,7 +541,7 @@ export class AssetControllerFactory extends BaseHelper {
             },
           }).to({
             handler: async (ctx) => {
-              const params = ctx.req.valid<TObjectParams>('param');
+              const params = ctx.req.valid<TStaticAssetObjectParams>('param');
               const bucketName = await resolveBucket({
                 configured: bucket,
                 param: params.bucketName,
@@ -548,7 +562,7 @@ export class AssetControllerFactory extends BaseHelper {
               }
 
               // Before any storage call: a key outside the scope must not even be probed.
-              AssetKeyScope.assertInScope({ key: objectName, keyPrefix });
+              StaticAssetKeyScopeUtility.assertInScope({ key: objectName, keyPrefix });
 
               const fileStat = await helper.getStat({
                 bucket: { name: bucketName },
@@ -558,7 +572,7 @@ export class AssetControllerFactory extends BaseHelper {
               applyMetadataHeaders({ ctx, metadata });
 
               // Download always attaches, so the served type only has to be honest, never renderable.
-              const served = AssetControllerFactory.resolveServedContentType({
+              const served = StaticAssetControllerFactory.resolveServedContentType({
                 helper,
                 object: { key: objectName },
               });
@@ -589,16 +603,17 @@ export class AssetControllerFactory extends BaseHelper {
           });
         }
 
-        const uploadRoute = AssetRouteOptions.readOverride({ route: routes?.upload });
+        const uploadRoute = StaticAssetRouteOptionsUtility.readOverride({ route: routes?.upload });
 
         if (uploadRoute.isEnabled) {
           const uploadMiddleware =
             maxBytes === undefined
               ? uploadRoute.override.middleware
-              : AssetRouteOptions.appendLengthGuard({
+              : StaticAssetRouteOptionsUtility.appendLengthGuard({
                   middleware: uploadRoute.override.middleware,
                   maxBytes,
-                  maxFiles: options?.parseMultipartBody?.maxFiles ?? DEFAULT_MAX_UPLOAD_FILES,
+                  maxFiles:
+                    options?.parseMultipartBody?.maxFiles ?? StaticAssetDefaults.MAX_UPLOAD_FILES,
                 });
 
           this.bindRoute({
@@ -612,7 +627,7 @@ export class AssetControllerFactory extends BaseHelper {
               // A configured bucket drops `params` from this route entirely, so it is read only when it exists.
               const bucketParam = hasConfiguredBucket
                 ? undefined
-                : ctx.req.valid<TBucketParams>('param').bucketName;
+                : ctx.req.valid<TStaticAssetBucketParams>('param').bucketName;
               const bucketName = await resolveBucket({ configured: bucket, param: bucketParam });
 
               if (!helper.isValidBucketName({ bucket: { name: bucketName } })) {
@@ -654,7 +669,8 @@ export class AssetControllerFactory extends BaseHelper {
                 context: ctx,
                 storage: options?.parseMultipartBody?.storage,
                 uploadDir: options?.parseMultipartBody?.uploadDir,
-                maxFiles: options?.parseMultipartBody?.maxFiles ?? DEFAULT_MAX_UPLOAD_FILES,
+                maxFiles:
+                  options?.parseMultipartBody?.maxFiles ?? StaticAssetDefaults.MAX_UPLOAD_FILES,
               });
 
               const spoolPaths = filesArray
@@ -730,7 +746,7 @@ export class AssetControllerFactory extends BaseHelper {
                             })
                           : defaultKey;
 
-                        if (!AssetKeyScope.isInScope({ key, keyPrefix })) {
+                        if (!StaticAssetKeyScopeUtility.isInScope({ key, keyPrefix })) {
                           throw getError({
                             error: StaticAssetErrors.OBJECT_KEY_OUT_OF_SCOPE,
                             message: `Object key is outside the key prefix of this controller | key: ${key} | keyPrefix: ${keyPrefix}`,
@@ -767,7 +783,7 @@ export class AssetControllerFactory extends BaseHelper {
                     object: uploadResult.object,
                   });
 
-                  const createdMetaLink = await AssetMetaLink.createRow({
+                  const createdMetaLink = await StaticAssetMetaLinkUtility.createRow({
                     metaLink,
                     helper,
                     storage,
@@ -791,7 +807,7 @@ export class AssetControllerFactory extends BaseHelper {
                     // error middleware and `database.handler` - the two places that strip
                     // `detail`/`table`/`constraint` - and shipped raw constraint names to the client.
                     // The real error is already logged in full immediately above.
-                    metaLink: { error: META_LINK_CREATE_FAILED },
+                    metaLink: { error: StaticAssetMetaLinkCodes.CREATE_FAILED },
                   });
                 }
               }
@@ -801,14 +817,16 @@ export class AssetControllerFactory extends BaseHelper {
           });
         }
 
-        const deleteObjectRoute = AssetRouteOptions.readOverride({ route: routes?.deleteObject });
+        const deleteObjectRoute = StaticAssetRouteOptionsUtility.readOverride({
+          route: routes?.deleteObject,
+        });
 
         if (deleteObjectRoute.isEnabled) {
           this.bindRoute({
             configs: { ...definitions.DELETE_OBJECT, ...deleteObjectRoute.override },
           }).to({
             handler: async (ctx) => {
-              const params = ctx.req.valid<TObjectParams>('param');
+              const params = ctx.req.valid<TStaticAssetObjectParams>('param');
               const bucketName = await resolveBucket({
                 configured: bucket,
                 param: params.bucketName,
@@ -829,7 +847,7 @@ export class AssetControllerFactory extends BaseHelper {
               }
 
               // Before any storage call: a key outside the scope must not even be probed.
-              AssetKeyScope.assertInScope({ key: objectName, keyPrefix });
+              StaticAssetKeyScopeUtility.assertInScope({ key: objectName, keyPrefix });
 
               // Deliberately idempotent: S3 answers 200 for a key that was never there, and consumers
               // already depend on it. `disk` throws instead, so the two are reconciled here, not below.
@@ -879,7 +897,9 @@ export class AssetControllerFactory extends BaseHelper {
           });
         }
 
-        const listObjectsRoute = AssetRouteOptions.readOverride({ route: routes?.listObjects });
+        const listObjectsRoute = StaticAssetRouteOptionsUtility.readOverride({
+          route: routes?.listObjects,
+        });
 
         if (listObjectsRoute.isEnabled) {
           this.bindRoute({
@@ -889,9 +909,9 @@ export class AssetControllerFactory extends BaseHelper {
               // A configured bucket drops `params` from this route entirely, so it is read only when it exists.
               const bucketParam = hasConfiguredBucket
                 ? undefined
-                : ctx.req.valid<TBucketParams>('param').bucketName;
+                : ctx.req.valid<TStaticAssetBucketParams>('param').bucketName;
               const bucketName = await resolveBucket({ configured: bucket, param: bucketParam });
-              const { prefix, recursive, maxKeys } = ctx.req.valid<TListQuery>('query');
+              const { prefix, recursive, maxKeys } = ctx.req.valid<TStaticAssetListQuery>('query');
 
               if (!helper.isValidBucketName({ bucket: { name: bucketName } })) {
                 throw getError({ error: StaticAssetErrors.BUCKET_NAME_INVALID });
@@ -911,7 +931,7 @@ export class AssetControllerFactory extends BaseHelper {
                 }
               }
 
-              const scoped = AssetKeyScope.resolveListPrefix({ prefix, keyPrefix });
+              const scoped = StaticAssetKeyScopeUtility.resolveListPrefix({ prefix, keyPrefix });
 
               if (scoped.isOutOfScope) {
                 return ctx.json([], HTTP.ResultCodes.RS_2.Ok);
@@ -940,11 +960,13 @@ export class AssetControllerFactory extends BaseHelper {
 
           if (!policyService || !commitService) {
             throw getError({
-              message: `[${name}] directUpload needs policyService and commitService | the component builds and binds them; a caller of defineAssetController passes its own`,
+              message: `[${name}] directUpload needs policyService and commitService | the component builds and binds them; a caller of StaticAssetControllerFactory.build passes its own`,
             });
           }
 
-          const uploadPolicyRoute = AssetRouteOptions.readOverride({ route: routes?.uploadPolicy });
+          const uploadPolicyRoute = StaticAssetRouteOptionsUtility.readOverride({
+            route: routes?.uploadPolicy,
+          });
 
           if (uploadPolicyRoute.isEnabled) {
             this.bindRoute({
@@ -957,7 +979,7 @@ export class AssetControllerFactory extends BaseHelper {
                   throw getError({ error: StaticAssetErrors.UPLOAD_NOT_AUTHORIZED });
                 }
 
-                const { files } = ctx.req.valid<TUploadPolicyRequest>('json');
+                const { files } = ctx.req.valid<TStaticAssetUploadPolicyRequest>('json');
                 const policies = await policyService.issuePolicies({ files });
 
                 return ctx.json(policies, HTTP.ResultCodes.RS_2.Ok);
@@ -965,7 +987,9 @@ export class AssetControllerFactory extends BaseHelper {
             });
           }
 
-          const uploadCommitRoute = AssetRouteOptions.readOverride({ route: routes?.uploadCommit });
+          const uploadCommitRoute = StaticAssetRouteOptionsUtility.readOverride({
+            route: routes?.uploadCommit,
+          });
 
           if (uploadCommitRoute.isEnabled) {
             this.bindRoute({
@@ -982,7 +1006,7 @@ export class AssetControllerFactory extends BaseHelper {
                 });
 
                 const { commitToken, ...labels } = ctx.req.valid<
-                  { commitToken: string } & TUploadQuery
+                  { commitToken: string } & TStaticAssetUploadQuery
                 >('json');
 
                 const result = await commitService.commit({
@@ -997,7 +1021,7 @@ export class AssetControllerFactory extends BaseHelper {
         }
 
         if (useMetaLink && metaLink) {
-          const recreateMetaLinkRoute = AssetRouteOptions.readOverride({
+          const recreateMetaLinkRoute = StaticAssetRouteOptionsUtility.readOverride({
             route: routes?.recreateMetaLink,
           });
 
@@ -1013,7 +1037,7 @@ export class AssetControllerFactory extends BaseHelper {
                     'This route recreates a MetaLink for an existing object and takes no labels',
                 });
 
-                const params = ctx.req.valid<TObjectParams>('param');
+                const params = ctx.req.valid<TStaticAssetObjectParams>('param');
                 const bucketName = await resolveBucket({
                   configured: bucket,
                   param: params.bucketName,
@@ -1034,7 +1058,7 @@ export class AssetControllerFactory extends BaseHelper {
                 }
 
                 // Before any storage call: a key outside the scope must not even be probed.
-                AssetKeyScope.assertInScope({ key: objectName, keyPrefix });
+                StaticAssetKeyScopeUtility.assertInScope({ key: objectName, keyPrefix });
 
                 const bucketRef = { name: bucketName };
                 const object = { key: objectName };
@@ -1042,7 +1066,7 @@ export class AssetControllerFactory extends BaseHelper {
 
                 const link = options?.normalizeLinkFn
                   ? options.normalizeLinkFn({ bucket: bucketRef, object })
-                  : AssetControllerFactory.buildObjectLink({
+                  : StaticAssetControllerFactory.buildObjectLink({
                       basePath: normalizedBasePath,
                       bucket: bucketRef,
                       object,
@@ -1050,7 +1074,7 @@ export class AssetControllerFactory extends BaseHelper {
                       rawObjectPath,
                     });
 
-                const refreshed = await AssetMetaLink.refreshRows({
+                const refreshed = await StaticAssetMetaLinkUtility.refreshRows({
                   metaLink,
                   helper,
                   bucket: bucketRef,
@@ -1074,11 +1098,11 @@ export class AssetControllerFactory extends BaseHelper {
 
                 // Not atomic with the refresh above: two concurrent calls may both create, which the
                 // table allows - rows per pair are deliberately not unique.
-                const created = await AssetMetaLink.createRow({
+                const created = await StaticAssetMetaLinkUtility.createRow({
                   metaLink,
                   helper,
                   storage,
-                  uploadResult: AssetMetaLink.buildStoredUploadResult({
+                  uploadResult: StaticAssetMetaLinkUtility.buildStoredUploadResult({
                     helper,
                     bucket: bucketRef,
                     object,

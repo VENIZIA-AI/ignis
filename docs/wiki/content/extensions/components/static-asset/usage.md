@@ -187,8 +187,8 @@ export class Application extends BaseApplication {
   preConfigure() {
     this.repository(MetaLinkRepository);
 
-    this.bind<TStaticAssetsComponentOptions>({
-      key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+    this.bind<TStaticAssetComponentOptions>({
+      key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
     }).toValue({
       uploads: {
         controller: { name: 'UploadsController', basePath: '/uploads' },
@@ -228,8 +228,8 @@ export class MetaLinkModel extends BaseRelationalEntity<typeof MetaLinkModel.sch
   static override schema = commerceSchema.table('MetaLink', { /* the MetaLink columns */ });
 }
 
-this.bind<TStaticAssetsComponentOptions<typeof MetaLinkModel.schema>>({
-  key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+this.bind<TStaticAssetComponentOptions<typeof MetaLinkModel.schema>>({
+  key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
 }).toValue({ /* ... */ });
 ```
 
@@ -280,8 +280,8 @@ const pdfs = await metaLinkRepository.find({ filter: { where: { mimetype: 'appli
 `controller.keyPrefix` scopes every key a controller touches, and `routes.<key>.enabled: false` drops a built-in route entirely. Together they let two controllers - or two tenants - share one bucket without seeing each other's keys. `keyPrefix` requires `controller.bucket`: without a configured bucket, the four bucket-management routes stay unscoped, so the controller throws at registration rather than isolating only part of its surface.
 
 ```typescript
-this.bind<TStaticAssetsComponentOptions>({
-  key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+this.bind<TStaticAssetComponentOptions>({
+  key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
 }).toValue({
   tenantA: {
     controller: {

@@ -1,19 +1,20 @@
 import type { IBucketRef, IObjectRef, IStorageHelper, IUploadResult } from '@venizia/ignis-helpers';
 import { BaseService } from '@venizia/ignis-kernel';
-import { AssetCommitToken, META_LINK_CREATE_FAILED } from '../common';
+import { StaticAssetMetaLinkCodes } from '../common';
+import { StaticAssetCommitTokenUtility } from '../utilities';
 import type {
-  TDirectUploadOptions,
+  TStaticAssetDirectUploadOptions,
   TMetaLinkConfig,
   TStaticAssetStorageType,
-  TUploadQuery,
+  TStaticAssetUploadQuery,
 } from '../common';
-import { AssetKeyScope } from '../controller/key-scope';
-import { AssetMetaLink } from '../controller/meta-link';
-import { AssetObjectLink } from '../controller/object-link';
+import { StaticAssetKeyScopeUtility } from '../utilities/key-scope.utility';
+import { StaticAssetMetaLinkUtility } from '../utilities/meta-link.utility';
+import { StaticAssetObjectLinkUtility } from '../utilities/object-link.utility';
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../models';
 
 /** What a commit answers. `metaLink` is absent when the entry keeps no MetaLink table. */
-export interface IAssetCommitResult {
+export interface IStaticAssetCommitResult {
   bucket: IBucketRef;
   object: IObjectRef;
   link: string;
@@ -21,7 +22,7 @@ export interface IAssetCommitResult {
 }
 
 /** `Schema` is the MetaLink table the application bound, the same type parameter the component carries. */
-export interface IAssetUploadCommitServiceOptions<
+export interface IStaticAssetUploadCommitServiceOptions<
   Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema,
 > {
   /** Names the logger; the controller's own name is the usual value. */
@@ -29,7 +30,7 @@ export interface IAssetUploadCommitServiceOptions<
   helper: IStorageHelper;
   /** The controller's `keyPrefix` as configured; normalized here the way the controller does. */
   keyPrefix?: string;
-  directUpload: Pick<TDirectUploadOptions, 'secretKey' | 'pendingPrefix' | 'onCommit'>;
+  directUpload: Pick<TStaticAssetDirectUploadOptions, 'secretKey' | 'pendingPrefix' | 'onCommit'>;
   storage: TStaticAssetStorageType;
   useMetaLink?: boolean;
   metaLink?: TMetaLinkConfig<Schema>;
@@ -46,21 +47,21 @@ export interface IAssetUploadCommitServiceOptions<
  * The token proves the key was issued by a policy; it carries no owner. Whether the current caller
  * may commit that key is the application's decision, made before it calls `commit`.
  */
-export class AssetUploadCommitService<
+export class StaticAssetUploadCommitService<
   Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema,
 > extends BaseService {
-  private readonly options: IAssetUploadCommitServiceOptions<Schema>;
+  private readonly options: IStaticAssetUploadCommitServiceOptions<Schema>;
   private readonly keyPrefix?: string;
   private readonly pendingPrefix: string;
   private readonly basePath: string;
 
-  constructor(opts: IAssetUploadCommitServiceOptions<Schema>) {
+  constructor(opts: IStaticAssetUploadCommitServiceOptions<Schema>) {
     super({ scope: opts.scope });
 
     this.options = opts;
-    this.basePath = AssetObjectLink.normalizeBasePath({ basePath: opts.basePath });
+    this.basePath = StaticAssetObjectLinkUtility.normalizeBasePath({ basePath: opts.basePath });
 
-    const prefixes = AssetKeyScope.resolveDirectUploadPrefixes({
+    const prefixes = StaticAssetKeyScopeUtility.resolveDirectUploadPrefixes({
       keyPrefix: opts.keyPrefix,
       pendingPrefix: opts.directUpload.pendingPrefix,
       helper: opts.helper,
@@ -71,12 +72,15 @@ export class AssetUploadCommitService<
   }
 
   /** Moves the pending object to its final key and, when the entry keeps a MetaLink table, writes the row. A MetaLink failure rides the result as a code: the object IS committed by then. */
-  async commit(opts: { commitToken: string; labels?: TUploadQuery }): Promise<IAssetCommitResult> {
+  async commit(opts: {
+    commitToken: string;
+    labels?: TStaticAssetUploadQuery;
+  }): Promise<IStaticAssetCommitResult> {
     const { helper, directUpload, storage, useMetaLink, metaLink } = this.options;
 
     // Verified BEFORE any storage call. That is what keeps this from being a name prober: a forged
     // token fails without a round trip, so timing says nothing.
-    const payload = AssetCommitToken.read({
+    const payload = StaticAssetCommitTokenUtility.read({
       token: opts.commitToken,
       secretKey: directUpload.secretKey,
     });
@@ -90,7 +94,7 @@ export class AssetUploadCommitService<
     const object = { key: payload.key.slice(this.pendingPrefix.length) };
 
     // A token another controller signed with the same secret must not land outside this scope.
-    AssetKeyScope.assertInScope({ key: object.key, keyPrefix: this.keyPrefix });
+    StaticAssetKeyScopeUtility.assertInScope({ key: object.key, keyPrefix: this.keyPrefix });
 
     // Before the copy, so a hook that throws leaves the object under the pending prefix
     // for a lifecycle rule, rather than stranding it at the final key.
@@ -117,7 +121,7 @@ export class AssetUploadCommitService<
         );
     }
 
-    const link = AssetObjectLink.build({
+    const link = StaticAssetObjectLinkUtility.build({
       basePath: this.basePath,
       bucket: bucketRef,
       object,
@@ -132,11 +136,11 @@ export class AssetUploadCommitService<
     if (useMetaLink && metaLink) {
       try {
         const fileStat = await helper.getStat({ bucket: bucketRef, object });
-        const data = await AssetMetaLink.createRow({
+        const data = await StaticAssetMetaLinkUtility.createRow({
           metaLink,
           helper,
           storage,
-          uploadResult: AssetMetaLink.buildStoredUploadResult({
+          uploadResult: StaticAssetMetaLinkUtility.buildStoredUploadResult({
             helper,
             bucket: bucketRef,
             object,
@@ -154,7 +158,7 @@ export class AssetUploadCommitService<
         this.logger
           .for('UPLOAD_COMMIT')
           .error('Failed to create MetaLink | objectName: %s | Error: %s', object.key, error);
-        metaLinkResult = { error: META_LINK_CREATE_FAILED };
+        metaLinkResult = { error: StaticAssetMetaLinkCodes.CREATE_FAILED };
       }
     }
 

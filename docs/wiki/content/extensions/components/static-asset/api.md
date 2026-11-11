@@ -16,10 +16,10 @@ Every binding, endpoint, type, and internal mechanism of `StaticAssetComponent`.
 - [`packages/core-server/src/components/static-asset/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/keys.ts)
 - [`packages/core-server/src/components/static-asset/controller/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/factory.ts)
 - [`packages/core-server/src/components/static-asset/controller/base.definition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/base.definition.ts)
-- [`packages/core-server/src/components/static-asset/controller/key-scope.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/key-scope.ts) - `controller.keyPrefix`
-- [`packages/core-server/src/components/static-asset/controller/meta-link.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/meta-link.ts) - `AssetMetaLink.createRow`, `AssetMetaLink.refreshRows`
-- [`packages/core-server/src/components/static-asset/controller/route-options.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/route-options.ts) - `enabled`, the `maxBytes` route guard
-- [`packages/core-server/src/components/static-asset/ingest.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/ingest.ts)
+- [`packages/core-server/src/components/static-asset/utilities/key-scope.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/key-scope.utility.ts) - `controller.keyPrefix`
+- [`packages/core-server/src/components/static-asset/utilities/meta-link.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/meta-link.utility.ts) - `StaticAssetMetaLinkUtility.createRow`, `StaticAssetMetaLinkUtility.refreshRows`
+- [`packages/core-server/src/components/static-asset/utilities/route-options.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/route-options.utility.ts) - `enabled`, the `maxBytes` route guard
+- [`packages/core-server/src/components/static-asset/utilities/ingest.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/ingest.utility.ts)
 - [`packages/core-server/src/components/static-asset/common/errors.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/errors.ts)
 - [`packages/core-server/src/components/static-asset/models/base.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/models/base.model.ts)
 - [`packages/core-server/src/components/static-asset/repositories/base.repository.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/repositories/base.repository.ts)
@@ -45,28 +45,28 @@ Every binding, endpoint, type, and internal mechanism of `StaticAssetComponent`.
 // Core - subpath import only
 import {
   StaticAssetComponent,
-  StaticAssetComponentBindingKeys,
+  StaticAssetBindingKeys,
   StaticAssetStorageTypes,
-  AssetControllerFactory,
-  AssetIngest,
+  StaticAssetControllerFactory,
+  StaticAssetIngestUtility,
   BaseMetaLinkModel,
   BaseMetaLinkRepository,
-  AssetCommitToken,
-  RENDERABLE_CONTENT_TYPES,
+  StaticAssetCommitTokenUtility,
+  StaticAssetContentTypes,
   StaticAssetErrors,
-  WHITELIST_HEADERS,
+  StaticAssetHeaders,
 } from '@venizia/ignis/static-asset';
 
 import type {
-  TStaticAssetsComponentOptions,
+  TStaticAssetComponentOptions,
   TStaticAssetExtraOptions,
   TMetaLinkConfig,
-  TObjectNameResolver,
-  TDefineExtraRoutes,
+  TStaticAssetObjectNameResolver,
+  TStaticAssetDefineExtraRoutes,
   TStaticAssetStorageType,
-  IAssetControllerOptions,
-  IIngestFromUrlOptions,
-  IIngestFromUrlResult,
+  IStaticAssetControllerOptions,
+  IStaticAssetIngestFromUrlOptions,
+  IStaticAssetIngestFromUrlResult,
 } from '@venizia/ignis/static-asset';
 
 // Helpers - main entry + storage-backend subpaths
@@ -78,12 +78,12 @@ import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 
 | Key | Constant | Type | Required | Default |
 |-----|----------|------|----------|---------|
-| `@app/static-asset-component/options` | `StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS` | `TStaticAssetsComponentOptions` | Yes | `{}` |
+| `@app/static-asset/options` | `StaticAssetBindingKeys.STATIC_ASSET_OPTIONS` | `TStaticAssetComponentOptions` | Yes | `{}` |
 
 > [!NOTE]
 > `StaticAssetComponent`'s constructor binds an empty `{}` default for this key. `binding()` iterates `Object.entries(componentOptions)` - an empty object produces zero controllers, no error. Bind your configuration in `preConfigure()` before `this.component(StaticAssetComponent)`.
 
-## `TStaticAssetsComponentOptions`
+## `TStaticAssetComponentOptions`
 
 ```typescript
 /** The part of a built-in route an application may change. */
@@ -94,7 +94,7 @@ type TStaticAssetRouteConfig = Partial<
   enabled?: boolean;
 };
 
-type TStaticAssetsComponentOptions<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
+type TStaticAssetComponentOptions<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
   [key: string]: {
     controller: {
       name: string;
@@ -119,9 +119,9 @@ type TStaticAssetsComponentOptions<Schema extends TMetaLinkCompatibleSchema = TM
       };
     };
     extra?: TStaticAssetExtraOptions;
-    resolveObjectName?: TObjectNameResolver;
-    defineRoutesBefore?: TDefineExtraRoutes;
-    defineExtraRoutes?: TDefineExtraRoutes;
+    resolveObjectName?: TStaticAssetObjectNameResolver;
+    defineRoutesBefore?: TStaticAssetDefineExtraRoutes;
+    defineExtraRoutes?: TStaticAssetDefineExtraRoutes;
   } & (
     | { storage: typeof StaticAssetStorageTypes.BUN_S3; helper: BunS3Helper }
     | { storage: typeof StaticAssetStorageTypes.DISK; helper: DiskHelper }
@@ -133,7 +133,7 @@ type TStaticAssetsComponentOptions<Schema extends TMetaLinkCompatibleSchema = TM
 `Schema` defaults to the table IGNIS ships. Pass your own to put the MetaLink table under a Postgres schema of your own, or to give it another name:
 
 ```typescript
-this.bind<TStaticAssetsComponentOptions<typeof MetaLinkModel.schema>>({ key: ... });
+this.bind<TStaticAssetComponentOptions<typeof MetaLinkModel.schema>>({ key: ... });
 ```
 
 The constraint is the ROW, not the table: any table whose row carries the MetaLink fields is accepted, and a table missing one of them is still refused at compile time.
@@ -152,13 +152,13 @@ The constraint is the ROW, not the table: any table whose row carries the MetaLi
 | `extra` | `TStaticAssetExtraOptions` | `undefined` | Multipart parsing mode, name/link normalization, max folder depth, upload size ceiling |
 | `useMetaLink` | `boolean` | `false` | Enables the `PUT .../meta-links/:objectName` route and DB tracking on upload/delete |
 | `metaLink` | `TMetaLinkConfig<Schema>` | - | Required when `useMetaLink: true`; ignored otherwise |
-| `resolveObjectName` | `TObjectNameResolver` | `undefined` | Decides the stored object name - see [`resolveObjectName`](#resolveobjectname) |
-| `defineRoutesBefore` | `TDefineExtraRoutes` | `undefined` | Adds your own routes BEFORE every built-in one. A literal path then wins over the catch-all `rawObjectPath` registers |
-| `defineExtraRoutes` | `TDefineExtraRoutes` | `undefined` | Adds your own routes after every built-in one - see [`defineExtraRoutes`](#defineextraroutes) |
+| `resolveObjectName` | `TStaticAssetObjectNameResolver` | `undefined` | Decides the stored object name - see [`resolveObjectName`](#resolveobjectname) |
+| `defineRoutesBefore` | `TStaticAssetDefineExtraRoutes` | `undefined` | Adds your own routes BEFORE every built-in one. A literal path then wins over the catch-all `rawObjectPath` registers |
+| `defineExtraRoutes` | `TStaticAssetDefineExtraRoutes` | `undefined` | Adds your own routes after every built-in one - see [`defineExtraRoutes`](#defineextraroutes) |
 
 ### Per-route overrides
 
-Each key accepts a `TStaticAssetRouteConfig` - `Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>` (typically `authenticate`, `authorize`, `path`, and `middleware`) plus `enabled`. `AssetRouteOptions.readOverride` splits `enabled` off before the rest is shallow-merged onto the base definition the factory built for this controller: `{ ...definitions.UPLOAD, ...routes?.upload }`.
+Each key accepts a `TStaticAssetRouteConfig` - `Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>` (typically `authenticate`, `authorize`, `path`, and `middleware`) plus `enabled`. `StaticAssetRouteOptionsUtility.readOverride` splits `enabled` off before the rest is shallow-merged onto the base definition the factory built for this controller: `{ ...definitions.UPLOAD, ...routes?.upload }`.
 
 | Route key | HTTP Method | Base Path | Registered when |
 |-----------|-------------|-----------|------------------|
@@ -203,7 +203,7 @@ A configured `bucket` shortens `upload`, `listObjects`, `getObjectByName`, `down
 
 ### `controller.keyPrefix`
 
-Splits one shared bucket between controllers. `AssetKeyScope.normalizePrefix` normalizes the value to exactly
+Splits one shared bucket between controllers. `StaticAssetKeyScopeUtility.normalizePrefix` normalizes the value to exactly
 one trailing slash (`'tenant-a'`, `'/tenant-a'` and `'tenant-a/'` all become `'tenant-a/'`, so
 `tenant-a` never also owns `tenant-ab/`), and every segment must pass `isValidSegment()` or the
 controller throws at registration.
@@ -274,7 +274,7 @@ type TStaticAssetExtraOptions = {
 
 ```typescript
 (linkOptions: IObjectLocation) =>
-  AssetControllerFactory.buildObjectLink({
+  StaticAssetControllerFactory.buildObjectLink({
     basePath: controller.basePath,
     bucket: linkOptions.bucket,
     object: linkOptions.object,
@@ -283,7 +283,7 @@ type TStaticAssetExtraOptions = {
   });
 ```
 
-`AssetControllerFactory.buildObjectLink` is public, so a hand-written route can build the same link.
+`StaticAssetControllerFactory.buildObjectLink` is public, so a hand-written route can build the same link.
 
 ```typescript
 static buildObjectLink(
@@ -295,7 +295,7 @@ static buildObjectLink(
 ): string;
 ```
 
-This is why every generated link points back at the `objects/{objectName}` stream route by default, regardless of storage backend. `AssetControllerFactory.buildObjectLink` follows the [URL shapes](#url-shapes) above, so a link always resolves against the routes that controller registered. The `PUT .../meta-links/{objectName}` route builds its fallback link with the same function.
+This is why every generated link points back at the `objects/{objectName}` stream route by default, regardless of storage backend. `StaticAssetControllerFactory.buildObjectLink` follows the [URL shapes](#url-shapes) above, so a link always resolves against the routes that controller registered. The `PUT .../meta-links/{objectName}` route builds its fallback link with the same function.
 
 `BaseStorageHelper` has its own backend-specific `normalizeObjectLink()`. It only runs when you call a helper's `upload()` directly, outside the component. Through `StaticAssetComponent`, the component's default `normalizeLinkFn` always takes priority instead.
 
@@ -555,19 +555,19 @@ To use a MinIO server, point `endpoint.default` at it (`'http://localhost:9000'`
 
 ## Controller factory
 
-`AssetControllerFactory.defineAssetController(opts: IAssetControllerOptions)` builds one controller class per call:
+`StaticAssetControllerFactory.build(opts: IStaticAssetControllerOptions)` builds one controller class per call:
 
 ```typescript
-interface IAssetControllerOptions {
-  controller: TStaticAssetsComponentOptions[string]['controller'];
+interface IStaticAssetControllerOptions {
+  controller: TStaticAssetComponentOptions[string]['controller'];
   storage: TStaticAssetStorageType;
   helper: IStorageHelper;
   useMetaLink?: boolean;
   metaLink?: TMetaLinkConfig;
   options?: TStaticAssetExtraOptions;
-  resolveObjectName?: TObjectNameResolver;
-  defineRoutesBefore?: TDefineExtraRoutes;
-  defineExtraRoutes?: TDefineExtraRoutes;
+  resolveObjectName?: TStaticAssetObjectNameResolver;
+  defineRoutesBefore?: TStaticAssetDefineExtraRoutes;
+  defineExtraRoutes?: TStaticAssetDefineExtraRoutes;
 }
 ```
 
@@ -579,12 +579,12 @@ interface IAssetControllerOptions {
 6. Calls `defineExtraRoutes` last, after every built-in route.
 7. `StaticAssetComponent.binding()` registers the resulting class with `this.application.controller(...)`.
 
-`defineRoutesBefore` and `defineExtraRoutes` share the `TDefineExtraRoutes` shape. Registration order is the only difference, and Hono matches in registration order, so it decides every path collision.
+`defineRoutesBefore` and `defineExtraRoutes` share the `TStaticAssetDefineExtraRoutes` shape. Registration order is the only difference, and Hono matches in registration order, so it decides every path collision.
 
 ```
 StaticAssetComponent.binding()
     | iterates componentOptions
-AssetControllerFactory.defineAssetController({ controller, storage, helper, ... })
+StaticAssetControllerFactory.build({ controller, storage, helper, ... })
     | creates
 @controller({ path: basePath })
 class GeneratedStaticAssetController extends BaseRestController { ... }
@@ -597,7 +597,7 @@ this.application.controller(GeneratedStaticAssetController)
 Decides the key one uploaded file is stored under. Set it instead of copying the factory to rename a single upload.
 
 ```typescript
-type TObjectNameResolver = (opts: {
+type TStaticAssetObjectNameResolver = (opts: {
   bucket: IBucketRef;
   file: TUploadNaming;
   defaultKey: string;
@@ -619,7 +619,7 @@ The hook is rebuilt per request, because `bucket` is something only the route kn
 Adds routes of your own to the generated controller.
 
 ```typescript
-type TDefineExtraRoutes = (opts: {
+type TStaticAssetDefineExtraRoutes = (opts: {
   controller: BaseRestController;
   helper: IStorageHelper;
   basePath: string;
@@ -680,7 +680,7 @@ Upload and list share <code v-pre>/buckets/{bucketName}/objects</code> and diffe
 
 ### Where `maxBytes` runs
 
-`extra.maxBytes`'s `content-length` check is route middleware, built by `AssetRouteOptions.appendLengthGuard`
+`extra.maxBytes`'s `content-length` check is route middleware, built by `StaticAssetRouteOptionsUtility.appendLengthGuard`
 and appended AFTER your own `routes.upload.middleware` - so an application check of its own (for
 example inventory `REQUEST_TOO_LARGE`) still answers first. It runs before the route's body
 validator and before the handler.
@@ -740,7 +740,7 @@ These run inside `helper.upload()`, separate from the controller checks above. T
 ## Header sanitization
 
 ```typescript
-const WHITELIST_HEADERS = [
+StaticAssetHeaders.ALLOWED = [
   HTTP.Headers.CONTENT_ENCODING,
   HTTP.Headers.CACHE_CONTROL,
   HTTP.Headers.ETAG,
@@ -753,7 +753,7 @@ These correspond to `'content-encoding'`, `'cache-control'`, `'etag'` and `'last
 When streaming a file - both <code v-pre>objects/{objectName}</code> and <code v-pre>download/{objectName}</code> - the controller copies only these keys from the storage metadata onto the response. Every other metadata header is dropped. Each forwarded value is sanitized with `String(value).replace(/[\r\n]/g, '')` before being set, to prevent HTTP header injection.
 
 > [!WARNING]
-> `content-type` is **not** on the list, and the served type is never taken from storage metadata or from what the uploader declared. It is derived from the object KEY by `AssetControllerFactory.resolveServedContentType`, because a renderable type that a client chose is stored cross-site scripting on the API origin, and `nosniff` cannot stop a type the server itself declared.
+> `content-type` is **not** on the list, and the served type is never taken from storage metadata or from what the uploader declared. It is derived from the object KEY by `StaticAssetControllerFactory.resolveServedContentType`, because a renderable type that a client chose is stored cross-site scripting on the API origin, and `nosniff` cannot stop a type the server itself declared.
 
 ### Served content type
 
@@ -764,14 +764,14 @@ static resolveServedContentType(opts: {
 }): { contentType: string; isRenderable: boolean };
 ```
 
-`AssetControllerFactory.resolveServedContentType` runs `helper.getMimeType({ filename: object.key })` and checks the answer against `RENDERABLE_CONTENT_TYPES`:
+`StaticAssetControllerFactory.resolveServedContentType` runs `helper.getMimeType({ filename: object.key })` and checks the answer against `StaticAssetContentTypes.RENDERABLE`:
 
 | Outcome | `contentType` | `isRenderable` | Response |
 |---|---|---|---|
-| The key's type is in `RENDERABLE_CONTENT_TYPES` | That type | `true` | Streamed inline |
+| The key's type is in `StaticAssetContentTypes.RENDERABLE` | That type | `true` | Streamed inline |
 | Anything else, including an unknown extension | `'application/octet-stream'` | `false` | `Content-Disposition: attachment` |
 
-`RENDERABLE_CONTENT_TYPES` holds `image/png`, `image/jpeg`, `image/gif`, `image/webp`, `image/avif`, `image/bmp`, `image/x-icon`, `video/mp4`, `video/webm`, `audio/mpeg`, `audio/wav`, `audio/ogg`, `application/pdf`, `text/plain` and `text/csv`. `image/svg+xml` is deliberately absent, because SVG carries script.
+`StaticAssetContentTypes.RENDERABLE` holds `image/png`, `image/jpeg`, `image/gif`, `image/webp`, `image/avif`, `image/bmp`, `image/x-icon`, `video/mp4`, `video/webm`, `audio/mpeg`, `audio/wav`, `audio/ogg`, `application/pdf`, `text/plain` and `text/csv`. `image/svg+xml` is deliberately absent, because SVG carries script.
 
 The function is exported, so a hand-written route makes the same decision rather than reinventing it.
 
@@ -780,7 +780,7 @@ All streaming responses also set:
 ```http
 X-Content-Type-Options: nosniff
 Content-Security-Policy: sandbox
-Content-Type: <AssetControllerFactory.resolveServedContentType, from the object key>
+Content-Type: <StaticAssetControllerFactory.resolveServedContentType, from the object key>
 Content-Length: <bytes in the response body>
 Content-Disposition: attachment; filename="..."   (always on download; on objects when the type is not renderable)
 Accept-Ranges: bytes                              (objects route, advertised unconditionally)
@@ -798,16 +798,16 @@ Hono percent-decodes a path param before the handler reads it. The controller's 
 
 `isValidBucketName()`/`isValidObjectKey()` still run on the singly-decoded value, so a traversal payload is rejected exactly as before.
 
-## `AssetIngest`
+## `StaticAssetIngestUtility`
 
-`AssetIngest.fromUrl()` fetches a remote URL and stores what comes back, without the body passing through this process. It is on the `@venizia/ignis/static-asset` barrel and works against any `IStorageHelper` - no controller involved.
+`StaticAssetIngestUtility.fromUrl()` fetches a remote URL and stores what comes back, without the body passing through this process. It is on the `@venizia/ignis/static-asset` barrel and works against any `IStorageHelper` - no controller involved.
 
 ```typescript
-class AssetIngest {
-  static fromUrl(opts: IIngestFromUrlOptions): Promise<IIngestFromUrlResult>;
+class StaticAssetIngestUtility {
+  static fromUrl(opts: IStaticAssetIngestFromUrlOptions): Promise<IStaticAssetIngestFromUrlResult>;
 }
 
-interface IIngestFromUrlResult {
+interface IStaticAssetIngestFromUrlResult {
   upload: IUploadResult;
   stat: IFileStat;
 }
@@ -825,12 +825,12 @@ interface IIngestFromUrlResult {
 | `maxFolderDepth` | `number` | `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH` (`2`) | The same depth rule the upload route applies. |
 
 ```typescript
-const { upload, stat } = await AssetIngest.fromUrl({
+const { upload, stat } = await StaticAssetIngestUtility.fromUrl({
   helper,
   url: 'https://cdn.example.com/logo.png',
   bucket: { name: 'uploads' },
   normalizeLinkFn: ({ bucket, object }) =>
-    AssetControllerFactory.buildObjectLink({ basePath: '/assets', bucket, object }),
+    StaticAssetControllerFactory.buildObjectLink({ basePath: '/assets', bucket, object }),
 });
 ```
 
@@ -851,7 +851,7 @@ type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = {
   createMetaLink?: (opts: {
     uploadResult: IUploadResult;
     fileStat: IFileStat;
-    query: TUploadQuery;
+    query: TStaticAssetUploadQuery;
   }) => ValueOrPromise<{ count: number; data: Schema }>;
 };
 ```
@@ -909,7 +909,7 @@ Both classes come from the separate `@venizia/ignis-connectors` package, importe
   |------|-----------|--------------|
   | Refresh, `metaLink.createMetaLink` configured | One `repository.updateBy({ data: { mimetype, size, etag, isSynced: true }, where: { bucketName, objectName } })` - `link` and `metadata` are left alone, because the hook owns them | Every row for that `(bucketName, objectName)` pair |
   | Refresh, no hook | The same `updateBy`, plus `link` in the same statement; then one `updateById` **per row**, `{ metadata: { ...row.metadata, ...fileStat.metadata } }` - the stat's keys win, the row's other keys survive. Skipped entirely when the stat carries no metadata | Every row for that `(bucketName, objectName)` pair |
-  | Create | Only when the refresh updated `0` rows: `AssetMetaLink.createRow` - the same builder `upload` and `upload-commit` use, so `metaLink.createMetaLink` runs when provided, with a fresh `getStat()` result | One row, with no principal and no labels |
+  | Create | Only when the refresh updated `0` rows: `StaticAssetMetaLinkUtility.createRow` - the same builder `upload` and `upload-commit` use, so `metaLink.createMetaLink` runs when provided, with a fresh `getStat()` result | One row, with no principal and no labels |
 
   Rows per pair are deliberately not unique, and a refresh keeps each row's own `storageType` and labels (`variant`, `principalType`, `principalId`, `sequence`) either way.
 
@@ -922,10 +922,10 @@ Both classes come from the separate `@venizia/ignis-connectors` package, importe
 
 ## Component lifecycle
 
-1. `binding()` reads `STATIC_ASSET_COMPONENT_OPTIONS` from the DI container.
+1. `binding()` reads `STATIC_ASSET_OPTIONS` from the DI container.
 2. Iterates each key in the options object.
 3. For each entry, builds a `normalizeLinkFn` default if the caller did not supply one (see [Default normalizeLinkFn](#default-normalizelinkfn)).
-4. Calls `AssetControllerFactory.defineAssetController()` and registers the result with `this.application.controller()`.
+4. Calls `StaticAssetControllerFactory.build()` and registers the result with `this.application.controller()`.
 5. Logs the storage key, storage type, and whether MetaLink is enabled for each registered backend.
 
 `StaticAssetComponent` itself performs no eager configuration validation beyond the options type. A missing `metaLink` when `useMetaLink: true` is caught at compile time by the discriminated union, not at `binding()` runtime.

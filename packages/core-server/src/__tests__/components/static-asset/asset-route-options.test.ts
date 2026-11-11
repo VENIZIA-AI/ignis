@@ -1,4 +1,4 @@
-import { AssetRouteOptions } from '@/components/static-asset/controller/route-options';
+import { StaticAssetRouteOptionsUtility } from '@/components/static-asset/utilities/route-options.utility';
 import { BodyLimits } from '@venizia/ignis-kernel';
 import { Hono } from 'hono';
 import type { MiddlewareHandler } from 'hono';
@@ -12,12 +12,12 @@ import { describe, expect, test } from 'bun:test';
 const MAX_BYTES = 100;
 const MAX_FILES = 2;
 const CEILING =
-  MAX_FILES * (MAX_BYTES + AssetRouteOptions.ENVELOPE_BYTES_PER_FILE) +
-  AssetRouteOptions.ENVELOPE_BYTES_BASE;
+  MAX_FILES * (MAX_BYTES + StaticAssetRouteOptionsUtility.ENVELOPE_BYTES_PER_FILE) +
+  StaticAssetRouteOptionsUtility.ENVELOPE_BYTES_BASE;
 
 const buildApp = () => {
   const app = new Hono();
-  const middleware = AssetRouteOptions.appendLengthGuard({
+  const middleware = StaticAssetRouteOptionsUtility.appendLengthGuard({
     middleware: undefined,
     maxBytes: MAX_BYTES,
     maxFiles: MAX_FILES,
@@ -53,9 +53,9 @@ const postChunked = (app: Hono, length: number) =>
     duplex: 'half',
   } satisfies RequestInit & { duplex: 'half' });
 
-describe('AssetRouteOptions.appendLengthGuard', () => {
+describe('StaticAssetRouteOptionsUtility.appendLengthGuard', () => {
   test('answers the guard first, then the route limit', () => {
-    const middleware = AssetRouteOptions.appendLengthGuard({
+    const middleware = StaticAssetRouteOptionsUtility.appendLengthGuard({
       middleware: undefined,
       maxBytes: MAX_BYTES,
       maxFiles: MAX_FILES,
@@ -66,7 +66,7 @@ describe('AssetRouteOptions.appendLengthGuard', () => {
 
   test('keeps the application middleware ahead of both', () => {
     const own: MiddlewareHandler = async (_context, next) => next();
-    const list = AssetRouteOptions.appendLengthGuard({
+    const list = StaticAssetRouteOptionsUtility.appendLengthGuard({
       middleware: [own],
       maxBytes: MAX_BYTES,
       maxFiles: MAX_FILES,
@@ -91,7 +91,7 @@ describe('AssetRouteOptions.appendLengthGuard', () => {
   });
 
   test('the ceiling is above the default limit when maxBytes is large', () => {
-    const large = AssetRouteOptions.appendLengthGuard({
+    const large = StaticAssetRouteOptionsUtility.appendLengthGuard({
       middleware: undefined,
       maxBytes: 20 * 1024 * 1024,
       maxFiles: 10,

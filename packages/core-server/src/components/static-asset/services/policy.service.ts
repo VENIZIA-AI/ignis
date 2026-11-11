@@ -3,15 +3,16 @@ import { ResolverUtility } from '@venizia/ignis-helpers/common';
 import type { TValueOrAsyncResolver } from '@venizia/ignis-helpers/common';
 import { getError, UuidHelper } from '@venizia/ignis-helpers/core';
 import { BaseService } from '@venizia/ignis-kernel';
-import { AssetCommitToken, StaticAssetErrors } from '../common';
-import type { TDirectUploadOptions, TUploadPolicyRequest } from '../common';
-import { AssetKeyScope } from '../controller/key-scope';
+import { StaticAssetErrors } from '../common';
+import { StaticAssetCommitTokenUtility } from '../utilities';
+import type { TStaticAssetDirectUploadOptions, TStaticAssetUploadPolicyRequest } from '../common';
+import { StaticAssetKeyScopeUtility } from '../utilities/key-scope.utility';
 
 /** What the client posts to the storage, plus the key it lands under and the token that commits it. */
-export type TAssetUploadPolicy = IPostPolicy & { objectName: string; commitToken: string };
+export type TStaticAssetUploadPolicy = IPostPolicy & { objectName: string; commitToken: string };
 
-/** What an `AssetUploadPolicyService` needs, all of it one options entry already carries. */
-export interface IAssetUploadPolicyServiceOptions {
+/** What an `StaticAssetUploadPolicyService` needs, all of it one options entry already carries. */
+export interface IStaticAssetUploadPolicyServiceOptions {
   /** Names the logger; the controller's own name is the usual value. */
   scope: string;
   helper: IStorageHelper;
@@ -20,7 +21,7 @@ export interface IAssetUploadPolicyServiceOptions {
   /** The controller's `keyPrefix` as configured; normalized here the way the controller does. */
   keyPrefix?: string;
   directUpload: Pick<
-    TDirectUploadOptions,
+    TStaticAssetDirectUploadOptions,
     'maxBytes' | 'expiresIn' | 'secretKey' | 'pendingPrefix'
   >;
 }
@@ -32,15 +33,15 @@ export interface IAssetUploadPolicyServiceOptions {
  * Authorization is NOT here. A policy is a write credential, and who may ask for one is the route's
  * `directUpload.authorize`; code that calls this service has decided that for itself.
  */
-export class AssetUploadPolicyService extends BaseService {
-  private readonly options: IAssetUploadPolicyServiceOptions;
+export class StaticAssetUploadPolicyService extends BaseService {
+  private readonly options: IStaticAssetUploadPolicyServiceOptions;
   private readonly policyKeyPrefix: string;
 
-  constructor(opts: IAssetUploadPolicyServiceOptions) {
+  constructor(opts: IStaticAssetUploadPolicyServiceOptions) {
     super({ scope: opts.scope });
 
     this.options = opts;
-    this.policyKeyPrefix = AssetKeyScope.resolveDirectUploadPrefixes({
+    this.policyKeyPrefix = StaticAssetKeyScopeUtility.resolveDirectUploadPrefixes({
       keyPrefix: opts.keyPrefix,
       pendingPrefix: opts.directUpload.pendingPrefix,
       helper: opts.helper,
@@ -50,12 +51,12 @@ export class AssetUploadPolicyService extends BaseService {
 
   /** One signed policy per file. A size over `maxBytes` is refused before any policy is signed. */
   async issuePolicies(opts: {
-    files: TUploadPolicyRequest['files'];
-  }): Promise<TAssetUploadPolicy[]> {
+    files: TStaticAssetUploadPolicyRequest['files'];
+  }): Promise<TStaticAssetUploadPolicy[]> {
     const { helper, bucket, directUpload } = this.options;
     const bucketName = await ResolverUtility.resolveValueAsync({ value: bucket });
 
-    const policies: TAssetUploadPolicy[] = [];
+    const policies: TStaticAssetUploadPolicy[] = [];
 
     for (const file of opts.files) {
       if (file.size !== undefined && file.size > directUpload.maxBytes) {
@@ -79,7 +80,7 @@ export class AssetUploadPolicyService extends BaseService {
       policies.push({
         ...policy,
         objectName,
-        commitToken: AssetCommitToken.build({
+        commitToken: StaticAssetCommitTokenUtility.build({
           payload: {
             bucket: bucketName,
             key: objectName,

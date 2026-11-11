@@ -3,15 +3,15 @@ import { BaseApplication } from '@/base/applications';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { StaticAssetComponent } from '@/components/static-asset';
 import {
-  AssetCommitToken,
-  StaticAssetComponentBindingKeys,
-  type TDirectUploadOptions,
+  StaticAssetBindingKeys,
+  type TStaticAssetDirectUploadOptions,
   type TMetaLinkConfig,
-  type TStaticAssetsComponentOptions,
+  type TStaticAssetComponentOptions,
 } from '@/components/static-asset/common';
+import { StaticAssetCommitTokenUtility } from '@/components/static-asset/utilities';
 import {
-  AssetUploadCommitService,
-  AssetUploadPolicyService,
+  StaticAssetUploadCommitService,
+  StaticAssetUploadPolicyService,
 } from '@/components/static-asset/services';
 import { BaseMetaLinkModel } from '@/components/static-asset/models';
 import type { OpenAPIHono } from '@hono/zod-openapi';
@@ -40,7 +40,11 @@ class ServiceApplication extends BaseApplication {
   setupMiddlewares() {}
 }
 
-const ALLOW: TDirectUploadOptions = { authorize: () => true, secretKey: SECRET, maxBytes: 1024 };
+const ALLOW: TStaticAssetDirectUploadOptions = {
+  authorize: () => true,
+  secretKey: SECRET,
+  maxBytes: 1024,
+};
 
 /** One entry with direct upload and one without, so the key is shown to exist only where it should. */
 const boot = async (opts: {
@@ -64,7 +68,7 @@ const boot = async (opts: {
     keyPrefix: opts.keyPrefix,
     directUpload: { ...ALLOW, pendingPrefix: opts.pendingPrefix },
   };
-  const photos: TStaticAssetsComponentOptions[string] = opts.metaLink
+  const photos: TStaticAssetComponentOptions[string] = opts.metaLink
     ? {
         storage: 'disk',
         helper: opts.helper as never,
@@ -74,7 +78,7 @@ const boot = async (opts: {
       }
     : { storage: 'disk', helper: opts.helper as never, controller: photoController };
 
-  const options: TStaticAssetsComponentOptions = {
+  const options: TStaticAssetComponentOptions = {
     photos,
     plain: {
       storage: 'disk',
@@ -91,11 +95,11 @@ const boot = async (opts: {
   server.onError(new AppErrorMiddleware({ logger: application.logger }).value());
   server.route(TEST_CONFIGS.path.base, application.getRootRouter());
 
-  const policyService = application.get<AssetUploadPolicyService>({
-    key: StaticAssetComponentBindingKeys.policyService({ name: 'photos' }),
+  const policyService = application.get<StaticAssetUploadPolicyService>({
+    key: StaticAssetBindingKeys.policyService({ name: 'photos' }),
   });
-  const commitService = application.get<AssetUploadCommitService>({
-    key: StaticAssetComponentBindingKeys.commitService({ name: 'photos' }),
+  const commitService = application.get<StaticAssetUploadCommitService>({
+    key: StaticAssetBindingKeys.commitService({ name: 'photos' }),
   });
 
   return { application, server, policyService, commitService };
@@ -113,12 +117,12 @@ const messageOf = async (call: () => Promise<unknown>): Promise<string> => {
 };
 
 describe('the policy and commit service bindings', () => {
-  test('the keys are `@app/static-asset-component/{policy,commit}-service/<entry key>`', () => {
-    expect(StaticAssetComponentBindingKeys.policyService({ name: 'photos' })).toBe(
-      '@app/static-asset-component/policy-service/photos',
+  test('the keys are `@app/static-asset/{policy,commit}-service/<entry key>`', () => {
+    expect(StaticAssetBindingKeys.policyService({ name: 'photos' })).toBe(
+      '@app/static-asset/policy-service/photos',
     );
-    expect(StaticAssetComponentBindingKeys.commitService({ name: 'photos' })).toBe(
-      '@app/static-asset-component/commit-service/photos',
+    expect(StaticAssetBindingKeys.commitService({ name: 'photos' })).toBe(
+      '@app/static-asset/commit-service/photos',
     );
   });
 
@@ -127,12 +131,12 @@ describe('the policy and commit service bindings', () => {
       helper: new FakeStorageHelper(),
     });
 
-    expect(policyService).toBeInstanceOf(AssetUploadPolicyService);
-    expect(commitService).toBeInstanceOf(AssetUploadCommitService);
+    expect(policyService).toBeInstanceOf(StaticAssetUploadPolicyService);
+    expect(commitService).toBeInstanceOf(StaticAssetUploadCommitService);
 
     for (const key of [
-      StaticAssetComponentBindingKeys.policyService({ name: 'plain' }),
-      StaticAssetComponentBindingKeys.commitService({ name: 'plain' }),
+      StaticAssetBindingKeys.policyService({ name: 'plain' }),
+      StaticAssetBindingKeys.commitService({ name: 'plain' }),
     ]) {
       expect(application.get({ key, isOptional: true })).toBeUndefined();
     }
@@ -247,7 +251,7 @@ describe('commit', () => {
   test('an expired token is refused before any storage call', async () => {
     const helper = new FakeStorageHelper();
     const { commitService } = await boot({ helper });
-    const commitToken = AssetCommitToken.build({
+    const commitToken = StaticAssetCommitTokenUtility.build({
       payload: { bucket: 'uploads', key: 'pending/x/a.png', expiresAt: Date.now() - 1000 },
       secretKey: SECRET,
     });
@@ -262,7 +266,7 @@ describe('commit', () => {
   test('a key outside keyPrefix is refused, and nothing is copied', async () => {
     const helper = new FakeStorageHelper();
     const { commitService } = await boot({ helper, keyPrefix: 'tenant-a' });
-    const commitToken = AssetCommitToken.build({
+    const commitToken = StaticAssetCommitTokenUtility.build({
       payload: {
         bucket: 'uploads',
         key: 'pending/tenant-b/x/a.png',

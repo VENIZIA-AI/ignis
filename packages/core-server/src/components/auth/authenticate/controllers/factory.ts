@@ -35,7 +35,7 @@ export const JWTTokenPayloadSchema = z.object({
 
 /** Builds the decorated REST controller of the authentication routes (sign-in, sign-up, change-password, who-am-i). */
 export class AuthControllerFactory {
-  static define(opts: TDefineAuthControllerOpts) {
+  static build(opts: TDefineAuthControllerOpts) {
     const {
       restPath = '/auth',
       serviceKey,
