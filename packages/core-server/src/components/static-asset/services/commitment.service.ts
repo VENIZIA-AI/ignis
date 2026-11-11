@@ -1,4 +1,10 @@
-import type { IBucketRef, IObjectRef, IStorageHelper, IUploadResult } from '@venizia/ignis-helpers';
+import type {
+  IBucketRef,
+  IObjectLocation,
+  IObjectRef,
+  IStorageHelper,
+  IUploadResult,
+} from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers/core';
 import { BaseService } from '@venizia/ignis-kernel';
 import { StaticAssetErrors, StaticAssetMetaLinkCodes } from '../common';
@@ -81,10 +87,7 @@ export class StaticAssetUploadCommitService<
    * A token this refuses is refused the same way `commit` refuses it, and every refusal says no more
    * than that the token is no good: a caller learns nothing about which keys exist.
    */
-  verify(opts: { token: string; owner?: string }): {
-    bucket: IBucketRef;
-    object: IObjectRef;
-  } {
+  verify(opts: { token: string; owner?: string }): IObjectLocation {
     const payload = StaticAssetCommitTokenUtility.read({
       token: opts.token,
       secretKey: this.options.directUpload.secretKey,

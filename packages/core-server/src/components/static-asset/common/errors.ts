@@ -6,7 +6,7 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 export const StaticAssetErrors = {
   UPLOAD_NOT_AUTHORIZED: {
     message: {
-      text: 'Not allowed to request an upload policy',
+      text: 'Not allowed to upload',
       code: 'core.static_asset.upload_not_authorized',
     },
     statusCode: HTTP.ResultCodes.RS_4.Forbidden,

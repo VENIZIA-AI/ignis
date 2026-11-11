@@ -22,7 +22,7 @@ These carry a machine code a client can branch on, alongside the human message. 
 | `core.static_asset.file_empty` | `"Empty file content"` | `400` | `VALIDATION` |
 | `core.static_asset.max_keys_invalid` | `"Invalid maxKeys - expected a positive integer"` | `400` | `VALIDATION` |
 | `core.static_asset.upload_too_large` | `"File is larger than the maximum allowed"` | `413` | `VALIDATION` |
-| `core.static_asset.upload_not_authorized` | `"Not allowed to request an upload policy"` | `403` | `VALIDATION` |
+| `core.static_asset.upload_not_authorized` | `"Not allowed to upload"` | `403` | `VALIDATION` |
 | `core.static_asset.invalid_commit_token` | `"Invalid commit token"` | `400` | `VALIDATION` |
 | `core.static_asset.expired_commit_token` | `"Commit token has expired"` | `400` | `VALIDATION` |
 | `core.static_asset.labels_in_query` | `"Upload labels belong in the request body, not the query"` | `400` | `VALIDATION` |

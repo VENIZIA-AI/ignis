@@ -16,7 +16,7 @@ packages: ['@venizia/ignis-helpers', '@venizia/ignis']
 
 - **One policy, one object.** `presignPost` takes `object: { key }` and signs that key as it stands. `formData` carries the `key`, so the client no longer appends it.
 - **The token names its owner.** The new optional `directUpload.resolveOwner` supplies the owner on both routes. A token issued to an owner commits only for that owner; any other caller, or none, gets the same invalid-token answer a forged token gets.
-- **`upload-commit` checks `authorize`,** before the body is read and before any storage call. `false` answers `403` with `core.static_asset.upload_not_authorized`.
+- **`upload-commit` checks `authorize`,** before the body is read and before any storage call. `false` answers `403` with `core.static_asset.upload_not_authorized`. The message now reads "Not allowed to upload", since the code answers both routes; the code is unchanged.
 - **`verify({ token, owner? })`** on `StaticAssetUploadCommitService` runs the checks a commit starts with (signature, expiry, owner, `keyPrefix` scope) and returns the pending `{ bucket, object }`. It makes no storage call, so an app can read an uploaded file and report its problems before anything is committed. `commit` calls it itself.
 - **`directUpload.expires`** sets two lifetimes: `upload` for the policy (default 15 minutes) and `commit` for the token (default: `upload`), so users can validate and fix a file for longer than the upload window.
 

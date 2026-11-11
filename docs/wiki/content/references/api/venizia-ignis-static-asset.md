@@ -1103,7 +1103,7 @@ Codes a client branches on for a rejected static-asset request. A throw site may
 export declare const StaticAssetErrors: {
     readonly UPLOAD_NOT_AUTHORIZED: {
         readonly message: {
-            readonly text: "Not allowed to request an upload policy";
+            readonly text: "Not allowed to upload";
             readonly code: "core.static_asset.upload_not_authorized";
         };
         readonly statusCode: 403;
@@ -1316,10 +1316,7 @@ export declare class StaticAssetUploadCommitService<Schema extends TMetaLinkComp
     verify(opts: {
         token: string;
         owner?: string;
-    }): {
-        bucket: IBucketRef;
-        object: IObjectRef;
-    };
+    }): IObjectLocation;
     /** Moves the pending object to its final key and, when the entry keeps a MetaLink table, writes the row. A MetaLink failure rides the result as a code: the object IS committed by then. */
     commit(opts: {
         token: string;
