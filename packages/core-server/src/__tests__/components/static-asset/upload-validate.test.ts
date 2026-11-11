@@ -171,8 +171,10 @@ describe('the upload-validate route', () => {
       commitToken: policy.commitToken,
     });
 
+    const answer = await response.json();
+
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ isValid: true, issues: [] });
+    expect(answer).toEqual({ isValid: true, issues: [] });
   });
 
   test('hands the app the pending object, the helper and the owner, and returns its issues in its own shape', async () => {
@@ -200,8 +202,10 @@ describe('the upload-validate route', () => {
       { 'x-user': 'user-a' },
     );
 
+    const answer = await response.json();
+
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({
+    expect(answer).toEqual({
       isValid: false,
       issues: [
         {
