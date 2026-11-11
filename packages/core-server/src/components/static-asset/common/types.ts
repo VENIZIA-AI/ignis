@@ -107,21 +107,22 @@ export type TStaticAssetDirectUploadOptions = {
    */
   pendingPrefix?: string;
 
-  /**
-   * How long a policy stays good: the window to upload in.
-   *
-   * @default StoragePresignDefaults.POST_EXPIRES_IN
-   */
-  expiresIn?: IDuration;
+  expires?: {
+    /**
+     * How long the browser may post the bytes: the POST policy's lifetime.
+     *
+     * @default StoragePresignDefaults.POST_EXPIRES_IN
+     */
+    upload?: IDuration;
 
-  /**
-   * How long the commit token stays good. Longer than `expiresIn` when a user validates, fixes and
-   * confirms an upload after it landed; the pending object must outlive it, so the lifecycle rule on
-   * `pendingPrefix` has to be longer still.
-   *
-   * @default the policy's own expiry, `expiresIn`
-   */
-  commitExpiresIn?: IDuration;
+    /**
+     * How long the commit token stays good, for validating and committing after the upload. The
+     * pending object must outlive it, so the lifecycle rule on `pendingPrefix` has to be longer still.
+     *
+     * @default `upload`
+     */
+    commit?: IDuration;
+  };
 
   /** Runs BEFORE the copy to the final key, so a hook that throws leaves the object under the pending prefix for a lifecycle rule to collect, rather than stranding it at the final key. */
   onCommit?: (opts: {

@@ -23,7 +23,7 @@ export interface IStaticAssetUploadPolicyServiceOptions {
   keyPrefix?: string;
   directUpload: Pick<
     TStaticAssetDirectUploadOptions,
-    'maxBytes' | 'expiresIn' | 'commitExpiresIn' | 'secretKey' | 'pendingPrefix'
+    'maxBytes' | 'expires' | 'secretKey' | 'pendingPrefix'
   >;
 }
 
@@ -45,7 +45,7 @@ export class StaticAssetUploadPolicyService extends BaseService {
     this.options = opts;
     this.commitLifetimeMs = StaticAssetUploadPolicyService.resolveCommitLifetimeMs({
       scope: opts.scope,
-      commitExpiresIn: opts.directUpload.commitExpiresIn,
+      commit: opts.directUpload.expires?.commit,
     });
     this.policyKeyPrefix = StaticAssetKeyScopeUtility.resolveDirectUploadPrefixes({
       keyPrefix: opts.keyPrefix,
@@ -55,22 +55,22 @@ export class StaticAssetUploadPolicyService extends BaseService {
     }).policyKeyPrefix;
   }
 
-  /** `undefined` when `commitExpiresIn` is not set: the token then dies with the policy. */
+  /** `undefined` when `expires.commit` is not set: the token then dies with the policy. */
   private static resolveCommitLifetimeMs(opts: {
     scope: string;
-    commitExpiresIn?: IDuration;
+    commit?: IDuration;
   }): number | undefined {
-    const { scope, commitExpiresIn } = opts;
+    const { scope, commit } = opts;
 
-    if (commitExpiresIn === undefined) {
+    if (commit === undefined) {
       return undefined;
     }
 
-    const lifetimeMs = DurationMultipliers.toMilliseconds(commitExpiresIn);
+    const lifetimeMs = DurationMultipliers.toMilliseconds(commit);
 
     if (lifetimeMs === null || lifetimeMs <= 0) {
       throw getError({
-        message: `[${scope}] directUpload.commitExpiresIn is not a usable duration | unit: ${commitExpiresIn.unit} | value: ${commitExpiresIn.value}`,
+        message: `[${scope}] directUpload.expires.commit is not a usable duration | unit: ${commit.unit} | value: ${commit.value}`,
       });
     }
 
@@ -103,7 +103,7 @@ export class StaticAssetUploadPolicyService extends BaseService {
         object: { key: objectName },
         maxBytes: directUpload.maxBytes,
         contentType: file.contentType,
-        expiresIn: directUpload.expiresIn,
+        expiresIn: directUpload.expires?.upload,
       });
 
       policies.push({

@@ -222,19 +222,29 @@ without one, that same statement also writes `link`, and one `updateById` per re
 merges `metadata: { ...row.metadata, ...fileStat.metadata }` (skipped when the stat carries none) -
 a read-then-write, so a concurrent write to that row's `metadata` between the two statements is
 lost. `action` in the OpenAPI response is `z.enum([...REFRESHED, ...CREATED])`, not a bare `string`.
-Direct upload's two routes are wrappers over two services in `services/`: `StaticAssetUploadPolicyService`
-(`issuePolicies({ files })`, the policy body without `authorize`) and `StaticAssetUploadCommitService`
-(`commit({ commitToken, labels })`, answering `{ bucket, object, link, metaLink? }`; generic over the
-MetaLink `Schema` like the component). `StaticAssetComponent.binding()` builds one of each per entry
-that has `controller.directUpload` and a `bucket`, binds them at
-`StaticAssetBindingKeys.policyService({ name })` / `.commitService({ name })` (`name` = the
-entry's key in the options object, not the controller name) and hands the same instances to
-`StaticAssetControllerFactory.build` as `policyService` / `commitService`. That is the ONLY construction path: the
-factory throws when `directUpload` is set without them. The pending and scope prefixes come from one
-place, `StaticAssetKeyScopeUtility.resolveDirectUploadPrefixes` - the commit slices exactly what the policy
-prefixed. Neither service calls `authorize`, and a commit token carries no owner: a caller that
-reaches them directly owns both decisions. Link building lives in `object-link.ts` so the services
-and the factory share it without importing each other.
+Direct upload's two routes are wrappers over two services in `services/`:
+`StaticAssetUploadPolicyService` (`issuePolicies({ files, owner? })`, the policy body without
+`authorize`) and `StaticAssetUploadCommitService` (`verify({ token, owner? })` and
+`commit({ token, owner?, labels? })`, answering `{ bucket, object, link, metaLink? }`; generic over
+the MetaLink `Schema` like the component). The HTTP field stays `commitToken`; only the service
+parameter is `token`. `verify` is the checks a commit starts with (signature, expiry, owner,
+`keyPrefix` scope) and returns the PENDING `{ bucket, object }` with no storage call; `commit` calls it,
+so the checks live in one place. `StaticAssetBindingKeys.policyService({ name })` /
+`.commitService({ name })` (`name` = the entry's key in the options object, not the controller name)
+bind one of each per entry that has `controller.directUpload` and a `bucket`;
+`StaticAssetControllerFactory.build` receives the same instances as `policyService` / `commitService`.
+That is the ONLY construction path: the factory throws when `directUpload` is set without them. The
+pending and scope prefixes come from one place, `StaticAssetKeyScopeUtility.resolveDirectUploadPrefixes` -
+the commit slices exactly what the policy prefixed.
+
+A policy signs ONE key (`presignPost({ bucket, object, ... })`; `formData` carries `key`). The token
+payload is `{ bucket: IBucketRef, object: IObjectRef, expiresAt, owner? }`; `read` refuses any other shape,
+so a token signed before the shape changed fails as invalid. `directUpload.resolveOwner` supplies the
+owner on both routes, and a token with an owner commits only for that owner (anything else, or none, is
+`INVALID_COMMIT_TOKEN`, the forged-token error). `directUpload.expires.upload` is the policy's lifetime,
+`expires.commit` the token's (default `upload`). Both routes call `directUpload.authorize` first; the
+services never do, so a caller that reaches them directly owns that decision. Link building lives in
+`object-link.utility.ts` so the services and the factory share it without importing each other.
 See [object storage](/architecture/object-storage.md) for the signing model behind the second path.
 See [component model](/architecture/component-model.md) and the
 [components catalog](/reference/components.md).

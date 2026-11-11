@@ -428,7 +428,7 @@ describe('verify', () => {
   });
 });
 
-describe('commitExpiresIn', () => {
+describe('expires.commit', () => {
   const POLICY_WINDOW: IDuration = { unit: DurationUnits.MINUTE, value: 1 };
   const COMMIT_WINDOW: IDuration = { unit: DurationUnits.HOUR, value: 2 };
   const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
@@ -436,7 +436,7 @@ describe('commitExpiresIn', () => {
   test('sets the token lifetime on its own, and leaves the policy expiry alone', async () => {
     const { policyService } = await boot({
       helper: new FakeStorageHelper(),
-      directUpload: { expiresIn: POLICY_WINDOW, commitExpiresIn: COMMIT_WINDOW },
+      directUpload: { expires: { upload: POLICY_WINDOW, commit: COMMIT_WINDOW } },
     });
 
     const before = Date.now();
@@ -451,7 +451,7 @@ describe('commitExpiresIn', () => {
     expect(new Date(policy.expiresAt).getTime()).toBeLessThan(payload.expiresAt);
   });
 
-  test('absent, the token dies with the policy', async () => {
+  test('absent, it falls back to upload: the token dies with the policy', async () => {
     const { policyService } = await boot({ helper: new FakeStorageHelper() });
 
     const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
@@ -469,12 +469,12 @@ describe('commitExpiresIn', () => {
     try {
       await boot({
         helper: new FakeStorageHelper(),
-        directUpload: { commitExpiresIn: { unit: DurationUnits.HOUR, value: 0 } },
+        directUpload: { expires: { commit: { unit: DurationUnits.HOUR, value: 0 } } },
       });
     } catch (error) {
       message = error instanceof Error ? error.message : String(error);
     }
 
-    expect(message).toContain('commitExpiresIn');
+    expect(message).toContain('expires.commit');
   });
 });
