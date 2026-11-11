@@ -1336,6 +1336,22 @@ describe('StaticAsset controller - byte ranges make a stored object seekable', (
     expect(result).toBe('789');
   });
 
+  /** Download shares the serve path, so a resumed download or a seeking player gets the same answer, still as an attachment. */
+  test('the download route honours a range and still attaches', async () => {
+    const router = await buildRouter();
+
+    const response = await router.request('/assets/buckets/images/download/clip.mp4', {
+      headers: { range: 'bytes=2-5' },
+    });
+
+    expect(response.status).toBe(206);
+    expect(response.headers.get('accept-ranges')).toBe('bytes');
+    expect(response.headers.get('content-range')).toBe('bytes 2-5/10');
+    expect(response.headers.get('content-disposition')).toContain('attachment');
+    const result = await response.text();
+    expect(result).toBe('2345');
+  });
+
   const ignoredRanges = ['bytes=20-30', 'bytes=5-2', 'lines=1-2', 'bytes=abc'];
 
   test.each(ignoredRanges)('an unusable range %s serves the whole object', async (header) => {
