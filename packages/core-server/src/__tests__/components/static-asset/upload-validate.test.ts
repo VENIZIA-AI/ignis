@@ -3,9 +3,8 @@ import { BaseApplication } from '@/base/applications';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { StaticAssetControllerFactory } from '@/components/static-asset/controller';
 import {
-  StaticAssetStorageTypes,
   StaticAssetValidation,
-  type TStaticAssetDirectUploadOptions,
+  type TStaticAssetEntry,
   type TStaticAssetRoutes,
 } from '@/components/static-asset/common';
 import type { OpenAPIHono } from '@hono/zod-openapi';
@@ -14,7 +13,7 @@ import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { ControllerTransports, MetadataRegistry } from '@venizia/ignis-kernel';
 import { describe, expect, test } from 'bun:test';
-import { buildDirectUploadServices } from './direct-upload-services';
+import { buildDirectUploadServices, type TDirectUploadOptions } from './direct-upload-services';
 import { FakeStorageHelper } from './fake-storage.helper';
 
 const SECRET = 'a-secret-nobody-else-has';
@@ -80,7 +79,7 @@ const buildValidation = (spy: IValidationSpy) =>
     },
   });
 
-const ALLOW: TStaticAssetDirectUploadOptions = {
+const ALLOW: TDirectUploadOptions = {
   authorize: () => true,
   secretKey: SECRET,
   maxBytes: 1024,
@@ -88,28 +87,30 @@ const ALLOW: TStaticAssetDirectUploadOptions = {
 
 const mount = async (opts: {
   helper: FakeStorageHelper;
-  directUpload: TStaticAssetDirectUploadOptions;
+  directUpload: TDirectUploadOptions;
   routes?: TStaticAssetRoutes;
 }): Promise<OpenAPIHono> => {
   MetadataRegistry.getInstance().clearAll();
   const application = new ValidateApplication({ scope: 'ValidateApp', config: TEST_CONFIGS });
   application.init();
 
-  const controller = {
-    name: 'ValidateAssetController',
+  const entry: TStaticAssetEntry = {
     basePath: '/assets',
-    isStrict: false,
     bucket: 'uploads',
-    directUpload: opts.directUpload,
+    // Direct upload needs a scope of its own: the pending prefix stays outside it.
+    keyPrefix: 'files/',
+    serverUpload: { use: true },
+    directUpload: { use: true, validation: { use: false }, ...opts.directUpload },
+    metaLink: { use: false },
     routes: opts.routes,
+    helper: opts.helper as never,
   };
 
   application.controller(
     StaticAssetControllerFactory.build({
-      controller,
-      storage: StaticAssetStorageTypes.DISK,
-      helper: opts.helper as never,
-      ...buildDirectUploadServices({ helper: opts.helper as never, controller }),
+      key: 'validate',
+      entry,
+      ...buildDirectUploadServices({ key: 'validate', entry }),
     }),
   );
   await application['registerControllers']();
@@ -272,13 +273,13 @@ describe('the upload-validate route', () => {
     expect(spy.calls).toHaveLength(0);
   });
 
-  test('routes.uploadValidate.enabled: false drops it', async () => {
+  test('routes.uploadValidate: false drops it', async () => {
     const helper = new FakeStorageHelper();
     const spy: IValidationSpy = { calls: [] };
     const router = await mount({
       helper,
       directUpload: { ...ALLOW, validation: buildValidation(spy) },
-      routes: { uploadValidate: { enabled: false } },
+      routes: { uploadValidate: { use: false } },
     });
 
     const response = await postJson(router, '/assets/upload-validate', { commitToken: 'x.y' });
@@ -334,7 +335,7 @@ describe('commit re-runs the validation', () => {
     const router = await mount({
       helper,
       directUpload: { ...ALLOW, validation: buildValidation(spy) },
-      routes: { uploadValidate: { enabled: false } },
+      routes: { uploadValidate: { use: false } },
     });
     const policy = await upload({ router, helper, fileName: 'bad.xlsx' });
 
@@ -378,8 +379,8 @@ describe('a per-route path override', () => {
       helper,
       directUpload: { ...ALLOW, validation: buildValidation(spy) },
       routes: {
-        uploadPolicy: { path: '/ask-policy' },
-        uploadValidate: { path: '/check-file' },
+        uploadPolicy: { use: true, path: '/ask-policy' },
+        uploadValidate: { use: true, path: '/check-file' },
       },
     });
 

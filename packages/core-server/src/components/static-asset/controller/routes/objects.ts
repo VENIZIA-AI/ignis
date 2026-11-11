@@ -2,23 +2,16 @@ import type { TRouteContext } from '@/base/controllers';
 import { z } from '@hono/zod-openapi';
 import { StorageUtility } from '@venizia/ignis-helpers';
 import { HTTP, ResolverUtility } from '@venizia/ignis-helpers/common';
-import { getError } from '@venizia/ignis-helpers/core';
-import {
-  MetaLinkRecreateActions,
-  StaticAssetErrors,
-  type TStaticAssetListQuery,
-} from '../../common';
+import { MetaLinkRecreateActions } from '../../common';
 import { StaticAssetKeyScopeUtility } from '../../utilities/key-scope.utility';
 import { StaticAssetMetaLinkUtility } from '../../utilities/meta-link.utility';
 import {
   type IStaticAssetRoute,
   type IStaticAssetRouteEnv,
   StaticAssetFeatures,
-  requireFeature,
-  resolveTarget,
+  StaticAssetRouteUtility,
 } from './context';
 import { StaticAssetDefinition, StaticAssetPaths } from './definition';
-import { refuseLabelsInQuery } from './labels';
 
 /** A MetaLink row as a client sees it. The table is the application's, so the columns are not listed here. */
 export const MetaLinkRowSchema = z.record(z.string(), z.unknown());
@@ -39,8 +32,11 @@ const listQuery = () =>
         param: { name: 'recursive', in: 'query', description: 'Recursive listing' },
         example: 'true',
       }),
-    maxKeys: z
-      .string()
+    // A NaN or 0 maxKeys is silently treated as "unlimited" by the storage backends, so the schema refuses it.
+    maxKeys: z.coerce
+      .number()
+      .int()
+      .min(1)
       .optional()
       .openapi({
         param: {
@@ -48,7 +44,7 @@ const listQuery = () =>
           in: 'query',
           description: 'Maximum number of objects to return',
         },
-        example: '100',
+        example: 100,
       }),
   });
 
@@ -58,12 +54,16 @@ const deleteObject: IStaticAssetRoute = {
   build: (env) => ({
     config: StaticAssetDefinition.json({
       method: HTTP.Methods.DELETE,
-      path: `${StaticAssetPaths.bucket({ env })}/objects/${StaticAssetPaths.object({ env })}`,
-      params: StaticAssetPaths.objectParams({ env }),
+      path: `/objects/${StaticAssetPaths.object({ env })}`,
+      params: StaticAssetPaths.objectParams(),
       response: z.object({ success: z.boolean() }),
     }),
     handler: async (ctx) => {
-      const { bucket, object } = await resolveTarget({ ctx, env, isObject: true });
+      const { bucket, object } = await StaticAssetRouteUtility.resolveTarget({
+        ctx,
+        env,
+        isObject: true,
+      });
 
       // Deliberately idempotent: S3 answers 200 for a key that was never there, and consumers
       // already depend on it. `disk` throws instead, so the two are reconciled here, not below.
@@ -97,8 +97,7 @@ const listObjects: IStaticAssetRoute = {
   build: (env) => ({
     config: StaticAssetDefinition.json({
       method: HTTP.Methods.GET,
-      path: `${StaticAssetPaths.bucket({ env })}/objects`,
-      params: StaticAssetPaths.bucketParams({ env }),
+      path: '/objects',
       query: listQuery(),
       response: z.array(
         z.object({
@@ -111,22 +110,12 @@ const listObjects: IStaticAssetRoute = {
       ),
     }),
     handler: async (ctx) => {
-      const { bucket } = await resolveTarget({ ctx, env });
-      const { prefix, recursive, maxKeys } = ctx.req.valid<TStaticAssetListQuery>('query');
-
-      // A NaN or 0 maxKeys is silently treated as "unlimited" by the storage backends, so an unparsable value must be rejected instead of forwarded.
-      let resolvedMaxKeys: number | undefined;
-
-      if (maxKeys !== undefined) {
-        resolvedMaxKeys = Number(maxKeys);
-
-        if (!Number.isInteger(resolvedMaxKeys) || resolvedMaxKeys < 1) {
-          throw getError({
-            error: StaticAssetErrors.MAX_KEYS_INVALID,
-            message: `Invalid maxKeys | Expected a positive integer | value: ${maxKeys}`,
-          });
-        }
-      }
+      const { bucket } = await StaticAssetRouteUtility.resolveTarget({ ctx, env });
+      const { prefix, recursive, maxKeys } = ctx.req.valid<{
+        prefix?: string;
+        recursive?: string;
+        maxKeys?: number;
+      }>('query');
 
       const scoped = StaticAssetKeyScopeUtility.resolveListPrefix({
         prefix,
@@ -141,7 +130,7 @@ const listObjects: IStaticAssetRoute = {
         bucket,
         prefix: scoped.prefix,
         useRecursive: recursive === 'true',
-        maxKeys: resolvedMaxKeys,
+        maxKeys,
       });
 
       return ctx.json(objects, HTTP.ResultCodes.RS_2.Ok);
@@ -151,15 +140,16 @@ const listObjects: IStaticAssetRoute = {
 
 const recreate = async (opts: { ctx: TRouteContext; env: IStaticAssetRouteEnv }) => {
   const { ctx, env } = opts;
-  const metaLink = requireFeature({ value: env.metaLink, feature: StaticAssetFeatures.META_LINK });
-
-  // This route takes no labels anywhere: one in the query would land an unlabelled row.
-  refuseLabelsInQuery({
-    query: ctx.req.query(),
-    reason: 'This route recreates a MetaLink for an existing object and takes no labels',
+  const metaLink = StaticAssetRouteUtility.requireFeature({
+    value: env.metaLink,
+    feature: StaticAssetFeatures.META_LINK,
   });
 
-  const { bucket, object } = await resolveTarget({ ctx, env, isObject: true });
+  const { bucket, object } = await StaticAssetRouteUtility.resolveTarget({
+    ctx,
+    env,
+    isObject: true,
+  });
   const { helper } = env;
   const fileStat = await helper.getStat({ bucket, object });
   const link = env.link({ bucket, object });
@@ -200,7 +190,7 @@ const recreate = async (opts: { ctx: TRouteContext; env: IStaticAssetRouteEnv })
       fileStat,
     }),
     fileStat,
-    query: {},
+    labels: {},
   });
 
   return ctx.json(
@@ -221,8 +211,8 @@ const recreateMetaLink: IStaticAssetRoute = {
   build: (env) => ({
     config: StaticAssetDefinition.json({
       method: HTTP.Methods.PUT,
-      path: `${StaticAssetPaths.bucket({ env })}/meta-links/${StaticAssetPaths.object({ env })}`,
-      params: StaticAssetPaths.objectParams({ env }),
+      path: `/meta-links/${StaticAssetPaths.object({ env })}`,
+      params: StaticAssetPaths.objectParams(),
       response: z.object({
         success: z.boolean(),
         action: z

@@ -77,9 +77,6 @@ export class StaticAssetDefinition {
   }
 }
 
-const bucketNameParam = () =>
-  z.string().openapi({ param: { name: 'bucketName', in: 'path' }, example: 'images' });
-
 const objectNameParam = () =>
   z.string().openapi({
     param: {
@@ -90,13 +87,8 @@ const objectNameParam = () =>
     example: 'photos/2024/photo.jpg',
   });
 
-/** Where a route sits in the URL and which path params it carries; the one place those two depend on the entry. */
+/** Where a route sits in the URL and which path params it carries. */
 export class StaticAssetPaths {
-  /** `/buckets/{bucketName}`, or nothing once the entry configured its bucket. */
-  static bucket(opts: { env: IStaticAssetRouteEnv }): string {
-    return opts.env.bucket === undefined ? '/buckets/{bucketName}' : '';
-  }
-
   /**
    * `{objectName}` is ONE segment: a folder path travels percent-encoded (`photos%2F2024%2Ff.jpg`).
    * `rawObjectPath` adds the `{.+}` catch-all, the spelling `@hono/zod-openapi` translates.
@@ -105,20 +97,8 @@ export class StaticAssetPaths {
     return opts.env.rawObjectPath ? '{objectName}{.+}' : '{objectName}';
   }
 
-  /** Params of a route that names a bucket only: none once the bucket is configured. */
-  static bucketParams(opts: { env: IStaticAssetRouteEnv }): z.ZodObject | undefined {
-    return opts.env.bucket === undefined ? z.object({ bucketName: bucketNameParam() }) : undefined;
-  }
-
   /** Params of a route that names an object. */
-  static objectParams(opts: { env: IStaticAssetRouteEnv }): z.ZodObject {
-    return opts.env.bucket === undefined
-      ? z.object({ bucketName: bucketNameParam(), objectName: objectNameParam() })
-      : z.object({ objectName: objectNameParam() });
-  }
-
-  /** Params of a route that always names the bucket (the four bucket routes). */
-  static requiredBucketParams(): z.ZodObject {
-    return z.object({ bucketName: bucketNameParam() });
+  static objectParams(): z.ZodObject {
+    return z.object({ objectName: objectNameParam() });
   }
 }

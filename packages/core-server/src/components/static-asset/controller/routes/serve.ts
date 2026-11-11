@@ -13,27 +13,34 @@ import {
   type IStaticAssetRoute,
   type IStaticAssetRouteEnv,
   StaticAssetFeatures,
-  resolveTarget,
+  StaticAssetRouteUtility,
 } from './context';
 import { StaticAssetDefinition, StaticAssetPaths } from './definition';
 
-/**
- * The served type comes from the object NAME, never the backend or the uploader: a renderable type on
- * the API origin is stored XSS. The backend's own content-type is dropped by `StaticAssetHeaders.ALLOWED`.
- */
-export const resolveServedContentType = (opts: {
-  helper: IStorageHelper;
-  object: IObjectRef;
-}): { contentType: string; isRenderable: boolean } => {
-  const { helper, object } = opts;
-  const candidate = helper.getMimeType({ filename: object.key }).toLowerCase().split(';')[0].trim();
+/** The served type comes from the object name; the two stream routes share one serve path. */
+export class StaticAssetServe {
+  /**
+   * The served type comes from the object NAME, never the backend or the uploader: a renderable type on
+   * the API origin is stored XSS. The backend's own content-type is dropped by `StaticAssetHeaders.ALLOWED`.
+   */
+  static resolveServedContentType(opts: { helper: IStorageHelper; object: IObjectRef }): {
+    contentType: string;
+    isRenderable: boolean;
+  } {
+    const { helper, object } = opts;
+    const candidate = helper
+      .getMimeType({ filename: object.key })
+      .toLowerCase()
+      .split(';')[0]
+      .trim();
 
-  if (!StaticAssetContentTypes.RENDERABLE.has(candidate)) {
-    return { contentType: HTTP.HeaderValues.APPLICATION_OCTET_STREAM, isRenderable: false };
+    if (!StaticAssetContentTypes.RENDERABLE.has(candidate)) {
+      return { contentType: HTTP.HeaderValues.APPLICATION_OCTET_STREAM, isRenderable: false };
+    }
+
+    return { contentType: candidate, isRenderable: true };
   }
-
-  return { contentType: candidate, isRenderable: true };
-};
+}
 
 /**
  * Reads one `Range` header. Only a single byte range is honoured - multipart ranges need a multipart
@@ -109,11 +116,15 @@ const serve = async (opts: {
 }): Promise<Response> => {
   const { ctx, env, attach } = opts;
   const { helper } = env;
-  const { bucket, object } = await resolveTarget({ ctx, env, isObject: true });
+  const { bucket, object } = await StaticAssetRouteUtility.resolveTarget({
+    ctx,
+    env,
+    isObject: true,
+  });
   const { size, metadata } = await helper.getStat({ bucket, object });
   applyMetadataHeaders({ ctx, metadata });
 
-  const served = resolveServedContentType({ helper, object });
+  const served = StaticAssetServe.resolveServedContentType({ helper, object });
   ctx.header(HTTP.Headers.CONTENT_TYPE, served.contentType);
   ctx.header(HTTP.Headers.X_CONTENT_TYPE_OPTIONS, StaticAssetHeaders.NOSNIFF);
   // Sandboxed even when renderable, so an unforeseen renderable type cannot reach this origin.
@@ -161,8 +172,8 @@ const streamRoute = (opts: {
   build: (env) => ({
     config: StaticAssetDefinition.stream({
       method: HTTP.Methods.GET,
-      path: `${StaticAssetPaths.bucket({ env })}/${opts.segment}/${StaticAssetPaths.object({ env })}`,
-      params: StaticAssetPaths.objectParams({ env }),
+      path: `/${opts.segment}/${StaticAssetPaths.object({ env })}`,
+      params: StaticAssetPaths.objectParams(),
     }),
     handler: (ctx) => serve({ ctx, env, attach: opts.attach }),
   }),

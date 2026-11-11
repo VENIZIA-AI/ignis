@@ -9,11 +9,11 @@ import {
 } from '@venizia/ignis-helpers';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import { readFileSync, rmSync } from 'node:fs';
 import {
   StaticAssetErrors,
   StaticAssetMetaLinkCodes,
-  type TStaticAssetUploadQuery,
+  type TStaticAssetObjectKeyResolver,
+  type TStaticAssetUploadLabels,
 } from '../../common';
 import { StaticAssetKeyScopeUtility } from '../../utilities/key-scope.utility';
 import { StaticAssetMetaLinkUtility } from '../../utilities/meta-link.utility';
@@ -22,10 +22,10 @@ import {
   type IStaticAssetRoute,
   type IStaticAssetRouteEnv,
   StaticAssetFeatures,
-  resolveTarget,
+  StaticAssetRouteUtility,
 } from './context';
-import { StaticAssetDefinition, StaticAssetPaths } from './definition';
-import { readUploadLabels, refuseLabelsInQuery, uploadLabelsShape } from './labels';
+import { StaticAssetDefinition } from './definition';
+import { StaticAssetLabelsUtility, UploadLabelsSchema } from './labels';
 import { MetaLinkRowSchema } from './objects';
 
 const MultipartBodySchema = z.object({
@@ -33,182 +33,124 @@ const MultipartBodySchema = z.object({
     type: 'array',
     items: { type: 'string', format: 'binary' },
   }),
-  ...uploadLabelsShape(),
+  ...UploadLabelsSchema.shape,
   folderPath: z.string().optional().openapi({
     description: 'Target folder path for uploaded files (e.g., "photos/2024")',
     example: 'photos/2024',
   }),
 });
 
+/** What an upload or a commit says about the MetaLink row: the row, or a code when only the row failed. */
 export const MetaLinkOutcomeSchema = z
   .union([z.object({ data: MetaLinkRowSchema }), z.object({ error: z.string() })])
   .optional();
 
-/** Clears the multipart spool files written by `parseMultipartBody({ storage: 'disk' })`. */
-const removeSpoolFiles = (opts: { env: IStaticAssetRouteEnv; paths: string[] }): void => {
-  for (const filePath of opts.paths) {
-    try {
-      rmSync(filePath, { force: true });
-    } catch (error) {
-      opts.env.logger
-        .for('UPLOAD')
-        .error('Failed to remove spool file | path: %s | Error: %s', filePath, error);
+class StaticAssetUploadHandler {
+  /**
+   * Built per request: the hook is offered the bucket, which only the route knows. A hook's key is
+   * checked against the scope, never rewritten: the application may record that key elsewhere.
+   */
+  static buildNaming(opts: {
+    env: IStaticAssetRouteEnv;
+    bucketName: string;
+    objectKey?: TStaticAssetObjectKeyResolver;
+  }) {
+    const { env, bucketName, objectKey } = opts;
+    const { helper, keyPrefix } = env;
+
+    if (!objectKey && keyPrefix === undefined) {
+      return undefined;
     }
+
+    return (naming: { file: TUploadNaming }) => {
+      // The component's own name under a scope: the original name must stay one segment, as without one.
+      if (!objectKey && !helper.isValidSegment({ segment: naming.file.originalName })) {
+        throw getError({ message: '[upload] Invalid original file name' });
+      }
+
+      const defaultKey = `${keyPrefix ?? ''}${BaseStorageHelper.normalizeObjectName(naming)}`;
+      const key = objectKey
+        ? objectKey({ bucket: { name: bucketName }, file: naming.file, defaultKey })
+        : defaultKey;
+
+      if (!StaticAssetKeyScopeUtility.isInScope({ key, keyPrefix })) {
+        throw getError({
+          error: StaticAssetErrors.OBJECT_KEY_OUT_OF_SCOPE,
+          message: `Object key is outside the key prefix of this entry | key: ${key} | keyPrefix: ${keyPrefix}`,
+        });
+      }
+
+      return key;
+    };
   }
-};
 
-const validateFolderPath = (opts: { env: IStaticAssetRouteEnv; folderPath: string }) => {
-  const { env, folderPath } = opts;
-  const normalizedFolder = folderPath.replace(/^\/+|\/+$/g, '');
+  static async recordMetaLinks(opts: {
+    env: IStaticAssetRouteEnv;
+    uploaded: IUploadResult[];
+    labels: TStaticAssetUploadLabels;
+  }): Promise<IUploadResult[]> {
+    const { env, uploaded, labels } = opts;
+    const { helper, metaLink } = env;
 
-  if (!normalizedFolder) {
-    throw getError({ error: StaticAssetErrors.FOLDER_PATH_INVALID });
+    if (!metaLink) {
+      return uploaded;
+    }
+
+    const results: IUploadResult[] = [];
+
+    for (const uploadResult of uploaded) {
+      try {
+        const fileStat = await helper.getStat({
+          bucket: uploadResult.bucket,
+          object: uploadResult.object,
+        });
+        const data = await StaticAssetMetaLinkUtility.createRow({
+          metaLink,
+          helper,
+          storage: env.storage,
+          uploadResult,
+          fileStat,
+          labels,
+        });
+
+        results.push({ ...uploadResult, metaLink: { data } });
+      } catch (error) {
+        env.logger
+          .for('UPLOAD')
+          .error(
+            'Failed to create MetaLink | objectName: %s | Error: %s',
+            uploadResult.object.key,
+            error,
+          );
+        // A CODE, never the driver text: this 200 bypasses the error middleware that strips
+        // `detail`/`table`/`constraint`. The real error is logged in full above.
+        results.push({
+          ...uploadResult,
+          metaLink: { error: StaticAssetMetaLinkCodes.CREATE_FAILED },
+        });
+      }
+    }
+
+    return results;
   }
 
-  // maxFolderDepth excludes the filename, so it is compared directly against segment count.
-  const folderSegments = normalizedFolder.split('/');
-
-  if (folderSegments.length > env.maxFolderDepth) {
-    throw getError({
-      error: StaticAssetErrors.FOLDER_DEPTH_EXCEEDED,
-      message: `Folder path exceeds max depth of ${env.maxFolderDepth}`,
+  static async handle(opts: { ctx: TRouteContext; env: IStaticAssetRouteEnv }) {
+    const { ctx, env } = opts;
+    const serverUpload = StaticAssetRouteUtility.requireFeature({
+      value: env.serverUpload,
+      feature: StaticAssetFeatures.SERVER_UPLOAD,
     });
-  }
+    const { bucket } = await StaticAssetRouteUtility.resolveTarget({ ctx, env });
 
-  const invalidSegmentIndex = folderSegments.findIndex(
-    (segment) => !env.helper.isValidSegment({ segment }),
-  );
-
-  if (invalidSegmentIndex !== -1) {
-    throw getError({
-      error: StaticAssetErrors.FOLDER_SEGMENT_INVALID,
-      message: `Invalid folder path segment: ${folderSegments[invalidSegmentIndex]}`,
+    const { files, fields } = await RequestUtility.parseMultipartBody({
+      context: ctx,
+      maxFiles: serverUpload.maxFiles,
     });
-  }
-};
+    const labels = StaticAssetLabelsUtility.parse({ fields });
+    const folderPath = fields.folderPath || undefined;
 
-/**
- * Built per request: the hook is offered the bucket, which only the route knows. A hook's key is
- * checked against the scope, never rewritten: the application may record that key elsewhere.
- */
-const buildNaming = (opts: { env: IStaticAssetRouteEnv; bucketName: string }) => {
-  const { env, bucketName } = opts;
-  const { helper, keyPrefix, resolveObjectName, options } = env;
-
-  if (!resolveObjectName && keyPrefix === undefined) {
-    return options?.normalizeNameFn;
-  }
-
-  // The component's own name under a scope: the original name must stay one segment, as without one.
-  const isScopedDefaultNaming =
-    keyPrefix !== undefined && !resolveObjectName && !options?.normalizeNameFn;
-
-  return (naming: { file: TUploadNaming }) => {
-    if (isScopedDefaultNaming && !helper.isValidSegment({ segment: naming.file.originalName })) {
-      throw getError({ message: '[upload] Invalid original file name' });
-    }
-
-    const defaultKey = options?.normalizeNameFn
-      ? options.normalizeNameFn(naming)
-      : `${keyPrefix ?? ''}${BaseStorageHelper.normalizeObjectName(naming)}`;
-
-    const key = resolveObjectName
-      ? resolveObjectName({ bucket: { name: bucketName }, file: naming.file, defaultKey })
-      : defaultKey;
-
-    if (!StaticAssetKeyScopeUtility.isInScope({ key, keyPrefix })) {
-      throw getError({
-        error: StaticAssetErrors.OBJECT_KEY_OUT_OF_SCOPE,
-        message: `Object key is outside the key prefix of this controller | key: ${key} | keyPrefix: ${keyPrefix}`,
-      });
-    }
-
-    return key;
-  };
-};
-
-const recordMetaLinks = async (opts: {
-  env: IStaticAssetRouteEnv;
-  uploaded: IUploadResult[];
-  labels: TStaticAssetUploadQuery;
-}): Promise<IUploadResult[]> => {
-  const { env, uploaded, labels } = opts;
-  const { helper, metaLink } = env;
-
-  if (!metaLink) {
-    return uploaded;
-  }
-
-  const results: IUploadResult[] = [];
-
-  for (const uploadResult of uploaded) {
-    try {
-      const fileStat = await helper.getStat({
-        bucket: uploadResult.bucket,
-        object: uploadResult.object,
-      });
-      const data = await StaticAssetMetaLinkUtility.createRow({
-        metaLink,
-        helper,
-        storage: env.storage,
-        uploadResult,
-        fileStat,
-        query: labels,
-      });
-
-      results.push({ ...uploadResult, metaLink: { data } });
-    } catch (error) {
-      env.logger
-        .for('UPLOAD')
-        .error(
-          'Failed to create MetaLink | objectName: %s | Error: %s',
-          uploadResult.object.key,
-          error,
-        );
-      // A CODE, never the driver text: this 200 bypasses the error middleware that strips
-      // `detail`/`table`/`constraint`. The real error is logged in full above.
-      results.push({
-        ...uploadResult,
-        metaLink: { error: StaticAssetMetaLinkCodes.CREATE_FAILED },
-      });
-    }
-  }
-
-  return results;
-};
-
-const upload = async (opts: { ctx: TRouteContext; env: IStaticAssetRouteEnv }) => {
-  const { ctx, env } = opts;
-  const { bucket } = await resolveTarget({ ctx, env });
-
-  refuseLabelsInQuery({ query: ctx.req.query() });
-
-  const { files, fields } = await RequestUtility.parseMultipartBody({
-    context: ctx,
-    storage: env.options?.parseMultipartBody?.storage,
-    uploadDir: env.options?.parseMultipartBody?.uploadDir,
-    maxFiles: env.maxFiles,
-  });
-
-  const spoolPaths = files
-    .map((file) => file.path)
-    .filter((filePath): filePath is string => Boolean(filePath));
-
-  let labels: TStaticAssetUploadQuery;
-  let uploaded: IUploadResult[];
-
-  // From here every exit removes the spool files, the validation failures included.
-  try {
-    // Labels travel with the payload, not the URL, so the folder check waits for the parse.
-    labels = readUploadLabels({ fields });
-
-    if (labels.folderPath) {
-      validateFolderPath({ env, folderPath: labels.folderPath });
-    }
-
-    // `storage: 'disk'` spools the payload to `uploadDir` and returns `path` instead of `buffer`; the storage helpers only ever write `buffer`, so it must be read back.
     const uploadFiles: IUploadFile[] = files.map((file) => {
-      const buffer = file.buffer ?? (file.path ? readFileSync(file.path) : undefined);
+      const { buffer } = file;
 
       if (!buffer?.length) {
         throw getError({
@@ -218,10 +160,10 @@ const upload = async (opts: { ctx: TRouteContext; env: IStaticAssetRouteEnv }) =
       }
 
       // Authoritative: `buffer.length`, not the client-declared `size`.
-      if (env.maxBytes !== undefined && buffer.length > env.maxBytes) {
+      if (serverUpload.maxBytes !== undefined && buffer.length > serverUpload.maxBytes) {
         throw getError({
           error: StaticAssetErrors.UPLOAD_TOO_LARGE,
-          message: `File ${file.originalname} of ${buffer.length} bytes exceeds the maximum of ${env.maxBytes}`,
+          message: `File ${file.originalname} of ${buffer.length} bytes exceeds the maximum of ${serverUpload.maxBytes}`,
         });
       }
 
@@ -231,27 +173,27 @@ const upload = async (opts: { ctx: TRouteContext; env: IStaticAssetRouteEnv }) =
         buffer,
         size: file.size,
         encoding: file.encoding,
-        folderPath: labels.folderPath ?? undefined,
+        folderPath,
       };
     });
 
-    const stored = await env.helper.upload({
+    const uploaded = await env.helper.upload({
       bucket,
       files: uploadFiles,
-      normalizeNameFn: buildNaming({ env, bucketName: bucket.name }),
-      normalizeLinkFn: env.normalizeLinkFn,
-      // Without this the helper re-validates against its own hard default of 2, so an app configured for a deeper tree spools the body and only then fails inside the helper.
+      normalizeNameFn: StaticAssetUploadHandler.buildNaming({
+        env,
+        bucketName: bucket.name,
+        objectKey: serverUpload.objectKey,
+      }),
+      normalizeLinkFn: env.link,
+      // The storage checks the folder, against the depth this entry allows.
       maxFolderDepth: env.objectKeyMaxDepth,
     });
-    uploaded = stored;
-  } finally {
-    removeSpoolFiles({ env, paths: spoolPaths });
+    const results = await StaticAssetUploadHandler.recordMetaLinks({ env, uploaded, labels });
+
+    return ctx.json(results, HTTP.ResultCodes.RS_2.Ok);
   }
-
-  const results = await recordMetaLinks({ env, uploaded, labels });
-
-  return ctx.json(results, HTTP.ResultCodes.RS_2.Ok);
-};
+}
 
 export const uploadRoute: IStaticAssetRoute = {
   key: 'upload',
@@ -259,8 +201,7 @@ export const uploadRoute: IStaticAssetRoute = {
   build: (env) => ({
     config: StaticAssetDefinition.multipart({
       method: HTTP.Methods.POST,
-      path: `${StaticAssetPaths.bucket({ env })}/objects`,
-      params: StaticAssetPaths.bucketParams({ env }),
+      path: '/objects',
       body: MultipartBodySchema,
       response: z.array(
         z.object({
@@ -271,15 +212,15 @@ export const uploadRoute: IStaticAssetRoute = {
         }),
       ),
     }),
-    handler: (ctx) => upload({ ctx, env }),
+    handler: (ctx) => StaticAssetUploadHandler.handle({ ctx, env }),
   }),
   // The route's body validator reads the whole multipart body, so the length check has to run before it.
   middleware: ({ env, own }) =>
-    env.maxBytes === undefined
+    env.serverUpload?.maxBytes === undefined
       ? own
       : StaticAssetRouteOptionsUtility.appendLengthGuard({
           middleware: own,
-          maxBytes: env.maxBytes,
-          maxFiles: env.maxFiles,
+          maxBytes: env.serverUpload.maxBytes,
+          maxFiles: env.serverUpload.maxFiles,
         }),
 };

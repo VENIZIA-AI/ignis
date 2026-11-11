@@ -12,22 +12,13 @@ export class StaticAssetObjectLinkUtility {
     return encodeURIComponent(opts.objectPath);
   }
 
-  /** The URL of one object, in the shape its controller serves: no `/buckets/<name>` with a configured bucket, and a raw path with `rawObjectPath`. */
-  static build(
-    opts: IObjectLocation & {
-      basePath: string;
-      hasConfiguredBucket?: boolean;
-      rawObjectPath?: boolean;
-    },
-  ): string {
-    const { basePath, bucket, object } = opts;
-    const { hasConfiguredBucket = false, rawObjectPath = false } = opts;
-
-    const bucketSegment = hasConfiguredBucket ? '' : `/buckets/${bucket.name}`;
+  /** The URL of one object, in the shape its controller serves: a raw path with `rawObjectPath`, a percent-encoded one without. */
+  static build(opts: IObjectLocation & { basePath: string; rawObjectPath?: boolean }): string {
+    const { basePath, object, rawObjectPath = false } = opts;
     const objectSegment = rawObjectPath
       ? object.key
       : StaticAssetObjectLinkUtility.encodeObjectPath({ objectPath: object.key });
 
-    return `${basePath}${bucketSegment}/objects/${objectSegment}`;
+    return `${basePath}/objects/${objectSegment}`;
   }
 }

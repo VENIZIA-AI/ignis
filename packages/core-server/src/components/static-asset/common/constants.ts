@@ -43,14 +43,20 @@ export class StaticAssetContentTypes {
   ]);
 }
 
-/** Storage backends a static asset controller can serve from. */
-export class StaticAssetStorageTypes {
-  static readonly DISK = 'disk';
-  static readonly BUN_S3 = 'bun-s3';
-}
+/** The built-in routes of a generated controller, the keys of `routes`. */
+export class StaticAssetRouteKeys {
+  static readonly UPLOAD = 'upload';
+  static readonly LIST_OBJECTS = 'listObjects';
+  static readonly DELETE_OBJECT = 'deleteObject';
+  static readonly GET_OBJECT_BY_NAME = 'getObjectByName';
+  static readonly DOWNLOAD_OBJECT_BY_NAME = 'downloadObjectByName';
 
-/** One of the `StaticAssetStorageTypes` values. */
-export type TStaticAssetStorageType = TConstValue<typeof StaticAssetStorageTypes>;
+  static readonly UPLOAD_POLICY = 'uploadPolicy';
+  static readonly UPLOAD_COMMIT = 'uploadCommit';
+  static readonly UPLOAD_VALIDATE = 'uploadValidate';
+
+  static readonly RECREATE_META_LINK = 'recreateMetaLink';
+}
 
 /** What `recreate-metalink` did: refreshed the rows of an object, or created its first one. */
 export class MetaLinkRecreateActions {
@@ -66,7 +72,7 @@ export class StaticAssetDefaults {
   /** Where a signed policy may write. The final key is never inside it, so content cannot be replaced after the commit. */
   static readonly PENDING_PREFIX = 'pending/';
 
-  /** The most file parts one upload request may carry unless `parseMultipartBody.maxFiles` says otherwise. */
+  /** The most file parts one upload request may carry unless `serverUpload.maxFiles` says otherwise. */
   static readonly MAX_UPLOAD_FILES = 20;
 }
 

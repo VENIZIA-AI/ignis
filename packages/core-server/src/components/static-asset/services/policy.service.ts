@@ -19,8 +19,8 @@ export interface IStaticAssetUploadPolicyServiceOptions {
   helper: IStorageHelper;
   /** A policy names ONE bucket, so a direct upload has no bucket in its URL. */
   bucket: TValueOrAsyncResolver<string>;
-  /** The controller's `keyPrefix` as configured; normalized here the way the controller does. */
-  keyPrefix?: string;
+  /** The entry's `keyPrefix` as configured; normalized here the way the controller does. Required: it keeps the pending prefix out of everything the routes serve. */
+  keyPrefix: string;
   directUpload: Pick<
     TStaticAssetDirectUploadOptions,
     'maxBytes' | 'expires' | 'secretKey' | 'pendingPrefix'

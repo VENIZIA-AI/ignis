@@ -1,6 +1,7 @@
 import { getError } from '@venizia/ignis-helpers/core';
 import {
   StorageErrors,
+  StorageTypes,
   BaseStorageHelper,
   type IBucketInfo,
   type IBucketRef,
@@ -10,6 +11,7 @@ import {
   type IObjectLocation,
   type IObjectRef,
   type IUploadFile,
+  type TStorageType,
 } from '@venizia/ignis-helpers';
 import { Readable } from 'node:stream';
 
@@ -20,6 +22,8 @@ export interface IStorageCall {
 
 /** In-memory storage helper extending the real BaseStorageHelper so `isValidName`/`isValidPath`/`upload` behave exactly as in production, while every backend call is recorded. */
 export class FakeStorageHelper extends BaseStorageHelper {
+  /** The backend this fake stands in for. S3 by default, because direct upload needs it. */
+  readonly storageType?: TStorageType = StorageTypes.BUN_S3;
   readonly calls: IStorageCall[] = [];
   private readonly buckets = new Map<string, IBucketInfo>();
   private readonly objects = new Map<string, { buffer: Buffer; mimetype: string }>();
@@ -257,4 +261,14 @@ export class FakeStorageHelper extends BaseStorageHelper {
 
     return results;
   }
+}
+
+/** The same fake declaring the disk backend, for what a disk helper must refuse (direct upload). */
+export class FakeDiskStorageHelper extends FakeStorageHelper {
+  override readonly storageType = StorageTypes.DISK;
+}
+
+/** A custom helper that declares no storage, which an entry must refuse at boot. */
+export class FakeUntypedStorageHelper extends FakeStorageHelper {
+  override readonly storageType = undefined;
 }

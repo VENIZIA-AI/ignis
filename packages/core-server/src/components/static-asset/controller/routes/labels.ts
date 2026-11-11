@@ -1,62 +1,25 @@
 import { z } from '@hono/zod-openapi';
-import { getError } from '@venizia/ignis-helpers/core';
-import { StaticAssetErrors, type TStaticAssetUploadQuery } from '../../common';
+import type { TStaticAssetUploadLabels } from '../../common';
 
-/** The upload labels: one list, so the reader and the query refusal agree. */
-export const UPLOAD_LABEL_NAMES = [
-  'principalType',
-  'principalId',
-  'variant',
-  'sequence',
-  'folderPath',
-] as const;
-
-/** The commit body carries four of the five: the object key - and so `folderPath` - was fixed when the policy was issued. */
-export const COMMIT_LABEL_NAMES = UPLOAD_LABEL_NAMES.filter((name) => name !== 'folderPath');
-
-/** The labels both upload paths take. They ride the BODY, not the URL - an identifier in a query string lands in every access log between the client and here. */
-export const uploadLabelsShape = () => ({
+/** The labels both upload paths take. They ride the BODY - a form field on an upload, beside the token on a commit - because an identifier in a query string lands in every access log between the client and here. */
+export const UploadLabelsSchema = z.object({
   principalType: z.string().optional(),
-  principalId: z.string().or(z.number()).optional(),
+  principalId: z.union([z.string(), z.number()]).optional(),
   variant: z.string().optional(),
   sequence: z.coerce.number().int().optional(),
 });
 
-/** Refused before the body is read: a route that ignored them would store an unlabelled row. */
-export const refuseLabelsInQuery = (opts: {
-  query: Record<string, string>;
-  names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>;
-  reason?: string;
-}): void => {
-  const names = (opts.names ?? UPLOAD_LABEL_NAMES).filter((name) => opts.query[name] !== undefined);
+export class StaticAssetLabelsUtility {
+  /** A form hands every field as a string and an empty input as `''`; an empty label is no label. */
+  static parse(opts: { fields: Record<string, unknown> }): TStaticAssetUploadLabels {
+    const present = Object.fromEntries(
+      Object.entries(opts.fields).filter(([, value]) => value !== ''),
+    );
+    // Already validated by the route's own schema, which is this one: this only reads the result.
+    const parsed = UploadLabelsSchema.parse(present);
 
-  if (names.length > 0) {
-    throw getError({
-      error: StaticAssetErrors.LABELS_IN_QUERY,
-      message: `${opts.reason ?? 'Upload labels belong in the request body, not the query'} | names: ${names.join(', ')}`,
-    });
+    const { principalId, ...rest } = parsed;
+
+    return { ...rest, principalId: principalId === undefined ? undefined : String(principalId) };
   }
-};
-
-// A multipart form hands strings; a JSON commit body may hand `sequence` as a number.
-export const readUploadLabels = (opts: {
-  fields: Partial<Record<(typeof UPLOAD_LABEL_NAMES)[number], string | number>>;
-}): TStaticAssetUploadQuery => {
-  const { fields } = opts;
-
-  const read = (name: (typeof UPLOAD_LABEL_NAMES)[number]) => {
-    const value = fields[name];
-
-    return value === undefined || value === '' ? undefined : String(value);
-  };
-
-  const sequence = read('sequence');
-
-  return {
-    principalType: read('principalType'),
-    principalId: read('principalId'),
-    variant: read('variant'),
-    sequence: sequence === undefined ? undefined : Number(sequence),
-    folderPath: read('folderPath'),
-  };
-};
+}
