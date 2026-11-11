@@ -1,7 +1,8 @@
 import { Hash, HashAlgorithms, HashOutputEncodings } from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers/core';
+import { StaticAssetTokenStages } from '../common/constants';
 import { StaticAssetErrors } from '../common/errors';
-import type { IStaticAssetCommitTokenPayload } from '../common/types';
+import type { IStaticAssetCommitTokenPayload, IStaticAssetPin } from '../common/types';
 
 /** Signs and reads the token the commit route trusts instead of a key a caller names. */
 export class StaticAssetCommitTokenUtility {
@@ -36,7 +37,7 @@ export class StaticAssetCommitTokenUtility {
       throw getError(StaticAssetErrors.INVALID_COMMIT_TOKEN);
     }
 
-    const { bucket, object, expiresAt, owner } = parsed;
+    const { bucket, object, expiresAt, owner, stage, pin } = parsed;
 
     if (
       !StaticAssetCommitTokenUtility.isRecord(bucket) ||
@@ -49,12 +50,43 @@ export class StaticAssetCommitTokenUtility {
       throw getError(StaticAssetErrors.INVALID_COMMIT_TOKEN);
     }
 
+    if (stage === StaticAssetTokenStages.ISSUED) {
+      return {
+        bucket: { name: bucket.name },
+        object: { key: object.key },
+        expiresAt,
+        owner,
+        stage,
+      };
+    }
+
+    // A validated token without its pin would commit unpinned content: it is no token.
+    if (stage !== StaticAssetTokenStages.VALIDATED) {
+      throw getError(StaticAssetErrors.INVALID_COMMIT_TOKEN);
+    }
+
     return {
       bucket: { name: bucket.name },
       object: { key: object.key },
       expiresAt,
       owner,
+      stage,
+      pin: StaticAssetCommitTokenUtility.parsePin({ pin }),
     };
+  }
+
+  private static parsePin(opts: { pin: unknown }): IStaticAssetPin {
+    const { pin } = opts;
+
+    if (
+      !StaticAssetCommitTokenUtility.isRecord(pin) ||
+      typeof pin.etag !== 'string' ||
+      (pin.versionId !== undefined && typeof pin.versionId !== 'string')
+    ) {
+      throw getError(StaticAssetErrors.INVALID_COMMIT_TOKEN);
+    }
+
+    return { etag: pin.etag, versionId: pin.versionId };
   }
 
   /** Signs `{ bucket, object, expiresAt, owner? }` so the commit route can trust the key it is handed. */

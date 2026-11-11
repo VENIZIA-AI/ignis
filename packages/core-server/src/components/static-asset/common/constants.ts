@@ -80,6 +80,15 @@ export class MetaLinkRecreateActions {
 /** One of the `MetaLinkRecreateActions` values. */
 export type TMetaLinkRecreateAction = TConstValue<typeof MetaLinkRecreateActions>;
 
+/** Where a commit token is in its life: issued with the policy, then validated against the content it pins. */
+export class StaticAssetTokenStages {
+  static readonly ISSUED = 'issued';
+  static readonly VALIDATED = 'validated';
+}
+
+/** One of the `StaticAssetTokenStages` values. */
+export type TStaticAssetTokenStage = TConstValue<typeof StaticAssetTokenStages>;
+
 /** Defaults of the static asset component. */
 export class StaticAssetDefaults {
   /** Where a signed policy may write. The final key is never inside it, so content cannot be replaced after the commit. */

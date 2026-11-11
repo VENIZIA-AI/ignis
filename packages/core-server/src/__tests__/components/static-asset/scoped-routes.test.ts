@@ -685,7 +685,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
         link: '/assets/objects/photo.jpg',
         mimetype: 'image/jpeg',
         size: 'seeded'.length,
-        etag: 'fake-etag',
+        etag: expect.stringContaining('fake-etag'),
         isSynced: true,
         storageType: StorageTypes.BUN_S3,
         principalType: 'Product',
@@ -785,7 +785,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
         metadata: { width: 640, height: 480, placeholder: 'LKO2?U%2Tw=w' },
         mimetype: 'image/jpeg',
         size: 'seeded'.length,
-        etag: 'fake-etag',
+        etag: expect.stringContaining('fake-etag'),
         isSynced: true,
       });
     }

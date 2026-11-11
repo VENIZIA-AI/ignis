@@ -20,7 +20,8 @@ import type {
   ValueOrPromise,
 } from '@venizia/ignis-helpers/common';
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../models';
-import type { StaticAssetRouteKeys } from './constants';
+import type { StaticAssetRouteKeys, TStaticAssetTokenStage } from './constants';
+import type { StaticAssetPinnedFile } from '../utilities/pinned-file.utility';
 
 /**
  * A feature that is on or off. `{ use: false }` is the whole off state; `{ use: true, ... }` carries
@@ -117,8 +118,8 @@ export type TStaticAssetDirectUploadOptions = {
   };
 
   /**
-   * Checks the pending file. On, the component registers `POST {base}/upload-validate`, and
-   * `commit` runs the same check first and refuses an invalid file with `UPLOAD_INVALID`.
+   * Checks the pending file. On, the component registers `POST {base}/upload-validate`, which
+   * answers the token `commit` takes, and `commit` accepts no other.
    * Build it with `StaticAssetValidation.define`.
    */
   validation: TToggle<IStaticAssetValidation<z.ZodType>>;
@@ -138,9 +139,17 @@ export interface IStaticAssetValidationResult<Issue> {
 export interface IStaticAssetValidation<IssueSchema extends z.ZodType> {
   /** The shape of ONE issue. It types the handler's answer and documents the route's response. */
   issueSchema: IssueSchema;
-  handler: (
-    opts: IObjectLocation & { owner?: string; helper: IStorageHelper },
-  ) => ValueOrPromise<IStaticAssetValidationResult<z.infer<IssueSchema>>>;
+
+  /** Runs once per `upload-validate`. Read the file through `file`: every read is pinned to the content `commit` will copy. */
+  handler: (opts: {
+    file: StaticAssetPinnedFile;
+    owner?: string;
+  }) => ValueOrPromise<IStaticAssetValidationResult<z.infer<IssueSchema>>>;
+}
+
+/** What `validate` answers. `commitToken` is present only when the file is valid: it is the token `commit` takes. */
+export interface IStaticAssetValidateResult<Issue> extends IStaticAssetValidationResult<Issue> {
+  commitToken?: string;
 }
 
 /** Body of the upload policy route: the files the client intends to upload. */
@@ -275,6 +284,12 @@ export type TStaticAssetComponentOptions<
   Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema,
 > = Record<string, TStaticAssetEntry<Schema>>;
 
+/** The content a validation read: the ETag, and the version id when the storage has real versions. */
+export interface IStaticAssetPin {
+  etag: string;
+  versionId?: string;
+}
+
 /**
  * What a commit token binds: the pending object a policy was issued for, when the grant dies and,
  * when the application supplies one, who it was issued to. Other business fields are deliberately
@@ -286,4 +301,7 @@ export interface IStaticAssetCommitTokenPayload {
   expiresAt: number;
   /** Absent when `directUpload.resolveOwner` is not set; present, the token commits only for that owner. */
   owner?: string;
+  stage: TStaticAssetTokenStage;
+  /** Present from `VALIDATED` on: `commit` copies only content that still matches it. */
+  pin?: IStaticAssetPin;
 }

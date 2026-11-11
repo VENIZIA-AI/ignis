@@ -12,15 +12,6 @@ export const StaticAssetErrors = {
     statusCode: HTTP.ResultCodes.RS_4.Forbidden,
     category: ErrorScopes.VALIDATION,
   },
-  /** Raised by `commit`, never by the validate route: the route answers `{ isValid: false, issues }`, and an invalid file simply cannot be committed. */
-  UPLOAD_INVALID: {
-    message: {
-      text: 'The uploaded file did not pass validation',
-      code: 'core.static_asset.upload_invalid',
-    },
-    statusCode: HTTP.ResultCodes.RS_4.UnprocessableEntity,
-    category: ErrorScopes.VALIDATION,
-  },
   /** Both upload paths - one condition, one code to branch on. */
   UPLOAD_TOO_LARGE: {
     message: {
@@ -39,6 +30,24 @@ export const StaticAssetErrors = {
   EXPIRED_COMMIT_TOKEN: {
     message: { text: 'Commit token has expired', code: 'core.static_asset.expired_commit_token' },
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.VALIDATION,
+  },
+  /** The pending object is not the one that was read: it was overwritten or removed after the pin. Raised by a pinned read and by the commit copy. */
+  UPLOAD_CHANGED: {
+    message: {
+      text: 'The uploaded file changed after it was validated',
+      code: 'core.static_asset.upload_changed',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.Conflict,
+    category: ErrorScopes.VALIDATION,
+  },
+  /** With a `validation` on, `commit` takes the token `upload-validate` returned, not the one the policy issued. */
+  UPLOAD_NOT_VALIDATED: {
+    message: {
+      text: 'The upload has not been validated',
+      code: 'core.static_asset.upload_not_validated',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.UnprocessableEntity,
     category: ErrorScopes.VALIDATION,
   },
   BUCKET_NAME_INVALID: {
