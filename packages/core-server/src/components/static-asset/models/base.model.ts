@@ -22,7 +22,7 @@ export class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseMetaLinkM
       mimetype: text().notNull(),
       size: integer().notNull(),
       etag: text(),
-      metadata: jsonb().$type<Record<string, any>>(),
+      metadata: jsonb().$type<Record<string, unknown>>(),
       storageType: text('storage_type').notNull(),
       isSynced: boolean('is_synced').notNull().default(false),
 

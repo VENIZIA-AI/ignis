@@ -55,8 +55,9 @@ export interface IStaticAssetUploadCommitServiceOptions<
  * callable without a request. A service that saves its own record commits the upload in the same
  * call instead of asking the client for a second request.
  *
- * The token proves the key was issued by a policy; it carries no owner. Whether the current caller
- * may commit that key is the application's decision, made before it calls `commit`.
+ * The token proves the key was issued by a policy. It names an owner only when
+ * `directUpload.resolveOwner` is set, and then only that owner may commit it; without one, anyone who
+ * holds the token can.
  */
 export class StaticAssetUploadCommitService<
   Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema,
@@ -234,7 +235,7 @@ export class StaticAssetUploadCommitService<
       bucket: bucketRef,
       object,
       link,
-      ...(metaLinkResult === undefined ? {} : { metaLink: metaLinkResult }),
+      metaLink: metaLinkResult,
     };
   }
 }

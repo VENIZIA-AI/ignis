@@ -10,6 +10,11 @@ export class StaticAssetHeaders {
     HTTP.Headers.ETAG,
     HTTP.Headers.LAST_MODIFIED,
   ] as const;
+
+  /** Of what a controller sends with every object. */
+  static readonly NOSNIFF = 'nosniff';
+  static readonly CSP_SANDBOX = 'sandbox';
+  static readonly RANGE_UNIT = 'bytes';
 }
 
 /** Content types the controller serves. */
@@ -20,10 +25,10 @@ export class StaticAssetContentTypes {
    * cannot stop a type we declared ourselves. `image/svg+xml` is deliberately excluded: SVG carries script.
    */
   static readonly RENDERABLE = new Set<string>([
-    'image/png',
-    'image/jpeg',
-    'image/gif',
-    'image/webp',
+    HTTP.HeaderValues.IMAGE_PNG,
+    HTTP.HeaderValues.IMAGE_JPEG,
+    HTTP.HeaderValues.IMAGE_GIF,
+    HTTP.HeaderValues.IMAGE_WEBP,
     'image/avif',
     'image/bmp',
     'image/x-icon',
@@ -32,22 +37,16 @@ export class StaticAssetContentTypes {
     'audio/mpeg',
     'audio/wav',
     'audio/ogg',
-    'application/pdf',
-    'text/plain',
-    'text/csv',
+    HTTP.HeaderValues.APPLICATION_PDF,
+    HTTP.HeaderValues.TEXT_PLAIN,
+    HTTP.HeaderValues.TEXT_CSV,
   ]);
 }
 
-/** Storage backends a static asset controller can serve from. `isValid` checks a string against them. */
+/** Storage backends a static asset controller can serve from. */
 export class StaticAssetStorageTypes {
   static readonly DISK = 'disk';
   static readonly BUN_S3 = 'bun-s3';
-
-  static readonly SCHEME_SET = new Set([this.DISK, this.BUN_S3]);
-
-  static isValid(orgType: string): boolean {
-    return this.SCHEME_SET.has(orgType);
-  }
 }
 
 /** One of the `StaticAssetStorageTypes` values. */
@@ -57,12 +56,6 @@ export type TStaticAssetStorageType = TConstValue<typeof StaticAssetStorageTypes
 export class MetaLinkRecreateActions {
   static readonly CREATED = 'created';
   static readonly REFRESHED = 'refreshed';
-
-  static readonly SCHEME_SET = new Set([this.CREATED, this.REFRESHED]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** One of the `MetaLinkRecreateActions` values. */

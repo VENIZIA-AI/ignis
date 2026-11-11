@@ -8,6 +8,7 @@ import { StaticAssetBindingKeys, type TStaticAssetComponentOptions } from './com
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from './models';
 import { StaticAssetControllerFactory } from './controller';
 import { StaticAssetUploadCommitService, StaticAssetUploadPolicyService } from './services';
+import { StaticAssetObjectLinkUtility } from './utilities/object-link.utility';
 
 /** `Schema` is the MetaLink table the application binds. It has to live on the CLASS, not only on the options: `component(Ctor, { options })` infers the options from the class, so a class pinned to the shipped table can only carry options for that table. */
 export class StaticAssetComponent<
@@ -69,7 +70,7 @@ export class StaticAssetComponent<
               extra?.normalizeLinkFn ??
               // The link follows the URL shape the controller serves: `{objectName}` is one Hono path segment unless `rawObjectPath` widens it, and a configured bucket leaves the path.
               ((linkOptions) =>
-                StaticAssetControllerFactory.buildObjectLink({
+                StaticAssetObjectLinkUtility.build({
                   basePath: controller.basePath,
                   bucket: linkOptions.bucket,
                   object: linkOptions.object,

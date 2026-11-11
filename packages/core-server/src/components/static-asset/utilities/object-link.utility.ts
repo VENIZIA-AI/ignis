@@ -1,5 +1,6 @@
 import type { IObjectLocation } from '@venizia/ignis-helpers';
 
+/** Builds the URL of an object in the shape its controller serves. */
 export class StaticAssetObjectLinkUtility {
   /** The mount path may be declared with or without a leading slash; a link must carry exactly one. */
   static normalizeBasePath(opts: { basePath: string }): string {

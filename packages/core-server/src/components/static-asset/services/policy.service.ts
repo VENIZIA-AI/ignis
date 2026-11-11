@@ -117,7 +117,7 @@ export class StaticAssetUploadPolicyService extends BaseService {
               this.commitLifetimeMs === undefined
                 ? new Date(policy.expiresAt).getTime()
                 : Date.now() + this.commitLifetimeMs,
-            ...(opts.owner === undefined ? {} : { owner: opts.owner }),
+            owner: opts.owner,
           },
           secretKey: directUpload.secretKey,
         }),

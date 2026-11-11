@@ -837,8 +837,7 @@ describe('StaticAsset controller — resolveObjectName hook', () => {
       },
     ]);
 
-    // `defaultKey` must stay the key the storage helper writes on its own: the factory mirrors
-    // `BaseStorageHelper.normalizeObjectName`, which is protected, and this pins the two together.
+    // `defaultKey` is the key the storage helper writes on its own: both come from `BaseStorageHelper.normalizeObjectName`.
     const plainHelper = new FakeStorageHelper();
     const plainRouter = await mountAssetController({ helper: plainHelper });
     const plainResponse = await uploadFiles({
@@ -1484,43 +1483,6 @@ describe('the upload query carries a display order', () => {
   });
 });
 
-describe('StaticAssetControllerFactory.findLabelsInQuery names a caller that never migrated', () => {
-  /**
-   * Labels belong in the body. This predicate names the ones a caller still puts in the URL, which
-   * the upload routes refuse.
-   */
-  test('it names every label still arriving in the query', () => {
-    expect(
-      StaticAssetControllerFactory.findLabelsInQuery({
-        query: { principalId: '42', variant: 'original' },
-      }),
-    ).toEqual(['principalId', 'variant']);
-  });
-
-  test('it returns them in a stable order, not the order they were sent', () => {
-    expect(
-      StaticAssetControllerFactory.findLabelsInQuery({
-        query: { variant: 'a', principalType: 'Product' },
-      }),
-    ).toEqual(['principalType', 'variant']);
-  });
-
-  test('an unrelated query parameter is not a label', () => {
-    expect(
-      StaticAssetControllerFactory.findLabelsInQuery({
-        query: { prefix: 'photos/', maxKeys: '10' },
-      }),
-    ).toEqual([]);
-  });
-
-  /** An empty value still means the caller put it there, so it is still the wrong place. */
-  test('an empty value still counts', () => {
-    expect(StaticAssetControllerFactory.findLabelsInQuery({ query: { folderPath: '' } })).toEqual([
-      'folderPath',
-    ]);
-  });
-});
-
 describe('labels in the query are refused, before the body is read', () => {
   const captureRepository = (created: Array<Record<string, unknown>>) =>
     ({
@@ -1567,5 +1529,61 @@ describe('labels in the query are refused, before the body is read', () => {
 
     expect(response.status).toBe(200);
     expect(created[0]).toMatchObject({ principalType: 'Product', principalId: '42', sequence: 3 });
+  });
+});
+
+describe('StaticAsset controller - deleting an object removes its MetaLink row', () => {
+  const mountWithRepository = async (opts: { repository: FakeMetaLinkRepository }) => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({
+      helper,
+      metaLink: { model: {} as AnyType, repository: opts.repository as AnyType },
+    });
+
+    await uploadFiles({ router, files: [new File(['x'], 'a.png', { type: 'image/png' })] });
+
+    return { helper, router };
+  };
+
+  const deleteObject = (router: OpenAPIHono) =>
+    router.request('/assets/buckets/images/objects/a.png', { method: 'DELETE' });
+
+  test('the row is gone by the time the delete answers', async () => {
+    const repository = new FakeMetaLinkRepository();
+    const { router } = await mountWithRepository({ repository });
+    expect(repository.rows).toHaveLength(1);
+
+    const response = await deleteObject(router);
+
+    expect(response.status).toBe(200);
+    expect(repository.rows).toHaveLength(0);
+  });
+
+  /** The object is already gone and its removal is idempotent, so the retry is what removes the row. */
+  test('a repository failure answers an error, and a retry succeeds', async () => {
+    const repository = new FakeMetaLinkRepository();
+    const { helper, router } = await mountWithRepository({ repository });
+    const deleteBy = repository.deleteBy.bind(repository);
+    let isFailing = true;
+
+    repository.deleteBy = async (opts) => {
+      if (isFailing) {
+        throw new Error('connection reset');
+      }
+
+      return deleteBy(opts);
+    };
+
+    const failed = await deleteObject(router);
+
+    expect(failed.status).toBeGreaterThanOrEqual(500);
+    expect(helper.hasObject({ bucket: { name: 'images' }, object: { key: 'a.png' } })).toBe(false);
+    expect(repository.rows).toHaveLength(1);
+
+    isFailing = false;
+    const retried = await deleteObject(router);
+
+    expect(retried.status).toBe(200);
+    expect(repository.rows).toHaveLength(0);
   });
 });

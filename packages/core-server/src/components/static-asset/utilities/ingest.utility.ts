@@ -99,10 +99,8 @@ export class StaticAssetIngestUtility {
       });
     }
 
-    // Refused BEFORE the write starts, so a body that declares its size never opens a multipart
-    // upload at all. A body that lies or omits the header is caught mid-flight by `capStream`, and
-    // Bun's client answers that with `AbortMultipartUpload` - measured against a recording endpoint,
-    // not assumed - so no orphaned parts are left behind either way.
+    // Refused before the write starts, so a declared size never opens a multipart upload. A body
+    // that lies or omits it is caught by `capStream`; Bun's client aborts the upload, leaving no parts.
     const declaredLength = Number(response.headers.get('content-length') ?? 0);
     const maxBytes = policy?.maxBytes ?? UrlSafetyDefaults.MAX_BYTES;
 

@@ -11,6 +11,8 @@ export class HTTP {
     CONTENT_TYPE: 'content-type',
     CONTENT_RANGE: 'content-range',
     CONTENT_SECURITY_POLICY: 'content-security-policy',
+    ACCEPT_RANGES: 'accept-ranges',
+    RANGE: 'range',
 
     // Request - content negotiation & conditionals
     ACCEPT: 'accept',

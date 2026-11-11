@@ -2,6 +2,7 @@ import { BaseRestController, type TRouteContext } from '@/base/controllers';
 import { controller as controllerDecorator } from '@/base/metadata';
 import {
   BaseStorageHelper,
+  ContentDispositionTypes,
   RequestUtility,
   StorageUtility,
   type IObjectLocation,
@@ -14,7 +15,7 @@ import {
 } from '@venizia/ignis-helpers';
 import { HTTP, ResolverUtility, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { AnyType, TValueOrAsyncResolver } from '@venizia/ignis-helpers/common';
-import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import { getError } from '@venizia/ignis-helpers/core';
 import { type Env } from 'hono';
 import { readFileSync, rmSync } from 'node:fs';
 import {
@@ -64,15 +65,14 @@ export interface IStaticAssetControllerOptions {
   /** Decides the stored object name of each uploaded file. Absent leaves the storage helper's own naming untouched. */
   resolveObjectName?: TStaticAssetObjectNameResolver;
 
-  /** Registers the application's own routes on the generated controller, after every built-in one. */
   /** Registers the application's own routes BEFORE every built-in one, so a literal path wins over the catch-all `rawObjectPath` produces. */
   defineRoutesBefore?: TStaticAssetDefineExtraRoutes;
+
+  /** Registers the application's own routes on the generated controller, after every built-in one. */
   defineExtraRoutes?: TStaticAssetDefineExtraRoutes;
 }
 
-/** Hono ALREADY percent-decodes path params - a second decodeURIComponent throws on `report_100%.pdf` and turns `a%2Fb.png` into a DIFFERENT object; `isValidName`/`isValidPath` still run on this value, so traversal is still rejected. */
-/** The upload labels, read off the multipart form. Every value arrives as text, so `sequence` is the one that needs converting. */
-/** One list: the reader below and the stale-caller warning must agree. */
+/** The upload labels: one list, so the reader and the query refusal agree. */
 const UPLOAD_LABEL_NAMES = [
   'principalType',
   'principalId',
@@ -81,19 +81,13 @@ const UPLOAD_LABEL_NAMES = [
   'folderPath',
 ] as const;
 
-/** The body of `StaticAssetControllerFactory.findLabelsInQuery`, callable from the helpers above the class. */
-const listLabelsInQuery = (opts: {
-  query: Record<string, string>;
-  names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>;
-}): string[] => (opts.names ?? UPLOAD_LABEL_NAMES).filter((name) => opts.query[name] !== undefined);
-
 /** Refused before the body is read: a route that ignored them would store an unlabelled row. */
 const refuseLabelsInQuery = (opts: {
   query: Record<string, string>;
   names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>;
   reason?: string;
 }): void => {
-  const names = listLabelsInQuery(opts);
+  const names = (opts.names ?? UPLOAD_LABEL_NAMES).filter((name) => opts.query[name] !== undefined);
 
   if (names.length > 0) {
     throw getError({
@@ -129,8 +123,6 @@ const readUploadLabels = (opts: {
   };
 };
 
-const readObjectName: (rawObjectName: string) => string = (rawObjectName) => rawObjectName;
-
 /** The bucket one request works on: a configured value wins - called on every request, so an application may read an environment variable lazily - else the path param, which is only registered when there is no configured bucket. */
 const resolveBucket = async (opts: {
   configured?: TValueOrAsyncResolver<string>;
@@ -143,18 +135,6 @@ const resolveBucket = async (opts: {
   }
 
   return ResolverUtility.resolveValueAsync({ value: configured });
-};
-
-/** Mirrors `BaseStorageHelper.normalizeObjectName`, which is protected: `resolveObjectName` is offered the very name the helper would otherwise have written. */
-const defaultObjectName: (opts: { file: TUploadNaming }) => string = ({ file }) => {
-  const { originalName, folderPath } = file;
-  const normalizedFileName = originalName.toLowerCase().replace(/ /g, '_');
-
-  if (!folderPath) {
-    return normalizedFileName;
-  }
-
-  return `${folderPath.toLowerCase().replace(/ /g, '_')}/${normalizedFileName}`;
 };
 
 /**
@@ -201,49 +181,27 @@ const readByteRange = (opts: {
   return { start, end: Math.min(end, size - 1) };
 };
 
+/** The storage headers a response may carry; every other one is dropped. */
+const ALLOWED_HEADER_NAMES: ReadonlySet<string> = new Set(StaticAssetHeaders.ALLOWED);
+
 /** Sets whitelisted metadata headers on the response context. `content-type` is not among them. */
 const applyMetadataHeaders: (opts: {
   ctx: TRouteContext<Env>;
   metadata: IObjectMetadata;
 }) => void = ({ ctx, metadata }) => {
   Object.entries(metadata).forEach(([key, value]) => {
-    if (
-      !StaticAssetHeaders.ALLOWED.includes(
-        key.toLowerCase() as (typeof StaticAssetHeaders.ALLOWED)[number],
-      )
-    ) {
+    const name = key.toLowerCase();
+
+    if (!ALLOWED_HEADER_NAMES.has(name)) {
       return;
     }
 
-    ctx.header(key.toLowerCase(), String(value).replace(/[\r\n]/g, ''));
+    ctx.header(name, String(value).replace(/[\r\n]/g, ''));
   });
 };
 
-/** Builds the REST controller class for a static asset entry. Static helpers also expose label checking, object link building and served content type resolution. */
-export class StaticAssetControllerFactory extends BaseHelper {
-  constructor() {
-    super({ scope: StaticAssetControllerFactory.name });
-  }
-
-  /** Names any label a caller put in the query - where the upload routes refuse it. */
-  static findLabelsInQuery(opts: {
-    query: Record<string, string>;
-    names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>;
-  }): string[] {
-    return listLabelsInQuery(opts);
-  }
-
-  /** The URL of one object, in the shape its controller serves: no `/buckets/<name>` with a configured bucket, and a raw path with `rawObjectPath`. */
-  static buildObjectLink(
-    opts: IObjectLocation & {
-      basePath: string;
-      hasConfiguredBucket?: boolean;
-      rawObjectPath?: boolean;
-    },
-  ): string {
-    return StaticAssetObjectLinkUtility.build(opts);
-  }
-
+/** Builds the REST controller class for a static asset entry, and decides the served content type. */
+export class StaticAssetControllerFactory {
   /**
    * The served type comes from the object NAME, never the backend or the uploader: a renderable type on
    * the API origin is stored XSS. Public so a hand-written route makes the same decision - the
@@ -319,7 +277,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
     const shapedLinkFn =
       hasConfiguredBucket || rawObjectPath
         ? (linkOptions: IObjectLocation) =>
-            StaticAssetControllerFactory.buildObjectLink({
+            StaticAssetObjectLinkUtility.build({
               basePath: normalizedBasePath,
               bucket: linkOptions.bucket,
               object: linkOptions.object,
@@ -460,7 +418,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
                 configured: bucket,
                 param: params.bucketName,
               });
-              const objectName = readObjectName(params.objectName);
+              const objectName = params.objectName;
 
               if (!helper.isValidBucketName({ bucket: { name: bucketName } })) {
                 throw getError({ error: StaticAssetErrors.BUCKET_NAME_INVALID });
@@ -474,8 +432,6 @@ export class StaticAssetControllerFactory extends BaseHelper {
               ) {
                 throw getError({ error: StaticAssetErrors.OBJECT_NAME_INVALID });
               }
-
-              // Before any storage call: a key outside the scope must not even be probed.
               StaticAssetKeyScopeUtility.assertInScope({ key: objectName, keyPrefix });
 
               const fileStat = await helper.getStat({
@@ -490,11 +446,11 @@ export class StaticAssetControllerFactory extends BaseHelper {
                 object: { key: objectName },
               });
               ctx.header(HTTP.Headers.CONTENT_TYPE, served.contentType);
-              ctx.header('x-content-type-options', 'nosniff');
+              ctx.header(HTTP.Headers.X_CONTENT_TYPE_OPTIONS, StaticAssetHeaders.NOSNIFF);
               // Sandboxed even when renderable, so an unforeseen renderable type cannot reach this origin.
-              ctx.header(HTTP.Headers.CONTENT_SECURITY_POLICY, 'sandbox');
+              ctx.header(HTTP.Headers.CONTENT_SECURITY_POLICY, StaticAssetHeaders.CSP_SANDBOX);
               // Advertised unconditionally: a player only offers seeking once it sees this.
-              ctx.header('accept-ranges', 'bytes');
+              ctx.header(HTTP.Headers.ACCEPT_RANGES, StaticAssetHeaders.RANGE_UNIT);
 
               // A type outside the allow-list downloads instead of rendering; that is the XSS boundary.
               if (!served.isRenderable) {
@@ -503,25 +459,27 @@ export class StaticAssetControllerFactory extends BaseHelper {
                   HTTP.Headers.CONTENT_DISPOSITION,
                   RequestUtility.buildContentDispositionHeader({
                     filename: inlineName,
-                    type: 'attachment',
+                    type: ContentDispositionTypes.ATTACHMENT,
                   }),
                 );
               }
 
-              const range = readByteRange({ header: ctx.req.header('range'), size });
+              const range = readByteRange({ header: ctx.req.header(HTTP.Headers.RANGE), size });
 
               if (range) {
                 ctx.header(HTTP.Headers.CONTENT_LENGTH, String(range.end - range.start + 1));
-                ctx.header(HTTP.Headers.CONTENT_RANGE, `bytes ${range.start}-${range.end}/${size}`);
+                ctx.header(
+                  HTTP.Headers.CONTENT_RANGE,
+                  `${StaticAssetHeaders.RANGE_UNIT} ${range.start}-${range.end}/${size}`,
+                );
               } else {
                 ctx.header(HTTP.Headers.CONTENT_LENGTH, size.toString());
               }
 
-              // The web stream is what a Response body wants, so no Node Readable sits in between.
               const stream = await helper.getObjectStream({
                 bucket: { name: bucketName },
                 object: { key: objectName },
-                ...(range ? { range } : {}),
+                range: range ?? undefined,
               });
 
               return new Response(stream, {
@@ -547,7 +505,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
                 configured: bucket,
                 param: params.bucketName,
               });
-              const objectName = readObjectName(params.objectName);
+              const objectName = params.objectName;
 
               if (!helper.isValidBucketName({ bucket: { name: bucketName } })) {
                 throw getError({ error: StaticAssetErrors.BUCKET_NAME_INVALID });
@@ -561,8 +519,6 @@ export class StaticAssetControllerFactory extends BaseHelper {
               ) {
                 throw getError({ error: StaticAssetErrors.OBJECT_NAME_INVALID });
               }
-
-              // Before any storage call: a key outside the scope must not even be probed.
               StaticAssetKeyScopeUtility.assertInScope({ key: objectName, keyPrefix });
 
               const fileStat = await helper.getStat({
@@ -585,11 +541,11 @@ export class StaticAssetControllerFactory extends BaseHelper {
                 HTTP.Headers.CONTENT_DISPOSITION,
                 RequestUtility.buildContentDispositionHeader({
                   filename: fileName,
-                  type: 'attachment',
+                  type: ContentDispositionTypes.ATTACHMENT,
                 }),
               );
-              ctx.header('x-content-type-options', 'nosniff');
-              ctx.header(HTTP.Headers.CONTENT_SECURITY_POLICY, 'sandbox');
+              ctx.header(HTTP.Headers.X_CONTENT_TYPE_OPTIONS, StaticAssetHeaders.NOSNIFF);
+              ctx.header(HTTP.Headers.CONTENT_SECURITY_POLICY, StaticAssetHeaders.CSP_SANDBOX);
 
               const stream = await helper.getObjectStream({
                 bucket: { name: bucketName },
@@ -721,10 +677,9 @@ export class StaticAssetControllerFactory extends BaseHelper {
                   };
                 });
 
-                // Built per request: the hook is offered the bucket, which only the route knows. With
-                // neither hook nor scope, `normalizeNameFn` stays exactly as configured. Under a scope,
-                // the component's own default is placed inside it; an application hook's key is
-                // checked, never rewritten, because the application may record that key elsewhere.
+                // Built per request: the hook is offered the bucket, which only the route knows. A hook's
+                // key is checked against the scope, never rewritten: the application may record that
+                // key elsewhere.
                 const normalizeNameFn =
                   resolveObjectName || keyPrefix !== undefined
                     ? (naming: { file: TUploadNaming }) => {
@@ -737,7 +692,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
 
                         const defaultKey = options?.normalizeNameFn
                           ? options.normalizeNameFn(naming)
-                          : `${keyPrefix ?? ''}${defaultObjectName(naming)}`;
+                          : `${keyPrefix ?? ''}${BaseStorageHelper.normalizeObjectName(naming)}`;
 
                         const key = resolveObjectName
                           ? resolveObjectName({
@@ -804,10 +759,8 @@ export class StaticAssetControllerFactory extends BaseHelper {
                     );
                   results.push({
                     ...uploadResult,
-                    // A CODE, never the driver text. This handler returns 200, so it bypasses the
-                    // error middleware and `database.handler` - the two places that strip
-                    // `detail`/`table`/`constraint` - and shipped raw constraint names to the client.
-                    // The real error is already logged in full immediately above.
+                    // A CODE, never the driver text: this 200 bypasses the error middleware that strips
+                    // `detail`/`table`/`constraint`. The real error is logged in full above.
                     metaLink: { error: StaticAssetMetaLinkCodes.CREATE_FAILED },
                   });
                 }
@@ -830,7 +783,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
                 configured: bucket,
                 param: params.bucketName,
               });
-              const objectName = readObjectName(params.objectName);
+              const objectName = params.objectName;
 
               if (!helper.isValidBucketName({ bucket: { name: bucketName } })) {
                 throw getError({ error: StaticAssetErrors.BUCKET_NAME_INVALID });
@@ -844,8 +797,6 @@ export class StaticAssetControllerFactory extends BaseHelper {
               ) {
                 throw getError({ error: StaticAssetErrors.OBJECT_NAME_INVALID });
               }
-
-              // Before any storage call: a key outside the scope must not even be probed.
               StaticAssetKeyScopeUtility.assertInScope({ key: objectName, keyPrefix });
 
               // Deliberately idempotent: S3 answers 200 for a key that was never there, and consumers
@@ -868,28 +819,11 @@ export class StaticAssetControllerFactory extends BaseHelper {
               const deleteRepository = await ResolverUtility.resolveValueAsync({
                 value: metaLink.repository,
               });
-              deleteRepository
-                .deleteBy({
-                  where: {
-                    bucketName,
-                    objectName,
-                  },
-                })
-                .then(() => {
-                  this.logger
-                    .for('DELETE_OBJECT')
-                    .info('Successfully to delete MetaLink for %s/%s', bucketName, objectName);
-                })
-                .catch((error) => {
-                  this.logger
-                    .for('DELETE_OBJECT')
-                    .error(
-                      'Failed to delete MetaLink | bucket: %s | objectName: %s | Error: %s',
-                      bucketName,
-                      objectName,
-                      error,
-                    );
-                });
+              // Awaited: the object is gone and its removal is idempotent, so a retry removes the row.
+              await deleteRepository.deleteBy({ where: { bucketName, objectName } });
+              this.logger
+                .for('DELETE_OBJECT')
+                .info('Deleted MetaLink for %s/%s', bucketName, objectName);
 
               return ctx.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
             },
@@ -1067,7 +1001,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
                   configured: bucket,
                   param: params.bucketName,
                 });
-                const objectName = readObjectName(params.objectName);
+                const objectName = params.objectName;
 
                 if (!helper.isValidBucketName({ bucket: { name: bucketName } })) {
                   throw getError({ error: StaticAssetErrors.BUCKET_NAME_INVALID });
@@ -1081,8 +1015,6 @@ export class StaticAssetControllerFactory extends BaseHelper {
                 ) {
                   throw getError({ error: StaticAssetErrors.OBJECT_NAME_INVALID });
                 }
-
-                // Before any storage call: a key outside the scope must not even be probed.
                 StaticAssetKeyScopeUtility.assertInScope({ key: objectName, keyPrefix });
 
                 const bucketRef = { name: bucketName };
@@ -1091,7 +1023,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
 
                 const link = options?.normalizeLinkFn
                   ? options.normalizeLinkFn({ bucket: bucketRef, object })
-                  : StaticAssetControllerFactory.buildObjectLink({
+                  : StaticAssetObjectLinkUtility.build({
                       basePath: normalizedBasePath,
                       bucket: bucketRef,
                       object,
