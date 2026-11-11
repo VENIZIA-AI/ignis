@@ -165,7 +165,10 @@ describe('MailComponent - confidentiality', () => {
       queueConfig: {
         type: 'direct',
         bullmq: {
-          redis: { host: 'localhost', port: 6379, password: 'super-secret-redis' },
+          redis: {
+            getClient: () => ({ options: { password: 'super-secret-redis' } }),
+            duplicateClient: () => ({}),
+          } as AnyType,
           queue: { identifier: 'mail', name: 'mail' },
           mode: 'both',
         },

@@ -1,5 +1,5 @@
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
-import { RedisSingleHelper } from '@venizia/ignis-helpers';
+import type { IRedisHelper } from '@venizia/ignis-helpers';
 import type { TConstValue } from '@/helpers';
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 import type {
@@ -26,7 +26,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
 
   private queueHelper?: BullMQHelper<IQueueJobPayload, IMailQueueResult>;
   private workerHelpers: BullMQHelper<IQueueJobPayload, IMailProcessorResult>[] = [];
-  private redisConnection: RedisSingleHelper;
+  private redisConnection: IRedisHelper;
   private readonly bullmqModule?: typeof import('bullmq');
   private jobIdCounter = 0;
 
@@ -37,10 +37,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
 
     this.mode = opts.mode;
 
-    this.redisConnection = new RedisSingleHelper({
-      ...opts.redis,
-      maxRetry: undefined,
-    });
+    this.redisConnection = opts.redis;
 
     this.bullmqModule = opts.module;
     this.queueIdentifier = opts.queue.identifier;
@@ -281,7 +278,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
     this.logger.for(this.clearWorkers.name).info('All workers cleared | Count: %d', count);
   }
 
-  /** Full teardown: workers -> queue -> Redis. Every step runs even if an earlier one failed (skipping leaks a queue client + Redis socket); failures are reported once, at the end. */
+  /** Closes the workers, then the queue. Every step runs even if an earlier one failed; failures are reported once, at the end. The Redis helper is the application's, so it stays open. */
   async close(): Promise<void> {
     const result = await this.closeWorkers();
     const failures: Error[] = [...result];
@@ -294,16 +291,6 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
         failures.push(closeError);
         this.logger.for(this.close.name).error('Failed to close queue | error: %s', closeError);
       }
-    }
-
-    try {
-      await this.redisConnection.disconnect();
-    } catch (error) {
-      const disconnectError = error instanceof Error ? error : getError({ message: String(error) });
-      failures.push(disconnectError);
-      this.logger
-        .for(this.close.name)
-        .error('Failed to disconnect redis | error: %s', disconnectError);
     }
 
     if (failures.length > 0) {

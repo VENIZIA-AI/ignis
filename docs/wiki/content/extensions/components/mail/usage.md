@@ -330,6 +330,29 @@ Redis-backed, distributed, backed by `BullMQHelper`. Job persistence, worker con
 > [!IMPORTANT]
 > `'queue-only'` mode is the one exception to "call `setProcessor()` before you enqueue." In that mode, `enqueueVerificationEmail()` does not need a processor. A producer instance can enqueue jobs that a separate `worker-only` instance later processes.
 
+**The Redis connection is yours.** Pass a ready helper - single, sentinel or cluster - as `redis`. The queue and each worker duplicate its client, and the executor never closes it: close the helper when your application shuts down. On a cluster the queue is named `{mail-queue}` so its keys share one slot (a name that already starts with `{` is left alone).
+
+```typescript
+import { RedisSentinelHelper } from '@venizia/ignis-helpers';
+
+this.bind({ key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG }).toValue({
+  type: MailQueueExecutorTypes.BULLMQ,
+  bullmq: {
+    redis: new RedisSentinelHelper({
+      name: 'mail-redis',
+      sentinels: [{ host: 'sentinel-1', port: 26379 }],
+      masterName: 'mymaster',
+      maxRetry: -1,
+    }),
+    queue: { identifier: 'mail-queue', name: 'mail-queue' },
+    mode: BullMQExecutorModes.BOTH,
+  },
+});
+```
+
+> [!IMPORTANT]
+> Give the helper an unbounded `maxRetry` (`-1`) so it keeps reconnecting. A Sentinel failover or a brief network drop takes seconds, and a queue has to survive it. The old executor built its helper with `maxRetry` unset, which is `0`: ioredis gave up on the first failed reconnect, so a drop could end the queue until the process restarted. On Redis Cluster the helper's ioredis default already keeps retrying; set `clusterOptions.clusterRetryStrategy` only to change it.
+
 **Dynamic worker management.** Get the bound instance and manage workers at runtime - no restart required:
 
 ```typescript

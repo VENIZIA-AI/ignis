@@ -90,7 +90,7 @@ export declare class BullMQMailExecutorHelper extends BaseHelper implements IMai
     /** Closes every worker without stopping at the first failure, always empties the list, and returns failures instead of throwing so teardown can continue. */
     private closeWorkers;
     clearWorkers(): Promise<void>;
-    /** Full teardown: workers -> queue -> Redis. Every step runs even if an earlier one failed (skipping leaks a queue client + Redis socket); failures are reported once, at the end. */
+    /** Closes the workers, then the queue. Every step runs even if an earlier one failed; failures are reported once, at the end. The Redis helper is the application's, so it stays open. */
     close(): Promise<void>;
     getWorkerCount(): number;
     getMode(): TConstValue<typeof BullMQExecutorModes>;
@@ -185,12 +185,16 @@ Source: `packages/core-server/src/components/mail/common/types/options.ts`
 
 *interface*
 
-Options of the BullMQ mail executor: the Redis connection, the queue `identifier` and BullMQ `name`, and which of queue and workers this process runs.
+Options of the BullMQ mail executor: the Redis helper, the queue `identifier` and BullMQ `name`, and which of queue and workers this process runs.
 
 ```ts
 export interface IBullMQMailExecutorOpts {
-    /** `redis.module` passes `ioredis` itself - see `module` below for why. */
-    redis: IRedisSingleHelperOptions;
+    /**
+     * A ready single, cluster or sentinel helper. The queue and each worker duplicate its client, and the
+     * application closes it: the executor never disconnects a connection it did not create. On a cluster
+     * the queue name is wrapped in a `{hash tag}` so its keys share one slot.
+     */
+    redis: IRedisHelper;
     queue: {
         identifier: string;
         name: string;

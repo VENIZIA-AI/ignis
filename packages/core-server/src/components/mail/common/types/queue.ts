@@ -1,6 +1,6 @@
 import type { TMailBackoffType } from '../constants';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
-import type { IRedisSingleHelperOptions } from '@venizia/ignis-helpers';
+import type { IRedisHelper } from '@venizia/ignis-helpers';
 import type { BullMQExecutorModes, MailQueueExecutorTypes } from '../constants';
 
 /** Per-job options for a queued verification mail. `delay` and `backoff.delay` are milliseconds; `attempts` is the total number of tries, first included. */
@@ -50,10 +50,14 @@ export interface IInternalQueueMailExecutorOpts {
   identifier: string;
 }
 
-/** Options of the BullMQ mail executor: the Redis connection, the queue `identifier` and BullMQ `name`, and which of queue and workers this process runs. */
+/** Options of the BullMQ mail executor: the Redis helper, the queue `identifier` and BullMQ `name`, and which of queue and workers this process runs. */
 export interface IBullMQMailExecutorOpts {
-  /** `redis.module` passes `ioredis` itself - see `module` below for why. */
-  redis: IRedisSingleHelperOptions;
+  /**
+   * A ready single, cluster or sentinel helper. The queue and each worker duplicate its client, and the
+   * application closes it: the executor never disconnects a connection it did not create. On a cluster
+   * the queue name is wrapped in a `{hash tag}` so its keys share one slot.
+   */
+  redis: IRedisHelper;
   queue: { identifier: string; name: string };
   mode: TConstValue<typeof BullMQExecutorModes>;
   /** `bullmq` itself, for a `bun build --compile` binary that has no `node_modules` to load it from. */

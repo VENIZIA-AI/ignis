@@ -327,7 +327,7 @@ describe('BullMQMailExecutorHelper - teardown', () => {
     expect(executor.getWorkerCount()).toBe(1);
   });
 
-  test('close() tears down workers AND queue AND redis even when a worker close fails', async () => {
+  test('close() tears down workers AND queue even when a worker close fails', async () => {
     const failing = new FakeWorkerHelper({ failOnClose: true });
     const healthy = new FakeWorkerHelper();
 
@@ -348,11 +348,12 @@ describe('BullMQMailExecutorHelper - teardown', () => {
 
     expect(healthy.isClosed).toBe(true);
     expect(queueHelper.isClosed).toBe(true);
-    expect(redisConnection.isDisconnected).toBe(true);
+    expect(redisConnection.isDisconnected).toBe(false);
     expect(executor.getWorkerCount()).toBe(0);
   });
 
-  test('close() on a healthy executor resolves and closes queue + redis', async () => {
+  /** The Redis helper is the application's: an executor that quit it would take down every other user of the connection. */
+  test('close() on a healthy executor resolves, closes the queue, and leaves the Redis helper open', async () => {
     const { executor, queueHelper, redisConnection } = buildBullMQExecutor({
       mode: BullMQExecutorModes.BOTH,
       workerHelpers: [new FakeWorkerHelper()],
@@ -361,7 +362,124 @@ describe('BullMQMailExecutorHelper - teardown', () => {
     await executor.close();
 
     expect(queueHelper.isClosed).toBe(true);
-    expect(redisConnection.isDisconnected).toBe(true);
+    expect(redisConnection.isDisconnected).toBe(false);
+  });
+});
+
+/** A Redis helper of any topology: the executor only hands it to BullMQ, which duplicates its client. */
+const buildRedisHelper = (opts: { client: Record<string, unknown> }) => {
+  const helper = {
+    isDisconnected: false,
+    duplicates: 0,
+    getClient: () => opts.client,
+    duplicateClient: () => {
+      helper.duplicates += 1;
+
+      return { duplicate: helper.duplicates };
+    },
+    disconnect: async () => {
+      helper.isDisconnected = true;
+
+      return true;
+    },
+  };
+
+  return helper;
+};
+
+/** `bullmq` itself, replaced: no Redis, but the real `BullMQHelper` runs and names the queue. */
+const buildFakeBullMQ = () => {
+  const queues: Array<{ name: string; connection: unknown }> = [];
+  const workers: Array<{ name: string; connection: unknown }> = [];
+
+  class FakeQueue {
+    constructor(name: string, options: { connection: unknown }) {
+      queues.push({ name, connection: options.connection });
+    }
+
+    on() {
+      return this;
+    }
+
+    async close() {}
+  }
+
+  class FakeWorker {
+    constructor(name: string, _processor: unknown, options: { connection: unknown }) {
+      workers.push({ name, connection: options.connection });
+    }
+
+    on() {
+      return this;
+    }
+
+    async close() {}
+  }
+
+  return {
+    module: { Queue: FakeQueue, Worker: FakeWorker } as unknown as typeof import('bullmq'),
+    queues,
+    workers,
+  };
+};
+
+describe("BullMQMailExecutorHelper - the Redis helper is the application's", () => {
+  test('a sentinel-shaped helper is used as given, and the queue keeps its plain name', async () => {
+    const sentinel = buildRedisHelper({
+      client: { sentinels: [{ host: 'sentinel-1', port: 26379 }] },
+    });
+    const { module, queues } = buildFakeBullMQ();
+
+    const executor = new BullMQMailExecutorHelper({
+      redis: sentinel as AnyType,
+      queue: { identifier: 'mail-queue', name: 'mail' },
+      mode: BullMQExecutorModes.QUEUE_ONLY,
+      module,
+    });
+
+    expect(queues).toEqual([{ name: 'mail', connection: { duplicate: 1 } }]);
+
+    await executor.close();
+
+    expect(sentinel.isDisconnected).toBe(false);
+  });
+
+  test('a cluster-shaped helper names the queue with a hash tag so its keys share one slot', async () => {
+    const cluster = buildRedisHelper({ client: { isCluster: true } });
+    const { module, queues, workers } = buildFakeBullMQ();
+
+    const executor = new BullMQMailExecutorHelper({
+      redis: cluster as AnyType,
+      queue: { identifier: 'mail-queue', name: 'mail' },
+      mode: BullMQExecutorModes.BOTH,
+      module,
+    });
+    await executor.setProcessor(async () => successProcessorResult, {
+      numberOfWorkers: 2,
+    });
+
+    expect(queues.map((queue) => queue.name)).toEqual(['{mail}']);
+    expect(workers.map((worker) => worker.name)).toEqual(['{mail}', '{mail}']);
+    // One duplicated client for the queue and one per worker; the helper itself is never handed over.
+    expect(cluster.duplicates).toBe(3);
+
+    await executor.close();
+
+    expect(cluster.isDisconnected).toBe(false);
+  });
+
+  test('a name that already carries a hash tag is left alone on a cluster', () => {
+    const cluster = buildRedisHelper({ client: { isCluster: true } });
+    const { module, queues } = buildFakeBullMQ();
+
+    new BullMQMailExecutorHelper({
+      redis: cluster as AnyType,
+      queue: { identifier: 'mail-queue', name: '{tenant-a}mail' },
+      mode: BullMQExecutorModes.QUEUE_ONLY,
+      module,
+    });
+
+    expect(queues.map((queue) => queue.name)).toEqual(['{tenant-a}mail']);
   });
 });
 
