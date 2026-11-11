@@ -254,3 +254,19 @@ describe('StorageUtility.realVersionId', () => {
     expect(StorageUtility.realVersionId({ value })).toBe(expected);
   });
 });
+
+describe('BunS3Helper.copyObject on a missing source', () => {
+  test('a 404 is OBJECT_NOT_FOUND', async () => {
+    const { helper } = mount({ respond: () => new Response(null, { status: 404 }) });
+
+    const error = await captureError(
+      helper.copyObject({
+        bucket: LOCATION.bucket,
+        source: LOCATION.object,
+        destination: { key: 'files/a/orders.xlsx' },
+      }),
+    );
+
+    expect(error).toMatchObject({ statusCode: StorageErrors.OBJECT_NOT_FOUND.statusCode });
+  });
+});

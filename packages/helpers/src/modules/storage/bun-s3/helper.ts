@@ -356,6 +356,15 @@ export class BunS3Helper extends BaseStorageHelper {
       });
     }
 
+    if (response.status === HTTP.ResultCodes.RS_4.NotFound) {
+      throw this.asStorageError({
+        error: { status: response.status },
+        operation: 'copyObject',
+        bucket,
+        object: source,
+      });
+    }
+
     if (!response.ok) {
       throw getError({
         message: `[copyObject] Copy failed | bucket: ${EchoUtility.toSafeText({ value: bucket.name })} | source: ${EchoUtility.toSafeText({ value: source.key })} | status: ${response.status}`,
