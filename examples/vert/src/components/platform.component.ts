@@ -25,11 +25,7 @@ import {
   JWKSModes,
   provide,
 } from '@venizia/ignis';
-import {
-  BaseMetaLinkModel,
-  StaticAssetBindingKeys,
-  StaticAssetStorageTypes,
-} from '@venizia/ignis/static-asset';
+import { BaseMetaLinkModel, StaticAssetBindingKeys } from '@venizia/ignis/static-asset';
 // Type-only: a decorated method's return type lands in `design:returntype`, and bun keeps a value
 // import it cannot prove is a type - which then fails to link against the CJS dist.
 import type {
@@ -62,8 +58,9 @@ export class PlatformComponent extends BaseComponent {
   override binding(): void {}
 
   /**
-   * Two asset stores on one component, both behind the JWT strategy; `staticResource` also lets anyone read an object. `staticAsset` turns on `useMetaLink`, so every upload also
-   * writes a row through the application's own repository - the repository resolves here rather than
+   * Two asset stores on one component, both behind the JWT strategy; `staticResource` also lets
+   * anyone read an object. `staticAsset` has a `metaLink`, so every upload also writes a row
+   * through the application's own repository - the repository resolves here rather than
    * in the constructor because a provider runs on first read, after every repository is bound.
    */
   @provide({ key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS })
@@ -72,25 +69,20 @@ export class PlatformComponent extends BaseComponent {
       staticAsset: {
         // Uploads and reads need a signed-in user; the bucket-management routes stay off.
         auth: { authenticate: { strategies: [Authentication.STRATEGY_JWT] } },
-        controller: { name: 'AssetController', basePath: '/assets', isStrict: true },
-        storage: StaticAssetStorageTypes.DISK,
+        basePath: '/assets',
         helper: new DiskHelper({ basePath: './app_data/assets' }),
-        useMetaLink: true,
         metaLink: {
           model: BaseMetaLinkModel,
           repository: this.application.get<MetaLinkRepository>({
             key: { namespace: BindingNamespaces.REPOSITORY, key: MetaLinkRepository.name },
           }),
         },
-        extra: { parseMultipartBody: { storage: 'memory' } },
       },
       staticResource: {
         // Anyone may read a resource; changing one needs a signed-in user.
         auth: { authenticate: { strategies: [Authentication.STRATEGY_JWT] }, publicRead: true },
-        controller: { name: 'ResourceController', basePath: '/resources', isStrict: true },
-        storage: StaticAssetStorageTypes.DISK,
+        basePath: '/resources',
         helper: new DiskHelper({ basePath: './app_data/resources' }),
-        extra: { parseMultipartBody: { storage: 'memory' } },
       },
     };
   }
