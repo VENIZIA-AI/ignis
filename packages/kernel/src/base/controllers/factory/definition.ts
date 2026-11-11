@@ -8,7 +8,12 @@ import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import type { ICustomizableRoutes, TCrudRoutes } from '../common';
+import type {
+  ICustomizableRoutes,
+  TCrudRoutes,
+  TRouteAuthConfig,
+  TRouteAuthenticateConfig,
+} from '../common';
 import {
   commonResponseHeaders,
   defaultRequestHeaders,
@@ -416,6 +421,60 @@ export class RouteConfigResolver {
   }
 
   /**
+   * The authentication of one route: its own `authenticate` wins over the controller's, and
+   * `{ skip: true }` leaves the route with no strategy at all. Shared by every controller factory so
+   * the priority is written once.
+   */
+  static resolveAuthenticate(opts: {
+    controller?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
+    endpoint?: TRouteAuthenticateConfig;
+  }): { strategies?: TAuthStrategy[]; mode?: TAuthMode } {
+    const { controller = {}, endpoint } = opts;
+    const { strategies: defaultStrategies = [], mode: defaultMode } = controller;
+
+    if (endpoint == null) {
+      return { strategies: defaultStrategies, mode: defaultMode };
+    }
+
+    if (endpoint.skip === true) {
+      return { strategies: [] };
+    }
+
+    return {
+      strategies: endpoint.strategies ?? defaultStrategies,
+      mode: endpoint.mode ?? defaultMode,
+    };
+  }
+
+  /** The authorization of one route. Priority: endpoint authenticate.skip > endpoint authorize.skip > endpoint authorize > controller authorize. */
+  static resolveAuthorize(opts: {
+    controller?: IAuthorizationSpec | IAuthorizationSpec[];
+    endpoint?: TRouteAuthConfig;
+  }): IAuthorizationSpec | IAuthorizationSpec[] | undefined {
+    const { controller, endpoint } = opts;
+
+    if (endpoint?.authenticate?.skip === true) {
+      return undefined;
+    }
+
+    const authorize = endpoint?.authorize;
+
+    if (authorize == null) {
+      return controller;
+    }
+
+    if (Array.isArray(authorize)) {
+      return authorize;
+    }
+
+    if ('skip' in authorize) {
+      return undefined;
+    }
+
+    return authorize;
+  }
+
+  /**
    * Generates the route configurations of a CRUD controller: one for each route listed in `routes`, none for
    * the rest. `serverStampedKeys` - the keys the default write bodies leave out.
    */
@@ -441,7 +500,6 @@ export class RouteConfigResolver {
       serverStampedKeys = [],
       routes,
     } = opts;
-    const { strategies: defaultStrategies = [], mode: defaultMode } = controllerAuth;
 
     /** The overrides of a listed route (`true` has none), or `undefined` for a route that is not listed. */
     const configOf = (routeKey: keyof ICustomizableRoutes) => {
@@ -450,52 +508,19 @@ export class RouteConfigResolver {
       return value === true ? {} : value;
     };
 
-    type TAuthenticateConfig = { strategies?: TAuthStrategy[]; mode?: TAuthMode };
-
     /** Priority: endpoint authenticate > controller authenticate. */
-    const resolveRouteAuth = (routeKey: keyof ICustomizableRoutes): TAuthenticateConfig => {
-      const authConfig = configOf(routeKey)?.authenticate;
-
-      if (authConfig == null) {
-        return { strategies: defaultStrategies, mode: defaultMode };
-      }
-
-      if (authConfig.skip === true) {
-        return { strategies: [] };
-      }
-
-      return {
-        strategies: authConfig.strategies ?? defaultStrategies,
-        mode: authConfig.mode ?? defaultMode,
-      };
-    };
-
-    type TAuthorizeConfig = IAuthorizationSpec | IAuthorizationSpec[] | undefined;
+    const resolveRouteAuth = (routeKey: keyof ICustomizableRoutes) =>
+      RouteConfigResolver.resolveAuthenticate({
+        controller: controllerAuth,
+        endpoint: configOf(routeKey)?.authenticate,
+      });
 
     /** Priority: endpoint authenticate.skip > endpoint authorize.skip > endpoint authorize > controller authorize. */
-    const resolveRouteAuthorize = (routeKey: keyof ICustomizableRoutes): TAuthorizeConfig => {
-      const endpointConfig = configOf(routeKey);
-
-      if (endpointConfig?.authenticate?.skip === true) {
-        return undefined;
-      }
-
-      const authorize = endpointConfig?.authorize;
-
-      if (authorize == null) {
-        return controllerAuthorize;
-      }
-
-      if (Array.isArray(authorize)) {
-        return authorize;
-      }
-
-      if ('skip' in authorize) {
-        return undefined;
-      }
-
-      return authorize;
-    };
+    const resolveRouteAuthorize = (routeKey: keyof ICustomizableRoutes) =>
+      RouteConfigResolver.resolveAuthorize({
+        controller: controllerAuthorize,
+        endpoint: configOf(routeKey),
+      });
 
     const countConfig = configOf('count');
     const count =

@@ -6466,6 +6466,26 @@ export declare class RouteConfigResolver {
     private static resolveRestoreByIdConfig;
     private static resolveRestoreByConfig;
     /**
+     * The authentication of one route: its own `authenticate` wins over the controller's, and
+     * `{ skip: true }` leaves the route with no strategy at all. Shared by every controller factory so
+     * the priority is written once.
+     */
+    static resolveAuthenticate(opts: {
+        controller?: {
+            strategies?: TAuthStrategy[];
+            mode?: TAuthMode;
+        };
+        endpoint?: TRouteAuthenticateConfig;
+    }): {
+        strategies?: TAuthStrategy[];
+        mode?: TAuthMode;
+    };
+    /** The authorization of one route. Priority: endpoint authenticate.skip > endpoint authorize.skip > endpoint authorize > controller authorize. */
+    static resolveAuthorize(opts: {
+        controller?: IAuthorizationSpec | IAuthorizationSpec[];
+        endpoint?: TRouteAuthConfig;
+    }): IAuthorizationSpec | IAuthorizationSpec[] | undefined;
+    /**
      * Generates the route configurations of a CRUD controller: one for each route listed in `routes`, none for
      * the rest. `serverStampedKeys` - the keys the default write bodies leave out.
      */
@@ -6968,23 +6988,6 @@ export declare class RouteConfigResolver {
                 };
                 headers: TAnyObjectSchema | z.ZodObject<{
                     "x-request-id": z.ZodOptional<z.ZodString>;
-                    "x-request-channel": z.ZodOptional<z.ZodString>;
-                    "x-device-info": z.ZodOptional<z.ZodString>;
-                    "x-request-count": z.ZodOptional<z.ZodString>;
-                }, z.core.$strip>;
-            };
-            responses: {
-                '4XX': {
-                    description: string;
-                    content: {
-                        'application/json': {
-                            schema: z.ZodObject<{
-                                statusCode: z.ZodOptional<z.ZodNumber>;
-                                message: z.ZodString;
-                                normalized: z.ZodOptional<z.ZodObject<{
-                                    text: z.ZodString;
-                                    code: z.ZodString;
-                                    args: z.ZodRecord<z.ZodString, z.ZodAny>;
 // ... cut
 ```
 

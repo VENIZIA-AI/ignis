@@ -202,8 +202,14 @@ answers `413` with `core.static_asset.upload_too_large` - one code for both uplo
 application's own `routes.upload.middleware`: `@hono/zod-openapi`'s form validator reads the whole
 body before any handler runs, so a check in the handler saved no memory. The per-file
 `buffer.length` check - the authoritative one - stays in the handler.
-Every built-in route takes `routes.<key>.enabled` (default `true`; `StaticAssetRouteOptionsUtility.readOverride` strips it
-before the rest reaches `createRoute`). `controller.keyPrefix` scopes a controller inside a shared
+Every built-in route takes `routes.<key>.enabled` (default `true`, except the four bucket-management routes,
+which are `false` and need `enabled: true`; `StaticAssetRouteOptionsUtility.readRoute` strips it, resolves the
+auth and hands the rest to `createRoute`). Auth is entry-level: `auth: { authenticate?, authorize?, publicRead? }`
+beside `controller` applies to EVERY built-in route, a route's own `authenticate`/`authorize` replaces it
+(`{ skip: true }` opens it), and the resolution is the kernel's `RouteConfigResolver.resolveAuthenticate` /
+`resolveAuthorize`, which the CRUD factory calls too - never a second copy. `publicRead` opens
+`getObjectByName` and `downloadObjectByName` only (`listObjects` is not public) and loses to a route's own
+auth. With no `auth` a route is as open as it always was. `controller.keyPrefix` scopes a controller inside a shared
 bucket: a key outside the prefix answers `404 core.storage.object_not_found` before any storage
 call; `listObjects` clamps to the prefix and lists `[]` for a disjoint one; the component's own
 default upload name lands under the prefix, and a `resolveObjectName`/`normalizeNameFn` key outside

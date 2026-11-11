@@ -28,7 +28,9 @@ import {
   type TStaticAssetObjectParams,
   type TStaticAssetUploadPolicyRequest,
   type TStaticAssetObjectNameResolver,
+  type TStaticAssetAuth,
   type TStaticAssetExtraOptions,
+  type TStaticAssetRouteKey,
   type TStaticAssetComponentOptions,
   type TStaticAssetStorageType,
   type TStaticAssetUploadQuery,
@@ -51,6 +53,9 @@ export interface IStaticAssetControllerOptions {
   /** The table is erased at this seam on purpose. The public option types carry the real `Schema` and check it; inside the controller every read and write is on MetaLink COLUMNS, and threading a table type nobody here constrains through 700 lines of handler buys nothing. */
   metaLink?: TMetaLinkConfig<AnyType>;
   options?: TStaticAssetExtraOptions;
+
+  /** Authentication and authorization of every built-in route; see `TStaticAssetAuth`. */
+  auth?: TStaticAssetAuth;
 
   /** What the two direct upload routes run: the instances the component bound, so an application service resolving them from the container and the routes share them. Required when `controller.directUpload` is set. */
   policyService?: Pick<StaticAssetUploadPolicyService, 'issuePolicies'>;
@@ -264,9 +269,16 @@ export class StaticAssetControllerFactory extends BaseHelper {
 
   static build(opts: IStaticAssetControllerOptions) {
     const { controller, helper, options, useMetaLink, metaLink, storage } = opts;
-    const { resolveObjectName, defineRoutesBefore, defineExtraRoutes } = opts;
+    const { resolveObjectName, defineRoutesBefore, defineExtraRoutes, auth } = opts;
     const { directUpload } = controller;
     const { name, basePath, routes, isStrict = true, bucket, rawObjectPath = false } = controller;
+    const readRoute = (routeOptions: { key: TStaticAssetRouteKey; isOffByDefault?: boolean }) =>
+      StaticAssetRouteOptionsUtility.readRoute({
+        key: routeOptions.key,
+        route: routes?.[routeOptions.key],
+        auth,
+        isOffByDefault: routeOptions.isOffByDefault,
+      });
     const maxFolderDepth = options?.maxFolderDepth ?? BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH;
     const maxBytes = options?.maxBytes;
 
@@ -347,9 +359,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
         // A single-bucket application has no reason to expose bucket creation or deletion, so the
         // four bucket-management routes are not registered once `bucket` is configured.
         if (!hasConfiguredBucket) {
-          const getBucketsRoute = StaticAssetRouteOptionsUtility.readOverride({
-            route: routes?.getBuckets,
-          });
+          const getBucketsRoute = readRoute({ key: 'getBuckets', isOffByDefault: true });
 
           if (getBucketsRoute.isEnabled) {
             this.bindRoute({
@@ -363,9 +373,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
             });
           }
 
-          const getBucketByNameRoute = StaticAssetRouteOptionsUtility.readOverride({
-            route: routes?.getBucketByName,
-          });
+          const getBucketByNameRoute = readRoute({ key: 'getBucketByName', isOffByDefault: true });
 
           if (getBucketByNameRoute.isEnabled) {
             this.bindRoute({
@@ -389,9 +397,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
             });
           }
 
-          const createBucketRoute = StaticAssetRouteOptionsUtility.readOverride({
-            route: routes?.createBucket,
-          });
+          const createBucketRoute = readRoute({ key: 'createBucket', isOffByDefault: true });
 
           if (createBucketRoute.isEnabled) {
             this.bindRoute({
@@ -415,9 +421,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
             });
           }
 
-          const deleteBucketRoute = StaticAssetRouteOptionsUtility.readOverride({
-            route: routes?.deleteBucket,
-          });
+          const deleteBucketRoute = readRoute({ key: 'deleteBucket', isOffByDefault: true });
 
           if (deleteBucketRoute.isEnabled) {
             this.bindRoute({
@@ -444,9 +448,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
           }
         }
 
-        const getObjectByNameRoute = StaticAssetRouteOptionsUtility.readOverride({
-          route: routes?.getObjectByName,
-        });
+        const getObjectByNameRoute = readRoute({ key: 'getObjectByName' });
 
         if (getObjectByNameRoute.isEnabled) {
           this.bindRoute({
@@ -530,9 +532,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
           });
         }
 
-        const downloadObjectByNameRoute = StaticAssetRouteOptionsUtility.readOverride({
-          route: routes?.downloadObjectByName,
-        });
+        const downloadObjectByNameRoute = readRoute({ key: 'downloadObjectByName' });
 
         if (downloadObjectByNameRoute.isEnabled) {
           this.bindRoute({
@@ -604,7 +604,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
           });
         }
 
-        const uploadRoute = StaticAssetRouteOptionsUtility.readOverride({ route: routes?.upload });
+        const uploadRoute = readRoute({ key: 'upload' });
 
         if (uploadRoute.isEnabled) {
           const uploadMiddleware =
@@ -818,9 +818,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
           });
         }
 
-        const deleteObjectRoute = StaticAssetRouteOptionsUtility.readOverride({
-          route: routes?.deleteObject,
-        });
+        const deleteObjectRoute = readRoute({ key: 'deleteObject' });
 
         if (deleteObjectRoute.isEnabled) {
           this.bindRoute({
@@ -898,9 +896,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
           });
         }
 
-        const listObjectsRoute = StaticAssetRouteOptionsUtility.readOverride({
-          route: routes?.listObjects,
-        });
+        const listObjectsRoute = readRoute({ key: 'listObjects' });
 
         if (listObjectsRoute.isEnabled) {
           this.bindRoute({
@@ -965,9 +961,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
             });
           }
 
-          const uploadPolicyRoute = StaticAssetRouteOptionsUtility.readOverride({
-            route: routes?.uploadPolicy,
-          });
+          const uploadPolicyRoute = readRoute({ key: 'uploadPolicy' });
 
           if (uploadPolicyRoute.isEnabled) {
             this.bindRoute({
@@ -989,9 +983,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
             });
           }
 
-          const uploadCommitRoute = StaticAssetRouteOptionsUtility.readOverride({
-            route: routes?.uploadCommit,
-          });
+          const uploadCommitRoute = readRoute({ key: 'uploadCommit' });
 
           if (uploadCommitRoute.isEnabled) {
             this.bindRoute({
@@ -1031,9 +1023,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
           }
 
           const validateDefinition = definitions.UPLOAD_VALIDATE;
-          const uploadValidateRoute = StaticAssetRouteOptionsUtility.readOverride({
-            route: routes?.uploadValidate,
-          });
+          const uploadValidateRoute = readRoute({ key: 'uploadValidate' });
 
           // Only with a `validation`: the application adds logic, never a route of its own.
           if (validateDefinition && uploadValidateRoute.isEnabled) {
@@ -1058,9 +1048,7 @@ export class StaticAssetControllerFactory extends BaseHelper {
         }
 
         if (useMetaLink && metaLink) {
-          const recreateMetaLinkRoute = StaticAssetRouteOptionsUtility.readOverride({
-            route: routes?.recreateMetaLink,
-          });
+          const recreateMetaLinkRoute = readRoute({ key: 'recreateMetaLink' });
 
           if (recreateMetaLinkRoute.isEnabled) {
             this.bindRoute({

@@ -62,7 +62,7 @@ export class PlatformComponent extends BaseComponent {
   override binding(): void {}
 
   /**
-   * Two asset stores on one component. `staticAsset` turns on `useMetaLink`, so every upload also
+   * Two asset stores on one component, both behind the JWT strategy; `staticResource` also lets anyone read an object. `staticAsset` turns on `useMetaLink`, so every upload also
    * writes a row through the application's own repository - the repository resolves here rather than
    * in the constructor because a provider runs on first read, after every repository is bound.
    */
@@ -70,6 +70,8 @@ export class PlatformComponent extends BaseComponent {
   staticAssetOptions(): TStaticAssetComponentOptions {
     return {
       staticAsset: {
+        // Uploads and reads need a signed-in user; the bucket-management routes stay off.
+        auth: { authenticate: { strategies: [Authentication.STRATEGY_JWT] } },
         controller: { name: 'AssetController', basePath: '/assets', isStrict: true },
         storage: StaticAssetStorageTypes.DISK,
         helper: new DiskHelper({ basePath: './app_data/assets' }),
@@ -83,6 +85,8 @@ export class PlatformComponent extends BaseComponent {
         extra: { parseMultipartBody: { storage: 'memory' } },
       },
       staticResource: {
+        // Anyone may read a resource; changing one needs a signed-in user.
+        auth: { authenticate: { strategies: [Authentication.STRATEGY_JWT] }, publicRead: true },
         controller: { name: 'ResourceController', basePath: '/resources', isStrict: true },
         storage: StaticAssetStorageTypes.DISK,
         helper: new DiskHelper({ basePath: './app_data/resources' }),

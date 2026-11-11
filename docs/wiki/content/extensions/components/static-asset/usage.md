@@ -10,6 +10,17 @@ Task-oriented patterns for the endpoints `StaticAssetComponent` generates, plus 
 
 ## List and manage buckets
 
+These four routes are **off by default**. Turn each one on in `controller.routes` with `enabled: true`, and put `auth` on the entry first: a route that lists or deletes buckets is not one to leave open.
+
+```typescript
+routes: {
+  getBuckets: { enabled: true },
+  getBucketByName: { enabled: true },
+  createBucket: { enabled: true },
+  deleteBucket: { enabled: true },
+},
+```
+
 ```
 GET    /assets/buckets                 List all buckets
 GET    /assets/buckets/:bucketName     Get one bucket (nullable)

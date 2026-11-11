@@ -86,16 +86,24 @@ import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 ## `TStaticAssetComponentOptions`
 
 ```typescript
-/** The part of a built-in route an application may change. */
+/** The part of a built-in route an application may change. `authenticate` and `authorize` replace the entry's `auth` for this route; `{ skip: true }` leaves it open. */
 type TStaticAssetRouteConfig = Partial<
-  Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>
-> & {
-  /** Whether this route is registered. Defaults to true. */
-  enabled?: boolean;
+  Omit<IAuthRouteConfig, 'method' | 'request' | 'responses' | 'authenticate' | 'authorize'>
+> &
+  TRouteAuthConfig & {
+    /** Whether this route is registered. Defaults to true; the four bucket-management routes default to false. */
+    enabled?: boolean;
+  };
+
+/** Authentication and authorization of every built-in route of an entry. */
+type TStaticAssetAuth = TRouteAuthConfig & {
+  /** Leaves `getObjectByName` and `downloadObjectByName` unauthenticated. `listObjects` is not public. Defaults to false. */
+  publicRead?: boolean;
 };
 
 type TStaticAssetComponentOptions<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
   [key: string]: {
+    auth?: TStaticAssetAuth;
     controller: {
       name: string;
       basePath: string;
@@ -157,16 +165,35 @@ The constraint is the ROW, not the table: any table whose row carries the MetaLi
 | `defineRoutesBefore` | `TStaticAssetDefineExtraRoutes` | `undefined` | Adds your own routes BEFORE every built-in one. A literal path then wins over the catch-all `rawObjectPath` registers |
 | `defineExtraRoutes` | `TStaticAssetDefineExtraRoutes` | `undefined` | Adds your own routes after every built-in one - see [`defineExtraRoutes`](#defineextraroutes) |
 
+### Authentication: `auth` and per-route overrides
+
+`auth` sits beside `controller` on an entry and applies to **every** built-in route of it: `authenticate` (`{ strategies, mode }`), `authorize` (a spec or a list) and `publicRead`. A route's own `authenticate` or `authorize` in `controller.routes.<key>` replaces the entry's for that route, field by field, and `{ skip: true }` opens it. The resolution is the CRUD controller factory's own (`RouteConfigResolver.resolveAuthenticate` and `resolveAuthorize`), so a route here and a route there answer the same way.
+
+```typescript
+assets: {
+  auth: { authenticate: { strategies: ['jwt'] }, publicRead: true },
+  controller: {
+    // ...
+    routes: { deleteObject: { authorize: { action: 'delete', resource: 'asset' } } },
+  },
+  // ...
+},
+```
+
+`publicRead` opens reading one object (`getObjectByName`, `downloadObjectByName`) and nothing else: **listing is not public**. It is a default, so a route that sets its own `authenticate` or `authorize` keeps it. Without `auth` every route is as open as it was before.
+
+The four bucket-management routes are **off by default**, with or without a `controller.bucket`: turn each one on with `enabled: true`. They never register on a controller with a configured `bucket`.
+
 ### Per-route overrides
 
-Each key accepts a `TStaticAssetRouteConfig` - `Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>` (typically `authenticate`, `authorize`, `path`, and `middleware`) plus `enabled`. `StaticAssetRouteOptionsUtility.readOverride` splits `enabled` off before the rest is shallow-merged onto the base definition the factory built for this controller: `{ ...definitions.UPLOAD, ...routes?.upload }`.
+Each key accepts a `TStaticAssetRouteConfig` - `Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>` (typically `authenticate`, `authorize`, `path`, and `middleware`) plus `enabled`. `StaticAssetRouteOptionsUtility.readRoute` splits `enabled` and the auth fields off, resolves the auth, and the rest is shallow-merged onto the base definition the factory built for this controller: `{ ...definitions.UPLOAD, ...routes?.upload }`.
 
 | Route key | HTTP Method | Base Path | Registered when |
 |-----------|-------------|-----------|------------------|
-| `getBuckets` | `GET` | `/buckets` | no `controller.bucket`, `enabled !== false` |
-| `getBucketByName` | `GET` | <code v-pre>/buckets/{bucketName}</code> | no `controller.bucket`, `enabled !== false` |
-| `createBucket` | `POST` | <code v-pre>/buckets/{bucketName}</code> | no `controller.bucket`, `enabled !== false` |
-| `deleteBucket` | `DELETE` | <code v-pre>/buckets/{bucketName}</code> | no `controller.bucket`, `enabled !== false` |
+| `getBuckets` | `GET` | `/buckets` | no `controller.bucket`, **`enabled: true`** (off by default) |
+| `getBucketByName` | `GET` | <code v-pre>/buckets/{bucketName}</code> | no `controller.bucket`, **`enabled: true`** (off by default) |
+| `createBucket` | `POST` | <code v-pre>/buckets/{bucketName}</code> | no `controller.bucket`, **`enabled: true`** (off by default) |
+| `deleteBucket` | `DELETE` | <code v-pre>/buckets/{bucketName}</code> | no `controller.bucket`, **`enabled: true`** (off by default) |
 | `upload` | `POST` | <code v-pre>/buckets/{bucketName}/objects</code> | `enabled !== false` |
 | `listObjects` | `GET` | <code v-pre>/buckets/{bucketName}/objects</code> | `enabled !== false` |
 | `getObjectByName` | `GET` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> | `enabled !== false` |

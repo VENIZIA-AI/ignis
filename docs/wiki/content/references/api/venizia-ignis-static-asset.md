@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis/static-asset, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-45 exports, 45 with TSDoc.
+47 exports, 47 with TSDoc.
 
 ## `BaseMetaLinkModel`
 
@@ -652,6 +652,8 @@ export interface IStaticAssetControllerOptions {
     /** The table is erased at this seam on purpose. The public option types carry the real `Schema` and check it; inside the controller every read and write is on MetaLink COLUMNS, and threading a table type nobody here constrains through 700 lines of handler buys nothing. */
     metaLink?: TMetaLinkConfig<AnyType>;
     options?: TStaticAssetExtraOptions;
+    /** Authentication and authorization of every built-in route; see `TStaticAssetAuth`. */
+    auth?: TStaticAssetAuth;
     /** What the two direct upload routes run: the instances the component bound, so an application service resolving them from the container and the routes share them. Required when `controller.directUpload` is set. */
     policyService?: Pick<StaticAssetUploadPolicyService, 'issuePolicies'>;
     commitService?: Pick<StaticAssetUploadCommitService, 'commit' | 'validate'>;
@@ -2069,6 +2071,26 @@ export declare class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseM
 
 Source: `packages/core-server/src/components/static-asset/models/base.model.ts`
 
+## `TStaticAssetAuth`
+
+*type*
+
+Authentication and authorization for every built-in route of an entry; a route's own `authenticate`/`authorize` replaces it for that route.
+
+```ts
+export type TStaticAssetAuth = TRouteAuthConfig & {
+    /**
+     * Leaves `getObjectByName` and `downloadObjectByName` unauthenticated, so a browser can show an
+     * image without a token. `listObjects` is NOT public: listing a bucket is not reading an object.
+     *
+     * @default false
+     */
+    publicRead?: boolean;
+};
+```
+
+Source: `packages/core-server/src/components/static-asset/common/types.ts`
+
 ## `TStaticAssetBucketParams`
 
 *type*
@@ -2092,6 +2114,8 @@ Static asset controllers keyed by an application-chosen name. Each entry pairs a
 ```ts
 export type TStaticAssetComponentOptions<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
     [key: string]: {
+        /** Authentication and authorization of every built-in route of this entry. Absent leaves every route open, as before; `publicRead` is the only way a read route is public on purpose. */
+        auth?: TStaticAssetAuth;
         controller: {
             name: string;
             basePath: string;
@@ -2312,12 +2336,13 @@ Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
 *type*
 
-The part of a built-in route an application may change.
+The part of a built-in route an application may change. `authenticate` and `authorize` replace the entry's `auth` for this route, and `{ skip: true }` leaves it open.
 
 ```ts
-export type TStaticAssetRouteConfig = Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>> & {
+export type TStaticAssetRouteConfig = Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses' | 'authenticate' | 'authorize'>> & TRouteAuthConfig & {
     /**
-     * Whether this route is registered.
+     * Whether this route is registered. The four bucket-management routes are OFF unless this is
+     * `true`; every other route is on unless this is `false`.
      *
      * @default true
      */
@@ -2327,11 +2352,23 @@ export type TStaticAssetRouteConfig = Partial<Omit<IAuthRouteConfig, 'method' | 
 
 Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
+## `TStaticAssetRouteKey`
+
+*type*
+
+The name of a built-in route, the key of `routes`.
+
+```ts
+export type TStaticAssetRouteKey = keyof TStaticAssetRoutes;
+```
+
+Source: `packages/core-server/src/components/static-asset/common/types.ts`
+
 ## `TStaticAssetRoutes`
 
 *type*
 
-Per-route overrides for the built-in routes of a generated asset controller. A key left out keeps that route as built.
+Per-route overrides for the built-in routes of a generated asset controller. A key left out keeps that route as built, except the four bucket-management routes, which stay off until enabled.
 
 ```ts
 export type TStaticAssetRoutes = {
