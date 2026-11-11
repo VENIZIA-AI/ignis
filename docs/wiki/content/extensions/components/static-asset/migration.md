@@ -37,7 +37,7 @@ Three changes need more than a rename:
 | `createMetaLink({ ..., query })` | `createMetaLink({ ..., labels })` |
 | `TStaticAssetUploadQuery` | `TStaticAssetUploadLabels` (`folderPath` is no longer a label) |
 | `extra.maxBytes` | `serverUpload.maxBytes` |
-| `extra.maxFolderDepth` | `serverUpload.maxFolderDepth` |
+| `extra.maxFolderDepth` | `maxFolderDepth` (on the entry, not in `serverUpload`) |
 | `extra.parseMultipartBody.maxFiles` | `serverUpload.maxFiles`, and `directUpload.maxFiles` for a policy request |
 | `extra.parseMultipartBody.storage` and `uploadDir` | removed: the whole body is parsed into memory before the first file is written, so spooling to disk saved nothing |
 | `extra.normalizeNameFn` and `resolveObjectName` | `serverUpload.objectKey`: one hook that gets `{ bucket, file, defaultKey }` |
@@ -140,7 +140,8 @@ export const migrated = (opts: {
       publicRead: { use: true },
     },
     routes: { deleteObject: { use: false } },
-    serverUpload: { use: true, maxBytes: 10 * 1024 * 1024, maxFiles: 5, maxFolderDepth: 3 },
+    maxFolderDepth: 3,
+    serverUpload: { use: true, maxBytes: 10 * 1024 * 1024, maxFiles: 5 },
     directUpload: {
       use: true,
       secretKey: opts.secretKey,

@@ -2,7 +2,7 @@ import { BaseStorageHelper, StorageTypes } from '@venizia/ignis-helpers';
 import type { IObjectLocation, IStorageHelper } from '@venizia/ignis-helpers';
 import type { TValueOrAsyncResolver } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import { StaticAssetDefaults } from '../common';
+import { StaticAssetDefaults, StaticAssetRouteKeys } from '../common';
 import type {
   IStaticAssetValidation,
   TMetaLinkConfig,
@@ -129,17 +129,21 @@ export class StaticAssetEntryUtility {
     const serverUpload = StaticAssetToggleUtility.isUsed(entry.serverUpload)
       ? entry.serverUpload
       : undefined;
-    const maxFolderDepth =
-      serverUpload?.maxFolderDepth ?? BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH;
+    const maxFolderDepth = entry.maxFolderDepth ?? BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH;
     const basePath = StaticAssetObjectLinkUtility.normalizeBasePath({ basePath: entry.basePath });
     const rawObjectPath = entry.rawObjectPath ?? false;
 
     const routes: IStaticAssetResolvedEntry<Schema>['routes'] = {};
 
-    for (const [routeKey, toggle] of Object.entries(entry.routes ?? {})) {
-      const { use, ...override } = toggle;
+    for (const routeKey of StaticAssetRouteKeys.ALL) {
+      const toggle = entry.routes?.[routeKey];
 
-      routes[routeKey as TStaticAssetRouteKey] = { isEnabled: use, override };
+      if (toggle) {
+        routes[routeKey] = {
+          isEnabled: StaticAssetToggleUtility.isUsed(toggle),
+          override: StaticAssetToggleUtility.pick(toggle) ?? {},
+        };
+      }
     }
 
     const metaLink = StaticAssetToggleUtility.isUsed(entry.metaLink) ? entry.metaLink : undefined;

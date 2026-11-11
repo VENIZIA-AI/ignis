@@ -200,13 +200,6 @@ export type TStaticAssetServerUploadOptions = {
    */
   maxFiles?: number;
 
-  /**
-   * Maximum folder nesting depth allowed in object paths, for every route of the entry.
-   *
-   * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
-   */
-  maxFolderDepth?: number;
-
   /** The one hook that decides the key an uploaded file is stored under. Absent keeps the default naming. Under a `keyPrefix` a key outside the scope is refused, never rewritten. */
   objectKey?: TStaticAssetObjectKeyResolver;
 };
@@ -234,12 +227,20 @@ export type TStaticAssetEntry<Schema extends TMetaLinkCompatibleSchema = TMetaLi
   /**
    * The key scope this entry owns, e.g. `inventory/`. Every route refuses a key outside it as a
    * 404 without calling the storage, `listObjects` lists only inside it, and an upload key must
-   * land inside it. `serverUpload.maxFolderDepth` counts the folders below it. Required with
+   * land inside it. `maxFolderDepth` counts the folders below it. Required with
    * `directUpload`: it keeps the pending prefix outside everything the routes serve.
    *
    * @default every key in the bucket
    */
   keyPrefix?: string;
+
+  /**
+   * Folders a key may nest below the `keyPrefix`, for every route of the entry: reads and deletes
+   * too, so it holds for keys that arrive by direct upload or ingest.
+   *
+   * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
+   */
+  maxFolderDepth?: number;
 
   /**
    * `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`) - a URL shape change; a percent-encoded path keeps working either way.

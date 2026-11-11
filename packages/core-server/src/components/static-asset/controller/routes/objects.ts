@@ -2,7 +2,11 @@ import type { TRouteContext } from '@/base/controllers';
 import { z } from '@hono/zod-openapi';
 import { StorageUtility } from '@venizia/ignis-helpers';
 import { HTTP, ResolverUtility } from '@venizia/ignis-helpers/common';
-import { MetaLinkRecreateActions, type TMetaLinkRecreateAction } from '../../common';
+import {
+  MetaLinkRecreateActions,
+  StaticAssetRouteKeys,
+  type TMetaLinkRecreateAction,
+} from '../../common';
 import { StaticAssetKeyScopeUtility } from '../../utilities/key-scope.utility';
 import { StaticAssetMetaLinkUtility } from '../../utilities/meta-link.utility';
 import {
@@ -49,7 +53,7 @@ const listQuery = () =>
   });
 
 const deleteObject: IStaticAssetRoute = {
-  key: 'deleteObject',
+  key: StaticAssetRouteKeys.DELETE_OBJECT,
   feature: StaticAssetFeatures.OBJECT,
   build: (env) => ({
     config: StaticAssetDefinition.json({
@@ -91,7 +95,7 @@ const deleteObject: IStaticAssetRoute = {
 };
 
 const listObjects: IStaticAssetRoute = {
-  key: 'listObjects',
+  key: StaticAssetRouteKeys.LIST_OBJECTS,
   feature: StaticAssetFeatures.OBJECT,
   build: (env) => ({
     config: StaticAssetDefinition.json({
@@ -203,7 +207,7 @@ const recreate = async (opts: { ctx: TRouteContext; env: IStaticAssetRouteEnv })
 };
 
 const recreateMetaLink: IStaticAssetRoute = {
-  key: 'recreateMetaLink',
+  key: StaticAssetRouteKeys.RECREATE_META_LINK,
   feature: StaticAssetFeatures.META_LINK,
   build: (env) => ({
     config: StaticAssetDefinition.json({

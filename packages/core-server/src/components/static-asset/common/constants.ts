@@ -56,6 +56,19 @@ export class StaticAssetRouteKeys {
   static readonly UPLOAD_VALIDATE = 'uploadValidate';
 
   static readonly RECREATE_META_LINK = 'recreateMetaLink';
+
+  /** Every key, in registration order. */
+  static readonly ALL = [
+    StaticAssetRouteKeys.GET_OBJECT_BY_NAME,
+    StaticAssetRouteKeys.DOWNLOAD_OBJECT_BY_NAME,
+    StaticAssetRouteKeys.UPLOAD,
+    StaticAssetRouteKeys.DELETE_OBJECT,
+    StaticAssetRouteKeys.LIST_OBJECTS,
+    StaticAssetRouteKeys.UPLOAD_POLICY,
+    StaticAssetRouteKeys.UPLOAD_COMMIT,
+    StaticAssetRouteKeys.UPLOAD_VALIDATE,
+    StaticAssetRouteKeys.RECREATE_META_LINK,
+  ] as const;
 }
 
 /** What `recreate-metalink` did: refreshed the rows of an object, or created its first one. */

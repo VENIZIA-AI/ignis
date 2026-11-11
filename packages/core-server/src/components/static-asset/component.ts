@@ -7,7 +7,7 @@ import { type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { StaticAssetBindingKeys, type TStaticAssetComponentOptions } from './common';
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from './models';
 import { StaticAssetControllerFactory } from './controller';
-import { StaticAssetEntryUtility } from './utilities/entry.utility';
+import { StaticAssetEntryUtility, type IStaticAssetResolvedEntry } from './utilities/entry.utility';
 
 /** `Schema` is the MetaLink table the application binds. It has to live on the CLASS, not only on the options: `component(Ctor, { options })` infers the options from the class, so a class pinned to the shipped table can only carry options for that table. */
 export class StaticAssetComponent<
@@ -37,19 +37,20 @@ export class StaticAssetComponent<
       });
 
     for (const [key, entry] of Object.entries(componentOptions)) {
-      const services = this.bindDirectUploadServices({ key, entry });
+      const resolved = StaticAssetEntryUtility.resolve({ key, entry });
+      const services = this.bindDirectUploadServices({ key, resolved });
 
       this.application.controller(
-        StaticAssetControllerFactory.build<Schema>({ key, entry, ...services }),
+        StaticAssetControllerFactory.buildResolved<Schema>({ resolved, ...services }),
       );
 
       this.application.logger.info(
         `[binding] Asset storage is bound | Key: %s | Mount: %s | Storage type: %s | Direct upload: %s | MetaLink: %s`,
         key,
-        entry.basePath,
-        entry.helper.storageType,
-        entry.directUpload.use,
-        entry.metaLink.use,
+        resolved.basePath,
+        resolved.storage,
+        resolved.directUpload !== undefined,
+        resolved.metaLink !== undefined,
       );
     }
   }
@@ -57,10 +58,9 @@ export class StaticAssetComponent<
   /** One pair of services per entry that turns direct upload on. The routes run the very objects an application's service resolves from the keys. */
   private bindDirectUploadServices(opts: {
     key: string;
-    entry: TStaticAssetComponentOptions<Schema>[string];
+    resolved: IStaticAssetResolvedEntry<Schema>;
   }) {
-    const { key, entry } = opts;
-    const resolved = StaticAssetEntryUtility.resolve({ key, entry });
+    const { key, resolved } = opts;
     const services = StaticAssetEntryUtility.buildDirectUploadServices({ resolved });
 
     if (!services) {

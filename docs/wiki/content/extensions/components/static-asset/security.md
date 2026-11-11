@@ -106,6 +106,8 @@ A direct upload lands in the pending prefix first, and moves to its final key at
 
 With `keyPrefix: 'products/'` and `pendingPrefix: 'products/pending/'`, a pending object would sit inside the scope, and `getObjectByName`, `downloadObjectByName` and `listObjects` would serve it. The component refuses that entry. A `keyPrefix` such as `pending/imports/` collides with the default `pending/` the same way.
 
+The check holds within one entry. A second entry on the same bucket whose `keyPrefix` covers another entry's `pendingPrefix` would serve that entry's pending objects, and the component cannot see across entries. Keep the `keyPrefix` and `pendingPrefix` of every entry on one bucket disjoint from each other.
+
 | Rule for `pendingPrefix` | Start-up error when broken |
 |---|---|
 | Not empty and ends with `/` | `directUpload.pendingPrefix must be one or more valid key segments, each followed by a slash` |

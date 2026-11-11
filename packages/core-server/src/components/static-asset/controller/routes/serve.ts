@@ -8,7 +8,7 @@ import {
 } from '@venizia/ignis-helpers';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { Env } from 'hono';
-import { StaticAssetContentTypes, StaticAssetHeaders } from '../../common';
+import { StaticAssetContentTypes, StaticAssetHeaders, StaticAssetRouteKeys } from '../../common';
 import {
   type IStaticAssetRoute,
   type IStaticAssetRouteEnv,
@@ -162,7 +162,9 @@ const serve = async (opts: {
 };
 
 const streamRoute = (opts: {
-  key: 'getObjectByName' | 'downloadObjectByName';
+  key:
+    | typeof StaticAssetRouteKeys.GET_OBJECT_BY_NAME
+    | typeof StaticAssetRouteKeys.DOWNLOAD_OBJECT_BY_NAME;
   segment: string;
   attach: boolean;
 }): IStaticAssetRoute => ({
@@ -179,6 +181,10 @@ const streamRoute = (opts: {
 });
 
 export const serveRoutes: IStaticAssetRoute[] = [
-  streamRoute({ key: 'getObjectByName', segment: 'objects', attach: false }),
-  streamRoute({ key: 'downloadObjectByName', segment: 'download', attach: true }),
+  streamRoute({ key: StaticAssetRouteKeys.GET_OBJECT_BY_NAME, segment: 'objects', attach: false }),
+  streamRoute({
+    key: StaticAssetRouteKeys.DOWNLOAD_OBJECT_BY_NAME,
+    segment: 'download',
+    attach: true,
+  }),
 ];

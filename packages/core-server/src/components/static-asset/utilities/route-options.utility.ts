@@ -5,6 +5,7 @@ import type { MiddlewareHandler } from 'hono';
 import type { IAuthRouteConfig, TRouteAuthConfig } from '@/base';
 import {
   StaticAssetErrors,
+  StaticAssetRouteKeys,
   type TStaticAssetRouteConfig,
   type TStaticAssetRouteKey,
 } from '../common';
@@ -26,8 +27,8 @@ export class StaticAssetRouteOptionsUtility {
 
   /** The routes `auth.publicRead` leaves open: reading ONE object. Listing is not reading an object. */
   private static readonly PUBLIC_READ_ROUTES: ReadonlySet<TStaticAssetRouteKey> = new Set([
-    'getObjectByName',
-    'downloadObjectByName',
+    StaticAssetRouteKeys.GET_OBJECT_BY_NAME,
+    StaticAssetRouteKeys.DOWNLOAD_OBJECT_BY_NAME,
   ]);
 
   /**

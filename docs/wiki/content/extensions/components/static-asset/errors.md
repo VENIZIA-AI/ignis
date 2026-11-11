@@ -25,7 +25,7 @@ These carry a machine code a client can branch on, alongside the human message. 
 | `core.static_asset.object_key_out_of_scope` | `400` | A `serverUpload.objectKey` hook returned a key outside the `keyPrefix` | Server-side: build the key under the prefix. |
 | `core.storage.object_not_found` | `404` | No object at the key, or the key is outside the `keyPrefix` | Treat as absent. |
 | `core.storage.folder_path_invalid` | `400` | The upload's `folderPath` is empty after trimming slashes, or a segment is not valid | Send a real folder with valid segments, or omit the field. |
-| `core.storage.folder_depth_exceeded` | `400` | The folder path is deeper than `serverUpload.maxFolderDepth` | Flatten the folders, or raise the limit. |
+| `core.storage.folder_depth_exceeded` | `400` | The folder path is deeper than the entry's `maxFolderDepth` | Flatten the folders, or raise the limit. |
 
 The `core.static_asset.*` codes live on `StaticAssetErrors`; the `core.storage.*` codes live on `StorageErrors` in the helpers package, because the storage helper does the folder checks. Both register with the shared key registry, so `messageCode` autocompletes.
 
@@ -112,7 +112,7 @@ Object keys, which may include folder segments (for example `2026/uploads/report
 
 ### "Invalid folder path" (`core.storage.folder_*`)
 
-- **Cause:** the upload's `folderPath` form field has more segments than `serverUpload.maxFolderDepth` allows (default `2`), is empty, or one segment fails `isValidSegment()`.
+- **Cause:** the upload's `folderPath` form field has more segments than the entry's `maxFolderDepth` allows (default `2`), is empty, or one segment fails `isValidSegment()`.
 - **Fix:** flatten the folder structure, or raise the limit on the entry:
 
 ```ts
@@ -123,7 +123,8 @@ export const entry: TStaticAssetEntry = {
   basePath: '/uploads',
   bucket: 'uploads',
   helper: new DiskHelper({ basePath: './app_data' }),
-  serverUpload: { use: true, maxFolderDepth: 4 },
+  maxFolderDepth: 4,
+  serverUpload: { use: true },
   directUpload: { use: false },
   metaLink: { use: false },
 };

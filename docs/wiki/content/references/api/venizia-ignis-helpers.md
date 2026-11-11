@@ -841,6 +841,12 @@ export declare abstract class BaseStorageHelper extends BaseHelper implements IS
          * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
          */
         maxFolderDepth?: number;
+        /**
+         * Folders the finished key may carry, a scope the `normalizeNameFn` adds included.
+         *
+         * @default `maxFolderDepth`
+         */
+        maxKeyDepth?: number;
     }): Promise<IUploadResult[]>;
     /** Correct anywhere; overridden by a backend whose transport is already a web stream. */
     getObjectStream(opts: IObjectLocation & {
@@ -2922,7 +2928,14 @@ export interface IStorageHelper {
     upload(opts: {
         bucket: IBucketRef;
         files: IUploadFile[];
+        /** Folders the caller's `folderPath` may carry. */
         maxFolderDepth?: number;
+        /**
+         * Folders the finished key may carry, a scope the `normalizeNameFn` adds included.
+         *
+         * @default `maxFolderDepth`
+         */
+        maxKeyDepth?: number;
         normalizeNameFn?: (opts: {
             file: TUploadNaming;
         }) => string;

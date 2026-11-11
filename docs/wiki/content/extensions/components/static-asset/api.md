@@ -104,6 +104,7 @@ type TToggle<Options extends object = Record<never, never>> =
 | `name` | `string` | derived from the entry key | no | The controller's name. `staticAsset` and `static-asset` both become `StaticAssetController`; a key already ending in `Controller` keeps it. |
 | `keyPrefix` | `string` | every key in the bucket | with `directUpload` | The folder of the bucket the entry owns. See [`keyPrefix`](#keyprefix). |
 | `rawObjectPath` | `boolean` | `false` | no | `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`); the percent-encoded form keeps working. |
+| `maxFolderDepth` | `number` | `2` | no | Folders a key may nest below the `keyPrefix`, for every route of the entry: reads and deletes too, so it holds for keys that arrive by direct upload or ingest. |
 | `link` | `({ bucket, object }) => string` | the controller's own object route | no | The link stored and returned for an object. |
 | `auth` | object | none: every route open | no | Authentication and authorization of every built-in route. |
 | `routes` | record | see [Routes](#routes) | no | Turn routes off, or override them. |
@@ -120,7 +121,7 @@ The bucket never appears in a URL. `rawObjectPath` decides how the object name l
 | `false` (default) | `/assets/objects/photos%2F2024%2Ff.jpg` |
 | `true` | `/assets/objects/photos/2024/f.jpg` |
 
-`rawObjectPath` turns the object segment into the `{objectName}{.+}` catch-all; every validation still runs on the joined path, `serverUpload.maxFolderDepth` included. Paths are strict: `/path` and `/path/` are different routes.
+`rawObjectPath` turns the object segment into the `{objectName}{.+}` catch-all; every validation still runs on the joined path, the entry's `maxFolderDepth` included. Paths are strict: `/path` and `/path/` are different routes.
 
 ### `auth`
 
@@ -149,7 +150,6 @@ A key left out is on as built, when its feature is on. A toggle cannot switch on
 |---|---|---|---|
 | `maxBytes` | `number` | no ceiling | Largest file. Over it answers `413`. |
 | `maxFiles` | `number` | `20` | Most file parts per request. |
-| `maxFolderDepth` | `number` | `2` | Folder nesting allowed in object paths, for every route of the entry. |
 | `objectKey` | `({ bucket, file, defaultKey }) => string` | the default naming | The one hook that decides the stored key. |
 
 See [Server upload](./server-upload).
@@ -222,7 +222,7 @@ Splits one shared bucket between entries. `directUpload` requires it. `StaticAss
 | `upload` | The component's own default name is placed inside the prefix. An `objectKey` key outside it is refused with `400 core.static_asset.object_key_out_of_scope` - never rewritten, because the application may have recorded that key elsewhere |
 | `uploadPolicy`, `uploadValidate`, `uploadCommit` | The pending key becomes `pendingPrefix + keyPrefix`, so the committed key lands inside the scope. The token's scope is re-checked, for a token another entry signed with the same secret |
 
-`serverUpload.maxFolderDepth` counts folders below the prefix: validation uses `maxFolderDepth` plus the prefix depth. Without that addition, a two-segment prefix plus a direct-upload key `<uuid>/<name>` would exceed the default depth of `2` and every read would answer `400`.
+The entry's `maxFolderDepth` counts folders below the prefix: key validation uses `maxFolderDepth` plus the prefix depth. Without that addition, a two-segment prefix plus a direct-upload key `<uuid>/<name>` would exceed the default depth of `2` and every read would answer `400`.
 
 ## Routes
 
@@ -324,6 +324,7 @@ interface IStorageHelper {
     bucket: IBucketRef;
     files: IUploadFile[];
     maxFolderDepth?: number;
+    maxKeyDepth?: number;
     normalizeNameFn?: (opts: { file: TUploadNaming }) => string;
     normalizeLinkFn?: (opts: IObjectLocation) => string;
   }): Promise<IUploadResult[]>;

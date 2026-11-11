@@ -113,6 +113,8 @@ class FakeMetaLinkRepository {
 const mountAssetController = async (opts: {
   helper: FakeStorageHelper;
   serverUpload?: TStaticAssetServerUploadOptions;
+  maxFolderDepth?: number;
+  keyPrefix?: string;
   extend?: TStaticAssetEntry['extend'];
   metaLink?: TMetaLinkConfig;
   bucket?: string | (() => string);
@@ -120,6 +122,7 @@ const mountAssetController = async (opts: {
   routes?: TStaticAssetRoutes;
 }): Promise<OpenAPIHono> => {
   const { helper, serverUpload, extend, metaLink, bucket = 'images', rawObjectPath, routes } = opts;
+  const { maxFolderDepth, keyPrefix } = opts;
 
   MetadataRegistry.getInstance().clearAll();
   const application = new TestApplication({ scope: 'StaticAssetTestApp', config: TEST_CONFIGS });
@@ -129,6 +132,8 @@ const mountAssetController = async (opts: {
     basePath: '/assets',
     bucket,
     rawObjectPath,
+    maxFolderDepth,
+    keyPrefix,
     routes,
     serverUpload: { use: true, ...serverUpload },
     directUpload: { use: false },
@@ -830,7 +835,7 @@ describe('StaticAsset controller — raw nested object paths', () => {
     const router = await mountAssetController({
       helper,
       rawObjectPath: true,
-      serverUpload: { maxFolderDepth: 2 },
+      maxFolderDepth: 2,
     });
 
     const uploadResponse = await uploadFiles({
@@ -858,7 +863,7 @@ describe('StaticAsset controller — raw nested object paths', () => {
     const router = await mountAssetController({
       helper,
       rawObjectPath: true,
-      serverUpload: { maxFolderDepth: 1 },
+      maxFolderDepth: 1,
     });
 
     const response = await router.request('/assets/objects/a/b/c/photo.jpg');
@@ -1328,9 +1333,9 @@ describe('StaticAsset controller - the folder is checked by the storage helper',
     },
   );
 
-  test('a folder deeper than serverUpload.maxFolderDepth is core.storage.folder_depth_exceeded', async () => {
+  test('a folder deeper than maxFolderDepth is core.storage.folder_depth_exceeded', async () => {
     const helper = new FakeStorageHelper();
-    const router = await mountAssetController({ helper, serverUpload: { maxFolderDepth: 2 } });
+    const router = await mountAssetController({ helper, maxFolderDepth: 2 });
 
     const response = await uploadFiles({
       router,
@@ -1344,9 +1349,49 @@ describe('StaticAsset controller - the folder is checked by the storage helper',
     expect(helper.calls.filter((call) => call.method === 'writeObject')).toEqual([]);
   });
 
+  /** The prefix's own folders are configuration: the caller still gets `maxFolderDepth`, and an over-deep folder keeps its code. */
+  test('under a keyPrefix, a folder deeper than maxFolderDepth is still core.storage.folder_depth_exceeded', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({
+      helper,
+      keyPrefix: 'a/b/',
+      maxFolderDepth: 2,
+    });
+
+    const response = await uploadFiles({
+      router,
+      files: [new File(['one'], 'a.jpg', { type: 'image/jpeg' })],
+      labels: { folderPath: 'x/y/z' },
+    });
+
+    expect(response.status).toBe(400);
+    const body = await readJson(response);
+    expect(body.normalized?.code).toBe('core.storage.folder_depth_exceeded');
+    expect(helper.calls.filter((call) => call.method === 'writeObject')).toEqual([]);
+  });
+
+  test('under a keyPrefix, a folder at maxFolderDepth is accepted and lands inside the scope', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({
+      helper,
+      keyPrefix: 'a/b/',
+      maxFolderDepth: 2,
+    });
+
+    const response = await uploadFiles({
+      router,
+      files: [new File(['one'], 'a.jpg', { type: 'image/jpeg' })],
+      labels: { folderPath: 'x/y' },
+    });
+
+    expect(response.status).toBe(200);
+    const writes = helper.calls.filter((call) => call.method === 'writeObject');
+    expect(writes).toHaveLength(1);
+  });
+
   test('a folder at the cap is accepted', async () => {
     const helper = new FakeStorageHelper();
-    const router = await mountAssetController({ helper, serverUpload: { maxFolderDepth: 2 } });
+    const router = await mountAssetController({ helper, maxFolderDepth: 2 });
 
     const response = await uploadFiles({
       router,

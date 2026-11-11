@@ -12,6 +12,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import {
   StaticAssetErrors,
   StaticAssetMetaLinkCodes,
+  StaticAssetRouteKeys,
   type TStaticAssetObjectKeyResolver,
   type TStaticAssetUploadLabels,
 } from '../../common';
@@ -186,8 +187,9 @@ class StaticAssetUploadHandler {
         objectKey: serverUpload.objectKey,
       }),
       normalizeLinkFn: env.link,
-      // The storage checks the folder, against the depth this entry allows.
-      maxFolderDepth: env.objectKeyMaxDepth,
+      // The storage checks the caller's folders against `maxFolderDepth`, and the finished key, scope included, against the deeper bound.
+      maxFolderDepth: env.maxFolderDepth,
+      maxKeyDepth: env.objectKeyMaxDepth,
     });
     const results = await StaticAssetUploadHandler.recordMetaLinks({ env, uploaded, labels });
 
@@ -196,7 +198,7 @@ class StaticAssetUploadHandler {
 }
 
 export const uploadRoute: IStaticAssetRoute = {
-  key: 'upload',
+  key: StaticAssetRouteKeys.UPLOAD,
   feature: StaticAssetFeatures.SERVER_UPLOAD,
   build: (env) => ({
     config: StaticAssetDefinition.multipart({

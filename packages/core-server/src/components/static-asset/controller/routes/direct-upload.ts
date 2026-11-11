@@ -5,6 +5,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import {
   StaticAssetDefaults,
   StaticAssetErrors,
+  StaticAssetRouteKeys,
   type TStaticAssetUploadPolicyRequest,
 } from '../../common';
 import {
@@ -44,7 +45,7 @@ class StaticAssetDirectUploadGuard {
 const CommitTokenSchema = z.object({ commitToken: z.string().min(1) });
 
 const uploadPolicy: IStaticAssetRoute = {
-  key: 'uploadPolicy',
+  key: StaticAssetRouteKeys.UPLOAD_POLICY,
   feature: StaticAssetFeatures.DIRECT_UPLOAD,
   build: (env) => {
     const direct = StaticAssetDirectUploadGuard.require({ env });
@@ -88,7 +89,7 @@ const uploadPolicy: IStaticAssetRoute = {
 };
 
 const uploadCommit: IStaticAssetRoute = {
-  key: 'uploadCommit',
+  key: StaticAssetRouteKeys.UPLOAD_COMMIT,
   feature: StaticAssetFeatures.DIRECT_UPLOAD,
   build: (env) => {
     const direct = StaticAssetDirectUploadGuard.require({ env });
@@ -126,7 +127,7 @@ const uploadCommit: IStaticAssetRoute = {
 
 /** Only with a `validation`: the application adds logic, never a route of its own. */
 const uploadValidate: IStaticAssetRoute = {
-  key: 'uploadValidate',
+  key: StaticAssetRouteKeys.UPLOAD_VALIDATE,
   feature: StaticAssetFeatures.VALIDATION,
   build: (env) => {
     const direct = StaticAssetDirectUploadGuard.require({ env });

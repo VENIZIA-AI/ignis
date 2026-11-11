@@ -61,7 +61,7 @@ export const uploadDocuments = async (opts: {
 | Field | Meaning |
 |---|---|
 | `files` | The file or files to store. Required. |
-| `folderPath` | Target folder under the entry's scope, for example `manuals/2026`. The storage helper checks it against `maxFolderDepth`. |
+| `folderPath` | Target folder under the entry's scope, for example `manuals/2026`. The storage helper checks it against the entry's [`maxFolderDepth`](./api#entry-options). |
 | `principalType`, `principalId`, `variant`, `sequence` | Labels written to the MetaLink row. `sequence` is the display order within the principal, and must be an integer. All optional. |
 
 A label that is not the right shape (a `sequence` of `first`, say) is the standard validation error (`422`), and nothing is written.
@@ -91,7 +91,6 @@ One entry per file, in the order sent:
 |---|---|---|---|
 | `maxBytes` | `number` | no ceiling | Largest file. Checked against `content-length` before the body is read, then per file. Over it answers `413` with `core.static_asset.upload_too_large`. |
 | `maxFiles` | `number` | `20` | Most file parts one request may carry. More answers `413` before anything is written. |
-| `maxFolderDepth` | `number` | `2` | Folder nesting allowed in an object key, for every route of the entry. The `keyPrefix` folders do not count. |
 | `objectKey` | `({ bucket, file, defaultKey }) => string` | the default name | The one hook that decides the stored key. |
 
 ### Choose the stored key

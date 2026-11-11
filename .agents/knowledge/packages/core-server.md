@@ -210,7 +210,7 @@ The route table is `controller/routes/table.ts`: each route names a feature (`ob
 `extend.before` registers before every built-in route (a literal path then wins over the `rawObjectPath`
 catch-all; Hono matches in registration order), `extend.after` after every one; they replace
 `defineRoutesBefore` and `defineExtraRoutes`.
-`serverUpload` takes `maxBytes`, `maxFiles`, `maxFolderDepth` and ONE naming hook, `objectKey({ bucket, file,
+`serverUpload` takes `maxBytes`, `maxFiles` and ONE naming hook, `objectKey({ bucket, file,
 defaultKey })`, which replaces `resolveObjectName` and `extra.normalizeNameFn`; `link` replaces
 `extra.normalizeLinkFn`. There is no spool: the multipart body is parsed whole into memory before the first
 file is written, so spooling to disk saved nothing. `maxBytes` answers `413` with
@@ -236,7 +236,7 @@ never a second copy. `publicRead: { use: true }` opens `getObjectByName` and `do
 core.storage.object_not_found` before any storage call; `listObjects` clamps to the prefix and lists `[]` for a
 disjoint one; the component's own default upload name lands under the prefix, and an `objectKey` key outside it
 is refused (`400 core.static_asset.object_key_out_of_scope`), never rewritten - the application may have
-recorded that key elsewhere; `maxFolderDepth` counts folders below the prefix. With `keyPrefix` set and no
+recorded that key elsewhere; the entry's own `maxFolderDepth` (not a `serverUpload` option: it bounds every route) counts folders below the prefix. With `keyPrefix` set and no
 `objectKey`, the component's own default naming keeps the original file name to one segment - a `/` in it is
 still `400 [upload] Invalid original file name`; an `objectKey` hook relaxes it.
 `recreateMetaLink`'s refresh, in `utilities/meta-link.utility.ts`: with `metaLink.createMetaLink` configured,

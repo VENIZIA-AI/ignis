@@ -49,7 +49,8 @@ packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 | `directUpload.onCommit` | removed | Move the check into `validation.handler`. Do work after a commit in the code that calls `commit`. |
 | `storage: ...` | removed | Delete it. Use `StorageTypes` from `@venizia/ignis-helpers` if you branch on it. |
 | `useMetaLink: true` and `metaLink` | `metaLink: { use: true, repository }` | `metaLink.model` is removed. The hook parameter `query` is now `labels`. |
-| `extra.maxBytes`, `extra.maxFolderDepth`, `extra.parseMultipartBody.maxFiles` | `serverUpload.maxBytes`, `.maxFolderDepth`, `.maxFiles` | Move them. |
+| `extra.maxBytes`, `extra.parseMultipartBody.maxFiles` | `serverUpload.maxBytes`, `serverUpload.maxFiles` | Move them. |
+| `extra.maxFolderDepth` | `maxFolderDepth` on the entry | Move it. It governs every route, so it stays outside `serverUpload`. |
 | `extra.parseMultipartBody.storage`, `uploadDir` | removed | Delete them. Use `maxBytes`, or direct upload for large files. |
 | `extra.normalizeNameFn`, `resolveObjectName` | `serverUpload.objectKey` | One hook gets `{ bucket, file, defaultKey }`. |
 | `extra.normalizeLinkFn` | `link` | Move it. |
