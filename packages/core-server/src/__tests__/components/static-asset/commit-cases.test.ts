@@ -283,6 +283,42 @@ describe('case (d): validation off, commit route off', () => {
   });
 });
 
+describe('the pending object is gone', () => {
+  test('with a validated token, commit is upload_changed and nothing is copied', async () => {
+    const { router, helper } = await mount({ isValidated: true, hasCommitRoute: true });
+    const policy = await issue({ router, helper });
+    const validate = await post({
+      router,
+      path: '/assets/upload-validate',
+      body: { commitToken: policy.commitToken },
+    });
+    const { commitToken } = z.object({ commitToken: z.string() }).parse(validate.body);
+    helper.discardObject({ bucket: 'uploads', key: policy.objectName });
+
+    const commit = await post({ router, path: '/assets/upload-commit', body: { commitToken } });
+
+    expect(commit.status).toBe(409);
+    expect(readCode(commit.body)).toBe('core.static_asset.upload_changed');
+    expect(
+      helper.hasObject({ bucket: { name: 'uploads' }, object: { key: finalKeyOf(policy) } }),
+    ).toBe(false);
+  });
+
+  test('with an issued token and no file ever posted, commit is the storage not-found', async () => {
+    const { router, helper } = await mount({ isValidated: false, hasCommitRoute: true });
+    const policy = await issue({ router, helper });
+    helper.discardObject({ bucket: 'uploads', key: policy.objectName });
+
+    const commit = await post({
+      router,
+      path: '/assets/upload-commit',
+      body: { commitToken: policy.commitToken },
+    });
+
+    expect(commit.status).toBe(404);
+  });
+});
+
 describe('nobody commits', () => {
   test('the object stays under the pending prefix, with no row and nothing at the final key', async () => {
     const { router, helper, repository } = await mount({ isValidated: true, hasCommitRoute: true });

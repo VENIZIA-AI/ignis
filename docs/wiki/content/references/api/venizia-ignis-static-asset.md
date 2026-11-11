@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis/static-asset, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-49 exports, 49 with TSDoc.
+54 exports, 54 with TSDoc.
 
 ## `BaseMetaLinkModel`
 
@@ -632,6 +632,9 @@ export interface IStaticAssetCommitTokenPayload {
     expiresAt: number;
     /** Absent when `directUpload.resolveOwner` is not set; present, the token commits only for that owner. */
     owner?: string;
+    stage: TStaticAssetTokenStage;
+    /** Present from `VALIDATED` on: `commit` copies only content that still matches it. */
+    pin?: IStaticAssetPin;
 }
 ```
 
@@ -719,6 +722,21 @@ export interface IStaticAssetIngestFromUrlResult {
 
 Source: `packages/core-server/src/components/static-asset/utilities/ingest.utility.ts`
 
+## `IStaticAssetPin`
+
+*interface*
+
+The content a validation read: the ETag, and the version id when the storage has real versions.
+
+```ts
+export interface IStaticAssetPin {
+    etag: string;
+    versionId?: string;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/common/types.ts`
+
 ## `IStaticAssetUploadCommitServiceOptions`
 
 *interface*
@@ -766,6 +784,20 @@ export interface IStaticAssetUploadPolicyServiceOptions {
 
 Source: `packages/core-server/src/components/static-asset/services/policy.service.ts`
 
+## `IStaticAssetValidateResult`
+
+*interface*
+
+What `validate` answers. `commitToken` is present only when the file is valid: it is the token `commit` takes.
+
+```ts
+export interface IStaticAssetValidateResult<Issue> extends IStaticAssetValidationResult<Issue> {
+    commitToken?: string;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/common/types.ts`
+
 ## `IStaticAssetValidation`
 
 *interface*
@@ -778,9 +810,10 @@ Build it with `StaticAssetValidation.define` so the handler is typed by `issueSc
 export interface IStaticAssetValidation<IssueSchema extends z.ZodType> {
     /** The shape of ONE issue. It types the handler's answer and documents the route's response. */
     issueSchema: IssueSchema;
-    handler: (opts: IObjectLocation & {
+    /** Runs once per `upload-validate`. Read the file through `file`: every read is pinned to the content `commit` will copy. */
+    handler: (opts: {
+        file: StaticAssetPinnedFile;
         owner?: string;
-        helper: IStorageHelper;
     }) => ValueOrPromise<IStaticAssetValidationResult<z.infer<IssueSchema>>>;
 }
 ```
@@ -853,6 +886,7 @@ export declare class StaticAssetCommitTokenUtility {
     private static isRecord;
     /** A signed body that is not the current payload shape is refused as invalid: a token minted before the shape changed still carries a good signature. */
     private static parse;
+    private static parsePin;
     /** Signs `{ bucket, object, expiresAt, owner? }` so the commit route can trust the key it is handed. */
     static build(opts: {
         payload: IStaticAssetCommitTokenPayload;
@@ -1266,15 +1300,6 @@ export declare const StaticAssetErrors: {
         readonly statusCode: 403;
         readonly category: "validation";
     };
-    /** Raised by `commit`, never by the validate route: the route answers `{ isValid: false, issues }`, and an invalid file simply cannot be committed. */
-    readonly UPLOAD_INVALID: {
-        readonly message: {
-            readonly text: "The uploaded file did not pass validation";
-            readonly code: "core.static_asset.upload_invalid";
-        };
-        readonly statusCode: 422;
-        readonly category: "validation";
-    };
     /** Both upload paths - one condition, one code to branch on. */
     readonly UPLOAD_TOO_LARGE: {
         readonly message: {
@@ -1299,6 +1324,24 @@ export declare const StaticAssetErrors: {
             readonly code: "core.static_asset.expired_commit_token";
         };
         readonly statusCode: 400;
+        readonly category: "validation";
+    };
+    /** The pending object is not the one that was read: it was overwritten or removed after the pin. Raised by a pinned read and by the commit copy. */
+    readonly UPLOAD_CHANGED: {
+        readonly message: {
+            readonly text: "The uploaded file changed after it was validated";
+            readonly code: "core.static_asset.upload_changed";
+        };
+        readonly statusCode: 409;
+        readonly category: "validation";
+    };
+    /** With a `validation` on, `commit` takes the token `upload-validate` returned, not the one the policy issued. */
+    readonly UPLOAD_NOT_VALIDATED: {
+        readonly message: {
+            readonly text: "The upload has not been validated";
+            readonly code: "core.static_asset.upload_not_validated";
+        };
+        readonly statusCode: 422;
         readonly category: "validation";
     };
     readonly BUCKET_NAME_INVALID: {
@@ -1422,6 +1465,53 @@ export declare class StaticAssetObjectLinkUtility {
 
 Source: `packages/core-server/src/components/static-asset/utilities/object-link.utility.ts`
 
+## `StaticAssetPinnedFile`
+
+*class*
+
+The pending file as `validation.handler` sees it. Every read asks the storage for exactly the
+content that was pinned, so a handler cannot parse bytes that are not the ones `commit` will copy:
+a read that finds other content or no object throws `UPLOAD_CHANGED`.
+
+```ts
+export declare class StaticAssetPinnedFile {
+    readonly key: string;
+    readonly size: number;
+    readonly etag: string;
+    /** Derived from the key, never from what the uploader declared. */
+    readonly contentType: string;
+    private readonly helper;
+    private readonly location;
+    private readonly pin;
+    constructor(opts: {
+        helper: IStorageHelper;
+        location: IObjectLocation;
+        pin: IStaticAssetPin;
+        size: number;
+    });
+    /** What a read or a copy requires of the object: the exact version when the pin has one, else the ETag. */
+    static conditionOf(opts: {
+        pin: IStaticAssetPin;
+    }): {
+        ifMatch?: string;
+        versionId?: string;
+    };
+    /** The pin of what the storage holds now. An object with no ETag cannot be pinned. */
+    static pinOf(opts: {
+        stat: IFileStat;
+        scope: string;
+    }): IStaticAssetPin;
+    stream(opts?: {
+        range?: {
+            start: number;
+            end?: number;
+        };
+    }): Promise<ReadableStream<Uint8Array>>;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/utilities/pinned-file.utility.ts`
+
 ## `StaticAssetRouteKeys`
 
 *class*
@@ -1467,6 +1557,21 @@ export declare class StaticAssetToggleUtility {
 
 Source: `packages/core-server/src/components/static-asset/utilities/toggle.utility.ts`
 
+## `StaticAssetTokenStages`
+
+*class*
+
+Where a commit token is in its life: issued with the policy, then validated against the content it pins.
+
+```ts
+export declare class StaticAssetTokenStages {
+    static readonly ISSUED = "issued";
+    static readonly VALIDATED = "validated";
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/common/constants.ts`
+
 ## `StaticAssetUploadCommitService`
 
 *class*
@@ -1485,6 +1590,8 @@ export declare class StaticAssetUploadCommitService<Schema extends TMetaLinkComp
     private readonly keyPrefix;
     private readonly pendingPrefix;
     constructor(opts: IStaticAssetUploadCommitServiceOptions<Schema>);
+    /** The signature, the expiry, the owner and the scope: the checks every stage of a token starts with. */
+    private readPayload;
     /**
      * Everything `commit` checks before it touches storage, and nothing else: the signature, the
      * expiry, the owner and the `keyPrefix` scope. Returns the PENDING object, with no storage call and
@@ -1499,21 +1606,30 @@ export declare class StaticAssetUploadCommitService<Schema extends TMetaLinkComp
         owner?: string;
     }): IObjectLocation;
     /**
-     * `verify`, then the application's own check of the pending file. With no `validation` configured
-     * every file is valid. The issues are the application's, in the shape of its `issueSchema`.
+     * `verify`, then the application's own check of the pending file, read once through a file pinned
+     * to the content that is there now. A valid file answers the token `commit` takes: it is bound to
+     * that content and dies when the incoming token does. An invalid one answers its issues and no token.
+     * A token of either stage may be validated again, which pins whatever is there at that moment.
      */
     validate(opts: {
         token: string;
         owner?: string;
-    }): Promise<IStaticAssetValidationResult<unknown>>;
+    }): Promise<IStaticAssetValidateResult<unknown>>;
     private runValidation;
-    /** Moves the pending object to its final key and, when the entry keeps a MetaLink table, writes the row. A MetaLink failure rides the result as a code: the object IS committed by then. */
+    /**
+     * Moves the pending object to its final key and, when the entry keeps a MetaLink table, writes the
+     * row. With a `validation` on it takes the token `validate` returned and never runs the handler; the
+     * copy then happens only if the content still matches the pin. A MetaLink failure rides the result
+     * as a code: the object IS committed by then.
+     */
     commit(opts: {
         token: string;
         /** Who is committing. A token issued to an owner commits only for that owner. */
         owner?: string;
         labels?: TStaticAssetUploadLabels;
     }): Promise<IStaticAssetCommitResult>;
+    /** A pin makes the copy conditional; a failed condition is a changed upload, and nothing is written. */
+    private copyPinned;
 }
 ```
 
@@ -2315,8 +2431,8 @@ export type TStaticAssetDirectUploadOptions = {
         commit?: IDuration;
     };
     /**
-     * Checks the pending file. On, the component registers `POST {base}/upload-validate`, and
-     * `commit` runs the same check first and refuses an invalid file with `UPLOAD_INVALID`.
+     * Checks the pending file. On, the component registers `POST {base}/upload-validate`, which
+     * answers the token `commit` takes, and `commit` accepts no other.
      * Build it with `StaticAssetValidation.define`.
      */
     validation: TToggle<IStaticAssetValidation<z.ZodType>>;
@@ -2504,6 +2620,18 @@ export type TStaticAssetStorageType = typeof StorageTypes.DISK | typeof StorageT
 ```
 
 Source: `packages/core-server/src/components/static-asset/common/types.ts`
+
+## `TStaticAssetTokenStage`
+
+*type*
+
+One of the `StaticAssetTokenStages` values.
+
+```ts
+export type TStaticAssetTokenStage = TConstValue<typeof StaticAssetTokenStages>;
+```
+
+Source: `packages/core-server/src/components/static-asset/common/constants.ts`
 
 ## `TStaticAssetUploadLabels`
 

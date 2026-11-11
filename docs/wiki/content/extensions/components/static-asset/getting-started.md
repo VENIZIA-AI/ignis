@@ -100,7 +100,7 @@ Continue with [Server upload](./server-upload).
 
 ## B. An Excel import with validation
 
-A user uploads a workbook straight to S3. Your code reads it, returns cell errors, and only a valid file is committed. The server commits; the browser never confirms.
+A user uploads a workbook straight to S3. Your code reads it once, returns cell errors, and a valid file gets a `commitToken`. The server commits with that token; the browser never confirms.
 
 ```ts
 import { Authentication } from '@venizia/ignis';
@@ -121,7 +121,9 @@ const CellIssueSchema = z.object({
 export const buildOrderImport = (opts: {
   storage: BunS3Helper;
   checkWorkbook: (opts: {
-    fileStream: NodeJS.ReadableStream;
+    key: string;
+    size: number;
+    stream: ReadableStream<Uint8Array>;
   }) => Promise<z.infer<typeof CellIssueSchema>[]>;
 }): TStaticAssetComponentOptions => ({
   orderImport: {
@@ -140,9 +142,9 @@ export const buildOrderImport = (opts: {
       resolveOwner: ({ context }) => String(context.get(Authentication.CURRENT_USER).userId),
       validation: StaticAssetValidation.define({
         issueSchema: CellIssueSchema,
-        handler: async ({ bucket, object, helper }) => {
-          const fileStream = await helper.getObject({ bucket, object });
-          const issues = await opts.checkWorkbook({ fileStream });
+        handler: async ({ file }) => {
+          const stream = await file.stream();
+          const issues = await opts.checkWorkbook({ key: file.key, size: file.size, stream });
 
           return { isValid: issues.length === 0, issues };
         },
@@ -158,7 +160,7 @@ export const buildOrderImport = (opts: {
 | `uploadValidate` | `POST /order-import/upload-validate` | JWT |
 | `getObjectByName`, `downloadObjectByName`, `listObjects`, `deleteObject` | under `/order-import/objects` and `/order-import/download` | JWT |
 
-- There is no `POST /objects` (`serverUpload: { use: false }`) and no `upload-commit` (`routes.uploadCommit: { use: false }`). Your service commits with [`commitService.commit`](./direct-upload#use-from-a-service) once it accepts the file.
+- There is no `POST /objects` (`serverUpload: { use: false }`) and no `upload-commit` (`routes.uploadCommit: { use: false }`). Your service commits with [`commitService.commit`](./direct-upload#use-from-a-service) once it accepts the file. Pass it the `commitToken` that `upload-validate` returned, not the one the policy issued. The other combinations are in [Who commits, and with which token](./direct-upload#who-commits-and-with-which-token).
 - `directUpload.authorize` is left out because `auth` already requires a signed-in user.
 - `keyPrefix` is required with `directUpload`. It keeps committed files in `orders/`, and keeps the pending files (under `pending/`) out of everything the routes serve. See [The pending prefix](./security#the-pending-prefix).
 

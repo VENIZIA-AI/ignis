@@ -267,6 +267,9 @@ describe('BunS3Helper.copyObject on a missing source', () => {
       }),
     );
 
-    expect(error).toMatchObject({ statusCode: StorageErrors.OBJECT_NOT_FOUND.statusCode });
+    expect(error).toMatchObject({
+      statusCode: StorageErrors.OBJECT_NOT_FOUND.statusCode,
+      normalized: { code: StorageErrors.OBJECT_NOT_FOUND.message.code },
+    });
   });
 });

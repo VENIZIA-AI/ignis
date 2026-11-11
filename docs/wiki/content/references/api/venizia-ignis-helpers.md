@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-205 exports, 205 with TSDoc. 227 more are re-exported from other entries (listed at the end).
+206 exports, 206 with TSDoc. 227 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -854,7 +854,7 @@ export declare abstract class BaseStorageHelper extends BaseHelper implements IS
             start: number;
             end?: number;
         };
-    }): Promise<ReadableStream<Uint8Array>>;
+    } & IStorageReadCondition): Promise<ReadableStream<Uint8Array>>;
     /**
      * Correct anywhere, and the wrong path to stay on: it buffers, so a backend whose transport takes
      * a stream overrides it. `BunS3Helper` does.
@@ -878,10 +878,17 @@ export declare abstract class BaseStorageHelper extends BaseHelper implements IS
         error: unknown;
         operation: string;
     }): unknown;
+    /** For a backend with no ETag or versions to condition a read on: refusing is honest, ignoring would read unpinned. */
+    protected refuseReadCondition(opts: {
+        condition: IStorageReadCondition;
+        operation: string;
+    }): void;
     copyObject(_opts: {
         bucket: IBucketRef;
         source: IObjectRef;
         destination: IObjectRef;
+        ifMatch?: string;
+        sourceVersionId?: string;
     }): Promise<void>;
     presignPost(_opts: IObjectLocation & {
         maxBytes: number;
@@ -1343,7 +1350,7 @@ export declare class DiskHelper extends BaseStorageHelper {
             start: number;
             end?: number;
         };
-    }): Promise<ReadableStream<Uint8Array>>;
+    } & IStorageReadCondition): Promise<ReadableStream<Uint8Array>>;
     getStat(opts: IObjectLocation): Promise<IFileStat>;
     removeObject(opts: IObjectLocation): Promise<void>;
     removeObjects(opts: {
@@ -2922,7 +2929,7 @@ export interface IStorageHelper {
             start: number;
             end?: number;
         };
-    }): Promise<ReadableStream<Uint8Array>>;
+    } & IStorageReadCondition): Promise<ReadableStream<Uint8Array>>;
     getStat(opts: IObjectLocation): Promise<IFileStat>;
     listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
     upload(opts: {
@@ -2960,6 +2967,10 @@ export interface IStorageHelper {
         bucket: IBucketRef;
         source: IObjectRef;
         destination: IObjectRef;
+        /** Copy only if the source still has this ETag; otherwise `StorageErrors.PRECONDITION_FAILED`. */
+        ifMatch?: string;
+        /** Copy this exact version of the source. */
+        sourceVersionId?: string;
     }): Promise<void>;
     removeObject(opts: IObjectLocation): Promise<void>;
     removeObjects(opts: {
@@ -3017,6 +3028,21 @@ Logger `scope` and `identifier` for a storage helper.
 export interface IStorageHelperOptions {
     scope?: string;
     identifier?: string;
+}
+```
+
+Source: `packages/helpers/src/modules/storage/common/types.ts`
+
+## `IStorageReadCondition`
+
+*interface*
+
+What a read may require of the object: its ETag, or an exact version. A read that finds other content fails with `StorageErrors.PRECONDITION_FAILED`. A backend that cannot honour it refuses the read.
+
+```ts
+export interface IStorageReadCondition {
+    ifMatch?: string;
+    versionId?: string;
 }
 ```
 
@@ -4277,6 +4303,15 @@ export declare const StorageErrors: {
         readonly statusCode: 404;
         readonly category: "business";
     };
+    /** A read or copy that named the content it expects (an ETag or a version) found other content. */
+    readonly PRECONDITION_FAILED: {
+        readonly message: {
+            readonly text: "The object no longer matches what was expected";
+            readonly code: "core.storage.precondition_failed";
+        };
+        readonly statusCode: 412;
+        readonly category: "business";
+    };
     /** An upload named a folder the storage refuses: a segment it cannot hold, or an empty path. */
     readonly FOLDER_PATH_INVALID: {
         readonly message: {
@@ -4355,6 +4390,14 @@ Backend-neutral checks shared by storage helpers: recognising a "not found" erro
 export declare class StorageUtility {
     /** "Not there", across SDKs. Both minio and Bun report `S3Error` in `name`, so `code` and status decide. */
     static isNotFoundError(opts: {
+        error: unknown;
+    }): boolean;
+    /** A version id that names a version. S3 and MinIO answer the literal `null`, or nothing, for an object in a bucket where versioning is off or suspended. */
+    static realVersionId(opts: {
+        value?: string | null;
+    }): string | undefined;
+    /** "The expected content is gone", across SDKs: S3 and MinIO answer 412. */
+    static isPreconditionFailedError(opts: {
         error: unknown;
     }): boolean;
     /** S3 presigns in whole seconds. An unknown unit is refused; `null` would read as "no expiry". */

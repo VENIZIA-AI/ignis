@@ -232,6 +232,29 @@ route's own `authenticate`/`authorize` replaces it (`{ skip: true }` opens it), 
 kernel's `RouteConfigResolver.resolveAuthenticate` / `resolveAuthorize`, which the CRUD factory calls too -
 never a second copy. `publicRead: { use: true }` opens `getObjectByName` and `downloadObjectByName` only
 (`listObjects` is not public) and loses to a route's own auth. With no `auth` a route is open.
+Direct upload pins what it validates. The commit token is a small state machine: `upload-policy` issues an
+`ISSUED` token (`StaticAssetTokenStages`, no pin). `StaticAssetUploadCommitService.validate` takes either stage
+(a `VALIDATED` one re-validates and re-pins), `getStat`s the pending object, pins it (`StaticAssetPinnedFile.pinOf`:
+the version id when `StorageUtility.realVersionId` finds a real one, else the ETag; no ETag is an error), runs
+`validation.handler({ file, owner })` ONCE and, when valid, answers `{ isValid, issues, commitToken }` - a
+`VALIDATED` token carrying the pin, the incoming `expiresAt` and owner. Invalid answers no token. With no
+`validation` it still pins and answers a `VALIDATED` token. `commit` never runs the handler: with `validation` on, a
+token that is not `VALIDATED` throws `UPLOAD_NOT_VALIDATED` (422); with a pin the copy is conditional
+(`copyObject` `ifMatch`, or `sourceVersionId`) and a 412 becomes `UPLOAD_CHANGED` (409), nothing copied or removed.
+With `validation` off an `ISSUED` token commits with an unconditional copy. `StaticAssetPinnedFile` (`key`, `size`,
+`etag`, `contentType` from the key, `stream({ range? })`) makes every handler read conditional on the pin; a failed
+condition or a missing object throws `UPLOAD_CHANGED`. The handler no longer gets `helper`, `bucket` or `object`.
+On a bucket without versioning the pin is the ETag (an MD5 for a plain upload): a crafted collision is a
+theoretical bypass, so a malware gate needs bucket versioning, and then a lifecycle rule that expires noncurrent
+versions and delete markers under `pendingPrefix`.
+Who commits is two switches. `directUpload.validation` on: `upload-validate` exists and `commit` takes only a
+`VALIDATED` token; off: no validate route and `commit` takes the `ISSUED` token. `routes.uploadCommit` `{ use: false }`:
+no `upload-commit`, the app commits through the commit service (`StaticAssetBindingKeys.commitService({ name })`,
+`name` = the entry's key). `routes.uploadValidate` `{ use: false }` with a validation on leaves no HTTP way to a
+`VALIDATED` token, so the app calls the service's `validate` and `commit` itself. Nobody commits: the object stays
+under `pendingPrefix` for the lifecycle rule, with no MetaLink row. A pinned object deleted after validate fails
+`commit` with `UPLOAD_CHANGED`; a missing pending object with an `ISSUED` token is the storage's `OBJECT_NOT_FOUND`
+(`BunS3Helper.copyObject` of a missing source throws it). Proof: `__tests__/components/static-asset/commit-cases.test.ts`.
 `keyPrefix` scopes an entry inside a shared bucket: a key outside the prefix answers `404
 core.storage.object_not_found` before any storage call; `listObjects` clamps to the prefix and lists `[]` for a
 disjoint one; the component's own default upload name lands under the prefix, and an `objectKey` key outside it
@@ -269,10 +292,11 @@ other), else boot throws with the entry's name. Why: with `keyPrefix: 'products/
 'products/pending/'` the routes would serve pending objects; because `keyPrefix` is required with
 `directUpload`, the pending prefix is outside everything the routes serve by construction. The lifecycle
 rule that collects abandoned uploads must target the configured `pendingPrefix`. An entry with no `keyPrefix`
-that adds one moves its committed keys, and tokens signed for the old pending key fail with `404`.
+that adds one moves its committed keys, and tokens signed for the old pending key are refused.
 
 A policy signs ONE key (`presignPost({ bucket, object, ... })`; `formData` carries `key`). The token
-payload is `{ bucket: IBucketRef, object: IObjectRef, expiresAt, owner? }`; `read` refuses any other shape.
+payload is `{ bucket: IBucketRef, object: IObjectRef, expiresAt, owner?, stage, pin? }` (`pin` required from
+`VALIDATED` on); `read` refuses any other shape, a token without `stage` included.
 `directUpload.resolveOwner` supplies the owner on every direct-upload route, and a token with an owner commits
 only for that owner (anything else, or none, is `INVALID_COMMIT_TOKEN`, the forged-token error).
 `directUpload.expires.upload` is the policy's lifetime, `expires.commit` the token's (default `upload`). Every
@@ -282,10 +306,10 @@ directly owns that decision.
 `directUpload.validation` is `{ use: false }` or `StaticAssetValidation.define({ issueSchema, handler })`
 (which returns it `{ use: true, ... }`; typed as `IStaticAssetValidation<z.ZodType>` so no `AnyType` is needed -
 the handler's answer is covariant, and `define` is what types it from the schema). It adds the app's check of
-the PENDING object. The commit service's `validate({ token, owner? })` is `verify` plus the handler (valid when
-none is configured); `commit` runs the handler after `verify` and before the copy, and throws `UPLOAD_INVALID`
-(422) on an invalid file. The route `uploadValidate` (`POST /upload-validate`) exists only when `validation`
-is on: its response is documented with `issueSchema`; the handler is `authorize`, `resolveOwner`, `validate`.
+the PENDING object. The commit service's `validate({ token, owner? })` is `verify`, the pin, then the handler
+(valid when none is configured) and answers the `VALIDATED` token; `commit` never runs the handler. The route
+`uploadValidate` (`POST /upload-validate`) exists only when `validation` is on: its response is documented with
+`issueSchema`, plus `commitToken` when valid; the handler is `authorize`, `resolveOwner`, `validate`.
 Link building lives in `object-link.utility.ts` so the services and the factory share it without importing
 each other.
 See [object storage](/architecture/object-storage.md) for the signing model behind the second path.

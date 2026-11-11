@@ -15,6 +15,7 @@ A file route that anyone can call is a public file server. This page lists what 
 | `listObjects` under `publicRead` | **private** | nothing to do |
 | A commit token | commits for **whoever holds it** | [`resolveOwner`](#the-owner-in-the-token) |
 | Objects an upload leaves under the pending prefix | stay until you remove them | a [lifecycle rule](#clean-up-the-pending-prefix) |
+| A validated file on a bucket without versioning | pinned by ETag (an MD5 for a plain upload) | [bucket versioning](#the-pin-binds-the-token-to-the-content) |
 
 The entry serves one bucket and no route lists, creates or deletes buckets, so nothing about bucket management is exposed.
 
@@ -75,13 +76,14 @@ A POST policy signs the exact pending key (`pending/<keyPrefix><generated>/<name
 
 ### The commit token
 
-The token is an HMAC over `{ bucket, object, expiresAt, owner? }`, verified before any storage call. A caller cannot name an object it was never granted, and the route is not a name prober: a forged token fails without a round trip, so timing says nothing about what exists.
+The token is an HMAC over `{ bucket, object, expiresAt, owner?, stage, pin? }`, verified before any storage call. A caller cannot name an object it was never granted, and the route is not a name prober: a forged token fails without a round trip, so timing says nothing about what exists.
 
 | The token proves | The token does **not** prove |
 |---|---|
 | A policy was issued for this key | who is holding it (unless it has an owner) |
-| The grant has not expired | that the file is valid |
-| Nobody edited the key, bucket or owner | that the holder may use direct upload |
+| The grant has not expired | that the file is valid, unless the token is a validated one |
+| Nobody edited the key, bucket, owner or pin | that the holder may use direct upload |
+| A validated token: the content that was read is the content it commits | that the content is safe, only that your check passed it |
 
 ### The owner in the token
 
@@ -93,9 +95,23 @@ Set `directUpload.resolveOwner` and the policy route signs the caller into the t
 
 The route's JSON validator runs before `authorize`, so a malformed body answers `422` before an unauthorized caller gets `403`.
 
-### An invalid file never commits
+### An unvalidated file never commits
 
-`commit` runs your [`validation`](./direct-upload#validation) again, so skipping the validate route does not skip the check.
+With a [`validation`](./direct-upload#validation) on, `commit` takes only the token `upload-validate` returned. The token the policy issued is refused with `422` `core.static_asset.upload_not_validated`, so skipping the validate route does not skip the check. `commit` never runs your handler: validate does, once.
+
+### The pin binds the token to the content
+
+A check that passes and then a copy of whatever is there later leaves a gap: the uploader can overwrite the pending object in between. The validated token closes it. `validate` stats the object, pins what it finds, parses the file once through that pin, and signs the pin into the token it returns.
+
+- **What the pin is.** The exact version id when the bucket has real versions, else the ETag. It is chosen per object, from the stat: a version id of `null`, an empty one or none means no version, so the ETag pins.
+- **Where it is checked.** Every read through `file.stream()` and the copy `commit` makes are conditional on the pin. Other content, or no object, fails with `409` `core.static_asset.upload_changed`, and nothing is copied or removed.
+- **What it costs.** No extra object is created, and no second parse.
+- **Re-validating.** A token of either stage can be validated again. It pins whatever is there at that moment, then validates that.
+
+> [!WARNING]
+> On a bucket **without versioning** the pin is the ETag, and for a plain upload the ETag is an MD5. A deliberately crafted collision, two different files with one MD5, is a theoretical bypass. If you use validation as a **malware gate**, enable bucket versioning: the pin is then an exact version, with no collision to craft.
+
+With versioning on, overwritten and deleted pending objects stay as noncurrent versions. The bucket needs a lifecycle rule that expires noncurrent versions and delete markers under the pending prefix, beside the [expiry rule for the pending objects](#clean-up-the-pending-prefix).
 
 ### The pending prefix
 
@@ -169,3 +185,4 @@ Abandoned uploads, files a user replaced and objects whose commit never came all
 - [`packages/core-server/src/components/static-asset/utilities/key-scope.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/key-scope.utility.ts) - `keyPrefix` and `pendingPrefix` rules
 - [`packages/kernel/src/base/controllers/factory/definition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/factory/definition.ts) - `RouteConfigResolver`
 - [`packages/core-server/src/components/static-asset/utilities/commit-token.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/commit-token.utility.ts) - the token
+- [`packages/core-server/src/components/static-asset/utilities/pinned-file.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/pinned-file.utility.ts) - the pin and the pinned read

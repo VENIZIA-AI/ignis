@@ -112,9 +112,14 @@ needs a `BunS3Helper` (only S3 signs a POST policy) and a `keyPrefix`.
    too), and signs both the policy and a commit token. The token carries the owner `directUpload.resolveOwner`
    names, and lives for `expires.commit` (default `expires.upload`), which may outlast the policy.
 2. The browser posts the form straight to storage. No byte passes through IGNIS.
-3. The browser (or the server, with the commit route off) presents the commit token. IGNIS verifies it
-   (`verify`: signature, expiry, owner, scope), runs the `validation` again when it is on, copies server-side
-   to the final key, removes the temporary object, and writes the MetaLink row. There is no `onCommit`.
+3. With `validation` on (and the route not turned off), the browser calls `upload-validate`: IGNIS stats the pending object, pins it (version id
+   when the bucket has real versions, else the ETag), parses the file ONCE through a pinned `StaticAssetPinnedFile`
+   and answers `{ isValid, issues, commitToken? }`, the token present only when valid.
+4. The browser (or the server, with the commit route off) presents the commit token: the one validate returned
+   when `validation` is on (the policy's token is refused `upload_not_validated`, 422). IGNIS verifies it
+   (`verify`: signature, expiry, owner, scope), never re-runs the handler, copies server-side to the final key
+   only if the content still matches the pin (else `upload_changed`, 409, nothing copied), removes the temporary
+   object, and writes the MetaLink row. There is no `onCommit`.
 
 The third trip exists because S3 tells the backend nothing. Without it there is no MetaLink row and
 no way to attach the object to anything.
@@ -157,13 +162,14 @@ concurrent transactions both read "no row" and both insert - `FOR UPDATE` locks 
 exist, `ON CONFLICT` needs the index the data forbids. Closing it takes `pg_advisory_xact_lock`:
 Postgres-only, and the application's.
 
-### Five security properties, each with its reason
+### Six security properties, each with its reason
 
 | Property | Why |
 |---|---|
 | A policy authorizes exactly one key, `<pendingPrefix><keyPrefix><generated>` | the final key is in NO policy, so content cannot be replaced after the commit, and a policy cannot be spent on a second object |
-| The commit is claimed with an HMAC over `{bucket, object, expiresAt, owner?}`, verified BEFORE any storage call | naming someone else's object is impossible, and a forged token fails without a round trip, so timing leaks nothing |
+| The commit is claimed with an HMAC over `{bucket, object, expiresAt, owner?, stage, pin?}`, verified BEFORE any storage call | naming someone else's object is impossible, and a forged token fails without a round trip, so timing leaks nothing |
 | With `resolveOwner`, only the owner commits, and every other caller gets the forged-token error | a leaked token is no use to anyone else, and the answer reveals nothing |
+| A validated token carries a pin (version id, else ETag), and every handler read and the commit copy are conditional on it | a file overwritten after validation cannot ride the validated token. Without bucket versioning the pin is an ETag (MD5 for a plain upload), so a malware gate needs versioning plus a lifecycle rule for noncurrent versions and delete markers under `pendingPrefix` |
 | The token carries no business fields | which order or tenant an upload belongs to is the application's authorization, not something the framework signs |
 | `authorize` guards every direct-upload route, and may be left out only when the entry's `auth` authenticates or authorizes | a route that hands out a write credential has no safe default, and a commit promotes an object |
 
