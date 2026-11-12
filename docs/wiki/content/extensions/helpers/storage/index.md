@@ -13,7 +13,7 @@ Storage gives you one file-storage interface with interchangeable backends for S
 `DiskHelper` needs no external server, so it's the fastest way to see the shape of the API. Create a bucket, upload a file, get a link back.
 
 ```typescript
-import { DiskHelper } from '@venizia/ignis-helpers';
+import { applicationEnvironment, DiskHelper } from '@venizia/ignis-helpers';
 
 const storage = new DiskHelper({ basePath: './app_data/storage' });
 
@@ -80,8 +80,8 @@ const disk = new DiskHelper({ basePath: './app_data/storage' });
 // Any S3-compatible endpoint: AWS, Cloudflare R2, DigitalOcean Spaces, MinIO.
 const s3 = new BunS3Helper({
   endpoint: { default: 'http://localhost:9000' },
-  accessKey: process.env.S3_ACCESS_KEY,
-  secretKey: process.env.S3_SECRET_KEY,
+  accessKey: applicationEnvironment.get<string>('APP_ENV_S3_ACCESS_KEY'),
+  secretKey: applicationEnvironment.get<string>('APP_ENV_S3_SECRET_KEY'),
   region: 'us-east-1',
 });
 ```

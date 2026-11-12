@@ -203,14 +203,21 @@ export const workbookValidation = (opts: {
     key: string;
     size: number;
     stream: ReadableStream<Uint8Array>;
-    owner?: string;
+    owner: string;
+    metadata: Record<string, string>;
   }) => Promise<z.infer<typeof CellIssueSchema>[]>;
 }) =>
   StaticAssetValidation.define({
     issueSchema: CellIssueSchema,
-    handler: async ({ file, owner }) => {
+    handler: async ({ file, owner, metadata }) => {
       const stream = await file.stream();
-      const issues = await opts.checkWorkbook({ key: file.key, size: file.size, stream, owner });
+      const issues = await opts.checkWorkbook({
+        key: file.key,
+        size: file.size,
+        stream,
+        owner,
+        metadata,
+      });
 
       return { isValid: issues.length === 0, issues };
     },
@@ -220,7 +227,7 @@ export const workbookValidation = (opts: {
 `define` returns the check already switched on (`{ use: true, issueSchema, handler }`). Pass it as `directUpload.validation`. Leave `validation: { use: false }` when there is nothing to check.
 
 - `issueSchema` is the shape of **one** issue. It types the handler (an issue of another shape fails type-checking) and documents the route's response.
-- The handler receives `{ file, owner }`. `file` is a `StaticAssetPinnedFile` and `owner` is the one the token was issued to. It answers `{ isValid, issues }`. It does not receive the helper, the bucket or the object.
+- The handler receives `{ file, owner, metadata }`. `file` is a `StaticAssetPinnedFile`, `owner` is the one the token was issued to and `metadata` is what `resolvers.metadata` signed into it. It answers `{ isValid, issues }`. It does not receive the helper, the bucket or the object.
 - Switching `validation` on registers `POST {base}/upload-validate`. It takes `{ commitToken }` and answers `{ isValid, issues, commitToken? }`, with the issues in your shape. It calls `authorize` first, like the other routes.
 - **Commit does not run the handler.** With `validation` on, commit takes only the token validate returned. The policy's token is refused with `422` `core.static_asset.upload_not_validated`, so an unvalidated file can never be committed: not by skipping the validate call, not by a forged client.
 
@@ -260,9 +267,9 @@ One token per call, answered exactly like this:
 | A malformed body | `422` | no |
 | Unauthenticated, per the entry's `auth` | `401` | no |
 | `directUpload.authorize` returns `false` | `403` `upload_not_authorized` | no |
-| A forged token, or a different owner | `400` `invalid_commit_token` | no |
+| A forged token, a different owner, or a key outside the `keyPrefix` | `400` `invalid_commit_token` | no |
 | `expires.commit` has passed | `400` `expired_commit_token` | no |
-| A key outside the `keyPrefix`, or no object there | `404` `object_not_found` | no |
+| No object there | `404` `object_not_found` | no |
 | The object changed during the read | `409` `upload_changed` | yes |
 
 - **The token is present only when the file is valid.** It has the same expiry as the token you sent. An invalid file answers no token.
@@ -281,7 +288,7 @@ Two switches decide who commits and which token commit takes. Both have a defaul
 | Switch | On | Off |
 |---|---|---|
 | `directUpload.validation` | `{ use: true, ... }`: the `upload-validate` route exists, and `commit` accepts only a `validated` token, the one validate returned. | `{ use: false }`: no validate route. `commit` takes the `issued` token from `upload-policy`. |
-| `routes.uploadCommit` | The default. The client calls `POST {basePath}/upload-commit`. | `{ use: false }`: the route does not exist. Your own code commits through `StaticAssetUploadCommitService.commit({ token, owner?, labels? })`. |
+| `routes.uploadCommit` | The default. The client calls `POST {basePath}/upload-commit`. | `{ use: false }`: the route does not exist. Your own code commits through `StaticAssetUploadCommitService.commit({ token, owner, labels?, destination? })`. |
 
 Inject the service with `@inject({ key: StaticAssetBindingKeys.commitService({ name }) })`. `name` is the entry's key in the options object, not the controller name.
 
@@ -324,6 +331,8 @@ POST /assets/upload-commit
 {
   "bucket": { "name": "uploads" },
   "object": { "key": "files/7f2c.../orders.xlsx" },
+  "owner": "user-42",
+  "metadata": {},
   "link": "/assets/objects/files%2F7f2c...%2Forders.xlsx",
   "metaLink": {
     "data": {
@@ -336,7 +345,8 @@ POST /assets/upload-commit
       "etag": "\"9b2cf535f27731c974343645a3985328\"",
       "metadata": {
         "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "app": {}
       },
       "isSynced": true,
       "storageType": "bun-s3"
@@ -483,7 +493,7 @@ On the server, call `commit` with that token as in the [service example](#use-fr
 
 ### Validation on, validate route off
 
-`routes.uploadValidate: { use: false }` with a `validation` on leaves no HTTP way to get a `validated` token, and commit then accepts nothing else. An application that does this validates and commits through the service itself: `validate({ token, owner? })` answers the token, and `commit` takes it.
+`routes.uploadValidate: { use: false }` with a `validation` on leaves no HTTP way to get a `validated` token, and commit then accepts nothing else. An application that does this validates and commits through the service itself: `validate({ token, owner })` answers the token, and `commit` takes it.
 
 ```ts
 import { BaseService, inject } from '@venizia/ignis';

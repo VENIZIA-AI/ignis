@@ -86,6 +86,7 @@ Both helper checks run on `configure()`, one layer deeper than `MailTransportPro
 | Processor not set before enqueue | BullMQ -- only outside `'queue-only'` mode | `Processor not set. Call setProcessor() first.` |
 | Processor not set before adding a worker | BullMQ | `Processor not set. Call setProcessor() first.` |
 | Enqueue attempted in `worker-only` mode | BullMQ | `Cannot enqueue jobs in worker-only mode. Set mode to "queue-only" or "both".` |
+| `enqueueVerificationEmail()` after `close()` | Internal Queue | `The executor is closed and takes no more jobs.` (`MailExecutorErrors.CLOSED`) |
 | Queue helper unexpectedly `null` | BullMQ | `Queue helper not initialized. This should not happen in queue-enabled mode.` |
 
 ## Troubleshooting
@@ -180,11 +181,11 @@ if (!isConnected) {
 
 ```typescript
 {
-  type: 'bullmq',
+  type: MailQueueExecutorTypes.BULLMQ,
   options: {
     redis: redisHelper, // a ready, connected Redis helper
     queue: { identifier: 'mail-queue', name: 'mail-queue' },
-    mode: 'both', // must be 'both' or 'worker-only' to process
+    mode: BullMQExecutorModes.BOTH, // must be BOTH or WORKER_ONLY to process
   },
 }
 ```

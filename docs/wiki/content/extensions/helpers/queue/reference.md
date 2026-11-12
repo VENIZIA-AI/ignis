@@ -69,13 +69,13 @@ A `bun build --compile` binary has no `node_modules` for that lookup, and withou
 ### Constructor
 
 ```typescript
-import { RedisSingleHelper } from '@venizia/ignis-helpers';
+import { BullQueueRoles, RedisSingleHelper } from '@venizia/ignis-helpers';
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 
 const worker = new BullMQHelper({
   queueName: 'email-queue',
   identifier: 'email-worker',
-  role: 'worker',
+  role: BullQueueRoles.WORKER,
   redisConnection: redisHelper,
   numberOfWorker: 3,
   lockDuration: 10 * 60 * 1000,
@@ -96,7 +96,7 @@ const worker = new BullMQHelper({
 
 ### IBullMQOptions
 
-`IBullMQOptions<TQueueElement = any, TQueueResult = any>`
+`IBullMQOptions<TQueueElement = unknown, TQueueResult = unknown>`
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -107,8 +107,8 @@ const worker = new BullMQHelper({
 | `module` | `typeof import('bullmq')` | loaded by name | `bullmq` itself, for a compiled binary. Omitted, it is loaded when the queue or worker is built. |
 | `numberOfWorker` | `number` | `1` | Worker concurrency (BullMQ `Worker` `concurrency` option). Ignored for `role: 'queue'`. |
 | `lockDuration` | `number` | `5400000` (90 minutes) | Job lock duration in milliseconds. Ignored for `role: 'queue'`. |
-| `onWorkerData` | `(job: Job<TQueueElement, TQueueResult>) => Promise<any>` | - | Job processor. If omitted, the worker logs `id`, `name`, `data` at info level and resolves `undefined`. |
-| `onWorkerDataCompleted` | `(job, result) => Promise<void>` | - | Fired on the BullMQ `Worker` `'completed'` event. |
+| `onWorkerData` | `(job: Job<TQueueElement, TQueueResult>) => Promise<TQueueResult>` | - | Job processor. If omitted, the worker logs `id`, `name`, `data` at info level and resolves `undefined`. |
+| `onWorkerDataCompleted` | `(job, result: TQueueResult) => Promise<void>` | - | Fired on the BullMQ `Worker` `'completed'` event. |
 | `onWorkerDataFail` | `(job \| undefined, error: Error) => Promise<void>` | - | Fired on the BullMQ `Worker` `'failed'` event. `job` may be `undefined`. |
 
 > [!IMPORTANT]
@@ -121,7 +121,7 @@ A `bun build --compile` binary ships without `node_modules`, so neither `ioredis
 ```typescript
 import * as bullmq from 'bullmq';
 import * as ioredis from 'ioredis';
-import { RedisSingleHelper } from '@venizia/ignis-helpers';
+import { BullQueueRoles, RedisSingleHelper } from '@venizia/ignis-helpers';
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 
 const redisConnection = new RedisSingleHelper({
@@ -135,7 +135,7 @@ const redisConnection = new RedisSingleHelper({
 const producer = new BullMQHelper({
   identifier: 'email-producer',
   queueName: 'emails',
-  role: 'queue',
+  role: BullQueueRoles.QUEUE,
   redisConnection,
   module: bullmq,
 });
@@ -166,7 +166,7 @@ The constructor calls `configure()`, which switches on `role`:
 
 ### Cluster queue name wrapping
 
-- **Detects cluster mode.** `resolveQueueName()` checks whether `redisConnection.getClient()` is an ioredis `Cluster` instance.
+- **Detects cluster mode.** `resolveQueueName()` checks whether `redisConnection.getClient()` is a cluster client: `isCluster === true`, or a `nodes` function (a structural check, not `instanceof Cluster`).
 - **Wraps the name in a hash-tag.** When the connection is a cluster and `queueName` does not already start with `{`, the name is wrapped: `email-queue` becomes `{email-queue}`.
 - **Why.** This forces BullMQ's queue keys onto a single cluster slot, which BullMQ requires for cluster mode. You do not need to wrap the name yourself.
 
@@ -185,10 +185,10 @@ BullMQ does not retain job records after they finish (success or failure).
 
 ### Redis Cluster setup
 
-`RedisClusterHelper` does not set `maxRetriesPerRequest: null` automatically - set it inside `clusterOptions.redisOptions` yourself, since BullMQ requires it:
+`RedisClusterHelper` sets `maxRetriesPerRequest: null` by default, which BullMQ requires. It merges that key with your `clusterOptions.redisOptions`, so passwords and TLS keep it; an explicit value of yours wins:
 
 ```typescript
-import { RedisClusterHelper } from '@venizia/ignis-helpers';
+import { BullQueueRoles, RedisClusterHelper } from '@venizia/ignis-helpers';
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 
 const redisHelper = new RedisClusterHelper({
@@ -204,7 +204,6 @@ const redisHelper = new RedisClusterHelper({
     redisOptions: {
       password: 'your-password',
       tls: {},
-      maxRetriesPerRequest: null, // required by BullMQ
     },
   },
 });
@@ -212,7 +211,7 @@ const redisHelper = new RedisClusterHelper({
 const worker = BullMQHelper.newInstance({
   queueName: 'my-queue',
   identifier: 'cluster-worker',
-  role: 'worker',
+  role: BullQueueRoles.WORKER,
   redisConnection: redisHelper,
   onWorkerData: async job => {
     // process job

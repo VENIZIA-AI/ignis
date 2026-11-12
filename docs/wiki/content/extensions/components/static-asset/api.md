@@ -23,7 +23,7 @@ Every option, route, binding key and mechanism of `StaticAssetComponent`. For wa
 - [`packages/core-server/src/components/static-asset/utilities/toggle.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/toggle.utility.ts) - reading a toggle
 - [`packages/core-server/src/components/static-asset/utilities/key-scope.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/key-scope.utility.ts) - `keyPrefix`
 - [`packages/core-server/src/components/static-asset/utilities/meta-link.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/meta-link.utility.ts) - `StaticAssetMetaLinkUtility.createRow`, `StaticAssetMetaLinkUtility.refreshRows`
-- [`packages/core-server/src/components/static-asset/utilities/route-options.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/route-options.utility.ts) - `readRoute`, the `maxBytes` route guard
+- [`packages/core-server/src/components/static-asset/utilities/route-options.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/route-options.utility.ts) - `readRoute`, the `maxBytes` body limit (`appendBodyLimit`)
 - [`packages/core-server/src/components/static-asset/utilities/ingest.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/utilities/ingest.utility.ts)
 - [`packages/core-server/src/components/static-asset/common/errors.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/errors.ts)
 - [`packages/core-server/src/components/static-asset/models/base.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/models/base.model.ts)
@@ -160,7 +160,7 @@ See [Server upload](./server-upload).
 |---|---|---|---|---|
 | `secretKey` | `string` | - | yes | Signs the commit token. |
 | `maxBytes` | `number` | - | yes | The `content-length-range` ceiling of a policy. |
-| `validation` | `TToggle` | - | yes | `{ use: false }`, or `StaticAssetValidation.define({ issueSchema, handler })`; registers `upload-validate`. The handler is `({ file, owner })` with `file` a `StaticAssetPinnedFile`. On, `commit` takes only the validated token: see [Who commits, and with which token](./direct-upload#who-commits-and-with-which-token). |
+| `validation` | `TToggle` | - | yes | `{ use: false }`, or `StaticAssetValidation.define({ issueSchema, handler })`; registers `upload-validate`. The handler is `({ file, owner, metadata })` with `file` a `StaticAssetPinnedFile`. On, `commit` takes only the validated token: see [Who commits, and with which token](./direct-upload#who-commits-and-with-which-token). |
 | `authorize` | `({ context }) => ValueOrPromise<boolean>` | the entry's `auth` | only without `auth` | Who may use direct upload. |
 | `resolvers` | `{ owner, metadata?, commit?: { destination? } }` | - | yes | `owner({ context })`: who an upload belongs to, signed into the token (required). `metadata({ context, file })`: per file, signed into the token. `commit.destination({ owner, metadata, file, defaultKey })`: the final key. See [Resolvers](./direct-upload#resolvers). |
 | `maxFiles` | `number` | `20` | no | Most files one policy request may name. |
@@ -191,6 +191,7 @@ Both share one shape. Registration order is the only difference, and Hono matche
 ```ts
 import { z } from '@hono/zod-openapi';
 import { OpenApiResponses } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import type { TStaticAssetEntry } from '@venizia/ignis/static-asset';
 
 export const extend: TStaticAssetEntry['extend'] = {
@@ -204,7 +205,7 @@ export const extend: TStaticAssetEntry['extend'] = {
       handler: async (context) => {
         const isReady = await helper.hasBucket({ bucket: { name: 'assets' } });
 
-        return context.json({ isReady }, 200);
+        return context.json({ isReady }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
   },
@@ -276,7 +277,8 @@ interface IStaticAssetValidation<IssueSchema extends z.ZodType> {
   issueSchema: IssueSchema;
   handler: (opts: {
     file: StaticAssetPinnedFile;
-    owner?: string;
+    owner: string;
+    metadata: Record<string, string>;
   }) => ValueOrPromise<IStaticAssetValidationResult<z.infer<IssueSchema>>>;
 }
 
@@ -330,7 +332,7 @@ The entry reads `helper.storageType`, and MetaLink rows record it. `IStorageHelp
 
 ### `IStorageHelper` interface
 
-Every backend implements this contract; `BaseStorageHelper` (abstract) implements the shared parts (`isValidSegment`, `isValidBucketName`, `isValidObjectKey`, `upload`, `getObjectStream`, `writeStream`, `getMimeType`, `getMediaType`) and leaves the rest abstract.
+Every backend implements this contract; `BaseStorageHelper` (abstract) implements the shared parts (`isValidSegment`, `isValidBucketName`, `isValidObjectKey`, `upload`, `writeStream`, `getMimeType`, `getMediaType`) and leaves the rest abstract.
 
 Every method takes one options object with nested refs: `IBucketRef` is `{ name }`, `IObjectRef` is `{ key }`, and `IObjectLocation` is `{ bucket, object }`.
 
@@ -417,7 +419,7 @@ interface IStorageHelper {
 ```
 IStorageHelper (interface)
     |
-BaseStorageHelper (abstract - implements the validators, upload, the stream methods and the type lookups)
+BaseStorageHelper (abstract - implements the validators, upload, `writeStream` and the type lookups; `getObjectStream` is left to each helper)
     |
     +-- DiskHelper    (local filesystem)
     +-- BunS3Helper   (Bun-native S3, Bun only)
@@ -638,7 +640,7 @@ The limit is the whole body, not one file. The per-file `buffer.length` check (s
 the handler and is the one that decides each file.
 
 > [!WARNING]
-> `serverUpload.maxBytes` bounds the whole body early. The upload route carries its own
+> `serverUpload.maxBytes` bounds each file. The upload route carries its own
 > body limit (`BodyLimits.route`): `maxFiles` files of `maxBytes` each plus their multipart framing
 > (4 KiB per file and 64 KiB for the other parts). A declared `content-length` over it is refused before
 > the body is read, and a chunked request that omits the header is counted as it streams, and the 5 MiB default limit stands aside for it (see
@@ -663,7 +665,7 @@ These run inside `helper.upload()`, separate from the controller checks above. T
 | Check | Error message | Status and code |
 |-------|----------------|-----------------|
 | Bucket does not exist (`hasBucket()` false) | <code v-pre>[upload] Bucket does not exist \| name: {bucket}</code> | `400` |
-| No naming hook (no `serverUpload.objectKey`, no `keyPrefix`): `originalName` fails `isValidSegment()`, because it becomes the key | `[upload] Invalid original file name` | `400` |
+| No naming hook (no `serverUpload.objectKey`): `originalName` fails `isValidSegment()`, because it becomes the key | `[upload] Invalid original file name` | `400` |
 | A naming hook is set: `originalName` is metadata only, and fails `isValidOriginalName()` - not blank, at most 255 characters, no control character or lone surrogate | `[upload] Invalid original file name` | `400` |
 | `folderPath` segment count exceeds `maxFolderDepth` | <code v-pre>[upload] Invalid folder path \| depth: {n} \| max: {m}</code> | `400` `core.storage.folder_depth_exceeded` |
 | `folderPath` fails the path rule for any other reason | `[upload] Invalid folder path` | `400` `core.storage.folder_path_invalid` |
@@ -673,7 +675,6 @@ These run inside `helper.upload()`, separate from the controller checks above. T
 > [!NOTE]
 > The static-asset controller always passes a naming hook to `helper.upload()` (the default key is `<keyPrefix><folderPath>/<uuid>/<name>`) - then `originalName` is metadata at the storage-helper layer, not the key, and names like `Báo cáo.pdf` pass.
 >
-> **One exception, at the controller layer:** with no `serverUpload.objectKey` - the component's own default naming - the controller still refuses a `/` in the original name with `400 [upload] Invalid original file name`, exactly as without a scope. An `objectKey` hook lifts it.
 
 `getError()` defaults `statusCode` to `400` when the caller does not pass one explicitly, so the messages without a code also resolve to `400`.
 
@@ -711,7 +712,7 @@ All streaming responses also set:
 ```http
 X-Content-Type-Options: nosniff
 Content-Security-Policy: sandbox
-Content-Type: <StaticAssetControllerFactory.resolveServedContentType, from the object key>
+Content-Type: <StaticAssetServe.resolveServedContentType, from the object key>
 Content-Length: <bytes in the response body>
 Content-Disposition: attachment; filename="..."   (always on download; on objects when the type is not renderable)
 Accept-Ranges: bytes                              (advertised unconditionally)

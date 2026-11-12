@@ -141,7 +141,7 @@ All three helpers (single, sentinel and cluster) reconnect the same way. ioredis
 - **Stop condition.** Reconnect stops when `attempt > maxRetry`, unless `maxRetry` is `-1`. The helper logs an error once when it gives up. `maxRetry: 0` stops on the first attempt.
 - **Bad values are refused.** `maxRetry` must be `0`, `-1` or a positive integer; a negative number other than `-1`, a fraction or `NaN` throws when the helper is built.
 - **This strategy does not retry commands.** It only schedules reconnection.
-- **BullMQ requirement.** The framework always sets `maxRetriesPerRequest: null` internally, which BullMQ requires.
+- **BullMQ requirement.** The framework sets `maxRetriesPerRequest: null` by default, which BullMQ requires. On a cluster it is a default of `redisOptions`, so an app's own `redisOptions.maxRetriesPerRequest` overrides it.
 
 ### What happens to commands while the connection is down
 
@@ -184,7 +184,7 @@ const cluster = new RedisClusterHelper({
 | `name` | `string` | Yes | - | Helper identifier |
 | `nodes` | `Array<{ host: string; port: string \| number; password?: string }>` | Yes | - | Startup nodes - ioredis discovers the rest |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` sets `lazyConnect` so you call `connect()` later |
-| `clusterOptions` | `ClusterOptions` | No | - | Merged over the two defaults below, then passed to `new Cluster(nodes, clusterOptions)` |
+| `clusterOptions` | `ClusterOptions` | No | - | Merged over the four defaults (`enableOfflineQueue: true`, `lazyConnect`, `clusterRetryStrategy` and `redisOptions.maxRetriesPerRequest: null`), then passed to `new Cluster(nodes, clusterOptions)` |
 | `module` | `typeof import('ioredis')` | No | loaded by name | Same as single |
 | `onInitialized` / `onConnected` / `onReady` / `onError` | callbacks | No | - | Same shape as single |
 
@@ -245,12 +245,12 @@ Redis Sentinel is a high-availability (HA) architecture made of three process ty
 - **The master's address can change after a failover.** Hard-coding a master host would break on every failover.
 - **You give ioredis the sentinel addresses instead**, plus the monitored master group name (`masterName`). ioredis asks a sentinel for the current master, then connects to it.
 - **ioredis re-queries sentinels automatically after a failover** - no manual reconnection logic needed.
-- **Your application code does not change during a failover.** The only observable effect is a few seconds of transient command failures. Set `maxRetry: -1` so the client reconnects and drains its queued commands - the default `maxRetry: 0` rejects them instead.
+- **Your application code does not change during a failover.** The only observable effect is a few seconds of transient command failures. Set `maxRetry: -1` so the client reconnects and drains its queued commands - `maxRetry: 0` rejects them instead (the default is `5`).
 
 ### Constructor
 
 ```typescript
-import { RedisSentinelHelper } from '@venizia/ignis-helpers';
+import { RedisSentinelHelper, RedisSentinelRoles } from '@venizia/ignis-helpers';
 
 const redis = new RedisSentinelHelper({
   name: 'ha-cache',          // helper identifier (logging/scope)
@@ -260,7 +260,7 @@ const redis = new RedisSentinelHelper({
     { host: '10.0.0.2', port: 26379 },
     { host: '10.0.0.3' },   // port defaults to 26379
   ],
-  role: 'master',            // 'master' (default) or 'slave'
+  role: RedisSentinelRoles.MASTER, // MASTER (default) or SLAVE
   password: 'data-secret',   // master/replica requirepass
   sentinelPassword: 'sentinel-secret', // sentinel.conf requirepass
   database: 0,
@@ -645,20 +645,20 @@ All three topologies implement `IRedisHelper` and are interchangeable in every i
 
 `BullMQHelper` accepts a `redisConnection: IRedisHelper`. Internally it:
 - Passes `redisConnection.getClient()` to the `Queue` and the `Worker`. BullMQ marks a client it is handed as shared and never quits it, and opens (and closes) its own blocking connection for a worker. The helper does not duplicate the client, so closing a queue or worker leaks no connection.
-- Calls `redisConnection.getClient() instanceof Cluster` to detect cluster topology and adjust BullMQ configuration.
+- Checks `redisConnection.getClient()` structurally (`isCluster === true`, or a `nodes` function) to detect cluster topology and adjust BullMQ configuration.
 
 `RedisSingleHelper`, `RedisSentinelHelper` and `RedisClusterHelper` are BullMQ-compatible out of the box. The framework sets `maxRetriesPerRequest: null` on each.
 
 ```typescript
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
-import { RedisSingleHelper } from '@venizia/ignis-helpers';
+import { BullQueueRoles, RedisSingleHelper } from '@venizia/ignis-helpers';
 
 const redis = new RedisSingleHelper({ name: 'queue-redis', host, port, password });
 
 const queue = BullMQHelper.newInstance({
   queueName: 'email',
   identifier: 'email-queue',
-  role: 'queue',
+  role: BullQueueRoles.QUEUE,
   redisConnection: redis,
 });
 ```

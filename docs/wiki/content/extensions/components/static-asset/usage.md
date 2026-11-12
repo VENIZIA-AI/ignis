@@ -305,7 +305,7 @@ export const buildTenants = (opts: { storage: BunS3Helper }): TStaticAssetCompon
 
 - `tenantA`'s routes only ever see keys under `tenant-a/` - a request for a `tenant-b/...` key answers `404`, the same as a real miss, and `listObjects` never returns a `tenant-b/` key even without a `prefix` query.
 - An upload with no `objectKey` writes under `tenant-a/` automatically; an `objectKey` that returns a key outside the prefix is refused, not rewritten.
-- **With no `objectKey`, the original file name still has to be one segment.** A `keyPrefix` alone does not relax it: `document.pdf` is fine, `folder/document.pdf` is `400 [upload] Invalid original file name`.
+- **With no `objectKey`, the original file name has to be one segment.** A `keyPrefix` does not relax it: `document.pdf` is fine, `folder/document.pdf` is `400 [upload] Invalid original file name`.
 - `routes.<key>: { use: false }` needs no `keyPrefix` - it works on any entry, to drop a route your application does not want exposed at all.
 - Two entries on one bucket may both use `directUpload`: each needs its own `keyPrefix`, and they can share the `pending/` prefix, because each entry's pending files sit under its own `keyPrefix`. See [The pending prefix](./security#the-pending-prefix).
 

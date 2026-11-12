@@ -67,6 +67,8 @@ import {
   MailExecutorErrors,
   MailQueueExecutorTypes,
   BullMQExecutorModes,
+  MailTemplateFormats,
+  MailBackoffTypes,
   MailService,
   TemplateEngineService,
   NumericCodeGenerator,
@@ -86,6 +88,7 @@ import type {
   IGenericMailOptions,
   IMailService,
   IMailTemplateEngine,
+  TMailTemplateFormat,
   IMailMessage,
   IMailSendResult,
   IMailTransport,
@@ -396,14 +399,14 @@ interface IBullMQMailExecutorOpts {
 
 ```typescript
 // Direct (also the implicit default when MAIL_QUEUE_EXECUTOR_CONFIG is unbound)
-{ type: 'direct' }
+{ type: MailQueueExecutorTypes.DIRECT }
 
 // Internal queue (in-memory)
-{ type: 'internal-queue', options: { identifier: 'mail-internal-queue' } }
+{ type: MailQueueExecutorTypes.INTERNAL_QUEUE, options: { identifier: 'mail-internal-queue' } }
 
 // BullMQ (Redis-backed)
 {
-  type: 'bullmq',
+  type: MailQueueExecutorTypes.BULLMQ,
   options: {
     redis: new RedisSingleHelper({
       name: 'mail-redis',
@@ -412,7 +415,7 @@ interface IBullMQMailExecutorOpts {
       password: 'your-redis-password',
     }), // or a RedisSentinelHelper / RedisClusterHelper
     queue: { identifier: 'mail-queue', name: 'mail-queue' },
-    mode: 'both', // 'queue-only' | 'worker-only' | 'both' -- required, no default
+    mode: BullMQExecutorModes.BOTH, // QUEUE_ONLY | WORKER_ONLY | BOTH -- required, no default
   },
 }
 ```
@@ -510,7 +513,7 @@ Sends every message via `send()` with concurrency bounded by `PromiseUtility.exe
 
 **`sendTemplate(opts)`**
 
-Renders a registered template and sends it. Subject resolution order: `options.subject` -> the template's own `subject` (rendered as `MailTemplateFormats.TEXT`, so never HTML-escaped) -> `MailDefaults.SUBJECT` (`'No Subject'`). The message is `{ ...rest, to: recipients, subject, html }`: `options.to` and `options.html` do not replace the recipients or the rendered body, and `options.requireValidate` is a render switch that is not sent. Throws `MailErrorCodes.INVALID_CONFIGURATION` ("Template engine not configured") if `templateEngine` was not injected. Re-throws any other error unchanged, including `TEMPLATE_NOT_FOUND` from the template engine.
+Renders a registered template and sends it. Subject resolution order: `options.subject` -> the template's own `subject` (rendered as `MailTemplateFormats.TEXT`, so never HTML-escaped) -> `MailDefaults.SUBJECT` (`'No Subject'`). The message is `{ ...rest, to: recipients, subject, html }`: `options.to` and `options.html` do not replace the recipients or the rendered body, and `options.requireValidate` is a render switch that is not sent. Throws `MailErrors.INVALID_CONFIGURATION` ("Template engine not configured") if `templateEngine` was not injected. Re-throws any other error unchanged, including `TEMPLATE_NOT_FOUND` from the template engine.
 
 **`verify()`**
 
@@ -600,6 +603,7 @@ interface IMailTemplateEngine {
     templateName?: string;
     data: Record<string, any>;
     requireValidate?: boolean;
+    format?: TMailTemplateFormat;
   }): string;
 
   registerTemplate(opts: { name: string; content: string }): void;
@@ -637,8 +641,6 @@ interface ITemplate {
   description?: string;
 }
 ```
-
-The `render` field supports a custom per-template render function, though the built-in `TemplateEngineService` always uses `content` + `renderSimpleTemplate()` instead.
 
 **Source:** [`services/template.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/services/template.service.ts)
 
@@ -760,7 +762,7 @@ interface IMailQueueExecutor {
 **`InternalQueueMailExecutorHelper`** extends `BaseHelper` (constructor takes `IInternalQueueMailExecutorOpts`). It wraps `SequentialQueueHelper<IQueueJobPayload>` from `@venizia/ignis-helpers`, with `autoDispatch: true`.
 
 - Job IDs: `job_<counter>_<timestamp>`.
-- `options.delay > 0` schedules the enqueue itself via `setTimeout`, tracked in an internal `delayedJobs: Map<string, NodeJS.Timeout>`.
+- `options.delay > 0` schedules the enqueue itself via `setTimeout`, tracked in an internal `delayedJobs: Map<string, ReturnType<typeof setTimeout>>`.
 - Retry: on a thrown error, or `{ success: false }` from the processor, it retries up to `options.attempts ?? 3` times using `calculateBackoff()`:
 
   | `backoff` config | Delay |

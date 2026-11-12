@@ -19,13 +19,13 @@ packages: ['@venizia/ignis']
 - **`StaticAssetServe.applyValidators({ ctx, stat })`.** Public. It sets the two headers and returns `true` when a `304` is due, so a route of your own reuses the same rules.
 - **A unique default key.** A server upload with no `serverUpload.objectKey` is stored as `<keyPrefix><folderPath>/<uuid>/<name>`, the shape the direct upload uses, so the folder still groups its keys. Before, the key was the lowercased name, so a second upload of `report.pdf` overwrote the first and left a stale MetaLink row beside it. The uuid folder does not count against `maxFolderDepth`. A download still carries the plain name.
 - **`serverUpload.maxBytes` bounds a file.** A hand-written check compared the whole request body with `maxBytes`, so two 3 MB files under a `maxBytes` of 5 MB answered `413`. It is gone. The route's body limit, `maxFiles` x `maxBytes` plus multipart framing, refuses an oversized body before it is read, and each file is checked against `maxBytes` in the handler. An oversized body answers `core.request.body_too_large` instead of `upload_too_large`; an oversized file still answers `upload_too_large`.
-- **Removed.** `StaticAssetHeaders.ALLOWED` and the metadata header loop. `StaticAssetRouteOptionsUtility.appendLengthGuard` is now `appendBodyLimit`.
+- **Removed.** `StaticAssetHeaders.ALLOWED` and the metadata header loop. The internal length guard of the upload route is now a body limit; `StaticAssetRouteOptionsUtility` is not exported, so no app code changes.
 - **Docs.** The upload labels (`principalId`, `principalType`, `variant`, `sequence`) are what the client sends, not authorization. Use direct upload's signed `resolvers.metadata` when the value must be trustworthy.
 
 ## Who is affected
 
 - **Apps that use the default server-upload key.** A key that you built from the file name (`/objects/photo.jpg`) no longer finds the object. Read `object.key` or `link` from the upload response, or set `serverUpload.objectKey`.
-- **Apps that call `appendLengthGuard` or read `StaticAssetHeaders.ALLOWED`.** Neither exists any more.
+- **Apps that read `StaticAssetHeaders.ALLOWED`.** It does not exist any more.
 - **Clients behind a cache.** They now revalidate with `304` instead of fetching the object each time.
 
 ## Migration
@@ -41,6 +41,5 @@ export const objectKey: TStaticAssetObjectKeyResolver = ({ file }) =>
   BaseStorageHelper.normalizeObjectName({ file });
 ```
 
-3. Replace `StaticAssetRouteOptionsUtility.appendLengthGuard` with `appendBodyLimit` (same options).
 
 See [Server upload](../extensions/components/static-asset/server-upload) and the [migration page](../extensions/components/static-asset/migration#behaviour-that-changed).
