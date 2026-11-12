@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-207 exports, 207 with TSDoc. 227 more are re-exported from other entries (listed at the end).
+208 exports, 208 with TSDoc. 227 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -46,15 +46,26 @@ export declare class AbstractRedisHelper<ClientType extends TRedisClient = TRedi
         identifier: string;
         client: ClientType;
     } & IRedisHelperCallbacks);
-    protected static buildRetryStrategy(opts: {
+    /** `maxRetry` is `0`, `RedisDefaults.RETRY_FOREVER` or a positive integer; anything else is a typo that would silently change how the client reconnects. */
+    protected static assertMaxRetry(opts: {
+        scope: string;
+        name: string;
         maxRetry: number;
-    }): (attemptCounter: number) => number | undefined;
+    }): void;
+    /** The wait before each reconnect, then `undefined` once `maxRetry` attempts failed: ioredis stops and the helper logs it once. */
+    protected static buildRetryStrategy(opts: {
+        scope: string;
+        name: string;
+        maxRetry: number;
+    }): (attempt: number) => number | undefined;
     protected static buildDefaultOpts(opts: {
+        scope: string;
+        name: string;
         maxRetry: number;
     }): {
         showFriendlyErrorStack: boolean;
         maxRetriesPerRequest: null;
-        retryStrategy: (attemptCounter: number) => number | undefined;
+        retryStrategy: (attempt: number) => number | undefined;
     };
     getClient(): ClientType;
     duplicateClient(): TRedisClient;
@@ -2206,6 +2217,8 @@ export interface IRedisClusterHelperProps {
      * @default true
      */
     autoConnect?: boolean;
+    /** Reconnect attempts: `0` never reconnects, `-1` never gives up; any other value is refused. `clusterOptions` still overrides. @default RedisDefaults.MAX_RETRY (5) */
+    maxRetry?: number;
     clusterOptions?: ClusterOptions;
 }
 ```
@@ -2583,7 +2596,7 @@ export interface IRedisSentinelHelperProps {
     database?: number;
     /** @default true */
     autoConnect?: boolean;
-    /** @default 0 */
+    /** Reconnect attempts: `0` never reconnects, `-1` never gives up; any other value is refused. @default RedisDefaults.MAX_RETRY (5) */
     maxRetry?: number;
     redisOptions?: Partial<RedisOptions>;
 }
@@ -2653,7 +2666,7 @@ export interface IRedisSingleHelperProps {
     database?: number;
     /** @default true */
     autoConnect?: boolean;
-    /** @default 0 */
+    /** Reconnect attempts: `0` never reconnects, `-1` never gives up; any other value is refused. @default RedisDefaults.MAX_RETRY (5) */
     maxRetry?: number;
 }
 ```
@@ -3929,6 +3942,30 @@ Ceiling on a caller-sized fan-out over one connection; a burst larger than this 
 ```ts
 export declare class RedisConcurrency {
     static readonly PUBLISH_LIMIT = 32;
+}
+```
+
+Source: `packages/helpers/src/modules/redis/common/constants.ts`
+
+## `RedisDefaults`
+
+*class*
+
+Reconnect defaults of a Redis helper.
+
+```ts
+export declare class RedisDefaults {
+    /** Reconnect attempts before the helper gives up: `0` never reconnects, `RETRY_FOREVER` never stops. */
+    static readonly MAX_RETRY = 5;
+    static readonly RETRY_FOREVER = -1;
+    /** The wait before reconnect attempt N, computed by `RetryHelper.computeBackoffDelayMs`. */
+    static readonly RECONNECT_BACKOFF: {
+        strategy: "exponential";
+        initialDelayMs: number;
+        multiplier: number;
+        maxDelayMs: number;
+        jitter: "equal";
+    };
 }
 ```
 

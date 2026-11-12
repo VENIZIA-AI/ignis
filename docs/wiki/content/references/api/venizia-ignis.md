@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-107 exports, 107 with TSDoc. 957 more are re-exported from other entries (listed at the end).
+107 exports, 107 with TSDoc. 958 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3811,6 +3811,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `REDIS_HELPER_BRAND` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `RedisClusterHelper` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `RedisConcurrency` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `RedisDefaults` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `RedisHelperFactory` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `RedisModes` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `RedisSentinelHelper` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)

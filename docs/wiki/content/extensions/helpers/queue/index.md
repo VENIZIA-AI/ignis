@@ -58,7 +58,7 @@ const worker = BullMQHelper.newInstance({
 | `'queue'` | `.queue` (BullMQ `Queue`) | Producers call `.add()` |
 | `'worker'` | `.worker` (BullMQ `Worker`) | Driven by your `onWorkerData` callback |
 
-- **One Redis helper backs any number of queues and workers.** The helper always calls `redisConnection.duplicateClient()` to open a dedicated connection for whichever role it owns. It never reuses your client directly.
+- **One Redis helper backs any number of queues and workers.** The helper hands your Redis helper's own client to BullMQ, which opens its own blocking connection for a worker and closes it. Nothing is duplicated, so closing leaks no connection.
 - **`SequentialQueueHelper` runs one element at a time**, in a `WAITING -> PROCESSING -> WAITING` loop driven by `onMessage`. Two calls change that loop:
 
 | Call | Effect |
@@ -101,25 +101,13 @@ const worker = BullMQHelper.newInstance({
 
 ### The Redis connection requirement
 
-Pass an `IRedisHelper` instance, not a raw ioredis client. `BullMQHelper` calls `redisConnection.duplicateClient()` internally.
+Pass an `IRedisHelper` instance, not a raw ioredis client. `BullMQHelper` passes `redisConnection.getClient()` to BullMQ.
 
 | Redis helper | Sets `maxRetriesPerRequest: null`? |
 |--------------|-------------------------------------|
 | `RedisSingleHelper` | Automatically |
 | `RedisSentinelHelper` | Automatically |
-| `RedisClusterHelper` | No - set it yourself, BullMQ requires it |
-
-```typescript
-import { RedisClusterHelper } from '@venizia/ignis-helpers';
-
-const clusterRedis = new RedisClusterHelper({
-  name: 'cluster-redis',
-  nodes: [{ host: 'node1.redis.example.com', port: 6379 }],
-  clusterOptions: {
-    redisOptions: { maxRetriesPerRequest: null }, // required by BullMQ
-  },
-});
-```
+| `RedisClusterHelper` | Automatically; `clusterOptions.redisOptions` replaces it, so repeat it there |
 
 ### In-memory queue for single-process sequencing
 

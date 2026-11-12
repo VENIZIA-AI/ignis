@@ -120,7 +120,7 @@ Combines `IRedisSingleHelperProps`, `IRedisHelperCallbacks` and `IRedisModuleOpt
 | `password` | `string` | No | - | Redis `requirepass` value. Omit it for a Redis with no password. |
 | `database` | `number` | No | `0` | Redis database index (0-15) |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` uses ioredis `lazyConnect` |
-| `maxRetry` | `number` | No | `0` | Reconnect attempts before giving up. `0` (default) = no reconnect; `-1` = reconnect forever |
+| `maxRetry` | `number` | No | `5` | Reconnect attempts before giving up. `0` = no reconnect; `-1` = reconnect forever; any other value is refused at construction |
 | `module` | `typeof import('ioredis')` | No | loaded by name | `ioredis` itself, for a `bun build --compile` binary with no `node_modules` - see [Run in a compiled binary](/extensions/helpers/redis/#run-in-a-compiled-binary) |
 | `onInitialized` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired synchronously after construction |
 | `onConnected` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired on TCP connection established |
@@ -129,17 +129,18 @@ Combines `IRedisSingleHelperProps`, `IRedisHelperCallbacks` and `IRedisModuleOpt
 
 ### Retry strategy
 
-ioredis calls the strategy with `attempt` starting at `1`, so the first reconnect waits 2 s.
+All three helpers (single, sentinel and cluster) reconnect the same way. ioredis calls the strategy with `attempt` starting at `1`; the wait comes from `RetryHelper.computeBackoffDelayMs` with `RedisDefaults.RECONNECT_BACKOFF`: exponential from 1 s, doubling, capped at 30 s, with equal jitter (each wait is between half and all of the computed delay).
 
 | `attempt` | Delay |
 |---|---|
-| 1 | 2 s |
-| 2 | 4 s |
-| 3 and later | 5 s |
+| 1 | 0.5 - 1 s |
+| 2 | 1 - 2 s |
+| 3 | 2 - 4 s |
+| 6 and later | up to 30 s |
 
-- **Backoff formula.** `Math.max(Math.min(attempt * 2000, 5000), 1000)`. The `1000` floor is unreachable, because the smallest `attempt` is `1`.
 - **Backoff resets on success.** ioredis sets `retryAttempts` back to `0` once the client reaches `ready`.
-- **Stop condition.** Reconnect stops when `attempt > maxRetry`, unless `maxRetry` is `-1`. Under the default `maxRetry: 0` that fires on the very first attempt, so the client never reconnects.
+- **Stop condition.** Reconnect stops when `attempt > maxRetry`, unless `maxRetry` is `-1`. The helper logs an error once when it gives up. `maxRetry: 0` stops on the first attempt.
+- **Bad values are refused.** `maxRetry` must be `0`, `-1` or a positive integer; a negative number other than `-1`, a fraction or `NaN` throws when the helper is built.
 - **This strategy does not retry commands.** It only schedules reconnection.
 - **BullMQ requirement.** The framework always sets `maxRetriesPerRequest: null` internally, which BullMQ requires.
 
@@ -149,10 +150,10 @@ ioredis calls the strategy with `attempt` starting at `1`, so the first reconnec
 
 | `maxRetry` | Outcome for queued commands |
 |---|---|
-| `-1` or a positive number | Flushed to the server once the client reconnects |
-| `0` (default) | Rejected with `Connection is closed.` as soon as the client gives up |
+| `-1` or a positive number | Flushed to the server once the client reconnects, until `maxRetry` attempts fail |
+| `0` | Rejected with `Connection is closed.` as soon as the client gives up |
 
-To survive a restart or a failover without losing commands, set `maxRetry: -1`.
+The default of 5 attempts rides out a restart of a few seconds. To survive a longer outage or a failover without losing commands, set `maxRetry: -1`.
 
 ## Construction - Cluster
 
@@ -203,17 +204,16 @@ const cluster = new RedisClusterHelper({
 await cluster.connect();
 ```
 
-The helper sets two cluster options before your own:
+The helper sets these cluster options before your own:
 
 | Option | Value | Why it is stated, not inherited |
 |--------|-------|--------------------------------|
 | `lazyConnect` | `!autoConnect` | The same rule single and sentinel already follow |
 | `enableOfflineQueue` | `true` | Commands issued between bind and connect must queue, not throw |
+| `clusterRetryStrategy` | the [retry strategy](#retry-strategy) for `maxRetry` (default `5`) | Reconnects the cluster the way single and sentinel reconnect |
+| `redisOptions.maxRetriesPerRequest` | `null` | BullMQ requires it |
 
-`clusterOptions` is merged **over** both, so it stays the last word. A caller already passing `clusterOptions: { lazyConnect: true }` keeps exactly the timing it has today.
-
-> [!WARNING] No framework defaults injected
-> Cluster does not apply the backoff retry strategy or `maxRetriesPerRequest: null` automatically. Pass those inside `clusterOptions.redisOptions` if your consumers (e.g. BullMQ) require them.
+`clusterOptions` is merged **over** all of them, so it stays the last word. A caller already passing `clusterOptions: { lazyConnect: true }` keeps exactly the timing it has today. The merge is shallow: passing your own `redisOptions` replaces the default one, so repeat `maxRetriesPerRequest: null` there if BullMQ uses the helper.
 
 `duplicateClient()` on a cluster creates a **new** `Cluster` instance from the same startup nodes and options. ioredis `Cluster` doesn't implement `.duplicate()`, so the helper builds a fresh instance instead.
 
@@ -283,7 +283,7 @@ const redis = new RedisSentinelHelper({
 | `sentinelUsername` | `string` | No | - | Sentinel ACL username |
 | `database` | `number` | No | `0` | Redis database index |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately |
-| `maxRetry` | `number` | No | `0` | Reconnect attempts before giving up. `0` (default) = no reconnect; `-1` = reconnect forever. See [Retry strategy](#retry-strategy) |
+| `maxRetry` | `number` | No | `5` | Reconnect attempts before giving up. `0` = no reconnect; `-1` = reconnect forever; any other value is refused at construction. See [Retry strategy](#retry-strategy) |
 | `redisOptions` | `Partial<RedisOptions>` | No | - | Extra ioredis options; first-class fields above always override matching keys here |
 | `module` | `typeof import('ioredis')` | No | loaded by name | Same as single |
 | `onInitialized` / `onConnected` / `onReady` / `onError` | callbacks | No | - | Same shape as single |
@@ -323,7 +323,7 @@ When the master fails:
 1. Sentinels reach quorum and promote a replica.
 2. ioredis detects the master change via sentinel notification.
 3. ioredis reconnects to the new master transparently.
-4. Commands issued during the few-second window queue up, then flush once the client reconnects. This needs `maxRetry: -1` or a positive `maxRetry`; the default `0` rejects them.
+4. Commands issued during the few-second window queue up, then flush once the client reconnects. This needs `maxRetry: -1` or a positive `maxRetry`; `0` rejects them.
 5. **Your application code does not change.** The same `RedisSentinelHelper` instance continues to work after failover.
 
 ### Local testing with Docker Compose
@@ -665,10 +665,10 @@ All three topologies implement `IRedisHelper` and are interchangeable in every i
 ### BullMQ (BullMQHelper)
 
 `BullMQHelper` accepts a `redisConnection: IRedisHelper`. Internally it:
-- Calls `redisConnection.duplicateClient()` to create dedicated `Queue` and `Worker` connections. BullMQ requires a separate connection per role.
+- Passes `redisConnection.getClient()` to the `Queue` and the `Worker`. BullMQ marks a client it is handed as shared and never quits it, and opens (and closes) its own blocking connection for a worker. The helper does not duplicate the client, so closing a queue or worker leaks no connection.
 - Calls `redisConnection.getClient() instanceof Cluster` to detect cluster topology and adjust BullMQ configuration.
 
-`RedisSingleHelper` and `RedisSentinelHelper` are BullMQ-compatible out of the box. The framework sets `maxRetriesPerRequest: null` in `buildDefaultOpts`.
+`RedisSingleHelper`, `RedisSentinelHelper` and `RedisClusterHelper` are BullMQ-compatible out of the box. The framework sets `maxRetriesPerRequest: null` on each.
 
 ```typescript
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';

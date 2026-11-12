@@ -366,7 +366,7 @@ describe('BullMQMailExecutorHelper - teardown', () => {
   });
 });
 
-/** A Redis helper of any topology: the executor only hands it to BullMQ, which duplicates its client. */
+/** A Redis helper of any topology: the executor hands its own client to BullMQ, which never quits a client it is handed, so nothing is duplicated. */
 const buildRedisHelper = (opts: { client: Record<string, unknown> }) => {
   const helper = {
     isDisconnected: false,
@@ -425,9 +425,8 @@ const buildFakeBullMQ = () => {
 
 describe("BullMQMailExecutorHelper - the Redis helper is the application's", () => {
   test('a sentinel-shaped helper is used as given, and the queue keeps its plain name', async () => {
-    const sentinel = buildRedisHelper({
-      client: { sentinels: [{ host: 'sentinel-1', port: 26379 }] },
-    });
+    const client = { sentinels: [{ host: 'sentinel-1', port: 26379 }] };
+    const sentinel = buildRedisHelper({ client });
     const { module, queues } = buildFakeBullMQ();
 
     const executor = new BullMQMailExecutorHelper({
@@ -437,7 +436,8 @@ describe("BullMQMailExecutorHelper - the Redis helper is the application's", () 
       module,
     });
 
-    expect(queues).toEqual([{ name: 'mail', connection: { duplicate: 1 } }]);
+    expect(queues).toEqual([{ name: 'mail', connection: client }]);
+    expect(sentinel.duplicates).toBe(0);
 
     await executor.close();
 
@@ -460,8 +460,8 @@ describe("BullMQMailExecutorHelper - the Redis helper is the application's", () 
 
     expect(queues.map((queue) => queue.name)).toEqual(['{mail}']);
     expect(workers.map((worker) => worker.name)).toEqual(['{mail}', '{mail}']);
-    // One duplicated client for the queue and one per worker; the helper itself is never handed over.
-    expect(cluster.duplicates).toBe(3);
+    // The queue and both workers share the helper's own client; none is duplicated, so none leaks.
+    expect(cluster.duplicates).toBe(0);
 
     await executor.close();
 

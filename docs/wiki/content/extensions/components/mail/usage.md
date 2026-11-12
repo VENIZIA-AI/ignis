@@ -351,7 +351,7 @@ this.bind({ key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG }).toValue({
 ```
 
 > [!IMPORTANT]
-> Give the helper an unbounded `maxRetry` (`-1`) so it keeps reconnecting. A Sentinel failover or a brief network drop takes seconds, and a queue has to survive it. The old executor built its helper with `maxRetry` unset, which is `0`: ioredis gave up on the first failed reconnect, so a drop could end the queue until the process restarted. On Redis Cluster the helper's ioredis default already keeps retrying; set `clusterOptions.clusterRetryStrategy` only to change it.
+> Give the helper an unbounded `maxRetry` (`-1`) so it keeps reconnecting. The default is 5 attempts, which rides out a restart of a few seconds; a longer Sentinel failover or network drop would end the queue until the process restarts.
 
 **Dynamic worker management.** Get the bound instance and manage workers at runtime - no restart required:
 

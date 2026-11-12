@@ -47,16 +47,17 @@ console.log(session); // { userId: 42, active: true }
 
 - **Pick a topology via the factory.** `RedisHelperFactory.create({ mode })` picks a topology from configuration. Pass a literal `mode` (`RedisModes.SINGLE | CLUSTER | SENTINEL`) and it returns the concrete class, not the generic `IRedisHelper`. The old `createRedisHelper(opts)` function is removed.
 - **Connection lifecycle is automatic.** With `autoConnect: true` (the default), the ioredis client starts connecting inside the constructor. Set `autoConnect: false` and call `connect()` yourself instead.
-- **Reconnect backoff grows with each attempt:** 2 s, then 4 s, then 5 s for every attempt after that. A successful reconnect resets it.
-- **The default does not reconnect at all.** `maxRetry` defaults to `0`, which gives up after the first failed attempt. Pass `-1` to reconnect forever.
+- **Reconnect backoff grows with each attempt:** about 1 s, 2 s, 4 s and so on up to 30 s, with half of each wait randomized. A successful reconnect resets it.
+- **The default reconnects 5 times.** `maxRetry` defaults to `5`. Pass `-1` to reconnect forever, or `0` to never reconnect. Any other value is refused when the helper is built.
 
 | `maxRetry` | Behavior |
 |---|---|
-| `0` (default) | No reconnect - the client gives up after the first failed attempt |
+| `5` (default) | Stop reconnecting after 5 attempts, and log once that it gave up |
+| `0` | No reconnect - the client gives up after the first failed attempt |
 | `-1` | Reconnect forever |
-| A positive number | Stop reconnecting after that many attempts |
+| Another positive integer | Stop reconnecting after that many attempts |
 
-- **BullMQ compatibility differs by topology.** Single and Sentinel helpers always set `maxRetriesPerRequest: null`, which is what BullMQ requires. Cluster does not get this automatically - see the [Full reference](/extensions/helpers/redis/reference).
+- **BullMQ compatibility.** Single, Sentinel and Cluster helpers all set `maxRetriesPerRequest: null`, which is what BullMQ requires. On a cluster, `clusterOptions.redisOptions` replaces it.
 - **Values are JSON-serialized automatically.**
 
 | Method group | Behavior |

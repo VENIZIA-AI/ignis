@@ -2,12 +2,20 @@ import { ModuleUtility } from '@/utilities/module.utility';
 import { ParseUtility } from '@/utilities/parse.utility';
 import type { Redis } from 'ioredis';
 import { AbstractRedisHelper } from './../base';
-import { type IRedisSingleHelperOptions } from './../common';
+import { RedisDefaults, type IRedisSingleHelperOptions } from './../common';
 
 /** Redis helper over one ioredis `Redis` client connected to a single node. */
 export class RedisSingleHelper extends AbstractRedisHelper<Redis> {
   constructor(opts: IRedisSingleHelperOptions) {
-    const { name, host, port, password, database = 0, autoConnect = true, maxRetry = 0 } = opts;
+    const {
+      name,
+      host,
+      port,
+      password,
+      database = 0,
+      autoConnect = true,
+      maxRetry = RedisDefaults.MAX_RETRY,
+    } = opts;
 
     // Optional peer, loaded when a client is built: an app with no Redis installs no ioredis.
     const ioredis =
@@ -24,7 +32,7 @@ export class RedisSingleHelper extends AbstractRedisHelper<Redis> {
         password,
         db: database,
         lazyConnect: !autoConnect,
-        ...AbstractRedisHelper.buildDefaultOpts({ maxRetry }),
+        ...AbstractRedisHelper.buildDefaultOpts({ scope: RedisSingleHelper.name, name, maxRetry }),
       }),
     });
   }

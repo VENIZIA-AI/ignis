@@ -42,6 +42,47 @@ describe('RedisClusterHelper', () => {
   });
 });
 
+describe('RedisClusterHelper reconnect policy', () => {
+  const build = (opts: {
+    maxRetry?: number;
+    clusterOptions?: ConstructorParameters<typeof RedisClusterHelper>[0]['clusterOptions'];
+  }) =>
+    new RedisClusterHelper({
+      name: 'cluster-retry',
+      nodes: [{ host: '127.0.0.1', port: 7000 }],
+      autoConnect: false,
+      ...opts,
+    });
+
+  it('reconnects with the same default and backoff as the other modes, and BullMQ-safe requests', () => {
+    const client = build({}).getClient();
+    const strategy = client.options.clusterRetryStrategy!;
+
+    expect(strategy(5, new Error('down'))).toBeNumber();
+    expect(strategy(6, new Error('down'))).toBeUndefined();
+    expect(client.options.redisOptions?.maxRetriesPerRequest).toBeNull();
+    client.disconnect();
+  });
+
+  it('maxRetry 0 never reconnects, and a bad value is refused', () => {
+    const client = build({ maxRetry: 0 }).getClient();
+
+    expect(client.options.clusterRetryStrategy!(1, new Error('down'))).toBeUndefined();
+    expect(() => build({ maxRetry: -3 })).toThrow(/maxRetry must be 0/);
+    client.disconnect();
+  });
+
+  it('clusterOptions still overrides the defaults', () => {
+    const client = build({
+      clusterOptions: { clusterRetryStrategy: () => 7, redisOptions: { maxRetriesPerRequest: 2 } },
+    }).getClient();
+
+    expect(client.options.clusterRetryStrategy!(1, new Error('down'))).toBe(7);
+    expect(client.options.redisOptions?.maxRetriesPerRequest).toBe(2);
+    client.disconnect();
+  });
+});
+
 describe('RedisClusterHelper connection timing', () => {
   let helper: RedisClusterHelper | undefined;
 

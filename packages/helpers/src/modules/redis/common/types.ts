@@ -17,7 +17,7 @@ export interface IRedisSingleHelperProps {
   database?: number;
   /** @default true */
   autoConnect?: boolean;
-  /** @default 0 */
+  /** Reconnect attempts: `0` never reconnects, `-1` never gives up; any other value is refused. @default RedisDefaults.MAX_RETRY (5) */
   maxRetry?: number;
 }
 
@@ -31,6 +31,8 @@ export interface IRedisClusterHelperProps {
    * @default true
    */
   autoConnect?: boolean;
+  /** Reconnect attempts: `0` never reconnects, `-1` never gives up; any other value is refused. `clusterOptions` still overrides. @default RedisDefaults.MAX_RETRY (5) */
+  maxRetry?: number;
   clusterOptions?: ClusterOptions;
 }
 
@@ -52,7 +54,7 @@ export interface IRedisSentinelHelperProps {
   database?: number;
   /** @default true */
   autoConnect?: boolean;
-  /** @default 0 */
+  /** Reconnect attempts: `0` never reconnects, `-1` never gives up; any other value is refused. @default RedisDefaults.MAX_RETRY (5) */
   maxRetry?: number;
   redisOptions?: Partial<RedisOptions>;
 }

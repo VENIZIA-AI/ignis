@@ -2,7 +2,7 @@ import { ModuleUtility } from '@/utilities/module.utility';
 import { ParseUtility } from '@/utilities/parse.utility';
 import type { Redis } from 'ioredis';
 import { AbstractRedisHelper } from './../base';
-import { type IRedisSentinelHelperOptions, RedisSentinelRoles } from './../common';
+import { RedisDefaults, type IRedisSentinelHelperOptions, RedisSentinelRoles } from './../common';
 
 /** Redis helper for a master and replicas behind Sentinel. `redisOptions` overrides the helper defaults; the first-class fields override `redisOptions`. */
 export class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
@@ -17,7 +17,7 @@ export class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
       sentinelUsername,
       database = 0,
       autoConnect = true,
-      maxRetry = 0,
+      maxRetry = RedisDefaults.MAX_RETRY,
       redisOptions = {},
     } = opts;
 
@@ -35,7 +35,11 @@ export class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
       identifier: name,
       // Precedence (low -> high): framework defaults, the redisOptions escape hatch, then first-class fields. Optional auth fields are spread ONLY when provided, so a value set via redisOptions is not clobbered by an undefined first-class field.
       client: new ioredis.Redis({
-        ...AbstractRedisHelper.buildDefaultOpts({ maxRetry }),
+        ...AbstractRedisHelper.buildDefaultOpts({
+          scope: RedisSentinelHelper.name,
+          name,
+          maxRetry,
+        }),
         ...redisOptions,
         sentinels: normalizedSentinels,
         name: masterName,

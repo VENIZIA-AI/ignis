@@ -41,7 +41,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers) | 7 | 7 |
 | [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter) | 19 | 19 |
 | [`@venizia/ignis-filter/schemas`](/references/api/venizia-ignis-filter-schemas) | 11 | 11 |
-| [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers) | 207 | 207 |
+| [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers) | 208 | 208 |
 | [`@venizia/ignis-helpers/axios`](/references/api/venizia-ignis-helpers-axios) | 4 | 4 |
 | [`@venizia/ignis-helpers/bullmq`](/references/api/venizia-ignis-helpers-bullmq) | 2 | 2 |
 | [`@venizia/ignis-helpers/bun-s3`](/references/api/venizia-ignis-helpers-bun-s3) | 2 | 2 |
