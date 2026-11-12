@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**120 targets.**
+**121 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -25,6 +25,7 @@ generated:
 | `make build-all` | `core core-worker boot docs wiki-links-check wiki-anchors-check api-check api-undocumented` | Rebuilds all packages in order, then the wiki and its checks. |
 | `make build-checks` | - | Gate: the built output - self-contained sourcemaps, the oxlint subpath loads no ESLint, every value typed in an entry exists at runtime. Needs a build. |
 | `make catalog-check` | - | Gate: every catalogued dep is referenced as "catalog:", none drifted. |
+| `make changelog-check` | - | Gate: every Breaking Change changelog entry since the cutover carries a valid migration block. |
 | `make clean` | - | Clean build artifacts from all packages. |
 | `make clean-install` | - | Load every published sub-path from packed tarballs in an empty project. |
 | `make clean-install-boot` | - | Load one package's sub-paths from a clean install. Needs a build. |
@@ -55,7 +56,7 @@ generated:
 | `make inversion` | `dev-configs` | Rebuild one package, after its dependencies. |
 | `make kernel` | `helpers filter` | Rebuild one package, after its dependencies. |
 | `make lint` | `lint-packages` | lint-<pkg> for every package. |
-| `make lint-all` | `lint-packages lint-scripts lint-files lint-wiki` | lint-packages, lint-scripts, lint-files (package.json, .github, .agents, .configs, presets, examples) and lint-wiki. |
+| `make lint-all` | `lint-packages lint-scripts lint-files lint-wiki changelog-check` | lint-packages, lint-scripts, lint-files (package.json, .github, .agents, .configs, presets, examples), lint-wiki and changelog-check. |
 | `make lint-boot` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-connectors` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-core` | `lint-core-server` | oxlint + ESLint (naming-convention) + bun fmt check of one package. |

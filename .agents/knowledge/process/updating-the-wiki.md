@@ -11,6 +11,7 @@ tags: [process, docs, wiki]
 
 - [Steps](#steps)
 - [What the changelog records](#what-the-changelog-records)
+- [The migration block](#the-migration-block)
 - [Related](#related)
 <!-- okf:generated:contents end -->
 
@@ -118,6 +119,22 @@ do about it, and the upgrade step of a breaking change. Several changes to one t
 
 An entry is attached to the first release made on or after its date (`vulcan x atlas releases`), so date it on or
 after the day the release that carries it is made.
+
+## The migration block
+
+A Breaking Change entry (badge text `Breaking Change`; `Breaking` is read as breaking too but reported on entries after the cutover) dated on or after `knowledge.migrationFrom` carries `migration:` in its frontmatter: how an app moves across the change, in both directions. `make changelog-check` (`vulcan changelog check`, a CI step) fails when it is missing or invalid; entries before the cutover are never read.
+
+```yaml
+migration:
+  - id: redis-factory-per-topology       # lower-case words joined by -, unique across the folder
+    symbols: [RedisHelperFactory.create] # the names an app's code uses: Name, Name.member or a module specifier
+    upgrade: { before: "RedisHelper.new()", after: "RedisHelperFactory.create()" }  # or { steps: ["..."] }
+    downgrade: { steps: ["Call RedisHelper.new() again"] }   # required; an irreversible change says so here
+    data: "Stored tokens keep the old prefix."               # optional: stored data that does not cross the boundary
+    codemod: namespace-functions                             # optional: a `devz codemod` name
+```
+
+List the symbols as the app spells them before the change (a removed or renamed name is not in the new exports, so the check does not look them up). `before`/`after` and `steps` are alternatives, never both. The `## Breaking changes` section stays: it is the human version of the same steps.
 
 ## Related
 

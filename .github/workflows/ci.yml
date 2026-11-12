@@ -63,6 +63,10 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: make okf-check-strict
 
+      - name: Changelog migration blocks
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: make changelog-check
+
       - name: Agent setup (VULCAN)
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: make vulcan-sync vulcan-doctor

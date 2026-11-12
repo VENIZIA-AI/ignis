@@ -2,13 +2,32 @@
 title: Redis helpers reconnect by default, and BullMQ no longer leaks a connection per queue
 description: "maxRetry defaults to 5 with an exponential backoff on single, sentinel and cluster helpers, a bad value is refused, a cluster is BullMQ-ready by default, and BullMQHelper stops duplicating the Redis client."
 packages: ['@venizia/ignis-helpers']
+migration:
+  - id: redis-default-retry
+    symbols: [maxRetry, RedisSingleHelper, RedisSentinelHelper, RedisClusterHelper]
+    upgrade:
+      steps:
+        - "To keep the helper giving up at once, set maxRetry: 0. The default is now 5, with a backoff that doubles from 1 s to 30 s."
+        - "Pass maxRetry as 0, -1 or a positive integer: a negative number other than -1, a fraction or NaN throws when the helper is built."
+        - "On a cluster behind BullMQ, remove the maxRetriesPerRequest: null you set in clusterOptions.redisOptions; it is the default now."
+    downgrade:
+      steps:
+        - "Set maxRetry: 0 to get the older no-reconnect default. The older 2 s, 4 s, 5 s delays cannot be restored by configuration; pin the previous version for them."
+  - id: bullmq-helper-own-client
+    symbols: [BullMQHelper]
+    upgrade:
+      steps:
+        - "No code change: BullMQHelper hands the helper's own client to BullMQ, so one queue or worker opens one connection fewer."
+    downgrade:
+      steps:
+        - "No app change; the older version duplicates the client and leaves each duplicate open after close()."
 ---
 
 # Changelog - 2026-11-12
 
 ## Redis helpers reconnect by default, and BullMQ no longer leaks a connection per queue
 
-<Badge type="warning" text="Breaking" /> <Badge type="info" text="Bug Fix" />
+<Badge type="warning" text="Breaking Change" /> <Badge type="info" text="Bug Fix" />
 
 **In one line.** A Redis restart no longer leaves workers and queues dead until the process restarts, and a `BullMQHelper` no longer leaves one Redis connection behind per queue and worker.
 

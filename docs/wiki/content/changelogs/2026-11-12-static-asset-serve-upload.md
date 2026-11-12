@@ -2,13 +2,36 @@
 title: Static asset serves with ETag and 304, uploads get a unique key, maxBytes bounds each file
 description: "The serve routes send ETag and Last-Modified and answer 304 without reading the object. The server upload's default key carries a uuid. serverUpload.maxBytes no longer refuses a body that is only larger than one file."
 packages: ['@venizia/ignis']
+migration:
+  - id: static-asset-unique-upload-key
+    symbols: [serverUpload.objectKey]
+    upgrade:
+      before: |
+        const url = `${base}/objects/${fileName}`;
+      after: |
+        const url = response.link;
+    downgrade:
+      steps:
+        - "Read the key and link from the upload answer in both versions. To restore name-based keys on the new version, set serverUpload.objectKey to a resolver that returns the normalized file name."
+    data: "Objects stored by 0.4.8-13 live under <keyPrefix><folderPath>/<name>; 0.4.8-14 stores new ones under <keyPrefix><folderPath>/<uuid>/<name>. Both are served by the same routes; nothing is moved."
+  - id: static-asset-body-limit
+    symbols: [StaticAssetRouteOptionsUtility.appendLengthGuard, StaticAssetHeaders.ALLOWED]
+    upgrade:
+      before: |
+        StaticAssetRouteOptionsUtility.appendLengthGuard({ ... });
+      after: |
+        StaticAssetRouteOptionsUtility.appendBodyLimit({ ... });
+    downgrade:
+      steps:
+        - "Call appendLengthGuard again. The older guard compared the whole body with maxBytes, so two files under maxBytes could answer 413 together."
+        - "Expect core.request.body_too_large for an oversized body on the new version and upload_too_large for an oversized file on both."
 ---
 
 # Changelog - 2026-11-12
 
 ## Static asset serves with ETag and 304, uploads get a unique key, maxBytes bounds each file
 
-<Badge type="warning" text="Breaking" /> <Badge type="tip" text="Improvement" /> <Badge type="danger" text="Bug Fix" />
+<Badge type="warning" text="Breaking Change" /> <Badge type="tip" text="Improvement" /> <Badge type="danger" text="Bug Fix" />
 
 **In one line.** A browser can cache what the serve routes send, a same-name server upload no longer overwrites the first one, and two files under `maxBytes` no longer fail together.
 

@@ -11,13 +11,13 @@ LINT_PROJECT = cd $(1) && node_modules/.bin/oxlint -c .configs/lints/oxlint.conf
 LINT_PKG_TARGETS := $(addprefix lint-,$(PACKAGES))
 LINT_FIX_PKG_TARGETS := $(addprefix lint-fix-,$(PACKAGES))
 
-.PHONY: lint lint-all lint-fix lint-packages lint-wiki lint-scripts lint-files lint-fix-packages fmt-files fmt-scripts fmt-wiki \
+.PHONY: lint lint-all lint-fix lint-packages lint-wiki lint-scripts lint-files lint-fix-packages fmt-files fmt-scripts fmt-wiki changelog-check \
         $(LINT_PKG_TARGETS) $(LINT_FIX_PKG_TARGETS)
 
 lint: lint-packages
 	@echo "✅ Linting completed."
 
-lint-all: lint-packages lint-scripts lint-files lint-wiki
+lint-all: lint-packages lint-scripts lint-files lint-wiki changelog-check
 	@echo "✅ All linting completed."
 
 lint-packages: $(LINT_PKG_TARGETS)
@@ -35,6 +35,10 @@ $(LINT_PKG_TARGETS): lint-%:
 
 $(LINT_FIX_PKG_TARGETS): lint-fix-%:
 	@$(MAKE) --no-print-directory -C packages/$* lint-fix
+
+# Gate: a Breaking Change entry from `knowledge.migrationFrom` on carries a valid `migration:` block. Runs the installed VULCAN, no build.
+changelog-check:
+	@bun x --no-install vulcan changelog check
 
 # site/ is the VitePress theme, written to its API (a `Layout` render method), so only the wiki's
 # own scripts are linted; the formatter also covers its CSS, Vue and JSON. The sidebar config (.vitepress/config.mts) keeps its one-entry-per-line

@@ -2,6 +2,47 @@
 title: Redis factory has one method per topology, and a few helper types are stricter
 description: "RedisHelperFactory.create({ mode }) is replaced by RedisHelperFactory.single, .cluster and .sentinel; the unused Redis user option, RedisModes and some isValid/SCHEME_SET statics are removed; a few helper types use unknown instead of any."
 packages: ['@venizia/ignis-helpers']
+migration:
+  - id: redis-factory-per-topology
+    symbols: [RedisHelperFactory.create, RedisModes, TRedisMode, TCreateRedisHelperOptions]
+    upgrade:
+      before: |
+        const redis = RedisHelperFactory.create({
+          mode: RedisModes.SINGLE,
+          name: 'cache',
+          host: '127.0.0.1',
+          port: 6379,
+        });
+      after: |
+        const redis = RedisHelperFactory.single({
+          name: 'cache',
+          host: '127.0.0.1',
+          port: 6379,
+        });
+    downgrade:
+      steps:
+        - "Call RedisHelperFactory.create({ mode, ...options }) with RedisModes.SINGLE, CLUSTER or SENTINEL instead of single, cluster or sentinel."
+        - "Keep your own mode constants if you removed RedisModes from your code."
+  - id: redis-single-user-option
+    symbols: [RedisSingleHelper]
+    upgrade:
+      steps:
+        - "Remove the user option from RedisSingleHelper options; it was never read. Set the credential with password."
+    downgrade:
+      steps:
+        - "Nothing to undo: the older version accepts user and ignores it."
+  - id: bullmq-helper-type-arguments
+    symbols: [BullMQHelper]
+    upgrade:
+      before: |
+        const queue: BullMQHelper<unknown, unknown> = new BullMQHelper<TElement, unknown>({ ... });
+        onWorkerData: (job: Job<TElement>) => Promise<void>,
+      after: |
+        const queue = new BullMQHelper<TElement, TResult>({ ... });
+        onWorkerData: (job: Job<TElement, TResult>) => Promise<TResult>,
+    downgrade:
+      steps:
+        - "Types only. Restore the any defaults by leaving the type arguments off; handlers keep compiling against the older any callbacks."
 ---
 
 # Changelog - 2026-11-12

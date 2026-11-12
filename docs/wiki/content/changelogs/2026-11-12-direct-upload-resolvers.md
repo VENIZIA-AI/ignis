@@ -2,13 +2,57 @@
 title: Direct upload takes resolvers, signs metadata per file and commits once
 description: "directUpload.resolveOwner becomes directUpload.resolvers.owner (required), with per-file signed metadata and a commit destination. A file name that is a path is refused, a commit is single-use, and the token is read strictly."
 packages: ['@venizia/ignis']
+migration:
+  - id: direct-upload-owner-resolver
+    symbols: [directUpload.resolveOwner, directUpload.resolvers]
+    upgrade:
+      before: |
+        directUpload: {
+          use: true,
+          resolveOwner: ({ context }) => userIdOf(context),
+        },
+      after: |
+        directUpload: {
+          use: true,
+          resolvers: {
+            owner: ({ context }) => userIdOf(context),
+          },
+        },
+    downgrade:
+      steps:
+        - "Move resolvers.owner back to directUpload.resolveOwner and delete resolvers.metadata and resolvers.commit if you added them."
+        - "Make owner optional again where you chose to omit it, and stop awaiting verify: the 0.4.8-13 verify is synchronous."
+    data: "A commit token carries owner and metadata. Tokens issued before 0.4.8-14 lack metadata and are refused (400 invalid_commit_token); tokens issued by 0.4.8-14 are refused by 0.4.8-13. Users upload again across either boundary. The metadata is stored in the MetaLink row's metadata column under app; no migration, and the older version ignores it."
+  - id: direct-upload-service-owner
+    symbols: [StaticAssetUploadPolicyService.issuePolicies, StaticAssetUploadCommitService.verify, StaticAssetUploadCommitService.validate, StaticAssetUploadCommitService.commit]
+    upgrade:
+      before: |
+        const policies = await policyService.issuePolicies({ files, owner });
+        const verified = commitService.verify({ token, owner });
+        const result = await commitService.commit({ token, owner });
+      after: |
+        const policies = await policyService.issuePolicies({ files, owner });
+        const verified = await commitService.verify({ token, owner });
+        const result = await commitService.commit({ token, owner });
+    downgrade:
+      steps:
+        - "Stop awaiting verify; the 0.4.8-13 services accept owner but do not require it, so you may drop it from the four calls."
+  - id: direct-upload-commit-single-use
+    symbols: [StaticAssetRouteKeys.UPLOAD_COMMIT, StaticAssetRouteKeys.UPLOAD_POLICY]
+    upgrade:
+      steps:
+        - "Treat 409 core.static_asset.upload_already_committed on upload-commit as success: its extra carries { object: { key }, link }, so a client that lost the first answer still gets the link."
+        - "Send fileName as one name only; a path such as ../../x.png or a/b/c.png now answers 400 object_name_invalid."
+    downgrade:
+      steps:
+        - "Nothing to undo in the app: a second commit with the same token overwrites the first object again, and a path in fileName reaches the key unchecked, so keep your own check."
 ---
 
 # Changelog - 2026-11-12
 
 ## Direct upload takes resolvers, signs metadata per file and commits once
 
-<Badge type="warning" text="Breaking" /> <Badge type="danger" text="Security" /> <Badge type="tip" text="New Feature" />
+<Badge type="warning" text="Breaking Change" /> <Badge type="danger" text="Security" /> <Badge type="tip" text="New Feature" />
 
 **In one line.** A token always has an owner now, can carry metadata your app chose for the file, and commits once; a policy no longer accepts a file name that is a path.
 

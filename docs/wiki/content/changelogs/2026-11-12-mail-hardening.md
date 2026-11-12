@@ -2,13 +2,44 @@
 title: Mail escapes template values, checks headers for every transport, and cleans up on stop
 description: "Template values are HTML-escaped, a message is checked for header injection once for every transport, failed BullMQ mail jobs expire, the mail component closes its executor and transport when the app stops, and Mailgun sends inline images."
 packages: ['@venizia/ignis']
+migration:
+  - id: mail-template-escaping
+    symbols: [MailService, MailTemplateService.render]
+    upgrade:
+      before: |
+        <p>{{greetingHtml}}</p>
+      after: |
+        <p>{{{greetingHtml}}}</p>
+    downgrade:
+      steps:
+        - "Use {{value}} again for the placeholders you switched to {{{value}}}, and remove any hand escaping you added."
+  - id: mail-send-template-options
+    symbols: [MailService.sendTemplate, MailService.send]
+    upgrade:
+      steps:
+        - "Where sendTemplate options carried to or html, call MailService.send with the recipients and body you want; sendTemplate keeps the rendered body and its recipients."
+        - "Send no address, subject or header value with a line break, CR or NUL; it now answers 400 core.mail.invalid_header on every transport."
+    downgrade:
+      steps:
+        - "Call sendTemplate with options.to or options.html again; the older version let them replace the recipients and the rendered body."
+    data: "Failed BullMQ mail jobs now expire after seven days (1000 at most). Jobs already kept stay until the next cleanup; nothing is migrated."
+  - id: mail-component-stop-and-retention
+    symbols: [MailComponent, MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG]
+    upgrade:
+      steps:
+        - "Nothing to change: the component closes its executor and transport on stop, and enqueueVerificationEmail throws once the executor is closed."
+        - "If you send through a transport you built yourself instead of MailService, validate headers with MailHeaderUtility.assert before transport.send; only MailService.send checks them."
+    downgrade:
+      steps:
+        - "Nothing to undo. A stop in the older version leaves the queue executor and transport open, and failed BullMQ mail jobs stay in Redis forever."
+    data: "Failed BullMQ mail jobs older than seven days leave Redis on their own after the upgrade; downgrading does not bring them back."
 ---
 
 # Changelog - 2026-11-12
 
 ## Mail escapes template values, checks headers for every transport, and cleans up on stop
 
-<Badge type="warning" text="Breaking" /> <Badge type="danger" text="Security" /> <Badge type="info" text="Bug Fix" />
+<Badge type="warning" text="Breaking Change" /> <Badge type="danger" text="Security" /> <Badge type="info" text="Bug Fix" />
 
 **In one line.** A user name such as `<a href=...>` no longer becomes live markup in a template mail, a line break in a subject or header is refused whatever the transport, and nothing the mail component opened outlives the app.
 

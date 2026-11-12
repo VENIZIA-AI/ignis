@@ -2,13 +2,35 @@
 title: Mail drops three unused validators and types setProcessor as sync or async
 description: "MailQueueExecutorTypes, BullMQExecutorModes and MailBackoffTypes lose isValid and their value sets, IMailQueueExecutor.setProcessor returns ValueOrPromise<void>, and a thrown non-Error reaches the send result as its text."
 packages: ['@venizia/ignis']
+migration:
+  - id: mail-validators-removed
+    symbols: [MailQueueExecutorTypes.isValid, MailQueueExecutorTypes.SCHEME_SET, BullMQExecutorModes.isValid, BullMQExecutorModes.MODE_SET, MailBackoffTypes.isValid, MailBackoffTypes.SCHEME_SET]
+    upgrade:
+      before: |
+        MailQueueExecutorTypes.isValid(value);
+      after: |
+        const queueExecutorTypes = new Set<string>(Object.values(MailQueueExecutorTypes));
+        queueExecutorTypes.has(value);
+    downgrade:
+      steps:
+        - "Call the static validators again; they exist in 0.4.8-13 and the constant values are the same."
+  - id: mail-set-processor-type
+    symbols: [IMailQueueExecutor.setProcessor]
+    upgrade:
+      before: |
+        executor.setProcessor(processor);
+      after: |
+        await executor.setProcessor(processor);
+    downgrade:
+      steps:
+        - "Remove the await; the older type was void."
 ---
 
 # Changelog - 2026-11-12
 
 ## Mail drops three unused validators and types setProcessor as sync or async
 
-<Badge type="warning" text="Breaking" /> <Badge type="info" text="Enhancement" />
+<Badge type="warning" text="Breaking Change" /> <Badge type="info" text="Enhancement" />
 
 **In one line.** Three mail constant classes lose a validator nobody called, and the executor interface now says what the BullMQ executor already did.
 

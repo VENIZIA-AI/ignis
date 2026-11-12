@@ -44,6 +44,8 @@ export default {
     bundle: '.agents/knowledge',
     wiki: 'docs/wiki/content',
     changelogs: 'docs/wiki/content/changelogs',
+    // The 2026-11-12 batch is the first set `make changelog-check` reads: a Breaking Change entry from this date on carries a `migration:` block.
+    migrationFrom: '2026-11-12',
   },
   okf: {
     renderers: [
