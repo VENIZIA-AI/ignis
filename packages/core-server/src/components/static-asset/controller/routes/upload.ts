@@ -66,8 +66,10 @@ class StaticAssetUploadHandler {
         throw getError({ message: '[upload] Invalid original file name' });
       }
 
-      // A uuid segment, as the direct upload has: two uploads of one name never overwrite each other.
-      const defaultKey = `${keyPrefix ?? ''}${UuidHelper.getInstance().v4()}/${BaseStorageHelper.normalizeObjectName(naming)}`;
+      // A uuid folder right before the name, as the direct upload has: two uploads of one name never overwrite each other, and the caller's folder still groups the keys.
+      const normalized = BaseStorageHelper.normalizeObjectName(naming);
+      const nameStart = normalized.lastIndexOf('/') + 1;
+      const defaultKey = `${keyPrefix ?? ''}${normalized.slice(0, nameStart)}${UuidHelper.getInstance().v4()}/${normalized.slice(nameStart)}`;
       const key = objectKey
         ? objectKey({ bucket: { name: bucketName }, file: naming.file, defaultKey })
         : defaultKey;

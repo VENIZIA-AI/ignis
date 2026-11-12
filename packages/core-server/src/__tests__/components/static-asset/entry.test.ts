@@ -174,7 +174,7 @@ describe('an entry resolves to its defaults', () => {
 
     expect(resolved.keyPrefix).toBe('inventory/material-images/');
     expect(resolved.maxFolderDepth).toBe(3);
-    expect(resolved.objectKeyMaxDepth).toBe(5);
+    expect(resolved.objectKeyMaxDepth).toBe(6);
   });
 
   test('a route toggle splits into whether it is on and what it overrides', () => {

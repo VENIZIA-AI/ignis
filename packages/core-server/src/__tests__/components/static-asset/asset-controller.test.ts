@@ -605,6 +605,49 @@ describe('StaticAsset controller — serverUpload.objectKey hook', () => {
     expect(helper.hasObject({ bucket: { name: 'images' }, object: { key } })).toBe(true);
   });
 
+  test('the uuid folder sits right before the name, so the caller folder groups the keys', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({
+      helper,
+      serverUpload: { objectKey: undefined },
+    });
+
+    const uploadResponse = await uploadFiles({
+      router,
+      files: [new File(['deep'], 'photo.jpg', { type: 'image/jpeg' })],
+      labels: { folderPath: 'photos/2024' },
+    });
+    expect(uploadResponse.status).toBe(200);
+
+    const result = await uploadResponse.json();
+    const { key } = (result as Array<{ object: { key: string } }>)[0].object;
+    expect(key).toMatch(/^photos\/2024\/[0-9a-f-]{36}\/photo\.jpg$/);
+
+    const getResponse = await router.request(`/assets/objects/${encodeURIComponent(key)}`);
+    expect(getResponse.status).toBe(200);
+
+    const listResponse = await router.request('/assets/objects?prefix=photos/2024/');
+    const listed = await listResponse.json();
+    expect((listed as Array<{ name: string }>).map((item) => item.name)).toEqual([key]);
+  });
+
+  test('a folder deeper than maxFolderDepth is refused with a 400, uuid folder not counted', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({
+      helper,
+      maxFolderDepth: 2,
+      serverUpload: { objectKey: undefined },
+    });
+
+    const response = await uploadFiles({
+      router,
+      files: [new File(['x'], 'photo.jpg', { type: 'image/jpeg' })],
+      labels: { folderPath: 'a/b/c' },
+    });
+
+    expect(response.status).toBe(400);
+  });
+
   test('two uploads of one name land under different keys, and neither overwrites the other', async () => {
     const helper = new FakeStorageHelper();
     const router = await mountAssetController({
@@ -678,7 +721,7 @@ describe('StaticAsset controller — serverUpload.objectKey hook', () => {
       {
         bucket: { name: 'images' },
         file: { originalName: 'My Photo.JPG', folderPath: 'Photos' },
-        defaultKey: expect.stringMatching(/^[0-9a-f-]{36}\/photos\/my_photo\.jpg$/),
+        defaultKey: expect.stringMatching(/^photos\/[0-9a-f-]{36}\/my_photo\.jpg$/),
       },
     ]);
 
@@ -696,7 +739,7 @@ describe('StaticAsset controller — serverUpload.objectKey hook', () => {
 
     const result = await plainResponse.json();
     const plainUploaded = result as Array<{ object: { key: string } }>;
-    expect(plainUploaded[0].object.key).toMatch(/^[0-9a-f-]{36}\/photos\/my_photo\.jpg$/);
+    expect(plainUploaded[0].object.key).toMatch(/^photos\/[0-9a-f-]{36}\/my_photo\.jpg$/);
   });
 });
 
@@ -885,7 +928,7 @@ describe('StaticAsset controller — raw nested object paths', () => {
     const result = await atCap.text();
     expect(result).toBe('at-cap');
 
-    const overCap = await router.request('/assets/objects/a/b/c/photo.jpg');
+    const overCap = await router.request('/assets/objects/a/b/c/d/photo.jpg');
     expect(overCap.status).toBe(400);
 
     const body = await readJson(overCap);

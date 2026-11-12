@@ -222,7 +222,7 @@ Splits one shared bucket between entries. `directUpload` requires it. `StaticAss
 | `upload` | The component's own default name is placed inside the prefix. An `objectKey` key outside it is refused with `400 core.static_asset.object_key_out_of_scope` - never rewritten, because the application may have recorded that key elsewhere |
 | `uploadPolicy`, `uploadValidate`, `uploadCommit` | The pending key becomes `pendingPrefix + keyPrefix`, so the committed key lands inside the scope. The token's scope is re-checked, for a token another entry signed with the same secret |
 
-The entry's `maxFolderDepth` counts folders below the prefix: key validation uses `maxFolderDepth` plus the prefix depth. Without that addition, a two-segment prefix plus a direct-upload key `<uuid>/<name>` would exceed the default depth of `2` and every read would answer `400`.
+The entry's `maxFolderDepth` counts folders below the prefix: key validation uses `maxFolderDepth` plus the prefix depth plus one for the `<uuid>` folder the framework adds before a generated key's name. Without that addition, a two-segment prefix plus a key `<uuid>/<name>` would exceed the default depth of `2` and every read would answer `400`.
 
 ## Routes
 
@@ -663,7 +663,7 @@ These run inside `helper.upload()`, separate from the controller checks above. T
 | Normalized key (post naming hook) fails `isValidObjectKey()` | <code v-pre>[upload] Invalid normalized object name \| name: {name}</code> | `400` |
 
 > [!NOTE]
-> The static-asset controller always passes a naming hook to `helper.upload()` (the default key is `<keyPrefix><uuid>/<name>`) - then `originalName` is metadata at the storage-helper layer, not the key, and names like `Báo cáo.pdf` pass.
+> The static-asset controller always passes a naming hook to `helper.upload()` (the default key is `<keyPrefix><folderPath>/<uuid>/<name>`) - then `originalName` is metadata at the storage-helper layer, not the key, and names like `Báo cáo.pdf` pass.
 >
 > **One exception, at the controller layer:** with no `serverUpload.objectKey` - the component's own default naming - the controller still refuses a `/` in the original name with `400 [upload] Invalid original file name`, exactly as without a scope. An `objectKey` hook lifts it.
 

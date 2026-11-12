@@ -302,7 +302,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const served = await router.request(objectPath({ route: 'objects', key: result.object.key }));
 
     expect(result.object.key).toMatch(
-      /^inventory\/material-images\/[0-9a-f-]{36}\/shop\/photo\.jpg$/,
+      /^inventory\/material-images\/shop\/[0-9a-f-]{36}\/photo\.jpg$/,
     );
     expect(served.status).toBe(200);
   });
@@ -354,7 +354,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const responseBody = await response.json();
     const [result] = responseBody as Array<{ object: { key: string } }>;
 
-    expect(result.object.key).toMatch(/^tenant-a\/[0-9a-f-]{36}\/photos\/photo\.jpg$/);
+    expect(result.object.key).toMatch(/^tenant-a\/photos\/[0-9a-f-]{36}\/photo\.jpg$/);
   });
 
   test('serverUpload.objectKey is offered the scoped default and may return a key inside the prefix', async () => {

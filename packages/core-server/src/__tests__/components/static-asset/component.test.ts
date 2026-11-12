@@ -151,7 +151,7 @@ describe('StaticAssetComponent', () => {
       link: string;
       object: { key: string };
     }>;
-    expect(uploaded[0].object.key).toMatch(/^[0-9a-f-]{36}\/photos\/photo\.jpg$/);
+    expect(uploaded[0].object.key).toMatch(/^photos\/[0-9a-f-]{36}\/photo\.jpg$/);
 
     const getResponse = await router.request(uploaded[0].link);
     expect(getResponse.status).toBe(200);

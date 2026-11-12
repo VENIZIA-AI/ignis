@@ -223,8 +223,8 @@ in the handler. The handler does not check folders: `BaseStorageHelper.upload` d
 `StorageErrors.FOLDER_PATH_INVALID` / `FOLDER_DEPTH_EXCEEDED` (`core.storage.folder_*`); the old
 `core.static_asset.folder_*`, `labels_in_query` and `max_keys_invalid` codes are gone. `listObjects`' `maxKeys`
 is parsed by the route schema (a bad value is the standard validation error).
-The server upload's default key is `<keyPrefix><uuid>/<name>` (one more folder level than the caller's own, so
-`objectKeyMaxDepth` must count it). The serve routes send `ETag` and `Last-Modified` from `getStat` and answer `304`
+The server upload's default key is `<keyPrefix><folderPath>/<uuid>/<name>` (`objectKeyMaxDepth` is `maxFolderDepth` plus
+the scope depth plus one for that uuid folder, so `maxFolderDepth` keeps meaning the caller's folders). The serve routes send `ETag` and `Last-Modified` from `getStat` and answer `304`
 before the read (`StaticAssetServe.applyValidators({ ctx, stat })`, public); they set no `Cache-Control`.
 The upload labels - `principalType`, `principalId`, `variant`, `sequence` - travel in the BODY (form fields on
 `POST /objects`, beside the commit token on `upload-commit`) and are parsed by ONE schema
