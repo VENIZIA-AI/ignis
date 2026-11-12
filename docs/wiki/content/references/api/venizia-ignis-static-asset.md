@@ -7,7 +7,9 @@ description: "Every export of @venizia/ignis/static-asset, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-57 exports, 57 with TSDoc.
+58 exports, 57 with TSDoc.
+
+Without TSDoc (1): `StaticAssetServe`.
 
 ## `BaseMetaLinkModel`
 
@@ -958,22 +960,10 @@ Source: `packages/core-server/src/components/static-asset/common/constants.ts`
 
 *class*
 
-Builds the REST controller class for a static asset entry, and decides the served content type.
+Builds the REST controller class for a static asset entry.
 
 ```ts
 export declare class StaticAssetControllerFactory {
-    /**
-     * The served type comes from the object NAME, never the backend or the uploader: a renderable type on
-     * the API origin is stored XSS. Public so a hand-written route makes the same decision - the
-     * backend's own content-type is dropped by `StaticAssetHeaders.ALLOWED`.
-     */
-    static resolveServedContentType(opts: {
-        helper: IStorageHelper;
-        object: IObjectRef;
-    }): {
-        contentType: string;
-        isRenderable: boolean;
-    };
     /** Resolves the entry, then builds its controller. */
     static build<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema>(opts: IStaticAssetControllerOptions<Schema>): {
         new (): {
@@ -1410,6 +1400,38 @@ export declare class StaticAssetRouteKeys {
 ```
 
 Source: `packages/core-server/src/components/static-asset/common/constants.ts`
+
+## `StaticAssetServe`
+
+*class*
+
+```ts
+export declare class StaticAssetServe {
+    /**
+     * The served type comes from the object NAME, never the backend or the uploader: a renderable type on
+     * the API origin is stored XSS. The backend's own content-type is never sent.
+     */
+    static resolveServedContentType(opts: {
+        helper: IStorageHelper;
+        object: IObjectRef;
+    }): {
+        contentType: string;
+        isRenderable: boolean;
+    };
+    /**
+     * Sets `ETag` and `Last-Modified` from `stat` and answers whether the client's copy is current. A `true`
+     * means the caller returns a 304 without reading the object; the headers are already on `ctx`.
+     * `If-None-Match` decides alone when present (weak comparison, `*` matches any); otherwise
+     * `If-Modified-Since` does. An application's own route can call it with a `stat` it already holds.
+     */
+    static applyValidators(opts: {
+        ctx: TRouteContext;
+        stat: IFileStat;
+    }): boolean;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/controller/routes/serve.ts`
 
 ## `StaticAssetToggleUtility`
 

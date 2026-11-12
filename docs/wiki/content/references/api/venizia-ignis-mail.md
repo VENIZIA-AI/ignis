@@ -350,22 +350,6 @@ export interface IMailQueueExecutor {
 
 Source: `packages/core-server/src/components/mail/common/types/queue.ts`
 
-## `IMailQueueExecutorConfig`
-
-*interface*
-
-Selects and configures the mail queue executor; the field matching `type` (`internalQueue` or `bullmq`) is required for that type.
-
-```ts
-export interface IMailQueueExecutorConfig {
-    type: TConstValue<typeof MailQueueExecutorTypes>;
-    internalQueue?: IInternalQueueMailExecutorOpts;
-    bullmq?: IBullMQMailExecutorOpts;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/queue.ts`
-
 ## `IMailQueueOptions`
 
 *interface*
@@ -567,7 +551,6 @@ A registered mail template: `content` is the body, `subject` and `description` a
 export interface ITemplate {
     name: string;
     content?: string;
-    render?: (data: Record<string, AnyType>) => string;
     subject?: string;
     description?: string;
 }
@@ -761,6 +744,7 @@ export declare class MailErrorCodes {
     static readonly TEMPLATE_NOT_FOUND: string;
     static readonly ATTACHMENT_PATH_REFUSED: string;
     static readonly ATTACHMENT_TOO_LARGE: string;
+    static readonly INVALID_HEADER: string;
     static readonly BODY_SOURCE_REFUSED: string;
 }
 ```
@@ -771,14 +755,14 @@ Source: `packages/core-server/src/components/mail/common/constants.ts`
 
 *const*
 
-Codes are LITERAL strings, deliberately not `MailErrorCodes.*`: `MessageCode.build()` returns `string`, which erases the literal type `TRegisterErrors` is built on and silently kills autocomplete. The values are identical to what those constants produce - they are a public contract and must not shift.
+The code strings live once, in `MailErrorCodes`; each entry here names its status and category.
 
 ```ts
 export declare const MailErrors: {
     readonly TEMPLATE_NOT_FOUND: {
         readonly message: {
             readonly text: "Mail template not found";
-            readonly code: "core.mail.template_not_found";
+            readonly code: string;
         };
         readonly statusCode: 404;
         readonly category: "business";
@@ -786,7 +770,7 @@ export declare const MailErrors: {
     readonly INVALID_CONFIGURATION: {
         readonly message: {
             readonly text: "Invalid mail configuration";
-            readonly code: "core.mail.invalid_configuration";
+            readonly code: string;
         };
         readonly statusCode: 400;
         readonly category: "validation";
@@ -794,7 +778,7 @@ export declare const MailErrors: {
     readonly INVALID_RECIPIENT: {
         readonly message: {
             readonly text: "Invalid mail recipient";
-            readonly code: "core.mail.invalid_recipient";
+            readonly code: string;
         };
         readonly statusCode: 400;
         readonly category: "validation";
@@ -803,7 +787,7 @@ export declare const MailErrors: {
     readonly ATTACHMENT_PATH_REFUSED: {
         readonly message: {
             readonly text: "Mail attachment path refused";
-            readonly code: "core.mail.attachment_path_refused";
+            readonly code: string;
         };
         readonly statusCode: 400;
         readonly category: "validation";
@@ -811,7 +795,7 @@ export declare const MailErrors: {
     readonly ATTACHMENT_TOO_LARGE: {
         readonly message: {
             readonly text: "Mail attachments are larger than the maximum allowed";
-            readonly code: "core.mail.attachment_too_large";
+            readonly code: string;
         };
         readonly statusCode: 413;
         readonly category: "validation";
@@ -820,7 +804,7 @@ export declare const MailErrors: {
     readonly INVALID_HEADER: {
         readonly message: {
             readonly text: "Invalid mail header";
-            readonly code: "core.mail.invalid_header";
+            readonly code: string;
         };
         readonly statusCode: 400;
         readonly category: "validation";
@@ -828,7 +812,7 @@ export declare const MailErrors: {
     readonly BODY_SOURCE_REFUSED: {
         readonly message: {
             readonly text: "Mail body must be text";
-            readonly code: "core.mail.body_source_refused";
+            readonly code: string;
         };
         readonly statusCode: 400;
         readonly category: "validation";
@@ -1000,7 +984,7 @@ Source: `packages/core-server/src/components/mail/providers/mail-queue-executor.
 
 *class*
 
-Values of `IMailQueueExecutorConfig.type`, selecting how verification mails are queued: sent inline, held in process, or handed to BullMQ.
+Values of `TMailQueueExecutorConfig.type`, selecting how verification mails are queued: sent inline, held in process, or handed to BullMQ.
 
 ```ts
 export declare class MailQueueExecutorTypes {
@@ -1291,7 +1275,7 @@ Source: `packages/core-server/src/components/mail/services/template.service.ts`
 Builds the queue executor for a config; throws when the config for its `type` is missing or the type is unknown.
 
 ```ts
-export type TGetMailQueueExecutorFn = (config: IMailQueueExecutorConfig) => IMailQueueExecutor;
+export type TGetMailQueueExecutorFn = (config: TMailQueueExecutorConfig) => IMailQueueExecutor;
 ```
 
 Source: `packages/core-server/src/components/mail/providers/mail-queue-executor.provider.ts`
@@ -1369,6 +1353,27 @@ export type TMailProvider = TConstValue<typeof MailProviders>;
 ```
 
 Source: `packages/core-server/src/components/mail/common/constants.ts`
+
+## `TMailQueueExecutorConfig`
+
+*type*
+
+Selects and configures the mail queue executor: `type` picks one of three, and the options its executor needs are required by the types.
+
+```ts
+export type TMailQueueExecutorConfig = {
+    type: typeof MailQueueExecutorTypes.DIRECT;
+    options?: never;
+} | {
+    type: typeof MailQueueExecutorTypes.INTERNAL_QUEUE;
+    options: IInternalQueueMailExecutorOpts;
+} | {
+    type: typeof MailQueueExecutorTypes.BULLMQ;
+    options: IBullMQMailExecutorOpts;
+};
+```
+
+Source: `packages/core-server/src/components/mail/common/types/queue.ts`
 
 ## `TMailTemplateFormat`
 

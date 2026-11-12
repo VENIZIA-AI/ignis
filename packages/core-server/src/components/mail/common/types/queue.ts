@@ -66,9 +66,11 @@ export interface IBullMQMailExecutorOpts {
   module?: typeof import('bullmq');
 }
 
-/** Selects and configures the mail queue executor; the field matching `type` (`internalQueue` or `bullmq`) is required for that type. */
-export interface IMailQueueExecutorConfig {
-  type: TConstValue<typeof MailQueueExecutorTypes>;
-  internalQueue?: IInternalQueueMailExecutorOpts;
-  bullmq?: IBullMQMailExecutorOpts;
-}
+/** Selects and configures the mail queue executor: `type` picks one of three, and the options its executor needs are required by the types. */
+export type TMailQueueExecutorConfig =
+  | { type: typeof MailQueueExecutorTypes.DIRECT; options?: never }
+  | {
+      type: typeof MailQueueExecutorTypes.INTERNAL_QUEUE;
+      options: IInternalQueueMailExecutorOpts;
+    }
+  | { type: typeof MailQueueExecutorTypes.BULLMQ; options: IBullMQMailExecutorOpts };

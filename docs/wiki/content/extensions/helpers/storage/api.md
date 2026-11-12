@@ -314,7 +314,7 @@ writeStream(
 ): Promise<void>;
 ```
 
-- **`getObjectStream` returns a web stream**, which is what a `Response` body wants. `range` includes `end`, exactly like the HTTP header. The base implementation takes the window off the front of the full stream one chunk at a time; `BunS3Helper` and `DiskHelper` each override it with a native ranged read.
+- **`getObjectStream` returns a web stream**, which is what a `Response` body wants. `range` includes `end`, exactly like the HTTP header. The base class does not implement it (a custom helper overrides it, or the call throws `is not supported by this helper`); `BunS3Helper` and `DiskHelper` each have a native ranged read.
 - **`getObjectStream` can require the content it reads.** `IStorageReadCondition` is `{ ifMatch?: string; versionId?: string }`: read only if the object still has this ETag, or read this exact version. Other content fails with `StorageErrors.PRECONDITION_FAILED` (`412`). `DiskHelper` has no ETag or versions, so it refuses a conditional read with an error.
 - **`writeStream` writes an object without its body landing in this process.** The base implementation buffers, which is the thing to avoid, so `BunS3Helper` overrides it and hands Bun the stream directly. `contentType` falls back to `getMimeType({ filename: object.key })`.
 

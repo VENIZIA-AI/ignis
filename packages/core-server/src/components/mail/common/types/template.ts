@@ -1,11 +1,9 @@
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import type { TMailTemplateFormat } from '../constants';
 
 /** A registered mail template: `content` is the body, `subject` and `description` are optional. */
 export interface ITemplate {
   name: string;
   content?: string;
-  render?: (data: Record<string, AnyType>) => string;
   subject?: string;
   description?: string;
 }

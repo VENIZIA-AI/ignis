@@ -61,6 +61,7 @@ Four changes need more than a rename:
 | The server upload's default key was the lowercased name: a second upload of `report.pdf` overwrote the first | The default key is `<keyPrefix><folderPath>/<uuid>/<name>`. Uploads never overwrite each other, and a client that built the URL from the file name must read `object.key` or `link` from the response. The uuid folder does not count against `maxFolderDepth`. |
 | `serverUpload.maxBytes` also refused a whole body over `maxBytes` | It bounds each file. The body limit is `maxFiles` x `maxBytes` plus framing, so two 3 MB files pass under 5 MB. |
 | Serve routes copied `Content-Encoding`, `Cache-Control`, `ETag` and `Last-Modified` from storage metadata (in practice never, because the stat holds them outside it) | They send `ETag` and `Last-Modified` from the stat and answer `304` to `If-None-Match` and `If-Modified-Since`. No `Cache-Control` is set. |
+| `StaticAssetControllerFactory.resolveServedContentType` decided the served type | `StaticAssetServe.resolveServedContentType`, same options and answer. `StaticAssetServe` is exported, with `applyValidators` for a route of your own. |
 | `directUpload.authorize` was required | Optional when the entry's `auth` authenticates or authorizes. |
 
 The folder, labels and `maxKeys` changes also change codes. See the [error reference](./errors#catalogued-errors).

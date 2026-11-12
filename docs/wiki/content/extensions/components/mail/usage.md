@@ -338,7 +338,7 @@ import { RedisSentinelHelper } from '@venizia/ignis-helpers';
 
 this.bind({ key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG }).toValue({
   type: MailQueueExecutorTypes.BULLMQ,
-  bullmq: {
+  options: {
     redis: new RedisSentinelHelper({
       name: 'mail-redis',
       sentinels: [{ host: 'sentinel-1', port: 26379 }],
@@ -450,7 +450,7 @@ export class AuthService extends BaseService {
 `MailComponent.createAndBindInstances()` logs only `mailOptions.provider` and `queueExecutorConfig.type`, at `info` level. It never logs the full config objects, by design. That keeps SMTP passwords, OAuth2 secrets, API keys, and Redis passwords out of the log sink - at least through the component itself.
 
 > [!WARNING]
-> That guarantee only covers what `MailComponent` logs internally. If your own wrapper component or bootstrap code logs the `TMailOptions` or `IMailQueueExecutorConfig` object directly, you reintroduce the leak yourself. This commonly happens while debugging a binding. Log individual safe fields (`provider`, `type`) instead of the whole object.
+> That guarantee only covers what `MailComponent` logs internally. If your own wrapper component or bootstrap code logs the `TMailOptions` or `TMailQueueExecutorConfig` object directly, you reintroduce the leak yourself. This commonly happens while debugging a binding. Log individual safe fields (`provider`, `type`) instead of the whole object.
 
 ## See also
 

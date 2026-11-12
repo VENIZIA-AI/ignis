@@ -61,6 +61,10 @@ export class MailErrorCodes {
     parts: ['core', 'mail', 'attachment_too_large'],
   });
 
+  static readonly INVALID_HEADER = MessageCode.build({
+    parts: ['core', 'mail', 'invalid_header'],
+  });
+
   static readonly BODY_SOURCE_REFUSED = MessageCode.build({
     parts: ['core', 'mail', 'body_source_refused'],
   });
@@ -72,7 +76,7 @@ export class MailExecutorErrors {
   static readonly CLOSED = 'The executor is closed and takes no more jobs.';
 }
 
-/** Values of `IMailQueueExecutorConfig.type`, selecting how verification mails are queued: sent inline, held in process, or handed to BullMQ. */
+/** Values of `TMailQueueExecutorConfig.type`, selecting how verification mails are queued: sent inline, held in process, or handed to BullMQ. */
 export class MailQueueExecutorTypes {
   static readonly DIRECT = 'direct';
   static readonly INTERNAL_QUEUE = 'internal-queue';

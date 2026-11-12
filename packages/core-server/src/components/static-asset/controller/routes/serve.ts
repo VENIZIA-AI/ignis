@@ -19,7 +19,7 @@ import { StaticAssetDefinition, StaticAssetPaths } from './definition';
 export class StaticAssetServe {
   /**
    * The served type comes from the object NAME, never the backend or the uploader: a renderable type on
-   * the API origin is stored XSS. The backend's own content-type is dropped by `StaticAssetHeaders.ALLOWED`.
+   * the API origin is stored XSS. The backend's own content-type is never sent.
    */
   static resolveServedContentType(opts: { helper: IStorageHelper; object: IObjectRef }): {
     contentType: string;

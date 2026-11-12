@@ -49,7 +49,7 @@ Every binding key, configuration variant, interface, and internal mechanism of `
 | `InternalQueueMailExecutorHelper` | In-memory queue (`SequentialQueueHelper`) |
 | `BullMQMailExecutorHelper` | Redis-backed queue, distributed workers |
 | `MailTransportProvider` | Factory: `TMailOptions` -> `IMailTransport` |
-| `MailQueueExecutorProvider` | Factory: `IMailQueueExecutorConfig` -> `IMailQueueExecutor` |
+| `MailQueueExecutorProvider` | Factory: `TMailQueueExecutorConfig` -> `IMailQueueExecutor` |
 | `NumericCodeGenerator` | Cryptographically random numeric codes |
 | `RandomTokenGenerator` | Cryptographically random base64url tokens |
 | `DefaultVerificationDataGenerator` | Composes both generators into an `IVerificationData` |
@@ -90,7 +90,7 @@ import type {
   IMailTransport,
   IMailAttachment,
   IMailQueueExecutor,
-  IMailQueueExecutorConfig,
+  TMailQueueExecutorConfig,
   IMailQueueOptions,
   IMailQueueResult,
   IMailProcessorResult,
@@ -167,7 +167,7 @@ On application stop, two post-stop hooks run: `mail.queue-executor.close` (the e
 | Key | Constant | Type | Required | Default |
 |-----|----------|------|----------|---------|
 | `@app/components/mail/options` | `MailKeys.MAIL_OPTIONS` | `TMailOptions` | **Yes** | -- |
-| `@app/components/mail/queue/executor-config` | `MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG` | `IMailQueueExecutorConfig` | No | `{ type: MailQueueExecutorTypes.DIRECT }` |
+| `@app/components/mail/queue/executor-config` | `MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG` | `TMailQueueExecutorConfig` | No | `{ type: MailQueueExecutorTypes.DIRECT }` |
 | `@app/components/mail/service` | `MailKeys.MAIL_SERVICE` | `IMailService` | No | `MailService` (singleton) |
 | `@app/components/mail/services/template-engine` | `MailKeys.MAIL_TEMPLATE_ENGINE` | `IMailTemplateEngine` | No | `TemplateEngineService` (singleton) |
 | `@app/components/mail/transport-provider` | `MailKeys.MAIL_TRANSPORT_PROVIDER` | `TGetMailTransportFn` | No | `MailTransportProvider` (singleton) |
@@ -371,34 +371,39 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
 > [!WARNING]
 > `IGenericMailOptions` falls through to the `default` case in `MailTransportProvider` and throws `Unsupported mail provider: <provider>`. The framework's built-in provider does not handle it. `IGenericMailOptions` exists only so you can bind a **custom** `MailTransportProvider` that recognizes the provider string.
 
-### Queue executor options (`IMailQueueExecutorConfig`)
+### Queue executor options (`TMailQueueExecutorConfig`)
 
 ```typescript
-interface IMailQueueExecutorConfig {
-  type: TConstValue<typeof MailQueueExecutorTypes>; // 'direct' | 'internal-queue' | 'bullmq'
-  internalQueue?: {
-    identifier: string;
-  };
-  bullmq?: {
-    redis: IRedisHelper; // a ready single, cluster or sentinel helper; the application closes it, and sets maxRetry: -1 so it keeps reconnecting
-    queue: { identifier: string; name: string };
-    mode: TConstValue<typeof BullMQExecutorModes>; // REQUIRED -- no default
-    module?: typeof import('bullmq'); // bullmq itself, for a compiled binary
-  };
+type TMailQueueExecutorConfig =
+  | { type: typeof MailQueueExecutorTypes.DIRECT; options?: never }
+  | { type: typeof MailQueueExecutorTypes.INTERNAL_QUEUE; options: IInternalQueueMailExecutorOpts }
+  | { type: typeof MailQueueExecutorTypes.BULLMQ; options: IBullMQMailExecutorOpts };
+
+interface IInternalQueueMailExecutorOpts {
+  identifier: string;
+}
+
+interface IBullMQMailExecutorOpts {
+  redis: IRedisHelper; // a ready single, cluster or sentinel helper; the application closes it, and sets maxRetry: -1 so it keeps reconnecting
+  queue: { identifier: string; name: string };
+  mode: TConstValue<typeof BullMQExecutorModes>; // REQUIRED -- no default
+  module?: typeof import('bullmq'); // bullmq itself, for a compiled binary
 }
 ```
+
+`type` picks the executor, and the types require the `options` that executor needs. The direct executor takes none (`options?: never`), so every variant reads `config.options` the same way.
 
 ```typescript
 // Direct (also the implicit default when MAIL_QUEUE_EXECUTOR_CONFIG is unbound)
 { type: 'direct' }
 
 // Internal queue (in-memory)
-{ type: 'internal-queue', internalQueue: { identifier: 'mail-internal-queue' } }
+{ type: 'internal-queue', options: { identifier: 'mail-internal-queue' } }
 
 // BullMQ (Redis-backed)
 {
   type: 'bullmq',
-  bullmq: {
+  options: {
     redis: new RedisSingleHelper({
       name: 'mail-redis',
       host: 'localhost',
@@ -621,7 +626,6 @@ interface IMailTemplateEngine {
 interface ITemplate {
   name: string;
   content?: string;
-  render?: (data: Record<string, AnyType>) => string;
   subject?: string;
   description?: string;
 }
@@ -678,7 +682,7 @@ import * as ioredis from 'ioredis';
 
 this.bind({ key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG }).toValue({
   type: MailQueueExecutorTypes.BULLMQ,
-  bullmq: {
+  options: {
     redis: new RedisSingleHelper({ name: 'mail-redis', host, port, password, module: ioredis }),
     queue: { identifier: 'mail-queue', name: 'mail-queue' },
     mode: BullMQExecutorModes.BOTH,

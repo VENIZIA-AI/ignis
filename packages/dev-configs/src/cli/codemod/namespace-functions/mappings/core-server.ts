@@ -147,7 +147,7 @@ export const CORE_SERVER_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
   {
     modules: ['@venizia/ignis/static-asset'],
     oldName: 'resolveServedContentType',
-    className: 'StaticAssetControllerFactory',
+    className: 'StaticAssetServe',
     method: 'resolveServedContentType',
     params: [],
     keepsOptions: true,
