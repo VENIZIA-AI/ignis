@@ -3,9 +3,7 @@ import type { TBunServerInstance } from '@/base/applications';
 import type { ServerOptions } from 'socket.io';
 
 export class SocketIOBunHandler {
-  static async createEngine(opts: {
-    serverOptions: Partial<ServerOptions>;
-  }) {
+  static async createEngine(opts: { serverOptions: Partial<ServerOptions> }) {
     const { serverOptions } = opts;
     const { Server: BunEngine } = await import('@socket.io/bun-engine');
 
