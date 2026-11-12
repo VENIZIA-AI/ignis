@@ -33,7 +33,7 @@ export class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
       ...opts,
       scope: RedisSentinelHelper.name,
       identifier: name,
-      // Precedence (low -> high): framework defaults, the redisOptions escape hatch, then first-class fields. Optional auth fields are spread ONLY when provided, so a value set via redisOptions is not clobbered by an undefined first-class field.
+      // Precedence (low -> high): framework defaults, the redisOptions escape hatch, then first-class fields. An auth field left unset falls back to `redisOptions`, so an undefined first-class field never clobbers it.
       client: new ioredis.Redis({
         ...AbstractRedisHelper.buildDefaultOpts({
           scope: RedisSentinelHelper.name,
@@ -46,14 +46,10 @@ export class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
         role,
         db: database,
         lazyConnect: !autoConnect,
-        ...(password === undefined ? {} : { password }),
-        ...(sentinelPassword === undefined ? {} : { sentinelPassword }),
-        ...(sentinelUsername === undefined ? {} : { sentinelUsername }),
+        password: password ?? redisOptions.password,
+        sentinelPassword: sentinelPassword ?? redisOptions.sentinelPassword,
+        sentinelUsername: sentinelUsername ?? redisOptions.sentinelUsername,
       }),
     });
-  }
-
-  override getClient() {
-    return this.client as Redis;
   }
 }

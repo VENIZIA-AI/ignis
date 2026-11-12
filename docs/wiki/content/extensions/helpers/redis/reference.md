@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Redis - Full Reference
 
-Exhaustive reference for `AbstractRedisHelper`, the three topology classes, the `RedisHelperFactory.create` factory, and every data-API method. For a readable introduction and the common tasks, start with the [Redis overview](/extensions/helpers/redis/).
+Exhaustive reference for `AbstractRedisHelper`, the three topology classes, the `RedisHelperFactory` factory, and every data-API method. For a readable introduction and the common tasks, start with the [Redis overview](/extensions/helpers/redis/).
 
 Backed by **ioredis** under the hood.
 
@@ -19,7 +19,7 @@ Backed by **ioredis** under the hood.
 - [`packages/helpers/src/modules/redis/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/factory.ts) - `RedisHelperFactory`
 - [`packages/helpers/src/modules/redis/common/interfaces.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/interfaces.ts) - `IRedisHelper` and its nine capability interfaces
 - [`packages/helpers/src/modules/redis/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/types.ts) - option and callback types
-- [`packages/helpers/src/modules/redis/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/constants.ts) - `RedisModes`, `RedisSentinelRoles`
+- [`packages/helpers/src/modules/redis/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/constants.ts) - `RedisSentinelRoles`, `RedisDefaults`
 
 ## Find what you need
 
@@ -116,7 +116,6 @@ Combines `IRedisSingleHelperProps`, `IRedisHelperCallbacks` and `IRedisModuleOpt
 | `name` | `string` | Yes | - | Helper identifier used in logs and as `IRedisHelper.name` |
 | `host` | `string` | Yes | - | Redis server hostname |
 | `port` | `string \| number` | Yes | - | Redis server port |
-| `user` | `string` | No | - | Accepted by the type but not read by the constructor - has no effect. Set auth via `password` only. |
 | `password` | `string` | No | - | Redis `requirepass` value. Omit it for a Redis with no password. |
 | `database` | `number` | No | `0` | Redis database index (0-15) |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` uses ioredis `lazyConnect` |
@@ -394,23 +393,21 @@ console.log(val); // "world"
 
 `Source ->` [`packages/helpers/src/modules/redis/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/factory.ts)
 
-`RedisHelperFactory.create` is an overloaded factory that returns the concrete type when `mode` is a literal. The old bare `createRedisHelper(opts)` function is removed.
+`RedisHelperFactory` has one static method per topology. Each takes the options of that topology and returns its concrete helper.
 
 ```typescript
-import { RedisHelperFactory, RedisModes } from '@venizia/ignis-helpers';
+import { RedisHelperFactory } from '@venizia/ignis-helpers';
 
-// Type inferred as RedisSingleHelper
-const single = RedisHelperFactory.create({
-  mode: RedisModes.SINGLE,
+// Type: RedisSingleHelper
+const single = RedisHelperFactory.single({
   name: 'cache',
   host: process.env.REDIS_HOST!,
   port: Number(process.env.REDIS_PORT),
   password: process.env.REDIS_PASSWORD!,
 });
 
-// Type inferred as RedisSentinelHelper
-const sentinel = RedisHelperFactory.create({
-  mode: RedisModes.SENTINEL,
+// Type: RedisSentinelHelper
+const sentinel = RedisHelperFactory.sentinel({
   name: 'cache-ha',
   masterName: 'mymaster',
   sentinels: [{ host: process.env.SENTINEL_HOST! }],
@@ -418,29 +415,11 @@ const sentinel = RedisHelperFactory.create({
 });
 ```
 
-Switch by environment:
-
-```typescript
-import { RedisHelperFactory, RedisModes, type IRedisHelper } from '@venizia/ignis-helpers';
-
-const mode = (process.env.REDIS_MODE ?? RedisModes.SINGLE) as typeof RedisModes.SINGLE;
-
-const redis: IRedisHelper = RedisHelperFactory.create({
-  mode,
-  name: 'app-cache',
-  host: process.env.REDIS_HOST!,
-  port: Number(process.env.REDIS_PORT),
-  password: process.env.REDIS_PASSWORD!,
-});
-```
-
-| `mode` value | Returns |
-|---|---|
-| `RedisModes.SINGLE` (`'single'`) | `RedisSingleHelper` |
-| `RedisModes.CLUSTER` (`'cluster'`) | `RedisClusterHelper` |
-| `RedisModes.SENTINEL` (`'sentinel'`) | `RedisSentinelHelper` |
-
-Unknown mode throws an `ApplicationError`.
+| Method | Options | Returns |
+|---|---|---|
+| `RedisHelperFactory.single(opts)` | `IRedisSingleHelperOptions` | `RedisSingleHelper` |
+| `RedisHelperFactory.cluster(opts)` | `IRedisClusterHelperOptions` | `RedisClusterHelper` |
+| `RedisHelperFactory.sentinel(opts)` | `IRedisSentinelHelperOptions` | `RedisSentinelHelper` |
 
 ## Lifecycle and Events
 
@@ -777,7 +756,6 @@ import {
   RedisSentinelHelper,
   // Factory
   RedisHelperFactory,
-  RedisModes,
   // Sentinel role const-class
   RedisSentinelRoles,
 } from '@venizia/ignis-helpers';

@@ -35,23 +35,11 @@ export class RuntimeModules {
 /** The runtime names `RuntimeModules` holds; only `bun` today. */
 export type TRuntimeModule = TConstValue<typeof RuntimeModules>;
 
-/** The value kinds a stored field can hold; `isValid` tests a string against them. */
+/** The value kinds a stored field can hold. */
 export class DataTypes {
   static readonly NUMBER = 'NUMBER';
   static readonly TEXT = 'TEXT';
   static readonly BYTE = 'BYTE';
   static readonly JSON = 'JSON';
   static readonly BOOLEAN = 'BOOLEAN';
-
-  static readonly SCHEME_SET = new Set([
-    this.NUMBER,
-    this.TEXT,
-    this.BYTE,
-    this.JSON,
-    this.BOOLEAN,
-  ]);
-
-  static isValid(orgType: string): boolean {
-    return this.SCHEME_SET.has(orgType);
-  }
 }

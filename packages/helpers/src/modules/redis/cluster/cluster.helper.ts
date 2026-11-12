@@ -53,10 +53,6 @@ export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
     this.ioredis = ioredis;
   }
 
-  override getClient() {
-    return this.client as Cluster;
-  }
-
   override duplicateClient(): Cluster {
     return new this.ioredis.Cluster(this.startupNodes, this.clusterOpts);
   }

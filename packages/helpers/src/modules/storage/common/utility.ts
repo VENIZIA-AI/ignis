@@ -1,7 +1,7 @@
 import { DurationMultipliers, type IDuration } from '@/common';
 import { HTTP } from '@/common/constants';
 import { getError } from '@/modules/error';
-import { StoragePresignLimits } from './constants';
+import { S3Defaults, StoragePresignLimits } from './constants';
 
 /** Backend-neutral checks shared by storage helpers: recognising a "not found" error and turning an `IDuration` into presign seconds. */
 export class StorageUtility {
@@ -10,7 +10,10 @@ export class StorageUtility {
     const { error } = opts;
     const source = error as { statusCode?: number; status?: number; code?: string; name?: string };
 
-    if (source?.statusCode === HTTP.ResultCodes.RS_4.NotFound || source?.status === 404) {
+    if (
+      source?.statusCode === HTTP.ResultCodes.RS_4.NotFound ||
+      source?.status === HTTP.ResultCodes.RS_4.NotFound
+    ) {
       return true;
     }
 
@@ -23,9 +26,7 @@ export class StorageUtility {
   static realVersionId(opts: { value?: string | null }): string | undefined {
     const { value } = opts;
 
-    return value === undefined || value === null || value === '' || value === 'null'
-      ? undefined
-      : value;
+    return !value || value === S3Defaults.NULL_VERSION_ID ? undefined : value;
   }
 
   /** "The expected content is gone", across SDKs: S3 and MinIO answer 412. */

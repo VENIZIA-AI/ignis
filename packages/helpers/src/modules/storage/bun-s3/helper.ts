@@ -1,4 +1,3 @@
-import type { IDuration } from '@/common';
 import { HTTP, type THttpMethod } from '@/common/constants/http';
 import { getError } from '@/modules/error';
 import { ErrorPrettier } from '@/modules/logger';
@@ -9,25 +8,32 @@ import { BaseStorageHelper } from '../base';
 import type {
   IBucketInfo,
   IBucketRef,
+  ICopyObjectOptions,
   IFileStat,
   IListObjectsOptions,
   IObjectInfo,
   IObjectLocation,
   IObjectRef,
   IPostPolicy,
+  IPresignGetOptions,
+  IPresignPostOptions,
+  IPresignPutOptions,
   IStorageHelperOptions,
-  IStorageReadCondition,
   IUploadFile,
+  IWriteStreamOptions,
+  TObjectStreamOptions,
+  TS3Audience,
 } from '../common';
 import {
   S3Audiences,
+  S3Defaults,
   S3Headers,
   StorageErrors,
+  StorageLimits,
   StorageTypes,
   StorageUtility,
   StoragePresignDefaults,
 } from '../common';
-import type { TS3Audience } from '../common';
 import { S3SignatureUtility } from './utility';
 
 /** One lower-case DNS label: the only shape a bucket may have when it becomes part of a host. */
@@ -91,7 +97,7 @@ export class BunS3Helper extends BaseStorageHelper {
         // Falls back to the default, so one reachable host still serves both audiences.
         public: options.endpoint.public ?? options.endpoint.default,
       },
-      region: options.region ?? 'us-east-1',
+      region: options.region ?? S3Defaults.REGION,
       sessionToken: options.sessionToken,
       virtualHostedStyle: options.virtualHostedStyle ?? false,
     };
@@ -138,12 +144,7 @@ export class BunS3Helper extends BaseStorageHelper {
   }
 
   /** Per-call overrides, so one client serves every bucket in either addressing style. */
-  private presignOptions(opts: { bucket: string }): {
-    bucket: string;
-    endpoint: string;
-    virtualHostedStyle?: boolean;
-  } {
-    const { virtualHostedStyle } = this.credentials;
+  private presignOptions(opts: { bucket: string }) {
     const { endpoint } = this.objectEndpoint({
       bucket: opts.bucket,
       audience: S3Audiences.BROWSER,
@@ -152,7 +153,7 @@ export class BunS3Helper extends BaseStorageHelper {
     return {
       bucket: opts.bucket,
       endpoint,
-      ...(virtualHostedStyle ? { virtualHostedStyle: true } : {}),
+      virtualHostedStyle: this.credentials.virtualHostedStyle,
     };
   }
 
@@ -201,21 +202,7 @@ export class BunS3Helper extends BaseStorageHelper {
   }
 
   async getBuckets(): Promise<IBucketInfo[]> {
-    // A bucket operation is a call this process makes, so it goes to the default host.
-    const { accessKey, secretKey, region, sessionToken } = this.credentials;
-    const endpoint = this.credentials.endpoint.default;
-
-    const { url, headers } = await S3SignatureUtility.buildSignedRequest({
-      method: 'GET',
-      endpoint,
-      path: '/',
-      accessKey,
-      secretKey,
-      region,
-      sessionToken,
-    });
-
-    const response = await fetch(url, { method: 'GET', headers });
+    const response = await this.bucketFetch({ method: HTTP.Methods.GET, path: '/' });
     const xml = await response.text();
 
     if (!response.ok) {
@@ -257,21 +244,7 @@ export class BunS3Helper extends BaseStorageHelper {
       throw getError({ message: '[createBucket] Invalid name to create bucket!' });
     }
 
-    // A bucket operation is a call this process makes, so it goes to the default host.
-    const { accessKey, secretKey, region, sessionToken } = this.credentials;
-    const endpoint = this.credentials.endpoint.default;
-
-    const { url, headers } = await S3SignatureUtility.buildSignedRequest({
-      method: 'PUT',
-      endpoint,
-      path: `/${name}`,
-      accessKey: accessKey,
-      secretKey,
-      region,
-      sessionToken,
-    });
-
-    const response = await fetch(url, { method: 'PUT', headers });
+    const response = await this.bucketFetch({ method: HTTP.Methods.PUT, path: `/${name}` });
 
     if (!response.ok) {
       const xml = await response.text();
@@ -288,21 +261,7 @@ export class BunS3Helper extends BaseStorageHelper {
       throw getError({ message: '[removeBucket] Invalid name to remove bucket!' });
     }
 
-    // A bucket operation is a call this process makes, so it goes to the default host.
-    const { accessKey, secretKey, region, sessionToken } = this.credentials;
-    const endpoint = this.credentials.endpoint.default;
-
-    const { url, headers } = await S3SignatureUtility.buildSignedRequest({
-      method: 'DELETE',
-      endpoint,
-      path: `/${name}`,
-      accessKey: accessKey,
-      secretKey: secretKey,
-      region,
-      sessionToken,
-    });
-
-    const response = await fetch(url, { method: 'DELETE', headers });
+    const response = await this.bucketFetch({ method: HTTP.Methods.DELETE, path: `/${name}` });
 
     if (!response.ok) {
       const xml = await response.text();
@@ -312,13 +271,7 @@ export class BunS3Helper extends BaseStorageHelper {
     return true;
   }
 
-  override async copyObject(opts: {
-    bucket: IBucketRef;
-    source: IObjectRef;
-    destination: IObjectRef;
-    ifMatch?: string;
-    sourceVersionId?: string;
-  }): Promise<void> {
+  override async copyObject(opts: ICopyObjectOptions): Promise<void> {
     const { bucket, source, destination, ifMatch, sourceVersionId } = opts;
 
     // `x-amz-copy-source` is what makes this server side: S3 reads the source itself, so a 500 MB
@@ -340,13 +293,7 @@ export class BunS3Helper extends BaseStorageHelper {
     this.assertObjectResponse({ response, operation: 'copyObject', bucket, object: source });
   }
 
-  override async presignPost(
-    opts: IObjectLocation & {
-      maxBytes: number;
-      contentType?: string;
-      expiresIn?: IDuration;
-    },
-  ): Promise<IPostPolicy> {
+  override async presignPost(opts: IPresignPostOptions): Promise<IPostPolicy> {
     const {
       bucket,
       object,
@@ -377,14 +324,7 @@ export class BunS3Helper extends BaseStorageHelper {
     return { postURL: `${endpoint.replace(/\/$/, '')}${pathPrefix}`, formData, expiresAt };
   }
 
-  override async presignPut(
-    opts: IObjectLocation & {
-      expiresIn?: IDuration;
-      tagging?: Record<string, string>;
-      contentLength?: number;
-      contentType?: string;
-    },
-  ): Promise<string> {
+  override async presignPut(opts: IPresignPutOptions): Promise<string> {
     const {
       bucket,
       object,
@@ -403,7 +343,7 @@ export class BunS3Helper extends BaseStorageHelper {
     });
 
     return S3SignatureUtility.buildPresignedUrl({
-      method: 'PUT',
+      method: HTTP.Methods.PUT,
       endpoint,
       path: `${pathPrefix}/${object.key}`,
       accessKey,
@@ -412,22 +352,14 @@ export class BunS3Helper extends BaseStorageHelper {
       sessionToken,
       expiresInSeconds: StorageUtility.toExpirySeconds({ expiresIn, operation: 'presignPut' }),
       headers: {
-        ...(tagging
-          ? { 'x-amz-tagging': S3SignatureUtility.buildTaggingHeader({ tags: tagging }) }
-          : {}),
-        ...(contentLength === undefined ? {} : { 'content-length': String(contentLength) }),
-        ...(contentType ? { 'content-type': contentType } : {}),
+        [S3Headers.TAGGING]: tagging && S3SignatureUtility.buildTaggingHeader({ tags: tagging }),
+        [HTTP.Headers.CONTENT_LENGTH]: contentLength?.toString(),
+        [HTTP.Headers.CONTENT_TYPE]: contentType || undefined,
       },
     });
   }
 
-  override async presignGet(
-    opts: IObjectLocation & {
-      expiresIn?: IDuration;
-      responseContentType?: string;
-      responseContentDisposition?: string;
-    },
-  ): Promise<string> {
+  override async presignGet(opts: IPresignGetOptions): Promise<string> {
     const {
       bucket,
       object,
@@ -440,8 +372,8 @@ export class BunS3Helper extends BaseStorageHelper {
       ...this.presignOptions({ bucket: bucket.name }),
       method: 'GET',
       expiresIn: StorageUtility.toExpirySeconds({ expiresIn, operation: 'presignGet' }),
-      ...(responseContentType ? { type: responseContentType } : {}),
-      ...(responseContentDisposition ? { contentDisposition: responseContentDisposition } : {}),
+      type: responseContentType,
+      contentDisposition: responseContentDisposition,
     });
   }
 
@@ -506,13 +438,7 @@ export class BunS3Helper extends BaseStorageHelper {
   }
 
   /** Streams without holding the object in memory. `upload` carries a `Buffer`, so it cannot; this is the path for anything large. */
-  override async writeStream(
-    opts: IObjectLocation & {
-      source: ReadableStream<Uint8Array> | Blob | Response | Request;
-      contentType?: string;
-      maxFolderDepth?: number;
-    },
-  ): Promise<void> {
+  override async writeStream(opts: IWriteStreamOptions): Promise<void> {
     const { bucket, object, source, contentType } = opts;
 
     // The same depth rule `upload` applies: one object, two doors, one answer.
@@ -527,7 +453,7 @@ export class BunS3Helper extends BaseStorageHelper {
 
     await this.client.write(object.key, body, {
       ...this.callOptions({ bucket: bucket.name }),
-      ...(contentType ? { type: contentType } : {}),
+      type: contentType,
       partSize: this.transfer.partSize,
       queueSize: this.transfer.queueSize,
       retry: this.transfer.retry,
@@ -535,7 +461,7 @@ export class BunS3Helper extends BaseStorageHelper {
   }
 
   /** `S3File.stream()` is lazy: it reaches the network on first read, so a `try` here never sees a 404 - the failure arrives on the stream. */
-  async getObject(opts: IObjectLocation & { options?: any }): Promise<Readable> {
+  async getObject(opts: IObjectLocation & { options?: unknown }): Promise<Readable> {
     const bucketName = opts.bucket.name;
     const key = opts.object.key;
     const source = this.client.file(key, this.callOptions({ bucket: bucketName })).stream();
@@ -547,9 +473,7 @@ export class BunS3Helper extends BaseStorageHelper {
   }
 
   /** The conversion-free path a `Response` body wants. `slice` makes it a ranged GET, so only the requested bytes leave S3. */
-  override async getObjectStream(
-    opts: IObjectLocation & { range?: { start: number; end?: number } } & IStorageReadCondition,
-  ): Promise<ReadableStream<Uint8Array>> {
+  override async getObjectStream(opts: TObjectStreamOptions): Promise<ReadableStream<Uint8Array>> {
     if (opts.ifMatch !== undefined || opts.versionId !== undefined) {
       return this.getConditionalStream(opts);
     }
@@ -577,8 +501,36 @@ export class BunS3Helper extends BaseStorageHelper {
     return etag === undefined || etag.startsWith('"') || etag.startsWith('W/') ? etag : `"${etag}"`;
   }
 
-  /** Signs and sends one object-level request: the one place credentials, addressing, signing and the verb's case meet. */
-  private async signedFetch(opts: {
+  /** Signs and sends one request: the one place credentials, signing and the verb's case meet. */
+  private async send(opts: {
+    method: THttpMethod;
+    endpoint: string;
+    path: string;
+    query?: Record<string, string | undefined>;
+    headers?: Record<string, string | undefined>;
+    body?: string;
+  }): Promise<Response> {
+    const { method, body } = opts;
+    const { accessKey, secretKey, region, sessionToken } = this.credentials;
+
+    const request = await S3SignatureUtility.buildSignedRequest({
+      ...opts,
+      accessKey,
+      secretKey,
+      region,
+      sessionToken,
+    });
+
+    return fetch(request.url, { method: method.toUpperCase(), headers: request.headers, body });
+  }
+
+  /** A bucket operation is a call this process makes, so it goes to the default host. */
+  private bucketFetch(opts: { method: THttpMethod; path: string }): Promise<Response> {
+    return this.send({ ...opts, endpoint: this.credentials.endpoint.default });
+  }
+
+  /** One object-level request, addressed in the configured style on the host this process talks to. */
+  private signedFetch(opts: {
     method: THttpMethod;
     bucket: IBucketRef;
     object: IObjectRef;
@@ -586,28 +538,13 @@ export class BunS3Helper extends BaseStorageHelper {
     headers?: Record<string, string | undefined>;
     body?: string;
   }): Promise<Response> {
-    const { method, bucket, object, query, headers, body } = opts;
-    const { accessKey, secretKey, region, sessionToken } = this.credentials;
+    const { bucket, object, ...request } = opts;
     const { endpoint, pathPrefix } = this.objectEndpoint({
       bucket: bucket.name,
       audience: S3Audiences.SERVER,
     });
-    const verb = method.toUpperCase();
 
-    const request = await S3SignatureUtility.buildSignedRequest({
-      method: verb,
-      endpoint,
-      path: `${pathPrefix}/${object.key}`,
-      accessKey,
-      secretKey,
-      region,
-      sessionToken,
-      query,
-      headers,
-      body,
-    });
-
-    return fetch(request.url, { method: verb, headers: request.headers, body });
+    return this.send({ ...request, endpoint, path: `${pathPrefix}/${object.key}` });
   }
 
   /** The storage error a response stands for: 412 is a changed object, 404 a missing one, any other failure the backend's own. */
@@ -644,7 +581,7 @@ export class BunS3Helper extends BaseStorageHelper {
 
   /** `S3File` cannot send `If-Match` or a version id, so a conditional read is a signed GET. */
   private async getConditionalStream(
-    opts: IObjectLocation & { range?: { start: number; end?: number } } & IStorageReadCondition,
+    opts: TObjectStreamOptions,
   ): Promise<ReadableStream<Uint8Array>> {
     const { bucket, object, range, ifMatch, versionId } = opts;
 
@@ -738,8 +675,10 @@ export class BunS3Helper extends BaseStorageHelper {
         {
           prefix,
           continuationToken,
-          ...(useRecursive ? {} : { delimiter: '/' }),
-          ...(Number.isFinite(remaining) ? { maxKeys: Math.min(remaining, 1000) } : {}),
+          delimiter: useRecursive ? undefined : '/',
+          maxKeys: Number.isFinite(remaining)
+            ? Math.min(remaining, StorageLimits.MAX_LIST_KEYS)
+            : undefined,
         },
         this.callOptions({ bucket: bucketName }),
       );

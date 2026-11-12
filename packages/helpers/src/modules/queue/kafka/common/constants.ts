@@ -36,12 +36,6 @@ export class KafkaHealthStatuses {
   static readonly CONNECTED = 'connected';
   static readonly DISCONNECTED = 'disconnected';
   static readonly UNKNOWN = 'unknown';
-
-  static readonly SCHEME_SET = new Set([this.CONNECTED, this.DISCONNECTED, this.UNKNOWN]);
-
-  static isValid(status: string): boolean {
-    return this.SCHEME_SET.has(status);
-  }
 }
 
 /** A {@link KafkaHealthStatuses} value. */
@@ -98,12 +92,6 @@ export class KafkaDefaults {
 export class KafkaBrokersDownReasons {
   static readonly DISCONNECTED = 'disconnected';
   static readonly FAILED = 'failed';
-
-  static readonly SCHEME_SET = new Set<string>([this.DISCONNECTED, this.FAILED]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Valid Kafka brokers-down reason values. */

@@ -10,7 +10,7 @@ export interface IUploadFile {
   size: number;
   encoding?: string;
   folderPath?: string;
-  [key: string | symbol]: any;
+  [key: string | symbol]: unknown;
 }
 
 /** `metaLink` is a union: the old pair allowed both present, or neither. */
@@ -18,13 +18,13 @@ export interface IUploadResult {
   bucket: IBucketRef;
   object: IObjectRef & { size: number; contentType: string };
   link: string;
-  metaLink?: { data: any } | { error: string };
+  metaLink?: { data: unknown } | { error: string };
 }
 
 /** `mimetype` is named because consumers persist it; `any` let it be renamed silently. */
 export interface IObjectMetadata {
   mimetype?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /** What `getStat` reports for one object. `size` is in bytes. */
@@ -103,6 +103,83 @@ export interface IStorageReadCondition {
   versionId?: string;
 }
 
+/** A byte window of an object. `end` is inclusive, like the HTTP `Range` header. */
+export interface IByteRange {
+  start: number;
+  end?: number;
+}
+
+/** `getObjectStream`: one object, an optional byte window, and what the object must still be. */
+export type TObjectStreamOptions = IObjectLocation & { range?: IByteRange } & IStorageReadCondition;
+
+/** `upload`: the files, and the rules their names and keys must meet. */
+export interface IUploadOptions {
+  bucket: IBucketRef;
+  files: IUploadFile[];
+  /**
+   * Folders the caller's `folderPath` may carry.
+   *
+   * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
+   */
+  maxFolderDepth?: number;
+  /**
+   * Folders the finished key may carry, a scope the `normalizeNameFn` adds included.
+   *
+   * @default `maxFolderDepth`
+   */
+  maxKeyDepth?: number;
+  normalizeNameFn?: (opts: { file: TUploadNaming }) => string;
+  normalizeLinkFn?: (opts: IObjectLocation) => string;
+}
+
+/** `writeStream`: one object written from a stream, so a large body never lands in this process. */
+export interface IWriteStreamOptions extends IObjectLocation {
+  source: ReadableStream<Uint8Array> | Blob | Response | Request;
+  contentType?: string;
+  /**
+   * Folder nesting the key may carry, as `upload` takes it.
+   *
+   * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
+   */
+  maxFolderDepth?: number;
+}
+
+/** `copyObject`: a copy within one bucket. */
+export interface ICopyObjectOptions {
+  bucket: IBucketRef;
+  source: IObjectRef;
+  destination: IObjectRef;
+  /** Copy only if the source still has this ETag; otherwise `StorageErrors.PRECONDITION_FAILED`. */
+  ifMatch?: string;
+  /** Copy this exact version of the source. */
+  sourceVersionId?: string;
+}
+
+/** `presignPost`: the one object a browser form may be posted under, and its size ceiling. */
+export interface IPresignPostOptions extends IObjectLocation {
+  maxBytes: number;
+  contentType?: string;
+  expiresIn?: IDuration;
+}
+
+/** `presignPut`. Every option is SIGNED - the client must send it back unchanged. */
+export interface IPresignPutOptions extends IObjectLocation {
+  expiresIn?: IDuration;
+  /** The object's tag set, written at the moment it is stored. */
+  tagging?: Record<string, string>;
+  /** Pins the body to EXACTLY this many bytes. A retry at a different size is refused. */
+  contentLength?: number;
+  /** Pins the stored content type. Unsigned, the uploader picks what is stored - and the stored type is what a browser later renders. */
+  contentType?: string;
+}
+
+/** `presignGet`. */
+export interface IPresignGetOptions extends IObjectLocation {
+  expiresIn?: IDuration;
+  responseContentType?: string;
+  responseContentDisposition?: string;
+}
+
 /** The contract every storage backend (disk, in-memory, S3) implements. Buckets and objects are addressed by `IBucketRef` and `IObjectRef`. */
 export interface IStorageHelper {
   /** The backend this helper writes to. The helpers IGNIS ships declare it; a custom helper may leave it out. */
@@ -118,57 +195,23 @@ export interface IStorageHelper {
   createBucket(opts: { bucket: IBucketRef }): Promise<IBucketInfo | null>;
   removeBucket(opts: { bucket: IBucketRef }): Promise<boolean>;
 
-  getObject(opts: IObjectLocation & { options?: any }): Promise<Readable>;
+  getObject(opts: IObjectLocation & { options?: unknown }): Promise<Readable>;
 
   /** A web stream, what a `Response` body wants. `range` includes `end`, like the HTTP header. */
-  getObjectStream(
-    opts: IObjectLocation & { range?: { start: number; end?: number } } & IStorageReadCondition,
-  ): Promise<ReadableStream<Uint8Array>>;
+  getObjectStream(opts: TObjectStreamOptions): Promise<ReadableStream<Uint8Array>>;
   getStat(opts: IObjectLocation): Promise<IFileStat>;
   listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
 
-  upload(opts: {
-    bucket: IBucketRef;
-    files: IUploadFile[];
-    /** Folders the caller's `folderPath` may carry. */
-    maxFolderDepth?: number;
-    /**
-     * Folders the finished key may carry, a scope the `normalizeNameFn` adds included.
-     *
-     * @default `maxFolderDepth`
-     */
-    maxKeyDepth?: number;
-    normalizeNameFn?: (opts: { file: TUploadNaming }) => string;
-    normalizeLinkFn?: (opts: IObjectLocation) => string;
-  }): Promise<IUploadResult[]>;
+  upload(opts: IUploadOptions): Promise<IUploadResult[]>;
 
   /**
    * Writes an object from a stream, so a large body never lands in this process. A backend whose
    * transport takes a stream overrides it; the default buffers, which is the thing to avoid.
    */
-  writeStream(
-    opts: IObjectLocation & {
-      source: ReadableStream<Uint8Array> | Blob | Response | Request;
-      contentType?: string;
-      /**
-       * Folder nesting the key may carry, as `upload` takes it.
-       *
-       * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
-       */
-      maxFolderDepth?: number;
-    },
-  ): Promise<void>;
+  writeStream(opts: IWriteStreamOptions): Promise<void>;
 
   /** Copies within one bucket, server side - the bytes never travel through this process. */
-  copyObject(opts: {
-    bucket: IBucketRef;
-    source: IObjectRef;
-    destination: IObjectRef;
-    /** Copy only if the source still has this ETag; otherwise `StorageErrors.PRECONDITION_FAILED`. */
-    ifMatch?: string;
-    /** Copy this exact version of the source. */
-    sourceVersionId?: string;
-  }): Promise<void>;
+  copyObject(opts: ICopyObjectOptions): Promise<void>;
 
   removeObject(opts: IObjectLocation): Promise<void>;
   removeObjects(opts: { bucket: IBucketRef; objects: IObjectRef[] }): Promise<void>;
@@ -179,33 +222,11 @@ export interface IStorageHelper {
    * Unlike a presigned PUT, a policy carries `content-length-range`, so "at most N bytes" is
    * expressible - a signed PUT binds the length to one exact value.
    */
-  presignPost(
-    opts: IObjectLocation & {
-      maxBytes: number;
-      contentType?: string;
-      expiresIn?: IDuration;
-    },
-  ): Promise<IPostPolicy>;
+  presignPost(opts: IPresignPostOptions): Promise<IPostPolicy>;
 
-  /** A URL a browser may PUT one object to. Every extra option below is SIGNED - the client must send it back unchanged. A pinned size is exact, never a ceiling; for a ceiling use {@link IStorageHelper.presignPost}. */
-  presignPut(
-    opts: IObjectLocation & {
-      expiresIn?: IDuration;
-      /** The object's tag set, written at the moment it is stored. */
-      tagging?: Record<string, string>;
-      /** Pins the body to EXACTLY this many bytes. A retry at a different size is refused. */
-      contentLength?: number;
-      /** Pins the stored content type. Unsigned, the uploader picks what is stored - and the stored type is what a browser later renders. */
-      contentType?: string;
-    },
-  ): Promise<string>;
-  presignGet(
-    opts: IObjectLocation & {
-      expiresIn?: IDuration;
-      responseContentType?: string;
-      responseContentDisposition?: string;
-    },
-  ): Promise<string>;
+  /** A URL a browser may PUT one object to. Every option is SIGNED; a pinned size is exact, never a ceiling - for a ceiling use {@link IStorageHelper.presignPost}. */
+  presignPut(opts: IPresignPutOptions): Promise<string>;
+  presignGet(opts: IPresignGetOptions): Promise<string>;
 
   getObjectTags(opts: IObjectLocation): Promise<Record<string, string>>;
   replaceObjectTags(opts: IObjectLocation & { tags: Record<string, string> }): Promise<void>;

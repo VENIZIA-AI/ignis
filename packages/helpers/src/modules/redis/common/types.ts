@@ -10,7 +10,6 @@ export interface IRedisSingleHelperProps {
   name: string;
   host: string;
   port: string | number;
-  user?: string;
   /** Omit it for a Redis with no password. */
   password?: string;
   /** @default 0 */
