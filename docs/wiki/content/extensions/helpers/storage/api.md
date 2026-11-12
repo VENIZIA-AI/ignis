@@ -567,7 +567,7 @@ A signed `HEAD`, because Bun's `stat` does not report the version id. Returns:
 A missing object throws the catalogued `core.storage.object_not_found` via `asStorageError`.
 
 > [!NOTE]
-> `metadata.mimetype` is one key, not two spellings, and it is diagnostic. The type a route actually serves is derived from the object key - see [Header sanitization](/extensions/components/static-asset/api#header-sanitization).
+> `metadata.mimetype` is one key, not two spellings, and it is diagnostic. The type a route actually serves is derived from the object key - see [Served content type](/extensions/components/static-asset/api#served-content-type).
 
 #### copyObject
 
