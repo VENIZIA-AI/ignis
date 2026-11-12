@@ -267,7 +267,7 @@ class StaticAssetBindingKeys {
 | `StaticAssetUploadPolicyService` | `issuePolicies({ files, owner })` | One signed policy per file; `files[].metadata` is signed. Refuses a `fileName` that is not one valid key segment. Does not call `authorize`. |
 | `StaticAssetUploadCommitService` | `verify({ token, owner })` | Signature, expiry, owner, bucket, pending scope; answers `{ bucket, object, owner, metadata }`; no storage call. |
 | | `validate({ token, owner })` | `verify`, pin the content, run `validation` once. A valid file answers `{ isValid, issues, commitToken }`. |
-| | `commit({ token, owner, labels? })` | `verify`, conditional copy of the pinned content to the final key, remove pending, MetaLink row. Answers `{ bucket, object, owner, metadata, link, metaLink? }`. Refuses a destination that holds an object (`409`). Never runs `validation`; with it on, needs the validated token. |
+| | `commit({ token, owner, labels?, destination? })` | `verify`, conditional copy of the pinned content to the final key, remove pending, MetaLink row. Answers `{ bucket, object, owner, metadata, link, metaLink? }`. Refuses a destination that holds an object (`409`, with `extra: { object, link }`). A given `destination` wins over `resolvers.commit.destination`. Never runs `validation`; with it on, needs the validated token. |
 
 ## Validation and the pin
 

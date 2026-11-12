@@ -404,6 +404,9 @@ describe('resolvers.metadata', () => {
 
     expect(again.status).toBe(409);
     expect(JSON.stringify(answer)).toContain('core.static_asset.upload_already_committed');
+    expect(answer).toMatchObject({
+      extra: { object: { key: expect.any(String) }, link: expect.any(String) },
+    });
   });
 
   test('a file name that is a path is refused with a 400', async () => {

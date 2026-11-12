@@ -1659,9 +1659,13 @@ export declare class StaticAssetUploadCommitService<Schema extends TMetaLinkComp
         /** Who is committing: a token commits only for the owner it was issued to. */
         owner: string;
         labels?: TStaticAssetUploadLabels;
+        /** The final key for this call. It wins over `resolvers.commit.destination` and passes the same checks. */
+        destination?: IObjectRef;
     }): Promise<IStaticAssetCommitResult>;
     /** The default key is the pending one without the pending prefix; the application's resolver may name another, inside the scope. */
     private resolveDestination;
+    /** The caller's `destination`, else the resolver's, else none: the default key. */
+    private pickDestination;
     /** The token's only commit: a second one, or a re-post to the pending key, must not overwrite what the first one stored. */
     private assertDestinationFree;
     /** A pin makes the copy conditional; a failed condition is a changed upload, and nothing is written. */

@@ -212,6 +212,8 @@ export class StaticAssetUploadCommitService<
     /** Who is committing: a token commits only for the owner it was issued to. */
     owner: string;
     labels?: TStaticAssetUploadLabels;
+    /** The final key for this call. It wins over `resolvers.commit.destination` and passes the same checks. */
+    destination?: IObjectRef;
   }): Promise<IStaticAssetCommitResult> {
     const { helper, storage, metaLink, directUpload, link: buildLink } = this.options;
 
@@ -228,9 +230,10 @@ export class StaticAssetUploadCommitService<
     // beside it rather than inside it.
     const labels = opts.labels ?? {};
 
-    const object = await this.resolveDestination({ payload });
+    const object = await this.resolveDestination({ payload, destination: opts.destination });
+    const link = buildLink({ bucket: bucketRef, object });
 
-    await this.assertDestinationFree({ bucket: bucketRef, object });
+    await this.assertDestinationFree({ bucket: bucketRef, object, link });
     await this.copyPinned({ bucket: bucketRef, source: pendingObject, destination: object, pin });
 
     // The copy IS the commit; removing the temporary object is cleanup. A failure here
@@ -247,8 +250,6 @@ export class StaticAssetUploadCommitService<
           error,
         );
     }
-
-    const link = buildLink({ bucket: bucketRef, object });
 
     // The two paths have to agree: without this a client reading `metaLink` off the
     // response renders an empty state with no error - the failure nobody reports.
@@ -300,24 +301,22 @@ export class StaticAssetUploadCommitService<
   /** The default key is the pending one without the pending prefix; the application's resolver may name another, inside the scope. */
   private async resolveDestination(opts: {
     payload: IStaticAssetCommitTokenPayload;
+    destination?: IObjectRef;
   }): Promise<IObjectRef> {
-    const { helper, directUpload, scope, objectKeyMaxDepth } = this.options;
-    const { object, owner, metadata } = opts.payload;
+    const { helper, scope, objectKeyMaxDepth } = this.options;
+    const { object } = opts.payload;
     const defaultKey = object.key.slice(this.pendingPrefix.length);
-    const destination = directUpload.resolvers.commit?.destination;
-
-    if (!destination) {
-      return { key: defaultKey };
-    }
-
-    const resolved = await destination({
-      owner,
-      metadata,
-      file: { fileName: defaultKey.slice(defaultKey.lastIndexOf('/') + 1) },
+    const resolved = await this.pickDestination({
+      ...opts.payload,
+      destination: opts.destination,
       defaultKey,
     });
 
-    if (!resolved.key.startsWith(this.keyPrefix)) {
+    if (!resolved) {
+      return { key: defaultKey };
+    }
+
+    if (!StaticAssetKeyScopeUtility.isInScope({ key: resolved.key, keyPrefix: this.keyPrefix })) {
       throw getError({
         error: StaticAssetErrors.OBJECT_KEY_OUT_OF_SCOPE,
         message: `[${scope}] destination is outside the key prefix of this entry | keyPrefix: ${this.keyPrefix}`,
@@ -331,13 +330,38 @@ export class StaticAssetUploadCommitService<
     return { key: resolved.key };
   }
 
+  /** The caller's `destination`, else the resolver's, else none: the default key. */
+  private pickDestination(opts: {
+    owner: string;
+    metadata: TStaticAssetTokenMetadata;
+    defaultKey: string;
+    destination?: IObjectRef;
+  }): ValueOrPromise<IObjectRef | undefined> {
+    const { owner, metadata, defaultKey, destination } = opts;
+    const resolve = this.options.directUpload.resolvers.commit?.destination;
+
+    if (destination || !resolve) {
+      return destination;
+    }
+
+    return resolve({
+      owner,
+      metadata,
+      file: { fileName: defaultKey.slice(defaultKey.lastIndexOf('/') + 1) },
+      defaultKey,
+    });
+  }
+
   /** The token's only commit: a second one, or a re-post to the pending key, must not overwrite what the first one stored. */
   private async assertDestinationFree(opts: {
     bucket: IBucketRef;
     object: IObjectRef;
+    link: string;
   }): Promise<void> {
+    const { bucket, object, link } = opts;
+
     try {
-      await this.options.helper.getStat(opts);
+      await this.options.helper.getStat({ bucket, object });
     } catch (error) {
       if (StorageUtility.isNotFoundError({ error })) {
         return;
@@ -346,7 +370,8 @@ export class StaticAssetUploadCommitService<
       throw error;
     }
 
-    throw getError(StaticAssetErrors.UPLOAD_ALREADY_COMMITTED);
+    // The caller already holds a valid token for this owner, so naming the committed object leaks nothing, and a client whose first answer was lost can still get its link.
+    throw getError({ error: StaticAssetErrors.UPLOAD_ALREADY_COMMITTED, extra: { object, link } });
   }
 
   /** A pin makes the copy conditional; a failed condition is a changed upload, and nothing is written. */

@@ -281,6 +281,7 @@ describe('the commit token is read strictly', () => {
     ['no metadata', { ...PAYLOAD, metadata: undefined }],
     ['metadata that is not an object', { ...PAYLOAD, metadata: 'x' }],
     ['a metadata value that is not a string', { ...PAYLOAD, metadata: { order: 42 } }],
+    ['metadata that is an array', { ...PAYLOAD, metadata: ['x'] }],
   ])('a signed body with %s is refused as invalid', (_label, body) => {
     expect(() => read(signBody(body))).toThrow(/Invalid commit token/);
   });

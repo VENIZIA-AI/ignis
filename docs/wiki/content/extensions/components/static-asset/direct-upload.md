@@ -533,7 +533,7 @@ The routes are thin wrappers over two services. The component binds one of each 
 | `StaticAssetUploadPolicyService` | `StaticAssetBindingKeys.policyService({ name })` | `issuePolicies({ files, owner })`: one signed policy per file, each good for one key. `files[].metadata` is what the token signs for that file. |
 | `StaticAssetUploadCommitService` | `StaticAssetBindingKeys.commitService({ name })` | `verify({ token, owner })`: the checks a commit starts with, no storage call, answers the pending `{ bucket, object, owner, metadata }`. |
 | | | `validate({ token, owner })`: `verify`, pin the content, run your `validation` once. A valid file answers `{ isValid: true, issues: [], commitToken }`. With `validation` off it still pins and answers a `commitToken`. |
-| | | `commit({ token, owner, labels? })`: `verify`, copy the pinned content to the final key, remove the pending object, write the MetaLink row. Never runs your `validation`. With `validation` on it needs the validated token. Answers `{ bucket, object, owner, metadata, link, metaLink? }`. |
+| | | `commit({ token, owner, labels?, destination? })`: `verify`, copy the pinned content to the final key, remove the pending object, write the MetaLink row. Never runs your `validation`. With `validation` on it needs the validated token. Answers `{ bucket, object, owner, metadata, link, metaLink? }`. |
 
 `name` is the entry's key in the options object (`orderImport`), not the controller name. The HTTP field is `commitToken`; only the service parameter is `token`. Call `validate`, then pass the `commitToken` it answers to `commit`.
 
@@ -646,13 +646,19 @@ Each file's metadata is capped at 1024 bytes of JSON. More is refused with `400`
 
 ### Choosing the final key
 
-By default the final key is the pending key without the pending prefix: `<keyPrefix><uuid>/<fileName>`. `resolvers.commit.destination` returns another key in the same bucket. It receives `{ owner, metadata, file: { fileName }, defaultKey }`.
+By default the final key is the pending key without the pending prefix: `<keyPrefix><uuid>/<fileName>`. `resolvers.commit.destination` returns another key in the same bucket. It receives `{ owner, metadata, file: { fileName }, defaultKey }`. A service caller can also pass `commit({ token, owner, destination: { key } })`: a given `destination` wins over the resolver, and both go through the same checks.
 
 The key must pass the same checks as a [server upload](./server-upload) key: a valid object key within `maxFolderDepth`, inside `keyPrefix`. One outside the scope answers `400` `core.static_asset.object_key_out_of_scope`; one that is not a valid key answers `400` `core.static_asset.object_name_invalid`. Nothing is copied.
 
 ### A commit is single-use
 
-Commit checks the destination first. An object already there answers `409` `core.static_asset.upload_already_committed` and nothing is copied. A POST policy stays valid until it expires, so without this check a client could post again to the pending key and commit again over the first object. A destination that two different tokens both resolve to is refused the same way.
+Commit checks the destination first. An object already there answers `409` `core.static_asset.upload_already_committed`, and nothing is copied or recorded. The body's `extra` names that object, so a client that retries after a lost response still gets its link:
+
+```json
+{ "extra": { "object": { "key": "files/3f2c.../a.png" }, "link": "/uploads/objects/files%2F3f2c...%2Fa.png" } }
+```
+
+It is answered only after the signature and owner check, so it tells the holder of a valid token nothing new. A POST policy stays valid until it expires, so without this check a client could post again to the pending key and commit again over the first object. A destination that two different tokens both resolve to is refused the same way.
 
 The check is one `HEAD`, and it is not atomic with the copy: two commits of one token racing in the same instant can both pass it. The pending object is removed by the first, so the second then fails on its copy.
 

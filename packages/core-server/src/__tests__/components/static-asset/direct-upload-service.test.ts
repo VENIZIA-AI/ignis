@@ -129,7 +129,12 @@ const messageOf = async (call: () => Promise<unknown>): Promise<string> => {
 /** What a call rejects with: the message, the HTTP status and the machine code a client branches on. */
 const failureOf = async (
   call: () => Promise<unknown>,
-): Promise<{ message: string; statusCode?: number; code?: string }> => {
+): Promise<{
+  message: string;
+  statusCode?: number;
+  code?: string;
+  extra?: Record<string, unknown>;
+}> => {
   try {
     await call();
   } catch (error) {
@@ -138,6 +143,7 @@ const failureOf = async (
         message: error.message,
         statusCode: error.statusCode,
         code: error.normalized.code,
+        extra: error.extra,
       };
     }
 
@@ -1170,7 +1176,7 @@ describe('a commit is single-use', () => {
       owner: OWNER,
     });
     helper.seedObject({ bucket: 'uploads', key: policy.objectName, content: 'first' });
-    await commitService.commit({ token: policy.commitToken, owner: OWNER });
+    const first = await commitService.commit({ token: policy.commitToken, owner: OWNER });
 
     // The POST policy is still valid until it expires: the client posts again to the same key.
     helper.seedObject({ bucket: 'uploads', key: policy.objectName, content: 'second' });
@@ -1181,6 +1187,10 @@ describe('a commit is single-use', () => {
 
     expect(failure.statusCode).toBe(409);
     expect(failure.code).toBe('core.static_asset.upload_already_committed');
+    expect(failure.extra).toEqual({
+      object: { key: first.object.key },
+      link: first.link,
+    });
     expect(helper.calls.find((call) => call.method === 'copyObject')).toBeUndefined();
   });
 });
@@ -1264,5 +1274,75 @@ describe('resolvers.commit.destination', () => {
 
     expect(failure.statusCode).toBe(400);
     expect(failure.code).toBe('core.static_asset.object_name_invalid');
+  });
+});
+
+describe('commit({ destination })', () => {
+  const bootSeeded = async () => {
+    const helper = new FakeStorageHelper();
+    const booted = await boot({ helper });
+    const [policy] = await booted.policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: OWNER,
+    });
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName });
+
+    return { ...booted, policy, helper };
+  };
+
+  test('a given destination wins over the resolver, and the answer carries it', async () => {
+    const helper = new FakeStorageHelper();
+    const { policyService, commitService } = await boot({
+      helper,
+      directUpload: {
+        resolvers: {
+          owner: () => OWNER,
+          commit: { destination: () => ({ key: 'files/from-resolver.png' }) },
+        },
+      },
+    });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: OWNER,
+    });
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName });
+
+    const result = await commitService.commit({
+      token: policy.commitToken,
+      owner: OWNER,
+      destination: { key: 'files/given.png' },
+    });
+
+    expect(result.object).toEqual({ key: 'files/given.png' });
+  });
+
+  test.each([
+    ['outside the keyPrefix', 'other/a.png', 'core.static_asset.object_key_out_of_scope'],
+    ['not a valid key', 'files/../x.png', 'core.static_asset.object_name_invalid'],
+  ])('a given destination %s is refused with a 400', async (_label, key, code) => {
+    const { commitService, policy } = await bootSeeded();
+
+    const failure = await failureOf(() =>
+      commitService.commit({ token: policy.commitToken, owner: OWNER, destination: { key } }),
+    );
+
+    expect(failure.statusCode).toBe(400);
+    expect(failure.code).toBe(code);
+  });
+
+  test('a given destination that holds an object is a 409 that names it', async () => {
+    const { commitService, policy, helper } = await bootSeeded();
+    helper.seedObject({ bucket: 'uploads', key: 'files/taken.png' });
+
+    const failure = await failureOf(() =>
+      commitService.commit({
+        token: policy.commitToken,
+        owner: OWNER,
+        destination: { key: 'files/taken.png' },
+      }),
+    );
+
+    expect(failure.statusCode).toBe(409);
+    expect(failure.extra).toMatchObject({ object: { key: 'files/taken.png' } });
   });
 });

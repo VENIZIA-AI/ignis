@@ -303,7 +303,7 @@ signs for the file (the client's `files[].metadata` is a hint to it; capped at `
 `commit.destination({ owner, metadata, file, defaultKey })` picks the final key (same bucket, inside `keyPrefix`,
 valid key). `readPayload` also refuses a token whose bucket is not the entry's or whose key does not start with
 `policyKeyPrefix`; all refusals are `INVALID_COMMIT_TOKEN`, the forged-token error. `commit` stats the destination
-first: an object there is `UPLOAD_ALREADY_COMMITTED` (409; not atomic with the copy). The commit writes the token
+first (a given `commit({ destination })` wins over the resolver; both are checked): an object there is `UPLOAD_ALREADY_COMMITTED` (409, `extra: { object, link }`; not atomic with the copy). The commit writes the token
 metadata into the MetaLink row's `metadata` under `app`. `verify` is async.
 `directUpload.expires.upload` is the policy's lifetime, `expires.commit` the token's (default `upload`). Every
 direct-upload route calls `directUpload.authorize` first; the services never do, so a caller that reaches them
