@@ -92,7 +92,7 @@ One entry per file, in the order sent:
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `maxBytes` | `number` | no ceiling | Largest file. The route's body limit (`maxFiles` x `maxBytes` plus framing) is checked before the body is read, then each file. Over it answers `413` with `core.static_asset.upload_too_large`. |
+| `maxBytes` | `number` | no ceiling | Largest file. The route's body limit (`maxFiles` x `maxBytes` plus framing) is checked before the body is read, then each file. A body over the limit answers `413` `core.request.body_too_large`; a file over `maxBytes` answers `413` `core.static_asset.upload_too_large`. |
 | `maxFiles` | `number` | `20` | Most file parts one request may carry. More answers `413` before anything is written. |
 | `objectKey` | `({ bucket, file, defaultKey }) => string` | `<keyPrefix><folderPath>/<uuid>/<name>` | The one hook that decides the stored key. |
 
@@ -114,7 +114,7 @@ Pass it as `serverUpload: { use: true, objectKey }`. Two rules hold for the defa
 
 - It puts a random uuid folder right before the name: `<keyPrefix><folderPath>/<uuid>/<name>`, the shape the direct upload uses. Two uploads of one name never overwrite each other, the folder still groups its keys for listing, and a download still carries the plain name. The uuid folder does not count against `maxFolderDepth`.
 - It lowercases the name and replaces spaces with `_`.
-- Under a `keyPrefix`, the original file name must be one path segment: a `/` in it is refused with `[upload] Invalid original file name`. An `objectKey` hook lifts that rule, because the key is yours.
+- With no `objectKey` hook, the original file name must be one path segment, with or without a `keyPrefix`: a `/` in it is refused with `[upload] Invalid original file name`. An `objectKey` hook lifts that rule, because the key is yours.
 
 Under a `keyPrefix`, a key outside the scope is **refused, never rewritten** (`400 core.static_asset.object_key_out_of_scope`): the application may have recorded that key elsewhere. A hook that prepends a year to a scoped default would land outside the prefix and be refused.
 

@@ -42,5 +42,5 @@ migration:
 
 ## Who is affected
 
-- **Code that calls the removed validators.** Compare with the constants yourself, for example `Object.values` is not available on a const class, so keep your own set.
+- **Code that calls the removed validators.** Compare with the constants yourself, or keep your own set of the values you accept.
 - **Everyone else.** No action needed.

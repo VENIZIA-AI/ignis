@@ -44,9 +44,9 @@ A valid token answers `200` **even when the file has problems**: the call worked
 | `422` | - | The body is malformed |
 | `401` | - | Unauthenticated, per the entry's `auth` |
 | `403` | `upload_not_authorized` | `directUpload.authorize` returned `false` |
-| `400` | `invalid_commit_token` | A forged token or a different owner |
+| `400` | `invalid_commit_token` | A forged token, a different owner, or a key outside the `keyPrefix` |
 | `400` | `expired_commit_token` | `expires.commit` has passed |
-| `404` | `object_not_found` | The key is outside the `keyPrefix`, or no object is there |
+| `404` | `object_not_found` | No object is there |
 | `409` | `upload_changed` | The object changed or was removed while the handler read it |
 
 With `validation` off the route does not exist and answers `404`.
@@ -88,7 +88,7 @@ An empty options object is not an error: it produces zero controllers. See [Cont
 | `"The upload has not been validated"` | `validation` is on and `commit` got a token `upload-validate` did not return | `core.static_asset.upload_not_validated` | `422` |
 | `"The object no longer matches what was expected"` (`[getObjectStream] The object changed`, `[copyObject] The source changed`) | A conditional read or copy found other content than `ifMatch` or the version asked for | `core.storage.precondition_failed` | `412` |
 | `[upload] Bucket does not exist \| name: {bucket}` | `helper.upload()` found no matching bucket via `hasBucket()` | - | `400` (default) |
-| `[upload] Invalid original file name` | With no naming hook, a file's `originalName` becomes the key and fails `isValidSegment()` (single segment: no `/`). With `serverUpload.objectKey` set, `originalName` is metadata, checked by the looser `isValidOriginalName()` (not blank, at most 255 characters, no control character or lone surrogate). **One exception:** a `keyPrefix` with no `serverUpload.objectKey` keeps the strict, single-segment rule | - | `400` (default) |
+| `[upload] Invalid original file name` | With no naming hook, a file's `originalName` becomes the key and fails `isValidSegment()` (single segment: no `/`). With `serverUpload.objectKey` set, `originalName` is metadata, checked by the looser `isValidOriginalName()` (not blank, at most 255 characters, no control character or lone surrogate) | - | `400` (default) |
 | `[upload] Invalid file size \| size: {size}` | A file's `size` is `undefined`, `null`, or negative | - | `400` (default) |
 | `[upload] Invalid normalized object name \| name: {name}` | The key returned by the naming hook fails `isValidObjectKey()` | - | `400` (default) |
 

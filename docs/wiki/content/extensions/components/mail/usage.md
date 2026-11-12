@@ -24,7 +24,7 @@ export class UserService extends BaseService {
     const result = await this._mailService.send({
       to: opts.userEmail,
       subject: 'Welcome to Our App!',
-      html: `<h1>Welcome ${opts.userName}!</h1><p>Thanks for joining us.</p>`,
+      html: `<h1>Welcome ${Bun.escapeHTML(opts.userName)}!</h1><p>Thanks for joining us.</p>`,
       text: `Welcome ${opts.userName}! Thanks for joining us.`,
     });
 
@@ -49,7 +49,7 @@ async sendBulkNotifications(users: Array<{ email: string; name: string }>) {
   const messages = users.map(user => ({
     to: user.email,
     subject: 'Important Update',
-    html: `<p>Hello ${user.name}, we have an important update for you.</p>`,
+    html: `<p>Hello ${Bun.escapeHTML(user.name)}, we have an important update for you.</p>`,
   }));
 
   const results = await this.mailService.sendBatch(messages, {
@@ -79,6 +79,7 @@ async sendBulkNotifications(users: Array<{ email: string; name: string }>) {
 | `to` is missing or an empty array | `MailErrors.INVALID_RECIPIENT` | `Recipient email address is required` |
 | `subject` is missing | `MailErrors.INVALID_CONFIGURATION` | `Email subject is required` |
 | Both `text` and `html` are missing | `MailErrors.INVALID_CONFIGURATION` | `Email must have either text or html content` |
+| An address, the subject or a header value has a line break, CR or NUL, a header value is not a string, or a header name is not printable ASCII without a colon | `MailErrors.INVALID_HEADER` | `Invalid mail header \| ...` |
 | `text` or `html` is neither a string nor `null` (a `Buffer`, a stream, `{ path }`, `{ href }`) | `MailErrors.BODY_SOURCE_REFUSED` | `Mail body refused \| text and html must be strings; ...` |
 
 ```typescript
@@ -306,7 +307,7 @@ The internal queue executor is in-memory and single-instance, backed by `Sequent
 - Job IDs follow `job_<counter>_<timestamp>`.
 - A `delay` option schedules the enqueue itself via `setTimeout`, tracked in a `delayedJobs` map.
 - On failure - a thrown error, or the processor returning `{ success: false }` - it retries up to `options.attempts` (default `3`).
-- Does not persist jobs across restarts. `close()` clears every pending delayed/retry timer.
+- Does not persist jobs across restarts. `close()` clears every pending delayed/retry timer, and `enqueueVerificationEmail()` throws `MailExecutorErrors.CLOSED` once the executor is closed.
 
 Retry backoff:
 
@@ -318,7 +319,7 @@ Retry backoff:
 
 ### BullMQ executor
 
-Redis-backed, distributed, backed by `BullMQHelper`. Job persistence, worker concurrency, prioritization, and delayed execution come from BullMQ itself. `removeOnComplete: true`, `removeOnFail: false` (failed jobs stay for debugging). Default enqueue options: `attempts: 3`, `backoff: { type: 'exponential', delay: 1000 }`.
+Redis-backed, distributed, backed by `BullMQHelper`. Job persistence, worker concurrency, prioritization, and delayed execution come from BullMQ itself. `removeOnComplete: true`, and `removeOnFail` keeps a failed job for `MailDefaults.FAILED_JOB_RETENTION` (7 days, at most 1000 jobs). Default enqueue options: `attempts: 3`, `backoff: { type: 'exponential', delay: 1000 }`.
 
 **Mode gates what the executor can do:**
 
@@ -335,6 +336,7 @@ Redis-backed, distributed, backed by `BullMQHelper`. Job persistence, worker con
 
 ```typescript
 import { RedisSentinelHelper } from '@venizia/ignis-helpers';
+import { BullMQExecutorModes, MailKeys, MailQueueExecutorTypes } from '@venizia/ignis/mail';
 
 this.bind({ key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG }).toValue({
   type: MailQueueExecutorTypes.BULLMQ,

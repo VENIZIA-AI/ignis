@@ -72,7 +72,7 @@ Every public method takes one options object with nested refs: a bucket is `{ na
 ### Choose and construct a backend
 
 ```typescript
-import { DiskHelper } from '@venizia/ignis-helpers';
+import { applicationEnvironment, DiskHelper } from '@venizia/ignis-helpers';
 import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 
 const disk = new DiskHelper({ basePath: './app_data/storage' });
@@ -80,8 +80,8 @@ const disk = new DiskHelper({ basePath: './app_data/storage' });
 // Any S3-compatible endpoint: AWS, Cloudflare R2, DigitalOcean Spaces, MinIO.
 const s3 = new BunS3Helper({
   endpoint: { default: 'http://localhost:9000' },
-  accessKey: process.env.S3_ACCESS_KEY,
-  secretKey: process.env.S3_SECRET_KEY,
+  accessKey: applicationEnvironment.get<string>('APP_ENV_S3_ACCESS_KEY'),
+  secretKey: applicationEnvironment.get<string>('APP_ENV_S3_SECRET_KEY'),
   region: 'us-east-1',
 });
 ```

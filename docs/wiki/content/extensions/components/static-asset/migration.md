@@ -225,7 +225,7 @@ Also changed with it:
 
 ## The validation handler
 
-The handler takes `{ file, owner }` and reads through `file`. It no longer receives `helper`, `bucket` or `object`. `file` is a `StaticAssetPinnedFile`: `key`, `size` and `stream({ range? })`. See [Validation](./direct-upload#validation).
+The handler takes `{ file, owner, metadata }` and reads through `file`. It no longer receives `helper`, `bucket` or `object`. `file` is a `StaticAssetPinnedFile`: `key`, `size` and `stream({ range? })`. See [Validation](./direct-upload#validation).
 
 ```typescript
 // Before
@@ -244,7 +244,7 @@ import { StaticAssetValidation } from '@venizia/ignis/static-asset';
 export const workbookValidation = (opts: {
   checkWorkbook: (opts: {
     stream: ReadableStream<Uint8Array>;
-    owner?: string;
+    owner: string;
   }) => Promise<string[]>;
 }) =>
   StaticAssetValidation.define({

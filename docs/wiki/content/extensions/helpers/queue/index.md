@@ -13,7 +13,7 @@ The Queue helpers move work between processes. Pick a backend: BullMQ for durabl
 Create a Redis-backed producer and worker with `BullMQHelper`.
 
 ```typescript
-import { RedisSingleHelper } from '@venizia/ignis-helpers';
+import { BullQueueRoles, RedisSingleHelper } from '@venizia/ignis-helpers';
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 
 const redis = new RedisSingleHelper({ name: 'queue-redis', host: 'localhost', port: 6379, password: 'secret' });
@@ -21,7 +21,7 @@ const redis = new RedisSingleHelper({ name: 'queue-redis', host: 'localhost', po
 const producer = BullMQHelper.newInstance({
   queueName: 'email-queue',
   identifier: 'email-producer',
-  role: 'queue',
+  role: BullQueueRoles.QUEUE,
   redisConnection: redis,
 });
 
@@ -30,7 +30,7 @@ await producer.queue.add('send-welcome', { email: 'user@example.com', template: 
 const worker = BullMQHelper.newInstance({
   queueName: 'email-queue',
   identifier: 'email-worker',
-  role: 'worker',
+  role: BullQueueRoles.WORKER,
   redisConnection: redis,
   onWorkerData: async job => {
     console.log(`Processing ${job.id}:`, job.data);
@@ -86,7 +86,7 @@ Jobs default to `removeOnComplete: true, removeOnFail: true` - BullMQ does not r
 const worker = BullMQHelper.newInstance({
   queueName: 'email-queue',
   identifier: 'email-worker',
-  role: 'worker',
+  role: BullQueueRoles.WORKER,
   redisConnection: redis,
   numberOfWorker: 3,
   onWorkerData: async job => {

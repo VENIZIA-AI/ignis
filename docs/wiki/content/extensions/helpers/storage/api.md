@@ -262,6 +262,7 @@ async upload(opts: {
   normalizeNameFn?: (opts: { file: TUploadNaming }) => string;
   normalizeLinkFn?: (opts: IObjectLocation) => string;
   maxFolderDepth?: number;
+  maxKeyDepth?: number;
 }): Promise<IUploadResult[]>
 ```
 
@@ -272,7 +273,7 @@ Implemented once on `BaseStorageHelper`; no backend overrides it. Steps, in orde
 1. Returns `[]` immediately if `files` is empty.
 2. Calls `hasBucket({ bucket })`; throws if the bucket does not exist.
 3. Validates every file (`validateUploadFiles`, below).
-4. Computes every object `key`, then validates each one with `isValidObjectKey({ object: { key }, maxDepth: maxFolderDepth })`. One bad key throws before anything is written.
+4. Computes every object `key`, then validates each one with `isValidObjectKey({ object: { key }, maxDepth: maxKeyDepth })`, where `maxKeyDepth` is `maxKeyDepth ?? maxFolderDepth` (the folders the finished key may carry, a scope the naming hook adds included; `maxFolderDepth` bounds only the caller's `folderPath`). One bad key throws before anything is written.
    - The key comes from `normalizeNameFn` if provided. Otherwise the default normalizer lowercases the name, replaces spaces with `_`, and prefixes `{folderPath}/` if set.
    - The key check catches a traversal payload returned by a **custom** `normalizeNameFn`.
 5. For each file, with bounded concurrency of `StorageConcurrency.DEFAULT_LIMIT` (`16`):
@@ -388,14 +389,29 @@ class StorageHelperClassName {
 }
 ```
 
-The thrown message names the calling class and the method, so the error tells you which backend to swap rather than returning `undefined` or a broken link. `BunS3Helper` overrides all four. `DiskHelper` has no object storage to presign against, so it inherits the throw.
+The thrown message names the calling class and the method, so the error tells you which backend to swap rather than returning `undefined` or a broken link. `BunS3Helper` overrides all five (`presignPut`, `presignGet`, `presignPost` and the two tag methods). `DiskHelper` has no object storage to presign against, so it inherits the throw.
 
 `expiresIn` is an `IDuration` (`{ unit, value }`), not a number of seconds. The helper converts it with `StorageUtility.toExpirySeconds`, which rounds up to whole seconds.
 
 | Method | `expiresIn` default | Notes |
 |---|---|---|
-| `presignPut` | `StoragePresignDefaults.PUT_EXPIRES_IN` (`{ unit: 'minute', value: 10 }`) | `tagging` and `contentLength` are SIGNED - see [below](#signing-a-tag-set-and-a-size). No content type option: S3 ignores a `Content-Type` that is not signed. |
+| `presignPut` | `StoragePresignDefaults.PUT_EXPIRES_IN` (`{ unit: 'minute', value: 10 }`) | `tagging` and `contentLength` are SIGNED - see [below](#signing-a-tag-set-and-a-size). `contentType` pins the stored content type: unsigned, the uploader picks it. `presignPost` is the ceiling variant: see [below](#presignpost). |
+| `presignPost` | `StoragePresignDefaults.POST_EXPIRES_IN` (`{ unit: 'minute', value: 15 }`) | A signed POST policy for one object: `maxBytes` is a ceiling the storage enforces, `contentType` is optional. Answers `IPostPolicy` (`postURL`, `formData`, `expiresAt`). |
 | `presignGet` | `StoragePresignDefaults.GET_EXPIRES_IN` (`{ unit: 'minute', value: 1 }`) | `responseContentType` and `responseContentDisposition` override the `Content-Type` and `Content-Disposition` the download responds with. |
+
+#### presignPost
+
+```typescript
+const policy = await storage.presignPost({
+  bucket: { name: 'imports' },
+  object: { key: 'pending/q1-workbook.csv' },
+  maxBytes: 5 * 1024 * 1024,
+  contentType: 'text/csv',
+});
+// policy: { postURL, formData, expiresAt }
+```
+
+A browser posts a form to `postURL` with `formData` and the file. A file over `maxBytes` is refused by the storage; use it instead of `presignPut` when you need a ceiling rather than an exact size. `BunS3Helper` implements it; the base throws.
 
 #### Signing a tag set, a size and a type {#signing-a-tag-set-and-a-size}
 
@@ -849,10 +865,8 @@ interface IStorageHelper {
   createBucket(opts: { bucket: IBucketRef }): Promise<IBucketInfo | null>;
   removeBucket(opts: { bucket: IBucketRef }): Promise<boolean>;
 
-  getObject(opts: IObjectLocation & { options?: any }): Promise<Readable>;
-  getObjectStream(
-    opts: IObjectLocation & { range?: { start: number; end?: number } },
-  ): Promise<ReadableStream<Uint8Array>>;
+  getObject(opts: IObjectLocation & { options?: unknown }): Promise<Readable>;
+  getObjectStream(opts: TObjectStreamOptions): Promise<ReadableStream<Uint8Array>>; // range? + IStorageReadCondition (ifMatch?, versionId?)
   getStat(opts: IObjectLocation): Promise<IFileStat>;
   listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
 
@@ -860,6 +874,7 @@ interface IStorageHelper {
     bucket: IBucketRef;
     files: IUploadFile[];
     maxFolderDepth?: number;
+    maxKeyDepth?: number;
     normalizeNameFn?: (opts: { file: TUploadNaming }) => string;
     normalizeLinkFn?: (opts: IObjectLocation) => string;
   }): Promise<IUploadResult[]>;
@@ -872,6 +887,7 @@ interface IStorageHelper {
     },
   ): Promise<void>;
 
+  copyObject(opts: ICopyObjectOptions): Promise<void>;
   removeObject(opts: IObjectLocation): Promise<void>;
   removeObjects(opts: { bucket: IBucketRef; objects: IObjectRef[] }): Promise<void>;
 
@@ -890,6 +906,8 @@ interface IStorageHelper {
       responseContentDisposition?: string;
     },
   ): Promise<string>;
+
+  presignPost(opts: IPresignPostOptions): Promise<IPostPolicy>;
 
   getObjectTags(opts: IObjectLocation): Promise<Record<string, string>>;
   replaceObjectTags(opts: IObjectLocation & { tags: Record<string, string> }): Promise<void>;
@@ -939,10 +957,11 @@ The parts of an upload a naming hook needs, and nothing else.
 class StoragePresignDefaults {
   static readonly PUT_EXPIRES_IN: IDuration = { unit: DurationUnits.MINUTE, value: 10 };
   static readonly GET_EXPIRES_IN: IDuration = { unit: DurationUnits.MINUTE, value: 1 };
+  static readonly POST_EXPIRES_IN: IDuration = { unit: DurationUnits.MINUTE, value: 15 };
 }
 ```
 
-Default `expiresIn` for `presignPut` and `presignGet` when the caller omits it. A PUT carries a file upload and gets the longer window; a GET is a redirect.
+Default `expiresIn` for `presignPut`, `presignGet` and `presignPost` when the caller omits it. A PUT carries a file upload and gets the longer window; a GET is a redirect.
 
 ### StoragePresignLimits
 
@@ -968,6 +987,19 @@ The cap on concurrent object operations, used by `upload` and every backend's `r
 
 ```typescript
 const StorageErrors = {
+  FOLDER_PATH_INVALID: {
+    message: { text: 'Invalid folder path', code: 'core.storage.folder_path_invalid' },
+    statusCode: 400,
+    category: ErrorScopes.VALIDATION,
+  },
+  FOLDER_DEPTH_EXCEEDED: {
+    message: {
+      text: 'Folder path exceeds the maximum depth',
+      code: 'core.storage.folder_depth_exceeded',
+    },
+    statusCode: 400,
+    category: ErrorScopes.VALIDATION,
+  },
   OBJECT_NOT_FOUND: {
     message: { text: 'Object not found', code: 'core.storage.object_not_found' },
     statusCode: 404,
