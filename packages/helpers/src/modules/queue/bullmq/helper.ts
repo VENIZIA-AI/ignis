@@ -1,6 +1,6 @@
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { type IRedisHelper } from '@/modules/redis';
+import { type IRedisHelper, RedisDefaults, type TRedisClient } from '@/modules/redis';
 import { ErrorUtility } from '@/utilities/error.utility';
 import { ModuleUtility } from '@/utilities/module.utility';
 import type { Job, Processor, Queue, QueueOptions, Worker, WorkerOptions } from 'bullmq';
@@ -73,6 +73,9 @@ export class BullMQHelper<TQueueElement = unknown, TQueueResult = unknown> exten
   ) => Promise<void>;
 
   private readonly bullmqModule?: typeof import('bullmq');
+  private isClosing = false;
+  /** Every duplicate this helper handed to BullMQ: BullMQ never quits a client it is given, so `close()` does. */
+  private readonly duplicates: TRedisClient[] = [];
 
   constructor(options: IBullMQOptions<TQueueElement, TQueueResult>) {
     super({ scope: BullMQHelper.name, identifier: options.identifier });
@@ -107,6 +110,18 @@ export class BullMQHelper<TQueueElement = unknown, TQueueResult = unknown> exten
     this.onWorkerDataFail = onWorkerDataFail;
 
     this.configure();
+  }
+
+  /** BullMQ never reconnects a client: once ioredis stops reconnecting (`maxRetry` attempts used up) it is `end` for good, no job moves, and nothing else says so. */
+  protected reportClientEnded() {
+    this.logger
+      .for(this.reportClientEnded.name)
+      .error(
+        'The Redis client ended, so BullMQ can no longer move jobs on queue %s | ioredis stopped reconnecting after maxRetry attempts | Back BullMQ with a helper whose maxRetry is %d (forever) | ID: %s',
+        this.queueName,
+        RedisDefaults.RETRY_FOREVER,
+        this.identifier,
+      );
   }
 
   static newInstance<T = unknown, R = unknown>(opts: IBullMQOptions<T, R>) {
@@ -169,9 +184,25 @@ export class BullMQHelper<TQueueElement = unknown, TQueueResult = unknown> exten
         removeOnFail: true,
       },
       ...this.queueOptions,
-      // The helper's own client, never a duplicate: BullMQ marks a client it is handed as shared and never quits it, so a duplicate would leak one connection per queue and worker. BullMQ opens (and closes) its own blocking connection.
-      connection: this.redisConnection.getClient(),
+      connection: this.createConnection(),
     };
+  }
+
+  /**
+   * The connection BullMQ owns: a duplicate of the helper's client, so the queue or worker connects it by itself
+   * whatever state the shared client is in. BullMQ treats a client it is handed as shared and never quits it, so the
+   * helper keeps the duplicate and quits it in `close()`.
+   */
+  protected createConnection(): TRedisClient {
+    const connection = this.redisConnection.duplicateClient();
+    this.duplicates.push(connection);
+    connection.once('end', () => {
+      if (!this.isClosing) {
+        this.reportClientEnded();
+      }
+    });
+
+    return connection;
   }
 
   /** Full `Worker` options: `this.workerOptions`, then the connection/concurrency/lock fields the helper owns - in that precedence order. */
@@ -185,7 +216,7 @@ export class BullMQHelper<TQueueElement = unknown, TQueueResult = unknown> exten
 
     return {
       ...this.workerOptions,
-      connection: this.redisConnection.getClient(),
+      connection: this.createConnection(),
       concurrency: this.numberOfWorker,
       lockDuration: this.lockDuration,
     };
@@ -308,7 +339,23 @@ export class BullMQHelper<TQueueElement = unknown, TQueueResult = unknown> exten
     }
   }
 
+  /** `quit()` waits for the replies in flight; a client BullMQ already closed is left alone. */
+  private static async release(opts: { connection: TRedisClient }) {
+    const { connection } = opts;
+
+    if (connection.status === 'end') {
+      return;
+    }
+
+    try {
+      await connection.quit();
+    } catch {
+      connection.disconnect();
+    }
+  }
+
   async close() {
+    this.isClosing = true;
     const failures: string[] = [];
 
     // Both connections must be released even when the first close fails - otherwise a failing worker close silently leaks the queue's Redis connection forever.
@@ -328,6 +375,17 @@ export class BullMQHelper<TQueueElement = unknown, TQueueResult = unknown> exten
         .for(this.close.name)
         .error('Error closing BullMQ queue: %s | ID: %s', error, this.identifier);
       failures.push(ErrorUtility.toError({ error }).message);
+    }
+
+    for (const connection of this.duplicates.splice(0)) {
+      try {
+        await BullMQHelper.release({ connection });
+      } catch (error) {
+        this.logger
+          .for(this.close.name)
+          .error('Error closing the BullMQ connection: %s | ID: %s', error, this.identifier);
+        failures.push(ErrorUtility.toError({ error }).message);
+      }
     }
 
     if (failures.length) {
