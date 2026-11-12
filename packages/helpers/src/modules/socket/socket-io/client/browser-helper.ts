@@ -17,6 +17,9 @@ import type { TSocketIOEventHandler } from '../common/types/hooks';
  * is handed in as `module` (`{ io }` from the app's own `import`) instead of being found on disk.
  * `@venizia/ignis-helpers/socket-io` extends it and finds the module itself when none is handed in.
  */
+/** What `socket.off` takes back: the wrapper `subscribe` registered in place of the caller's handler. */
+type TWrappedListener = NonNullable<Parameters<Socket['off']>[1]>;
+
 export class SocketIOClientHelper extends BaseHelper {
   private host: string;
   private options: IOptions;
@@ -24,7 +27,7 @@ export class SocketIOClientHelper extends BaseHelper {
   private state: TSocketIOClientState = SocketIOClientStates.UNAUTHORIZED;
 
   // subscribe() registers a wrapper, never the caller handler: without this map unsubscribe() has nothing to hand to socket.off() and the listener stays bound forever
-  private wrappedHandlers: Map<string, Map<TSocketIOEventHandler<any>, (data: any) => void>> =
+  private wrappedHandlers: Map<string, Map<TSocketIOEventHandler<never>, TWrappedListener>> =
     new Map();
 
   private onConnected?: () => ValueOrPromise<void>;

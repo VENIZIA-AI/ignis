@@ -5,7 +5,7 @@ import type { ServerOptions } from 'socket.io';
 export class SocketIOBunHandler {
   static async createEngine(opts: {
     serverOptions: Partial<ServerOptions>;
-  }): Promise<{ engine: any; engineHandler: any }> {
+  }) {
     const { serverOptions } = opts;
     const { Server: BunEngine } = await import('@socket.io/bun-engine');
 
@@ -31,7 +31,7 @@ export class SocketIOBunHandler {
   }
 
   static createFetchHandler(opts: {
-    engine: any;
+    engine: Awaited<ReturnType<typeof SocketIOBunHandler.createEngine>>['engine'];
     enginePath: string;
     honoServer: OpenAPIHono;
   }): (req: Request, server: TBunServerInstance) => Response | Promise<Response> {

@@ -16,7 +16,7 @@ export interface IModelAuthorizeSettings {
   /** The authorization principal name (resource/subject) for this model. */
   principal: string;
   /** Extensible - consumers can add any extra authorization metadata. */
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 
 /** What a restricted caller may write to the scope columns (`@model` settings.access.write). */

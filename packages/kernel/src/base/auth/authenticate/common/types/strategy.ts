@@ -12,7 +12,7 @@ import type { TAuthMode } from '../constants';
 /** The authenticated identity a strategy returns and the request context stores. Carries at least `userId`. */
 export interface IAuthUser {
   userId: IdType;
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 
 /** A strategy that authenticates a request. `name` is the name it is registered under; `authenticate` returns the user or throws. */

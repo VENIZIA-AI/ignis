@@ -313,7 +313,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
   }
 
   /** A `null` is written as `null` whatever the field's codec is: a codec converts a value, and `null` is none. */
-  protected serializeField(opts: { key: string; value: any }): string {
+  protected serializeField(opts: { key: string; value: unknown }): string {
     const { key, value } = opts;
     const codec = value === null ? undefined : this.fieldCodecs.get(key);
 
@@ -330,12 +330,12 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
    * so the token decodes to the same payload with encryption on or off and `null` stays distinct from absent. An
    * `undefined` claim is skipped, as JSON drops it.
    */
-  async encryptPayload(payload: IJWTTokenPayload): Promise<Record<string, any>> {
+  async encryptPayload(payload: IJWTTokenPayload): Promise<Record<string, unknown>> {
     if (!this.aes || !this.applicationSecret) {
       return payload;
     }
 
-    const rs: Record<string, string> = {};
+    const rs: Record<string, unknown> = {};
 
     const keys = Object.keys(payload);
 
@@ -451,7 +451,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
       .for(this.decryptPayload.name)
       .debug('JWT Token | payload: %j | header: %j', payload, protectedHeader);
 
-    const rs: any = {};
+    const rs: Record<string, unknown> = {};
 
     for (const key in payload) {
       if (AbstractBearerTokenService.JWT_COMMON_FIELDS.has(key)) {
@@ -463,15 +463,36 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
         message: key,
         secret: this.applicationSecret,
       });
+      const encryptedValue = payload[key];
+
+      if (typeof encryptedValue !== 'string') {
+        throw getError({
+          statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+          message: '[decryptPayload] An encrypted claim is not a string',
+        });
+      }
+
       const decryptedValue = await this.aes.decrypt({
-        message: payload[key],
+        message: encryptedValue,
         secret: this.applicationSecret,
       });
 
       rs[decryptedKey] = this.deserializeField({ key: decryptedKey, value: decryptedValue });
     }
 
+    if (!AbstractBearerTokenService.isTokenPayload(rs)) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+        message: '[decryptPayload] The decrypted claims carry no userId',
+      });
+    }
+
     return rs;
+  }
+
+  /** A decrypted claim set is a payload only if it names its user. */
+  private static isTokenPayload(value: Record<string, unknown>): value is IJWTTokenPayload {
+    return 'userId' in value && value.userId !== undefined;
   }
 
   protected abstract doVerify(token: string): Promise<IJWTTokenPayload>;

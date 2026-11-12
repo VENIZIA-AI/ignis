@@ -38,8 +38,8 @@ export interface IApiReferenceOptions {
       description?: string;
     }>;
   };
-  uiConfig?: Record<string, any>;
-  securitySchemes?: Record<string, Record<string, any>>;
+  uiConfig?: Record<string, unknown>;
+  securitySchemes?: Record<string, Record<string, unknown>>;
 }
 
 /** Renders the interactive API documentation page for the OpenAPI document. Register an implementation on `UIProviderFactory` to serve a custom UI. */
@@ -51,7 +51,7 @@ export interface IUIProvider {
 export interface IUIConfig {
   title: string;
   url: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /** Selects a registered UI provider by its type name. */

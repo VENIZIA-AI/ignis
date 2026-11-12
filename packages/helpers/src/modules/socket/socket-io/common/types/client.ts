@@ -16,7 +16,7 @@ export interface IHandshake {
   url: string;
   query: ParsedUrlQuery;
   auth: {
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -35,7 +35,7 @@ export interface ISocketIOClient {
 /** Connection options for the Socket.IO client helper: the `socket.io-client` options plus a required `path` and `extraHeaders`. */
 export interface IOptions extends SocketOptions {
   path: string;
-  extraHeaders: Record<string | symbol | number, any>;
+  extraHeaders: Record<string, string>;
 }
 
 /** Options for the Socket.IO client helper. The `on*` callbacks fire on the matching connection or authentication event. */

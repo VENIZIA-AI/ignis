@@ -14,7 +14,7 @@ export interface IRequestOptions {
   method?: THttpMethod;
   params?: AnyObject;
   timeout?: number;
-  [extra: symbol | string]: any;
+  [extra: symbol | string]: unknown;
 }
 
 /** Contract of an HTTP fetcher: `send` takes the method from the options, the verb methods fix it, and `getWorker` returns the underlying client (`W`). */
