@@ -50,9 +50,10 @@ export abstract class AbstractSearchController<
   BasePath extends string = '/',
   ConfigurableOptions extends object = {},
   TDataObject extends object = TEntityDataObject<TEntity>,
+  TExtra extends object = {},
 > extends BaseRestController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions> {
   repository: ReadableSearchRepository<TDataObject>;
-  searchScope?: TSearchScopeResolver<RouteEnv>;
+  searchScope?: TSearchScopeResolver<RouteEnv, TExtra>;
 
   /** The `engineParams` names a caller may send, normalised (see {@link SearchEngineParams}). Empty: any `engineParams` is refused. */
   allowedEngineParams: ReadonlySet<string>;
@@ -66,7 +67,7 @@ export abstract class AbstractSearchController<
     repository: ReadableSearchRepository<TDataObject>;
     definitions: AnyType;
     /** Per-request search scope; see {@link TSearchScopeResolver}. */
-    searchScope?: TSearchScopeResolver<RouteEnv>;
+    searchScope?: TSearchScopeResolver<RouteEnv, TExtra>;
     /** Names from `engineParams.allow`, as `SearchEngineParams.resolveAllowlist` answers them. */
     allowedEngineParams?: ReadonlySet<string>;
     /** `modes.raw.allow`, as `SearchRawAccess.resolve` answers it. */
@@ -83,8 +84,8 @@ export abstract class AbstractSearchController<
   /** POST /search - single-collection keyword/semantic/hybrid/raw search. Carries the list headers of every IGNIS list endpoint; the body keeps `{ found, isFoundExact, hits }` because `isFoundExact` has no place in a `{ count, data }` envelope, and it is the only carrier of "found is an estimate". */
   async search(opts: { context: TRouteContext<RouteEnv> }) {
     const { context } = opts;
-    const body = context.req.valid<TSearchInput>('json');
-    let input = body;
+    const body = context.req.valid<TSearchInput & TExtra>('json');
+    let input: TSearchInput = body;
 
     // Before the scope and on every controller: a caller's raw engine parameters can replace the controller's own filter.
     SearchRawAccess.assertSearchInput({ input: body, isAllowed: this.isRawAllowed });

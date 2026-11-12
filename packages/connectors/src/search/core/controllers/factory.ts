@@ -27,6 +27,7 @@ export interface ISearchRoutes {
 /** Configuration options for creating a search controller via SearchControllerFactory.build. */
 export interface ISearchControllerOptions<
   Repository extends TCrudRepositoryClass = TCrudRepositoryClass,
+  Shape extends z.ZodRawShape = {},
 > {
   /** The repository class; its name is the binding the container injects, and its `@repository({ model })` supplies the entity whose SELECT schema drives the `hits[].document` shape in the response. */
   repository: Repository;
@@ -54,7 +55,16 @@ export interface ISearchControllerOptions<
    * multi-search route (leave `routes.multiSearch` out), which `SearchControllerFactory.build` requires.
    * `engineParams` is refused on every controller unless `engineParams.allow` lists it.
    */
-  scope?: TSearchScopeResolver;
+  scope?: TSearchScopeResolver<Env, z.infer<z.ZodObject<Shape>>>;
+
+  /**
+   * Adds keys to the body of `POST /search`, on every `mode`: `request.body.extend` is a Zod shape, and each key is
+   * validated with the rest of the body (a bad value is a 400) and shown in the OpenAPI document. The validated body,
+   * typed from the shape, reaches `scope` as `input`, so a facet the engine does not know can still narrow the scope
+   * (an `ids` list that must all match, say). The extra keys are not search fields: nothing else reads them.
+   * A key the base body already has is refused when the controller is built.
+   */
+  request?: { body?: { extend: Shape } };
 
   /**
    * Which engine parameters a caller may send in a request's `engineParams`. Unset or empty, a request that carries
@@ -81,12 +91,40 @@ export class SearchControllerFactory extends BaseHelper {
     super({ scope: SearchControllerFactory.name });
   }
 
+  /** `SearchInputSchema` with `shape` added to each of its four modes (a discriminated union has no `extend` of its own). */
+  private static extendSearchBody(opts: { shape: z.ZodRawShape }) {
+    const { shape } = opts;
+    const [keyword, semantic, hybrid, raw] = SearchInputSchema.options;
+    const taken = Object.keys(shape).filter(
+      (key) =>
+        key in keyword.shape || key in semantic.shape || key in hybrid.shape || key in raw.shape,
+    );
+
+    if (taken.length > 0) {
+      throw getError({
+        message: `[SearchControllerFactory.build] request.body.extend names keys the search body already has | keys: ${taken.join(', ')}`,
+      });
+    }
+
+    return z.discriminatedUnion('mode', [
+      keyword.extend(shape),
+      semantic.extend(shape),
+      hybrid.extend(shape),
+      raw.extend(shape),
+    ]);
+  }
+
   static defineRouteConfigs(opts: {
     selectSchema: z.ZodType;
     authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
     authorize?: IAuthorizationSpec | IAuthorizationSpec[];
+    /** The keys `request.body.extend` adds to every `mode` of the search body; none leaves `SearchInputSchema` as it is. */
+    bodyExtension?: z.ZodRawShape;
   }) {
-    const { selectSchema, authenticate, authorize } = opts;
+    const { selectSchema, authenticate, authorize, bodyExtension } = opts;
+    const searchBodySchema = bodyExtension
+      ? SearchControllerFactory.extendSearchBody({ shape: bodyExtension })
+      : SearchInputSchema;
 
     const searchResponseSchema = z.object({
       found: z.number(),
@@ -110,7 +148,7 @@ export class SearchControllerFactory extends BaseHelper {
         request: {
           body: OpenApiResponses.jsonContent({
             description: 'Search input, discriminated by mode',
-            schema: SearchInputSchema,
+            schema: searchBodySchema,
           }),
         },
         responses: OpenApiResponses.jsonResponse({
@@ -147,7 +185,8 @@ export class SearchControllerFactory extends BaseHelper {
     BasePath extends string = '/',
     ConfigurableOptions extends object = {},
     TDataObject extends object = TRepositoryDataObject<InstanceType<Repository>>,
-  >(opts: ISearchControllerOptions<Repository>) {
+    Shape extends z.ZodRawShape = {},
+  >(opts: ISearchControllerOptions<Repository, Shape>) {
     const { repository, authenticate, authorize, routes, scope, isStrict = true } = opts;
 
     const factoryScope = `SearchControllerFactory.build | repository: ${repository.name}`;
@@ -185,6 +224,7 @@ export class SearchControllerFactory extends BaseHelper {
       selectSchema,
       authenticate,
       authorize,
+      bodyExtension: opts.request?.body?.extend,
     });
 
     const controllerClass = class extends AbstractSearchController<
@@ -193,7 +233,8 @@ export class SearchControllerFactory extends BaseHelper {
       RouteSchema,
       BasePath,
       ConfigurableOptions,
-      TDataObject
+      TDataObject,
+      z.infer<z.ZodObject<Shape>>
     > {
       constructor(repositoryInstance: ReadableSearchRepository<TDataObject>) {
         super({
@@ -201,7 +242,9 @@ export class SearchControllerFactory extends BaseHelper {
           isStrict,
           repository: repositoryInstance,
           definitions: routeDefinitions,
-          searchScope: scope as TSearchScopeResolver<RouteEnv> | undefined,
+          searchScope: scope as
+            | TSearchScopeResolver<RouteEnv, z.infer<z.ZodObject<Shape>>>
+            | undefined,
           allowedEngineParams,
           isRawAllowed,
         });
