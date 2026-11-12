@@ -26,6 +26,21 @@ describe('RedisSingleHelper', () => {
     expect(helper.getClient().status).toBe('wait');
   });
 
+  it('passes a Redis ACL username to the client beside the password', () => {
+    helper = new RedisSingleHelper({
+      name: 'single-acl',
+      host: '127.0.0.1',
+      port: 6379,
+      username: 'worker',
+      password: 'secret',
+      autoConnect: false,
+    });
+    const options = helper.getClient().options;
+
+    expect(options.username).toBe('worker');
+    expect(options.password).toBe('secret');
+  });
+
   it('takes no password for a Redis that has none', () => {
     helper = new RedisSingleHelper({
       name: 'single-test',
