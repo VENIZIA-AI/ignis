@@ -298,7 +298,7 @@ Binding key: `StaticAssetBindingKeys.commitService({ name })`
 | Method | Does | Returns |
 |---|---|---|
 | `verify({ token, owner })` | Checks signature, expiry, owner, bucket and pending scope; no storage call | `{ bucket, object, owner, metadata }` |
-| `validate({ token, owner })` | Runs `verify`, pins the content, runs `validation` once | `{ isValid, issues, commitToken }` for a valid file |
+| `validate({ token, owner })` | Runs `verify`, pins the content, runs `validation` once | `{ isValid, issues, commitToken? }`: the new validated token, only when `isValid` is `true` |
 | `commit({ token, owner, labels?, destination? })` | Runs `verify`, copies the pinned content to the final key, removes pending, writes the MetaLink row | `{ bucket, object, owner, metadata, link, metaLink? }` |
 
 `commit` copies conditionally and refuses a destination that holds an object (`409`, with `extra: { object, link }`). A given `destination` wins over `resolvers.commit.destination`. `commit` never runs `validation`; with it on, it needs the validated token.

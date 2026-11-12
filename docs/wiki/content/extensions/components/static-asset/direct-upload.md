@@ -56,13 +56,13 @@ sequenceDiagram
   participant A as Your app
   participant S as S3 storage
   B->>A: POST /upload-policy { files }
-  A-->>B: policy { postURL, formData, objectName, commitToken }
+  A-->>B: policy { postURL, formData, objectName, commitToken (policy token) }
   B->>S: POST postURL (formData, then the file)
-  B->>A: POST /upload-validate { commitToken }
+  B->>A: POST /upload-validate { commitToken: policy token }
   A->>S: stat the pending object, pin it, read it once
-  A-->>B: { isValid, issues, commitToken }
+  A-->>B: { isValid, issues, commitToken? } (validated token)
   Note over B: Invalid: no token. Fix the file, ask for a NEW policy, post again
-  B->>A: POST /upload-commit { commitToken }
+  B->>A: POST /upload-commit { commitToken: validated token }
   A->>S: copy the pinned content to the final key, remove pending
   A-->>B: { object, link, metaLink }
   Note over A: A job processes the final key
@@ -74,6 +74,8 @@ sequenceDiagram
 4. **Fix and re-upload.** A bad file is fixed on the user's side and uploaded again with a **new policy**. The abandoned pending object is left for the [lifecycle rule](./security#clean-up-the-pending-prefix).
 5. **Commit.** With the token validate returned (the policy's token when `validation` is off), the file is copied to its final key (the same key without the `pending/` part: `files/6f1c.../report.xlsx`) and its MetaLink row is written. Commit does not run your check again: with a validated token, the copy happens only if the content still matches the pin. The commit is the "accepted" mark: an object at a final key was accepted, so no tags are needed.
 6. **Job.** Your code picks the committed object up from the commit result.
+
+The `commitToken` that `upload-validate` (or `validate()`) answers is a **new** token: stage `validated`, pinned to the content just checked. It replaces the token the policy issued, is present only when `isValid` is `true`, and `commit` must use it: with `validation` on, the policy's token answers `422` `core.static_asset.upload_not_validated`.
 
 The commit is not ceremony. Storage tells your backend nothing, so without it there is no MetaLink row and no way to attach the object to an order, a ticket or a user.
 
@@ -616,7 +618,7 @@ Binding key: `StaticAssetBindingKeys.commitService({ name })`
 | `commit({ token, owner, labels?, destination? })` | Copies the pinned content to the final key | `{ bucket, object, owner, metadata, link, metaLink? }` |
 
 - `verify` answers the pending object's `{ bucket, object, owner, metadata }`.
-- A valid `validate` answers `{ isValid: true, issues: [], commitToken }`. With `validation` off it still pins and answers a `commitToken`.
+- `validate` answers `{ isValid, issues, commitToken? }`: the new validated token, only when `isValid` is `true`. With `validation` off it still pins and answers a `commitToken`.
 - `commit` starts with `verify`, removes the pending object after the copy, and writes the MetaLink row. It never runs your `validation`. With `validation` on it needs the validated token.
 
 `name` is the entry's key in the options object (`orderImport`), not the controller name. The HTTP field is `commitToken`; only the service parameter is `token`. Call `validate`, then pass the `commitToken` it answers to `commit`.

@@ -275,7 +275,7 @@ export const workbookValidation = (opts: {
 
 | Step | Before | Now |
 |---|---|---|
-| `upload-validate` answer | `{ isValid, issues }` | `{ isValid, issues, commitToken }`, the token present only when valid |
+| `upload-validate` answer | `{ isValid, issues }` | `{ isValid, issues, commitToken? }`, the new validated token present only when `isValid` is `true` |
 | `upload-commit` body | the policy's `commitToken` | the `commitToken` validate returned |
 | `commit` with the policy's token | ran the handler again | `422` `core.static_asset.upload_not_validated` |
 | A file that changed after validate | copied | `409` `core.static_asset.upload_changed`, nothing copied |
