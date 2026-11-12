@@ -138,7 +138,7 @@ describe('StaticAssetComponent', () => {
 
     const formData = new FormData();
     formData.append('files', new File(['nested'], 'photo.jpg', { type: 'image/jpeg' }));
-    formData.append('folderPath', 'photos/2024');
+    formData.append('folderPath', 'photos');
 
     const uploadResponse = await router.request('/assets/objects', {
       method: 'POST',
@@ -151,7 +151,7 @@ describe('StaticAssetComponent', () => {
       link: string;
       object: { key: string };
     }>;
-    expect(uploaded[0].object.key).toBe('photos/2024/photo.jpg');
+    expect(uploaded[0].object.key).toMatch(/^[0-9a-f-]{36}\/photos\/photo\.jpg$/);
 
     const getResponse = await router.request(uploaded[0].link);
     expect(getResponse.status).toBe(200);

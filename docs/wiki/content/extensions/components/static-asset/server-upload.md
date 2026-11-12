@@ -66,6 +66,9 @@ export const uploadDocuments = async (opts: {
 
 A label that is not the right shape (a `sequence` of `first`, say) is the standard validation error (`422`), and nothing is written.
 
+> [!WARNING]
+> The labels are what the client says, not who the client is. A caller can send another user's `principalId`, and the row records it. Do not use them for authorization. When the owner or the labels must be trustworthy, use [direct upload](./direct-upload#resolvers): `resolvers.metadata` runs on your server and its result is signed into the token.
+
 ## The response
 
 One entry per file, in the order sent:
@@ -89,9 +92,9 @@ One entry per file, in the order sent:
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `maxBytes` | `number` | no ceiling | Largest file. Checked against `content-length` before the body is read, then per file. Over it answers `413` with `core.static_asset.upload_too_large`. |
+| `maxBytes` | `number` | no ceiling | Largest file. The route's body limit (`maxFiles` x `maxBytes` plus framing) is checked before the body is read, then each file. Over it answers `413` with `core.static_asset.upload_too_large`. |
 | `maxFiles` | `number` | `20` | Most file parts one request may carry. More answers `413` before anything is written. |
-| `objectKey` | `({ bucket, file, defaultKey }) => string` | the default name | The one hook that decides the stored key. |
+| `objectKey` | `({ bucket, file, defaultKey }) => string` | `<keyPrefix><uuid>/<name>` | The one hook that decides the stored key. |
 
 ### Choose the stored key
 
@@ -109,6 +112,7 @@ export const objectKey: TStaticAssetObjectKeyResolver = ({ file, defaultKey }) =
 
 Pass it as `serverUpload: { use: true, objectKey }`. Two rules hold for the default naming:
 
+- It puts a random uuid segment before the name: `<keyPrefix><uuid>/<folderPath>/<name>`, the shape the direct upload uses. Two uploads of one name never overwrite each other, and a download still carries the plain name. The uuid is one folder level in the key's depth.
 - It lowercases the name and replaces spaces with `_`.
 - Under a `keyPrefix`, the original file name must be one path segment: a `/` in it is refused with `[upload] Invalid original file name`. An `objectKey` hook lifts that rule, because the key is yours.
 
@@ -116,7 +120,7 @@ Under a `keyPrefix`, a key outside the scope is **refused, never rewritten** (`4
 
 ## What is checked, in order
 
-1. The multipart body is within `maxBytes` by `content-length`, then parses with at most `maxFiles` files. (`413`)
+1. The multipart body is within the route's body limit, then parses with at most `maxFiles` files. (`413`)
 2. The labels have the right shape. (`422`)
 3. Every file is non-empty and within `maxBytes`. (`400`, `413`)
 4. The storage helper checks the folder path and its depth. (`400`, `core.storage.folder_path_invalid` or `core.storage.folder_depth_exceeded`)

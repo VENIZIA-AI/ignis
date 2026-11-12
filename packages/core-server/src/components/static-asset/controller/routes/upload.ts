@@ -8,7 +8,7 @@ import {
   type TUploadNaming,
 } from '@venizia/ignis-helpers';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { getError } from '@venizia/ignis-helpers/core';
+import { getError, UuidHelper } from '@venizia/ignis-helpers/core';
 import {
   StaticAssetErrors,
   StaticAssetMetaLinkCodes,
@@ -48,8 +48,9 @@ export const MetaLinkOutcomeSchema = z
 
 class StaticAssetUploadHandler {
   /**
-   * Built per request: the hook is offered the bucket, which only the route knows. A hook's key is
-   * checked against the scope, never rewritten: the application may record that key elsewhere.
+   * Built per request: the hook is offered the bucket, which only the route knows. The default key is
+   * `<keyPrefix><uuid>/<name>`. A hook's key is checked against the scope, never rewritten: the
+   * application may record that key elsewhere.
    */
   static buildNaming(opts: {
     env: IStaticAssetRouteEnv;
@@ -59,17 +60,14 @@ class StaticAssetUploadHandler {
     const { env, bucketName, objectKey } = opts;
     const { helper, keyPrefix } = env;
 
-    if (!objectKey && keyPrefix === undefined) {
-      return undefined;
-    }
-
     return (naming: { file: TUploadNaming }) => {
-      // The component's own name under a scope: the original name must stay one segment, as without one.
+      // The component's own name: the original name must stay one segment.
       if (!objectKey && !helper.isValidSegment({ segment: naming.file.originalName })) {
         throw getError({ message: '[upload] Invalid original file name' });
       }
 
-      const defaultKey = `${keyPrefix ?? ''}${BaseStorageHelper.normalizeObjectName(naming)}`;
+      // A uuid segment, as the direct upload has: two uploads of one name never overwrite each other.
+      const defaultKey = `${keyPrefix ?? ''}${UuidHelper.getInstance().v4()}/${BaseStorageHelper.normalizeObjectName(naming)}`;
       const key = objectKey
         ? objectKey({ bucket: { name: bucketName }, file: naming.file, defaultKey })
         : defaultKey;
@@ -216,11 +214,11 @@ export const uploadRoute: IStaticAssetRoute = {
     }),
     handler: (ctx) => StaticAssetUploadHandler.handle({ ctx, env }),
   }),
-  // The route's body validator reads the whole multipart body, so the length check has to run before it.
+  // The route's body validator reads the whole multipart body, so the body limit has to run before it.
   middleware: ({ env, own }) =>
     env.serverUpload?.maxBytes === undefined
       ? own
-      : StaticAssetRouteOptionsUtility.appendLengthGuard({
+      : StaticAssetRouteOptionsUtility.appendBodyLimit({
           middleware: own,
           maxBytes: env.serverUpload.maxBytes,
           maxFiles: env.serverUpload.maxFiles,

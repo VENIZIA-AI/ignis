@@ -214,14 +214,18 @@ catch-all; Hono matches in registration order), `extend.after` after every one; 
 defaultKey })`, which replaces `resolveObjectName` and `extra.normalizeNameFn`; `link` replaces
 `extra.normalizeLinkFn`. There is no spool: the multipart body is parsed whole into memory before the first
 file is written, so spooling to disk saved nothing. `maxBytes` answers `413` with
-`core.static_asset.upload_too_large` - one code for both upload paths. Its `content-length` check is route
-middleware (`StaticAssetRouteOptionsUtility.appendLengthGuard`), appended AFTER the application's own
+`core.static_asset.upload_too_large` - one code for both upload paths. The route's body limit (`maxFiles` x
+`maxBytes` plus framing, `BodyLimits.route`) is route middleware
+(`StaticAssetRouteOptionsUtility.appendBodyLimit`), appended AFTER the application's own
 `routes.upload` middleware: `@hono/zod-openapi`'s form validator reads the whole body before any handler runs,
 so a check in the handler saved no memory. The per-file `buffer.length` check - the authoritative one - stays
 in the handler. The handler does not check folders: `BaseStorageHelper.upload` does, and throws
 `StorageErrors.FOLDER_PATH_INVALID` / `FOLDER_DEPTH_EXCEEDED` (`core.storage.folder_*`); the old
 `core.static_asset.folder_*`, `labels_in_query` and `max_keys_invalid` codes are gone. `listObjects`' `maxKeys`
 is parsed by the route schema (a bad value is the standard validation error).
+The server upload's default key is `<keyPrefix><uuid>/<name>` (one more folder level than the caller's own, so
+`objectKeyMaxDepth` must count it). The serve routes send `ETag` and `Last-Modified` from `getStat` and answer `304`
+before the read (`StaticAssetServe.applyValidators({ ctx, stat })`, public); they set no `Cache-Control`.
 The upload labels - `principalType`, `principalId`, `variant`, `sequence` - travel in the BODY (form fields on
 `POST /objects`, beside the commit token on `upload-commit`) and are parsed by ONE schema
 (`StaticAssetLabelsUtility.parse`, type `TStaticAssetUploadLabels`; `folderPath` is not a label). A label in the

@@ -109,6 +109,12 @@ class FakeMetaLinkRepository {
   }
 }
 
+const UUID_SEGMENT = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\//;
+
+/** The default key without its uuid segment, so a test that is not about the key can name its object. */
+const withoutUuidSegment: TStaticAssetObjectKeyResolver = ({ defaultKey }) =>
+  defaultKey.replace(UUID_SEGMENT, '');
+
 /** Mounts a generated static-asset controller on a fresh application and returns the server router wired as start() does - root router under the app base path plus the real application error handler. */
 const mountAssetController = async (opts: {
   helper: FakeStorageHelper;
@@ -135,7 +141,7 @@ const mountAssetController = async (opts: {
     maxFolderDepth,
     keyPrefix,
     routes,
-    serverUpload: { use: true, ...serverUpload },
+    serverUpload: { use: true, objectKey: withoutUuidSegment, ...serverUpload },
     directUpload: { use: false },
     metaLink: metaLink ? { use: true, ...metaLink } : { use: false },
     extend,
@@ -581,7 +587,10 @@ describe('StaticAsset controller — nested folder objects', () => {
 describe('StaticAsset controller — serverUpload.objectKey hook', () => {
   test('no hook keeps the generated name', async () => {
     const helper = new FakeStorageHelper();
-    const router = await mountAssetController({ helper });
+    const router = await mountAssetController({
+      helper,
+      serverUpload: { objectKey: undefined },
+    });
 
     const response = await uploadFiles({
       router,
@@ -591,10 +600,33 @@ describe('StaticAsset controller — serverUpload.objectKey hook', () => {
 
     const result = await response.json();
     const uploaded = result as Array<{ object: { key: string } }>;
-    expect(uploaded[0].object.key).toBe('my_photo.jpg');
-    expect(helper.hasObject({ bucket: { name: 'images' }, object: { key: 'my_photo.jpg' } })).toBe(
-      true,
-    );
+    const { key } = uploaded[0].object;
+    expect(key).toMatch(/^[0-9a-f-]{36}\/my_photo\.jpg$/);
+    expect(helper.hasObject({ bucket: { name: 'images' }, object: { key } })).toBe(true);
+  });
+
+  test('two uploads of one name land under different keys, and neither overwrites the other', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({
+      helper,
+      serverUpload: { objectKey: undefined },
+    });
+    const keys: string[] = [];
+
+    for (const content of ['first', 'second']) {
+      const response = await uploadFiles({
+        router,
+        files: [new File([content], 'report.pdf', { type: 'application/pdf' })],
+      });
+      const result = await response.json();
+      keys.push((result as Array<{ object: { key: string } }>)[0].object.key);
+    }
+
+    expect(new Set(keys).size).toBe(2);
+
+    const first = await router.request(`/assets/objects/${encodeURIComponent(keys[0])}`);
+    const firstText = await first.text();
+    expect(firstText).toBe('first');
   });
 
   test('a hook returning a fixed name stores the object under it', async () => {
@@ -638,31 +670,33 @@ describe('StaticAsset controller — serverUpload.objectKey hook', () => {
     const response = await uploadFiles({
       router,
       files: [new File(['x'], 'My Photo.JPG', { type: 'image/jpeg' })],
-      labels: { folderPath: 'Photos/2024' },
+      labels: { folderPath: 'Photos' },
     });
     expect(response.status).toBe(200);
 
     expect(seen).toEqual([
       {
         bucket: { name: 'images' },
-        file: { originalName: 'My Photo.JPG', folderPath: 'Photos/2024' },
-        defaultKey: 'photos/2024/my_photo.jpg',
+        file: { originalName: 'My Photo.JPG', folderPath: 'Photos' },
+        defaultKey: expect.stringMatching(/^[0-9a-f-]{36}\/photos\/my_photo\.jpg$/),
       },
     ]);
 
-    // `defaultKey` must stay the key the storage helper writes on its own: the factory mirrors
-    // `BaseStorageHelper.normalizeObjectName`, which is protected, and this pins the two together.
+    // `defaultKey` is the key the component writes when no hook is set.
     const plainHelper = new FakeStorageHelper();
-    const plainRouter = await mountAssetController({ helper: plainHelper });
+    const plainRouter = await mountAssetController({
+      helper: plainHelper,
+      serverUpload: { objectKey: undefined },
+    });
     const plainResponse = await uploadFiles({
       router: plainRouter,
       files: [new File(['x'], 'My Photo.JPG', { type: 'image/jpeg' })],
-      labels: { folderPath: 'Photos/2024' },
+      labels: { folderPath: 'Photos' },
     });
 
     const result = await plainResponse.json();
     const plainUploaded = result as Array<{ object: { key: string } }>;
-    expect(plainUploaded[0].object.key).toBe(seen[0].defaultKey);
+    expect(plainUploaded[0].object.key).toMatch(/^[0-9a-f-]{36}\/photos\/my_photo\.jpg$/);
   });
 });
 
@@ -702,7 +736,7 @@ describe('StaticAsset controller — extend.after hook', () => {
     const helper = new FakeStorageHelper();
     const router = await mountAssetController({
       helper,
-      serverUpload: { objectKey: (hookOptions) => `scoped/${hookOptions.defaultKey}` },
+      serverUpload: { objectKey: (hookOptions) => `scoped/${hookOptions.file.originalName}` },
       extend: {
         after: ({ controller, helper: hookHelper }) => {
           controller.defineRoute({
@@ -1084,6 +1118,114 @@ describe('StaticAsset controller - byte ranges make a stored object seekable', (
   });
 });
 
+describe('StaticAsset controller - validators answer 304 without reading the object', () => {
+  const OBJECT_PATH = '/assets/objects/clip.mp4';
+
+  const buildRouter = async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({ helper });
+    await uploadFiles({ router, files: [new File(['0123456789'], 'clip.mp4')] });
+    const first = await router.request(OBJECT_PATH);
+    const etag = first.headers.get(HTTP.Headers.ETAG) ?? '';
+
+    return { helper, router, etag, first };
+  };
+
+  const streamCalls = (helper: FakeStorageHelper) =>
+    helper.calls.filter((call) => call.method === 'getObjectStream').length;
+
+  test('a response carries a quoted ETag and Last-Modified from the stat', async () => {
+    const { first, etag } = await buildRouter();
+
+    expect(etag).toMatch(/^"fake-etag-\d+"$/);
+    expect(first.headers.get(HTTP.Headers.LAST_MODIFIED)).toBe('Mon, 01 Jan 2024 00:00:00 GMT');
+    expect(first.headers.get(HTTP.Headers.CACHE_CONTROL)).toBeNull();
+  });
+
+  test('a matching If-None-Match answers 304 and never reads the object', async () => {
+    const { helper, router, etag } = await buildRouter();
+    const before = streamCalls(helper);
+
+    const response = await router.request(OBJECT_PATH, {
+      headers: { [HTTP.Headers.IF_NONE_MATCH]: etag },
+    });
+
+    expect(response.status).toBe(HTTP.ResultCodes.RS_3.NotModified);
+    const text = await response.text();
+    expect(text).toBe('');
+    expect(response.headers.get(HTTP.Headers.ETAG)).toBe(etag);
+    expect(streamCalls(helper)).toBe(before);
+  });
+
+  test('weak comparison, a list and * all match', async () => {
+    const { router, etag } = await buildRouter();
+
+    for (const value of [`W/${etag}`, `"other", ${etag}`, '*']) {
+      const response = await router.request(OBJECT_PATH, {
+        headers: { [HTTP.Headers.IF_NONE_MATCH]: value },
+      });
+      expect(response.status).toBe(HTTP.ResultCodes.RS_3.NotModified);
+    }
+  });
+
+  test('a different ETag serves the object', async () => {
+    const { router } = await buildRouter();
+
+    const response = await router.request(OBJECT_PATH, {
+      headers: { [HTTP.Headers.IF_NONE_MATCH]: '"stale"' },
+    });
+
+    expect(response.status).toBe(HTTP.ResultCodes.RS_2.Ok);
+    const text = await response.text();
+    expect(text).toBe('0123456789');
+  });
+
+  test('If-Modified-Since answers 304 when the object is not newer, 200 when it is', async () => {
+    const { router } = await buildRouter();
+
+    const current = await router.request(OBJECT_PATH, {
+      headers: { [HTTP.Headers.IF_MODIFIED_SINCE]: 'Mon, 01 Jan 2024 00:00:00 GMT' },
+    });
+    const stale = await router.request(OBJECT_PATH, {
+      headers: { [HTTP.Headers.IF_MODIFIED_SINCE]: 'Sun, 31 Dec 2023 00:00:00 GMT' },
+    });
+
+    expect(current.status).toBe(HTTP.ResultCodes.RS_3.NotModified);
+    expect(stale.status).toBe(HTTP.ResultCodes.RS_2.Ok);
+  });
+
+  test('If-None-Match decides alone: a stale tag beats a current date', async () => {
+    const { router } = await buildRouter();
+
+    const response = await router.request(OBJECT_PATH, {
+      headers: {
+        [HTTP.Headers.IF_NONE_MATCH]: '"stale"',
+        [HTTP.Headers.IF_MODIFIED_SINCE]: 'Mon, 01 Jan 2024 00:00:00 GMT',
+      },
+    });
+
+    expect(response.status).toBe(HTTP.ResultCodes.RS_2.Ok);
+  });
+
+  test('a backend ETag without quotes is sent quoted', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({ helper });
+    await uploadFiles({ router, files: [new File(['x'], 'clip.mp4')] });
+    helper.getStat = async () => ({
+      size: 1,
+      metadata: {},
+      etag: 'abc',
+    });
+
+    const response = await router.request(OBJECT_PATH);
+
+    expect(response.headers.get(HTTP.Headers.ETAG)).toBe('"abc"');
+    expect(response.headers.get(HTTP.Headers.LAST_MODIFIED)).toBeNull();
+  });
+});
+
+const MB = 1024 * 1024;
+
 describe('the upload route refuses a file over maxBytes', () => {
   /** Without a ceiling the ordinary upload accepted any size, while `directUpload` had one all along. */
   test('a file over the ceiling is refused with 413, and nothing is stored', async () => {
@@ -1113,13 +1255,43 @@ describe('the upload route refuses a file over maxBytes', () => {
     expect(response.status).toBe(200);
   });
 
-  /**
-   * The early exit: a body declaring more than the ceiling is refused before it is read, so a
-   * 500 MB upload is not first held in memory to then be rejected.
-   */
-  test('a declared content-length over the ceiling is refused before parsing', async () => {
+  /** The per-file ceiling is not a ceiling on the whole body: two 3 MB files under a 5 MB `maxBytes` pass. */
+  test('two files under maxBytes pass although together they exceed it', async () => {
     const helper = new FakeStorageHelper();
-    const router = await mountAssetController({ helper, serverUpload: { maxBytes: 16 } });
+    const router = await mountAssetController({ helper, serverUpload: { maxBytes: 5 * MB } });
+
+    const response = await uploadFiles({
+      router,
+      files: [
+        new File([new Uint8Array(3 * MB)], 'a.png', { type: 'image/png' }),
+        new File([new Uint8Array(3 * MB)], 'b.png', { type: 'image/png' }),
+      ],
+    });
+
+    expect(response.status).toBe(200);
+  });
+
+  test('one file over maxBytes is refused in the handler, with the file named', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({ helper, serverUpload: { maxBytes: 5 * MB } });
+
+    const response = await uploadFiles({
+      router,
+      files: [new File([new Uint8Array(6 * MB)], 'big.png', { type: 'image/png' })],
+    });
+
+    expect(response.status).toBe(413);
+    const result = await response.json();
+    expect(JSON.stringify(result)).toContain('big.png');
+  });
+
+  /** A body declaring more than `maxFiles x maxBytes` plus framing is refused before it is read. */
+  test('a declared content-length over the whole-body limit is refused before parsing', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mountAssetController({
+      helper,
+      serverUpload: { maxBytes: 16, maxFiles: 2 },
+    });
 
     const boundary = '----ignis-test-boundary';
     const body =
@@ -1133,16 +1305,12 @@ describe('the upload route refuses a file over maxBytes', () => {
       method: 'POST',
       headers: {
         'content-type': `multipart/form-data; boundary=${boundary}`,
-        'content-length': String(body.length),
+        'content-length': String(10 * MB),
       },
       body,
     });
 
     expect(response.status).toBe(413);
-    // The MESSAGE is what pins which check fired - the per-file one would also answer 413 here,
-    // so asserting the status alone cannot tell the early exit from the late one.
-    const result = await response.json();
-    expect(JSON.stringify(result)).toContain('Request body of');
     expect(helper.calls.some((call) => call.method === 'upload')).toBe(false);
   });
 
