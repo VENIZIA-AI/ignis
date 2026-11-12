@@ -608,7 +608,10 @@ export const routes: TStaticAssetRoutes = { uploadCommit: { use: false } };
 
 ```ts
 import { Authentication } from '@venizia/ignis';
+import { getError } from '@venizia/ignis-helpers/core';
 import type { TStaticAssetDirectUploadOptions } from '@venizia/ignis/static-asset';
+
+declare const orderOwnerOf: (opts: { orderId: string }) => Promise<string | undefined>;
 
 export const directUpload: { use: true } & TStaticAssetDirectUploadOptions = {
   use: true,
@@ -617,7 +620,17 @@ export const directUpload: { use: true } & TStaticAssetDirectUploadOptions = {
   validation: { use: false },
   resolvers: {
     owner: ({ context }) => String(context.get(Authentication.CURRENT_USER).userId),
-    metadata: ({ file }) => ({ orderId: file.metadata?.orderId ?? '' }),
+    // The client's hint is untrusted: check it against the caller before signing it.
+    metadata: async ({ context, file }) => {
+      const orderId = file.metadata?.orderId ?? '';
+      const ownerId = await orderOwnerOf({ orderId });
+
+      if (ownerId !== String(context.get(Authentication.CURRENT_USER).userId)) {
+        throw getError({ message: 'Not your order', statusCode: 403 });
+      }
+
+      return { orderId };
+    },
     commit: {
       destination: ({ metadata, file }) => ({ key: `files/${metadata.orderId}/${file.fileName}` }),
     },
@@ -637,7 +650,7 @@ export const directUpload: { use: true } & TStaticAssetDirectUploadOptions = {
 - The validation handler receives `{ file, owner, metadata }`.
 - `commit` answers `{ ..., owner, metadata }`, and writes `metadata` into the MetaLink row's `metadata` column under the key `app`. A later refresh of the row keeps it.
 
-The client may send a hint: `files[].metadata` in the policy body reaches your resolver as `file.metadata`, and the framework signs **only what the resolver returns**. A client that sends `metadata` while no `resolvers.metadata` is set is refused with `400` `core.static_asset.upload_metadata_invalid`.
+The client may send a hint: `files[].metadata` in the policy body reaches your resolver as `file.metadata`, and the framework signs **only what the resolver returns**. The hint is untrusted client input: validate it in the resolver, as in the example above. The framework only guarantees that nobody changes it after you sign it. A client that sends `metadata` while no `resolvers.metadata` is set is refused with `400` `core.static_asset.upload_metadata_invalid`.
 
 > [!WARNING]
 > The token is signed, not encrypted. The client can read everything in it. Put no secrets in `metadata`.

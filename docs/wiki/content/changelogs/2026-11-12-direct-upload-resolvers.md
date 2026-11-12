@@ -53,10 +53,11 @@ directUpload: {
   use: true,
   resolvers: {
     owner: ({ context }) => userIdOf(context),
-    metadata: ({ file }) => ({ orderId: file.metadata?.orderId ?? '' }),
   },
   // ...
 },
 ```
+
+`resolvers.metadata` is optional. The client's `files[].metadata` is an untrusted hint: check it in the resolver before returning it.
 
 See [Resolvers](/extensions/components/static-asset/direct-upload#resolvers), [A token commits once](/extensions/components/static-asset/security#a-token-commits-once) and the [migration notes](/extensions/components/static-asset/migration#resolvers-replace-resolveowner).
