@@ -727,7 +727,7 @@ class MimeTypes {
 type TMimeTypes = TConstValue<typeof MimeTypes>; // 'unknown' | 'image' | 'video' | 'text'
 ```
 
-Content type classification constants. `MimeTypes.isValid(value)` returns `true` for one of the four.
+Content type classification constants.
 
 ### Content types and file extensions
 

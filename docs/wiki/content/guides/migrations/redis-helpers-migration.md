@@ -1,6 +1,6 @@
 ---
 title: Migrating to the new Redis Helper API
-description: Breaking changes and migration steps for the IGNIS Redis helper refactor - folder-per-topology, AbstractRedisHelper, camelCase methods, Sentinel, and the createRedisHelper factory
+description: Breaking changes and migration steps for the IGNIS Redis helper refactor - folder-per-topology, AbstractRedisHelper, camelCase methods, Sentinel, and the Redis helper factory
 ---
 
 # Migrating to the new Redis Helper API

@@ -774,7 +774,6 @@ import type {
   IRedisModuleOption,
   // Client + enum types
   TRedisClient,
-  TRedisMode,
   TRedisSentinelRole,
 } from '@venizia/ignis-helpers';
 ```

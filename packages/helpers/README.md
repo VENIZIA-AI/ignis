@@ -16,15 +16,14 @@ Choose a logger provider once at the entrypoint, then take scoped loggers and he
 
 ```typescript
 // bun add pino ioredis
-import { LoggerFactory, RedisHelperFactory, RedisModes } from '@venizia/ignis-helpers';
+import { LoggerFactory, RedisHelperFactory } from '@venizia/ignis-helpers';
 import { PinoLogger } from '@venizia/ignis-helpers/pino';
 
 LoggerFactory.use({ provider: PinoLogger });
 
 const logger = LoggerFactory.getLogger(['CacheService']);
 
-const redis = RedisHelperFactory.create({
-  mode: RedisModes.SINGLE,
+const redis = RedisHelperFactory.single({
   name: 'cache',
   host: '127.0.0.1',
   port: 6379,
