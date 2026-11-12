@@ -4,14 +4,16 @@ import { CodemodFiles } from '../files';
 import { type INamespaceMapping, NamespaceMappings } from './mapping';
 import { ALL_MAPPINGS } from './mappings';
 import { LoggerScopeRewriter } from './logger-scope';
+import { NamespaceFunctionsReverse } from './reverse';
 import { NamespaceFunctions } from './rewriter';
 
 export * from './logger-scope';
 export * from './mapping';
 export * from './mappings';
+export * from './reverse';
 export * from './rewriter';
 
-const USAGE = `Usage: devz codemod namespace-functions [paths...] [--write | --check]
+const USAGE = `Usage: devz codemod namespace-functions [paths...] [--write | --check] [--reverse]
 
 Moves calls of an IGNIS function that now lives in a class to the class form, with one options
 object: \`oldName(a, b)\` becomes \`ClassName.method({ first: a, second: b })\`, and an argument named
@@ -33,6 +35,8 @@ typecheck afterwards.
 
   --write    write the changed files (without it, nothing is written)
   --check    dry run that exits 1 while a call can be rewritten or is left untouched (for CI)
+  --reverse  apply the table backward, for a downgrade: \`ClassName.method({ first: a })\` becomes
+             \`oldName(a)\` and the import follows. The \`ApplicationLogger\` rule is not reversed.
   --help     print this text and exit
 
 With no flag it lists what would change and writes nothing. Inside a git repository it reads the
@@ -45,12 +49,14 @@ const USAGE_ERROR_CODE = 2;
 class NamespaceFunctionsFlags {
   static readonly WRITE = '--write';
   static readonly CHECK = '--check';
+  static readonly REVERSE = '--reverse';
   static readonly HELP = '--help';
   static readonly HELP_SHORT = '-h';
 
   static readonly SCHEME_SET = new Set<string>([
     this.WRITE,
     this.CHECK,
+    this.REVERSE,
     this.HELP,
     this.HELP_SHORT,
   ]);
@@ -100,6 +106,7 @@ export class NamespaceFunctionsCommand {
 
     const isWrite = flags.includes(NamespaceFunctionsFlags.WRITE);
     const isCheck = flags.includes(NamespaceFunctionsFlags.CHECK);
+    const isReverse = flags.includes(NamespaceFunctionsFlags.REVERSE);
 
     if (isWrite && isCheck) {
       console.error(
@@ -140,7 +147,7 @@ export class NamespaceFunctionsCommand {
 
     // Identifiers only (the table is validated), so the names need no escaping.
     const nameText = new RegExp(
-      `\\b(?:${[...new Set(mappings.map((mapping) => mapping.oldName))].join('|')})\\b`,
+      `\\b(?:${[...new Set(mappings.map((mapping) => (isReverse ? mapping.className : mapping.oldName)))].join('|')})\\b`,
     );
     const targets = (paths.length > 0 ? paths : ['.']).map((path) => resolve(root, path));
     let changedCount = 0;
@@ -161,15 +168,17 @@ export class NamespaceFunctionsCommand {
       for (const file of files) {
         const source = readFileSync(file, 'utf8');
 
-        if (!nameText.test(source) && !LoggerScopeRewriter.mentions({ source })) {
+        if (!nameText.test(source) && (isReverse || !LoggerScopeRewriter.mentions({ source }))) {
           continue;
         }
 
         const shown = relative(root, file).split('\\').join('/') || file;
         // The call-shape rule goes first, and its edits are inside one call, so the lines the table pass reports stay
         // those of the file unless a multi-line `ApplicationLogger.get({ ... })` collapsed onto one line.
-        const scoped = LoggerScopeRewriter.rewrite({ typescript, fileName: file, source });
-        const tabled = NamespaceFunctions.rewrite({
+        const scoped = isReverse
+          ? { output: source, changed: false, rewritten: 0, reports: [] }
+          : LoggerScopeRewriter.rewrite({ typescript, fileName: file, source });
+        const tabled = (isReverse ? NamespaceFunctionsReverse : NamespaceFunctions).rewrite({
           typescript,
           fileName: file,
           source: scoped.output,

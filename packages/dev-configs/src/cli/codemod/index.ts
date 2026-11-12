@@ -13,22 +13,38 @@ const USAGE = [
 ].join('\n\n');
 
 /** The codemods `devz codemod <name>` runs. */
-const NAMES = [
+const NAME_LIST = [
   'drop-redundant-casts',
   'const-classes',
   'async-style',
   'namespace-functions',
   'connector-imports',
-].join(', ');
+];
+const NAMES = NAME_LIST.join(', ');
 
 /** A usage error: nothing was read or written. */
 const USAGE_ERROR_CODE = 2;
+
+/** The codemods that are style rewrites, not migrations: there is no downgrade of them. */
+const NOT_REVERSIBLE = new Set(['drop-redundant-casts', 'const-classes', 'async-style']);
 
 /** `devz codemod <name> [args]`: hands the arguments to the codemod called `name`. */
 export class CodemodCommand {
   static async run(opts: { root: string; args: string[] }): Promise<number> {
     const { args } = opts;
     const [name, ...rest] = args;
+
+    if (name === '--list') {
+      console.log(NAME_LIST.join('\n'));
+
+      return 0;
+    }
+
+    if (name !== undefined && NOT_REVERSIBLE.has(name) && rest.includes('--reverse')) {
+      console.error(`devz codemod ${name}: not reversible`);
+
+      return USAGE_ERROR_CODE;
+    }
 
     if (name === 'drop-redundant-casts') {
       return DropRedundantCastsCommand.run({ root: opts.root, args: rest });
