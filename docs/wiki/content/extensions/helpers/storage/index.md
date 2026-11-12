@@ -13,7 +13,7 @@ Storage gives you one file-storage interface with interchangeable backends for S
 `DiskHelper` needs no external server, so it's the fastest way to see the shape of the API. Create a bucket, upload a file, get a link back.
 
 ```typescript
-import { applicationEnvironment, DiskHelper } from '@venizia/ignis-helpers';
+import { DiskHelper } from '@venizia/ignis-helpers';
 
 const storage = new DiskHelper({ basePath: './app_data/storage' });
 
@@ -72,7 +72,7 @@ Every public method takes one options object with nested refs: a bucket is `{ na
 ### Choose and construct a backend
 
 ```typescript
-import { DiskHelper } from '@venizia/ignis-helpers';
+import { applicationEnvironment, DiskHelper } from '@venizia/ignis-helpers';
 import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 
 const disk = new DiskHelper({ basePath: './app_data/storage' });
