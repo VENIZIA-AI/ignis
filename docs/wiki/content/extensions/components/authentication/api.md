@@ -591,6 +591,8 @@ All five strategies extend `BaseHelper` and implement `IAuthenticationStrategy<E
 | `BasicAuthenticationStrategy` | `Authentication.STRATEGY_BASIC` | `BasicTokenService` | `strategies/basic.strategy.ts` |
 | `ServiceAuthenticationStrategy` | `Authentication.STRATEGY_SERVICE` | `ServiceAssertionVerifierService` | `strategies/service.strategy.ts` |
 
+Sources: [`strategies/jws.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jws.strategy.ts), [`strategies/jwks/issuer.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jwks/issuer.ts), [`strategies/jwks/verifier.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jwks/verifier.ts), [`strategies/basic.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/basic.strategy.ts), [`strategies/service.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/service.strategy.ts).
+
 > [!NOTE]
 > Choose the strategy class that matches your JOSE standard. `JWKSIssuerAuthenticationStrategy` and `JWKSVerifierAuthenticationStrategy` both register under the same `'jwt'` name - use only one of the two per service.
 

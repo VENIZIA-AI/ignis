@@ -35,13 +35,13 @@ Exhaustive reference for `IDataSource`, `AbstractDataSource`, the engine-neutral
 | `BaseRelationalDataSource` | Engine-neutral SQL base | Constructor, schema auto-discovery, `beginTransaction()`, `getCapabilities() -> { transactions: true }` |
 | `AbstractPostgresDataSource` | Postgres binding of the tier | Supplies `PostgresQueryDialect` and `PostgresQueryExecutor`; narrows `Client` to `Pool` |
 | `BasePostgresDataSource` | Concrete class to extend for PostgreSQL | Supplies `BEGIN TRANSACTION ISOLATION LEVEL` and attaches `isolationLevel` |
-
-By default `AbstractDataSource.getCapabilities()` returns `{ transactions: false }`, `beginTransaction()` calls `NotSupportedUtility.throwNotSupported(...)`, and `close()` releases nothing. `BaseDataSource` is a compatibility alias re-exporting `BasePostgresDataSource`.
 | `IRelationalDriver` | Driver seam - connection acquisition + control statements | `createConnector()`, `acquire()`, `getClient()`, `end()` |
 | `IRelationalConnection` | One dedicated physical connection, for one transaction | `connector`, `execute()`, `query()`, `release()` |
 | `ITransaction` | Engine-neutral transaction contract | `isActive`, `commit()`, `rollback()` (no `connector` field) |
 | `IDatabaseTransaction` | PostgreSQL transaction object | Extends `ITransaction`, adds `connector`, `isolationLevel` |
 | `IsolationLevels` | Isolation level constants (PostgreSQL) | `READ_COMMITTED`, `REPEATABLE_READ`, `SERIALIZABLE` |
+
+By default `AbstractDataSource.getCapabilities()` returns `{ transactions: false }`, `beginTransaction()` calls `NotSupportedUtility.throwNotSupported(...)`, and `close()` releases nothing. `BaseDataSource` is a compatibility alias re-exporting `BasePostgresDataSource`.
 
 ## `IDataSource` interface
 
@@ -544,10 +544,10 @@ Four concrete drivers ship today, all satisfying `IRelationalDriver` and all pro
 |---|---|---|---|
 | `NodePostgresDriver` | `@venizia/ignis-connectors/postgres/node-postgres` | `pg` | Rejects a client without `connect()` **and** `totalCount` (pool accounting) - catches a bare `pg.Client` |
 | `PostgresJsDriver` | `@venizia/ignis-connectors/postgres/postgres-js` | `postgres` | Rejects a client without `reserve()` **and** `unsafe()` - catches a `pg.Pool` passed to the wrong driver |
-| `PGliteDriver` | `@venizia/ignis-connectors/postgres/pglite` | `@electric-sql/pglite` | Postgres compiled to WASM, in-process (PostgreSQL 18.x); one-slot pool |
+| `PGliteDriver` | `@venizia/ignis-connectors/postgres/pglite` | `@electric-sql/pglite` | Postgres compiled to WASM, in-process; reports PostgreSQL 18.x |
 | `LibSqlDriver` | `@venizia/ignis-connectors/sqlite/libsql` | `@libsql/client` | `:memory:`, a local file, remote Turso and embedded replicas; one-slot pool |
 
-`PGliteDriver` has one session, so the dialect works unchanged. `LibSqlDriver` has an async result kind, so it never blocks the event loop.
+`PGliteDriver` reports PostgreSQL 18.x, so the dialect works unchanged. It has one session, so `acquire()` hands out a one-slot pool. `LibSqlDriver` has an async result kind, so it never blocks the event loop.
 
 - **PGlite and libsql hold one session.** A `createConnector()` write runs **inside** any open transaction and dies with its `ROLLBACK`. Under concurrency, write through `acquire()`. Both drivers time an unreleased slot out after 30 seconds, turning a leaked transaction into a named error instead of a hung process.
 - **Driver asymmetry, deliberate.** After a failed `COMMIT`, `pg` can destroy the poisoned connection (`release(err)`). postgres-js has no destroy semantics - `ReservedSql.release()` takes no argument - so it returns the connection to the pool regardless.

@@ -704,7 +704,7 @@ The shipped `ApiReferenceComponent` does **not** use this pattern: it passes `in
 | Component | Key Features |
 |-----------|-------------|
 | **HealthCheckComponent** | `GET /health` (default path, configurable). Registers `HealthCheckController` with `GET /` and `POST /ping` endpoints. |
-| **ApiReferenceComponent** | OpenAPI doc at `/doc/openapi.json`, UI at `/doc/explorer` (Scalar or Swagger UI) |
+| **ApiReferenceComponent** | OpenAPI doc at `/doc/openapi.json`, UI at `/doc/explorer` (Scalar by default, Swagger UI also supported) |
 | **AuthenticateComponent** | JWT and/or Basic auth strategies, optional auth controller, token services |
 | **AuthorizeComponent** | Casbin-based RBAC, permission mapping, `authorize()` middleware. |
 | **RequestTrackerComponent** | Registers `RequestSpyMiddleware` for the access log and request body parsing |

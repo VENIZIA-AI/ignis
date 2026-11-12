@@ -117,7 +117,7 @@ const container = new Container({ scope: 'MyApp' });
 |--------|-----------|--------------|
 | `bind` | `bind<T>(opts: { key: TBindingKey }): Binding<T>` | Create a new `Binding`, register it under `String(key)`, and return it |
 | `get` | `get<T>(opts: { key: TBindingKey \| { namespace, key }, isOptional?: boolean }): T \| undefined` | Resolve a dependency by key. Throws if not found and `isOptional` is falsy |
-| `gets` | `gets<T extends unknown[]>(opts: { bindings }): { [K in keyof T]: T[K] \| undefined }` | Resolve several dependencies as a tuple; every slot is `\| undefined` |
+| `gets` | `gets<T extends unknown[]>({ bindings }): { [K in keyof T]: T[K] \| undefined }` | Resolve several dependencies as a tuple; each entry is re-issued with `isOptional: true` |
 | `getBinding` | `getBinding<T>(opts: { key: TBindingKey \| { namespace, key } }): Binding<T> \| undefined` | Retrieve the raw `Binding` without resolving it |
 | `set` | `set<T>(opts: { binding: Binding<T> }): void` | Register an externally created `Binding` under its own `.key` |
 | `isBound` | `isBound(opts: { key: TBindingKey }): boolean` | Check whether a key is registered |
@@ -186,7 +186,7 @@ const [svcA, svcB] = container.gets<[ServiceA, ServiceB]>({
 });
 ```
 
-Internally maps each entry through `this.get({ ...opt, isOptional: true })`. Regardless of what `isOptional` was set on the entry, `gets()` always resolves with `isOptional: true` - anything unbound returns `undefined` instead of throwing.
+`bindings` is `{ [K in keyof T]: { key, isOptional? } }`, so every returned slot is `| undefined`. Internally it maps each entry through `this.get({ ...opt, isOptional: true })`. Regardless of what `isOptional` was set on the entry, `gets()` always resolves with `isOptional: true` - anything unbound returns `undefined` instead of throwing.
 
 The generic is a tuple, and the return type widens every slot. `svcA` above is `ServiceA | undefined`, not `ServiceA`. Narrow each slot before you use it.
 

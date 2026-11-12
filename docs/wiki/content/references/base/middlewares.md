@@ -139,9 +139,11 @@ const application = new MyApplication({
 
 | Option | Meaning |
 |---|---|
-| `origin` | Required: a string, a list or a function; see [Wildcard origins](#wildcard-origins) |
+| `origin` | Required: a string, a list or `(origin, context) => string \| null` |
 | `path` | Where it applies. Default `'*'` |
 | `allowMethods`, `allowHeaders`, `exposeHeaders`, `maxAge`, `credentials` | Passed to Hono's `cors()`; unset keys keep Hono's defaults |
+
+A string or a list entry of `origin` may be a subdomain wildcard: see [Wildcard origins](#wildcard-origins).
 
 Why first: a response the framework produces before your own middlewares run - a `413` from the body limit, a `400` for a body that cannot be parsed - would otherwise carry no `Access-Control-Allow-Origin`, and a browser reports it as a network error instead of a readable status. A preflight (`OPTIONS`) is answered by `cors()` itself with `204`, before the body limit sees it.
 

@@ -79,6 +79,13 @@ Thrown during `binding()` while validating options and wiring services.
 | `[defineServiceAuth] resolvePrincipal is required` | 400 | `SERVICE_OPTIONS` bound without `resolvePrincipal` | Provide the callback that turns a caller name into one of your principals |
 | `[defineControllers] Auth controller requires jwtOptions to be configured` | 400 | `useAuthController: true` but no `jwtOptions` bound | Bind `JWT_OPTIONS` before enabling the auth controller |
 
+The full messages of the rows above that are shortened (each `[defineJWKSAuth]` message also comes as `[defineServiceAuth] callers["{name}"].jwksUrl ...`):
+
+- `[defineJWKSAuth] jwksUrl uses http: and the host '{host}' is not allowed | use https, or list the host in jwks.hosts.http`
+- `[defineJWKSAuth] jwksUrl uses port 0 | the host is '{host}'`
+- `[defineJWSAuth] jwtSecret is too short: {n} bytes, at least 32 are required | Generate one with: openssl rand -base64 48` (also `[JWSTokenService]`). The message never shows the secret.
+- `[defineServiceAuth] resolvePrincipal is required | the framework proves WHICH SERVICE called, the application decides who that acts as`
+
 For the first row: a service that only verifies assertions binds `SERVICE_OPTIONS` alone.
 
 The `claims is required` message also appears with the `[defineJWKSAuth]`, `[JWSTokenService]`, `[JWKSIssuerTokenService]` and `[JWKSVerifierTokenService]` prefixes.
@@ -129,10 +136,12 @@ Shared by `JWSTokenService`, `JWKSIssuerTokenService`, and `JWKSVerifierTokenSer
 | `[JWKSIssuerTokenService] Invalid raw.priv key!` | 500 | `parseKeyMaterial` | Resolved private key content is empty | Check the file path or inline string |
 | `[JWKSIssuerTokenService] Invalid raw.pub key!` | 500 | `parseKeyMaterial` | Resolved public key content is empty | Check the file path or inline string |
 | `[JWKSIssuerTokenService] Invalid JWK key material` | 500 | `parseKeyMaterial` | JWK JSON parse or `importJWK()` failed | Validate the JWK is well-formed JSON (see below) |
-| `[JWKSIssuerTokenService] The public key material carries PRIVATE members ({members})` | 500 | `assertPublicJWK` | `keys.public` is a private JWK: `d`, `p`, `q`, `dp`, `dq`, `qi` or `k` is present | Pass the public half in `keys.public` |
+| `[JWKSIssuerTokenService] The public key material carries PRIVATE members ({members})` | 500 | `assertPublicJWK` | `keys.public` is a private JWK: one of its private members is present | Pass the public half in `keys.public` |
 | `[JWKSIssuerTokenService] Unknown key format: {format}` | 500 | `parseKeyMaterial` | `keys.format` not `'pem'` or `'jwk'` | Use `JWKSKeyFormats.PEM` or `.JWK` |
 | `[getSigningKey] Invalid privateKey!` | 400 | `getSigningKey` | Private key null - init incomplete or failed | Ensure `initialize()` succeeded; check logs |
 | `[JWKSIssuerTokenService] JWKS not initialized yet. Call getJWKSAsync() instead.` | 500 | `getJWKS` | Sync `getJWKS()` called before lazy init completed | Use `await getJWKSAsync()` instead |
+
+The full message of the last row is `[JWKSIssuerTokenService] The public key material carries PRIVATE members ({members}) | this key would be published at the JWKS endpoint | pass the public half in keys.public`. Only `keys.format: 'jwk'` can reach it: `importSPKI` rejects a private PEM outright. The private members are `d`, `p`, `q`, `dp`, `dq`, `qi` and `k`.
 
 > [!WARNING]
 > File read errors are not wrapped. With `JWKSKeyDrivers.FILE`, `readFile()` errors (`ENOENT`, `EACCES`, ...) surface as raw filesystem errors during initialization - they are not caught and re-thrown as `getError()`.

@@ -839,7 +839,7 @@ Called once by the registry on first use:
 | Registers | On |
 |---|---|
 | `keyMatch` | Domain matching func on `g` |
-| `objectMatch` | Matcher-expression function, added via `addFunction` |
+| `objectMatch` | Matcher-expression function (`addFunction`), called in the matcher string, not a relation's matching func |
 | `ResourceRoleManager` | Named role manager for `g4` |
 
 `g4` skips `addNamedMatchingFunc` on purpose. It sets casbin's `hasPattern`, which disables `DefaultRoleManager`'s fast path on every link check, not just `g4` lookups.

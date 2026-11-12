@@ -248,7 +248,7 @@ A custom fetch function intercepts WebSocket upgrade requests before they reach 
 2. If it matches, delegates to `@socket.io/bun-engine` via `engine.handleRequest(req, server)`.
 3. If it doesn't, delegates to Hono's normal `server.fetch(req, server)` handler.
 
-Socket.IO and `@socket.io/bun-engine` define CORS slightly differently, so the component extracts each field explicitly instead of casting with `as any`. See [`SocketIOBunHandler.createEngine()`](#post-start-hooks) in Internals for the full CORS bridging code.
+Socket.IO and `@socket.io/bun-engine` define CORS slightly differently, so the component extracts each field explicitly instead of casting with `as any`. See [`SocketIOBunHandler.createEngine()`](#post-start-hooks) in Internals for how the engine is built.
 
 ## Server helper API reference
 
@@ -446,7 +446,7 @@ The component registers one hook, `'socket-io-initialize'`, in `registerBunHook(
 import type { Server as BunEngine } from '@socket.io/bun-engine';
 import type { ServerOptions } from 'socket.io';
 
-class SocketIOBunHandler {
+declare class SocketIOBunHandler {
   static createEngine(opts: {
     serverOptions: Partial<ServerOptions>;
   }) {

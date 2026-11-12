@@ -256,9 +256,9 @@ Details for the table:
 |---|---|
 | `authenticateFn` | The socket is closed with `4003 Authentication failed`, after an `Authentication error` event is sent |
 | `handshakeFn` | A throw closes with `4003`; a falsy return closes with `4004 Encryption required` |
+| `validateRoomFn` | Logged as `Failed to join rooms`. The socket stays open and the join simply does not happen |
 
 `handshakeFn` runs inside the same promise chain as `authenticateFn`, so a throw lands in the same handler.
-| `validateRoomFn` | Logged as `Failed to join rooms`. The socket stays open and the join simply does not happen |
 
 - **Failures do not crash the process.** A synchronous throw inside a Bun socket handler is caught and logged. A rejected promise is logged the same way, via `PromiseUtility.voidExecution`.
 

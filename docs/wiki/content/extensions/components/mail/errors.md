@@ -18,7 +18,7 @@ The 4xx rows below come from the `MailErrors` catalog, which holds the status an
 | An address, subject or header value is not a clean string, or a header name is invalid | 400 | `core.mail.invalid_header` | `Invalid mail header \| ...` |
 | `text` or `html` is not a string | 400 | `core.mail.body_source_refused` | `Mail body refused \| text and html must be strings; ...` |
 | An attachment `path` with no `attachmentRoot` set | 400 | `core.mail.attachment_path_refused` | `Mail attachment path refused \| attachment.path is read only under attachmentRoot, which is not set \| ...` |
-| An attachment `path` outside `attachmentRoot`, missing, a directory, a FIFO or unreadable | 400 | `core.mail.attachment_path_refused` | `Mail attachment path refused \| attachment.path must name a readable file ...` |
+| An attachment `path` outside `attachmentRoot`, missing, a directory, a FIFO or unreadable (one message for all) | 400 | `core.mail.attachment_path_refused` | `Mail attachment path refused \| attachment.path must name a readable file inside attachmentRoot \| ...` |
 | An attachment `content` that is not bytes, text or a stream | 400 | `core.mail.invalid_configuration` | `Invalid mail attachment \| attachment.content must be a Buffer, a Uint8Array, a string or a stream` |
 | An attachment with `href` or `raw` | 400 | `core.mail.attachment_path_refused` | `Mail attachment path refused \| attachment.href and attachment.raw are not supported \| ...` |
 | A message's attachments over `maxAttachmentBytes` | 413 | `core.mail.attachment_too_large` | `Mail attachments are over maxAttachmentBytes (<n> bytes per message) \| ...` |

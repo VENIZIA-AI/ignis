@@ -556,7 +556,7 @@ const userSchema = z.object({ id: z.string(), name: z.string() });
 
 const errorResponseSchema = z.object({
   message: z.string().optional(),
-  normalized: z.object({ code: z.string() }).optional(),
+  normalized: z.object({ code: z.string() }),
   extra: z.unknown().optional(),
   details: z
     .object({ cause: z.array(z.object({ path: z.unknown(), message: z.string() })).optional() })
@@ -592,7 +592,7 @@ const createUser = async (data: TCreateUserRequest): Promise<z.infer<typeof user
         for (const issue of error.details?.cause ?? []) {
           fieldErrors[String(issue.path)] = issue.message;
         }
-        throw new ValidationError(error.normalized?.code, fieldErrors);
+        throw new ValidationError(error.normalized.code, fieldErrors);
       }
       case HTTP.ResultCodes.RS_4.TooManyRequests: {
         throw new RateLimitError('Too many requests. Try again later.');

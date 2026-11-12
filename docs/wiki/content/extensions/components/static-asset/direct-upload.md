@@ -149,6 +149,9 @@ export const postToStorage = async (opts: { policy: TUploadPolicy; file: File })
 Then validate, and commit with the token validate returns:
 
 ```ts
+import { HTTP } from '@venizia/ignis-helpers/common';
+import { z } from 'zod';
+
 // The same shape as the `issueSchema` you pass to `validation` on the server.
 const cellIssueSchema = z.object({
   sheet: z.string(),
@@ -399,6 +402,8 @@ POST /assets/upload-commit
 `POST /assets/upload-validate` answers `404 Not Found`: with `validation` off the route does not exist. The copy is unconditional, because the `issued` token carries no pin.
 
 ```ts
+import { HTTP } from '@venizia/ignis-helpers/common';
+
 export const commitWithPolicyToken = async (opts: {
   basePath: string;
   policyCommitToken: string;
@@ -531,6 +536,8 @@ The service with the policy's token throws the same `core.static_asset.upload_no
 Your own request carries the policy's token together with the application's record, and the service commits while it saves. There is no validate call and no commit route: both answer `404 Not Found`.
 
 ```ts
+import { HTTP } from '@venizia/ignis-helpers/common';
+
 export const saveOrderImport = async (opts: {
   endpoint: string;
   policyCommitToken: string;

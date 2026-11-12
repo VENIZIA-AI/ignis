@@ -346,13 +346,13 @@ A failing `onMessage` handler is logged and swallowed by the same hook wrapper d
 | `getElementAt(position)` | `TQueueElement<T>` | Peek at an element by index (`storage[position]`). |
 | `getState()` | `TQueueStatus` | Current state. |
 | `getTotalEvent()` | `number` | Total elements ever enqueued (monotonic counter, not decremented on dequeue). |
+| `getProcessingEvents()` | `Set<TQueueElement<T>>` | The element(s) currently mid-`onMessage`. |
 
 `enqueue()` no-ops (logs an error) if `state === SETTLED` or settle was requested, and no-ops silently if `payload` is falsy. It calls `nextMessage()` when `autoDispatch` is `true`.
 
 `unlock(opts)` takes `opts: { shouldProcessNextElement?: boolean }` (default `true`). It no-ops (logs an error) if `state > LOCKED` (that is, already `SETTLED`), and calls `nextMessage()` unless `shouldProcessNextElement` is `false`.
 
 `settle()` transitions immediately to `SETTLED` unless the state is `PROCESSING`; in that case `handleMessage()` finishes the transition once `storage` empties.
-| `getProcessingEvents()` | `Set<TQueueElement<T>>` | The element(s) currently mid-`onMessage`. |
 
 > [!NOTE]
 > Once `SETTLED`, `enqueue()` permanently rejects new elements - there is no way to reopen a settled queue. Construct a new `SequentialQueueHelper` instance instead.

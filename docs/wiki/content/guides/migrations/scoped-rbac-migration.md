@@ -33,10 +33,11 @@ Both are described below with exact before/after.
 | `CasbinRuleVariants` | `P, G, GROUP('group'), POLICY('policy')` + `SCHEME_SET`/`isValid` | trimmed to **casbin prefixes only**: `P, G, G2, G3, G4, G5`. `GROUP`/`POLICY` **removed** |
 | DB `variant` discriminator | lived on `CasbinRuleVariants.GROUP/.POLICY` | now `AuthorizationPolicyVariants.*.action` |
 | Cache drivers | `redis` **and** `in-memory` | **redis only.** `CasbinEnforcerCachedDrivers.IN_MEMORY` removed |
-| `cached` option | `{ use, driver }` with either driver | `{ use: false }` or `ICasbinEnforcerCachedRedis & { use: true }` |
 | Cache invalidation interface | `IAuthorizationCacheInvalidator` / `TAuthorizationCacheInvalidator` | **removed.** Now optional members of `IAuthorizationEnforcer` |
 | Enforcer model | shared single enforcer | **pool** of per-request enforcers (`BasePoolHelper`); policy loaded per request, fail-closed |
 | Scoped option | n/a | new `isScoped?: boolean` on `ICasbinEnforcerOptions` |
+
+`cached` is now `{ use: false }` or `ICasbinEnforcerCachedRedis & { use: true }`.
 
 The `AuthorizationPolicyVariants.*.action` values are `grant`, `assign_role`, `join_domain`, `role_inherits`, `resource_inherits`, `action_inherits` and `domain_inherits`.
 

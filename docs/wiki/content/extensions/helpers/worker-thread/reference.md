@@ -279,7 +279,7 @@ The constructor binds `message`, `error`, `messageerror`, `exit`, and `close` li
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `postMessage` | `postMessage({ message, transferList }): ValueOrPromise<void>` | Sends a message through the port; `transferList` is `readonly Transferable[] \| undefined` |
+| `postMessage` | `postMessage({ message: IPublishPayload, transferList }): ValueOrPromise<void>` | Sends a message through the port; `transferList` is `readonly Transferable[] \| undefined` |
 
 `postMessage` calls `port.postMessage(message, [...transferList])` if `transferList` is set, otherwise `port.postMessage(message)`. It logs and returns, without throwing, if `port` is falsy.
 

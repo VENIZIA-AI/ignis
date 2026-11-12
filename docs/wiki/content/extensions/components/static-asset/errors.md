@@ -19,7 +19,7 @@ These carry a machine code a client can branch on, alongside the human message. 
 | `core.static_asset.file_empty` | `400` | A file is empty after parsing | Check the file has bytes before sending. |
 | `core.static_asset.upload_too_large` | `413` | A file is over `serverUpload.maxBytes` (upload) or `directUpload.maxBytes` (policy request) | Send a smaller file. |
 | `core.static_asset.upload_already_committed` | `409` | `commit` found an object at the destination | Read the link from `extra`, or ask for a new policy |
-| `core.static_asset.upload_metadata_invalid` | `400` | A policy file's `metadata` is over 1024 bytes of JSON, or no `resolvers.metadata` reads it | Send less, or no, metadata. |
+| `core.static_asset.upload_metadata_invalid` | `400` | A file's `metadata` is over 1024 bytes of JSON, or the client sent it and no `resolvers.metadata` reads it | Send less, or no, metadata. |
 | `core.static_asset.upload_not_validated` | `422` | `validation` is on and `commit` got a token that `upload-validate` did not return, for example the one the policy issued | Call `upload-validate`, then commit with the `commitToken` it answers. |
 | `core.static_asset.upload_changed` | `409` | The pending object was overwritten or removed after `upload-validate` | Upload again with a **new** policy, or call `upload-validate` again |
 | `core.static_asset.upload_not_authorized` | `403` | `directUpload.authorize` returned `false` on `upload-policy`, `upload-validate` or `upload-commit` | Do not retry: the caller may not use direct upload. |
@@ -76,6 +76,11 @@ The types catch most wrong entries at compile time. The component checks the sam
 | `directUpload.pendingPrefix must be one or more valid key segments, each followed by a slash \| value: '{value}'` | `pendingPrefix` is empty, does not end with `/`, or has an invalid segment | Use a value like `pending/`. |
 | `directUpload.pendingPrefix and keyPrefix must not contain one another \| ...` | One of the two starts with the other, so a pending object would be readable through the entry's routes | Pick disjoint prefixes, for example `pending/` and `orders/`. |
 | `directUpload.expires.commit is not a usable duration \| unit: {unit} \| value: {value}` | `expires.commit` is zero, negative or has an unknown unit | Give a positive `IDuration`. |
+
+The two refusals whose message is shortened in the table read in full:
+
+- `directUpload needs keyPrefix | the pending prefix stays out of what the routes serve only when the entry has a scope of its own`
+- `directUpload needs authorize or auth | a route that hands out a write credential has no safe default for who may call it`
 
 An empty options object is not an error: it produces zero controllers. See [Controller not registering](#controller-not-registering-no-routes-appear).
 

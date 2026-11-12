@@ -270,13 +270,13 @@ APP_ENV_JWT_EXPIRES_IN=86400
 | `APP_ENV_LOGGER_FILE_DATE_PATTERN` | No | `YYYYMMDD_HH` | Rotated file date pattern |
 | `APP_ENV_LOGGER_DGRAM_HOST` | No | - | UDP log transport host |
 | `APP_ENV_LOGGER_DGRAM_PORT` | No | - | UDP log transport port |
+| `APP_ENV_LOGGER_DGRAM_LABEL` | No | - | Label for UDP logs |
+| `APP_ENV_LOGGER_DGRAM_LEVELS` | No | - | Comma-separated log levels for UDP |
+| `APP_ENV_EXTRA_LOG_ENVS` | No | - | Extra env vars to include in logs |
 
 - `APP_ENV_LOGGER_INSPECT_DEPTH`: Node hard-codes depth `0` for `%s`, which prints `[Object]` one level in; IGNIS widens it. An absent, invalid or negative value falls back to `5`.
 - `APP_ENV_LOGGER_DO_REDACT`: disabling it reveals raw credentials in log lines. Anything other than the literal `false` keeps redaction ON. Never disable it in production.
 - `APP_ENV_LOGGER_COLOR`: unset means ON in a development `NODE_ENV`, OFF in `production`, `staging`, `uat` and any unrecognized name. `NO_COLOR` also turns it off.
-| `APP_ENV_LOGGER_DGRAM_LABEL` | No | - | Label for UDP logs |
-| `APP_ENV_LOGGER_DGRAM_LEVELS` | No | - | Comma-separated log levels for UDP |
-| `APP_ENV_EXTRA_LOG_ENVS` | No | - | Extra env vars to include in logs |
 
 ### Example
 
