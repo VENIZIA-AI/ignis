@@ -49,7 +49,7 @@ describe('RedisSentinelHelper', () => {
     expect(client.options.lazyConnect).toBe(true);
     expect(client.status).toBe('wait');
     const retryStrategy = client.options.retryStrategy!;
-    expect(retryStrategy(1)).toBe(2000);
+    expect(retryStrategy(5)).toBeNumber();
     expect(retryStrategy(6)).toBeUndefined();
   });
 

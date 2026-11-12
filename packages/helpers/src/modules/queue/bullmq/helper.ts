@@ -166,7 +166,8 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
         removeOnFail: true,
       },
       ...this.queueOptions,
-      connection: this.redisConnection.duplicateClient(),
+      // The helper's own client, never a duplicate: BullMQ marks a client it is handed as shared and never quits it, so a duplicate would leak one connection per queue and worker. BullMQ opens (and closes) its own blocking connection.
+      connection: this.redisConnection.getClient(),
     };
   }
 
@@ -181,7 +182,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
 
     return {
       ...this.workerOptions,
-      connection: this.redisConnection.duplicateClient(),
+      connection: this.redisConnection.getClient(),
       concurrency: this.numberOfWorker,
       lockDuration: this.lockDuration,
     };

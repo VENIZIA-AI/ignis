@@ -1,10 +1,13 @@
 import { ObjectUtility } from '@venizia/ignis-inversion';
 import type { AnyType } from '@/common/types';
 import { PromiseUtility } from '@/utilities/promise.utility';
+import { getError } from '@/modules/error';
+import { LoggerFactory } from '@/modules/logger';
+import { RetryHelper } from '@/modules/retry';
 import { BaseHelper } from '@/modules/base';
 import { type EventEmitter } from 'node:events';
 import zlib from 'node:zlib';
-import { RedisConcurrency } from './../common/constants';
+import { RedisConcurrency, RedisDefaults } from './../common/constants';
 import { type IRedisHelper } from './../common/interfaces';
 import { type IRedisHelperCallbacks, type TRedisClient } from './../common/types';
 
@@ -60,23 +63,44 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     onInitialized?.({ name: this.name, helper: this });
   }
 
-  protected static buildRetryStrategy(opts: { maxRetry: number }) {
-    const { maxRetry } = opts;
+  /** `maxRetry` is `0`, `RedisDefaults.RETRY_FOREVER` or a positive integer; anything else is a typo that would silently change how the client reconnects. */
+  protected static assertMaxRetry(opts: { scope: string; name: string; maxRetry: number }) {
+    const { scope, name, maxRetry } = opts;
 
-    return (attemptCounter: number) => {
-      if (maxRetry > -1 && attemptCounter > maxRetry) {
+    if (!Number.isInteger(maxRetry) || (maxRetry < 0 && maxRetry !== RedisDefaults.RETRY_FOREVER)) {
+      throw getError({
+        message: `[${scope}] maxRetry must be 0, ${RedisDefaults.RETRY_FOREVER} (forever) or a positive integer | name: ${name} | value: ${maxRetry}`,
+      });
+    }
+  }
+
+  /** The wait before each reconnect, then `undefined` once `maxRetry` attempts failed: ioredis stops and the helper logs it once. */
+  protected static buildRetryStrategy(opts: { scope: string; name: string; maxRetry: number }) {
+    const { scope, name, maxRetry } = opts;
+
+    AbstractRedisHelper.assertMaxRetry(opts);
+
+    return (attempt: number) => {
+      if (maxRetry !== RedisDefaults.RETRY_FOREVER && attempt > maxRetry) {
+        LoggerFactory.getLogger([scope, name])
+          .for('retry')
+          .error('Redis gave up reconnecting | Name: %s | maxRetry: %d', name, maxRetry);
+
         return undefined;
       }
 
-      return Math.max(Math.min(attemptCounter * 2000, 5000), 1000);
+      return RetryHelper.computeBackoffDelayMs({
+        attempt,
+        backoff: RedisDefaults.RECONNECT_BACKOFF,
+      });
     };
   }
 
-  protected static buildDefaultOpts(opts: { maxRetry: number }) {
+  protected static buildDefaultOpts(opts: { scope: string; name: string; maxRetry: number }) {
     return {
       showFriendlyErrorStack: true,
       maxRetriesPerRequest: null,
-      retryStrategy: AbstractRedisHelper.buildRetryStrategy({ maxRetry: opts.maxRetry }),
+      retryStrategy: AbstractRedisHelper.buildRetryStrategy(opts),
     };
   }
 

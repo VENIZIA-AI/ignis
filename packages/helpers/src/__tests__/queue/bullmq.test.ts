@@ -187,6 +187,33 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
     expect(duckTypedQueue.queueName).toBe('{mail}');
   });
 
+  test('the queue and the worker share the helper client, and never duplicate one BullMQ would not close', () => {
+    const client = {};
+    let duplicates = 0;
+    const helper = new TestBullMQHelper({
+      queueName: 'q',
+      identifier: 'q-helper',
+      role: 'queue',
+      redisConnection: {
+        getClient: () => client,
+        duplicateClient: () => {
+          duplicates += 1;
+
+          return {};
+        },
+      } as AnyType,
+    } as AnyType);
+
+    expect(helper.exposeQueueOptions({ queueName: 'q' }).connection).toBe(client);
+    expect(
+      helper.exposeWorkerOptions({ queueName: 'q', processor: async () => 1 }).connection,
+    ).toBe(client);
+    expect(
+      helper.exposeWorkerOptions({ queueName: 'q', processor: async () => 1 }).connection,
+    ).toBe(client);
+    expect(duplicates).toBe(0);
+  });
+
   test('queueOptionsFor merges framework defaults, then user queueOptions, then the owned connection', () => {
     const client = {};
 

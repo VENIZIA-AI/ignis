@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'bun:test';
-import { RedisSingleHelper } from '@/modules/redis';
+import { RedisDefaults, RedisSingleHelper } from '@/modules/redis';
 
 describe('RedisSingleHelper', () => {
   let helper: RedisSingleHelper | undefined;
@@ -47,8 +47,58 @@ describe('RedisSingleHelper', () => {
       maxRetry: 5,
     });
     const retryStrategy = helper.getClient().options.retryStrategy!;
-    expect(retryStrategy(1)).toBe(2000);
-    expect(retryStrategy(3)).toBe(5000);
+    expect(retryStrategy(5)).toBeNumber();
     expect(retryStrategy(6)).toBeUndefined();
   });
+});
+
+describe('Redis reconnect policy', () => {
+  const build = (opts: { maxRetry?: number }) =>
+    new RedisSingleHelper({
+      name: 'retry-test',
+      host: '127.0.0.1',
+      port: 6379,
+      autoConnect: false,
+      ...opts,
+    });
+
+  it('defaults to 5 attempts', () => {
+    const helper = build({});
+    const retryStrategy = helper.getClient().options.retryStrategy!;
+
+    expect(RedisDefaults.MAX_RETRY).toBe(5);
+    expect(retryStrategy(5)).toBeNumber();
+    expect(retryStrategy(6)).toBeUndefined();
+    helper.getClient().disconnect();
+  });
+
+  it('waits an exponential backoff with equal jitter, capped at the maximum', () => {
+    const helper = build({ maxRetry: RedisDefaults.RETRY_FOREVER });
+    const retryStrategy = helper.getClient().options.retryStrategy!;
+
+    for (let index = 0; index < 100; index++) {
+      expect(retryStrategy(1)).toBeWithin(500, 1000);
+      expect(retryStrategy(3)).toBeWithin(2000, 4000);
+      expect(retryStrategy(50)).toBeWithin(15_000, 30_000);
+    }
+
+    helper.getClient().disconnect();
+  });
+
+  it('0 never reconnects, -1 never gives up', () => {
+    const none = build({ maxRetry: 0 });
+    const forever = build({ maxRetry: RedisDefaults.RETRY_FOREVER });
+
+    expect(none.getClient().options.retryStrategy!(1)).toBeUndefined();
+    expect(forever.getClient().options.retryStrategy!(10_000)).toBeNumber();
+    none.getClient().disconnect();
+    forever.getClient().disconnect();
+  });
+
+  it.each([-2, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    'refuses maxRetry %p at construction',
+    (maxRetry) => {
+      expect(() => build({ maxRetry })).toThrow(/maxRetry must be 0/);
+    },
+  );
 });
