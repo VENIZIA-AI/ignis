@@ -6,10 +6,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import type { TStaticAssetEntry } from '../common';
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../models';
 import type { StaticAssetUploadCommitService, StaticAssetUploadPolicyService } from '../services';
-import {
-  StaticAssetEntryUtility,
-  type IStaticAssetResolvedEntry,
-} from '../utilities/entry.utility';
+import { StaticAssetEntryUtility } from '../utilities/entry.utility';
 import { StaticAssetServe } from './routes/serve';
 import { StaticAssetRouteTable } from './routes/table';
 
@@ -40,24 +37,15 @@ export class StaticAssetControllerFactory {
     return StaticAssetServe.resolveServedContentType(opts);
   }
 
-  /** Resolves the entry, then builds its controller. A caller that already holds the resolved entry uses `buildResolved`. */
+  /** Resolves the entry, then builds its controller. */
   static build<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema>(
     opts: IStaticAssetControllerOptions<Schema>,
   ) {
-    return StaticAssetControllerFactory.buildResolved<Schema>({
-      resolved: StaticAssetEntryUtility.resolve({ key: opts.key, entry: opts.entry }),
-      policyService: opts.policyService,
-      commitService: opts.commitService,
-    });
-  }
-
-  static buildResolved<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema>(opts: {
-    resolved: IStaticAssetResolvedEntry<Schema>;
-    policyService?: Pick<StaticAssetUploadPolicyService, 'issuePolicies'>;
-    commitService?: Pick<StaticAssetUploadCommitService<Schema>, 'commit' | 'validate'>;
-  }) {
     const { policyService, commitService } = opts;
-    const { directUpload, ...resolved } = opts.resolved;
+    const { directUpload, ...resolved } = StaticAssetEntryUtility.resolve({
+      key: opts.key,
+      entry: opts.entry,
+    });
     const { name, basePath, helper, extend } = resolved;
 
     if (directUpload && (!policyService || !commitService)) {

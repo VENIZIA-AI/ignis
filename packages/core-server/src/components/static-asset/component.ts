@@ -41,7 +41,7 @@ export class StaticAssetComponent<
       const services = this.bindDirectUploadServices({ key, resolved });
 
       this.application.controller(
-        StaticAssetControllerFactory.buildResolved<Schema>({ resolved, ...services }),
+        StaticAssetControllerFactory.build<Schema>({ key, entry, ...services }),
       );
 
       this.application.logger.info(
