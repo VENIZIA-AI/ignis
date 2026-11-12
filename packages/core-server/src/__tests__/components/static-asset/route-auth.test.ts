@@ -110,6 +110,7 @@ const mount = async (opts: {
         directUpload: {
           use: true,
           secretKey: 'a-secret-nobody-else-has',
+          resolvers: { owner: () => 'user-a' },
           maxBytes: 1024,
           validation,
         },

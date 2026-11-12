@@ -6,6 +6,7 @@ import {
   StaticAssetDefaults,
   StaticAssetErrors,
   StaticAssetRouteKeys,
+  type TStaticAssetUploadPolicyFile,
   type TStaticAssetUploadPolicyRequest,
 } from '../../common';
 import {
@@ -30,7 +31,7 @@ class StaticAssetDirectUploadGuard {
   static async guard(opts: {
     ctx: TRouteContext;
     direct: ReturnType<typeof StaticAssetDirectUploadGuard.require>;
-  }): Promise<string | undefined> {
+  }): Promise<string> {
     const { ctx, direct } = opts;
     const isAuthorized = await direct.authorize({ context: ctx });
 
@@ -38,7 +39,36 @@ class StaticAssetDirectUploadGuard {
       throw getError({ error: StaticAssetErrors.UPLOAD_NOT_AUTHORIZED });
     }
 
-    return direct.resolveOwner?.({ context: ctx });
+    return direct.resolvers.owner({ context: ctx });
+  }
+
+  /** What the token signs for each file: only what the application's resolver returns, never the client's hint itself. */
+  static resolveFiles(opts: {
+    ctx: TRouteContext;
+    direct: ReturnType<typeof StaticAssetDirectUploadGuard.require>;
+    files: TStaticAssetUploadPolicyFile[];
+  }): Promise<TStaticAssetUploadPolicyFile[]> {
+    const { ctx, direct, files } = opts;
+    const resolve = direct.resolvers.metadata;
+
+    return Promise.all(
+      files.map(async (file) => {
+        if (!resolve) {
+          if (file.metadata) {
+            throw getError({
+              error: StaticAssetErrors.UPLOAD_METADATA_INVALID,
+              message: 'This upload takes no metadata from the client',
+            });
+          }
+
+          return { ...file, metadata: {} };
+        }
+
+        const metadata = await resolve({ context: ctx, file });
+
+        return { ...file, metadata };
+      }),
+    );
   }
 }
 
@@ -61,6 +91,7 @@ const uploadPolicy: IStaticAssetRoute = {
                 fileName: z.string().min(1),
                 contentType: z.string().optional(),
                 size: z.number().int().nonnegative().optional(),
+                metadata: z.record(z.string(), z.string()).optional(),
               }),
             )
             .max(direct.maxFiles ?? StaticAssetDefaults.MAX_UPLOAD_FILES),
@@ -80,7 +111,8 @@ const uploadPolicy: IStaticAssetRoute = {
         const owner = await StaticAssetDirectUploadGuard.guard({ ctx, direct });
         const { files } = ctx.req.valid<TStaticAssetUploadPolicyRequest>('json');
 
-        const policies = await direct.policyService.issuePolicies({ files, owner });
+        const resolved = await StaticAssetDirectUploadGuard.resolveFiles({ ctx, direct, files });
+        const policies = await direct.policyService.issuePolicies({ files: resolved, owner });
 
         return ctx.json(policies, HTTP.ResultCodes.RS_2.Ok);
       },
@@ -104,6 +136,8 @@ const uploadCommit: IStaticAssetRoute = {
         response: z.object({
           bucket: z.object({ name: z.string() }),
           object: z.object({ key: z.string() }),
+          owner: z.string(),
+          metadata: z.record(z.string(), z.string()),
           link: z.string(),
           metaLink: MetaLinkOutcomeSchema,
         }),

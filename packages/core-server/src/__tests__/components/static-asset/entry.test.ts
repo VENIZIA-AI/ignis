@@ -45,6 +45,7 @@ const directUpload = {
   secretKey: SECRET,
   maxBytes: 1024,
   validation: { use: false },
+  resolvers: { owner: () => 'user-a' },
 } as const;
 
 const resolve = (entry: TStaticAssetEntry, key = 'staticAsset') =>
@@ -304,6 +305,27 @@ describe('direct upload needs an S3 helper and a scope of its own', () => {
 
     expect(resolved.directUpload?.secretKey).toBe(SECRET);
     expect(resolved.directUpload?.validation).toBeUndefined();
+  });
+});
+
+describe('direct upload needs an owner resolver', () => {
+  test('an entry that turns directUpload on without resolvers.owner refuses to resolve, with its name', () => {
+    const message = messageOf(() =>
+      resolve({
+        basePath: '/a',
+        name: 'Mine',
+        bucket: 'uploads',
+        keyPrefix: 'tenant-a/',
+        serverUpload: { use: true },
+        // @ts-expect-error resolvers.owner is required
+        directUpload: { ...directUpload, authorize: () => true, resolvers: {} },
+        metaLink: { use: false },
+        helper: s3Helper,
+      }),
+    );
+
+    expect(message).toContain('[Mine]');
+    expect(message).toContain('directUpload needs resolvers.owner');
   });
 });
 

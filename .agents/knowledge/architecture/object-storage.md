@@ -109,8 +109,8 @@ needs a `BunS3Helper` (only S3 signs a POST policy) and a `keyPrefix`.
 1. The browser asks for a policy. IGNIS runs `authorize` (the commit route runs it too), refuses a size over `maxBytes` **before
    signing anything**, generates `<pendingPrefix><keyPrefix><uuid>/<name>` (the scope rides inside the
    pending key, so the commit - which strips `pendingPrefix` - lands inside `keyPrefix`
-   too), and signs both the policy and a commit token. The token carries the owner `directUpload.resolveOwner`
-   names, and lives for `expires.commit` (default `expires.upload`), which may outlast the policy.
+   too), and signs both the policy and a commit token. The token carries the owner `directUpload.resolvers.owner`
+   names and the metadata `resolvers.metadata` returned for the file, and lives for `expires.commit` (default `expires.upload`), which may outlast the policy.
 2. The browser posts the form straight to storage. No byte passes through IGNIS.
 3. With `validation` on (and the route not turned off), the browser calls `upload-validate`: IGNIS stats the pending object, pins it (version id
    when the bucket has real versions, else the ETag), parses the file ONCE through a pinned `StaticAssetPinnedFile`
@@ -167,10 +167,11 @@ Postgres-only, and the application's.
 | Property | Why |
 |---|---|
 | A policy authorizes exactly one key, `<pendingPrefix><keyPrefix><generated>` | the final key is in NO policy, so content cannot be replaced after the commit, and a policy cannot be spent on a second object |
-| The commit is claimed with an HMAC over `{bucket, object, expiresAt, owner?, stage, pin?}`, verified BEFORE any storage call | naming someone else's object is impossible, and a forged token fails without a round trip, so timing leaks nothing |
-| With `resolveOwner`, only the owner commits, and every other caller gets the forged-token error | a leaked token is no use to anyone else, and the answer reveals nothing |
+| The commit is claimed with an HMAC over `{bucket, object, expiresAt, owner, metadata, stage, pin?}`, verified BEFORE any storage call | naming someone else's object is impossible, and a forged token fails without a round trip, so timing leaks nothing |
+| Only the owner commits (`resolvers.owner` is required), and every other caller gets the forged-token error | a leaked token is no use to anyone else, and the answer reveals nothing |
 | A validated token carries a pin (version id, else ETag), and every handler read and the commit copy are conditional on it | a file overwritten after validation cannot ride the validated token. Without bucket versioning the pin is an ETag (MD5 for a plain upload), so a malware gate needs versioning plus a lifecycle rule for noncurrent versions and delete markers under `pendingPrefix` |
-| The token carries no business fields | which order or tenant an upload belongs to is the application's authorization, not something the framework signs |
+| The token carries only what `resolvers.metadata` returns, capped, strings; it is signed, not encrypted | a client cannot choose or alter it, and it holds no secrets. Which order or tenant an upload belongs to is the application's decision, signed by its resolver |
+| A commit refuses a destination that holds an object (409) | a POST policy outlives the commit, so a re-post to the pending key must not overwrite the committed object |
 | `authorize` guards every direct-upload route, and may be left out only when the entry's `auth` authenticates or authorizes | a route that hands out a write credential has no safe default, and a commit promotes an object |
 
 `pendingPrefix` (default `pending/`) is disjoint from `keyPrefix` (neither starts with the other; boot refuses

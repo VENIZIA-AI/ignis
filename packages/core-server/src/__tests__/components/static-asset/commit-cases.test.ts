@@ -65,6 +65,7 @@ const mount = async (opts: { isValidated: boolean; hasCommitRoute: boolean }) =>
       secretKey: 'a-secret-nobody-else-has',
       maxBytes: 1024 * 1024,
       authorize: () => true,
+      resolvers: { owner: () => 'user-a' },
       validation: opts.isValidated ? validation : { use: false },
     },
     metaLink: { use: true, repository: repository as never },
@@ -227,7 +228,7 @@ describe('case (c): validation on, commit route off', () => {
     });
     const committed = await commitService.commit({
       token: commitToken,
-      owner: undefined,
+      owner: 'user-a',
       labels: { principalType: 'Import', principalId: '42' },
     });
 
@@ -246,7 +247,7 @@ describe('case (c): validation on, commit route off', () => {
     let failure = '';
 
     try {
-      await commitService.commit({ token: policy.commitToken });
+      await commitService.commit({ token: policy.commitToken, owner: 'user-a' });
     } catch (error) {
       failure = String(error);
     }
@@ -274,7 +275,7 @@ describe('case (d): validation off, commit route off', () => {
       body: { commitToken: policy.commitToken },
     });
     const committed: Awaited<ReturnType<StaticAssetUploadCommitService['commit']>> =
-      await commitService.commit({ token: policy.commitToken });
+      await commitService.commit({ token: policy.commitToken, owner: 'user-a' });
 
     expect(validate.status).toBe(404);
     expect(route.status).toBe(404);

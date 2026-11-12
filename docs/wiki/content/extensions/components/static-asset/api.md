@@ -162,7 +162,7 @@ See [Server upload](./server-upload).
 | `maxBytes` | `number` | - | yes | The `content-length-range` ceiling of a policy. |
 | `validation` | `TToggle` | - | yes | `{ use: false }`, or `StaticAssetValidation.define({ issueSchema, handler })`; registers `upload-validate`. The handler is `({ file, owner })` with `file` a `StaticAssetPinnedFile`. On, `commit` takes only the validated token: see [Who commits, and with which token](./direct-upload#who-commits-and-with-which-token). |
 | `authorize` | `({ context }) => ValueOrPromise<boolean>` | the entry's `auth` | only without `auth` | Who may use direct upload. |
-| `resolveOwner` | `({ context }) => ValueOrPromise<string>` | none | no | Who an upload belongs to; signed into the token. |
+| `resolvers` | `{ owner, metadata?, commit?: { destination? } }` | - | yes | `owner({ context })`: who an upload belongs to, signed into the token (required). `metadata({ context, file })`: per file, signed into the token. `commit.destination({ owner, metadata, file, defaultKey })`: the final key. See [Resolvers](./direct-upload#resolvers). |
 | `maxFiles` | `number` | `20` | no | Most files one policy request may name. |
 | `pendingPrefix` | `string` | `'pending/'` | no | Where a policy may write. Disjoint from `keyPrefix`. See [The pending prefix](./security#the-pending-prefix). |
 | `expires.upload` | `IDuration` | 15 minutes | no | The policy's lifetime. |
@@ -264,10 +264,10 @@ class StaticAssetBindingKeys {
 
 | Service | Method | Does |
 |---|---|---|
-| `StaticAssetUploadPolicyService` | `issuePolicies({ files, owner? })` | One signed policy per file. Does not call `authorize`. |
-| `StaticAssetUploadCommitService` | `verify({ token, owner? })` | Signature, expiry, owner, scope; answers the pending `IObjectLocation`; no storage call. |
-| | `validate({ token, owner? })` | `verify`, pin the content, run `validation` once. A valid file answers `{ isValid, issues, commitToken }`. |
-| | `commit({ token, owner?, labels? })` | `verify`, conditional copy of the pinned content, remove pending, MetaLink row. Never runs `validation`; with it on, needs the validated token. |
+| `StaticAssetUploadPolicyService` | `issuePolicies({ files, owner })` | One signed policy per file; `files[].metadata` is signed. Refuses a `fileName` that is not one valid key segment. Does not call `authorize`. |
+| `StaticAssetUploadCommitService` | `verify({ token, owner })` | Signature, expiry, owner, bucket, pending scope; answers `{ bucket, object, owner, metadata }`; no storage call. |
+| | `validate({ token, owner })` | `verify`, pin the content, run `validation` once. A valid file answers `{ isValid, issues, commitToken }`. |
+| | `commit({ token, owner, labels?, destination? })` | `verify`, conditional copy of the pinned content to the final key, remove pending, MetaLink row. Answers `{ bucket, object, owner, metadata, link, metaLink? }`. Refuses a destination that holds an object (`409`, with `extra: { object, link }`). A given `destination` wins over `resolvers.commit.destination`. Never runs `validation`; with it on, needs the validated token. |
 
 ## Validation and the pin
 

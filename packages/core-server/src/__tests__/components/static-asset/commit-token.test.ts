@@ -13,6 +13,8 @@ const PAYLOAD: IStaticAssetCommitTokenPayload = {
   bucket: { name: 'uploads' },
   object: { key: 'pending/2026/a.png' },
   expiresAt: Date.now() + 60_000,
+  owner: 'user-a',
+  metadata: {},
   stage: StaticAssetTokenStages.ISSUED,
 };
 const PIN = { etag: '"5d41402abc4b2a76b9719d911017c592"', versionId: 'v-1' };
@@ -123,28 +125,19 @@ describe('the commit token needs a secret', () => {
 });
 
 describe('the commit token keeps its format', () => {
-  const BASE = { bucket: { name: 'b' }, object: { key: 'k/1' }, expiresAt: 4102444800000 };
+  const BASE = {
+    bucket: { name: 'b' },
+    object: { key: 'k/1' },
+    expiresAt: 4102444800000,
+    owner: 'user-7',
+    metadata: { order: '42' },
+  };
 
   test('an issued token signed by the node:crypto implementation reads back, and a fresh one is the same text', () => {
     const KNOWN: { payload: IStaticAssetCommitTokenPayload; token: string } = {
       payload: { ...BASE, stage: StaticAssetTokenStages.ISSUED },
       token:
-        'eyJidWNrZXQiOnsibmFtZSI6ImIifSwib2JqZWN0Ijp7ImtleSI6ImsvMSJ9LCJleHBpcmVzQXQiOjQxMDI0NDQ4MDAwMDAsInN0YWdlIjoiaXNzdWVkIn0.Xcc2Nxvvg72JjpV63jfUYO5gDtIBi3kJ5_o6WbjLaFU',
-    };
-
-    expect(
-      StaticAssetCommitTokenUtility.read({ token: KNOWN.token, secretKey: 'secret-key', now: 0 }),
-    ).toEqual(KNOWN.payload);
-    expect(
-      StaticAssetCommitTokenUtility.build({ payload: KNOWN.payload, secretKey: 'secret-key' }),
-    ).toBe(KNOWN.token);
-  });
-
-  test('an issued token with an owner keeps it, and the same text comes back', () => {
-    const KNOWN: { payload: IStaticAssetCommitTokenPayload; token: string } = {
-      payload: { ...BASE, owner: 'user-7', stage: StaticAssetTokenStages.ISSUED },
-      token:
-        'eyJidWNrZXQiOnsibmFtZSI6ImIifSwib2JqZWN0Ijp7ImtleSI6ImsvMSJ9LCJleHBpcmVzQXQiOjQxMDI0NDQ4MDAwMDAsIm93bmVyIjoidXNlci03Iiwic3RhZ2UiOiJpc3N1ZWQifQ.PcbpWIBPxkIcIP766NNbewN3l7p7LalISExmtR-5u_E',
+        'eyJidWNrZXQiOnsibmFtZSI6ImIifSwib2JqZWN0Ijp7ImtleSI6ImsvMSJ9LCJleHBpcmVzQXQiOjQxMDI0NDQ4MDAwMDAsIm93bmVyIjoidXNlci03IiwibWV0YWRhdGEiOnsib3JkZXIiOiI0MiJ9LCJzdGFnZSI6Imlzc3VlZCJ9.lT8uROHmLOXdtnq9rDUQDFQ6kt5e1uzoJuFNFx6i_i0',
     };
 
     expect(
@@ -159,12 +152,11 @@ describe('the commit token keeps its format', () => {
     const KNOWN: { payload: IStaticAssetCommitTokenPayload; token: string } = {
       payload: {
         ...BASE,
-        owner: 'user-7',
         stage: StaticAssetTokenStages.VALIDATED,
         pin: { etag: '"abc"', versionId: 'v-1' },
       },
       token:
-        'eyJidWNrZXQiOnsibmFtZSI6ImIifSwib2JqZWN0Ijp7ImtleSI6ImsvMSJ9LCJleHBpcmVzQXQiOjQxMDI0NDQ4MDAwMDAsIm93bmVyIjoidXNlci03Iiwic3RhZ2UiOiJ2YWxpZGF0ZWQiLCJwaW4iOnsiZXRhZyI6IlwiYWJjXCIiLCJ2ZXJzaW9uSWQiOiJ2LTEifX0.tHwZOYyaWJL5czJ3SP0W_Rc8t5YH9xa9cu1FsGz3LZE',
+        'eyJidWNrZXQiOnsibmFtZSI6ImIifSwib2JqZWN0Ijp7ImtleSI6ImsvMSJ9LCJleHBpcmVzQXQiOjQxMDI0NDQ4MDAwMDAsIm93bmVyIjoidXNlci03IiwibWV0YWRhdGEiOnsib3JkZXIiOiI0MiJ9LCJzdGFnZSI6InZhbGlkYXRlZCIsInBpbiI6eyJldGFnIjoiXCJhYmNcIiIsInZlcnNpb25JZCI6InYtMSJ9fQ.U-RF2J7Iwwrn-_RPt_LvFBXrYIX-cNJAKuBSozZbaKI',
     };
 
     expect(
@@ -183,7 +175,7 @@ describe('the commit token keeps its format', () => {
         pin: { etag: '"abc"' },
       },
       token:
-        'eyJidWNrZXQiOnsibmFtZSI6ImIifSwib2JqZWN0Ijp7ImtleSI6ImsvMSJ9LCJleHBpcmVzQXQiOjQxMDI0NDQ4MDAwMDAsInN0YWdlIjoidmFsaWRhdGVkIiwicGluIjp7ImV0YWciOiJcImFiY1wiIn19.L26I0ymHWxHvlHCzFt3toUADMpo269YEc5e-HRuUouk',
+        'eyJidWNrZXQiOnsibmFtZSI6ImIifSwib2JqZWN0Ijp7ImtleSI6ImsvMSJ9LCJleHBpcmVzQXQiOjQxMDI0NDQ4MDAwMDAsIm93bmVyIjoidXNlci03IiwibWV0YWRhdGEiOnsib3JkZXIiOiI0MiJ9LCJzdGFnZSI6InZhbGlkYXRlZCIsInBpbiI6eyJldGFnIjoiXCJhYmNcIiJ9fQ.Lfm57Ty8wSA45ZcY8-ZdcUGKX_X-4XId_Oe2l52xpkI',
     };
 
     const read = StaticAssetCommitTokenUtility.read({
@@ -272,5 +264,32 @@ describe('the commit token stages', () => {
     ],
   ])('a signed body with %s is refused as invalid', (_label, body) => {
     expect(() => read(signBody(body))).toThrow(/Invalid commit token/);
+  });
+});
+
+describe('the commit token is read strictly', () => {
+  const read = (token: string) => StaticAssetCommitTokenUtility.read({ token, secretKey: SECRET });
+  const valid = StaticAssetCommitTokenUtility.build({ payload: PAYLOAD, secretKey: SECRET });
+
+  test('a token with a third part is refused, whatever it holds', () => {
+    expect(() => read(`${valid}.anything`)).toThrow(/Invalid commit token/);
+  });
+
+  test.each([
+    ['no owner', { ...PAYLOAD, owner: undefined }],
+    ['an owner that is not a string', { ...PAYLOAD, owner: 7 }],
+    ['no metadata', { ...PAYLOAD, metadata: undefined }],
+    ['metadata that is not an object', { ...PAYLOAD, metadata: 'x' }],
+    ['a metadata value that is not a string', { ...PAYLOAD, metadata: { order: 42 } }],
+    ['metadata that is an array', { ...PAYLOAD, metadata: ['x'] }],
+  ])('a signed body with %s is refused as invalid', (_label, body) => {
+    expect(() => read(signBody(body))).toThrow(/Invalid commit token/);
+  });
+
+  test('the metadata an issued token carries reads back as signed', () => {
+    const payload: IStaticAssetCommitTokenPayload = { ...PAYLOAD, metadata: { order: '42' } };
+    const token = StaticAssetCommitTokenUtility.build({ payload, secretKey: SECRET });
+
+    expect(read(token).metadata).toEqual({ order: '42' });
   });
 });

@@ -64,7 +64,7 @@ The folder, labels and `maxKeys` changes also change codes. See the [error refer
 
 ### Unchanged, on purpose
 
-`StaticAssetIngestUtility.fromUrl`, `rawObjectPath`, `extend.before` and `extend.after`, and the `recreateMetaLink` route stay. `commit({ token, owner?, labels? })`, `verify` and `validate({ token, owner? })` keep their parameters. `validate` now also answers a `commitToken`: see [The validation handler](#the-validation-handler).
+`StaticAssetIngestUtility.fromUrl`, `rawObjectPath`, `extend.before` and `extend.after`, and the `recreateMetaLink` route stay. `commit`, `verify` and `validate` keep their parameters, and `owner` is now required: see [Resolvers replace `resolveOwner`](#resolvers-replace-resolveowner). `validate` now also answers a `commitToken`: see [The validation handler](#the-validation-handler).
 
 ### New and not breaking
 
@@ -147,6 +147,9 @@ export const migrated = (opts: {
       use: true,
       secretKey: opts.secretKey,
       maxBytes: 100 * 1024 * 1024,
+      resolvers: {
+        owner: ({ context }) => String(context.get(Authentication.CURRENT_USER).userId),
+      },
       expires: { upload: { unit: DurationUnits.MINUTE, value: 10 } },
       // onCommit is gone: the check that ran there is the validation.
       validation: StaticAssetValidation.define({
@@ -181,6 +184,40 @@ What changed besides names:
 - **Tokens issued before the upgrade fail.** A commit token names the old pending key, which is outside the new scope. The commit refuses it. Users upload again.
 
 An entry that already had a `keyPrefix` keeps its keys. Check that `pendingPrefix` (default `pending/`) and `keyPrefix` do not contain one another, or the entry refuses to start. See [The pending prefix](./security#the-pending-prefix).
+
+## Resolvers replace `resolveOwner`
+
+`directUpload.resolveOwner` is now `directUpload.resolvers.owner`, and it is required: a token is always signed for an owner.
+
+```typescript
+// Before
+directUpload: {
+  use: true,
+  resolveOwner: ({ context }) => userIdOf(context),
+  // ...
+},
+```
+
+```ts
+import type { TStaticAssetDirectUploadOptions } from '@venizia/ignis/static-asset';
+
+declare const userIdOf: (context: unknown) => string;
+
+export const directUpload: { use: true } & TStaticAssetDirectUploadOptions = {
+  use: true,
+  secretKey: 'replace-with-a-real-secret',
+  maxBytes: 100 * 1024 * 1024,
+  validation: { use: false },
+  resolvers: { owner: ({ context }) => userIdOf(context) },
+};
+```
+
+Also changed with it:
+
+- The services take a required `owner`. `verify` is async and answers `{ bucket, object, owner, metadata }`. `commit` answers `owner` and `metadata` too.
+- The validation handler takes `{ file, owner, metadata }`.
+- A commit refuses a destination that already holds an object (`409` `upload_already_committed`), and a policy refuses a `fileName` that is not one valid key segment (`400` `object_name_invalid`).
+- Tokens issued before the upgrade fail with `400` `invalid_commit_token`. Users upload again.
 
 ## The validation handler
 
@@ -245,8 +282,8 @@ Most apps never construct the two services: the component builds and binds them.
 
 | Service | Options now |
 |---|---|
-| `StaticAssetUploadPolicyService` | `{ scope, helper, bucket, keyPrefix, directUpload: { maxBytes, expires?, secretKey, pendingPrefix? } }` |
-| `StaticAssetUploadCommitService` | `{ scope, helper, keyPrefix, directUpload: { secretKey, pendingPrefix?, validation? }, storage, metaLink?, link }` |
+| `StaticAssetUploadPolicyService` | `{ scope, helper, bucket, keyPrefix, directUpload: { maxBytes, expires?, secretKey, pendingPrefix? } }` (`issuePolicies` takes `owner`, required) |
+| `StaticAssetUploadCommitService` | `{ scope, helper, bucket, keyPrefix, objectKeyMaxDepth, directUpload: { secretKey, pendingPrefix?, resolvers, validation? }, storage, metaLink?, link }` |
 
 `keyPrefix` is a `string` on both. `StaticAssetControllerFactory.build({ key, entry, policyService?, commitService? })` resolves the entry itself, so a hand-built controller takes the entry as you wrote it.
 

@@ -2,7 +2,11 @@ import { Hash, HashAlgorithms, HashOutputEncodings } from '@venizia/ignis-helper
 import { getError } from '@venizia/ignis-helpers/core';
 import { StaticAssetTokenStages } from '../common/constants';
 import { StaticAssetErrors } from '../common/errors';
-import type { IStaticAssetCommitTokenPayload, IStaticAssetPin } from '../common/types';
+import type {
+  IStaticAssetCommitTokenPayload,
+  IStaticAssetPin,
+  TStaticAssetTokenMetadata,
+} from '../common/types';
 
 /** Signs and reads the token the commit route trusts instead of a key a caller names. */
 export class StaticAssetCommitTokenUtility {
@@ -23,6 +27,14 @@ export class StaticAssetCommitTokenUtility {
     return typeof value === 'object' && value !== null;
   }
 
+  private static isStringRecord(value: unknown): value is TStaticAssetTokenMetadata {
+    return (
+      StaticAssetCommitTokenUtility.isRecord(value) &&
+      !Array.isArray(value) &&
+      Object.values(value).every((entry) => typeof entry === 'string')
+    );
+  }
+
   /** A signed body that is not the current payload shape is refused as invalid: a token minted before the shape changed still carries a good signature. */
   private static parse(opts: { body: string }): IStaticAssetCommitTokenPayload {
     let parsed: unknown;
@@ -37,7 +49,7 @@ export class StaticAssetCommitTokenUtility {
       throw getError(StaticAssetErrors.INVALID_COMMIT_TOKEN);
     }
 
-    const { bucket, object, expiresAt, owner, stage, pin } = parsed;
+    const { bucket, object, expiresAt, owner, metadata, stage, pin } = parsed;
 
     if (
       !StaticAssetCommitTokenUtility.isRecord(bucket) ||
@@ -45,7 +57,8 @@ export class StaticAssetCommitTokenUtility {
       !StaticAssetCommitTokenUtility.isRecord(object) ||
       typeof object.key !== 'string' ||
       typeof expiresAt !== 'number' ||
-      (owner !== undefined && typeof owner !== 'string')
+      typeof owner !== 'string' ||
+      !StaticAssetCommitTokenUtility.isStringRecord(metadata)
     ) {
       throw getError(StaticAssetErrors.INVALID_COMMIT_TOKEN);
     }
@@ -56,6 +69,7 @@ export class StaticAssetCommitTokenUtility {
         object: { key: object.key },
         expiresAt,
         owner,
+        metadata,
         stage,
       };
     }
@@ -70,6 +84,7 @@ export class StaticAssetCommitTokenUtility {
       object: { key: object.key },
       expiresAt,
       owner,
+      metadata,
       stage,
       pin: StaticAssetCommitTokenUtility.parsePin({ pin }),
     };
@@ -89,7 +104,7 @@ export class StaticAssetCommitTokenUtility {
     return { etag: pin.etag, versionId: pin.versionId };
   }
 
-  /** Signs `{ bucket, object, expiresAt, owner? }` so the commit route can trust the key it is handed. */
+  /** Signs the payload so the commit route can trust the key it is handed. */
   static build(opts: { payload: IStaticAssetCommitTokenPayload; secretKey: string }): string {
     const body = StaticAssetCommitTokenUtility.encode(opts.payload);
 
@@ -108,9 +123,10 @@ export class StaticAssetCommitTokenUtility {
     now?: number;
   }): IStaticAssetCommitTokenPayload {
     const { token, secretKey, now = Date.now() } = opts;
-    const [body, signature] = token.split('.');
+    const parts = token.split('.');
+    const [body, signature] = parts;
 
-    if (!body || !signature) {
+    if (parts.length !== 2 || !body || !signature) {
       throw getError(StaticAssetErrors.INVALID_COMMIT_TOKEN);
     }
 

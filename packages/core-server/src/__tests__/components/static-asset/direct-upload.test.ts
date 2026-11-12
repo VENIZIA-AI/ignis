@@ -82,6 +82,7 @@ const mount = async (opts: {
 
 const ALLOW: TDirectUploadOptions = {
   authorize: () => true,
+  resolvers: { owner: () => 'user-a' },
   secretKey: SECRET,
   maxBytes: 1024,
 };
@@ -219,6 +220,8 @@ describe('the upload-commit route', () => {
         bucket: { name: 'uploads' },
         object: { key: 'pending/files/x/a.png' },
         expiresAt: Date.now() + 60_000,
+        owner: 'user-a',
+        metadata: {},
         stage: StaticAssetTokenStages.ISSUED,
       },
       secretKey: 'not-the-secret',
@@ -291,7 +294,7 @@ describe('who may commit', () => {
 
   const ownedByHeader: TDirectUploadOptions = {
     ...ALLOW,
-    resolveOwner: ({ context }) => context.req.header('x-user') ?? '',
+    resolvers: { owner: ({ context }) => context.req.header('x-user') ?? '' },
   };
 
   const askPolicyAs = (router: OpenAPIHono, user: string) =>
@@ -311,7 +314,7 @@ describe('who may commit', () => {
       body: JSON.stringify({ commitToken }),
     });
 
-  test('resolveOwner on both routes: the owner commits', async () => {
+  test('resolvers.owner on both routes: the owner commits', async () => {
     const helper = new FakeStorageHelper();
     const router = await mount({ helper, directUpload: ownedByHeader });
     const response = await askPolicyAs(router, 'user-a');
@@ -340,6 +343,79 @@ describe('who may commit', () => {
       expect(JSON.stringify(answer)).toContain('core.static_asset.invalid_commit_token');
     }
 
+    expect(helper.calls).toHaveLength(0);
+  });
+});
+
+describe('resolvers.metadata', () => {
+  const withMetadata: TDirectUploadOptions = {
+    ...ALLOW,
+    resolvers: {
+      owner: () => 'user-a',
+      // The client's hint is an input: only what this returns is signed.
+      metadata: ({ file }) => ({ orderId: file.metadata?.orderId ?? 'none', source: 'server' }),
+    },
+  };
+
+  test('signs what the resolver returns, and the commit answers it with the owner', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mount({ helper, directUpload: withMetadata });
+    const response = await askPolicy(router, [
+      { fileName: 'a.png', metadata: { orderId: '42', source: 'client' } },
+    ]);
+    const result = await response.json();
+    const [policy] = result as Array<{ objectName: string; commitToken: string }>;
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName });
+
+    const committed = await commit(router, policy.commitToken);
+    const answer = await committed.json();
+
+    expect(committed.status).toBe(200);
+    expect(answer).toMatchObject({
+      owner: 'user-a',
+      metadata: { orderId: '42', source: 'server' },
+    });
+  });
+
+  test('a client that sends metadata where no resolver reads it is refused with a 400', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mount({ helper, directUpload: ALLOW });
+
+    const response = await askPolicy(router, [{ fileName: 'a.png', metadata: { orderId: '42' } }]);
+    const answer = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(JSON.stringify(answer)).toContain('core.static_asset.upload_metadata_invalid');
+    expect(helper.calls).toHaveLength(0);
+  });
+
+  test('a second commit with the same token answers 409', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mount({ helper, directUpload: ALLOW });
+    const response = await askPolicy(router, [{ fileName: 'a.png' }]);
+    const result = await response.json();
+    const [policy] = result as Array<{ objectName: string; commitToken: string }>;
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName });
+    await commit(router, policy.commitToken);
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName, content: 'second' });
+
+    const again = await commit(router, policy.commitToken);
+    const answer = await again.json();
+
+    expect(again.status).toBe(409);
+    expect(JSON.stringify(answer)).toContain('core.static_asset.upload_already_committed');
+    expect(answer).toMatchObject({
+      extra: { object: { key: expect.any(String) }, link: expect.any(String) },
+    });
+  });
+
+  test('a file name that is a path is refused with a 400', async () => {
+    const helper = new FakeStorageHelper();
+    const router = await mount({ helper, directUpload: ALLOW });
+
+    const response = await askPolicy(router, [{ fileName: '../../x.png' }]);
+
+    expect(response.status).toBe(400);
     expect(helper.calls).toHaveLength(0);
   });
 });
