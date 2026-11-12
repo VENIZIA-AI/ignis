@@ -699,7 +699,7 @@ export class NamespaceFunctions {
   }
 
   /** The first value import with braces from one of `modules`, to add a class to. */
-  private static findNamedImport(opts: {
+  static findNamedImport(opts: {
     typescript: TTypeScript;
     sourceFile: ts.SourceFile;
     modules: string[];
@@ -750,7 +750,7 @@ export class NamespaceFunctions {
    * the first removed one. Braces that hold a comment are not rewritten: the classes are appended
    * and the old names stay, reported. An import left with nothing is removed.
    */
-  private static planImport(opts: {
+  static planImport(opts: {
     typescript: TTypeScript;
     sourceFile: ts.SourceFile;
     declaration: ts.ImportDeclaration;

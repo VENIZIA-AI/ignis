@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { CodemodFiles } from './files';
 
-const USAGE = `Usage: devz codemod connector-imports [paths...] [--write | --check]
+const USAGE = `Usage: devz codemod connector-imports [paths...] [--write | --check] [--reverse]
 
 Moves the connector sub-path imports of @venizia/ignis to @venizia/ignis-connectors. The sub-paths
 @venizia/ignis/postgres, /postgres/node-postgres, /postgres/postgres-js, /postgres/pglite,
@@ -18,6 +18,8 @@ direct dependency: it reports each package.json that does not.
 
   --write    write the changed files (without it, nothing is written)
   --check    dry run that exits 1 while a file would change (for CI)
+  --reverse  move the specifiers back, for a downgrade: @venizia/ignis-connectors/<sub-path> becomes
+             @venizia/ignis/<sub-path>
   --help     print this text and exit
 
 With no flag it lists what would change and writes nothing. Inside a git repository it reads the
@@ -45,12 +47,14 @@ const MODULE_NAME_CALLS = new Set([
 class ConnectorImportsFlags {
   static readonly WRITE = '--write';
   static readonly CHECK = '--check';
+  static readonly REVERSE = '--reverse';
   static readonly HELP = '--help';
   static readonly HELP_SHORT = '-h';
 
   static readonly SCHEME_SET = new Set<string>([
     this.WRITE,
     this.CHECK,
+    this.REVERSE,
     this.HELP,
     this.HELP_SHORT,
   ]);
@@ -84,6 +88,11 @@ export class ConnectorSpecifiers {
       `${CONNECTORS_PACKAGE}/${subpath}`,
     ]),
   );
+
+  /** The same table backward, for a downgrade. */
+  static readonly REVERSE_MOVES: ReadonlyMap<string, string> = new Map(
+    [...ConnectorSpecifiers.MOVES].map(([from, to]) => [to, from]),
+  );
 }
 
 export interface IConnectorImportsResult {
@@ -99,8 +108,11 @@ export class ConnectorImports {
     typescript: typeof import('typescript');
     fileName: string;
     source: string;
+    /** Move `@venizia/ignis-connectors/<sub-path>` back to `@venizia/ignis/<sub-path>`. */
+    reverse?: boolean;
   }): IConnectorImportsResult {
-    const { typescript: ts, fileName, source } = opts;
+    const { typescript: ts, fileName, source, reverse = false } = opts;
+    const moves = reverse ? ConnectorSpecifiers.REVERSE_MOVES : ConnectorSpecifiers.MOVES;
     const scriptKind = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
     const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, scriptKind);
     const edits: Array<{ start: number; end: number; text: string }> = [];
@@ -110,7 +122,7 @@ export class ConnectorImports {
         return;
       }
 
-      const moved = ConnectorSpecifiers.MOVES.get(literal.text);
+      const moved = moves.get(literal.text);
 
       if (moved === undefined) {
         return;
@@ -266,6 +278,8 @@ export class ConnectorImportsCommand {
 
     const isWrite = flags.includes(ConnectorImportsFlags.WRITE);
     const isCheck = flags.includes(ConnectorImportsFlags.CHECK);
+    const isReverse = flags.includes(ConnectorImportsFlags.REVERSE);
+    const marker = isReverse ? `${CONNECTORS_PACKAGE}/` : OLD_PREFIX;
 
     if (isWrite && isCheck) {
       console.error(
@@ -305,11 +319,16 @@ export class ConnectorImportsCommand {
       for (const file of files) {
         const source = readFileSync(file, 'utf8');
 
-        if (!source.includes(OLD_PREFIX)) {
+        if (!source.includes(marker)) {
           continue;
         }
 
-        const result = ConnectorImports.rewrite({ typescript, fileName: file, source });
+        const result = ConnectorImports.rewrite({
+          typescript,
+          fileName: file,
+          source,
+          reverse: isReverse,
+        });
 
         if (!result.changed) {
           continue;
@@ -333,7 +352,7 @@ export class ConnectorImportsCommand {
 
         const manifest = ConnectorImports.findManifest({ file, root });
 
-        if (manifest && !manifest.hasConnectors) {
+        if (!isReverse && manifest && !manifest.hasConnectors) {
           missing.add(relative(root, manifest.path).split('\\').join('/') || manifest.path);
         }
 
@@ -356,7 +375,7 @@ export class ConnectorImportsCommand {
 
     if (!isWrite && changedCount > 0) {
       console.log(
-        `Nothing was written. Run again with ${ConnectorImportsFlags.WRITE} to apply, then add the dependency and run your typecheck.`,
+        `Nothing was written. Run again with ${ConnectorImportsFlags.WRITE} to apply, then ${isReverse ? 'remove the dependency if nothing else uses it and ' : 'add the dependency and '}run your typecheck.`,
       );
     }
 
