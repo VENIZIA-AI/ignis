@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/http, from the built dec
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-19 exports, 19 with TSDoc. 3 more are re-exported from other entries (listed at the end).
+20 exports, 20 with TSDoc. 3 more are re-exported from other entries (listed at the end).
 
 ## `HttpDataSource`
 
@@ -16,11 +16,10 @@ description: "Every export of @venizia/ignis-connectors/http, from the built dec
 Reads an IGNIS REST server through the repository contract. Targets IGNIS, not any REST API.
 
 ```ts
-export declare class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> {
+export declare class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
     name: string;
     settings: IHttpDataSourceSettings;
     schema: never;
-    protected network: NodeFetchNetworkRequest;
     /** Normalised once: every request copies these, never re-parses `settings.headers`. */
     protected configuredHeaders: Array<[string, string]>;
     /** Decided once: a relative baseUrl (`/api`) is resolved against the page origin on every request. */
@@ -493,6 +492,8 @@ export interface IHttpDataSourceSettings {
     authTokenResolver?: TAuthTokenResolver;
     /** Runs on a 401: `true` retries once (re-resolving the token), `false` lets the 401 stand. */
     onUnauthorized?: (context: IHttpRequestContext) => Promise<boolean> | boolean;
+    /** What sends a request: the platform `fetch` when unset. Name one to route through a test double, a proxy or an instrumented client. */
+    fetch?: THttpFetch;
 }
 ```
 
@@ -610,6 +611,18 @@ Query parameters a route takes beside `filter` or `where` - a keyword, a scope. 
 
 ```ts
 export type THttpExtraQuery = Record<string, unknown>;
+```
+
+Source: `packages/connectors/src/http/common/types.ts`
+
+## `THttpFetch`
+
+*type*
+
+The part of `fetch` the data source uses: a URL and its init, a `Response` back.
+
+```ts
+export type THttpFetch = (url: string, init: RequestInit) => Promise<Response>;
 ```
 
 Source: `packages/connectors/src/http/common/types.ts`

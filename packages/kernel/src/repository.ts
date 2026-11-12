@@ -15,6 +15,7 @@
 
 export { AbstractRepository } from '@/base/repositories/core/abstract';
 export { AbstractDataSource } from '@/base/datasources/abstract';
+export { DataSourceRoot } from '@/base/datasources/root';
 
 export type {
   ICreatableRepository,

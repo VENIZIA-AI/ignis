@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-358 exports, 358 with TSDoc. 86 more are re-exported from other entries (listed at the end).
+358 exports, 358 with TSDoc. 87 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -2335,7 +2335,7 @@ subclass however deep.
 export declare const DATA_SOURCE_BRAND: unique symbol;
 ```
 
-Source: `packages/kernel/src/base/datasources/abstract.ts`
+Source: `packages/kernel/src/base/datasources/root.ts`
 
 ## `DataSourceDrivers`
 
@@ -4789,7 +4789,7 @@ True for `AbstractDataSource` itself and for any class extending it, across pack
 export declare const isDataSourceClass: (value: unknown) => value is TClass<AnyType>;
 ```
 
-Source: `packages/kernel/src/base/datasources/abstract.ts`
+Source: `packages/kernel/src/base/datasources/root.ts`
 
 ## `ISearchableDataSourceCapabilities`
 
@@ -9171,6 +9171,7 @@ Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`
 - `CoreErrorCodes` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `DataRangeUtility` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `datasource` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
+- `DataSourceRoot` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `DEFAULT_LIMIT` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `DEFAULT_MAX_LIMIT` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `FilterKeys` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)

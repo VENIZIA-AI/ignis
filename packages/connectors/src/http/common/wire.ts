@@ -59,6 +59,14 @@ export class HttpWire {
    * The body as `fetch` takes it. Anything `fetch` already sends as a body passes through untouched;
    * any other object is JSON. Serialised ONCE, so the 401 retry sends the same bytes.
    */
+  /** `baseUrl` (no trailing slash) followed by each path with one leading slash: `('/api/', ['a', '/b'])` is `/api/a/b`. */
+  static toRequestUrl(opts: { baseUrl: string; paths: Array<string> }): string {
+    const { baseUrl, paths } = opts;
+    const base = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+
+    return `${base}${paths.map((path) => (path.startsWith('/') ? path : `/${path}`)).join('')}`;
+  }
+
   static toRequestBody(opts: { body?: THttpBody }): {
     payload: RequestInit['body'];
     isJson: boolean;

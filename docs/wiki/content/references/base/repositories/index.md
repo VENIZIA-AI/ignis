@@ -245,6 +245,7 @@ new HttpDataSource({
 | `headersResolver` | Headers for this request. Wins over `headers`. |
 | `authToken` / `authTokenResolver` | The token. A fixed `authToken` wins and goes on every request; the resolver answering `undefined` sends none. |
 | `onUnauthorized` | Runs on a 401; `true` retries once, `false` lets it stand. A call whose `signal` aborted meanwhile is not retried. |
+| `fetch` | What sends a request: `(url, init) => Promise<Response>`. The platform `fetch` when unset, looked up on each call. Name one to route through a test double, a proxy or an instrumented client. |
 
 One call adds its own headers and an abort signal through `options`, on every verb:
 

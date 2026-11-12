@@ -1,4 +1,4 @@
-import type { AbstractDataSource } from '@/base/datasources';
+import type { DataSourceRoot } from '@/base/datasources';
 import type { AbstractEntity, IdType } from '@/base/models';
 import type { TByIdFilter, TFields, TFilter, TRow, TWhere } from '@venizia/ignis-filter';
 import type { TNullable } from '@venizia/ignis-helpers/common';
@@ -10,7 +10,7 @@ import type { TCount, TDataWithRange } from './results';
  * `getEntitySchema()`/`getConnector()`) stay on the connector's own repository tier.
  */
 export interface IRepository {
-  dataSource: AbstractDataSource;
+  dataSource: DataSourceRoot;
   entity: AbstractEntity;
   getEntity(): AbstractEntity;
 }

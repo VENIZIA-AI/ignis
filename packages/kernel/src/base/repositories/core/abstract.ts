@@ -1,4 +1,4 @@
-import type { AbstractDataSource } from '@/base/datasources';
+import type { DataSourceRoot } from '@/base/datasources';
 import type { AbstractEntity, IdType } from '@/base/models';
 import type { IModelMetadata } from '@/helpers/inversion';
 import { MetadataRegistry } from '@/helpers/inversion';
@@ -55,7 +55,7 @@ export abstract class AbstractRepository<
   protected _operationScope: TRepositoryOperationScope;
 
   /** Lazy-resolved on first access if not provided in constructor. */
-  protected _dataSource?: AbstractDataSource;
+  protected _dataSource?: DataSourceRoot;
 
   /** Lazy-resolved from @repository metadata on first access. */
   protected _entity?: AbstractEntity;
@@ -67,7 +67,7 @@ export abstract class AbstractRepository<
   private _modelSettings: IModelMetadata['settings'] | null = null;
 
   constructor(
-    dataSource?: AbstractDataSource,
+    dataSource?: DataSourceRoot,
     opts?: {
       scope?: string;
       entityClass?: TClass<AbstractEntity>;
@@ -91,7 +91,7 @@ export abstract class AbstractRepository<
     }
   }
 
-  get dataSource(): AbstractDataSource {
+  get dataSource(): DataSourceRoot {
     if (!this._dataSource) {
       throw getError({
         message: `[${this.constructor.name}] DataSource not available. Use @repository({ model: YourModel, dataSource: YourDataSource }) or pass dataSource in constructor.`,
@@ -101,7 +101,7 @@ export abstract class AbstractRepository<
     return this._dataSource;
   }
 
-  set dataSource(value: AbstractDataSource) {
+  set dataSource(value: DataSourceRoot) {
     this._dataSource = value;
   }
 
@@ -120,7 +120,7 @@ export abstract class AbstractRepository<
     return this._operationScope;
   }
 
-  setDataSource(opts: { dataSource: AbstractDataSource }): void {
+  setDataSource(opts: { dataSource: DataSourceRoot }): void {
     this._dataSource = opts.dataSource;
   }
 

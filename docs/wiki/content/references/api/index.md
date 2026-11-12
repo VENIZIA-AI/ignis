@@ -23,7 +23,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-boot/generator`](/references/api/venizia-ignis-boot-generator) | 16 | 16 |
 | [`@venizia/ignis-boot/vite`](/references/api/venizia-ignis-boot-vite) | 2 | 2 |
 | [`@venizia/ignis-connectors`](/references/api/venizia-ignis-connectors) | 3 | 3 |
-| [`@venizia/ignis-connectors/http`](/references/api/venizia-ignis-connectors-http) | 19 | 19 |
+| [`@venizia/ignis-connectors/http`](/references/api/venizia-ignis-connectors-http) | 20 | 20 |
 | [`@venizia/ignis-connectors/meilisearch`](/references/api/venizia-ignis-connectors-meilisearch) | 16 | 16 |
 | [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres) | 54 | 54 |
 | [`@venizia/ignis-connectors/postgres/node-postgres`](/references/api/venizia-ignis-connectors-postgres-node-postgres) | 1 | 1 |
@@ -61,7 +61,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion) | 72 | 72 |
 | [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel) | 358 | 358 |
 | [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata) | 21 | 21 |
-| [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository) | 36 | 36 |
+| [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository) | 37 | 37 |
 | [`@venizia/ignis-kernel/statuses`](/references/api/venizia-ignis-kernel-statuses) | 2 | 2 |
 | [`@venizia/ignis-worker`](/references/api/venizia-ignis-worker) | 18 | 18 |
 | [`@venizia/ignis/grpc`](/references/api/venizia-ignis-grpc) | 4 | 4 |
