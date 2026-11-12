@@ -22,13 +22,26 @@ const assemble = (
   },
 ): IAuthRouteConfig => {
   const { method, path, params, query, contentType, body, responses } = opts;
-  const request: TRequest = {
-    ...(params ? { params } : {}),
-    ...(query ? { query } : {}),
-    ...(body && contentType ? { body: { content: { [contentType]: { schema: body } } } } : {}),
-  };
+  const request: TRequest = {};
+  const config: IAuthRouteConfig = { method, path, responses };
 
-  return { method, path, ...(Object.keys(request).length > 0 ? { request } : {}), responses };
+  if (params) {
+    request.params = params;
+  }
+
+  if (query) {
+    request.query = query;
+  }
+
+  if (body && contentType) {
+    request.body = { content: { [contentType]: { schema: body } } };
+  }
+
+  if (Object.keys(request).length > 0) {
+    config.request = request;
+  }
+
+  return config;
 };
 
 /** The one place a route definition is assembled: no route writes `request.body.content[...]` by hand. */

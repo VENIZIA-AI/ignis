@@ -48,7 +48,7 @@ export interface IStaticAssetRoute {
   /** The OpenAPI definition and the handler of one route, side by side. */
   build: (env: IStaticAssetRouteEnv) => {
     config: IAuthRouteConfig;
-    handler: TRouteHandler<AnyType>;
+    handler: TRouteHandler;
   };
 
   /** Middleware the route adds after the application's own. */
