@@ -164,9 +164,9 @@ export const entry: TStaticAssetEntry = {
 - **Cause:** the entry has a `keyPrefix`, and `serverUpload.objectKey` returned a key outside it. The component never rewrites the key into scope - the application may have recorded the out-of-scope key elsewhere.
 - **Fix:** have the hook build keys under the prefix, or drop the `keyPrefix` if the hook already scopes keys on its own and the entry has no `directUpload`.
 
-### "[upload] Invalid original file name" under a `keyPrefix`
+### "[upload] Invalid original file name" with the default key
 
-- **Cause:** the entry has a `keyPrefix` and no `serverUpload.objectKey` - the component's own default naming under a scope. That path keeps the strict, single-segment rule a name has without any scope.
+- **Cause:** the entry has no `serverUpload.objectKey`, so the component names the key itself and the original name must stay one segment.
 - **Fix:** rename the file (drop the `/`), or set `serverUpload.objectKey` to build the key yourself, which frees the original name to be metadata.
 
 ### "[upload] Bucket does not exist"
@@ -237,7 +237,7 @@ export const bindOptions = (opts: {
 
 `upload_too_large` is **one** code for both upload paths: over `serverUpload.maxBytes` on `POST {base}/objects`, and over `directUpload.maxBytes` when a policy is requested. A second code would have been the same condition wearing two names.
 
-The ordinary route checks twice. The request's `content-length` is read before the body is parsed, so an oversized upload is refused without being read into memory; then each parsed file is checked against its actual byte length, which is the authoritative one - a multipart envelope is larger than the files inside it, and a declared length is whatever the client declared.
+The ordinary route checks twice. The route's body limit is `maxFiles` files of `maxBytes` each plus their multipart framing, so a body over it is refused (`core.request.body_too_large`) without being read into memory. Then each parsed file is checked against its actual byte length, which is the authoritative one. The body limit is not a per-file check: two 3 MB files pass under a `maxBytes` of 5 MB.
 
 `invalid_commit_token` and `expired_commit_token` are both `400` and neither is a `404`. A token issued to another owner answers `invalid_commit_token`, the same as a forged one. A caller learns only that the token is no good, never whether the key it names exists - the route is not a name prober, and a forged token fails before any storage call, so timing leaks nothing either.
 

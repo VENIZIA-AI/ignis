@@ -22,10 +22,23 @@ export const objectUrls = (opts: { objectName: string }) => {
 };
 ```
 
-Both routes validate `objectName` with `isValidObjectKey()`, forward only `content-encoding`, `cache-control`, `etag` and `last-modified` from the storage metadata, and honour a `Range` header, so a browser can seek in a video or resume a download.
+Both routes validate `objectName` with `isValidObjectKey()`, send `ETag` and `Last-Modified` from the storage stat, and honour a `Range` header, so a browser can seek in a video or resume a download.
+
+A request with a matching `If-None-Match` (weak comparison, or `*`), or with no `If-None-Match` and an `If-Modified-Since` that is not older than the object, answers `304` from the stat alone: the object is not read. The routes set no `Cache-Control`; add one in your own middleware if you want browsers to skip the request entirely. For a route of your own, `StaticAssetServe.applyValidators({ ctx, stat })` sets the same two headers and returns `true` when a `304` is due:
+
+```ts
+const stat = await helper.getStat({ bucket, object });
+
+if (StaticAssetServe.applyValidators({ ctx, stat })) {
+  return new Response(null, {
+    headers: ctx.res.headers,
+    status: HTTP.ResultCodes.RS_3.NotModified,
+  });
+}
+```
 
 > [!WARNING]
-> `content-type` is not forwarded from storage metadata, and it is not taken from what the uploader declared either. The served type is derived from the object KEY, and anything outside the renderable allow list is forced to a download. See [Security](./security#served-content).
+> `content-type` is not taken from storage metadata, and it is not taken from what the uploader declared either. The served type is derived from the object KEY, and anything outside the renderable allow list is forced to a download. See [Security](./security#served-content).
 
 > [!TIP]
 > `objectName` may embed folder segments, for example `invoices/2026/document.pdf`. Always pass the whole thing through `encodeURIComponent()`. Hono decodes it exactly once before the handler reads it - a second `decodeURIComponent` throws on `report_100%.pdf`. Or set `rawObjectPath: true` on the entry to serve `/assets/objects/invoices/2026/document.pdf` as written.

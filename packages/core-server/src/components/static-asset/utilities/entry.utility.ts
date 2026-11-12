@@ -165,8 +165,8 @@ export class StaticAssetEntryUtility {
       bucket,
       keyPrefix: scope?.keyPrefix,
       maxFolderDepth,
-      // `maxFolderDepth` counts the caller's folders; the scope's own are configuration, not input.
-      objectKeyMaxDepth: maxFolderDepth + (scope?.depth ?? 0),
+      // `maxFolderDepth` counts the caller's folders; the scope's own and the framework's uuid folder are not input.
+      objectKeyMaxDepth: maxFolderDepth + (scope?.depth ?? 0) + 1,
       auth: auth && {
         authenticate: auth.authenticate,
         authorize: auth.authorize,

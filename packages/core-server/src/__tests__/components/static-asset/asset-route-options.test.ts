@@ -17,7 +17,7 @@ const CEILING =
 
 const buildApp = () => {
   const app = new Hono();
-  const middleware = StaticAssetRouteOptionsUtility.appendLengthGuard({
+  const middleware = StaticAssetRouteOptionsUtility.appendBodyLimit({
     middleware: undefined,
     maxBytes: MAX_BYTES,
     maxFiles: MAX_FILES,
@@ -29,9 +29,9 @@ const buildApp = () => {
       ((error as { statusCode?: number }).statusCode ?? 500) as never,
     ),
   );
-  const [guard, limit] = middleware;
+  const [limit] = middleware;
 
-  app.post('/upload', guard, limit, async (context) => {
+  app.post('/upload', limit, async (context) => {
     const text = await context.req.text();
 
     return context.json({ length: text.length });
@@ -53,26 +53,26 @@ const postChunked = (app: Hono, length: number) =>
     duplex: 'half',
   } satisfies RequestInit & { duplex: 'half' });
 
-describe('StaticAssetRouteOptionsUtility.appendLengthGuard', () => {
-  test('answers the guard first, then the route limit', () => {
-    const middleware = StaticAssetRouteOptionsUtility.appendLengthGuard({
+describe('StaticAssetRouteOptionsUtility.appendBodyLimit', () => {
+  test('adds the route limit alone', () => {
+    const middleware = StaticAssetRouteOptionsUtility.appendBodyLimit({
       middleware: undefined,
       maxBytes: MAX_BYTES,
       maxFiles: MAX_FILES,
     });
 
-    expect(middleware).toHaveLength(2);
+    expect(middleware).toHaveLength(1);
   });
 
-  test('keeps the application middleware ahead of both', () => {
+  test('keeps the application middleware ahead of the limit', () => {
     const own: MiddlewareHandler = async (_context, next) => next();
-    const list = StaticAssetRouteOptionsUtility.appendLengthGuard({
+    const list = StaticAssetRouteOptionsUtility.appendBodyLimit({
       middleware: [own],
       maxBytes: MAX_BYTES,
       maxFiles: MAX_FILES,
     }) as unknown as MiddlewareHandler[];
 
-    expect(list).toHaveLength(3);
+    expect(list).toHaveLength(2);
     expect(list[0]).toBe(own);
   });
 
@@ -91,14 +91,14 @@ describe('StaticAssetRouteOptionsUtility.appendLengthGuard', () => {
   });
 
   test('the ceiling is above the default limit when maxBytes is large', () => {
-    const large = StaticAssetRouteOptionsUtility.appendLengthGuard({
+    const large = StaticAssetRouteOptionsUtility.appendBodyLimit({
       middleware: undefined,
       maxBytes: 20 * 1024 * 1024,
       maxFiles: 10,
     });
 
     // The limit is a route limit: the default stands aside for it.
-    expect(large).toHaveLength(2);
+    expect(large).toHaveLength(1);
     expect(BodyLimits.DEFAULT_MAX_SIZE).toBeLessThan(20 * 1024 * 1024);
   });
 });

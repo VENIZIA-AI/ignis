@@ -2,12 +2,11 @@ import type { TRouteContext } from '@/base/controllers';
 import {
   ContentDispositionTypes,
   RequestUtility,
-  type IObjectMetadata,
+  type IFileStat,
   type IObjectRef,
   type IStorageHelper,
 } from '@venizia/ignis-helpers';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import type { Env } from 'hono';
 import { StaticAssetContentTypes, StaticAssetHeaders, StaticAssetRouteKeys } from '../../common';
 import {
   type IStaticAssetRoute,
@@ -38,6 +37,49 @@ export class StaticAssetServe {
     }
 
     return { contentType: candidate, isRenderable: true };
+  }
+
+  /**
+   * Sets `ETag` and `Last-Modified` from `stat` and answers whether the client's copy is current. A `true`
+   * means the caller returns a 304 without reading the object; the headers are already on `ctx`.
+   * `If-None-Match` decides alone when present (weak comparison, `*` matches any); otherwise
+   * `If-Modified-Since` does. An application's own route can call it with a `stat` it already holds.
+   */
+  static applyValidators(opts: { ctx: TRouteContext; stat: IFileStat }): boolean {
+    const { ctx, stat } = opts;
+    const { etag, lastModified } = stat;
+    const quotedEtag =
+      etag && !etag.startsWith('"') && !etag.startsWith('W/"') ? `"${etag}"` : etag;
+
+    if (quotedEtag) {
+      ctx.header(HTTP.Headers.ETAG, quotedEtag);
+    }
+
+    if (lastModified) {
+      ctx.header(HTTP.Headers.LAST_MODIFIED, lastModified.toUTCString());
+    }
+
+    const ifNoneMatch = ctx.req.header(HTTP.Headers.IF_NONE_MATCH);
+
+    if (ifNoneMatch !== undefined) {
+      const wanted = ifNoneMatch.split(',').map((tag) => tag.trim());
+      const stripWeak = (tag: string) => tag.replace(/^W\//, '');
+
+      return wanted.some(
+        (tag) => tag === '*' || (!!quotedEtag && stripWeak(tag) === stripWeak(quotedEtag)),
+      );
+    }
+
+    const ifModifiedSince = ctx.req.header(HTTP.Headers.IF_MODIFIED_SINCE);
+
+    if (!ifModifiedSince || !lastModified) {
+      return false;
+    }
+
+    const since = Date.parse(ifModifiedSince);
+
+    // HTTP dates have whole-second precision.
+    return !Number.isNaN(since) && Math.floor(lastModified.getTime() / 1000) * 1000 <= since;
   }
 }
 
@@ -85,25 +127,6 @@ const readByteRange = (opts: {
   return { start, end: Math.min(end, size - 1) };
 };
 
-/** The storage headers a response may carry; every other one is dropped. */
-const ALLOWED_HEADER_NAMES: ReadonlySet<string> = new Set(StaticAssetHeaders.ALLOWED);
-
-/** Sets whitelisted metadata headers on the response context. `content-type` is not among them. */
-const applyMetadataHeaders = (opts: {
-  ctx: TRouteContext<Env>;
-  metadata: IObjectMetadata;
-}): void => {
-  Object.entries(opts.metadata).forEach(([key, value]) => {
-    const name = key.toLowerCase();
-
-    if (!ALLOWED_HEADER_NAMES.has(name)) {
-      return;
-    }
-
-    opts.ctx.header(name, String(value).replace(/[\r\n]/g, ''));
-  });
-};
-
 /**
  * Streams one object. `attach` forces a download; without it a type outside the allow-list still
  * downloads instead of rendering, which is the XSS boundary. Both honour `Range`.
@@ -120,8 +143,15 @@ const serve = async (opts: {
     env,
     isObject: true,
   });
-  const { size, metadata } = await helper.getStat({ bucket, object });
-  applyMetadataHeaders({ ctx, metadata });
+  const stat = await helper.getStat({ bucket, object });
+  const { size } = stat;
+
+  if (StaticAssetServe.applyValidators({ ctx, stat })) {
+    return new Response(null, {
+      headers: ctx.res.headers,
+      status: HTTP.ResultCodes.RS_3.NotModified,
+    });
+  }
 
   const served = StaticAssetServe.resolveServedContentType({ helper, object });
   ctx.header(HTTP.Headers.CONTENT_TYPE, served.contentType);

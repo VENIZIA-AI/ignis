@@ -222,7 +222,7 @@ Splits one shared bucket between entries. `directUpload` requires it. `StaticAss
 | `upload` | The component's own default name is placed inside the prefix. An `objectKey` key outside it is refused with `400 core.static_asset.object_key_out_of_scope` - never rewritten, because the application may have recorded that key elsewhere |
 | `uploadPolicy`, `uploadValidate`, `uploadCommit` | The pending key becomes `pendingPrefix + keyPrefix`, so the committed key lands inside the scope. The token's scope is re-checked, for a token another entry signed with the same secret |
 
-The entry's `maxFolderDepth` counts folders below the prefix: key validation uses `maxFolderDepth` plus the prefix depth. Without that addition, a two-segment prefix plus a direct-upload key `<uuid>/<name>` would exceed the default depth of `2` and every read would answer `400`.
+The entry's `maxFolderDepth` counts folders below the prefix: key validation uses `maxFolderDepth` plus the prefix depth plus one for the `<uuid>` folder the framework adds before a generated key's name. Without that addition, a two-segment prefix plus a key `<uuid>/<name>` would exceed the default depth of `2` and every read would answer `400`.
 
 ## Routes
 
@@ -620,29 +620,27 @@ const MultipartBodySchema = z.object({
 
 ### Where `maxBytes` runs
 
-`serverUpload.maxBytes`'s `content-length` check is route middleware, built by `StaticAssetRouteOptionsUtility.appendLengthGuard`
-and appended AFTER your own `routes.upload` `middleware` - so an application check of its own (for
-example inventory `REQUEST_TOO_LARGE`) still answers first. It runs before the route's body
-validator and before the handler.
+`serverUpload.maxBytes` sets the upload route's body limit, as route middleware built by
+`StaticAssetRouteOptionsUtility.appendBodyLimit`. It is appended AFTER your own `routes.upload`
+`middleware`, so an application check of its own still answers first, and it runs before the route's
+body validator and the handler: `@hono/zod-openapi`'s form validator reads the whole multipart body
+before any handler runs.
 
-It moved out of the handler because `@hono/zod-openapi`'s form validator reads the whole multipart
-body before any handler runs - a `content-length` check inside the handler saw a body already fully
-read, so it saved no memory. The per-file `buffer.length` check (step 3 below) stays in the handler:
-a multipart envelope is larger than the files inside it, and only the parsed file's actual length is
-authoritative.
+The limit is the whole body, not one file. The per-file `buffer.length` check (step 3 below) stays in
+the handler and is the one that decides each file.
 
 > [!WARNING]
-> `serverUpload.maxBytes` bounds a **declared** `content-length` early. The upload route also carries its own
+> `serverUpload.maxBytes` bounds the whole body early. The upload route carries its own
 > body limit (`BodyLimits.route`): `maxFiles` files of `maxBytes` each plus their multipart framing
-> (4 KiB per file and 64 KiB for the other parts), so a chunked request that omits the header is
-> counted too, and the 5 MiB default limit stands aside for it (see
+> (4 KiB per file and 64 KiB for the other parts). A declared `content-length` over it is refused before
+> the body is read, and a chunked request that omits the header is counted as it streams, and the 5 MiB default limit stands aside for it (see
 > [Body limit](/references/base/middlewares#body-limit-configs-middlewares-bodylimit)). Without
 > `serverUpload.maxBytes` the upload route is held to that default. Raise `configs.server.maxRequestBodySize`
 > above the route's limit, or Bun's own limit answers first.
 
 ### Upload validation order
 
-1. The `content-length` guard runs as route middleware, before the body is read. Over `maxBytes` answers `413`.
+1. The body limit runs as route middleware, before the body is read. A body over `maxFiles` x `maxBytes` plus framing answers `413`.
 2. `multipart/form-data` is parsed via `RequestUtility.parseMultipartBody()`, wholly into memory. More than `maxFiles` files answers `413` before anything is written.
 3. The labels are parsed by one schema. A label of the wrong shape is the standard validation error (`422`), answered before the handler runs. Each file is checked non-empty (`400 "Empty file content | name: {originalName}"`) and its `buffer.length` against `maxBytes`, the authoritative size check - see [Where `maxBytes` runs](#where-maxbytes-runs).
 4. `helper.upload()` runs the storage-helper-level checks below, the folder path and its depth included. Under a `keyPrefix`, a key outside the scope is refused there too, with `400 core.static_asset.object_key_out_of_scope` - see [`keyPrefix`](#keyprefix).
@@ -665,31 +663,22 @@ These run inside `helper.upload()`, separate from the controller checks above. T
 | Normalized key (post naming hook) fails `isValidObjectKey()` | <code v-pre>[upload] Invalid normalized object name \| name: {name}</code> | `400` |
 
 > [!NOTE]
-> The static-asset controller passes a naming hook to `helper.upload()` whenever `serverUpload.objectKey` or a `keyPrefix` is configured - then `originalName` is metadata at the storage-helper layer, not the key, and names like `Báo cáo.pdf` pass.
+> The static-asset controller always passes a naming hook to `helper.upload()` (the default key is `<keyPrefix><folderPath>/<uuid>/<name>`) - then `originalName` is metadata at the storage-helper layer, not the key, and names like `Báo cáo.pdf` pass.
 >
-> **One exception, at the controller layer:** a `keyPrefix` with no `serverUpload.objectKey` - the component's own default naming under a scope - still refuses a `/` in the original name with `400 [upload] Invalid original file name`, exactly as without a scope. An `objectKey` hook lifts it.
+> **One exception, at the controller layer:** with no `serverUpload.objectKey` - the component's own default naming - the controller still refuses a `/` in the original name with `400 [upload] Invalid original file name`, exactly as without a scope. An `objectKey` hook lifts it.
 
 `getError()` defaults `statusCode` to `400` when the caller does not pass one explicitly, so the messages without a code also resolve to `400`.
 
-## Header sanitization
+## Response headers
 
-```typescript
-StaticAssetHeaders.ALLOWED = [
-  HTTP.Headers.CONTENT_ENCODING,
-  HTTP.Headers.CACHE_CONTROL,
-  HTTP.Headers.ETAG,
-  HTTP.Headers.LAST_MODIFIED,
-] as const;
-```
+When streaming a file - both <code v-pre>objects/{objectName}</code> and <code v-pre>download/{objectName}</code> - the controller sets `ETag` and `Last-Modified` from `helper.getStat()`, never from the storage's metadata. An `ETag` the backend reports without quotes is sent quoted. No other storage header is copied onto the response, and the routes set no `Cache-Control`.
 
-These correspond to `'content-encoding'`, `'cache-control'`, `'etag'` and `'last-modified'`.
-
-When streaming a file - both <code v-pre>objects/{objectName}</code> and <code v-pre>download/{objectName}</code> - the controller copies only these keys from the storage metadata onto the response. Every other metadata header is dropped. Each forwarded value is sanitized with `String(value).replace(/[\r\n]/g, '')` before being set, to prevent HTTP header injection.
+`StaticAssetServe.applyValidators({ ctx, stat }): boolean` sets those two headers and answers whether a `304` is due: `true` when `If-None-Match` matches (weak comparison; `*` matches any), or, with no `If-None-Match`, when `If-Modified-Since` is not older than `Last-Modified`. The routes answer `304` right after `getStat`, so a cached object costs one `HEAD` and no read. An application's own route calls it with a stat it already holds.
 
 > [!WARNING]
-> `content-type` is **not** on the list, and the served type is never taken from storage metadata or from what the uploader declared. It is derived from the object KEY by `StaticAssetControllerFactory.resolveServedContentType`, because a renderable type that a client chose is stored cross-site scripting on the API origin, and `nosniff` cannot stop a type the server itself declared.
+> `content-type` is **not** taken from storage metadata, and the served type is never what the uploader declared. It is derived from the object KEY by `StaticAssetServe.resolveServedContentType`, because a renderable type that a client chose is stored cross-site scripting on the API origin, and `nosniff` cannot stop a type the server itself declared.
 
-### Served content type
+## Served content type
 
 ```typescript
 static resolveServedContentType(opts: {

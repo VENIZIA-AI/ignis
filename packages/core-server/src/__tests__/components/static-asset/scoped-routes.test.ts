@@ -296,12 +296,14 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const helper = new FakeStorageHelper();
     const router = await mount({ helper, entry: { keyPrefix: 'inventory/material-images' } });
 
-    const uploaded = await upload({ router, labels: { folderPath: 'shop/2024' } });
+    const uploaded = await upload({ router, labels: { folderPath: 'shop' } });
     const uploadedBody = await uploaded.json();
     const [result] = uploadedBody as Array<{ object: { key: string } }>;
     const served = await router.request(objectPath({ route: 'objects', key: result.object.key }));
 
-    expect(result.object.key).toBe('inventory/material-images/shop/2024/photo.jpg');
+    expect(result.object.key).toMatch(
+      /^inventory\/material-images\/shop\/[0-9a-f-]{36}\/photo\.jpg$/,
+    );
     expect(served.status).toBe(200);
   });
 
@@ -352,7 +354,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const responseBody = await response.json();
     const [result] = responseBody as Array<{ object: { key: string } }>;
 
-    expect(result.object.key).toBe('tenant-a/photos/photo.jpg');
+    expect(result.object.key).toMatch(/^tenant-a\/photos\/[0-9a-f-]{36}\/photo\.jpg$/);
   });
 
   test('serverUpload.objectKey is offered the scoped default and may return a key inside the prefix', async () => {
@@ -374,7 +376,8 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const responseBody = await response.json();
     const [result] = responseBody as Array<{ object: { key: string } }>;
 
-    expect(offered).toEqual(['tenant-a/photo.jpg']);
+    expect(offered).toHaveLength(1);
+    expect(offered[0]).toMatch(/^tenant-a\/[0-9a-f-]{36}\/photo\.jpg$/);
     expect(result.object.key).toBe('tenant-a/generated.jpg');
   });
 
@@ -611,7 +614,7 @@ describe('serverUpload.maxBytes refuses a declared length before the body is rea
 
     expect(response.status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
     const result = await response.json();
-    expect(JSON.stringify(result)).toContain('core.static_asset.upload_too_large');
+    expect(JSON.stringify(result)).toContain('core.request.body_too_large');
     expect(state.pulled).toBe(0);
   });
 

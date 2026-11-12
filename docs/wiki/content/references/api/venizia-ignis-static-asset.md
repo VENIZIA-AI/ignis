@@ -1417,13 +1417,10 @@ Source: `packages/core-server/src/components/static-asset/common/errors.ts`
 
 *class*
 
-The response headers a controller echoes from the backend's metadata.
+What a controller sends with every object.
 
 ```ts
 export declare class StaticAssetHeaders {
-    /** `content-type` is absent on purpose: it is decided from the object name, never from the backend. */
-    static readonly ALLOWED: readonly ["content-encoding", "cache-control", "etag", "last-modified"];
-    /** Of what a controller sends with every object. */
     static readonly NOSNIFF = "nosniff";
     static readonly CSP_SANDBOX = "sandbox";
     static readonly RANGE_UNIT: "bytes";

@@ -145,7 +145,7 @@ The component decides the served type from the object **name**, never from the u
 - A type is rendered inline only when it is in the allow list: common images, video, audio, `application/pdf`, `text/plain` and `text/csv`. Everything else is served as `application/octet-stream` with `Content-Disposition: attachment`.
 - `image/svg+xml` is not in the list: SVG carries script, and a renderable upload on the API origin is stored XSS.
 - Every object response carries `X-Content-Type-Options: nosniff` and `Content-Security-Policy: sandbox`.
-- Of the storage's own headers only `Content-Encoding`, `Cache-Control`, `ETag` and `Last-Modified` pass through.
+- Of the storage's own metadata nothing is copied onto the response. `ETag` and `Last-Modified` come from the stat, and `If-None-Match` or `If-Modified-Since` answers `304` without reading the object.
 - `downloadObjectByName` always attaches.
 
 Switch `getObjectByName` off (`routes.getObjectByName: { use: false }`) to make every read an attachment.

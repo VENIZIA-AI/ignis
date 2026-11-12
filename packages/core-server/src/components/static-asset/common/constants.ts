@@ -1,17 +1,8 @@
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 
-/** The response headers a controller echoes from the backend's metadata. */
+/** What a controller sends with every object. */
 export class StaticAssetHeaders {
-  /** `content-type` is absent on purpose: it is decided from the object name, never from the backend. */
-  static readonly ALLOWED = [
-    HTTP.Headers.CONTENT_ENCODING,
-    HTTP.Headers.CACHE_CONTROL,
-    HTTP.Headers.ETAG,
-    HTTP.Headers.LAST_MODIFIED,
-  ] as const;
-
-  /** Of what a controller sends with every object. */
   static readonly NOSNIFF = 'nosniff';
   static readonly CSP_SANDBOX = 'sandbox';
   static readonly RANGE_UNIT = HTTP.HeaderValues.RANGE_UNIT_BYTES;

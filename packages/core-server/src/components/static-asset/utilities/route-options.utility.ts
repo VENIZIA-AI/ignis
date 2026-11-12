@@ -1,10 +1,6 @@
-import { HTTP } from '@venizia/ignis-helpers/common';
-import { getError } from '@venizia/ignis-helpers/core';
 import { BodyLimits, RouteConfigResolver } from '@venizia/ignis-kernel';
-import type { MiddlewareHandler } from 'hono';
 import type { IAuthRouteConfig, TRouteAuthConfig } from '@/base';
 import {
-  StaticAssetErrors,
   StaticAssetRouteKeys,
   type TStaticAssetRouteConfig,
   type TStaticAssetRouteKey,
@@ -81,34 +77,19 @@ export class StaticAssetRouteOptionsUtility {
   }
 
   /**
-   * The route's body validator reads the whole multipart body, so a declared length checked in the
-   * handler arrives too late to save any memory. Appended after the application's own middleware, so
-   * a check of its own still answers first.
+   * The route's body validator reads the whole multipart body, so a limit checked in the handler arrives
+   * too late to save any memory. Appended after the application's own middleware, so a check of its own
+   * still answers first.
    *
-   * The route also sets its own body limit: `maxFiles` files of `maxBytes` each, plus their multipart framing. An
-   * upload route that accepts more than the 5 MiB default would otherwise be held to the default, and a chunked body,
-   * which has no declared length, is counted too. The per-file check in the handler still decides each file.
+   * The limit is `maxFiles` files of `maxBytes` each, plus their multipart framing. A chunked body, which
+   * has no declared length, is counted too. The per-file check in the handler still decides each file.
    */
-  static appendLengthGuard(opts: {
+  static appendBodyLimit(opts: {
     middleware: TStaticAssetRouteConfig['middleware'];
     maxBytes: number;
     maxFiles: number;
   }): NonNullable<TStaticAssetRouteConfig['middleware']> {
     const { middleware, maxBytes, maxFiles } = opts;
-
-    const guard: MiddlewareHandler = async (context, next) => {
-      const declaredLength = Number(context.req.header(HTTP.Headers.CONTENT_LENGTH));
-
-      // Not authoritative: a multipart envelope is larger than its files, so the per-file check in the handler decides.
-      if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
-        throw getError({
-          error: StaticAssetErrors.UPLOAD_TOO_LARGE,
-          message: `Request body of ${declaredLength} bytes exceeds the maximum of ${maxBytes}`,
-        });
-      }
-
-      await next();
-    };
 
     const limit = BodyLimits.route({
       maxSize:
@@ -117,9 +98,9 @@ export class StaticAssetRouteOptionsUtility {
     });
 
     if (!middleware) {
-      return [guard, limit];
+      return [limit];
     }
 
-    return Array.isArray(middleware) ? [...middleware, guard, limit] : [middleware, guard, limit];
+    return Array.isArray(middleware) ? [...middleware, limit] : [middleware, limit];
   }
 }

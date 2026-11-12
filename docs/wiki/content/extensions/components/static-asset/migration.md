@@ -58,6 +58,9 @@ Four changes need more than a rename:
 | Labels were checked by hand, in two places | One schema parses `principalType`, `principalId`, `variant` and `sequence` on both paths. A `sequence` that is not an integer is the standard validation error (`422`) on both paths. |
 | `listObjects` parsed `maxKeys` by hand (`max_keys_invalid`) | The route's schema parses it. A bad value is the standard validation error. |
 | The upload handler checked the folder path (`core.static_asset.folder_*`) | The storage helper checks it: `core.storage.folder_path_invalid` and `core.storage.folder_depth_exceeded`. The segment check is part of the path check. |
+| The server upload's default key was the lowercased name: a second upload of `report.pdf` overwrote the first | The default key is `<keyPrefix><folderPath>/<uuid>/<name>`. Uploads never overwrite each other, and a client that built the URL from the file name must read `object.key` or `link` from the response. The uuid folder does not count against `maxFolderDepth`. |
+| `serverUpload.maxBytes` also refused a whole body over `maxBytes` | It bounds each file. The body limit is `maxFiles` x `maxBytes` plus framing, so two 3 MB files pass under 5 MB. |
+| Serve routes copied `Content-Encoding`, `Cache-Control`, `ETag` and `Last-Modified` from storage metadata (in practice never, because the stat holds them outside it) | They send `ETag` and `Last-Modified` from the stat and answer `304` to `If-None-Match` and `If-Modified-Since`. No `Cache-Control` is set. |
 | `directUpload.authorize` was required | Optional when the entry's `auth` authenticates or authorizes. |
 
 The folder, labels and `maxKeys` changes also change codes. See the [error reference](./errors#catalogued-errors).
