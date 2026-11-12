@@ -121,31 +121,31 @@ export class UserController extends UserCrudController {
 Support multiple input types that resolve to a single value:
 
 ```typescript
-// Type definitions (from @venizia/ignis-helpers)
-export type TResolver<T> = (...args: any[]) => T;
+// Type definitions (from @venizia/ignis-helpers; AnyType is the library's deliberate-unchecked alias)
+export type TResolver<T> = (...args: AnyType[]) => T;
 export type TValueOrResolver<T> = T | TResolver<T>;
 
-// Resolver function (ResolverUtility.resolveValue, declared in @venizia/ignis-inversion)
+// A resolver is anything callable that is not a class - a class is a value, never a factory
 export class ResolverUtility {
+  private static isResolver<T>(
+    valueOrResolver: TValueOrResolver<T>,
+  ): valueOrResolver is TResolver<T> {
+    return typeof valueOrResolver === 'function' && !isClass(valueOrResolver);
+  }
+
+  // ResolverUtility.resolveValue is declared in @venizia/ignis-inversion
   static resolveValue<T>(opts: { value: TValueOrResolver<T> }): T {
     const { value } = opts;
 
-    if (typeof value !== 'function') {
-      return value;  // Direct value
-    }
-
-    if (isClass(value)) {
-      return value as T;  // Class constructor (return as-is)
-    }
-
-    return (value as TResolver<T>)();  // Function resolver
+    // A class constructor is returned as-is; only a plain function is called
+    return ResolverUtility.isResolver(value) ? value() : value;
   }
 }
 
 // isClass (declared in @venizia/ignis-inversion, re-exported by helpers) - distinguishes class
 // constructors from arrow/regular functions by testing the SOURCE against /^class[\s{]/,
 // since every non-arrow function has a prototype. Sound only on ES2020+ output.
-export const isClass = <T>(target: any): target is TClass<T> => {
+export const isClass = <T>(target: AnyType): target is TClass<T> => {
   if (typeof target !== 'function' || target.prototype === undefined) {
     return false;
   }
@@ -183,12 +183,12 @@ For constructing complex objects step-by-step:
 
 ```typescript
 class QueryBuilder<T> {
-  private _where: Record<string, any> = {};
+  private _where: Record<string, AnyType> = {};
   private _orderBy: string[] = [];
   private _limit?: number;
   private _offset?: number;
 
-  where(conditions: Record<string, any>): this {
+  where(conditions: Record<string, AnyType>): this {
     this._where = { ...this._where, ...conditions };
     return this;
   }

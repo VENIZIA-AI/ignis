@@ -216,13 +216,15 @@ Validates a **full object key** that may include folder segments, for example `2
 
 | Rule (checked in order) | Description |
 |---|---|
-| 1 | Must not end with `/`: on disk `a/b.txt/` would write `a/b.txt` and collide with it, and an S3 directory marker such as `photos/` is not an object |
+| 1 | Must not end with `/` |
 | 2 | Must be a non-empty string |
 | 3 | After stripping a leading slash, must not be empty |
 | 4 | Must not contain empty segments (double slashes, e.g. `a//b`) |
 | 5 | Folder depth (`segments.length - 1`) must not exceed `opts.maxDepth` (default `DEFAULT_MAX_FOLDER_DEPTH`, `2`) |
 | 6 | Every segment must pass `isValidSegment()` |
 | 7 | Total normalized key length must not exceed 1024 characters |
+
+Rule 1 exists because on disk `a/b.txt/` would write `a/b.txt` and collide with it, and an S3 directory marker such as `photos/` is not an object.
 
 ```typescript
 storage.isValidObjectKey({ object: { key: 'folder/file.pdf' } });   // true
@@ -286,18 +288,20 @@ Implemented once on `BaseStorageHelper`; no backend overrides it. Steps, in orde
 
 | Check | Throws |
 |---|---|
-| Without `normalizeNameFn`: `isValidSegment({ segment: originalName })`, because the name becomes the key | `'[upload] Invalid original file name'` |
-| With `normalizeNameFn`: `originalName` is metadata, so it only has to be non-empty, at most 255 characters, and free of control characters | `'[upload] Invalid original file name'` |
-| If `folderPath` set: segment count vs. `maxFolderDepth ?? DEFAULT_MAX_FOLDER_DEPTH` | `` `[upload] Invalid folder path | depth: {depth} | max: {max}` `` |
+| No `normalizeNameFn`: `isValidSegment({ segment: originalName })` | `'[upload] Invalid original file name'` |
+| With `normalizeNameFn`: `originalName` is non-empty, at most 255 characters, no control characters | `'[upload] Invalid original file name'` |
+| If `folderPath` set: segment count vs. `maxFolderDepth ?? DEFAULT_MAX_FOLDER_DEPTH` | `` `[upload] Invalid folder path \| depth: {depth} \| max: {max}` `` |
 | If `folderPath` set: the same path rule `isValidObjectKey` enforces | `'[upload] Invalid folder path'` |
-| `size` must be a number `>= 0`. `undefined`, `null`, and negative values are rejected; `0` is a legal empty file. | `` `[upload] Invalid file size | size: {size}` `` |
+| `size` must be a number `>= 0` | `` `[upload] Invalid file size \| size: {size}` `` |
+
+Without `normalizeNameFn` the name becomes the key, so it must be a valid segment; with one, `originalName` is only metadata. A size of `undefined`, `null` or a negative number is rejected; `0` is a legal empty file.
 
 **Also throws:**
 
 | When | Message |
 |---|---|
-| Bucket does not exist | `` `[upload] Bucket does not exist | name: {bucket}` `` |
-| A custom `normalizeNameFn` returns a key that fails `isValidObjectKey` | `` `[upload] Invalid normalized object name | name: {name}` `` |
+| Bucket does not exist | `` `[upload] Bucket does not exist \| name: {bucket}` `` |
+| A custom `normalizeNameFn` returns a key that fails `isValidObjectKey` | `` `[upload] Invalid normalized object name \| name: {name}` `` |
 
 ### Streaming reads and writes
 
@@ -350,7 +354,7 @@ abstract getBucket(opts: { bucket: IBucketRef }): Promise<IBucketInfo | null>;
 abstract createBucket(opts: { bucket: IBucketRef }): Promise<IBucketInfo | null>;
 abstract removeBucket(opts: { bucket: IBucketRef }): Promise<boolean>;
 
-abstract getObject(opts: IObjectLocation & { options?: any }): Promise<Readable>;
+abstract getObject(opts: IObjectLocation & { options?: unknown }): Promise<Readable>;
 abstract getStat(opts: IObjectLocation): Promise<IFileStat>;
 abstract removeObject(opts: IObjectLocation): Promise<void>;
 abstract removeObjects(opts: { bucket: IBucketRef; objects: IObjectRef[] }): Promise<void>;
@@ -395,9 +399,13 @@ The thrown message names the calling class and the method, so the error tells yo
 
 | Method | `expiresIn` default | Notes |
 |---|---|---|
-| `presignPut` | `StoragePresignDefaults.PUT_EXPIRES_IN` (`{ unit: 'minute', value: 10 }`) | `tagging` and `contentLength` are SIGNED - see [below](#signing-a-tag-set-and-a-size). `contentType` pins the stored content type: unsigned, the uploader picks it. `presignPost` is the ceiling variant: see [below](#presignpost). |
-| `presignPost` | `StoragePresignDefaults.POST_EXPIRES_IN` (`{ unit: 'minute', value: 15 }`) | A signed POST policy for one object: `maxBytes` is a ceiling the storage enforces, `contentType` is optional. Answers `IPostPolicy` (`postURL`, `formData`, `expiresAt`). |
-| `presignGet` | `StoragePresignDefaults.GET_EXPIRES_IN` (`{ unit: 'minute', value: 1 }`) | `responseContentType` and `responseContentDisposition` override the `Content-Type` and `Content-Disposition` the download responds with. |
+| `presignPut` | `StoragePresignDefaults.PUT_EXPIRES_IN` (10 minutes) | Signs `tagging` and `contentLength` |
+| `presignPost` | `StoragePresignDefaults.POST_EXPIRES_IN` (15 minutes) | Signed POST policy for one object |
+| `presignGet` | `StoragePresignDefaults.GET_EXPIRES_IN` (1 minute) | Can override the download's response headers |
+
+- `presignPut`: `tagging` and `contentLength` are SIGNED - see [below](#signing-a-tag-set-and-a-size). `contentType` pins the stored content type; unsigned, the uploader picks it. `presignPost` is the ceiling variant: see [below](#presignpost).
+- `presignPost`: `maxBytes` is a ceiling the storage enforces, `contentType` is optional. It answers `IPostPolicy` (`postURL`, `formData`, `expiresAt`).
+- `presignGet`: `responseContentType` and `responseContentDisposition` override the `Content-Type` and `Content-Disposition` the download responds with.
 
 #### presignPost
 
@@ -428,9 +436,11 @@ const url = await storage.presignPut({
 Both go **inside** the signature, so the client must send them back unchanged:
 
 ```typescript
+import { HTTP } from '@venizia/ignis-helpers/common';
+
 await fetch(url, {
   method: 'PUT',
-  headers: { 'x-amz-tagging': 'temp=true', 'content-length': String(file.size) },
+  headers: { 'x-amz-tagging': 'temp=true', [HTTP.Headers.CONTENT_LENGTH]: String(file.size) },
   body: file,
 });
 ```
@@ -499,16 +509,18 @@ Creates a Bun `S3Client` for object operations and keeps the credentials separat
 |-----------|------|---------|-------------|
 | `options.accessKey` | `string` | - | S3 access key credential. |
 | `options.secretKey` | `string` | - | S3 secret key credential. |
-| `options.endpoint.default` | `string` | - | The host THIS process talks to (e.g. `'http://localhost:9000'`). Every bucket operation, copy and tagging call goes here. |
+| `options.endpoint.default` | `string` | - | The host THIS process talks to, e.g. `'http://localhost:9000'`. |
 | `options.region` | `string` | `'us-east-1'` | Region used for SigV4 signing of bucket-management requests. |
 | `options.sessionToken` | `string` | - | Optional session token for temporary credentials. |
 | `options.endpoint.public` | `string` | `endpoint.default` | The host a BROWSER is handed. Only presigned URLs and POST policies use it. |
-| `options.virtualHostedStyle` | `boolean` | `false` | Addresses objects as `https://{bucket}.{endpoint}/{key}` rather than `{endpoint}/{bucket}/{key}`. AWS requires it; MinIO and R2 do not. |
+| `options.virtualHostedStyle` | `boolean` | `false` | Addresses objects as `https://{bucket}.{endpoint}/{key}`. |
 | `options.partSize` | `number` | Bun's own default | Multipart part size in bytes. |
 | `options.queueSize` | `number` | Bun's own default | Parts uploaded at once. Costs roughly `partSize * queueSize` of memory per transfer. |
 | `options.retry` | `number` | Bun's own default | Retries Bun performs on a failed part before the write fails. |
 | `options.scope` | `string` | `'BunS3Helper'` | Logger scope name. |
 | `options.identifier` | `string` | `'BunS3Helper'` | Helper identifier. |
+
+`endpoint.default` receives every bucket operation, copy and tagging call. `virtualHostedStyle` replaces the default `{endpoint}/{bucket}/{key}` addressing; AWS requires it, MinIO and R2 do not.
 
 > [!IMPORTANT]
 > Set `endpoint.public` whenever the application reaches S3 over an internal address. `host` is inside every SigV4 signature, so a URL signed against the internal endpoint cannot be rewritten to a public one afterwards - the signature breaks. Signing against the public host from the start is the only way a presigned URL reaches a browser.
@@ -524,23 +536,34 @@ Creates a Bun `S3Client` for object operations and keeps the credentials separat
 
 | Method | Behavior |
 |---|---|
-| `hasBucket` | Returns `false` if the name fails `isValidBucketName()`. Otherwise attempts `client.list({ maxKeys: 1 }, { bucket: name })`, and returns `false` on any error. A failure that is not a missing bucket, such as a network or credentials problem, is logged at warn level first. |
-| `getBuckets` | Signed `GET /`; parses `<Bucket><Name>...<CreationDate>...` from the XML response. |
-| `getBucket` | Finds the entry in `getBuckets()`; `null` if not found. |
-| `createBucket` | Signed `PUT /{name}`. Throws `'[createBucket] Invalid name to create bucket!'` on invalid name, or `` `[createBucket] S3 error: {xml}` `` on a non-OK response. |
-| `removeBucket` | Signed `DELETE /{name}`. Throws `'[removeBucket] Invalid name to remove bucket!'` on invalid name, or `` `[removeBucket] S3 error: {xml}` `` on a non-OK response. |
-| `removeObject` | `client.delete(object.key, { bucket })`. A "not there" failure becomes the catalogued 404 via `asStorageError`. |
-| `removeObjects` | Fans out over `removeObject` through `mapWithConcurrency`, bounded at `StorageConcurrency.DEFAULT_LIMIT` (`16`). |
-| `writeStream` | `client.write(object.key, body, { bucket, type, partSize, queueSize, retry })`, wrapping a bare `ReadableStream` in a `Response`. The key is re-validated with `isValidObjectKey` first. |
-| `presignPut` | A hand-built query-signed SigV4 URL, so `tagging` and `contentLength` can be signed - `client.presign` takes only a method and an expiry. Signs locally, no network call. |
-| `presignGet` | `client.presign(object.key, { bucket, method: 'GET', expiresIn, type, contentDisposition })`; `type` and `contentDisposition` are set only when the caller passes them. |
-| `getObjectTags` | Signed `GET /{bucket}/{key}?tagging=`; `404` returns `{}`, any other non-2xx throws with the status and body. |
-| `replaceObjectTags` | Signed `PUT /{bucket}/{key}?tagging=` with a hand-built `<Tagging>` XML body. |
+| `hasBucket` | `client.list({ maxKeys: 1 }, { bucket: name })`; `false` on any error |
+| `getBuckets` | Signed `GET /`; parses `<Bucket><Name>...<CreationDate>...` from the XML |
+| `getBucket` | Finds the entry in `getBuckets()`; `null` if not found |
+| `createBucket` | Signed `PUT /{name}` |
+| `removeBucket` | Signed `DELETE /{name}` |
+| `removeObject` | `client.delete(object.key, { bucket })` |
+| `removeObjects` | Fans out over `removeObject` through `mapWithConcurrency`, bounded at `StorageConcurrency.DEFAULT_LIMIT` (`16`) |
+| `writeStream` | `client.write(object.key, body, { bucket, type, partSize, queueSize, retry })` |
+| `presignPut` | Hand-built query-signed SigV4 URL; signs locally, no network call |
+| `presignGet` | `client.presign(object.key, { bucket, method: 'GET', expiresIn, type, contentDisposition })` |
+| `getObjectTags` | Signed `GET /{bucket}/{key}?tagging=` |
+| `replaceObjectTags` | Signed `PUT /{bucket}/{key}?tagging=` with a hand-built `<Tagging>` XML body |
+
+Details the table leaves out:
+
+- `hasBucket` returns `false` first if the name fails `isValidBucketName()`. A failure that is not a missing bucket, such as a network or credentials problem, is logged at warn level before it returns `false`.
+- `createBucket` throws `'[createBucket] Invalid name to create bucket!'` on an invalid name, or `` `[createBucket] S3 error: {xml}` `` on a non-OK response.
+- `removeBucket` throws `'[removeBucket] Invalid name to remove bucket!'` on an invalid name, or `` `[removeBucket] S3 error: {xml}` `` on a non-OK response.
+- `removeObject`: a "not there" failure becomes the catalogued 404 via `asStorageError`.
+- `writeStream` wraps a bare `ReadableStream` in a `Response` and re-validates the key with `isValidObjectKey` first.
+- `presignPut` is hand-built so `tagging` and `contentLength` can be signed; `client.presign` takes only a method and an expiry.
+- `presignGet` sets `type` and `contentDisposition` only when the caller passes them.
+- `getObjectTags`: `404` returns `{}`, any other non-2xx throws with the status and body.
 
 #### getObject
 
 ```typescript
-async getObject(opts: IObjectLocation & { options?: any }): Promise<Readable>
+async getObject(opts: IObjectLocation & { options?: unknown }): Promise<Readable>
 ```
 
 Converts the Bun S3 file's web `ReadableStream` via `Readable.fromWeb()`. The `options` parameter is accepted for interface compatibility but not used.
@@ -696,13 +719,21 @@ app_data/storage/           <-- basePath
 
 | Method | Behavior |
 |---|---|
-| `hasBucket` | Returns `false` if the name fails `isValidBucketName()`. Otherwise one `stat` answers both existence and `isDirectory()`. |
-| `getBuckets` | Lists directories under `basePath` via `fsp.readdir(..., { withFileTypes: true })`. Each directory's `birthtime` becomes `creationDate`. Returns `[]` if `basePath` does not exist. |
-| `getBucket` | One `stat` on the bucket path; returns `{ name, creationDate: stat.birthtime }`, or `null` if it is missing or not a directory. |
-| `createBucket` | `fsp.mkdir(bucketPath, { recursive: true })`, then returns `getBucket()`. |
-| `removeBucket` | `fsp.rmdir(bucketPath)`. |
-| `removeObject` | Checks the object exists first; throws the catalogued 404 if missing. Otherwise `fsp.unlink(objectPath)`. |
-| `removeObjects` | Fans out over `removeObject` through `mapWithConcurrency`, bounded at `StorageConcurrency.DEFAULT_LIMIT` (`16`). One failure stops the batch. |
+| `hasBucket` | One `stat` answers both existence and `isDirectory()` |
+| `getBuckets` | Lists directories under `basePath` via `fsp.readdir(..., { withFileTypes: true })` |
+| `getBucket` | One `stat` on the bucket path |
+| `createBucket` | `fsp.mkdir(bucketPath, { recursive: true })`, then returns `getBucket()` |
+| `removeBucket` | `fsp.rmdir(bucketPath)` |
+| `removeObject` | Checks the object exists, then `fsp.unlink(objectPath)` |
+| `removeObjects` | Fans out over `removeObject` through `mapWithConcurrency`, bounded at `StorageConcurrency.DEFAULT_LIMIT` (`16`) |
+
+Details the table leaves out:
+
+- `hasBucket` returns `false` first if the name fails `isValidBucketName()`.
+- `getBuckets`: each directory's `birthtime` becomes `creationDate`; returns `[]` if `basePath` does not exist.
+- `getBucket` returns `{ name, creationDate: stat.birthtime }`, or `null` if the path is missing or not a directory.
+- `removeObject` throws the catalogued 404 if the object is missing.
+- `removeObjects`: one failure stops the batch.
 
 `presignPut`, `presignGet`, `getObjectTags`, and `replaceObjectTags` are not overridden - the local filesystem has nothing to presign or tag against, so all four inherit `BaseStorageHelper`'s throw. See [Presign and object tagging](#presign-and-object-tagging).
 
@@ -713,26 +744,26 @@ Every object path is resolved through a containment check: the name is validated
 | When | Message |
 |---|---|
 | Name fails `isValidBucketName()` | `'[createBucket] Invalid name to create bucket!'` |
-| Bucket directory already exists | `` `[createBucket] Bucket already exists | name: {name}` `` |
+| Bucket directory already exists | `` `[createBucket] Bucket already exists \| name: {name}` `` |
 
 **`removeBucket` throws:**
 
 | When | Message |
 |---|---|
 | Name fails `isValidBucketName()` | `'[removeBucket] Invalid name to remove bucket!'` |
-| Bucket directory does not exist | `` `[removeBucket] Bucket does not exist | name: {name}` `` |
-| Bucket directory is not empty (`fsp.readdir` returns entries) | `` `[removeBucket] Bucket is not empty | name: {name}` `` |
+| Bucket directory does not exist | `` `[removeBucket] Bucket does not exist \| name: {name}` `` |
+| Bucket directory is not empty (`fsp.readdir` returns entries) | `` `[removeBucket] Bucket is not empty \| name: {name}` `` |
 
 **`removeObject` throws:**
 
 | When | Message | Code |
 |---|---|---|
-| Object does not exist | `` `[removeObject] Object not found | bucket: {bucket} | key: {key}` `` | `core.storage.object_not_found`, `404` |
+| Object does not exist | `` `[removeObject] Object not found \| bucket: {bucket} \| key: {key}` `` | `core.storage.object_not_found`, `404` |
 
 #### getObject
 
 ```typescript
-async getObject(opts: IObjectLocation & { options?: any }): Promise<Readable>
+async getObject(opts: IObjectLocation & { options?: unknown }): Promise<Readable>
 ```
 
 `fs.createReadStream(objectPath)`. The `options` parameter is accepted for interface compatibility but not used.
@@ -986,23 +1017,13 @@ The cap on concurrent object operations, used by `upload` and every backend's `r
 ### StorageErrors
 
 ```typescript
+import { HTTP } from '@venizia/ignis-helpers/common';
+import { ErrorScopes, type TErrorDefinition } from '@venizia/ignis-inversion';
+
 const StorageErrors = {
-  FOLDER_PATH_INVALID: {
-    message: { text: 'Invalid folder path', code: 'core.storage.folder_path_invalid' },
-    statusCode: 400,
-    category: ErrorScopes.VALIDATION,
-  },
-  FOLDER_DEPTH_EXCEEDED: {
-    message: {
-      text: 'Folder path exceeds the maximum depth',
-      code: 'core.storage.folder_depth_exceeded',
-    },
-    statusCode: 400,
-    category: ErrorScopes.VALIDATION,
-  },
   OBJECT_NOT_FOUND: {
     message: { text: 'Object not found', code: 'core.storage.object_not_found' },
-    statusCode: 404,
+    statusCode: HTTP.ResultCodes.RS_4.NotFound,
     category: ErrorScopes.BUSINESS,
   },
   PRECONDITION_FAILED: {
@@ -1010,10 +1031,23 @@ const StorageErrors = {
       text: 'The object no longer matches what was expected',
       code: 'core.storage.precondition_failed',
     },
-    statusCode: 412,
+    statusCode: HTTP.ResultCodes.RS_4.PreconditionFailed,
     category: ErrorScopes.BUSINESS,
   },
-};
+  FOLDER_PATH_INVALID: {
+    message: { text: 'Invalid folder path', code: 'core.storage.folder_path_invalid' },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.VALIDATION,
+  },
+  FOLDER_DEPTH_EXCEEDED: {
+    message: {
+      text: 'Folder path exceeds the maximum depth',
+      code: 'core.storage.folder_depth_exceeded',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.VALIDATION,
+  },
+} as const satisfies Record<string, TErrorDefinition>;
 ```
 
 `PRECONDITION_FAILED` is what a conditional read or copy (`ifMatch`, `versionId`, `sourceVersionId`) throws when it finds other content. `StorageUtility.isPreconditionFailedError({ error })` is its predicate, and `StorageUtility.realVersionId({ value })` answers `undefined` for a missing, empty or literal `null` version id. `OBJECT_NOT_FOUND` has its own predicate, `StorageUtility.isNotFoundError({ error })`: it accepts a `404` status, or a `code`/`name` containing `nosuchkey`, `nosuchbucket` or `notfound`.
@@ -1028,7 +1062,7 @@ interface IUploadFile {
   size: number;                    // File size in bytes
   encoding?: string;                // Optional encoding (e.g. '7bit', 'base64')
   folderPath?: string;              // Optional folder path for organization
-  [key: string | symbol]: any;      // Additional properties allowed
+  [key: string | symbol]: unknown; // Additional properties allowed
 }
 ```
 
@@ -1039,7 +1073,7 @@ interface IUploadResult {
   bucket: IBucketRef;
   object: IObjectRef & { size: number; contentType: string };
   link: string;
-  metaLink?: { data: any } | { error: string };
+  metaLink?: { data: unknown } | { error: string };
 }
 ```
 
@@ -1058,7 +1092,7 @@ interface IFileStat {
 
 interface IObjectMetadata {
   mimetype?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 ```
 
@@ -1131,11 +1165,13 @@ interface IBunS3HelperOptions extends IStorageHelperOptions {
 | `removeObjects` concurrency | Bounded fan-out, limit `16` | Bounded fan-out, limit `16` |
 | `listObjects.useRecursive` default | `false`, which sends `delimiter: '/'` | `false` |
 | `listObjects` pagination | Loops on `nextContinuationToken` | Full directory scan |
-| Missing object | Catalogued `core.storage.object_not_found` via `asStorageError` on `getStat`, `removeObject` and a `copyObject` source. `getObject` is lazy, so its failure arrives on the stream | Catalogued `core.storage.object_not_found`, thrown directly by every read and by `removeObject` |
+| Missing object | Catalogued `core.storage.object_not_found` via `asStorageError` | Catalogued `core.storage.object_not_found`, thrown directly |
 | `writeStream` | Native streaming write to S3 | Inherits the buffering default |
 | `getObjectStream` range | Native, via `file.slice` | Native, via `createReadStream({ start, end })` |
 | Bucket-management transport | Hand-built AWS SigV4 signed requests | Node `fs`/`fs/promises` |
-| `presignPut` / `presignGet` / `getObjectTags` / `replaceObjectTags` | Implemented (`presignPut` hand-signed so extra headers can be signed, `presignGet` via `client.presign`; tagging via hand-built signed HTTP) | Inherits `BaseStorageHelper`'s throw |
+| `presignPut` / `presignGet` / `getObjectTags` / `replaceObjectTags` | Implemented | Inherits `BaseStorageHelper`'s throw |
+
+On `BunS3Helper`, the missing-object error comes from `getStat`, `removeObject` and a `copyObject` source; `getObject` is lazy, so its failure arrives on the stream. On `DiskHelper`, every read and `removeObject` throw it directly. `presignPut` is hand-signed so extra headers can be signed, `presignGet` goes through `client.presign`, and tagging uses hand-built signed HTTP.
 
 ## Troubleshooting
 

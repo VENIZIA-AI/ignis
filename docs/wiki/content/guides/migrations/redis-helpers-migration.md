@@ -17,7 +17,9 @@ Nothing in your data or Redis server changes - this is a code-level rename plus 
 
 | Effort | What |
 |--------|------|
-| **Low - mechanical renames** | Apply the rename table in §1 and the method renames in §1.2. Compiler-guided: every stale reference becomes a type error. |
+| **Low - mechanical renames** | Apply the renames in §1 and §1.2 |
+
+The change is compiler-guided: every stale reference becomes a type error.
 
 ---
 

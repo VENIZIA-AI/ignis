@@ -25,9 +25,11 @@ export class User extends BaseEntity<typeof User.schema> {
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `settings.query.filter` | `TFilter` | none | Filter merged into every query for the model - `where`, `limit`, `offset`, `order`, `fields`, `include` are all valid inside it. |
-| `settings.query.limit.default` | `number` (positive integer) | `DEFAULT_LIMIT` (`10`) | Per-model row cap. Independent of `settings.query.filter` - see [Fields, Order & Pagination -> Default limit resolution](./fields-order-pagination#default-limit-resolution). |
+| `settings.query.filter` | `TFilter` | none | Filter merged into every query for the model (any `filter` property is valid) |
+| `settings.query.limit.default` | `number` (positive integer) | `DEFAULT_LIMIT` (`10`) | Per-model row cap, independent of `settings.query.filter` |
 | `options.shouldSkipDefaultFilter` | `boolean` | `false` | Skips the `settings.query.filter` merge for one call. Does not drop `settings.query.limit.default`. |
+
+`settings.query.filter` takes `where`, `limit`, `offset`, `order`, `fields` and `include`. For how `settings.query.limit.default` resolves, see [Fields, Order & Pagination -> Default limit resolution](./fields-order-pagination#default-limit-resolution).
 
 ```typescript
 import { userRepository } from '@/repositories';
@@ -54,10 +56,12 @@ Keys present on only one side pass through untouched. When the same key appears 
 
 | Default | Caller | Result |
 |---|---|---|
-| scalar | scalar | **Equal: one condition. Different: AND-composed** - a caller asking for `isDeleted: true` against the default `isDeleted: false` gets no rows. Server code that needs the hidden rows passes `shouldSkipDefaultFilter: true` |
+| scalar | scalar | **Equal: one condition. Different: AND-composed** |
 | operator object | operator object | **AND-composed** into an `and: [...]` group - both conditions apply |
 | scalar | operator object | **AND-composed** |
 | operator object | scalar | **AND-composed** |
+
+A caller asking for `isDeleted: true` against the default `isDeleted: false` gets no rows. Server code that needs the hidden rows passes `shouldSkipDefaultFilter: true`.
 
 - **`and` collisions concatenate.** Both conjunct lists merge into one.
 - **`or` collisions cannot concatenate** - that would union, not narrow - so each side's `or` group becomes its own conjunct instead.

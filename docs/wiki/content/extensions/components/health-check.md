@@ -180,9 +180,11 @@ curl -X POST localhost:3000/health/ping \
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `restOptions.path` | `string` (optional) | `'/health'` | Base path for every health endpoint |
-| `stats.enable` | `boolean` (optional) | open only in `Environment.DEVELOPMENT_ENVS` | Mounts `GET <path>/stats`. `false` unmounts it. A non-boolean (a config-derived `"false"`) is ignored and the environment default applies |
+| `stats.enable` | `boolean` (optional) | open only in `Environment.DEVELOPMENT_ENVS` | Mounts `GET <path>/stats`; `false` unmounts it |
 | `stats.secretKey` | `string` (optional) | none - route open | Required in `X-Health-Key`. A blank value fails closed |
 | `stats.buildInfo` | `IBuildInfo` (optional) | `BuildInfoRegistry.get()` | Wins over the registry; a host that stamps its own build passes it here |
+
+A non-boolean `stats.enable` (a config-derived `"false"`) is ignored and the environment default applies.
 
 ```typescript
 interface IHealthCheckOptions {

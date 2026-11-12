@@ -335,17 +335,23 @@ A failing `onMessage` handler is logged and swallowed by the same hook wrapper d
 
 | Method | Returns | Description |
 |--------|---------|--------------|
-| `enqueue(payload)` | `Promise<void>` | Pushes an element onto `storage`. No-ops (logs an error) if `state === SETTLED` or settle was requested. No-ops silently if `payload` is falsy. Calls `nextMessage()` when `autoDispatch` is `true`. |
+| `enqueue(payload)` | `Promise<void>` | Pushes an element onto `storage`; guarded (see below) |
 | `dequeue()` | `TQueueElement<T> \| undefined` | Shifts the head element off `storage` and fires `onDataDequeue`. |
 | `nextMessage()` | `void` | Advances the generator. Only effective when `state === WAITING`; otherwise logs a warning and returns. |
 | `lock()` | `void` | Transitions to `LOCKED`. No-ops (logs an error) if already `LOCKED` or `SETTLED`. |
-| `unlock(opts)` | `void` | `opts: { shouldProcessNextElement?: boolean }` (default `true`). Transitions to `WAITING`; no-ops (logs an error) if `state > LOCKED` (i.e. already `SETTLED`). Calls `nextMessage()` unless `shouldProcessNextElement: false`. |
-| `settle()` | `void` | Sets the settle flag. Transitions immediately to `SETTLED` unless currently `PROCESSING`, in which case `handleMessage()` finishes the transition once `storage` empties. |
+| `unlock(opts)` | `void` | Transitions to `WAITING`; guarded (see below) |
+| `settle()` | `void` | Sets the settle flag and moves toward `SETTLED` |
 | `isSettled()` | `boolean` | `true` when `state === SETTLED` and `storage` is empty. |
 | `close()` | `void` | Calls `settle()`, then terminates the generator via `generator.return(...)`. |
 | `getElementAt(position)` | `TQueueElement<T>` | Peek at an element by index (`storage[position]`). |
 | `getState()` | `TQueueStatus` | Current state. |
 | `getTotalEvent()` | `number` | Total elements ever enqueued (monotonic counter, not decremented on dequeue). |
+
+`enqueue()` no-ops (logs an error) if `state === SETTLED` or settle was requested, and no-ops silently if `payload` is falsy. It calls `nextMessage()` when `autoDispatch` is `true`.
+
+`unlock(opts)` takes `opts: { shouldProcessNextElement?: boolean }` (default `true`). It no-ops (logs an error) if `state > LOCKED` (that is, already `SETTLED`), and calls `nextMessage()` unless `shouldProcessNextElement` is `false`.
+
+`settle()` transitions immediately to `SETTLED` unless the state is `PROCESSING`; in that case `handleMessage()` finishes the transition once `storage` empties.
 | `getProcessingEvents()` | `Set<TQueueElement<T>>` | The element(s) currently mid-`onMessage`. |
 
 > [!NOTE]
@@ -431,11 +437,15 @@ The constructor calls `configure()` automatically, which connects via `mqtt.conn
 
 | Method | Returns | Description |
 |--------|---------|--------------|
-| `configure()` | `void` | Connects to the broker and wires `connect`/`disconnect`/`message`/`error`/`close` listeners. Called automatically by the constructor. A no-op if `this.client` already exists. |
+| `configure()` | `void` | Connects to the broker and wires the client listeners; the constructor calls it |
 | `getClient()` | `mqtt.MqttClient \| undefined` | The underlying MQTT.js client. |
 | `subscribe(opts)` | `Promise<string[]>` | `opts: { topics: string[] }`. Rejects with an `ApplicationError` (status 400) if the client is not connected. |
-| `publish(opts)` | `Promise<{ topic, message }>` | `opts: { topic: string; message: string \| Buffer }`. Rejects with an `ApplicationError` (status 400) if the client is not connected. |
-| `close(opts?)` | `Promise<void>` | `opts?: { isForce?: boolean }` (default `false`). Ends the client via `client.end(isForce, undefined, callback)`, resolving once the driver reports the connection ended. Safe to call more than once. |
+| `publish({ topic, message })` | `Promise<{ topic, message }>` | Rejects with an `ApplicationError` (status 400) if the client is not connected. |
+| `close(opts?)` | `Promise<void>` | Ends the client; resolves once the driver reports the connection ended |
+
+`configure()` wires the `connect`, `disconnect`, `message`, `error` and `close` listeners, and is a no-op if `this.client` already exists.
+
+`close(opts?)` takes `opts?: { isForce?: boolean }` (default `false`) and ends the client via `client.end(isForce, undefined, callback)`. It is safe to call more than once.
 
 ## Troubleshooting
 

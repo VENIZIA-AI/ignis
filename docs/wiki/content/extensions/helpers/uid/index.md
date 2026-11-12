@@ -40,9 +40,11 @@ uuid.v5({ namespace: UuidNamespaces.URL, name: 'orders/4711/refund' }); // alway
 
 | Use | Version | Why |
 |---|---|---|
-| Database primary key | `v7()` | Time-ordered, so a B-tree appends instead of splitting pages. This is what `PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } })` fills a string ID with |
+| Database primary key | `v7()` | Time-ordered, so a B-tree appends instead of splitting pages |
 | Idempotency key, deterministic ID | `v5({ namespace, name })` | The same inputs answer the same ID on every host, forever - there is no state to store |
-| Public identifier | `v4()` | No clock, nothing to correlate a caller by, 122 random bits. For a secret, use [`TokenUidHelper`](#tokenuidhelper) |
+| Public identifier | `v4()` | No clock, nothing to correlate a caller by, 122 random bits |
+
+`PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } })` fills a string ID with `v7()`. For a secret, use [`TokenUidHelper`](#tokenuidhelper).
 
 `getInstance()` answers one instance per copy of the module. The instance holds no state of its own: every caller draws v7 IDs from one sequence shared by the whole realm, so two installed copies of this package still climb together.
 

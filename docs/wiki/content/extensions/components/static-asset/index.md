@@ -33,10 +33,10 @@ That registers upload, stream, download, list and delete under `/documents`. Eve
 
 ## Two ways a file arrives
 
-| | `serverUpload` | `directUpload` |
+| Aspect | `serverUpload` | `directUpload` |
 |---|---|---|
 | Path | browser, then your app, then storage | browser, then storage (your app signs a permission) |
-| Route | `POST /objects` | `POST /upload-policy`, then `POST /upload-validate` (with a `validation`), then `POST /upload-commit` |
+| Route | `POST /objects` | `POST /upload-policy`, `POST /upload-validate` (with a `validation`), `POST /upload-commit` |
 | Your process sees the bytes | yes, the whole body in memory | no |
 | Storage | disk or S3 | S3 only (a signed POST policy) |
 | Needs a `keyPrefix` | no | yes |

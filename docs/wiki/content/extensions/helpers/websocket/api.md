@@ -227,18 +227,27 @@ const helper = new WebSocketServerHelper<AuthPayload, UserMetadata>({
 | `redisConnection` | `IRedisHelper` | Yes | - | Redis helper for cross-instance messaging; duplicated twice internally |
 | `defaultRooms` | `string[]` | No | `['ws-default', 'ws-notification']` | Rooms every client auto-joins after authentication |
 | `serverOptions` | `IBunWebSocketConfig` | No | See [Bun native configuration](#bun-native-configuration) | Bun native WebSocket configuration |
-| `authTimeout` | `number` | No | `5000` (5s) | Milliseconds before an unauthenticated client is disconnected (close code `4001`); extended to `authTimeout * 3` while `authenticateFn` is in flight |
+| `authTimeout` | `number` | No | `5000` (5s) | Milliseconds before an unauthenticated client is disconnected (close code `4001`) |
 | `heartbeatInterval` | `number` | No | `30000` (30s) | Milliseconds between heartbeat sweeps |
 | `heartbeatTimeout` | `number` | No | `90000` (90s) | Milliseconds of inactivity before an authenticated client is closed (close code `4002`) |
 | `encryptedBatchLimit` | `number` | No | `10` | Max concurrent `outboundTransformer` invocations during room/broadcast delivery |
-| `requireEncryption` | `boolean` | No | `false` | When `true`, clients must complete the handshake during auth or get disconnected (code `4004`) |
-| `authenticateFn` | `TWebSocketAuthenticateFn` | Yes | - | Called on `{ event: 'authenticate' }`. Return `{ userId, metadata }` to accept, `null`/`false` (or throw) to reject |
-| `validateRoomFn` | `TWebSocketValidateRoomFn` | No | - | Called on `{ event: 'join' }`. Return the allowed subset of requested rooms. All joins are rejected when this is not provided |
+| `requireEncryption` | `boolean` | No | `false` | When `true`, clients must complete the handshake during auth |
+| `authenticateFn` | `TWebSocketAuthenticateFn` | Yes | - | Called on `{ event: 'authenticate' }`; returns `{ userId, metadata }` to accept |
+| `validateRoomFn` | `TWebSocketValidateRoomFn` | No | - | Called on `{ event: 'join' }`; returns the allowed subset of requested rooms |
 | `clientConnectedFn` | `TWebSocketClientConnectedFn` | No | - | Called after successful authentication |
 | `clientDisconnectedFn` | `TWebSocketClientDisconnectedFn` | No | - | Called during disconnect cleanup |
-| `messageHandler` | `TWebSocketMessageHandler` | No | - | Called for events other than `authenticate`, `heartbeat`, `join`, `leave` from authenticated clients |
+| `messageHandler` | `TWebSocketMessageHandler` | No | - | Called for other events from authenticated clients |
 | `outboundTransformer` | `TWebSocketOutboundTransformer` | No | - | Intercepts outbound `{ event, data }` before `socket.send()`; enables per-client encryption |
-| `handshakeFn` | `TWebSocketHandshakeFn` | No | - | Required when `requireEncryption` is `true`. Returns `{ serverPublicKey, salt }` to accept, `null`/`false` to reject |
+| `handshakeFn` | `TWebSocketHandshakeFn` | No | - | Required when `requireEncryption` is `true`; returns `{ serverPublicKey, salt }` to accept |
+
+Details for the table:
+
+- `authTimeout` is extended to `authTimeout * 3` while `authenticateFn` is in flight.
+- `authenticateFn` rejects the client by returning `null` or `false`, or by throwing.
+- Without `validateRoomFn`, all joins are rejected.
+- `messageHandler` receives every event except `authenticate`, `heartbeat`, `join` and `leave`.
+- `requireEncryption: true` disconnects a client that skips the handshake, with code `4004`.
+- `handshakeFn` returns `null` or `false` to reject.
 
 - **Three callbacks run through `HookUtility.invoke()`:** `clientConnectedFn`, `clientDisconnectedFn`, and `messageHandler`. A throw or a rejection there is caught and logged, and nothing else changes.
 - **The other three fail differently.** They sit on the connection's own promise chain, so a failure has a visible consequence for the client.
@@ -246,7 +255,9 @@ const helper = new WebSocketServerHelper<AuthPayload, UserMetadata>({
 | Callback | On throw or rejection |
 |---|---|
 | `authenticateFn` | The socket is closed with `4003 Authentication failed`, after an `Authentication error` event is sent |
-| `handshakeFn` | Runs inside the same chain, so a throw lands in the same handler and closes with `4003`. Returning a falsy value instead closes with `4004 Encryption required` |
+| `handshakeFn` | A throw closes with `4003`; a falsy return closes with `4004 Encryption required` |
+
+`handshakeFn` runs inside the same promise chain as `authenticateFn`, so a throw lands in the same handler.
 | `validateRoomFn` | Logged as `Failed to join rooms`. The socket stays open and the join simply does not happen |
 
 - **Failures do not crash the process.** A synchronous throw inside a Bun socket handler is caught and logged. A rejected promise is logged the same way, via `PromiseUtility.voidExecution`.
@@ -763,9 +774,9 @@ type TWebSocketOutboundTransformer<
 ### State types
 
 ```typescript
-type TWebSocketClientState = 'unauthorized' | 'authenticating' | 'authenticated' | 'disconnected';
-type TWebSocketEvent = 'authenticate' | 'connected' | 'disconnect' | 'join' | 'leave' | 'error' | 'heartbeat' | 'encrypted';
-type TWebSocketMessageType = 'client' | 'user' | 'room' | 'broadcast';
+type TWebSocketClientState = TConstValue<typeof WebSocketClientStates>;
+type TWebSocketEvent = TConstValue<typeof WebSocketEvents>;
+type TWebSocketMessageType = TConstValue<typeof WebSocketMessageTypes>;
 ```
 
 ## Constants

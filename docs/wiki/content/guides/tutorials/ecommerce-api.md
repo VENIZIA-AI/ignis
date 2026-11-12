@@ -486,7 +486,8 @@ export class OrderRepository extends DefaultCRUDRepository<typeof orderTable> {
 // src/services/product.service.ts
 import { BaseService, inject, service } from '@venizia/ignis';
 import { ProductRepository } from '../repositories/product.repository';
-import { getError } from '@venizia/ignis-helpers';
+import { getError, HTTP } from '@venizia/ignis-helpers';
+import type { TWhere } from '@venizia/ignis-filter';
 
 @service()
 export class ProductService extends BaseService {
@@ -498,12 +499,14 @@ export class ProductService extends BaseService {
   }
 
   async getActiveProducts(opts: { categoryId?: string; limit?: number; offset?: number }) {
+    const where: TWhere = { isActive: true };
+    if (opts.categoryId) {
+      where.categoryId = opts.categoryId;
+    }
+
     return this._productRepository.find({
       filter: {
-        where: {
-          isActive: true,
-          ...(opts.categoryId && { categoryId: opts.categoryId }),
-        },
+        where,
         order: ['createdAt DESC'],
         limit: opts.limit ?? 20,
         offset: opts.offset ?? 0,
@@ -514,7 +517,7 @@ export class ProductService extends BaseService {
   async getProductById(opts: { id: string }) {
     const product = await this._productRepository.findById({ id: opts.id });
     if (!product) {
-      throw getError({ statusCode: 404, message: 'Product not found' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'Product not found' });
     }
     return product;
   }
@@ -529,7 +532,7 @@ export class ProductService extends BaseService {
 
     if (product.stock < opts.quantity) {
       throw getError({
-        statusCode: 400,
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
         message: `Insufficient stock. Available: ${product.stock}`,
       });
     }
@@ -555,7 +558,7 @@ export class ProductService extends BaseService {
 import { BaseService, inject, service } from '@venizia/ignis';
 import { CartRepository } from '../repositories/cart.repository';
 import { ProductService } from './product.service';
-import { getError } from '@venizia/ignis-helpers';
+import { getError, HTTP } from '@venizia/ignis-helpers';
 
 interface ICartItem {
   productId: string;
@@ -595,11 +598,11 @@ export class CartService extends BaseService {
     const product = await this._productService.getProductById({ id: opts.productId });
 
     if (!product.isActive) {
-      throw getError({ statusCode: 400, message: 'Product is not available' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.BadRequest, message: 'Product is not available' });
     }
 
     if (product.stock < quantity) {
-      throw getError({ statusCode: 400, message: 'Insufficient stock' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.BadRequest, message: 'Insufficient stock' });
     }
 
     // Check if item already in cart
@@ -609,7 +612,7 @@ export class CartService extends BaseService {
       // Update quantity
       const newQuantity = existingItem.quantity + quantity;
       if (product.stock < newQuantity) {
-        throw getError({ statusCode: 400, message: 'Insufficient stock for requested quantity' });
+        throw getError({ statusCode: HTTP.ResultCodes.RS_4.BadRequest, message: 'Insufficient stock for requested quantity' });
       }
       return this._cartRepository.updateCartItem({ itemId: existingItem.id, data: { quantity: newQuantity } });
     }
@@ -629,12 +632,12 @@ export class CartService extends BaseService {
 
     const product = await this._productService.getProductById({ id: opts.productId });
     if (product.stock < opts.quantity) {
-      throw getError({ statusCode: 400, message: 'Insufficient stock' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.BadRequest, message: 'Insufficient stock' });
     }
 
     const item = await this._cartRepository.findCartItem({ cartId: opts.cartId, productId: opts.productId });
     if (!item) {
-      throw getError({ statusCode: 404, message: 'Item not in cart' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'Item not in cart' });
     }
 
     return this._cartRepository.updateCartItem({ itemId: item.id, data: { quantity: opts.quantity } });
@@ -650,7 +653,7 @@ export class CartService extends BaseService {
   async getCartWithItems(opts: { cartId: string }) {
     const cart = await this._cartRepository.findById({ id: opts.cartId });
     if (!cart) {
-      throw getError({ statusCode: 404, message: 'Cart not found' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'Cart not found' });
     }
 
     const items = await this._cartRepository.getCartItems({ cartId: opts.cartId });
@@ -694,7 +697,7 @@ import { OrderRepository } from '../repositories/order.repository';
 import { CartService } from './cart.service';
 import { ProductService } from './product.service';
 import { PaymentService } from './payment.service';
-import { getError } from '@venizia/ignis-helpers';
+import { getError, HTTP } from '@venizia/ignis-helpers';
 
 interface IOrderAddress {
   name: string;
@@ -706,7 +709,7 @@ interface IOrderAddress {
   country: string;
 }
 
-interface ICreateOrderInput {
+export interface ICreateOrderInput {
   cartId: string;
   email: string;
   shippingAddress: IOrderAddress;
@@ -733,7 +736,7 @@ export class OrderService extends BaseService {
     const cart = await this._cartService.getCartWithItems({ cartId: opts.input.cartId });
 
     if (cart.items.length === 0) {
-      throw getError({ statusCode: 400, message: 'Cart is empty' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.BadRequest, message: 'Cart is empty' });
     }
 
     // Validate stock for all items
@@ -744,7 +747,7 @@ export class OrderService extends BaseService {
       });
       if (!hasStock) {
         throw getError({
-          statusCode: 400,
+          statusCode: HTTP.ResultCodes.RS_4.BadRequest,
           message: `Insufficient stock for ${item.product.name}`,
         });
       }
@@ -800,18 +803,18 @@ export class OrderService extends BaseService {
     const order = await this._orderRepository.findById({ id: opts.orderId });
 
     if (!order) {
-      throw getError({ statusCode: 404, message: 'Order not found' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'Order not found' });
     }
 
     if (order.paymentIntentId !== opts.paymentIntentId) {
-      throw getError({ statusCode: 400, message: 'Invalid payment' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.BadRequest, message: 'Invalid payment' });
     }
 
     // Verify payment with Stripe
     const isSuccessful = await this._paymentService.verifyPayment({ paymentIntentId: opts.paymentIntentId });
 
     if (!isSuccessful) {
-      throw getError({ statusCode: 400, message: 'Payment not confirmed' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.BadRequest, message: 'Payment not confirmed' });
     }
 
     // Update order status
@@ -838,7 +841,7 @@ export class OrderService extends BaseService {
   async getOrderById(opts: { orderId: string }) {
     const order = await this._orderRepository.findById({ id: opts.orderId });
     if (!order) {
-      throw getError({ statusCode: 404, message: 'Order not found' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'Order not found' });
     }
 
     const items = await this._orderRepository.getOrderItems({ orderId: opts.orderId });
@@ -849,7 +852,7 @@ export class OrderService extends BaseService {
     const validStatuses = ['pending_payment', 'paid', 'processing', 'shipped', 'delivered', 'cancelled'];
 
     if (!validStatuses.includes(opts.status)) {
-      throw getError({ statusCode: 400, message: 'Invalid status' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.BadRequest, message: 'Invalid status' });
     }
 
     return this._orderRepository.updateById({ id: opts.orderId, data: { status: opts.status } });
@@ -946,7 +949,7 @@ const ProductRoutes = {
       [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'List of products',
         schema: z.object({
-          products: z.array(z.any()),
+          products: z.array(z.unknown()),
           total: z.number(),
         }),
       }),
@@ -961,7 +964,7 @@ const ProductRoutes = {
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Product details',
-        schema: z.any(),
+        schema: z.unknown(),
       }),
     },
   },
@@ -1028,7 +1031,7 @@ const CartRoutes = {
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Current cart',
-        schema: z.any(),
+        schema: z.unknown(),
       }),
     },
   },
@@ -1046,7 +1049,7 @@ const CartRoutes = {
     responses: {
       [HTTP.ResultCodes.RS_2.Created]: OpenApiResponses.jsonContent({
         description: 'Item added to cart',
-        schema: z.any(),
+        schema: z.unknown(),
       }),
     },
   },
@@ -1064,7 +1067,7 @@ const CartRoutes = {
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Item quantity updated',
-        schema: z.any(),
+        schema: z.unknown(),
       }),
     },
   },
@@ -1156,7 +1159,7 @@ import {
   TRouteContext,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
-import { OrderService } from '../services/order.service';
+import { type ICreateOrderInput, OrderService } from '../services/order.service';
 
 const OrderRoutes = {
   CREATE: {
@@ -1183,7 +1186,7 @@ const OrderRoutes = {
       [HTTP.ResultCodes.RS_2.Created]: OpenApiResponses.jsonContent({
         description: 'Order created',
         schema: z.object({
-          order: z.any(),
+          order: z.unknown(),
           clientSecret: z.string(),
         }),
       }),
@@ -1203,7 +1206,7 @@ const OrderRoutes = {
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Order confirmed',
-        schema: z.any(),
+        schema: z.unknown(),
       }),
     },
   },
@@ -1216,7 +1219,7 @@ const OrderRoutes = {
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Order details',
-        schema: z.any(),
+        schema: z.unknown(),
       }),
     },
   },
@@ -1237,7 +1240,7 @@ export class OrderController extends BaseRestController {
 
   @post({ configs: OrderRoutes.CREATE })
   async createOrder(context: TRouteContext) {
-    const body = context.req.valid<any>('json'); // Use explicit type if available
+    const body = context.req.valid<ICreateOrderInput>('json');
     const result = await this._orderService.createOrder({ input: body });
     return context.json(result, HTTP.ResultCodes.RS_2.Created);
   }

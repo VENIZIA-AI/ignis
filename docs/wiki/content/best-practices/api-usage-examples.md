@@ -266,6 +266,7 @@ Create reusable middleware using Hono's `createMiddleware` helper.
 ### Basic Middleware Pattern
 
 ```typescript
+import { HTTP } from '@venizia/ignis-helpers';
 import { createMiddleware } from 'hono/factory';
 import type { MiddlewareHandler } from 'hono';
 
@@ -279,7 +280,7 @@ export const rateLimiter = (opts: { maxRequests: number }): MiddlewareHandler =>
     const count = requests.get(ip) ?? 0;
 
     if (count >= maxRequests) {
-      return context.json({ error: 'Too many requests' }, 429);
+      return context.json({ error: 'Too many requests' }, HTTP.ResultCodes.RS_4.TooManyRequests);
     }
 
     requests.set(ip, count + 1);
@@ -424,7 +425,7 @@ export class UserController extends BaseRestController {
     const result = await this.userService.getUserWithOrders(id);
 
     if (!result) {
-      throw getError({ statusCode: 404, message: 'User not found' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'User not found' });
     }
 
     return context.json(result, HTTP.ResultCodes.RS_2.Ok);
@@ -529,7 +530,7 @@ async getUser(context: TRouteContext) {
 
   if (!user) {
     throw getError({
-      statusCode: 404,
+      statusCode: HTTP.ResultCodes.RS_4.NotFound,
       message: `User with ID '${id}' not found`,
     });
   }
@@ -592,7 +593,7 @@ async processOrder(context: Context) {
     }
 
     throw getError({
-      statusCode: 500,
+      statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
       message: 'Failed to process order',
     });
   }

@@ -116,16 +116,23 @@ Combines `IRedisSingleHelperProps`, `IRedisHelperCallbacks` and `IRedisModuleOpt
 | `name` | `string` | Yes | - | Helper identifier used in logs and as `IRedisHelper.name` |
 | `host` | `string` | Yes | - | Redis server hostname |
 | `port` | `string \| number` | Yes | - | Redis server port |
-| `username` | `string` | No | - | The Redis ACL user to authenticate as, with `password`. Omit it to authenticate as the `default` user. A cluster takes it as `clusterOptions.redisOptions.username`, a sentinel as `sentinelUsername` / `sentinelPassword` for the sentinels and `redisOptions.username` for the data nodes. |
-| `password` | `string` | No | - | Redis `requirepass` value (or the ACL user's password). Omit it for a Redis with no password. |
+| `username` | `string` | No | - | The Redis ACL user to authenticate as, with `password` |
+| `password` | `string` | No | - | Redis `requirepass` value (or the ACL user's password) |
 | `database` | `number` | No | `0` | Redis database index (0-15) |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` uses ioredis `lazyConnect` |
-| `maxRetry` | `number` | No | `5` | Reconnect attempts before giving up. `0` = no reconnect; `-1` = reconnect forever; any other value is refused at construction |
-| `module` | `typeof import('ioredis')` | No | loaded by name | `ioredis` itself, for a `bun build --compile` binary with no `node_modules` - see [Run in a compiled binary](/extensions/helpers/redis/#run-in-a-compiled-binary) |
+| `maxRetry` | `number` | No | `5` | Reconnect attempts before giving up - see [Retry strategy](#retry-strategy) |
+| `module` | `typeof import('ioredis')` | No | loaded by name | `ioredis` itself, for a compiled binary - see [Run in a compiled binary](./#run-in-a-compiled-binary) |
 | `onInitialized` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired synchronously after construction |
 | `onConnected` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired on TCP connection established |
 | `onReady` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired when client is ready for commands |
 | `onError` | `(opts: { name: string; helper: IRedisHelper; error: unknown }) => void` | No | - | Fired on connection or command errors |
+
+Notes on the fields:
+
+- `username`: omit it to authenticate as the `default` user.
+- `password`: omit it for a Redis with no password.
+- A cluster takes the user as `clusterOptions.redisOptions.username`. A sentinel takes `sentinelUsername` / `sentinelPassword` for the sentinels and `redisOptions.username` for the data nodes.
+- `maxRetry`: `0` = no reconnect; `-1` = reconnect forever; any other value is refused at construction.
 
 ### Retry strategy
 
@@ -185,9 +192,11 @@ const cluster = new RedisClusterHelper({
 | `name` | `string` | Yes | - | Helper identifier |
 | `nodes` | `Array<{ host: string; port: string \| number; password?: string }>` | Yes | - | Startup nodes - ioredis discovers the rest |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` sets `lazyConnect` so you call `connect()` later |
-| `clusterOptions` | `ClusterOptions` | No | - | Merged over the four defaults (`enableOfflineQueue: true`, `lazyConnect`, `clusterRetryStrategy` and `redisOptions.maxRetriesPerRequest: null`), then passed to `new Cluster(nodes, clusterOptions)` |
+| `clusterOptions` | `ClusterOptions` | No | - | Merged over the four defaults, then passed to `new Cluster` |
 | `module` | `typeof import('ioredis')` | No | loaded by name | Same as single |
 | `onInitialized` / `onConnected` / `onReady` / `onError` | callbacks | No | - | Same shape as single |
+
+The four defaults of `clusterOptions`: `enableOfflineQueue: true`, `lazyConnect`, `clusterRetryStrategy` and `redisOptions.maxRetriesPerRequest: null`.
 
 ### Bind early, connect later
 
@@ -283,7 +292,7 @@ const redis = new RedisSentinelHelper({
 | `sentinelUsername` | `string` | No | - | Sentinel ACL username |
 | `database` | `number` | No | `0` | Redis database index |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately |
-| `maxRetry` | `number` | No | `5` | Reconnect attempts before giving up. `0` = no reconnect; `-1` = reconnect forever; any other value is refused at construction. See [Retry strategy](#retry-strategy) |
+| `maxRetry` | `number` | No | `5` | Reconnect attempts before giving up - see [Retry strategy](#retry-strategy) |
 | `redisOptions` | `Partial<RedisOptions>` | No | - | Extra ioredis options; first-class fields above always override matching keys here |
 | `module` | `typeof import('ioredis')` | No | loaded by name | Same as single |
 | `onInitialized` / `onConnected` / `onReady` / `onError` | callbacks | No | - | Same shape as single |
@@ -447,9 +456,12 @@ await redis.connect(); // resolves true when status === 'ready'
 
 | Method | Behavior |
 |--------|----------|
-| `connect()` | Resolves `false` (no-op) if status is `ready`, `reconnecting`, or `connecting`; otherwise calls ioredis `connect()` and resolves `true` when status reaches `ready` |
-| `disconnect()` | Resolves `false` (no-op) if status is `end` or `close`; otherwise sends `QUIT` and resolves `true` on `'OK'` |
+| `connect()` | Calls ioredis `connect()`; resolves `true` when status reaches `ready` |
+| `disconnect()` | Sends `QUIT`; resolves `true` on `'OK'` |
 | `ping()` | Sends `PING`; returns `'PONG'` |
+
+- `connect()` resolves `false` (no-op) if status is `ready`, `reconnecting`, or `connecting`.
+- `disconnect()` resolves `false` (no-op) if status is `end` or `close`.
 
 ### The four lifecycle callbacks
 
@@ -586,9 +598,11 @@ const dedicated = redis.duplicateClient();
 
 | Method | Signature | Behavior |
 |--------|-----------|----------|
-| `publish<T>` | `(opts: { topics: string[]; payload: T; useCompress?: boolean }): Promise<void>` | JSON-serializes `payload` into a `Buffer`, optionally zlib-deflates it, and publishes to each topic. Filters out empty/blank topics first; if none remain, logs an error and returns without publishing |
+| `publish<T>` | `(opts: { topics: string[]; payload: T; useCompress?: boolean }): Promise<void>` | JSON-serializes `payload`, optionally deflates it, and publishes to each topic |
 | `subscribe` | `(opts: { topic: string }): void` | Subscribes the client to `topic`; on subscription error the helper **logs** it and does not throw |
 | `unsubscribe` | `(opts: { topic: string }): void` | Unsubscribes from `topic`; on error the helper **logs** it and does not throw |
+
+`publish` filters out empty or blank topics first. If none remain, it logs an error and returns without publishing.
 
 > [!IMPORTANT]
 > A subscribed ioredis connection enters subscriber mode and cannot run regular commands. Use `duplicateClient()` to obtain a separate connection for pub/sub.
@@ -702,14 +716,18 @@ See the WebSocket component documentation for the full component registration.
 - **Any topology works** as the `connection`:
 
 ```typescript
+import { RedisSingleHelper } from '@venizia/ignis-helpers';
 import type { IRedisHelper } from '@venizia/ignis-helpers';
+
+// Any RedisSingleHelper / RedisClusterHelper / RedisSentinelHelper is an IRedisHelper:
+const redis: IRedisHelper = new RedisSingleHelper({ name: 'authz-cache', host: 'localhost', port: 6379 });
 
 // Shape of the cached-enforcer config (see the Authorization component docs for full setup):
 const cached = {
   use: true,
   driver: CasbinEnforcerCachedDrivers.REDIS,
   options: {
-    connection: redis as IRedisHelper, // any RedisSingleHelper / RedisClusterHelper / RedisSentinelHelper
+    connection: redis,
     expiresIn: 300_000, // cached-policy TTL in milliseconds
     keyFn: ({ user }) => `authz:policy:${user.id}`,
   },

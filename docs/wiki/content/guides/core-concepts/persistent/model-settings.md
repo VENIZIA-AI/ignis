@@ -96,7 +96,7 @@ export class ProductRepository extends DefaultCRUDRepository<typeof Product.sche
 | `query.limit.default` | `10` | Row limit for a query that names none |
 | `query.limit.max` | `1000` | Largest `limit` a caller may ask for |
 | `access.resolve` | required unless `through` | Returns the row scope of the current caller, per query |
-| `access.through` | none | Scopes a child model by its parent's own `access`, instead of `resolve`. See [Scope a child through its parent](#scope-a-child-through-its-parent) |
+| `access.through` | none | Scopes a child by its parent's `access`; see [Scope a child through its parent](#scope-a-child-through-its-parent) |
 | `access.onMissing` | `'deny'` | What happens when `resolve()` returns `null` or `undefined` |
 | `access.columns` | none | Names the columns the write guard checks; validated at boot |
 | `access.write.mode` | `'reject'` | What a create or update does with a row outside the scope |
@@ -188,7 +188,9 @@ export const findIncludingDeleted = (opts: { repository: ProductRepository }) =>
 | A scope `where`, such as `{ merchantId: 'm-1' }` | Runs with that `where` ANDed in |
 | `ScopeFilters.UNRESTRICTED` | Runs with no scope, for this call only |
 | `null` or `undefined` | Follows `onMissing`: by default it matches zero rows |
-| Anything else that is not a usable `where`: `false`, `0`, `''`, a list, `{}`, an object with an `undefined` value (`{ merchantId: user.merchantId }` for a user without one), an empty `and` | The same as `null`: the scope was not resolved. An empty `or` matches nothing |
+| Anything else that is not a usable `where` | The same as `null`: the scope was not resolved |
+
+Not usable means `false`, `0`, `''`, a list, `{}`, an object with an `undefined` value (`{ merchantId: user.merchantId }` for a user without one), or an empty `and`. An empty `or` matches nothing.
 
 ```typescript
 // src/models/product.model.ts
@@ -388,7 +390,7 @@ export class TaxType extends ModelFactory.defineEntity({ table: taxTypeTable }) 
 
 The `null` branch lets the caller read shared rows. Changing a shared row is a different permission, and `sharedRows` grants it:
 
-| | A merchant's own rows | Shared rows (`merchantId` is `null`) |
+| Operation | A merchant's own rows | Shared rows (`merchantId` is `null`) |
 |---|---|---|
 | Read, scope has the `null` branch | Yes | Yes |
 | Create, `sharedRows: false` (default) | Yes | No: `null` and a missing column are refused |
@@ -643,8 +645,10 @@ A refused write is an `ApplicationError` with HTTP status `403` and the code `co
 |---|---|
 | `write refused by the access scope \| entity: Product \| column: merchantId \| the value is outside the resolved scope` | A row names another merchant, or `null` without `sharedRows` |
 | `... \| column: merchantId \| the scope column is missing` | A created row has no scope column and the mode is `reject` |
-| `... \| the resolved scope cannot be verified on a write \| column 'merchantId': the operator 'gt' cannot be checked on a write` | The scope is an `or` over several columns, a range or another shape the guard cannot read |
+| `... \| the resolved scope cannot be verified on a write \| column 'merchantId': ...` | The scope is an `or` over several columns, a range or another shape the guard cannot read |
 | `... \| no scope could be resolved for this caller` | `resolve()` returned `null` and `onMissing` is `'deny'`, on a create |
+
+The tail of the "cannot be verified" message names the column and the operator, for example `column 'merchantId': the operator 'gt' cannot be checked on a write`.
 
 At boot, `ScopeFilterUtility.assertScopeFilterSupported` runs as the last boot step of a `BaseApplication` and refuses four kinds of model:
 

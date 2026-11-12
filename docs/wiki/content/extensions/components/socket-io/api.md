@@ -259,9 +259,11 @@ Socket.IO and `@socket.io/bun-engine` define CORS slightly differently, so the c
 | Step | What happens |
 |---|---|
 | 1 | Sets `identifier`, `runtime`, `serverOptions`, and the callback functions |
-| 2 | Applies defaults: `authenticateTimeout` = 10s, `pingInterval` = 30s, `defaultRooms` = `['io-default', 'io-notification']` |
+| 2 | Applies the defaults listed below the table |
 | 3 | `setRuntime()` validates and stores the engine - see [runtime validation](#setruntime-runtime-validation) |
-| 4 | `initRedisClients()` creates 3 duplicated Redis clients - see [Redis 3-client architecture](#redis-3-client-architecture) |
+| 4 | `initRedisClients()` creates 3 Redis clients - see [Redis 3-client architecture](#redis-3-client-architecture) |
+
+The defaults in step 2: `authenticateTimeout` = 10s, `pingInterval` = 30s, `defaultRooms` = `['io-default', 'io-notification']`.
 
 > [!IMPORTANT]
 > Redis clients are duplicated from the parent connection via `redisConnection.duplicateClient()`. The helper owns 3 independent connections (pub, sub, emitter) that inherit config from the parent but keep separate state. The parent connection is never consumed.
@@ -441,8 +443,11 @@ The component registers one hook, `'socket-io-initialize'`, in `registerBunHook(
 5. Calls `serverInstance.reload({ fetch, websocket })` to wire the engine into the running Bun server.
 
 ```typescript
+import type { Server as BunEngine } from '@socket.io/bun-engine';
+import type { ServerOptions } from 'socket.io';
+
 class SocketIOBunHandler {
-  static async createEngine(opts: {
+  static createEngine(opts: {
     serverOptions: Partial<ServerOptions>;
   }) {
     const { serverOptions } = opts;
@@ -467,6 +472,8 @@ class SocketIOBunHandler {
   }
 }
 ```
+
+The listing shows the signature only. The method imports `@socket.io/bun-engine` on demand, builds the engine with `path` from `serverOptions.path` (default `'/socket.io/'`), and bridges the CORS options field by field: Socket.IO and the engine define `origin` differently, so the framework checks its shape before passing it on.
 
 ### Redis 3-client architecture
 
@@ -543,8 +550,13 @@ Timeout (10s) -> disconnect if not yet AUTHENTICATED
 
 | Path | Trigger | Actions |
 |---|---|---|
-| Rejected | `authenticateFn` resolves `false` | Reset state to `UNAUTHORIZED`. Emit `unauthenticated` with `"Invalid token to authenticate! Please login again!"` on the client's own socket, then disconnect. No error logged - this is an expected outcome. |
-| Threw | `authenticateFn` throws | Reset state to `UNAUTHORIZED`. Log the error. Emit `unauthenticated` with `"Failed to authenticate connection! Please login again!"` on the client's own socket, then disconnect. |
+| Rejected | `authenticateFn` resolves `false` | Reset state, emit `unauthenticated`, disconnect |
+| Threw | `authenticateFn` throws | Reset state, log the error, emit `unauthenticated`, disconnect |
+
+Both paths reset the state to `UNAUTHORIZED` and emit `unauthenticated` on the client's own socket before disconnecting:
+
+- Rejected: the message is `"Invalid token to authenticate! Please login again!"`. No error is logged, since this is an expected outcome.
+- Threw: the message is `"Failed to authenticate connection! Please login again!"`.
 
 ```typescript
 interface ISocketIOClient {
@@ -562,8 +574,10 @@ Registered after successful authentication.
 
 | Handler | Behavior |
 |---|---|
-| `join` | Client sends `{ rooms }`. If `validateRoomFn` is bound, only the rooms it returns get joined. If it isn't bound, the join is rejected with a warning log. |
-| `leave` | Client sends `{ rooms }`. Always allowed - no validation function needed. |
+| `join` | Client sends `{ rooms }`; joins only the rooms `validateRoomFn` returns |
+| `leave` | Client sends `{ rooms }`; always allowed |
+
+Without a bound `validateRoomFn`, a `join` is rejected with a warning log. `leave` needs no validation function.
 
 Both handlers parse the payload defensively: `const { rooms = [] } = payload || { rooms: [] }`. An empty array is silently ignored. A join error is caught and logged - it never disconnects the client.
 

@@ -154,8 +154,15 @@ Returns the Bun engine instance.
 Without `id`, returns the full `Map<string, ISocketIOClient>`. With `{ id }`, returns that client's entry or `undefined`.
 
 ```typescript
-const allClients = socketServer.getClients() as Map<string, ISocketIOClient>;
-const client = socketServer.getClients({ id: 'socket-id' }) as ISocketIOClient | undefined;
+const clients = socketServer.getClients();
+if (clients instanceof Map) {
+  console.log(`${clients.size} connected`);
+}
+
+const client = socketServer.getClients({ id: 'socket-id' });
+if (client && !(client instanceof Map)) {
+  console.log(client.id, client.state);
+}
 ```
 
 #### `on<HandlerArgsType extends unknown[] = unknown[], HandlerReturnType = void>(opts: { topic: string; handler: (...args: HandlerArgsType) => ValueOrPromise<HandlerReturnType> }): void`
@@ -268,14 +275,14 @@ Creates the `socket.io-client` connection (`io(host, options)`) and registers th
 The same helper with nothing node in its graph (the browser-purity gate claims it), for an app that bundles for a browser. It never looks for `socket.io-client` on disk: you pass it in as `module`, and omitting it throws a 500 naming the option.
 
 ```typescript
-import { io } from 'socket.io-client';
+import * as socketIo from 'socket.io-client';
 import { SocketIOClientHelper } from '@venizia/ignis-helpers/socket-io/client';
 
 const client = new SocketIOClientHelper({
   identifier: 'app-socket',
   host: 'https://api.example.com',
   options: { path: '/io', extraHeaders: {} },
-  module: { io } as typeof import('socket.io-client'),
+  module: socketIo,
 });
 ```
 
@@ -490,7 +497,7 @@ interface ISocketIOClient {
 ### `TSocketIOClientState`
 
 ```typescript
-type TSocketIOClientState = 'unauthorized' | 'authenticating' | 'authenticated';
+type TSocketIOClientState = TConstValue<typeof SocketIOClientStates>; // 'unauthorized' | 'authenticating' | 'authenticated'
 ```
 
 ### `TSocketIOAuthenticateFn`

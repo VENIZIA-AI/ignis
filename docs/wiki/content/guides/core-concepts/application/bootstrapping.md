@@ -283,7 +283,9 @@ Every stereotype accepts the same six options. Use them on the class, never at a
 | `after` | one configuration must run after another | `@configuration({ after: [TenantConfiguration] })` |
 | `scope` | the default scope is wrong for this class | `@service({ scope: BindingScopes.SINGLETON })` |
 | `binding` | the key must differ from `<namespace>.<Class>` | `@controller({ path: '/v2/users', binding: { namespace: 'controllers', key: 'UsersV2' } })` |
-| `allowOverride` | a same-key re-registration must throw instead of silently winning - or, under `bootChecks.binding.allowOverride: false`, this one class must be allowed to win | `@repository({ model, dataSource, allowOverride: false })` |
+| `allowOverride` | a same-key re-registration must throw, or this one class must win | `@repository({ model, dataSource, allowOverride: false })` |
+
+`allowOverride: false` makes a same-key re-registration throw instead of silently winning. Under `bootChecks.binding.allowOverride: false`, `allowOverride: true` lets this one class win.
 
 `after` applies to configurations only, and it replaces the `order` sort for that kind. Name an unregistered class and the boot throws; make a cycle and it throws too, naming every class in it.
 

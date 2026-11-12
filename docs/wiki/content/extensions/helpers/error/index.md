@@ -75,14 +75,21 @@ The framework's `AppErrorMiddleware` catches `ApplicationError` instances and fo
 | Option          | Type                                  | Description                                                                                                     |
 | --------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `message`       | `string \| { text, code?, args? }`     | Required on the free-form branch; a **partial** override on the catalogued branch (definition supplies what's omitted) |
-| `messageCode`   | `string`                               | Free-form only, sibling to a string `message`. Lowest precedence - `message.code` and the definition's `message.code` both win over it |
+| `messageCode`   | `string`                               | Free-form only, sibling to a string `message`. Lowest precedence |
 | `statusCode`    | `number`                               | Defaults to `400`, or the definition's `statusCode` for the catalogued form                                     |
 | `messageArgs`   | `Record<string, unknown>`              | Interpolation values. Reaches `normalized.args` - never `extra`. Lowest precedence, same rule as `messageCode`  |
-| `cause`         | `unknown`                              | The wrapped failure - reaches `Error.cause`. Use this to wrap a caught error; `error` is refused on the free-form branch for exactly this case |
+| `cause`         | `unknown`                              | The wrapped failure - reaches `Error.cause` |
 | `extra`         | `Record<string, unknown>`              | Explicit context, merged with any swept keys - and it wins on a clash                                           |
-| `transform`     | `TErrorNormalizeTransformFn`           | Builds `normalized` in place of the default. Receives `{ message: TErrorNormalized, statusCode, extra? }` - `message` is the default normalized being replaced, so `s => ({ ...s.message, text: 'x' })` amends one field |
-| `logLevel`      | `error \| emerg \| warn \| info \| debug` | The level the error handler logs this at. Defaults to `error`; lower it for an expected failure (`getError({ message, statusCode: 404, logLevel: 'warn' })`), or raise it to `emerg`. Steers the server log only - never the response |
+| `transform`     | `TErrorNormalizeTransformFn`           | Builds `normalized` in place of the default |
+| `logLevel`      | `error \| emerg \| warn \| info \| debug` | The level the error handler logs this at. Defaults to `error` |
 | _anything else_ | `unknown`                              | Rides into `extra` under its own name. `getError({ message, transaction })` lands at `error.extra.transaction`  |
+
+Notes on the options:
+
+- `messageCode`: `message.code` and the definition's `message.code` both win over it.
+- `cause`: use it to wrap a caught error. `error` is refused on the free-form branch for exactly this case.
+- `transform`: receives `{ message: TErrorNormalized, statusCode, extra? }`. `message` is the default normalized being replaced, so `s => ({ ...s.message, text: 'x' })` amends one field.
+- `logLevel`: lower it for an expected failure (`getError({ message, statusCode: 404, logLevel: 'warn' })`), or raise it to `emerg`. It steers the server log only, never the response.
 
 > [!WARNING]
 > Spreading a definition is not the same as passing it as `error`. `getError({ error: DEF })` consumes the whole definition under one known key. `getError({ ...DEF })` hands its fields over individually. `category` and `description` are not in the consumed set, so they ride into `error.extra` under their own names. From there they reach the client response.
@@ -96,13 +103,15 @@ The consumed keys are `error`, `message`, `messageCode`, `statusCode`, `messageA
 Every row below is the real output, and the catalogued rows all use this definition:
 
 ```typescript
+import { HTTP } from '@venizia/ignis-helpers/common';
+
 const DEF = {
   message: {
     text: 'A category named "%{name}" already exists.',
     code: 'server.commerce.category.duplicate',
     args: { name: '?' },
   },
-  statusCode: 409,
+  statusCode: HTTP.ResultCodes.RS_4.Conflict,
 } as const satisfies TErrorDefinition;
 ```
 
@@ -338,10 +347,12 @@ The handler is fail-closed on environment. It exposes `stack` and `cause` in `de
 `error.message` stays the template, so a reader that only knows `.message` - a job queue's failure reason, a third-party log - shows `%{key}`. Fill it where you hand the error over:
 
 ```typescript
+import { HTTP } from '@venizia/ignis-helpers/common';
+
 const error = getError({
   message: { text: 'Only %{available} left of %{sku}.', code: 'stock.unavailable' },
   messageArgs: { available: 2, sku: 'TRA-01' },
-  statusCode: 409,
+  statusCode: HTTP.ResultCodes.RS_4.Conflict,
 });
 
 error.toFilledText(); // 'Only 2 left of TRA-01.'

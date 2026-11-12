@@ -117,7 +117,7 @@ const container = new Container({ scope: 'MyApp' });
 |--------|-----------|--------------|
 | `bind` | `bind<T>(opts: { key: TBindingKey }): Binding<T>` | Create a new `Binding`, register it under `String(key)`, and return it |
 | `get` | `get<T>(opts: { key: TBindingKey \| { namespace, key }, isOptional?: boolean }): T \| undefined` | Resolve a dependency by key. Throws if not found and `isOptional` is falsy |
-| `gets` | `gets<T extends unknown[]>(opts: { bindings: { [K in keyof T]: { key, isOptional? } } }): { [K in keyof T]: T[K] \| undefined }` | Resolve several dependencies as a tuple. Every entry is internally re-issued with `isOptional: true`, so every returned slot is `\| undefined` |
+| `gets` | `gets<T extends unknown[]>(opts: { bindings }): { [K in keyof T]: T[K] \| undefined }` | Resolve several dependencies as a tuple; every slot is `\| undefined` |
 | `getBinding` | `getBinding<T>(opts: { key: TBindingKey \| { namespace, key } }): Binding<T> \| undefined` | Retrieve the raw `Binding` without resolving it |
 | `set` | `set<T>(opts: { binding: Binding<T> }): void` | Register an externally created `Binding` under its own `.key` |
 | `isBound` | `isBound(opts: { key: TBindingKey }): boolean` | Check whether a key is registered |
@@ -144,7 +144,9 @@ Both phases run their metadata through `resolveBindingKey` first. `@inject` reco
 | Situation | Message |
 |---|---|
 | Neither a key nor a class was recorded | `[ClassName] Constructor parameter 0 has neither an @inject key nor a class` |
-| A class that was never registered as an artifact | `[ClassName] Constructor parameter 0 names 'UserRepository', which is not registered as an artifact \| Decorate it (@service, @repository, ...) or register it on the application before it is injected` |
+| A class that was never registered as an artifact | `[ClassName] Constructor parameter 0 names 'UserRepository', which is not registered as an artifact` |
+
+The second message continues with `Decorate it (@service, @repository, ...) or register it on the application before it is injected`.
 
 `at` supplies the phrase in those messages. Phase 1 passes `Constructor parameter N`, phase 2 passes `Property 'name'`.
 
@@ -276,10 +278,10 @@ Singleton (`metadataRegistry`) backing `@inject`, built entirely on `reflect-met
 | `setPropertyMetadata` | `setPropertyMetadata<T>(opts: { target, propertyName, metadata: IPropertyMetadata }): void` | Write property `@inject` metadata into a `Map` keyed by property name, stored on `target.constructor` |
 | `getPropertiesMetadata` | `getPropertiesMetadata<T>(opts: { target }): Map<string \| symbol, IPropertyMetadata> \| undefined` | Read the full property metadata map |
 | `getPropertyMetadata` | `getPropertyMetadata<T>(opts: { target, propertyName }): IPropertyMetadata \| undefined` | Read metadata for one property |
-| `setBindingKey` | `setBindingKey<T>(opts: { target, key: TBindingKey, isProvisional?: boolean }): void` | Record the key a class is registered under, into `MetadataKeys.BINDING_KEY`. This is what `@inject({ target })` reads back |
+| `setBindingKey` | `setBindingKey<T>(opts: { target, key: TBindingKey, isProvisional?: boolean }): void` | Record the key a class is registered under, into `MetadataKeys.BINDING_KEY` |
 | `getBindingKey` | `getBindingKey<T>(opts: { target }): TBindingKey \| undefined` | Read that key back. Own metadata only, so an unregistered subclass does not inherit its parent's key |
 
-`isProvisional` marks a derived key, one guessed from the class rather than declared. A real registration replaces a provisional key silently. Two non-provisional registrations under different keys log a `[setBindingKey] Rebound under a different key` warning instead, because the second would otherwise decide for both.
+`@inject({ target })` reads the recorded key back. `isProvisional` marks a derived key, one guessed from the class rather than declared. A real registration replaces a provisional key silently. Two non-provisional registrations under different keys log a `[setBindingKey] Rebound under a different key` warning instead, because the second would otherwise decide for both.
 
 ```typescript
 import { MetadataKeys, metadataRegistry } from '@venizia/ignis-inversion';
@@ -352,9 +354,11 @@ Dispatches on how the decorator was invoked:
 
 | Applied to | Detection | Stored via |
 |------------|-----------|------------|
-| Constructor parameter | `parameterIndex` is a `number` | `registry.setInjectMetadata({ target, index: parameterIndex, metadata: { ...(key === undefined ? { target } : { key }), index: parameterIndex, isOptional } })` |
-| Class property | `propertyName !== undefined` | `registry.setPropertyMetadata({ target, propertyName, metadata: { ...(key === undefined ? { target } : { bindingKey: key }), isOptional } })` |
+| Constructor parameter | `parameterIndex` is a `number` | `registry.setInjectMetadata({ target, index, metadata })` |
+| Class property | `propertyName !== undefined` | `registry.setPropertyMetadata({ target, propertyName, metadata })` |
 | Anything else | neither condition matches | Throws `@inject decorator can only be used on class properties or constructor parameters` |
+
+The `metadata` holds `{ key, index, isOptional }` for a parameter, or `{ target, index, isOptional }` when no key was given. For a property it holds `{ bindingKey, isOptional }`, or `{ target, isOptional }` when no key was given.
 
 Note which field each branch writes. A constructor parameter stores the key under `key`, a property stores it under `bindingKey`. The class form writes `target` in both.
 
@@ -421,9 +425,11 @@ BindingVerifier.assertResolve({ container, namespaces: ['services'], scope: 'sta
 | Option | Required | Meaning |
 |--------|----------|---------|
 | `container` | yes | The container to verify |
-| `namespaces` | yes | A binding is in a namespace when its key is `<namespace>.<name>`: `Binding` tags it with that first segment. A namespace that holds a dot is not supported |
-| `skip` | no | Bindings left unresolved: a class (exact, not a subclass), a class name or a binding key. A string that equals the class name of several bindings skips them all |
+| `namespaces` | yes | Namespaces to check (a binding key is `<namespace>.<name>`) |
+| `skip` | no | Bindings left unresolved: a class, a class name or a binding key |
 | `scope` | `assertResolve` only | The bracket label of the error message |
+
+`Binding` tags each binding with the first segment of its key, so a namespace that holds a dot is not supported. A `skip` class matches exactly, not its subclasses. A string that equals the class name of several bindings skips them all.
 
 A failure names the binding that could not resolve (`key`, who needs the missing thing) and what is missing: `missingKey` for an injected key nobody bound, `unregisteredClass` for an injected class nobody registered. A constructor that throws its own error carries neither. `error` is the thrown object, unchanged.
 
@@ -462,9 +468,18 @@ The catalogued form (`{ error: TErrorDefinition }`) takes `message` as a **parti
 `ApplicationError`'s constructor defaults `statusCode` to `400` when omitted, and moves any property it does not model into `this.extra`. The error RESPONSE schema (`ErrorSchema`, for OpenAPI) lives in `@venizia/ignis-kernel` (re-exported by `@venizia/ignis`), not here. It needs `@hono/zod-openapi`, which inversion must not depend on - inversion ships to browsers.
 
 ```typescript
-throw getError({ message: 'Something failed', statusCode: 500, messageCode: 'ERR_INTERNAL' });
-throw new ApplicationError({ message: 'Not found', statusCode: 404 });
-throw new ApplicationError({ message: { text: 'Not found', code: 'core.user.not_found' }, statusCode: 404 });
+import { HTTP } from '@venizia/ignis-helpers/common';
+
+throw getError({
+  message: 'Something failed',
+  statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+  messageCode: 'ERR_INTERNAL',
+});
+throw new ApplicationError({ message: 'Not found', statusCode: HTTP.ResultCodes.RS_4.NotFound });
+throw new ApplicationError({
+  message: { text: 'Not found', code: 'core.user.not_found' },
+  statusCode: HTTP.ResultCodes.RS_4.NotFound,
+});
 
 // The code and args are read off `normalized`, never off the error directly.
 error.normalized.code; // 'err_internal'
@@ -493,18 +508,18 @@ Logger.debug('Resolved binding: %s', key);          // console.log('[DEBUG] ...'
 type TNullable<T> = T | undefined | null;
 type ValueOrPromise<T> = T | Promise<T>;
 type ValueOf<T> = T[keyof T];
-type TConstructor<T> = new (...args: any[]) => T;
-type TAbstractConstructor<T> = abstract new (...args: any[]) => T;
-type TClass<T> = TConstructor<T> & { [property: string]: any };
-type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {};
+type TConstructor<T> = new (...args: AnyType[]) => T;
+type TAbstractConstructor<T> = abstract new (...args: AnyType[]) => T;
+type TClass<T> = TConstructor<T> & { [property: string]: AnyType };
+type TConstValue<T extends TClass<AnyType>> = Extract<ValueOf<T>, string | number> & {};
 type TBindingKey = string | symbol;
 type AnyType = any;
 
 interface IBindingTag {
-  [name: string]: any;
+  [name: string]: AnyType;
 }
 
-function isClass<T>(target: any): target is TClass<T>;
+function isClass<T>(target: AnyType): target is TClass<T>;
 ```
 
 `isClass` tests `typeof target === 'function' && target.prototype !== undefined` plus a regex match on the function's stringified source (`/^class[\s{]/`). It relies on the class being emitted as an ES2015+ `class`, not transpiled down to an ES5 constructor function.
@@ -514,7 +529,7 @@ interface IProvider<T> {
   value(container: IContainer): T;
 }
 
-function isClassProvider<T>(target: any): target is TClass<IProvider<T>>;
+function isClassProvider<T>(target: AnyType): target is TClass<IProvider<T>>;
 ```
 
 `value` takes `IContainer`, the interface, not the concrete `Container` class. `binding/` and `container/` talk only through that interface, which is what keeps the two folders free of an import cycle.

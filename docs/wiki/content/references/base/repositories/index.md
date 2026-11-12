@@ -239,13 +239,17 @@ new HttpDataSource({
 
 | Setting | Meaning |
 |---|---|
-| `baseUrl` | An absolute URL, or a path from the page origin (`/api`). A path-relative one (`api`) is refused: it would follow the current route. So is one with a `?` or `#`: the request paths would end up inside the query. |
+| `baseUrl` | An absolute URL, or a path from the page origin (`/api`) |
 | `errorRootKey` | The server's `error.rootKey`. Without it, a wrapped error envelope reads as `core.system_error`. |
 | `headers` | Sent on every request. |
 | `headersResolver` | Headers for this request. Wins over `headers`. |
 | `authToken` / `authTokenResolver` | The token. A fixed `authToken` wins and goes on every request; the resolver answering `undefined` sends none. |
 | `onUnauthorized` | Runs on a 401; `true` retries once, `false` lets it stand. A call whose `signal` aborted meanwhile is not retried. |
-| `fetch` | What sends a request: `(url, init) => Promise<Response>`. The platform `fetch` when unset, looked up on each call. Name one to route through a test double, a proxy or an instrumented client. |
+| `fetch` | What sends a request: `(url, init) => Promise<Response>` |
+
+A path-relative `baseUrl` (`api`) is refused: it would follow the current route. So is one with a `?` or `#`: the request paths would end up inside the query.
+
+`fetch` is the platform `fetch` when unset, looked up on each call. Name one to route through a test double, a proxy or an instrumented client.
 
 One call adds its own headers and an abort signal through `options`, on every verb:
 

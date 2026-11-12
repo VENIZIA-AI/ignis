@@ -66,7 +66,8 @@ The 0.4 line added the pieces a multi-tenant API needs. Each links to its guide 
 
 | Need | What IGNIS gives you |
 |---|---|
-| Keep a caller inside its own rows | An `access` scope on the model; creates and updates are checked against it, and shared rows need `write.sharedRows` ([Model settings](../core-concepts/persistent/model-settings)) |
+| Keep a caller inside its own rows | An `access` scope on the model ([Model settings](../core-concepts/persistent/model-settings)) |
+| Write to shared rows | `write.sharedRows` in the model's `access` scope |
 | Default filters and limits per model | `query.filter` and `query.limit` in the model settings |
 | Safe CRUD controllers | `CrudControllerFactory.build` refuses to boot when a listed write route would inherit a read-only `authorize` |
 | Scoped search | `SearchControllerFactory.build({ scope })` applies the scope on the server |

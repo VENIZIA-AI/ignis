@@ -39,10 +39,12 @@ export const buildUploads = (opts: { storage: BunS3Helper }): TStaticAssetCompon
 
 | Needs | Why |
 |---|---|
-| a `BunS3Helper` | A policy is a POST policy, and only S3 can sign one. A `DiskHelper` is refused. |
-| a `bucket` | A policy names one bucket, and a bucket in the URL is a bucket the caller chooses. Every entry has one. |
-| a `keyPrefix` | It keeps the pending files outside everything the routes serve. See [The pending prefix](./security#the-pending-prefix). |
-| `resolvers.owner` | A token is signed for one owner, and only that owner commits it. See [Resolvers](#resolvers). |
+| a `BunS3Helper` | Only S3 can sign a POST policy; a `DiskHelper` is refused |
+| a `bucket` | A policy names one bucket; a bucket in the URL would be the caller's choice |
+| a `keyPrefix` | Keeps pending files outside what the routes serve - see [The pending prefix](./security#the-pending-prefix) |
+| `resolvers.owner` | A token is signed for one owner, and only that owner commits it - see [Resolvers](#resolvers) |
+
+Every entry has a `bucket`.
 
 Three routes appear: `upload-policy`, `upload-validate` (only with a [`validation`](#validation)) and `upload-commit`. Each has its own entry in `routes`, so you can move, guard or drop it. Dropping `upload-commit` leaves the commit to your own code: see [Who commits, and with which token](#who-commits-and-with-which-token).
 
@@ -78,32 +80,46 @@ The commit is not ceremony. Storage tells your backend nothing, so without it th
 ## The browser, step by step
 
 ```ts
-interface IUploadPolicy {
-  postURL: string;
-  formData: Record<string, string>;
-  objectName: string;
-  commitToken: string;
-  expiresAt: string;
-}
+import { HTTP } from '@venizia/ignis-helpers/common';
+import { z } from 'zod';
+
+const uploadPolicySchema = z.object({
+  postURL: z.string(),
+  formData: z.record(z.string(), z.string()),
+  objectName: z.string(),
+  commitToken: z.string(),
+  expiresAt: z.string(),
+});
+
+type TUploadPolicy = z.infer<typeof uploadPolicySchema>;
 
 export const requestPolicy = async (opts: {
   basePath: string;
   file: File;
   token: string;
-}): Promise<IUploadPolicy> => {
+}): Promise<TUploadPolicy> => {
   const response = await fetch(`${opts.basePath}/upload-policy`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${opts.token}` },
+    headers: {
+      [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON,
+      [HTTP.Headers.AUTHORIZATION]: `Bearer ${opts.token}`,
+    },
     body: JSON.stringify({
       files: [{ fileName: opts.file.name, contentType: opts.file.type, size: opts.file.size }],
     }),
   });
-  const policies = (await response.json()) as IUploadPolicy[];
 
-  return policies[0];
+  if (!response.ok) {
+    throw new Error(`Policy request failed: ${response.status}`);
+  }
+
+  const body = await response.json();
+  const [policy] = z.array(uploadPolicySchema).min(1).parse(body);
+
+  return policy;
 };
 
-export const postToStorage = async (opts: { policy: IUploadPolicy; file: File }): Promise<void> => {
+export const postToStorage = async (opts: { policy: TUploadPolicy; file: File }): Promise<void> => {
   const form = new FormData();
   const formFields = Object.entries(opts.policy.formData);
 
@@ -131,30 +147,43 @@ export const postToStorage = async (opts: { policy: IUploadPolicy; file: File })
 Then validate, and commit with the token validate returns:
 
 ```ts
-interface ICellIssue {
-  sheet: string;
-  row: number;
-  column: string;
-  code: string;
-  message: string;
-}
+// The same shape as the `issueSchema` you pass to `validation` on the server.
+const cellIssueSchema = z.object({
+  sheet: z.string(),
+  row: z.number().int(),
+  column: z.string(),
+  code: z.string(),
+  message: z.string(),
+});
+
+const validateAnswerSchema = z.object({
+  isValid: z.boolean(),
+  issues: z.array(cellIssueSchema),
+  commitToken: z.string().optional(),
+});
+
+type TValidateAnswer = z.infer<typeof validateAnswerSchema>;
 
 export const validateUpload = async (opts: {
   basePath: string;
   commitToken: string;
   token: string;
-}): Promise<{ isValid: boolean; issues: ICellIssue[]; commitToken?: string }> => {
+}): Promise<TValidateAnswer> => {
   const response = await fetch(`${opts.basePath}/upload-validate`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${opts.token}` },
+    headers: {
+      [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON,
+      [HTTP.Headers.AUTHORIZATION]: `Bearer ${opts.token}`,
+    },
     body: JSON.stringify({ commitToken: opts.commitToken }),
   });
 
-  return (await response.json()) as {
-    isValid: boolean;
-    issues: ICellIssue[];
-    commitToken?: string;
-  };
+  if (!response.ok) {
+    throw new Error(`Validate request failed: ${response.status}`);
+  }
+
+  const body = await response.json();
+  return validateAnswerSchema.parse(body);
 };
 
 export const commitUpload = async (opts: {
@@ -165,7 +194,10 @@ export const commitUpload = async (opts: {
 }): Promise<Response> => {
   return fetch(`${opts.basePath}/upload-commit`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${opts.token}` },
+    headers: {
+      [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON,
+      [HTTP.Headers.AUTHORIZATION]: `Bearer ${opts.token}`,
+    },
     body: JSON.stringify({
       commitToken: opts.commitToken,
       principalType: 'Product',
@@ -179,6 +211,9 @@ export const commitUpload = async (opts: {
 Pass `commitToken` from the validate answer to `commitUpload`, not the one the policy issued. With `validation` off there is no validate call, and commit takes the policy's token. The four combinations are in [Who commits, and with which token](#who-commits-and-with-which-token).
 
 The commit body takes the same labels as a [server upload](./server-upload#the-request), except `folderPath`: the key, and so the folder, was fixed when the policy was issued. Labels are read from the body only; a label in the URL is ignored. A `sequence` that is not an integer fails the body's validation with the standard validation error.
+
+> [!WARNING]
+> The labels in the commit body are what the client says, not who the client is: a caller can send another user's `principalId`, and the row records it. The authority is the token: its `owner` and the `metadata` your `resolvers.metadata` signed into it. Never authorize from a label; read those two from the commit answer instead.
 
 A runnable page that performs the steps and prints each request is at [`/direct-upload-demo.html`](/direct-upload-demo.html). Open your browser's Network tab while it runs and watch the post leave without touching the backend.
 
@@ -287,8 +322,12 @@ Two switches decide who commits and which token commit takes. Both have a defaul
 
 | Switch | On | Off |
 |---|---|---|
-| `directUpload.validation` | `{ use: true, ... }`: the `upload-validate` route exists, and `commit` accepts only a `validated` token, the one validate returned. | `{ use: false }`: no validate route. `commit` takes the `issued` token from `upload-policy`. |
-| `routes.uploadCommit` | The default. The client calls `POST {basePath}/upload-commit`. | `{ use: false }`: the route does not exist. Your own code commits through `StaticAssetUploadCommitService.commit({ token, owner, labels?, destination? })`. |
+| `directUpload.validation` | `{ use: true, ... }`: validate route exists | `{ use: false }`: no validate route |
+| `routes.uploadCommit` | The default: the client calls `POST {basePath}/upload-commit` | `{ use: false }`: no commit route |
+
+- With validation on, `commit` accepts only a `validated` token, the one validate returned.
+- With validation off, `commit` takes the `issued` token from `upload-policy`.
+- With the commit route off, your own code commits through `StaticAssetUploadCommitService.commit({ token, owner, labels?, destination? })`.
 
 Inject the service with `@inject({ key: StaticAssetBindingKeys.commitService({ name }) })`. `name` is the entry's key in the options object, not the controller name.
 
@@ -365,7 +404,10 @@ export const commitWithPolicyToken = async (opts: {
 }): Promise<Response> => {
   return fetch(`${opts.basePath}/upload-commit`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${opts.token}` },
+    headers: {
+      [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON,
+      [HTTP.Headers.AUTHORIZATION]: `Bearer ${opts.token}`,
+    },
     body: JSON.stringify({ commitToken: opts.policyCommitToken }),
   });
 };
@@ -406,25 +448,37 @@ POST /assets/upload-commit
 ```
 
 ```ts
-interface IValidateAnswer {
-  isValid: boolean;
-  issues: unknown[];
-  commitToken?: string;
-}
+import { HTTP } from '@venizia/ignis-helpers/common';
+import { z } from 'zod';
+
+const validateAnswerSchema = z.object({
+  isValid: z.boolean(),
+  issues: z.array(z.unknown()),
+  commitToken: z.string().optional(),
+});
 
 export const validateThenCommit = async (opts: {
   basePath: string;
   policyCommitToken: string;
   token: string;
 }): Promise<Response | undefined> => {
-  const headers = { 'content-type': 'application/json', authorization: `Bearer ${opts.token}` };
+  const headers = {
+    [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON,
+    [HTTP.Headers.AUTHORIZATION]: `Bearer ${opts.token}`,
+  };
 
   const validated = await fetch(`${opts.basePath}/upload-validate`, {
     method: 'POST',
     headers,
     body: JSON.stringify({ commitToken: opts.policyCommitToken }),
   });
-  const answer = (await validated.json()) as IValidateAnswer;
+
+  if (!validated.ok) {
+    throw new Error(`Validate request failed: ${validated.status}`);
+  }
+
+  const body = await validated.json();
+  const answer = validateAnswerSchema.parse(body);
 
   if (!answer.isValid || answer.commitToken === undefined) {
     return undefined;
@@ -483,7 +537,10 @@ export const saveOrderImport = async (opts: {
 }): Promise<Response> => {
   return fetch(opts.endpoint, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${opts.token}` },
+    headers: {
+      [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON,
+      [HTTP.Headers.AUTHORIZATION]: `Bearer ${opts.token}`,
+    },
     body: JSON.stringify({ commitToken: opts.policyCommitToken, orderId: opts.orderId }),
   });
 };
@@ -538,12 +595,29 @@ A file that is posted and never committed stays under `pendingPrefix`. It has no
 
 The routes are thin wrappers over two services. The component binds one of each per entry that switches `directUpload` on, so your code can issue a policy, check an upload or commit it without an HTTP call to its own server.
 
-| Service | Key | Methods |
+### StaticAssetUploadPolicyService
+
+Binding key: `StaticAssetBindingKeys.policyService({ name })`
+
+| Method | Does | Returns |
 |---|---|---|
-| `StaticAssetUploadPolicyService` | `StaticAssetBindingKeys.policyService({ name })` | `issuePolicies({ files, owner })`: one signed policy per file, each good for one key. `files[].metadata` is what the token signs for that file. |
-| `StaticAssetUploadCommitService` | `StaticAssetBindingKeys.commitService({ name })` | `verify({ token, owner })`: the checks a commit starts with, no storage call, answers the pending `{ bucket, object, owner, metadata }`. |
-| | | `validate({ token, owner })`: `verify`, pin the content, run your `validation` once. A valid file answers `{ isValid: true, issues: [], commitToken }`. With `validation` off it still pins and answers a `commitToken`. |
-| | | `commit({ token, owner, labels?, destination? })`: `verify`, copy the pinned content to the final key, remove the pending object, write the MetaLink row. Never runs your `validation`. With `validation` on it needs the validated token. Answers `{ bucket, object, owner, metadata, link, metaLink? }`. |
+| `issuePolicies({ files, owner })` | Signs one policy per file, each good for one key | One policy per file |
+
+`files[].metadata` is what the token signs for that file.
+
+### StaticAssetUploadCommitService
+
+Binding key: `StaticAssetBindingKeys.commitService({ name })`
+
+| Method | Does | Returns |
+|---|---|---|
+| `verify({ token, owner })` | Checks the token; no storage call | `{ bucket, object, owner, metadata }` |
+| `validate({ token, owner })` | Pins the content, runs your `validation` once | `{ isValid, issues, commitToken? }` |
+| `commit({ token, owner, labels?, destination? })` | Copies the pinned content to the final key | `{ bucket, object, owner, metadata, link, metaLink? }` |
+
+- `verify` answers the pending object's `{ bucket, object, owner, metadata }`.
+- A valid `validate` answers `{ isValid: true, issues: [], commitToken }`. With `validation` off it still pins and answers a `commitToken`.
+- `commit` starts with `verify`, removes the pending object after the copy, and writes the MetaLink row. It never runs your `validation`. With `validation` on it needs the validated token.
 
 `name` is the entry's key in the options object (`orderImport`), not the controller name. The HTTP field is `commitToken`; only the service parameter is `token`. Call `validate`, then pass the `commitToken` it answers to `commit`.
 
@@ -720,15 +794,24 @@ The pending object must outlive `expires.commit`; see [clean up the pending pref
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `secretKey` | `string` | - | **Required.** Signs the commit token. Keep it out of the repository and out of the client. |
-| `maxBytes` | `number` | - | **Required.** The ceiling the policy carries as `content-length-range`. Over it answers `413` `core.static_asset.upload_too_large`. |
-| `authorize` | `({ context }) => ValueOrPromise<boolean>` | the entry's `auth` | Who may use direct upload. Guards every direct-upload route: `false` answers `403` `core.static_asset.upload_not_authorized` before the body is read or storage is touched. May be left out only when `auth` authenticates or authorizes; with neither, the entry refuses to start. |
-| `resolvers` | `{ owner, metadata?, commit?: { destination? } }` | - | **Required**, `owner` included. See [Resolvers](#resolvers). |
-| `maxFiles` | `number` | `20` | Most files one policy request may name. More answers `422`. |
-| `pendingPrefix` | `string` | `'pending/'` | Where a policy may write. Not empty, ends with `/`, valid key segments, and neither inside `keyPrefix` nor containing it. The final key is never inside it. See [The pending prefix](./security#the-pending-prefix). |
-| `expires.upload` | `IDuration` | 15 minutes | The policy's lifetime. |
-| `expires.commit` | `IDuration` | `expires.upload` | The token's lifetime. |
-| `validation` | `{ use: false }` or `StaticAssetValidation.define(...)` | - | **Required.** Your check of the pending file. On, `commit` takes only the `validated` token. See [Validation](#validation) and [Who commits](#who-commits-and-with-which-token). |
+| `secretKey` | `string` | - | **Required.** Signs the commit token |
+| `maxBytes` | `number` | - | **Required.** The ceiling the policy carries as `content-length-range` |
+| `authorize` | `({ context }) => ValueOrPromise<boolean>` | the entry's `auth` | Who may use direct upload |
+| `resolvers` | `{ owner, metadata?, commit?: { destination? } }` | - | **Required**, `owner` included - see [Resolvers](#resolvers) |
+| `maxFiles` | `number` | `20` | Most files one policy request may name |
+| `pendingPrefix` | `string` | `'pending/'` | Where a policy may write |
+| `expires.upload` | `IDuration` | 15 minutes | The policy's lifetime |
+| `expires.commit` | `IDuration` | `expires.upload` | The token's lifetime |
+| `validation` | `{ use: false }` or `StaticAssetValidation.define(...)` | - | **Required.** Your check of the pending file |
+
+Notes on the options:
+
+- `secretKey`: keep it out of the repository and out of the client.
+- `maxBytes`: a file over it answers `413` `core.static_asset.upload_too_large`.
+- `authorize`: guards every direct-upload route. `false` answers `403` `core.static_asset.upload_not_authorized` before the body is read or storage is touched. It may be left out only when `auth` authenticates or authorizes; with neither, the entry refuses to start.
+- `maxFiles`: more files answers `422`.
+- `pendingPrefix`: not empty, ends with `/`, valid key segments, and neither inside `keyPrefix` nor containing it. The final key is never inside it. See [The pending prefix](./security#the-pending-prefix).
+- `validation`: on, `commit` takes only the `validated` token. See [Validation](#validation) and [Who commits](#who-commits-and-with-which-token).
 
 ## Why a policy and not a presigned PUT
 

@@ -46,8 +46,12 @@ Controllers have a simple and predictable lifecycle managed by the application.
 
 | Stage | Method | Description |
 | :--- | :--- | :--- |
-| **1. Instantiation** | `constructor(opts)` | The controller is created by the DI container. Dependencies are injected, and `super()` initializes the internal `OpenAPIHono` router. The `path` is resolved from `@controller` decorator metadata, falling back to the constructor option. |
-| **2. Configuration**| `configure()` | The application calls `configure()` which invokes `binding()` (for manual routes) and `registerRoutesFromRegistry()` (for decorator routes). This method is **idempotent** -- calling it multiple times has no effect after the first call. |
+| **1. Instantiation** | `constructor(opts)` | The DI container creates the controller and injects its dependencies |
+| **2. Configuration**| `configure()` | The application calls `configure()`, which registers the routes |
+
+`super()` initializes the internal `OpenAPIHono` router. The `path` is resolved from `@controller` decorator metadata, falling back to the constructor option.
+
+`configure()` invokes `binding()` (for manual routes) and `registerRoutesFromRegistry()` (for decorator routes). It is **idempotent**: calling it again has no effect after the first call.
 
 ## Defining Routes with Decorators (Recommended)
 

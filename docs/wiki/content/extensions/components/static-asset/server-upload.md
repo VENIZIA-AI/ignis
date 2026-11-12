@@ -33,6 +33,8 @@ The route is `POST /documents/objects`.
 `multipart/form-data`. Send the files in `files` (repeat the field for several), and put the labels in form fields beside them. Labels are read from the body only: a label in the URL is ignored, because an identifier in a query string lands in every access log on the way.
 
 ```ts
+import { HTTP } from '@venizia/ignis-helpers/common';
+
 export const uploadDocuments = async (opts: {
   files: File[];
   productId: string;
@@ -52,7 +54,7 @@ export const uploadDocuments = async (opts: {
 
   return fetch('/documents/objects', {
     method: 'POST',
-    headers: { authorization: `Bearer ${opts.token}` },
+    headers: { [HTTP.Headers.AUTHORIZATION]: `Bearer ${opts.token}` },
     body: form,
   });
 };
@@ -61,8 +63,10 @@ export const uploadDocuments = async (opts: {
 | Field | Meaning |
 |---|---|
 | `files` | The file or files to store. Required. |
-| `folderPath` | Target folder under the entry's scope, for example `manuals/2026`. The storage helper checks it against the entry's [`maxFolderDepth`](./api#entry-options). |
-| `principalType`, `principalId`, `variant`, `sequence` | Labels written to the MetaLink row. `sequence` is the display order within the principal, and must be an integer. All optional. |
+| `folderPath` | Target folder under the entry's scope, for example `manuals/2026` |
+| `principalType`, `principalId`, `variant`, `sequence` | Labels written to the MetaLink row. All optional |
+
+The storage helper checks `folderPath` against the entry's [`maxFolderDepth`](./api#entry-options). `sequence` is the display order within the principal, and must be an integer.
 
 A label that is not the right shape (a `sequence` of `first`, say) is the standard validation error (`422`), and nothing is written.
 
@@ -92,9 +96,11 @@ One entry per file, in the order sent:
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `maxBytes` | `number` | no ceiling | Largest file. The route's body limit (`maxFiles` x `maxBytes` plus framing) is checked before the body is read, then each file. A body over the limit answers `413` `core.request.body_too_large`; a file over `maxBytes` answers `413` `core.static_asset.upload_too_large`. |
+| `maxBytes` | `number` | no ceiling | Largest file |
 | `maxFiles` | `number` | `20` | Most file parts one request may carry. More answers `413` before anything is written. |
 | `objectKey` | `({ bucket, file, defaultKey }) => string` | `<keyPrefix><folderPath>/<uuid>/<name>` | The one hook that decides the stored key. |
+
+The route's body limit (`maxFiles` x `maxBytes` plus framing) is checked before the body is read, then each file. A body over the limit answers `413` `core.request.body_too_large`; a file over `maxBytes` answers `413` `core.static_asset.upload_too_large`.
 
 ### Choose the stored key
 

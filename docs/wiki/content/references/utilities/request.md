@@ -52,8 +52,14 @@ export class FileController extends BaseRestController {
 | `FormBodyUtility.readFormBody` | `readFormBody(opts: { req: { formData: () => Promise<FormData> } }): Promise<FormData>` | Reads a form body through the request's own cache, so a later `formData()` call on the same request gets the same result. A body the runtime cannot parse becomes `400 core.request.body_malformed` here, instead of the runtime's own error, which renders as a `500`. On the root barrel and on `@venizia/ignis-helpers/core`; its error definition, `RequestBodyErrors`, is on `/core` only - use the kernel's `RequestErrors.BODY_MALFORMED` instead, which is the same object. |
 | `RequestUtility.sanitizeFilename` | `sanitizeFilename({ filename: string }): string` | Strips path components and dangerous characters from `filename`. Returns `'download'` for empty or suspicious input. |
 | `RequestUtility.encodeRfc5987` | `encodeRfc5987({ filename: string }): string` | RFC 5987 encodes `filename` for the `filename*` header parameter (`encodeURIComponent` plus escaped `'`, `(`, `)`, `*`). |
-| `RequestUtility.buildContentDispositionHeader` | `buildContentDispositionHeader(opts: { filename: string; type: 'attachment' \| 'inline' }): string` | Builds a full `Content-Disposition` value: sanitizes the filename, then emits both the ASCII `filename=` and UTF-8 `filename*=` forms. |
+| `RequestUtility.buildContentDispositionHeader` | `buildContentDispositionHeader(opts: { filename: string; type: 'attachment' \| 'inline' }): string` | Builds a full `Content-Disposition` value, sanitizing the filename |
 | `RequestUtility.parseContentDisposition` | `parseContentDisposition({ header: string \| null \| undefined }): { type?: string; filename?: string }` | Reads the type and filename back out of a `Content-Disposition` value; `filename*` wins over `filename`. |
+
+`parseMultipartBody` reads the body through `FormBodyUtility.readFormBody`. It returns `{ files, fields }`: a form carries both, and text fields posted beside a file are part of the upload. A repeated field name keeps the last value.
+
+`readFormBody` goes through the request's own cache, so a later `formData()` call on the same request gets the same result. A body the runtime cannot parse becomes `400 core.request.body_malformed` here, instead of the runtime's own error, which renders as a `500`. It is on the root barrel and on `@venizia/ignis-helpers/core`; its error definition, `RequestBodyErrors`, is on `/core` only - use the kernel's `RequestErrors.BODY_MALFORMED` instead, which is the same object.
+
+`buildContentDispositionHeader` emits both the ASCII `filename=` and the UTF-8 `filename*=` forms.
 
 ## Parsed file shape
 

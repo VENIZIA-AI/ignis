@@ -110,8 +110,10 @@ getRequestUrl(opts: {
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `baseUrl` | `string` | Overrides the instance's base URL. Falls back to `this.baseUrl`. An explicit empty string does **not** fall back - it throws |
+| `baseUrl` | `string` | Overrides the instance's base URL; falls back to `this.baseUrl` |
 | `paths` | `string[]` | Path segments to append. Each is prefixed with `/` if missing |
+
+An explicit empty `baseUrl` does **not** fall back - it throws.
 
 **Throws:** `ApplicationError` (via `getError`, `statusCode: 500`) with message `'[getRequestUrl] Invalid configuration for third party request base url!'` when both `opts.baseUrl` and `this.baseUrl` resolve to empty.
 
@@ -472,9 +474,11 @@ Writes `params` as a query string without `node:querystring`, so it works in a b
 | Option | Value | Effect |
 |---|---|---|
 | `nullish` | `'empty'` (default) | `a=` |
-| | `'skip'` | the pair is left out (inside an array too) |
-| `nested` | `'drop'` (default) | an object is an empty value; an array repeats its key |
-| | `'json'` | an object **or an array** is ONE JSON parameter: `ids=%5B1%2C2%5D`, `filter=%7B%22where%22...`; primitives are unchanged |
+| `nullish` | `'skip'` | The pair is left out (inside an array too) |
+| `nested` | `'drop'` (default) | An object is an empty value; an array repeats its key |
+| `nested` | `'json'` | An object **or an array** is ONE JSON parameter |
+
+With `nested: 'json'` an array becomes `ids=%5B1%2C2%5D` and an object `filter=%7B%22where%22...`; primitives are unchanged.
 
 A client that sends a JSON filter passes `{ nullish: 'skip', nested: 'json' }`, through `NodeFetchNetworkRequest`'s `networkOptions.queryString`.
 
@@ -490,12 +494,10 @@ await this.getNetworkService().post({ url, body }, this.logger);
 
 Whenever a logger is passed, IGNIS runs the assembled request config through `RedactUtility.redactSecrets()` before the log line is written. That covers `url`, `method`, `headers`, `body`/`data`, and any other option. Redaction matches by key name, case-insensitively, at any depth, against `SECRET_KEY_PATTERN`:
 
-| Key group | Matched spellings |
-|-----------|--------------------|
-| Options-object (camelCase) | `pass`, `password`, `passphrase`, `secret`, `token`, `apiKey`, `accessKey`, `secretKey`, `privateKey`, `key`, `cert`, `ca`, `pfx`, `credential`, `credentials`, `authorization`, `auth`, `jwtSecret`, `applicationSecret`, `connectionString` |
-| Options-object (snake_case) | `api_key`, `access_key`, `secret_key`, `private_key` |
-| Prefixed suffix rules | any key ending in `_token` / `Token`, `_secret` / `Secret`, `_password` / `Password`, or `_credential(s)` / `Credential(s)` (`dbCredential`, `webhookSecret`, `admin_password`) |
-| HTTP header spellings | `cookie`, `set-cookie`, `proxy-authorization`, `www-authenticate`, and any `(x-)?(api\|auth\|access\|secret\|session\|csrf\|xsrf)-(key\|token\|secret\|id)` pattern (e.g. `x-api-key`, `x-auth-token`, `x-csrf-token`) |
+- **Options-object (camelCase):** `pass`, `password`, `passphrase`, `secret`, `token`, `apiKey`, `accessKey`, `secretKey`, `privateKey`, `key`, `cert`, `ca`, `pfx`, `credential`, `credentials`, `authorization`, `auth`, `jwtSecret`, `applicationSecret`, `connectionString`.
+- **Options-object (snake_case):** `api_key`, `access_key`, `secret_key`, `private_key`.
+- **Prefixed suffix rules:** any key ending in `_token` / `Token`, `_secret` / `Secret`, `_password` / `Password`, or `_credential(s)` / `Credential(s)` (`dbCredential`, `webhookSecret`, `admin_password`).
+- **HTTP header spellings:** `cookie`, `set-cookie`, `proxy-authorization`, `www-authenticate`, and any `(x-)?(api\|auth\|access\|secret\|session\|csrf\|xsrf)-(key\|token\|secret\|id)` pattern (for example `x-api-key`, `x-auth-token`, `x-csrf-token`).
 
 Source: [`redact.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/redact.ts) `SECRET_KEY_PATTERN`.
 
@@ -813,8 +815,10 @@ handleError(error: unknown): void                                             //
 |-----------|--------|
 | `reconnect` is `false` | No reconnect - the first guard returns immediately |
 | `retry.currentReconnect >= retry.maxReconnect` | No reconnect - the first guard returns immediately |
-| `maxReconnect === -1` | **No reconnect, ever.** `currentReconnect` starts at `0`, and `0 >= -1` is already true, so the first guard returns before any attempt is made |
+| `maxReconnect === -1` | **No reconnect, ever** (see below) |
 | `reconnect` is `true` and `currentReconnect < maxReconnect` (with `maxReconnect >= 0`) | Reconnect scheduled |
+
+With `maxReconnect === -1`, `currentReconnect` starts at `0` and `0 >= -1` is already true, so the first guard returns before any attempt is made.
 
 > [!IMPORTANT]
 > - **`maxReconnect: -1` does not mean unlimited reconnects - it disables reconnection entirely.** That is the opposite of the "`-1` = unlimited" convention used elsewhere in the framework - the Redis retry helper, for example.
@@ -976,7 +980,7 @@ handleError(opts: { identifier: string; error: Error }): void
 ### TFetcherVariant / TFetcherResponse / TFetcherWorker
 
 ```typescript
-type TFetcherVariant = 'node-fetch' | 'axios';
+type TFetcherVariant = TConstValue<typeof FetcherVariants>; // 'node-fetch' | 'axios'
 
 type TFetcherResponse<T extends TFetcherVariant> =
   T extends 'node-fetch' ? Response : AxiosResponse;
@@ -1120,7 +1124,9 @@ Every field is per call. An application that must reach plain `http` on one rout
 | `maxRedirects` | `number` | `3` | Hops allowed. Each one is re-checked |
 | `timeout` | `IDuration` | 10 seconds | A slow host holds a worker slot for exactly this long |
 | `maxBytes` | `number` | `10485760` (10 MB) | The read stops and cancels the moment the body crosses it |
-| `proxy` | `string` | - | `http://host:port` of a proxy `fetchGuarded` sends the request through. The address check still runs, the connection is NOT pinned: the proxy resolves the name. The environment proxy is never used |
+| `proxy` | `string` | - | `http://host:port` of a proxy `fetchGuarded` sends the request through |
+
+`proxy`: the address check still runs, but the connection is NOT pinned, because the proxy resolves the name. The environment proxy is never used.
 
 `timeout` takes an `IDuration`, not a number of milliseconds. `UrlSafetyDefaults` holds the raw values: `ALLOWED_SCHEMES`, `ALLOW_PRIVATE_ADDRESS`, `MAX_REDIRECTS`, `TIMEOUT_MILLISECONDS`, `MAX_BYTES`. `UrlSchemes` holds `HTTP` (`'http:'`) and `HTTPS` (`'https:'`), with the trailing colon that `URL.protocol` returns.
 
@@ -1144,9 +1150,11 @@ An IPv6 literal is expanded to its eight 16-bit groups before it is classified, 
 |---|---|---|
 | `assertPublicHost` | `(opts: { hostname: string; policy? }): Promise<void>` | Resolves the host and rejects if **any** address is non-public |
 | `assertReachableUrl` | `(opts: { url: string; policy? }): Promise<URL>` | Both halves, in the order they must run: shape, then network |
-| `fetchGuarded` | `(opts: { url: string; policy?; method?; headers?; body? }): Promise<Response>` | A request an untrusted url cannot steer inside your network. GET by default; `method`, `headers` and `body` (text or bytes) make it a signed webhook dispatch. Connects to the address it vetted |
+| `fetchGuarded` | `(opts: { url: string; policy?; method?; headers?; body? }): Promise<Response>` | A request an untrusted url cannot steer inside your network; connects to the address it vetted |
 | `readCappedBody` | `(opts: { response: Response; policy? }): Promise<Buffer>` | Reads a body, cancelling the moment it crosses `maxBytes` |
 | `capStream` | `(opts: { source: ReadableStream<Uint8Array>; policy? }): ReadableStream<Uint8Array>` | Enforces `maxBytes` on a stream you pipe onward instead of buffering |
+
+`fetchGuarded` sends a GET by default; `method`, `headers` and `body` (text or bytes) make it a signed webhook dispatch.
 
 `assertPublicHost` checks every resolved address, not the first. A host can publish one public A record beside an internal one.
 
@@ -1168,11 +1176,16 @@ const body = await UrlIngest.readCappedBody({ response, policy: { maxBytes: 2 * 
 ```
 
 ```typescript
+import { HTTP } from '@venizia/ignis-helpers/common';
+
 // A signed webhook dispatch to a customer-supplied url.
 const response = await UrlIngest.fetchGuarded({
   url: customerWebhookUrl,
   method: 'POST',
-  headers: { 'content-type': 'application/json', 'x-signature': signature },
+  headers: {
+    [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON,
+    'x-signature': signature,
+  },
   body: JSON.stringify(event),
 });
 ```

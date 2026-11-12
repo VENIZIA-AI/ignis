@@ -67,13 +67,21 @@ export const listInvoices = async (): Promise<unknown> => {
 ## Delete an object
 
 ```ts
+import { z } from 'zod';
+
 export const deleteInvoice = async (): Promise<boolean> => {
   const objectName = 'invoices/2026/document.pdf';
 
   const response = await fetch(`/assets/objects/${encodeURIComponent(objectName)}`, {
     method: 'DELETE',
   });
-  const { success } = (await response.json()) as { success: boolean };
+
+  if (!response.ok) {
+    throw new Error(`Delete failed: ${response.status}`);
+  }
+
+  const body = await response.json();
+  const { success } = z.object({ success: z.boolean() }).parse(body);
 
   return success;
 };
@@ -86,13 +94,21 @@ Deleting is idempotent: an object that is already gone answers `200` too. With `
 `PUT /assets/meta-links/:objectName` is only registered when `metaLink` is switched on. It re-reads the file's current storage metadata via `helper.getStat()`, then refreshes every existing row for that object, or creates one if none exists.
 
 ```ts
+import { z } from 'zod';
+
 export const syncMetaLink = async (): Promise<string> => {
   const objectName = 'invoices/2026/document.pdf';
 
   const response = await fetch(`/assets/meta-links/${encodeURIComponent(objectName)}`, {
     method: 'PUT',
   });
-  const { action } = (await response.json()) as { action: 'refreshed' | 'created' };
+
+  if (!response.ok) {
+    throw new Error(`Sync failed: ${response.status}`);
+  }
+
+  const body = await response.json();
+  const { action } = z.object({ action: z.enum(['refreshed', 'created']) }).parse(body);
 
   // 'refreshed' when rows for the object existed, 'created' when none did
   return action;

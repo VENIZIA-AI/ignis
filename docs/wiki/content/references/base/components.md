@@ -308,8 +308,10 @@ The `super()` constructor in your component can take the following options:
 | Option | Type | Description |
 | :--- | :--- | :--- |
 | `scope` | `string` | **Required.** A unique name for the component, typically `MyComponent.name`. Used for logging. |
-| `initDefault` | `{ enable: false } \| { enable: true; container: Container }` | If `enable` is `true`, the `bindings` defined below will be automatically registered with the provided `container` (usually the application instance) when `configure()` is called - but only if they are not already bound. Defaults to `{ enable: false }`. |
-| `bindings` | `Record<string \| symbol, Binding>` | An object where keys are binding keys and values are `Binding` instances. These are the default services, values, or providers that your component offers. Defaults to `{}`. |
+| `initDefault` | `{ enable: false } \| { enable: true; container: Container }` | Auto-registers `bindings` with the given `container` when `configure()` runs. Defaults to `{ enable: false }`. |
+| `bindings` | `Record<string \| symbol, Binding>` | Binding keys mapped to `Binding` instances: the defaults your component offers. Defaults to `{}`. |
+
+With `initDefault.enable` set, `container` is usually the application instance, and a binding is registered only if it is not already bound. `bindings` holds the default services, values, or providers.
 
 ### Properties
 
@@ -702,10 +704,12 @@ The shipped `ApiReferenceComponent` does **not** use this pattern: it passes `in
 | Component | Key Features |
 |-----------|-------------|
 | **HealthCheckComponent** | `GET /health` (default path, configurable). Registers `HealthCheckController` with `GET /` and `POST /ping` endpoints. |
-| **ApiReferenceComponent** | OpenAPI doc at `/doc/openapi.json`, UI at `/doc/explorer` (Scalar by default, Swagger UI also supported). Auto-populates app info and server URL. Registers JWT and Basic security schemes. |
-| **AuthenticateComponent** | JWT and/or Basic auth strategies. Optional auth controller (`signIn`/`signUp`). Token services (`JWSTokenService`, `BasicTokenService`). |
+| **ApiReferenceComponent** | OpenAPI doc at `/doc/openapi.json`, UI at `/doc/explorer` (Scalar or Swagger UI) |
+| **AuthenticateComponent** | JWT and/or Basic auth strategies, optional auth controller, token services |
 | **AuthorizeComponent** | Casbin-based RBAC, permission mapping, `authorize()` middleware. |
-| **RequestTrackerComponent** | Registers one binding, `RequestSpyMiddleware`, for the access log and request body parsing. It installs no request id: `RestApplication.registerDefaultMiddlewares()` already did that, earlier, through `RequestIdGenerator`. |
+| **RequestTrackerComponent** | Registers `RequestSpyMiddleware` for the access log and request body parsing |
+
+`ApiReferenceComponent` also fills in the app info and server URL, and registers the JWT and Basic security schemes. `AuthenticateComponent` provides `JWSTokenService` and `BasicTokenService`, and the optional auth controller has `signIn` and `signUp`. `RequestTrackerComponent` installs no request id: `RestApplication.registerDefaultMiddlewares()` already did that, earlier, through `RequestIdGenerator`.
 
 ### Excluded from Barrel (Import Directly)
 
@@ -720,8 +724,10 @@ The shipped `ApiReferenceComponent` does **not** use this pattern: it passes `in
 
 | Component | When Used |
 |-----------|-----------|
-| **RestComponent** | Instantiated by `registerControllers()` when `transports` includes `'rest'` (the default). Discovers and mounts REST controllers. |
-| **GrpcComponent** | Instantiated by `registerControllers()` when `transports` includes `'grpc'`. Discovers and mounts gRPC controllers (ConnectRPC over HTTP). |
+| **RestComponent** | `registerControllers()` creates it when `transports` includes `'rest'` (the default) |
+| **GrpcComponent** | `registerControllers()` creates it when `transports` includes `'grpc'` |
+
+`RestComponent` discovers and mounts REST controllers. `GrpcComponent` discovers and mounts gRPC controllers (ConnectRPC over HTTP).
 
 
 ## Exposing and Consuming Component Options

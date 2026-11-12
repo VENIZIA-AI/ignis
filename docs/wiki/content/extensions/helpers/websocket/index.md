@@ -19,13 +19,16 @@ The smallest working server: authenticate, then send.
 
 ```typescript
 import { WebSocketServerHelper } from '@venizia/ignis-helpers';
+import { z } from '@hono/zod-openapi';
+
+const AuthDataSchema = z.object({ token: z.string() });
 
 const helper = new WebSocketServerHelper({
   identifier: 'my-ws-server',
   server: bunServer, // Bun.Server
   redisConnection: redis, // IRedisHelper
   authenticateFn: async data => {
-    const { token } = data as { token: string };
+    const { token } = AuthDataSchema.parse(data);
     const user = await verifyJWT(token);
     return user ? { userId: user.id } : null; // null rejects
   },

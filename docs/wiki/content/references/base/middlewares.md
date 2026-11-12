@@ -116,6 +116,8 @@ class MyApplication extends BaseApplication {
 `RestApplication.registerDefaultMiddlewares()` reads `configs.middlewares.cors` and, when it is set and `enable !== false`, installs Hono's `cors()` as the FIRST middleware, before the request id and the body limit. With no `cors` config nothing is installed.
 
 ```typescript
+import { HTTP } from '@venizia/ignis-helpers/common';
+
 const application = new MyApplication({
   scope: 'MyApp',
   config: {
@@ -126,7 +128,7 @@ const application = new MyApplication({
         enable: true,
         origin: ['https://app.example.com'],
         allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-        exposeHeaders: ['x-request-id'],
+        exposeHeaders: [HTTP.Headers.REQUEST_TRACING_ID],
         credentials: true,
         maxAge: 86_400,
       },
@@ -137,7 +139,7 @@ const application = new MyApplication({
 
 | Option | Meaning |
 |---|---|
-| `origin` | Required. A string, a list of strings or a function `(origin, context) => string \| null`. A string or a list entry may be a subdomain wildcard, see [Wildcard origins](#wildcard-origins) |
+| `origin` | Required: a string, a list or a function; see [Wildcard origins](#wildcard-origins) |
 | `path` | Where it applies. Default `'*'` |
 | `allowMethods`, `allowHeaders`, `exposeHeaders`, `maxAge`, `credentials` | Passed to Hono's `cors()`; unset keys keep Hono's defaults |
 
@@ -194,8 +196,10 @@ interface IBodyLimitOptions extends IBaseMiddlewareOptions {
 |---|---|---|---|
 | `maxSize` | `number` | `5242880` (5 MiB) when `bodyLimit` is unset | Byte ceiling. Must be a finite number `>= 0`, or the application throws at boot. |
 | `enable` | `boolean` | applies the limit unless `false` | A missing `enable` still applies the limit - fail-closed for a security control. |
-| `path` | `string` | every path | Passed to `server.use(path, limiter)` when set. With a `path`, only the routes under it are limited: the 5 MiB default is replaced, not added. |
+| `path` | `string` | every path | Passed to `server.use(path, limiter)` when set. |
 | `onError` | `(c: Context) => Response \| Promise<Response>` | throws `RequestErrors.BODY_TOO_LARGE` | Your own handler for the over-limit case. |
+
+With a `path`, only the routes under it are limited: the 5 MiB default is replaced, not added.
 
 ```typescript
 const application = new MyApplication({
@@ -339,11 +343,48 @@ z.string().refine(isEmail, {
 
 Database errors in SQLSTATE class `22` (data exception), `23` (integrity constraint), and `44` (WITH CHECK OPTION violation) are detected by class. They return HTTP `400 Bad Request`. A known code uses its specific message; any other in-class code uses `"Invalid database request"` as a fallback.
 
-| Class | Codes with a specific message |
-|-------|-------------------------------|
-| `23` Integrity | `23505` unique, `23503` foreign key, `23502` not null, `23514` check, `23P01` exclusion, `23000` integrity, `23001` restrict |
-| `22` Data exception | `22000` data exception, `22001` string too long, `22003` numeric range, `22004` null not allowed, `22007` datetime format, `22008` datetime overflow, `22009` tz displacement, `22011` substring, `22012` division by zero, `22023` invalid parameter, `22025` invalid escape, `22026` length mismatch, `22030` duplicate JSON key, `22032` invalid JSON, `22P01` floating-point, `22P02` invalid text, `22P03` invalid binary, `22P05` untranslatable char |
-| `44` View check | `44000` WITH CHECK OPTION violation |
+Codes with a specific message, by class:
+
+**Class `23` - Integrity**
+
+| Code | Meaning |
+|---|---|
+| `23505` | unique |
+| `23503` | foreign key |
+| `23502` | not null |
+| `23514` | check |
+| `23P01` | exclusion |
+| `23000` | integrity |
+| `23001` | restrict |
+
+**Class `22` - Data exception**
+
+| Code | Message for |
+|---|---|
+| `22000` | data exception |
+| `22001` | string too long |
+| `22003` | numeric range |
+| `22004` | null not allowed |
+| `22007` | datetime format |
+| `22008` | datetime overflow |
+| `22009` | tz displacement |
+| `22011` | substring |
+| `22012` | division by zero |
+| `22023` | invalid parameter |
+| `22025` | invalid escape |
+| `22026` | length mismatch |
+| `22030` | duplicate JSON key |
+| `22032` | invalid JSON |
+| `22P01` | floating-point |
+| `22P02` | invalid text |
+| `22P03` | invalid binary |
+| `22P05` | untranslatable char |
+
+**Class `44` - View check**
+
+| Code | Message for |
+|---|---|
+| `44000` | WITH CHECK OPTION violation |
 
 ##### Finding the Postgres error yourself
 
@@ -589,8 +630,10 @@ The `parseBody` method itself parses the request body based on `Content-Type`:
 | `multipart/form-data` | substring | `req.parseBody()` |
 | `application/x-www-form-urlencoded` | substring | `req.parseBody()` |
 | `application/octet-stream` | exact | `req.raw.body`, returned as the raw stream |
-| `text/*` | prefix | `req.raw.clone().text()` - the handler still reads the original. A body a middleware already read comes from Hono's cache, `req.text()` |
+| `text/*` | prefix | `req.raw.clone().text()` |
 | Other | - | not read; returns `<N bytes, content-type>` |
+
+For `text/*`, the handler still reads the original body. A body a middleware already read comes from Hono's cache, `req.text()`.
 
 Returns `null` when there is no `Content-Type` header, when `Content-Length` is exactly `'0'`, or
 when `req.raw.body` is absent. Only an explicit `'0'` short-circuits: a chunked request carries no

@@ -15,10 +15,10 @@ The 4xx rows below come from the `MailErrors` catalog, which holds the status an
 | `to` is missing or an empty array | 400 | `core.mail.invalid_recipient` | `Recipient email address is required` |
 | `subject` is falsy | 400 | `core.mail.invalid_configuration` | `Email subject is required` |
 | Both `text` and `html` are falsy | 400 | `core.mail.invalid_configuration` | `Email must have either text or html content` |
-| An address, the subject or a header value holds a line break, CR or NUL, is not a string; or a header name is not printable ASCII without a colon | 400 | `core.mail.invalid_header` | `Invalid mail header \| ...` |
+| An address, subject or header value is not a clean string, or a header name is invalid | 400 | `core.mail.invalid_header` | `Invalid mail header \| ...` |
 | `text` or `html` is not a string | 400 | `core.mail.body_source_refused` | `Mail body refused \| text and html must be strings; ...` |
 | An attachment `path` with no `attachmentRoot` set | 400 | `core.mail.attachment_path_refused` | `Mail attachment path refused \| attachment.path is read only under attachmentRoot, which is not set \| ...` |
-| An attachment `path` outside `attachmentRoot`, missing, a directory, a FIFO or unreadable | 400 | `core.mail.attachment_path_refused` | `Mail attachment path refused \| attachment.path must name a readable file inside attachmentRoot \| ...` (one message for every case) |
+| An attachment `path` outside `attachmentRoot`, missing, a directory, a FIFO or unreadable | 400 | `core.mail.attachment_path_refused` | `Mail attachment path refused \| attachment.path must name a readable file ...` |
 | An attachment `content` that is not bytes, text or a stream | 400 | `core.mail.invalid_configuration` | `Invalid mail attachment \| attachment.content must be a Buffer, a Uint8Array, a string or a stream` |
 | An attachment with `href` or `raw` | 400 | `core.mail.attachment_path_refused` | `Mail attachment path refused \| attachment.href and attachment.raw are not supported \| ...` |
 | A message's attachments over `maxAttachmentBytes` | 413 | `core.mail.attachment_too_large` | `Mail attachments are over maxAttachmentBytes (<n> bytes per message) \| ...` |
@@ -26,6 +26,8 @@ The 4xx rows below come from the `MailErrors` catalog, which holds the status an
 | Batch operation fails | 500 | `core.mail.batch_send_failed` | `Failed to send batch emails` (original in `cause`) |
 | Template engine not configured for `sendTemplate()` | 500 | `core.mail.invalid_configuration` | `Template engine not configured` |
 | Transport throws during `verify()` | 500 | `core.mail.verification_failed` | `Mail transport verification failed` (original in `cause`) |
+
+The `invalid_header` row fires when an address, the subject or a header value holds a line break, CR or NUL, or is not a string. It also fires when a header name is not printable ASCII without a colon.
 
 > [!NOTE]
 > "Transport throws during `send()`/`verify()`" only fires for a **custom** transport. The built-in `NodemailerTransportHelper`, `MailgunTransportHelper` and `AmazonSesTransportHelper` never throw from `send()` or `verify()`. They catch internally and return `{ success: false, error }` (or `false` for `verify()`). A 400 validation error raised by `validateMessage()` is re-thrown unchanged, not wrapped as `SEND_FAILED`.

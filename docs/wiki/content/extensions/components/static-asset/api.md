@@ -96,19 +96,25 @@ type TToggle<Options extends object = Record<never, never>> =
 | Option | Type | Default | Required | Meaning |
 |---|---|---|---|---|
 | `basePath` | `string` | - | yes | Where the controller is mounted. A missing leading slash is added. |
-| `bucket` | `string` or `() => string \| Promise<string>` | - | yes | The one bucket every route uses. It never appears in a URL. The function form is read per request, so an environment variable can be read lazily. The component does not create it. |
+| `bucket` | `string` or `() => string \| Promise<string>` | - | yes | The one bucket every route uses. It never appears in a URL. |
 | `helper` | `BunS3Helper` or `DiskHelper` | - | yes | The storage. It declares its own `storageType`, which MetaLink rows record. A `DiskHelper` cannot take `directUpload`. |
 | `serverUpload` | `TToggle` | - | yes | Upload through the app. See [Server upload](./server-upload#options). |
 | `directUpload` | `TToggle` | - | yes | Upload straight to S3. Needs a `BunS3Helper` and a `keyPrefix`. See [Direct upload](./direct-upload#options). |
 | `metaLink` | `TToggle` | - | yes | `{ use: true, repository }`: every upload writes a row. |
-| `name` | `string` | derived from the entry key | no | The controller's name. `staticAsset` and `static-asset` both become `StaticAssetController`; a key already ending in `Controller` keeps it. |
+| `name` | `string` | derived from the entry key | no | The controller's name, derived from the entry key. |
 | `keyPrefix` | `string` | every key in the bucket | with `directUpload` | The folder of the bucket the entry owns. See [`keyPrefix`](#keyprefix). |
 | `rawObjectPath` | `boolean` | `false` | no | `true` serves a raw nested object path (`/objects/photos/2024/f.jpg`); the percent-encoded form keeps working. |
-| `maxFolderDepth` | `number` | `2` | no | Folders a key may nest below the `keyPrefix`, for every route of the entry: reads and deletes too, so it holds for keys that arrive by direct upload or ingest. |
+| `maxFolderDepth` | `number` | `2` | no | Folders a key may nest below the `keyPrefix`. |
 | `link` | `({ bucket, object }) => string` | the controller's own object route | no | The link stored and returned for an object. |
 | `auth` | object | none: every route open | no | Authentication and authorization of every built-in route. |
 | `routes` | record | see [Routes](#routes) | no | Turn routes off, or override them. |
 | `extend` | object | none | no | Routes of your own on the generated controller. |
+
+Notes on the options:
+
+- `bucket`: the function form is read per request, so an environment variable can be read lazily. The component does not create the bucket.
+- `name`: `staticAsset` and `static-asset` both become `StaticAssetController`; a key already ending in `Controller` keeps it.
+- `maxFolderDepth`: applies to every route of the entry, reads and deletes too, so it holds for keys that arrive by direct upload or ingest.
 
 The types enforce two pairings: `directUpload` needs a `BunS3Helper`, and `directUpload` needs a `keyPrefix`. The component refuses the same combinations at start-up for callers the types do not reach. See [Start-up refusals](./errors#start-up-refusals).
 
@@ -160,13 +166,21 @@ See [Server upload](./server-upload).
 |---|---|---|---|---|
 | `secretKey` | `string` | - | yes | Signs the commit token. |
 | `maxBytes` | `number` | - | yes | The `content-length-range` ceiling of a policy. |
-| `validation` | `TToggle` | - | yes | `{ use: false }`, or `StaticAssetValidation.define({ issueSchema, handler })`; registers `upload-validate`. The handler is `({ file, owner, metadata })` with `file` a `StaticAssetPinnedFile`. On, `commit` takes only the validated token: see [Who commits, and with which token](./direct-upload#who-commits-and-with-which-token). |
+| `validation` | `TToggle` | - | yes | `{ use: false }`, or `StaticAssetValidation.define({ issueSchema, handler })`. |
 | `authorize` | `({ context }) => ValueOrPromise<boolean>` | the entry's `auth` | only without `auth` | Who may use direct upload. |
-| `resolvers` | `{ owner, metadata?, commit?: { destination? } }` | - | yes | `owner({ context })`: who an upload belongs to, signed into the token (required). `metadata({ context, file })`: per file, signed into the token. `commit.destination({ owner, metadata, file, defaultKey })`: the final key. See [Resolvers](./direct-upload#resolvers). |
+| `resolvers` | `{ owner, metadata?, commit?: { destination? } }` | - | yes | Who owns an upload, its metadata, the final key. See [Resolvers](./direct-upload#resolvers). |
 | `maxFiles` | `number` | `20` | no | Most files one policy request may name. |
 | `pendingPrefix` | `string` | `'pending/'` | no | Where a policy may write. Disjoint from `keyPrefix`. See [The pending prefix](./security#the-pending-prefix). |
 | `expires.upload` | `IDuration` | 15 minutes | no | The policy's lifetime. |
 | `expires.commit` | `IDuration` | `expires.upload` | no | The commit token's lifetime. |
+
+`validation` registers `upload-validate`. The handler is `({ file, owner, metadata })` with `file` a `StaticAssetPinnedFile`. When validation is on, `commit` takes only the validated token: see [Who commits, and with which token](./direct-upload#who-commits-and-with-which-token).
+
+The `resolvers` members:
+
+- `owner({ context })`: who an upload belongs to, signed into the token (required).
+- `metadata({ context, file })`: per file, signed into the token.
+- `commit.destination({ owner, metadata, file, defaultKey })`: the final key.
 
 See [Direct upload](./direct-upload#options).
 
@@ -218,10 +232,12 @@ Splits one shared bucket between entries. `directUpload` requires it. `StaticAss
 
 | Route | A key outside the prefix |
 |---|---|
-| `getObjectByName`, `downloadObjectByName`, `deleteObject`, `recreateMetaLink` | `404 core.storage.object_not_found`, after the 400 name check, before any storage call - the code a real miss answers, so a caller learns nothing about a key it does not own |
+| `getObjectByName`, `downloadObjectByName`, `deleteObject`, `recreateMetaLink` | `404 core.storage.object_not_found`, before any storage call |
 | `listObjects` | A caller `prefix` wider than the scope is narrowed to it; one disjoint from it returns `[]` without calling storage |
-| `upload` | The component's own default name is placed inside the prefix. An `objectKey` key outside it is refused with `400 core.static_asset.object_key_out_of_scope` - never rewritten, because the application may have recorded that key elsewhere |
-| `uploadPolicy`, `uploadValidate`, `uploadCommit` | The pending key becomes `pendingPrefix + keyPrefix`, so the committed key lands inside the scope. The token's scope is re-checked, for a token another entry signed with the same secret |
+| `upload` | An `objectKey` key outside it: `400 core.static_asset.object_key_out_of_scope` |
+| `uploadPolicy`, `uploadValidate`, `uploadCommit` | The pending key becomes `pendingPrefix + keyPrefix`; the token's scope is re-checked |
+
+The 404 is after the 400 name check. It is the code a real miss answers, so a caller learns nothing about a key it does not own. `upload` places its default name inside the prefix. A key outside the prefix is never rewritten, because the application may have recorded that key elsewhere. For the policy routes, the committed key lands inside the scope, and the token's scope is re-checked for a token another entry signed with the same secret.
 
 The entry's `maxFolderDepth` counts folders below the prefix: key validation uses `maxFolderDepth` plus the prefix depth plus one for the `<uuid>` folder the framework adds before a generated key's name. Without that addition, a two-segment prefix plus a key `<uuid>/<name>` would exceed the default depth of `2` and every read would answer `400`.
 
@@ -257,18 +273,35 @@ class StaticAssetBindingKeys {
 
 | Key | Resolves to |
 |---|---|
-| `STATIC_ASSET_OPTIONS` | The options object an application registering through `configs.artifacts` binds. `component(StaticAssetComponent, { options })` passes it directly and wins over the key. |
+| `STATIC_ASSET_OPTIONS` | The options object an application registering through `configs.artifacts` binds. |
 | `policyService({ name })` | `StaticAssetUploadPolicyService`, for an entry with `directUpload` on. |
 | `commitService({ name })` | `StaticAssetUploadCommitService`, for the same entry. |
 
+`component(StaticAssetComponent, { options })` passes the options directly and wins over `STATIC_ASSET_OPTIONS`.
+
 `name` is the entry's key in the options object, not the controller name. The component binds both services and hands the **same instances** to the controller, so a service you inject and the routes share them. `StaticAssetComponent`'s constructor binds an empty `{}` default for `STATIC_ASSET_OPTIONS`: an empty object produces zero controllers, no error. Bind your options in `preConfigure()` before `this.component(StaticAssetComponent)`.
 
-| Service | Method | Does |
+### StaticAssetUploadPolicyService
+
+Binding key: `StaticAssetBindingKeys.policyService({ name })`
+
+| Method | Does |
+|---|---|
+| `issuePolicies({ files, owner })` | Issues one signed policy per file |
+
+`files[].metadata` is signed. It refuses a `fileName` that is not one valid key segment. It does not call `authorize`.
+
+### StaticAssetUploadCommitService
+
+Binding key: `StaticAssetBindingKeys.commitService({ name })`
+
+| Method | Does | Returns |
 |---|---|---|
-| `StaticAssetUploadPolicyService` | `issuePolicies({ files, owner })` | One signed policy per file; `files[].metadata` is signed. Refuses a `fileName` that is not one valid key segment. Does not call `authorize`. |
-| `StaticAssetUploadCommitService` | `verify({ token, owner })` | Signature, expiry, owner, bucket, pending scope; answers `{ bucket, object, owner, metadata }`; no storage call. |
-| | `validate({ token, owner })` | `verify`, pin the content, run `validation` once. A valid file answers `{ isValid, issues, commitToken }`. |
-| | `commit({ token, owner, labels?, destination? })` | `verify`, conditional copy of the pinned content to the final key, remove pending, MetaLink row. Answers `{ bucket, object, owner, metadata, link, metaLink? }`. Refuses a destination that holds an object (`409`, with `extra: { object, link }`). A given `destination` wins over `resolvers.commit.destination`. Never runs `validation`; with it on, needs the validated token. |
+| `verify({ token, owner })` | Checks signature, expiry, owner, bucket and pending scope; no storage call | `{ bucket, object, owner, metadata }` |
+| `validate({ token, owner })` | Runs `verify`, pins the content, runs `validation` once | `{ isValid, issues, commitToken }` for a valid file |
+| `commit({ token, owner, labels?, destination? })` | Runs `verify`, copies the pinned content to the final key, removes pending, writes the MetaLink row | `{ bucket, object, owner, metadata, link, metaLink? }` |
+
+`commit` copies conditionally and refuses a destination that holds an object (`409`, with `extra: { object, link }`). A given `destination` wins over `resolvers.commit.destination`. `commit` never runs `validation`; with it on, it needs the validated token.
 
 ## Validation and the pin
 
@@ -350,7 +383,7 @@ interface IStorageHelper {
   createBucket(opts: { bucket: IBucketRef }): Promise<IBucketInfo | null>;
   removeBucket(opts: { bucket: IBucketRef }): Promise<boolean>;
 
-  getObject(opts: IObjectLocation & { options?: any }): Promise<Readable>;
+  getObject(opts: IObjectLocation & { options?: unknown }): Promise<Readable>;
   getObjectStream(
     opts: IObjectLocation & { range?: { start: number; end?: number } } & IStorageReadCondition,
   ): Promise<ReadableStream<Uint8Array>>;
@@ -447,7 +480,7 @@ interface IUploadFile {
   size: number;
   encoding?: string;
   folderPath?: string;
-  [key: string | symbol]: any;
+  [key: string | symbol]: unknown;
 }
 
 interface IBucketRef {
@@ -469,7 +502,7 @@ interface IUploadResult {
   bucket: IBucketRef;
   object: IObjectRef & { size: number; contentType: string };
   link: string;
-  metaLink?: { data: any } | { error: string };
+  metaLink?: { data: unknown } | { error: string };
 }
 
 interface IFileStat {
@@ -526,9 +559,11 @@ interface IListObjectsOptions {
 | Normalize | Trims a leading slash |
 | Empty check | Rejects if the result is empty |
 | Double slashes | Rejects empty segments, for example `a//b` |
-| Folder depth | `folderDepth = segments.length - 1`; rejects if it exceeds `maxDepth` (default `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH = 2`) |
+| Folder depth | `folderDepth = segments.length - 1`; rejects if it exceeds `maxDepth` |
 | Segment names | Every segment must pass `isValidSegment()` |
 | Key length | Rejects a normalized length over 1024 UTF-8 bytes |
+
+`maxDepth` defaults to `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH`, which is `2`.
 
 > [!NOTE]
 > Every step but the trailing-slash check lives on `protected isValidKeyPath({ path, maxDepth })`, which `isValidObjectKey` and `upload`'s `folderPath` check both call. It is protected, so `isValidObjectKey` is the only way in from outside the class.
@@ -666,7 +701,7 @@ These run inside `helper.upload()`, separate from the controller checks above. T
 |-------|----------------|-----------------|
 | Bucket does not exist (`hasBucket()` false) | <code v-pre>[upload] Bucket does not exist \| name: {bucket}</code> | `400` |
 | No naming hook (no `serverUpload.objectKey`): `originalName` fails `isValidSegment()`, because it becomes the key | `[upload] Invalid original file name` | `400` |
-| A naming hook is set: `originalName` is metadata only, and fails `isValidOriginalName()` - not blank, at most 255 characters, no control character or lone surrogate | `[upload] Invalid original file name` | `400` |
+| A naming hook is set: `originalName` fails `isValidOriginalName()` | `[upload] Invalid original file name` | `400` |
 | `folderPath` segment count exceeds `maxFolderDepth` | <code v-pre>[upload] Invalid folder path \| depth: {n} \| max: {m}</code> | `400` `core.storage.folder_depth_exceeded` |
 | `folderPath` fails the path rule for any other reason | `[upload] Invalid folder path` | `400` `core.storage.folder_path_invalid` |
 | `size` is `undefined`, `null`, or negative | <code v-pre>[upload] Invalid file size \| size: {size}</code> | `400` |
@@ -675,6 +710,8 @@ These run inside `helper.upload()`, separate from the controller checks above. T
 > [!NOTE]
 > The static-asset controller always passes a naming hook to `helper.upload()` (the default key is `<keyPrefix><folderPath>/<uuid>/<name>`) - then `originalName` is metadata at the storage-helper layer, not the key, and names like `Báo cáo.pdf` pass.
 >
+
+With a naming hook, `originalName` is metadata only. `isValidOriginalName()` rejects a blank name, a name over 255 characters, and a control character or lone surrogate.
 
 `getError()` defaults `statusCode` to `400` when the caller does not pass one explicitly, so the messages without a code also resolve to `400`.
 
@@ -822,9 +859,11 @@ Both classes come from the separate `@venizia/ignis-connectors` package, importe
 | `storage_type` | TEXT | No | - | `'disk'` or `'bun-s3'` |
 | `is_synced` | BOOLEAN | No | `false` | Set `true` on every upload and every meta-links sync |
 | `variant` | TEXT | Yes | - | Upload variant tag (for example `'thumbnail'`, `'original'`) |
-| `sequence` | INTEGER | No | `0` | Display order within one principal. Defaults to `0` so legacy rows tie, and `ORDER BY sequence, createdAt` reproduces the order they already had |
+| `sequence` | INTEGER | No | `0` | Display order within one principal |
 | `principal_type` | TEXT | Yes | - | Associated principal type |
 | `principal_id` | TEXT | Yes | - | Associated principal ID, always stored as a string |
+
+`sequence` defaults to `0` so legacy rows tie, and `ORDER BY sequence, createdAt` reproduces the order they already had.
 
 **Indexes:** `bucket_name`, `object_name`, `storage_type`, `is_synced`, and a composite index on `(principal_type, principal_id, sequence)` for ordering within one principal.
 
@@ -845,9 +884,15 @@ Both classes come from the separate `@venizia/ignis-connectors` package, importe
 
   | Step | What runs | Rows touched |
   |------|-----------|--------------|
-  | Refresh, `metaLink.createMetaLink` configured | One `repository.updateBy({ data: { mimetype, size, etag, isSynced: true }, where: { bucketName, objectName } })` - `link` and `metadata` are left alone, because the hook owns them | Every row for that `(bucketName, objectName)` pair |
-  | Refresh, no hook | The same `updateBy`, plus `link` in the same statement; then one `updateById` **per row**, `{ metadata: { ...row.metadata, ...fileStat.metadata } }` - the stat's keys win, the row's other keys survive. Skipped entirely when the stat carries no metadata | Every row for that `(bucketName, objectName)` pair |
-  | Create | Only when the refresh updated `0` rows: `StaticAssetMetaLinkUtility.createRow` - the same builder `upload` and `upload-commit` use, so `metaLink.createMetaLink` runs when provided, with a fresh `getStat()` result | One row, with no principal and no labels |
+  | Refresh, with `createMetaLink` | One `updateBy` of `mimetype`, `size`, `etag`, `isSynced: true` | Every row of the pair |
+  | Refresh, no hook | The same `updateBy` plus `link`, then one `updateById` per row | Every row of the pair |
+  | Create | `StaticAssetMetaLinkUtility.createRow`, only when the refresh updated `0` rows | One row, no principal, no labels |
+
+  Details of each step:
+
+  - Refresh with `metaLink.createMetaLink` configured: `repository.updateBy({ data: { mimetype, size, etag, isSynced: true }, where: { bucketName, objectName } })`. `link` and `metadata` are left alone, because the hook owns them. A "pair" is one `(bucketName, objectName)` pair.
+  - Refresh with no hook: the `updateBy` also sets `link` in the same statement. Then one `updateById` per row writes `{ metadata: { ...row.metadata, ...fileStat.metadata } }`: the stat's keys win, the row's other keys survive. That second step is skipped entirely when the stat carries no metadata.
+  - Create: `createRow` is the same builder `upload` and `upload-commit` use, so `metaLink.createMetaLink` runs when provided, with a fresh `getStat()` result.
 
   Rows per pair are deliberately not unique, and a refresh keeps each row's own `storageType` and labels (`variant`, `principalType`, `principalId`, `sequence`) either way.
 

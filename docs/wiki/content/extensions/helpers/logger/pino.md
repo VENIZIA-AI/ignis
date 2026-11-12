@@ -53,8 +53,10 @@ A missing peer fails with the standard install-hint error BEFORE any worker thre
 | Trigger | Output |
 |---|---|
 | `APP_ENV_LOGGER_FORMAT=json`, or unset in production practice | NDJSON to stdout - the k8s/docker collector pattern |
-| `APP_ENV_LOGGER_FORMAT=text` | Pretty lines via a `pino-pretty` worker-thread transport - dev only. Color follows the [Color](./reference#color) rules, and `pino-pretty` still drops it when stdout is not a terminal |
+| `APP_ENV_LOGGER_FORMAT=text` | Pretty lines via a `pino-pretty` worker-thread transport - dev only |
 | `APP_ENV_LOGGER_FOLDER_PATH` is set | A rotating file via `pino-roll`, honoring the same env vars winston uses (table below) |
+
+Text color follows the [Color](./reference#color) rules, and `pino-pretty` still drops it when stdout is not a terminal.
 
 **`pino-roll` file rotation - env var mapping:**
 

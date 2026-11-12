@@ -338,9 +338,13 @@ The same names ship from `@venizia/ignis-helpers` and from the browser-safe `@ve
 | `adapter` | `ITemporalAdapter` | `NativeTemporalAdapter` when the runtime has `Temporal`, `IntlTemporalAdapter` otherwise | Converts time zones |
 | `tz` | `string` | `'UTC'` | The IANA zone every call uses unless it passes its own. Checked when the helper is built |
 | `locale` | `string` | `'en-US'` | Spells name tokens, relative time and durations, unless a call passes its own. A malformed tag is a 400 |
-| `names` | `Record<string, ITemporalLocaleNames>` | none | Your own month and weekday names and AM/PM marker, per locale, over `Intl`'s. A call in another tag of the same language (`vi` for a `vi-VN` entry) uses the entry |
-| `fallback` | `string` | none | What `format` and `formatIntl` write for a value that is not a date - null included - when a call passes none. Without it, such a value is a 400 |
+| `names` | `Record<string, ITemporalLocaleNames>` | none | Your own month and weekday names and AM/PM marker, per locale |
+| `fallback` | `string` | none | What `format` and `formatIntl` write for a value that is not a date |
 | `scope` | `string` | `'TemporalHelper'` | Logger scope, from `BaseHelper` |
+
+`names` wins over `Intl`'s names. A call in another tag of the same language (`vi` for a `vi-VN` entry) uses the entry.
+
+`fallback` applies when a call passes none, and a null counts as not a date. Without it, such a value is a 400.
 
 ### Methods
 
@@ -356,10 +360,10 @@ Every method takes one options object. `value` is a `TTemporalInput`: a `Date`, 
 | `parts({ value, tz })` | `IZonedTemporalParts` | The wall clock in the zone, with the ISO weekday and the offset |
 | `parse({ value, pattern, tz })` | `Date` | Reads a string: an exact match with `pattern`, ISO 8601 without. An offset in the value wins over the zone |
 | `tryParse({ value, pattern, tz })` | `Date \| null` | `parse`, answering `null` where `parse` throws a 400. A broken pattern still throws |
-| `isValid({ value, pattern, tz })` | `boolean` | Whether the value names an instant in years 1-9999; a string is read as `parse` reads it. `null` and `undefined` are `false` |
-| `format({ value, pattern, tz, locale, fallback })` | `string` | Writes the value in the zone. `pattern` defaults to `YYYY-MM-DDTHH:mm:ss.SSSZ`. With `fallback`, a value that is not a date writes the fallback |
+| `isValid({ value, pattern, tz })` | `boolean` | Whether the value names an instant in years 1-9999 |
+| `format({ value, pattern, tz, locale, fallback })` | `string` | Writes the value in the zone; see the notes below the table |
 | `formatIntl({ value, options, tz, locale, fallback })` | `string` | Writes the value with `Intl.DateTimeFormat` options, in the zone |
-| `add({ value, amount, unit, tz })` | `Date` | Moves the value - see [Units](#units). An hour or smaller takes a fraction (`1.5` hours is 90 minutes); a calendar unit takes whole numbers only |
+| `add({ value, amount, unit, tz })` | `Date` | Moves the value - see [Units](#units) |
 | `set({ value, year, month, day, hour, minute, second, millisecond, tz })` | `Date` | Replaces wall-clock fields in the zone; `month` is 1-12; the day clamps to the month |
 | `subtract({ value, amount, unit, tz })` | `Date` | `add` with the sign flipped |
 | `startOf({ value, unit, tz })` | `Date` | The first instant of the unit containing the value |
@@ -367,17 +371,23 @@ Every method takes one options object. `value` is a `TTemporalInput`: a `Date`, 
 | `isWeekday({ value, tz })` | `boolean` | Monday to Friday, on the zone's wall clock |
 | `nextWeekday({ value, tz })` | `Date` | The next Monday-to-Friday day, same wall time |
 | `previousWeekday({ value, tz })` | `Date` | The previous Monday-to-Friday day, same wall time |
-| `diff({ value, other, unit, tz })` | `number` | Whole units from `other` to `value`, truncated toward zero, counted as dayjs counts - see [Compare and measure](#compare-and-measure) |
+| `diff({ value, other, unit, tz })` | `number` | Whole units from `other` to `value` - see [Compare and measure](#compare-and-measure) |
 | `compare({ value, other, unit, tz })` | `-1 \| 0 \| 1` | Before, in or after the unit holding `other`. Without `unit`, to the millisecond |
 | `isBefore`, `isAfter`, `isSame`, `isSameOrBefore`, `isSameOrAfter` `({ value, other, unit, tz })` | `boolean` | `compare` as a yes or no |
 | `isBetween({ value, from, to, unit, inclusivity, tz })` | `boolean` | Between the two ends, in either order. `inclusivity` is `()` (default), `[]`, `[)` or `(]` - `TemporalInclusivities` |
 | `relative({ value, base, unit, numeric, style, tz, locale })` | `string` | `value` relative to `base` (default now), through `Intl.RelativeTimeFormat`. `unit` has no millisecond |
 | `durationParts({ milliseconds })` | `ITemporalDurationParts` | Days, hours, minutes, seconds and milliseconds; a day is 24 hours |
-| `formatDuration({ milliseconds, style, pattern, maxUnits, locale })` | `string` | `compact` (default) writes `1d1h30m`; `narrow`, `short` and `long` use the locale's unit words. `maxUnits` keeps the largest units; `pattern` writes a clock face instead |
+| `formatDuration({ milliseconds, style, pattern, maxUnits, locale })` | `string` | Writes a duration in the chosen `style` |
 | `clone({ locale, tz })` | `TemporalHelper` | A helper like this one with another locale or zone: same adapter and names |
 | `fromWallClock({ value, sourceTz, tz })` | `Date` | The instant with the same wall clock in the helper's zone as `value` shows in `sourceTz` (default: the host's) |
 | `toWallClock({ value, targetTz, tz })` | `Date` | The reverse: a `Date` whose wall clock in `targetTz` (default: the host's) reads what the helper's zone reads |
 | `TemporalHelper.getHostTz()` | `string` | The zone a `Date`'s local getters use on this runtime |
+
+- `isValid` reads a string as `parse` reads it; `null` and `undefined` are `false`.
+- `format` defaults `pattern` to `YYYY-MM-DDTHH:mm:ss.SSSZ`. With `fallback`, a value that is not a date writes the fallback.
+- `add` takes a fraction for an hour or smaller (`1.5` hours is 90 minutes); a calendar unit takes whole numbers only.
+- `diff` truncates toward zero and counts as dayjs counts.
+- `formatDuration` with `compact` (default) writes `1d1h30m`; `narrow`, `short` and `long` use the locale's unit words. `maxUnits` keeps the largest units; `pattern` writes a clock face instead.
 
 ### Units
 
@@ -465,8 +475,10 @@ interface ITemporalAdapter {
 |---|---|
 | `TTemporalInput` | `Date \| number \| string` |
 | `ITemporalParts` | `year`, `month` (1-12), `day` (1-31), `hour`, `minute`, `second`, `millisecond` |
-| `IZonedTemporalParts` | `ITemporalParts` plus `dayOfWeek` (ISO: 1 is Monday, 7 is Sunday) and `offsetMinutes` (east of UTC: `420` for `+07:00`; a fraction when the offset has seconds) |
+| `IZonedTemporalParts` | `ITemporalParts` plus `dayOfWeek` and `offsetMinutes` |
 | `ITemporalDurationParts` | `isNegative`, and non-negative `days`, `hours`, `minutes`, `seconds`, `milliseconds` |
+
+`dayOfWeek` is ISO: 1 is Monday, 7 is Sunday. `offsetMinutes` is east of UTC (`420` for `+07:00`), with a fraction when the offset has seconds.
 
 - `DEFAULT_TEMPORAL_TZ` is `'UTC'`. `DEFAULT_TEMPORAL_PATTERN` is `'YYYY-MM-DDTHH:mm:ss.SSSZ'`. `DEFAULT_TEMPORAL_LOCALE` is `'en-US'`.
 - `TemporalDurationStyles` holds `COMPACT`, `NARROW`, `SHORT` and `LONG`.

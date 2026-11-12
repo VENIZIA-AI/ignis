@@ -73,11 +73,13 @@ type TArtifactCondition<ApplicationType = unknown> = (opts: {
 | Option | Type | Default | Meaning |
 |---|---|---|---|
 | `binding` | `{ namespace: string; key: string }` | `<namespace>.<Class>` | The binding key |
-| `allowOverride` | `boolean` | `true`; `bootChecks.binding.allowOverride` when that group is set | `false` makes a same-key re-registration throw instead of overwriting; `true` opts one registration out of the app-wide check |
+| `allowOverride` | `boolean` | `true`; `bootChecks.binding.allowOverride` when set | `false` makes a same-key re-registration throw |
 | `scope` | `TBindingScope` | `SINGLETON` for configuration, datasource, component, controller; `TRANSIENT` for repository, service | Binding scope |
 | `order` | `number` | `0` | Lower registers first within its kind; ties keep index order |
-| `when` | `TArtifactCondition` | always register | Sync or async. Runs at the `registerArtifacts` step, before `preConfigure`; may read config and env, not another artifact's binding |
+| `when` | `TArtifactCondition` | always register | Sync or async condition, run before `preConfigure` |
 | `after` | `ReadonlyArray<TClass<unknown>>` | none | Configurations only. This class registers after the ones listed |
+
+`allowOverride: true` opts one registration out of the app-wide check. `when` runs at the `registerArtifacts` step and may read config and env, but not another artifact's binding.
 
 `after` is the topological ordering for configurations. `sortConfigurationsTopologically` runs Kahn's algorithm over the `after` edges and breaks ties by class name, so the result is deterministic. It throws when an `after` entry is not itself a registered configuration, and throws again when the edges form a cycle. It runs after the `order` sort and replaces it, so `after` is what decides configuration order.
 
@@ -236,13 +238,19 @@ class ArtifactGroup implements IArtifactGroup {
 
 | Member | Meaning |
 |---|---|
-| `define({ folder })` | Declares a group: every decorated class under a directory named `folder` in the defining package's `src`. Records the defining module (`site`) from the call stack |
+| `define({ folder })` | Declares a group: every decorated class under a directory named `folder` |
 | `content` | Written by `IgnisArtifactsPlugin` at build time; a hand-written group leaves it out |
 | `isGroup(value)` | Checks the `isArtifactGroup` brand, so two installed copies of the kernel agree |
 | `setResolver({ resolve })` | The resolver for a group with no `content`. `@venizia/ignis-boot/auto` installs it when imported |
-| `application({ ignore?, content? })` | From source it needs `@venizia/ignis-boot/auto` imported once in the process (the resolver). Every decorated class of the calling package's `src` - an application's own artifacts picked by its call site, so several applications loaded into one process each get their own. `ignore` leaves out the classes under its globs, relative to `src` (the patterns `ignis-artifacts --ignore` takes); the build plugin reads them from the call, so they must be string literals. The build plugin inlines it like `define` |
-| `pick({ group, kinds })` | A slice of any group (a borrowed one or `AutoArtifacts`) carrying only `kinds`, resolved when artifacts are registered. An empty slice is not an error. For a function that splits `configs.artifacts` by run mode |
+| `application({ ignore?, content? })` | Every decorated class of the calling package's `src` |
+| `pick({ group, kinds })` | A slice of any group carrying only `kinds` |
 | `resolveContent({ group })` | The group's classes: inlined `content`, else its own `resolve()`, else the installed resolver |
+
+`define` looks under the defining package's `src` and records the defining module (`site`) from the call stack.
+
+`application` needs `@venizia/ignis-boot/auto` imported once in the process (the resolver) when it runs from source. It picks an application's own artifacts by its call site, so several applications loaded into one process each get their own. `ignore` leaves out the classes under its globs, relative to `src` (the patterns `ignis-artifacts --ignore` takes); the build plugin reads them from the call, so they must be string literals. The build plugin inlines it like `define`.
+
+`pick` resolves when artifacts are registered, and an empty slice is not an error. Use it in a function that splits `configs.artifacts` by run mode. Its source group is a borrowed one or `AutoArtifacts`.
 
 When artifacts are registered, a group resolves to its `content`, else its own `resolve()`, else the installed resolver. No resolver: an error naming `@venizia/ignis-boot/auto`. A group that resolves to no class: an error naming the folder and the defining module. Each group logs one line with its class names.
 
@@ -325,11 +333,15 @@ bootChecks?: {
 
 One group of three binding decisions on `IApplicationConfigs`. Without `binding`, nothing is verified, and hand registration and same-key override stay allowed.
 
-| Setting | What it does | When it fails |
-|---|---|---|
-| `doVerify: true` | The `verifyBindings` step (`BootSteps.VERIFY_BINDINGS`, after `postConfigure`) resolves every binding in the `services` and `repositories` namespaces once | Throws once with every failing key: `[verifyBindings] 2 binding(s) cannot be resolved \| services.ReportService: Binding key: repositories.Missing is not bounded in context! \| ...` |
-| `allowManual: false` | While `configs.artifacts` is set, a `configuration` / `service` / `repository` / `controller` / `component` / `dataSource` call inside `preConfigure()` or `postConfigure()` is refused | Throws at that call: `[service] 'PricingService' is registered by hand inside preConfigure() while 'configs.artifacts' is set and 'bootChecks.binding.allowManual' is false ...` |
-| `allowOverride: false` | Every artifact registration behaves as if it said `allowOverride: false`: a key that is already bound is refused. A registration that says `allowOverride: true`, on the decorator or at the call site, still overrides | Throws at that registration: `[service] Binding key already registered: 'services.RunModeService' \| 'bootChecks.binding.allowOverride' is false ...` |
+| Setting | What it does |
+|---|---|
+| `doVerify: true` | The `verifyBindings` step resolves every `services` and `repositories` binding once |
+| `allowManual: false` | Refuses hand registration inside `preConfigure()` / `postConfigure()` while `configs.artifacts` is set |
+| `allowOverride: false` | Refuses a registration whose key is already bound |
+
+- `doVerify: true`: the `verifyBindings` step (`BootSteps.VERIFY_BINDINGS`) runs after `postConfigure`. It throws once with every failing key: `[verifyBindings] 2 binding(s) cannot be resolved \| services.ReportService: Binding key: repositories.Missing is not bounded in context! \| ...`
+- `allowManual: false`: a `configuration` / `service` / `repository` / `controller` / `component` / `dataSource` call is refused. It throws at that call: `[service] 'PricingService' is registered by hand inside preConfigure() while 'configs.artifacts' is set and 'bootChecks.binding.allowManual' is false ...`
+- `allowOverride: false`: every artifact registration behaves as if it said `allowOverride: false`. A registration that says `allowOverride: true`, on the decorator or at the call site, still overrides. It throws at that registration: `[service] Binding key already registered: 'services.RunModeService' \| 'bootChecks.binding.allowOverride' is false ...`
 
 Resolving at boot builds the singletons then, so a constructor with a side effect runs during `verifyBindings`; turn `doVerify` on in development and UAT. Registrations made by the index step and by the framework's own steps are never counted as manual. The override setting covers the six registration methods only: `bind()`, `set()` and a `@provide` key never pass through it, so a key can still be rebound at runtime.
 
@@ -428,17 +440,21 @@ ignis-artifacts <generate|check> [--root src] [--out src/generated/artifacts.ts]
 |---|---|---|
 | `--root` | `src` | Directory to scan, recursively |
 | `--out` | `src/generated/artifacts.ts` | Path of the generated file; import paths are relative to it |
-| `--ignore` | `**/__tests__/**`, `**/*.test.ts`, `**/*.spec.ts`, `**/generated/**` | Comma-separated globs, merged with the default ignore list - never replaces it. A decorated class hidden by one of YOUR globs is named in a `warning:` line on stderr; the defaults stay silent |
+| `--ignore` | the default ignore list (below) | Comma-separated globs, merged with the defaults |
 | `--export` | `GeneratedArtifacts` | Name of the exported constant |
-| `--source-module` | none | A module that re-exports the stereotype decorators, matched exactly - for example a frontend framework built on the kernel. Repeat the flag for each module. Adds to `@venizia/ignis` and `@venizia/ignis-kernel`, never replaces them. The header records every one, so `check` must be given the same set |
+| `--source-module` | none | A module that re-exports the stereotype decorators; repeatable |
 
 | Command | Effect | Exit code |
 |---|---|---|
 | `generate` | Writes `--out` when its content changed; prints `wrote <out> \| N artifact(s)` or `up to date <out>` | `0` |
-| `check` | Renders in memory and compares with the file; prints `fresh <out>`, or `stale <out> - run: <the full generate command>` with every flag that was passed | `0` fresh, `1` stale |
+| `check` | Renders in memory and compares with the file | `0` fresh, `1` stale |
 | anything else | Prints usage | `2` |
 
-Default ignore list: `**/__tests__/**`, `**/*.test.ts`, `**/*.spec.ts`, `**/generated/**`.
+`check` prints `fresh <out>`, or `stale <out> - run: <the full generate command>` with every flag that was passed.
+
+Default ignore list: `**/__tests__/**`, `**/*.test.ts`, `**/*.spec.ts`, `**/generated/**`. `--ignore` merges with it and never replaces it. A decorated class hidden by one of YOUR globs is named in a `warning:` line on stderr; the defaults stay silent.
+
+`--source-module` takes a module that re-exports the stereotype decorators, matched exactly - for example a frontend framework built on the kernel. Repeat the flag for each module. It adds to `@venizia/ignis` and `@venizia/ignis-kernel`, never replaces them. The header records every one, so `check` must be given the same set.
 
 ### Detection rules
 
@@ -579,7 +595,9 @@ The deprecated runtime boot API is fully removed - see the
 | Symbol | Status |
 |---|---|
 | `BaseApplication.booter()`, `registerBooters()` | Removed |
-| `Bootstrapper`, `BaseArtifactBooter`, `ControllerBooter`, `ServiceBooter`, `RepositoryBooter`, `DatasourceBooter`, `BootMixin`, `discoverFiles()`, `loadClasses()`, `isClass()` | Removed from `@venizia/ignis-boot` |
+| `Bootstrapper`, `BaseArtifactBooter`, `BootMixin` | Removed from `@venizia/ignis-boot` |
+| `ControllerBooter`, `ServiceBooter`, `RepositoryBooter`, `DatasourceBooter` | Removed from `@venizia/ignis-boot` |
+| `discoverFiles()`, `loadClasses()`, `isClass()` | Removed from `@venizia/ignis-boot` |
 | `TMixinOpts.args` | Removed; `TMixinOpts` is `{ binding?, allowOverride?, options? }` |
 
 ## See Also

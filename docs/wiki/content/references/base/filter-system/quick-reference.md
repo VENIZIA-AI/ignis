@@ -145,11 +145,13 @@ So `{ 'metadata.score': { gt: 80 } }` compares as a number, and `{ 'metadata.cod
 |---|---|---|---|
 | `fields` (array) | `string[]` | `fields: ['id', 'name', 'email']` | `SELECT` only those columns |
 | `fields` (object) | `{ field: true }` | `fields: { id: true, name: true }` | Same - inclusion-only, `false` is ignored |
-| `order` | `'field ASC'` / `'field DESC'` | `order: ['createdAt DESC']` | `ORDER BY`; default direction is `ASC` (`order: ['name']` = `'name ASC'`); more than two tokens or an empty entry is a 400 |
+| `order` | `'field ASC'` / `'field DESC'` | `order: ['createdAt DESC']` | `ORDER BY`; default direction is `ASC` |
 | `order` (JSON path) | `'a.b DESC'` | `order: ['metadata.priority DESC']` | `ORDER BY` on a JSON path |
-| `limit` | number | `limit: 10` | `LIMIT`; omitted -> `query.limit ?? settings.query.limit.default ?? 10`. Above `settings.query.limit.max` (default `1000`) it throws |
+| `limit` | number | `limit: 10` | `LIMIT`; omitted: the model's default limit |
 | `skip` | number | `skip: 20` | `OFFSET`; alias of `offset` - `skip` wins if both are given |
 | `offset` | number | `offset: 20` | `OFFSET`; alias of `skip` |
+
+`order: ['name']` means `'name ASC'`; more than two tokens or an empty entry is a 400. An omitted `limit` resolves to `query.limit ?? settings.query.limit.default ?? 10`, and a `limit` above `settings.query.limit.max` (default `1000`) throws.
 
 `expressions` is not a `filter` property - it is a separate option on the query dialect's own `toOrderBy`, for repository code sorting by a joined column or a computed `SQL`. See [Sorting by a joined column or a computed expression](./fields-order-pagination#sorting-by-a-joined-column-or-a-computed-expression).
 
@@ -161,11 +163,13 @@ A model's `settings.query.filter` merges into every read, update, and delete for
 
 | Collision shape | Result |
 |---|---|
-| Different keys | AND-composed - `{ isDeleted: false }` default + `{ status: 'published' }` caller filter -> `WHERE "isDeleted" = false AND "status" = 'published'` |
-| Same key, scalar vs. scalar | Equal values: one condition. Different values: AND-composed (a caller cannot replace the default; server code passes `shouldSkipDefaultFilter`) |
+| Different keys | AND-composed (example below) |
+| Same key, scalar vs. scalar | Equal values: one condition. Different values: AND-composed |
 | Same key, scalar vs. operator object (either side) | AND-composed |
 | Same key, both `and` | Concatenated - both groups hold |
 | Same key, both `or` | Kept as two separate conjuncts, never unioned |
+
+A `{ isDeleted: false }` default plus a `{ status: 'published' }` caller filter gives `WHERE "isDeleted" = false AND "status" = 'published'`. A caller cannot replace the default; server code passes `shouldSkipDefaultFilter`.
 
 ```typescript
 // Skip the default filter entirely

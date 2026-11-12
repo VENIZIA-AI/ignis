@@ -49,9 +49,11 @@ this package that are already browser-safe.
 | Import from | Holds |
 |---|---|
 | `@venizia/ignis-helpers/common` | Constants and pure types: `HTTP`, `GRPC`, `TConstValue`, the duration and mime tables, the redaction helpers |
-| `@venizia/ignis-helpers/core` | Browser-safe runtime classes: `BaseHelper`, the error module, `RetryHelper`, `TemporalHelper`, `TreeBuilder`, `TreeWalker`, `SlugHelper`, `UrlPolicy`, `BuildInfoRegistry`, `ProjectRootRegistry`, `ECDH` (with its base class `AbstractCryptoAlgorithm`), and the parse utilities |
+| `@venizia/ignis-helpers/core` | Browser-safe runtime classes: `BaseHelper`, `RetryHelper`, `UrlPolicy`, `ECDH` and more (listed below the table) |
 | `@venizia/ignis-helpers/temporal` | `TemporalHelper` and its adapters alone |
 | `@venizia/ignis-helpers/uuid` | `UuidV4Generator`, `UuidV5Generator`, `UuidV7Generator` and `UuidHelper` alone - see [UID](./uid/) |
+
+`/core` holds `BaseHelper`, the error module, `RetryHelper`, `TemporalHelper`, `TreeBuilder`, `TreeWalker`, `SlugHelper`, `UrlPolicy`, `BuildInfoRegistry`, `ProjectRootRegistry`, `ECDH` (with its base class `AbstractCryptoAlgorithm`), and the parse utilities.
 
 Import one of them when your code has to bundle for a browser.
 

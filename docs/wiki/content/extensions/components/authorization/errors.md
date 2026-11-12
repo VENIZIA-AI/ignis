@@ -68,7 +68,9 @@ Thrown during `binding()`, at application startup.
 
 | Error Message | Status | Method | Cause |
 |---------------|--------|--------|-------|
-| `[AuthorizeComponent] No authorize options found. Bind options to AuthorizeBindingKeys.OPTIONS before registering the component.` | 400 | `binding` | `IAuthorizeOptions` was never bound before `this.component(AuthorizeComponent)` |
+| `[AuthorizeComponent] No authorize options found.` | 400 | `binding` | `IAuthorizeOptions` was never bound before `this.component(AuthorizeComponent)` |
+
+The message goes on: `Bind options to AuthorizeBindingKeys.OPTIONS before registering the component.`
 
 ### Enforcer Registry Errors (`AuthorizationEnforcerRegistry` + inherited `AbstractAuthRegistry`)
 
@@ -93,9 +95,11 @@ The only errors in the module with an **explicit** `statusCode`.
 |---------------|--------|------|-------|
 | `Authorization failed: No authenticated user found` | 401 | 2 - User check | `Authentication.CURRENT_USER` is missing from the Hono context |
 | <code v-pre>Authorization denied by voter &#124; action: {{action}} &#124; resource: {{resource}}</code> | 403 | 4 - Voters | A voter function returned `AuthorizationDecisions.DENY` |
-| <code v-pre>Authorization failed: authorize() was declared for this route but no enforcer is registered &#124; path: {{path}}</code> | 403 | 5 - Resolve enforcer | `hasEnforcers()` is `false` and `defaultDecision` is `'deny'` (the default) or unset |
+| `Authorization failed: authorize() was declared for this route but no enforcer is registered` | 403 | 5 - Resolve enforcer | `hasEnforcers()` is `false` and `defaultDecision` is `'deny'` (the default) or unset |
 | `Authorization failed: user.principalType is required for enforcer-based authorization` | 400 | 6 - Build rules | The authenticated user object has no `principalType` field |
 | <code v-pre>Authorization denied &#124; action: {{action}} &#124; resource: {{resource}}</code> | 403 | 7 - Evaluate | The enforcer returned `DENY`, or `ABSTAIN` and `defaultDecision` resolved to `'deny'` |
+
+The step 5 message ends with <code v-pre>&#124; path: {{path}}</code>.
 
 ### Casbin Enforcer Errors - Startup (`CasbinAuthorizationEnforcer.configure()`)
 
@@ -103,11 +107,17 @@ The only errors in the module with an **explicit** `statusCode`.
 |---------------|--------|--------|-------|
 | `[CasbinAuthorizationEnforcer] "casbin" is not installed` | 400 | `configure` | The optional `casbin` peer dependency isn't installed |
 | `[CasbinAuthorizationEnforcer] options.model is required.` | 400 | `configure` | `model` is missing from the enforcer options |
-| <code v-pre>[registerMatchers] Role definition "{{name}}" is not declared in the Casbin model. Declare it under [role_definition] (e.g. `g = _, _, _`) before enabling domainMatching.</code> | 400 | `configure` (via `registerMatchers`) | `domainMatching.roleDefinition` isn't declared in `[role_definition]` (only checked when `domainMatching` is set) |
-| <code v-pre>[CasbinAuthorizationEnforcer] Matcher smoke test failed at warmup - the model matcher did not compile ... {{error}}</code> | 400 | `configure` (via `assertMatcherCompilesSync`) | The matcher expression doesn't compile: syntax error, an unregistered function, or an arity mismatch |
-| <code v-pre>[CasbinAuthorizationEnforcer] cached.options.expiresIn must be >= 10000 (ms) &#124; Received: {{value}}</code> | 400 | `configure` (via `validateExpiresIn`) | `cached.options.expiresIn` is below `MIN_EXPIRES_IN` (10,000 ms) |
+| <code v-pre>[registerMatchers] Role definition "{{name}}" is not declared in the Casbin model.</code> | 400 | `configure` (via `registerMatchers`) | `domainMatching.roleDefinition` isn't declared in `[role_definition]` (only checked when `domainMatching` is set) |
+| `[CasbinAuthorizationEnforcer] Matcher smoke test failed at warmup` | 400 | `configure` (via `assertMatcherCompilesSync`) | The matcher expression doesn't compile: syntax error, an unregistered function, or an arity mismatch |
+| `[CasbinAuthorizationEnforcer] cached.options.expiresIn must be >= 10000 (ms)` | 400 | `configure` (via `validateExpiresIn`) | `cached.options.expiresIn` is below `MIN_EXPIRES_IN` (10,000 ms) |
 | <code v-pre>[resolveDomainMatchingFn] Unsupported func: {{name}} &#124; Valids: [...]</code> | 400 | `configure` (via `registerMatchers`) | `domainMatching.fn` isn't a `CasbinDomainMatchingFunctions` value |
 | <code v-pre>[resolveModel] Invalid model.driver &#124; Valids: [file, text]</code> | 400 | `configure` (via `resolveModel`) | `model.driver` isn't `'file'` or `'text'` |
+
+Three messages continue past the cell:
+
+- The `registerMatchers` role message adds: <code v-pre>Declare it under [role_definition] (e.g. `g = _, _, _`) before enabling domainMatching.</code>
+- The smoke test message adds: <code v-pre>- the model matcher did not compile ... {{error}}</code>
+- The `expiresIn` message ends with <code v-pre>&#124; Received: {{value}}</code>.
 
 > [!NOTE]
 > `cached` is a typed discriminated union (`{ use: false } | { use: true; driver: 'redis'; ... }`), so an unsupported cache driver fails at compile time - there is no `Invalid cached.driver` runtime error. Caching is **Redis-only**.

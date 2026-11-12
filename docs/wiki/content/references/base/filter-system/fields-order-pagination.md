@@ -216,8 +216,10 @@ query.limit  ??  settings.query.limit.default  ??  DEFAULT_LIMIT (10)
 | Source | Meaning |
 |---|---|
 | `query.limit` | An explicit `limit` in the caller's filter. Always wins. |
-| `settings.query.limit.default` | A per-model default on the `@model` decorator. Must be a positive integer - `@model` validates it at decoration time. Applies to top-level `find()` and to every to-many relation, using the related model's own `settings.query.limit.default`. |
+| `settings.query.limit.default` | A per-model default on the `@model` decorator. |
 | `DEFAULT_LIMIT` | The global fallback, `10`. |
+
+`settings.query.limit.default` must be a positive integer; `@model` validates it at decoration time. It applies to top-level `find()` and to every to-many relation, using the related model's own `settings.query.limit.default`.
 
 ```typescript
 import { model, BaseEntity } from '@venizia/ignis';

@@ -76,7 +76,9 @@ The same `@model` settings you use with Drizzle entities - `properties.hidden`, 
 | `field.boolean(name, flags?)`  | `boolean`                       |                                                                                                                                                                                       |
 | `field.booleans(name, flags?)` | `boolean[]`                     |                                                                                                                                                                                       |
 | `field.geopoint(name, flags?)` | `geopoint` (`[number, number]`) |                                                                                                                                                                                       |
-| `field.vector(name, opts)`     | `float[]`                       | Embedding vector for semantic/hybrid search. Its `opts` carry `dimensions`/`distance`/`embed` rather than the shared flags - see [Vector Fields](#vector-fields-for-semantic-search). |
+| `field.vector(name, opts)`     | `float[]`                       | Embedding vector, see [Vector Fields](#vector-fields-for-semantic-search)                                                                                                             |
+
+`field.vector` is for semantic/hybrid search. Its `opts` carry `dimensions`/`distance`/`embed` rather than the shared flags.
 
 Each `flags` object may set `searchable`, `filterable`, `facet`, `sortable`, `optional` and `nullable` (all `boolean`; `nullable` needs `optional: true`, see [Nullable fields](#nullable-fields)). Note: `searchable`/`filterable` have no direct Typesense wire equivalent - Typesense indexes every field by default - so they're dropped at compile time. Only `facet`, `optional`, and `sortable` (mapped to Typesense's `sort`) actually reach the compiled collection schema. They're still worth setting for documentation/intent and for future engines that do distinguish them.
 
@@ -284,12 +286,18 @@ Same options, same rules as PostgreSQL - see [Read Retry](/references/base/repos
 
 ### Envelope differences vs. PostgreSQL
 
-|                                            | PostgreSQL repositories                             | Search repositories                                                                                                                            |
-| ------------------------------------------ | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Range queries                              | Extra `COUNT(*)` query for `shouldQueryRange: true` | Single search call already returns `found` - no second query needed                                                                            |
-| `updateBy`/`deleteBy` with empty `where` | Requires `force: true`                              | `updateBy` **refuses** an unfiltered bulk update outright (throws, no override). `deleteBy` with no effective filter (no `where` and no `@model` `query.filter`) also throws. Passing `options.force: true` truncates the whole collection instead |
-| Returning updated/deleted rows             | Native SQL `RETURNING`                              | No `RETURNING` equivalent - `updateBy`/`deleteBy` are **count-only**: `data` is always `null` and `shouldReturn` is rejected at the type level (no hidden engine read is bolted on). Read the affected documents explicitly before the write when you need them |
-| `createAll`                                | Native bulk insert, returns each row                | Delegates to Typesense's bulk import; "created" rows are the input rows whose per-row response didn't report `success: false`                  |
+| Aspect | PostgreSQL repositories | Search repositories |
+|---|---|---|
+| Range queries | Extra `COUNT(*)` query for `shouldQueryRange: true` | One search call already returns `found` |
+| `updateBy`/`deleteBy` with empty `where` | Requires `force: true` | `updateBy` refuses; `deleteBy` refuses with no effective filter |
+| Returning updated/deleted rows | Native SQL `RETURNING` | None: `updateBy`/`deleteBy` are count-only |
+| `createAll` | Native bulk insert, returns each row | Typesense bulk import |
+
+Details the table leaves out:
+
+- `updateBy` **refuses** an unfiltered bulk update outright (it throws, with no override). `deleteBy` with no effective filter (no `where` and no `@model` `query.filter`) also throws. Passing `options.force: true` truncates the whole collection instead.
+- `updateBy`/`deleteBy` are **count-only**: `data` is always `null` and `shouldReturn` is rejected at the type level (no hidden engine read is bolted on). Read the affected documents explicitly before the write when you need them.
+- `createAll` "created" rows are the input rows whose per-row response did not report `success: false`.
 
 ### Write error semantics (shared by both search engines)
 
@@ -617,9 +625,11 @@ const ScopedSearchController = SearchControllerFactory.build({
 
 | `scope` returns | The request |
 |---|---|
-| A `where` | The server ANDs it into `input.filter.where`. The client's own `where` sits inside the AND, so it can narrow the scope and never widen or remove it |
+| A `where` | The server ANDs it into `input.filter.where` |
 | `ScopeFilters.UNRESTRICTED` | No scope for this call (an admin, a system job) |
 | `null`, `undefined`, or it throws | Refused with `403`; nothing is searched |
+
+The client's own `where` sits inside the AND, so it can narrow the scope and never widen or remove it.
 
 A scope is a `where` ANDed into a filter, so the three inputs that carry the engine's own filter string cannot take one. A scoped controller therefore refuses `mode: 'raw'` (`400`), and `SearchControllerFactory.build` throws when `routes.multiSearch` is listed. Every controller refuses `mode: 'raw'`, multi-search and `engineParams` unless it opts in, see below.
 

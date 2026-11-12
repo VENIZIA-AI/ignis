@@ -36,11 +36,18 @@ this.defineRoute({
 | Function | Signature | What it does |
 |----------|-----------|---------------|
 | `jsonContent` | `jsonContent(opts: { schema: ZodType; description: string; required?: boolean }): { description; content; required }` | Builds a standard OpenAPI content object for an `application/json` payload. |
-| `jsonResponse` | `jsonResponse(opts: { schema: ZodType; description?: string; required?: boolean; headers?: Record<string, THeaderObject> }): Record<number \| string, ...>` | Builds a full response map: `200` success (via `jsonContent`, description defaults to `'Success Response'`) plus the `4XX` and `5XX` entries of `errorResponses()`. |
-| `errorResponses` | `errorResponses(): { '4XX': ...; '5XX': ... }` | The JSON error body under `4XX` and `5XX`, both `jsonContent({ description: 'Error Response', schema: ErrorSchema })`. Spread it into a route whose success body is not JSON. |
+| `jsonResponse` | `jsonResponse(opts: { schema; description?; required?; headers? }): Record<number \| string, ...>` | Builds a full response map: a `200` success plus the `4XX` and `5XX` entries of `errorResponses()`. |
+| `errorResponses` | `errorResponses(): { '4XX': ...; '5XX': ... }` | The JSON error body under `4XX` and `5XX`. |
 | `requiredString` | `requiredString(opts?: { min?: number; max?: number; fixed?: number }): ZodString` | A non-empty (`.nonempty()`) Zod string, optionally constrained by `min`, `max`, or an exact `fixed` length. |
-| `idParamsSchema` | `idParamsSchema(opts?: { idType: TIdSchemaType }): ZodObject` | Builds a path-param schema for `{ id }`, typed and OpenAPI-documented as `number` or `string`. `TIdSchemaType` is `'number' \| 'string'`. Throws on any other value. The whole `opts` object is optional and defaults to `number`, but once you pass it, `idType` is required. |
-| `snakeToCamel` | `snakeToCamel<T extends ZodRawShape>(shape: T): ZodPipe` | Wraps a Zod object `shape` so it accepts `snake_case` input keys and produces a `camelCase`-keyed output: `z.object(shape).transform(keysToCamel).pipe(z.object(camelShape))`. |
+| `idParamsSchema` | `idParamsSchema(opts?: { idType: TIdSchemaType }): ZodObject` | Builds a path-param schema for `{ id }`, as `number` or `string`. |
+| `snakeToCamel` | `snakeToCamel<T extends ZodRawShape>(shape: T): ZodPipe` | Wraps a Zod object `shape` so it accepts `snake_case` input keys and produces `camelCase` output. |
+
+Details:
+
+- `jsonResponse`: `schema` is a `ZodType` and `headers` is a `Record<string, THeaderObject>`. The `200` success goes through `jsonContent`, and the description defaults to `'Success Response'`.
+- `errorResponses`: both keys are `jsonContent({ description: 'Error Response', schema: ErrorSchema })`. Spread it into a route whose success body is not JSON.
+- `idParamsSchema`: `TIdSchemaType` is `'number' \| 'string'`, and any other value throws. The whole `opts` object is optional and defaults to `number`, but once you pass it, `idType` is required.
+- `snakeToCamel`: it builds `z.object(shape).transform(keysToCamel).pipe(z.object(camelShape))`.
 
 ## Predefined schemas and types
 

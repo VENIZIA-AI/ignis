@@ -193,9 +193,9 @@ export class OrderRepository extends DefaultRelationalRepository<typeof Order.sc
   async getOrderStats(userId: string) {
     return this.dataSource.getConnector().execute(sql`
       SELECT
-        COUNT(*) as total,
-        SUM(total) as revenue,
-        AVG(total) as average
+        COUNT(*) AS total,
+        SUM(total) AS revenue,
+        AVG(total) AS average
       FROM orders
       WHERE user_id = ${userId}
     `);
@@ -256,7 +256,7 @@ export class UserService extends BaseService {
     if (existing) {
       // One message shape everywhere: { text, code, args }
       throw getError({
-        statusCode: 400,
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
         message: {
           text: 'User with this email already exists',
           code: MessageCode.build({ parts: ['app', 'user', 'duplicate_email'] }),

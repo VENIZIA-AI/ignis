@@ -151,7 +151,9 @@ The leading digit of a code is its phase, so a category check reads the digit an
 | `isCompleted(status)` | the code starts with `3` |
 | `isInactive(status)` | the code starts with `4` |
 | `isFailed(status)` | the code starts with `5` |
-| `isValid(status)` | the code has the shape `NNN_NAME`: a digit `0`-`5`, two digits, an underscore, then upper-case letters, digits and underscores |
+| `isValid(status)` | the code has the shape `NNN_NAME` |
+
+`isValid` wants a digit `0`-`5`, two digits, an underscore, then upper-case letters, digits and underscores.
 
 The leading-digit rule belongs to `Statuses` and the classes that extend it. A domain class whose `NNN_` prefix is an ordinal step number, such as a ticket workflow that counts up to `900`, must not use these checks: its `9xx` codes mean nothing to them.
 

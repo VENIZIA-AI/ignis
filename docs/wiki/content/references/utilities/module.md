@@ -32,13 +32,19 @@ const client = vault.default({ endpoint, apiVersion: 'v1' });
 
 | Method | Signature | What it does |
 |--------|-----------|---------------|
-| `load` | `load<T>(opts: { module: string }): Promise<T>` | Imports the module as an ES module, resolved from the project root: the copy your own `import` gets. Use this everywhere except a constructor |
-| `loadSync` | `loadSync<T>(opts: { module: string }): T` | Same, without awaiting - for a constructor or any path that cannot be async. It resolves with `require`, so a peer that ships both builds comes back as its CommonJS copy unless it was registered (see `preload`) |
-| `preload` | `preload(opts: { modules: Array<string> }): Promise<void>` | Loads each module with `load` and registers it, so `loadSync` returns that ES module copy. Call it once at the entrypoint, before the helpers are constructed |
+| `load` | `load<T>(opts: { module: string }): Promise<T>` | Imports the module as an ES module, resolved from the project root |
+| `loadSync` | `loadSync<T>(opts: { module: string }): T` | Same, without awaiting - for a constructor or any path that cannot be async |
+| `preload` | `preload(opts: { modules: Array<string> }): Promise<void>` | Loads each module with `load` and registers it, so `loadSync` returns that copy |
 | `assertInstalled` | `assertInstalled(opts: { modules: Array<string>; scope?: string; allowRegistered?: boolean }): void` | Presence check only. Resolves each module in order and throws on the first miss, without executing any of them |
-| `register` | `register(opts: { modules: Record<string, AnyType> }): void` | Hands the framework peers the application already holds. `load` and `loadSync` serve a registered specifier from memory, with no filesystem lookup |
-| `setProjectRoot` | `setProjectRoot(opts: { projectRoot: string }): void` | Sets the root every peer lookup resolves against. A `ServerApplication` calls it during construction with `configs.projectRoot ?? process.cwd()` |
+| `register` | `register(opts: { modules: Record<string, AnyType> }): void` | Hands the framework peers the application already holds |
+| `setProjectRoot` | `setProjectRoot(opts: { projectRoot: string }): void` | Sets the root every peer lookup resolves against |
 | `getProjectRoot` | `getProjectRoot(): string` | The current root: `ProjectRootRegistry.getShared() ?? process.cwd()` |
+
+- `load` gives the copy your own `import` gets. Use it everywhere except a constructor.
+- `loadSync` resolves with `require`, so a peer that ships both builds comes back as its CommonJS copy unless it was registered (see `preload`).
+- `preload`: call it once at the entrypoint, before the helpers are constructed.
+- `register`: `load` and `loadSync` serve a registered specifier from memory, with no filesystem lookup.
+- `setProjectRoot`: a `ServerApplication` calls it during construction with `configs.projectRoot ?? process.cwd()`.
 
 ### The project root
 

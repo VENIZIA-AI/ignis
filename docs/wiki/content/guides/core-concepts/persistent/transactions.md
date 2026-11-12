@@ -93,12 +93,14 @@ const order = await orderRepository.runInTransaction({
 Call it two ways, and it behaves differently depending on which. Pass a `transaction` and it JOINS
 the existing one; pass none and it OWNS one:
 
-| | Joined (`transaction` passed) | Owned (no `transaction`) |
+| Step | Joined (`transaction` passed) | Owned (no `transaction`) |
 |---|---|---|
-| Begin | Never - throws before `execute` runs if the handle is no longer active | `beginTransaction(transactionOptions)` |
-| `transactionOptions` | Ignored (a debug log line records it) | Used to begin |
-| Commit | Never - the caller that began the transaction commits it | After `execute` resolves |
-| Rollback | Never - the error reaches the caller untouched | On failure, in its own try/catch. A rollback failure is only logged; the ORIGINAL error is rethrown |
+| Begin | Never | `beginTransaction(transactionOptions)` |
+| `transactionOptions` | Ignored | Used to begin |
+| Commit | Never | After `execute` resolves |
+| Rollback | Never | On failure, in its own try/catch |
+
+When joined, `runInTransaction` throws before `execute` runs if the handle is no longer active, and a debug log line records the ignored `transactionOptions`. The caller that began the transaction commits it, and the error reaches that caller untouched. When owned, a rollback failure is only logged and the ORIGINAL error is rethrown.
 
 That makes a repository or service method that must work stand-alone AND nested inside a caller's
 transaction a one-line forward, not two code paths:
@@ -123,9 +125,11 @@ it a second time:
 
 | `execute` outcome | What `runInTransaction` does |
 |---|---|
-| Resolves, and `execute` already committed the transaction | Returns `execute`'s result. No second commit is attempted |
-| Resolves, but `execute` rolled back the transaction or left it failed | Throws a dedicated error naming that `execute` ended the transaction before it could be committed. No rollback is attempted |
-| Rejects, after `execute` already ended the transaction | Rethrows the ORIGINAL rejection, with no further rollback attempt |
+| Resolves, `execute` already committed | Returns `execute`'s result; no second commit |
+| Resolves, `execute` rolled back or left it failed | Throws a dedicated error; no rollback is attempted |
+| Rejects, after `execute` ended the transaction | Rethrows the ORIGINAL rejection; no further rollback |
+
+The dedicated error names that `execute` ended the transaction before it could be committed.
 
 > [!WARNING] Reliable for any IGNIS handle - even across two installed copies
 > Telling the three outcomes apart means reading the transaction's own internal state, through a

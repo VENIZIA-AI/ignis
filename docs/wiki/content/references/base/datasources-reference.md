@@ -30,11 +30,13 @@ Exhaustive reference for `IDataSource`, `AbstractDataSource`, the engine-neutral
 | Class / interface | Purpose | Key members |
 |---|---|---|
 | `IDataSource` | Engine-neutral contract for all datasources | `name`, `settings`, `schema`, `getSchema()`, `getSettings()`, `configure()`, optional `close()` |
-| `AbstractDataSource` | Engine-neutral base implementation with logging | Extends `BaseHelper`; `getCapabilities()` defaults to `{ transactions: false }`; `beginTransaction()` defaults to `NotSupportedUtility.throwNotSupported(...)`; `close()` releases nothing |
+| `AbstractDataSource` | Engine-neutral base implementation with logging | Extends `BaseHelper`; `getCapabilities()`, `beginTransaction()`, `close()` have neutral defaults |
 | `AbstractRelationalDataSource` | Engine-neutral SQL root | Adds `connector`, `client`, `driver`, the whole driver seam; abstract `getConnectionString()` and dialect/executor |
 | `BaseRelationalDataSource` | Engine-neutral SQL base | Constructor, schema auto-discovery, `beginTransaction()`, `getCapabilities() -> { transactions: true }` |
 | `AbstractPostgresDataSource` | Postgres binding of the tier | Supplies `PostgresQueryDialect` and `PostgresQueryExecutor`; narrows `Client` to `Pool` |
-| `BasePostgresDataSource` | Concrete class to extend for PostgreSQL | Supplies `BEGIN TRANSACTION ISOLATION LEVEL` and attaches `isolationLevel`. `BaseDataSource` is a compatibility alias re-exporting the same class |
+| `BasePostgresDataSource` | Concrete class to extend for PostgreSQL | Supplies `BEGIN TRANSACTION ISOLATION LEVEL` and attaches `isolationLevel` |
+
+By default `AbstractDataSource.getCapabilities()` returns `{ transactions: false }`, `beginTransaction()` calls `NotSupportedUtility.throwNotSupported(...)`, and `close()` releases nothing. `BaseDataSource` is a compatibility alias re-exporting `BasePostgresDataSource`.
 | `IRelationalDriver` | Driver seam - connection acquisition + control statements | `createConnector()`, `acquire()`, `getClient()`, `end()` |
 | `IRelationalConnection` | One dedicated physical connection, for one transaction | `connector`, `execute()`, `query()`, `release()` |
 | `ITransaction` | Engine-neutral transaction contract | `isActive`, `commit()`, `rollback()` (no `connector` field) |
@@ -69,8 +71,10 @@ interface IDataSource<
 | Type parameter | Default | Description |
 |---|---|---|
 | `Settings` | `{}` | Connection configuration type (host, port, etc.) |
-| `Schema` | `TAnyDataSourceSchema` | Combined schema type - shape depends on the connector: Drizzle tables for PostgreSQL, collection definitions for typesense |
+| `Schema` | `TAnyDataSourceSchema` | Combined schema type; the shape depends on the connector |
 | `ConfigurableOptions` | `{}` | Options passed to `configure()` |
+
+`Schema` holds Drizzle tables for PostgreSQL and collection definitions for typesense.
 
 ### Members
 
@@ -82,7 +86,9 @@ interface IDataSource<
 | `getSchema()` | `Schema` | Returns the combined schema |
 | `getSettings()` | `Settings` | Returns connection settings |
 | `configure(opts?)` | `ValueOrPromise<void>` | Initializes the underlying connection - inherited from `IConfigurable` |
-| `close()` | `Promise<void>` | Optional. Releases what `configure()` opened. `stop()` calls it on every datasource the boot configured; a datasource without it is skipped |
+| `close()` | `Promise<void>` | Optional. Releases what `configure()` opened |
+
+`stop()` calls `close()` on every datasource the boot configured; a datasource without it is skipped.
 
 > [!NOTE]
 > `getCapabilities()` and `beginTransaction()` are not part of `IDataSource` - they are declared on `AbstractDataSource` (below), which every connector extends.
@@ -113,7 +119,9 @@ abstract class AbstractDataSource<
 
 | Method | Return type | Description |
 |---|---|---|
-| `configure(opts?)` | `ValueOrPromise<void>` | Initialize the underlying connection. This is the **only** abstract member of the neutral root. `getConnectionString()` is not part of it - it is declared one level down, on `AbstractPostgresDataSource` (see below) |
+| `configure(opts?)` | `ValueOrPromise<void>` | Initialize the underlying connection. The **only** abstract member of the neutral root |
+
+`getConnectionString()` is not part of the neutral root. It is declared one level down, on `AbstractRelationalDataSource` (see below).
 
 **Concrete methods** (defaults, overridable by connectors):
 
@@ -122,15 +130,19 @@ abstract class AbstractDataSource<
 | `getSettings()` | `Settings` | Returns `this.settings` |
 | `getSchema()` | `Schema` | Returns `this.schema`; throws if not initialized |
 | `getCapabilities()` | `IDataSourceCapabilities` | Returns `{ transactions: false }` |
-| `beginTransaction(opts?)` | `Promise<ITransaction>` | Calls `NotSupportedUtility.throwNotSupported({ scope: this.constructor.name, feature: 'Transactions', logger: this.logger })` - throws HTTP 501 whose `normalized.code` resolves to `'core.not_supported'` |
-| `close()` | `Promise<void>` | Resolves at once - the root holds no connection. The search datasources keep this default |
+| `beginTransaction(opts?)` | `Promise<ITransaction>` | Throws HTTP 501 through `NotSupportedUtility.throwNotSupported(...)` |
+| `close()` | `Promise<void>` | Resolves at once; the root holds no connection |
+
+The `normalized.code` of the 501 resolves to `'core.not_supported'`. The search datasources keep the default `close()`.
 
 **Protected helpers:**
 
 | Method | Description |
 |---|---|
 | `getBoundModelClasses()` | Returns the model classes bound to this datasource via `@repository` metadata, read from `MetadataRegistry` |
-| `discoverDefinitions({ read, kind })` | Walks the bound model classes, reads a connector-specific artifact via `read`, and returns a name-keyed registry. Skips undefined reads, throws on duplicate names, honors `autoDiscovery: false`. Shared plumbing every connector's own `discoverSchema()`-equivalent builds on |
+| `discoverDefinitions({ read, kind })` | Walks the bound model classes and returns a name-keyed registry of what `read` returns |
+
+`discoverDefinitions` skips undefined reads, throws on duplicate names, and honors `autoDiscovery: false`. It is the shared plumbing every connector's own `discoverSchema()`-equivalent builds on.
 
 > [!NOTE] NotSupported convention
 > Every capability an engine does not implement - transactions, row-level locking, an isolation level SQLite has no concept of - uses the same `NotSupportedUtility.throwNotSupported` utility ([`packages/kernel/src/utilities/not-supported.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/utilities/not-supported.utility.ts)). It produces a consistent `501 Not Implemented` whose `normalized.code` resolves to `'core.not_supported'`. This is how a connector signals "not applicable to this engine" instead of silently no-op-ing.
@@ -180,9 +192,11 @@ abstract class AbstractRelationalDataSource<
 
 | Property | Type | Visibility | Description |
 |---|---|---|---|
-| `connector` | `TConnector` | public | Drizzle ORM instance. The postgres branch binds it to `TRelationalConnector<Schema>`, a `PgDatabase`; SQLite binds it to an async `BaseSQLiteDatabase` |
-| `client` | `Client` | protected, optional | The raw driver client `configure()` builds - a `pg.Pool`, a postgres-js `Sql`, a `PGlite`, a libsql `Client`. Assigning it is enough: `wireDriverFromMetadata()` instantiates the `@datasource({ driver })` class over it on first use. Absent once `useDriver()` wired a driver instead |
-| `driver` | `IRelationalDriver<TConnector>` | protected, optional | The connection driver; built lazily by `wireDriverFromMetadata()` from the class named in `@datasource({ driver })`, or explicitly by `useDriver()` |
+| `connector` | `TConnector` | public | Drizzle ORM instance |
+| `client` | `Client` | protected, optional | The raw driver client `configure()` builds |
+| `driver` | `IRelationalDriver<TConnector>` | protected, optional | The connection driver, built lazily or by `useDriver()` |
+
+The postgres branch binds `connector` to `TRelationalConnector<Schema>`, a `PgDatabase`; SQLite binds it to an async `BaseSQLiteDatabase`. `client` is a `pg.Pool`, a postgres-js `Sql`, a `PGlite` or a libsql `Client`. Assigning it is enough: `wireDriverFromMetadata()` instantiates the `@datasource({ driver })` class over it on first use, and `client` is absent once `useDriver()` wired a driver instead.
 
 The fourth generic, `Client`, is what lets a postgres-js datasource declare `Client = Sql` and keep `getClient()` honestly typed. `AbstractPostgresDataSource` defaults it to `Pool`.
 
@@ -190,7 +204,7 @@ The fourth generic, `Client`, is what lets a postgres-js datasource declare `Cli
 
 | Method | Return type | Description |
 |---|---|---|
-| `getConnectionString()` | `ValueOrPromise<string>` | Return the connection URL. Declared here, not on the neutral root - only a datasource that has a notion of "connection string" needs it |
+| `getConnectionString()` | `ValueOrPromise<string>` | Return the connection URL |
 | `beginTransaction(opts?)` | `Promise<IRelationalTransaction<TConnector>>` | Overrides the neutral `beginTransaction()`. `BaseRelationalDataSource` below supplies the implementation |
 | `getQueryDialect()` | `IRelationalQueryDialect` | Supplied by each engine branch - `PostgresQueryDialect`, `SqliteQueryDialect` |
 | `getQueryExecutor()` | `IRelationalQueryExecutor<TConnector>` | Supplied by each engine branch - `PostgresQueryExecutor`, `SqliteQueryExecutor` |
@@ -200,19 +214,29 @@ The fourth generic, `Client`, is what lets a postgres-js datasource declare `Cli
 | Method | Return type | Description |
 |---|---|---|
 | `getConnector()` | `TConnector` | Wires the driver on first use (via `wireDriverFromMetadata()`), then returns `this.connector` |
-| `getClient()` | `Client` | Raw driver client escape hatch - `pg.Pool` for node-postgres, `Sql` for postgres-js. Reads `this.driver.getClient()` if a driver is resolved, else `this.client` directly. Throws if neither is set |
-| `onSecretRotated(opts)` | `Promise<void>` | Applies rotated credentials to `this.settings` and rebuilds the driver/connector/client against a fresh pool. Calls `this.configure()` and `this.resolveDriver()`, then drains the old pool once the new one is in place. See [Secrets & Vault](/guides/core-concepts/secrets-vault) |
-| `close()` | `Promise<void>` | Ends the connection through the driver's `end()`, wiring the driver first when nothing has queried yet - PGlite's `end()` also clears the exit status it plants on the host. A client no driver can wrap is drained with `drainClient()`. Runs once: every later call returns the first call's promise. No client means nothing to close |
+| `getClient()` | `Client` | Raw driver client escape hatch; throws if neither a driver nor a client is set |
+| `onSecretRotated(opts)` | `Promise<void>` | Applies rotated credentials and rebuilds the driver, connector and client on a fresh pool |
+| `close()` | `Promise<void>` | Ends the connection through the driver's `end()` |
+
+Concrete method details:
+
+- `getClient()` is `pg.Pool` for node-postgres and `Sql` for postgres-js. It reads `this.driver.getClient()` if a driver is resolved, else `this.client` directly.
+- `onSecretRotated()` calls `this.configure()` and `this.resolveDriver()`, then drains the old pool once the new one is in place. See [Secrets & Vault](/guides/core-concepts/secrets-vault).
+- `close()` wires the driver first when nothing has queried yet. PGlite's `end()` also clears the exit status it plants on the host. A client no driver can wrap is drained with `drainClient()`. It runs once: every later call returns the first call's promise. No client means nothing to close.
 
 **Protected methods:**
 
 | Method | Description |
 |---|---|
-| `wireDriverFromMetadata()` | Idempotent, lazy. If `this.connector` already exists, no-ops. If `this.driver` exists but `this.connector` does not, builds the connector from it. Otherwise reads the class named in `@datasource({ driver })` from `MetadataRegistry`, instantiates it over `this.client`, and calls `useDriver()`. Throws if neither `client` nor `driver` is set. It also throws if the named `driver` metadata is not a class. A string, historically valid for search engines, is rejected here with a message pointing at `NodePostgresDriver` |
+| `wireDriverFromMetadata()` | Idempotent, lazy: wires the driver and connector on first use |
 | `resolveDriver()` | Calls `wireDriverFromMetadata()`, then returns `this.driver` |
-| `useDriver({ driver, schema? })` | Assigns `this.driver` **and** builds `this.connector` from it in one step - the two-step form (driver set, connector forgotten) is unrepresentable. `schema` defaults to `getSchema()`. The public escape hatch for a custom or third-party driver, bypassing `@datasource({ driver })` entirely |
-| `drainClient({ client })` | Shuts a client down by whichever verb its engine spells it with - `end()` on `pg.Pool` and postgres-js, `close()` on PGlite and libsql. Probed, not type-tested, so this tier names no engine |
-| `mapSecretToSettings({ secret })` | Maps Vault's `{ username, password }` secret shape to `pg`'s `{ user, password }` settings shape, for `onSecretRotated()` |
+| `useDriver({ driver, schema? })` | Assigns `this.driver` **and** builds `this.connector` from it in one step |
+| `drainClient({ client })` | Shuts a client down with whichever verb its engine uses |
+| `mapSecretToSettings({ secret })` | Maps Vault's `{ username, password }` secret to `pg`'s `{ user, password }` settings |
+
+- `wireDriverFromMetadata()`: if `this.connector` already exists, it does nothing. If `this.driver` exists but `this.connector` does not, it builds the connector from it. Otherwise it reads the class named in `@datasource({ driver })` from `MetadataRegistry`, instantiates it over `this.client`, and calls `useDriver()`. It throws if neither `client` nor `driver` is set, or if the named `driver` metadata is not a class. A string, historically valid for search engines, is rejected with a message pointing at `NodePostgresDriver`.
+- `useDriver()`: the two-step form (driver set, connector forgotten) is unrepresentable. `schema` defaults to `getSchema()`. It is the public escape hatch for a custom or third-party driver, bypassing `@datasource({ driver })` entirely.
+- `drainClient()`: `end()` on `pg.Pool` and postgres-js, `close()` on PGlite and libsql. It probes for the verb rather than type-testing, so this tier names no engine.
 
 > [!NOTE] Driver seam
 > - **Class, not a string.** `@datasource({ driver })` names the driver **class** (`NodePostgresDriver`, `PostgresJsDriver`, `PGliteDriver`, `LibSqlDriver`). A driver-name string cannot carry the client package into the app's bundle - only a real class reference can.
@@ -274,7 +298,9 @@ abstract class BasePostgresDataSource<
 |---|---|
 | Schema auto-discovery | Schema is automatically built from registered `@repository` decorators |
 | Manual override | You can pass `schema` in the constructor for full control |
-| Built-in transaction support | `beginTransaction()` acquires its connection from the resolved driver; `BaseRelationalDataSource` overrides `getCapabilities()` to return `{ transactions: true }` |
+| Built-in transaction support | `beginTransaction()` acquires its connection from the resolved driver |
+
+`BaseRelationalDataSource` overrides `getCapabilities()` to return `{ transactions: true }`.
 
 > [!TIP]
 > Set `autoDiscovery: false` in the `@datasource` decorator to disable automatic schema discovery, when you want to provide the schema manually.
@@ -434,15 +460,21 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `driver` | `TDataSourceDriverClass` | - | The driver **class** - `NodePostgresDriver`, `PostgresJsDriver`, `PGliteDriver` or `LibSqlDriver`, imported from its own subpath - never a driver-name string on a **relational** datasource. A class reference is the only thing that carries the client package into the app's bundle. **Omit it for a search datasource**: `extends TypesenseDataSource` already names the engine, and is what carries `typesense` into the bundle |
-| `autoDiscovery` | `boolean` | `true` | Enable/disable schema auto-discovery. `false` makes `discoverSchema()`/`discoverDefinitions()` return an empty object instead of querying `MetadataRegistry` |
+| `driver` | `TDataSourceDriverClass` | - | The driver **class**, imported from its own subpath. Omit it for a search datasource |
+| `autoDiscovery` | `boolean` | `true` | Enable/disable schema auto-discovery |
+
+The driver class is `NodePostgresDriver`, `PostgresJsDriver`, `PGliteDriver` or `LibSqlDriver`. A relational datasource never takes a driver-name string: a class reference is the only thing that carries the client package into the app's bundle. A search datasource omits it, because `extends TypesenseDataSource` already names the engine and carries `typesense` into the bundle.
+
+`autoDiscovery: false` makes `discoverSchema()`/`discoverDefinitions()` return an empty object instead of querying `MetadataRegistry`.
 
 ### Abstract methods (extending `BasePostgresDataSource`)
 
 | Method | Return type | Description |
 |---|---|---|
-| `configure(opts?)` | `ValueOrPromise<void>` | Initialize the client. Must set `this.client` (the base class wires the driver and Drizzle connector from `@datasource({ driver })`), or call `this.useDriver()` directly for a custom driver |
+| `configure(opts?)` | `ValueOrPromise<void>` | Initialize the client: set `this.client`, or call `this.useDriver()` |
 | `getConnectionString()` | `ValueOrPromise<string>` | Return the database connection string |
+
+The base class wires the driver and Drizzle connector from `@datasource({ driver })` once `this.client` is set. Call `this.useDriver()` directly for a custom driver.
 
 ### Helper methods
 
@@ -457,7 +489,9 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 
 | Method | Description |
 |---|---|
-| `discoverSchema()` | Queries `MetadataRegistry` for all `@repository` bindings targeting this datasource, then calls `registry.buildSchema()` to merge tables and relations into a single schema object. Returns `{}` when `autoDiscovery: false` |
+| `discoverSchema()` | Builds one schema from every `@repository` binding that targets this datasource |
+
+`discoverSchema()` queries `MetadataRegistry`, then calls `registry.buildSchema()` to merge tables and relations. It returns `{}` when `autoDiscovery: false`.
 
 ## Driver interface
 
@@ -491,12 +525,18 @@ interface IStatementResult {
 | Member | Description |
 |---|---|
 | `createConnector({ schema })` | Builds the pooled Drizzle connector - what `wireDriverFromMetadata()` assigns to `this.connector` |
-| `acquire({ schema })` | Checks out one dedicated physical connection for an explicit transaction, returning a connector bound to that connection plus `execute()`/`query()`/`release()` |
+| `acquire({ schema })` | Checks out one dedicated connection for an explicit transaction |
 | `getClient()` | Raw client escape - `pg.Pool` for node-postgres, `Sql` for postgres-js |
 | `end()` | Closes the underlying client/pool |
-| `IRelationalConnection.execute({ statement })` | Runs a control statement verbatim (never parameterized - `BEGIN TRANSACTION ISOLATION LEVEL $1` is not valid SQL). Returns the affected-row `count` |
-| `IRelationalConnection.query({ statement })` | Rows from a verbatim statement, for callers with no Drizzle schema to query through - the migration ledger is the one in-tree case. Also unparameterized: placeholder syntax is not portable (`$1` on Postgres, `?` on SQLite), so a caller needing a value must prove it is a literal |
-| `IRelationalConnection.release({ destroy? })` | Returns the connection to the pool, or discards it when `destroy: true`. Required after a failed `COMMIT`/`ROLLBACK`, since the session may still hold an open transaction |
+| `IRelationalConnection.execute({ statement })` | Runs a control statement verbatim; returns the affected-row `count` |
+| `IRelationalConnection.query({ statement })` | Rows from a verbatim statement, with no Drizzle schema |
+| `IRelationalConnection.release({ destroy? })` | Returns the connection to the pool, or discards it when `destroy: true` |
+
+`acquire()` returns a connector bound to that connection plus `execute()`, `query()` and `release()`.
+
+- `execute()` is never parameterized: `BEGIN TRANSACTION ISOLATION LEVEL $1` is not valid SQL.
+- `query()` serves callers with no Drizzle schema to query through; the migration ledger is the one in-tree case. It is unparameterized too, because placeholder syntax is not portable (`$1` on Postgres, `?` on SQLite), so a caller needing a value must prove it is a literal.
+- `release({ destroy: true })` is required after a failed `COMMIT` or `ROLLBACK`, since the session may still hold an open transaction.
 
 Four concrete drivers ship today, all satisfying `IRelationalDriver` and all proven by the same conformance suite:
 
@@ -504,8 +544,10 @@ Four concrete drivers ship today, all satisfying `IRelationalDriver` and all pro
 |---|---|---|---|
 | `NodePostgresDriver` | `@venizia/ignis-connectors/postgres/node-postgres` | `pg` | Rejects a client without `connect()` **and** `totalCount` (pool accounting) - catches a bare `pg.Client` |
 | `PostgresJsDriver` | `@venizia/ignis-connectors/postgres/postgres-js` | `postgres` | Rejects a client without `reserve()` **and** `unsafe()` - catches a `pg.Pool` passed to the wrong driver |
-| `PGliteDriver` | `@venizia/ignis-connectors/postgres/pglite` | `@electric-sql/pglite` | Postgres compiled to WASM, in-process, reporting PostgreSQL 18.x, so the dialect works unchanged. One session, so `acquire()` hands out a one-slot pool |
-| `LibSqlDriver` | `@venizia/ignis-connectors/sqlite/libsql` | `@libsql/client` | Covers `:memory:`, a local file, remote Turso and embedded replicas. Async result kind, so it never blocks the event loop. Also a one-slot pool |
+| `PGliteDriver` | `@venizia/ignis-connectors/postgres/pglite` | `@electric-sql/pglite` | Postgres compiled to WASM, in-process (PostgreSQL 18.x); one-slot pool |
+| `LibSqlDriver` | `@venizia/ignis-connectors/sqlite/libsql` | `@libsql/client` | `:memory:`, a local file, remote Turso and embedded replicas; one-slot pool |
+
+`PGliteDriver` has one session, so the dialect works unchanged. `LibSqlDriver` has an async result kind, so it never blocks the event loop.
 
 - **PGlite and libsql hold one session.** A `createConnector()` write runs **inside** any open transaction and dies with its `ROLLBACK`. Under concurrency, write through `acquire()`. Both drivers time an unreleased slot out after 30 seconds, turning a leaked transaction into a named error instead of a hung process.
 - **Driver asymmetry, deliberate.** After a failed `COMMIT`, `pg` can destroy the poisoned connection (`release(err)`). postgres-js has no destroy semantics - `ReservedSql.release()` takes no argument - so it returns the connection to the pool regardless.
@@ -517,9 +559,11 @@ Four concrete drivers ship today, all satisfying `IRelationalDriver` and all pro
 
 | Type | Description |
 |---|---|
-| `TRelationalConnector<Schema>` | Canonical connector type - a Drizzle `PgDatabase` that **every** pg driver (`node-postgres`, `postgres-js`) satisfies. Use this in new code |
+| `TRelationalConnector<Schema>` | Canonical connector type; use it in new code |
 | `TAnyConnector<Schema>` | Alias of `TRelationalConnector<Schema>` |
-| `TAnyDataSourceSchema` | `Record<string, any>` - base type for all schema objects, defined in `packages/kernel/src/base/datasources/common/types.ts`, shared across engines |
+| `TAnyDataSourceSchema` | Base type for all schema objects, shared across engines |
+
+`TRelationalConnector` is a Drizzle `PgDatabase` that **every** pg driver (`node-postgres`, `postgres-js`) satisfies. `TAnyDataSourceSchema` is `Record<string, any>`, defined in `packages/kernel/src/base/datasources/common/types.ts`.
 
 ### `DataSourceDrivers`
 
@@ -610,12 +654,14 @@ interface IDatabaseTransaction<Schema extends TAnyDataSourceSchema = TAnyDataSou
 
 | Type | Description |
 |---|---|
-| `ITransactionOptions` | Engine-neutral transaction options - `{ isolationLevel?: string }`. Loose on purpose: isolation levels are engine vocabulary, not universal |
+| `ITransactionOptions` | Engine-neutral options, `{ isolationLevel?: string }` |
 | `ITransaction` | Engine-neutral contract - `isActive`, `commit()`, `rollback()`. No `connector` field |
-| `IDatabaseTransactionOptions` | PostgreSQL transaction options - narrows `isolationLevel` to `TIsolationLevel`; extends the neutral `ITransactionOptions` |
+| `IDatabaseTransactionOptions` | PostgreSQL options; narrows `isolationLevel` to `TIsolationLevel` |
 | `IDatabaseTransaction<Schema>` | PostgreSQL transaction object - extends `ITransaction` with `connector` and `isolationLevel` |
 | `TIsolationLevel` | Union type: `'READ COMMITTED'` \| `'REPEATABLE READ'` \| `'SERIALIZABLE'` |
 | `IsolationLevels` | Const-class with isolation level constants and validation |
+
+`ITransactionOptions` is loose on purpose: isolation levels are engine vocabulary, not universal. `IDatabaseTransactionOptions` extends it.
 
 > [!NOTE]
 > `AbstractRepository` names its options type parameter `TOptions` in the kernel. `PostgresBaseRepository` rebinds it to `IDatabaseExtraOptions` so repository code bound to a PostgreSQL repository sees `IDatabaseTransaction` (with `connector`/`isolationLevel`) rather than the bare neutral `ITransaction`.
