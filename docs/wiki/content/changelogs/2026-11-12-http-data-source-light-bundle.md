@@ -53,10 +53,12 @@ migration:
       steps:
         - "HttpDataSource now extends DataSourceRoot, not AbstractDataSource, so `dataSource instanceof AbstractDataSource` is false for it. Test with isDataSourceClass, or with instanceof DataSourceRoot, both from @venizia/ignis-kernel/repository."
         - "A repository still takes it: the repository contracts accept a DataSourceRoot."
-        - "A @datasource({ open: { on, timeoutMs } }) on an HttpDataSource subclass is no longer read: it opens at start with the 60 s default, which is all an HTTP client ever did."
+        - "A @datasource({ open: { on: 'first-use' } }) on an HttpDataSource subclass is still refused at boot (the boot reads the declaration itself). A @datasource({ open: { timeoutMs } }) on it is no longer read: an HTTP client opens nothing, so there is nothing to time out."
+        - "A subclass that calls the protected discoverDefinitions() or getBoundModelClasses() stops compiling: they belong to AbstractDataSource, which reads the model metadata. An HTTP client has no models bound to it; delete the call, or extend AbstractDataSource yourself if you need them."
     downgrade:
       steps:
         - "Test with instanceof AbstractDataSource again."
+        - "A call to discoverDefinitions() or getBoundModelClasses() in a subclass compiles again."
 ---
 
 # Changelog - 2026-11-12
@@ -70,7 +72,7 @@ migration:
 ## What changed
 
 - **A root with no dependency-injection import.** `HttpDataSource` extends `DataSourceRoot` (new, from `@venizia/ignis-kernel/repository`), which holds the brand, the settings and the open state machine. `AbstractDataSource` extends it and adds what reads `@datasource` metadata, so every other datasource behaves as before.
-- **A sender of your own.** `settings.fetch` is `(url, init) => Promise<Response>`. Without it the platform `fetch` sends, looked up on each call. The node transport and its logging are no longer part of the browser bundle.
+- **A sender of your own.** `settings.fetch` is `(url, init) => Promise<Response>`. Without it the platform `fetch` sends, looked up on each call. The node transport is no longer part of the browser bundle.
 - **Measured** with a minimal Vite build of one JSON `POST`: 60.4 KB raw (19.5 KB gzip) before, 28.2 KB (10.1 KB gzip) after; plain `fetch` is 0.1 KB. The rest is the data source's own code, the error and logger it needs, and the shared constants.
 - **Repository contracts take a `DataSourceRoot`.** `AbstractRepository.dataSource` and the contract types widen from `AbstractDataSource`; every public member stays.
 
@@ -78,6 +80,7 @@ migration:
 
 - **Apps that subclass `HttpDataSource` and read `this.network`.** The member is gone. Pass `fetch` in the settings instead.
 - **Code that tests `instanceof AbstractDataSource` on an `HttpDataSource`.** It is false now: see the migration below.
+- **`HttpDataSource` subclasses that call `discoverDefinitions()` or `getBoundModelClasses()`.** They stop compiling; an HTTP client has no bound models.
 - **Code that types `repository.dataSource` as `AbstractDataSource`.** The getter and the repository contracts return `DataSourceRoot` now, so that assignment stops compiling; type it as `DataSourceRoot`, or narrow with `instanceof AbstractDataSource`.
 - **Everyone else.** No action needed; the smaller bundle is automatic.
 

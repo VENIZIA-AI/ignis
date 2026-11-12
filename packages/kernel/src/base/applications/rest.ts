@@ -19,6 +19,7 @@ import { RestComponent } from '../components/controller/rest/rest.component';
 import type { BaseConfiguration } from '../configurations';
 import { ControllerTransports } from '../controllers/common/constants';
 import type { IDataSource, IDataSourceOpening } from '../datasources';
+import { DataSourceOpenModes } from '../datasources';
 import { OPENING_HANDLES } from '../datasources/opening-handles';
 import { BaseAppErrorMiddleware } from '../middlewares/app-error/app-error.middleware';
 import { notFoundHandler } from '../middlewares/not-found/not-found.middleware';
@@ -506,10 +507,16 @@ export abstract class RestApplication<
           return;
         }
 
+        // A family on `DataSourceRoot` does not read `@datasource` metadata, so the boot reads the declaration itself: `first-use` on a family that cannot honour it is refused by `deferOpen`, never ignored.
+        const isDeclaredDeferred =
+          namespace === BindingNamespaces.DATASOURCE &&
+          MetadataRegistry.getInstance().getDataSourceMetadata({ target: instance.constructor })
+            ?.open?.on === DataSourceOpenModes.FIRST_USE;
+
         if (
           namespace === BindingNamespaces.DATASOURCE &&
           BootTargets.canDeferOpen(instance) &&
-          instance.isOpenDeferred() === true
+          (instance.isOpenDeferred() === true || isDeclaredDeferred)
         ) {
           // Opens at the first call that needs it; the application starts, and listens, without it.
           instance.deferOpen?.({ options: this.artifactOptions.get(binding.key) });

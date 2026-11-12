@@ -16,14 +16,18 @@ import { OPENING_HANDLES } from './opening-handles';
 /**
  * Brands the datasource root so `@repository` can recognise a subclass WITHOUT `instanceof`.
  *
- * Two copies of this package give two `AbstractDataSource` classes, and `instanceof` across them is
+ * Two copies of this package give two `DataSourceRoot` classes, and `instanceof` across them is
  * false - the same trap `isApplicationError` exists to avoid for `ApplicationError`. `Symbol.for` is
  * realm-keyed, so both copies produce this exact symbol, and a static is inherited by every
  * subclass however deep.
  */
+/**
+ * The key keeps its old name, `abstract-data-source`, so a copy of the package from before `DataSourceRoot` still recognises the
+ * classes of a newer one, and the other way round.
+ */
 export const DATA_SOURCE_BRAND = Symbol.for('@venizia/ignis-kernel:abstract-data-source');
 
-/** True for `AbstractDataSource` itself and for any class extending it, across package copies. */
+/** True for `DataSourceRoot` itself and for any class extending it (`AbstractDataSource` among them), across package copies. */
 export const isDataSourceClass = (value: unknown): value is TClass<AnyType> => {
   return typeof value === 'function' && DATA_SOURCE_BRAND in value;
 };

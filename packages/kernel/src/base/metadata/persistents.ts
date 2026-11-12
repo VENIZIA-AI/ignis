@@ -167,7 +167,7 @@ const validateRepositoryMetadata = <
   }
 };
 
-/** Asserts the constructor's first parameter is an AbstractDataSource compatible with what @repository declared. */
+/** Asserts the constructor's first parameter is a datasource class (`AbstractDataSource` or the `DataSourceRoot` it extends) compatible with what @repository declared. */
 const validateFirstConstructorParameter = (opts: {
   target: Function;
   firstParamType: Function;
@@ -175,13 +175,13 @@ const validateFirstConstructorParameter = (opts: {
 }): void => {
   const { target, firstParamType, resolvedDataSource } = opts;
 
-  // NOT `instanceof`: two copies of this package give two `AbstractDataSource` classes and the
+  // NOT `instanceof`: two copies of this package give two `DataSourceRoot` classes and the
   // check would be false across them, rejecting a perfectly valid repository at import time.
   const isDataSourceType = isDataSourceClass(firstParamType);
 
   if (!isDataSourceType) {
     throw getError({
-      message: `[@repository][${target.name}] Invalid constructor | First parameter must extend AbstractDataSource | Received: '${firstParamType.name}'`,
+      message: `[@repository][${target.name}] Invalid constructor | First parameter must extend AbstractDataSource (or DataSourceRoot) | Received: '${firstParamType.name}'`,
     });
   }
 
