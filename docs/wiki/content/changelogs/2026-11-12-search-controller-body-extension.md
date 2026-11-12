@@ -43,6 +43,7 @@ migration:
 
 - **`request.body.extend`.** A Zod shape added to each `mode` of the `POST /search` body. A bad value is a `400`, and the OpenAPI document shows the keys. A key the base body already has is refused when the controller is built.
 - **`scope` gets `input`.** The resolver is called with `{ context, input }`, where `input` is the validated body typed from your shape (`input.ids` is a `string[]`). A resolver that reads only `context` keeps working. Code that calls a `TSearchScopeResolver` itself (a unit test of a scope, say) must pass `input` too: that is the one breaking change, at the type level.
+- **The extra keys stop at your scope.** They are not search fields, so they are dropped before the repository runs and are not logged. The mode descriptions stay in the OpenAPI document.
 - **No change without it.** Leave `request` out and the body, the scope and the OpenAPI document are what they were.
 
 ## Who is affected

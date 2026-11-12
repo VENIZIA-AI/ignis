@@ -7,7 +7,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { Env, Schema } from 'hono';
 import type { TMultiSearchInput, TSearchInput } from '@/search/core/repositories/common';
-import { SearchModes } from '@/search/core/repositories/common';
+import { SearchInputSchema, SearchModes } from '@/search/core/repositories/common';
 import type { ReadableSearchRepository } from '../repositories/core/readable';
 import { SearchEngineParams } from './engine-params';
 import { SearchRawAccess } from './raw-access';
@@ -61,6 +61,9 @@ export abstract class AbstractSearchController<
   /** Whether the controller serves `mode: 'raw'` and multi-search over HTTP (`modes.raw.allow`). Closed by default: see {@link SearchRawAccess}. */
   isRawAllowed: boolean;
 
+  /** `request.body.extend` was given: its keys are the scope's to read, and they do not go on to the repository. */
+  isBodyExtended: boolean;
+
   constructor(opts: {
     scope: string;
     isStrict?: boolean;
@@ -72,12 +75,15 @@ export abstract class AbstractSearchController<
     allowedEngineParams?: ReadonlySet<string>;
     /** `modes.raw.allow`, as `SearchRawAccess.resolve` answers it. */
     isRawAllowed?: boolean;
+    /** `request.body.extend` was given. */
+    isBodyExtended?: boolean;
   }) {
     super({ scope: opts.scope, isStrict: opts.isStrict });
     this.repository = opts.repository;
     this.searchScope = opts.searchScope;
     this.allowedEngineParams = opts.allowedEngineParams ?? new Set();
     this.isRawAllowed = opts.isRawAllowed ?? false;
+    this.isBodyExtended = opts.isBodyExtended ?? false;
     this.definitions = opts.definitions;
   }
 
@@ -103,6 +109,11 @@ export abstract class AbstractSearchController<
         input: body,
       });
       input = scoped;
+    }
+
+    // The scope was the only reader of the extra keys: the base schema drops them, so the repository and the log never see them.
+    if (this.isBodyExtended) {
+      input = SearchInputSchema.parse(input);
     }
 
     const rs = await this.measure({

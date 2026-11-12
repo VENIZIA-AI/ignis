@@ -1,7 +1,7 @@
 // Must precede the controllers/factory import below: avoids a circular-import TDZ error.
 import '@venizia/ignis-kernel';
 
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import { z } from '@hono/zod-openapi';
 
 import { repository, controller as controllerDecorator } from '@venizia/ignis-kernel';
@@ -59,12 +59,13 @@ const mount = async (opts: { extend?: boolean } = {}) => {
   @controllerDecorator({ path: '/products' })
   class Controller extends BuiltController {}
 
-  const controller = new Controller(new BodyExtensionProductRepository(dataSource));
+  const repositoryInstance = new BodyExtensionProductRepository(dataSource);
+  const controller = new Controller(repositoryInstance);
   await controller.configure();
   const router = controller.getRouter();
   answerErrors(router);
 
-  return { router, dataSource, seen };
+  return { router, dataSource, seen, repositoryInstance };
 };
 
 /** The `filter_by` of the last search the engine saw. */
@@ -136,6 +137,41 @@ describe('SearchControllerFactory - request.body.extend', () => {
 
     expect(text).toContain('"ids"');
     expect(text.split('"ids"').length - 1).toBeGreaterThanOrEqual(4);
+  });
+
+  test('the OpenAPI document keeps the description of every mode', async () => {
+    const { router } = await mount({ extend: true });
+    const text = JSON.stringify(
+      router.getOpenAPIDocument({ openapi: '3.0.0', info: { title: 't', version: '1' } }).paths,
+    );
+
+    for (const description of [
+      'Keyword full-text search',
+      'Vector / semantic search',
+      'Hybrid keyword + vector search',
+      'Raw engine passthrough',
+    ]) {
+      expect(text, description).toContain(description);
+    }
+  });
+
+  test('the extra keys stop at the scope: the repository never receives them', async () => {
+    const { router, repositoryInstance, seen } = await mount({ extend: true });
+    const received: unknown[] = [];
+    const original = repositoryInstance.search.bind(repositoryInstance);
+    spyOn(repositoryInstance, 'search').mockImplementation((input: never) => {
+      received.push(input);
+
+      return original(input);
+    });
+
+    const answered = await post({ router, body: { mode: 'keyword', query: 'foo', ids: ['a'] } });
+
+    expect(answered.status).toBe(200);
+    expect(seen.length).toBe(1);
+    expect(received.length).toBe(1);
+    expect(Object.keys(received[0] as object)).not.toContain('ids');
+    expect((received[0] as { query?: string }).query).toBe('foo');
   });
 
   test('no option: the body is the base body, an unknown key is dropped, and a scope still works', async () => {

@@ -106,11 +106,12 @@ export class SearchControllerFactory extends BaseHelper {
       });
     }
 
+    // `extend` drops the `.describe()` of a member, and the OpenAPI document shows it as the name of the mode.
     return z.discriminatedUnion('mode', [
-      keyword.extend(shape),
-      semantic.extend(shape),
-      hybrid.extend(shape),
-      raw.extend(shape),
+      keyword.extend(shape).describe(keyword.description ?? ''),
+      semantic.extend(shape).describe(semantic.description ?? ''),
+      hybrid.extend(shape).describe(hybrid.description ?? ''),
+      raw.extend(shape).describe(raw.description ?? ''),
     ]);
   }
 
@@ -247,6 +248,7 @@ export class SearchControllerFactory extends BaseHelper {
             | undefined,
           allowedEngineParams,
           isRawAllowed,
+          isBodyExtended: opts.request?.body !== undefined,
         });
       }
 
