@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+
 import type { AbstractEntity } from '@/base/models';
 import type { TMixinTarget } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
