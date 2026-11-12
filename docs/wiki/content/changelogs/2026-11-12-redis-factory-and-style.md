@@ -25,7 +25,8 @@ packages: ['@venizia/ignis-helpers']
 - **Apps that call `RedisHelperFactory.create`.** Rename the call as shown below.
 - **Apps that pass `user` to `RedisSingleHelper`.** Remove it; it had no effect.
 - **Apps that read `RedisModes`, `TRedisMode` or one of the removed statics.** Use the topology method, or compare against the constant values you need.
-- **Apps that read an extra field of an `IUploadFile` or `IObjectMetadata`, or use `BullMQHelper` with no type arguments.** The value is now `unknown`; narrow it or pass the type arguments.
+- **Apps that read an extra field of an `IUploadFile` or `IObjectMetadata`.** The value is now `unknown`; narrow it.
+- **Apps that use `BullMQHelper`.** Types only, but breaking: a helper typed `BullMQHelper<TElement, unknown>` no longer assigns to `BullMQHelper<unknown, unknown>`, and a handler `(job: Job<X>) => Promise<void>` no longer fits the `unknown` defaults. Pass explicit type arguments `BullMQHelper<TElement, TResult>` with handlers `(job: Job<TElement, TResult>) => Promise<TResult>`. Do not widen to `<unknown, unknown>`; no cast is needed.
 - **Everyone else.** No action needed.
 
 ## Breaking changes
