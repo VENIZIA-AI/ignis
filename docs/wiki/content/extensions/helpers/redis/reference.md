@@ -213,7 +213,7 @@ The helper sets these cluster options before your own:
 | `clusterRetryStrategy` | the [retry strategy](#retry-strategy) for `maxRetry` (default `5`) | Reconnects the cluster the way single and sentinel reconnect |
 | `redisOptions.maxRetriesPerRequest` | `null` | BullMQ requires it |
 
-`clusterOptions` is merged **over** all of them, so it stays the last word. A caller already passing `clusterOptions: { lazyConnect: true }` keeps exactly the timing it has today. The merge is shallow: passing your own `redisOptions` replaces the default one, so repeat `maxRetriesPerRequest: null` there if BullMQ uses the helper.
+`clusterOptions` is merged **over** all of them, so it stays the last word. A caller already passing `clusterOptions: { lazyConnect: true }` keeps exactly the timing it has today. `redisOptions` is merged key by key: passing your own (a password, TLS) keeps `maxRetriesPerRequest: null` unless you set that key yourself.
 
 `duplicateClient()` on a cluster creates a **new** `Cluster` instance from the same startup nodes and options. ioredis `Cluster` doesn't implement `.duplicate()`, so the helper builds a fresh instance instead.
 

@@ -57,7 +57,7 @@ console.log(session); // { userId: 42, active: true }
 | `-1` | Reconnect forever |
 | Another positive integer | Stop reconnecting after that many attempts |
 
-- **BullMQ compatibility.** Single, Sentinel and Cluster helpers all set `maxRetriesPerRequest: null`, which is what BullMQ requires. On a cluster, `clusterOptions.redisOptions` replaces it.
+- **BullMQ compatibility.** Single, Sentinel and Cluster helpers all set `maxRetriesPerRequest: null`, which is what BullMQ requires. On a cluster, your own `clusterOptions.redisOptions` is merged with it; set the key there to change it.
 - **Values are JSON-serialized automatically.**
 
 | Method group | Behavior |

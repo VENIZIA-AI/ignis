@@ -72,6 +72,14 @@ describe('RedisClusterHelper reconnect policy', () => {
     client.disconnect();
   });
 
+  it('an app redisOptions (a password) keeps maxRetriesPerRequest null', () => {
+    const client = build({ clusterOptions: { redisOptions: { password: 'secret' } } }).getClient();
+
+    expect(client.options.redisOptions?.password).toBe('secret');
+    expect(client.options.redisOptions?.maxRetriesPerRequest).toBeNull();
+    client.disconnect();
+  });
+
   it('clusterOptions still overrides the defaults', () => {
     const client = build({
       clusterOptions: { clusterRetryStrategy: () => 7, redisOptions: { maxRetriesPerRequest: 2 } },

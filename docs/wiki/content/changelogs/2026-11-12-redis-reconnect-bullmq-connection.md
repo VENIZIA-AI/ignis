@@ -18,14 +18,14 @@ packages: ['@venizia/ignis-helpers']
 - **A new backoff.** The wait is exponential from 1 s, doubling, capped at 30 s, with half of each wait randomized (`RedisDefaults.RECONNECT_BACKOFF`, computed by `RetryHelper.computeBackoffDelayMs`). It was 2 s, 4 s, then 5 s.
 - **A log when it gives up.** One error line says the helper stopped reconnecting.
 - **A bad value is refused.** `maxRetry` must be `0`, `-1` or a positive integer. A negative number other than `-1`, a fraction or `NaN` throws when the helper is built.
-- **Cluster parity.** `RedisClusterHelper` takes `maxRetry`, reconnects through `clusterRetryStrategy`, and sets `redisOptions.maxRetriesPerRequest: null` by default, which BullMQ workers need. `clusterOptions` still overrides.
+- **Cluster parity.** `RedisClusterHelper` takes `maxRetry`, reconnects through `clusterRetryStrategy`, and sets `redisOptions.maxRetriesPerRequest: null` by default, which BullMQ workers need. `clusterOptions` still overrides, and your own `redisOptions` is merged with that default key by key.
 - **No leaked connection.** `BullMQHelper` hands the helper's own client to BullMQ instead of `duplicateClient()`. BullMQ never quits a client it is handed, so every duplicate stayed open after `close()`. BullMQ opens and closes its own blocking connection for a worker.
 
 ## Who is affected
 
 - **Apps that relied on no reconnect.** Set `maxRetry: 0`.
 - **Apps that set `maxRetry` already.** Nothing changes except the wait between attempts. A value such as `-2` or `1.5` now throws at construction.
-- **Apps with a cluster behind BullMQ.** Remove the `maxRetriesPerRequest: null` you passed in `clusterOptions.redisOptions`; it is the default now. If you pass your own `redisOptions`, it replaces the default, so keep that field in it.
+- **Apps with a cluster behind BullMQ.** You can remove the `maxRetriesPerRequest: null` you passed in `clusterOptions.redisOptions`; it is the default now, and it survives your own `redisOptions`.
 - **Apps with `BullMQHelper`.** No action. Open connections drop by one per queue and worker.
 
 ## Breaking changes

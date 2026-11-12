@@ -33,8 +33,9 @@ export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
         name: opts.name,
         maxRetry,
       }),
-      redisOptions: { maxRetriesPerRequest: null },
       ...opts.clusterOptions,
+      // Merged, not replaced: node passwords and TLS live in `redisOptions`, and an app that sets them must keep what BullMQ needs. An explicit `maxRetriesPerRequest` still wins.
+      redisOptions: { maxRetriesPerRequest: null, ...opts.clusterOptions?.redisOptions },
     };
 
     const ioredis =

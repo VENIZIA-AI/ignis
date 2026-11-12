@@ -107,7 +107,7 @@ Pass an `IRedisHelper` instance, not a raw ioredis client. `BullMQHelper` passes
 |--------------|-------------------------------------|
 | `RedisSingleHelper` | Automatically |
 | `RedisSentinelHelper` | Automatically |
-| `RedisClusterHelper` | Automatically; `clusterOptions.redisOptions` replaces it, so repeat it there |
+| `RedisClusterHelper` | Automatically, also when you pass your own `clusterOptions.redisOptions`; set the key yourself to change it |
 
 ### In-memory queue for single-process sequencing
 
