@@ -15,16 +15,14 @@ migration:
         - "Read the key and link from the upload answer in both versions. To restore name-based keys on the new version, set serverUpload.objectKey to a resolver that returns the normalized file name."
     data: "Objects stored by 0.4.8-13 live under <keyPrefix><folderPath>/<name>; 0.4.8-14 stores new ones under <keyPrefix><folderPath>/<uuid>/<name>. Both are served by the same routes; nothing is moved."
   - id: static-asset-body-limit
-    symbols: [StaticAssetRouteOptionsUtility.appendLengthGuard, StaticAssetHeaders.ALLOWED]
+    symbols: [StaticAssetHeaders.ALLOWED]
     upgrade:
-      before: |
-        StaticAssetRouteOptionsUtility.appendLengthGuard({ ... });
-      after: |
-        StaticAssetRouteOptionsUtility.appendBodyLimit({ ... });
+      steps:
+        - "Stop reading StaticAssetHeaders.ALLOWED; it is removed along with the metadata header loop. Nothing else changes in app code: the upload route's body limit is internal."
+        - "Expect core.request.body_too_large for an oversized body on the new version; an oversized file still answers upload_too_large."
     downgrade:
       steps:
-        - "Call appendLengthGuard again. The older guard compared the whole body with maxBytes, so two files under maxBytes could answer 413 together."
-        - "Expect core.request.body_too_large for an oversized body on the new version and upload_too_large for an oversized file on both."
+        - "Read StaticAssetHeaders.ALLOWED again. The older guard compared the whole body with maxBytes, so two files under maxBytes could answer 413 together."
 ---
 
 # Changelog - 2026-11-12
