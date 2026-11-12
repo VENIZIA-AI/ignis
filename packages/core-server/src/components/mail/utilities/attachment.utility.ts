@@ -259,12 +259,17 @@ export class MailAttachmentUtility {
         rest.contentType ??
         (isReadFromPath && filename ? ContentTypeTable.resolve({ filename }) : undefined);
 
-      resolved.push({
-        ...rest,
-        ...(filename === undefined ? {} : { filename }),
-        ...(contentType === undefined ? {} : { contentType }),
-        content: bytes,
-      });
+      const item: IMailAttachment = { ...rest, content: bytes };
+
+      if (filename !== undefined) {
+        item.filename = filename;
+      }
+
+      if (contentType !== undefined) {
+        item.contentType = contentType;
+      }
+
+      resolved.push(item);
     }
 
     return resolved;

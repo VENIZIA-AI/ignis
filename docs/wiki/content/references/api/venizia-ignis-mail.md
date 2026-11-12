@@ -47,8 +47,6 @@ export declare class BullMQExecutorModes {
     static readonly QUEUE_ONLY = "queue-only";
     static readonly WORKER_ONLY = "worker-only";
     static readonly BOTH = "both";
-    static readonly MODE_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -344,7 +342,7 @@ Queues verification mails and runs them through the processor registered with `s
 ```ts
 export interface IMailQueueExecutor {
     enqueueVerificationEmail(email: string, options?: IMailQueueOptions): Promise<IMailQueueResult>;
-    setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): void;
+    setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): ValueOrPromise<void>;
     /** Releases what the executor holds: timers, workers, the queue. The application stop hook calls it. */
     close?(): Promise<void>;
 }
@@ -691,8 +689,6 @@ How the delay between two attempts to send a queued mail grows: FIXED stays the 
 export declare class MailBackoffTypes {
     static readonly FIXED = "fixed";
     static readonly EXPONENTIAL = "exponential";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -1011,8 +1007,6 @@ export declare class MailQueueExecutorTypes {
     static readonly DIRECT = "direct";
     static readonly INTERNAL_QUEUE = "internal-queue";
     static readonly BULLMQ = "bullmq";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 

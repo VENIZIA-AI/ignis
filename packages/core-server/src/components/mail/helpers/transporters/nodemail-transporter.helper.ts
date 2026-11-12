@@ -1,6 +1,6 @@
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { BaseHelper } from '@venizia/ignis-helpers/core';
-import { ModuleUtility } from '@venizia/ignis-helpers';
+import { ErrorUtility, ModuleUtility } from '@venizia/ignis-helpers';
 import type {
   IMailMessage,
   IMailSendResult,
@@ -76,7 +76,7 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: ErrorUtility.toError({ error }).message,
       };
     }
   }

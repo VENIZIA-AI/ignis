@@ -1,5 +1,5 @@
 import type { TMailBackoffType } from '../constants';
-import type { TConstValue } from '@venizia/ignis-helpers/common';
+import type { TConstValue, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { IRedisHelper } from '@venizia/ignis-helpers';
 import type { BullMQExecutorModes, MailQueueExecutorTypes } from '../constants';
 
@@ -33,7 +33,7 @@ export interface IMailQueueResult {
 /** Queues verification mails and runs them through the processor registered with `setProcessor`. */
 export interface IMailQueueExecutor {
   enqueueVerificationEmail(email: string, options?: IMailQueueOptions): Promise<IMailQueueResult>;
-  setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): void;
+  setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): ValueOrPromise<void>;
   /** Releases what the executor holds: timers, workers, the queue. The application stop hook calls it. */
   close?(): Promise<void>;
 }

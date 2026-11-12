@@ -443,15 +443,6 @@ interface IMailQueueExecutorConfig {
 | `BullMQExecutorModes.WORKER_ONLY` | `'worker-only'` | Consumer only (process) |
 | `BullMQExecutorModes.BOTH` | `'both'` | Full duplex (produce + consume) |
 
-`MailQueueExecutorTypes` and `BullMQExecutorModes` both carry a `SCHEME_SET`/`MODE_SET` and a static `isValid()`:
-
-```typescript
-MailQueueExecutorTypes.isValid('bullmq');  // true
-MailQueueExecutorTypes.isValid('unknown'); // false
-BullMQExecutorModes.isValid('both');       // true
-BullMQExecutorModes.isValid('invalid');    // false
-```
-
 #### `MailErrorCodes`
 
 Built through `MessageCode.build()`, so every value is lower-case (`ApplicationError` lower-cases whatever it is handed):
@@ -748,7 +739,7 @@ All three implement:
 ```typescript
 interface IMailQueueExecutor {
   enqueueVerificationEmail(email: string, options?: IMailQueueOptions): Promise<IMailQueueResult>;
-  setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): void;
+  setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): ValueOrPromise<void>; // BullMQMailExecutorHelper's is async
   close?(): Promise<void>; // the application stop hook calls it
 }
 ```

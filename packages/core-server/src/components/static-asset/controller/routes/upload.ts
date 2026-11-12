@@ -49,7 +49,7 @@ export const MetaLinkOutcomeSchema = z
 class StaticAssetUploadHandler {
   /**
    * Built per request: the hook is offered the bucket, which only the route knows. The default key is
-   * `<keyPrefix><uuid>/<name>`. A hook's key is checked against the scope, never rewritten: the
+   * `<keyPrefix><folder>/<uuid>/<name>`. A hook's key is checked against the scope, never rewritten: the
    * application may record that key elsewhere.
    */
   static buildNaming(opts: {

@@ -1,5 +1,5 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { ModuleUtility, type AnyType } from '@venizia/ignis-helpers';
+import { ErrorUtility, ModuleUtility, type AnyType } from '@venizia/ignis-helpers';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import {
   MailErrorCodes,
@@ -76,7 +76,7 @@ export class AmazonSesTransportHelper extends BaseHelper implements IMailTranspo
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: ErrorUtility.toError({ error }).message,
       };
     }
   }

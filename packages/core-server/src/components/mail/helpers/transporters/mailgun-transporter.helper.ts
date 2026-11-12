@@ -1,7 +1,7 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
-import { ModuleUtility } from '@venizia/ignis-helpers';
+import { ErrorUtility, ModuleUtility } from '@venizia/ignis-helpers';
 import type {
   IMailAttachment,
   IMailMessage,
@@ -120,7 +120,7 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: ErrorUtility.toError({ error }).message,
       };
     }
   }
