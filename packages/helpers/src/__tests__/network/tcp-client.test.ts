@@ -174,7 +174,7 @@ describe('NetworkTcpClient - connection round trip', () => {
     client['reconnectTimeout'] = setTimeout(() => {}, 60_000);
 
     client.disconnect();
-    expect(client['reconnectTimeout']).toBeUndefined();
+    expect(client['reconnectTimeout']).toBeNull();
 
     expect(() => {
       client.disconnect();

@@ -27,16 +27,12 @@ import {
 import { getError, HTTP, CredentialHelper } from '@venizia/ignis-helpers';
 import { and, eq } from 'drizzle-orm';
 import { type Env } from 'hono';
-import { z } from '@hono/zod-openapi';
 
 /** The principal type a user's policy rows carry; the Casbin adapter in application.ts maps it. */
 const USER_PRINCIPAL = 'user';
 
 /** Bypasses the change-password ownership check; matches the alwaysAllowRoles bypass in platform.component.ts. */
 const ALWAYS_ALLOWED_ROLE = '999_super-admin';
-
-/** The roles a token carries, read from the open `IAuthUser`: its extra claims are `unknown` until parsed. */
-const RolesSchema = z.array(z.object({ identifier: z.string() }));
 
 /**
  * Sign-up, sign-in and change-password for the framework's `/auth` routes. The signed token carries
@@ -151,9 +147,9 @@ export class AuthenticationService
     opts: TChangePasswordRequestSchema,
   ): Promise<TChangePasswordResponseSchema> {
     const currentUser = context.get(Authentication.CURRENT_USER);
-    const roles = RolesSchema.safeParse(currentUser?.roles);
-    const isAlwaysAllowed =
-      roles.success && roles.data.some((role) => role.identifier === ALWAYS_ALLOWED_ROLE);
+    const isAlwaysAllowed = currentUser?.roles?.some(
+      (role) => (typeof role === 'string' ? role : role.identifier) === ALWAYS_ALLOWED_ROLE,
+    );
 
     if (!isAlwaysAllowed && currentUser?.userId !== opts.userId) {
       throw getError({

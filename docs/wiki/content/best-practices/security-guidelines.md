@@ -110,12 +110,17 @@ const SecureRoute = {
 
 **Access user in protected routes:**
 ```typescript
-import { Authentication, IJWTTokenPayload } from '@venizia/ignis';
-import { getError } from '@venizia/ignis-helpers';
+import { Authentication } from '@venizia/ignis';
+import { getError, HTTP } from '@venizia/ignis-helpers';
 
-const user = context.get(Authentication.CURRENT_USER) as IJWTTokenPayload;
-if (!user.roles.some(role => role.identifier === 'admin')) {
-  throw getError({ statusCode: 403, message: 'Forbidden' });
+// Declared once on IAuthUser (see "Read the claims your app adds" in the authentication guide):
+// declare module '@venizia/ignis' { interface IAuthUser { roles?: Array<{ identifier: string }> } }
+
+const user = context.get(Authentication.CURRENT_USER);
+const isAdmin = user.roles?.some((role) => role.identifier === 'admin') ?? false;
+
+if (!isAdmin) {
+  throw getError({ statusCode: HTTP.ResultCodes.RS_4.Forbidden, message: 'Forbidden' });
 }
 ```
 

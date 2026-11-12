@@ -317,7 +317,7 @@ interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOptions {
 ##### `send(opts, logger?)`
 
 ```typescript
-override send<T = unknown>(opts: IAxiosRequestOptions, logger?: unknown): Promise<AxiosResponse<T>>
+override send<T = unknown>(opts: IAxiosRequestOptions, logger?: ILogger): Promise<AxiosResponse<T>>
 ```
 
 Dispatches the request via the internal `axios` instance.

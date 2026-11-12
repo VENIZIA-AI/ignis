@@ -494,7 +494,7 @@ AbstractBearerTokenService<E>          (extends BaseService)
 | `generate` | `(opts: { payload, getTokenExpiresFn? }) => Promise<string>` | Calls `getSigner()` then signs with `getSigningKey()` |
 | `serializeField` / `deserializeField` | `(opts) => string` / `any` | Per-field codec lookup, `JSON.stringify`/`JSON.parse` fallback |
 | `encryptPayload` | `(payload) => Promise<Record<string, unknown>>` | AES-encrypts non-standard fields (keys and values); `null` is kept and `undefined` is skipped. No-op if AES not configured. Async: callers `await` it |
-| `decryptPayload` | `(opts: { result }) => Promise<IJWTTokenPayload>` | Reverses `encryptPayload`. No-op if AES not configured. Async: callers `await` it |
+| `decryptPayload` | `(opts: { result }) => Promise<IJWTTokenPayload>` | Reverses `encryptPayload`; `401` for a claim that is not a string or a payload with no `userId`. No-op without AES |
 
 Static: `JWT_COMMON_FIELDS: Set<'iss'|'sub'|'aud'|'jti'|'nbf'|'exp'|'iat'>` - never encrypted or touched by field codecs.
 

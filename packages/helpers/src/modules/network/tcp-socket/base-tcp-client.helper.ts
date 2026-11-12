@@ -60,7 +60,7 @@ export class BaseNetworkTcpClient<
     currentReconnect: 0,
   };
 
-  protected reconnectTimeout: ReturnType<typeof setTimeout> | undefined;
+  protected reconnectTimeout?: ReturnType<typeof setTimeout> | null;
   protected encoding?: BufferEncoding;
 
   protected createClientFn: (
@@ -242,8 +242,8 @@ export class BaseNetworkTcpClient<
     this.client?.destroy();
     this.client = null;
 
-    clearTimeout(this.reconnectTimeout);
-    this.reconnectTimeout = undefined;
+    clearTimeout(this.reconnectTimeout ?? undefined);
+    this.reconnectTimeout = null;
     this.logger
       .for(this.disconnect.name)
       .info('[%s] NetworkTcpClient is destroyed!', this.identifier);

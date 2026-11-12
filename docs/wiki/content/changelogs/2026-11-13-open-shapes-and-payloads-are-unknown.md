@@ -10,16 +10,21 @@ migration:
         const currentUser = context.get(Authentication.CURRENT_USER);
         const tenantId: string = currentUser.tenantId; // any
       after: |
-        interface IMyUser extends IAuthUser {
-          tenantId: string;
+        // src/common/auth-claims.ts: any file of your program, never imported
+        declare module '@venizia/ignis' {
+          interface IAuthUser {
+            tenantId: string;
+          }
         }
 
-        const TenantSchema = z.object({ tenantId: z.string() });
+        export {};
+
+        // the read is typed, with no cast and no parse
         const currentUser = context.get(Authentication.CURRENT_USER);
-        const { tenantId } = TenantSchema.parse(currentUser); // or declare IMyUser and parse once at the edge
+        const tenantId: string = currentUser.tenantId;
     downgrade:
       steps:
-        - "Read the extra claims off IAuthUser and IJWTTokenPayload directly again; the older index signature is any. Your IMyUser extension and your schema keep compiling."
+        - "Read the extra claims off IAuthUser and IJWTTokenPayload directly again; the older index signature is any. The declare module block you added keeps compiling."
   - id: open-config-bags-unknown
     symbols: [IApplicationConfigs, IApplicationInfo, IMiddlewareConfigs, IBaseMiddlewareOptions, IModelAuthorizeSettings]
     upgrade:
@@ -64,7 +69,7 @@ migration:
       steps:
         - "Read the extra keys directly again; the older type is any."
   - id: network-extras-unknown
-    symbols: [IRequestOptions, AxiosFetcher, BaseNetworkTcpClient, BaseNetworkTcpServer, ITcpSocketClient, ITcpSocketServerOptions]
+    symbols: [IRequestOptions, BaseNetworkTcpClient, BaseNetworkTcpServer, ITcpSocketClient, ITcpSocketServerOptions]
     upgrade:
       before: |
         const client = NetworkTcpClient.newInstance({
@@ -72,29 +77,64 @@ migration:
           options: { host, port },
           onError: (error) => console.log(error.message),
         });
+        const server = NetworkTcpServer.newInstance({
+          identifier: 'tcp',
+          serverOptions: { port },
+          extraEvents: { ping: ({ args }) => handle(args.value) },
+        });
       after: |
         const client = NetworkTcpClient.newInstance({
           identifier: 'tcp',
           options: { host, port },
           onError: (error) => console.log(error instanceof Error ? error.message : String(error)),
         });
+        const server = NetworkTcpServer.newInstance({
+          identifier: 'tcp',
+          serverOptions: { port },
+          extraEvents: { ping: ({ args }) => handle(PingSchema.parse(args)) },
+        });
     downgrade:
       steps:
-        - "Read error.message directly in onError again, and the args of the server callbacks; the older types are any. The protected reconnectTimeout of BaseNetworkTcpClient is typed again as any and set to null instead of undefined."
-  - id: socket-io-payloads-unknown
-    symbols: [ISocketIOServerBunOptions, SocketIOServerHelper, IHandshake, IOptions, SocketIOClientHelper]
+        - "Read error.message in onError and the fields of args in the extraEvents handlers directly again; the older types are any."
+        - "A subclass of BaseNetworkTcpClient that assigns the protected reconnectTimeout something other than a timer handle or null compiles again (it was any)."
+  - id: axios-send-response-type
+    symbols: [AxiosFetcher.send]
     upgrade:
       before: |
-        const server = new SocketIOServerHelper({ runtime: RuntimeModules.BUN, engine, ... });
-        server.send({ payload: { topic: 'notice', data: { id: 1 } } });
-        const options: IOptions = { path: '/io', extraHeaders: { 'x-id': 1 } };
+        const response = await fetcher.send({ url, method: 'get' });
+        const name: string = response.data.name; // data was any
       after: |
-        const server = new SocketIOServerHelper({ runtime: RuntimeModules.BUN, engine, ... });
-        server.send({ payload: { topic: 'notice', data: { id: 1 } } });
-        const options: IOptions = { path: '/io', extraHeaders: { 'x-id': '1' } };
+        const ProfileSchema = z.object({ name: z.string() });
+        const response = await fetcher.send<unknown>({ url, method: 'get' });
+        const { name } = ProfileSchema.parse(response.data);
     downgrade:
       steps:
-        - "extraHeaders accepts any value again; engine is any again instead of TSocketIOBunEngine (an object). A read of handshake.auth values needs no narrowing."
+        - "Read response.data directly again; send<T = any> is the older default. A call that names its own type, send<TProfile>(...), is unchanged."
+  - id: socket-io-payloads-unknown
+    symbols: [ISocketIOServerBunOptions, SocketIOServerHelper.getEngine, SocketIOServerHelper.send, TSocketIOBunEngine, IHandshake, IOptions, SocketIOClientHelper]
+    upgrade:
+      before: |
+        const engine = server.getEngine(); // any
+        engine.handleRequest(request, bunServer);
+
+        const options: IOptions = { path: '/io', extraHeaders: { 'x-attempt': 1 } };
+      after: |
+        const engine = server.getEngine(); // TSocketIOBunEngine | undefined, an object
+        const bunEngine = await SocketIOBunHandler.createEngine({ serverOptions }); // keep the engine from the call that builds it
+        bunEngine.engine.handleRequest(request, bunServer);
+
+        const options: IOptions = { path: '/io', extraHeaders: { 'x-attempt': '1' } };
+    downgrade:
+      steps:
+        - "getEngine() answers any again, so engine.handleRequest(...) needs no engine from createEngine. extraHeaders takes any value again, and handshake.auth and the data of send() are any."
+  - id: socket-io-bun-handler-types
+    symbols: [SocketIOBunHandler.createEngine, SocketIOBunHandler.createFetchHandler]
+    upgrade:
+      steps:
+        - "createEngine answers { engine, engineHandler } with the types @socket.io/bun-engine declares, and createFetchHandler takes that engine: pass the engine createEngine returned. A hand-built engine of another type needs to be a @socket.io/bun-engine Server."
+    downgrade:
+      steps:
+        - "Both took and answered any: pass any engine again."
   - id: multipart-context-typed
     symbols: [RequestUtility.parseMultipartBody, IRequestedRemark]
     upgrade:
@@ -112,7 +152,7 @@ migration:
     downgrade:
       steps:
         - "Return Promise<Record<string, any>> and take value: any again in the overrides."
-    data: "Tokens already issued decode the same: only a token whose encrypted claim is not a string, or that has no userId, is refused now."
+    data: "Only when applicationSecret is configured (AES on): tokens already issued decode the same, and only a token whose encrypted claim is not a string, or that has no userId, is refused now. Without AES, nothing changes."
 ---
 
 # Changelog - 2026-11-13
@@ -129,7 +169,7 @@ migration:
 - **Payloads.** The mail types (`IMailMessage`, `IMailAttachment`, `IMailSendResult`, the template data of `IMailService` and `IMailTemplateEngine`), the API reference `uiConfig` and `securitySchemes`, field mappings, the network request and TCP types, the Socket.IO event payloads and the multipart context use `unknown` or the real type.
 - **Socket.IO.** `IOptions.extraHeaders` is `Record<string, string>`, the Bun `engine` is typed `TSocketIOBunEngine` (an object), and the client helper keeps its wrapped listeners typed by Socket.IO itself.
 - **Multipart.** `RequestUtility.parseMultipartBody` takes a context whose `req.formData()` it reads, which is what a Hono context is.
-- **Token encryption.** `encryptPayload` returns `Record<string, unknown>`, and `decryptPayload` refuses with `401` an encrypted claim that is not a string.
+- **Token encryption.** `encryptPayload` returns `Record<string, unknown>`. With `applicationSecret` set, `decryptPayload` refuses with `401` an encrypted claim that is not a string, and a decrypted claim set with no `userId`.
 
 ## Who is affected
 
@@ -140,7 +180,7 @@ migration:
 ## Breaking changes
 
 > [!WARNING]
-> These are type-level breaks: nothing changes at runtime except the `decryptPayload` refusals. The typecheck names each line.
+> These are type-level breaks: nothing changes at runtime except the two `decryptPayload` refusals, and only when AES is configured. The typecheck names each line.
 
 **Before:**
 
@@ -149,10 +189,14 @@ const currentUser = context.get(Authentication.CURRENT_USER);
 const tenantId: string = currentUser.tenantId;
 ```
 
-**After:**
+**After:** declare the claim once on `IAuthUser` (see [Read the claims your app adds](/extensions/components/authentication/usage#read-the-claims-your-app-adds)), then read it typed:
 
 ```typescript
-const TenantSchema = z.object({ tenantId: z.string() });
-const currentUser = context.get(Authentication.CURRENT_USER);
-const { tenantId } = TenantSchema.parse(currentUser);
+declare module '@venizia/ignis' {
+  interface IAuthUser {
+    tenantId: string;
+  }
+}
+
+export {};
 ```

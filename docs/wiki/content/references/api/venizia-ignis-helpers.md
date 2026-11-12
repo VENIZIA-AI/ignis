@@ -662,7 +662,7 @@ export declare class BaseNetworkTcpClient<SocketClientOptions extends PlainConne
         maxReconnect: number;
         currentReconnect: number;
     };
-    protected reconnectTimeout: ReturnType<typeof setTimeout> | undefined;
+    protected reconnectTimeout?: ReturnType<typeof setTimeout> | null;
     protected encoding?: BufferEncoding;
     protected createClientFn: (options: SocketClientOptions, connectionListener?: () => void) => SocketClientType;
     protected onConnected: (opts: {
