@@ -439,7 +439,12 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
       helper,
       entry: {
         keyPrefix: 'tenant-a',
-        directUpload: { authorize: () => true, secretKey: 'a-secret', maxBytes: 1024 },
+        directUpload: {
+          authorize: () => true,
+          resolvers: { owner: () => 'user-a' },
+          secretKey: 'a-secret',
+          maxBytes: 1024,
+        },
       },
     });
 

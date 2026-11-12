@@ -7,10 +7,19 @@ import {
   type IStorageHelper,
   type IUploadResult,
 } from '@venizia/ignis-helpers';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import {
+  ResolverUtility,
+  type TValueOrAsyncResolver,
+  type ValueOrPromise,
+} from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { BaseService } from '@venizia/ignis-kernel';
-import { StaticAssetErrors, StaticAssetMetaLinkCodes, StaticAssetTokenStages } from '../common';
+import {
+  StaticAssetDefaults,
+  StaticAssetErrors,
+  StaticAssetMetaLinkCodes,
+  StaticAssetTokenStages,
+} from '../common';
 import { StaticAssetCommitTokenUtility } from '../utilities';
 import type {
   IStaticAssetValidation,
@@ -21,6 +30,7 @@ import type {
   TStaticAssetDirectUploadOptions,
   TMetaLinkConfig,
   TStaticAssetStorageType,
+  TStaticAssetTokenMetadata,
   TStaticAssetUploadLabels,
 } from '../common';
 import { StaticAssetKeyScopeUtility } from '../utilities/key-scope.utility';
@@ -32,6 +42,8 @@ import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../models';
 export interface IStaticAssetCommitResult {
   bucket: IBucketRef;
   object: IObjectRef;
+  owner: string;
+  metadata: TStaticAssetTokenMetadata;
   link: string;
   metaLink?: IUploadResult['metaLink'];
 }
@@ -43,9 +55,16 @@ export interface IStaticAssetUploadCommitServiceOptions<
   /** Names the logger; the controller's own name is the usual value. */
   scope: string;
   helper: IStorageHelper;
+  /** The bucket the entry resolves; a token naming another is refused. */
+  bucket: TValueOrAsyncResolver<string>;
   /** The entry's `keyPrefix` as configured; normalized here the way the controller does. */
   keyPrefix: string;
-  directUpload: Pick<TStaticAssetDirectUploadOptions, 'secretKey' | 'pendingPrefix'> & {
+  /** Folders a final key may nest, the scope's own included. */
+  objectKeyMaxDepth: number;
+  directUpload: Pick<
+    TStaticAssetDirectUploadOptions,
+    'secretKey' | 'pendingPrefix' | 'resolvers'
+  > & {
     /** Absent, every file is valid. */
     validation?: IStaticAssetValidation<z.ZodType>;
   };
@@ -60,9 +79,8 @@ export interface IStaticAssetUploadCommitServiceOptions<
  * callable without a request. A service that saves its own record commits the upload in the same
  * call instead of asking the client for a second request.
  *
- * The token proves the key was issued by a policy. It names an owner only when
- * `directUpload.resolveOwner` is set, and then only that owner may commit it; without one, anyone who
- * holds the token can.
+ * The token proves the key was issued by a policy, to one owner, with the metadata the application
+ * chose for the file. A commit is single-use: it refuses a destination that already holds an object.
  */
 export class StaticAssetUploadCommitService<
   Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema,
@@ -70,6 +88,7 @@ export class StaticAssetUploadCommitService<
   private readonly options: IStaticAssetUploadCommitServiceOptions<Schema>;
   private readonly keyPrefix: string;
   private readonly pendingPrefix: string;
+  private readonly policyKeyPrefix: string;
 
   constructor(opts: IStaticAssetUploadCommitServiceOptions<Schema>) {
     super({ scope: opts.scope });
@@ -84,42 +103,49 @@ export class StaticAssetUploadCommitService<
     });
     this.keyPrefix = prefixes.keyPrefix;
     this.pendingPrefix = prefixes.pendingPrefix;
+    this.policyKeyPrefix = prefixes.policyKeyPrefix;
   }
 
-  /** The signature, the expiry, the owner and the scope: the checks every stage of a token starts with. */
-  private readPayload(opts: { token: string; owner?: string }): IStaticAssetCommitTokenPayload {
+  /** The signature, the expiry, the owner, the bucket and the pending scope: the checks every stage of a token starts with. */
+  private async readPayload(opts: {
+    token: string;
+    owner: string;
+  }): Promise<IStaticAssetCommitTokenPayload> {
     const payload = StaticAssetCommitTokenUtility.read({
       token: opts.token,
       secretKey: this.options.directUpload.secretKey,
     });
+    const bucketName = await ResolverUtility.resolveValueAsync({ value: this.options.bucket });
 
-    // The same error as a forged token: a caller learns only that the token is no good for them.
-    if (payload.owner !== undefined && payload.owner !== opts.owner) {
+    // One error for every refusal: a caller learns only that the token is no good for them. A token
+    // another entry signed with the same secret must not land here, in its bucket or outside its scope.
+    if (
+      payload.owner !== opts.owner ||
+      payload.bucket.name !== bucketName ||
+      !payload.object.key.startsWith(this.policyKeyPrefix)
+    ) {
       throw getError(StaticAssetErrors.INVALID_COMMIT_TOKEN);
     }
-
-    // A token another controller signed with the same secret must not land outside this scope.
-    StaticAssetKeyScopeUtility.assertInScope({
-      key: payload.object.key.slice(this.pendingPrefix.length),
-      keyPrefix: this.keyPrefix,
-    });
 
     return payload;
   }
 
   /**
    * Everything `commit` checks before it touches storage, and nothing else: the signature, the
-   * expiry, the owner and the `keyPrefix` scope. Returns the PENDING object, with no storage call and
-   * no side effect, so an application can read an uploaded file and report its problems to the user
-   * before anything is committed.
+   * expiry, the owner, the bucket and the pending scope. Returns the PENDING object with the token's
+   * owner and metadata, with no storage call and no side effect, so an application can read an
+   * uploaded file and report its problems to the user before anything is committed.
    *
    * A token this refuses is refused the same way `commit` refuses it, and every refusal says no more
    * than that the token is no good: a caller learns nothing about which keys exist.
    */
-  verify(opts: { token: string; owner?: string }): IObjectLocation {
-    const payload = this.readPayload(opts);
+  async verify(opts: {
+    token: string;
+    owner: string;
+  }): Promise<IObjectLocation & { owner: string; metadata: TStaticAssetTokenMetadata }> {
+    const { bucket, object, owner, metadata } = await this.readPayload(opts);
 
-    return { bucket: payload.bucket, object: payload.object };
+    return { bucket, object, owner, metadata };
   }
 
   /**
@@ -130,15 +156,15 @@ export class StaticAssetUploadCommitService<
    */
   async validate(opts: {
     token: string;
-    owner?: string;
+    owner: string;
   }): Promise<IStaticAssetValidateResult<unknown>> {
     const { helper, directUpload, scope } = this.options;
-    const payload = this.readPayload(opts);
+    const payload = await this.readPayload(opts);
     const location = { bucket: payload.bucket, object: payload.object };
 
     const stat = await helper.getStat(location);
     const pin = StaticAssetPinnedFile.pinOf({ stat, scope });
-    const result = await this.runValidation({ location, pin, size: stat.size, owner: opts.owner });
+    const result = await this.runValidation({ location, pin, size: stat.size, payload });
 
     if (!result.isValid) {
       return { isValid: false, issues: result.issues };
@@ -157,7 +183,7 @@ export class StaticAssetUploadCommitService<
     location: IObjectLocation;
     pin: IStaticAssetPin;
     size: number;
-    owner?: string;
+    payload: IStaticAssetCommitTokenPayload;
   }): ValueOrPromise<IStaticAssetValidationResult<unknown>> {
     const { helper, directUpload } = this.options;
 
@@ -165,32 +191,34 @@ export class StaticAssetUploadCommitService<
       return { isValid: true, issues: [] };
     }
 
-    const { location, pin, size, owner } = opts;
+    const { location, pin, size, payload } = opts;
 
     return directUpload.validation.handler({
       file: new StaticAssetPinnedFile({ helper, location, pin, size }),
-      owner,
+      owner: payload.owner,
+      metadata: payload.metadata,
     });
   }
 
   /**
    * Moves the pending object to its final key and, when the entry keeps a MetaLink table, writes the
    * row. With a `validation` on it takes the token `validate` returned and never runs the handler; the
-   * copy then happens only if the content still matches the pin. A MetaLink failure rides the result
-   * as a code: the object IS committed by then.
+   * copy then happens only if the content still matches the pin. The final key is the default one
+   * unless `resolvers.commit.destination` names another; either way it must be free, so a token
+   * commits once. A MetaLink failure rides the result as a code: the object IS committed by then.
    */
   async commit(opts: {
     token: string;
-    /** Who is committing. A token issued to an owner commits only for that owner. */
-    owner?: string;
+    /** Who is committing: a token commits only for the owner it was issued to. */
+    owner: string;
     labels?: TStaticAssetUploadLabels;
   }): Promise<IStaticAssetCommitResult> {
     const { helper, storage, metaLink, directUpload, link: buildLink } = this.options;
 
     // Verified BEFORE any storage call. That is what keeps this from being a name prober: a forged
     // token fails without a round trip, so timing says nothing.
-    const payload = this.readPayload(opts);
-    const { bucket: bucketRef, object: pendingObject, pin } = payload;
+    const payload = await this.readPayload(opts);
+    const { bucket: bucketRef, object: pendingObject, owner, metadata, pin } = payload;
 
     if (directUpload.validation && payload.stage !== StaticAssetTokenStages.VALIDATED) {
       throw getError(StaticAssetErrors.UPLOAD_NOT_VALIDATED);
@@ -200,8 +228,9 @@ export class StaticAssetUploadCommitService<
     // beside it rather than inside it.
     const labels = opts.labels ?? {};
 
-    const object = { key: pendingObject.key.slice(this.pendingPrefix.length) };
+    const object = await this.resolveDestination({ payload });
 
+    await this.assertDestinationFree({ bucket: bucketRef, object });
     await this.copyPinned({ bucket: bucketRef, source: pendingObject, destination: object, pin });
 
     // The copy IS the commit; removing the temporary object is cleanup. A failure here
@@ -227,7 +256,11 @@ export class StaticAssetUploadCommitService<
 
     if (metaLink) {
       try {
-        const fileStat = await helper.getStat({ bucket: bucketRef, object });
+        const stat = await helper.getStat({ bucket: bucketRef, object });
+        const fileStat = {
+          ...stat,
+          metadata: { ...stat.metadata, [StaticAssetDefaults.META_LINK_METADATA_KEY]: metadata },
+        };
         const data = await StaticAssetMetaLinkUtility.createRow({
           metaLink,
           helper,
@@ -257,9 +290,63 @@ export class StaticAssetUploadCommitService<
     return {
       bucket: bucketRef,
       object,
+      owner,
+      metadata,
       link,
       metaLink: metaLinkResult,
     };
+  }
+
+  /** The default key is the pending one without the pending prefix; the application's resolver may name another, inside the scope. */
+  private async resolveDestination(opts: {
+    payload: IStaticAssetCommitTokenPayload;
+  }): Promise<IObjectRef> {
+    const { helper, directUpload, scope, objectKeyMaxDepth } = this.options;
+    const { object, owner, metadata } = opts.payload;
+    const defaultKey = object.key.slice(this.pendingPrefix.length);
+    const destination = directUpload.resolvers.commit?.destination;
+
+    if (!destination) {
+      return { key: defaultKey };
+    }
+
+    const resolved = await destination({
+      owner,
+      metadata,
+      file: { fileName: defaultKey.slice(defaultKey.lastIndexOf('/') + 1) },
+      defaultKey,
+    });
+
+    if (!resolved.key.startsWith(this.keyPrefix)) {
+      throw getError({
+        error: StaticAssetErrors.OBJECT_KEY_OUT_OF_SCOPE,
+        message: `[${scope}] destination is outside the key prefix of this entry | keyPrefix: ${this.keyPrefix}`,
+      });
+    }
+
+    if (!helper.isValidObjectKey({ object: resolved, maxDepth: objectKeyMaxDepth })) {
+      throw getError({ error: StaticAssetErrors.OBJECT_NAME_INVALID });
+    }
+
+    return { key: resolved.key };
+  }
+
+  /** The token's only commit: a second one, or a re-post to the pending key, must not overwrite what the first one stored. */
+  private async assertDestinationFree(opts: {
+    bucket: IBucketRef;
+    object: IObjectRef;
+  }): Promise<void> {
+    try {
+      await this.options.helper.getStat(opts);
+    } catch (error) {
+      if (StorageUtility.isNotFoundError({ error })) {
+        return;
+      }
+
+      throw error;
+    }
+
+    throw getError(StaticAssetErrors.UPLOAD_ALREADY_COMMITTED);
   }
 
   /** A pin makes the copy conditional; a failed condition is a changed upload, and nothing is written. */

@@ -295,10 +295,16 @@ rule that collects abandoned uploads must target the configured `pendingPrefix`.
 that adds one moves its committed keys, and tokens signed for the old pending key are refused.
 
 A policy signs ONE key (`presignPost({ bucket, object, ... })`; `formData` carries `key`). The token
-payload is `{ bucket: IBucketRef, object: IObjectRef, expiresAt, owner?, stage, pin? }` (`pin` required from
-`VALIDATED` on); `read` refuses any other shape, a token without `stage` included.
-`directUpload.resolveOwner` supplies the owner on every direct-upload route, and a token with an owner commits
-only for that owner (anything else, or none, is `INVALID_COMMIT_TOKEN`, the forged-token error).
+payload is `{ bucket: IBucketRef, object: IObjectRef, expiresAt, owner, metadata, stage, pin? }` (`pin` required
+from `VALIDATED` on); `read` refuses any other shape (a token without `stage`, a non-string metadata value, a third
+`.` part). `directUpload.resolvers` is required: `owner` runs on every direct-upload route and a token commits
+only for its owner; `metadata({ context, file })` runs per file at policy time and is the only thing the token
+signs for the file (the client's `files[].metadata` is a hint to it; capped at `MAX_TOKEN_METADATA_BYTES`);
+`commit.destination({ owner, metadata, file, defaultKey })` picks the final key (same bucket, inside `keyPrefix`,
+valid key). `readPayload` also refuses a token whose bucket is not the entry's or whose key does not start with
+`policyKeyPrefix`; all refusals are `INVALID_COMMIT_TOKEN`, the forged-token error. `commit` stats the destination
+first: an object there is `UPLOAD_ALREADY_COMMITTED` (409; not atomic with the copy). The commit writes the token
+metadata into the MetaLink row's `metadata` under `app`. `verify` is async.
 `directUpload.expires.upload` is the policy's lifetime, `expires.commit` the token's (default `upload`). Every
 direct-upload route calls `directUpload.authorize` first; the services never do, so a caller that reaches them
 directly owns that decision.
@@ -306,10 +312,10 @@ directly owns that decision.
 `directUpload.validation` is `{ use: false }` or `StaticAssetValidation.define({ issueSchema, handler })`
 (which returns it `{ use: true, ... }`; typed as `IStaticAssetValidation<z.ZodType>` so no `AnyType` is needed -
 the handler's answer is covariant, and `define` is what types it from the schema). It adds the app's check of
-the PENDING object. The commit service's `validate({ token, owner? })` is `verify`, the pin, then the handler
+the PENDING object. The commit service's `validate({ token, owner })` is `verify`, the pin, then the handler
 (valid when none is configured) and answers the `VALIDATED` token; `commit` never runs the handler. The route
 `uploadValidate` (`POST /upload-validate`) exists only when `validation` is on: its response is documented with
-`issueSchema`, plus `commitToken` when valid; the handler is `authorize`, `resolveOwner`, `validate`.
+`issueSchema`, plus `commitToken` when valid; the handler is `authorize`, `resolvers.owner`, `validate`.
 Link building lives in `object-link.utility.ts` so the services and the factory share it without importing
 each other.
 See [object storage](/architecture/object-storage.md) for the signing model behind the second path.

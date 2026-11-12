@@ -41,6 +41,24 @@ export const StaticAssetErrors = {
     statusCode: HTTP.ResultCodes.RS_4.Conflict,
     category: ErrorScopes.VALIDATION,
   },
+  /** The destination already holds an object: the token was committed once, and a second commit would overwrite it. */
+  UPLOAD_ALREADY_COMMITTED: {
+    message: {
+      text: 'The upload was already committed',
+      code: 'core.static_asset.upload_already_committed',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.Conflict,
+    category: ErrorScopes.VALIDATION,
+  },
+  /** The metadata a policy would sign is not allowed: oversized, or sent by a client with no `resolvers.metadata` to read it. */
+  UPLOAD_METADATA_INVALID: {
+    message: {
+      text: 'Invalid upload metadata',
+      code: 'core.static_asset.upload_metadata_invalid',
+    },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.VALIDATION,
+  },
   /** With a `validation` on, `commit` takes the token `upload-validate` returned, not the one the policy issued. */
   UPLOAD_NOT_VALIDATED: {
     message: {

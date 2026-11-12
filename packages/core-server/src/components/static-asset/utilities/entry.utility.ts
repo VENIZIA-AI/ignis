@@ -110,6 +110,12 @@ export class StaticAssetEntryUtility {
       });
     }
 
+    if (directUpload && typeof directUpload.resolvers?.owner !== 'function') {
+      throw getError({
+        message: `[${name}] directUpload needs resolvers.owner | a token is signed for one owner, and the commit refuses any other`,
+      });
+    }
+
     if (directUpload && directUpload.authorize === undefined) {
       if (!StaticAssetEntryUtility.isGuarded({ auth })) {
         throw getError({
@@ -224,7 +230,9 @@ export class StaticAssetEntryUtility {
       commitService: new StaticAssetUploadCommitService<Schema>({
         scope: resolved.name,
         helper: resolved.helper,
+        bucket: resolved.bucket,
         keyPrefix,
+        objectKeyMaxDepth: resolved.objectKeyMaxDepth,
         directUpload,
         storage: resolved.storage,
         metaLink: resolved.metaLink,

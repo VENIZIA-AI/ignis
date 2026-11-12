@@ -139,7 +139,9 @@ export const buildOrderImport = (opts: {
       use: true,
       secretKey: applicationEnvironment.get<string>('APP_ENV_UPLOAD_SECRET'),
       maxBytes: 20 * 1024 * 1024,
-      resolveOwner: ({ context }) => String(context.get(Authentication.CURRENT_USER).userId),
+      resolvers: {
+        owner: ({ context }) => String(context.get(Authentication.CURRENT_USER).userId),
+      },
       validation: StaticAssetValidation.define({
         issueSchema: CellIssueSchema,
         handler: async ({ file }) => {

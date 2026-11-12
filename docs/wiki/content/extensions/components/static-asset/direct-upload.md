@@ -27,18 +27,22 @@ export const buildUploads = (opts: { storage: BunS3Helper }): TStaticAssetCompon
       secretKey: applicationEnvironment.get<string>('APP_ENV_UPLOAD_SECRET'),
       maxBytes: 100 * 1024 * 1024,
       validation: { use: false },
+      resolvers: {
+        owner: ({ context }) => String(context.get(Authentication.CURRENT_USER).userId),
+      },
     },
   },
 });
 ```
 
-`directUpload` has three requirements, and the types enforce each:
+`directUpload` has four requirements, and the types enforce each:
 
 | Needs | Why |
 |---|---|
 | a `BunS3Helper` | A policy is a POST policy, and only S3 can sign one. A `DiskHelper` is refused. |
 | a `bucket` | A policy names one bucket, and a bucket in the URL is a bucket the caller chooses. Every entry has one. |
 | a `keyPrefix` | It keeps the pending files outside everything the routes serve. See [The pending prefix](./security#the-pending-prefix). |
+| `resolvers.owner` | A token is signed for one owner, and only that owner commits it. See [Resolvers](#resolvers). |
 
 Three routes appear: `upload-policy`, `upload-validate` (only with a [`validation`](#validation)) and `upload-commit`. Each has its own entry in `routes`, so you can move, guard or drop it. Dropping `upload-commit` leaves the commit to your own code: see [Who commits, and with which token](#who-commits-and-with-which-token).
 
@@ -117,6 +121,9 @@ export const postToStorage = async (opts: { policy: IUploadPolicy; file: File })
   }
 };
 ```
+
+> [!NOTE]
+> `fileName` must be one valid key segment: no `/`, `\\` or `..`, no leading dot, no control characters, at most 255 bytes. Anything else answers `400` `core.static_asset.object_name_invalid` and nothing is signed. Send the name as it is; the server never sanitizes it.
 
 > [!WARNING]
 > `file` must be the last field. The `key` is already in `formData`, signed: do not append your own, and do not change it. A policy is good for exactly that one object.
@@ -523,10 +530,10 @@ The routes are thin wrappers over two services. The component binds one of each 
 
 | Service | Key | Methods |
 |---|---|---|
-| `StaticAssetUploadPolicyService` | `StaticAssetBindingKeys.policyService({ name })` | `issuePolicies({ files, owner? })`: one signed policy per file, each good for one key. |
-| `StaticAssetUploadCommitService` | `StaticAssetBindingKeys.commitService({ name })` | `verify({ token, owner? })`: the checks a commit starts with, no storage call, answers the pending `{ bucket, object }`. |
-| | | `validate({ token, owner? })`: `verify`, pin the content, run your `validation` once. A valid file answers `{ isValid: true, issues: [], commitToken }`. With `validation` off it still pins and answers a `commitToken`. |
-| | | `commit({ token, owner?, labels? })`: `verify`, copy the pinned content to the final key, remove the pending object, write the MetaLink row. Never runs your `validation`. With `validation` on it needs the validated token. Answers `{ bucket, object, link, metaLink? }`. |
+| `StaticAssetUploadPolicyService` | `StaticAssetBindingKeys.policyService({ name })` | `issuePolicies({ files, owner })`: one signed policy per file, each good for one key. `files[].metadata` is what the token signs for that file. |
+| `StaticAssetUploadCommitService` | `StaticAssetBindingKeys.commitService({ name })` | `verify({ token, owner })`: the checks a commit starts with, no storage call, answers the pending `{ bucket, object, owner, metadata }`. |
+| | | `validate({ token, owner })`: `verify`, pin the content, run your `validation` once. A valid file answers `{ isValid: true, issues: [], commitToken }`. With `validation` off it still pins and answers a `commitToken`. |
+| | | `commit({ token, owner, labels? })`: `verify`, copy the pinned content to the final key, remove the pending object, write the MetaLink row. Never runs your `validation`. With `validation` on it needs the validated token. Answers `{ bucket, object, owner, metadata, link, metaLink? }`. |
 
 `name` is the entry's key in the options object (`orderImport`), not the controller name. The HTTP field is `commitToken`; only the service parameter is `token`. Call `validate`, then pass the `commitToken` it answers to `commit`.
 
@@ -577,7 +584,7 @@ export abstract class OrderImportService extends BaseService {
 If the MetaLink row cannot be written, `commit` still resolves with `metaLink: { error }`: the object is committed by then, and a throw would send the caller back with a token whose source no longer exists.
 
 > [!WARNING]
-> `issuePolicies` does not call `directUpload.authorize`. That check belongs to the routes; code that calls the services decides for itself who may use direct upload. `verify`, `validate` and `commit` still check the token, the owner and the `keyPrefix` scope, so a forged, expired, foreign or out-of-scope token is refused before any storage call.
+> `issuePolicies` does not call `directUpload.authorize`. That check belongs to the routes; code that calls the services decides for itself who may use direct upload. `verify`, `validate` and `commit` still check the token, the owner, the bucket and the pending scope, so a forged, expired, foreign or out-of-scope token is refused before any storage call. `issuePolicies` does not run `resolvers.metadata`: it signs the `metadata` you pass.
 
 ### When to turn the commit route off
 
@@ -589,9 +596,15 @@ import type { TStaticAssetRoutes } from '@venizia/ignis/static-asset';
 export const routes: TStaticAssetRoutes = { uploadCommit: { use: false } };
 ```
 
-## Who owns an upload
+## Resolvers
 
-A token proves a policy was issued for a key. It says nothing about who holds it, so by default **anyone with the token can commit it**. Bind it to a user:
+`directUpload.resolvers` holds the three decisions that belong to your application. Each runs on a different call.
+
+| Resolver | Runs | Decides |
+|---|---|---|
+| `owner` | every direct-upload route | Who the upload belongs to. **Required.** |
+| `metadata` | the policy route, once per file | What the token signs for that file. |
+| `commit.destination` | commit | The final key. |
 
 ```ts
 import { Authentication } from '@venizia/ignis';
@@ -602,11 +615,46 @@ export const directUpload: { use: true } & TStaticAssetDirectUploadOptions = {
   secretKey: 'replace-with-a-real-secret',
   maxBytes: 100 * 1024 * 1024,
   validation: { use: false },
-  resolveOwner: ({ context }) => String(context.get(Authentication.CURRENT_USER).userId),
+  resolvers: {
+    owner: ({ context }) => String(context.get(Authentication.CURRENT_USER).userId),
+    metadata: ({ file }) => ({ orderId: file.metadata?.orderId ?? '' }),
+    commit: {
+      destination: ({ metadata, file }) => ({ key: `files/${metadata.orderId}/${file.fileName}` }),
+    },
+  },
 };
 ```
 
-`resolveOwner` runs on the policy route, which signs the answer into the token, and on the commit and validate routes, which refuse a token whose owner differs - or is missing - as an invalid token. The refusal is the same one a forged token gets, so it reveals nothing. When you call the services yourself, pass the same `owner` you would have resolved.
+### Who owns an upload
+
+`resolvers.owner` runs on the policy route, which signs the answer into the token, and on the commit and validate routes, which refuse a token whose owner differs as an invalid token. The refusal is the same one a forged token gets, so it reveals nothing. When you call the services yourself, pass the same `owner` you would have resolved.
+
+### Metadata signed in the token
+
+`resolvers.metadata` receives `{ context, file }` for each file of the policy request and returns `Record<string, string>`. The token signs exactly that. A client cannot change it, and it comes back on every later call:
+
+- `verify({ token, owner })` answers `{ bucket, object, owner, metadata }`.
+- The validation handler receives `{ file, owner, metadata }`.
+- `commit` answers `{ ..., owner, metadata }`, and writes `metadata` into the MetaLink row's `metadata` column under the key `app`. A later refresh of the row keeps it.
+
+The client may send a hint: `files[].metadata` in the policy body reaches your resolver as `file.metadata`, and the framework signs **only what the resolver returns**. A client that sends `metadata` while no `resolvers.metadata` is set is refused with `400` `core.static_asset.upload_metadata_invalid`.
+
+> [!WARNING]
+> The token is signed, not encrypted. The client can read everything in it. Put no secrets in `metadata`.
+
+Each file's metadata is capped at 1024 bytes of JSON. More is refused with `400` `core.static_asset.upload_metadata_invalid` before anything is signed. Values must be strings.
+
+### Choosing the final key
+
+By default the final key is the pending key without the pending prefix: `<keyPrefix><uuid>/<fileName>`. `resolvers.commit.destination` returns another key in the same bucket. It receives `{ owner, metadata, file: { fileName }, defaultKey }`.
+
+The key must pass the same checks as a [server upload](./server-upload) key: a valid object key within `maxFolderDepth`, inside `keyPrefix`. One outside the scope answers `400` `core.static_asset.object_key_out_of_scope`; one that is not a valid key answers `400` `core.static_asset.object_name_invalid`. Nothing is copied.
+
+### A commit is single-use
+
+Commit checks the destination first. An object already there answers `409` `core.static_asset.upload_already_committed` and nothing is copied. A POST policy stays valid until it expires, so without this check a client could post again to the pending key and commit again over the first object. A destination that two different tokens both resolve to is refused the same way.
+
+The check is one `HEAD`, and it is not atomic with the copy: two commits of one token racing in the same instant can both pass it. The pending object is removed by the first, so the second then fails on its copy.
 
 ## How long things live
 
@@ -626,6 +674,7 @@ export const directUpload: { use: true } & TStaticAssetDirectUploadOptions = {
   secretKey: 'replace-with-a-real-secret',
   maxBytes: 100 * 1024 * 1024,
   validation: { use: false },
+  resolvers: { owner: () => 'user-a' },
   expires: {
     upload: { unit: DurationUnits.MINUTE, value: 10 },
     commit: { unit: DurationUnits.HOUR, value: 6 },
@@ -644,7 +693,7 @@ The pending object must outlive `expires.commit`; see [clean up the pending pref
 | `secretKey` | `string` | - | **Required.** Signs the commit token. Keep it out of the repository and out of the client. |
 | `maxBytes` | `number` | - | **Required.** The ceiling the policy carries as `content-length-range`. Over it answers `413` `core.static_asset.upload_too_large`. |
 | `authorize` | `({ context }) => ValueOrPromise<boolean>` | the entry's `auth` | Who may use direct upload. Guards every direct-upload route: `false` answers `403` `core.static_asset.upload_not_authorized` before the body is read or storage is touched. May be left out only when `auth` authenticates or authorizes; with neither, the entry refuses to start. |
-| `resolveOwner` | `({ context }) => ValueOrPromise<string>` | none | Who the upload belongs to. See [Who owns an upload](#who-owns-an-upload). |
+| `resolvers` | `{ owner, metadata?, commit?: { destination? } }` | - | **Required**, `owner` included. See [Resolvers](#resolvers). |
 | `maxFiles` | `number` | `20` | Most files one policy request may name. More answers `422`. |
 | `pendingPrefix` | `string` | `'pending/'` | Where a policy may write. Not empty, ends with `/`, valid key segments, and neither inside `keyPrefix` nor containing it. The final key is never inside it. See [The pending prefix](./security#the-pending-prefix). |
 | `expires.upload` | `IDuration` | 15 minutes | The policy's lifetime. |

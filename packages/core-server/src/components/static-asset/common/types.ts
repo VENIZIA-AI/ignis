@@ -60,6 +60,42 @@ export type TStaticAssetUploadLabels = {
   sequence?: number;
 };
 
+/** Application-chosen strings the commit token signs for one file. The token is signed, not encrypted: no secrets. */
+export type TStaticAssetTokenMetadata = Record<string, string>;
+
+/** One file of an upload-policy request. `metadata` is the client's hint: `resolvers.metadata` reads it, and only what that returns is signed. */
+export type TStaticAssetUploadPolicyFile = {
+  fileName: string;
+  contentType?: string;
+  size?: number;
+  metadata?: TStaticAssetTokenMetadata;
+};
+
+/** The decisions of a direct upload that belong to the application, each made on a different call. */
+export type TStaticAssetDirectUploadResolvers = {
+  /**
+   * Who the upload belongs to. Called on every direct-upload route: the policy route signs the
+   * answer into the commit token, and the other routes refuse a token whose owner differs.
+   */
+  owner: (opts: { context: TRouteContext }) => ValueOrPromise<string>;
+
+  /** Per file, at policy time: what the token signs for it, readable again at validate and commit. Absent, a client that sends `metadata` is refused. */
+  metadata?: (opts: {
+    context: TRouteContext;
+    file: TStaticAssetUploadPolicyFile;
+  }) => ValueOrPromise<TStaticAssetTokenMetadata>;
+
+  commit?: {
+    /** At commit time: the final key, in the same bucket and inside the `keyPrefix`. Absent keeps `defaultKey`. */
+    destination?: (opts: {
+      owner: string;
+      metadata: TStaticAssetTokenMetadata;
+      file: { fileName: string };
+      defaultKey: string;
+    }) => ValueOrPromise<{ key: string }>;
+  };
+};
+
 /** Enables the signed-policy upload flow, where the client posts bytes straight to the storage and IGNIS only signs the permission and verifies the commit. */
 export type TStaticAssetDirectUploadOptions = {
   /**
@@ -70,12 +106,8 @@ export type TStaticAssetDirectUploadOptions = {
    */
   authorize?: (opts: { context: TRouteContext }) => ValueOrPromise<boolean>;
 
-  /**
-   * Who the upload belongs to. Called on every direct-upload route: the policy route signs the
-   * answer into the commit token, and the other routes refuse a token whose owner differs. Absent,
-   * a token commits for whoever holds it.
-   */
-  resolveOwner?: (opts: { context: TRouteContext }) => ValueOrPromise<string>;
+  /** What the application decides about an upload; `owner` is required, the rest is optional. */
+  resolvers: TStaticAssetDirectUploadResolvers;
 
   /** Signs the commit token. Keep it out of the repository and out of the client. */
   secretKey: string;
@@ -143,7 +175,8 @@ export interface IStaticAssetValidation<IssueSchema extends z.ZodType> {
   /** Runs once per `upload-validate`. Read the file through `file`: every read is pinned to the content `commit` will copy. */
   handler: (opts: {
     file: StaticAssetPinnedFile;
-    owner?: string;
+    owner: string;
+    metadata: TStaticAssetTokenMetadata;
   }) => ValueOrPromise<IStaticAssetValidationResult<z.infer<IssueSchema>>>;
 }
 
@@ -153,9 +186,7 @@ export interface IStaticAssetValidateResult<Issue> extends IStaticAssetValidatio
 }
 
 /** Body of the upload policy route: the files the client intends to upload. */
-export type TStaticAssetUploadPolicyRequest = {
-  files: Array<{ fileName: string; contentType?: string; size?: number }>;
-};
+export type TStaticAssetUploadPolicyRequest = { files: TStaticAssetUploadPolicyFile[] };
 
 /** The MetaLink table belongs to the application. `Schema` defaults to the table IGNIS ships, and widens to any table whose row carries the same fields. */
 export type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
@@ -292,15 +323,16 @@ export interface IStaticAssetPin {
 
 /**
  * What a commit token binds: the pending object a policy was issued for, when the grant dies and,
- * when the application supplies one, who it was issued to. Other business fields are deliberately
- * absent - which order or tenant an upload belongs to is the application's.
+ * who it was issued to and the application's own metadata for the file.
  */
 export interface IStaticAssetCommitTokenPayload {
   bucket: IBucketRef;
   object: IObjectRef;
   expiresAt: number;
-  /** Absent when `directUpload.resolveOwner` is not set; present, the token commits only for that owner. */
-  owner?: string;
+  /** The token commits only for this owner. */
+  owner: string;
+  /** What `resolvers.metadata` returned for the file; `{}` without one. Signed, not encrypted. */
+  metadata: TStaticAssetTokenMetadata;
   stage: TStaticAssetTokenStage;
   /** Present from `VALIDATED` on: `commit` copies only content that still matches it. */
   pin?: IStaticAssetPin;

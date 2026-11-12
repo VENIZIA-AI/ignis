@@ -14,16 +14,18 @@ These carry a machine code a client can branch on, alongside the human message. 
 
 | Code | Status | When | What the client should do |
 |------|--------|------|---------------------------|
-| `core.static_asset.object_name_invalid` | `400` | `objectName` fails `isValidObjectKey()` | Fix the name. Do not retry as is. |
+| `core.static_asset.object_name_invalid` | `400` | `objectName` fails `isValidObjectKey()`; a policy `fileName` is not one valid key segment; a `resolvers.commit.destination` key is not a valid key | Fix the name. Do not retry as is. |
 | `core.static_asset.bucket_name_invalid` | `400` | The entry's configured `bucket` fails `isValidBucketName()` | Nothing a client can fix: correct `bucket` on the entry. |
 | `core.static_asset.file_empty` | `400` | A file is empty after parsing | Check the file has bytes before sending. |
 | `core.static_asset.upload_too_large` | `413` | A file is over `serverUpload.maxBytes` (upload) or `directUpload.maxBytes` (policy request) | Send a smaller file. |
+| `core.static_asset.upload_already_committed` | `409` | `commit` found an object at the destination: the token was already committed, or another upload resolved to the same key | Do not retry. Ask for a new policy. Nothing was copied. |
+| `core.static_asset.upload_metadata_invalid` | `400` | A policy file's `metadata` is over 1024 bytes of JSON, or the client sent `metadata` and no `resolvers.metadata` reads it | Send less, or no, metadata. |
 | `core.static_asset.upload_not_validated` | `422` | `validation` is on and `commit` got a token that `upload-validate` did not return, for example the one the policy issued | Call `upload-validate`, then commit with the `commitToken` it answers. |
 | `core.static_asset.upload_changed` | `409` | The pending object is not the content that was pinned: it was overwritten or removed after `upload-validate`. Raised by a `file.stream()` read and by the copy `commit` makes. Needs a pin: a missing pending object with an `issued` token (no pin) is `core.storage.object_not_found` instead | Upload again with a **new** policy, or call `upload-validate` again to pin what is there now. Nothing was copied or removed. |
 | `core.static_asset.upload_not_authorized` | `403` | `directUpload.authorize` returned `false` on `upload-policy`, `upload-validate` or `upload-commit` | Do not retry: the caller may not use direct upload. |
-| `core.static_asset.invalid_commit_token` | `400` | The token is forged, malformed, in an old format, or issued to a different owner | Ask for a new policy. The answer is the same for all four, on purpose. |
+| `core.static_asset.invalid_commit_token` | `400` | The token is forged, malformed, in an old format, issued to a different owner, or issued for another bucket or scope | Ask for a new policy. The answer is the same for all four, on purpose. |
 | `core.static_asset.expired_commit_token` | `400` | `expires.commit` has passed | Ask for a new policy and upload again. |
-| `core.static_asset.object_key_out_of_scope` | `400` | A `serverUpload.objectKey` hook returned a key outside the `keyPrefix` | Server-side: build the key under the prefix. |
+| `core.static_asset.object_key_out_of_scope` | `400` | A `serverUpload.objectKey` hook or a `resolvers.commit.destination` returned a key outside the `keyPrefix` | Server-side: build the key under the prefix. |
 | `core.storage.object_not_found` | `404` | No object at the key, or the key is outside the `keyPrefix`. Also a `copyObject` of a missing source, such as a `commit` with an `issued` token whose pending object is gone | Treat as absent. |
 | `core.storage.precondition_failed` | `412` | A helper read or copy named the content it expects (`ifMatch`, `versionId`, `sourceVersionId`) and found other content | The static-asset component turns it into `upload_changed`. Called directly on a helper: re-read the object, or give up the operation. |
 | `core.storage.folder_path_invalid` | `400` | The upload's `folderPath` is empty after trimming slashes, or a segment is not valid | Send a real folder with valid segments, or omit the field. |
@@ -61,6 +63,7 @@ The types catch most wrong entries at compile time. The component checks the sam
 | `helper must be a BunS3Helper or a DiskHelper \| storageType: {value}` | The helper declares no `storageType`, or one other than `disk` or `bun-s3` | Use `DiskHelper` or `BunS3Helper`. A custom helper must declare `storageType` with a `StorageTypes` value. |
 | `directUpload needs a BunS3Helper \| a POST policy is an S3 feature, and this helper is {type}` | `directUpload` is on with a `DiskHelper` | Use a `BunS3Helper`, or switch `directUpload` off. |
 | `directUpload needs keyPrefix \| the pending prefix stays out of what the routes serve only when the entry has a scope of its own` | `directUpload` is on and the entry has no `keyPrefix` | Add `keyPrefix`. |
+| `directUpload needs resolvers.owner \| a token is signed for one owner, and the commit refuses any other` | `directUpload` is on and `resolvers.owner` is not a function | Add `resolvers: { owner }`. |
 | `directUpload needs authorize or auth \| a route that hands out a write credential has no safe default for who may call it` | `directUpload` is on, with no `directUpload.authorize` and an `auth` that neither authenticates nor authorizes | Set `auth.authenticate` or `auth.authorize` on the entry, or give `directUpload` its own `authorize`. |
 | `keyPrefix must be one or more valid key segments \| value: {value}` | `keyPrefix` is empty, or a segment fails `isValidSegment()` | Use a value like `tenant-a/`. |
 | `directUpload.pendingPrefix must be one or more valid key segments, each followed by a slash \| value: '{value}'` | `pendingPrefix` is empty, does not end with `/`, or has an invalid segment | Use a value like `pending/`. |

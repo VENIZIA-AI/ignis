@@ -96,6 +96,12 @@ export class StaticAssetDefaults {
 
   /** The most file parts one upload request may carry unless `serverUpload.maxFiles` says otherwise. */
   static readonly MAX_UPLOAD_FILES = 20;
+
+  /** The most bytes of JSON one file's signed `metadata` may take: the token travels in every request. */
+  static readonly MAX_TOKEN_METADATA_BYTES = 1024;
+
+  /** The key of the application's token metadata inside a MetaLink row's `metadata` column. */
+  static readonly META_LINK_METADATA_KEY = 'app';
 }
 
 /** Codes the component reports in a body instead of throwing. */

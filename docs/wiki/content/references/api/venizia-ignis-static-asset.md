@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis/static-asset, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-54 exports, 54 with TSDoc.
+57 exports, 57 with TSDoc.
 
 ## `BaseMetaLinkModel`
 
@@ -610,6 +610,8 @@ What a commit answers. `metaLink` is absent when the entry keeps no MetaLink tab
 export interface IStaticAssetCommitResult {
     bucket: IBucketRef;
     object: IObjectRef;
+    owner: string;
+    metadata: TStaticAssetTokenMetadata;
     link: string;
     metaLink?: IUploadResult['metaLink'];
 }
@@ -622,16 +624,17 @@ Source: `packages/core-server/src/components/static-asset/services/commitment.se
 *interface*
 
 What a commit token binds: the pending object a policy was issued for, when the grant dies and,
-when the application supplies one, who it was issued to. Other business fields are deliberately
-absent - which order or tenant an upload belongs to is the application's.
+who it was issued to and the application's own metadata for the file.
 
 ```ts
 export interface IStaticAssetCommitTokenPayload {
     bucket: IBucketRef;
     object: IObjectRef;
     expiresAt: number;
-    /** Absent when `directUpload.resolveOwner` is not set; present, the token commits only for that owner. */
-    owner?: string;
+    /** The token commits only for this owner. */
+    owner: string;
+    /** What `resolvers.metadata` returned for the file; `{}` without one. Signed, not encrypted. */
+    metadata: TStaticAssetTokenMetadata;
     stage: TStaticAssetTokenStage;
     /** Present from `VALIDATED` on: `commit` copies only content that still matches it. */
     pin?: IStaticAssetPin;
@@ -748,9 +751,13 @@ export interface IStaticAssetUploadCommitServiceOptions<Schema extends TMetaLink
     /** Names the logger; the controller's own name is the usual value. */
     scope: string;
     helper: IStorageHelper;
+    /** The bucket the entry resolves; a token naming another is refused. */
+    bucket: TValueOrAsyncResolver<string>;
     /** The entry's `keyPrefix` as configured; normalized here the way the controller does. */
     keyPrefix: string;
-    directUpload: Pick<TStaticAssetDirectUploadOptions, 'secretKey' | 'pendingPrefix'> & {
+    /** Folders a final key may nest, the scope's own included. */
+    objectKeyMaxDepth: number;
+    directUpload: Pick<TStaticAssetDirectUploadOptions, 'secretKey' | 'pendingPrefix' | 'resolvers'> & {
         /** Absent, every file is valid. */
         validation?: IStaticAssetValidation<z.ZodType>;
     };
@@ -813,7 +820,8 @@ export interface IStaticAssetValidation<IssueSchema extends z.ZodType> {
     /** Runs once per `upload-validate`. Read the file through `file`: every read is pinned to the content `commit` will copy. */
     handler: (opts: {
         file: StaticAssetPinnedFile;
-        owner?: string;
+        owner: string;
+        metadata: TStaticAssetTokenMetadata;
     }) => ValueOrPromise<IStaticAssetValidationResult<z.infer<IssueSchema>>>;
 }
 ```
@@ -884,10 +892,11 @@ export declare class StaticAssetCommitTokenUtility {
     private static encode;
     private static sign;
     private static isRecord;
+    private static isStringRecord;
     /** A signed body that is not the current payload shape is refused as invalid: a token minted before the shape changed still carries a good signature. */
     private static parse;
     private static parsePin;
-    /** Signs `{ bucket, object, expiresAt, owner? }` so the commit route can trust the key it is handed. */
+    /** Signs the payload so the commit route can trust the key it is handed. */
     static build(opts: {
         payload: IStaticAssetCommitTokenPayload;
         secretKey: string;
@@ -1279,6 +1288,10 @@ export declare class StaticAssetDefaults {
     static readonly PENDING_PREFIX = "pending/";
     /** The most file parts one upload request may carry unless `serverUpload.maxFiles` says otherwise. */
     static readonly MAX_UPLOAD_FILES = 20;
+    /** The most bytes of JSON one file's signed `metadata` may take: the token travels in every request. */
+    static readonly MAX_TOKEN_METADATA_BYTES = 1024;
+    /** The key of the application's token metadata inside a MetaLink row's `metadata` column. */
+    static readonly META_LINK_METADATA_KEY = "app";
 }
 ```
 
@@ -1333,6 +1346,24 @@ export declare const StaticAssetErrors: {
             readonly code: "core.static_asset.upload_changed";
         };
         readonly statusCode: 409;
+        readonly category: "validation";
+    };
+    /** The destination already holds an object: the token was committed once, and a second commit would overwrite it. */
+    readonly UPLOAD_ALREADY_COMMITTED: {
+        readonly message: {
+            readonly text: "The upload was already committed";
+            readonly code: "core.static_asset.upload_already_committed";
+        };
+        readonly statusCode: 409;
+        readonly category: "validation";
+    };
+    /** The metadata a policy would sign is not allowed: oversized, or sent by a client with no `resolvers.metadata` to read it. */
+    readonly UPLOAD_METADATA_INVALID: {
+        readonly message: {
+            readonly text: "Invalid upload metadata";
+            readonly code: "core.static_asset.upload_metadata_invalid";
+        };
+        readonly statusCode: 400;
         readonly category: "validation";
     };
     /** With a `validation` on, `commit` takes the token `upload-validate` returned, not the one the policy issued. */
@@ -1577,31 +1608,34 @@ Moves a pending upload to its final key and records it: the body of the `upload-
 callable without a request. A service that saves its own record commits the upload in the same
 call instead of asking the client for a second request.
 
-The token proves the key was issued by a policy. It names an owner only when
-`directUpload.resolveOwner` is set, and then only that owner may commit it; without one, anyone who
-holds the token can.
+The token proves the key was issued by a policy, to one owner, with the metadata the application
+chose for the file. A commit is single-use: it refuses a destination that already holds an object.
 
 ```ts
 export declare class StaticAssetUploadCommitService<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> extends BaseService {
     private readonly options;
     private readonly keyPrefix;
     private readonly pendingPrefix;
+    private readonly policyKeyPrefix;
     constructor(opts: IStaticAssetUploadCommitServiceOptions<Schema>);
-    /** The signature, the expiry, the owner and the scope: the checks every stage of a token starts with. */
+    /** The signature, the expiry, the owner, the bucket and the pending scope: the checks every stage of a token starts with. */
     private readPayload;
     /**
      * Everything `commit` checks before it touches storage, and nothing else: the signature, the
-     * expiry, the owner and the `keyPrefix` scope. Returns the PENDING object, with no storage call and
-     * no side effect, so an application can read an uploaded file and report its problems to the user
-     * before anything is committed.
+     * expiry, the owner, the bucket and the pending scope. Returns the PENDING object with the token's
+     * owner and metadata, with no storage call and no side effect, so an application can read an
+     * uploaded file and report its problems to the user before anything is committed.
      *
      * A token this refuses is refused the same way `commit` refuses it, and every refusal says no more
      * than that the token is no good: a caller learns nothing about which keys exist.
      */
     verify(opts: {
         token: string;
-        owner?: string;
-    }): IObjectLocation;
+        owner: string;
+    }): Promise<IObjectLocation & {
+        owner: string;
+        metadata: TStaticAssetTokenMetadata;
+    }>;
     /**
      * `verify`, then the application's own check of the pending file, read once through a file pinned
      * to the content that is there now. A valid file answers the token `commit` takes: it is bound to
@@ -1610,21 +1644,26 @@ export declare class StaticAssetUploadCommitService<Schema extends TMetaLinkComp
      */
     validate(opts: {
         token: string;
-        owner?: string;
+        owner: string;
     }): Promise<IStaticAssetValidateResult<unknown>>;
     private runValidation;
     /**
      * Moves the pending object to its final key and, when the entry keeps a MetaLink table, writes the
      * row. With a `validation` on it takes the token `validate` returned and never runs the handler; the
-     * copy then happens only if the content still matches the pin. A MetaLink failure rides the result
-     * as a code: the object IS committed by then.
+     * copy then happens only if the content still matches the pin. The final key is the default one
+     * unless `resolvers.commit.destination` names another; either way it must be free, so a token
+     * commits once. A MetaLink failure rides the result as a code: the object IS committed by then.
      */
     commit(opts: {
         token: string;
-        /** Who is committing. A token issued to an owner commits only for that owner. */
-        owner?: string;
+        /** Who is committing: a token commits only for the owner it was issued to. */
+        owner: string;
         labels?: TStaticAssetUploadLabels;
     }): Promise<IStaticAssetCommitResult>;
+    /** The default key is the pending one without the pending prefix; the application's resolver may name another, inside the scope. */
+    private resolveDestination;
+    /** The token's only commit: a second one, or a re-post to the pending key, must not overwrite what the first one stored. */
+    private assertDestinationFree;
     /** A pin makes the copy conditional; a failed condition is a changed upload, and nothing is written. */
     private copyPinned;
 }
@@ -1650,10 +1689,14 @@ export declare class StaticAssetUploadPolicyService extends BaseService {
     constructor(opts: IStaticAssetUploadPolicyServiceOptions);
     /** `undefined` when `expires.commit` is not set: the token then dies with the policy. */
     private static resolveCommitLifetimeMs;
-    /** One signed policy per file. A size over `maxBytes` is refused before any policy is signed. */
+    /**
+     * One signed policy per file. A size over `maxBytes`, a name that is not one valid key segment and
+     * `metadata` over the cap are refused before any policy is signed. `files[].metadata` is what the
+     * token signs: the caller has already decided it (the route runs `resolvers.metadata`).
+     */
     issuePolicies(opts: {
         files: TStaticAssetUploadPolicyRequest['files'];
-        owner?: string;
+        owner: string;
     }): Promise<TStaticAssetUploadPolicy[]>;
 }
 ```
@@ -2385,14 +2428,8 @@ export type TStaticAssetDirectUploadOptions = {
     authorize?: (opts: {
         context: TRouteContext;
     }) => ValueOrPromise<boolean>;
-    /**
-     * Who the upload belongs to. Called on every direct-upload route: the policy route signs the
-     * answer into the commit token, and the other routes refuse a token whose owner differs. Absent,
-     * a token commits for whoever holds it.
-     */
-    resolveOwner?: (opts: {
-        context: TRouteContext;
-    }) => ValueOrPromise<string>;
+    /** What the application decides about an upload; `owner` is required, the rest is optional. */
+    resolvers: TStaticAssetDirectUploadResolvers;
     /** Signs the commit token. Keep it out of the repository and out of the client. */
     secretKey: string;
     /** The ceiling the policy carries as `content-length-range`. A signed PUT cannot express this at all, which is why this is a POST policy. */
@@ -2433,6 +2470,44 @@ export type TStaticAssetDirectUploadOptions = {
      * Build it with `StaticAssetValidation.define`.
      */
     validation: TToggle<IStaticAssetValidation<z.ZodType>>;
+};
+```
+
+Source: `packages/core-server/src/components/static-asset/common/types.ts`
+
+## `TStaticAssetDirectUploadResolvers`
+
+*type*
+
+The decisions of a direct upload that belong to the application, each made on a different call.
+
+```ts
+export type TStaticAssetDirectUploadResolvers = {
+    /**
+     * Who the upload belongs to. Called on every direct-upload route: the policy route signs the
+     * answer into the commit token, and the other routes refuse a token whose owner differs.
+     */
+    owner: (opts: {
+        context: TRouteContext;
+    }) => ValueOrPromise<string>;
+    /** Per file, at policy time: what the token signs for it, readable again at validate and commit. Absent, a client that sends `metadata` is refused. */
+    metadata?: (opts: {
+        context: TRouteContext;
+        file: TStaticAssetUploadPolicyFile;
+    }) => ValueOrPromise<TStaticAssetTokenMetadata>;
+    commit?: {
+        /** At commit time: the final key, in the same bucket and inside the `keyPrefix`. Absent keeps `defaultKey`. */
+        destination?: (opts: {
+            owner: string;
+            metadata: TStaticAssetTokenMetadata;
+            file: {
+                fileName: string;
+            };
+            defaultKey: string;
+        }) => ValueOrPromise<{
+            key: string;
+        }>;
+    };
 };
 ```
 
@@ -2618,6 +2693,18 @@ export type TStaticAssetStorageType = typeof StorageTypes.DISK | typeof StorageT
 
 Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
+## `TStaticAssetTokenMetadata`
+
+*type*
+
+Application-chosen strings the commit token signs for one file. The token is signed, not encrypted: no secrets.
+
+```ts
+export type TStaticAssetTokenMetadata = Record<string, string>;
+```
+
+Source: `packages/core-server/src/components/static-asset/common/types.ts`
+
 ## `TStaticAssetTokenStage`
 
 *type*
@@ -2663,6 +2750,23 @@ export type TStaticAssetUploadPolicy = IPostPolicy & {
 
 Source: `packages/core-server/src/components/static-asset/services/policy.service.ts`
 
+## `TStaticAssetUploadPolicyFile`
+
+*type*
+
+One file of an upload-policy request. `metadata` is the client's hint: `resolvers.metadata` reads it, and only what that returns is signed.
+
+```ts
+export type TStaticAssetUploadPolicyFile = {
+    fileName: string;
+    contentType?: string;
+    size?: number;
+    metadata?: TStaticAssetTokenMetadata;
+};
+```
+
+Source: `packages/core-server/src/components/static-asset/common/types.ts`
+
 ## `TStaticAssetUploadPolicyRequest`
 
 *type*
@@ -2671,11 +2775,7 @@ Body of the upload policy route: the files the client intends to upload.
 
 ```ts
 export type TStaticAssetUploadPolicyRequest = {
-    files: Array<{
-        fileName: string;
-        contentType?: string;
-        size?: number;
-    }>;
+    files: TStaticAssetUploadPolicyFile[];
 };
 ```
 

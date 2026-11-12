@@ -13,7 +13,7 @@ A file route that anyone can call is a public file server. This page lists what 
 |---|---|---|
 | Every built-in route | **open** to anyone | [`auth`](#authentication-and-authorization) on the entry |
 | `listObjects` under `publicRead` | **private** | nothing to do |
-| A commit token | commits for **whoever holds it** | [`resolveOwner`](#the-owner-in-the-token) |
+| A commit token | commits only for its owner | [`resolvers.owner`](#the-owner-in-the-token), required |
 | Objects an upload leaves under the pending prefix | stay until you remove them | a [lifecycle rule](#clean-up-the-pending-prefix) |
 | A validated file on a bucket without versioning | pinned by ETag (an MD5 for a plain upload) | [bucket versioning](#the-pin-binds-the-token-to-the-content) |
 
@@ -76,18 +76,22 @@ A POST policy signs the exact pending key (`pending/<keyPrefix><generated>/<name
 
 ### The commit token
 
-The token is an HMAC over `{ bucket, object, expiresAt, owner?, stage, pin? }`, verified before any storage call. A caller cannot name an object it was never granted, and the route is not a name prober: a forged token fails without a round trip, so timing says nothing about what exists.
+The token is an HMAC over `{ bucket, object, expiresAt, owner, metadata, stage, pin? }`, verified before any storage call. It is signed, not encrypted: the client can read it, so `metadata` holds no secrets. It has exactly two `.`-separated parts, and its key must sit under this entry's pending prefix and `keyPrefix`, in this entry's bucket. A caller cannot name an object it was never granted, and the route is not a name prober: a forged token fails without a round trip, so timing says nothing about what exists.
 
 | The token proves | The token does **not** prove |
 |---|---|
-| A policy was issued for this key | who is holding it (unless it has an owner) |
-| The grant has not expired | that the file is valid, unless the token is a validated one |
-| Nobody edited the key, bucket, owner or pin | that the holder may use direct upload |
-| A validated token: the content that was read is the content it commits | that the content is safe, only that your check passed it |
+| A policy was issued for this key, to this owner | that the holder may use direct upload |
+| The grant has not expired | that the content is safe, only that your check passed it |
+| Nobody edited the key, bucket, owner, metadata or pin | that the file is valid, unless it is a validated token |
+| A validated token: the content that was read is the content it commits | |
 
 ### The owner in the token
 
-Set `directUpload.resolveOwner` and the policy route signs the caller into the token. The commit and validate routes then refuse any other caller, or none, as an invalid token - the same answer a forged token gets, so it reveals nothing. Without it, a token commits for anyone who holds it. See [Who owns an upload](./direct-upload#who-owns-an-upload).
+`directUpload.resolvers.owner` is required. The policy route signs the caller into the token, and the commit and validate routes refuse any other caller as an invalid token - the same answer a forged token gets, so it reveals nothing. See [Who owns an upload](./direct-upload#who-owns-an-upload).
+
+### A token commits once
+
+A POST policy stays valid until it expires, so a client can post to the pending key again after a commit. Commit refuses a destination that already holds an object with `409` `core.static_asset.upload_already_committed`, so the second post never overwrites the first commit. See [A commit is single-use](./direct-upload#a-commit-is-single-use).
 
 ### `authorize` guards every direct-upload route
 
@@ -132,7 +136,7 @@ The check holds within one entry. A second entry on the same bucket whose `keyPr
 
 Each error is prefixed with the entry's name, and it lists the offending values.
 
-The pending key is `pendingPrefix` + `keyPrefix` + a generated folder + the file name, so the committed key lands inside the scope. A commit token that another entry signed with the same `secretKey` cannot land outside the scope: the commit checks it again.
+The pending key is `pendingPrefix` + `keyPrefix` + a generated folder + the file name, so the committed key lands inside the scope. A commit token that another entry signed with the same `secretKey` is refused: the commit checks its bucket and that its key starts with this entry's pending prefix and `keyPrefix`.
 
 ## Served content
 

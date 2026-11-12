@@ -44,8 +44,11 @@ class ServiceApplication extends BaseApplication {
   setupMiddlewares() {}
 }
 
+const OWNER = 'user-a';
+
 const ALLOW: TDirectUploadOptions = {
   authorize: () => true,
+  resolvers: { owner: () => OWNER },
   secretKey: SECRET,
   maxBytes: 1024,
 };
@@ -176,7 +179,10 @@ describe('issuePolicies', () => {
     const helper = new FakeStorageHelper();
     const { server, policyService } = await boot({ helper });
 
-    const direct = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    const direct = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: OWNER,
+    });
     const response = await server.request('/photos/upload-policy', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -198,7 +204,7 @@ describe('issuePolicies', () => {
     const { policyService } = await boot({ helper });
 
     const message = await messageOf(() =>
-      policyService.issuePolicies({ files: [{ fileName: 'big.bin', size: 1025 }] }),
+      policyService.issuePolicies({ files: [{ fileName: 'big.bin', size: 1025 }], owner: OWNER }),
     );
 
     expect(message).toMatch(/over the 1024/);
@@ -211,7 +217,10 @@ describe('issuePolicies', () => {
       keyPrefix: 'tenant-a',
     });
 
-    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: OWNER,
+    });
 
     expect(policy.objectName).toStartWith('pending/tenant-a/');
   });
@@ -234,12 +243,16 @@ describe('commit', () => {
       },
     });
 
-    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: OWNER,
+    });
     helper.seedObject({ bucket: 'uploads', key: policy.objectName });
     helper.calls.length = 0;
 
     const result = await commitService.commit({
       token: policy.commitToken,
+      owner: OWNER,
       labels: { principalType: 'user', principalId: '7' },
     });
 
@@ -269,7 +282,9 @@ describe('commit', () => {
     const helper = new FakeStorageHelper();
     const { commitService } = await boot({ helper });
 
-    const message = await messageOf(() => commitService.commit({ token: 'forged.token' }));
+    const message = await messageOf(() =>
+      commitService.commit({ token: 'forged.token', owner: OWNER }),
+    );
 
     expect(message).toMatch(/Invalid commit token/);
     expect(helper.calls).toHaveLength(0);
@@ -283,12 +298,16 @@ describe('commit', () => {
         bucket: { name: 'uploads' },
         object: { key: 'pending/files/x/a.png' },
         expiresAt: Date.now() - 1000,
+        owner: OWNER,
+        metadata: {},
         stage: StaticAssetTokenStages.ISSUED,
       },
       secretKey: SECRET,
     });
 
-    const message = await messageOf(() => commitService.commit({ token: commitToken }));
+    const message = await messageOf(() =>
+      commitService.commit({ token: commitToken, owner: OWNER }),
+    );
 
     expect(message).toMatch(/expired/i);
     expect(helper.calls).toHaveLength(0);
@@ -303,14 +322,18 @@ describe('commit', () => {
         bucket: { name: 'uploads' },
         object: { key: 'pending/tenant-b/x/a.png' },
         expiresAt: Date.now() + 60_000,
+        owner: OWNER,
+        metadata: {},
         stage: StaticAssetTokenStages.ISSUED,
       },
       secretKey: SECRET,
     });
 
-    const message = await messageOf(() => commitService.commit({ token: commitToken }));
+    const message = await messageOf(() =>
+      commitService.commit({ token: commitToken, owner: OWNER }),
+    );
 
-    expect(message).toMatch(/not found/i);
+    expect(message).toBe('Invalid commit token');
     expect(helper.calls.find((call) => call.method === 'copyObject')).toBeUndefined();
   });
 
@@ -323,9 +346,12 @@ describe('commit', () => {
       pendingPrefix: 'tmp/',
     });
 
-    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: OWNER,
+    });
     helper.seedObject({ bucket: 'uploads', key: policy.objectName });
-    const result = await commitService.commit({ token: policy.commitToken });
+    const result = await commitService.commit({ token: policy.commitToken, owner: OWNER });
 
     expect(policy.objectName).toStartWith('tmp/tenant-a/');
     expect(result.object.key).toStartWith('tenant-a/');
@@ -352,7 +378,7 @@ describe('a token issued to an owner', () => {
   /** One error for every refusal, so a caller cannot tell a wrong owner from a forged token. */
   test.each([
     ['another owner', 'user-b'],
-    ['no owner', undefined],
+    ['an empty owner', ''],
   ])('is refused for %s as an invalid token, before any storage call', async (_label, owner) => {
     const helper = new FakeStorageHelper();
     const { policyService, commitService } = await boot({ helper });
@@ -369,17 +395,6 @@ describe('a token issued to an owner', () => {
     expect(message).toBe('Invalid commit token');
     expect(helper.calls).toHaveLength(0);
   });
-
-  test('a token issued with no owner commits for anyone, as before', async () => {
-    const helper = new FakeStorageHelper();
-    const { policyService, commitService } = await boot({ helper });
-    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
-    helper.seedObject({ bucket: 'uploads', key: policy.objectName });
-
-    const result = await commitService.commit({ token: policy.commitToken, owner: 'user-b' });
-
-    expect(result.object.key).toBe(policy.objectName.slice('pending/'.length));
-  });
 });
 
 describe('verify', () => {
@@ -392,9 +407,14 @@ describe('verify', () => {
     });
     helper.calls.length = 0;
 
-    const pending = commitService.verify({ token: policy.commitToken, owner: 'user-a' });
+    const pending = await commitService.verify({ token: policy.commitToken, owner: OWNER });
 
-    expect(pending).toEqual({ bucket: { name: 'uploads' }, object: { key: policy.objectName } });
+    expect(pending).toEqual({
+      bucket: { name: 'uploads' },
+      object: { key: policy.objectName },
+      owner: OWNER,
+      metadata: {},
+    });
     expect(helper.calls).toHaveLength(0);
   });
 
@@ -402,7 +422,9 @@ describe('verify', () => {
     const helper = new FakeStorageHelper();
     const { commitService } = await boot({ helper });
 
-    expect(() => commitService.verify({ token: 'forged.token' })).toThrow('Invalid commit token');
+    expect(() => commitService.verify({ token: 'forged.token', owner: OWNER })).toThrow(
+      'Invalid commit token',
+    );
     expect(helper.calls).toHaveLength(0);
   });
 
@@ -414,18 +436,22 @@ describe('verify', () => {
         bucket: { name: 'uploads' },
         object: { key: 'pending/files/x/a.png' },
         expiresAt: Date.now() - 1000,
+        owner: OWNER,
+        metadata: {},
         stage: StaticAssetTokenStages.ISSUED,
       },
       secretKey: SECRET,
     });
 
-    expect(() => commitService.verify({ token })).toThrow(/expired/i);
+    const message = await messageOf(() => commitService.verify({ token, owner: OWNER }));
+
+    expect(message).toMatch(/expired/i);
     expect(helper.calls).toHaveLength(0);
   });
 
   test.each([
     ['another owner', 'user-b'],
-    ['no owner', undefined],
+    ['an empty owner', ''],
   ])('refuses %s', async (_label, owner) => {
     const helper = new FakeStorageHelper();
     const { policyService, commitService } = await boot({ helper });
@@ -434,9 +460,11 @@ describe('verify', () => {
       owner: 'user-a',
     });
 
-    expect(() => commitService.verify({ token: policy.commitToken, owner })).toThrow(
-      'Invalid commit token',
+    const message = await messageOf(() =>
+      commitService.verify({ token: policy.commitToken, owner }),
     );
+
+    expect(message).toBe('Invalid commit token');
   });
 
   test('refuses a key outside keyPrefix', async () => {
@@ -447,12 +475,16 @@ describe('verify', () => {
         bucket: { name: 'uploads' },
         object: { key: 'pending/tenant-b/x/a.png' },
         expiresAt: Date.now() + 60_000,
+        owner: OWNER,
+        metadata: {},
         stage: StaticAssetTokenStages.ISSUED,
       },
       secretKey: SECRET,
     });
 
-    expect(() => commitService.verify({ token })).toThrow(/not found/i);
+    const message = await messageOf(() => commitService.verify({ token, owner: OWNER }));
+
+    expect(message).toBe('Invalid commit token');
     expect(helper.calls).toHaveLength(0);
   });
 });
@@ -461,12 +493,17 @@ describe('validate', () => {
   test('with no validation configured every file is valid, and the token is still verified', async () => {
     const helper = new FakeStorageHelper();
     const { policyService, commitService } = await boot({ helper });
-    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: OWNER,
+    });
     helper.seedObject({ bucket: 'uploads', key: policy.objectName });
 
-    const answer = await commitService.validate({ token: policy.commitToken });
+    const answer = await commitService.validate({ token: policy.commitToken, owner: OWNER });
     helper.calls.length = 0;
-    const forged = await messageOf(() => commitService.validate({ token: 'forged.token' }));
+    const forged = await messageOf(() =>
+      commitService.validate({ token: 'forged.token', owner: OWNER }),
+    );
 
     expect(answer).toEqual({ isValid: true, issues: [], commitToken: expect.any(String) });
     expect(forged).toBe('Invalid commit token');
@@ -476,15 +513,18 @@ describe('validate', () => {
   test('with no validation configured the validated token still pins, and commit copies conditionally', async () => {
     const helper = new FakeStorageHelper();
     const { policyService, commitService } = await boot({ helper });
-    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: OWNER,
+    });
     helper.seedObject({ bucket: 'uploads', key: policy.objectName });
 
-    const answer = await commitService.validate({ token: policy.commitToken });
+    const answer = await commitService.validate({ token: policy.commitToken, owner: OWNER });
     const payload = StaticAssetCommitTokenUtility.read({
       token: answer.commitToken ?? '',
       secretKey: SECRET,
     });
-    await commitService.commit({ token: answer.commitToken ?? '' });
+    await commitService.commit({ token: answer.commitToken ?? '', owner: OWNER });
 
     expect(payload.stage).toBe(StaticAssetTokenStages.VALIDATED);
     expect(helper.calls.find((call) => call.method === 'copyObject')?.args).toMatchObject({
@@ -516,17 +556,19 @@ interface IHandlerCall {
   key: string;
   size: number;
   owner?: string;
+  metadata?: Record<string, string>;
 }
 
 /** A validation that records what it was handed and then reads the file, which is what a real one does. `beforeRead` runs between the two: the moment an overwrite would land. */
 const buildPinnedValidation = (opts: { calls: IHandlerCall[]; beforeRead?: () => void }) =>
   StaticAssetValidation.define({
     issueSchema: PendingIssueSchema,
-    handler: async ({ file, owner }) => {
+    handler: async ({ file, owner, metadata }) => {
       opts.calls.push({
         key: file.key,
         size: file.size,
         owner,
+        metadata,
       });
       opts.beforeRead?.();
 
@@ -556,7 +598,7 @@ const bootValidated = async (opts: {
   });
   const [policy] = await booted.policyService.issuePolicies({
     files: [{ fileName: 'a.png' }],
-    owner,
+    owner: owner ?? OWNER,
   });
   helper.seedObject({ bucket: 'uploads', key: policy.objectName });
 
@@ -586,6 +628,7 @@ describe('a validation that pins the content', () => {
         key: policy.objectName,
         size: 'seeded'.length,
         owner: 'user-a',
+        metadata: {},
       },
     ]);
     expect(incoming.stage).toBe(StaticAssetTokenStages.ISSUED);
@@ -593,8 +636,9 @@ describe('a validation that pins the content', () => {
     expect(payload).toEqual({
       bucket: { name: 'uploads' },
       object: { key: policy.objectName },
-      owner: 'user-a',
       expiresAt: incoming.expiresAt,
+      owner: OWNER,
+      metadata: {},
       stage: StaticAssetTokenStages.VALIDATED,
       pin: { etag: stat.etag ?? '', versionId: undefined },
     });
@@ -610,7 +654,7 @@ describe('a validation that pins the content', () => {
       content: 'invalid cell',
     });
 
-    const answer = await commitService.validate({ token: policy.commitToken });
+    const answer = await commitService.validate({ token: policy.commitToken, owner: OWNER });
 
     expect(answer).toEqual({ isValid: false, issues: [{ code: 'INVALID_CONTENT' }] });
     expect(answer.commitToken).toBeUndefined();
@@ -622,7 +666,9 @@ describe('a validation that pins the content', () => {
     const { commitService, policy } = await bootValidated({ helper, calls });
     helper.omitEtag = true;
 
-    const failure = await failureOf(() => commitService.validate({ token: policy.commitToken }));
+    const failure = await failureOf(() =>
+      commitService.validate({ token: policy.commitToken, owner: OWNER }),
+    );
 
     expect(failure.message).toMatch(/no ETag/);
     expect(calls).toHaveLength(0);
@@ -633,9 +679,9 @@ describe('a validation that pins the content', () => {
     const calls: IHandlerCall[] = [];
     const { commitService, policy } = await bootValidated({ helper, calls });
 
-    const first = await commitService.validate({ token: policy.commitToken });
+    const first = await commitService.validate({ token: policy.commitToken, owner: OWNER });
     helper.overwriteObject({ bucket: 'uploads', key: policy.objectName });
-    const second = await commitService.validate({ token: first.commitToken ?? '' });
+    const second = await commitService.validate({ token: first.commitToken ?? '', owner: OWNER });
 
     expect(readToken(first.commitToken).pin?.etag).not.toBe(
       readToken(second.commitToken).pin?.etag,
@@ -650,7 +696,7 @@ describe('a validation that pins the content', () => {
     const answer = await commitService.validate({ token: policy.commitToken, owner: 'user-a' });
     helper.calls.length = 0;
 
-    for (const owner of ['user-b', undefined]) {
+    for (const owner of ['user-b', '']) {
       const message = await messageOf(() =>
         commitService.commit({ token: answer.commitToken ?? '', owner }),
       );
@@ -670,6 +716,8 @@ describe('a validation that pins the content', () => {
         bucket: { name: 'uploads' },
         object: { key: policy.objectName },
         expiresAt: Date.now() - 1000,
+        owner: OWNER,
+        metadata: {},
         stage: StaticAssetTokenStages.VALIDATED,
         pin: { etag: '"x"' },
       },
@@ -677,7 +725,7 @@ describe('a validation that pins the content', () => {
     });
     helper.calls.length = 0;
 
-    const failure = await failureOf(() => commitService.commit({ token: expired }));
+    const failure = await failureOf(() => commitService.commit({ token: expired, owner: OWNER }));
 
     expect(failure.code).toBe('core.static_asset.expired_commit_token');
     expect(helper.calls).toHaveLength(0);
@@ -694,7 +742,9 @@ describe('a validation that pins the content', () => {
       },
     });
 
-    const failure = await failureOf(() => commitService.validate({ token: policy.commitToken }));
+    const failure = await failureOf(() =>
+      commitService.validate({ token: policy.commitToken, owner: OWNER }),
+    );
 
     expect(failure.code).toBe('core.static_asset.upload_changed');
     expect(failure.statusCode).toBe(409);
@@ -711,7 +761,9 @@ describe('a validation that pins the content', () => {
       },
     });
 
-    const failure = await failureOf(() => commitService.validate({ token: policy.commitToken }));
+    const failure = await failureOf(() =>
+      commitService.validate({ token: policy.commitToken, owner: OWNER }),
+    );
 
     expect(failure.code).toBe('core.static_asset.upload_changed');
   });
@@ -722,7 +774,9 @@ describe('a validation that pins the content', () => {
     const { commitService, policy } = await bootValidated({ helper, calls });
     helper.failReadsWith = 'storage is down';
 
-    const failure = await failureOf(() => commitService.validate({ token: policy.commitToken }));
+    const failure = await failureOf(() =>
+      commitService.validate({ token: policy.commitToken, owner: OWNER }),
+    );
 
     expect(failure.message).toBe('storage is down');
     expect(failure.code).not.toBe('core.static_asset.upload_changed');
@@ -736,7 +790,9 @@ describe('commit with a validation on', () => {
     const { commitService, policy, destination } = await bootValidated({ helper, calls });
     helper.calls.length = 0;
 
-    const failure = await failureOf(() => commitService.commit({ token: policy.commitToken }));
+    const failure = await failureOf(() =>
+      commitService.commit({ token: policy.commitToken, owner: OWNER }),
+    );
 
     expect(failure.code).toBe('core.static_asset.upload_not_validated');
     expect(failure.statusCode).toBe(422);
@@ -749,10 +805,10 @@ describe('commit with a validation on', () => {
     const helper = new FakeStorageHelper();
     const calls: IHandlerCall[] = [];
     const { commitService, policy, destination } = await bootValidated({ helper, calls });
-    const answer = await commitService.validate({ token: policy.commitToken });
+    const answer = await commitService.validate({ token: policy.commitToken, owner: OWNER });
     helper.calls.length = 0;
 
-    const result = await commitService.commit({ token: answer.commitToken ?? '' });
+    const result = await commitService.commit({ token: answer.commitToken ?? '', owner: OWNER });
 
     expect(calls).toHaveLength(1);
     expect(result.object).toEqual(destination);
@@ -764,12 +820,12 @@ describe('commit with a validation on', () => {
     const helper = new FakeStorageHelper();
     const calls: IHandlerCall[] = [];
     const { commitService, policy, destination } = await bootValidated({ helper, calls });
-    const answer = await commitService.validate({ token: policy.commitToken });
+    const answer = await commitService.validate({ token: policy.commitToken, owner: OWNER });
     helper.overwriteObject({ bucket: 'uploads', key: policy.objectName });
     helper.calls.length = 0;
 
     const failure = await failureOf(() =>
-      commitService.commit({ token: answer.commitToken ?? '' }),
+      commitService.commit({ token: answer.commitToken ?? '', owner: OWNER }),
     );
 
     expect(failure.code).toBe('core.static_asset.upload_changed');
@@ -786,11 +842,11 @@ describe('commit with a validation on', () => {
     const helper = new FakeStorageHelper();
     const calls: IHandlerCall[] = [];
     const { commitService, policy, destination } = await bootValidated({ helper, calls });
-    const answer = await commitService.validate({ token: policy.commitToken });
+    const answer = await commitService.validate({ token: policy.commitToken, owner: OWNER });
     helper.discardObject({ bucket: 'uploads', key: policy.objectName });
 
     const failure = await failureOf(() =>
-      commitService.commit({ token: answer.commitToken ?? '' }),
+      commitService.commit({ token: answer.commitToken ?? '', owner: OWNER }),
     );
 
     expect(failure.statusCode).toBe(409);
@@ -804,9 +860,9 @@ describe('commit with a validation on', () => {
     const calls: IHandlerCall[] = [];
     const { commitService, policy } = await bootValidated({ helper, calls });
 
-    const answer = await commitService.validate({ token: policy.commitToken });
+    const answer = await commitService.validate({ token: policy.commitToken, owner: OWNER });
     const payload = readToken(answer.commitToken);
-    await commitService.commit({ token: answer.commitToken ?? '' });
+    await commitService.commit({ token: answer.commitToken ?? '', owner: OWNER });
     const read = helper.calls.find((call) => call.method === 'getObjectStream');
     const copy = helper.calls.find((call) => call.method === 'copyObject');
 
@@ -822,11 +878,11 @@ describe('commit with a validation on', () => {
     helper.isVersioned = true;
     const calls: IHandlerCall[] = [];
     const { commitService, policy } = await bootValidated({ helper, calls });
-    const answer = await commitService.validate({ token: policy.commitToken });
+    const answer = await commitService.validate({ token: policy.commitToken, owner: OWNER });
     helper.overwriteObject({ bucket: 'uploads', key: policy.objectName });
 
     const failure = await failureOf(() =>
-      commitService.commit({ token: answer.commitToken ?? '' }),
+      commitService.commit({ token: answer.commitToken ?? '', owner: OWNER }),
     );
 
     expect(failure.code).toBe('core.static_asset.upload_changed');
@@ -843,9 +899,9 @@ describe('commit with a validation on', () => {
     const calls: IHandlerCall[] = [];
     const { commitService, policy } = await bootValidated({ helper, calls });
 
-    const answer = await commitService.validate({ token: policy.commitToken });
+    const answer = await commitService.validate({ token: policy.commitToken, owner: OWNER });
     const payload = readToken(answer.commitToken);
-    await commitService.commit({ token: answer.commitToken ?? '' });
+    await commitService.commit({ token: answer.commitToken ?? '', owner: OWNER });
     const read = helper.calls.find((call) => call.method === 'getObjectStream');
     const copy = helper.calls.find((call) => call.method === 'copyObject');
 
@@ -864,8 +920,8 @@ describe('commit with a validation on', () => {
     const calls: IHandlerCall[] = [];
     const { commitService, policy, destination } = await bootValidated({ helper, calls });
 
-    const answer = await commitService.validate({ token: policy.commitToken });
-    const result = await commitService.commit({ token: answer.commitToken ?? '' });
+    const answer = await commitService.validate({ token: policy.commitToken, owner: OWNER });
+    const result = await commitService.commit({ token: answer.commitToken ?? '', owner: OWNER });
 
     expect(result.object).toEqual(destination);
   });
@@ -875,10 +931,13 @@ describe('commit with no validation', () => {
   test('an issued token commits with an unconditional copy', async () => {
     const helper = new FakeStorageHelper();
     const { policyService, commitService } = await boot({ helper });
-    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: OWNER,
+    });
     helper.seedObject({ bucket: 'uploads', key: policy.objectName });
 
-    await commitService.commit({ token: policy.commitToken });
+    await commitService.commit({ token: policy.commitToken, owner: OWNER });
     const copy = helper.calls.find((call) => call.method === 'copyObject');
 
     expect(copy?.args.ifMatch).toBeUndefined();
@@ -888,13 +947,16 @@ describe('commit with no validation', () => {
   test('a validated token still guards the copy: an overwrite after validate is refused', async () => {
     const helper = new FakeStorageHelper();
     const { policyService, commitService } = await boot({ helper });
-    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: OWNER,
+    });
     helper.seedObject({ bucket: 'uploads', key: policy.objectName });
-    const answer = await commitService.validate({ token: policy.commitToken });
+    const answer = await commitService.validate({ token: policy.commitToken, owner: OWNER });
     helper.overwriteObject({ bucket: 'uploads', key: policy.objectName });
 
     const failure = await failureOf(() =>
-      commitService.commit({ token: answer.commitToken ?? '' }),
+      commitService.commit({ token: answer.commitToken ?? '', owner: OWNER }),
     );
 
     expect(failure.code).toBe('core.static_asset.upload_changed');
@@ -913,7 +975,10 @@ describe('expires.commit', () => {
     });
 
     const before = Date.now();
-    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: OWNER,
+    });
     const payload = StaticAssetCommitTokenUtility.read({
       token: policy.commitToken,
       secretKey: SECRET,
@@ -927,7 +992,10 @@ describe('expires.commit', () => {
   test('absent, it falls back to upload: the token dies with the policy', async () => {
     const { policyService } = await boot({ helper: new FakeStorageHelper() });
 
-    const [policy] = await policyService.issuePolicies({ files: [{ fileName: 'a.png' }] });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: OWNER,
+    });
     const payload = StaticAssetCommitTokenUtility.read({
       token: policy.commitToken,
       secretKey: SECRET,
@@ -949,5 +1017,252 @@ describe('expires.commit', () => {
     }
 
     expect(message).toContain('expires.commit');
+  });
+});
+
+const signToken = (opts: { key: string; bucket?: string; owner?: string }) =>
+  StaticAssetCommitTokenUtility.build({
+    payload: {
+      bucket: { name: opts.bucket ?? 'uploads' },
+      object: { key: opts.key },
+      expiresAt: Date.now() + 60_000,
+      owner: opts.owner ?? OWNER,
+      metadata: {},
+      stage: StaticAssetTokenStages.ISSUED,
+    },
+    secretKey: SECRET,
+  });
+
+describe('the token is read against this entry', () => {
+  test.each([
+    ['another bucket', { key: 'pending/files/x/a.png', bucket: 'other' }],
+    ['a key that is not under the pending prefix and scope', { key: 'files/x/a.png' }],
+    ['a pending key of another scope', { key: 'pending/tenant-b/x/a.png' }],
+  ])('%s is refused as an invalid token, before any storage call', async (_label, opts) => {
+    const helper = new FakeStorageHelper();
+    const { commitService } = await boot({ helper });
+
+    const message = await messageOf(() =>
+      commitService.commit({ token: signToken(opts), owner: OWNER }),
+    );
+
+    expect(message).toBe('Invalid commit token');
+    expect(helper.calls).toHaveLength(0);
+  });
+});
+
+describe('a policy file name is one valid key segment', () => {
+  test.each([
+    ['a parent path', '../../x.png'],
+    ['a nested path', 'a/b/c/d/e.png'],
+    ['two dots', '..'],
+    ['a line break', 'a.png\r\nX-Injected: 1'],
+    ['a backslash', 'a\\b.png'],
+  ])('%s is refused with a 400 and nothing is signed', async (_label, fileName) => {
+    const helper = new FakeStorageHelper();
+    const { policyService } = await boot({ helper });
+
+    const failure = await failureOf(() =>
+      policyService.issuePolicies({ files: [{ fileName }], owner: OWNER }),
+    );
+
+    expect(failure.statusCode).toBe(400);
+    expect(failure.code).toBe('core.static_asset.object_name_invalid');
+    expect(helper.calls).toHaveLength(0);
+  });
+});
+
+describe('the metadata a token signs', () => {
+  test('rides the token to verify, to the validation handler and to the commit result', async () => {
+    const helper = new FakeStorageHelper();
+    const calls: IHandlerCall[] = [];
+    const { policyService, commitService } = await boot({
+      helper,
+      directUpload: { validation: buildPinnedValidation({ calls }) },
+    });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png', metadata: { orderId: '42' } }],
+      owner: OWNER,
+    });
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName });
+
+    const verified = await commitService.verify({ token: policy.commitToken, owner: OWNER });
+    const validated = await commitService.validate({ token: policy.commitToken, owner: OWNER });
+    const committed = await commitService.commit({
+      token: validated.commitToken ?? '',
+      owner: OWNER,
+    });
+
+    expect(verified).toMatchObject({ owner: OWNER, metadata: { orderId: '42' } });
+    expect(calls[0].metadata).toEqual({ orderId: '42' });
+    expect(committed).toMatchObject({ owner: OWNER, metadata: { orderId: '42' } });
+  });
+
+  test('a tampered body breaks the signature', async () => {
+    const helper = new FakeStorageHelper();
+    const { policyService, commitService } = await boot({ helper });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png', metadata: { orderId: '42' } }],
+      owner: OWNER,
+    });
+    const [body, signature] = policy.commitToken.split('.');
+    const payload = JSON.parse(Buffer.from(body, 'base64url').toString());
+    const forged = Buffer.from(JSON.stringify({ ...payload, metadata: { orderId: '1' } })).toString(
+      'base64url',
+    );
+
+    const message = await messageOf(() =>
+      commitService.verify({ token: `${forged}.${signature}`, owner: OWNER }),
+    );
+
+    expect(message).toBe('Invalid commit token');
+  });
+
+  test('over the cap is refused with a 400 and nothing is signed', async () => {
+    const helper = new FakeStorageHelper();
+    const { policyService } = await boot({ helper });
+
+    const failure = await failureOf(() =>
+      policyService.issuePolicies({
+        files: [{ fileName: 'a.png', metadata: { note: 'x'.repeat(1100) } }],
+        owner: OWNER,
+      }),
+    );
+
+    expect(failure.statusCode).toBe(400);
+    expect(failure.code).toBe('core.static_asset.upload_metadata_invalid');
+    expect(helper.calls).toHaveLength(0);
+  });
+
+  test('is written to the MetaLink row under `app`, and a refresh keeps it', async () => {
+    const helper = new FakeStorageHelper();
+    const created: Array<Record<string, unknown>> = [];
+    const { policyService, commitService } = await boot({
+      helper,
+      metaLink: {
+        repository: {
+          create: async (opts: { data: Record<string, unknown> }) => {
+            created.push(opts.data);
+
+            return { count: 1, data: { id: 'meta-1', ...opts.data } };
+          },
+        } as never,
+      },
+    });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png', metadata: { orderId: '42' } }],
+      owner: OWNER,
+    });
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName });
+
+    await commitService.commit({ token: policy.commitToken, owner: OWNER });
+
+    expect(created[0].metadata).toMatchObject({ app: { orderId: '42' } });
+  });
+});
+
+describe('a commit is single-use', () => {
+  test('a second commit, and a re-post to the pending key, never overwrite the first', async () => {
+    const helper = new FakeStorageHelper();
+    const { policyService, commitService } = await boot({ helper });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: OWNER,
+    });
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName, content: 'first' });
+    await commitService.commit({ token: policy.commitToken, owner: OWNER });
+
+    // The POST policy is still valid until it expires: the client posts again to the same key.
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName, content: 'second' });
+    helper.calls.length = 0;
+    const failure = await failureOf(() =>
+      commitService.commit({ token: policy.commitToken, owner: OWNER }),
+    );
+
+    expect(failure.statusCode).toBe(409);
+    expect(failure.code).toBe('core.static_asset.upload_already_committed');
+    expect(helper.calls.find((call) => call.method === 'copyObject')).toBeUndefined();
+  });
+});
+
+describe('resolvers.commit.destination', () => {
+  const destinationOf = (destination: (opts: { defaultKey: string }) => { key: string }) => ({
+    directUpload: { resolvers: { owner: () => OWNER, commit: { destination } } },
+  });
+
+  test('decides the final key, handed the owner, the metadata, the file name and the default key', async () => {
+    const helper = new FakeStorageHelper();
+    const seen: unknown[] = [];
+    const { policyService, commitService } = await boot({
+      helper,
+      directUpload: {
+        resolvers: {
+          owner: () => OWNER,
+          commit: {
+            destination: (opts) => {
+              seen.push(opts);
+
+              return { key: `files/${opts.metadata.orderId}/${opts.file.fileName}` };
+            },
+          },
+        },
+      },
+    });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png', metadata: { orderId: '42' } }],
+      owner: OWNER,
+    });
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName });
+
+    const result = await commitService.commit({ token: policy.commitToken, owner: OWNER });
+
+    expect(result.object).toEqual({ key: 'files/42/a.png' });
+    expect(seen[0]).toMatchObject({
+      owner: OWNER,
+      metadata: { orderId: '42' },
+      file: { fileName: 'a.png' },
+      defaultKey: policy.objectName.slice('pending/'.length),
+    });
+  });
+
+  test('a key outside the keyPrefix is refused with a 400, and nothing is copied', async () => {
+    const helper = new FakeStorageHelper();
+    const { policyService, commitService } = await boot({
+      helper,
+      ...destinationOf(() => ({ key: 'other/a.png' })),
+    });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: OWNER,
+    });
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName });
+
+    const failure = await failureOf(() =>
+      commitService.commit({ token: policy.commitToken, owner: OWNER }),
+    );
+
+    expect(failure.statusCode).toBe(400);
+    expect(failure.code).toBe('core.static_asset.object_key_out_of_scope');
+    expect(helper.calls.find((call) => call.method === 'copyObject')).toBeUndefined();
+  });
+
+  test('a key that is not a valid object key is refused with a 400', async () => {
+    const helper = new FakeStorageHelper();
+    const { policyService, commitService } = await boot({
+      helper,
+      ...destinationOf(() => ({ key: 'files/../../x.png' })),
+    });
+    const [policy] = await policyService.issuePolicies({
+      files: [{ fileName: 'a.png' }],
+      owner: OWNER,
+    });
+    helper.seedObject({ bucket: 'uploads', key: policy.objectName });
+
+    const failure = await failureOf(() =>
+      commitService.commit({ token: policy.commitToken, owner: OWNER }),
+    );
+
+    expect(failure.statusCode).toBe(400);
+    expect(failure.code).toBe('core.static_asset.object_name_invalid');
   });
 });

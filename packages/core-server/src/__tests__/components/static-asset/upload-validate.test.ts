@@ -89,6 +89,7 @@ const buildValidation = (spy: IValidationSpy) =>
 
 const ALLOW: TDirectUploadOptions = {
   authorize: () => true,
+  resolvers: { owner: () => 'user-a' },
   secretKey: SECRET,
   maxBytes: 1024,
 };
@@ -193,7 +194,7 @@ describe('the upload-validate route', () => {
       helper,
       directUpload: {
         ...ALLOW,
-        resolveOwner: ({ context }) => context.req.header('x-user') ?? '',
+        resolvers: { owner: ({ context }) => context.req.header('x-user') ?? '' },
         validation: buildValidation(spy),
       },
     });
@@ -263,7 +264,7 @@ describe('the upload-validate route', () => {
       helper,
       directUpload: {
         ...ALLOW,
-        resolveOwner: ({ context }) => context.req.header('x-user') ?? '',
+        resolvers: { owner: ({ context }) => context.req.header('x-user') ?? '' },
         validation: buildValidation(spy),
       },
     });
@@ -467,7 +468,7 @@ describe('commit takes the validated token', () => {
       helper,
       directUpload: {
         ...ALLOW,
-        resolveOwner: ({ context }) => context.req.header('x-user') ?? '',
+        resolvers: { owner: ({ context }) => context.req.header('x-user') ?? '' },
         validation: buildValidation(spy),
       },
     });

@@ -1,10 +1,10 @@
-import type { IPostPolicy, IStorageHelper } from '@venizia/ignis-helpers';
+import { EchoUtility, type IPostPolicy, type IStorageHelper } from '@venizia/ignis-helpers';
 import type { IDuration } from '@venizia/ignis-helpers/common';
 import { DurationMultipliers, ResolverUtility } from '@venizia/ignis-helpers/common';
 import type { TValueOrAsyncResolver } from '@venizia/ignis-helpers/common';
 import { getError, UuidHelper } from '@venizia/ignis-helpers/core';
 import { BaseService } from '@venizia/ignis-kernel';
-import { StaticAssetErrors, StaticAssetTokenStages } from '../common';
+import { StaticAssetDefaults, StaticAssetErrors, StaticAssetTokenStages } from '../common';
 import { StaticAssetCommitTokenUtility } from '../utilities';
 import type { TStaticAssetDirectUploadOptions, TStaticAssetUploadPolicyRequest } from '../common';
 import { StaticAssetKeyScopeUtility } from '../utilities/key-scope.utility';
@@ -77,10 +77,14 @@ export class StaticAssetUploadPolicyService extends BaseService {
     return lifetimeMs;
   }
 
-  /** One signed policy per file. A size over `maxBytes` is refused before any policy is signed. */
+  /**
+   * One signed policy per file. A size over `maxBytes`, a name that is not one valid key segment and
+   * `metadata` over the cap are refused before any policy is signed. `files[].metadata` is what the
+   * token signs: the caller has already decided it (the route runs `resolvers.metadata`).
+   */
   async issuePolicies(opts: {
     files: TStaticAssetUploadPolicyRequest['files'];
-    owner?: string;
+    owner: string;
   }): Promise<TStaticAssetUploadPolicy[]> {
     const { helper, bucket, directUpload } = this.options;
     const bucketName = await ResolverUtility.resolveValueAsync({ value: bucket });
@@ -92,6 +96,24 @@ export class StaticAssetUploadPolicyService extends BaseService {
         throw getError({
           error: StaticAssetErrors.UPLOAD_TOO_LARGE,
           message: `File '${file.fileName}' is ${file.size} bytes, over the ${directUpload.maxBytes} the policy allows`,
+        });
+      }
+
+      if (!helper.isValidSegment({ segment: file.fileName })) {
+        throw getError({
+          error: StaticAssetErrors.OBJECT_NAME_INVALID,
+          message: `File name is not one valid key segment | fileName: ${EchoUtility.toSafeEcho({ value: file.fileName })}`,
+        });
+      }
+
+      const metadata = file.metadata ?? {};
+
+      if (
+        Buffer.byteLength(JSON.stringify(metadata)) > StaticAssetDefaults.MAX_TOKEN_METADATA_BYTES
+      ) {
+        throw getError({
+          error: StaticAssetErrors.UPLOAD_METADATA_INVALID,
+          message: `Metadata of '${file.fileName}' is over ${StaticAssetDefaults.MAX_TOKEN_METADATA_BYTES} bytes`,
         });
       }
 
@@ -118,6 +140,7 @@ export class StaticAssetUploadPolicyService extends BaseService {
                 ? new Date(policy.expiresAt).getTime()
                 : Date.now() + this.commitLifetimeMs,
             owner: opts.owner,
+            metadata,
             stage: StaticAssetTokenStages.ISSUED,
           },
           secretKey: directUpload.secretKey,
