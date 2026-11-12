@@ -2,13 +2,24 @@
 title: StaticAssetControllerFactory has one build method
 description: "StaticAssetControllerFactory.buildResolved is removed; build takes the entry key and the entry."
 packages: ['@venizia/ignis']
+migration:
+  - id: static-asset-factory-build-only
+    symbols: [StaticAssetControllerFactory.buildResolved]
+    upgrade:
+      before: |
+        StaticAssetControllerFactory.buildResolved({ resolved, policyService, commitService });
+      after: |
+        StaticAssetControllerFactory.build({ key, entry, policyService, commitService });
+    downgrade:
+      steps:
+        - "Call StaticAssetControllerFactory.buildResolved again with an entry you resolved yourself."
 ---
 
 # Changelog - 2026-11-12
 
 ## StaticAssetControllerFactory has one build method
 
-<Badge type="warning" text="Breaking" />
+<Badge type="warning" text="Breaking Change" />
 
 **In one line.** `StaticAssetControllerFactory.buildResolved` is gone; `build({ key, entry })` does the same work.
 
