@@ -1,5 +1,5 @@
 import { ObjectUtility } from '@venizia/ignis-inversion';
-import { ContentTypeTable, type IDuration, MimeTypes } from '@/common';
+import { ContentTypeTable, MimeTypes } from '@/common';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { EchoUtility } from '@/utilities/echo.utility';
@@ -16,11 +16,18 @@ import {
   type IObjectRef,
   type IStorageHelper,
   type IStorageReadCondition,
+  type ICopyObjectOptions,
+  type IPresignGetOptions,
+  type IPresignPostOptions,
+  type IPresignPutOptions,
+  type IUploadOptions,
+  type IWriteStreamOptions,
+  type TObjectStreamOptions,
   type IUploadFile,
   type IUploadResult,
   type TUploadNaming,
 } from './common';
-import { StorageUtility, StorageConcurrency, StorageErrors } from './common';
+import { StorageUtility, StorageConcurrency, StorageErrors, StorageLimits } from './common';
 
 /** Shared base for storage helpers: MIME lookup, name and path validation, and upload naming. Concrete helpers implement the backend calls. */
 export abstract class BaseStorageHelper extends BaseHelper implements IStorageHelper {
@@ -32,97 +39,61 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     return ContentTypeTable.resolve(opts);
   }
 
-  /** One path segment or file name: at most 255 UTF-8 bytes, no separator, no traversal, no control or shell character. */
-  isValidSegment(opts: { segment: string }): boolean {
-    const name = opts.segment;
-
-    if (typeof name !== 'string') {
-      this.logger
-        .for(this.isValidSegment.name)
-        .error('Invalid name provided: %s', EchoUtility.toSafeEcho({ value: name }));
-
-      return false;
-    }
-
-    if (!name || ObjectUtility.isEmpty({ value: name })) {
-      this.logger.for(this.isValidSegment.name).error('Empty name provided');
-
-      return false;
-    }
-
-    if (name.includes('..') || name.includes('/') || name.includes('\\')) {
-      this.logger
-        .for(this.isValidSegment.name)
-        .error(
-          'Name contains invalid path characters: %s',
-          EchoUtility.toSafeEcho({ value: name }),
-        );
-
-      return false;
-    }
-
-    if (name.startsWith('.')) {
-      this.logger
-        .for(this.isValidSegment.name)
-        .error('Name cannot start with a dot: %s', EchoUtility.toSafeEcho({ value: name }));
-
-      return false;
-    }
-
-    const dangerousChars = /[;|&$`<>{}[\]!#]/;
-
-    if (dangerousChars.test(name)) {
-      this.logger
-        .for(this.isValidSegment.name)
-        .error('Name contains dangerous characters: %s', EchoUtility.toSafeEcho({ value: name }));
-
-      return false;
-    }
-
-    if (BaseStorageHelper.UNSAFE_NAME_CHARACTERS.test(name)) {
-      // The length, not the name: a control character in a log line is the line's own to forge.
-      this.logger
-        .for(this.isValidSegment.name)
-        .error('Name contains a control or bidirectional character | length: %d', name.length);
-
-      return false;
-    }
-
-    const byteLength = BaseStorageHelper.UTF8.encode(name).byteLength;
-
-    if (byteLength > 255) {
-      this.logger
-        .for(this.isValidSegment.name)
-        .error(
-          'Name is too long (%d bytes): %s',
-          byteLength,
-          EchoUtility.toSafeEcho({ value: name }),
-        );
-
-      return false;
-    }
-
-    if (name.trim().length === 0) {
-      this.logger
-        .for(this.isValidSegment.name)
-        .error(
-          'Name cannot be empty or whitespace only: %s',
-          EchoUtility.toSafeEcho({ value: name }),
-        );
-
-      return false;
-    }
-
-    return true;
-  }
-
   static readonly DEFAULT_MAX_FOLDER_DEPTH = 2;
 
   private static readonly UTF8 = new TextEncoder();
 
+  private static readonly DANGEROUS_NAME_CHARACTERS = /[;|&$`<>{}[\]!#]/;
+
   /** Control characters, lone surrogates, the line and paragraph separators (U+2028, U+2029) and the bidirectional marks and overrides: never part of a file name or a key (the overrides make `gpj.exe` display as `exe.jpg`), and a control character or a surrogate cannot be encoded into a header. */
   private static readonly UNSAFE_NAME_CHARACTERS =
     /[\p{Cc}\p{Cs}\u061C\u200E\u200F\u2028\u2029\u202A-\u202E\u2066-\u2069]/u;
+
+  /** Every way a segment can be refused, first match wins. */
+  private static readonly SEGMENT_RULES: Array<{
+    reason: string;
+    isViolated: (name: string) => boolean;
+  }> = [
+    { reason: 'Name is empty or whitespace only', isViolated: (name) => name.trim().length === 0 },
+    {
+      reason: 'Name contains invalid path characters',
+      isViolated: (name) => name.includes('..') || name.includes('/') || name.includes('\\'),
+    },
+    { reason: 'Name cannot start with a dot', isViolated: (name) => name.startsWith('.') },
+    {
+      reason: 'Name contains dangerous characters',
+      isViolated: (name) => BaseStorageHelper.DANGEROUS_NAME_CHARACTERS.test(name),
+    },
+    {
+      reason: 'Name contains a control or bidirectional character',
+      isViolated: (name) => BaseStorageHelper.UNSAFE_NAME_CHARACTERS.test(name),
+    },
+    {
+      reason: `Name is longer than ${StorageLimits.MAX_SEGMENT_BYTES} bytes`,
+      isViolated: (name) =>
+        BaseStorageHelper.UTF8.encode(name).byteLength > StorageLimits.MAX_SEGMENT_BYTES,
+    },
+  ];
+
+  /** One path segment or file name: at most 255 UTF-8 bytes, no separator, no traversal, no control or shell character. */
+  isValidSegment(opts: { segment: string }): boolean {
+    const name = opts.segment;
+
+    const reason =
+      typeof name === 'string'
+        ? BaseStorageHelper.SEGMENT_RULES.find((rule) => rule.isViolated(name))?.reason
+        : 'Name is not a string';
+
+    if (reason === undefined) {
+      return true;
+    }
+
+    this.logger
+      .for(this.isValidSegment.name)
+      .error('%s | name: %s', reason, EchoUtility.toSafeEcho({ value: name }));
+
+    return false;
+  }
 
   /** A bucket name is one segment; a separator in it would silently address a different bucket. */
   isValidBucketName(opts: { bucket: IBucketRef }): boolean {
@@ -210,7 +181,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
     const byteLength = BaseStorageHelper.UTF8.encode(normalized).byteLength;
 
-    if (byteLength > 1024) {
+    if (byteLength > StorageLimits.MAX_KEY_BYTES) {
       this.logger
         .for(this.isValidKeyPath.name)
         .error(
@@ -275,7 +246,11 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
   protected isValidOriginalName(opts: { name: string }): boolean {
     const { name } = opts;
 
-    if (typeof name !== 'string' || name.trim().length === 0 || name.length > 255) {
+    if (
+      typeof name !== 'string' ||
+      name.trim().length === 0 ||
+      name.length > StorageLimits.MAX_SEGMENT_BYTES
+    ) {
       this.logger
         .for(this.isValidOriginalName.name)
         .error('Invalid original name: %s', EchoUtility.toSafeEcho({ value: name }));
@@ -353,24 +328,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     }
   }
 
-  async upload(opts: {
-    bucket: IBucketRef;
-    files: IUploadFile[];
-    normalizeNameFn?: (opts: { file: TUploadNaming }) => string;
-    normalizeLinkFn?: (opts: IObjectLocation) => string;
-    /**
-     * Folder nesting allowed.
-     *
-     * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
-     */
-    maxFolderDepth?: number;
-    /**
-     * Folders the finished key may carry, a scope the `normalizeNameFn` adds included.
-     *
-     * @default `maxFolderDepth`
-     */
-    maxKeyDepth?: number;
-  }): Promise<IUploadResult[]> {
+  async upload(opts: IUploadOptions): Promise<IUploadResult[]> {
     const { bucket, files, normalizeNameFn, normalizeLinkFn, maxFolderDepth } = opts;
     const maxKeyDepth = opts.maxKeyDepth ?? maxFolderDepth;
 
@@ -443,9 +401,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
   }
 
   /** Correct anywhere; overridden by a backend whose transport is already a web stream. */
-  async getObjectStream(
-    opts: IObjectLocation & { range?: { start: number; end?: number } } & IStorageReadCondition,
-  ): Promise<ReadableStream<Uint8Array>> {
+  async getObjectStream(opts: TObjectStreamOptions): Promise<ReadableStream<Uint8Array>> {
     const { bucket, object, range } = opts;
     this.refuseReadCondition({ condition: opts, operation: 'getObjectStream' });
     const source = await this.getObject({ bucket, object });
@@ -508,13 +464,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
    * Correct anywhere, and the wrong path to stay on: it buffers, so a backend whose transport takes
    * a stream overrides it. `BunS3Helper` does.
    */
-  async writeStream(
-    opts: IObjectLocation & {
-      source: ReadableStream<Uint8Array> | Blob | Response | Request;
-      contentType?: string;
-      maxFolderDepth?: number;
-    },
-  ): Promise<void> {
+  async writeStream(opts: IWriteStreamOptions): Promise<void> {
     const { bucket, object, source, contentType } = opts;
 
     // The same depth rule `upload` applies, as `BunS3Helper.writeStream` does: one object, two doors, one answer.
@@ -531,9 +481,9 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     }
 
     // As `upload` does: a write never creates the bucket.
-    const result2 = await this.hasBucket({ bucket });
+    const isExists = await this.hasBucket({ bucket });
 
-    if (!result2) {
+    if (!isExists) {
       throw getError({
         message: `[writeStream] Bucket does not exist | name: ${EchoUtility.toSafeText({ value: bucket.name })}`,
       });
@@ -591,70 +541,44 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
   /** For a backend with no ETag or versions to condition a read on: refusing is honest, ignoring would read unpinned. */
   protected refuseReadCondition(opts: { condition: IStorageReadCondition; operation: string }) {
     if (opts.condition.ifMatch !== undefined || opts.condition.versionId !== undefined) {
-      throw getError({
-        message: `[${this.constructor.name}.${opts.operation}] A conditional read (ifMatch, versionId) is not supported by this helper`,
+      throw this.unsupported({
+        operation: opts.operation,
+        feature: 'A conditional read (ifMatch, versionId)',
       });
     }
   }
 
-  // No transport for these: throwing beats returning undefined, which reads as a valid empty result.
-  async copyObject(_opts: {
-    bucket: IBucketRef;
-    source: IObjectRef;
-    destination: IObjectRef;
-    ifMatch?: string;
-    sourceVersionId?: string;
-  }): Promise<void> {
-    throw getError({
-      message: `[${this.constructor.name}.copyObject] Server-side copy is not supported by this helper`,
+  /** The error of an operation this helper has no transport for: throwing beats returning undefined, which reads as a valid empty result. */
+  private unsupported(opts: { operation: string; feature: string }) {
+    return getError({
+      message: `[${this.constructor.name}.${opts.operation}] ${opts.feature} is not supported by this helper`,
     });
   }
 
-  async presignPost(
-    _opts: IObjectLocation & {
-      maxBytes: number;
-      contentType?: string;
-      expiresIn?: IDuration;
-    },
-  ): Promise<IPostPolicy> {
-    throw getError({
-      message: `[${this.constructor.name}.presignPost] Signed POST policies are not supported by this helper`,
-    });
+  async copyObject(_opts: ICopyObjectOptions): Promise<void> {
+    throw this.unsupported({ operation: 'copyObject', feature: 'Server-side copy' });
   }
 
-  async presignPut(
-    _opts: IObjectLocation & {
-      expiresIn?: IDuration;
-      tagging?: Record<string, string>;
-      contentLength?: number;
-      contentType?: string;
-    },
-  ): Promise<string> {
-    throw getError({
-      message: `[${this.constructor.name}.presignPut] Presigned PUT URLs are not supported by this helper`,
-    });
+  async presignPost(_opts: IPresignPostOptions): Promise<IPostPolicy> {
+    throw this.unsupported({ operation: 'presignPost', feature: 'Signed POST policies' });
   }
 
-  async presignGet(
-    _opts: IObjectLocation & { expiresIn?: IDuration; responseContentType?: string },
-  ): Promise<string> {
-    throw getError({
-      message: `[${this.constructor.name}.presignGet] Presigned GET URLs are not supported by this helper`,
-    });
+  async presignPut(_opts: IPresignPutOptions): Promise<string> {
+    throw this.unsupported({ operation: 'presignPut', feature: 'Presigned PUT URLs' });
+  }
+
+  async presignGet(_opts: IPresignGetOptions): Promise<string> {
+    throw this.unsupported({ operation: 'presignGet', feature: 'Presigned GET URLs' });
   }
 
   async getObjectTags(_opts: IObjectLocation): Promise<Record<string, string>> {
-    throw getError({
-      message: `[${this.constructor.name}.getObjectTags] Object tagging is not supported by this helper`,
-    });
+    throw this.unsupported({ operation: 'getObjectTags', feature: 'Object tagging' });
   }
 
   async replaceObjectTags(
     _opts: IObjectLocation & { tags: Record<string, string> },
   ): Promise<void> {
-    throw getError({
-      message: `[${this.constructor.name}.replaceObjectTags] Object tagging is not supported by this helper`,
-    });
+    throw this.unsupported({ operation: 'replaceObjectTags', feature: 'Object tagging' });
   }
 
   abstract hasBucket(opts: { bucket: IBucketRef }): Promise<boolean>;
@@ -663,7 +587,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
   abstract createBucket(opts: { bucket: IBucketRef }): Promise<IBucketInfo | null>;
   abstract removeBucket(opts: { bucket: IBucketRef }): Promise<boolean>;
 
-  abstract getObject(opts: IObjectLocation & { options?: any }): Promise<Readable>;
+  abstract getObject(opts: IObjectLocation & { options?: unknown }): Promise<Readable>;
   abstract getStat(opts: IObjectLocation): Promise<IFileStat>;
   abstract removeObject(opts: IObjectLocation): Promise<void>;
   abstract removeObjects(opts: { bucket: IBucketRef; objects: IObjectRef[] }): Promise<void>;

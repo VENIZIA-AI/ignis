@@ -4,12 +4,6 @@ import { type TConstValue } from '@/common/types';
 export class UrlSchemes {
   static readonly HTTP = 'http:';
   static readonly HTTPS = 'https:';
-
-  static readonly SCHEME_SET = new Set<string>([this.HTTP, this.HTTPS]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 /** A scheme a guarded fetch accepts: `http:` or `https:`. */
 export type TUrlScheme = TConstValue<typeof UrlSchemes>;

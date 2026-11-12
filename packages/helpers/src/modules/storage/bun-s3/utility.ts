@@ -1,6 +1,8 @@
 // Minimal AWS Signature V4 helpers for bucket-management operations (object ops use Bun's S3Client natively).
 
+import { HTTP, type THttpMethod } from '@/common/constants/http';
 import { getError } from '@/modules/error';
+import { S3Headers, S3Signing } from '../common';
 
 export class S3SignatureUtility {
   private static async hmacSHA256(opts: {
@@ -95,9 +97,12 @@ export class S3SignatureUtility {
       data: dateStamp,
     });
     const regionKey = await S3SignatureUtility.hmacSHA256({ key: dateKey, data: region });
-    const serviceKey = await S3SignatureUtility.hmacSHA256({ key: regionKey, data: 's3' });
+    const serviceKey = await S3SignatureUtility.hmacSHA256({
+      key: regionKey,
+      data: S3Signing.SERVICE,
+    });
 
-    return S3SignatureUtility.hmacSHA256({ key: serviceKey, data: 'aws4_request' });
+    return S3SignatureUtility.hmacSHA256({ key: serviceKey, data: S3Signing.REQUEST_TYPE });
   }
 
   /** `20130524T000000Z` and its `20130524` prefix - the two forms every signature needs. */
@@ -110,8 +115,26 @@ export class S3SignatureUtility {
     return { amzDate, dateStamp: amzDate.slice(0, 8) };
   }
 
+  private static buildCredentialScope(opts: { dateStamp: string; region: string }): string {
+    return `${opts.dateStamp}/${opts.region}/${S3Signing.SERVICE}/${S3Signing.REQUEST_TYPE}`;
+  }
+
+  /** Lower-cases each header name into `target` and leaves out a header whose value is `undefined`. */
+  private static addSignedHeaders(opts: {
+    target: Record<string, string>;
+    headers?: Record<string, string | undefined>;
+    /** SigV4 compares header values after trimming, so signing an untrimmed one answers 403. */
+    trim?: boolean;
+  }): void {
+    for (const [key, value] of Object.entries(opts.headers ?? {})) {
+      if (value !== undefined) {
+        opts.target[key.toLowerCase()] = opts.trim ? value.trim() : value;
+      }
+    }
+  }
+
   static async buildSignedRequest(opts: {
-    method: string;
+    method: THttpMethod;
     endpoint: string;
     path: string;
     accessKey: string;
@@ -147,29 +170,23 @@ export class S3SignatureUtility {
     const payloadHash = await S3SignatureUtility.sha256Hex({ data: body });
 
     const canonicalHeadersMap: Record<string, string> = {
-      host,
-      'x-amz-content-sha256': payloadHash,
-      'x-amz-date': amzDate,
+      [HTTP.Headers.HOST]: host,
+      [S3Headers.CONTENT_SHA256]: payloadHash,
+      [S3Headers.DATE]: amzDate,
     };
 
     if (sessionToken) {
-      canonicalHeadersMap['x-amz-security-token'] = sessionToken;
+      canonicalHeadersMap[S3Headers.SECURITY_TOKEN] = sessionToken;
     }
 
-    const extraHeadersEntries = Object.entries(extraHeaders ?? {});
-
-    for (const [key, value] of extraHeadersEntries) {
-      if (value !== undefined) {
-        canonicalHeadersMap[key.toLowerCase()] = value;
-      }
-    }
+    S3SignatureUtility.addSignedHeaders({ target: canonicalHeadersMap, headers: extraHeaders });
 
     const sortedKeys = Object.keys(canonicalHeadersMap).sort();
     const canonicalHeaders = sortedKeys.map((k) => `${k}:${canonicalHeadersMap[k]}\n`).join('');
     const signedHeaders = sortedKeys.join(';');
 
     const canonicalRequest = [
-      method,
+      method.toUpperCase(),
       canonicalPath,
       canonicalQueryString,
       canonicalHeaders,
@@ -177,15 +194,15 @@ export class S3SignatureUtility {
       payloadHash,
     ].join('\n');
 
-    const credentialScope = `${dateStamp}/${region}/s3/aws4_request`;
+    const credentialScope = S3SignatureUtility.buildCredentialScope({ dateStamp, region });
     const result = await S3SignatureUtility.sha256Hex({ data: canonicalRequest });
-    const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, result].join('\n');
+    const stringToSign = [S3Signing.ALGORITHM, amzDate, credentialScope, result].join('\n');
 
     const signingKey = await S3SignatureUtility.deriveSigningKey({ secretKey, dateStamp, region });
     const result2 = await S3SignatureUtility.hmacSHA256({ key: signingKey, data: stringToSign });
     const signature = S3SignatureUtility.toHex({ bytes: result2 });
 
-    const authHeader = `AWS4-HMAC-SHA256 Credential=${accessKey}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+    const authHeader = `${S3Signing.ALGORITHM} Credential=${accessKey}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
     const contentLength = String(new TextEncoder().encode(body).length);
 
     return {
@@ -307,25 +324,33 @@ export class S3SignatureUtility {
 
     const now = new Date();
     const { amzDate, dateStamp } = S3SignatureUtility.toAmzDate({ now });
-    const credentialScope = `${dateStamp}/${region}/s3/aws4_request`;
-    const credential = `${accessKey}/${credentialScope}`;
+    const credential = `${accessKey}/${S3SignatureUtility.buildCredentialScope({ dateStamp, region })}`;
     const expiresAt = new Date(now.getTime() + expiresInSeconds * 1000).toISOString();
 
     // Every field the browser posts must ALSO be a condition, or S3 refuses the form it just signed.
     const fields: Record<string, string> = {
-      'x-amz-algorithm': 'AWS4-HMAC-SHA256',
+      'x-amz-algorithm': S3Signing.ALGORITHM,
       'x-amz-credential': credential,
-      'x-amz-date': amzDate,
-      ...(sessionToken ? { 'x-amz-security-token': sessionToken } : {}),
+      [S3Headers.DATE]: amzDate,
     };
+
+    if (sessionToken) {
+      fields[S3Headers.SECURITY_TOKEN] = sessionToken;
+    }
 
     const conditions: unknown[] = [
       { bucket },
       { key },
       ['content-length-range', 0, maxBytes],
       ...Object.entries(fields).map(([fieldName, fieldValue]) => ({ [fieldName]: fieldValue })),
-      ...(contentType ? [{ 'Content-Type': contentType }] : []),
     ];
+
+    // The form field is spelled `Content-Type`; a policy condition matches it case-sensitively.
+    const typeField = 'Content-Type';
+
+    if (contentType) {
+      conditions.push({ [typeField]: contentType });
+    }
 
     const policy = Buffer.from(JSON.stringify({ expiration: expiresAt, conditions })).toString(
       'base64',
@@ -335,16 +360,16 @@ export class S3SignatureUtility {
 
     const result = await S3SignatureUtility.hmacSHA256({ key: signingKey, data: policy });
 
-    return {
-      formData: {
-        key,
-        ...fields,
-        ...(contentType ? { 'Content-Type': contentType } : {}),
-        policy,
-        'x-amz-signature': S3SignatureUtility.toHex({ bytes: result }),
-      },
-      expiresAt,
-    };
+    const formData: Record<string, string> = { key, ...fields };
+
+    if (contentType) {
+      formData[typeField] = contentType;
+    }
+
+    formData.policy = policy;
+    formData['x-amz-signature'] = S3SignatureUtility.toHex({ bytes: result });
+
+    return { formData, expiresAt };
   }
 
   /**
@@ -356,7 +381,7 @@ export class S3SignatureUtility {
    * size; for a ceiling, use {@link S3SignatureUtility.buildPostPolicy}.
    */
   static async buildPresignedUrl(opts: {
-    method: string;
+    method: THttpMethod;
     endpoint: string;
     path: string;
     accessKey: string;
@@ -364,8 +389,8 @@ export class S3SignatureUtility {
     region: string;
     sessionToken?: string;
     expiresInSeconds: number;
-    /** Headers to SIGN. The client must send each one unchanged, or S3 answers 403. */
-    headers?: Record<string, string>;
+    /** Headers to SIGN. The client must send each one unchanged, or S3 answers 403. A key whose value is `undefined` is left out. */
+    headers?: Record<string, string | undefined>;
     /** A fixed clock, so a signature can be checked against a published test vector. */
     now?: Date;
   }): Promise<string> {
@@ -383,46 +408,48 @@ export class S3SignatureUtility {
     } = opts;
 
     const { amzDate, dateStamp } = S3SignatureUtility.toAmzDate({ now });
-    const credentialScope = `${dateStamp}/${region}/s3/aws4_request`;
+    const credentialScope = S3SignatureUtility.buildCredentialScope({ dateStamp, region });
     const canonicalPath = S3SignatureUtility.encodeSigV4Path({ path });
     const origin = endpoint.replace(/\/$/, '');
 
-    // SigV4 compares header values after trimming, so signing an untrimmed one answers 403.
-    const canonicalHeadersMap: Record<string, string> = { host: new URL(origin).host };
-    const signedEntries = Object.entries(headers ?? {});
+    const canonicalHeadersMap: Record<string, string> = {
+      [HTTP.Headers.HOST]: new URL(origin).host,
+    };
 
-    for (const [key, value] of signedEntries) {
-      canonicalHeadersMap[key.toLowerCase()] = String(value).trim();
-    }
+    S3SignatureUtility.addSignedHeaders({ target: canonicalHeadersMap, headers, trim: true });
 
     const sortedKeys = Object.keys(canonicalHeadersMap).sort();
     const signedHeaders = sortedKeys.join(';');
 
     // `X-Amz-SignedHeaders` is itself signed, so the header list has to be settled before the query.
     const queryParameters: Record<string, string> = {
-      'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
+      'X-Amz-Algorithm': S3Signing.ALGORITHM,
       'X-Amz-Credential': `${accessKey}/${credentialScope}`,
       'X-Amz-Date': amzDate,
       'X-Amz-Expires': String(expiresInSeconds),
       'X-Amz-SignedHeaders': signedHeaders,
-      ...(sessionToken ? { 'X-Amz-Security-Token': sessionToken } : {}),
     };
+
+    if (sessionToken) {
+      queryParameters['X-Amz-Security-Token'] = sessionToken;
+    }
+
     const canonicalQueryString = S3SignatureUtility.buildCanonicalQueryString({
       query: queryParameters,
     });
 
     // A presigned URL is signed before its body exists, so the payload is excluded by name.
     const canonicalRequest = [
-      method,
+      method.toUpperCase(),
       canonicalPath,
       canonicalQueryString,
       sortedKeys.map((key) => `${key}:${canonicalHeadersMap[key]}\n`).join(''),
       signedHeaders,
-      'UNSIGNED-PAYLOAD',
+      S3Signing.UNSIGNED_PAYLOAD,
     ].join('\n');
 
     const result = await S3SignatureUtility.sha256Hex({ data: canonicalRequest });
-    const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, result].join('\n');
+    const stringToSign = [S3Signing.ALGORITHM, amzDate, credentialScope, result].join('\n');
 
     const signingKey = await S3SignatureUtility.deriveSigningKey({ secretKey, dateStamp, region });
     const result2 = await S3SignatureUtility.hmacSHA256({ key: signingKey, data: stringToSign });

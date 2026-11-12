@@ -4,7 +4,7 @@ import { describe, expect, test } from 'bun:test';
 import { S3SignatureUtility } from '@/modules/storage/bun-s3/utility';
 
 const baseRequest = {
-  method: 'GET',
+  method: 'GET' as const,
   endpoint: 'http://localhost:9000',
   path: '/my-bucket/my-object',
   accessKey: 'test-access-key',

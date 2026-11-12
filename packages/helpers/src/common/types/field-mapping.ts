@@ -7,18 +7,6 @@ export class FieldMappingDataTypes {
   static readonly STRINGS = 'strings';
   static readonly NUMBERS = 'numbers';
   static readonly BOOLEAN = 'boolean';
-
-  static readonly SCHEME_SET = new Set<string>([
-    this.STRING,
-    this.NUMBER,
-    this.STRINGS,
-    this.NUMBERS,
-    this.BOOLEAN,
-  ]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Valid field mapping data type values. */

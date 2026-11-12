@@ -45,7 +45,7 @@ console.log(session); // { userId: 42, active: true }
 | Cluster | `RedisClusterHelper` | Data sharded across nodes |
 | Sentinel | `RedisSentinelHelper` | Automatic failover for one logical master |
 
-- **Pick a topology via the factory.** `RedisHelperFactory.create({ mode })` picks a topology from configuration. Pass a literal `mode` (`RedisModes.SINGLE | CLUSTER | SENTINEL`) and it returns the concrete class, not the generic `IRedisHelper`. The old `createRedisHelper(opts)` function is removed.
+- **Pick a topology via the factory.** `RedisHelperFactory.single(opts)`, `.cluster(opts)` and `.sentinel(opts)` each take the options of one topology and return its concrete class, not the generic `IRedisHelper`.
 - **Connection lifecycle is automatic.** With `autoConnect: true` (the default), the ioredis client starts connecting inside the constructor. Set `autoConnect: false` and call `connect()` yourself instead.
 - **Reconnect backoff grows with each attempt:** about 1 s, 2 s, 4 s and so on up to 30 s, with half of each wait randomized. A successful reconnect resets it.
 - **The default reconnects 5 times.** `maxRetry` defaults to `5`. Pass `-1` to reconnect forever, or `0` to never reconnect. Any other value is refused when the helper is built.
@@ -74,13 +74,12 @@ Wrote a value with `set`? Read it back with `getObject`/`getObjects`.
 
 ### Pick a topology
 
-Switch topology by changing `mode` and its matching options. The rest of your code does not change.
+Switch topology by calling another factory method with its matching options. The rest of your code does not change.
 
 ```typescript
-import { RedisHelperFactory, RedisModes, type IRedisHelper } from '@venizia/ignis-helpers';
+import { RedisHelperFactory, type IRedisHelper } from '@venizia/ignis-helpers';
 
-const redis: IRedisHelper = RedisHelperFactory.create({
-  mode: RedisModes.SINGLE, // or RedisModes.CLUSTER / RedisModes.SENTINEL
+const redis: IRedisHelper = RedisHelperFactory.single({
   name: 'app-cache',
   host: process.env.REDIS_HOST!,
   port: Number(process.env.REDIS_PORT),
@@ -162,7 +161,7 @@ const redis = new RedisSingleHelper({
 });
 ```
 
-The static import is what puts `ioredis` inside the binary; `module` is how the helper finds it. The cluster and Sentinel helpers, and `RedisHelperFactory.create`, take the same option. To cover every helper at once, register it at the entrypoint instead: `ModuleUtility.register({ modules: { ioredis } })`.
+The static import is what puts `ioredis` inside the binary; `module` is how the helper finds it. The cluster and Sentinel helpers, and every `RedisHelperFactory` method, take the same option. To cover every helper at once, register it at the entrypoint instead: `ModuleUtility.register({ modules: { ioredis } })`.
 
 ## See also
 

@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-107 exports, 107 with TSDoc. 958 more are re-exported from other entries (listed at the end).
+107 exports, 107 with TSDoc. 967 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3352,6 +3352,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `BootSequence` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `BootSteps` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `BuildInfoRegistry` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
+- `BullMQDefaults` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `BullQueueRoles` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `CasbinDomainMatchingFunctions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `CasbinEnforcerCachedDrivers` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -3489,6 +3490,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IBunServer` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IBunWebSocketConfig` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IBunWebSocketHandler` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `IByteRange` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `ICasbinEnforcerCachedRedis` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `ICasbinEnforcerOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `ICasbinRules` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -3503,6 +3505,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IController` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IControllerMixin` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IControllerOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `ICopyObjectOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `ICORSOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `ICreatableRepository` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `ICrudControllerOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -3604,6 +3607,9 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IPostgresDataSource` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `IPostgresError` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IPostPolicy` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `IPresignGetOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `IPresignPostOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `IPresignPutOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IPrintOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IProvideMetadata` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `IProvider` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
@@ -3700,6 +3706,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IUidSegment` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IUpdatableRepository` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `IUploadFile` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `IUploadOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IUploadResult` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IUrlSafetyPolicy` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IUuidInspection` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -3718,6 +3725,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IWorkerBus` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IWorkerMessageBusHandler` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IWorkerThread` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `IWriteStreamOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IZonedTemporalParts` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `JOSEStandards` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `JWKSAlgorithms` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -3813,7 +3821,6 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `RedisConcurrency` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `RedisDefaults` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `RedisHelperFactory` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
-- `RedisModes` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `RedisSentinelHelper` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `RedisSentinelRoles` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `RedisSingleHelper` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -3854,7 +3861,9 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `RSAAlgorithmType` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `RuntimeModules` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `S3Audiences` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `S3Defaults` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `S3Headers` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `S3Signing` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `SchemaTypes` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `ScopeFilterMissingBehaviors` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `ScopeFilters` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -3880,6 +3889,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `Statuses` from [`@venizia/ignis-kernel/statuses`](/references/api/venizia-ignis-kernel-statuses)
 - `StorageConcurrency` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `StorageErrors` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `StorageLimits` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `StoragePresignDefaults` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `StoragePresignLimits` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `StorageTypes` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -3944,7 +3954,6 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TCount` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TCountResponse` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TcpClientStates` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
-- `TCreateRedisHelperOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TCredentialAlgorithm` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TCrudRepositoryClass` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TCrudRoutes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -4053,6 +4062,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TNullable` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TNumberConstValue` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TObjectFromFieldMappings` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `TObjectStreamOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TokenUidHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TOneRelationNameOf` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TOnVisit` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -4075,7 +4085,6 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `trackableHeaders` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TRecursiveTreeDirection` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TRedisClient` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
-- `TRedisMode` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TRedisSentinelRole` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TreeBuilder` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TreeWalker` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)

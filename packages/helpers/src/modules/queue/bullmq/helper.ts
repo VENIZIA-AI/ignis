@@ -4,10 +4,10 @@ import { type IRedisHelper } from '@/modules/redis';
 import { ErrorUtility } from '@/utilities/error.utility';
 import { ModuleUtility } from '@/utilities/module.utility';
 import type { Job, Processor, Queue, QueueOptions, Worker, WorkerOptions } from 'bullmq';
-import { HookUtility, type TBullQueueRole } from '../common';
+import { BullMQDefaults, BullQueueRoles, HookUtility, type TBullQueueRole } from '../common';
 
 /** Options for {@link BullMQHelper}. `role` decides whether a `Queue` or a `Worker` is built. */
-export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
+export interface IBullMQOptions<TQueueElement = unknown, TQueueResult = unknown> {
   queueName: string;
   identifier: string;
   role: TBullQueueRole;
@@ -18,12 +18,12 @@ export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
 
   /**
    * Worker concurrency.
-   * @default 1
+   * @default BullMQDefaults.NUMBER_OF_WORKER
    */
   numberOfWorker?: number;
   /**
    * How long a worker holds a job's lock, in milliseconds.
-   * @default 90 * 60 * 1000
+   * @default BullMQDefaults.LOCK_DURATION_MS
    */
   lockDuration?: number;
 
@@ -32,8 +32,11 @@ export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
   /** Merged under the fields the helper owns (`connection`, `concurrency`, `lockDuration`) - see `workerOptionsFor`. */
   workerOptions?: Omit<WorkerOptions, 'connection' | 'concurrency' | 'lockDuration'>;
 
-  onWorkerData?: (job: Job<TQueueElement, TQueueResult>) => Promise<any>;
-  onWorkerDataCompleted?: (job: Job<TQueueElement, TQueueResult>, result: any) => Promise<void>;
+  onWorkerData?: (job: Job<TQueueElement, TQueueResult>) => Promise<TQueueResult>;
+  onWorkerDataCompleted?: (
+    job: Job<TQueueElement, TQueueResult>,
+    result: TQueueResult,
+  ) => Promise<void>;
   onWorkerDataFail?: (
     job: Job<TQueueElement, TQueueResult> | undefined,
     error: Error,
@@ -44,7 +47,7 @@ export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
  * Wraps a BullMQ `Queue` or `Worker` (per `role`) on one Redis connection.
  * Worker concurrency is `numberOfWorker`; `lockDuration` is in milliseconds.
  */
-export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseHelper {
+export class BullMQHelper<TQueueElement = unknown, TQueueResult = unknown> extends BaseHelper {
   protected queueName: string;
   protected role: TBullQueueRole;
   protected redisConnection: IRedisHelper;
@@ -52,16 +55,16 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
   queue: Queue<TQueueElement, TQueueResult>;
   worker: Worker<TQueueElement, TQueueResult>;
 
-  protected numberOfWorker = 1;
-  protected lockDuration = 90 * 60 * 1000;
+  protected numberOfWorker: number;
+  protected lockDuration: number;
 
   protected queueOptions?: Omit<QueueOptions, 'connection'>;
   protected workerOptions?: Omit<WorkerOptions, 'connection' | 'concurrency' | 'lockDuration'>;
 
-  protected onWorkerData?: (job: Job<TQueueElement, TQueueResult>) => Promise<any>;
+  protected onWorkerData?: (job: Job<TQueueElement, TQueueResult>) => Promise<TQueueResult>;
   protected onWorkerDataCompleted?: (
     job: Job<TQueueElement, TQueueResult>,
-    result: any,
+    result: TQueueResult,
   ) => Promise<void>;
 
   protected onWorkerDataFail?: (
@@ -77,8 +80,8 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
       queueName,
       redisConnection,
       role,
-      numberOfWorker = 1,
-      lockDuration = 90 * 60 * 1000,
+      numberOfWorker = BullMQDefaults.NUMBER_OF_WORKER,
+      lockDuration = BullMQDefaults.LOCK_DURATION_MS,
       queueOptions,
       workerOptions,
       onWorkerData,
@@ -106,7 +109,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     this.configure();
   }
 
-  static newInstance<T = any, R = any>(opts: IBullMQOptions<T, R>) {
+  static newInstance<T = unknown, R = unknown>(opts: IBullMQOptions<T, R>) {
     return new BullMQHelper<T, R>(opts);
   }
 
@@ -233,9 +236,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
       queueName,
       processor: async (job) => {
         if (this.onWorkerData) {
-          const result = await this.onWorkerData(job);
-
-          return result;
+          return this.onWorkerData(job);
         }
 
         const { id, name, data } = job;
@@ -296,11 +297,11 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     }
 
     switch (this.role) {
-      case 'queue': {
+      case BullQueueRoles.QUEUE: {
         this.configureQueue();
         break;
       }
-      case 'worker': {
+      case BullQueueRoles.WORKER: {
         this.configureWorker();
         break;
       }

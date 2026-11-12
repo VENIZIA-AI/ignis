@@ -17,8 +17,8 @@ import {
   type IObjectLocation,
   type IObjectRef,
   type IStorageHelperOptions,
-  type IStorageReadCondition,
   type IUploadFile,
+  type TObjectStreamOptions,
   StorageErrors,
   StorageTypes,
 } from '../common';
@@ -365,7 +365,7 @@ export class DiskHelper extends BaseStorageHelper {
     await fsp.writeFile(objectPath, file.buffer);
   }
 
-  async getObject(opts: IObjectLocation & { options?: any }): Promise<Readable> {
+  async getObject(opts: IObjectLocation & { options?: unknown }): Promise<Readable> {
     const { bucket, object } = opts;
     const objectPath = await this.resolveContainedObjectPath({ bucket, object });
 
@@ -382,9 +382,7 @@ export class DiskHelper extends BaseStorageHelper {
   }
 
   /** `createReadStream` seeks natively, so a range never reads the bytes before it. */
-  override async getObjectStream(
-    opts: IObjectLocation & { range?: { start: number; end?: number } } & IStorageReadCondition,
-  ): Promise<ReadableStream<Uint8Array>> {
+  override async getObjectStream(opts: TObjectStreamOptions): Promise<ReadableStream<Uint8Array>> {
     const { bucket, object, range } = opts;
     this.refuseReadCondition({ condition: opts, operation: 'getObjectStream' });
     const objectPath = await this.resolveContainedObjectPath({ bucket, object });

@@ -47,29 +47,10 @@ export declare class BunS3Helper extends BaseStorageHelper {
     removeBucket(opts: {
         bucket: IBucketRef;
     }): Promise<boolean>;
-    copyObject(opts: {
-        bucket: IBucketRef;
-        source: IObjectRef;
-        destination: IObjectRef;
-        ifMatch?: string;
-        sourceVersionId?: string;
-    }): Promise<void>;
-    presignPost(opts: IObjectLocation & {
-        maxBytes: number;
-        contentType?: string;
-        expiresIn?: IDuration;
-    }): Promise<IPostPolicy>;
-    presignPut(opts: IObjectLocation & {
-        expiresIn?: IDuration;
-        tagging?: Record<string, string>;
-        contentLength?: number;
-        contentType?: string;
-    }): Promise<string>;
-    presignGet(opts: IObjectLocation & {
-        expiresIn?: IDuration;
-        responseContentType?: string;
-        responseContentDisposition?: string;
-    }): Promise<string>;
+    copyObject(opts: ICopyObjectOptions): Promise<void>;
+    presignPost(opts: IPresignPostOptions): Promise<IPostPolicy>;
+    presignPut(opts: IPresignPutOptions): Promise<string>;
+    presignGet(opts: IPresignGetOptions): Promise<string>;
     getObjectTags(opts: IObjectLocation): Promise<Record<string, string>>;
     replaceObjectTags(opts: IObjectLocation & {
         tags: Record<string, string>;
@@ -79,25 +60,20 @@ export declare class BunS3Helper extends BaseStorageHelper {
         file: IUploadFile;
     }): Promise<void>;
     /** Streams without holding the object in memory. `upload` carries a `Buffer`, so it cannot; this is the path for anything large. */
-    writeStream(opts: IObjectLocation & {
-        source: ReadableStream<Uint8Array> | Blob | Response | Request;
-        contentType?: string;
-        maxFolderDepth?: number;
-    }): Promise<void>;
+    writeStream(opts: IWriteStreamOptions): Promise<void>;
     /** `S3File.stream()` is lazy: it reaches the network on first read, so a `try` here never sees a 404 - the failure arrives on the stream. */
     getObject(opts: IObjectLocation & {
-        options?: any;
+        options?: unknown;
     }): Promise<Readable>;
     /** The conversion-free path a `Response` body wants. `slice` makes it a ranged GET, so only the requested bytes leave S3. */
-    getObjectStream(opts: IObjectLocation & {
-        range?: {
-            start: number;
-            end?: number;
-        };
-    } & IStorageReadCondition): Promise<ReadableStream<Uint8Array>>;
+    getObjectStream(opts: TObjectStreamOptions): Promise<ReadableStream<Uint8Array>>;
     /** The ETag with the quotes S3 sends and expects in `If-Match`. */
     private static quoteEtag;
-    /** Signs and sends one object-level request: the one place credentials, addressing, signing and the verb's case meet. */
+    /** Signs and sends one request: the one place credentials, signing and the verb's case meet. */
+    private send;
+    /** A bucket operation is a call this process makes, so it goes to the default host. */
+    private bucketFetch;
+    /** One object-level request, addressed in the configured style on the host this process talks to. */
     private signedFetch;
     /** The storage error a response stands for: 412 is a changed object, 404 a missing one, any other failure the backend's own. */
     private assertObjectResponse;

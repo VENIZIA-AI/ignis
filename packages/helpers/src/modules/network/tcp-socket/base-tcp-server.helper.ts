@@ -16,16 +16,6 @@ export class TcpClientStates {
   static readonly UNAUTHORIZED = 'unauthorized';
   static readonly AUTHENTICATING = 'authenticating';
   static readonly AUTHENTICATED = 'authenticated';
-
-  static readonly SCHEME_SET = new Set<string>([
-    this.UNAUTHORIZED,
-    this.AUTHENTICATING,
-    this.AUTHENTICATED,
-  ]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Valid TCP client state values. */

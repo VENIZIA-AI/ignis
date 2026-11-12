@@ -36,8 +36,4 @@ export class RedisSingleHelper extends AbstractRedisHelper<Redis> {
       }),
     });
   }
-
-  override getClient() {
-    return this.client as Redis;
-  }
 }

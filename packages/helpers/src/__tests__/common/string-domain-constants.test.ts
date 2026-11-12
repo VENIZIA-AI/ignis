@@ -1,11 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { FieldMappingDataTypes, type IFieldMapping } from '@/common/types';
+import { type IFieldMapping } from '@/common/types';
 import { AESAlgorithms, type AESAlgorithmType } from '@/modules/crypto/algorithms/aes.algorithm';
 import { PinoFrequencies, type TFrequency } from '@/modules/logger/pino/common';
-import { FetcherVariants, type TFetcherVariant } from '@/modules/network/http-request/common';
-import { TcpClientStates, type ITcpSocketClient } from '@/modules/network/tcp-socket';
-import { BullQueueRoles, type TBullQueueRole } from '@/modules/queue/common';
-import { KafkaBrokersDownReasons } from '@/modules/queue/kafka/common/constants';
+import { type TFetcherVariant } from '@/modules/network/http-request/common';
+import { type ITcpSocketClient } from '@/modules/network/tcp-socket';
+import { type TBullQueueRole } from '@/modules/queue/common';
 import { TemporalNameWidths, TemporalWrittenDateStyles } from '@/modules/temporal/common/constants';
 import { PatternTokens, type TPatternToken } from '@/modules/temporal/pattern/common';
 import { ContentDispositionTypes } from '@/utilities/request.utility';
@@ -17,25 +16,8 @@ import { ContentDispositionTypes } from '@/utilities/request.utility';
  */
 describe('string domains as const classes', () => {
   const domains = [
-    {
-      name: 'FieldMappingDataTypes',
-      domain: FieldMappingDataTypes,
-      values: ['string', 'number', 'strings', 'numbers', 'boolean'],
-    },
     { name: 'AESAlgorithms', domain: AESAlgorithms, values: ['aes-256-cbc', 'aes-256-gcm'] },
     { name: 'PinoFrequencies', domain: PinoFrequencies, values: ['hourly', 'daily'] },
-    { name: 'FetcherVariants', domain: FetcherVariants, values: ['node-fetch', 'axios'] },
-    { name: 'BullQueueRoles', domain: BullQueueRoles, values: ['queue', 'worker'] },
-    {
-      name: 'TcpClientStates',
-      domain: TcpClientStates,
-      values: ['unauthorized', 'authenticating', 'authenticated'],
-    },
-    {
-      name: 'KafkaBrokersDownReasons',
-      domain: KafkaBrokersDownReasons,
-      values: ['disconnected', 'failed'],
-    },
     {
       name: 'ContentDispositionTypes',
       domain: ContentDispositionTypes,

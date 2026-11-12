@@ -2,15 +2,13 @@ import { describe, expect, it } from 'bun:test';
 import {
   RedisHelperFactory,
   RedisClusterHelper,
-  RedisModes,
   RedisSentinelHelper,
   RedisSingleHelper,
 } from '@/modules/redis';
 
-describe('RedisHelperFactory.create', () => {
+describe('RedisHelperFactory', () => {
   it('builds a single helper', () => {
-    const helper = RedisHelperFactory.create({
-      mode: RedisModes.SINGLE,
+    const helper = RedisHelperFactory.single({
       name: 's',
       host: '127.0.0.1',
       port: 6379,
@@ -22,8 +20,7 @@ describe('RedisHelperFactory.create', () => {
   });
 
   it('builds a cluster helper', () => {
-    const helper = RedisHelperFactory.create({
-      mode: RedisModes.CLUSTER,
+    const helper = RedisHelperFactory.cluster({
       name: 'c',
       nodes: [{ host: '127.0.0.1', port: 7000 }],
       clusterOptions: { lazyConnect: true },
@@ -33,8 +30,7 @@ describe('RedisHelperFactory.create', () => {
   });
 
   it('builds a sentinel helper', () => {
-    const helper = RedisHelperFactory.create({
-      mode: RedisModes.SENTINEL,
+    const helper = RedisHelperFactory.sentinel({
       name: 'se',
       masterName: 'mymaster',
       sentinels: [{ host: '127.0.0.1', port: 26379 }],
@@ -42,10 +38,5 @@ describe('RedisHelperFactory.create', () => {
     });
     expect(helper).toBeInstanceOf(RedisSentinelHelper);
     helper.getClient().disconnect();
-  });
-
-  it('throws on an unsupported mode', () => {
-    // @ts-expect-error - exercising the runtime guard with an invalid mode
-    expect(() => RedisHelperFactory.create({ mode: 'nope', name: 'x' })).toThrow();
   });
 });

@@ -1,5 +1,4 @@
 import { ObjectUtility } from '@venizia/ignis-inversion';
-import type { AnyType } from '@/common/types';
 import { PromiseUtility } from '@/utilities/promise.utility';
 import { getError } from '@/modules/error';
 import { LoggerFactory } from '@/modules/logger';
@@ -121,53 +120,36 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     return this.client.ping();
   }
 
-  connect() {
-    return new Promise<boolean>((resolve, reject) => {
-      const invalidStatuses: (typeof this.client.status)[] = [
-        'ready',
-        'reconnecting',
-        'connecting',
-      ];
+  async connect() {
+    const invalidStatuses: (typeof this.client.status)[] = ['ready', 'reconnecting', 'connecting'];
 
-      if (invalidStatuses.includes(this.client.status)) {
-        this.logger
-          .for(this.connect.name)
-          .info('status: %s | Invalid redis status to invoke connect', this.client.status);
+    if (invalidStatuses.includes(this.client.status)) {
+      this.logger
+        .for(this.connect.name)
+        .info('status: %s | Invalid redis status to invoke connect', this.client.status);
 
-        resolve(false);
+      return false;
+    }
 
-        return;
-      }
+    await this.client.connect();
 
-      this.client
-        .connect()
-        .then(() => {
-          resolve(this.client.status === 'ready');
-        })
-        .catch(reject);
-    });
+    return this.client.status === 'ready';
   }
 
-  disconnect() {
-    return new Promise<boolean>((resolve, reject) => {
-      const invalidStatuses: (typeof this.client.status)[] = ['end', 'close'];
+  async disconnect() {
+    const invalidStatuses: (typeof this.client.status)[] = ['end', 'close'];
 
-      if (invalidStatuses.includes(this.client.status)) {
-        this.logger
-          .for(this.disconnect.name)
-          .info('status: %s | Invalid redis status to invoke disconnect', this.client.status);
-        resolve(false);
+    if (invalidStatuses.includes(this.client.status)) {
+      this.logger
+        .for(this.disconnect.name)
+        .info('status: %s | Invalid redis status to invoke disconnect', this.client.status);
 
-        return;
-      }
+      return false;
+    }
 
-      this.client
-        .quit()
-        .then((rs) => {
-          resolve(rs === 'OK');
-        })
-        .catch(reject);
-    });
+    const reply = await this.client.quit();
+
+    return reply === 'OK';
   }
 
   // --- Key lifecycle + counters (IRedisKey) ---
@@ -269,7 +251,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
       return null;
     }
 
-    return transform ? transform(value) : (value as AnyType);
+    return transform ? transform(value) : (value as T);
   }
 
   del(opts: { keys: Array<string> }): Promise<number> {
@@ -348,7 +330,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
       return [];
     }
 
-    return values.map((el) => (el ? (transform ? transform(el) : (el as AnyType)) : null));
+    return values.map((el) => (el ? (transform ? transform(el) : (el as T)) : null));
   }
 
   keys(opts: { key: string }): Promise<string[]> {

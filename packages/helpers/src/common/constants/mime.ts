@@ -6,12 +6,6 @@ export class MimeTypes {
   static readonly IMAGE = 'image';
   static readonly VIDEO = 'video';
   static readonly TEXT = 'text';
-
-  static readonly SCHEME_SET = new Set<string>([this.UNKNOWN, this.IMAGE, this.VIDEO, this.TEXT]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 /** One of the `MimeTypes` values. */
 export type TMimeTypes = TConstValue<typeof MimeTypes>;

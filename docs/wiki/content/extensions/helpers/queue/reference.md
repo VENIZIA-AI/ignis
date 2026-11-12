@@ -312,7 +312,6 @@ WAITING ──enqueue──> PROCESSING ──done──> WAITING
 | `QueueStatuses.SETTLED` | `'300_SETTLED'` | Terminal. No further elements accepted. |
 
 - **Why numeric prefixes.** `'000_...'` through `'300_...'` make `state >= QueueStatuses.LOCKED` and `state > QueueStatuses.LOCKED` valid string comparisons. `lock()` and `unlock()` use exactly that to guard against re-entering from an invalid state.
-- **Validate an arbitrary string** with `QueueStatuses.isValid(value)`.
 
 ### Processing loop
 
