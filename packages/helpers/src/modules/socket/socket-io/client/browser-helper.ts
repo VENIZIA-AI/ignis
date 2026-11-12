@@ -12,14 +12,14 @@ import type {
 } from '../common/types/client';
 import type { TSocketIOEventHandler } from '../common/types/hooks';
 
+/** What `socket.off` takes back: the wrapper `subscribe` registered in place of the caller's handler. */
+type TWrappedListener = NonNullable<Parameters<Socket['off']>[1]>;
+
 /**
  * The socket.io client with nothing node in its graph, so a browser bundle can hold it: `socket.io-client`
  * is handed in as `module` (`{ io }` from the app's own `import`) instead of being found on disk.
  * `@venizia/ignis-helpers/socket-io` extends it and finds the module itself when none is handed in.
  */
-/** What `socket.off` takes back: the wrapper `subscribe` registered in place of the caller's handler. */
-type TWrappedListener = NonNullable<Parameters<Socket['off']>[1]>;
-
 export class SocketIOClientHelper extends BaseHelper {
   private host: string;
   private options: IOptions;
