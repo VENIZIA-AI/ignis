@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+
 import type { IDataSource } from '@/base/datasources';
 import type { AbstractEntity } from '@/base/models';
 import type { AnyType, TClass, TMixinTarget } from '@venizia/ignis-helpers/common';

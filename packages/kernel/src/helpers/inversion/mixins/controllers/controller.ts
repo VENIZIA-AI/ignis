@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+
 import { ControllerTransports } from '@/base/controllers/common/constants';
 import type { TMixinTarget } from '@venizia/ignis-helpers/common';
 import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';

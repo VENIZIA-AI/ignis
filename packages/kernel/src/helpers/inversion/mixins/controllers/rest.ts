@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+
 import type { IAuthRouteConfig } from '@/base/controllers/common/types';
 import type { TMixinTarget } from '@venizia/ignis-helpers/common';
 import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
