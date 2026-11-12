@@ -17,7 +17,7 @@ Wraps a BullMQ `Queue` or `Worker` (per `role`) on one Redis connection.
 Worker concurrency is `numberOfWorker`; `lockDuration` is in milliseconds.
 
 ```ts
-export declare class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseHelper {
+export declare class BullMQHelper<TQueueElement = unknown, TQueueResult = unknown> extends BaseHelper {
     protected queueName: string;
     protected role: TBullQueueRole;
     protected redisConnection: IRedisHelper;
@@ -27,12 +27,12 @@ export declare class BullMQHelper<TQueueElement = any, TQueueResult = any> exten
     protected lockDuration: number;
     protected queueOptions?: Omit<QueueOptions, 'connection'>;
     protected workerOptions?: Omit<WorkerOptions, 'connection' | 'concurrency' | 'lockDuration'>;
-    protected onWorkerData?: (job: Job<TQueueElement, TQueueResult>) => Promise<any>;
-    protected onWorkerDataCompleted?: (job: Job<TQueueElement, TQueueResult>, result: any) => Promise<void>;
+    protected onWorkerData?: (job: Job<TQueueElement, TQueueResult>) => Promise<TQueueResult>;
+    protected onWorkerDataCompleted?: (job: Job<TQueueElement, TQueueResult>, result: TQueueResult) => Promise<void>;
     protected onWorkerDataFail?: (job: Job<TQueueElement, TQueueResult> | undefined, error: Error) => Promise<void>;
     private readonly bullmqModule?;
     constructor(options: IBullMQOptions<TQueueElement, TQueueResult>);
-    static newInstance<T = any, R = any>(opts: IBullMQOptions<T, R>): BullMQHelper<T, R>;
+    static newInstance<T = unknown, R = unknown>(opts: IBullMQOptions<T, R>): BullMQHelper<T, R>;
     /** Structural, never `instanceof`: ioredis is an optional peer, and a second copy fails `instanceof` anyway. */
     protected isClusterClient(): boolean;
     protected resolveQueueName(): string;
@@ -72,7 +72,7 @@ Source: `packages/helpers/src/modules/queue/bullmq/helper.ts`
 Options for {@link BullMQHelper}. `role` decides whether a `Queue` or a `Worker` is built.
 
 ```ts
-export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
+export interface IBullMQOptions<TQueueElement = unknown, TQueueResult = unknown> {
     queueName: string;
     identifier: string;
     role: TBullQueueRole;
@@ -81,20 +81,20 @@ export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
     module?: typeof import('bullmq');
     /**
      * Worker concurrency.
-     * @default 1
+     * @default BullMQDefaults.NUMBER_OF_WORKER
      */
     numberOfWorker?: number;
     /**
      * How long a worker holds a job's lock, in milliseconds.
-     * @default 90 * 60 * 1000
+     * @default BullMQDefaults.LOCK_DURATION_MS
      */
     lockDuration?: number;
     /** Merged over the framework defaults, under the fields the helper owns (`connection`) - see `queueOptionsFor`. */
     queueOptions?: Omit<QueueOptions, 'connection'>;
     /** Merged under the fields the helper owns (`connection`, `concurrency`, `lockDuration`) - see `workerOptionsFor`. */
     workerOptions?: Omit<WorkerOptions, 'connection' | 'concurrency' | 'lockDuration'>;
-    onWorkerData?: (job: Job<TQueueElement, TQueueResult>) => Promise<any>;
-    onWorkerDataCompleted?: (job: Job<TQueueElement, TQueueResult>, result: any) => Promise<void>;
+    onWorkerData?: (job: Job<TQueueElement, TQueueResult>) => Promise<TQueueResult>;
+    onWorkerDataCompleted?: (job: Job<TQueueElement, TQueueResult>, result: TQueueResult) => Promise<void>;
     onWorkerDataFail?: (job: Job<TQueueElement, TQueueResult> | undefined, error: Error) => Promise<void>;
 }
 ```

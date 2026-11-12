@@ -131,7 +131,7 @@ Source: `packages/helpers/src/common/constants/mime.ts`
 
 *class*
 
-The value kinds a stored field can hold; `isValid` tests a string against them.
+The value kinds a stored field can hold.
 
 ```ts
 export declare class DataTypes {
@@ -140,8 +140,6 @@ export declare class DataTypes {
     static readonly BYTE = "BYTE";
     static readonly JSON = "JSON";
     static readonly BOOLEAN = "BOOLEAN";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(orgType: string): boolean;
 }
 ```
 
@@ -310,8 +308,6 @@ export declare class FieldMappingDataTypes {
     static readonly STRINGS = "strings";
     static readonly NUMBERS = "numbers";
     static readonly BOOLEAN = "boolean";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -679,8 +675,6 @@ export declare class MimeTypes {
     static readonly IMAGE = "image";
     static readonly VIDEO = "video";
     static readonly TEXT = "text";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 

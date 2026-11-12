@@ -329,8 +329,6 @@ Why every broker of a consumer is gone: DISCONNECTED (the connections closed) or
 export declare class KafkaBrokersDownReasons {
     static readonly DISCONNECTED = "disconnected";
     static readonly FAILED = "failed";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -525,8 +523,6 @@ export declare class KafkaHealthStatuses {
     static readonly CONNECTED = "connected";
     static readonly DISCONNECTED = "disconnected";
     static readonly UNKNOWN = "unknown";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(status: string): boolean;
 }
 ```
 

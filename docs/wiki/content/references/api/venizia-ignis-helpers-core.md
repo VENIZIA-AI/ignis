@@ -2587,8 +2587,6 @@ The only schemes a guarded fetch will speak. `file:` and `gopher:` are the class
 export declare class UrlSchemes {
     static readonly HTTP = "http:";
     static readonly HTTPS = "https:";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 

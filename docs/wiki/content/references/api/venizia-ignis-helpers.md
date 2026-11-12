@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-208 exports, 208 with TSDoc. 227 more are re-exported from other entries (listed at the end).
+217 exports, 217 with TSDoc. 227 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -792,14 +792,17 @@ export declare abstract class BaseStorageHelper extends BaseHelper implements IS
     getMimeType(opts: {
         filename: string;
     }): string;
+    static readonly DEFAULT_MAX_FOLDER_DEPTH = 2;
+    private static readonly UTF8;
+    private static readonly DANGEROUS_NAME_CHARACTERS;
+    /** Control characters, lone surrogates, the line and paragraph separators (U+2028, U+2029) and the bidirectional marks and overrides: never part of a file name or a key (the overrides make `gpj.exe` display as `exe.jpg`), and a control character or a surrogate cannot be encoded into a header. */
+    private static readonly UNSAFE_NAME_CHARACTERS;
+    /** Every way a segment can be refused, first match wins. */
+    private static readonly SEGMENT_RULES;
     /** One path segment or file name: at most 255 UTF-8 bytes, no separator, no traversal, no control or shell character. */
     isValidSegment(opts: {
         segment: string;
     }): boolean;
-    static readonly DEFAULT_MAX_FOLDER_DEPTH = 2;
-    private static readonly UTF8;
-    /** Control characters, lone surrogates, the line and paragraph separators (U+2028, U+2029) and the bidirectional marks and overrides: never part of a file name or a key (the overrides make `gpj.exe` display as `exe.jpg`), and a control character or a surrogate cannot be encoded into a header. */
-    private static readonly UNSAFE_NAME_CHARACTERS;
     /** A bucket name is one segment; a separator in it would silently address a different bucket. */
     isValidBucketName(opts: {
         bucket: IBucketRef;
@@ -839,42 +842,14 @@ export declare abstract class BaseStorageHelper extends BaseHelper implements IS
         isKeyResolvedByCaller?: boolean;
     }): void;
     private validateUploadFile;
-    upload(opts: {
-        bucket: IBucketRef;
-        files: IUploadFile[];
-        normalizeNameFn?: (opts: {
-            file: TUploadNaming;
-        }) => string;
-        normalizeLinkFn?: (opts: IObjectLocation) => string;
-        /**
-         * Folder nesting allowed.
-         *
-         * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
-         */
-        maxFolderDepth?: number;
-        /**
-         * Folders the finished key may carry, a scope the `normalizeNameFn` adds included.
-         *
-         * @default `maxFolderDepth`
-         */
-        maxKeyDepth?: number;
-    }): Promise<IUploadResult[]>;
+    upload(opts: IUploadOptions): Promise<IUploadResult[]>;
     /** Correct anywhere; overridden by a backend whose transport is already a web stream. */
-    getObjectStream(opts: IObjectLocation & {
-        range?: {
-            start: number;
-            end?: number;
-        };
-    } & IStorageReadCondition): Promise<ReadableStream<Uint8Array>>;
+    getObjectStream(opts: TObjectStreamOptions): Promise<ReadableStream<Uint8Array>>;
     /**
      * Correct anywhere, and the wrong path to stay on: it buffers, so a backend whose transport takes
      * a stream overrides it. `BunS3Helper` does.
      */
-    writeStream(opts: IObjectLocation & {
-        source: ReadableStream<Uint8Array> | Blob | Response | Request;
-        contentType?: string;
-        maxFolderDepth?: number;
-    }): Promise<void>;
+    writeStream(opts: IWriteStreamOptions): Promise<void>;
     /** Bounded fan-out on the shared limiter; unbounded exhausts sockets and gets rate limited. */
     protected mapWithConcurrency<Item, Result>(opts: {
         items: Item[];
@@ -894,28 +869,12 @@ export declare abstract class BaseStorageHelper extends BaseHelper implements IS
         condition: IStorageReadCondition;
         operation: string;
     }): void;
-    copyObject(_opts: {
-        bucket: IBucketRef;
-        source: IObjectRef;
-        destination: IObjectRef;
-        ifMatch?: string;
-        sourceVersionId?: string;
-    }): Promise<void>;
-    presignPost(_opts: IObjectLocation & {
-        maxBytes: number;
-        contentType?: string;
-        expiresIn?: IDuration;
-    }): Promise<IPostPolicy>;
-    presignPut(_opts: IObjectLocation & {
-        expiresIn?: IDuration;
-        tagging?: Record<string, string>;
-        contentLength?: number;
-        contentType?: string;
-    }): Promise<string>;
-    presignGet(_opts: IObjectLocation & {
-        expiresIn?: IDuration;
-        responseContentType?: string;
-    }): Promise<string>;
+    /** The error of an operation this helper has no transport for: throwing beats returning undefined, which reads as a valid empty result. */
+    private unsupported;
+    copyObject(_opts: ICopyObjectOptions): Promise<void>;
+    presignPost(_opts: IPresignPostOptions): Promise<IPostPolicy>;
+    presignPut(_opts: IPresignPutOptions): Promise<string>;
+    presignGet(_opts: IPresignGetOptions): Promise<string>;
     getObjectTags(_opts: IObjectLocation): Promise<Record<string, string>>;
     replaceObjectTags(_opts: IObjectLocation & {
         tags: Record<string, string>;
@@ -934,7 +893,7 @@ export declare abstract class BaseStorageHelper extends BaseHelper implements IS
         bucket: IBucketRef;
     }): Promise<boolean>;
     abstract getObject(opts: IObjectLocation & {
-        options?: any;
+        options?: unknown;
     }): Promise<Readable>;
     abstract getStat(opts: IObjectLocation): Promise<IFileStat>;
     abstract removeObject(opts: IObjectLocation): Promise<void>;
@@ -1073,6 +1032,22 @@ export declare class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
 
 Source: `packages/helpers/src/modules/worker-thread/thread/base.ts`
 
+## `BullMQDefaults`
+
+*class*
+
+What a BullMQ helper uses when its options leave a field out.
+
+```ts
+export declare class BullMQDefaults {
+    static readonly NUMBER_OF_WORKER = 1;
+    /** How long a worker holds a job's lock: 90 minutes, in milliseconds. */
+    static readonly LOCK_DURATION_MS: number;
+}
+```
+
+Source: `packages/helpers/src/modules/queue/common/constants.ts`
+
 ## `BullQueueRoles`
 
 *class*
@@ -1083,8 +1058,6 @@ What a BullMQ helper is: the QUEUE that jobs are added to, or the WORKER that ru
 export declare class BullQueueRoles {
     static readonly QUEUE = "queue";
     static readonly WORKER = "worker";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
@@ -1353,15 +1326,10 @@ export declare class DiskHelper extends BaseStorageHelper {
         file: IUploadFile;
     }): Promise<void>;
     getObject(opts: IObjectLocation & {
-        options?: any;
+        options?: unknown;
     }): Promise<Readable>;
     /** `createReadStream` seeks natively, so a range never reads the bytes before it. */
-    getObjectStream(opts: IObjectLocation & {
-        range?: {
-            start: number;
-            end?: number;
-        };
-    } & IStorageReadCondition): Promise<ReadableStream<Uint8Array>>;
+    getObjectStream(opts: TObjectStreamOptions): Promise<ReadableStream<Uint8Array>>;
     getStat(opts: IObjectLocation): Promise<IFileStat>;
     removeObject(opts: IObjectLocation): Promise<void>;
     removeObjects(opts: {
@@ -1842,6 +1810,21 @@ export interface IBunWebSocketHandler extends IBunWebSocketConfig {
 
 Source: `packages/helpers/src/modules/socket/websocket/common/types/server.ts`
 
+## `IByteRange`
+
+*interface*
+
+A byte window of an object. `end` is inclusive, like the HTTP `Range` header.
+
+```ts
+export interface IByteRange {
+    start: number;
+    end?: number;
+}
+```
+
+Source: `packages/helpers/src/modules/storage/common/types.ts`
+
 ## `IClock`
 
 *interface*
@@ -1855,6 +1838,26 @@ export interface IClock {
 ```
 
 Source: `packages/helpers/src/modules/secrets/common/types/timer.ts`
+
+## `ICopyObjectOptions`
+
+*interface*
+
+`copyObject`: a copy within one bucket.
+
+```ts
+export interface ICopyObjectOptions {
+    bucket: IBucketRef;
+    source: IObjectRef;
+    destination: IObjectRef;
+    /** Copy only if the source still has this ETag; otherwise `StorageErrors.PRECONDITION_FAILED`. */
+    ifMatch?: string;
+    /** Copy this exact version of the source. */
+    sourceVersionId?: string;
+}
+```
+
+Source: `packages/helpers/src/modules/storage/common/types.ts`
 
 ## `ICryptoAlgorithm`
 
@@ -2087,7 +2090,7 @@ Source: `packages/helpers/src/modules/storage/common/types.ts`
 ```ts
 export interface IObjectMetadata {
     mimetype?: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 ```
 
@@ -2144,6 +2147,58 @@ export interface IPostPolicy {
     postURL: string;
     formData: Record<string, string>;
     expiresAt: string;
+}
+```
+
+Source: `packages/helpers/src/modules/storage/common/types.ts`
+
+## `IPresignGetOptions`
+
+*interface*
+
+`presignGet`.
+
+```ts
+export interface IPresignGetOptions extends IObjectLocation {
+    expiresIn?: IDuration;
+    responseContentType?: string;
+    responseContentDisposition?: string;
+}
+```
+
+Source: `packages/helpers/src/modules/storage/common/types.ts`
+
+## `IPresignPostOptions`
+
+*interface*
+
+`presignPost`: the one object a browser form may be posted under, and its size ceiling.
+
+```ts
+export interface IPresignPostOptions extends IObjectLocation {
+    maxBytes: number;
+    contentType?: string;
+    expiresIn?: IDuration;
+}
+```
+
+Source: `packages/helpers/src/modules/storage/common/types.ts`
+
+## `IPresignPutOptions`
+
+*interface*
+
+`presignPut`. Every option is SIGNED - the client must send it back unchanged.
+
+```ts
+export interface IPresignPutOptions extends IObjectLocation {
+    expiresIn?: IDuration;
+    /** The object's tag set, written at the moment it is stored. */
+    tagging?: Record<string, string>;
+    /** Pins the body to EXACTLY this many bytes. A retry at a different size is refused. */
+    contentLength?: number;
+    /** Pins the stored content type. Unsigned, the uploader picks what is stored - and the stored type is what a browser later renders. */
+    contentType?: string;
 }
 ```
 
@@ -2659,7 +2714,6 @@ export interface IRedisSingleHelperProps {
     name: string;
     host: string;
     port: string | number;
-    user?: string;
     /** Omit it for a Redis with no password. */
     password?: string;
     /** @default 0 */
@@ -2934,57 +2988,20 @@ export interface IStorageHelper {
         bucket: IBucketRef;
     }): Promise<boolean>;
     getObject(opts: IObjectLocation & {
-        options?: any;
+        options?: unknown;
     }): Promise<Readable>;
     /** A web stream, what a `Response` body wants. `range` includes `end`, like the HTTP header. */
-    getObjectStream(opts: IObjectLocation & {
-        range?: {
-            start: number;
-            end?: number;
-        };
-    } & IStorageReadCondition): Promise<ReadableStream<Uint8Array>>;
+    getObjectStream(opts: TObjectStreamOptions): Promise<ReadableStream<Uint8Array>>;
     getStat(opts: IObjectLocation): Promise<IFileStat>;
     listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
-    upload(opts: {
-        bucket: IBucketRef;
-        files: IUploadFile[];
-        /** Folders the caller's `folderPath` may carry. */
-        maxFolderDepth?: number;
-        /**
-         * Folders the finished key may carry, a scope the `normalizeNameFn` adds included.
-         *
-         * @default `maxFolderDepth`
-         */
-        maxKeyDepth?: number;
-        normalizeNameFn?: (opts: {
-            file: TUploadNaming;
-        }) => string;
-        normalizeLinkFn?: (opts: IObjectLocation) => string;
-    }): Promise<IUploadResult[]>;
+    upload(opts: IUploadOptions): Promise<IUploadResult[]>;
     /**
      * Writes an object from a stream, so a large body never lands in this process. A backend whose
      * transport takes a stream overrides it; the default buffers, which is the thing to avoid.
      */
-    writeStream(opts: IObjectLocation & {
-        source: ReadableStream<Uint8Array> | Blob | Response | Request;
-        contentType?: string;
-        /**
-         * Folder nesting the key may carry, as `upload` takes it.
-         *
-         * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
-         */
-        maxFolderDepth?: number;
-    }): Promise<void>;
+    writeStream(opts: IWriteStreamOptions): Promise<void>;
     /** Copies within one bucket, server side - the bytes never travel through this process. */
-    copyObject(opts: {
-        bucket: IBucketRef;
-        source: IObjectRef;
-        destination: IObjectRef;
-        /** Copy only if the source still has this ETag; otherwise `StorageErrors.PRECONDITION_FAILED`. */
-        ifMatch?: string;
-        /** Copy this exact version of the source. */
-        sourceVersionId?: string;
-    }): Promise<void>;
+    copyObject(opts: ICopyObjectOptions): Promise<void>;
     removeObject(opts: IObjectLocation): Promise<void>;
     removeObjects(opts: {
         bucket: IBucketRef;
@@ -2996,26 +3013,10 @@ export interface IStorageHelper {
      * Unlike a presigned PUT, a policy carries `content-length-range`, so "at most N bytes" is
      * expressible - a signed PUT binds the length to one exact value.
      */
-    presignPost(opts: IObjectLocation & {
-        maxBytes: number;
-        contentType?: string;
-        expiresIn?: IDuration;
-    }): Promise<IPostPolicy>;
-    /** A URL a browser may PUT one object to. Every extra option below is SIGNED - the client must send it back unchanged. A pinned size is exact, never a ceiling; for a ceiling use {@link IStorageHelper.presignPost}. */
-    presignPut(opts: IObjectLocation & {
-        expiresIn?: IDuration;
-        /** The object's tag set, written at the moment it is stored. */
-        tagging?: Record<string, string>;
-        /** Pins the body to EXACTLY this many bytes. A retry at a different size is refused. */
-        contentLength?: number;
-        /** Pins the stored content type. Unsigned, the uploader picks what is stored - and the stored type is what a browser later renders. */
-        contentType?: string;
-    }): Promise<string>;
-    presignGet(opts: IObjectLocation & {
-        expiresIn?: IDuration;
-        responseContentType?: string;
-        responseContentDisposition?: string;
-    }): Promise<string>;
+    presignPost(opts: IPresignPostOptions): Promise<IPostPolicy>;
+    /** A URL a browser may PUT one object to. Every option is SIGNED; a pinned size is exact, never a ceiling - for a ceiling use {@link IStorageHelper.presignPost}. */
+    presignPut(opts: IPresignPutOptions): Promise<string>;
+    presignGet(opts: IPresignGetOptions): Promise<string>;
     getObjectTags(opts: IObjectLocation): Promise<Record<string, string>>;
     replaceObjectTags(opts: IObjectLocation & {
         tags: Record<string, string>;
@@ -3165,7 +3166,38 @@ export interface IUploadFile {
     size: number;
     encoding?: string;
     folderPath?: string;
-    [key: string | symbol]: any;
+    [key: string | symbol]: unknown;
+}
+```
+
+Source: `packages/helpers/src/modules/storage/common/types.ts`
+
+## `IUploadOptions`
+
+*interface*
+
+`upload`: the files, and the rules their names and keys must meet.
+
+```ts
+export interface IUploadOptions {
+    bucket: IBucketRef;
+    files: IUploadFile[];
+    /**
+     * Folders the caller's `folderPath` may carry.
+     *
+     * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
+     */
+    maxFolderDepth?: number;
+    /**
+     * Folders the finished key may carry, a scope the `normalizeNameFn` adds included.
+     *
+     * @default `maxFolderDepth`
+     */
+    maxKeyDepth?: number;
+    normalizeNameFn?: (opts: {
+        file: TUploadNaming;
+    }) => string;
+    normalizeLinkFn?: (opts: IObjectLocation) => string;
 }
 ```
 
@@ -3186,7 +3218,7 @@ export interface IUploadResult {
     };
     link: string;
     metaLink?: {
-        data: any;
+        data: unknown;
     } | {
         error: string;
     };
@@ -3439,6 +3471,27 @@ export interface IWorkerThread {
 ```
 
 Source: `packages/helpers/src/modules/worker-thread/common/types.ts`
+
+## `IWriteStreamOptions`
+
+*interface*
+
+`writeStream`: one object written from a stream, so a large body never lands in this process.
+
+```ts
+export interface IWriteStreamOptions extends IObjectLocation {
+    source: ReadableStream<Uint8Array> | Blob | Response | Request;
+    contentType?: string;
+    /**
+     * Folder nesting the key may carry, as `upload` takes it.
+     *
+     * @default BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH
+     */
+    maxFolderDepth?: number;
+}
+```
+
+Source: `packages/helpers/src/modules/storage/common/types.ts`
 
 ## `LEADING_OR_TRAILING_HYPHENS_PATTERN`
 
@@ -3895,8 +3948,6 @@ export declare class QueueStatuses {
     static readonly PROCESSING = "100_PROCESSING";
     static readonly LOCKED = "200_LOCKED";
     static readonly SETTLED = "300_SETTLED";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(scheme: string): boolean;
 }
 ```
 
@@ -3926,7 +3977,6 @@ export declare class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
     private clusterOpts;
     private ioredis;
     constructor(opts: IRedisClusterHelperOptions);
-    getClient(): Cluster;
     duplicateClient(): Cluster;
 }
 ```
@@ -3975,42 +4025,17 @@ Source: `packages/helpers/src/modules/redis/common/constants.ts`
 
 *class*
 
-Creates the Redis helper for a `mode`; the overloads return the concrete helper type. Throws on an unsupported mode.
+Creates the Redis helper of one topology: `single`, `cluster` or `sentinel`. Each returns its concrete helper type.
 
 ```ts
 export declare class RedisHelperFactory {
-    static create(opts: {
-        mode: typeof RedisModes.SINGLE;
-    } & IRedisSingleHelperOptions): RedisSingleHelper;
-    static create(opts: {
-        mode: typeof RedisModes.CLUSTER;
-    } & IRedisClusterHelperOptions): RedisClusterHelper;
-    static create(opts: {
-        mode: typeof RedisModes.SENTINEL;
-    } & IRedisSentinelHelperOptions): RedisSentinelHelper;
-    static create(opts: TCreateRedisHelperOptions): AbstractRedisHelper;
+    static single(opts: IRedisSingleHelperOptions): RedisSingleHelper;
+    static cluster(opts: IRedisClusterHelperOptions): RedisClusterHelper;
+    static sentinel(opts: IRedisSentinelHelperOptions): RedisSentinelHelper;
 }
 ```
 
 Source: `packages/helpers/src/modules/redis/factory.ts`
-
-## `RedisModes`
-
-*class*
-
-Deployment modes a Redis helper can be built for; selects the helper in `RedisHelperFactory.create`.
-
-```ts
-export declare class RedisModes {
-    static readonly SINGLE = "single";
-    static readonly CLUSTER = "cluster";
-    static readonly SENTINEL = "sentinel";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(scheme: string): scheme is TRedisMode;
-}
-```
-
-Source: `packages/helpers/src/modules/redis/common/constants.ts`
 
 ## `RedisSentinelHelper`
 
@@ -4021,7 +4046,6 @@ Redis helper for a master and replicas behind Sentinel. `redisOptions` overrides
 ```ts
 export declare class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
     constructor(opts: IRedisSentinelHelperOptions);
-    getClient(): Redis;
 }
 ```
 
@@ -4037,8 +4061,6 @@ Role of the node a Sentinel-backed client connects to.
 export declare class RedisSentinelRoles {
     static readonly MASTER = "master";
     static readonly SLAVE = "slave";
-    static readonly ROLE_SET: Set<string>;
-    static isValid(role: string): role is TRedisSentinelRole;
 }
 ```
 
@@ -4053,7 +4075,6 @@ Redis helper over one ioredis `Redis` client connected to a single node.
 ```ts
 export declare class RedisSingleHelper extends AbstractRedisHelper<Redis> {
     constructor(opts: IRedisSingleHelperOptions);
-    getClient(): Redis;
 }
 ```
 
@@ -4215,8 +4236,22 @@ export declare class S3Audiences {
     static readonly SERVER = "server";
     /** The host a BROWSER is handed: presigned URLs and POST policies. */
     static readonly BROWSER = "browser";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(audience: string): boolean;
+}
+```
+
+Source: `packages/helpers/src/modules/storage/common/constants.ts`
+
+## `S3Defaults`
+
+*class*
+
+S3 values the helper falls back to or recognises.
+
+```ts
+export declare class S3Defaults {
+    static readonly REGION = "us-east-1";
+    /** What S3 answers as the version id of an object in a bucket where versioning is off or suspended. */
+    static readonly NULL_VERSION_ID = "null";
 }
 ```
 
@@ -4233,6 +4268,27 @@ export declare class S3Headers {
     static readonly COPY_SOURCE = "x-amz-copy-source";
     static readonly COPY_SOURCE_IF_MATCH = "x-amz-copy-source-if-match";
     static readonly VERSION_ID = "x-amz-version-id";
+    static readonly TAGGING = "x-amz-tagging";
+    static readonly CONTENT_SHA256 = "x-amz-content-sha256";
+    static readonly DATE = "x-amz-date";
+    static readonly SECURITY_TOKEN = "x-amz-security-token";
+}
+```
+
+Source: `packages/helpers/src/modules/storage/common/constants.ts`
+
+## `S3Signing`
+
+*class*
+
+The fixed words of an AWS Signature V4 signature for S3.
+
+```ts
+export declare class S3Signing {
+    static readonly ALGORITHM = "AWS4-HMAC-SHA256";
+    static readonly SERVICE = "s3";
+    static readonly REQUEST_TYPE = "aws4_request";
+    static readonly UNSIGNED_PAYLOAD = "UNSIGNED-PAYLOAD";
 }
 ```
 
@@ -4387,6 +4443,22 @@ export declare const StorageErrors: {
 
 Source: `packages/helpers/src/modules/storage/common/errors.ts`
 
+## `StorageLimits`
+
+*class*
+
+Size ceilings the storage helpers enforce: a name or key in UTF-8 bytes, and the keys one S3 listing call returns.
+
+```ts
+export declare class StorageLimits {
+    static readonly MAX_SEGMENT_BYTES = 255;
+    static readonly MAX_KEY_BYTES = 1024;
+    static readonly MAX_LIST_KEYS = 1000;
+}
+```
+
+Source: `packages/helpers/src/modules/storage/common/constants.ts`
+
 ## `StoragePresignDefaults`
 
 *class*
@@ -4537,30 +4609,10 @@ export declare class TcpClientStates {
     static readonly UNAUTHORIZED = "unauthorized";
     static readonly AUTHENTICATING = "authenticating";
     static readonly AUTHENTICATED = "authenticated";
-    static readonly SCHEME_SET: Set<string>;
-    static isValid(value: string): boolean;
 }
 ```
 
 Source: `packages/helpers/src/modules/network/tcp-socket/base-tcp-server.helper.ts`
-
-## `TCreateRedisHelperOptions`
-
-*type*
-
-Options for `RedisHelperFactory.create`: the helper options of one mode, discriminated by `mode`.
-
-```ts
-export type TCreateRedisHelperOptions = ({
-    mode: typeof RedisModes.SINGLE;
-} & IRedisSingleHelperOptions) | ({
-    mode: typeof RedisModes.CLUSTER;
-} & IRedisClusterHelperOptions) | ({
-    mode: typeof RedisModes.SENTINEL;
-} & IRedisSentinelHelperOptions);
-```
-
-Source: `packages/helpers/src/modules/redis/factory.ts`
 
 ## `TCredentialAlgorithm`
 
@@ -4661,6 +4713,20 @@ export type TMultipartStorage = TConstValue<typeof MultipartStorages>;
 
 Source: `packages/helpers/src/utilities/request.utility.ts`
 
+## `TObjectStreamOptions`
+
+*type*
+
+`getObjectStream`: one object, an optional byte window, and what the object must still be.
+
+```ts
+export type TObjectStreamOptions = IObjectLocation & {
+    range?: IByteRange;
+} & IStorageReadCondition;
+```
+
+Source: `packages/helpers/src/modules/storage/common/types.ts`
+
 ## `TQueueElement`
 
 *type*
@@ -4683,7 +4749,7 @@ Source: `packages/helpers/src/modules/queue/internal/sequential/common/types.ts`
 A {@link QueueStatuses} value.
 
 ```ts
-export type TQueueStatus = ValueOf<Omit<typeof QueueStatuses, 'isValid' | 'SCHEME_SET'>>;
+export type TQueueStatus = TConstValue<typeof QueueStatuses>;
 ```
 
 Source: `packages/helpers/src/modules/queue/internal/sequential/common/types.ts`
@@ -4699,18 +4765,6 @@ export type TRedisClient = Redis | Cluster;
 ```
 
 Source: `packages/helpers/src/modules/redis/common/types.ts`
-
-## `TRedisMode`
-
-*type*
-
-Union of the `RedisModes` values.
-
-```ts
-export type TRedisMode = TConstValue<typeof RedisModes>;
-```
-
-Source: `packages/helpers/src/modules/redis/common/constants.ts`
 
 ## `TRedisSentinelRole`
 
