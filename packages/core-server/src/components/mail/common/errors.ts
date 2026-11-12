@@ -37,6 +37,12 @@ export const MailErrors = {
     statusCode: HTTP.ResultCodes.RS_4.ContentTooLarge,
     category: ErrorScopes.VALIDATION,
   },
+  /** An address, the subject or a header holds a line break or another control character, or a header name is not printable ASCII: it would break out of its header line. */
+  INVALID_HEADER: {
+    message: { text: 'Invalid mail header', code: 'core.mail.invalid_header' },
+    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+    category: ErrorScopes.VALIDATION,
+  },
   BODY_SOURCE_REFUSED: {
     message: { text: 'Mail body must be text', code: 'core.mail.body_source_refused' },
     statusCode: HTTP.ResultCodes.RS_4.BadRequest,

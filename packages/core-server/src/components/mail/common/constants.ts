@@ -7,6 +7,27 @@ export class MailDefaults {
   static readonly FALLBACK_FROM = 'noreply@example.com';
   /** Bytes of attachment content one message may carry, all attachments together. */
   static readonly MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+  /** The subject of a template mail that has none of its own. */
+  static readonly SUBJECT = 'No Subject';
+  /** Tries per queued mail, the first included, unless the job options say otherwise. */
+  static readonly ATTEMPTS = 3;
+  static readonly BACKOFF_DELAY_MS = 1000;
+  /** How long a failed BullMQ mail job stays in Redis (it holds a recipient address), and the most that stay. */
+  static readonly FAILED_JOB_RETENTION = { age: 7 * 24 * 60 * 60, count: 1000 };
+}
+
+/** Where a rendered template is going: `HTML` escapes every double-brace placeholder, `TEXT` (a subject, a plain-text part) inserts it as it is. A triple-brace placeholder is raw in both. */
+export class MailTemplateFormats {
+  static readonly HTML = 'html';
+  static readonly TEXT = 'text';
+}
+
+/** Union of the `MailTemplateFormats` values. */
+export type TMailTemplateFormat = TConstValue<typeof MailTemplateFormats>;
+
+/** Names of the jobs the BullMQ mail executor adds. */
+export class MailQueueJobNames {
+  static readonly SEND_VERIFICATION_EMAIL = 'send-verification-email';
 }
 
 /** Built via {@link MessageCode.build}: `ApplicationError` lower-cases codes, so a SCREAMING_CASE literal would reach the client in a spelling no const here matches. */
@@ -48,6 +69,7 @@ export class MailErrorCodes {
 /** Messages thrown by the mail queue executors. */
 export class MailExecutorErrors {
   static readonly PROCESSOR_NOT_SET = 'Processor not set. Call setProcessor() first.';
+  static readonly CLOSED = 'The executor is closed and takes no more jobs.';
 }
 
 /** Values of `IMailQueueExecutorConfig.type`, selecting how verification mails are queued: sent inline, held in process, or handed to BullMQ. */

@@ -64,6 +64,7 @@ const PINNED = [
   'core.search_engine.page_too_large',
   'core.mail.template_not_found',
   'core.mail.invalid_configuration',
+  'core.mail.invalid_header',
   'core.mail.invalid_recipient',
   'core.mail.attachment_path_refused',
   'core.mail.attachment_too_large',

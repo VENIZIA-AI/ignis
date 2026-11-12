@@ -33,12 +33,40 @@ const buildComponent = (opts: {
       .toValue(opts.queueConfig ?? { type: 'direct' });
   }
 
+  // The container is not an application: it has no stop hooks, so this records what the component registers.
+  const stopHooks: Array<{ identifier: string; hook: () => unknown }> = [];
+
+  (container as AnyType).registerPostStopHook = (hook: (typeof stopHooks)[number]) => {
+    stopHooks.push(hook);
+  };
+
   const component = new MailComponent(container as AnyType);
   const fakeLogger = new FakeLogger();
   component['logger'] = fakeLogger as AnyType;
 
-  return { container, component, transport, fakeLogger };
+  return { container, component, transport, fakeLogger, stopHooks };
 };
+
+describe('MailComponent - stop', () => {
+  test('the stop hooks close the executor, then the transport', async () => {
+    const { component, transport, stopHooks } = buildComponent({
+      queueConfig: { type: 'internal-queue', internalQueue: { identifier: 'component-stop' } },
+    });
+
+    await component.configure();
+
+    expect(stopHooks.map((entry) => entry.identifier)).toEqual([
+      'mail.queue-executor.close',
+      'mail.transport.close',
+    ]);
+
+    for (const entry of stopHooks) {
+      await entry.hook();
+    }
+
+    expect(transport.closeCallCount).toBe(1);
+  });
+});
 
 describe('MailComponent - wiring', () => {
   test('binds the transport instance, the executor and every declared service', async () => {

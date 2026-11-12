@@ -34,6 +34,8 @@ export interface IMailQueueResult {
 export interface IMailQueueExecutor {
   enqueueVerificationEmail(email: string, options?: IMailQueueOptions): Promise<IMailQueueResult>;
   setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): void;
+  /** Releases what the executor holds: timers, workers, the queue. The application stop hook calls it. */
+  close?(): Promise<void>;
 }
 
 /** Envelope every queue-backed executor stores for one pending verification email. */

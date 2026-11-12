@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { BullMQExecutorModes, MailExecutorErrors } from '@/components/mail/common';
+import { BullMQExecutorModes, MailDefaults, MailExecutorErrors } from '@/components/mail/common';
 import type { IMailProcessorResult, IQueueJobPayload } from '@/components/mail/common';
 import {
   BullMQMailExecutorHelper,
@@ -278,6 +278,41 @@ const buildBullMQExecutor = (opts: {
   return { executor, queueHelper, redisConnection, workerHelpers };
 };
 
+describe('InternalQueueMailExecutorHelper - close', () => {
+  test('a job that fails after close arms no retry timer, and a new job is refused', async () => {
+    const executor = new InternalQueueMailExecutorHelper({ identifier: 'mail-closed' });
+    const release: { fail?: () => void } = {};
+    const started = new Promise<void>((resolve) => {
+      executor.setProcessor(async () => {
+        resolve();
+        await new Promise<void>((done) => {
+          release.fail = done;
+        });
+
+        throw new Error('smtp down');
+      });
+    });
+
+    await executor.enqueueVerificationEmail('a@b.com');
+    await started;
+    await executor.close();
+    release.fail?.();
+    await Bun.sleep(10);
+
+    expect(executor['delayedJobs'].size).toBe(0);
+
+    let error: AnyType;
+
+    try {
+      await executor.enqueueVerificationEmail('c@d.com');
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error.message).toBe(MailExecutorErrors.CLOSED);
+  });
+});
+
 describe('BullMQMailExecutorHelper - teardown', () => {
   test('clearWorkers closes EVERY worker and empties the list even when one close fails', async () => {
     const failing = new FakeWorkerHelper({ failOnClose: true });
@@ -526,12 +561,25 @@ describe('BullMQMailExecutorHelper - enqueue', () => {
     expect(queueHelper.addedJobs[0].options.attempts).toBe(2);
   });
 
+  test('a failed job is kept for a bounded time and count, not forever', async () => {
+    const { executor, queueHelper } = buildBullMQExecutor({
+      mode: BullMQExecutorModes.QUEUE_ONLY,
+    });
+
+    await executor.enqueueVerificationEmail('a@b.com');
+
+    expect(queueHelper.addedJobs[0].options.removeOnFail).toEqual(
+      MailDefaults.FAILED_JOB_RETENTION,
+    );
+    expect(MailDefaults.FAILED_JOB_RETENTION).toEqual({ age: 7 * 24 * 60 * 60, count: 1000 });
+  });
+
   test('a job without explicit attempts still gets a bounded default', async () => {
     const { executor, queueHelper } = buildBullMQExecutor({
       mode: BullMQExecutorModes.QUEUE_ONLY,
     });
 
     await executor.enqueueVerificationEmail('a@b.com');
-    expect(queueHelper.addedJobs[0].options.attempts).toBe(3);
+    expect(queueHelper.addedJobs[0].options.attempts).toBe(MailDefaults.ATTEMPTS);
   });
 });

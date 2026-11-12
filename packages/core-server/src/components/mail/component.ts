@@ -182,5 +182,15 @@ export class MailComponent extends BaseComponent<TMailOptions> {
     this.application
       .bind({ key: MailKeys.MAIL_QUEUE_EXECUTOR_INSTANCE })
       .toValue(queueExecutorInstance);
+
+    // Workers, timers and SMTP pools outlive the application unless something closes them. Executor first, so a job in flight finishes against a live transport.
+    this.application.registerPostStopHook({
+      identifier: 'mail.queue-executor.close',
+      hook: () => queueExecutorInstance.close?.(),
+    });
+    this.application.registerPostStopHook({
+      identifier: 'mail.transport.close',
+      hook: () => mailTransportInstance.close?.(),
+    });
   }
 }

@@ -8,13 +8,15 @@ import type {
   IMailTransport,
   TMailOptions,
 } from '../common';
-import { MailDefaults, MailErrorCodes, MailErrors, MailKeys } from '../common';
+import { MailDefaults, MailErrorCodes, MailErrors, MailKeys, MailTemplateFormats } from '../common';
 import { inject } from '@/base/metadata';
 import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { type AnyType } from '@venizia/ignis-helpers/common';
 import { PromiseUtility } from '@venizia/ignis-helpers';
 import { MailAttachmentUtility } from '../utilities/attachment.utility';
 import { MailBodyUtility } from '../utilities/body.utility';
+import { MailHeaderUtility } from '../utilities/header.utility';
+import { MailMimeUtility } from '../utilities/mime.utility';
 
 /** Sends mail through the bound transport. `send` validates the message, applies the attachment policy and defaults `from`; failures are thrown as application errors with a mail message code, except `sendBatch`, which reports each failure in its result. */
 export class MailService extends BaseService implements IMailService {
@@ -148,28 +150,28 @@ export class MailService extends BaseService implements IMailService {
         });
       }
 
+      // `rest` goes first below: the recipients, the subject and the body this call rendered are not the options' to replace, and `requireValidate` is a render switch, not a message field.
+      const { requireValidate, subject, ...rest } = options ?? {};
+
       this.logger.for(this.sendTemplate.name).debug('Rendering template: %s', templateName);
-      const html = this.templateEngine.render({
-        templateName,
-        data,
-        requireValidate: options?.requireValidate,
-      });
+      const html = this.templateEngine.render({ templateName, data, requireValidate });
 
       const templateData = this.templateEngine.getTemplate(templateName);
+      const renderedSubject =
+        templateData?.subject === undefined
+          ? MailDefaults.SUBJECT
+          : this.templateEngine.render({
+              templateData: templateData.subject,
+              data,
+              requireValidate,
+              format: MailTemplateFormats.TEXT,
+            });
 
       const message: IMailMessage = {
+        ...rest,
         to: recipients,
-        subject:
-          options?.subject ??
-          (templateData?.subject !== undefined
-            ? this.templateEngine.render({
-                templateData: templateData.subject,
-                data,
-                requireValidate: options?.requireValidate,
-              })
-            : 'No Subject'),
+        subject: subject ?? renderedSubject,
         html,
-        ...options,
       };
 
       const result = await this.send(message);
@@ -222,6 +224,7 @@ export class MailService extends BaseService implements IMailService {
     }
 
     MailBodyUtility.assertIsText({ message });
+    MailHeaderUtility.assert({ message });
   }
 
   protected getDefaultFrom(): string {
@@ -236,6 +239,6 @@ export class MailService extends BaseService implements IMailService {
       return from;
     }
 
-    return `"${fromName}" <${from}>`;
+    return `"${MailMimeUtility.escapeQuotedString({ value: fromName })}" <${from}>`;
   }
 }

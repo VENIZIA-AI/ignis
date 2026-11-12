@@ -70,7 +70,7 @@ export class UserService extends BaseService {
 
   `MailTransportProvider` is the factory that switches on the provider. It throws for an unsupported provider string.
 
-- **`MailService` is the one sending entry point.** `send()`, `sendBatch()`, `sendTemplate()`, and `verify()` all validate first, then call the transport directly, then normalize failures into `MailErrorCodes`:
+- **`MailService` is the one sending entry point.** `send()` validates the message and applies the attachment policy; `sendBatch()` and `sendTemplate()` go through `send()`; `verify()` checks the transport. Failures are normalized into `MailErrorCodes`. A transport called directly skips every check `send()` makes, header injection included:
 
   | Case | Result |
   |---|---|
@@ -82,7 +82,7 @@ export class UserService extends BaseService {
 
 - **The queue executor is a separate subsystem, not a mail queue.** `IMailQueueExecutor` (`direct` / `internal-queue` / `bullmq`) exposes only `enqueueVerificationEmail()` and `setProcessor()`, and never touches `MailService`. Call `setProcessor()` before `enqueueVerificationEmail()`, with your own function - typically one wrapping `mailService.send()`.
 
-- **Templates are a simple substitution engine.** `TemplateEngineService` stores templates in an in-memory `Map`. It replaces <code v-pre>{{variable}}</code> placeholders, with dot-notation for nested values. A missing value is logged and left as the literal placeholder text, not blanked out.
+- **Templates are a simple substitution engine.** `TemplateEngineService` stores templates in an in-memory `Map`. It replaces <code v-pre>{{variable}}</code> placeholders, with dot-notation for nested own properties. A value is HTML-escaped in the body; <code v-pre>{{{variable}}}</code> inserts it as it is, for markup you trust. A missing value is logged and left as the literal placeholder text, not blanked out.
 
 - **Startup logging never leaks credentials.** `MailComponent` logs only `mailOptions.provider` and `queueExecutorConfig.type`. It never logs the SMTP password, OAuth2 secret, API key, or Redis password nested inside them.
 

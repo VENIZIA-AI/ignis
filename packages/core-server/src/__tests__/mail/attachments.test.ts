@@ -737,8 +737,7 @@ describe('Mail attachments - streams are released when a send is refused', () =>
       to: 'a@b.com',
       subject: 'Hi',
       text: 'body',
-      replyTo: 'x@y.com\r\nBcc: evil@z.com',
-      attachments: [{ filename: 'a', content: fileStream }],
+      attachments: [{ filename: 'a', content: fileStream, cid: 'x\r\nBcc: evil@z.com' }],
     });
 
     expect(result.success).toBe(false);
@@ -964,6 +963,9 @@ const buildComponent = (opts: { attachmentRoot?: AnyType; maxAttachmentBytes?: A
   };
   container.bind({ key: MailKeys.MAIL_OPTIONS }).toValue(options);
   const application: AnyType = container;
+
+  // A container is not an application: the component registers its stop hooks on one.
+  application.registerPostStopHook = () => {};
 
   return new MailComponent(application);
 };
