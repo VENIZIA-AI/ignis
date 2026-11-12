@@ -12,7 +12,7 @@ import { MailDefaults, MailErrorCodes, MailErrors, MailKeys, MailTemplateFormats
 import { inject } from '@/base/metadata';
 import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { type AnyType } from '@venizia/ignis-helpers/common';
-import { PromiseUtility } from '@venizia/ignis-helpers';
+import { ErrorUtility, PromiseUtility } from '@venizia/ignis-helpers';
 import { MailAttachmentUtility } from '../utilities/attachment.utility';
 import { MailBodyUtility } from '../utilities/body.utility';
 import { MailHeaderUtility } from '../utilities/header.utility';
@@ -102,7 +102,7 @@ export class MailService extends BaseService implements IMailService {
         } catch (error) {
           return {
             success: false,
-            error: error instanceof Error ? error.message : 'Unknown error',
+            error: ErrorUtility.toError({ error }).message,
           };
         }
       });

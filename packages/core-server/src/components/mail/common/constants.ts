@@ -77,11 +77,6 @@ export class MailQueueExecutorTypes {
   static readonly DIRECT = 'direct';
   static readonly INTERNAL_QUEUE = 'internal-queue';
   static readonly BULLMQ = 'bullmq';
-
-  static readonly SCHEME_SET = new Set<string>([this.DIRECT, this.INTERNAL_QUEUE, this.BULLMQ]);
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Values of `IBullMQMailExecutorOpts.mode`: `queue-only` enqueues jobs without starting workers, `worker-only` starts workers without a queue, `both` does each. */
@@ -89,11 +84,6 @@ export class BullMQExecutorModes {
   static readonly QUEUE_ONLY = 'queue-only';
   static readonly WORKER_ONLY = 'worker-only';
   static readonly BOTH = 'both';
-
-  static readonly MODE_SET = new Set<string>([this.QUEUE_ONLY, this.WORKER_ONLY, this.BOTH]);
-  static isValid(value: string): boolean {
-    return this.MODE_SET.has(value);
-  }
 }
 
 /** Values of `TMailOptions.provider`, naming the transport the mail component builds. */
@@ -112,12 +102,6 @@ export type TMailProvider = TConstValue<typeof MailProviders>;
 export class MailBackoffTypes {
   static readonly FIXED = 'fixed';
   static readonly EXPONENTIAL = 'exponential';
-
-  static readonly SCHEME_SET = new Set<string>([this.FIXED, this.EXPONENTIAL]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 /** Valid mail backoff type values. */
