@@ -644,7 +644,7 @@ All three topologies implement `IRedisHelper` and are interchangeable in every i
 ### BullMQ (BullMQHelper)
 
 `BullMQHelper` accepts a `redisConnection: IRedisHelper`. Internally it:
-- Passes `redisConnection.getClient()` to the `Queue` and the `Worker`. BullMQ marks a client it is handed as shared and never quits it, and opens (and closes) its own blocking connection for a worker. The helper does not duplicate the client, so closing a queue or worker leaks no connection.
+- Passes `redisConnection.duplicateClient()` to the `Queue` and to the `Worker`, so each connects by itself whatever state the shared client is in. BullMQ never quits a client it is handed, so the helper quits each duplicate in `close()`. A duplicate that ends for good (ioredis stopped reconnecting) is logged as an error: give the helper `maxRetry: -1`.
 - Checks `redisConnection.getClient()` structurally (`isCluster === true`, or a `nodes` function) to detect cluster topology and adjust BullMQ configuration.
 
 `RedisSingleHelper`, `RedisSentinelHelper` and `RedisClusterHelper` are BullMQ-compatible out of the box. The framework sets `maxRetriesPerRequest: null` on each.

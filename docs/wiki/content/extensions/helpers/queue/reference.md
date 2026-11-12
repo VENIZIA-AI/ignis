@@ -103,7 +103,7 @@ const worker = new BullMQHelper({
 | `queueName` | `string` | - | BullMQ queue name. Must be non-empty. |
 | `identifier` | `string` | - | Scoped-logging identifier. |
 | `role` | `TBullQueueRole` (`'queue' \| 'worker'`) | - | `'queue'` initializes a producer; `'worker'` initializes a consumer. |
-| `redisConnection` | `IRedisHelper` | - | Connection backend. The helper passes its `getClient()` to BullMQ - never a raw ioredis client. |
+| `redisConnection` | `IRedisHelper` | - | Connection backend. The helper passes a `duplicateClient()` of it to BullMQ - never a raw ioredis client. |
 | `module` | `typeof import('bullmq')` | loaded by name | `bullmq` itself, for a compiled binary. Omitted, it is loaded when the queue or worker is built. |
 | `numberOfWorker` | `number` | `1` | Worker concurrency (BullMQ `Worker` `concurrency` option). Ignored for `role: 'queue'`. |
 | `lockDuration` | `number` | `5400000` (90 minutes) | Job lock duration in milliseconds. Ignored for `role: 'queue'`. |
@@ -112,7 +112,7 @@ const worker = new BullMQHelper({
 | `onWorkerDataFail` | `(job \| undefined, error: Error) => Promise<void>` | - | Fired on the BullMQ `Worker` `'failed'` event. `job` may be `undefined`. |
 
 > [!IMPORTANT]
-> Pass an `IRedisHelper` instance to `redisConnection`, **not** the raw ioredis client. `BullMQHelper` passes `redisConnection.getClient()` to BullMQ, which opens its own blocking connection per worker and closes it. One shared Redis helper can back any number of queues and workers.
+> Pass an `IRedisHelper` instance to `redisConnection`, **not** the raw ioredis client. `BullMQHelper` passes a `duplicateClient()` of it to BullMQ for each queue and each worker, and quits it in `close()`. One shared Redis helper can back any number of queues and workers. Give the Redis helper `maxRetry: -1`: BullMQ never reconnects a client that ioredis stopped reconnecting, and the helper logs an error when that happens.
 
 ### Run it in a compiled binary
 
@@ -226,7 +226,7 @@ await producer.close();
 await consumer.close();
 ```
 
-Calls `worker?.close()` then `queue?.close()` in sequence. Both run even if the first fails, so a failing worker close never leaks the queue's Redis connection. If either fails, `close()` throws one `ApplicationError` aggregating both failure messages - only after both close attempts have run.
+Calls `worker?.close()` then `queue?.close()` in sequence, then quits every connection it handed to BullMQ (BullMQ never quits a client it is given). All of it runs even if a step fails, so a failing worker close never leaks a Redis connection. If either fails, `close()` throws one `ApplicationError` aggregating both failure messages - only after both close attempts have run.
 
 ### API summary
 

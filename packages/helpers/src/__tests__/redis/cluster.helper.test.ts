@@ -142,3 +142,33 @@ describe('RedisClusterHelper connection timing', () => {
     expect(helper.getClient().options.enableOfflineQueue).toBe(false);
   });
 });
+
+describe('RedisClusterHelper.connect is safe to call twice', () => {
+  // ioredis rejects a second connect() while a cluster is in `connect`, the step between `connecting` and `ready`.
+  it('answers false without calling the client while the cluster is between connecting and ready', async () => {
+    const helper = new RedisClusterHelper({
+      name: 'cluster-connect-twice',
+      nodes: [{ host: '127.0.0.1', port: 7000 }],
+      autoConnect: false,
+    });
+    const client = helper.getClient();
+    let calls = 0;
+    const original = client.connect.bind(client);
+
+    client.connect = () => {
+      calls += 1;
+
+      return original();
+    };
+
+    Reflect.set(client, 'status', 'connect');
+
+    const connected = await helper.connect();
+
+    expect(connected).toBe(false);
+    expect(calls).toBe(0);
+
+    Reflect.set(client, 'status', 'wait');
+    client.disconnect();
+  });
+});

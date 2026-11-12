@@ -58,7 +58,7 @@ const worker = BullMQHelper.newInstance({
 | `'queue'` | `.queue` (BullMQ `Queue`) | Producers call `.add()` |
 | `'worker'` | `.worker` (BullMQ `Worker`) | Driven by your `onWorkerData` callback |
 
-- **One Redis helper backs any number of queues and workers.** The helper hands your Redis helper's own client to BullMQ, which opens its own blocking connection for a worker and closes it. Nothing is duplicated, so closing leaks no connection.
+- **One Redis helper backs any number of queues and workers.** Each queue and each worker gets its own duplicate of your Redis helper's client (BullMQ also opens a blocking connection for a worker), and `close()` quits them, so closing leaves no connection behind. A duplicate connects by itself, whether or not the shared client is ready yet.
 - **`SequentialQueueHelper` runs one element at a time**, in a `WAITING -> PROCESSING -> WAITING` loop driven by `onMessage`. Two calls change that loop:
 
 | Call | Effect |
@@ -101,7 +101,10 @@ const worker = BullMQHelper.newInstance({
 
 ### The Redis connection requirement
 
-Pass an `IRedisHelper` instance, not a raw ioredis client. `BullMQHelper` passes `redisConnection.getClient()` to BullMQ.
+Pass an `IRedisHelper` instance, not a raw ioredis client. `BullMQHelper` gives BullMQ `redisConnection.duplicateClient()`, and quits it in `close()`.
+
+> [!IMPORTANT]
+> BullMQ never reconnects a client that ioredis gave up on, and a worker on it moves no job again. Back BullMQ with a Redis helper whose `maxRetry` is `-1` (forever). `BullMQHelper` logs an error when its connection ends for good.
 
 | Redis helper | Sets `maxRetriesPerRequest: null`? |
 |--------------|-------------------------------------|

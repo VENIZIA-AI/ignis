@@ -121,7 +121,13 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
   }
 
   async connect() {
-    const invalidStatuses: (typeof this.client.status)[] = ['ready', 'reconnecting', 'connecting'];
+    // `connect` is the cluster-only step between `connecting` and `ready`: ioredis refuses a second connect() there as well.
+    const invalidStatuses: (typeof this.client.status)[] = [
+      'ready',
+      'reconnecting',
+      'connecting',
+      'connect',
+    ];
 
     if (invalidStatuses.includes(this.client.status)) {
       this.logger

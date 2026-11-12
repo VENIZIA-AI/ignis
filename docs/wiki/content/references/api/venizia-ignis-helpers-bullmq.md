@@ -31,7 +31,12 @@ export declare class BullMQHelper<TQueueElement = unknown, TQueueResult = unknow
     protected onWorkerDataCompleted?: (job: Job<TQueueElement, TQueueResult>, result: TQueueResult) => Promise<void>;
     protected onWorkerDataFail?: (job: Job<TQueueElement, TQueueResult> | undefined, error: Error) => Promise<void>;
     private readonly bullmqModule?;
+    private isClosing;
+    /** Every duplicate this helper handed to BullMQ: BullMQ never quits a client it is given, so `close()` does. */
+    private readonly duplicates;
     constructor(options: IBullMQOptions<TQueueElement, TQueueResult>);
+    /** BullMQ never reconnects a client: once ioredis stops reconnecting (`maxRetry` attempts used up) it is `end` for good, no job moves, and nothing else says so. */
+    protected reportClientEnded(): void;
     static newInstance<T = unknown, R = unknown>(opts: IBullMQOptions<T, R>): BullMQHelper<T, R>;
     /** Structural, never `instanceof`: ioredis is an optional peer, and a second copy fails `instanceof` anyway. */
     protected isClusterClient(): boolean;
@@ -41,6 +46,12 @@ export declare class BullMQHelper<TQueueElement = unknown, TQueueResult = unknow
     protected queueOptionsFor(opts: {
         queueName: string;
     }): QueueOptions;
+    /**
+     * The connection BullMQ owns: a duplicate of the helper's client, so the queue or worker connects it by itself
+     * whatever state the shared client is in. BullMQ treats a client it is handed as shared and never quits it, so the
+     * helper keeps the duplicate and quits it in `close()`.
+     */
+    protected createConnection(): TRedisClient;
     /** Full `Worker` options: `this.workerOptions`, then the connection/concurrency/lock fields the helper owns - in that precedence order. */
     protected workerOptionsFor(opts: {
         queueName: string;
@@ -59,6 +70,8 @@ export declare class BullMQHelper<TQueueElement = unknown, TQueueResult = unknow
     }): Worker<TQueueElement, TQueueResult>;
     configureWorker(): void;
     configure(): void;
+    /** `quit()` waits for the replies in flight; a client BullMQ already closed is left alone. */
+    private static release;
     close(): Promise<void>;
 }
 ```
