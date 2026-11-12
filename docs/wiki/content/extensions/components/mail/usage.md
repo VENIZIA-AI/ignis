@@ -159,16 +159,16 @@ Both options are checked when the component starts. `maxAttachmentBytes` must be
 
 ### Register and send a template
 
-Inject both `IMailTemplateEngine` and `IMailService`. `sendTemplate()` renders through the engine and sends via `IMailService` -- it never bypasses `send()`.
+Inject both `TemplateEngineService` and `IMailService`. `sendTemplate()` renders through the engine and sends via `IMailService` -- it never bypasses `send()`.
 
 ```typescript
 import { BaseService, inject } from '@venizia/ignis';
-import { MailKeys, type IMailTemplateEngine, type IMailService } from '@venizia/ignis/mail';
+import { MailKeys, type TemplateEngineService, type IMailService } from '@venizia/ignis/mail';
 
 export class NotificationService extends BaseService {
   constructor(
     @inject({ key: MailKeys.MAIL_TEMPLATE_ENGINE })
-    private templateEngine: IMailTemplateEngine,
+    private templateEngine: TemplateEngineService,
     @inject({ key: MailKeys.MAIL_SERVICE })
     private mailService: IMailService,
   ) {
@@ -262,7 +262,7 @@ try {
 
 ```typescript
 async syncTemplatesFromDatabase() {
-  const templateEngine = this.application.get<IMailTemplateEngine>({
+  const templateEngine = this.application.get<TemplateEngineService>({
     key: MailKeys.MAIL_TEMPLATE_ENGINE,
   });
 

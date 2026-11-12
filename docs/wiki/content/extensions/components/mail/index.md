@@ -14,6 +14,7 @@ Pass the options at the call site, then inject `IMailService` anywhere to send:
 
 ```typescript
 import { BaseApplication, ValueOrPromise } from '@venizia/ignis';
+import { applicationEnvironment } from '@venizia/ignis-helpers';
 import { MailComponent, MailProviders } from '@venizia/ignis/mail';
 
 export class Application extends BaseApplication {
@@ -26,7 +27,7 @@ export class Application extends BaseApplication {
           host: 'smtp.gmail.com',
           port: 465,
           secure: true,
-          auth: { user: process.env.APP_ENV_MAIL_USER, pass: process.env.APP_ENV_MAIL_PASS },
+          auth: { user: applicationEnvironment.get<string>('APP_ENV_MAIL_USER'), pass: applicationEnvironment.get<string>('APP_ENV_MAIL_PASS') },
         },
       },
     });
@@ -76,7 +77,7 @@ export class UserService extends BaseService {
   |---|---|
   | Validation error | Passes through unchanged as `400` |
   | Transport throws | Wrapped as `SEND_FAILED` (`500`) |
-  | Nodemailer / Mailgun transport | Never throws - returns `{ success: false, error }` instead |
+  | Built-in transport (Nodemailer, Mailgun, Amazon SES) | Never throws - returns `{ success: false, error }` instead |
 
 - **Attachments reach the transport as bytes, never as a path.** `send()` reads every attachment into `content` first. A `path` is read only inside the `attachmentRoot` option, and refused when that option is unset. A message's attachments together may not pass `maxAttachmentBytes` (default 25 MB). `text` and `html` must be strings for the same reason. See [Attachments](./usage#attachments).
 
@@ -111,7 +112,7 @@ const results = await this.mailService.sendBatch(messages, { concurrency: 5 });
 
 ### Send a registered template
 
-Register a template on `IMailTemplateEngine`, then send it through `IMailService`.
+Register a template on `TemplateEngineService`, then send it through `IMailService`.
 
 ```typescript
 this.templateEngine.registerTemplate({
@@ -135,7 +136,7 @@ await this.mailService.sendTemplate({
 {
   provider: MailProviders.MAILGUN,
   from: 'noreply@example.com',
-  config: { username: 'api', key: process.env.MAILGUN_API_KEY, domain: 'mg.example.com' },
+  config: { username: 'api', key: applicationEnvironment.get<string>('MAILGUN_API_KEY'), domain: 'mg.example.com' },
 }
 ```
 

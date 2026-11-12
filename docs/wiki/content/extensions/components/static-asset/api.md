@@ -41,7 +41,7 @@ Every option, route, binding key and mechanism of `StaticAssetComponent`. For wa
 | Component class | `StaticAssetComponent` |
 | Import subpath | `@venizia/ignis/static-asset` - not on the root barrel |
 | Storage helpers | `DiskHelper`, `BunS3Helper` (`@venizia/ignis-helpers/bun-s3`); a MinIO server is reached through `BunS3Helper` |
-| Runtimes | Both - `BunS3Helper` specifically requires Bun (imports Bun's native `S3Client`) |
+| Runtime | Bun (`BunS3Helper` imports Bun's native `S3Client`) |
 | Optional feature | MetaLink - Postgres-backed upload tracking via `BaseMetaLinkModel`/`BaseMetaLinkRepository` |
 
 ## Import paths
@@ -383,6 +383,13 @@ interface IStorageHelper {
   removeObject(opts: IObjectLocation): Promise<void>;
   removeObjects(opts: { bucket: IBucketRef; objects: IObjectRef[] }): Promise<void>;
 
+  presignPost(
+    opts: IObjectLocation & {
+      maxBytes: number;
+      contentType?: string;
+      expiresIn?: IDuration;
+    },
+  ): Promise<IPostPolicy>;
   presignPut(
     opts: IObjectLocation & {
       expiresIn?: IDuration;
@@ -426,7 +433,7 @@ BaseStorageHelper (abstract - implements the validators, upload, the stream meth
 
 `BunS3Helper.getStat` is a signed `HEAD`. It reports `etag` (quoted, as S3 sends it) and `versionId`, which is absent for an object with no real version: `StorageUtility.realVersionId` reads a missing value, an empty one and the literal `null` as no version. `DiskHelper` has neither ETag nor versions, so it refuses a conditional `getObjectStream` with an error instead of reading unpinned.
 
-`expiresIn` is an `IDuration` (`{ unit, value }`), not seconds. `presignPut`, `presignGet`, `getObjectTags` and `replaceObjectTags` throw on `DiskHelper`; only `BunS3Helper` implements them. See the [Storage full reference](/extensions/helpers/storage/api#presign-and-object-tagging).
+`expiresIn` is an `IDuration` (`{ unit, value }`), not seconds. `presignPost`, `presignPut`, `presignGet`, `getObjectTags` and `replaceObjectTags` throw on `DiskHelper`; only `BunS3Helper` implements them. See the [Storage full reference](/extensions/helpers/storage/api#presign-and-object-tagging).
 
 ### Supporting types
 
@@ -561,11 +568,12 @@ interface IBunS3HelperOptions {
 Wraps Bun's native `S3Client`, imported from the `bun` builtin module. That module only resolves under the Bun runtime. This is why `BunS3Helper` is exported from the separate `@venizia/ignis-helpers/bun-s3` subpath, not the main entry point.
 
 ```typescript
+import { applicationEnvironment } from '@venizia/ignis-helpers';
 import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 
 const bunS3Helper = new BunS3Helper({
-  accessKey: process.env.S3_ACCESS_KEY,
-  secretKey: process.env.S3_SECRET_KEY,
+  accessKey: applicationEnvironment.get<string>('S3_ACCESS_KEY'),
+  secretKey: applicationEnvironment.get<string>('S3_SECRET_KEY'),
   endpoint: { default: 'https://s3.us-east-1.amazonaws.com' },
 });
 ```
@@ -611,7 +619,7 @@ const MultipartBodySchema = z.object({
     items: { type: 'string', format: 'binary' },
   }),
   principalType: z.string().optional(),
-  principalId: z.coerce.string().optional(),
+  principalId: z.union([z.string(), z.number()]).optional(),
   variant: z.string().optional(),
   sequence: z.coerce.number().int().optional(),
   folderPath: z.string().optional(),
@@ -646,7 +654,7 @@ the handler and is the one that decides each file.
 4. `helper.upload()` runs the storage-helper-level checks below, the folder path and its depth included. Under a `keyPrefix`, a key outside the scope is refused there too, with `400 core.static_asset.object_key_out_of_scope` - see [`keyPrefix`](#keyprefix).
 5. Each stored object gets its MetaLink row, when `metaLink` is on.
 
-The handler no longer checks the folder itself: the storage helper does, so the check is the same for every caller of `helper.upload()`.
+The storage helper checks the folder, so the check is the same for every caller of `helper.upload()`.
 
 ### Storage-helper-level upload checks (`BaseStorageHelper.upload`)
 
@@ -706,8 +714,8 @@ Content-Security-Policy: sandbox
 Content-Type: <StaticAssetControllerFactory.resolveServedContentType, from the object key>
 Content-Length: <bytes in the response body>
 Content-Disposition: attachment; filename="..."   (always on download; on objects when the type is not renderable)
-Accept-Ranges: bytes                              (objects route, advertised unconditionally)
-Content-Range: bytes {start}-{end}/{size}         (objects route, on a 206 Partial Content)
+Accept-Ranges: bytes                              (advertised unconditionally)
+Content-Range: bytes {start}-{end}/{size}         (on a 206 Partial Content)
 ```
 
 `Content-Security-Policy: sandbox` is set even for a renderable type, so an unforeseen renderable type still cannot reach this origin.
@@ -842,7 +850,7 @@ Both classes come from the separate `@venizia/ignis-connectors` package, importe
 
   Rows per pair are deliberately not unique, and a refresh keeps each row's own `storageType` and labels (`variant`, `principalType`, `principalId`, `sequence`) either way.
 
-  The response is <code v-pre>{ success: true, action: 'refreshed' \| 'created', count, metaLink, metaLinks }</code>. `count` is the number of rows touched; `metaLinks` holds all of them; `metaLink` is kept for existing callers and is `metaLinks[0]`.
+  The response is <code v-pre>{ success: true, action: 'refreshed' \| 'created', count, metaLink, metaLinks }</code>. `count` is the number of rows touched; `metaLinks` holds all of them; `metaLink` is `metaLinks[0]`.
 
   Refresh-then-create is not atomic: two concurrent calls on an object with no existing row can both create one. Rows per pair are deliberately not unique, so the table allows it.
 

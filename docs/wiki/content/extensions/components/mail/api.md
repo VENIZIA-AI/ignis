@@ -317,7 +317,7 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
   fromName: 'Example App',
   config: {
     username: 'api',                        // required -- mailgun.js client username
-    key: process.env.MAILGUN_API_KEY,        // required -- Mailgun API key
+    key: applicationEnvironment.get<string>('MAILGUN_API_KEY'),        // required -- Mailgun API key
     domain: 'mg.example.com',                // required
     host: 'api.eu.mailgun.net',              // optional -- EU region
   },
@@ -337,8 +337,8 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
   config: {
     region: 'ap-southeast-1',                 // required
     credentials: {                            // optional -- omit to use the ambient AWS credential chain
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      accessKeyId: applicationEnvironment.get<string>('AWS_ACCESS_KEY_ID'),
+      secretAccessKey: applicationEnvironment.get<string>('AWS_SECRET_ACCESS_KEY'),
     },
     endpoint: 'https://email.ap-southeast-1.amazonaws.com', // optional
   },
@@ -364,7 +364,7 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
 {
   provider: 'sendgrid',
   from: 'noreply@example.com',
-  config: { apiKey: process.env.SENDGRID_API_KEY },
+  config: { apiKey: applicationEnvironment.get<string>('SENDGRID_API_KEY') },
 }
 ```
 
@@ -522,7 +522,7 @@ Delegates to `transport.verify()`. If the transport throws, wraps it as `MailErr
 | `to` is falsy or an empty array | `INVALID_RECIPIENT` | 400 | `Recipient email address is required` |
 | `subject` is falsy | `INVALID_CONFIGURATION` | 400 | `Email subject is required` |
 | Both `text` and `html` are falsy | `INVALID_CONFIGURATION` | 400 | `Email must have either text or html content` |
-| `text` or `html` is not a string | `BODY_SOURCE_REFUSED` | 400 | `Mail body refused ...` |
+| `text` or `html` is not a string (`null` counts as absent) | `BODY_SOURCE_REFUSED` | 400 | `Mail body refused ...` |
 | An address, the subject or a header value holds a line break, CR or NUL, is not a string, or a header name is not printable ASCII without a colon | `INVALID_HEADER` | 400 | `Invalid mail header ...` |
 
 `MailHeaderUtility.assert({ message })` is the one header check. It runs here, so Nodemailer, Mailgun and SES all get it. A transport called directly, without `MailService`, skips it.
@@ -770,7 +770,7 @@ interface IMailQueueExecutor {
 - `close()` clears every pending delayed/retry `setTimeout`. Without that cleanup, a live timer keeps the event loop open past shutdown. After `close()` a failing job arms no new timer and `enqueueVerificationEmail()` throws.
 - No persistence across restarts.
 
-**`BullMQMailExecutorHelper`** extends `BaseHelper` (constructor takes `IBullMQMailExecutorOpts`). It wraps `BullMQHelper` (`@venizia/ignis-helpers/bullmq`) and a `RedisSingleHelper` connection.
+**`BullMQMailExecutorHelper`** extends `BaseHelper` (constructor takes `IBullMQMailExecutorOpts`). It wraps `BullMQHelper` (`@venizia/ignis-helpers/bullmq`) and any `IRedisHelper` connection (`RedisSingleHelper`, `RedisClusterHelper` or `RedisSentinelHelper`).
 
 | Mode | Queue created | Workers created | Can enqueue | Can process |
 |------|----------------|------------------|-------------|-------------|
@@ -907,7 +907,7 @@ class MailMimeUtility {
 }
 ```
 
-The old function names of these methods are removed; `devz codemod namespace-functions` moves a call written with one to the class form. `isMailTransport` is now `MailTypeUtility.isTransport` and `isValidMailOptions` is now `MailTypeUtility.isValidOptions`. Both keep a positional parameter, because a type guard narrows its own parameter.
+`MailTypeUtility.isTransport` and `MailTypeUtility.isValidOptions` keep a positional parameter, because a type guard narrows its own parameter.
 
 - `MailTypeUtility.isTransport()` checks that `send` and `verify` are functions, and that `close` is either a function or `undefined`.
 - `MailTypeUtility.isValidOptions()` checks that `provider` is a string and `config` is truthy. It does not validate the shape of `config` against the specific provider.
