@@ -10,6 +10,8 @@ export interface IRedisSingleHelperProps {
   name: string;
   host: string;
   port: string | number;
+  /** The Redis ACL user to authenticate as, with `password`. Omit it to authenticate as the `default` user. */
+  username?: string;
   /** Omit it for a Redis with no password. */
   password?: string;
   /** @default 0 */

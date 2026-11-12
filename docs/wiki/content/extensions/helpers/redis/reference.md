@@ -116,7 +116,8 @@ Combines `IRedisSingleHelperProps`, `IRedisHelperCallbacks` and `IRedisModuleOpt
 | `name` | `string` | Yes | - | Helper identifier used in logs and as `IRedisHelper.name` |
 | `host` | `string` | Yes | - | Redis server hostname |
 | `port` | `string \| number` | Yes | - | Redis server port |
-| `password` | `string` | No | - | Redis `requirepass` value. Omit it for a Redis with no password. |
+| `username` | `string` | No | - | The Redis ACL user to authenticate as, with `password`. Omit it to authenticate as the `default` user. A cluster takes it as `clusterOptions.redisOptions.username`, a sentinel as `sentinelUsername` / `sentinelPassword` for the sentinels and `redisOptions.username` for the data nodes. |
+| `password` | `string` | No | - | Redis `requirepass` value (or the ACL user's password). Omit it for a Redis with no password. |
 | `database` | `number` | No | `0` | Redis database index (0-15) |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` uses ioredis `lazyConnect` |
 | `maxRetry` | `number` | No | `5` | Reconnect attempts before giving up. `0` = no reconnect; `-1` = reconnect forever; any other value is refused at construction |
