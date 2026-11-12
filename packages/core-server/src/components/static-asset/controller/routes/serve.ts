@@ -16,6 +16,7 @@ import {
 } from './context';
 import { StaticAssetDefinition, StaticAssetPaths } from './definition';
 
+/** The serve side of an entry's controller, public so a route of your own makes the same decisions: the served content type and the `ETag` and `304` answers. */
 export class StaticAssetServe {
   /**
    * The served type comes from the object NAME, never the backend or the uploader: a renderable type on

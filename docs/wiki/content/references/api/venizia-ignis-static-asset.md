@@ -7,9 +7,7 @@ description: "Every export of @venizia/ignis/static-asset, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-58 exports, 57 with TSDoc.
-
-Without TSDoc (1): `StaticAssetServe`.
+58 exports, 58 with TSDoc.
 
 ## `BaseMetaLinkModel`
 
@@ -1404,6 +1402,8 @@ Source: `packages/core-server/src/components/static-asset/common/constants.ts`
 ## `StaticAssetServe`
 
 *class*
+
+The serve side of an entry's controller, public so a route of your own makes the same decisions: the served content type and the `ETag` and `304` answers.
 
 ```ts
 export declare class StaticAssetServe {
