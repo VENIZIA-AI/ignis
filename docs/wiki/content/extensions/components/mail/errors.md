@@ -15,6 +15,7 @@ The 4xx rows below come from the `MailErrors` catalog, which holds the status an
 | `to` is missing or an empty array | 400 | `core.mail.invalid_recipient` | `Recipient email address is required` |
 | `subject` is falsy | 400 | `core.mail.invalid_configuration` | `Email subject is required` |
 | Both `text` and `html` are falsy | 400 | `core.mail.invalid_configuration` | `Email must have either text or html content` |
+| An address, the subject or a header value holds a line break, CR or NUL, is not a string; or a header name is not printable ASCII without a colon | 400 | `core.mail.invalid_header` | `Invalid mail header \| ...` |
 | `text` or `html` is not a string | 400 | `core.mail.body_source_refused` | `Mail body refused \| text and html must be strings; ...` |
 | An attachment `path` with no `attachmentRoot` set | 400 | `core.mail.attachment_path_refused` | `Mail attachment path refused \| attachment.path is read only under attachmentRoot, which is not set \| ...` |
 | An attachment `path` outside `attachmentRoot`, missing, a directory, a FIFO or unreadable | 400 | `core.mail.attachment_path_refused` | `Mail attachment path refused \| attachment.path must name a readable file inside attachmentRoot \| ...` (one message for every case) |

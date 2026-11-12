@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis/mail, from the built declarations (
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-65 exports, 65 with TSDoc.
+69 exports, 69 with TSDoc.
 
 ## `AmazonSesTransportHelper`
 
@@ -345,6 +345,8 @@ Queues verification mails and runs them through the processor registered with `s
 export interface IMailQueueExecutor {
     enqueueVerificationEmail(email: string, options?: IMailQueueOptions): Promise<IMailQueueResult>;
     setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): void;
+    /** Releases what the executor holds: timers, workers, the queue. The application stop hook calls it. */
+    close?(): Promise<void>;
 }
 ```
 
@@ -457,6 +459,8 @@ export interface IMailTemplateEngine {
         templateName?: string;
         data: Record<string, any>;
         requireValidate?: boolean;
+        /** @default MailTemplateFormats.HTML */
+        format?: TMailTemplateFormat;
     }): string;
     registerTemplate(opts: {
         name: string;
@@ -522,6 +526,8 @@ export declare class InternalQueueMailExecutorHelper extends BaseHelper implemen
     private queue;
     private jobIdCounter;
     private delayedJobs;
+    /** Set by `close`: a job that fails afterwards must not arm a retry timer nobody will clear. */
+    private isClosed;
     private processor?;
     constructor(opts: IInternalQueueMailExecutorOpts);
     setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): void;
@@ -728,6 +734,16 @@ export declare class MailDefaults {
     static readonly FALLBACK_FROM = "noreply@example.com";
     /** Bytes of attachment content one message may carry, all attachments together. */
     static readonly MAX_ATTACHMENT_BYTES: number;
+    /** The subject of a template mail that has none of its own. */
+    static readonly SUBJECT = "No Subject";
+    /** Tries per queued mail, the first included, unless the job options say otherwise. */
+    static readonly ATTEMPTS = 3;
+    static readonly BACKOFF_DELAY_MS = 1000;
+    /** How long a failed BullMQ mail job stays in Redis (it holds a recipient address), and the most that stay. */
+    static readonly FAILED_JOB_RETENTION: {
+        age: number;
+        count: number;
+    };
 }
 ```
 
@@ -804,6 +820,15 @@ export declare const MailErrors: {
         readonly statusCode: 413;
         readonly category: "validation";
     };
+    /** An address, the subject or a header holds a line break or another control character, or a header name is not printable ASCII: it would break out of its header line. */
+    readonly INVALID_HEADER: {
+        readonly message: {
+            readonly text: "Invalid mail header";
+            readonly code: "core.mail.invalid_header";
+        };
+        readonly statusCode: 400;
+        readonly category: "validation";
+    };
     readonly BODY_SOURCE_REFUSED: {
         readonly message: {
             readonly text: "Mail body must be text";
@@ -826,6 +851,7 @@ Messages thrown by the mail queue executors.
 ```ts
 export declare class MailExecutorErrors {
     static readonly PROCESSOR_NOT_SET = "Processor not set. Call setProcessor() first.";
+    static readonly CLOSED = "The executor is closed and takes no more jobs.";
 }
 ```
 
@@ -857,6 +883,28 @@ export declare class MailgunTransportHelper extends BaseHelper implements IMailT
 ```
 
 Source: `packages/core-server/src/components/mail/helpers/transporters/mailgun-transporter.helper.ts`
+
+## `MailHeaderUtility`
+
+*class*
+
+The one place a message is checked for header injection, before any transport sees it. A transport called directly skips it.
+
+```ts
+export declare class MailHeaderUtility {
+    /** `value` is `unknown`: the message types end in `[key: string]: any`, so nothing stops a controller forwarding a request body from putting an array where a string is declared. */
+    static assertValue(opts: {
+        field: string;
+        value: unknown;
+    }): void;
+    /** Every address field, the subject and the custom headers, names included. */
+    static assert(opts: {
+        message: IMailMessage;
+    }): void;
+}
+```
+
+Source: `packages/core-server/src/components/mail/utilities/header.utility.ts`
 
 ## `MailKeys`
 
@@ -890,6 +938,10 @@ Builds the MIME pieces the Amazon SES transport sends: the raw message and RFC 5
 
 ```ts
 export declare class MailMimeUtility {
+    /** Escapes `\` and `"` so a value can sit inside a quoted string: a display name, a MIME parameter. */
+    static escapeQuotedString(opts: {
+        value: string;
+    }): string;
     /** Formats a `to`/`cc`/`from`/`replyTo` field as one RFC 5322 address list: splits a
      * comma-separated string or array into individual mailboxes, RFC 2047-encodes each display name,
      * and rejoins with `, ` - the same shape whether the caller passed a string or an array. */
@@ -966,6 +1018,20 @@ export declare class MailQueueExecutorTypes {
 
 Source: `packages/core-server/src/components/mail/common/constants.ts`
 
+## `MailQueueJobNames`
+
+*class*
+
+Names of the jobs the BullMQ mail executor adds.
+
+```ts
+export declare class MailQueueJobNames {
+    static readonly SEND_VERIFICATION_EMAIL = "send-verification-email";
+}
+```
+
+Source: `packages/core-server/src/components/mail/common/constants.ts`
+
 ## `MailService`
 
 *class*
@@ -995,6 +1061,21 @@ export declare class MailService extends BaseService implements IMailService {
 ```
 
 Source: `packages/core-server/src/components/mail/services/mail.service.ts`
+
+## `MailTemplateFormats`
+
+*class*
+
+Where a rendered template is going: `HTML` escapes every double-brace placeholder, `TEXT` (a subject, a plain-text part) inserts it as it is. A triple-brace placeholder is raw in both.
+
+```ts
+export declare class MailTemplateFormats {
+    static readonly HTML = "html";
+    static readonly TEXT = "text";
+}
+```
+
+Source: `packages/core-server/src/components/mail/common/constants.ts`
 
 ## `MailTransportProvider`
 
@@ -1183,6 +1264,7 @@ export declare class TemplateEngineService extends BaseService implements IMailT
         templateName?: string;
         data: Record<string, AnyType>;
         requireValidate?: boolean;
+        format?: TMailTemplateFormat;
     }): string;
     getTemplate(name: string): ITemplate | undefined;
     listTemplates(): ITemplate[];
@@ -1199,7 +1281,9 @@ export declare class TemplateEngineService extends BaseService implements IMailT
     };
     renderSimpleTemplate(template: string, data: Record<string, AnyType>, opts?: {
         requireValidate?: boolean;
+        format?: TMailTemplateFormat;
     }): string;
+    /** Reads own properties only: `{{constructor}}` or `{{__proto__.x}}` must not reach the prototype chain. */
     private getNestedValue;
 }
 ```
@@ -1288,6 +1372,18 @@ Union of the `MailProviders` values.
 
 ```ts
 export type TMailProvider = TConstValue<typeof MailProviders>;
+```
+
+Source: `packages/core-server/src/components/mail/common/constants.ts`
+
+## `TMailTemplateFormat`
+
+*type*
+
+Union of the `MailTemplateFormats` values.
+
+```ts
+export type TMailTemplateFormat = TConstValue<typeof MailTemplateFormats>;
 ```
 
 Source: `packages/core-server/src/components/mail/common/constants.ts`

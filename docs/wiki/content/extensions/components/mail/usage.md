@@ -209,14 +209,15 @@ export class NotificationService extends BaseService {
 }
 ```
 
-- **Subject resolution order.** `options.subject` wins if you pass it. Otherwise the template's own `subject` wins, rendered through the same engine. If neither is set, the subject falls back to the literal `'No Subject'`.
+- **Subject resolution order.** `options.subject` wins if you pass it. Otherwise the template's own `subject` wins, rendered as plain text (never HTML-escaped). If neither is set, the subject is `MailDefaults.SUBJECT` (`'No Subject'`). The recipients (`recipients`) and the rendered body are the call's own: `options.to` and `options.html` do not replace them, and `options.requireValidate` only controls rendering.
 - **`sendTemplate()` requires the template engine binding.** It throws `INVALID_CONFIGURATION` ("Template engine not configured") if `MailKeys.MAIL_TEMPLATE_ENGINE` was never injected. The constructor parameter is `isOptional: true`, so a service still compiles without it - but the first `sendTemplate()` call then fails.
 
 ### How rendering works
 
-`TemplateEngineService` keeps templates in an in-memory `Map<string, ITemplate>`. It substitutes <code v-pre>{{variable}}</code> placeholders using the regex `/\{\{(\s*[\w.]+\s*)\}\}/g`.
+`TemplateEngineService` keeps templates in an in-memory `Map<string, ITemplate>`. It substitutes <code v-pre>{{variable}}</code> and <code v-pre>{{{variable}}}</code> placeholders; one regex serves both rendering and `validateTemplateData()`.
 
-- **Nested lookup.** A key is trimmed, then resolved by splitting on `.` and walking the data object (`user.profile.name`).
+- **Escaping.** <code v-pre>{{variable}}</code> is HTML-escaped with `Bun.escapeHTML`, so a user name such as `<a href=...>` cannot become live markup in a mail. <code v-pre>{{{variable}}}</code> inserts the value as it is: use it only for markup you wrote. `render()` takes `format: MailTemplateFormats.HTML` (the default) or `MailTemplateFormats.TEXT`, which escapes nothing; `sendTemplate()` renders the subject as `TEXT`.
+- **Nested lookup.** A key is trimmed, then resolved by splitting on `.` and walking the data object (`user.profile.name`). Only own properties are read: <code v-pre>{{constructor}}</code> stays unresolved.
 - **Missing values are preserved, not blanked.** If a resolved value is `undefined` or `null`, the original <code v-pre>{{placeholder}}</code> text stays in the output, and a warning is logged. The engine never replaces it with an empty string.
 - **String coercion.** The engine converts a resolved value with `String(value)`.
 

@@ -13,8 +13,10 @@ import type {
 import {
   BullMQExecutorModes,
   MailBackoffTypes,
+  MailDefaults,
   MailErrorCodes,
   MailExecutorErrors,
+  MailQueueJobNames,
 } from '../../common';
 import type { Job } from 'bullmq';
 
@@ -141,7 +143,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
       numberOfWorker: concurrency,
       lockDuration,
       onWorkerData: async (job: Job<IQueueJobPayload, IMailProcessorResult>) => {
-        const maxAttempts = job.data.options?.attempts ?? 3;
+        const maxAttempts = job.data.options?.attempts ?? MailDefaults.ATTEMPTS;
 
         this.logger
           .for('onWorkerData')
@@ -189,7 +191,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
         error: Error,
       ) => {
         if (job) {
-          const maxAttempts = job.data.options?.attempts ?? 3;
+          const maxAttempts = job.data.options?.attempts ?? MailDefaults.ATTEMPTS;
           this.logger
             .for('onWorkerDataFail')
             .error(
@@ -343,24 +345,24 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
 
     this.logger
       .for(this.enqueueVerificationEmail.name)
-      .info(
-        'Queuing email to BullMQ/Redis | jobId: %s | email: %s | mode: %s',
-        jobId,
-        email,
-        this.mode,
-      );
+      .debug('Queuing email to BullMQ/Redis | jobId: %s | mode: %s', jobId, this.mode);
 
-    const bullJob = await this.queueHelper.queue.add('send-verification-email', job, {
-      priority: options?.priority,
-      delay: options?.delay,
-      attempts: options?.attempts ?? 3,
-      backoff: {
-        type: options?.backoff?.type ?? MailBackoffTypes.EXPONENTIAL,
-        delay: options?.backoff?.delay ?? 1000,
+    const bullJob = await this.queueHelper.queue.add(
+      MailQueueJobNames.SEND_VERIFICATION_EMAIL,
+      job,
+      {
+        priority: options?.priority,
+        delay: options?.delay,
+        attempts: options?.attempts ?? MailDefaults.ATTEMPTS,
+        backoff: {
+          type: options?.backoff?.type ?? MailBackoffTypes.EXPONENTIAL,
+          delay: options?.backoff?.delay ?? MailDefaults.BACKOFF_DELAY_MS,
+        },
+        removeOnComplete: true,
+        // Bounded: a failed job holds the recipient's address, and `false` kept every one forever.
+        removeOnFail: MailDefaults.FAILED_JOB_RETENTION,
       },
-      removeOnComplete: true,
-      removeOnFail: false,
-    });
+    );
 
     return {
       jobId: bullJob.id ?? jobId,

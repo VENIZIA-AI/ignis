@@ -91,9 +91,19 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
           attachments: message.attachments,
         });
 
-        mailgunMessage.attachment = attachments.map((attachment: IMailAttachment) => {
-          return { filename: attachment.filename, data: attachment.content };
+        // Mailgun reads `inline` parts by file name: `cid:<name>` in the HTML, so the cid is the name.
+        const toPart = (attachment: IMailAttachment, filename?: string) => ({
+          filename: filename ?? attachment.filename,
+          data: attachment.content,
+          contentType: attachment.contentType,
         });
+
+        mailgunMessage.attachment = attachments
+          .filter((attachment) => !attachment.cid)
+          .map((attachment) => toPart(attachment));
+        mailgunMessage.inline = attachments
+          .filter((attachment) => attachment.cid)
+          .map((attachment) => toPart(attachment, attachment.cid));
       }
 
       this.logger.for(this.send.name).debug('Sending email with Mailgun to: %s', mailgunMessage.to);

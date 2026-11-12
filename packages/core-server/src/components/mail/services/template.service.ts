@@ -1,8 +1,11 @@
 import { BaseService } from '@venizia/ignis-kernel';
-import type { IMailTemplateEngine, ITemplate } from '../common';
-import { MailErrors } from '../common';
+import type { IMailTemplateEngine, ITemplate, TMailTemplateFormat } from '../common';
+import { MailErrors, MailTemplateFormats } from '../common';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
+
+/** `{{{key}}}` (group 1, raw) or `{{key}}` (group 2). The raw form comes first: `{{key}}` also matches inside it. */
+const PLACEHOLDER = /\{\{\{\s*([\w.]+)\s*\}\}\}|\{\{\s*([\w.]+)\s*\}\}/g;
 
 /** In-memory template store and renderer. Templates registered here are lost on restart. */
 export class TemplateEngineService extends BaseService implements IMailTemplateEngine {
@@ -32,8 +35,9 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
     templateName?: string;
     data: Record<string, AnyType>;
     requireValidate?: boolean;
+    format?: TMailTemplateFormat;
   }): string {
-    const { templateData, templateName, data, requireValidate } = opts;
+    const { templateData, templateName, data, requireValidate, format } = opts;
 
     if (!templateData && !templateName) {
       throw getError({ message: 'Either templateName or templateData must be provided' });
@@ -56,8 +60,14 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
       content = template.content;
     }
 
-    // TODO: check content! later
-    return this.renderSimpleTemplate(content!, data, { requireValidate });
+    if (content === undefined) {
+      throw getError({
+        error: MailErrors.INVALID_CONFIGURATION,
+        message: `Template has no content: ${templateName}`,
+      });
+    }
+
+    return this.renderSimpleTemplate(content, data, { requireValidate, format });
   }
 
   getTemplate(name: string): ITemplate | undefined {
@@ -89,14 +99,11 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
     allKeys: string[];
   } {
     const { template, data } = opts;
-    const placeholderRegex = /\{\{(\s*[\w.]+\s*)\}\}/g;
     const allKeys: string[] = [];
     const missingKeys: string[] = [];
 
-    let match: RegExpExecArray | null;
-
-    while ((match = placeholderRegex.exec(template)) !== null) {
-      const key = match[1].trim();
+    for (const match of template.matchAll(PLACEHOLDER)) {
+      const key = match[1] ?? match[2];
 
       if (allKeys.includes(key)) {
         continue;
@@ -125,7 +132,7 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
   renderSimpleTemplate(
     template: string,
     data: Record<string, AnyType>,
-    opts?: { requireValidate?: boolean },
+    opts?: { requireValidate?: boolean; format?: TMailTemplateFormat },
   ): string {
     if (opts?.requireValidate) {
       const validation = this.validateTemplateData({ template, data });
@@ -138,25 +145,29 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
       }
     }
 
-    return template.replace(/\{\{(\s*[\w.]+\s*)\}\}/g, (match, key) => {
-      const trimmedKey = key.trim();
-      const value = this.getNestedValue(data, trimmedKey);
+    const isHtml = (opts?.format ?? MailTemplateFormats.HTML) === MailTemplateFormats.HTML;
+
+    return template.replace(PLACEHOLDER, (match, tripleKey?: string, doubleKey?: string) => {
+      const key = tripleKey ?? doubleKey ?? '';
+      const value = this.getNestedValue(data, key);
 
       if (value === undefined || value === null) {
-        this.logger
-          .for(this.renderSimpleTemplate.name)
-          .warn('Missing value for key: %s', trimmedKey);
+        this.logger.for(this.renderSimpleTemplate.name).warn('Missing value for key: %s', key);
 
         return match;
       }
 
-      return String(value);
+      // `{{{key}}}` inserts as it is; `{{key}}` is escaped for HTML.
+      return isHtml && tripleKey === undefined ? Bun.escapeHTML(String(value)) : String(value);
     });
   }
 
+  /** Reads own properties only: `{{constructor}}` or `{{__proto__.x}}` must not reach the prototype chain. */
   private getNestedValue(obj: AnyType, path: string) {
     return path.split('.').reduce((current, key) => {
-      return current?.[key];
+      return current !== null && typeof current === 'object' && Object.hasOwn(current, key)
+        ? current[key]
+        : undefined;
     }, obj);
   }
 }

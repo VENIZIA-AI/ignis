@@ -149,11 +149,14 @@ import type {
   │    │                                               │
   │    └── createAndBindInstances()                   │
   │          ├── Transport Instance  ◄── MAIL_OPTIONS  │
-  │          └── Queue Executor      ◄── QUEUE_CONFIG  │
-  │                                    (or the direct   │
-  │                                     default)        │
+  │          ├── Queue Executor      ◄── QUEUE_CONFIG  │
+  │          │                          (or the direct   │
+  │          │                           default)        │
+  │          └── stop hooks: executor, then transport  │
   └─────────────────────────────────────────────────┘
 ```
+
+On application stop, two post-stop hooks run: `mail.queue-executor.close` (the executor's `close()`: workers, queue, timers) and then `mail.transport.close` (the transport's `close()`: the SMTP pool, the SES client). An executor or transport without a `close()` is skipped. The Redis helper of a BullMQ executor stays yours to close.
 
 `MailService` and the queue executor are **independent** consumers of the transport/config. `IMailQueueExecutor` never calls `MailService`. See [How it works](./#how-it-works) on the Overview for that distinction.
 
@@ -425,7 +428,14 @@ interface IMailQueueExecutorConfig {
 | `MailDefaults.BATCH_CONCURRENCY` | `5` | Default concurrent sends in `sendBatch()` |
 | `MailDefaults.FALLBACK_FROM` | `'noreply@example.com'` | Used by `getDefaultFrom()` when `options.from` is unset |
 | `MailDefaults.MAX_ATTACHMENT_BYTES` | `25 * 1024 * 1024` | Default `maxAttachmentBytes` |
+| `MailDefaults.SUBJECT` | `'No Subject'` | The subject of a template mail that has none |
+| `MailDefaults.ATTEMPTS` | `3` | Tries per queued mail, the first included |
+| `MailDefaults.BACKOFF_DELAY_MS` | `1000` | Default retry delay of both queue executors |
+| `MailDefaults.FAILED_JOB_RETENTION` | `{ age: 604800, count: 1000 }` | How long (seconds) and how many failed BullMQ mail jobs stay in Redis |
+| `MailTemplateFormats.HTML` / `TEXT` | `'html'` / `'text'` | Whether <code v-pre>{{key}}</code> is HTML-escaped (`HTML`, the default) or inserted as it is (`TEXT`) |
+| `MailQueueJobNames.SEND_VERIFICATION_EMAIL` | `'send-verification-email'` | The BullMQ job name |
 | `MailExecutorErrors.PROCESSOR_NOT_SET` | `'Processor not set. Call setProcessor() first.'` | Thrown by all three queue executors |
+| `MailExecutorErrors.CLOSED` | `'The executor is closed and takes no more jobs.'` | Thrown by the internal queue executor after `close()` |
 | `MailQueueExecutorTypes.DIRECT` | `'direct'` | Immediate execution |
 | `MailQueueExecutorTypes.INTERNAL_QUEUE` | `'internal-queue'` | In-memory queue |
 | `MailQueueExecutorTypes.BULLMQ` | `'bullmq'` | Redis-backed queue |
@@ -484,7 +494,7 @@ interface IMailService {
 
 **`send(message)`**
 
-1. `validateMessage()` throws for missing `to`, missing `subject`, or missing both `text`/`html` (400, see below).
+1. `validateMessage()` throws for missing `to`, missing `subject`, missing both `text`/`html`, a non-string body, or a header problem (400, see below).
 2. Merges `message.from` with `getDefaultFrom()` if unset.
 3. Delegates to `transport.send()`.
 4. Returns `{ success, messageId, error? }`.
@@ -497,7 +507,7 @@ Sends every message via `send()` with concurrency bounded by `PromiseUtility.exe
 
 **`sendTemplate(opts)`**
 
-Renders a registered template and sends it. Subject resolution order: `options.subject` -> the template's own `subject` (rendered through the same engine) -> `'No Subject'`. Throws `MailErrorCodes.INVALID_CONFIGURATION` ("Template engine not configured") if `templateEngine` was not injected. Re-throws any other error unchanged, including `TEMPLATE_NOT_FOUND` from the template engine.
+Renders a registered template and sends it. Subject resolution order: `options.subject` -> the template's own `subject` (rendered as `MailTemplateFormats.TEXT`, so never HTML-escaped) -> `MailDefaults.SUBJECT` (`'No Subject'`). The message is `{ ...rest, to: recipients, subject, html }`: `options.to` and `options.html` do not replace the recipients or the rendered body, and `options.requireValidate` is a render switch that is not sent. Throws `MailErrorCodes.INVALID_CONFIGURATION` ("Template engine not configured") if `templateEngine` was not injected. Re-throws any other error unchanged, including `TEMPLATE_NOT_FOUND` from the template engine.
 
 **`verify()`**
 
@@ -512,12 +522,16 @@ Delegates to `transport.verify()`. If the transport throws, wraps it as `MailErr
 | `to` is falsy or an empty array | `INVALID_RECIPIENT` | 400 | `Recipient email address is required` |
 | `subject` is falsy | `INVALID_CONFIGURATION` | 400 | `Email subject is required` |
 | Both `text` and `html` are falsy | `INVALID_CONFIGURATION` | 400 | `Email must have either text or html content` |
+| `text` or `html` is not a string | `BODY_SOURCE_REFUSED` | 400 | `Mail body refused ...` |
+| An address, the subject or a header value holds a line break, CR or NUL, is not a string, or a header name is not printable ASCII without a colon | `INVALID_HEADER` | 400 | `Invalid mail header ...` |
+
+`MailHeaderUtility.assert({ message })` is the one header check. It runs here, so Nodemailer, Mailgun and SES all get it. A transport called directly, without `MailService`, skips it.
 
 **`getDefaultFrom()`**
 
 - If `options.from` is unset, returns `MailDefaults.FALLBACK_FROM` (`'noreply@example.com'`).
 - Else if `options.fromName` is unset, returns `options.from` as-is.
-- Else returns `"${fromName}" <${from}>`.
+- Else returns `"${fromName}" <${from}>`, with `\` and `"` in `fromName` escaped.
 
 **Source:** [`services/mail.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/services/mail.service.ts)
 
@@ -604,9 +618,9 @@ interface IMailTemplateEngine {
 
 | Method | Behavior |
 |--------|----------|
-| `render(opts)` | Renders by `templateName` (registry lookup) or raw `templateData`. Throws if neither is given. Throws `TEMPLATE_NOT_FOUND` (404) if `templateName` is not registered. Delegates to `renderSimpleTemplate()`. |
+| `render(opts)` | Renders by `templateName` (registry lookup) or raw `templateData`. Throws if neither is given. Throws `TEMPLATE_NOT_FOUND` (404) if `templateName` is not registered. `format` is `MailTemplateFormats.HTML` (default: <code v-pre>{{key}}</code> is HTML-escaped) or `TEXT` (nothing is escaped); <code v-pre>{{{key}}}</code> is raw in both. Delegates to `renderSimpleTemplate()`. |
 | `registerTemplate(opts)` | `options` (on the class) accepts `subject`/`description` (`Partial<ITemplate>`). Overwrites an existing template with the same name. |
-| `validateTemplateData(opts)` | Extracts every unique <code v-pre>{{key}}</code> via `/\{\{(\s*[\w.]+\s*)\}\}/g`, deduplicates, resolves nested dot-notation values. Returns `isValid`, `missingKeys`, `allKeys`. |
+| `validateTemplateData(opts)` | Extracts every unique <code v-pre>{{key}}</code> and <code v-pre>{{{key}}}</code> with the same placeholder pattern `render()` uses, deduplicates, resolves nested dot-notation values (own properties only). Returns `isValid`, `missingKeys`, `allKeys`. |
 | `getTemplate(name)` | Returns `undefined` if not registered. |
 | `listTemplates()` | All templates, as an array of `ITemplate`. |
 | `hasTemplate(name)` | Registry membership check. |
@@ -708,7 +722,7 @@ this.bind({ key: MailKeys.MAIL_OPTIONS }).toValue({
 **Mailgun (`MailgunTransportHelper`, extends `BaseHelper`):**
 
 - `configure()` calls `validateConfig()` **before** building the client. `username`, `key`, and `domain` must all be present in `config`, or it throws `Invalid Mailgun configuration | Missing required keys: <keys>` (`INVALID_CONFIGURATION`, 500). This check runs even though `TMailgunConfig`'s type only requires `domain`.
-- `send()` converts `IMailMessage` to Mailgun's format: `to` is coerced to an array, `replyTo` becomes `h:Reply-To`, and every custom header is prefixed `h:`. Attachments are resolved to bytes first, then map to `{ filename, data: content }`.
+- `send()` converts `IMailMessage` to Mailgun's format: `to` is coerced to an array, `replyTo` becomes `h:Reply-To`, and every custom header is prefixed `h:`. Attachments are resolved to bytes first. One with a `cid` goes to Mailgun's `inline` field, named by its `cid` (the name `cid:<name>` points at in the HTML); the others go to `attachment`. Each part carries its `contentType`.
   - It catches send errors and returns `{ success: false, error }` - it never throws.
 - `verify()` sends a test message to `verify@<domain>` with `o:testmode: 'yes'`, since Mailgun has no dedicated verify endpoint. It catches errors and returns `false` - it never throws.
 - No `close()` - the HTTP API is stateless.
@@ -735,6 +749,7 @@ All three implement:
 interface IMailQueueExecutor {
   enqueueVerificationEmail(email: string, options?: IMailQueueOptions): Promise<IMailQueueResult>;
   setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): void;
+  close?(): Promise<void>; // the application stop hook calls it
 }
 ```
 
@@ -752,7 +767,7 @@ interface IMailQueueExecutor {
   | `type: 'fixed'` | the raw `delay` |
   | `type: 'exponential'` | `delay * 2 ** (attempt - 1)` |
 
-- `close()` clears every pending delayed/retry `setTimeout`. Without that cleanup, a live timer keeps the event loop open past shutdown.
+- `close()` clears every pending delayed/retry `setTimeout`. Without that cleanup, a live timer keeps the event loop open past shutdown. After `close()` a failing job arms no new timer and `enqueueVerificationEmail()` throws.
 - No persistence across restarts.
 
 **`BullMQMailExecutorHelper`** extends `BaseHelper` (constructor takes `IBullMQMailExecutorOpts`). It wraps `BullMQHelper` (`@venizia/ignis-helpers/bullmq`) and a `RedisSingleHelper` connection.
@@ -773,7 +788,7 @@ interface IMailQueueExecutor {
 | Queue was never created (should not happen in a queue-enabled mode) | `Queue helper not initialized...` |
 | No processor set, and `mode !== 'queue-only'` | `PROCESSOR_NOT_SET` |
 
-Its enqueue options: `attempts: options?.attempts ?? 3`, `backoff: { type: options?.backoff?.type ?? 'exponential', delay: options?.backoff?.delay ?? 1000 }`, `removeOnComplete: true`, `removeOnFail: false`.
+Its enqueue options: `attempts: options?.attempts ?? 3`, `backoff: { type: options?.backoff?.type ?? 'exponential', delay: options?.backoff?.delay ?? 1000 }`, `removeOnComplete: true`, `removeOnFail: MailDefaults.FAILED_JOB_RETENTION` (`{ age: 7 * 24 * 60 * 60, count: 1000 }`: a failed job holds the recipient's address, so it is kept seven days and at most 1000). The job name is `MailQueueJobNames.SEND_VERIFICATION_EMAIL`. Enqueueing logs the job id at `debug`, never the address.
 
 **Dynamic workers** - manage the worker pool without a restart:
 
@@ -877,11 +892,16 @@ class MailVerificationUtility {
   static getExpiryTimeInHours(opts: { hours: number }): Date;  // Date `hours` hours from now
 }
 
-// address.utility.ts, mime.utility.ts
+// address.utility.ts, header.utility.ts, mime.utility.ts
 class MailAddressUtility {
   static splitList(opts: { value: string | string[] }): string[];
 }
+class MailHeaderUtility {
+  static assert(opts: { message: IMailMessage }): void;   // the one header-injection check; MailService.validateMessage calls it
+  static assertValue(opts: { field: string; value: unknown }): void;
+}
 class MailMimeUtility {
+  static escapeQuotedString(opts: { value: string }): string;
   static formatAddressHeader(opts: { value: string | string[] }): string;
   static buildRawMessage(opts: { message: IMailMessage }): Promise<Buffer>;
 }
