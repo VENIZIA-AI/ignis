@@ -7,7 +7,7 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import { statSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
 import type { TMailQueueExecutorConfig, TMailOptions } from './common';
-import { MailErrorCodes, MailKeys, MailQueueExecutorTypes } from './common';
+import { MailErrors, MailKeys, MailQueueExecutorTypes } from './common';
 import type { TGetMailQueueExecutorFn, TGetMailTransportFn } from './providers';
 import { MailQueueExecutorProvider, MailTransportProvider } from './providers';
 import {
@@ -108,7 +108,7 @@ export class MailComponent extends BaseComponent<TMailOptions> {
     const buildOptionError = (details: { message: string; cause?: unknown }) => {
       return getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+        error: MailErrors.INVALID_CONFIGURATION,
         message: `Invalid mail options | ${details.message}`,
         cause: details.cause,
       });

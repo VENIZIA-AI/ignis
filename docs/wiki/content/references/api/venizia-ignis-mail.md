@@ -732,20 +732,13 @@ Source: `packages/core-server/src/components/mail/common/constants.ts`
 
 *class*
 
-Built via {@link MessageCode.build}: `ApplicationError` lower-cases codes, so a SCREAMING_CASE literal would reach the client in a spelling no const here matches.
+The codes of the server-side failures, which are not in the 4xx `MailErrors` catalog. Built via {@link MessageCode.build}: `ApplicationError` lower-cases codes, so a SCREAMING_CASE literal would reach the client in a spelling no const here matches.
 
 ```ts
 export declare class MailErrorCodes {
-    static readonly INVALID_CONFIGURATION: string;
     static readonly SEND_FAILED: string;
     static readonly VERIFICATION_FAILED: string;
-    static readonly INVALID_RECIPIENT: string;
     static readonly BATCH_SEND_FAILED: string;
-    static readonly TEMPLATE_NOT_FOUND: string;
-    static readonly ATTACHMENT_PATH_REFUSED: string;
-    static readonly ATTACHMENT_TOO_LARGE: string;
-    static readonly INVALID_HEADER: string;
-    static readonly BODY_SOURCE_REFUSED: string;
 }
 ```
 
@@ -755,14 +748,14 @@ Source: `packages/core-server/src/components/mail/common/constants.ts`
 
 *const*
 
-The code strings live once, in `MailErrorCodes`; each entry here names its status and category.
+Codes are LITERAL strings, deliberately not `MailErrorCodes.*`: `MessageCode.build()` returns `string`, which erases the literal type `TRegisterErrors` is built on and silently kills autocomplete. `MailErrorCodes` holds only the codes of the server-side failures, which are not in this 4xx catalog: every code string has one home. They are a public contract and must not shift.
 
 ```ts
 export declare const MailErrors: {
     readonly TEMPLATE_NOT_FOUND: {
         readonly message: {
             readonly text: "Mail template not found";
-            readonly code: string;
+            readonly code: "core.mail.template_not_found";
         };
         readonly statusCode: 404;
         readonly category: "business";
@@ -770,7 +763,7 @@ export declare const MailErrors: {
     readonly INVALID_CONFIGURATION: {
         readonly message: {
             readonly text: "Invalid mail configuration";
-            readonly code: string;
+            readonly code: "core.mail.invalid_configuration";
         };
         readonly statusCode: 400;
         readonly category: "validation";
@@ -778,7 +771,7 @@ export declare const MailErrors: {
     readonly INVALID_RECIPIENT: {
         readonly message: {
             readonly text: "Invalid mail recipient";
-            readonly code: string;
+            readonly code: "core.mail.invalid_recipient";
         };
         readonly statusCode: 400;
         readonly category: "validation";
@@ -787,7 +780,7 @@ export declare const MailErrors: {
     readonly ATTACHMENT_PATH_REFUSED: {
         readonly message: {
             readonly text: "Mail attachment path refused";
-            readonly code: string;
+            readonly code: "core.mail.attachment_path_refused";
         };
         readonly statusCode: 400;
         readonly category: "validation";
@@ -795,7 +788,7 @@ export declare const MailErrors: {
     readonly ATTACHMENT_TOO_LARGE: {
         readonly message: {
             readonly text: "Mail attachments are larger than the maximum allowed";
-            readonly code: string;
+            readonly code: "core.mail.attachment_too_large";
         };
         readonly statusCode: 413;
         readonly category: "validation";
@@ -804,7 +797,7 @@ export declare const MailErrors: {
     readonly INVALID_HEADER: {
         readonly message: {
             readonly text: "Invalid mail header";
-            readonly code: string;
+            readonly code: "core.mail.invalid_header";
         };
         readonly statusCode: 400;
         readonly category: "validation";
@@ -812,7 +805,7 @@ export declare const MailErrors: {
     readonly BODY_SOURCE_REFUSED: {
         readonly message: {
             readonly text: "Mail body must be text";
-            readonly code: string;
+            readonly code: "core.mail.body_source_refused";
         };
         readonly statusCode: 400;
         readonly category: "validation";

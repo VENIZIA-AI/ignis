@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { MailDefaults, MailErrorCodes, type TMailOptions } from '@/components/mail/common';
+import {
+  MailDefaults,
+  MailErrorCodes,
+  MailErrors,
+  type TMailOptions,
+} from '@/components/mail/common';
 import { MailService, TemplateEngineService } from '@/components/mail/services';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { type AnyType } from '@venizia/ignis-helpers/common';
@@ -37,7 +42,7 @@ describe('MailService - validation errors', () => {
 
     expect(isApplicationError(error)).toBe(true);
     expect(error.statusCode).toBe(400);
-    expect(error.normalized.code).toBe(MailErrorCodes.INVALID_RECIPIENT);
+    expect(error.normalized.code).toBe(MailErrors.INVALID_RECIPIENT.message.code);
     expect(transport.sentMessages).toHaveLength(0);
   });
 
@@ -53,7 +58,7 @@ describe('MailService - validation errors', () => {
     }
 
     expect(error.statusCode).toBe(400);
-    expect(error.normalized.code).toBe(MailErrorCodes.INVALID_RECIPIENT);
+    expect(error.normalized.code).toBe(MailErrors.INVALID_RECIPIENT.message.code);
   });
 
   test('a missing subject keeps its 400 identity', async () => {
@@ -68,7 +73,7 @@ describe('MailService - validation errors', () => {
     }
 
     expect(error.statusCode).toBe(400);
-    expect(error.normalized.code).toBe(MailErrorCodes.INVALID_CONFIGURATION);
+    expect(error.normalized.code).toBe(MailErrors.INVALID_CONFIGURATION.message.code);
   });
 
   test('a transport that throws is still wrapped as 500 / SEND_FAILED', async () => {
@@ -282,7 +287,7 @@ describe('MailService - sendTemplate', () => {
     }
 
     expect(error.statusCode).toBe(404);
-    expect(error.normalized.code).toBe(MailErrorCodes.TEMPLATE_NOT_FOUND);
+    expect(error.normalized.code).toBe(MailErrors.TEMPLATE_NOT_FOUND.message.code);
   });
 
   test('a missing template engine surfaces INVALID_CONFIGURATION', async () => {
@@ -296,7 +301,7 @@ describe('MailService - sendTemplate', () => {
       error = caught;
     }
 
-    expect(error.normalized.code).toBe(MailErrorCodes.INVALID_CONFIGURATION);
+    expect(error.normalized.code).toBe(MailErrors.INVALID_CONFIGURATION.message.code);
   });
 });
 

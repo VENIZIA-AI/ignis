@@ -386,7 +386,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
         default: {
           throw getError({
             statusCode: 500,
-            messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+            error: MailErrors.INVALID_CONFIGURATION,
             message: `Unsupported mail provider: ${options.provider}`,
           });
         }
@@ -395,7 +395,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
   }
 
   // Each create* method validates the options shape (type guard) before constructing
-  // the transport helper, throwing MailErrorCodes.INVALID_CONFIGURATION on mismatch.
+  // the transport helper, throwing MailErrors.INVALID_CONFIGURATION on mismatch.
   private createNodemailerTransport(options: TMailOptions): NodemailerTransportHelper { /* ... */ }
   private createMailgunTransport(options: TMailOptions): MailgunTransportHelper { /* ... */ }
   private createAmazonSesTransport(options: TMailOptions): AmazonSesTransportHelper { /* ... */ }

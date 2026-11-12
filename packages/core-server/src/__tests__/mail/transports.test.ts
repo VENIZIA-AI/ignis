@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { MailErrorCodes } from '@/components/mail/common';
+import { MailErrors } from '@/components/mail/common';
 import {
   AmazonSesTransportHelper,
   MailgunTransportHelper,
@@ -156,7 +156,7 @@ describe('MailgunTransportHelper - configuration', () => {
     })();
 
     expect(error).toBeDefined();
-    expect(error.normalized.code).toBe(MailErrorCodes.INVALID_CONFIGURATION);
+    expect(error.normalized.code).toBe(MailErrors.INVALID_CONFIGURATION.message.code);
     expect(error.message).toContain('domain');
   });
 
@@ -174,7 +174,7 @@ describe('MailgunTransportHelper - configuration', () => {
     })();
 
     expect(error).toBeDefined();
-    expect(error.normalized.code).toBe(MailErrorCodes.INVALID_CONFIGURATION);
+    expect(error.normalized.code).toBe(MailErrors.INVALID_CONFIGURATION.message.code);
     expect(error.message).toContain('username');
     expect(error.message).toContain('key');
   });
@@ -315,7 +315,7 @@ describe('AmazonSesTransportHelper - configuration', () => {
     })();
 
     expect(error).toBeDefined();
-    expect(error.normalized.code).toBe(MailErrorCodes.INVALID_CONFIGURATION);
+    expect(error.normalized.code).toBe(MailErrors.INVALID_CONFIGURATION.message.code);
     expect(error.message).toContain('region');
   });
 

@@ -145,7 +145,7 @@ export class MailService extends BaseService implements IMailService {
       if (!this.templateEngine) {
         throw getError({
           statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-          messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+          error: MailErrors.INVALID_CONFIGURATION,
           message: 'Template engine not configured',
         });
       }

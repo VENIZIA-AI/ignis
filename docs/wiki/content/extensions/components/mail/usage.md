@@ -76,10 +76,10 @@ async sendBulkNotifications(users: Array<{ email: string; name: string }>) {
 
 | Condition | Error code | Message |
 |-----------|-----------|---------|
-| `to` is missing or an empty array | `MailErrorCodes.INVALID_RECIPIENT` | `Recipient email address is required` |
-| `subject` is missing | `MailErrorCodes.INVALID_CONFIGURATION` | `Email subject is required` |
-| Both `text` and `html` are missing | `MailErrorCodes.INVALID_CONFIGURATION` | `Email must have either text or html content` |
-| `text` or `html` is neither a string nor `null` (a `Buffer`, a stream, `{ path }`, `{ href }`) | `MailErrorCodes.BODY_SOURCE_REFUSED` | `Mail body refused \| text and html must be strings; ...` |
+| `to` is missing or an empty array | `MailErrors.INVALID_RECIPIENT` | `Recipient email address is required` |
+| `subject` is missing | `MailErrors.INVALID_CONFIGURATION` | `Email subject is required` |
+| Both `text` and `html` are missing | `MailErrors.INVALID_CONFIGURATION` | `Email must have either text or html content` |
+| `text` or `html` is neither a string nor `null` (a `Buffer`, a stream, `{ path }`, `{ href }`) | `MailErrors.BODY_SOURCE_REFUSED` | `Mail body refused \| text and html must be strings; ...` |
 
 ```typescript
 // Throws before reaching the transport
