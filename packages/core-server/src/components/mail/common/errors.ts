@@ -3,7 +3,7 @@ import { ErrorScopes } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 
 /** Codes a client branches on for a mail request it can fix - a missing template, a message that is not sendable. Delivery failures are NOT here: they are 5xx and stay codeless, because a client cannot act on the remote provider being down. */
-/** Codes are LITERAL strings, deliberately not `MailErrorCodes.*`: `MessageCode.build()` returns `string`, which erases the literal type `TRegisterErrors` is built on and silently kills autocomplete. The values are identical to what those constants produce - they are a public contract and must not shift. */
+/** Codes are LITERAL strings, deliberately not `MailErrorCodes.*`: `MessageCode.build()` returns `string`, which erases the literal type `TRegisterErrors` is built on and silently kills autocomplete. `MailErrorCodes` holds only the codes of the server-side failures, which are not in this 4xx catalog: every code string has one home. They are a public contract and must not shift. */
 export const MailErrors = {
   TEMPLATE_NOT_FOUND: {
     message: { text: 'Mail template not found', code: 'core.mail.template_not_found' },

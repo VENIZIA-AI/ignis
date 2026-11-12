@@ -843,8 +843,7 @@ export declare abstract class BaseStorageHelper extends BaseHelper implements IS
     }): void;
     private validateUploadFile;
     upload(opts: IUploadOptions): Promise<IUploadResult[]>;
-    /** Correct anywhere; overridden by a backend whose transport is already a web stream. */
-    getObjectStream(opts: TObjectStreamOptions): Promise<ReadableStream<Uint8Array>>;
+    getObjectStream(_opts: TObjectStreamOptions): Promise<ReadableStream<Uint8Array>>;
     /**
      * Correct anywhere, and the wrong path to stay on: it buffers, so a backend whose transport takes
      * a stream overrides it. `BunS3Helper` does.

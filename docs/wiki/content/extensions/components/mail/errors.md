@@ -68,9 +68,7 @@ Both helper checks run on `configure()`, one layer deeper than `MailTransportPro
 
 | Condition | Status | Error code | Message |
 |-----------|--------|-----------|---------|
-| `config.internalQueue` missing for `internal-queue` type | -- | -- | `Internal queue configuration is missing` |
-| `config.bullmq` missing for `bullmq` type | -- | -- | `BullMQ configuration is missing` |
-| Unknown executor type | -- | -- | `Unknown mail queue executor type: <type>` |
+| Unknown executor type (plain JavaScript only: the types require a known `type`) | -- | -- | `Unknown mail queue executor type: <type>` |
 
 ### `TemplateEngineService` errors
 
@@ -183,7 +181,7 @@ if (!isConnected) {
 ```typescript
 {
   type: 'bullmq',
-  bullmq: {
+  options: {
     redis: redisHelper, // a ready, connected Redis helper
     queue: { identifier: 'mail-queue', name: 'mail-queue' },
     mode: 'both', // must be 'both' or 'worker-only' to process
@@ -233,7 +231,7 @@ executor.setProcessor(async (email: string) => {
 `MailComponent.createAndBindInstances()` logs only `mailOptions.provider` and `queueExecutorConfig.type`, at `info` level. It never logs the full config object, by design. That keeps SMTP passwords, OAuth2 secrets, Mailgun API keys, AWS secret access keys, and Redis passwords out of the log - at least through the component itself.
 
 > [!WARNING]
-> That guarantee is scoped to `MailComponent`'s own logging. If your wrapper component or any other code logs the `TMailOptions`/`IMailQueueExecutorConfig` object directly - for example, `logger.info('%j', mailOptions)` while debugging - you reintroduce the leak yourself. Log individual safe fields instead of the whole object.
+> That guarantee is scoped to `MailComponent`'s own logging. If your wrapper component or any other code logs the `TMailOptions`/`TMailQueueExecutorConfig` object directly - for example, `logger.info('%j', mailOptions)` while debugging - you reintroduce the leak yourself. Log individual safe fields instead of the whole object.
 
 ## See also
 

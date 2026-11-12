@@ -49,7 +49,7 @@ Every binding key, configuration variant, interface, and internal mechanism of `
 | `InternalQueueMailExecutorHelper` | In-memory queue (`SequentialQueueHelper`) |
 | `BullMQMailExecutorHelper` | Redis-backed queue, distributed workers |
 | `MailTransportProvider` | Factory: `TMailOptions` -> `IMailTransport` |
-| `MailQueueExecutorProvider` | Factory: `IMailQueueExecutorConfig` -> `IMailQueueExecutor` |
+| `MailQueueExecutorProvider` | Factory: `TMailQueueExecutorConfig` -> `IMailQueueExecutor` |
 | `NumericCodeGenerator` | Cryptographically random numeric codes |
 | `RandomTokenGenerator` | Cryptographically random base64url tokens |
 | `DefaultVerificationDataGenerator` | Composes both generators into an `IVerificationData` |
@@ -62,6 +62,7 @@ import {
   MailKeys,
   MailProviders,
   MailErrorCodes,
+  MailErrors,
   MailDefaults,
   MailExecutorErrors,
   MailQueueExecutorTypes,
@@ -90,7 +91,7 @@ import type {
   IMailTransport,
   IMailAttachment,
   IMailQueueExecutor,
-  IMailQueueExecutorConfig,
+  TMailQueueExecutorConfig,
   IMailQueueOptions,
   IMailQueueResult,
   IMailProcessorResult,
@@ -167,7 +168,7 @@ On application stop, two post-stop hooks run: `mail.queue-executor.close` (the e
 | Key | Constant | Type | Required | Default |
 |-----|----------|------|----------|---------|
 | `@app/components/mail/options` | `MailKeys.MAIL_OPTIONS` | `TMailOptions` | **Yes** | -- |
-| `@app/components/mail/queue/executor-config` | `MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG` | `IMailQueueExecutorConfig` | No | `{ type: MailQueueExecutorTypes.DIRECT }` |
+| `@app/components/mail/queue/executor-config` | `MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG` | `TMailQueueExecutorConfig` | No | `{ type: MailQueueExecutorTypes.DIRECT }` |
 | `@app/components/mail/service` | `MailKeys.MAIL_SERVICE` | `IMailService` | No | `MailService` (singleton) |
 | `@app/components/mail/services/template-engine` | `MailKeys.MAIL_TEMPLATE_ENGINE` | `IMailTemplateEngine` | No | `TemplateEngineService` (singleton) |
 | `@app/components/mail/transport-provider` | `MailKeys.MAIL_TRANSPORT_PROVIDER` | `TGetMailTransportFn` | No | `MailTransportProvider` (singleton) |
@@ -371,34 +372,39 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
 > [!WARNING]
 > `IGenericMailOptions` falls through to the `default` case in `MailTransportProvider` and throws `Unsupported mail provider: <provider>`. The framework's built-in provider does not handle it. `IGenericMailOptions` exists only so you can bind a **custom** `MailTransportProvider` that recognizes the provider string.
 
-### Queue executor options (`IMailQueueExecutorConfig`)
+### Queue executor options (`TMailQueueExecutorConfig`)
 
 ```typescript
-interface IMailQueueExecutorConfig {
-  type: TConstValue<typeof MailQueueExecutorTypes>; // 'direct' | 'internal-queue' | 'bullmq'
-  internalQueue?: {
-    identifier: string;
-  };
-  bullmq?: {
-    redis: IRedisHelper; // a ready single, cluster or sentinel helper; the application closes it, and sets maxRetry: -1 so it keeps reconnecting
-    queue: { identifier: string; name: string };
-    mode: TConstValue<typeof BullMQExecutorModes>; // REQUIRED -- no default
-    module?: typeof import('bullmq'); // bullmq itself, for a compiled binary
-  };
+type TMailQueueExecutorConfig =
+  | { type: typeof MailQueueExecutorTypes.DIRECT; options?: never }
+  | { type: typeof MailQueueExecutorTypes.INTERNAL_QUEUE; options: IInternalQueueMailExecutorOpts }
+  | { type: typeof MailQueueExecutorTypes.BULLMQ; options: IBullMQMailExecutorOpts };
+
+interface IInternalQueueMailExecutorOpts {
+  identifier: string;
+}
+
+interface IBullMQMailExecutorOpts {
+  redis: IRedisHelper; // a ready single, cluster or sentinel helper; the application closes it, and sets maxRetry: -1 so it keeps reconnecting
+  queue: { identifier: string; name: string };
+  mode: TConstValue<typeof BullMQExecutorModes>; // REQUIRED -- no default
+  module?: typeof import('bullmq'); // bullmq itself, for a compiled binary
 }
 ```
+
+`type` picks the executor, and the types require the `options` that executor needs. The direct executor takes none (`options?: never`), so every variant reads `config.options` the same way.
 
 ```typescript
 // Direct (also the implicit default when MAIL_QUEUE_EXECUTOR_CONFIG is unbound)
 { type: 'direct' }
 
 // Internal queue (in-memory)
-{ type: 'internal-queue', internalQueue: { identifier: 'mail-internal-queue' } }
+{ type: 'internal-queue', options: { identifier: 'mail-internal-queue' } }
 
 // BullMQ (Redis-backed)
 {
   type: 'bullmq',
-  bullmq: {
+  options: {
     redis: new RedisSingleHelper({
       name: 'mail-redis',
       host: 'localhost',
@@ -443,21 +449,27 @@ interface IMailQueueExecutorConfig {
 | `BullMQExecutorModes.WORKER_ONLY` | `'worker-only'` | Consumer only (process) |
 | `BullMQExecutorModes.BOTH` | `'both'` | Full duplex (produce + consume) |
 
-#### `MailErrorCodes`
+#### `MailErrorCodes` and `MailErrors`
 
-Built through `MessageCode.build()`, so every value is lower-case (`ApplicationError` lower-cases whatever it is handed):
+The codes of the 4xx errors a client can fix are the **literal** strings of the `MailErrors` catalog, so a consumer gets autocomplete on them: `MailErrors.TEMPLATE_NOT_FOUND.message.code` is typed `'core.mail.template_not_found'`. Raise one with `getError({ error: MailErrors.X })`.
+
+| `MailErrors` entry | Code | Status | Description |
+|---|---|---|---|
+| `INVALID_CONFIGURATION` | `'core.mail.invalid_configuration'` | 400 (500 where the setup, not the caller, is wrong) | Invalid or missing configuration (transport, template engine, subject, body) |
+| `INVALID_RECIPIENT` | `'core.mail.invalid_recipient'` | 400 | Missing or empty recipient address |
+| `INVALID_HEADER` | `'core.mail.invalid_header'` | 400 | A line break or control character in an address, the subject or a header, or a bad header name |
+| `TEMPLATE_NOT_FOUND` | `'core.mail.template_not_found'` | 404 | Template name not found in registry |
+| `ATTACHMENT_PATH_REFUSED` | `'core.mail.attachment_path_refused'` | 400 | An attachment `path` outside `attachmentRoot`, with no root set, or an `href`/`raw` source |
+| `BODY_SOURCE_REFUSED` | `'core.mail.body_source_refused'` | 400 | `text` or `html` is not a string |
+| `ATTACHMENT_TOO_LARGE` | `'core.mail.attachment_too_large'` | 413 | A message's attachments are over `maxAttachmentBytes` |
+
+`MailErrorCodes` holds only the codes of the server-side failures, which are not in the catalog. Built through `MessageCode.build()`, so every value is lower-case:
 
 | Constant | Value | Description |
 |----------|-------|-------------|
-| `MailErrorCodes.INVALID_CONFIGURATION` | `'core.mail.invalid_configuration'` | Invalid or missing configuration (transport, template engine, subject, body) |
 | `MailErrorCodes.SEND_FAILED` | `'core.mail.send_failed'` | Single email send failed |
 | `MailErrorCodes.VERIFICATION_FAILED` | `'core.mail.verification_failed'` | Transport connection verification failed |
-| `MailErrorCodes.INVALID_RECIPIENT` | `'core.mail.invalid_recipient'` | Missing or empty recipient address |
 | `MailErrorCodes.BATCH_SEND_FAILED` | `'core.mail.batch_send_failed'` | Batch email operation failed |
-| `MailErrorCodes.TEMPLATE_NOT_FOUND` | `'core.mail.template_not_found'` | Template name not found in registry |
-| `MailErrorCodes.ATTACHMENT_PATH_REFUSED` | `'core.mail.attachment_path_refused'` | An attachment `path` outside `attachmentRoot`, with no root set, or an `href`/`raw` source |
-| `MailErrorCodes.BODY_SOURCE_REFUSED` | `'core.mail.body_source_refused'` | `text` or `html` is not a string |
-| `MailErrorCodes.ATTACHMENT_TOO_LARGE` | `'core.mail.attachment_too_large'` | A message's attachments are over `maxAttachmentBytes` |
 
 **Source:** [`common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/common/constants.ts)
 
@@ -621,7 +633,6 @@ interface IMailTemplateEngine {
 interface ITemplate {
   name: string;
   content?: string;
-  render?: (data: Record<string, AnyType>) => string;
   subject?: string;
   description?: string;
 }
@@ -678,7 +689,7 @@ import * as ioredis from 'ioredis';
 
 this.bind({ key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG }).toValue({
   type: MailQueueExecutorTypes.BULLMQ,
-  bullmq: {
+  options: {
     redis: new RedisSingleHelper({ name: 'mail-redis', host, port, password, module: ioredis }),
     queue: { identifier: 'mail-queue', name: 'mail-queue' },
     mode: BullMQExecutorModes.BOTH,

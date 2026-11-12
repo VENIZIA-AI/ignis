@@ -1,13 +1,11 @@
 import { BaseRestController } from '@/base/controllers';
 import { controller as controllerDecorator } from '@/base/metadata';
-import type { IObjectRef, IStorageHelper } from '@venizia/ignis-helpers';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { TStaticAssetEntry } from '../common';
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../models';
 import type { StaticAssetUploadCommitService, StaticAssetUploadPolicyService } from '../services';
 import { StaticAssetEntryUtility } from '../utilities/entry.utility';
-import { StaticAssetServe } from './routes/serve';
 import { StaticAssetRouteTable } from './routes/table';
 
 /** Input of `StaticAssetControllerFactory.build`: one entry of `TStaticAssetComponentOptions` and its key. */
@@ -23,20 +21,8 @@ export interface IStaticAssetControllerOptions<
   commitService?: Pick<StaticAssetUploadCommitService<Schema>, 'commit' | 'validate'>;
 }
 
-/** Builds the REST controller class for a static asset entry, and decides the served content type. */
+/** Builds the REST controller class for a static asset entry. */
 export class StaticAssetControllerFactory {
-  /**
-   * The served type comes from the object NAME, never the backend or the uploader: a renderable type on
-   * the API origin is stored XSS. Public so a hand-written route makes the same decision - the
-   * backend's own content-type is dropped by `StaticAssetHeaders.ALLOWED`.
-   */
-  static resolveServedContentType(opts: { helper: IStorageHelper; object: IObjectRef }): {
-    contentType: string;
-    isRenderable: boolean;
-  } {
-    return StaticAssetServe.resolveServedContentType(opts);
-  }
-
   /** Resolves the entry, then builds its controller. */
   static build<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema>(
     opts: IStaticAssetControllerOptions<Schema>,

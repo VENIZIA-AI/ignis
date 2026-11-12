@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import { MailComponent } from '@/components/mail/component';
-import { MailKeys, type IMailTransport, type TMailOptions } from '@/components/mail/common';
+import {
+  MailKeys,
+  MailQueueExecutorTypes,
+  type IMailTransport,
+  type TMailOptions,
+  type TMailQueueExecutorConfig,
+} from '@/components/mail/common';
 import {
   DirectMailExecutorHelper,
   InternalQueueMailExecutorHelper,
@@ -50,7 +56,7 @@ const buildComponent = (opts: {
 describe('MailComponent - stop', () => {
   test('the stop hooks close the executor, then the transport', async () => {
     const { component, transport, stopHooks } = buildComponent({
-      queueConfig: { type: 'internal-queue', internalQueue: { identifier: 'component-stop' } },
+      queueConfig: { type: 'internal-queue', options: { identifier: 'component-stop' } },
     });
 
     await component.configure();
@@ -99,7 +105,7 @@ describe('MailComponent - wiring', () => {
 
   test('the internal-queue executor config is honoured', async () => {
     const { container, component } = buildComponent({
-      queueConfig: { type: 'internal-queue', internalQueue: { identifier: 'component-queue' } },
+      queueConfig: { type: 'internal-queue', options: { identifier: 'component-queue' } },
     });
 
     await component.configure();
@@ -207,5 +213,30 @@ describe('MailComponent - confidentiality', () => {
 
     const logged = fakeLogger.lines.join('\n');
     expect(logged).not.toContain('super-secret-redis');
+  });
+});
+
+describe('TMailQueueExecutorConfig', () => {
+  test('each variant requires the options its executor needs, and direct takes none', () => {
+    const direct: TMailQueueExecutorConfig = { type: MailQueueExecutorTypes.DIRECT };
+    const internal: TMailQueueExecutorConfig = {
+      type: MailQueueExecutorTypes.INTERNAL_QUEUE,
+      options: { identifier: 'mail' },
+    };
+
+    // @ts-expect-error the internal queue needs its options
+    const missingOptions: TMailQueueExecutorConfig = {
+      type: MailQueueExecutorTypes.INTERNAL_QUEUE,
+    };
+
+    // @ts-expect-error the direct executor takes no options
+    const directWithOptions: TMailQueueExecutorConfig = {
+      type: MailQueueExecutorTypes.DIRECT,
+      options: { identifier: 'mail' },
+    };
+
+    expect([direct.type, internal.type, missingOptions.type, directWithOptions.type]).toHaveLength(
+      4,
+    );
   });
 });

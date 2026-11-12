@@ -6,8 +6,8 @@ import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { statSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
-import type { IMailQueueExecutorConfig, TMailOptions } from './common';
-import { MailErrorCodes, MailKeys, MailQueueExecutorTypes } from './common';
+import type { TMailQueueExecutorConfig, TMailOptions } from './common';
+import { MailErrors, MailKeys, MailQueueExecutorTypes } from './common';
 import type { TGetMailQueueExecutorFn, TGetMailTransportFn } from './providers';
 import { MailQueueExecutorProvider, MailTransportProvider } from './providers';
 import {
@@ -108,7 +108,7 @@ export class MailComponent extends BaseComponent<TMailOptions> {
     const buildOptionError = (details: { message: string; cause?: unknown }) => {
       return getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+        error: MailErrors.INVALID_CONFIGURATION,
         message: `Invalid mail options | ${details.message}`,
         cause: details.cause,
       });
@@ -168,7 +168,7 @@ export class MailComponent extends BaseComponent<TMailOptions> {
     });
 
     // Queueing is opt-in: with no executor config bound, fall back to the direct (inline) executor instead of a "binding is not bounded" crash at boot.
-    const queueConfig = this.application.get<IMailQueueExecutorConfig>({
+    const queueConfig = this.application.get<TMailQueueExecutorConfig>({
       key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG,
       isOptional: true,
     }) ?? { type: MailQueueExecutorTypes.DIRECT };

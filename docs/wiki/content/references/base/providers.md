@@ -386,7 +386,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
         default: {
           throw getError({
             statusCode: 500,
-            messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+            error: MailErrors.INVALID_CONFIGURATION,
             message: `Unsupported mail provider: ${options.provider}`,
           });
         }
@@ -395,7 +395,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
   }
 
   // Each create* method validates the options shape (type guard) before constructing
-  // the transport helper, throwing MailErrorCodes.INVALID_CONFIGURATION on mismatch.
+  // the transport helper, throwing MailErrors.INVALID_CONFIGURATION on mismatch.
   private createNodemailerTransport(options: TMailOptions): NodemailerTransportHelper { /* ... */ }
   private createMailgunTransport(options: TMailOptions): MailgunTransportHelper { /* ... */ }
   private createAmazonSesTransport(options: TMailOptions): AmazonSesTransportHelper { /* ... */ }
@@ -427,7 +427,7 @@ this.application.bind({ key: MailKeys.MAIL_TRANSPORT_INSTANCE }).toValue(mailTra
 From `packages/core-server/src/components/mail/providers/mail-queue-executor.provider.ts`:
 
 ```typescript
-export type TGetMailQueueExecutorFn = (config: IMailQueueExecutorConfig) => IMailQueueExecutor;
+export type TGetMailQueueExecutorFn = (config: TMailQueueExecutorConfig) => IMailQueueExecutor;
 
 export class MailQueueExecutorProvider extends BaseProvider<TGetMailQueueExecutorFn> {
   constructor() {
@@ -435,7 +435,7 @@ export class MailQueueExecutorProvider extends BaseProvider<TGetMailQueueExecuto
   }
 
   value(_container: Container): TGetMailQueueExecutorFn {
-    return (config: IMailQueueExecutorConfig) => {
+    return (config: TMailQueueExecutorConfig) => {
       this.logger
         .for(this.value.name)
         .info('Creating mail queue executor of type: %s', config.type);
@@ -446,25 +446,21 @@ export class MailQueueExecutorProvider extends BaseProvider<TGetMailQueueExecuto
         }
 
         case MailQueueExecutorTypes.INTERNAL_QUEUE: {
-          if (!config.internalQueue) {
-            throw getError({ message: 'Internal queue configuration is missing' });
-          }
-
           return new InternalQueueMailExecutorHelper({
-            identifier: config.internalQueue.identifier,
+            identifier: config.options.identifier,
           });
         }
 
         case MailQueueExecutorTypes.BULLMQ: {
-          if (!config.bullmq) {
-            throw getError({ message: 'BullMQ configuration is missing' });
-          }
-
-          return new BullMQMailExecutorHelper(config.bullmq);
+          return new BullMQMailExecutorHelper(config.options);
         }
 
         default: {
-          throw getError({ message: `Unknown mail queue executor type: ${config.type}` });
+          const unknownConfig: never = config;
+
+          throw getError({
+            message: `Unknown mail queue executor type: ${String(Reflect.get(unknownConfig, 'type'))}`,
+          });
         }
       }
     };

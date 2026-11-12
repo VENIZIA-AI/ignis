@@ -71,7 +71,7 @@ export class UserService extends BaseService {
 
   `MailTransportProvider` is the factory that switches on the provider. It throws for an unsupported provider string.
 
-- **`MailService` is the one sending entry point.** `send()` validates the message and applies the attachment policy; `sendBatch()` and `sendTemplate()` go through `send()`; `verify()` checks the transport. Failures are normalized into `MailErrorCodes`. A transport called directly skips every check `send()` makes, header injection included:
+- **`MailService` is the one sending entry point.** `send()` validates the message and applies the attachment policy; `sendBatch()` and `sendTemplate()` go through `send()`; `verify()` checks the transport. Failures are normalized into `MailErrors` (4xx) or `MailErrorCodes` (server-side). A transport called directly skips every check `send()` makes, header injection included:
 
   | Case | Result |
   |---|---|

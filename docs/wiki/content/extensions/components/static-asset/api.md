@@ -689,13 +689,13 @@ When streaming a file - both <code v-pre>objects/{objectName}</code> and <code v
 ## Served content type
 
 ```typescript
-static resolveServedContentType(opts: {
+StaticAssetServe.resolveServedContentType(opts: {
   helper: IStorageHelper;
   object: IObjectRef;
 }): { contentType: string; isRenderable: boolean };
 ```
 
-`StaticAssetControllerFactory.resolveServedContentType` runs `helper.getMimeType({ filename: object.key })` and checks the answer against `StaticAssetContentTypes.RENDERABLE`:
+`StaticAssetServe.resolveServedContentType` runs `helper.getMimeType({ filename: object.key })` and checks the answer against `StaticAssetContentTypes.RENDERABLE`:
 
 | Outcome | `contentType` | `isRenderable` | Response |
 |---|---|---|---|
@@ -704,7 +704,7 @@ static resolveServedContentType(opts: {
 
 `StaticAssetContentTypes.RENDERABLE` holds `image/png`, `image/jpeg`, `image/gif`, `image/webp`, `image/avif`, `image/bmp`, `image/x-icon`, `video/mp4`, `video/webm`, `audio/mpeg`, `audio/wav`, `audio/ogg`, `application/pdf`, `text/plain` and `text/csv`. `image/svg+xml` is deliberately absent, because SVG carries script.
 
-The function is exported, so a hand-written route makes the same decision rather than reinventing it.
+`StaticAssetServe` is exported, so a hand-written route makes the same decision, and answers `ETag` and `304` the same way with `StaticAssetServe.applyValidators({ ctx, stat })`.
 
 All streaming responses also set:
 

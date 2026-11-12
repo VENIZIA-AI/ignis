@@ -350,22 +350,6 @@ export interface IMailQueueExecutor {
 
 Source: `packages/core-server/src/components/mail/common/types/queue.ts`
 
-## `IMailQueueExecutorConfig`
-
-*interface*
-
-Selects and configures the mail queue executor; the field matching `type` (`internalQueue` or `bullmq`) is required for that type.
-
-```ts
-export interface IMailQueueExecutorConfig {
-    type: TConstValue<typeof MailQueueExecutorTypes>;
-    internalQueue?: IInternalQueueMailExecutorOpts;
-    bullmq?: IBullMQMailExecutorOpts;
-}
-```
-
-Source: `packages/core-server/src/components/mail/common/types/queue.ts`
-
 ## `IMailQueueOptions`
 
 *interface*
@@ -567,7 +551,6 @@ A registered mail template: `content` is the body, `subject` and `description` a
 export interface ITemplate {
     name: string;
     content?: string;
-    render?: (data: Record<string, AnyType>) => string;
     subject?: string;
     description?: string;
 }
@@ -749,19 +732,13 @@ Source: `packages/core-server/src/components/mail/common/constants.ts`
 
 *class*
 
-Built via {@link MessageCode.build}: `ApplicationError` lower-cases codes, so a SCREAMING_CASE literal would reach the client in a spelling no const here matches.
+The codes of the server-side failures, which are not in the 4xx `MailErrors` catalog. Built via {@link MessageCode.build}: `ApplicationError` lower-cases codes, so a SCREAMING_CASE literal would reach the client in a spelling no const here matches.
 
 ```ts
 export declare class MailErrorCodes {
-    static readonly INVALID_CONFIGURATION: string;
     static readonly SEND_FAILED: string;
     static readonly VERIFICATION_FAILED: string;
-    static readonly INVALID_RECIPIENT: string;
     static readonly BATCH_SEND_FAILED: string;
-    static readonly TEMPLATE_NOT_FOUND: string;
-    static readonly ATTACHMENT_PATH_REFUSED: string;
-    static readonly ATTACHMENT_TOO_LARGE: string;
-    static readonly BODY_SOURCE_REFUSED: string;
 }
 ```
 
@@ -771,7 +748,7 @@ Source: `packages/core-server/src/components/mail/common/constants.ts`
 
 *const*
 
-Codes are LITERAL strings, deliberately not `MailErrorCodes.*`: `MessageCode.build()` returns `string`, which erases the literal type `TRegisterErrors` is built on and silently kills autocomplete. The values are identical to what those constants produce - they are a public contract and must not shift.
+Codes are LITERAL strings, deliberately not `MailErrorCodes.*`: `MessageCode.build()` returns `string`, which erases the literal type `TRegisterErrors` is built on and silently kills autocomplete. `MailErrorCodes` holds only the codes of the server-side failures, which are not in this 4xx catalog: every code string has one home. They are a public contract and must not shift.
 
 ```ts
 export declare const MailErrors: {
@@ -1000,7 +977,7 @@ Source: `packages/core-server/src/components/mail/providers/mail-queue-executor.
 
 *class*
 
-Values of `IMailQueueExecutorConfig.type`, selecting how verification mails are queued: sent inline, held in process, or handed to BullMQ.
+Values of `TMailQueueExecutorConfig.type`, selecting how verification mails are queued: sent inline, held in process, or handed to BullMQ.
 
 ```ts
 export declare class MailQueueExecutorTypes {
@@ -1291,7 +1268,7 @@ Source: `packages/core-server/src/components/mail/services/template.service.ts`
 Builds the queue executor for a config; throws when the config for its `type` is missing or the type is unknown.
 
 ```ts
-export type TGetMailQueueExecutorFn = (config: IMailQueueExecutorConfig) => IMailQueueExecutor;
+export type TGetMailQueueExecutorFn = (config: TMailQueueExecutorConfig) => IMailQueueExecutor;
 ```
 
 Source: `packages/core-server/src/components/mail/providers/mail-queue-executor.provider.ts`
@@ -1369,6 +1346,27 @@ export type TMailProvider = TConstValue<typeof MailProviders>;
 ```
 
 Source: `packages/core-server/src/components/mail/common/constants.ts`
+
+## `TMailQueueExecutorConfig`
+
+*type*
+
+Selects and configures the mail queue executor: `type` picks one of three, and the options its executor needs are required by the types.
+
+```ts
+export type TMailQueueExecutorConfig = {
+    type: typeof MailQueueExecutorTypes.DIRECT;
+    options?: never;
+} | {
+    type: typeof MailQueueExecutorTypes.INTERNAL_QUEUE;
+    options: IInternalQueueMailExecutorOpts;
+} | {
+    type: typeof MailQueueExecutorTypes.BULLMQ;
+    options: IBullMQMailExecutorOpts;
+};
+```
+
+Source: `packages/core-server/src/components/mail/common/types/queue.ts`
 
 ## `TMailTemplateFormat`
 

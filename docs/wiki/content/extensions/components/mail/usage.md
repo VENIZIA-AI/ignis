@@ -76,10 +76,10 @@ async sendBulkNotifications(users: Array<{ email: string; name: string }>) {
 
 | Condition | Error code | Message |
 |-----------|-----------|---------|
-| `to` is missing or an empty array | `MailErrorCodes.INVALID_RECIPIENT` | `Recipient email address is required` |
-| `subject` is missing | `MailErrorCodes.INVALID_CONFIGURATION` | `Email subject is required` |
-| Both `text` and `html` are missing | `MailErrorCodes.INVALID_CONFIGURATION` | `Email must have either text or html content` |
-| `text` or `html` is neither a string nor `null` (a `Buffer`, a stream, `{ path }`, `{ href }`) | `MailErrorCodes.BODY_SOURCE_REFUSED` | `Mail body refused \| text and html must be strings; ...` |
+| `to` is missing or an empty array | `MailErrors.INVALID_RECIPIENT` | `Recipient email address is required` |
+| `subject` is missing | `MailErrors.INVALID_CONFIGURATION` | `Email subject is required` |
+| Both `text` and `html` are missing | `MailErrors.INVALID_CONFIGURATION` | `Email must have either text or html content` |
+| `text` or `html` is neither a string nor `null` (a `Buffer`, a stream, `{ path }`, `{ href }`) | `MailErrors.BODY_SOURCE_REFUSED` | `Mail body refused \| text and html must be strings; ...` |
 
 ```typescript
 // Throws before reaching the transport
@@ -338,7 +338,7 @@ import { RedisSentinelHelper } from '@venizia/ignis-helpers';
 
 this.bind({ key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG }).toValue({
   type: MailQueueExecutorTypes.BULLMQ,
-  bullmq: {
+  options: {
     redis: new RedisSentinelHelper({
       name: 'mail-redis',
       sentinels: [{ host: 'sentinel-1', port: 26379 }],
@@ -450,7 +450,7 @@ export class AuthService extends BaseService {
 `MailComponent.createAndBindInstances()` logs only `mailOptions.provider` and `queueExecutorConfig.type`, at `info` level. It never logs the full config objects, by design. That keeps SMTP passwords, OAuth2 secrets, API keys, and Redis passwords out of the log sink - at least through the component itself.
 
 > [!WARNING]
-> That guarantee only covers what `MailComponent` logs internally. If your own wrapper component or bootstrap code logs the `TMailOptions` or `IMailQueueExecutorConfig` object directly, you reintroduce the leak yourself. This commonly happens while debugging a binding. Log individual safe fields (`provider`, `type`) instead of the whole object.
+> That guarantee only covers what `MailComponent` logs internally. If your own wrapper component or bootstrap code logs the `TMailOptions` or `TMailQueueExecutorConfig` object directly, you reintroduce the leak yourself. This commonly happens while debugging a binding. Log individual safe fields (`provider`, `type`) instead of the whole object.
 
 ## See also
 

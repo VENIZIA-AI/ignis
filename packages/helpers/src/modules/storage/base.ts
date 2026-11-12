@@ -4,7 +4,7 @@ import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { EchoUtility } from '@/utilities/echo.utility';
 import { PromiseUtility } from '@/utilities/promise.utility';
-import { Readable } from 'node:stream';
+import type { Readable } from 'node:stream';
 import {
   type IBucketInfo,
   type IBucketRef,
@@ -400,64 +400,8 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     });
   }
 
-  /** Correct anywhere; overridden by a backend whose transport is already a web stream. */
-  async getObjectStream(opts: TObjectStreamOptions): Promise<ReadableStream<Uint8Array>> {
-    const { bucket, object, range } = opts;
-    this.refuseReadCondition({ condition: opts, operation: 'getObjectStream' });
-    const source = await this.getObject({ bucket, object });
-
-    if (!range) {
-      return Readable.toWeb(source) as ReadableStream<Uint8Array>;
-    }
-
-    // No native range here: take the window off the front of the full stream. `pull` rather than
-    // `start`, so one chunk is read per demand instead of the whole range landing in memory.
-    const { start, end } = range;
-    const chunks = source[Symbol.asyncIterator]();
-    let offset = 0;
-
-    return new ReadableStream<Uint8Array>({
-      async pull(controller) {
-        while (true) {
-          const next = await chunks.next();
-
-          if (next.done) {
-            controller.close();
-
-            return;
-          }
-
-          const bytes = next.value as Uint8Array;
-          const chunkEnd = offset + bytes.byteLength;
-          const from = Math.max(start - offset, 0);
-          const to =
-            end === undefined ? bytes.byteLength : Math.min(end + 1 - offset, bytes.byteLength);
-          const isWanted = chunkEnd > start && from < to;
-
-          if (isWanted) {
-            controller.enqueue(bytes.subarray(from, to));
-          }
-
-          offset = chunkEnd;
-
-          if (end !== undefined && offset > end) {
-            source.destroy();
-            controller.close();
-
-            return;
-          }
-
-          if (isWanted) {
-            return;
-          }
-        }
-      },
-
-      // Without this a client that aborts leaves the backend stream draining to nowhere.
-      cancel() {
-        source.destroy();
-      },
-    });
+  async getObjectStream(_opts: TObjectStreamOptions): Promise<ReadableStream<Uint8Array>> {
+    throw this.unsupported({ operation: 'getObjectStream', feature: 'Streaming a read' });
   }
 
   /**

@@ -10,7 +10,7 @@ import type {
   TMailgunConfig,
   TMailgunModule,
 } from '../../common';
-import { MailErrorCodes } from '../../common';
+import { MailErrors } from '../../common';
 import { MailAttachmentUtility } from '../../utilities/attachment.utility';
 
 /** Mailgun transport (`mailgun.js`). The constructor throws when `username`, `key` or `domain` is missing. */
@@ -49,7 +49,7 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
 
     throw getError({
       statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-      messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+      error: MailErrors.INVALID_CONFIGURATION,
       message: `Invalid Mailgun configuration | Missing required keys: ${missingKeys.join(', ')}`,
     });
   }
