@@ -623,6 +623,23 @@ const ScopedSearchController = SearchControllerFactory.build({
 
 A scope is a `where` ANDed into a filter, so the three inputs that carry the engine's own filter string cannot take one. A scoped controller therefore refuses `mode: 'raw'` (`400`), and `SearchControllerFactory.build` throws when `routes.multiSearch` is listed. Every controller refuses `mode: 'raw'`, multi-search and `engineParams` unless it opts in, see below.
 
+### Extra body keys for the scope
+
+A facet the search body does not have (a list of ids that must ALL match, say) is lost before the scope runs. Add it with `request.body.extend`, a Zod shape. Each key is validated with the rest of the body, in every `mode`, and a bad value is a `400`. The OpenAPI document shows it. The validated body reaches `scope` as `input`, typed from the shape:
+
+```typescript
+import { z } from '@hono/zod-openapi';
+
+const ScopedSearchController = SearchControllerFactory.build({
+  repository: ArticleRepository,
+  routes: { search: true },
+  request: { body: { extend: { ids: z.array(z.string().min(1)).max(50) } } },
+  scope: ({ input }) => ({ id: { inq: input.ids } }), // input.ids is string[]
+});
+```
+
+A key the search body already has (`query`, `filter`, ...) is refused when the controller is built. The extra keys are not search fields: nothing but your `scope` reads them. Without `request`, the body is the base body and an unknown key is dropped.
+
 ### Engine parameters over HTTP
 
 A search request's `engineParams` hands the engine its own wire parameters. It could replace the controller's own `filter_by` and name fields the model hides, so a search controller, scoped or not, refuses a request that carries it with `400 engineParams is not available on this search controller`, in `search` and in every entry of `multi-search`. The key alone is the request: an empty `engineParams: {}` is refused too.

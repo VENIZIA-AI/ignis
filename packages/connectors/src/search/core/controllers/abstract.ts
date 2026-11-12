@@ -7,7 +7,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { Env, Schema } from 'hono';
 import type { TMultiSearchInput, TSearchInput } from '@/search/core/repositories/common';
-import { SearchModes } from '@/search/core/repositories/common';
+import { SearchInputSchema, SearchModes } from '@/search/core/repositories/common';
 import type { ReadableSearchRepository } from '../repositories/core/readable';
 import { SearchEngineParams } from './engine-params';
 import { SearchRawAccess } from './raw-access';
@@ -50,9 +50,10 @@ export abstract class AbstractSearchController<
   BasePath extends string = '/',
   ConfigurableOptions extends object = {},
   TDataObject extends object = TEntityDataObject<TEntity>,
+  TExtra extends object = {},
 > extends BaseRestController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions> {
   repository: ReadableSearchRepository<TDataObject>;
-  searchScope?: TSearchScopeResolver<RouteEnv>;
+  searchScope?: TSearchScopeResolver<RouteEnv, TExtra>;
 
   /** The `engineParams` names a caller may send, normalised (see {@link SearchEngineParams}). Empty: any `engineParams` is refused. */
   allowedEngineParams: ReadonlySet<string>;
@@ -60,31 +61,37 @@ export abstract class AbstractSearchController<
   /** Whether the controller serves `mode: 'raw'` and multi-search over HTTP (`modes.raw.allow`). Closed by default: see {@link SearchRawAccess}. */
   isRawAllowed: boolean;
 
+  /** `request.body.extend` was given: its keys are the scope's to read, and they do not go on to the repository. */
+  isBodyExtended: boolean;
+
   constructor(opts: {
     scope: string;
     isStrict?: boolean;
     repository: ReadableSearchRepository<TDataObject>;
     definitions: AnyType;
     /** Per-request search scope; see {@link TSearchScopeResolver}. */
-    searchScope?: TSearchScopeResolver<RouteEnv>;
+    searchScope?: TSearchScopeResolver<RouteEnv, TExtra>;
     /** Names from `engineParams.allow`, as `SearchEngineParams.resolveAllowlist` answers them. */
     allowedEngineParams?: ReadonlySet<string>;
     /** `modes.raw.allow`, as `SearchRawAccess.resolve` answers it. */
     isRawAllowed?: boolean;
+    /** `request.body.extend` was given. */
+    isBodyExtended?: boolean;
   }) {
     super({ scope: opts.scope, isStrict: opts.isStrict });
     this.repository = opts.repository;
     this.searchScope = opts.searchScope;
     this.allowedEngineParams = opts.allowedEngineParams ?? new Set();
     this.isRawAllowed = opts.isRawAllowed ?? false;
+    this.isBodyExtended = opts.isBodyExtended ?? false;
     this.definitions = opts.definitions;
   }
 
   /** POST /search - single-collection keyword/semantic/hybrid/raw search. Carries the list headers of every IGNIS list endpoint; the body keeps `{ found, isFoundExact, hits }` because `isFoundExact` has no place in a `{ count, data }` envelope, and it is the only carrier of "found is an estimate". */
   async search(opts: { context: TRouteContext<RouteEnv> }) {
     const { context } = opts;
-    const body = context.req.valid<TSearchInput>('json');
-    let input = body;
+    const body = context.req.valid<TSearchInput & TExtra>('json');
+    let input: TSearchInput = body;
 
     // Before the scope and on every controller: a caller's raw engine parameters can replace the controller's own filter.
     SearchRawAccess.assertSearchInput({ input: body, isAllowed: this.isRawAllowed });
@@ -102,6 +109,11 @@ export abstract class AbstractSearchController<
         input: body,
       });
       input = scoped;
+    }
+
+    // The scope was the only reader of the extra keys: the base schema drops them, so the repository and the log never see them.
+    if (this.isBodyExtended) {
+      input = SearchInputSchema.parse(input);
     }
 
     const rs = await this.measure({

@@ -16,24 +16,28 @@ description: "Every export of @venizia/ignis-connectors/typesense/controllers, f
 Base tier of a generated search controller: the repository handle plus the search / multi-search verbs; SearchControllerFactory returns a thin subclass that only builds route configs and wires them.
 
 ```ts
-export declare abstract class AbstractSearchController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEntity>> extends BaseRestController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions> {
+export declare abstract class AbstractSearchController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEntity>, TExtra extends object = {}> extends BaseRestController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions> {
     repository: ReadableSearchRepository<TDataObject>;
-    searchScope?: TSearchScopeResolver<RouteEnv>;
+    searchScope?: TSearchScopeResolver<RouteEnv, TExtra>;
     /** The `engineParams` names a caller may send, normalised (see {@link SearchEngineParams}). Empty: any `engineParams` is refused. */
     allowedEngineParams: ReadonlySet<string>;
     /** Whether the controller serves `mode: 'raw'` and multi-search over HTTP (`modes.raw.allow`). Closed by default: see {@link SearchRawAccess}. */
     isRawAllowed: boolean;
+    /** `request.body.extend` was given: its keys are the scope's to read, and they do not go on to the repository. */
+    isBodyExtended: boolean;
     constructor(opts: {
         scope: string;
         isStrict?: boolean;
         repository: ReadableSearchRepository<TDataObject>;
         definitions: AnyType;
         /** Per-request search scope; see {@link TSearchScopeResolver}. */
-        searchScope?: TSearchScopeResolver<RouteEnv>;
+        searchScope?: TSearchScopeResolver<RouteEnv, TExtra>;
         /** Names from `engineParams.allow`, as `SearchEngineParams.resolveAllowlist` answers them. */
         allowedEngineParams?: ReadonlySet<string>;
         /** `modes.raw.allow`, as `SearchRawAccess.resolve` answers it. */
         isRawAllowed?: boolean;
+        /** `request.body.extend` was given. */
+        isBodyExtended?: boolean;
     });
     /** POST /search - single-collection keyword/semantic/hybrid/raw search. Carries the list headers of every IGNIS list endpoint; the body keeps `{ found, isFoundExact, hits }` because `isFoundExact` has no place in a `{ count, data }` envelope, and it is the only carrier of "found is an estimate". */
     search(opts: {
@@ -55,7 +59,7 @@ Source: `packages/connectors/src/search/core/controllers/abstract.ts`
 Configuration options for creating a search controller via SearchControllerFactory.build.
 
 ```ts
-export interface ISearchControllerOptions<Repository extends TCrudRepositoryClass = TCrudRepositoryClass> {
+export interface ISearchControllerOptions<Repository extends TCrudRepositoryClass = TCrudRepositoryClass, Shape extends z.ZodRawShape = {}> {
     /** The repository class; its name is the binding the container injects, and its `@repository({ model })` supplies the entity whose SELECT schema drives the `hits[].document` shape in the response. */
     repository: Repository;
     /** When true, /search and /search/ are different routes. @default true */
@@ -80,7 +84,19 @@ export interface ISearchControllerOptions<Repository extends TCrudRepositoryClas
      * multi-search route (leave `routes.multiSearch` out), which `SearchControllerFactory.build` requires.
      * `engineParams` is refused on every controller unless `engineParams.allow` lists it.
      */
-    scope?: TSearchScopeResolver;
+    scope?: TSearchScopeResolver<Env, z.infer<z.ZodObject<Shape>>>;
+    /**
+     * Adds keys to the body of `POST /search`, on every `mode`: `request.body.extend` is a Zod shape, and each key is
+     * validated with the rest of the body (a bad value is a 400) and shown in the OpenAPI document. The validated body,
+     * typed from the shape, reaches `scope` as `input`, so a facet the engine does not know can still narrow the scope
+     * (an `ids` list that must all match, say). The extra keys are not search fields: nothing else reads them.
+     * A key the base body already has is refused when the controller is built.
+     */
+    request?: {
+        body?: {
+            extend: Shape;
+        };
+    };
     /**
      * Which engine parameters a caller may send in a request's `engineParams`. Unset or empty, a request that carries
      * `engineParams` is refused with 400, on a scoped and an unscoped controller alike: raw engine parameters can replace
@@ -132,6 +148,8 @@ Factory for generating turnkey search controllers (single-collection + cross-col
 ```ts
 export declare class SearchControllerFactory extends BaseHelper {
     constructor();
+    /** `SearchInputSchema` with `shape` added to each of its four modes (a discriminated union has no `extend` of its own). */
+    private static extendSearchBody;
     static defineRouteConfigs(opts: {
         selectSchema: z.ZodType;
         authenticate?: {
@@ -139,6 +157,8 @@ export declare class SearchControllerFactory extends BaseHelper {
             mode?: TAuthMode;
         };
         authorize?: IAuthorizationSpec | IAuthorizationSpec[];
+        /** The keys `request.body.extend` adds to every `mode` of the search body; none leaves `SearchInputSchema` as it is. */
+        bodyExtension?: z.ZodRawShape;
     }): {
         readonly SEARCH: {
             readonly method: "post";
@@ -243,6 +263,14 @@ export declare class SearchControllerFactory extends BaseHelper {
                             }, z.core.$strip>, z.ZodObject<{
                                 mode: z.ZodLiteral<"raw">;
                                 params: z.ZodRecord<z.ZodString, z.ZodAny>;
+                            }, z.core.$strip>], "mode"> | z.ZodDiscriminatedUnion<[z.ZodObject<{
+                                [x: string]: z.core.$ZodType<unknown, unknown, z.core.$ZodTypeInternals<unknown, unknown>>;
+                            }, z.core.$strip>, z.ZodObject<{
+                                [x: string]: z.core.$ZodType<unknown, unknown, z.core.$ZodTypeInternals<unknown, unknown>>;
+                            }, z.core.$strip>, z.ZodObject<{
+                                [x: string]: z.core.$ZodType<unknown, unknown, z.core.$ZodTypeInternals<unknown, unknown>>;
+                            }, z.core.$strip>, z.ZodObject<{
+                                [x: string]: z.core.$ZodType<unknown, unknown, z.core.$ZodTypeInternals<unknown, unknown>>;
                             }, z.core.$strip>], "mode">;
                         };
                     };
@@ -433,16 +461,17 @@ export declare class SearchControllerFactory extends BaseHelper {
         };
     };
     /** Creates a search controller with the routes you list: `POST /search` via `repository.search()`, and `POST /multi-search` via `repository.dataSource.multiSearch()`. The path is the `@controller({ path })` of the subclass. */
-    static build<Repository extends TCrudRepositoryClass, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TRepositoryDataObject<InstanceType<Repository>>>(opts: ISearchControllerOptions<Repository>): {
+    static build<Repository extends TCrudRepositoryClass, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TRepositoryDataObject<InstanceType<Repository>>, Shape extends z.ZodRawShape = {}>(opts: ISearchControllerOptions<Repository, Shape>): {
         new (repositoryInstance: ReadableSearchRepository<TDataObject>): {
             /** The routes of a generated controller come from `routes`; a subclass adds its own here. */
             binding(): ValueOrPromise<void>;
             /** Registers each listed route, after the subclass's `binding()`. */
             bindDefaultRoutes(): ValueOrPromise<void>;
             repository: ReadableSearchRepository<TDataObject, import("../index.js").AbstractSearchDataSource<{}>>;
-            searchScope?: TSearchScopeResolver<RouteEnv> | undefined;
+            searchScope?: TSearchScopeResolver<RouteEnv, z.core.$InferObjectOutput<Shape, {}>> | undefined;
             allowedEngineParams: ReadonlySet<string>;
             isRawAllowed: boolean;
+            isBodyExtended: boolean;
             search(opts: {
                 context: import("@venizia/ignis-kernel").TRouteContext<RouteEnv>;
             }): Promise<import("@venizia/ignis-kernel").TJsonResponse<unknown, 200>>;
@@ -679,8 +708,10 @@ sharing rule). Return a `where`, `ScopeFilters.UNRESTRICTED` to apply none for t
 null/undefined when the caller's scope is unknown - which refuses the request.
 
 ```ts
-export type TSearchScopeResolver<RouteEnv extends Env = Env> = (opts: {
+export type TSearchScopeResolver<RouteEnv extends Env = Env, TExtra extends object = {}> = (opts: {
     context: TRouteContext<RouteEnv>;
+    /** The validated request body: the search input, and the keys the controller's `request.body.extend` adds. */
+    input: TSearchInput & TExtra;
 }) => ValueOrPromise<TWhere | typeof ScopeFilters.UNRESTRICTED | null | undefined>;
 ```
 

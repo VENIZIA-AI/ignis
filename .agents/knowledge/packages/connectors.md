@@ -326,7 +326,7 @@ shipped, so nothing migrates from it.
 | `relational/postgres/supabase` | `PoolerModes`, `SupabasePooler` and `SupabaseRls` |
 | `relational/sqlite` | `BaseSqliteDataSource`, `LibSqlDriver`, `DefaultSqliteRepository` and its chain, `SqliteQueryDialect`, `SqliteBeginModes` |
 | `search/core` | `ISearchConnector` and `BaseSearchConnector`, `BaseSearchDataSource`, `SearchCollectionFactory`, the search repository chain |
-| `search/core/controllers` | `AbstractSearchController`, `SearchControllerFactory` (with `defineRouteConfigs`) - published only as `./search/controllers` and `./typesense/controllers` |
+| `search/core/controllers` | `AbstractSearchController`, `SearchControllerFactory` (with `defineRouteConfigs`) - published only as `./search/controllers` and `./typesense/controllers`; `request.body.extend` (a Zod shape) is added to each of the four `SearchInputSchema` members by `extendSearchBody` (a discriminated union has no `extend`), a key the base has throws at build, and the validated body reaches `scope` as `input` typed `TSearchInput & z.infer<z.ZodObject<Shape>>` (`TSearchScopeResolver`'s second type argument, `AbstractSearchController`'s last) |
 | `search/typesense` | `TypesenseConnector`, `TypesenseDataSource`, `TypesenseQueryDialect`, the collection compiler |
 | `search/meilisearch` | `MeilisearchConnector`, `MeilisearchDataSource`, `MeilisearchQueryDialect`, the collection compiler |
 

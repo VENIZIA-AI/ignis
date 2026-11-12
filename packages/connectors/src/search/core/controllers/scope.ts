@@ -12,8 +12,10 @@ import { SearchModes } from '@/search/core/repositories/common';
  * sharing rule). Return a `where`, `ScopeFilters.UNRESTRICTED` to apply none for this call, or
  * null/undefined when the caller's scope is unknown - which refuses the request.
  */
-export type TSearchScopeResolver<RouteEnv extends Env = Env> = (opts: {
+export type TSearchScopeResolver<RouteEnv extends Env = Env, TExtra extends object = {}> = (opts: {
   context: TRouteContext<RouteEnv>;
+  /** The validated request body: the search input, and the keys the controller's `request.body.extend` adds. */
+  input: TSearchInput & TExtra;
 }) => ValueOrPromise<TWhere | typeof ScopeFilters.UNRESTRICTED | null | undefined>;
 
 export class SearchControllerScope {
@@ -35,17 +37,17 @@ export class SearchControllerScope {
    *   ANDed into, so a scoped controller refuses it (400). `engineParams` is checked before this, on every controller
    *   (`SearchEngineParams`): what a controller allows there never selects rows or fields.
    */
-  static async applySearchScope<RouteEnv extends Env = Env>(opts: {
-    resolve: TSearchScopeResolver<RouteEnv>;
+  static async applySearchScope<RouteEnv extends Env = Env, TExtra extends object = {}>(opts: {
+    resolve: TSearchScopeResolver<RouteEnv, TExtra>;
     context: TRouteContext<RouteEnv>;
-    input: TSearchInput;
+    input: TSearchInput & TExtra;
   }): Promise<TSearchInput> {
     const { resolve, context, input } = opts;
 
-    let scope: Awaited<ReturnType<TSearchScopeResolver<RouteEnv>>>;
+    let scope: Awaited<ReturnType<TSearchScopeResolver<RouteEnv, TExtra>>>;
 
     try {
-      const result = await resolve({ context });
+      const result = await resolve({ context, input });
       scope = result;
     } catch (error) {
       throw SearchControllerScope.refuse({
