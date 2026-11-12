@@ -135,8 +135,8 @@ export interface IApiReferenceOptions {
     };
     servers?: Array<{ url: string; description?: string }>;
   };
-  uiConfig?: Record<string, any>;
-  securitySchemes?: Record<string, Record<string, any>>;
+  uiConfig?: Record<string, unknown>;
+  securitySchemes?: Record<string, Record<string, unknown>>;
 }
 ```
 
@@ -149,8 +149,8 @@ export interface IApiReferenceOptions {
 | `explorer.openapi` | `string` | `'3.0.0'` | OpenAPI specification version |
 | `explorer.info.title` / `.version` / `.description` / `.contact` | - | Always sourced from `package.json` | Overwritten at runtime - binding values are discarded |
 | `explorer.servers` | `Array<{ url, description? }>` | Auto-detected when empty | Server URLs |
-| `uiConfig` | `Record<string, any>` | `undefined` | Custom config passed through to the UI provider |
-| `securitySchemes` | `Record<string, Record<string, any>>` | `{}` | Extra OpenAPI security schemes, registered by name after the three built-in ones |
+| `uiConfig` | `Record<string, unknown>` | `undefined` | Custom config passed through to the UI provider |
+| `securitySchemes` | `Record<string, Record<string, unknown>>` | `{}` | Extra OpenAPI security schemes, registered by name after the three built-in ones |
 
 ### Binding keys
 | Key | Constant | Type | Required | Default |

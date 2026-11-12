@@ -2890,7 +2890,7 @@ export interface IApplicationConfigs {
      * @default 10_000
      */
     dataSourceCloseTimeoutMs?: number;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 ```
 
@@ -2912,7 +2912,7 @@ export interface IApplicationInfo {
         email: string;
         url?: string;
     };
-    [extra: string | symbol]: any;
+    [extra: string | symbol]: unknown;
 }
 ```
 
@@ -3148,7 +3148,7 @@ The authenticated identity a strategy returns and the request context stores. Ca
 ```ts
 export interface IAuthUser {
     userId: IdType;
-    [extra: string | symbol]: any;
+    [extra: string | symbol]: unknown;
 }
 ```
 
@@ -3169,7 +3169,7 @@ export interface IBaseMiddlewareOptions {
      */
     enable?: boolean;
     path?: string;
-    [extra: string | symbol]: any;
+    [extra: string | symbol]: unknown;
 }
 ```
 
@@ -4052,7 +4052,7 @@ export interface IJWTTokenPayload extends JWTPayload, IAuthUser {
     provider?: string;
     email?: string;
     name?: string;
-    [extra: string | symbol]: any;
+    [extra: string | symbol]: unknown;
 }
 ```
 
@@ -4107,7 +4107,7 @@ export interface IMiddlewareConfigs {
     bodyLimit?: IBodyLimitOptions;
     /** Typed only: the framework installs no ip restriction. Wire it in `setupMiddlewares()`. */
     ipRestriction?: IBaseMiddlewareOptions & IIPRestrictionRules;
-    [extra: string | symbol]: any;
+    [extra: string | symbol]: unknown;
 }
 ```
 
@@ -4281,7 +4281,7 @@ export interface IModelAuthorizeSettings {
     /** The authorization principal name (resource/subject) for this model. */
     principal: string;
     /** Extensible - consumers can add any extra authorization metadata. */
-    [extra: string | symbol]: any;
+    [extra: string | symbol]: unknown;
 }
 ```
 

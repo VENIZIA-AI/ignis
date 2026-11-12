@@ -145,7 +145,7 @@ io.of('/admin').on('connection', socket => {
 });
 ```
 
-#### `getEngine(): any`
+#### `getEngine(): TSocketIOBunEngine | undefined`
 
 Returns the Bun engine instance.
 
@@ -218,7 +218,7 @@ Emits `'ping'` to the client with `{ time: ISO string }`.
 
 No-op if `socket` is falsy.
 
-#### `send(opts: { destination?: string; payload: { topic: string; data: any }; doLog?: boolean; callback?: () => void }): void`
+#### `send(opts: { destination?: string; payload: { topic: string; data: unknown }; doLog?: boolean; callback?: () => void }): void`
 
 Emits through the Redis emitter with compression enabled (`emitter.compress(true)`), reaching clients on **any** server instance.
 
@@ -471,7 +471,7 @@ interface IHandshake {
   issued: number;
   url: string;
   query: ParsedUrlQuery;
-  auth: { [key: string]: any };
+  auth: { [key: string]: unknown };
 }
 ```
 
@@ -524,7 +524,7 @@ Client connection options. Extends `SocketOptions` from `socket.io-client`; `pat
 ```typescript
 interface IOptions extends SocketOptions {
   path: string;
-  extraHeaders: Record<string | symbol | number, any>;
+  extraHeaders: Record<string, string>;
 }
 ```
 
@@ -564,7 +564,7 @@ interface ISocketIOServerBaseOptions {
 
 interface ISocketIOServerBunOptions extends ISocketIOServerBaseOptions {
   runtime: 'bun';
-  engine: any; // @socket.io/bun-engine Server instance - typed `any` since it's an optional peer dep
+  engine: TSocketIOBunEngine; // a @socket.io/bun-engine Server instance; `TSocketIOBunEngine` is `object`, the engine being an optional peer
 }
 ```
 

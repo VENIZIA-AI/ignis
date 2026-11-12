@@ -77,7 +77,7 @@ Marks a class as a database entity and configures its behavior.
     access?: IModelAccessSettings,
     authorize?: {
       principal: string,
-      [extra: string | symbol]: any,
+      [extra: string | symbol]: unknown,
     },
   },
 })

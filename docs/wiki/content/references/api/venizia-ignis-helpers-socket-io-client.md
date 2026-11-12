@@ -7,7 +7,9 @@ description: "Every export of @venizia/ignis-helpers/socket-io/client, from the 
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-6 exports, 6 with TSDoc.
+6 exports, 5 with TSDoc.
+
+Without TSDoc (1): `SocketIOClientHelper`.
 
 ## `IOptions`
 
@@ -18,7 +20,7 @@ Connection options for the Socket.IO client helper: the `socket.io-client` optio
 ```ts
 export interface IOptions extends SocketOptions {
     path: string;
-    extraHeaders: Record<string | symbol | number, any>;
+    extraHeaders: Record<string, string>;
 }
 ```
 
@@ -50,10 +52,6 @@ Source: `packages/helpers/src/modules/socket/socket-io/common/types/client.ts`
 ## `SocketIOClientHelper`
 
 *class*
-
-The socket.io client with nothing node in its graph, so a browser bundle can hold it: `socket.io-client`
-is handed in as `module` (`{ io }` from the app's own `import`) instead of being found on disk.
-`@venizia/ignis-helpers/socket-io` extends it and finds the module itself when none is handed in.
 
 ```ts
 export declare class SocketIOClientHelper extends BaseHelper {

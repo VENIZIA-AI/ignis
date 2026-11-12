@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/socket-io, from the built d
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-11 exports, 11 with TSDoc. 5 more are re-exported from other entries (listed at the end).
+12 exports, 12 with TSDoc. 5 more are re-exported from other entries (listed at the end).
 
 ## `IHandshake`
 
@@ -26,7 +26,7 @@ export interface IHandshake {
     url: string;
     query: ParsedUrlQuery;
     auth: {
-        [key: string]: any;
+        [key: string]: unknown;
     };
 }
 ```
@@ -85,7 +85,7 @@ Socket.IO server options for the Bun runtime; `engine` is a `@socket.io/bun-engi
 ```ts
 export interface ISocketIOServerBunOptions extends ISocketIOServerBaseOptions {
     runtime: typeof RuntimeModules.BUN;
-    engine: any;
+    engine: TSocketIOBunEngine;
 }
 ```
 
@@ -139,7 +139,7 @@ export declare class SocketIOServerHelper extends BaseHelper {
         scope: string;
         execution: () => ValueOrPromise<void>;
     }): void;
-    getEngine(): any;
+    getEngine(): object | undefined;
     getClients(opts?: {
         id?: string;
     }): ISocketIOClient | Map<string, ISocketIOClient> | undefined;
@@ -179,7 +179,7 @@ export declare class SocketIOServerHelper extends BaseHelper {
         destination?: string;
         payload: {
             topic: string;
-            data: any;
+            data: unknown;
         };
         doLog?: boolean;
         callback?: () => void;
@@ -202,6 +202,18 @@ export type TSocketIOAuthenticateFn = (args: IHandshake) => ValueOrPromise<boole
 ```
 
 Source: `packages/helpers/src/modules/socket/socket-io/common/types/hooks.ts`
+
+## `TSocketIOBunEngine`
+
+*type*
+
+A `@socket.io/bun-engine` server. Socket.IO types what `io.bind` takes as `any` and the engine is an optional peer, so the helper names only that it is an object it passes on.
+
+```ts
+export type TSocketIOBunEngine = object;
+```
+
+Source: `packages/helpers/src/modules/socket/socket-io/common/types/server.ts`
 
 ## `TSocketIOClientConnectedFn`
 

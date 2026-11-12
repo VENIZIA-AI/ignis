@@ -264,7 +264,7 @@ export interface IMailAttachment {
     content?: string | Buffer | Uint8Array | Readable | ReadableStream<Uint8Array>;
     encoding?: BufferEncoding;
     cid?: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 ```
 
@@ -310,7 +310,7 @@ export interface IMailMessage {
     attachments?: IMailAttachment[];
     headers?: Record<string, string>;
     requireValidate?: boolean;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 ```
 
@@ -397,7 +397,7 @@ Outcome of one send: `success` plus the provider `messageId`, or an `error` stri
 export interface IMailSendResult {
     success: boolean;
     messageId?: string;
-    response?: any;
+    response?: unknown;
     error?: string;
 }
 ```
@@ -418,7 +418,7 @@ export interface IMailService {
     }): Promise<IMailSendResult[]>;
     sendTemplate(opts: {
         templateName: string;
-        data: Record<string, any>;
+        data: Record<string, unknown>;
         recipients: string | string[];
         options?: Partial<IMailMessage>;
     }): Promise<IMailSendResult>;
@@ -439,7 +439,7 @@ export interface IMailTemplateEngine {
     render(opts: {
         templateData?: string;
         templateName?: string;
-        data: Record<string, any>;
+        data: Record<string, unknown>;
         requireValidate?: boolean;
         /** @default MailTemplateFormats.HTML */
         format?: TMailTemplateFormat;
@@ -450,7 +450,7 @@ export interface IMailTemplateEngine {
     }): void;
     validateTemplateData(opts: {
         template: string;
-        data: Record<string, any>;
+        data: Record<string, unknown>;
     }): {
         isValid: boolean;
         missingKeys: string[];

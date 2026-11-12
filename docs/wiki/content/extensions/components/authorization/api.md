@@ -1439,7 +1439,7 @@ Declared on both entity bases: `BasePostgresEntity.AUTHORIZATION_SUBJECT?: strin
 ```typescript
 interface IModelAuthorizeSettings {
   principal: string;
-  [extra: string | symbol]: any; // extensible - consumers can add extra authorization metadata
+  [extra: string | symbol]: unknown; // extensible - consumers can add extra authorization metadata
 }
 ```
 
@@ -1565,7 +1565,7 @@ declare module 'hono' {
 ```typescript
 interface IAuthUser {
   userId: IdType; // number | string | bigint
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 ```
 
@@ -1579,7 +1579,7 @@ interface IJWTTokenPayload extends JWTPayload, IAuthUser {
   provider?: string;
   email?: string;
   name?: string;
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 ```
 
