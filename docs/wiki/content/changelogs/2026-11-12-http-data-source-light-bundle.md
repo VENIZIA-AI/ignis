@@ -21,6 +21,32 @@ migration:
       steps:
         - "Remove the fetch setting; the older data source sends through its own node transport."
         - "A subclass that read this.network works again."
+  - id: repository-data-source-type
+    symbols: [AbstractRepository.dataSource, IReadableRepository, IUpdatableRepository, IDeletableRepository]
+    upgrade:
+      before: |
+        const source: AbstractDataSource = repository.dataSource;
+        repository.setDataSource({ dataSource: source });
+      after: |
+        import { AbstractDataSource, DataSourceRoot } from '@venizia/ignis-kernel/repository';
+
+        const source: DataSourceRoot = repository.dataSource;
+        // when you need what only an AbstractDataSource has:
+        if (source instanceof AbstractDataSource) {
+          // ...
+        }
+    downgrade:
+      steps:
+        - "Type the value as AbstractDataSource again; the older getter and contracts return it."
+        - "Remove an `instanceof AbstractDataSource` narrowing you added only for the widened type."
+  - id: http-data-source-fetch-setting
+    symbols: [IHttpDataSourceSettings]
+    upgrade:
+      steps:
+        - "Optional. To send through your own function (a test double, a proxy, an instrumented client), pass `fetch: (url, init) => ...` in the settings. Left out, the platform fetch is used, as before."
+    downgrade:
+      steps:
+        - "Remove the fetch setting; the older settings type does not know it and the older data source ignores it."
   - id: http-data-source-root-class
     symbols: [HttpDataSource, AbstractDataSource]
     upgrade:
@@ -52,6 +78,7 @@ migration:
 
 - **Apps that subclass `HttpDataSource` and read `this.network`.** The member is gone. Pass `fetch` in the settings instead.
 - **Code that tests `instanceof AbstractDataSource` on an `HttpDataSource`.** It is false now: see the migration below.
+- **Code that types `repository.dataSource` as `AbstractDataSource`.** The getter and the repository contracts return `DataSourceRoot` now, so that assignment stops compiling; type it as `DataSourceRoot`, or narrow with `instanceof AbstractDataSource`.
 - **Everyone else.** No action needed; the smaller bundle is automatic.
 
 ## Breaking changes
