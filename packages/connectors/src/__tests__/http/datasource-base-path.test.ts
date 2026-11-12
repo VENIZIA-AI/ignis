@@ -1,7 +1,12 @@
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import type { ApplicationError } from '@venizia/ignis-helpers/core';
+import { HttpWire } from '@/http/common/wire';
 import { HttpDataSource } from '@/http/datasource';
-import { describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, mock, spyOn, test } from 'bun:test';
+
+afterEach(() => {
+  mock.restore();
+});
 
 /** A request path stays under the configured base path: no dot segment in any form can climb out of it. */
 const capture = (task: () => unknown): ApplicationError => {
@@ -109,7 +114,7 @@ describe('HttpDataSource.buildUrl keeps the request path under the base path', (
   test('the resolved URL is checked too: a builder that leaves the origin or the base path is refused', () => {
     const leaving = (url: string) => {
       const source = new HttpDataSource({ baseUrl: 'https://api.example.com/v1/tenant' });
-      Reflect.set(source, 'network', { getRequestUrl: () => url });
+      spyOn(HttpWire, 'toRequestUrl').mockReturnValue(url);
 
       return source;
     };

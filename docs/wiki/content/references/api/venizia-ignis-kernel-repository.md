@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel/repository, from the built d
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-36 exports, 36 with TSDoc. 7 more are re-exported from other entries (listed at the end).
+37 exports, 37 with TSDoc. 7 more are re-exported from other entries (listed at the end).
 
 ## `AbstractDataSource`
 
@@ -16,87 +16,11 @@ description: "Every export of @venizia/ignis-kernel/repository, from the built d
 Engine-neutral datasource root - NO SQL members. Every connector family extends this.
 
 ```ts
-export declare abstract class AbstractDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}> extends BaseHelper implements IDataSource<Settings, Schema, ConfigurableOptions> {
-    /** Read by {@link isDataSourceClass}. Static, so every subclass inherits it. */
-    static readonly [DATA_SOURCE_BRAND] = true;
-    name: string;
-    settings: Settings;
-    schema: Schema;
-    abstract configure(opts?: ConfigurableOptions, opening?: IDataSourceOpening): ValueOrPromise<void>;
-    /** The options the boot would have given `configure()`, kept for the open that the first use starts. */
-    private deferredOptions?;
-    /** The open in flight: every call that arrives meanwhile awaits this one promise. */
-    private opening?;
-    /**
-     * An open that outlived its timeout and has not settled. Nothing is retried until it has: two `configure()` must never
-     * run at once, and when it does settle what it built is closed, never published.
-     */
-    private abandoned?;
-    private isOpened;
-    private isShutDown;
-    /**
-     * Whether this family can open on first use: only a family whose every entry point first awaits {@link ensureOpen}
-     * says yes (the relational one does). A family that does not is refused at boot rather than left half-working.
-     */
-    protected supportsDeferredOpen(): boolean;
+export declare abstract class AbstractDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}> extends DataSourceRoot<Settings, Schema, ConfigurableOptions> {
     /** The `open.on` of `@datasource`, `start` when unset. */
     getOpenMode(): TDataSourceOpenMode;
-    isOpenDeferred(): boolean;
     /** The `open.timeoutMs` of `@datasource` (ms; `0` waits for ever), 60 s when unset. */
     getOpenTimeoutMs(): number;
-    /**
-     * Whether the datasource is open. One that opens on first use: after the first use has finished, until `close()`. One that
-     * opens at start: from the moment the application has started it, until `close()`.
-     */
-    isOpen(): boolean;
-    /** Whether the first use is opening the datasource right now. */
-    isOpening(): boolean;
-    /** Whether `close()` has begun. A datasource that opens on first use is not reopened after it. */
-    isClosed(): boolean;
-    /**
-     * What the application boot calls to get the handles it passes to `configure()` of a datasource that opens at start. Keyed by a
-     * symbol the package does not export, so nothing else can obtain the handles: see {@link OPENING_HANDLES}.
-     */
-    [OPENING_HANDLES](): IDataSourceOpening;
-    /**
-     * The handles `configure()` gets as its second argument, in both modes. The root has no connector, client or transaction to
-     * hand out; a family that has them overrides this. Protected: the only ways out are the argument of `configure()` and the
-     * boot's private key.
-     */
-    protected createOpening(): IDataSourceOpening;
-    /**
-     * The boot's replacement for `configure()` on a datasource that opens on first use: records the options and opens nothing.
-     * Refused for a family that cannot honour it.
-     */
-    deferOpen(opts: {
-        options?: ConfigurableOptions;
-    }): void;
-    /**
-     * Resolves once the datasource is open. At once for one that opens with the application. Otherwise the first caller
-     * starts `configure()` and the rest await the same promise, so it runs once; a failure rejects all of them, undoes what the
-     * failed `configure()` left ({@link discardPartialOpen}) and clears the slot, so the next call opens afresh. After
-     * `close()` it rejects: a stopped application does not reopen its datasources.
-     */
-    ensureOpen(): Promise<void>;
-    private runOpen;
-    /** When an abandoned open finally settles, whatever it built is closed (it was never published) and retries are allowed again. */
-    private settleAbandoned;
-    private discardOpenAttempt;
-    /** Undoes what a `configure()` that threw left behind, so the next open starts clean. The root holds nothing; a family that keeps a client overrides it. */
-    protected discardPartialOpen(): ValueOrPromise<void>;
-    /**
-     * Waits for an open in flight and refuses any later one. A family's `close()` calls it first, so a stop that arrives
-     * during the first use closes what that open built instead of racing it.
-     */
-    protected settleOpening(): Promise<void>;
-    getSettings(): Settings;
-    getSchema(): Schema;
-    /** Capability probe, overridden by connectors that support it (e.g. postgres reports `{ transactions: true }`). */
-    getCapabilities(): IDataSourceCapabilities;
-    /** Nothing to release at this root; a family that holds a connection overrides it. */
-    close(): Promise<void>;
-    /** Defaults to throwing NotSupported - only connectors with real transaction support override this; async so callers get a rejected promise, not a synchronous throw that skips try/catch. */
-    beginTransaction(_opts?: ITransactionOptions): Promise<ITransaction>;
     /** Model classes bound to this datasource via `@repository` metadata - paradigm-free (no schema/relation resolution). */
     protected getBoundModelClasses(): Array<TClass<unknown>>;
     /** Walks model classes bound to this datasource, reads a connector-specific artifact via `read`, and returns a name-keyed registry - skips undefined reads, throws on duplicate names, honors `autoDiscovery: false`. */
@@ -150,7 +74,7 @@ export declare abstract class AbstractRepository<TDataObject extends object, TPe
     readonly $inferPersist?: TPersistObject;
     protected _operationScope: TRepositoryOperationScope;
     /** Lazy-resolved on first access if not provided in constructor. */
-    protected _dataSource?: AbstractDataSource;
+    protected _dataSource?: DataSourceRoot;
     /** Lazy-resolved from @repository metadata on first access. */
     protected _entity?: AbstractEntity;
     /**
@@ -158,19 +82,19 @@ export declare abstract class AbstractRepository<TDataObject extends object, TPe
      * is itself a valid resolved value: the model declares no settings.
      */
     private _modelSettings;
-    constructor(dataSource?: AbstractDataSource, opts?: {
+    constructor(dataSource?: DataSourceRoot, opts?: {
         scope?: string;
         entityClass?: TClass<AbstractEntity>;
         operationScope?: TRepositoryOperationScope;
     });
-    get dataSource(): AbstractDataSource;
-    set dataSource(value: AbstractDataSource);
+    get dataSource(): DataSourceRoot;
+    set dataSource(value: DataSourceRoot);
     /** Auto-resolves from @repository metadata if not explicitly set. */
     get entity(): AbstractEntity;
     set entity(value: AbstractEntity);
     get operationScope(): TRepositoryOperationScope;
     setDataSource(opts: {
-        dataSource: AbstractDataSource;
+        dataSource: DataSourceRoot;
     }): void;
     getEntity(): AbstractEntity;
     /**
@@ -458,6 +382,101 @@ export declare class DataRangeUtility {
 ```
 
 Source: `packages/kernel/src/base/repositories/common/types/results.ts`
+
+## `DataSourceRoot`
+
+*class*
+
+The datasource root with no dependency-injection import: the brand, the settings, the open-on-first-use state machine
+and the no-op defaults. A client that only talks HTTP extends this, so a browser bundle does not carry the metadata
+registry; {@link AbstractDataSource} adds what reads `@datasource` and `@repository` metadata.
+
+```ts
+export declare abstract class DataSourceRoot<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}> extends BaseHelper implements IDataSource<Settings, Schema, ConfigurableOptions> {
+    /** Read by {@link isDataSourceClass}. Static, so every subclass inherits it. */
+    static readonly [DATA_SOURCE_BRAND] = true;
+    name: string;
+    settings: Settings;
+    schema: Schema;
+    abstract configure(opts?: ConfigurableOptions, opening?: IDataSourceOpening): ValueOrPromise<void>;
+    /** The options the boot would have given `configure()`, kept for the open that the first use starts. */
+    private deferredOptions?;
+    /** The open in flight: every call that arrives meanwhile awaits this one promise. */
+    private opening?;
+    /**
+     * An open that outlived its timeout and has not settled. Nothing is retried until it has: two `configure()` must never
+     * run at once, and when it does settle what it built is closed, never published.
+     */
+    private abandoned?;
+    private isOpened;
+    private isShutDown;
+    /**
+     * Whether this family can open on first use: only a family whose every entry point first awaits {@link ensureOpen}
+     * says yes (the relational one does). A family that does not is refused at boot rather than left half-working.
+     */
+    protected supportsDeferredOpen(): boolean;
+    /** How the datasource opens: `start` here. {@link AbstractDataSource} reads the `open.on` of `@datasource`. */
+    getOpenMode(): TDataSourceOpenMode;
+    isOpenDeferred(): boolean;
+    /** How long an open may take (ms; `0` waits for ever): 60 s here. {@link AbstractDataSource} reads the `open.timeoutMs` of `@datasource`. */
+    getOpenTimeoutMs(): number;
+    /**
+     * Whether the datasource is open. One that opens on first use: after the first use has finished, until `close()`. One that
+     * opens at start: from the moment the application has started it, until `close()`.
+     */
+    isOpen(): boolean;
+    /** Whether the first use is opening the datasource right now. */
+    isOpening(): boolean;
+    /** Whether `close()` has begun. A datasource that opens on first use is not reopened after it. */
+    isClosed(): boolean;
+    /**
+     * What the application boot calls to get the handles it passes to `configure()` of a datasource that opens at start. Keyed by a
+     * symbol the package does not export, so nothing else can obtain the handles: see {@link OPENING_HANDLES}.
+     */
+    [OPENING_HANDLES](): IDataSourceOpening;
+    /**
+     * The handles `configure()` gets as its second argument, in both modes. The root has no connector, client or transaction to
+     * hand out; a family that has them overrides this. Protected: the only ways out are the argument of `configure()` and the
+     * boot's private key.
+     */
+    protected createOpening(): IDataSourceOpening;
+    /**
+     * The boot's replacement for `configure()` on a datasource that opens on first use: records the options and opens nothing.
+     * Refused for a family that cannot honour it.
+     */
+    deferOpen(opts: {
+        options?: ConfigurableOptions;
+    }): void;
+    /**
+     * Resolves once the datasource is open. At once for one that opens with the application. Otherwise the first caller
+     * starts `configure()` and the rest await the same promise, so it runs once; a failure rejects all of them, undoes what the
+     * failed `configure()` left ({@link discardPartialOpen}) and clears the slot, so the next call opens afresh. After
+     * `close()` it rejects: a stopped application does not reopen its datasources.
+     */
+    ensureOpen(): Promise<void>;
+    private runOpen;
+    /** When an abandoned open finally settles, whatever it built is closed (it was never published) and retries are allowed again. */
+    private settleAbandoned;
+    private discardOpenAttempt;
+    /** Undoes what a `configure()` that threw left behind, so the next open starts clean. The root holds nothing; a family that keeps a client overrides it. */
+    protected discardPartialOpen(): ValueOrPromise<void>;
+    /**
+     * Waits for an open in flight and refuses any later one. A family's `close()` calls it first, so a stop that arrives
+     * during the first use closes what that open built instead of racing it.
+     */
+    protected settleOpening(): Promise<void>;
+    getSettings(): Settings;
+    getSchema(): Schema;
+    /** Capability probe, overridden by connectors that support it (e.g. postgres reports `{ transactions: true }`). */
+    getCapabilities(): IDataSourceCapabilities;
+    /** Nothing to release at this root; a family that holds a connection overrides it. */
+    close(): Promise<void>;
+    /** Defaults to throwing NotSupported - only connectors with real transaction support override this; async so callers get a rejected promise, not a synchronous throw that skips try/catch. */
+    beginTransaction(_opts?: ITransactionOptions): Promise<ITransaction>;
+}
+```
+
+Source: `packages/kernel/src/base/datasources/root.ts`
 
 ## `DEFAULT_LIMIT`
 
@@ -784,7 +803,7 @@ Base repository interface shared by every engine - engine-specific accessors (po
 
 ```ts
 export interface IRepository {
-    dataSource: AbstractDataSource;
+    dataSource: DataSourceRoot;
     entity: AbstractEntity;
     getEntity(): AbstractEntity;
 }

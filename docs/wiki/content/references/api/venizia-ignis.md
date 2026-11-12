@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-107 exports, 107 with TSDoc. 967 more are re-exported from other entries (listed at the end).
+107 exports, 107 with TSDoc. 968 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3392,6 +3392,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `DataSourceDrivers` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `DataSourceOpenDefaults` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `DataSourceOpenModes` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `DataSourceRoot` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `DataTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `DayjsTemporalAdapter` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `DEFAULT_CIPHER_BITS` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)

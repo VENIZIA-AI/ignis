@@ -1,7 +1,7 @@
 import { RestApplication } from '@/base/applications/rest';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/common';
 import type { IDataSourceOpening, TAnyDataSourceSchema } from '@/base/datasources';
-import { AbstractDataSource, DataSourceOpenModes } from '@/base/datasources';
+import { AbstractDataSource, DataSourceOpenModes, DataSourceRoot } from '@/base/datasources';
 import { datasource } from '@/base/metadata';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
@@ -130,6 +130,20 @@ class UnsupportedDataSource extends AbstractDataSource {
   }
 }
 
+/** A client family on the DI-free root (an HTTP client): it never reads `@datasource` metadata itself, and the boot must still refuse `first-use`. */
+@datasource({ open: { on: 'first-use' } })
+class RootOnlyDataSource extends DataSourceRoot {
+  constructor() {
+    super({ scope: 'RootOnlyDataSource' });
+    this.name = this.constructor.name;
+    this.settings = {};
+  }
+
+  configure(): void {
+    Journal.entries.push(`configure:${this.name}`);
+  }
+}
+
 class TestApplication extends RestApplication {
   getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return { name: 'open-first-use-app', version: '0.0.0', description: '' };
@@ -151,7 +165,7 @@ const CONFIGS: IApplicationConfigs = {
   path: { base: '/', isStrict: false },
 };
 
-const boot = async (...classes: Array<new () => AbstractDataSource>) => {
+const boot = async (...classes: Array<new () => DataSourceRoot>) => {
   const application = new TestApplication({ scope: TestApplication.name, config: CONFIGS });
 
   for (const dataSourceClass of classes) {
@@ -201,6 +215,14 @@ describe('the application starts without opening a datasource that opens on firs
     await RejectionHelper.expectRejection({
       task: boot(UnsupportedDataSource),
       message: /UnsupportedDataSource.*first-use.*not supported/,
+    });
+    expect(Journal.entries).toEqual([]);
+  });
+
+  test('a DataSourceRoot family that declares first-use is refused at boot too, not started and ignored', async () => {
+    await RejectionHelper.expectRejection({
+      task: boot(RootOnlyDataSource),
+      message: /RootOnlyDataSource.*first-use.*not supported/,
     });
     expect(Journal.entries).toEqual([]);
   });

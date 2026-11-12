@@ -58,7 +58,7 @@ packaging. A driver reaches a bundle only when the application names its class.
 
 ## `./http` - a datasource whose transport is not a database
 
-`AbstractDataSource` is engine-neutral (only `configure()` is required), so a request to another
+`HttpDataSource` extends `DataSourceRoot` (`@venizia/ignis-kernel/repository`), the datasource root with no metadata-registry import, so a browser bundle carries no DI mixins (measured 60.4 KB raw to 28.2 KB; `weight.test.ts`); it sends through `settings.fetch` or the platform `fetch`, never the node transport. `AbstractDataSource` extends the same root and adds what reads `@datasource` metadata (`open.on`, `open.timeoutMs`, model discovery); an `HttpDataSource` ignores those. A datasource is engine-neutral (only `configure()` is required), so a request to another
 IGNIS server is a datasource in the same sense Drizzle-over-Postgres is one: same role, different
 transport, same `@venizia/ignis-filter` vocabulary going in. `HttpRepository` implements the
 readable, updatable and deletable contracts rather than extending `AbstractRepository`, and has no

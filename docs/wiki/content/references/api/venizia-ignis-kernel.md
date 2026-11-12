@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-358 exports, 358 with TSDoc. 86 more are re-exported from other entries (listed at the end).
+358 exports, 358 with TSDoc. 87 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -2324,18 +2324,14 @@ Source: `packages/kernel/src/base/controllers/common/constants.ts`
 
 *const*
 
-Brands the datasource root so `@repository` can recognise a subclass WITHOUT `instanceof`.
-
-Two copies of this package give two `AbstractDataSource` classes, and `instanceof` across them is
-false - the same trap `isApplicationError` exists to avoid for `ApplicationError`. `Symbol.for` is
-realm-keyed, so both copies produce this exact symbol, and a static is inherited by every
-subclass however deep.
+The key keeps its old name, `abstract-data-source`, so a copy of the package from before `DataSourceRoot` still recognises the
+classes of a newer one, and the other way round.
 
 ```ts
 export declare const DATA_SOURCE_BRAND: unique symbol;
 ```
 
-Source: `packages/kernel/src/base/datasources/abstract.ts`
+Source: `packages/kernel/src/base/datasources/root.ts`
 
 ## `DataSourceDrivers`
 
@@ -4783,13 +4779,13 @@ Source: `packages/kernel/src/helpers/inversion/common/types/controller.ts`
 
 *const*
 
-True for `AbstractDataSource` itself and for any class extending it, across package copies.
+True for `DataSourceRoot` itself and for any class extending it (`AbstractDataSource` among them), across package copies.
 
 ```ts
 export declare const isDataSourceClass: (value: unknown) => value is TClass<AnyType>;
 ```
 
-Source: `packages/kernel/src/base/datasources/abstract.ts`
+Source: `packages/kernel/src/base/datasources/root.ts`
 
 ## `ISearchableDataSourceCapabilities`
 
@@ -9171,6 +9167,7 @@ Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`
 - `CoreErrorCodes` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `DataRangeUtility` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `datasource` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
+- `DataSourceRoot` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `DEFAULT_LIMIT` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `DEFAULT_MAX_LIMIT` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `FilterKeys` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)

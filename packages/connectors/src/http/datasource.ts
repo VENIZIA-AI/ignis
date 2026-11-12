@@ -1,8 +1,7 @@
 import { EchoUtility } from '@/common/internal';
 import { HttpReadShapes, type THttpReadShape } from './common/constants';
-import { AbstractDataSource } from '@venizia/ignis-kernel/repository';
+import { DataSourceRoot } from '@venizia/ignis-kernel/repository';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { NodeFetchNetworkRequest } from '@venizia/ignis-helpers/core';
 import { getError } from '@venizia/ignis-helpers/core';
 import { HttpResponseReader } from './common/readers';
 import type {
@@ -33,12 +32,11 @@ const MAX_ECHOED_PATH_LENGTH = 200;
 const DOT_SEGMENT_PATTERN = /^(?:\.|%2e){1,2}$/i;
 
 /** Reads an IGNIS REST server through the repository contract. Targets IGNIS, not any REST API. */
-export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> {
+export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
   override name: string;
   override settings: IHttpDataSourceSettings;
   override schema = {} as never;
 
-  protected network: NodeFetchNetworkRequest;
   /** Normalised once: every request copies these, never re-parses `settings.headers`. */
   protected configuredHeaders: Array<[string, string]>;
   /** Decided once: a relative baseUrl (`/api`) is resolved against the page origin on every request. */
@@ -73,10 +71,6 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     this.configuredHeaders = configured;
     this.name = name;
     this.settings = settings;
-    this.network = new NodeFetchNetworkRequest({
-      name,
-      networkOptions: { baseUrl: settings.baseUrl },
-    });
   }
 
   async configure(): Promise<void> {}
@@ -202,7 +196,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     const { paths, query } = opts;
     this.assertPathsStayUnderBase({ paths });
 
-    const requestUrl = this.network.getRequestUrl({ paths });
+    const requestUrl = HttpWire.toRequestUrl({ baseUrl: this.settings.baseUrl, paths });
 
     // A page or a Web Worker has an origin to resolve '/api' against; a server has none.
     const origin = this.isRelativeBaseUrl ? this.resolveLocationOrigin() : undefined;
@@ -269,9 +263,9 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
 
     // Both hooks run inside `send`, so the retry sends what they answer after the refresh.
     const send = () =>
-      this.network.getNetworkService().send({
-        url,
-        method: method as never,
+      // The platform `fetch` unless the settings name a sender; looked up per call, so a test that swaps the global is heard.
+      (this.settings.fetch ?? fetch)(url, {
+        method: method.toUpperCase(),
         body: payload,
         signal,
         headers: this.buildHeaders({

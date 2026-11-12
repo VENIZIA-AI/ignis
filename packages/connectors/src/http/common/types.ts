@@ -72,7 +72,13 @@ export interface IHttpDataSourceSettings {
 
   /** Runs on a 401: `true` retries once (re-resolving the token), `false` lets the 401 stand. */
   onUnauthorized?: (context: IHttpRequestContext) => Promise<boolean> | boolean;
+
+  /** What sends a request: the platform `fetch` when unset. Name one to route through a test double, a proxy or an instrumented client. */
+  fetch?: THttpFetch;
 }
+
+/** The part of `fetch` the data source uses: a URL and its init, a `Response` back. */
+export type THttpFetch = (url: string, init: RequestInit) => Promise<Response>;
 
 /** A list with no `Content-Range` has no total - `hasRange` says so rather than using the page size. */
 export interface IHttpReadResult<R> {
