@@ -234,9 +234,9 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
       return false;
     }
 
-    // Dropped from the list BEFORE the close is awaited: a rejecting close must not leave a half-closed worker still counted and still handed jobs.
+    // The helper closes the worker, then quits the connections it handed to BullMQ. Dropped from the list BEFORE the close is awaited: a rejecting close must not leave a half-closed worker still counted and still handed jobs.
     const [workerHelper] = this.workerHelpers.splice(index, 1);
-    await workerHelper.worker.close();
+    await workerHelper.close();
 
     this.logger
       .for(this.removeWorker.name)
@@ -251,7 +251,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
     this.workerHelpers = [];
 
     const results = await Promise.allSettled(
-      workerHelpers.map((workerHelper) => workerHelper.worker.close()),
+      workerHelpers.map((workerHelper) => workerHelper.close()),
     );
 
     const failures: Error[] = [];
@@ -287,7 +287,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
 
     if (this.queueHelper) {
       try {
-        await this.queueHelper.queue.close();
+        await this.queueHelper.close();
       } catch (error) {
         const closeError = error instanceof Error ? error : getError({ message: String(error) });
         failures.push(closeError);

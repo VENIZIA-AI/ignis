@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import { describe, expect, test } from 'bun:test';
 import { BullMQExecutorModes, MailDefaults, MailExecutorErrors } from '@/components/mail/common';
 import type { IMailProcessorResult, IQueueJobPayload } from '@/components/mail/common';
@@ -219,6 +220,11 @@ class FakeWorkerHelper {
       },
     };
   }
+
+  /** What `BullMQHelper.close()` is to the executor: closes the worker, then quits the connections handed to BullMQ. */
+  close(): Promise<void> {
+    return this.worker.close();
+  }
 }
 
 class FakeQueueHelper {
@@ -235,6 +241,10 @@ class FakeQueueHelper {
       this.isClosed = true;
     },
   };
+
+  close(): Promise<void> {
+    return this.queue.close();
+  }
 }
 
 class FakeRedisConnection {
@@ -401,16 +411,34 @@ describe('BullMQMailExecutorHelper - teardown', () => {
   });
 });
 
-/** A Redis helper of any topology: the executor hands its own client to BullMQ, which never quits a client it is handed, so nothing is duplicated. */
+/** What a Redis helper's `duplicateClient()` hands BullMQ: an emitter with a status, `quit()` and `disconnect()`. */
+class FakeDuplicate extends EventEmitter {
+  status = 'ready';
+  quits = 0;
+
+  async quit(): Promise<string> {
+    this.quits += 1;
+    this.status = 'end';
+
+    return 'OK';
+  }
+
+  disconnect(): void {
+    this.status = 'end';
+  }
+}
+
+/** A Redis helper of any topology: BullMQ gets a duplicate per queue and worker, and the helper quits each one in `close()`. */
 const buildRedisHelper = (opts: { client: Record<string, unknown> }) => {
   const helper = {
     isDisconnected: false,
-    duplicates: 0,
+    duplicates: [] as FakeDuplicate[],
     getClient: () => opts.client,
     duplicateClient: () => {
-      helper.duplicates += 1;
+      const duplicate = new FakeDuplicate();
+      helper.duplicates.push(duplicate);
 
-      return { duplicate: helper.duplicates };
+      return duplicate;
     },
     disconnect: async () => {
       helper.isDisconnected = true;
@@ -471,11 +499,12 @@ describe("BullMQMailExecutorHelper - the Redis helper is the application's", () 
       module,
     });
 
-    expect(queues).toEqual([{ name: 'mail', connection: client }]);
-    expect(sentinel.duplicates).toBe(0);
+    expect(queues).toEqual([{ name: 'mail', connection: sentinel.duplicates[0] }]);
+    expect(sentinel.duplicates.length).toBe(1);
 
     await executor.close();
 
+    expect(sentinel.duplicates.map((duplicate) => duplicate.quits)).toEqual([1]);
     expect(sentinel.isDisconnected).toBe(false);
   });
 
@@ -495,11 +524,12 @@ describe("BullMQMailExecutorHelper - the Redis helper is the application's", () 
 
     expect(queues.map((queue) => queue.name)).toEqual(['{mail}']);
     expect(workers.map((worker) => worker.name)).toEqual(['{mail}', '{mail}']);
-    // The queue and both workers share the helper's own client; none is duplicated, so none leaks.
-    expect(cluster.duplicates).toBe(0);
+    // The queue and both workers each get a duplicate, and `close()` quits every one, so none leaks.
+    expect(cluster.duplicates.length).toBe(3);
 
     await executor.close();
 
+    expect(cluster.duplicates.map((duplicate) => duplicate.quits)).toEqual([1, 1, 1]);
     expect(cluster.isDisconnected).toBe(false);
   });
 
