@@ -220,7 +220,7 @@ export const workbookValidation = (opts: {
 `define` returns the check already switched on (`{ use: true, issueSchema, handler }`). Pass it as `directUpload.validation`. Leave `validation: { use: false }` when there is nothing to check.
 
 - `issueSchema` is the shape of **one** issue. It types the handler (an issue of another shape fails type-checking) and documents the route's response.
-- The handler receives `{ file, owner }`. `file` is a `StaticAssetPinnedFile` and `owner` is the one the token was issued to. It answers `{ isValid, issues }`. It no longer receives the helper, the bucket or the object.
+- The handler receives `{ file, owner }`. `file` is a `StaticAssetPinnedFile` and `owner` is the one the token was issued to. It answers `{ isValid, issues }`. It does not receive the helper, the bucket or the object.
 - Switching `validation` on registers `POST {base}/upload-validate`. It takes `{ commitToken }` and answers `{ isValid, issues, commitToken? }`, with the issues in your shape. It calls `authorize` first, like the other routes.
 - **Commit does not run the handler.** With `validation` on, commit takes only the token validate returned. The policy's token is refused with `422` `core.static_asset.upload_not_validated`, so an unvalidated file can never be committed: not by skipping the validate call, not by a forged client.
 
@@ -608,6 +608,7 @@ export const routes: TStaticAssetRoutes = { uploadCommit: { use: false } };
 
 ```ts
 import { Authentication } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { TStaticAssetDirectUploadOptions } from '@venizia/ignis/static-asset';
 
@@ -626,7 +627,7 @@ export const directUpload: { use: true } & TStaticAssetDirectUploadOptions = {
       const ownerId = await orderOwnerOf({ orderId });
 
       if (ownerId !== String(context.get(Authentication.CURRENT_USER).userId)) {
-        throw getError({ message: 'Not your order', statusCode: 403 });
+        throw getError({ message: 'Not your order', statusCode: HTTP.ResultCodes.RS_4.Forbidden });
       }
 
       return { orderId };

@@ -100,10 +100,10 @@ export const syncMetaLink = async (): Promise<string> => {
 ```
 
 - **Refresh, not overwrite-one.** When rows exist for `(bucketName, objectName)`, every one of them is updated - `mimetype`, `size`, `etag`, and `isSynced: true` always - and each row keeps its own `storageType` and labels (`variant`, `principalType`, `principalId`, `sequence`). One product image attached to the product and to a variant syncs both rows in one call.
-- **A `createMetaLink` hook keeps its own `link` and `metadata`.** With `metaLink.createMetaLink` configured, a refresh writes only `mimetype`, `size`, `etag`, `isSynced` - it leaves `link` and `metadata` untouched, because the hook already owns what those fields mean, and a recreate no longer erases an enrichment the hook wrote (dimensions, a placeholder, anything beyond what `getStat()` reports).
+- **A `createMetaLink` hook keeps its own `link` and `metadata`.** With `metaLink.createMetaLink` configured, a refresh writes only `mimetype`, `size`, `etag`, `isSynced` - it leaves `link` and `metadata` untouched, because the hook already owns what those fields mean, so a recreate keeps an enrichment the hook wrote (dimensions, a placeholder, anything beyond what `getStat()` reports).
 - **Without a hook, `metadata` merges per row, and `link` is rewritten.** One statement refreshes `link` plus the stat columns on every row; then one more statement per row merges that row's own `metadata` with the stat's - the stat's keys win, everything else the row had survives. A concurrent write to that row's `metadata` landing between the two statements is lost.
 - **Create only when nothing was there to refresh.** The new row goes through the same `createMetaLink` hook an upload uses, so it gets your `storageType` and defaults, not the component's raw guess.
-- **`count`** is how many rows were touched; **`metaLinks`** holds all of them; **`metaLink`** is kept for existing callers and is `metaLinks[0]`. `action` is `'refreshed'` or `'created'` - a real OpenAPI enum, not a free string.
+- **`count`** is how many rows were touched; **`metaLinks`** holds all of them; **`metaLink`** is `metaLinks[0]`. `action` is `'refreshed'` or `'created'` - a real OpenAPI enum, not a free string.
 
 Useful for backfilling MetaLink rows for files that already exist in storage, or after a database restore.
 

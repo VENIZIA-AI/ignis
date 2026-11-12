@@ -231,7 +231,7 @@ export const bindOptions = (opts: {
 ### `BunS3Helper` fails to construct or import
 
 - **Cause:** running outside Bun. `BunS3Helper` imports `S3Client` from the `bun` builtin module, which only resolves under the Bun runtime.
-- **Fix:** run the app under Bun, or use `DiskHelper` outside it.
+- **Fix:** run the app under Bun.
 
 ## The size ceiling, and the token errors
 
