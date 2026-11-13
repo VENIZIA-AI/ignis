@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-107 exports, 107 with TSDoc. 970 more are re-exported from other entries (listed at the end).
+107 exports, 107 with TSDoc. 973 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3626,6 +3626,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IRedisClusterHelperProps` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IRedisCommand` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IRedisConnection` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `IRedisCredentials` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IRedisHash` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IRedisHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `IRedisHelperCallbacks` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -3634,6 +3635,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `IRedisKeyValue` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IRedisList` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IRedisModuleOption` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `IRedisNode` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IRedisPubSub` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IRedisSentinelHelperOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `IRedisSentinelHelperProps` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
@@ -3824,6 +3826,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `RedisConcurrency` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `RedisDefaults` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `RedisHelperFactory` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `RedisSentinelDefaults` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `RedisSentinelHelper` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `RedisSentinelRoles` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `RedisSingleHelper` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)

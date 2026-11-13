@@ -2,11 +2,12 @@ import { ParseUtility } from '@/utilities';
 import { ModuleUtility } from '@/utilities/module.utility';
 import type { Cluster, ClusterOptions } from 'ioredis';
 import { AbstractRedisHelper } from './../base';
-import { RedisDefaults, type IRedisClusterHelperOptions } from './../common';
+import { RedisDefaults } from './../common';
+import type { IRedisClusterHelperOptions } from './types';
 
 /** Redis helper over an ioredis `Cluster`. `autoConnect: false` creates the client with `lazyConnect`; `clusterOptions` is applied last and overrides the defaults. */
 export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
-  private startupNodes: Array<{ host: string; port: number; password?: string }>;
+  private startupNodes: Array<{ host: string; port: number }>;
   private clusterOpts: ClusterOptions;
   private ioredis: typeof import('ioredis');
 
@@ -15,8 +16,7 @@ export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
 
     const startupNodes = opts.nodes.map((node) => ({
       host: node.host,
-      port: ParseUtility.toInt({ input: node.port }),
-      password: node.password,
+      port: ParseUtility.toInt({ input: node.port ?? RedisDefaults.PORT }),
     }));
 
     // Precedence (low -> high): the framework defaults, then `clusterOptions` verbatim. The raw
@@ -34,9 +34,18 @@ export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
         maxRetry,
       }),
       ...opts.clusterOptions,
-      // Merged, not replaced: node passwords and TLS live in `redisOptions`, and an app that sets them must keep what BullMQ needs. An explicit `maxRetriesPerRequest` still wins.
+      // Merged, not replaced: TLS and the like live in `redisOptions`, and an app that sets them must keep what BullMQ needs. An explicit `maxRetriesPerRequest` still wins.
       redisOptions: { maxRetriesPerRequest: null, ...opts.clusterOptions?.redisOptions },
     };
+
+    // ioredis applies a per-node password to the startup nodes only; nodes found later are built
+    // from host:port and `redisOptions`. So the credentials go in `redisOptions`, where every node
+    // gets them. The rule is the Sentinel helper's: a first-class credential that is given wins,
+    // and `redisOptions` only fills what is unset. (The other cluster knobs keep `clusterOptions`
+    // as the last word, because callers already thread timing through it.)
+    clusterOpts.redisOptions ??= {};
+    clusterOpts.redisOptions.username = opts.username ?? clusterOpts.redisOptions.username;
+    clusterOpts.redisOptions.password = opts.password ?? clusterOpts.redisOptions.password;
 
     const ioredis =
       opts.module ?? ModuleUtility.loadSync<typeof import('ioredis')>({ module: 'ioredis' });

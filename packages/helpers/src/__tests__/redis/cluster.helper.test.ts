@@ -1,4 +1,3 @@
-import type { AnyType } from '@/common/types';
 import { afterEach, describe, expect, it } from 'bun:test';
 import { RedisClusterHelper } from '@/modules/redis';
 
@@ -19,15 +18,22 @@ describe('RedisClusterHelper', () => {
       ],
       clusterOptions: { lazyConnect: true },
     });
-    const nodes = (
-      helper.getClient() as AnyType as {
-        startupNodes: Array<{ host: string; port: number; password?: string }>;
-      }
-    ).startupNodes;
+    const nodes = Reflect.get(helper.getClient(), 'startupNodes');
     expect(nodes).toEqual([
-      { host: '127.0.0.1', port: 7000, password: undefined },
-      { host: '127.0.0.2', port: 7001, password: undefined },
+      { host: '127.0.0.1', port: 7000 },
+      { host: '127.0.0.2', port: 7001 },
     ]);
+  });
+
+  it('defaults a startup node port to 6379', () => {
+    helper = new RedisClusterHelper({
+      name: 'cluster-port',
+      nodes: [{ host: '127.0.0.1' }],
+      clusterOptions: { lazyConnect: true },
+    });
+    const nodes = Reflect.get(helper.getClient(), 'startupNodes');
+
+    expect(nodes).toEqual([{ host: '127.0.0.1', port: 6379 }]);
   });
 
   it('duplicateClient returns a fresh Cluster', () => {
@@ -43,10 +49,14 @@ describe('RedisClusterHelper', () => {
 });
 
 describe('RedisClusterHelper reconnect policy', () => {
-  const build = (opts: {
-    maxRetry?: number;
-    clusterOptions?: ConstructorParameters<typeof RedisClusterHelper>[0]['clusterOptions'];
-  }) =>
+  const build = (
+    opts: {
+      maxRetry?: number;
+      username?: string;
+      password?: string;
+      clusterOptions?: ConstructorParameters<typeof RedisClusterHelper>[0]['clusterOptions'];
+    } = {},
+  ) =>
     new RedisClusterHelper({
       name: 'cluster-retry',
       nodes: [{ host: '127.0.0.1', port: 7000 }],
@@ -78,6 +88,68 @@ describe('RedisClusterHelper reconnect policy', () => {
     expect(client.options.redisOptions?.password).toBe('secret');
     expect(client.options.redisOptions?.maxRetriesPerRequest).toBeNull();
     client.disconnect();
+  });
+
+  it('sends username and password through redisOptions, so every node gets them', () => {
+    const client = build({ username: 'acl-user', password: 'acl-secret' }).getClient();
+
+    expect(client.options.redisOptions?.username).toBe('acl-user');
+    expect(client.options.redisOptions?.password).toBe('acl-secret');
+    expect(client.options.redisOptions?.maxRetriesPerRequest).toBeNull();
+    client.disconnect();
+  });
+
+  it('leaves the credentials unset when none is given', () => {
+    const client = build().getClient();
+
+    expect(client.options.redisOptions?.username ?? null).toBeNull();
+    expect(client.options.redisOptions?.password ?? null).toBeNull();
+    client.disconnect();
+  });
+
+  it('a given first-class credential wins over clusterOptions.redisOptions, as in Sentinel', () => {
+    const client = build({
+      username: 'acl-user',
+      password: 'acl-secret',
+      clusterOptions: { redisOptions: { username: 'raw-user', password: 'raw-secret' } },
+    }).getClient();
+
+    expect(client.options.redisOptions?.username).toBe('acl-user');
+    expect(client.options.redisOptions?.password).toBe('acl-secret');
+    client.disconnect();
+  });
+
+  it('clusterOptions.redisOptions fills a credential the first-class field leaves unset', () => {
+    const client = build({
+      username: 'acl-user',
+      clusterOptions: { redisOptions: { username: 'raw-user', password: 'raw-secret' } },
+    }).getClient();
+
+    expect(client.options.redisOptions?.username).toBe('acl-user');
+    expect(client.options.redisOptions?.password).toBe('raw-secret');
+    client.disconnect();
+  });
+
+  it('an undefined clusterOptions.redisOptions credential does not clobber the first-class one', () => {
+    const client = build({
+      username: 'acl-user',
+      password: 'acl-secret',
+      clusterOptions: { redisOptions: { username: undefined, password: undefined } },
+    }).getClient();
+
+    expect(client.options.redisOptions?.username).toBe('acl-user');
+    expect(client.options.redisOptions?.password).toBe('acl-secret');
+    client.disconnect();
+  });
+
+  it('duplicateClient keeps the credentials', () => {
+    const source = build({ username: 'acl-user', password: 'acl-secret' });
+    const copy = source.duplicateClient();
+
+    expect(copy.options.redisOptions?.username).toBe('acl-user');
+    expect(copy.options.redisOptions?.password).toBe('acl-secret');
+    copy.disconnect();
+    source.getClient().disconnect();
   });
 
   it('clusterOptions still overrides the defaults', () => {

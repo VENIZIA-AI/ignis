@@ -185,7 +185,7 @@ BullMQ does not retain job records after they finish (success or failure).
 
 ### Redis Cluster setup
 
-`RedisClusterHelper` sets `maxRetriesPerRequest: null` by default, which BullMQ requires. It merges that key with your `clusterOptions.redisOptions`, so passwords and TLS keep it; an explicit value of yours wins:
+`RedisClusterHelper` sets `maxRetriesPerRequest: null` by default, which BullMQ requires. It merges that key with your `clusterOptions.redisOptions`, so TLS and the like keep it; an explicit value of yours wins. The password is top-level, for every node:
 
 ```typescript
 import { BullQueueRoles, RedisClusterHelper } from '@venizia/ignis-helpers';
@@ -198,13 +198,11 @@ const redisHelper = new RedisClusterHelper({
     { host: 'node2.redis.example.com', port: 6379 },
     { host: 'node3.redis.example.com', port: 6379 },
   ],
+  password: 'your-password',
   clusterOptions: {
     enableReadyCheck: true,
     scaleReads: 'slave',
-    redisOptions: {
-      password: 'your-password',
-      tls: {},
-    },
+    redisOptions: { tls: {} },
   },
 });
 

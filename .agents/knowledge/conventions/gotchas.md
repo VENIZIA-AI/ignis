@@ -339,6 +339,8 @@ test in `packages/helpers/src/__tests__/redis/cluster.helper.test.ts` is the con
 the two defaults are moved above the spread. Adding `autoConnect` to cluster was legitimate; adding
 `buildDefaultOpts` alongside it would not be.
 
+The cluster's first-class `username` and `password` go through `redisOptions` with the Sentinel helper's rule: a given first-class credential wins, and `clusterOptions.redisOptions` only fills what is unset (an `undefined` there does not clobber). The other cluster knobs keep `clusterOptions` as the last word. A per-node password cannot do this job: ioredis applies it to the startup nodes only, and nodes found later are built from host:port plus `redisOptions`. The same reason keeps credentials off Sentinel nodes (ioredis reads only host and port of an endpoint).
+
 ## Every constructor parameter needs @inject
 
 Mixing a decorated and an undecorated constructor parameter is refused, not tolerated.

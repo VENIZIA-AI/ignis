@@ -23,8 +23,7 @@ describe('redis interface conformance', () => {
     });
     const sentinel = new RedisSentinelHelper({
       name: 'se',
-      masterName: 'mymaster',
-      sentinels: [{ host: '127.0.0.1', port: 26379 }],
+      sentinel: { masterName: 'mymaster', nodes: [{ host: '127.0.0.1', port: 26379 }] },
       autoConnect: false,
     });
 

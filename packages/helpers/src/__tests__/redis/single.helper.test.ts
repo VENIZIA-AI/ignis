@@ -26,6 +26,12 @@ describe('RedisSingleHelper', () => {
     expect(helper.getClient().status).toBe('wait');
   });
 
+  it('defaults the port to 6379', () => {
+    helper = new RedisSingleHelper({ name: 'single-port', host: '127.0.0.1', autoConnect: false });
+
+    expect(helper.getClient().options.port).toBe(6379);
+  });
+
   it('passes a Redis ACL username to the client beside the password', () => {
     helper = new RedisSingleHelper({
       name: 'single-acl',

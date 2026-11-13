@@ -345,8 +345,7 @@ this.bind({ key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG }).toValue({
   options: {
     redis: new RedisSentinelHelper({
       name: 'mail-redis',
-      sentinels: [{ host: 'sentinel-1', port: 26379 }],
-      masterName: 'mymaster',
+      sentinel: { masterName: 'mymaster', nodes: [{ host: 'sentinel-1', port: 26379 }] },
       maxRetry: -1,
     }),
     queue: { identifier: 'mail-queue', name: 'mail-queue' },

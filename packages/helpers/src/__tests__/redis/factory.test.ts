@@ -32,8 +32,7 @@ describe('RedisHelperFactory', () => {
   it('builds a sentinel helper', () => {
     const helper = RedisHelperFactory.sentinel({
       name: 'se',
-      masterName: 'mymaster',
-      sentinels: [{ host: '127.0.0.1', port: 26379 }],
+      sentinel: { masterName: 'mymaster', nodes: [{ host: '127.0.0.1', port: 26379 }] },
       autoConnect: false,
     });
     expect(helper).toBeInstanceOf(RedisSentinelHelper);
