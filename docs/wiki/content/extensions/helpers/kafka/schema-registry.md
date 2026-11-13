@@ -56,7 +56,7 @@ Without a schema registry, producers and consumers must agree on message shape o
 - **It enforces a contract on the way out.** The producer says "I want to send this shape." The registry validates that shape against the registered schema before the message reaches Kafka.
 - **It enforces a contract on the way in.** The consumer asks "what shape is this?" The registry answers with how to deserialize it.
 
-| | Without registry | With registry |
+| Aspect | Without registry | With registry |
 |---|---|---|
 | **Message format** | Raw string, manual `JSON.stringify`/`JSON.parse` | Typed object, auto ser/deser |
 | **Validation** | None - runtime crashes on shape drift | Schema validated before send |
@@ -90,7 +90,7 @@ const consumer = KafkaConsumerHelper.newInstance({
   clientId: 'order-consumer',
   groupId: 'order-group',
   onMessage: async ({ message }) => {
-    const order = JSON.parse(message.value as string);  // <- pray it matches
+    const order = JSON.parse(message.value);  // <- pray it matches
     console.log(order.id, order.total);
   },
 });

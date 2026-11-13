@@ -248,7 +248,7 @@ A custom fetch function intercepts WebSocket upgrade requests before they reach 
 2. If it matches, delegates to `@socket.io/bun-engine` via `engine.handleRequest(req, server)`.
 3. If it doesn't, delegates to Hono's normal `server.fetch(req, server)` handler.
 
-Socket.IO and `@socket.io/bun-engine` define CORS slightly differently, so the component extracts each field explicitly instead of casting with `as any`. See [`SocketIOBunHandler.createEngine()`](#post-start-hooks) in Internals for the full CORS bridging code.
+Socket.IO and `@socket.io/bun-engine` define CORS slightly differently, so the component extracts each field explicitly instead of casting with `as any`. See [`SocketIOBunHandler.createEngine()`](#post-start-hooks) in Internals for how the engine is built.
 
 ## Server helper API reference
 
@@ -259,9 +259,11 @@ Socket.IO and `@socket.io/bun-engine` define CORS slightly differently, so the c
 | Step | What happens |
 |---|---|
 | 1 | Sets `identifier`, `runtime`, `serverOptions`, and the callback functions |
-| 2 | Applies defaults: `authenticateTimeout` = 10s, `pingInterval` = 30s, `defaultRooms` = `['io-default', 'io-notification']` |
+| 2 | Applies the defaults listed below the table |
 | 3 | `setRuntime()` validates and stores the engine - see [runtime validation](#setruntime-runtime-validation) |
-| 4 | `initRedisClients()` creates 3 duplicated Redis clients - see [Redis 3-client architecture](#redis-3-client-architecture) |
+| 4 | `initRedisClients()` creates 3 Redis clients - see [Redis 3-client architecture](#redis-3-client-architecture) |
+
+The defaults in step 2: `authenticateTimeout` = 10s, `pingInterval` = 30s, `defaultRooms` = `['io-default', 'io-notification']`.
 
 > [!IMPORTANT]
 > Redis clients are duplicated from the parent connection via `redisConnection.duplicateClient()`. The helper owns 3 independent connections (pub, sub, emitter) that inherit config from the parent but keep separate state. The parent connection is never consumed.
@@ -288,12 +290,14 @@ The only async method on the helper. It waits for all 3 Redis clients to reach `
 | `getIOServer()` | `(): IOServer` | Returns the underlying `socket.io` `Server` - for APIs the helper doesn't expose, like `io.of()` or `io.fetchSockets()` |
 | `getEngine()` | `(): TSocketIOBunEngine \| undefined` | Returns the `@socket.io/bun-engine` instance |
 | `getClients()` | `(opts?: { id? }): ISocketIOClient \| Map<string, ISocketIOClient> \| undefined` | Without `id`, returns the full client map. With `id`, returns that client or `undefined` |
-| `on()` | `(opts: { topic; handler }): void` | Registers a server-level event handler. Throws if `topic` is empty, `handler` is falsy, or the IO server isn't initialized |
-| `ping()` | `(opts: { socket; doIgnoreAuth }): void` | Sends `{ time }` to one client. No-op if `socket` or the client entry is missing. Disconnects the client if `doIgnoreAuth` is `false` and it isn't authenticated |
-| `disconnect()` | `(opts: { socket }): void` | Clears the client's ping interval and auth timeout, removes it from the client map, then calls `socket.disconnect()`. No-op if `socket` is falsy |
-| `onClientConnect()` | `(opts: { socket }): void` | Runs on every new connection: skips duplicates, creates the client entry (state `UNAUTHORIZED`), starts the auth timeout, and registers the `disconnect` and `authenticate` handlers |
-| `onClientAuthenticated()` | `(opts: { socket }): void` | Runs after successful auth: sets state `AUTHENTICATED`, sends the initial ping, joins default rooms, registers room handlers, starts the ping interval, and emits `authenticated` |
+| `on()` | `(opts: { topic; handler }): void` | Registers a server-level event handler. Throws on an empty `topic`, a falsy `handler`, or no IO server |
+| `ping()` | `(opts: { socket; doIgnoreAuth }): void` | Sends `{ time }` to one client. No-op without a `socket` or client entry. See the notes below |
+| `disconnect()` | `(opts: { socket }): void` | Clears the client's timers, removes it from the client map, calls `socket.disconnect()`. No-op without a `socket` |
+| `onClientConnect()` | `(opts: { socket }): void` | Runs on every new connection: creates the client entry (`UNAUTHORIZED`), starts the auth timeout |
+| `onClientAuthenticated()` | `(opts: { socket }): void` | Runs after successful auth: sets `AUTHENTICATED`, pings, joins default rooms, starts the ping interval |
 
+- **`onClientConnect()` also skips duplicate sockets and registers the `disconnect` and `authenticate` handlers.** `onClientAuthenticated()` also registers the room handlers and emits `authenticated`.
+- **`ping()` disconnects a client that is not authenticated** when `doIgnoreAuth` is `false`.
 - **`ping()` powers the keep-alive interval.** `doIgnoreAuth: true` covers both the initial post-auth ping and the recurring interval.
 - **`onClientConnect()` and `onClientAuthenticated()` are public** so tests and custom connection routing can call them directly.
 - **`clientConnectedFn` runs through a safety wrapper.** A synchronous throw inside your callback is caught and logged - it never crashes the process.
@@ -441,32 +445,18 @@ The component registers one hook, `'socket-io-initialize'`, in `registerBunHook(
 5. Calls `serverInstance.reload({ fetch, websocket })` to wire the engine into the running Bun server.
 
 ```typescript
-class SocketIOBunHandler {
-  static async createEngine(opts: {
-    serverOptions: Partial<ServerOptions>;
-  }) {
-    const { serverOptions } = opts;
-    const { Server: BunEngine } = await import('@socket.io/bun-engine');
+import type { Server as BunEngine } from '@socket.io/bun-engine';
+import type { ServerOptions } from 'socket.io';
 
-    const corsConfig = typeof serverOptions.cors === 'object' ? serverOptions.cors : undefined;
-    const engine = new BunEngine({
-      path: serverOptions.path ?? '/socket.io/',
-      ...(corsConfig && {
-        cors: {
-          origin: corsConfig.origin as string | RegExp | (string | RegExp)[] | undefined,
-          methods: corsConfig.methods,
-          credentials: corsConfig.credentials,
-          allowedHeaders: corsConfig.allowedHeaders,
-          exposedHeaders: corsConfig.exposedHeaders,
-          maxAge: corsConfig.maxAge,
-        },
-      }),
-    });
-
-    return { engine, engineHandler: engine.handler() };
-  }
+declare class SocketIOBunHandler {
+  static createEngine(opts: { serverOptions: Partial<ServerOptions> }): Promise<{
+    engine: BunEngine;
+    engineHandler: ReturnType<BunEngine['handler']>;
+  }>;
 }
 ```
+
+The listing shows the signature only. The method imports `@socket.io/bun-engine` on demand, builds the engine with `path` from `serverOptions.path` (default `'/socket.io/'`), and bridges the CORS options field by field: Socket.IO and the engine define `origin` differently, so the framework checks its shape before passing it on.
 
 ### Redis 3-client architecture
 
@@ -543,8 +533,13 @@ Timeout (10s) -> disconnect if not yet AUTHENTICATED
 
 | Path | Trigger | Actions |
 |---|---|---|
-| Rejected | `authenticateFn` resolves `false` | Reset state to `UNAUTHORIZED`. Emit `unauthenticated` with `"Invalid token to authenticate! Please login again!"` on the client's own socket, then disconnect. No error logged - this is an expected outcome. |
-| Threw | `authenticateFn` throws | Reset state to `UNAUTHORIZED`. Log the error. Emit `unauthenticated` with `"Failed to authenticate connection! Please login again!"` on the client's own socket, then disconnect. |
+| Rejected | `authenticateFn` resolves `false` | Reset state, emit `unauthenticated`, disconnect |
+| Threw | `authenticateFn` throws | Reset state, log the error, emit `unauthenticated`, disconnect |
+
+Both paths reset the state to `UNAUTHORIZED` and emit `unauthenticated` on the client's own socket before disconnecting:
+
+- Rejected: the message is `"Invalid token to authenticate! Please login again!"`. No error is logged, since this is an expected outcome.
+- Threw: the message is `"Failed to authenticate connection! Please login again!"`.
 
 ```typescript
 interface ISocketIOClient {
@@ -562,8 +557,10 @@ Registered after successful authentication.
 
 | Handler | Behavior |
 |---|---|
-| `join` | Client sends `{ rooms }`. If `validateRoomFn` is bound, only the rooms it returns get joined. If it isn't bound, the join is rejected with a warning log. |
-| `leave` | Client sends `{ rooms }`. Always allowed - no validation function needed. |
+| `join` | Client sends `{ rooms }`; joins only the rooms `validateRoomFn` returns |
+| `leave` | Client sends `{ rooms }`; always allowed |
+
+Without a bound `validateRoomFn`, a `join` is rejected with a warning log. `leave` needs no validation function.
 
 Both handlers parse the payload defensively: `const { rooms = [] } = payload || { rooms: [] }`. An empty array is silently ignored. A join error is caught and logged - it never disconnects the client.
 

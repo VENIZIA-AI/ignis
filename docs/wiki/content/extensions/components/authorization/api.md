@@ -260,8 +260,10 @@ packages/core-server/src/components/auth/authorize/
 | Rules caching | Built rules cached on the Hono context per-request - avoids rebuilding for multi-spec routes |
 | Registry singleton | Mirrors `AuthenticationStrategyRegistry` - shares `AbstractAuthRegistry<T>` |
 | Filtered adapter pattern | `BaseFilteredAdapter` is a thin read-only base; subclasses implement only `loadFilteredPolicy` |
-| No-enforcer fallback | No enforcers registered -> the middleware honors `defaultDecision`: `deny` (default) throws a named 403, `allow` proceeds and logs a warning |
+| No-enforcer fallback | With no enforcer registered, the middleware honors `defaultDecision` |
 | Single edge table (scoped model) | `ScopedCasbinAdapter` reads one `PolicyDefinition` table for every edge type - no per-relation tables |
+
+When the fallback applies, `deny` (the default) throws a named 403 and `allow` proceeds and logs a warning.
 
 ## AuthorizeComponent
 
@@ -320,7 +322,9 @@ Global settings, bound before registering `AuthorizeComponent`.
 |--------|------|---------|-------------|
 | `defaultDecision` | `TAuthorizationDecision` | - | **Required.** Decision applied when the enforcer returns `ABSTAIN` |
 | `alwaysAllowRoles` | `string[]` | `[]` | Roles that bypass all authorization checks (global) |
-| `domainResolver` | `TAuthorizationDomainResolver` | - | Fallback domain resolver used when a route's `spec.domain` is not set. Returns `{ type, id }` or `null` (-> `SYSTEM_WIDE`) |
+| `domainResolver` | `TAuthorizationDomainResolver` | - | Fallback domain resolver, used when a route sets no `spec.domain` |
+
+The resolver returns `{ type, id }`, or `null` for `SYSTEM_WIDE`.
 
 ```typescript
 interface IAuthorizeOptions {
@@ -339,11 +343,13 @@ Casbin-specific options, provided per-enforcer via `AuthorizationEnforcerRegistr
 | `model` | `{ driver: 'file', definition } \| { driver: 'text', definition }` | - | **Required.** Casbin model (file path or inline text). For scoped RBAC, use `CASBIN_RBAC_DOMAIN_SCOPED_MODEL` |
 | `cached` | `{ use: false } \| (ICasbinEnforcerCachedRedis & { use: true })` | - | **Required.** Caching configuration (Redis-only) |
 | `adapter` | `Adapter` | - | Casbin adapter instance (e.g. `ScopedCasbinAdapter`) |
-| `isScoped` | `boolean` | `false` | Enables the scoped model: 4-token `(sub, dom, obj, act)` requests. Auto-registers `keyMatch`, `objectMatch`, and `ResourceRoleManager` - see [`CasbinAuthorizationEnforcer`](#casbinauthorizationenforcer) |
+| `isScoped` | `boolean` | `false` | Enables the scoped model: 4-token `(sub, dom, obj, act)` requests |
 | `poolSize` | `number` | `16` | Pooled enforcers (each request enforces on its own borrowed instance) |
 | `poolAcquireTimeoutMs` | `number` | `5000` | Max ms to wait for a free pooled enforcer before failing closed |
 | `normalizePayloadFn` | `(opts) => { subject, resource, action, domain? }` | - | Custom (non-scoped) payload normalizer, run before evaluation |
-| `domainMatching` | `{ roleDefinition: string; fn: TCasbinDomainMatchingFunction }` | - | Opt-in domain matching function for the flat model. **Not needed when `isScoped: true`** |
+| `domainMatching` | `{ roleDefinition: string; fn: TCasbinDomainMatchingFunction }` | - | Opt-in domain matching function for the flat model |
+
+`isScoped: true` auto-registers `keyMatch`, `objectMatch`, and `ResourceRoleManager` (see [`CasbinAuthorizationEnforcer`](#casbinauthorizationenforcer)), so `domainMatching` is not needed there.
 
 ```typescript
 interface ICasbinEnforcerOptions<E extends Env = Env, TAction = string, TResource = string, TAdapter = Adapter> {
@@ -393,10 +399,12 @@ interface ICasbinEnforcerCachedRedis {
 |--------|------|---------|-------------|
 | `action` | `TAction` | - | **Required.** Action being performed (e.g. `'read'`, `'create'`) |
 | `resource` | `TResource` | - | **Required.** Resource being accessed (e.g. `'Article'`) |
-| `conditions` | `TAuthorizationConditions` | - | Key-value ABAC conditions. Plumbed into `request.conditions`; the built-in Casbin enforcer does not read it - only custom enforcers/voters can |
+| `conditions` | `TAuthorizationConditions` | - | Key-value ABAC conditions, passed as `request.conditions` |
 | `allowedRoles` | `string[]` | - | Roles that bypass the enforcer for this route |
 | `voters` | `TAuthorizationVoter[]` | - | Custom voter functions for this route |
 | `domain` | `IAuthorizationDomainSource \| TAuthorizationDomainResolver` | - | Per-route domain source for scoped RBAC. Omitted -> falls back to the global `domainResolver`, then `SYSTEM_WIDE` |
+
+The built-in Casbin enforcer does not read `conditions`; only custom enforcers and voters can.
 
 > [!WARNING]
 > Voters run after the role shortcuts. A principal that holds a role in `alwaysAllowRoles`, or in the route's `allowedRoles`, is let through before any voter runs, so a voter cannot deny it. Give a service principal no bypass role, and grant its routes with an explicit role and policy, or with a voter that returns `ALLOW`.
@@ -596,11 +604,13 @@ m = g(r.sub, p.sub, r.dom) && (p.dom == "SYSTEM_WIDE" || (p.dom == "ANY_MEMBER" 
 
 | Relation | Axis | Meaning |
 |---|---|---|
-| `g` | `sub` | `assign_role` (user -> role) + `role_inherits` (role -> role), domain-aware. Registered with `keyMatch` so a `*` domain on a link matches any request domain |
+| `g` | `sub` | `assign_role` (user -> role) + `role_inherits` (role -> role), domain-aware |
 | `g2` | `dom` (membership) | `join_domain` - powers the `ANY_MEMBER` grant scope |
 | `g3` | `dom` (nesting) | `domain_inherits`, plus a self-link so an exact domain always matches itself |
 | `g4` | `obj` | `resource_inherits` - explicit non-standard nesting edges; served by `ResourceRoleManager`, not a matching function |
 | `g5` | `act` | `action_inherits`, plus a self-link |
+
+`g` is registered with `keyMatch`, so a `*` domain on a link matches any request domain.
 
 **Effect** is casbin's `allow-and-deny` effector. A request needs a matching `allow` AND no matching `deny` - default-DENY. An explicit `deny` always overrides an `allow`. This is deliberately NOT casbin's `deny-override` effector (`!some(where (p.eft == deny))`), which would be default-ALLOW.
 
@@ -690,14 +700,16 @@ The singleton is held by `SingletonRealm` under `SINGLETON_REAL_KEY`, not in a p
 |--------|---------|-------------|
 | `getInstance()` | `AuthorizationEnforcerRegistry` | Singleton instance (created on first call) |
 | `register(opts)` | `this` | Registers enforcers with type-safe options (chainable) |
-| `hasEnforcers()` | `boolean` | `descriptors.size > 0` - used by the middleware to decide whether to honor `defaultDecision` instead of resolving an enforcer |
+| `hasEnforcers()` | `boolean` | `descriptors.size > 0` |
 | `getDefaultEnforcerName()` | `string` | Delegates to `getDefaultName()` |
 | `resolveEnforcer({ name })` | `Promise<IAuthorizationEnforcer>` | Resolves + auto-configures once (`configuredEnforcers` Set), single-flighted through `pendingConfigurations` |
-| `setOptions({ options })` | `void` | Stores the application-level `IAuthorizeOptions`. `AuthorizeComponent` calls it so `defaultDecision` is readable even with no enforcer registered |
+| `setOptions({ options })` | `void` | Stores the application-level `IAuthorizeOptions` |
 | `resolveOptions()` | `IAuthorizeOptions \| undefined` | Returns what `setOptions()` stored, else scans every registered container for `AuthorizeBindingKeys.OPTIONS` |
 | `invalidateUserCache(opts)` | `Promise<{ invalidatedKeys }>` | Drops a user's cached policies - throws if the resolved enforcer lacks the optional method |
 | `rebuildUserCache(opts)` | `Promise<{ cacheKey, lineCount }>` | Drops then immediately re-extracts + re-caches |
 | `reset()` | `void` | Clears descriptors, `configuredEnforcers`, `pendingConfigurations` and the stored options |
+
+The middleware calls `hasEnforcers()` to decide whether to honor `defaultDecision` instead of resolving an enforcer. `AuthorizeComponent` calls `setOptions()`, so `defaultDecision` is readable even when no enforcer is registered.
 
 **`register()` behavior:**
 
@@ -827,7 +839,7 @@ Called once by the registry on first use:
 | Registers | On |
 |---|---|
 | `keyMatch` | Domain matching func on `g` |
-| `objectMatch` | Matcher-expression function via `addFunction` - called directly in the model's matcher string, not as a relation's matching func |
+| `objectMatch` | Matcher-expression function (`addFunction`), called in the matcher string, not a relation's matching func |
 | `ResourceRoleManager` | Named role manager for `g4` |
 
 `g4` skips `addNamedMatchingFunc` on purpose. It sets casbin's `hasPattern`, which disables `DefaultRoleManager`'s fast path on every link check, not just `g4` lookups.
@@ -853,8 +865,10 @@ Returns `ICasbinRules = { user, lines }` - the user's complete Casbin policy lin
 | Function | Behavior |
 |---|---|
 | `extractUserLines(user)` | Builds a fresh, isolated enforcer *with the adapter* and calls `adapter.loadFilteredPolicy({ principal: { type, id } })` |
-| `extractLinesFrom()` | Serializes every `p*`/`g*` rule the model declares back into lines, not just `p`/`g` - including the scoped model's `g2`-`g5` hierarchies |
-| `fetchLinesWithRedisCache` | Returns cached lines on a hit (Redis owns expiry via `PX`); on a miss, dedups concurrent misses via `pendingLineFetches` (single-flight), extracts once, and writes the lines back to Redis |
+| `extractLinesFrom()` | Serializes every `p*`/`g*` rule the model declares back into lines |
+| `fetchLinesWithRedisCache` | Returns cached lines on a hit; on a miss, extracts once and writes back to Redis |
+
+`extractLinesFrom()` covers every `p*`/`g*` rule, so the scoped model's `g2`-`g5` hierarchies are included, not just `p` and `g`. Redis owns expiry via `PX`. Concurrent cache misses are deduplicated through `pendingLineFetches` (single-flight).
 
 A corrupt cache entry is logged and discarded, then refetched - never surfaced as a `500`.
 
@@ -901,6 +915,7 @@ abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter> extends BaseHe
 }
 ```
 
+<!-- docs-code: off -->
 ```typescript
 interface ICasbinPolicyFilter { principal: { type: string; id: IdType }; }
 
@@ -911,6 +926,7 @@ interface ICasbinPolicySource {
 }
 type TCasbinPolicyConnector = PgDatabase<PgQueryResultHKT, Record<string, AnyType>>;
 ```
+<!-- docs-code: on -->
 
 > [!NOTE]
 > `ICasbinPolicySource` is a minimal local contract, not the framework's general `IDataSource` - `src/components/**` never imports `@/connectors/postgres` for this. The `connector` getter resolves `getConnector?.() ?? connector`. When a datasource exposes neither, it throws a clear `[BaseFilteredAdapter]` error - never a bare `TypeError`.
@@ -969,7 +985,7 @@ class PrincipalPolicyEdges {
   static readonly DOMAIN_EDGE = 'domainEdge';
 }
 
-/** A grant row as fetched, before it becomes casbin lines. Permission columns are null when the join misses. */
+/** A grant row read from the database, before it becomes casbin lines. Permission columns are null when the join misses. */
 type TGrantRow = {
   subjectId: IdType;
   objectCode: TNullable<string>;
@@ -1112,8 +1128,10 @@ A grant row can express an arbitrary subset of a subject's operations instead of
 | Field | Value |
 |---|---|
 | `action` | `'custom'` |
-| Target | A subject-level resource node - `Permission.method` is `AuthorizationPermissionBuilder.RESOURCE_NODE_METHOD`, the `*` sentinel |
+| Target | A subject-level resource node |
 | `metadata` | `{ ops: [...] }` |
+
+The target node's `Permission.method` is `AuthorizationPermissionBuilder.RESOURCE_NODE_METHOD`, the `*` sentinel.
 
 `ops` holds **method names**, not full permission codes. The subject comes from the target node, so `ops: ['find']` against node `Order` resolves to `Order.find`.
 
@@ -1367,7 +1385,7 @@ class AuthorizationPermissionBuilder {
   /** One operation-level permission, code = `<subject>.<method>`. */
   static operation<TName>(opts: { subject: string; method: string; scope: string; name: TName; description?: TNullable<TName>; action?: TAuthorizationAction; parentId?: TNullable<IdType> }): PermissionRow;
 
-  /** A coarse resource node (module or subject) used as a grant target, e.g. `Sale`. code has no dotted method; action defaults to `manage`. */
+  /** A coarse resource node (module or subject) that a grant targets, e.g. `Sale`. The code has no dotted method, and the action defaults to `manage`. */
   static resourceNode<TName>(opts: { code: string; subject?: string; scope: string; name: TName; description?: TNullable<TName>; action?: TAuthorizationAction; parentId?: TNullable<IdType> }): PermissionRow;
 
   /** The CRUD permission set for a subject (find/findById/findOne/count/create/updateById/updateBy/deleteById/deleteBy by default). */
@@ -1406,10 +1424,14 @@ class GrantBuilder {
 | `intent` | Behavior |
 |---|---|
 | `{ tier }` | One tier-grant row. Throws on a tier outside `read`/`write`/`execute`/`manage`. |
-| `{ ops }` collapsing into `manage` | Only when the subject has an operation in **each** of `read`, `write`, and `execute` - otherwise `manage` would silently pre-authorize a future operation in an empty tier. |
-| `{ ops }` collapsing into a narrow tier | Whenever the selection **completely covers** a `read`/`write`/`execute` tier, however few operations it holds. `ops: ['find']` collapses into `read` when `find` is the subject's only `read` operation. |
+| `{ ops }` collapsing into `manage` | Only when the subject has an operation in each of `read`, `write`, `execute` |
+| `{ ops }` collapsing into a narrow tier | Whenever the selection completely covers a `read`/`write`/`execute` tier |
 | `{ ops }` with `exact: true` | Skips collapsing entirely - use for a selection that must never widen as new operations join a tier. |
-| Leftover after collapsing | One custom row (`AuthorizationPolicyBuilder.customGrant`) - or, when the leftover is a single operation or `supportsCustomMetadata: false`, one per-operation row per leftover operation. |
+| Leftover after collapsing | One custom row (`AuthorizationPolicyBuilder.customGrant`), or one row per operation |
+
+Collapsing into `manage` is guarded because `manage` would otherwise silently pre-authorize a future operation in an empty tier. A narrow tier collapses however few operations it holds: `ops: ['find']` becomes `read` when `find` is the subject's only `read` operation.
+
+The leftover becomes one per-operation row when it is a single operation or `supportsCustomMetadata` is `false`.
 
 A per-operation row's `permission.id` is the operation's **code** (e.g. `Order.find`), not a database id. The planner is pure and has no DB access, so the caller resolves codes to ids when persisting.
 

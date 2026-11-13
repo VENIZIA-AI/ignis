@@ -449,7 +449,10 @@ import {
   BindingNamespaces,
 } from '@venizia/ignis';
 import { SocketIOBindingKeys } from '@venizia/ignis/socket-io';
-import { getError } from '@venizia/ignis-helpers';
+import { ErrorUtility, getError } from '@venizia/ignis-helpers';
+import { HTTP } from '@venizia/ignis-helpers/common';
+import type { TWhere } from '@venizia/ignis-filter';
+import type { TMessage } from '@/models/message.model';
 import { ISocketIOClient, SocketIOServerHelper } from '@venizia/ignis-helpers/socket-io';
 import { Socket } from 'socket.io';
 import { MessageRepository } from '../repositories/message.repository';
@@ -547,7 +550,7 @@ export class ChatService extends BaseService {
           destination: socketId,
           payload: {
             topic: 'error',
-            data: { code: 'JOIN_FAILED', message: (error as Error).message },
+            data: { code: 'JOIN_FAILED', message: ErrorUtility.toError({ error }).message },
           },
         });
       }
@@ -592,7 +595,7 @@ export class ChatService extends BaseService {
             destination: socketId,
             payload: {
               topic: 'error',
-              data: { code: 'SEND_FAILED', message: (error as Error).message },
+              data: { code: 'SEND_FAILED', message: ErrorUtility.toError({ error }).message },
             },
           });
         }
@@ -616,7 +619,7 @@ export class ChatService extends BaseService {
           destination: socketId,
           payload: {
             topic: 'error',
-            data: { code: 'EDIT_FAILED', message: (error as Error).message },
+            data: { code: 'EDIT_FAILED', message: ErrorUtility.toError({ error }).message },
           },
         });
       }
@@ -641,7 +644,7 @@ export class ChatService extends BaseService {
           destination: socketId,
           payload: {
             topic: 'error',
-            data: { code: 'DELETE_FAILED', message: (error as Error).message },
+            data: { code: 'DELETE_FAILED', message: ErrorUtility.toError({ error }).message },
           },
         });
       }
@@ -672,7 +675,7 @@ export class ChatService extends BaseService {
           destination: socketId,
           payload: {
             topic: 'error',
-            data: { code: 'DM_FAILED', message: (error as Error).message },
+            data: { code: 'DM_FAILED', message: ErrorUtility.toError({ error }).message },
           },
         });
       }
@@ -711,13 +714,13 @@ export class ChatService extends BaseService {
   async joinRoom(opts: { roomId: string; userId: string }) {
     const room = await this._roomRepository.findById({ id: opts.roomId });
     if (!room) {
-      throw getError({ statusCode: 404, message: 'Room not found' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'Room not found' });
     }
 
     if (room.isPrivate) {
       const isMember = await this._roomRepository.isMember({ roomId: opts.roomId, userId: opts.userId });
       if (!isMember) {
-        throw getError({ statusCode: 403, message: 'Cannot join private room' });
+        throw getError({ statusCode: HTTP.ResultCodes.RS_4.Forbidden, message: 'Cannot join private room' });
       }
     } else {
       await this._roomRepository.addMember({ roomId: opts.roomId, userId: opts.userId, role: 'member' });
@@ -740,7 +743,7 @@ export class ChatService extends BaseService {
   async sendMessage(opts: { roomId: string; senderId: string; content: string; type?: string }) {
     const isMember = await this._roomRepository.isMember({ roomId: opts.roomId, userId: opts.senderId });
     if (!isMember) {
-      throw getError({ statusCode: 403, message: 'Not a member of this room' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.Forbidden, message: 'Not a member of this room' });
     }
 
     const { data: message } = await this._messageRepository.create({
@@ -769,11 +772,11 @@ export class ChatService extends BaseService {
     const message = await this._messageRepository.findById({ id: opts.messageId });
 
     if (!message) {
-      throw getError({ statusCode: 404, message: 'Message not found' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'Message not found' });
     }
 
     if (message.senderId !== opts.userId) {
-      throw getError({ statusCode: 403, message: 'Cannot edit others messages' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.Forbidden, message: 'Cannot edit others messages' });
     }
 
     return this._messageRepository.updateById({
@@ -789,13 +792,13 @@ export class ChatService extends BaseService {
     const message = await this._messageRepository.findById({ id: opts.messageId });
 
     if (!message) {
-      throw getError({ statusCode: 404, message: 'Message not found' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'Message not found' });
     }
 
     if (message.senderId !== opts.userId) {
       const member = await this._roomRepository.getMember({ roomId: message.roomId, userId: opts.userId });
       if (!member || member.role !== 'admin') {
-        throw getError({ statusCode: 403, message: 'Cannot delete this message' });
+        throw getError({ statusCode: HTTP.ResultCodes.RS_4.Forbidden, message: 'Cannot delete this message' });
       }
     }
 
@@ -808,7 +811,7 @@ export class ChatService extends BaseService {
   }
 
   async getMessages(opts: { roomId: string; limit?: number; before?: string }) {
-    const where: any = {
+    const where: TWhere<TMessage> = {
       roomId: opts.roomId,
       deletedAt: null,
     };

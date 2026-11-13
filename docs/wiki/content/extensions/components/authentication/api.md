@@ -140,10 +140,12 @@ Bearer token service hierarchy:
 
 | Technology | Purpose |
 |------------|---------|
-| `jose` | JWT signing (`SignJWT`), verification (`jwtVerify`), JWKS (`createRemoteJWKSet`, `exportJWK`, `importPKCS8`, `importSPKI`, `importJWK`). Loaded once per process, never at import. With JWT or service authentication configured, the component loads it at boot, so a missing `jose` fails the boot |
+| `jose` | JWT signing, verification and JWKS (see the note below) |
 | `@venizia/ignis-helpers` | `AES` payload encryption, `BaseHelper`/`BaseService`, `getError`, `HTTP` result codes |
 | Hono middleware | Route-level integration via `createMiddleware` from `hono/factory` |
 | `node:fs/promises` | Async key file reads for JWKS |
+
+`jose` provides `SignJWT`, `jwtVerify`, `createRemoteJWKSet`, `exportJWK`, `importPKCS8`, `importSPKI` and `importJWK`. It is loaded once per process, never at import. With JWT or service authentication configured, the component loads it at boot, so a missing `jose` fails the boot.
 
 ## Component methods
 
@@ -151,12 +153,21 @@ Bearer token service hierarchy:
 
 | Method | Purpose |
 |--------|---------|
-| `defineJWSAuth(opts)` | Validates `jwtSecret`, `getTokenExpiresFn` and `claims`, binds `IJWSTokenServiceOptions` to `JWT_OPTIONS`, registers `JWSTokenService` |
-| `defineJWKSAuth(opts)` | Switches on `mode`.<br>**Issuer:** validates keys/format/kid/getTokenExpiresFn/claims, binds to `JWKS_OPTIONS`, registers `JWKSIssuerTokenService` + `JWKSController`.<br>**Verifier:** validates `jwksUrl`, `claims` and `verify.algorithms`, binds to `JWKS_OPTIONS`, registers `JWKSVerifierTokenService` |
-| `defineServiceAuth(opts)` | Validates `name` and `resolvePrincipal`, registers the verifier and the `service` strategy. With `keys` present it also registers the signer and mounts the certs route. Absent options: does nothing |
+| `defineJWSAuth(opts)` | Validates the options, binds them to `JWT_OPTIONS`, registers `JWSTokenService` |
+| `defineJWKSAuth(opts)` | Switches on `mode`, validates, binds to `JWKS_OPTIONS`, registers the JWKS services |
+| `defineServiceAuth(opts)` | Registers the verifier and the `service` strategy; does nothing without options |
 | `defineBasicAuth(opts)` | Validates `verifyCredentials` presence, registers `BasicTokenService`. Skips (debug log) if `basicOptions` not bound |
-| `defineControllers(opts)` | Requires `jwtOptions` when `useAuthController: true`. Calls `AuthControllerFactory.build()` and registers the generated controller |
+| `defineControllers(opts)` | Builds and registers the auth controller with `AuthControllerFactory.build()` |
 | `defineOAuth2()` | Public stub, called during `binding()`, performs no action - not yet implemented |
+
+Details per method:
+
+- `defineJWSAuth` validates `jwtSecret`, `getTokenExpiresFn` and `claims`, and binds `IJWSTokenServiceOptions`.
+- `defineJWKSAuth` in `issuer` mode validates keys, format, `kid`, `getTokenExpiresFn` and `claims`, then registers `JWKSIssuerTokenService` and `JWKSController`.
+- `defineJWKSAuth` in `verifier` mode validates `jwksUrl`, `claims` and `verify.algorithms`, then registers `JWKSVerifierTokenService`.
+- `defineServiceAuth` validates `name` and `resolvePrincipal`. With `keys` present it also registers the signer and mounts the certs route.
+- `defineBasicAuth` validates that `verifyCredentials` is present and registers `BasicTokenService`; it skips (debug log) if `basicOptions` is not bound.
+- `defineControllers` requires `jwtOptions` when `useAuthController: true`.
 
 > [!NOTE]
 > The component reads the discriminated union from `JWT_OPTIONS`. It then re-binds only the inner options object - `IJWSTokenServiceOptions`, or `IJWKSIssuerOptions`/`IJWKSVerifierOptions` - to `JWKS_OPTIONS` or back to `JWT_OPTIONS`. The token service resolves it with a plain `@inject`.
@@ -199,8 +210,12 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload encryption |
 | `headerAlgorithm` | `string` | `'HS256'` | No | JWT signing algorithm |
 | `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Custom serialize/deserialize per field name |
-| `verify` | `IJWTVerifyOptions` | -- | No | Further checks on verify: `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims`. `issuer` and `audience` are `claims` now. `algorithms` unset pins the algorithm the service signs with |
-| `claims` | `{ issuer: string; audience?: string \| string[] }` | -- | Yes | `issuer` is required: stamped as `iss` on every issued token and required on every verified one. `audience` is optional: set, it is stamped as `aud` and required; absent, no `aud` is stamped and none is checked. A configured value WINS over one supplied in the payload. No other key is accepted |
+| `verify` | `IJWTVerifyOptions` | -- | No | Further checks on verify (see below) |
+| `claims` | `{ issuer: string; audience?: string \| string[] }` | -- | Yes | `iss` and `aud` stamped on issue, required on verify |
+
+`verify` holds `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ` and `requiredClaims`. `issuer` and `audience` live in `claims`. When `algorithms` is unset, it pins the algorithm the service signs with.
+
+`claims.issuer` is required: it is stamped as `iss` on every issued token and required on every verified one. `claims.audience` is optional: set, it is stamped as `aud` and required; absent, no `aud` is stamped and none is checked. A configured value wins over one supplied in the payload. No other key is accepted.
 
 > [!WARNING]
 > `jwtSecret` is mandatory - the component throws if it's missing, equals the placeholder `'unknown_secret'`, or is shorter than 32 bytes. `applicationSecret` is optional. When you omit it, the JWT payload stays standard plaintext. Standard fields (`iss`, `sub`, `aud`, `jti`, `nbf`, `exp`, `iat`) are never encrypted either way.
@@ -221,8 +236,12 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload encryption |
 | `applicationSecret` | `string` | -- | No | Enables AES payload field encryption when set |
 | `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Custom serialize/deserialize per field name |
-| `verify` | `IJWTVerifyOptions` | -- | No | Further checks on verify: `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims`. `issuer` and `audience` are `claims` now. `algorithms` unset pins the algorithm the service signs with |
-| `claims` | `{ issuer: string; audience?: string \| string[] }` | -- | Yes | `issuer` is required: stamped as `iss` on every issued token and required on every verified one. `audience` is optional: set, it is stamped as `aud` and required; absent, no `aud` is stamped and none is checked. A configured value WINS over one supplied in the payload. No other key is accepted |
+| `verify` | `IJWTVerifyOptions` | -- | No | Further checks on verify (see below) |
+| `claims` | `{ issuer: string; audience?: string \| string[] }` | -- | Yes | `iss` and `aud` stamped on issue, required on verify |
+
+`verify` holds `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ` and `requiredClaims`. `issuer` and `audience` live in `claims`. When `algorithms` is unset, it pins the algorithm the service signs with.
+
+`claims.issuer` is required: it is stamped as `iss` on every issued token and required on every verified one. `claims.audience` is optional: set, it is stamped as `aud` and required; absent, no `aud` is stamped and none is checked. A configured value wins over one supplied in the payload. No other key is accepted.
 
 ### IJWKSVerifierOptions
 
@@ -235,9 +254,13 @@ type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // di
 | `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload decryption |
 | `applicationSecret` | `string` | -- | No | Must match the issuer's secret to decrypt payloads |
 | `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Must match the issuer's codecs to decrypt custom fields |
-| `claims` | `{ issuer: string; audience?: string \| string[] }` | -- | Yes | `issuer` is required on every verified token. `audience` is optional: set, it is required too; absent, `aud` is not checked. No other key is accepted |
-| `verify` | `IJWKSVerifierVerifyOptions` | -- | Yes | `algorithms` is required (the accepted JWS algorithms, for example `['RS256']`): a verifier cannot know what the issuer signs with. Also `subject`, `clockTolerance`, `maxTokenAge`, `typ`, `requiredClaims` |
-| `jwks.hosts.http` | `string[]` | `[]` | No | Exact hosts that may serve the key set over `http:`: a name, an IPv4 address or an IPv6 address in brackets, each with an optional `:port`. Without it the `jwksUrl` is `https:` or a loopback host. See [JWKS over http](#jwks-over-http) |
+| `claims` | `{ issuer: string; audience?: string \| string[] }` | -- | Yes | `iss` required on verify; `aud` checked when set |
+| `verify` | `IJWKSVerifierVerifyOptions` | -- | Yes | `algorithms` is required (see below) |
+| `jwks.hosts.http` | `string[]` | `[]` | No | Hosts allowed to serve the key set over `http:` |
+
+`verify.algorithms` lists the accepted JWS algorithms, for example `['RS256']`: a verifier cannot know what the issuer signs with. `verify` also takes `subject`, `clockTolerance`, `maxTokenAge`, `typ` and `requiredClaims`.
+
+Each `jwks.hosts.http` entry is a name, an IPv4 address or an IPv6 address in brackets, with an optional `:port`. Without it the `jwksUrl` is `https:` or a loopback host. See [JWKS over http](#jwks-over-http).
 
 > [!IMPORTANT]
 > `JWKSVerifierTokenService` cannot sign tokens - `getSigner()`, `getSigningKey()`, and `getDefaultTokenExpiresFn()` all throw. Only `verify()` and `extractCredentials()` are functional.
@@ -267,7 +290,9 @@ A JWKS URL is `https:`. It may be `http:` only when its host is loopback (`local
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `verifyCredentials` | <code v-pre>(opts: { credentials: { username: string; password: string }; context: TContext }) =&gt; Promise&lt;IAuthUser \| null&gt;</code> | Callback that validates Basic credentials and returns the authenticated user, or `null` |
+| `verifyCredentials` | <code v-pre>(opts: { credentials; context }) =&gt; Promise&lt;IAuthUser \| null&gt;</code> | Validates Basic credentials; returns the user or `null` |
+
+`credentials` is `{ username: string; password: string }` and `context` is a `TContext`.
 
 ### TAuthenticationRestOptions
 
@@ -303,9 +328,11 @@ type TRouteAuthenticateConfig =
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `authenticate.strategies` | `TAuthStrategy[]` | -- | Strategy names to try - for example, `['jwt']` or `['jwt', 'basic']`. Any name you register works too; `'jwt'` and `'basic'` are the ones the framework ships |
-| `authenticate.mode` | `'any' \| 'all'` | `'any'` | `'any'`: first success wins. `'all'`: every strategy must pass. A verified credential whose answer has no `userId` does not authenticate the request: in `any` mode that strategy counts as failed, in `all` mode the first strategy's answer must carry it |
+| `authenticate.strategies` | `TAuthStrategy[]` | -- | Strategy names to try: `['jwt']` or `['jwt', 'basic']` |
+| `authenticate.mode` | `'any' \| 'all'` | `'any'` | `'any'`: first success wins. `'all'`: every strategy must pass |
 | `authenticate.skip` | `true` | -- | Skips authentication for this route entirely |
+
+Any strategy name you register works; `'jwt'` and `'basic'` are the ones the framework ships. A verified credential whose answer has no `userId` does not authenticate the request: in `any` mode that strategy counts as failed, in `all` mode the first strategy's answer must carry it.
 
 ### IAuthUser / IJWTTokenPayload
 
@@ -335,6 +362,7 @@ interface IJWTTokenPayload extends JWTPayload, IAuthUser {
 
 ### IAuthService
 
+<!-- docs-code: off -->
 ```typescript
 interface IAuthService<
   E extends Env = Env,
@@ -351,6 +379,7 @@ interface IAuthService<
   refreshToken?(context: TContext<E>): Promise<RTRS>;
 }
 ```
+<!-- docs-code: on -->
 
 > [!NOTE]
 > `getUserInformation` and `refreshToken` are optional. The generated auth controller returns `501` for `/me`, `/token/refresh`, or `?withUserInformation=true` on `/who-am-i` if the bound service doesn't implement the corresponding method.
@@ -423,8 +452,10 @@ Set on the Hono `Context` during authentication, readable via `context.get()`:
 | Method | Signature | Description |
 |--------|-----------|--------------|
 | `getInstance()` | `static (): AuthenticationStrategyRegistry` | Returns (creating if needed) the singleton |
-| `register` | <code v-pre>(opts: { container: Container; strategies: { name: string; strategy: TClass&lt;IAuthenticationStrategy&gt; }[] }) =&gt; this</code> | Binds each strategy into the container as a singleton under `authentication.strategy.<name>`. Returns `this` |
+| `register` | <code v-pre>(opts: { container; strategies }) =&gt; this</code> | Binds each strategy as a singleton; returns `this` |
 | `resolveStrategy` | `(opts: { name: string }) => IAuthenticationStrategy` | Resolves a registered strategy instance by name |
+
+`register` binds each strategy into the container under `authentication.strategy.<name>`. `strategies` is `{ name: string; strategy: TClass<IAuthenticationStrategy> }[]`.
 
 ```typescript
 AuthenticationStrategyRegistry.getInstance().register({
@@ -493,8 +524,10 @@ AbstractBearerTokenService<E>          (extends BaseService)
 | `verify` | `(opts: { type, token }) => Promise<IJWTTokenPayload>` | Calls `doVerify()`, wraps errors as sanitized `401` |
 | `generate` | `(opts: { payload, getTokenExpiresFn? }) => Promise<string>` | Calls `getSigner()` then signs with `getSigningKey()` |
 | `serializeField` / `deserializeField` | `(opts) => string` / `any` | Per-field codec lookup, `JSON.stringify`/`JSON.parse` fallback |
-| `encryptPayload` | `(payload) => Promise<Record<string, unknown>>` | AES-encrypts non-standard fields (keys and values); `null` is kept and `undefined` is skipped. No-op if AES not configured. Async: callers `await` it |
+| `encryptPayload` | `(payload) => Promise<Record<string, unknown>>` | AES-encrypts non-standard fields (keys and values). No-op without AES. Async |
 | `decryptPayload` | `(opts: { result }) => Promise<IJWTTokenPayload>` | Reverses `encryptPayload`; `401` for a claim that is not a string or a payload with no `userId`. No-op without AES |
+
+`encryptPayload` keeps `null` values and skips `undefined` ones. Both it and `decryptPayload` are no-ops when AES is not configured.
 
 Static: `JWT_COMMON_FIELDS: Set<'iss'|'sub'|'aud'|'jti'|'nbf'|'exp'|'iat'>` - never encrypted or touched by field codecs.
 
@@ -554,11 +587,13 @@ All five strategies extend `BaseHelper` and implement `IAuthenticationStrategy<E
 
 | Strategy | `name` | Injects | File |
 |----------|--------|---------|------|
-| `JWSAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWSTokenService` | [`strategies/jws.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jws.strategy.ts) |
-| `JWKSIssuerAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWKSIssuerTokenService` | [`strategies/jwks/issuer.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jwks/issuer.ts) |
-| `JWKSVerifierAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWKSVerifierTokenService` | [`strategies/jwks/verifier.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jwks/verifier.ts) |
-| `BasicAuthenticationStrategy` | `Authentication.STRATEGY_BASIC` | `BasicTokenService` | [`strategies/basic.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/basic.strategy.ts) |
-| `ServiceAuthenticationStrategy` | `Authentication.STRATEGY_SERVICE` | `ServiceAssertionVerifierService` | [`strategies/service.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/service.strategy.ts) |
+| `JWSAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWSTokenService` | `strategies/jws.strategy.ts` |
+| `JWKSIssuerAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWKSIssuerTokenService` | `strategies/jwks/issuer.ts` |
+| `JWKSVerifierAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWKSVerifierTokenService` | `strategies/jwks/verifier.ts` |
+| `BasicAuthenticationStrategy` | `Authentication.STRATEGY_BASIC` | `BasicTokenService` | `strategies/basic.strategy.ts` |
+| `ServiceAuthenticationStrategy` | `Authentication.STRATEGY_SERVICE` | `ServiceAssertionVerifierService` | `strategies/service.strategy.ts` |
+
+Sources: [`strategies/jws.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jws.strategy.ts), [`strategies/jwks/issuer.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jwks/issuer.ts), [`strategies/jwks/verifier.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/jwks/verifier.ts), [`strategies/basic.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/basic.strategy.ts), [`strategies/service.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/strategies/service.strategy.ts).
 
 > [!NOTE]
 > Choose the strategy class that matches your JOSE standard. `JWKSIssuerAuthenticationStrategy` and `JWKSVerifierAuthenticationStrategy` both register under the same `'jwt'` name - use only one of the two per service.
@@ -582,7 +617,10 @@ class JWKSController extends BaseRestController {
       configs: RouteConfigs.GET_JWKS_CERTS, // GET '/'
       handler: async context => {
         const jwks = await this.jwksService.getJWKSAsync();
-        context.header('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+        context.header(
+          HTTP.Headers.CACHE_CONTROL,
+          'public, max-age=3600, stale-while-revalidate=86400',
+        );
         return context.json(jwks, HTTP.ResultCodes.RS_2.Ok);
       },
     });

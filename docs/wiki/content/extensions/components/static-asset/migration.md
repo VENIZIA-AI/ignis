@@ -55,14 +55,24 @@ Four changes need more than a rename:
 | Old | New |
 |---|---|
 | A label in the query string answered `400` (`labels_in_query`) | Labels are read from the body only. A label in the URL is ignored. |
-| Labels were checked by hand, in two places | One schema parses `principalType`, `principalId`, `variant` and `sequence` on both paths. A `sequence` that is not an integer is the standard validation error (`422`) on both paths. |
-| `listObjects` parsed `maxKeys` by hand (`max_keys_invalid`) | The route's schema parses it. A bad value is the standard validation error. |
-| The upload handler checked the folder path (`core.static_asset.folder_*`) | The storage helper checks it: `core.storage.folder_path_invalid` and `core.storage.folder_depth_exceeded`. The segment check is part of the path check. |
-| The server upload's default key was the lowercased name: a second upload of `report.pdf` overwrote the first | The default key is `<keyPrefix><folderPath>/<uuid>/<name>`. Uploads never overwrite each other, and a client that built the URL from the file name must read `object.key` or `link` from the response. The uuid folder does not count against `maxFolderDepth`. |
-| `serverUpload.maxBytes` also refused a whole body over `maxBytes` | It bounds each file. The body limit is `maxFiles` x `maxBytes` plus framing, so two 3 MB files pass under 5 MB. |
-| Serve routes copied `Content-Encoding`, `Cache-Control`, `ETag` and `Last-Modified` from storage metadata (in practice never, because the stat holds them outside it) | They send `ETag` and `Last-Modified` from the stat and answer `304` to `If-None-Match` and `If-Modified-Since`. No `Cache-Control` is set. |
-| `StaticAssetControllerFactory.resolveServedContentType` decided the served type | `StaticAssetServe.resolveServedContentType`, same options and answer. `StaticAssetServe` is exported, with `applyValidators` for a route of your own. |
+| Labels were checked by hand, in two places | One schema parses the labels on both paths |
+| `listObjects` parsed `maxKeys` by hand (`max_keys_invalid`) | The route's schema parses it |
+| The upload handler checked the folder path (`core.static_asset.folder_*`) | The storage helper checks it |
+| The server upload's default key was the lowercased name | The default key is `<keyPrefix><folderPath>/<uuid>/<name>` |
+| `serverUpload.maxBytes` also refused a whole body over `maxBytes` | It bounds each file |
+| Serve routes copied `Content-Encoding`, `Cache-Control`, `ETag` and `Last-Modified` from storage metadata | They send `ETag` and `Last-Modified` from the stat |
+| `StaticAssetControllerFactory.resolveServedContentType` decided the served type | `StaticAssetServe.resolveServedContentType`, same options and answer |
 | `directUpload.authorize` was required | Optional when the entry's `auth` authenticates or authorizes. |
+
+Details for the rows above:
+
+- **Labels.** The schema parses `principalType`, `principalId`, `variant` and `sequence`. A `sequence` that is not an integer is the standard validation error (`422`) on both paths.
+- **`maxKeys`.** A bad value is the standard validation error.
+- **Folder path.** The storage helper answers `core.storage.folder_path_invalid` and `core.storage.folder_depth_exceeded`. The segment check is part of the path check.
+- **Default key.** A second upload of `report.pdf` used to overwrite the first. Now uploads never overwrite each other, and a client that built the URL from the file name must read `object.key` or `link` from the response. The uuid folder does not count against `maxFolderDepth`.
+- **`maxBytes`.** The body limit is `maxFiles` x `maxBytes` plus framing, so two 3 MB files pass under 5 MB.
+- **`resolveServedContentType`.** `StaticAssetServe` is exported, with `applyValidators` for a route of your own.
+- **Serve routes.** The old copy of those headers never worked in practice, because the stat holds them outside the metadata. The routes now answer `304` to `If-None-Match` and `If-Modified-Since`. No `Cache-Control` is set.
 
 The folder, labels and `maxKeys` changes also change codes. See the [error reference](./errors#catalogued-errors).
 
@@ -265,7 +275,7 @@ export const workbookValidation = (opts: {
 
 | Step | Before | Now |
 |---|---|---|
-| `upload-validate` answer | `{ isValid, issues }` | `{ isValid, issues, commitToken }`, the token present only when valid |
+| `upload-validate` answer | `{ isValid, issues }` | `{ isValid, issues, commitToken? }`, the new validated token present only when `isValid` is `true` |
 | `upload-commit` body | the policy's `commitToken` | the `commitToken` validate returned |
 | `commit` with the policy's token | ran the handler again | `422` `core.static_asset.upload_not_validated` |
 | A file that changed after validate | copied | `409` `core.static_asset.upload_changed`, nothing copied |
@@ -284,10 +294,21 @@ With the bucket in the URL gone, the object route is `/objects/{objectName}` and
 
 Most apps never construct the two services: the component builds and binds them. If yours does, the options changed.
 
-| Service | Options now |
+### StaticAssetUploadPolicyService
+
+| Option | Shape |
 |---|---|
-| `StaticAssetUploadPolicyService` | `{ scope, helper, bucket, keyPrefix, directUpload: { maxBytes, expires?, secretKey, pendingPrefix? } }` (`issuePolicies` takes `owner`, required) |
-| `StaticAssetUploadCommitService` | `{ scope, helper, bucket, keyPrefix, objectKeyMaxDepth, directUpload: { secretKey, pendingPrefix?, resolvers, validation? }, storage, metaLink?, link }` |
+| Options now | `{ scope, helper, bucket, keyPrefix, directUpload }` |
+| `directUpload` | `{ maxBytes, expires?, secretKey, pendingPrefix? }` |
+
+`issuePolicies` takes `owner`, required.
+
+### StaticAssetUploadCommitService
+
+| Option | Shape |
+|---|---|
+| Options now | `{ scope, helper, bucket, keyPrefix, objectKeyMaxDepth, directUpload, storage, metaLink?, link }` |
+| `directUpload` | `{ secretKey, pendingPrefix?, resolvers, validation? }` |
 
 `keyPrefix` is a `string` on both. `StaticAssetControllerFactory.build({ key, entry, policyService?, commitService? })` resolves the entry itself, so a hand-built controller takes the entry as you wrote it.
 

@@ -10,7 +10,7 @@ Dependency Injection (DI) enables loosely coupled, testable code by automaticall
 
 | Concept | Description |
 | :--- | :--- |
-| **Container** | The central registry for all your application's services and dependencies. The `Application` class itself extends `Container`. |
+| **Container** | The central registry for your application's services and dependencies; `Application` extends `Container` |
 | **Binding** | The process of registering a class or value with the container under a specific key (e.g., `'services.UserService'`). |
 | **Injection**| The process of requesting a dependency from the container using the `@inject` decorator. |
 

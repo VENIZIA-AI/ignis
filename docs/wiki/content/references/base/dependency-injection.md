@@ -57,15 +57,15 @@ const container = new Container({ scope: 'MyApp' }); // scope is optional, defau
 | Method | Signature | Description |
 | :--- | :--- | :--- |
 | **`bind`** | `bind<T>({ key: string \| symbol }): Binding<T>` | Creates and registers a new `Binding` for the given key. Returns the `Binding` for fluent configuration. |
-| **`get`** | `get<T>({ key, isOptional? }): T` | Retrieves a resolved dependency. `key` can be a `string`, `symbol`, or `{ namespace, key }` object. Throws if not found and `isOptional` is `false` (default). Returns `undefined` if `isOptional` is `true` and not found. |
-| **`gets`** | `gets<T extends unknown[]>({ bindings }): { [K in keyof T]: T[K] \| undefined }` | Resolves multiple dependencies at once. Each entry in `bindings` accepts `{ key, isOptional? }`. Returns a tuple-preserving array where missing bindings resolve to `undefined`. |
+| **`get`** | `get<T>({ key, isOptional? }): T` | Retrieves a resolved dependency. Throws if not found, unless `isOptional` is `true`. |
+| **`gets`** | `gets<T extends unknown[]>({ bindings }): { [K in keyof T]: T[K] \| undefined }` | Resolves several dependencies at once. Missing bindings resolve to `undefined`. |
 | **`getBinding`** | `getBinding<T>({ key }): Binding<T> \| undefined` | Returns the raw `Binding` object without resolving it. `key` accepts `string`, `symbol`, or `{ namespace, key }`. |
 | **`set`** | `set<T>({ binding: Binding<T> }): void` | Directly sets a pre-built `Binding` into the container. |
 | **`isBound`** | `isBound({ key: string \| symbol }): boolean` | Checks if a binding exists for the given key. |
 | **`unbind`** | `unbind({ key: string \| symbol }): boolean` | Removes a binding. Returns `true` if it existed. |
 | **`resolve`** | `resolve<T>(cls: TClass<T>): T` | Alias for `instantiate()`. Creates a new instance of the class with DI. |
 | **`instantiate`** | `instantiate<T>(cls: TClass<T>): T` | Creates a new instance of a class, injecting constructor parameters and property dependencies from the container. |
-| **`findByTag`** | `findByTag<T>({ tag, exclude? }): Binding<T>[]` | Finds all bindings tagged with `tag`. Optionally exclude specific binding keys via `exclude` (accepts `Array<string>` or `Set<string>`). |
+| **`findByTag`** | `findByTag<T>({ tag, exclude? }): Binding<T>[]` | Finds all bindings tagged with `tag`. |
 | **`clear`** | `clear(): void` | Clears cached singleton values on all bindings (does not remove bindings). |
 | **`reset`** | `reset(): void` | Removes all bindings entirely. |
 | **`getMetadataRegistry`** | `getMetadataRegistry(): MetadataRegistry` | Returns the metadata registry. The core `Container` overrides this to return `MetadataRegistry.getInstance()`. |
@@ -119,6 +119,12 @@ const binding = new Binding<MyService>({ key: 'services.MyService' });
 
 When a binding key contains a dot (e.g., `services.MyService`), the namespace portion (`services`) is automatically added as a tag. This enables `findByTag({ tag: 'services' })` to work without manual tagging.
 
+Notes on `get` and `gets`:
+
+- `key` on `get` can be a `string`, `symbol`, or `{ namespace, key }` object. With `isOptional: true` it returns `undefined` when nothing is bound.
+- Each entry in `bindings` on `gets` accepts `{ key, isOptional? }`, and the result is a tuple-preserving array.
+- `exclude` on `findByTag` accepts `Array<string>` or `Set<string>` of binding keys.
+
 ### Configuration Methods
 
 | Method | Signature | Description |
@@ -128,7 +134,7 @@ When a binding key contains a dot (e.g., `services.MyService`), the namespace po
 | **`toProvider`** | `toProvider(value: ((container) => T) \| TClass<IProvider<T>>): this` | Binds to a factory function or a class implementing `IProvider<T>`. |
 | **`setScope`** | `setScope(scope: TBindingScope): this` | Sets the lifecycle scope (`'singleton'` or `'transient'`). |
 | **`setTags`** | `setTags(...tags: string[]): this` | Adds one or more tags to the binding. Tags are additive - calling this multiple times adds more tags. |
-| **`getValue`** | `getValue(container?: Container): T` | Resolves the binding's value. For `CLASS` and `PROVIDER` types, a `container` argument is required. Respects singleton caching. |
+| **`getValue`** | `getValue(container?: Container): T` | Resolves the binding's value, respecting singleton caching. |
 | **`clearCache`** | `clearCache(): void` | Clears the cached singleton instance (if any). Next `getValue()` call will re-create it. |
 | **`hasTag`** | `hasTag(tag: string): boolean` | Checks if the binding has a specific tag. |
 | **`getTags`** | `getTags(): string[]` | Returns all tags as an array. |
@@ -169,12 +175,16 @@ class DbConfigProvider implements IProvider<DbConfig> {
 container.bind({ key: 'config.db' }).toProvider(DbConfigProvider);
 ```
 
+For `CLASS` and `PROVIDER` types, `getValue` needs a `container` argument.
+
 ### Binding Scopes
 
 | Scope | Value | Description |
 | :--- | :--- | :--- |
 | **`BindingScopes.TRANSIENT`** | `'transient'` | (Default) A new instance is created every time the dependency is requested. |
-| **`BindingScopes.SINGLETON`** | `'singleton'` | A single instance is created on first request and reused for all subsequent requests. The cache is per-Binding, not per-Container. |
+| **`BindingScopes.SINGLETON`** | `'singleton'` | One instance, created on first request and reused. |
+
+The singleton cache is per-Binding, not per-Container.
 
 ### Binding Value Types
 
@@ -214,7 +224,7 @@ The `@inject` decorator marks where dependencies should be injected - either on 
 ```typescript
 type TInjectOptions = { isOptional?: boolean } & (
   | { key: TBindingKey; target?: never }
-  | { target: TClass<AnyType>; key?: never }
+  | { target: TInjectTarget; key?: never }
 );
 ```
 

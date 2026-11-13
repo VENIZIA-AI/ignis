@@ -125,7 +125,9 @@ Write the resolver as an arrow function (`() => [...]`), not a plain array. IGNI
 | `name` | `string` | Relation name used in `include` |
 | `type` | `RelationTypes.ONE` \| `RelationTypes.MANY` | Which Drizzle relation helper to build |
 | `schema` | `TTableSchemaWithId` | The related model's Drizzle table schema |
-| `metadata` | inferred from Drizzle's `one()`/`many()` params | Optional for `ONE`: `{ fields?, references?, relationName? }` - `fields` and `references` are read off the foreign key when left out. `{ relationName? }` for `MANY` |
+| `metadata` | inferred from Drizzle's `one()`/`many()` params | Optional for `ONE`: `{ fields?, references?, relationName? }`; `{ relationName? }` for `MANY` |
+
+When `fields` and `references` are left out for `ONE`, they are read off the foreign key.
 
 `metadata`'s shape comes straight from Drizzle's own `one()`/`many()` parameter types, not a hand-duplicated one.
 
@@ -286,10 +288,10 @@ const users = await userRepository.find({
   },
 });
 
-const usersWithCounts = users.map(user => ({
-  ...user,
-  postCount: (user as any).posts?.length ?? 0,
-}));
+const usersWithCounts = users.map(user => {
+  const posts = 'posts' in user ? user.posts : undefined;
+  return { ...user, postCount: Array.isArray(posts) ? posts.length : 0 };
+});
 ```
 
 ### Include conditionally

@@ -102,11 +102,11 @@ See the [Error helper reference](/extensions/helpers/error/) for the full surfac
 
 | Code | Constant | Use when |
 |------|----------|----------|
-| 400 | `RS_4.BadRequest` | Invalid input format, missing required fields, database constraint violations (auto-handled) |
+| 400 | `RS_4.BadRequest` | Invalid input, missing fields, or a constraint violation (auto-handled) |
 | 401 | `RS_4.Unauthorized` | Missing or invalid authentication |
 | 403 | `RS_4.Forbidden` | Authenticated but insufficient permissions |
 | 404 | `RS_4.NotFound` | Resource does not exist |
-| 409 | `RS_4.Conflict` | Resource already exists (custom duplicate handling); transient DB conflicts (deadlock / serialization failure, auto-handled) |
+| 409 | `RS_4.Conflict` | Resource already exists, or a transient DB conflict (auto-handled) |
 | 422 | `RS_4.UnprocessableEntity` | Validation failed (Zod errors) |
 | 429 | `RS_4.TooManyRequests` | Rate limit exceeded |
 | 500 | `RS_5.InternalServerError` | Unexpected server error |
@@ -275,7 +275,7 @@ IGNIS wires a built-in handler by default. `AppErrorMiddleware` from `@venizia/i
 
 ```typescript
 import { BaseApplication } from '@venizia/ignis';
-import { isApplicationError, MessageCode } from '@venizia/ignis-helpers';
+import { HTTP, isApplicationError, MessageCode } from '@venizia/ignis-helpers';
 
 export class Application extends BaseApplication {
   override setupMiddlewares(): void {
@@ -283,7 +283,7 @@ export class Application extends BaseApplication {
 
     // Custom error handler (optional) - the default AppErrorMiddleware already does this.
     // `this.server` is `{ hono, runtime, instance }` - reach the Hono app via getServer().
-    this.getServer().onError((error, c) => {
+    this.getServer().onError((error, context) => {
       const requestId = context.get('requestId') ?? 'unknown';
 
       // Log all errors
@@ -292,33 +292,38 @@ export class Application extends BaseApplication {
       // Handle known application errors - isApplicationError(), never `instanceof
       // ApplicationError` (unreliable across package boundaries)
       if (isApplicationError(error)) {
-        return context.json({
-          statusCode: error.statusCode,
-          message: error.message,
-          normalized: error.normalized, // { text, code, args } - never undefined
-          extra: error.extra,
-          requestId,
-        }, error.statusCode as Parameters<typeof context.json>[1]);
+        // `statusCode` is a plain number, so build the Response directly instead of casting it
+        // to the narrower status union that `context.json` accepts.
+        return Response.json(
+          {
+            statusCode: error.statusCode,
+            message: error.message,
+            normalized: error.normalized, // { text, code, args } - never undefined
+            extra: error.extra,
+            requestId,
+          },
+          { status: error.statusCode },
+        );
       }
 
       // Handle Zod validation errors - Zod v4 exposes `issues`, not `errors`
       if (error.name === 'ZodError') {
         return context.json({
-          statusCode: 422,
+          statusCode: HTTP.ResultCodes.RS_4.UnprocessableEntity,
           message: 'Validation failed',
           normalized: { text: 'Validation failed', code: MessageCode.DEFAULT, args: {} },
           details: { cause: error.issues },
           requestId,
-        }, 422);
+        }, HTTP.ResultCodes.RS_4.UnprocessableEntity);
       }
 
       // Unknown errors - don't expose details
       return context.json({
-        statusCode: 500,
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         message: 'Internal server error',
         normalized: { text: 'Internal server error', code: MessageCode.DEFAULT, args: {} },
         requestId,
-      }, 500);
+      }, HTTP.ResultCodes.RS_5.InternalServerError);
     });
   }
 }
@@ -543,37 +548,53 @@ Branch on `normalized.code` - it's always present. There's no top-level `message
 
 ```typescript
 // TypeScript client example
-const createUser = async (data: TCreateUserRequest): Promise<TUser> => {
+import { z } from 'zod';
+import { HTTP } from '@venizia/ignis-helpers/common';
+
+// Match your own user shape here; the schema also gives you the `TUser` type.
+const userSchema = z.object({ id: z.string(), name: z.string() });
+
+const errorResponseSchema = z.object({
+  message: z.string().optional(),
+  normalized: z.object({ code: z.string() }),
+  extra: z.unknown().optional(),
+  details: z
+    .object({ cause: z.array(z.object({ path: z.unknown(), message: z.string() })).optional() })
+    .optional(),
+});
+
+const createUser = async (data: TCreateUserRequest): Promise<z.infer<typeof userSchema>> => {
   const response = await fetch('/api/users', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON },
     body: JSON.stringify(data),
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const body = await response.json();
+    const error = errorResponseSchema.parse(body);
 
     switch (response.status) {
-      case 400: {
+      case HTTP.ResultCodes.RS_4.BadRequest: {
         // Context passed to getError(...) arrives under `extra`, not `details`
         throw new ValidationError(error.message, error.extra);
       }
-      case 401: {
+      case HTTP.ResultCodes.RS_4.Unauthorized: {
         window.location.href = '/login';
         throw new AuthError('Please log in');
       }
-      case 404: {
+      case HTTP.ResultCodes.RS_4.NotFound: {
         throw new NotFoundError(error.message);
       }
-      case 422: {
+      case HTTP.ResultCodes.RS_4.UnprocessableEntity: {
         // Field-level issues live in details.cause
-        const fieldErrors = error.details?.cause?.reduce((accumulator, issue) => {
-          accumulator[issue.path] = issue.message;
-          return accumulator;
-        }, {});
+        const fieldErrors: Record<string, string> = {};
+        for (const issue of error.details?.cause ?? []) {
+          fieldErrors[String(issue.path)] = issue.message;
+        }
         throw new ValidationError(error.normalized.code, fieldErrors);
       }
-      case 429: {
+      case HTTP.ResultCodes.RS_4.TooManyRequests: {
         throw new RateLimitError('Too many requests. Try again later.');
       }
       default: {
@@ -582,7 +603,8 @@ const createUser = async (data: TCreateUserRequest): Promise<TUser> => {
     }
   }
 
-  return response.json();
+  const body = await response.json();
+  return userSchema.parse(body);
 };
 ```
 

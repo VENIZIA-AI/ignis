@@ -184,8 +184,10 @@ export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 |-----------|----------|
 | `find()`, `findOne()`, `findById()` | Hidden excluded from SELECT |
 | `create()`, `updateById()`, `deleteById()` | Hidden excluded from RETURNING |
-| Where clause filtering | Hidden fields **can** be used in filters by server code on the repository. A generated controller refuses a request filter that names one (`400`) |
+| Where clause filtering | Hidden fields **can** be used in filters by server code on the repository |
 | Direct connector query | Hidden fields **included** (bypasses repository) |
+
+A generated controller refuses a request filter that names a hidden field (`400`).
 
 When you need to access hidden data, use the connector directly:
 
@@ -335,10 +337,12 @@ The `@model` decorator accepts the following metadata:
 | `tableName` | `string` | Optional explicit table name |
 | `migration.use` | `boolean` | Default `true`. `false` marks the model for your migration tooling to skip (see [Migrations](#migrations)) |
 | `settings.properties.hidden` | `string[]` | Properties excluded from all query results |
-| `settings.properties.stamped` | `ReadonlyArray<string> \| ReadonlySet<string>` | Properties the generated create and update bodies leave out. Default: `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt`, `deletedAt` |
+| `settings.properties.stamped` | `ReadonlyArray<string> \| ReadonlySet<string>` | Properties the generated create and update bodies leave out (see below) |
 | `settings.query.filter` | `TFilter` | Default filter auto-applied to all queries |
 | `settings.query.limit.default` | `number` | Default row limit when a query omits `limit` (must be a positive integer; falls back to `10`) |
 | `settings.authorize.principal` | `string` | Authorization subject name for this model |
+
+`settings.properties.stamped` defaults to `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt` and `deletedAt`.
 
 ## Migrations
 

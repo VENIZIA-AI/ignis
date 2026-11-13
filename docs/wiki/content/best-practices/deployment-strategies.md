@@ -21,7 +21,7 @@ Use environment variables for all configuration - never hard-code.
 **Production Environment Variables:**
 | Variable | Value | Purpose |
 |----------|-------|---------|
-| `NODE_ENV` | `production` | Enables performance optimizations. Error responses are fail-closed: an unset or unrecognized value is treated as production |
+| `NODE_ENV` | `production` | Enables performance optimizations (see the note below) |
 | `APP_ENV_APPLICATION_SECRET` | Strong random string | Application secret |
 | `APP_ENV_JWT_SECRET` | Strong random string | JWT signing key |
 | `APP_ENV_POSTGRES_HOST` / `_PORT` / `_USERNAME` / `_PASSWORD` / `_DATABASE` | Production DB credentials | Database connection |
@@ -29,6 +29,8 @@ Use environment variables for all configuration - never hard-code.
 | `APP_ENV_SERVER_PORT` | `3000` or cloud-assigned | Server port (`PORT` is also honoured) |
 | `APP_ENV_LOGGER_LEVEL` | `info` | Logger floor - `debug` \| `info` \| `warn` \| `error` \| `emerg` |
 | `APP_ENV_LOGGER_FOLDER_PATH` | Writable path | Opt-in rotating file output; unset means console only |
+
+Error responses are fail-closed: an unset or unrecognized `NODE_ENV` is treated as production.
 
 > [!WARNING]
 > Leave `APP_ENV_LOGGER_DO_REDACT` unset in production. Setting it to `false` disables secret-key redaction in logs - a local-debugging switch only.
@@ -52,18 +54,20 @@ docker build -f services/api/.configs/builders/Dockerfile -t api \
 docker run -p 3000:3000 -e NODE_ENV=production -e APP_ENV_APPLICATION_SECRET=xxx api
 ```
 
+The `builder` stage copies the whole project, runs `bun install --frozen-lockfile --ignore-scripts`, then `bun run compile` for `bun-linux-<arch>-musl`. The `production` stage adds `libstdc++` and `libgcc` and runs on the app's port. `git rev-parse HEAD` prints the literal `HEAD` before a first commit, and the build refuses it.
+
 The commit is required: the root `.dockerignore` leaves `.git` out, so the [build stamp](/guides/core-concepts/application/build-info) cannot read it inside the image. A build without `APP_BUILD_COMMIT` stops with the command to run. The commit also lands in the image's `org.opencontainers.image.revision` label, so `docker inspect` shows it.
 
 | Stage | What it does |
 |---|---|
-| `builder` | `oven/bun:1.4.4-alpine`: copies the whole project, `bun install --frozen-lockfile --ignore-scripts`, then `bun run compile` for `bun-linux-<arch>-musl` |
-| `production` | `alpine:3.21` with the binary, `libstdc++` and `libgcc`, run as a non-root user on the app's port |
+| `builder` | `oven/bun:1.4.4-alpine`: installs and compiles the binary |
+| `production` | `alpine:3.21` with the binary, run as a non-root user |
 
 | Build argument | Meaning |
 |---|---|
-| `APP_BUILD_COMMIT` | Required: a hex commit sha of 7 characters or more. The build stamp and the image label carry it. The literal `HEAD` that `git rev-parse HEAD` prints before a first commit is refused |
-| `APP_BUILD_BRANCH`, `APP_BUILD_VERSION` | Optional. Read by the build stamp like the commit |
-| `BUN_CONFIG_REGISTRY` | Optional. A private npm mirror for `bun install` |
+| `APP_BUILD_COMMIT` | Required: a hex commit sha of 7 or more characters |
+| `APP_BUILD_BRANCH`, `APP_BUILD_VERSION` | Optional, read by the build stamp |
+| `BUN_CONFIG_REGISTRY` | Optional: a private npm mirror for `bun install` |
 
 > [!WARNING]
 > The build copies the whole project, so a `.env` in the context would put its secrets into the builder layer, and a CI layer cache can keep that layer. The root `.dockerignore` must exclude them:

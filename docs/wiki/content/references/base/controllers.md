@@ -43,7 +43,7 @@ class ControllerTransports {
   static readonly GRPC = 'grpc';
 }
 
-type TControllerTransport = 'rest' | 'grpc';
+type TControllerTransport = TConstValue<typeof ControllerTransports>;
 ```
 
 ### `TControllerMetadata`
@@ -278,6 +278,7 @@ Sets `X-Response-Count` from `payload.count` and returns the whole envelope, or 
 
 Defines and registers a route with its handler in a single call.
 
+<!-- docs-code: off -->
 ```typescript
 defineRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
   configs: RouteConfig;
@@ -285,6 +286,7 @@ defineRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: 
   hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
 }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>
 ```
+<!-- docs-code: on -->
 
 - **`configs`**: Route configuration including path, method, request/response schemas, and optional auth
 - **`handler`**: Route handler function `(context: TRouteContext) => Response`
@@ -308,6 +310,7 @@ Returns `{ configs, to }` where `to({ handler })` completes the registration and
 
 Defines a route that renders server-side HTML via `context.html()`. Same signature as `defineRoute` but uses `getJSXRouteConfigs` instead of `getRouteConfigs`, which automatically adds an HTML response schema.
 
+<!-- docs-code: off -->
 ```typescript
 defineJSXRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
   configs: RouteConfig;
@@ -315,6 +318,7 @@ defineJSXRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opt
   hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
 }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>
 ```
+<!-- docs-code: on -->
 
 ### `toHonoHandler<ResponseType>(opts: { handler })`
 
@@ -400,13 +404,11 @@ interface IController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions>
 
 ### `ContextUtility.asTypedContext`
 
-Utility to cast middleware context to `TContext`.
+Utility that types a middleware context as `TContext`. The cast is internal to the framework, because `TContext` is structurally identical to Hono's `Context`; your code never writes one.
 
 ```typescript
 class ContextUtility {
-  static asTypedContext<E extends Env>(opts: { context: unknown }): TContext<E, string> {
-    return opts.context as TContext<E, string>;
-  }
+  static asTypedContext<E extends Env>(opts: { context: unknown }): TContext<E, string>;
 }
 ```
 
@@ -449,6 +451,7 @@ type TCustomizableRouteConfig = TRouteAuthConfig & {
 
 ### `ICustomizableRoutes`
 
+<!-- docs-code: off -->
 ```typescript
 interface ICustomizableRoutes<
   RouteConfig extends TCustomizableRouteConfig = TCustomizableRouteConfig,
@@ -467,7 +470,7 @@ interface ICustomizableRoutes<
 }
 
 /** What `routes` of `CrudControllerFactory.build` takes: a listed route is `true` or a config; the restore keys only for a repository that has those methods. */
-type TCrudRoutes<Repository extends object = any> = {
+type TCrudRoutes<Repository extends object = AnyType> = {
   [Key in keyof ICustomizableRoutes]?: Key extends 'restoreById' | 'restoreBy'
     ? Repository extends { [Name in Key]: unknown }
       ? true | TCustomizableRouteConfig
@@ -475,6 +478,7 @@ type TCrudRoutes<Repository extends object = any> = {
     : true | TCustomizableRouteConfig;
 };
 ```
+<!-- docs-code: on -->
 
 ## Route Decorators
 
@@ -604,6 +608,8 @@ For advanced use cases - dynamic routes, feature flags, programmatic control - d
 ### `defineRoute` Example
 
 ```typescript
+import { HTTP } from '@venizia/ignis-helpers/common';
+
 this.defineRoute({
   configs: {
     method: 'get',
@@ -613,7 +619,7 @@ this.defineRoute({
     authorize: { action: 'read', resource: 'status' },
   },
   handler: async (context) => {
-    return context.json({ ok: true }, 200);
+    return context.json({ ok: true }, HTTP.ResultCodes.RS_2.Ok);
   },
   hook: (result, context) => {
     // Optional hook for post-processing
@@ -624,6 +630,8 @@ this.defineRoute({
 ### `bindRoute` Example
 
 ```typescript
+import { HTTP } from '@venizia/ignis-helpers/common';
+
 const { configs } = this.bindRoute({
   configs: {
     method: 'post',
@@ -636,7 +644,7 @@ const { configs } = this.bindRoute({
 }).to({
   handler: async (context) => {
     const data = context.req.valid('json');
-    return context.json({ id: '123' }, 201);
+    return context.json({ id: '123' }, HTTP.ResultCodes.RS_2.Created);
   },
 });
 ```
@@ -799,11 +807,17 @@ The method is public, not protected: a generated controller's declaration file c
 
 | Option | Type | Description |
 | :--- | :--- | :--- |
-| `repository` | `TClass<IRepository>` | The repository class, not its name. Its class name is the binding the container injects into constructor parameter 0, so a subclass needs no constructor (a subclass that declares its own `@inject` at parameter 0 overrides it). Its `@repository({ model })` supplies the entity, the schemas and the id type; a class without `model` throws when the controller is built |
-| `isStrict` | `{ path?: boolean; requestSchema?: boolean }` | `path`: no effect once mounted - the application's `path.isStrict` decides trailing-slash matching. `requestSchema` (default `true`): strict query parameter validation |
+| `repository` | `TClass<IRepository>` | The repository class, not its name |
+| `isStrict` | `{ path?: boolean; requestSchema?: boolean }` | Strictness flags (see below) |
 | `authenticate` | `{ strategies?: TAuthStrategy[]; mode?: TAuthMode }` | Authentication default for the listed routes; a route's own `authenticate` replaces it |
 | `authorize` | `IAuthorizationSpec \| IAuthorizationSpec[]` | Authorization default for the listed routes; a route's own `authorize` replaces it |
-| `routes` | `TCrudRoutes<InstanceType<Repository>>` | The routes to generate: `true` for the defaults, or a config with its own `authenticate`, `authorize` and `request`/`response` schemas |
+| `routes` | `TCrudRoutes<InstanceType<Repository>>` | The routes to generate: `true` for the defaults, or a config |
+
+`repository`: its class name is the binding the container injects into constructor parameter 0, so a subclass needs no constructor (a subclass that declares its own `@inject` at parameter 0 overrides it). Its `@repository({ model })` supplies the entity, the schemas and the id type; a class without `model` throws when the controller is built.
+
+`isStrict.path` has no effect once mounted: the application's `path.isStrict` decides trailing-slash matching. `isStrict.requestSchema` (default `true`) turns on strict query parameter validation.
+
+`routes` as a config can carry its own `authenticate`, `authorize` and `request`/`response` schemas.
 
 The row types of `this.repository` and of the generated handlers come from the repository class: `AbstractRepository` carries `$inferData` and `$inferPersist` phantom markers (as an entity does), and `TRepositoryDataObject` and `TRepositoryPersistObject` read them. A relational repository gives the table row, a search repository gives its document type.
 

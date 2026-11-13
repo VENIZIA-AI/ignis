@@ -56,13 +56,20 @@ The helper runs `init()` and `initialize()`, never `start()`: no socket opens an
 
 | Option | Default | Meaning |
 |--------|---------|---------|
-| `keepDataSources` | `[]` | Datasources whose real `configure()` runs. A class, a class name or a binding key (`datasources.Main`) selects one. Close a kept one with `await application.stop()` |
-| `skipComponents` | `[]` | Components whose `configure()` (and so `binding()`) is skipped, for one that needs infrastructure. What it would have registered is not registered |
+| `keepDataSources` | `[]` | Datasources whose real `configure()` runs |
+| `skipComponents` | `[]` | Components whose `configure()` (and so `binding()`) is skipped |
 | `skipSteps` | `['hydrateSecrets', 'wireSecretRotatables']` | Boot steps that do not run. A value replaces the default; an unknown name rejects before anything boots |
-| `verifyBindings` | `true` | After boot, resolves every service and repository with [`BindingVerifier.assertResolve`](/extensions/helpers/inversion/reference#verifying-a-container), so an injection nobody references at boot still fails. A value you pass wins over the app's own `bootChecks`, whose boot step is off for the run |
-| `skipBindings` | `[]` | Services or repositories the verification leaves out, for one whose constructor needs infrastructure. A class, a class name or a binding key. A name that matches nothing rejects |
+| `verifyBindings` | `true` | After boot, resolves every service and repository |
+| `skipBindings` | `[]` | Services or repositories the verification leaves out |
 | `allowNoControllers` | `false` | An application that registered no controller is rejected, because an empty artifact index would otherwise pass |
 | `routes` | `true` | The helper's own check that no method and path is mounted twice. IGNIS boot does not detect that |
+
+Notes on the options:
+
+- `keepDataSources`: a class, a class name or a binding key (`datasources.Main`) selects one. Close a kept one with `await application.stop()`.
+- `skipComponents`: use it for a component that needs infrastructure. What it would have registered is not registered.
+- `verifyBindings`: resolves with [`BindingVerifier.assertResolve`](/extensions/helpers/inversion/reference#verifying-a-container), so an injection nobody references at boot still fails. A value you pass wins over the app's own `bootChecks`, whose boot step is off for the run.
+- `skipBindings`: use it for a service or repository whose constructor needs infrastructure. It takes a class, a class name or a binding key. A name that matches nothing rejects.
 
 **Components run for real.** The helper stubs datasource connections, the secrets provider and the socket, nothing else. A component's `binding()` registers the services and controllers the check then resolves, so it must run. A component that opens Redis, Kafka or S3 there needs a name in `skipComponents`; what it would have registered is then missing, so list the services that depend on it in `skipBindings`. When a boot fails inside a component, the helper logs one warning that names it (`skipComponents: ['RedisComponent']`); the rejection stays the original error.
 
@@ -97,6 +104,7 @@ export const testServer = () => testApp.getRootRouter();
 ```typescript
 // __tests__/todo.test.ts
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import { testApp, testServer } from './helpers/test-app';
 
 describe('Todo API', () => {
@@ -126,7 +134,7 @@ describe('Todo API', () => {
   it('should create a new todo', async () => {
     const response = await testServer().request('/todos', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON },
       body: JSON.stringify({ title: 'Test Todo' }),
     });
 
@@ -305,7 +313,7 @@ Cover the boundaries alongside the happy path: empty input, duplicate ids, missi
 
 | What to Test | How |
 |--------------|-----|
-| **Boot** | `ApplicationBootAssertion.assert({ application })` from `@venizia/ignis/testing`: every binding and injection resolves, with no database or port |
+| **Boot** | `ApplicationBootAssertion.assert({ application })`: every binding and injection resolves, no database or port |
 | **Controllers** | Use `getRootRouter().request()` to make in-process HTTP calls, with no `path.base` prefix |
 | **Services** | Instantiate and call methods directly |
 | **Repositories** | Use DI container, test with real/mock DB |

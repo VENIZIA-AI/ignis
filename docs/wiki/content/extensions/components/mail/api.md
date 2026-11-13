@@ -189,8 +189,10 @@ There are two ways to supply `MAIL_OPTIONS`, and neither imposes an ordering rul
 
 | How | What happens |
 |---|---|
-| `this.component(MailComponent, { options })` | The application stores the options against the component's binding key. `MailComponent.configure(opts)` binds `MAIL_OPTIONS` itself, then runs `binding()` |
+| `this.component(MailComponent, { options })` | `configure()` binds `MAIL_OPTIONS`, then runs `binding()` |
 | `this.bind({ key: MailKeys.MAIL_OPTIONS }).toValue(...)` | The key is already bound when `binding()` reads it |
+
+With `this.component(MailComponent, { options })`, the application stores the options against the component's binding key. `MailComponent.configure(opts)` then binds `MAIL_OPTIONS` itself and runs `binding()`.
 
 `configure()` runs at the `registerComponents` boot step, four steps after `preConfigure()` returns. A `this.bind()` placed anywhere in `preConfigure()` therefore lands in time, before or after `this.component(...)`. Supply both and the call-site options win - `configure()` rebinds the key.
 
@@ -202,6 +204,7 @@ There are two ways to supply `MAIL_OPTIONS`, and neither imposes an ordering rul
 
 A discriminated union on `provider`, extending `IBaseMailOptions`:
 
+<!-- docs-code: off -->
 ```typescript
 interface IBaseMailOptions {
   from?: string;
@@ -245,6 +248,7 @@ type TMailOptions =
   | ICustomMailOptions
   | IGenericMailOptions;
 ```
+<!-- docs-code: on -->
 
 Every provider shares the `IBaseMailOptions` fields:
 
@@ -252,8 +256,10 @@ Every provider shares the `IBaseMailOptions` fields:
 |---|---|---|---|
 | `from` | `string` | - | Default sender when a message sets no `from` |
 | `fromName` | `string` | - | Display name rendered around `from` as `"fromName" <from>` |
-| `attachmentRoot` | `string` | - | The only directory an `attachment.path` is read from. Unset, every `path` is refused. Must be an absolute path to an existing directory |
-| `maxAttachmentBytes` | `number` | `26214400` (25 MB) | Decoded bytes of attachment content one message may carry, all attachments together. Must be a positive integer |
+| `attachmentRoot` | `string` | - | The only directory an `attachment.path` is read from |
+| `maxAttachmentBytes` | `number` | `26214400` (25 MB) | Decoded bytes of attachment content one message may carry |
+
+`attachmentRoot` must be an absolute path to an existing directory; unset, every `path` is refused. `maxAttachmentBytes` counts all attachments of one message together and must be a positive integer.
 
 Both are checked when the component starts; a bad value fails the boot with `Invalid mail options | <option> ...` (`INVALID_CONFIGURATION`, 500).
 
@@ -529,7 +535,9 @@ Delegates to `transport.verify()`. If the transport throws, wraps it as `MailErr
 | `subject` is falsy | `INVALID_CONFIGURATION` | 400 | `Email subject is required` |
 | Both `text` and `html` are falsy | `INVALID_CONFIGURATION` | 400 | `Email must have either text or html content` |
 | `text` or `html` is not a string (`null` counts as absent) | `BODY_SOURCE_REFUSED` | 400 | `Mail body refused ...` |
-| An address, the subject or a header value holds a line break, CR or NUL, is not a string, or a header name is not printable ASCII without a colon | `INVALID_HEADER` | 400 | `Invalid mail header ...` |
+| A header or an address fails the header check (see below) | `INVALID_HEADER` | 400 | `Invalid mail header ...` |
+
+The header check fails when an address, the subject or a header value holds a line break, CR or NUL, or is not a string, or when a header name is not printable ASCII without a colon.
 
 `MailHeaderUtility.assert({ message })` is the one header check. It runs here, so Nodemailer, Mailgun and SES all get it. A transport called directly, without `MailService`, skips it.
 
@@ -563,13 +571,15 @@ interface IMailMessage {
 | Field | Notes |
 |-------|-------|
 | `from` | Falls back to `getDefaultFrom()`. Can be overridden per message (multi-tenant scenarios). |
-| `to`, `cc`, `bcc` | Single string or array. Nodemailer joins arrays with `', '`; Mailgun passes `to` as-is (always coerced to an array), `cc`/`bcc` pass through unmodified. |
+| `to`, `cc`, `bcc` | Single string or array; each provider adapts it (see below the table) |
 | `replyTo` | Nodemailer passes it directly; Mailgun maps it to `h:Reply-To`. |
 | `subject` | Rendered through the template engine when set via `sendTemplate()`. |
-| `text`, `html` | At least one is required (`validateMessage()`). Each must be a string - an object such as `{ path }` is refused with `core.mail.body_source_refused`, because Nodemailer would read it as a file or URL. |
+| `text`, `html` | At least one is required (`validateMessage()`); each must be a string |
 | `attachments` | See `IMailAttachment` below. |
 | `headers` | Nodemailer passes them directly; Mailgun prefixes every key with `h:`. |
-| `requireValidate` | `true` makes template rendering throw on missing placeholders instead of preserving them as literal text. Defaults to `false`. |
+| `requireValidate` | `true` throws on a missing placeholder in a template; default `false` |
+
+Nodemailer joins `to`, `cc` and `bcc` arrays with `', '`. Mailgun coerces `to` to an array and passes `cc`/`bcc` through unmodified. A `text` or `html` that is an object such as `{ path }` is refused with `core.mail.body_source_refused`, because Nodemailer would read it as a file or URL. With `requireValidate` unset or `false`, a missing placeholder is preserved as literal text.
 
 ```typescript
 interface IMailAttachment {
@@ -625,13 +635,19 @@ interface IMailTemplateEngine {
 
 | Method | Behavior |
 |--------|----------|
-| `render(opts)` | Renders by `templateName` (registry lookup) or raw `templateData`. Throws if neither is given. Throws `TEMPLATE_NOT_FOUND` (404) if `templateName` is not registered. `format` is `MailTemplateFormats.HTML` (default: <code v-pre>{{key}}</code> is HTML-escaped) or `TEXT` (nothing is escaped); <code v-pre>{{{key}}}</code> is raw in both. Delegates to `renderSimpleTemplate()`. |
-| `registerTemplate(opts)` | `options` (on the class) accepts `subject`/`description` (`Partial<ITemplate>`). Overwrites an existing template with the same name. |
-| `validateTemplateData(opts)` | Extracts every unique <code v-pre>{{key}}</code> and <code v-pre>{{{key}}}</code> with the same placeholder pattern `render()` uses, deduplicates, resolves nested dot-notation values (own properties only). Returns `isValid`, `missingKeys`, `allKeys`. |
+| `render(opts)` | Renders by `templateName` (registry lookup) or raw `templateData` |
+| `registerTemplate(opts)` | Registers a template; overwrites one with the same name |
+| `validateTemplateData(opts)` | Returns `isValid`, `missingKeys`, `allKeys` for the data |
 | `getTemplate(name)` | Returns `undefined` if not registered. |
 | `listTemplates()` | All templates, as an array of `ITemplate`. |
 | `hasTemplate(name)` | Registry membership check. |
 | `removeTemplate(name)` | Logs the removal, returns `true`/`false`. |
+
+`render()` throws if neither `templateName` nor `templateData` is given, and throws `TEMPLATE_NOT_FOUND` (404) if `templateName` is not registered. `format` is `MailTemplateFormats.HTML` (default: <code v-pre>{{key}}</code> is HTML-escaped) or `TEXT` (nothing is escaped); <code v-pre>{{{key}}}</code> is raw in both. It delegates to `renderSimpleTemplate()`.
+
+`registerTemplate()` accepts `subject` and `description` (`Partial<ITemplate>`) through `options` on the class.
+
+`validateTemplateData()` extracts every unique <code v-pre>{{key}}</code> and <code v-pre>{{{key}}}</code> with the same placeholder pattern `render()` uses, deduplicates them, and resolves nested dot-notation values (own properties only).
 
 ```typescript
 interface ITemplate {
@@ -883,6 +899,7 @@ interface IInternalQueueMailExecutorOpts {
 
 ## Utility functions
 
+<!-- docs-code: off -->
 ```typescript
 // type.utility.ts
 class MailTypeUtility {
@@ -910,6 +927,7 @@ class MailMimeUtility {
   static buildRawMessage(opts: { message: IMailMessage }): Promise<Buffer>;
 }
 ```
+<!-- docs-code: on -->
 
 `MailTypeUtility.isTransport` and `MailTypeUtility.isValidOptions` keep a positional parameter, because a type guard narrows its own parameter.
 

@@ -28,10 +28,13 @@ configure({ timeout: () => 5000 });
 
 - **Escape hatches, not the norm.** `AnyType` and `AnyObject` exist for the rare case a shape truly cannot be known at compile time. The framework prefers types derived from definitions, like `typeof X.schema`, everywhere else.
 
+<!-- docs-code: off -->
 | Type | Is |
 |---|---|
 | `AnyType` | `any` |
 | `AnyObject` | `Record<string \| symbol \| number, any>` |
+
+<!-- docs-code: on -->
 
 - **Nullable and async are explicit.** `TNullable<T>` and `ValueOrPromise<T>` appear on most framework method signatures. One declared type covers both the sync and the async implementation.
 

@@ -100,7 +100,7 @@ Controller → Service → Repository → DataSource
 @inject({ key: BindingKeys.build({ namespace: BindingNamespaces.SERVICE, key: UserService.name }) })
 
 // ✅ Error Handling
-throw getError({ statusCode: 404, message: 'User not found' });
+throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'User not found' });
 
 // ✅ Scoped Logging (ILogger - never names a provider)
 this.logger.for('createUser').info('User created | id: %s', user.id);
@@ -126,9 +126,6 @@ try { await riskyOperation(); } catch (e) { /* swallowed */ }
 
 // ❌ Raw Error - loses statusCode, messageCode and the normalized response shape
 throw new Error('User not found'); // Use getError()
-
-// ❌ Using `any` type
-const data: any = await fetchData(); // Use proper types!
 ```
 
 ### Security Checklist

@@ -61,9 +61,11 @@ HTTP Request (GET /api/todos/{id})
 | Layer | Responsibility |
 |-------|----------------|
 | **Controller** | Entry point for HTTP requests |
-| **Repository** | Abstracts database operations (swap one engine for another, such as PostgreSQL, PGlite or SQLite, by changing the datasource, not the controller) |
+| **Repository** | Abstracts database operations (swap the engine by changing the datasource, not the controller) |
 | **DataSource** | Manages connection to database |
 | **Model** | Defines what the data looks like |
+
+The engine behind the repository can be PostgreSQL, PGlite or SQLite.
 
 **Benefits of this separation:**
 - **Testable** - Mock repository in tests
@@ -620,7 +622,7 @@ export class TodoService extends BaseService {
     super({ scope: TodoService.name });
   }
 
-  async createTodo(data: any) {
+  async createTodo(data: { title: string; description?: string }) {
     // Business logic validation
     if (data.title.length < 3) {
       throw getError({ message: 'Title too short' });

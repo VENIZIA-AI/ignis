@@ -79,7 +79,6 @@ import {
   BaseRestController,
   controller,
   get,
-  type IJWTTokenPayload,
   type TRouteContext,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
@@ -92,7 +91,7 @@ export class SecureDataController extends BaseRestController {
 
   @get({ configs: SECURE_ROUTE_CONFIG })
   getData(context: TRouteContext) {
-    const user = context.get(Authentication.CURRENT_USER) as IJWTTokenPayload | undefined;
+    const user = context.get(Authentication.CURRENT_USER);
     return context.json({ message: `Hello ${user?.userId}` }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
@@ -121,7 +120,7 @@ The built-in auth controller (`useAuthController: true`) delegates every route t
 ```typescript
 import {
   BaseService, inject, IAuthService, IJWTTokenPayload, JWSTokenService,
-  BindingKeys, BindingNamespaces, TSignInRequest, TContext,
+  BindingKeys, BindingNamespaces, TSignInRequest, TSignUpRequest, TChangePasswordRequest, TContext,
 } from '@venizia/ignis';
 import { getError } from '@venizia/ignis-helpers';
 import { Env } from 'hono';
@@ -147,8 +146,8 @@ export class AuthenticationService extends BaseService implements IAuthService {
     return { token };
   }
 
-  async signUp(context: TContext<Env>, opts: any): Promise<any> { /* your logic */ }
-  async changePassword(context: TContext<Env>, opts: any): Promise<any> { /* your logic */ }
+  async signUp(context: TContext<Env>, opts: TSignUpRequest): Promise<Record<string, unknown>> { /* your logic */ }
+  async changePassword(context: TContext<Env>, opts: TChangePasswordRequest): Promise<Record<string, unknown>> { /* your logic */ }
 }
 ```
 
@@ -177,7 +176,7 @@ async refreshToken(context: TContext<Env>): Promise<{ token: string }> {
 **Implement `getUserInformation` (optional).** Backs both `GET /me` and `GET /who-am-i?withUserInformation=true`.
 
 ```typescript
-async getUserInformation(context: TContext<Env>, _opts: AnyObject): Promise<AnyObject> {
+async getUserInformation(context: TContext<Env>, _opts: Record<string, unknown>): Promise<Record<string, unknown>> {
   const currentUser = context.get(Authentication.CURRENT_USER);
   return this.userRepository.findById({ id: currentUser.userId });
 }
@@ -311,8 +310,12 @@ sequenceDiagram
 
 | Mode | Behavior | Use case |
 |------|----------|----------|
-| `'any'` (default) | Tried in order.<br>First success wins.<br>Failures are logged at debug, not returned.<br>All fail -> `401` listing the tried strategies. | Fallback auth (JWT primary, Basic for legacy clients) |
-| `'all'` | Every strategy must pass.<br>First failure rejects immediately.<br>The **first** strategy's user payload is the identity source. | Multi-factor authentication |
+| `'any'` (default) | Tried in order; first success wins | Fallback auth (JWT primary, Basic for legacy clients) |
+| `'all'` | Every strategy must pass; first failure rejects | Multi-factor authentication |
+
+In `'any'` mode, a failing strategy is logged at debug level and not returned. When all of them fail, the response is `401` listing the tried strategies.
+
+In `'all'` mode, the **first** strategy's user payload is the identity source.
 
 ```mermaid
 flowchart TD
@@ -339,10 +342,18 @@ AES payload encryption is off by default. It only activates when you set `applic
 |---|---|
 | Default | Off. Without `applicationSecret`, payloads stay standard plaintext JWT. |
 | Standard fields | `iss`, `sub`, `aud`, `jti`, `nbf`, `exp`, `iat` are never encrypted, on either side. |
-| Other fields | Both the key and the value are AES-encrypted. A `null` value is encrypted like any other and decodes as `null`, so an encrypted token decodes to the same payload as a plain one. An `undefined` value is skipped, as JSON drops it, and the claim is absent. A `null` never reaches a field codec. |
-| Serialization | `JSON.stringify` by default. Opt in to `AuthenticationFieldCodecs.ROLES_CODEC` for `roles` - it serializes as pipe-separated `id\|identifier\|priority` strings instead. |
+| Other fields | Both the key and the value are AES-encrypted |
+| Serialization | `JSON.stringify` by default |
 | Secret | Must stay constant. Changing `applicationSecret` invalidates every existing token. |
 | Issuer/verifier match | Both sides need the identical secret, and identical `fieldCodecs` if you use them. |
+
+Other fields, in detail:
+
+- A `null` value is encrypted like any other and decodes as `null`, so an encrypted token decodes to the same payload as a plain one.
+- A `null` never reaches a field codec.
+- An `undefined` value is skipped, as JSON drops it, and the claim is absent.
+
+For `roles`, opt in to `AuthenticationFieldCodecs.ROLES_CODEC`. It serializes roles as pipe-separated `id|identifier|priority` strings instead of JSON.
 
 ```typescript
 this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
@@ -511,7 +522,7 @@ The old function names of these methods are removed. `devz codemod namespace-fun
 
 | Column | DB column | Type | Nullable | Description |
 |--------|-----------|------|----------|-------------|
-| `variant` | `variant` | `text` | No | One of the seven `AuthorizationPolicyVariants` edge kinds: `grant`, `assign_role`, `role_inherits`, `join_domain`, `domain_inherits`, `resource_inherits`, `action_inherits` |
+| `variant` | `variant` | `text` | No | One of the seven `AuthorizationPolicyVariants` edge kinds |
 | `subjectType` | `subject_type` | `text` | No | For example, `'user'`, `'Role'` |
 | `targetType` | `target_type` | `text` | No | For example, `'Permission'`, `'Role'` |
 | `action` | `action` | `text` | Yes | Policy action |
@@ -521,6 +532,8 @@ The old function names of these methods are removed. `devz codemod namespace-fun
 | `targetId` | `target_id` | `text` or `integer` | No | Depends on `idType` |
 | `domainId` | `domain_id` | `text` or `integer` | Yes | The tenant row's bare id. Depends on `idType` |
 | `metadata` | `metadata` | `jsonb` | Yes | Free-form metadata. Only some grants populate it |
+
+The seven `variant` values: `grant`, `assign_role`, `role_inherits`, `join_domain`, `domain_inherits`, `resource_inherits`, `action_inherits`.
 
 All `idType` options default to `'number'` (`integer` columns). Pass `'string'` for `text` columns - UUID primary keys, for example.
 

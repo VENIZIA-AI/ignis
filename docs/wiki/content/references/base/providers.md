@@ -245,6 +245,7 @@ Providers can return factory functions for deferred instantiation:
 
 ```typescript
 import { getError } from '@venizia/ignis-helpers';
+import { HTTP } from '@venizia/ignis-helpers/common';
 
 type TGetMailTransportFn = (options: MailOptions) => IMailTransport;
 
@@ -385,7 +386,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
 
         default: {
           throw getError({
-            statusCode: 500,
+            statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
             error: MailErrors.INVALID_CONFIGURATION,
             message: `Unsupported mail provider: ${options.provider}`,
           });

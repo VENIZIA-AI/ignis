@@ -84,7 +84,9 @@ const customPool = new WorkerPoolHelper({ ignoreMaxWarning: true });
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `ignoreMaxWarning` | `boolean` | `false` | When `true`, allows registering workers beyond the CPU core count. When `false`, registration is skipped once the pool reaches the CPU core limit. |
+| `ignoreMaxWarning` | `boolean` | `false` | When `true`, allows registering workers beyond the CPU core count |
+
+When `ignoreMaxWarning` is `false`, registration is skipped once the pool reaches the CPU core limit.
 
 ### Methods
 
@@ -92,10 +94,12 @@ const customPool = new WorkerPoolHelper({ ignoreMaxWarning: true });
 |--------|-----------|-------------|
 | `getInstance` | `static getInstance(): WorkerPoolHelper` | Returns the singleton pool instance (creates one with `ignoreMaxWarning: false` if needed) |
 | `register` | `register<MessageType>(opts: { key: string; worker: IWorker<MessageType> }): boolean` | Adds a worker to the pool. Returns `false` and logs, without registering, if the key exists or the pool is full |
-| `unregister` | `async unregister(opts: { key: string }): Promise<void>` | Terminates the worker (`worker.terminate()`) and removes it from the pool. The registry entry is deleted even if termination throws |
+| `unregister` | `async unregister(opts: { key: string }): Promise<void>` | Terminates the worker and removes it from the pool |
 | `get` | `get<MessageType>(opts: { key: string }): IWorker<MessageType> \| undefined` | Retrieves a registered worker by key |
 | `has` | `has(opts: { key: string }): boolean` | Checks if a worker is registered under the given key |
 | `size` | `size(): number` | Returns the number of currently registered workers |
+
+`unregister` calls `worker.terminate()`. The registry entry is deleted even if termination throws.
 
 > [!WARNING]
 > When the pool reaches the CPU core limit and `ignoreMaxWarning` is `false`, further `register()` calls return `false` and log a warning. No error is thrown.
@@ -124,27 +128,31 @@ const worker = new BaseWorkerHelper<MyMessageType>({
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `identifier` | `string` | - | A unique name for this worker instance, used as the `BaseHelper` identifier and in log output. Required. |
+| `identifier` | `string` | - | Unique name for this worker, used as the `BaseHelper` identifier and in logs. Required. |
 | `path` | `string \| URL` | - | Path to the worker script file, passed directly to `new Worker()`. Required. |
 | `options` | `WorkerOptions` | - | Passed directly to `new Worker()`. Required. Supports `workerData`, `transferList`, `env`, etc. |
-| `scope` | `string` | `'BaseWorkerHelper'` | Accepted but currently ignored - the constructor always sets the logger scope to `BaseWorkerHelper.name`, not `opts.scope`. |
-| `eventHandlers` | `Partial<Pick<IWorker<MessageType>, 'onOnline' \| 'onExit' \| 'onError' \| 'onMessage' \| 'onMessageError'>>` | `undefined` | Optional overrides for lifecycle event callbacks. Any handler not provided falls back to default logging behavior. |
+| `scope` | `string` | `'BaseWorkerHelper'` | Accepted but currently ignored |
+| `eventHandlers` | `Partial<Pick<IWorker<MessageType>, 'onOnline' \| 'onExit' \| 'onError' \| 'onMessage' \| 'onMessageError'>>` | `undefined` | Optional overrides for lifecycle event callbacks |
+
+The constructor always sets the logger scope to `BaseWorkerHelper.name`, so `opts.scope` has no effect. A handler you do not provide falls back to default logging.
 
 ### Event handler overrides
 
 | Handler | Signature | Default behavior |
 |---------|-----------|-------------------|
 | `onOnline` | `() => ValueOrPromise<void>` | Logs `"Worker ONLINE"` at info level |
-| `onExit` | `(opts: { code: string \| number }) => ValueOrPromise<void>` | Logs `"Worker EXIT | Code: %s"` at warn level |
-| `onError` | `(opts: { error: Error }) => ValueOrPromise<void>` | Logs `"Worker ERROR | Error: %s"` at error level |
-| `onMessage` | `(opts: { message: MessageType }) => ValueOrPromise<void>` | Logs `"Worker MESSAGE | message: %j"` at error level |
-| `onMessageError` | `(opts: { error: Error }) => ValueOrPromise<void>` | Logs `"Worker MESSAGE_ERROR | Error: %s"` at error level |
+| `onExit` | `(opts: { code: string \| number }) => ValueOrPromise<void>` | Logs `"Worker EXIT \| Code: %s"` at warn level |
+| `onError` | `(opts: { error: Error }) => ValueOrPromise<void>` | Logs `"Worker ERROR \| Error: %s"` at error level |
+| `onMessage` | `(opts: { message: MessageType }) => ValueOrPromise<void>` | Logs `"Worker MESSAGE \| message: %j"` at error level |
+| `onMessageError` | `(opts: { error: Error }) => ValueOrPromise<void>` | Logs `"Worker MESSAGE_ERROR \| Error: %s"` at error level |
 
 ### Methods
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `binding` | `binding(): void` | Binds all five event handlers to the internal `Worker` instance. Called automatically by the constructor. Throws `[binding] Invalid worker instance to bind event handlers` if `this.worker` is falsy |
+| `binding` | `binding(): void` | Binds all five event handlers to the internal `Worker` instance |
+
+The constructor calls `binding()` automatically. It throws `[binding] Invalid worker instance to bind event handlers` if `this.worker` is falsy.
 
 Every handler runs through `HookUtility.invoke`, which wraps the call in a `try/catch`. A synchronous throw inside a user handler is caught and logged as `"Hook execution FAILED | Error: %s"`, rather than crashing the process. Async rejections are settled the same way, via `PromiseUtility.voidExecution`.
 
@@ -206,10 +214,10 @@ The constructor checks `isMainThread` (from `node:worker_threads`) and throws `[
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `bindWorkerBus` | `bindWorkerBus<IC, IP>(opts: { key: string; bus: IWorkerBus<IC, IP> }): void` | Registers a bus under the given key. Logs a warning and returns without overwriting if the key already exists |
-| `unbindWorkerBus` | `unbindWorkerBus(opts: { key: string }): void` | Calls `port.removeAllListeners()` on the bus's port, then deletes it from the registry. Logs a warning if the key is not found |
+| `unbindWorkerBus` | `unbindWorkerBus(opts: { key: string }): void` | Removes the bus's port listeners, then deletes it from the registry |
 | `getWorkerBus` | `getWorkerBus<IC, IP>(opts: { key: string }): IWorkerBus<IC, IP>` | Returns the bus for the given key. Throws `[getWorkerBus] Not found worker bus | key: {key}` if not found |
 
-`unbindWorkerBus` is defined only on `BaseWorkerThreadHelper`, not on the `AbstractWorkerThreadHelper` interface. `AbstractWorkerThreadHelper` declares `buses`, `bindWorkerBus`, and `getWorkerBus` as abstract members only.
+`unbindWorkerBus` calls `port.removeAllListeners()` on the bus's port, and logs a warning if the key is not found. It is defined only on `BaseWorkerThreadHelper`, not on the `AbstractWorkerThreadHelper` interface. `AbstractWorkerThreadHelper` declares `buses`, `bindWorkerBus`, and `getWorkerBus` as abstract members only.
 
 ## BaseWorkerMessageBusHandlerHelper
 
@@ -271,7 +279,9 @@ The constructor binds `message`, `error`, `messageerror`, `exit`, and `close` li
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `postMessage` | `postMessage(opts: { message: IPublishPayload; transferList: readonly Transferable[] \| undefined }): ValueOrPromise<void>` | Sends a message through the port. Calls `port.postMessage(message, [...transferList])` if `transferList` is set, otherwise `port.postMessage(message)`. Logs and returns, without throwing, if `port` is falsy |
+| `postMessage` | `postMessage({ message: IPublishPayload, transferList }): ValueOrPromise<void>` | Sends a message through the port; `transferList` is `readonly Transferable[] \| undefined` |
+
+`postMessage` calls `port.postMessage(message, [...transferList])` if `transferList` is set, otherwise `port.postMessage(message)`. It logs and returns, without throwing, if `port` is falsy.
 
 ### Pre/post message hooks
 
@@ -310,6 +320,7 @@ bus.postMessage({
 
 `Source ->` [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/common/types.ts)
 
+<!-- docs-code: off -->
 ```typescript
 interface IWorker<MessageType> {
   worker: Worker;
@@ -345,6 +356,7 @@ interface IWorkerBus<IConsumePayload, IPublishPayload> {
   }): ValueOrPromise<void>;
 }
 ```
+<!-- docs-code: on -->
 
 ## Troubleshooting
 

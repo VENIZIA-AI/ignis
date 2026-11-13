@@ -31,11 +31,17 @@ Both are described below with exact before/after.
 | Adapter options | `IDrizzleCasbinAdapterOptions` | **removed.** `BaseFilteredAdapter` takes `{ scope, dataSource }`; `ScopedCasbinAdapter` takes `{ dataSource, entities }` |
 | Filter shape | `{ principalType, principalValue }` (flat) | `{ principal: { type, id } }` (`ICasbinPolicyFilter`) |
 | `CasbinRuleVariants` | `P, G, GROUP('group'), POLICY('policy')` + `SCHEME_SET`/`isValid` | trimmed to **casbin prefixes only**: `P, G, G2, G3, G4, G5`. `GROUP`/`POLICY` **removed** |
-| DB `variant` discriminator | lived on `CasbinRuleVariants.GROUP/.POLICY` | now `AuthorizationPolicyVariants.*.action` (`grant`, `assign_role`, `join_domain`, `role_inherits`, `resource_inherits`, `action_inherits`, `domain_inherits`) |
-| Cache drivers | `redis` **and** `in-memory` | **redis only.** `CasbinEnforcerCachedDrivers.IN_MEMORY` removed; `cached` is now `{ use: false } \| (ICasbinEnforcerCachedRedis & { use: true })` |
-| Cache invalidation interface | `IAuthorizationCacheInvalidator` / `TAuthorizationCacheInvalidator` | **removed.** `invalidateUserCache?`/`rebuildUserCache?` are now **optional** members of `IAuthorizationEnforcer` (feature-detected by the registry) |
+| DB `variant` discriminator | lived on `CasbinRuleVariants.GROUP/.POLICY` | now `AuthorizationPolicyVariants.*.action` |
+| Cache drivers | `redis` **and** `in-memory` | **redis only.** `CasbinEnforcerCachedDrivers.IN_MEMORY` removed |
+| Cache invalidation interface | `IAuthorizationCacheInvalidator` / `TAuthorizationCacheInvalidator` | **removed.** Now optional members of `IAuthorizationEnforcer` |
 | Enforcer model | shared single enforcer | **pool** of per-request enforcers (`BasePoolHelper`); policy loaded per request, fail-closed |
 | Scoped option | n/a | new `isScoped?: boolean` on `ICasbinEnforcerOptions` |
+
+`cached` is now `{ use: false }` or `ICasbinEnforcerCachedRedis & { use: true }`.
+
+The `AuthorizationPolicyVariants.*.action` values are `grant`, `assign_role`, `join_domain`, `role_inherits`, `resource_inherits`, `action_inherits` and `domain_inherits`.
+
+The cache invalidation methods that replace the removed interface are `invalidateUserCache?` and `rebuildUserCache?`. They are **optional** members of `IAuthorizationEnforcer`, feature-detected by the registry.
 
 > **Note:** the old `CasbinRuleVariants.GROUP = 'group'` and `.POLICY = 'policy'`. Your
 > `PolicyDefinition.variant` column currently stores the strings **`'group'`** and **`'policy'`**.
@@ -245,9 +251,11 @@ New edge types you may need to **add** (no equivalent today):
 | Today (code in `ApplicationCasbinAdapter`) | Scoped equivalent (data) |
 |--------------------------------------------|--------------------------|
 | Global role → wildcard `*` domain (`AppFixedRoles.isGlobalRole`) | Store the `assign_role` row with **NULL domain** → adapter emits `g, User_x, Role_y, *` |
-| NULL-domain role → expand to every member merchant | Grant rows with domain **`ANY_MEMBER`** + `join_domain` (`g2`) membership rows; the matcher resolves "any domain I'm a member of" |
+| NULL-domain role → expand to every member merchant | Grant rows with domain **`ANY_MEMBER`** + `join_domain` (`g2`) membership rows |
 | HQ-owner expansion (live JOIN) | `domain_inherits` (`g3`) edges (see §4.2) |
 | Domain-agnostic role permissions (`p, Role, *, ...`) | Grant rows with domain `ANY_MEMBER` (default when `domain` is NULL) |
+
+For `ANY_MEMBER`, the matcher resolves "any domain I'm a member of".
 
 ### 4.4 Behavioral caveat - resource matching changes
 

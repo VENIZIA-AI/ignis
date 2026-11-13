@@ -91,11 +91,11 @@ The class must be a named export. See [Registering artifacts](/guides/core-conce
     }
 
     // In UserService
-    async createUser(data) {
+    async createUser(data: TCreateUser) {
       // All the complex logic now resides in the service
       const existingUser = await this.userRepository.findByEmail(data.email);
       // ...
-      return await this.userRepository.create({ data });
+      return this.userRepository.create({ data });
     }
     ```
 
@@ -245,14 +245,26 @@ export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 
 **Client-side handling:**
 ```typescript
-try {
-  await api.post('/users', data);
-} catch (error) {
-  if (error.response?.status === 422) {
-    const errors = error.response.data.details.cause;
-    errors.forEach(err => {
-      console.log(`Field '${err.path}': ${err.message}`);
-    });
+import { HTTP } from '@venizia/ignis-helpers/common';
+import { z } from 'zod';
+
+const validationErrorSchema = z.object({
+  details: z.object({
+    cause: z.array(z.object({ path: z.string(), message: z.string() })),
+  }),
+});
+
+const response = await fetch('/users', {
+  method: 'POST',
+  headers: { [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON },
+  body: JSON.stringify(data),
+});
+
+if (response.status === HTTP.ResultCodes.RS_4.UnprocessableEntity) {
+  const body = await response.json();
+  const { details } = validationErrorSchema.parse(body);
+  for (const issue of details.cause) {
+    console.log(`Field '${issue.path}': ${issue.message}`);
   }
 }
 ```

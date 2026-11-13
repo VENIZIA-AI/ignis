@@ -465,7 +465,7 @@ You have two ways to get there:
 
 | Approach | Setup | Matchers |
 |---|---|---|
-| **Scoped model (recommended)** | `isScoped: true` + `ScopedCasbinAdapter` + `CASBIN_RBAC_DOMAIN_SCOPED_MODEL`. Supply the domain per route via `spec.domain`, or globally via `domainResolver`. | Registered for you |
+| **Scoped model (recommended)** | `isScoped: true` + `ScopedCasbinAdapter` + `CASBIN_RBAC_DOMAIN_SCOPED_MODEL` | Registered for you |
 | **Manual flat model (lower-level)** | Keep a flat `g + p` model. See [The flat model](#the-flat-model). | Register `domainMatching` and `normalizePayloadFn` yourself |
 
 ### Scoped model + per-route domain (recommended)
@@ -582,7 +582,7 @@ AuthorizationEnforcerRegistry.getInstance().register({
 |------|--------------|---------|---------|
 | Scoped role (owner in a tenant) | `g, User_u, Role_owner, Merchant_A`<br/>`p, Role_owner, *, Material.find, read, allow` | `(User_u, Merchant_A, Material.find, read)` | allow |
 | Scoped role - isolation | (same as above) | `(User_u, Merchant_B, Material.find, read)` | deny (`g` domain doesn't match) |
-| Multi-tenant role | `g, User_u, Role_owner, Merchant_A`<br/>`g, User_u, Role_owner, Merchant_B`<br/>`p, Role_owner, *, Material.find, read, allow` | `(User_u, Merchant_B, Material.find, read)` | allow (one `g` line per tenant; a single `p` line) |
+| Multi-tenant role (one `g` line per tenant) | `g, User_u, Role_owner, Merchant_A`<br/>`g, User_u, Role_owner, Merchant_B`<br/>(same `p` line) | `(User_u, Merchant_B, Material.find, read)` | allow |
 | Global role (for example, guest/onboarding) | `g, User_u, Role_guest, *`<br/>`p, Role_guest, *, Organizer.onBoarding, create, allow` | `(User_u, Merchant_anything, Organizer.onBoarding, create)` | allow (wildcard `g` domain) |
 | Direct user permission (scoped) | `p, User_u, Merchant_A, Report.read, read, allow` | `(User_u, Merchant_A, Report.read, read)` | allow (reflexive `g(u,u,dom)` + `keyMatch`) |
 | Direct user permission - isolation | (same as above) | `(User_u, Merchant_B, Report.read, read)` | deny |

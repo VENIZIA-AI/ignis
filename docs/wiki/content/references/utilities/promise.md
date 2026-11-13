@@ -31,14 +31,46 @@ const results = await PromiseUtility.executeWithLimit({
 
 ## Methods
 
-| Method | Signature | What it does |
-|--------|-----------|---------------|
-| `PromiseUtility.sleep` | `sleep({ ms: number }): Promise<unknown>` | Resolves after `ms` milliseconds. |
-| `PromiseUtility.executeWithLimit` | `executeWithLimit<T>(opts: { tasks: Array<() => Promise<T>>; limit: number; onTaskDone?: <R>(opts: { result: R }) => ValueOrPromise<void> }): Promise<T[]>` | Runs `tasks` with at most `limit` running concurrently. Calls `onTaskDone` each time the limit is hit and a slot frees up. Throws if `limit` is not a positive integer. |
-| `PromiseUtility.voidExecution` | `voidExecution(opts: { logger?: ILogger; scope: string; execution: ValueOrPromise<unknown> }): void` | Fire-and-forget: if `execution` is a Promise, routes a rejection to `logger.for(scope).error(...)` (or `console.error` without a logger) instead of an unhandled rejection. Synchronous values pass through untouched. |
-| `ErrorUtility.toError` | `toError({ error: unknown }): Error` | Normalizes a `catch`-block value into an `Error` - passes an existing `Error` through, wraps anything else in an `ApplicationError` carrying `String(error)`. |
-| `ParseUtility.getDeepProperty` | `getDeepProperty<T, V>({ source: T, path: string }): V` | Reads a dot-separated `path` off `source`. Throws if any intermediate segment is `null`/`undefined`. See [Parse Utility](/references/utilities/parse). |
-| `isPromiseLike` | `isPromiseLike<T>(value: T \| PromiseLike<T>): value is PromiseLike<T>` | Type guard: `true` when `value` is non-null and has a callable `.then`. Stays a function. |
+| Method | What it does |
+|--------|--------------|
+| `PromiseUtility.sleep` | Resolves after `ms` milliseconds |
+| `PromiseUtility.executeWithLimit` | Runs `tasks` with at most `limit` running concurrently |
+| `PromiseUtility.voidExecution` | Fire-and-forget: routes a rejection to the logger |
+| `ErrorUtility.toError` | Normalizes a `catch`-block value into an `Error` |
+| `ParseUtility.getDeepProperty` | Reads a dot-separated `path` off `source` |
+| `isPromiseLike` | Type guard: `true` when `value` has a callable `.then` |
+
+### Signatures
+
+```typescript
+PromiseUtility.sleep({ ms }: { ms: number }): Promise<unknown>;
+
+PromiseUtility.executeWithLimit<T>(opts: {
+  tasks: Array<() => Promise<T>>;
+  limit: number;
+  onTaskDone?: <R>(opts: { result: R }) => ValueOrPromise<void>;
+}): Promise<T[]>;
+
+PromiseUtility.voidExecution(opts: {
+  logger?: ILogger;
+  scope: string;
+  execution: ValueOrPromise<unknown>;
+}): void;
+
+ErrorUtility.toError({ error }: { error: unknown }): Error;
+
+ParseUtility.getDeepProperty<T, V>(opts: { source: T; path: string }): V;
+
+isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T>;
+```
+
+### Behavior
+
+- **`executeWithLimit`** calls `onTaskDone` each time the limit is hit and a slot frees up. It throws if `limit` is not a positive integer.
+- **`voidExecution`** routes a rejection of `execution` to `logger.for(scope).error(...)`, or to `console.error` without a logger, instead of an unhandled rejection. Synchronous values pass through untouched.
+- **`ErrorUtility.toError`** passes an existing `Error` through and wraps anything else in an `ApplicationError` carrying `String(error)`.
+- **`ParseUtility.getDeepProperty`** throws if any intermediate segment is `null` or `undefined`. See [Parse Utility](/references/utilities/parse).
+- **`isPromiseLike`** stays a function, not a static method.
 
 ## Notes
 

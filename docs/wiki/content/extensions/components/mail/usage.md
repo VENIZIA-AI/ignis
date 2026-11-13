@@ -79,8 +79,10 @@ async sendBulkNotifications(users: Array<{ email: string; name: string }>) {
 | `to` is missing or an empty array | `MailErrors.INVALID_RECIPIENT` | `Recipient email address is required` |
 | `subject` is missing | `MailErrors.INVALID_CONFIGURATION` | `Email subject is required` |
 | Both `text` and `html` are missing | `MailErrors.INVALID_CONFIGURATION` | `Email must have either text or html content` |
-| An address, the subject or a header value has a line break, CR or NUL, a header value is not a string, or a header name is not printable ASCII without a colon | `MailErrors.INVALID_HEADER` | `Invalid mail header \| ...` |
+| An address, the subject or a header is malformed (see below) | `MailErrors.INVALID_HEADER` | `Invalid mail header \| ...` |
 | `text` or `html` is neither a string nor `null` (a `Buffer`, a stream, `{ path }`, `{ href }`) | `MailErrors.BODY_SOURCE_REFUSED` | `Mail body refused \| text and html must be strings; ...` |
+
+A header is malformed when an address, the subject or a header value has a line break, CR or NUL, when a header value is not a string, or when a header name is not printable ASCII without a colon.
 
 ```typescript
 // Throws before reaching the transport
@@ -394,9 +396,15 @@ await executor.setProcessor(
 
 | Generator | Implements | Behavior |
 |-----------|-----------|----------|
-| `NumericCodeGenerator` | `IVerificationCodeGenerator` | a uniform random integer in `[0, 10^length)` from `crypto.getRandomValues` (rejection sampling, so no code is likelier), zero-padded via `padStart()` -- e.g. code `42` at length `6` becomes `"000042"` |
-| `RandomTokenGenerator` | `IVerificationTokenGenerator` | `bytes` random bytes from `crypto.getRandomValues`, as base64url, through `TokenUidHelper` -- 32 bytes produces a 43-character string, URL-safe, no padding. `bytes` must be an integer of at least `16` |
-| `DefaultVerificationDataGenerator` | `IVerificationDataGenerator` | Composes both generators via `@inject`, producing a full `IVerificationData` with separate expiries |
+| `NumericCodeGenerator` | `IVerificationCodeGenerator` | A uniform random integer in `[0, 10^length)`, zero-padded |
+| `RandomTokenGenerator` | `IVerificationTokenGenerator` | `bytes` random bytes as a base64url string |
+| `DefaultVerificationDataGenerator` | `IVerificationDataGenerator` | Composes both generators into a full `IVerificationData` with separate expiries |
+
+`NumericCodeGenerator` draws from `crypto.getRandomValues` with rejection sampling, so no code is likelier than another, and pads with `padStart()`: code `42` at length `6` becomes `"000042"`.
+
+`RandomTokenGenerator` reads `crypto.getRandomValues` and encodes through `TokenUidHelper`: 32 bytes produce a 43-character string, URL-safe, no padding. `bytes` must be an integer of at least `16`.
+
+`DefaultVerificationDataGenerator` composes the two generators via `@inject`.
 
 `DefaultVerificationDataGenerator.generateVerificationData()` returns:
 

@@ -110,16 +110,24 @@ interface IHealthCheckOptions {
 }
 
 interface IAuthService {
-  signIn(context: TContext, opts: TSignInRequest): Promise<AnyObject>;
+  signIn(context: TContext, opts: TSignInRequest): Promise<Record<string, unknown>>;
 }
 
 // Type aliases use 'T' prefix
 type TSignInRequest = z.infer<typeof SignInRequestSchema>;
 type TJWKSMode = TConstValue<typeof JWKSModes>;
 
-// ❌ Never a bare string-literal union for an enumerable set - it has no runtime
-// values to validate against. Use a const class + TConstValue instead.
-type TLogLevel = 'debug' | 'info' | 'warn' | 'error' | 'emerg';
+// An enumerable set is a const class + TConstValue, never a bare string-literal union:
+// the union has no runtime values to validate against.
+class LogLevels {
+  static readonly DEBUG = 'debug';
+  static readonly INFO = 'info';
+  static readonly WARN = 'warn';
+  static readonly ERROR = 'error';
+  static readonly EMERG = 'emerg';
+}
+
+type TLogLevel = TConstValue<typeof LogLevels>;
 
 // Generic constraints
 type TTableSchemaWithId<TC extends TableConfig = TableConfig> = PgTable<TC> & {
@@ -175,9 +183,9 @@ Use `null` to distinguish "not computed" from "computed as undefined" for lazy-i
 ```typescript
 class Repository {
   // null = not computed yet, undefined = computed but no value
-  private _visibleProperties: Record<string, any> | null | undefined = null;
+  private _visibleProperties: Record<string, unknown> | null | undefined = null;
 
-  get visibleProperties(): Record<string, any> | undefined {
+  get visibleProperties(): Record<string, unknown> | undefined {
     if (this._visibleProperties !== null) {
       return this._visibleProperties;
     }

@@ -27,7 +27,11 @@ export class Application extends BaseApplication {
 
     // 2. Authenticate handler (required, decides accept/reject per client)
     const authenticateFn: TWebSocketAuthenticateFn = async data => {
-      const user = await verifyJWT(data.token as string);
+      if (typeof data.token !== 'string') {
+        return null;
+      }
+
+      const user = await verifyJWT(data.token);
       return user ? { userId: user.id } : null;
     };
     this.bind({ key: WebSocketBindingKeys.AUTHENTICATE_HANDLER }).toValue(authenticateFn);

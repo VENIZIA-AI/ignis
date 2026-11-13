@@ -30,7 +30,9 @@ Never hard-coding a secret is not enough on its own. An options object holding o
 | Function | Use For | Behavior |
 |----------|---------|----------|
 | `RedactUtility.redactSecrets({ value })` | Any object/array being logged | Recursively replaces every value whose key matches a secret-looking name with `'[REDACTED]'` |
-| `RedactUtility.redactUrlCredentials({ url })` | A connection/broker URL string | Strips the password out of a URL's authority section: `mqtts://user:hunter2@broker:8883` becomes `mqtts://user:[REDACTED]@broker:8883`. A value that doesn't parse as a URL, or one with no password, is returned unchanged |
+| `RedactUtility.redactUrlCredentials({ url })` | A connection/broker URL string | Strips the password out of the URL's authority section |
+
+`mqtts://user:hunter2@broker:8883` becomes `mqtts://user:[REDACTED]@broker:8883`. A value that doesn't parse as a URL, or one with no password, is returned unchanged.
 
 ```typescript
 import { RedactUtility } from '@venizia/ignis-helpers';
@@ -199,7 +201,7 @@ Use `RequestUtility.buildContentDispositionHeader()` for secure download respons
 ```typescript
 import { z } from '@hono/zod-openapi';
 import { get, type TRouteContext } from '@venizia/ignis';
-import { RequestUtility } from '@venizia/ignis-helpers';
+import { HTTP, RequestUtility } from '@venizia/ignis-helpers';
 
 @get({
   configs: {
@@ -216,8 +218,8 @@ async downloadFile(context: TRouteContext) {
 
   return new Response(fileBuffer, {
     headers: {
-      'Content-Type': 'application/octet-stream',
-      'Content-Disposition': RequestUtility.buildContentDispositionHeader({
+      [HTTP.Headers.CONTENT_TYPE]: 'application/octet-stream',
+      [HTTP.Headers.CONTENT_DISPOSITION]: RequestUtility.buildContentDispositionHeader({
         filename: safeFilename,
         type: 'attachment',
       }),
@@ -290,6 +292,8 @@ config: { middlewares: { cors: { enable: true, origin: '*' } } }
 
 **Production (Restrictive):**
 ```typescript
+import { HTTP } from '@venizia/ignis-helpers';
+
 config: {
   middlewares: {
     cors: {
@@ -297,7 +301,7 @@ config: {
       path: '/api/*',
       origin: ['https://yourdomain.com', 'https://app.yourdomain.com'],
       allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-      allowHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+      allowHeaders: [HTTP.Headers.CONTENT_TYPE, HTTP.Headers.AUTHORIZATION, 'X-Request-ID'],
       exposeHeaders: ['X-Request-ID'],
       credentials: true,
       maxAge: 86400, // Cache preflight for 24 hours
@@ -336,6 +340,7 @@ Protect against brute force attacks and denial of service.
 
 **Basic Rate Limiter:**
 ```typescript
+import { HTTP } from '@venizia/ignis-helpers';
 import { createMiddleware } from 'hono/factory';
 
 const rateLimiter = (opts: { windowMs: number; max: number }) => {
@@ -349,10 +354,13 @@ const rateLimiter = (opts: { windowMs: number; max: number }) => {
     if (!record || now > record.resetAt) {
       requests.set(ip, { count: 1, resetAt: now + opts.windowMs });
     } else if (record.count >= opts.max) {
-      return context.json({
-        statusCode: 429,
-        message: 'Too many requests. Please try again later.',
-      }, 429);
+      return context.json(
+        {
+          statusCode: HTTP.ResultCodes.RS_4.TooManyRequests,
+          message: 'Too many requests. Please try again later.',
+        },
+        HTTP.ResultCodes.RS_4.TooManyRequests,
+      );
     } else {
       record.count++;
     }
@@ -494,7 +502,7 @@ Log security-relevant events for monitoring and forensics:
 
 ```typescript
 import { BaseService, type TRouteContext } from '@venizia/ignis';
-import { getError } from '@venizia/ignis-helpers';
+import { getError, HTTP } from '@venizia/ignis-helpers';
 
 export class AuthService extends BaseService {
   async login(email: string, password: string, context: TRouteContext) {
@@ -507,7 +515,7 @@ export class AuthService extends BaseService {
       // Log failed attempt
       this.logger.warn('[login] Failed login attempt | email: %s | ip: %s | userAgent: %s',
         email, ip, userAgent);
-      throw getError({ statusCode: 401, message: 'Invalid credentials' });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.Unauthorized, message: 'Invalid credentials' });
     }
 
     // Log successful login

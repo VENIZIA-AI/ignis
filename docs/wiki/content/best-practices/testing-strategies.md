@@ -130,7 +130,7 @@ A bare `bun test` in a package directory is the fastest way to a false alarm: it
 | Part | Why it is there |
 |---|---|
 | `NODE_ENV=test` | The error sanitizer, logger colour and env resolution all key off it; `test` is not a development env |
-| `./src/__tests__` (or `./dist/__tests__`) | Scopes the run to the tree the project tests from; without it Bun also collects tests under `dist`, fixtures and vendored code |
+| `./src/__tests__` (or `./dist/__tests__`) | Scopes the run to one tree; otherwise Bun also collects tests under `dist` and vendored code |
 | `--env-file=.env.test` | The suite's own variables (ports, log folder, feature flags) instead of the developer's shell |
 | `--preload ./src/__tests__/preload.ts` | Anything that must run before the first import: `reflect-metadata`, a logger provider, global fakes |
 | `--parallel` (optional) | Bun 1.4+: files run in isolated workers; keep it only if no test relies on module-level state from another file |
@@ -143,23 +143,36 @@ Test business logic in isolation by mocking dependencies.
 
 **`src/services/__tests__/user.service.test.ts`:**
 ```typescript
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, mock, type Mock } from 'bun:test';
 import { UserService } from '../user.service';
 import type { IUserRepository } from '@/repositories';
 
+// UserService depends on this narrow port, so a double implements only these members - no cast needed
+export type TUserRepositoryPort = Pick<
+  IUserRepository,
+  'findById' | 'findOne' | 'create' | 'updateById'
+>;
+
+// Every member is a bun mock, so a test reads `.mock.calls` with its real type
+type TUserRepositoryDouble = { [K in keyof TUserRepositoryPort]: Mock<TUserRepositoryPort[K]> };
+
 describe('UserService', () => {
   let service: UserService;
-  let mockRepository: IUserRepository;
+  let mockRepository: TUserRepositoryDouble;
 
   beforeEach(() => {
-    // Create mock repository
+    // Create mock repository: a plain object typed with only the members the service uses
     // find/findOne/findById return the rows directly; create/updateById return { count, data }
     mockRepository = {
       findById: mock(() => Promise.resolve(null)),
       findOne: mock(() => Promise.resolve(null)),
-      create: mock((opts) => Promise.resolve({ count: 1, data: { id: 'new-id', ...opts.data } })),
-      updateById: mock(() => Promise.resolve({ count: 0, data: null })),
-    } as unknown as IUserRepository;
+      create: mock((opts: { data: Record<string, unknown> }) =>
+        Promise.resolve({ count: 1, data: { id: 'new-id', ...opts.data } }),
+      ),
+      updateById: mock((opts: { id: string; data: Record<string, unknown> }) =>
+        Promise.resolve({ count: 0, data: { ...opts.data, id: opts.id } }),
+      ),
+    };
 
     // Inject mock
     service = new UserService(mockRepository);
@@ -194,7 +207,7 @@ describe('UserService', () => {
 
       await service.createUser(userData);
 
-      const createCall = (mockRepository.create as ReturnType<typeof mock>).mock.calls[0][0];
+      const [createCall] = mockRepository.create.mock.calls[0];
       expect(createCall.data.password).not.toBe('secret123');
       expect(createCall.data.password).toMatch(/^\$argon2id\$/); // argon2id hash
     });
@@ -220,7 +233,7 @@ describe('UserService', () => {
 
       await service.updateUser('1', { name: 'New Name' });
 
-      const updateCall = (mockRepository.updateById as ReturnType<typeof mock>).mock.calls[0][0];
+      const [updateCall] = mockRepository.updateById.mock.calls[0];
       expect(updateCall.data).toEqual({ name: 'New Name' });
       expect(updateCall.data.email).toBeUndefined();
     });
@@ -533,27 +546,17 @@ beforeEach(() => {
 ### Mock Time
 
 ```typescript
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, setSystemTime } from 'bun:test';
 
 describe('Time-dependent tests', () => {
-  const realDate = Date;
-
   beforeEach(() => {
-    // Mock Date to fixed time
-    const mockDate = new Date('2024-01-15T10:00:00Z');
-    global.Date = class extends realDate {
-      constructor() {
-        super();
-        return mockDate;
-      }
-      static now() {
-        return mockDate.getTime();
-      }
-    } as DateConstructor;
+    // Freeze the clock at a fixed time
+    setSystemTime(new Date('2024-01-15T10:00:00Z'));
   });
 
   afterEach(() => {
-    global.Date = realDate;
+    // No argument: back to the real clock
+    setSystemTime();
   });
 
   it('should use mocked time', () => {
@@ -634,19 +637,20 @@ method that reaches for `transaction.connector` must be stubbed too, because the
 ```
 
 A service that runs queries on `transaction.connector` can use the double when you give it a connector.
-The getter returns that value, typed as the connector type; without one it stays `never`. Pass the stub
-as the real connector type, or name the type:
+The getter returns that value, typed as the connector type; without one it stays `never`. Name the
+narrow type the service uses, and pass the stub as that type:
 
 ```typescript
-import type { TRelationalConnector } from '@venizia/ignis-connectors/postgres';
+// The service types the connector it uses, so the stub has that shape and needs no cast
+type TExecuteConnector = { execute(sql: string): Promise<{ rows: unknown[] }> };
 
-const connector = { execute: mock(async () => ({ rows: [] })) };
-const double = new PostgresTransactionDouble({
-  connector: connector as unknown as TRelationalConnector,
+const connector: TExecuteConnector = { execute: mock(async (_sql: string) => ({ rows: [] })) };
+const double = new PostgresTransactionDouble<TExecuteConnector>({
+  connector,
   onCommit: () => events.push('committed'),
   onRollback: () => events.push('rolled back'),
 });
-// double.connector is a TRelationalConnector, the same object as `connector`
+// double.connector is a TExecuteConnector, the same object as `connector`
 ```
 
 `onCommit` and `onRollback` run, and are awaited, when a commit or rollback reaches the end statement:

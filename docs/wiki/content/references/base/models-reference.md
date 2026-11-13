@@ -87,17 +87,27 @@ Marks a class as a database entity and configures its behavior.
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `type` | `ModelTypes` (`'entity'`) | Optional. `ModelTypes.ENTITY` is the only value and the default; any other value throws when the decorator runs |
+| `type` | `ModelTypes` (`'entity'`) | Optional. `ModelTypes.ENTITY` is the only value and the default |
 | `tableName` | `string` | Optional custom table name. Resolution order: `tableName` > static `TABLE_NAME` > class name |
-| `migration.use` | `boolean` | Default `true`. `false` marks the model as one your migration tooling leaves alone. IGNIS generates no migrations: this is a marker in the public registry, see [Migrations](/guides/core-concepts/persistent/models#migrations). |
+| `migration.use` | `boolean` | Default `true`. `false` marks the model as one your migration tooling leaves alone |
 | `settings.properties.hidden` | `string[]` | Property names excluded from all repository query results (at SQL level) |
-| `settings.properties.stamped` | `ReadonlyArray<string> \| ReadonlySet<string>` | Property names the server fills, which the generated create and update bodies leave out. Default: `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt`, `deletedAt` |
-| `settings.query.filter` | `TFilter` | Filter automatically applied to all repository queries (see [Default Filter](/references/base/filter-system/default-filter)). |
-| `settings.access` | `TModelAccessSettings` | Row scope resolved per query, ANDed into every read and write: a `resolve` (`IModelAccessSettings`) or a `through` (`IModelAccessThroughSettings`, see [Scope a child through its parent](/guides/core-concepts/persistent/model-settings#scope-a-child-through-its-parent)). `resolve()` returns the scope `where`, `ScopeFilters.UNRESTRICTED` for no scope this call, or null to fall to `onMissing` (default `deny`, matching zero rows). Relational repositories only |
-| `settings.query.limit.default` | `number` | Default row limit applied when a query omits `limit`. Must be a positive integer (validated at decoration time). Falls back to the global `DEFAULT_LIMIT` (10). See [Pagination](/references/base/filter-system/fields-order-pagination#default-limit-resolution) |
-| `settings.query.limit.max` | `number` | Largest `limit` a caller may ask for. Must be a positive integer (validated at decoration time). Falls back to `DEFAULT_MAX_LIMIT` (1000). An explicit `limit` above it throws before the query runs. See [Limit ceiling](/references/base/filter-system/fields-order-pagination#limit-ceiling-maxlimit) |
-| `settings.authorize` | `IModelAuthorizeSettings` | Authorization settings - declares the model's authorization principal (see [Authorization](/extensions/components/authorization/usage#model-based-resource-references)) |
+| `settings.properties.stamped` | `ReadonlyArray<string> \| ReadonlySet<string>` | Property names the server fills, left out of the generated create and update bodies |
+| `settings.query.filter` | `TFilter` | Filter applied to all repository queries, see [Default Filter](/references/base/filter-system/default-filter) |
+| `settings.access` | `TModelAccessSettings` | Row scope resolved per query, ANDed into every read and write. Relational repositories only |
+| `settings.query.limit.default` | `number` | Default row limit when a query omits `limit`. Falls back to `DEFAULT_LIMIT` (10) |
+| `settings.query.limit.max` | `number` | Largest `limit` a caller may ask for. Falls back to `DEFAULT_MAX_LIMIT` (1000) |
+| `settings.authorize` | `IModelAuthorizeSettings` | Authorization settings: declares the model's authorization principal |
 | `settings.authorize.principal` | `string` | The authorization subject name for this model. Auto-populates the static `AUTHORIZATION_SUBJECT` property |
+
+Notes on the options:
+
+- `type`: any value other than `ModelTypes.ENTITY` throws when the decorator runs.
+- `migration.use`: IGNIS generates no migrations; this is a marker in the public registry, see [Migrations](/guides/core-concepts/persistent/models#migrations).
+- `settings.properties.stamped`: the default is `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt`, `deletedAt`.
+- `settings.access`: a `resolve` (`IModelAccessSettings`) or a `through` (`IModelAccessThroughSettings`, see [Scope a child through its parent](/guides/core-concepts/persistent/model-settings#scope-a-child-through-its-parent)). `resolve()` returns the scope `where`, `ScopeFilters.UNRESTRICTED` for no scope this call, or null to fall to `onMissing` (default `deny`, matching zero rows).
+- `settings.query.limit.default`: must be a positive integer, validated at decoration time. See [Pagination](/references/base/filter-system/fields-order-pagination#default-limit-resolution).
+- `settings.query.limit.max`: must be a positive integer, validated at decoration time. An explicit `limit` above it throws before the query runs. See [Limit ceiling](/references/base/filter-system/fields-order-pagination#limit-ceiling-maxlimit).
+- `settings.authorize`: see [Authorization](/extensions/components/authorization/usage#model-based-resource-references).
 
 #### Write guard
 
@@ -105,9 +115,15 @@ Marks a class as a database entity and configures its behavior.
 
 | Setting | Meaning |
 |---|---|
-| `access.write.mode` | `'reject'` (default) or `'assign'`. `assign` fills a scope column that is absent from a created row when the scope is a single equality; a value that is present and disagrees is still refused |
-| `access.write.sharedRows` | `true` lets a restricted caller create rows with `null` (or no value) in the scope columns, move a row into that shared set, and update or delete rows that are already in it. Default `false`. Reading shared rows is a separate matter, see below |
-| `access.columns` | Optional list of property names. Checked at boot against the model; a resolved scope that constrains another column is refused |
+| `access.write.mode` | `'reject'` (default) or `'assign'` |
+| `access.write.sharedRows` | `true` lets a restricted caller write shared rows. Default `false` |
+| `access.columns` | Optional list of property names, checked at boot against the model |
+
+`assign` fills a scope column that is absent from a created row when the scope is a single equality; a value that is present and disagrees is still refused.
+
+`sharedRows: true` lets a restricted caller create rows with `null` (or no value) in the scope columns, move a row into that shared set, and update or delete rows that are already in it. Reading shared rows is a separate matter, see below.
+
+A resolved scope that constrains a column outside `access.columns` is refused.
 
 The columns and allowed values come from the resolved `where`: equality, `eq`, `inq` or `in`, an array, `and` of those, and an `or` whose branches all constrain the same column. Any other shape (an `or` over several columns, ranges, `like`, a nested path) cannot be checked, and the write is refused with a "cannot be verified" message instead of being skipped.
 
@@ -149,10 +165,12 @@ Relational entity class, wrapping a Drizzle ORM schema. Extends the neutral `Abs
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `schema` | `Table` | The Drizzle table. Typed `Table` on the base so a factory-built class can carry its precise table; a subclass that assigns its own keeps the precise type. The instance `schema` is the typed contract |
+| `schema` | `Table` | The Drizzle table, typed `Table` on the base |
 | `relations` | `TValueOrResolver<Array<TRelationConfig>>` | Relation definitions (can be a function for lazy loading to avoid circular deps) |
 | `TABLE_NAME` | `string \| undefined` | Optional table name (defaults to class name if not set) |
 | `AUTHORIZATION_SUBJECT` | `string \| undefined` | Authorization principal name. Auto-populated from `@model` `settings.authorize.principal` |
+
+The static `schema` is typed `Table` on the base so a factory-built class can carry its precise table; a subclass that assigns its own keeps the precise type. The instance `schema` is the typed contract.
 
 ### Instance members
 
@@ -204,11 +222,6 @@ An invalid `type` throws. The Zod generator is a lazy singleton, created once th
 ### Class definition
 
 ```typescript
-/** Lazy singleton, shared by every entity. */
-let schemaFactory: ReturnType<typeof createSchemaFactory> | undefined;
-const getSchemaFactory = (): ReturnType<typeof createSchemaFactory> =>
-  (schemaFactory ??= createSchemaFactory());
-
 export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
   extends AbstractEntity
   implements IEntity<Schema>
@@ -224,32 +237,15 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
   static schema: Table;
   static relations?: TValueOrResolver<Array<TRelationConfig>>;
 
-  constructor(opts?: { name?: string; schema?: Schema }) {
-    const ctor = new.target as typeof BaseRelationalEntity;
-    const name = opts?.name ?? ctor.TABLE_NAME ?? ctor.name;
-    super({ name });
-    this.schema = opts?.schema ?? (ctor.schema as Schema);
-  }
+  constructor(opts?: { name?: string; schema?: Schema });
 
-  override getIdType(): TIdSchemaType {
-    return RelationalEntityUtility.getIdType({ entity: this.schema }) === 'number' ? 'number' : 'string';
-  }
+  override getIdType(): TIdSchemaType;
 
-  getSchema<T = unknown>(opts: { type: TSchemaType }): T {
-    const factory = getSchemaFactory();
-    switch (opts.type) {
-      case SchemaTypes.CREATE:
-        return factory.createInsertSchema(this.schema) as T;
-      case SchemaTypes.UPDATE:
-        return factory.createUpdateSchema(this.schema) as T;
-      case SchemaTypes.SELECT:
-        return factory.createSelectSchema(this.schema) as T;
-      default:
-        throw getError({ message: `[getSchema] Invalid schema type | type: ${opts.type}` });
-    }
-  }
+  getSchema<T = unknown>(opts: { type: TSchemaType }): T;
 }
 ```
+
+The listing shows the declarations only. The name is `opts.name`, else `TABLE_NAME`, else the class name, and the schema is `opts.schema`, else the static `schema`. `getSchema` builds the Zod schema through the shared lazy `drizzle-zod` factory and throws on a type other than `create`, `update` or `select`. The bodies narrow the Drizzle and `drizzle-zod` values to the caller's type with casts that stay inside the framework; an application never writes them.
 
 ## Definition patterns
 
@@ -349,8 +345,10 @@ It ships from `@venizia/ignis-connectors/postgres` and from `@venizia/ignis-conn
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `table` | `TTableSchemaWithId` | - | A plain drizzle table: `pgTable`, `pgSchema(...).table` or `sqliteTable`, with an `id` column - usually `...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } })` for a UUID v7 id |
-| `relations` | `() => TRelationDefinitions` | none | Relations keyed by name, built with `one()` and `many()`. Read on first use and once, so it may name a table declared later in the file |
+| `table` | `TTableSchemaWithId` | - | A plain drizzle table with an `id` column |
+| `relations` | `() => TRelationDefinitions` | none | Relations keyed by name, built with `one()` and `many()` |
+
+`table` is a `pgTable`, `pgSchema(...).table` or `sqliteTable`; the `id` column is usually `...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } })` for a UUID v7 id. `relations` is read once, on first use, so it may name a table declared later in the file.
 
 ### The returned class
 
@@ -855,16 +853,7 @@ Adds polymorphic data storage columns for entities that store values of differen
 
 `Source ->` [`packages/connectors/src/relational/postgres/models/enrichers/data-type.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/data-type.enricher.ts)
 
-```typescript
-PostgresDataTypeEnricher.generateColumnDefs(opts?: TDataTypeEnricherOptions): {
-  dataType: PgTextBuilderInitial;
-  nValue: PgDoublePrecisionBuilderInitial;
-  tValue: PgTextBuilderInitial;
-  bValue: PgCustomColumnBuilder<Buffer>;
-  jValue: PgJsonbBuilderInitial<Record<string, any>>;
-  boValue: PgBooleanBuilderInitial;
-}
-```
+`generateColumnDefs(opts?: TDataTypeEnricherOptions)` is static and returns the six columns below. The source declares no return type: it is inferred from the drizzle builders.
 
 Options (`TDataTypeEnricherOptions`):
 
@@ -883,6 +872,7 @@ type TDataTypeEnricherOptions = {
 
 Emitted columns:
 
+<!-- docs-code: off -->
 | Column | SQL type | DB column name | TypeScript type | Purpose |
 |--------|----------|----------------|-----------------|---------|
 | `dataType` | `text` | `data_type` | `string` | Type discriminator (`'number'`, `'text'`, `'json'`) |
@@ -891,6 +881,8 @@ Emitted columns:
 | `bValue` | `bytea` | `b_value` | `Buffer` | Binary values |
 | `jValue` | `jsonb` | `j_value` | `Record<string, any>` | JSON values |
 | `boValue` | `boolean` | `bo_value` | `boolean` | Boolean values |
+
+<!-- docs-code: on -->
 
 All columns are nullable by default (no `NOT NULL`), since typically only one value column is populated per row depending on the `dataType` discriminator. Pass `defaultValue` to attach SQL defaults to individual columns.
 
@@ -1066,11 +1058,14 @@ Built on `ParseUtility.keysToCamel()` / `ParseUtility.toCamel()` from `@venizia/
 
 There are two distinct `getIdType`s in the framework - do not confuse them.
 
-| | Neutral instance method | PostgreSQL utility function |
+| Aspect | Neutral instance method | PostgreSQL utility function |
 |---|---|---|
-| Location | `AbstractEntity.getIdType()` ([`base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts)) | `getIdType()` ([`connectors/core/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/common/types.ts)) |
-| Signature | `getIdType(): TIdSchemaType` | `RelationalEntityUtility.getIdType<T extends TTableSchemaWithId>(opts: { entity: T }): string` |
-| Purpose | Neutral capability every engine's entity implements - returns `'string'` \| `'number'` at the entity level. Used by `OpenApiSchemas.idParams` to build the right Zod schema for path parameters. | PostgreSQL-specific - inspects a Drizzle table schema's `id` column and returns its `dataType`, or `'unknown'` if not determinable |
+| Name | `AbstractEntity.getIdType()` | `RelationalEntityUtility.getIdType()` |
+| Signature | `getIdType(): TIdSchemaType` | `getIdType<T extends TTableSchemaWithId>(opts: { entity: T }): string` |
+| Returns | `'string'` \| `'number'` | The id column's `dataType`, or `'unknown'` |
+
+- **Neutral instance method.** Declared in [`base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts). Every engine's entity implements it at the entity level, and `OpenApiSchemas.idParams` uses it to build the right Zod schema for path parameters.
+- **PostgreSQL utility function.** Declared in [`connectors/core/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/common/types.ts). It is PostgreSQL-specific: it inspects a Drizzle table schema's `id` column and returns its `dataType`, or `'unknown'` if not determinable.
 
 ```typescript
 // Neutral - instance method (default 'string'; BaseEntity overrides based on the column)

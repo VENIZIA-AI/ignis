@@ -50,10 +50,10 @@ Thrown during `binding()` while validating options and wiring services.
 
 | Message | Status | Cause | Fix |
 |---------|--------|-------|-----|
-| `[AuthenticateComponent] At least one of jwtOptions, basicOptions or serviceOptions must be provided` | 400 | None of `JWT_OPTIONS`, `BASIC_OPTIONS` or `SERVICE_OPTIONS` is bound | Bind any one of the three - see [Setup](./#common-tasks). A service that only verifies assertions binds `SERVICE_OPTIONS` alone |
+| `[AuthenticateComponent] At least one of jwtOptions, basicOptions or serviceOptions must be provided` | 400 | None of `JWT_OPTIONS`, `BASIC_OPTIONS` or `SERVICE_OPTIONS` is bound | Bind one of the three - see [Setup](./#common-tasks) |
 | `[AuthenticateComponent] Unknown JOSE standard: {standard}` | 400 | `jwtOptions.standard` is not `'JWS'` or `'JWKS'` | Use `JOSEStandards.JWS` or `JOSEStandards.JWKS` |
 | `[defineJWSAuth] Invalid jwtSecret \| Provided: {jwtSecret}` | 400 | `jwtSecret` falsy or equals placeholder `'unknown_secret'` | Set a real secret - `APP_ENV_JWT_SECRET`, for example |
-| `[defineJWSAuth] claims is required \| pass claims: { issuer: string, audience?: ... } ...` (also `[defineJWKSAuth]`, `[JWSTokenService]`, `[JWKSIssuerTokenService]`, `[JWKSVerifierTokenService]`) | 500 | No `claims` object | Pass `claims: { issuer: string, audience: string \| string[] }` |
+| `[defineJWSAuth] claims is required \| pass claims: { issuer: string, audience?: ... } ...` | 500 | No `claims` object | Pass `claims: { issuer: string, audience: string \| string[] }` |
 | `[defineJWSAuth] claims.issuer is required` | 500 | `issuer` is missing, empty or not a string | Set a non-empty `issuer` |
 | `[defineJWSAuth] claims.audience must be a non-empty string or a non-empty list of them` | 500 | `audience` is set but is `null`, empty, blank, an empty list, or holds a non-string | Set a non-empty `audience`, or leave it out: it is optional |
 | `[defineJWSAuth] claims holds unknown keys ["audiance"] \| accepted: issuer, audience` | 500 | A misspelt or extra key in `claims` | Remove or correct the named key |
@@ -61,12 +61,12 @@ Thrown during `binding()` while validating options and wiring services.
 | `[defineJWSAuth] verify must be an object` | 500 | `verify` is a string, a number, a list or `null` | Pass an object, or remove it |
 | `[defineJWSAuth] the algorithm 'none' is refused` | 500 | `headerAlgorithm` or `verify.algorithms` names `none` | Name a real algorithm |
 | `[verify] Invalid or expired token` with cause `A service assertion is not a user token` | 401 | A token with `typ: svc+jwt` reached the user-token path | Send service assertions in the `x-service-assertion` header |
-| `[defineJWKSAuth] jwksUrl uses http: and the host '{host}' is not allowed \| use https, or list the host in jwks.hosts.http` (also `[defineServiceAuth] callers["{name}"].jwksUrl ...`) | 500 | A plain-http JWKS URL whose host is neither loopback nor in `jwks.hosts.http` | Use `https:`, or add the host (name, IP or `[IPv6]`, with an optional `:port`) to `jwks.hosts.http` |
-| `[defineJWKSAuth] jwksUrl uses port 0 \| the host is '{host}'` (also `[defineServiceAuth] callers["{name}"].jwksUrl ...`) | 500 | A plain-http JWKS URL on port 0 | Name the real port |
+| `[defineJWKSAuth] jwksUrl uses http: and the host '{host}' is not allowed` | 500 | A plain-http JWKS URL whose host is neither loopback nor in `jwks.hosts.http` | Use `https:`, or add the host (name, IP or `[IPv6]`, with an optional `:port`) to `jwks.hosts.http` |
+| `[defineJWKSAuth] jwksUrl uses port 0` | 500 | A plain-http JWKS URL on port 0 | Name the real port |
 | `[defineJWKSAuth] jwksUrl must use https \| scheme: {scheme}` | 500 | A JWKS URL that is not `http:` or `https:` | Use `https:` |
-| `[defineServiceAuth] jwks.hosts.http holds "{entry}" \| list exact hosts only ...` | 500 | An entry with a scheme, path, userinfo, wildcard, range, empty port, a number the URL parser rewrites (`2130706433`, `010.0.0.5`), an IPv6 address without brackets or not in the parser's form, `0.0.0.0` or `[::]`, a name over 253 characters or a label over 63, a space, tab or newline around the entry, or an entry that is not a string | List exact hosts, for example `identity-service`, `10.0.0.5:8080` or `[fd00::1]:8443` |
+| `[defineServiceAuth] jwks.hosts.http holds "{entry}" \| list exact hosts only ...` | 500 | An entry that is not an exact host (see the list below the table) | List exact hosts, for example `identity-service`, `10.0.0.5:8080` or `[fd00::1]:8443` |
 | `[defineJWKSAuth] verify.algorithms is required` | 500 | A JWKS verifier without `verify.algorithms` | Pass the algorithms the issuer signs with, for example `verify: { algorithms: ['RS256'] }` |
-| `[defineJWSAuth] jwtSecret is too short: {n} bytes, at least 32 are required \| Generate one with: openssl rand -base64 48` (also `[JWSTokenService]`) | 500 | `jwtSecret` is shorter than 32 UTF-8 bytes | Generate a longer secret, for example `openssl rand -base64 48`. The message never shows the secret |
+| `[defineJWSAuth] jwtSecret is too short: {n} bytes, at least 32 are required` | 500 | `jwtSecret` is shorter than 32 UTF-8 bytes | Generate a longer secret, for example `openssl rand -base64 48` |
 | `[defineJWSAuth] getTokenExpiresFn is required` | 400 | `getTokenExpiresFn` missing from JWS options | Provide `() => Number(process.env.APP_ENV_JWT_EXPIRES_IN \|\| 86400)` |
 | `[defineJWKSAuth] keys.private and keys.public are required for issuer mode` | 400 | Issuer mode missing one or both keys | Provide `keys.private` and `keys.public` |
 | `[defineJWKSAuth] keys.format is required and must be one of: pem, jwk` | 400 | `keys.format` missing or invalid | Use `JWKSKeyFormats.PEM` or `JWKSKeyFormats.JWK` |
@@ -76,8 +76,29 @@ Thrown during `binding()` while validating options and wiring services.
 | `[defineJWKSAuth] Invalid JWKS mode: {mode}` | 400 | `mode` is not `'issuer'` or `'verifier'` | Use `JWKSModes.ISSUER` or `JWKSModes.VERIFIER` |
 | `[defineBasicAuth] verifyCredentials function is required` | 400 | `BASIC_OPTIONS` bound without a `verifyCredentials` callback | Provide the callback - see [Setup](./#common-tasks) |
 | `[defineServiceAuth] name is required \| it is the issuer this service stamps and the audience it demands` | 400 | `SERVICE_OPTIONS` bound without `name` | Set `name` to this service's own identifier |
-| `[defineServiceAuth] resolvePrincipal is required \| the framework proves WHICH SERVICE called, the application decides who that acts as` | 400 | `SERVICE_OPTIONS` bound without `resolvePrincipal` | Provide the callback that turns a caller name into one of your principals |
+| `[defineServiceAuth] resolvePrincipal is required` | 400 | `SERVICE_OPTIONS` bound without `resolvePrincipal` | Provide the callback that turns a caller name into one of your principals |
 | `[defineControllers] Auth controller requires jwtOptions to be configured` | 400 | `useAuthController: true` but no `jwtOptions` bound | Bind `JWT_OPTIONS` before enabling the auth controller |
+
+The full messages of the rows above that are shortened (each `[defineJWKSAuth]` message also comes as `[defineServiceAuth] callers["{name}"].jwksUrl ...`):
+
+- `[defineJWKSAuth] jwksUrl uses http: and the host '{host}' is not allowed | use https, or list the host in jwks.hosts.http`
+- `[defineJWKSAuth] jwksUrl uses port 0 | the host is '{host}'`
+- `[defineJWSAuth] jwtSecret is too short: {n} bytes, at least 32 are required | Generate one with: openssl rand -base64 48` (also `[JWSTokenService]`). The message never shows the secret.
+- `[defineServiceAuth] resolvePrincipal is required | the framework proves WHICH SERVICE called, the application decides who that acts as`
+
+For the first row: a service that only verifies assertions binds `SERVICE_OPTIONS` alone.
+
+The `claims is required` message also appears with the `[defineJWKSAuth]`, `[JWSTokenService]`, `[JWKSIssuerTokenService]` and `[JWKSVerifierTokenService]` prefixes.
+
+An entry in `jwks.hosts.http` is refused when it:
+
+- carries a scheme, path, userinfo, wildcard, range or empty port;
+- is a number the URL parser rewrites (`2130706433`, `010.0.0.5`);
+- is an IPv6 address without brackets, or not in the parser's form;
+- is `0.0.0.0` or `[::]`;
+- is a name over 253 characters, or has a label over 63;
+- has a space, tab or newline around it;
+- is not a string.
 
 > [!NOTE]
 > `applicationSecret` is optional and not validated. Every token service treats it as optional - omitting it disables AES payload encryption, nothing more. Its presence is never checked.
@@ -115,10 +136,12 @@ Shared by `JWSTokenService`, `JWKSIssuerTokenService`, and `JWKSVerifierTokenSer
 | `[JWKSIssuerTokenService] Invalid raw.priv key!` | 500 | `parseKeyMaterial` | Resolved private key content is empty | Check the file path or inline string |
 | `[JWKSIssuerTokenService] Invalid raw.pub key!` | 500 | `parseKeyMaterial` | Resolved public key content is empty | Check the file path or inline string |
 | `[JWKSIssuerTokenService] Invalid JWK key material` | 500 | `parseKeyMaterial` | JWK JSON parse or `importJWK()` failed | Validate the JWK is well-formed JSON (see below) |
-| `[JWKSIssuerTokenService] The public key material carries PRIVATE members ({members}) \| this key would be published at the JWKS endpoint \| pass the public half in keys.public` | 500 | `assertPublicJWK` | `keys.public` is a private JWK. Any of `d`, `p`, `q`, `dp`, `dq`, `qi`, `k` is present | Pass the public half. Only `keys.format: 'jwk'` can reach this - `importSPKI` rejects a private PEM outright |
+| `[JWKSIssuerTokenService] The public key material carries PRIVATE members ({members})` | 500 | `assertPublicJWK` | `keys.public` is a private JWK: one of its private members is present | Pass the public half in `keys.public` |
 | `[JWKSIssuerTokenService] Unknown key format: {format}` | 500 | `parseKeyMaterial` | `keys.format` not `'pem'` or `'jwk'` | Use `JWKSKeyFormats.PEM` or `.JWK` |
 | `[getSigningKey] Invalid privateKey!` | 400 | `getSigningKey` | Private key null - init incomplete or failed | Ensure `initialize()` succeeded; check logs |
 | `[JWKSIssuerTokenService] JWKS not initialized yet. Call getJWKSAsync() instead.` | 500 | `getJWKS` | Sync `getJWKS()` called before lazy init completed | Use `await getJWKSAsync()` instead |
+
+The full message of the last row is `[JWKSIssuerTokenService] The public key material carries PRIVATE members ({members}) | this key would be published at the JWKS endpoint | pass the public half in keys.public`. Only `keys.format: 'jwk'` can reach it: `importSPKI` rejects a private PEM outright. The private members are `d`, `p`, `q`, `dp`, `dq`, `qi` and `k`.
 
 > [!WARNING]
 > File read errors are not wrapped. With `JWKSKeyDrivers.FILE`, `readFile()` errors (`ENOENT`, `EACCES`, ...) surface as raw filesystem errors during initialization - they are not caught and re-thrown as `getError()`.

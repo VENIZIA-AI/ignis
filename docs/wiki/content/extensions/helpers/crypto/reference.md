@@ -104,8 +104,10 @@ interface ICryptoAlgorithm<
 |--------|-----------|--------------|
 | constructor | `(opts: { scope: string; algorithm: AlgorithmType })` | Sets `this.algorithm`, calls `validateAlgorithmName` |
 | `validateAlgorithmName` | `(opts: { algorithm: AlgorithmType }) => void` | Throws if `algorithm` is empty/falsy |
-| `normalizeSecretKey` | `(opts: { secret: string; length: number; kdfSalt?: string; kdfIterations?: number }) => Promise<Buffer>` | Derives a `length`-byte key with PBKDF2-SHA256, 100,000 iterations. Results are memoised per secret, salt, iteration count and length |
-| `getAlgorithmKeySize` | `() => number` | Parses the bit size out of `this.algorithm` (`256` from `'aes-256-gcm'`), divides by 8, and returns the **byte** count - `32`, not `256` |
+| `normalizeSecretKey` | `(opts: { secret: string; length: number; kdfSalt?: string; kdfIterations?: number }) => Promise<Buffer>` | Derives a `length`-byte key with PBKDF2-SHA256, 100,000 iterations |
+| `getAlgorithmKeySize` | `() => number` | Returns the key size in **bytes** (`32` for `'aes-256-gcm'`, not `256`) |
+
+`normalizeSecretKey` memoises results per secret, salt, iteration count and length. `getAlgorithmKeySize` parses the bit size out of `this.algorithm` and divides by 8.
 
 `normalizeSecretKey` never pads and never truncates. It always runs the KDF, over `crypto.subtle`, and resolves to the key.
 
@@ -128,7 +130,7 @@ A `kdfSalt` shorter than `MINIMUM_KDF_SALT_BYTES` (16 bytes, the NIST SP 800-132
 `Source ->` [`aes.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts)
 
 ```typescript
-type AESAlgorithmType = 'aes-256-cbc' | 'aes-256-gcm';
+type AESAlgorithmType = TConstValue<typeof AESAlgorithms>; // 'aes-256-cbc' | 'aes-256-gcm'
 
 const aes = AES.withAlgorithm('aes-256-gcm'); // or 'aes-256-cbc'
 ```
@@ -328,8 +330,10 @@ Different `hkdfInfo` values produce **incompatible** derived keys from the same 
 
 | Method | Signature | Description |
 |--------|-----------|--------------|
-| `generateKeyPair` | `() => Promise<{ keyPair: CryptoKeyPair; publicKeyB64: string }>` | `deriveBits`-only key pair (`extractable: false`); `publicKeyB64` is the raw exported public key, base64-encoded (65 bytes for P-256) |
+| `generateKeyPair` | `() => Promise<{ keyPair: CryptoKeyPair; publicKeyB64: string }>` | `deriveBits`-only key pair (`extractable: false`) plus the base64 public key |
 | `importPublicKey` | `(opts: { rawKeyB64: string }) => Promise<CryptoKey>` | Imports a peer's raw base64 public key |
+
+`publicKeyB64` is the raw exported public key, base64-encoded (65 bytes for P-256).
 
 ```typescript
 const { keyPair, publicKeyB64 } = await ecdh.generateKeyPair();
@@ -439,8 +443,10 @@ class Hash extends BaseHelper {
 | Member | Signature | Description |
 |--------|-----------|--------------|
 | `Hash.withAlgorithm(algorithm)` | `(algorithm: THashAlgorithm) => Hash` | Returns a memoized instance for `algorithm` - at most five instances ever exist, one per algorithm |
-| `digest` | `(opts: { message: string \| Uint8Array \| ReadonlyArray<string \| Uint8Array>; opts?: IHashExtraOptions }) => string` | Plain digest. Takes no secret at all. Text is hashed as UTF-8, bytes as they are, and an array is several parts hashed in order as one message |
-| `hmac` | `(opts: { message: string \| Uint8Array; secret: string \| Uint8Array; opts?: IHashExtraOptions }) => string` | Keyed HMAC. `secret` is required and validated non-empty in either form; throws via `getError` if empty. A `Buffer` or `Uint8Array` key gives the same output as the text of the same bytes |
+| `digest` | `(opts: { message: string \| Uint8Array \| ReadonlyArray<string \| Uint8Array>; opts?: IHashExtraOptions }) => string` | Plain digest; takes no secret |
+| `hmac` | `(opts: { message: string \| Uint8Array; secret: string \| Uint8Array; opts?: IHashExtraOptions }) => string` | Keyed HMAC; `secret` is required and non-empty |
+
+`digest` hashes text as UTF-8, bytes as they are, and an array as several parts hashed in order as one message. `hmac` throws via `getError` if `secret` is empty, in either form. A `Buffer` or `Uint8Array` key gives the same output as the text of the same bytes.
 
 | Const-class | Values |
 |---|---|
@@ -472,8 +478,21 @@ const sha256Hmac = Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({
 
 | Method | Returns | Notes |
 |---|---|---|
-| `hash({ password, algorithm?, cost? })` | `Promise<string>` | `algorithm` is `'argon2id'` (default, the default parameters of `Bun.password`, `$argon2id$`) or `'bcrypt'` (`$2b$`, 60 characters). `cost` is for bcrypt only: an integer from 4 to 31, default 10. An empty or non-string password, an unknown algorithm, a cost with argon2id and a cost out of range throw. A bcrypt hash written for a password longer than 72 bytes is read by Bun only, not by the `bcrypt` package |
-| `verify({ password, hash })` | `Promise<boolean>` | Reads any bcrypt hash, and an argon2 hash. An empty or non-string password or hash is `false`. A stored value that is not a password hash throws with status 500. A bcrypt hash is retried with the first 72 bytes of a longer password, the way the `bcrypt` package reads it: for legacy hashes only, a hash written by `hash` never needs it |
+| `hash({ password, algorithm?, cost? })` | `Promise<string>` | Hashes with `'argon2id'` (default) or `'bcrypt'`; throws on bad input |
+| `verify({ password, hash })` | `Promise<boolean>` | Checks a password against a bcrypt or argon2 hash |
+
+**`hash` options and errors**
+
+- `algorithm` is `'argon2id'` (default, the default parameters of `Bun.password`, `$argon2id$`) or `'bcrypt'` (`$2b$`, 60 characters).
+- `cost` is for bcrypt only: an integer from 4 to 31, default 10.
+- An empty or non-string password, an unknown algorithm, a cost with argon2id and a cost out of range throw.
+- A bcrypt hash written for a password longer than 72 bytes is read by Bun only, not by the `bcrypt` package.
+
+**`verify` edge cases**
+
+- An empty or non-string password or hash is `false`.
+- A stored value that is not a password hash throws with status 500.
+- A bcrypt hash is retried with the first 72 bytes of a longer password, the way the `bcrypt` package reads it. This is for legacy hashes only: a hash written by `hash` never needs it.
 
 ## API Summary
 

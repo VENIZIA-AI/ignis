@@ -246,8 +246,10 @@ All repository operations accept an `options` parameter with these fields:
 | `shouldQueryRange` | `boolean` | `find` only - return `{ data, range: { start, end, total } }` for pagination |
 | `shouldSkipDefaultFilter` | `boolean` | Bypass the model's default filter (e.g., soft delete) |
 | `force` | `boolean` | `updateBy`/`deleteBy` only - allow an empty `where` (table-wide operation) |
-| `lock` | `TLockOptions` | Row-level locking for reads (`{ strength: 'update' }`, ...). Requires a transaction; incompatible with `include`/`fields` |
+| `lock` | `TLockOptions` | Row-level locking for reads (`{ strength: 'update' }`, ...) |
 | `log` | `TRepositoryLogOptions` | Per-operation logging (`{ use: true, level?: 'info' }`) |
+
+`lock` requires a transaction and is incompatible with `include` and `fields`.
 
 ```typescript
 // Create without returning data (faster)

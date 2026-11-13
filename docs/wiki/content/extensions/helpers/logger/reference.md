@@ -729,13 +729,18 @@ flusher.stop();
 
 `HfLogger` implements the full `ILogger` contract plus its own static/bytes surface:
 
+<!-- docs-code: off -->
 | Method | Signature | Description |
 |--------|-----------|--------------|
 | `HfLogger.get` | `(scope: string) => HfLogger` | Get or create a cached logger instance (allocates the ring lazily on first call) |
 | `HfLogger.encodeMessage` | `(msg: string) => Uint8Array` | Pre-encode a message string to bytes. FIFO-bounded cache, capped at `MESSAGE_CACHE_CAP = 4096` |
-| `logger.debug/info/warn/error/emerg` | `(message: string, ...args: AnyType[]) => void` | `ILogger` methods. No args: cache-lookup encode, then the bytes-path write. With args: `LogFormatUtility.formatMessage` (deep inspection, redaction), then an uncached encode - the slow path |
-| `logger.log` | `(level: TLogLevel, message: string, ...args: AnyType[]) => void`<br>`(level: TLogLevel, messageBytes: Uint8Array) => void` | Overloaded. The string form follows the `debug`/`info`/... cost model above. The `Uint8Array` form is the legacy bytes hot path, unchanged |
+| `logger.debug/info/warn/error/emerg` | `(message: string, ...args: AnyType[]) => void` | `ILogger` methods; the cost depends on whether you pass args |
+| `logger.log` | `(level, message, ...args) => void`<br>`(level, messageBytes: Uint8Array) => void` | Overloaded: a string form and a bytes form |
 | `logger.for` | `(methodName: string) => ILogger` | Returns `HfLogger.get(`${scope}-${methodName}`)`, same dash composition as `BaseLogger` |
+
+<!-- docs-code: on -->
+
+With no args, `debug`/`info`/`warn`/`error`/`emerg` do a cache-lookup encode, then the bytes-path write. With args, they go through `LogFormatUtility.formatMessage` (deep inspection, redaction) and an uncached encode, the slow path. The string form of `log` follows the same cost model. The `Uint8Array` form is the legacy bytes hot path, unchanged.
 
 Supported levels (`TLogLevel`, full set): `debug` (0), `info` (1), `warn` (2), `error` (3), `emerg` (4).
 
@@ -744,9 +749,11 @@ Supported levels (`TLogLevel`, full set): `debug` (0), `info` (1), `warn` (2), `
 | Method | Signature | Description |
 |--------|-----------|--------------|
 | `new HfLogFlusher` | `(options?: IHfLogFlusherOptions) => HfLogFlusher` | Create a flusher; see `IHfLogFlusherOptions` below |
-| `flusher.flush` | `() => Promise<void>` | Drain the full backlog in bounded batches, yielding (`setImmediate`) between batches. Re-entrant calls return the in-progress promise |
-| `flusher.start` | `(intervalMs?: number) => void` | Start a background `setInterval` flush loop (default `100`ms), unref'd so it never blocks process exit. Idempotent - calling again restarts cleanly |
+| `flusher.flush` | `() => Promise<void>` | Drain the full backlog in bounded batches |
+| `flusher.start` | `(intervalMs?: number) => void` | Start a background flush loop (default `100`ms) |
 | `flusher.stop` | `() => void` | Clear the interval started by `start()` |
+
+`flush` yields (`setImmediate`) between batches, and re-entrant calls return the in-progress promise. `start` uses an unref'd `setInterval`, so it never blocks process exit; calling it again restarts cleanly.
 
 #### IHfLogFlusherOptions
 
@@ -807,7 +814,7 @@ The buffer wraps at 65,536 entries, using bitwise AND masking (`writeIndex & (BU
 | `NODE_ENV` | _(unset)_ | Must be in `COMMON_ENVS` or unset for debug to activate |
 | `APP_ENV_EXTRA_LOG_ENVS` | _(empty)_ | Comma-separated additional environments to allow debug |
 | `APP_ENV_LOGGER_FORMAT` | `text` | Output format (`json` or `text`) |
-| `APP_ENV_LOGGER_LEVEL` | `debug` | Logger-level floor. Transports without their own level inherit it. Invalid values fall back to `debug` with a console warning |
+| `APP_ENV_LOGGER_LEVEL` | `debug` | Logger-level floor; invalid values fall back to `debug` |
 | `APP_ENV_LOGGER_FOLDER_PATH` | _(unset)_ | Log files directory. File logging is OFF when unset |
 | `APP_ENV_LOGGER_INSPECT_DEPTH` | `5` | Object inspection depth for `%s` placeholders. Non-negative integer only - invalid or absent falls back to `5` |
 | `APP_ENV_LOGGER_DO_REDACT` | `true` | Secret redaction in log arguments. See the warning below before touching this |
@@ -879,24 +886,26 @@ APP_ENV_LOGGER_DGRAM_LABEL=my-app
 APP_ENV_LOGGER_DGRAM_LEVELS=error,warn,info
 ```
 
+Transports without their own level inherit `APP_ENV_LOGGER_LEVEL`. An invalid value falls back to `debug` with a console warning.
+
 ## API Summary
 
 | Export | Kind | Description |
 |--------|------|-------------|
-| `ILogger` | interface | The logging contract every consumer types against - one direct method per level (`debug`, `info`, `warn`, `error`, `emerg`), plus `log` and `for` |
+| `ILogger` | interface | The logging contract every consumer types against |
 | `AbstractLogger` | abstract class | `ILogger` as a class - the `instanceof` check that works for EVERY provider |
-| `BaseLogger` | abstract class | Provider-independent plumbing shared by every implementation: scope, prefix, the `DEBUG` gate, `.for()`, one abstract `write()` sink |
+| `BaseLogger` | abstract class | Provider-independent plumbing: scope, prefix, `DEBUG` gate, `.for()` |
 | `WinstonLogger` | class | The Winston-backed provider (`@venizia/ignis` selects it at startup); `Logger` is its permanent concrete alias |
-| `Logger` | class | Concrete winston alias - `Logger.get(scope, customWinstonLogger?)`, `instanceof Logger`; deliberately does NOT follow `use()` |
+| `Logger` | class | Concrete winston alias; deliberately does NOT follow `use()` |
 | `PinoLogger` | class (sub-path `/pino`) | The throughput provider - choose it with `LoggerFactory.use` ([guide](/extensions/helpers/logger/pino)) |
 | `ConsoleLogger` | class | The default provider - `ConsoleLogger.get(scope)`; also exported from `@venizia/ignis-helpers/core` |
-| `LoggerFactory` | class | Provider and level choice (`use({ provider, level })`, `useUnlessChosen`, `isChosen`, `reset`) + `ILogger` acquisition from scope arrays; also exported from `/core` |
-| `LoggerDebugGate` | class | The rule behind `debug`: off unless `DEBUG` is truthy and the environment is allowed, off where there is no `process`; `LoggerFactory.use({ level })` overrides it |
+| `LoggerFactory` | class | Provider and level choice, plus `ILogger` acquisition; also exported from `/core` |
+| `LoggerDebugGate` | class | The rule behind `debug` (see the note below) |
 | `ILoggerProvider` | interface | Static-side contract a provider class satisfies (`get(scope): ILogger`) |
 | `HfLogger` | class | `ILogger`-conformant ring-buffer logger for hot paths |
 | `HfLogFlusher` | class | Background flusher for `HfLogger` |
 | `ErrorPrettier` | class (statics) | `format({ error })` renders a thrown value as a readable block; `summarize({ error })` returns it as `IErrorSummary` |
-| `IErrorSummary` | interface | The projection `summarize` returns - `name`, `message`, `code`, `stack` (frames only), the `pg` diagnostics, and a nested `cause` |
+| `IErrorSummary` | interface | The projection `summarize` returns |
 | `LogLevels` | class (constants) | Log level constants (`ERROR`, `EMERG`, `WARN`, `INFO`, `DEBUG`) with `isValid()` |
 | `LoggerFormats` | class (constants) | Format constants (`JSON`, `TEXT`) with `isValid()` |
 | `WinstonLoggerFactory.defineCustomLogger` | `(opts: ICustomLoggerOptions) => winston.Logger` | Create a fully configured Winston logger |
@@ -912,6 +921,15 @@ APP_ENV_LOGGER_DGRAM_LEVELS=error,warn,info
 | `IFileTransportOptions` | interface | Options for daily-rotating file transport |
 | `ICustomLoggerOptions` | interface | Options for `WinstonLoggerFactory.defineCustomLogger` |
 | `IDgramTransportOptions` | interface | Options for `DgramTransport` |
+
+Details for the longer entries:
+
+- `ILogger` has one direct method per level (`debug`, `info`, `warn`, `error`, `emerg`), plus `log` and `for`.
+- `BaseLogger` has one abstract `write()` sink.
+- `Logger.get(scope, customWinstonLogger?)` supports `instanceof Logger`.
+- `LoggerFactory` exposes `use({ provider, level })`, `useUnlessChosen`, `isChosen` and `reset`, and acquires `ILogger` from scope arrays.
+- `LoggerDebugGate` keeps `debug` off unless `DEBUG` is truthy and the environment is allowed. It is also off where there is no `process`. `LoggerFactory.use({ level })` overrides it.
+- `IErrorSummary` holds `name`, `message`, `code`, `stack` (frames only), the `pg` diagnostics and a nested `cause`.
 
 ## Troubleshooting
 

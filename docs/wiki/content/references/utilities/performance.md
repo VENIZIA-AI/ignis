@@ -35,12 +35,16 @@ await PerformanceUtility.executeWithMeasure({
 
 | Method | Signature | What it does |
 |--------|-----------|---------------|
-| `PerformanceUtility.executeWithMeasure` | `executeWithMeasure<R>(opts: { logger?: ILogger; level?: string; description?: string; args?: any; scope: string; task: Function }): Promise<R>` | Runs `task` (sync or async), logging a `START` line before and a `DONE` line after with the elapsed time. Resolves to whatever `task` returns. |
+| `PerformanceUtility.executeWithMeasure` | `executeWithMeasure<R>(opts): Promise<R>` | Runs `task` and logs `START` and `DONE` with the elapsed time |
 | `PerformanceUtility.getCheckpoint` | `getCheckpoint(): number` | Returns `performance.now()` - a starting timestamp to pass to `getExecuted`. |
 | `PerformanceUtility.getExecuted` | `getExecuted(opts: { from: number; digit?: number }): number` | Elapsed milliseconds since `from`, rounded to `digit` places (default `6`). |
 
 ## Notes
 
+- **`executeWithMeasure` resolves to whatever `task` returns**, sync or async.
+<!-- docs-code: off -->
+- **`opts`** is `{ logger?: ILogger; level?: string; description?: string; args?: any; scope: string; task: Function }`.
+<!-- docs-code: on -->
 - **Defaults:** `logger` falls back to `console`, `level` to `'debug'`, `description` to `'Executing'`.
 - **`args`, when provided, are logged as JSON (`%j`)** on both the `START` and `DONE` lines - handy for correlating a specific call's timing.
 - **`task` is wrapped in `Promise.resolve()`**, so a plain synchronous function works exactly like an `async` one.

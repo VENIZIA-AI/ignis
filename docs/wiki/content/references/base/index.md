@@ -85,8 +85,12 @@ from a kernel sub-path instead.
 | Import from | Holds | Browser bundle |
 |---|---|---|
 | `@venizia/ignis-kernel` | Everything: applications, controllers, repositories, the REST surface | 161 KB gzipped |
-| `@venizia/ignis-kernel/metadata` | The stereotypes (`service`, `component`, `configuration`, `injectable`, `provide`, `model`, `datasource`, `repository`, `inject`), `BindingNamespaces`, `ArtifactNamespaces`, `ArtifactTypes`, `BindingKeys`, `MetadataRegistry` | **13.9 KB gzipped** |
-| `@venizia/ignis-kernel/repository` | `AbstractRepository`, `AbstractDataSource`, `AbstractEntity`, the CRUD contract interfaces, `DataRangeUtility`, `DEFAULT_LIMIT`, `DEFAULT_MAX_LIMIT`, `RepositoryOperationScopes`, `CoreErrorCodes`, `SearchErrorCodes`, `ErrorUtility`, `SchemaTypes`, and the filter vocabulary - without the OpenAPI layer | **14.7 KB gzipped** |
+| `@venizia/ignis-kernel/metadata` | The stereotypes, binding and artifact constants, `MetadataRegistry` | **13.9 KB gzipped** |
+| `@venizia/ignis-kernel/repository` | The repository layer, without the OpenAPI layer | **14.7 KB gzipped** |
+
+`/metadata` holds the stereotypes (`service`, `component`, `configuration`, `injectable`, `provide`, `model`, `datasource`, `repository`, `inject`), `BindingNamespaces`, `ArtifactNamespaces`, `ArtifactTypes`, `BindingKeys` and `MetadataRegistry`.
+
+`/repository` holds `AbstractRepository`, `AbstractDataSource`, `AbstractEntity`, the CRUD contract interfaces, `DataRangeUtility`, `DEFAULT_LIMIT`, `DEFAULT_MAX_LIMIT`, `RepositoryOperationScopes`, `CoreErrorCodes`, `SearchErrorCodes`, `ErrorUtility`, `SchemaTypes` and the filter vocabulary.
 
 Both figures are the whole surface (`export *`). Naming what you import tree-shakes further - two
 symbols come to 11.0 KB.

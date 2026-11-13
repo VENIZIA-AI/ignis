@@ -17,27 +17,33 @@ Strict type safety ensures long-term maintainability and catches errors at compi
 - **Documentation**: Types act as a self-documenting contract
 
 ```typescript
-// ❌ BAD
-const data: any = await fetchData();
-const result: unknown = processData();
-
-// ✅ GOOD
 const data: TUserResponse = await fetchData();
 const result: TProcessResult = processData();
 ```
 
-### When a Cast Is Unavoidable
+Never annotate a value as `any`, and give `unknown` a name as soon as you can.
 
-Some boundaries genuinely cannot be typed. Reach for the **simplest** escape hatch - `as any` or the
-`AnyType` alias - never a chained one.
+### When a Boundary Cannot Be Typed
+
+Some values genuinely arrive untyped (a parsed body, a third-party callback). Never silence the
+compiler with a type assertion. Narrow the value with a type guard, or parse it with a schema.
 
 ```typescript
-// ✅ GOOD
-const handler = raw as any;
-const value = raw as AnyType;
+import { z } from '@hono/zod-openapi';
 
-// ❌ BAD - baroque, hides what is actually being asserted
-const handler = raw as unknown as TRouteHandler;
+const UserSchema = z.object({ id: z.string(), email: z.string().email() });
+
+// Parse: throws when the shape is wrong, returns a typed value otherwise
+const user = UserSchema.parse(raw);
+
+// Guard: narrows for the rest of the scope
+const isHandler = (value: unknown): value is (...args: unknown[]) => unknown => {
+  return typeof value === 'function';
+};
+
+if (isHandler(raw)) {
+  raw();
+}
 ```
 
 ## Derive Types, Never Duplicate Them
@@ -108,6 +114,7 @@ type RouteKey = keyof typeof RouteConfigs; // 'GET_USERS' | 'GET_USER_BY_ID'
 
 ### Generic Type Constraints
 
+<!-- docs-code: off -->
 ```typescript
 export class DefaultRelationalRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId
@@ -123,6 +130,7 @@ export interface IAuthService<
   signIn(context: TContext<E>, opts: SIRQ): Promise<SIRS>;
 }
 ```
+<!-- docs-code: on -->
 
 ### Method Overloading for Conditional Returns
 

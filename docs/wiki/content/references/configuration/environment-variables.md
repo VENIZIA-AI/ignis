@@ -86,8 +86,10 @@ APP_ENV_LOGGER_FOLDER_PATH=./logs
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `APP_ENV_APPLICATION_NAME` | No | `APP` | Application name, used in logs and identification |
-| `APP_ENV_APPLICATION_TIMEZONE` | No | `UTC` | The zone the startup banner prints. No date operation reads it - pass `tz` to [`TemporalHelper`](/extensions/helpers/temporal/) |
+| `APP_ENV_APPLICATION_TIMEZONE` | No | `UTC` | The zone the startup banner prints; no date operation reads it (see below) |
 | `APP_ENV_APPLICATION_ROLES` | No | - | Comma-separated list of application roles |
+
+To set the zone of a date operation, pass `tz` to [`TemporalHelper`](/extensions/helpers/temporal/).
 
 ### Example
 
@@ -259,9 +261,9 @@ APP_ENV_JWT_EXPIRES_IN=86400
 | `APP_ENV_LOGGER_FOLDER_PATH` | No | _(unset)_ | Directory for log files; file logging is OFF when unset |
 | `APP_ENV_LOGGER_FORMAT` | No | `text` | Log output format |
 | `APP_ENV_LOGGER_LEVEL` | No | `debug` | Logger-level floor; transports without their own level inherit it |
-| `APP_ENV_LOGGER_INSPECT_DEPTH` | No | `5` | How deep a `%s` argument is inspected. Node hard-codes depth `0` for `%s`, which prints `[Object]` one level in; IGNIS widens it. Non-negative integers only - an absent, invalid or negative value falls back to `5` |
-| `APP_ENV_LOGGER_DO_REDACT` | No | `true` | Secret redaction in logged values. ONLY the literal `false` disables it (reveals raw credentials in log lines); anything else keeps redaction ON. Never disable in production |
-| `APP_ENV_LOGGER_COLOR` | No | _(unset)_ | ANSI color on console log lines. Unset means auto: ON in a development `NODE_ENV`, OFF in `production`, `staging`, `uat` and any unrecognized name. `NO_COLOR` also turns it off |
+| `APP_ENV_LOGGER_INSPECT_DEPTH` | No | `5` | How deep a `%s` argument is inspected; a non-negative integer, else `5` |
+| `APP_ENV_LOGGER_DO_REDACT` | No | `true` | Secret redaction in logged values. ONLY the literal `false` disables it |
+| `APP_ENV_LOGGER_COLOR` | No | _(unset)_ | ANSI color on console log lines; unset means auto (see below) |
 | `APP_ENV_LOGGER_FILE_FREQUENCY` | No | `1h` | Log file rotation frequency |
 | `APP_ENV_LOGGER_FILE_MAX_SIZE` | No | `100m` | Max size per log file |
 | `APP_ENV_LOGGER_FILE_MAX_FILES` | No | `5d` | Log file retention |
@@ -271,6 +273,10 @@ APP_ENV_JWT_EXPIRES_IN=86400
 | `APP_ENV_LOGGER_DGRAM_LABEL` | No | - | Label for UDP logs |
 | `APP_ENV_LOGGER_DGRAM_LEVELS` | No | - | Comma-separated log levels for UDP |
 | `APP_ENV_EXTRA_LOG_ENVS` | No | - | Extra env vars to include in logs |
+
+- `APP_ENV_LOGGER_INSPECT_DEPTH`: Node hard-codes depth `0` for `%s`, which prints `[Object]` one level in; IGNIS widens it. An absent, invalid or negative value falls back to `5`.
+- `APP_ENV_LOGGER_DO_REDACT`: disabling it reveals raw credentials in log lines. Anything other than the literal `false` keeps redaction ON. Never disable it in production.
+- `APP_ENV_LOGGER_COLOR`: unset means ON in a development `NODE_ENV`, OFF in `production`, `staging`, `uat` and any unrecognized name. `NO_COLOR` also turns it off.
 
 ### Example
 
@@ -354,7 +360,9 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `APP_ENV_AUTO_PROVISION_COLLECTION` | No | `false` | Lets a search datasource create a missing collection on first use. `true` or `1` enables it; the `autoProvision` constructor option overrides it |
+| `APP_ENV_AUTO_PROVISION_COLLECTION` | No | `false` | Lets a search datasource create a missing collection on first use |
+
+`true` or `1` enables `APP_ENV_AUTO_PROVISION_COLLECTION`; the `autoProvision` constructor option overrides it.
 
 > [!CAUTION] Removed on 2026-09-11: the DS name variables
 > `APP_ENV_APPLICATION_DS_MIGRATION`, `APP_ENV_APPLICATION_DS_AUTHORIZE` and
@@ -372,7 +380,9 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
 | `DEBUG` | No | - | Enable debug mode |
 | `NODE_ENV` | No | `development` | Environment mode. One of `local`, `debug`, `development`, `dev`, `sit`, `uat`, `alpha`, `beta`, `staging`, `production` |
 | `ALLOW_EMPTY_ENV_VALUE` | No | _(unset, which allows empty values)_ | Whether an empty `APP_ENV_*` value is accepted. Unset means allowed. Set it to `false` or `0` to turn the rejection ON |
-| `RUN_MODE` | No | - | Printed in the startup banner. The framework never branches on it - read it yourself to split a migrate run from a serve run |
+| `RUN_MODE` | No | - | Printed in the startup banner; the framework never branches on it |
+
+Read `RUN_MODE` yourself to split a migrate run from a serve run.
 
 - **Fail-closed by default.** An environment IGNIS does not recognize is treated as production, so error responses are sanitized.
 - **Development environments expose error detail.** `local`, `debug`, `development`, `dev`, and `sit` are the development set - only these show internal error detail.

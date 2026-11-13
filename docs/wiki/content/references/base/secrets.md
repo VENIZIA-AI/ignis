@@ -100,6 +100,7 @@ An application opts in by overriding `registerSecrets()` on its `BaseApplication
 
 **File:** `packages/helpers/src/modules/secrets/common/types/registration.ts`
 
+<!-- docs-code: off -->
 ```typescript
 interface ISecretsRegistration {
   provider: TSecretProvider;              // SecretProviders.*
@@ -117,6 +118,7 @@ interface ISecretsRegistration {
   cacheTtlSeconds?: number;               // TTL for the get/getBundle cache (default 300)
 }
 ```
+<!-- docs-code: on -->
 
 ### `registerSecrets()` default
 

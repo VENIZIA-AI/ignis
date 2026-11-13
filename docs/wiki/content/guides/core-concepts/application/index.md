@@ -64,11 +64,13 @@ The `IGNIS` application has a well-defined lifecycle, managed primarily by the `
 
 | Method | Description |
 | :--- | :--- |
-| **`constructor(opts)`** | Initializes the application, sets up the Hono server (`OpenAPIHono`), and reads the runtime (Bun). The `Application` extends `Container` (IoC container). |
+| **`constructor(opts)`** | Initializes the application, sets up the Hono server (`OpenAPIHono`), and reads the runtime (Bun) |
 | **`init()`** | Registers the core bindings, including `CoreBindings.APPLICATION_INSTANCE`. Call it before `start()`. |
 | **`start()`** | The main entry point. It calls `initialize()`, sets up middlewares, mounts the root router, and starts the HTTP server. |
-| **`stop()`** | Runs the post-stop hooks, stops the server (`Bun.serve().stop()`), then closes every datasource the boot configured, so no pool, socket or PGlite instance outlives the application. Each datasource gets `dataSourceCloseTimeoutMs` (default 10 s) to close. |
+| **`stop()`** | Runs the post-stop hooks, stops the server, then closes every datasource the boot configured |
 | **`initialize()`** | Orchestrates the entire setup process, calling the various configuration and registration methods in the correct order. |
+
+The `Application` extends `Container` (the IoC container). `stop()` calls `Bun.serve().stop()`, and closing every datasource means no pool, socket or PGlite instance outlives the application. Each datasource gets `dataSourceCloseTimeoutMs` (default 10 s) to close.
 
 > [!WARNING]
 > `start()` does not call `init()` for you, and nothing else does either. `init()` is the only caller of `registerCoreBindings()`, which binds `CoreBindings.APPLICATION_INSTANCE`. Built-in components inject that key (the request tracker is registered first), so an application started without `init()` throws `Binding key: @app/instance is not bounded in context!` on the first component resolution.
@@ -85,9 +87,11 @@ The `IGNIS` application has a well-defined lifecycle, managed primarily by the `
 | :--- | :--- |
 | `getAppInfo()` | Return application metadata, usually from `package.json`. Read by the OpenAPI docs and the health check. |
 | `staticConfigure()` | Configure static file serving. Called before `preConfigure()`. |
-| `preConfigure()` | Register what the artifact index cannot express - registry calls, hand-made bindings. Classes come from `configs.artifacts`, see [Registering artifacts](./bootstrapping). |
-| `postConfigure()` | Perform actions *after* all resources have been configured and instantiated. Note: do not bind new datasources, components, or controllers here -- they will not be auto-configured. |
+| `preConfigure()` | Register what the artifact index cannot express: registry calls, hand-made bindings |
+| `postConfigure()` | Perform actions *after* all resources have been configured and instantiated |
 | `setupMiddlewares()`| Add custom application-level middlewares to the Hono instance. Called after `initialize()` completes. |
+
+Classes come from `configs.artifacts`, see [Registering artifacts](./bootstrapping). Do not bind new datasources, components, or controllers in `postConfigure()`: they will not be auto-configured.
 
 ## Lifecycle Diagram
 
@@ -144,24 +148,34 @@ Application configuration is passed to the `BaseApplication` constructor via an 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `host` | `string` | `'localhost'` | The host address. Falls back to `HOST` or `APP_ENV_SERVER_HOST` env vars. |
-| `port` | `number` | `3000` | The port to listen on. Falls back to `PORT` or `APP_ENV_SERVER_PORT` env vars; a value outside 0-65535 is skipped. `0` asks the OS for a free port, and `getServerPort()` returns the real one. |
+| `port` | `number` | `3000` | The port to listen on. Falls back to `PORT` or `APP_ENV_SERVER_PORT` env vars |
 | `projectRoot` | `string` | `process.cwd()` | The directory that holds `node_modules` at run time. Never `__dirname` inside a compiled binary. |
-| `path.base`| `string` | required | The base path for all application routes (e.g., `/api`). An empty string mounts the application at the root; a value that is not a string makes the constructor throw. |
-| `path.isStrict`| `boolean`| `true` | The type requires `path` to carry it; an omitted value at run time means `true`. When `true`, `/users` and `/users/` are different routes. Set `false` to answer both, and declare routes without a trailing slash: under `false`, a route declared as `/users/` is unreachable. |
+| `path.base`| `string` | required | The base path for all application routes (e.g., `/api`) |
+| `path.isStrict`| `boolean`| `true` | When `true`, `/users` and `/users/` are different routes. Set `false` to answer both |
 | `debug.shouldShowRoutes`| `boolean`| `false`| If `true`, prints all registered routes to the console on startup. |
 | `favicon` | `string` | `'🔥'` | An emoji to be used as the application's favicon. |
-| `artifacts` | `TArtifactIndexInput` | `undefined` | The generated artifact index (or several) to register before `preConfigure()`. See [Registering artifacts](./bootstrapping). |
-| `asyncContext.enable` | `boolean` | `true` on `BaseApplication`, `false` on `RestApplication` and `WorkerApplication` | Enable Hono's async context storage (powered by `contextStorage()`). Only a server application reads it; a Worker has no async context store, so `true` there changes nothing. |
+| `artifacts` | `TArtifactIndexInput` | `undefined` | The generated artifact index (or several), registered before `preConfigure()` |
+| `asyncContext.enable` | `boolean` | `true` on `BaseApplication`, `false` on `RestApplication` and `WorkerApplication` | Enable Hono's async context storage (`contextStorage()`) |
 | `transports` | `TControllerTransport[]` | `['rest']` | Controller transports to enable. Add `'grpc'` for gRPC support. |
 | `error.rootKey` | `string` | `undefined` | Optional root key for error response wrapping. |
-| `error.environment` | `string` | `process.env.NODE_ENV` | The ambient environment name. Set it where there is no `process.env`, such as a browser Worker. `BaseApplication` ignores it and reads `process.env.NODE_ENV`. |
+| `error.environment` | `string` | `process.env.NODE_ENV` | The ambient environment name, for runtimes with no `process.env` |
 | `middlewares.cors` | `object` | `undefined` | CORS options. Installed first, so early framework responses such as the body-limit 413 carry the headers. |
-| `middlewares.bodyLimit` | `object` | 5 MiB on every route | Request body limit. Installed right after the request id, ahead of every other middleware. Setting it replaces the default; `enable: false` removes it; a route sets its own with `BodyLimits.route`. |
+| `middlewares.bodyLimit` | `object` | 5 MiB on every route | Request body limit, installed right after the request id |
 | `server.idleTimeout` | `number` | Bun's default | Seconds a connection may sit idle before Bun closes it. Bun caps it at 255. Passed to `Bun.serve`. |
 | `server.maxRequestBodySize` | `number` | Bun's default | Largest request body, in bytes. Passed to `Bun.serve`. |
 | `discoverArtifacts` | `boolean` | `false` | Registers every decorated class the application imports, with no index. With `artifacts` too, the union registers. |
-| `bootChecks` | `object` | `undefined` | Boot-time checks: `binding.{ doVerify, allowManual, allowOverride }` and `allowDerivedKeyCollision`. Without `binding`, nothing is verified. See [Registering artifacts](./bootstrapping). |
+| `bootChecks` | `object` | `undefined` | Boot-time checks (`binding`, `allowDerivedKeyCollision`) |
 | `dataSourceCloseTimeoutMs` | `number` | `10_000` | How long `stop()` waits for one datasource to close. `0` waits without limit. |
+
+Notes on the options:
+
+- `port`: a value outside 0-65535 is skipped. `0` asks the OS for a free port, and `getServerPort()` returns the real one.
+- `path.base`: an empty string mounts the application at the root; a value that is not a string makes the constructor throw.
+- `path.isStrict`: the type requires `path` to carry it, and an omitted value at run time means `true`. Under `false`, declare routes without a trailing slash: a route declared as `/users/` is unreachable.
+- `asyncContext.enable`: only a server application reads it. A Worker has no async context store, so `true` there changes nothing.
+- `error.environment`: `BaseApplication` ignores it and reads `process.env.NODE_ENV`. Set it where there is no `process.env`, such as a browser Worker.
+- `middlewares.bodyLimit`: it runs ahead of every other middleware. Setting it replaces the default, `enable: false` removes it, and a route sets its own with `BodyLimits.route`.
+- `bootChecks`: `binding.{ doVerify, allowManual, allowOverride }` and `allowDerivedKeyCollision`. Without `binding`, nothing is verified. See [Registering artifacts](./bootstrapping).
 
 ### Example Configuration
 
