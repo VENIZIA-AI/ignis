@@ -1,10 +1,9 @@
-import { type AnyType } from '@/common/types';
 import { type ILogger } from '@/modules/logger';
 import { ParseUtility } from './parse.utility';
 
 const DEFAULT_PERFORMANCE_DECIMAL = 6;
 
-type TLogMethod = (message: string, ...args: Array<AnyType>) => void;
+type TLogMethod = (message: string, ...args: unknown[]) => void;
 
 /** Timing helpers on `performance.now()`: checkpoints, elapsed milliseconds and a measured task runner. */
 export class PerformanceUtility {
@@ -40,7 +39,7 @@ export class PerformanceUtility {
 
       // `level` names a method on whichever logger was passed, so it is looked up, not indexed; the call keeps `this` bound to that logger.
       const method: TLogMethod = Reflect.get(logger, level);
-      const log = (message: string, ...params: Array<AnyType>) =>
+      const log = (message: string, ...params: unknown[]) =>
         method.call(logger, message, ...params);
 
       if (args) {

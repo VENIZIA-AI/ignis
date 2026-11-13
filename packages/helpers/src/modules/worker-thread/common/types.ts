@@ -1,4 +1,4 @@
-import { type AnyType, type ValueOrPromise } from '@/common/types';
+import { type ValueOrPromise } from '@/common/types';
 import {
   type MessagePort,
   type Transferable,
@@ -21,7 +21,7 @@ export interface IWorker<MessageType> {
 /** Message buses held by a worker thread, keyed by name. */
 export interface IWorkerThread {
   buses: {
-    [workerKey: string | symbol]: IWorkerBus<AnyType, AnyType>;
+    [workerKey: string | symbol]: IWorkerBus<never, never>;
   };
 }
 

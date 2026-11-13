@@ -1,4 +1,3 @@
-import { type AnyType } from '@/common/types';
 import { type ILogger, LogLevels, LoggerDebugGate, type TLogLevel } from '../common';
 import { AbstractLogger } from './abstract';
 
@@ -13,11 +12,11 @@ export abstract class BaseLogger extends AbstractLogger {
     this._formattedPrefix = opts.scope !== '' ? `[${opts.scope}] ` : '';
   }
 
-  protected abstract write(opts: { level: TLogLevel; message: string; args: Array<AnyType> }): void;
+  protected abstract write(opts: { level: TLogLevel; message: string; args: unknown[] }): void;
 
   protected abstract child(opts: { scope: string }): ILogger;
 
-  debug(message: string, ...args: AnyType[]) {
+  debug(message: string, ...args: unknown[]) {
     if (!LoggerDebugGate.isOpen()) {
       return;
     }
@@ -25,23 +24,23 @@ export abstract class BaseLogger extends AbstractLogger {
     this.write({ level: LogLevels.DEBUG, message, args });
   }
 
-  info(message: string, ...args: AnyType[]) {
+  info(message: string, ...args: unknown[]) {
     this.write({ level: LogLevels.INFO, message, args });
   }
 
-  warn(message: string, ...args: AnyType[]) {
+  warn(message: string, ...args: unknown[]) {
     this.write({ level: LogLevels.WARN, message, args });
   }
 
-  error(message: string, ...args: AnyType[]) {
+  error(message: string, ...args: unknown[]) {
     this.write({ level: LogLevels.ERROR, message, args });
   }
 
-  emerg(message: string, ...args: AnyType[]) {
+  emerg(message: string, ...args: unknown[]) {
     this.write({ level: LogLevels.EMERG, message, args });
   }
 
-  log(level: TLogLevel, message: string, ...args: AnyType[]) {
+  log(level: TLogLevel, message: string, ...args: unknown[]) {
     if (level === LogLevels.DEBUG && !LoggerDebugGate.isOpen()) {
       return;
     }

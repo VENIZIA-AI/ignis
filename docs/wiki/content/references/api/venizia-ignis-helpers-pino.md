@@ -128,7 +128,7 @@ export declare class PinoLogger extends BaseLogger {
     protected write(opts: {
         level: TLogLevel;
         message: string;
-        args: Array<AnyType>;
+        args: unknown[];
     }): void;
     protected child(opts: {
         scope: string;

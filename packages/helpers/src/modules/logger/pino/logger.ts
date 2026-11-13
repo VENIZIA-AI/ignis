@@ -24,7 +24,7 @@ export class PinoLogger extends BaseLogger {
   }
 
   /** Resolves the backing instance at WRITE time and never caches it, so `PinoBackingLogger.set()` takes effect for every already-issued scope immediately. */
-  protected write(opts: { level: TLogLevel; message: string; args: Array<AnyType> }) {
+  protected write(opts: { level: TLogLevel; message: string; args: unknown[] }) {
     const line =
       opts.args.length > 0
         ? LogFormatUtility.formatMessage({ message: opts.message, args: opts.args })

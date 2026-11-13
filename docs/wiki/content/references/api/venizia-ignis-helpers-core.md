@@ -285,12 +285,12 @@ export declare class ConsoleLogger extends AbstractLogger {
     private constructor();
     static get(scope: string): ConsoleLogger;
     private emit;
-    debug(message: string, ...args: AnyType[]): void;
-    info(message: string, ...args: AnyType[]): void;
-    warn(message: string, ...args: AnyType[]): void;
-    error(message: string, ...args: AnyType[]): void;
-    emerg(message: string, ...args: AnyType[]): void;
-    log(level: TLogLevel, message: string, ...args: AnyType[]): void;
+    debug(message: string, ...args: unknown[]): void;
+    info(message: string, ...args: unknown[]): void;
+    warn(message: string, ...args: unknown[]): void;
+    error(message: string, ...args: unknown[]): void;
+    emerg(message: string, ...args: unknown[]): void;
+    log(level: TLogLevel, message: string, ...args: unknown[]): void;
     for(methodName: string): ILogger;
 }
 ```
@@ -735,12 +735,12 @@ The logging contract every consumer types against; which provider produced the l
 
 ```ts
 export interface ILogger {
-    debug(message: string, ...args: AnyType[]): void;
-    info(message: string, ...args: AnyType[]): void;
-    warn(message: string, ...args: AnyType[]): void;
-    error(message: string, ...args: AnyType[]): void;
-    emerg(message: string, ...args: AnyType[]): void;
-    log(level: TLogLevel, message: string, ...args: AnyType[]): void;
+    debug(message: string, ...args: unknown[]): void;
+    info(message: string, ...args: unknown[]): void;
+    warn(message: string, ...args: unknown[]): void;
+    error(message: string, ...args: unknown[]): void;
+    emerg(message: string, ...args: unknown[]): void;
+    log(level: TLogLevel, message: string, ...args: unknown[]): void;
     for(methodName: string): ILogger;
 }
 ```
@@ -1597,12 +1597,12 @@ export declare class ParseUtility {
     }): string;
     static keysToCamel(opts: {
         source: object;
-    }): any;
+    }): Record<string, unknown>;
     static isInt(opts: {
-        input: any;
+        input: unknown;
     }): boolean;
     static isFloat(opts: {
-        input: any;
+        input: unknown;
     }): boolean;
     /**
      * Parses an integer, TOTAL by design: it always answers a number, and answers `0` for anything it
@@ -1621,14 +1621,14 @@ export declare class ParseUtility {
      * through `AbstractRedisHelper.buildRetryStrategy` means "give up after the first failure".
      */
     static toInt(opts: {
-        input: any;
+        input: unknown;
     }): number;
     static toFloat(opts: {
-        input: any;
+        input: unknown;
         digit?: number;
     }): number;
     static toBoolean(opts: {
-        input: any;
+        input: unknown;
     }): boolean;
     /** Converts an array to a Map keyed by `key`. Last element wins on duplicate keys. */
     static parseArrayToMapWithKey<T extends Record<K, PropertyKey>, K extends keyof T>(opts: {

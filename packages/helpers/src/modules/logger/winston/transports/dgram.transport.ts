@@ -50,7 +50,7 @@ export class DgramTransport extends Transport {
     });
   }
 
-  private formatMessage(opts: { [extra: string | symbol]: any }) {
+  private formatMessage(opts: { [extra: string | symbol]: unknown }) {
     const { timestamp, label, message, ...rest } = opts;
 
     return [timestamp, `[${this.label ?? label}]`, rest[Symbol.for('level')], message].join(' ');
@@ -62,7 +62,7 @@ export class DgramTransport extends Transport {
       message: string;
       label?: string;
       timestamp?: string;
-      [extra: symbol]: any;
+      [extra: symbol]: unknown;
     },
     callback: () => void,
   ) {
@@ -72,7 +72,7 @@ export class DgramTransport extends Transport {
 
     const logLevel = opts[Symbol.for('level')];
 
-    if (!this.triggerLevels.has(logLevel)) {
+    if (typeof logLevel !== 'string' || !this.triggerLevels.has(logLevel)) {
       callback();
 
       return;

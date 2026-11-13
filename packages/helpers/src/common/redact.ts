@@ -1,5 +1,3 @@
-import { type AnyObject } from './types';
-
 /** Keys whose VALUES must never reach a log line - matched case-insensitively on the key name, at any depth. */
 const SECRET_KEY_PATTERN = new RegExp(
   [
@@ -172,7 +170,7 @@ const deepSanitize = (value: unknown, context: TSanitizeContext): unknown => {
   // Error keeps name/message/stack NON-enumerable, so Object.keys() skips them and naive redaction would drop the message - reproject into a plain object carrying those fields plus its redacted enumerable own-props.
   if (value instanceof Error) {
     const source = value;
-    const result: AnyObject = {
+    const result: Record<string, unknown> = {
       name: value.name,
       message: doRedact ? scrubString(value.message) : value.message,
       stack: doRedact && value.stack ? scrubString(value.stack) : value.stack,
@@ -193,7 +191,7 @@ const deepSanitize = (value: unknown, context: TSanitizeContext): unknown => {
   }
 
   const source = value;
-  const result: AnyObject = {};
+  const result: Record<string, unknown> = {};
 
   for (const [key, entry] of Object.entries(source)) {
     if (doRedact && SECRET_KEY_PATTERN.test(key)) {
