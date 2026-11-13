@@ -853,8 +853,9 @@ Adds polymorphic data storage columns for entities that store values of differen
 
 `Source ->` [`packages/connectors/src/relational/postgres/models/enrichers/data-type.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/data-type.enricher.ts)
 
+<!-- docs-code: off -->
 ```typescript
-PostgresDataTypeEnricher.generateColumnDefs(opts?: TDataTypeEnricherOptions): {
+interface IDataTypeColumns {
   dataType: PgTextBuilderInitial;
   nValue: PgDoublePrecisionBuilderInitial;
   tValue: PgTextBuilderInitial;
@@ -862,7 +863,14 @@ PostgresDataTypeEnricher.generateColumnDefs(opts?: TDataTypeEnricherOptions): {
   jValue: PgJsonbBuilderInitial<Record<string, AnyType>>;
   boValue: PgBooleanBuilderInitial;
 }
+
+declare class PostgresDataTypeEnricher {
+  static generateColumnDefs(opts?: TDataTypeEnricherOptions): IDataTypeColumns;
+}
 ```
+<!-- docs-code: on -->
+
+The source writes the return type inline; `IDataTypeColumns` only names it here.
 
 Options (`TDataTypeEnricherOptions`):
 

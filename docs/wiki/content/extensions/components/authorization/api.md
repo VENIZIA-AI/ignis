@@ -915,6 +915,7 @@ abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter> extends BaseHe
 }
 ```
 
+<!-- docs-code: off -->
 ```typescript
 interface ICasbinPolicyFilter { principal: { type: string; id: IdType }; }
 
@@ -925,6 +926,7 @@ interface ICasbinPolicySource {
 }
 type TCasbinPolicyConnector = PgDatabase<PgQueryResultHKT, Record<string, AnyType>>;
 ```
+<!-- docs-code: on -->
 
 > [!NOTE]
 > `ICasbinPolicySource` is a minimal local contract, not the framework's general `IDataSource` - `src/components/**` never imports `@/connectors/postgres` for this. The `connector` getter resolves `getConnector?.() ?? connector`. When a datasource exposes neither, it throws a clear `[BaseFilteredAdapter]` error - never a bare `TypeError`.

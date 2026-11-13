@@ -224,7 +224,7 @@ The `@inject` decorator marks where dependencies should be injected - either on 
 ```typescript
 type TInjectOptions = { isOptional?: boolean } & (
   | { key: TBindingKey; target?: never }
-  | { target: TClass<AnyType>; key?: never }
+  | { target: TInjectTarget; key?: never }
 );
 ```
 

@@ -129,11 +129,13 @@ All of the above resolve through the root `@venizia/ignis-helpers` barrel. It re
 
 `Source ->` [`types/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/utility.ts)
 
+<!-- docs-code: off -->
 ```typescript
 type AnyType = any;
 type AnyObject = Record<string | symbol | number, AnyType>;
 type TOptions<T extends object = {}> = T;
 ```
+<!-- docs-code: on -->
 
 | Type | Meaning | Use |
 |------|---------|-----|
@@ -159,14 +161,16 @@ type ValueOrPromise<T> = T | Promise<T>;
 
 `Source ->` [`types/class.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/class.ts)
 
+<!-- docs-code: off -->
 ```typescript
-type TConstructor<T> = new (...args: AnyType[]) => T;
-type TAbstractConstructor<T> = abstract new (...args: AnyType[]) => T;
-type TClass<T> = TConstructor<T> & { [property: string]: AnyType };
-type TAbstractClass<T> = TAbstractConstructor<T> & { [property: string]: AnyType };
+type TConstructor<T> = new (...args: any[]) => T;
+type TAbstractConstructor<T> = abstract new (...args: any[]) => T;
+type TClass<T> = TConstructor<T> & { [property: string]: any };
+type TAbstractClass<T> = TAbstractConstructor<T> & { [property: string]: any };
 type TMixinTarget<T> = TConstructor<{ [P in keyof T]: T[P] }>;
 type TAbstractMixinTarget<T> = TAbstractConstructor<{ [P in keyof T]: T[P] }>;
 ```
+<!-- docs-code: on -->
 
 | Type | Meaning | Use |
 |------|---------|-----|
@@ -189,9 +193,11 @@ function MyMixin<T extends TMixinTarget<BaseClass>>(Base: T) {
 
 `Source ->` [`packages/inversion/src/common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/utilities.ts)
 
+<!-- docs-code: off -->
 ```typescript
-const isClass: <T>(target: AnyType) => target is TClass<T>;
+declare const isClass: <T>(target: any) => target is TClass<T>;
 ```
+<!-- docs-code: on -->
 
 Declared in `@venizia/ignis-inversion` and re-exported by `helpers`. It's the single predicate that tells a constructor from a resolver function. Controller factories and `resolveValue`/`resolveValueAsync`/`ClassResolver.resolveClass` all branch on it.
 
@@ -221,11 +227,13 @@ type TPrettify<T> = { [K in keyof T]: T[K] } & {};
 
 `Source ->` [`types/const-value.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/const-value.ts)
 
+<!-- docs-code: off -->
 ```typescript
-type TStringConstValue<T extends TClass<AnyType>> = Extract<ValueOf<T>, string> & {};
-type TNumberConstValue<T extends TClass<AnyType>> = Extract<ValueOf<T>, number> & {};
-type TConstValue<T extends TClass<AnyType>> = Extract<ValueOf<T>, string | number> & {};
+type TStringConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string> & {};
+type TNumberConstValue<T extends TClass<any>> = Extract<ValueOf<T>, number> & {};
+type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {};
 ```
+<!-- docs-code: on -->
 
 The `& {}` keeps the union literal: a value copied into an object literal, a `let` or an inferred generic stays `'bun'`, not `string`.
 
@@ -248,12 +256,14 @@ Types and functions for lazy/deferred value resolution - a core pattern in the f
 
 `Source ->` [`types/resolver.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/resolver.ts)
 
+<!-- docs-code: off -->
 ```typescript
-type TResolver<T> = (...args: AnyType[]) => T;
-type TAsyncResolver<T> = (...args: AnyType[]) => T | Promise<T>;
+type TResolver<T> = (...args: any[]) => T;
+type TAsyncResolver<T> = (...args: any[]) => T | Promise<T>;
 type TValueOrResolver<T> = T | TResolver<T>;
 type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>;
 ```
+<!-- docs-code: on -->
 
 | Type | Meaning | Use |
 |------|---------|-----|

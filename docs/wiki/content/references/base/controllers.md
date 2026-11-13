@@ -278,13 +278,15 @@ Sets `X-Response-Count` from `payload.count` and returns the whole envelope, or 
 
 Defines and registers a route with its handler in a single call.
 
+<!-- docs-code: off -->
 ```typescript
 defineRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
   configs: RouteConfig;
   handler: TRouteHandler<ResponseType, RouteEnv>;
-  hook?: Hook<AnyType, RouteEnv, string, ValueOrPromise<AnyType>>;
+  hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
 }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>
 ```
+<!-- docs-code: on -->
 
 - **`configs`**: Route configuration including path, method, request/response schemas, and optional auth
 - **`handler`**: Route handler function `(context: TRouteContext) => Response`
@@ -308,13 +310,15 @@ Returns `{ configs, to }` where `to({ handler })` completes the registration and
 
 Defines a route that renders server-side HTML via `context.html()`. Same signature as `defineRoute` but uses `getJSXRouteConfigs` instead of `getRouteConfigs`, which automatically adds an HTML response schema.
 
+<!-- docs-code: off -->
 ```typescript
 defineJSXRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
   configs: RouteConfig;
   handler: TRouteHandler<ResponseType, RouteEnv>;
-  hook?: Hook<AnyType, RouteEnv, string, ValueOrPromise<AnyType>>;
+  hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
 }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>
 ```
+<!-- docs-code: on -->
 
 ### `toHonoHandler<ResponseType>(opts: { handler })`
 

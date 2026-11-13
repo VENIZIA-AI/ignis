@@ -120,11 +120,19 @@ export class UserController extends UserCrudController {
 
 Support multiple input types that resolve to a single value:
 
+<!-- docs-code: off -->
+<!-- docs-code: off -->
 ```typescript
-// Type definitions (from @venizia/ignis-helpers; AnyType is the library's deliberate-unchecked alias)
-export type TResolver<T> = (...args: AnyType[]) => T;
+// From @venizia/ignis-helpers; the `any` is the library's deliberate-unchecked argument list
+export type TResolver<T> = (...args: any[]) => T;
 export type TValueOrResolver<T> = T | TResolver<T>;
+declare const isClass: <T>(target: any) => target is TClass<T>;
+```
+<!-- docs-code: on -->
 
+`isClass` tells a class constructor from an arrow or regular function by testing the function's source against `/^class[\s{]/`, since every non-arrow function has a prototype. It is sound only on ES2020+ output.
+
+```typescript
 // A resolver is anything callable that is not a class - a class is a value, never a factory
 export class ResolverUtility {
   private static isResolver<T>(
@@ -141,18 +149,8 @@ export class ResolverUtility {
     return ResolverUtility.isResolver(value) ? value() : value;
   }
 }
-
-// isClass (declared in @venizia/ignis-inversion, re-exported by helpers) - distinguishes class
-// constructors from arrow/regular functions by testing the SOURCE against /^class[\s{]/,
-// since every non-arrow function has a prototype. Sound only on ES2020+ output.
-export const isClass = <T>(target: AnyType): target is TClass<T> => {
-  if (typeof target !== 'function' || target.prototype === undefined) {
-    return false;
-  }
-
-  return /^class[\s{]/.test(Function.prototype.toString.call(target));
-};
 ```
+<!-- docs-code: on -->
 
 ### Usage
 
@@ -183,12 +181,12 @@ For constructing complex objects step-by-step:
 
 ```typescript
 class QueryBuilder<T> {
-  private _where: Record<string, AnyType> = {};
+  private _where: Record<string, unknown> = {};
   private _orderBy: string[] = [];
   private _limit?: number;
   private _offset?: number;
 
-  where(conditions: Record<string, AnyType>): this {
+  where(conditions: Record<string, unknown>): this {
     this._where = { ...this._where, ...conditions };
     return this;
   }

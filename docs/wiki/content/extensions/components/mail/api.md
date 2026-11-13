@@ -204,6 +204,7 @@ With `this.component(MailComponent, { options })`, the application stores the op
 
 A discriminated union on `provider`, extending `IBaseMailOptions`:
 
+<!-- docs-code: off -->
 ```typescript
 interface IBaseMailOptions {
   from?: string;
@@ -247,6 +248,7 @@ type TMailOptions =
   | ICustomMailOptions
   | IGenericMailOptions;
 ```
+<!-- docs-code: on -->
 
 Every provider shares the `IBaseMailOptions` fields:
 
@@ -897,6 +899,7 @@ interface IInternalQueueMailExecutorOpts {
 
 ## Utility functions
 
+<!-- docs-code: off -->
 ```typescript
 // type.utility.ts
 class MailTypeUtility {
@@ -924,6 +927,7 @@ class MailMimeUtility {
   static buildRawMessage(opts: { message: IMailMessage }): Promise<Buffer>;
 }
 ```
+<!-- docs-code: on -->
 
 `MailTypeUtility.isTransport` and `MailTypeUtility.isValidOptions` keep a positional parameter, because a type guard narrows its own parameter.
 

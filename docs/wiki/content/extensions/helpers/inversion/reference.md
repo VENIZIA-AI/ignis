@@ -301,16 +301,16 @@ metadataRegistry.delete({ target: myObj, key: 'custom:flag' }); // true
 ```typescript
 interface IInjectMetadata {
   key?: TBindingKey;
-  /** Named by class; the key is read off the class at resolve time. */
-  target?: TClass<AnyType>;
+  /** Named by class, or by a function returning it; the key is read off the class at resolve time. */
+  target?: TInjectTarget;
   index: number;
   isOptional?: boolean;
 }
 
 interface IPropertyMetadata {
   bindingKey?: TBindingKey;
-  /** Named by class; the key is read off the class at resolve time. */
-  target?: TClass<AnyType>;
+  /** Named by class, or by a function returning it; the key is read off the class at resolve time. */
+  target?: TInjectTarget;
   isOptional?: boolean;
 }
 
@@ -334,7 +334,7 @@ Neither interface carries an index signature. A misspelled read such as `metadat
 type TInjectOptions = {
   isOptional?: boolean;
   registry?: MetadataRegistry;
-} & ({ key: TBindingKey; target?: never } | { target: TClass<AnyType>; key?: never });
+} & ({ key: TBindingKey; target?: never } | { target: TInjectTarget; key?: never });
 
 inject(opts: TInjectOptions): PropertyDecorator | ParameterDecorator
 ```
@@ -504,33 +504,37 @@ Logger.debug('Resolved binding: %s', key);          // console.log('[DEBUG] ...'
 
 `Source ->` [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/types.ts) and [`common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/utilities.ts) (`isClass`)
 
+<!-- docs-code: off -->
 ```typescript
 type TNullable<T> = T | undefined | null;
 type ValueOrPromise<T> = T | Promise<T>;
 type ValueOf<T> = T[keyof T];
-type TConstructor<T> = new (...args: AnyType[]) => T;
-type TAbstractConstructor<T> = abstract new (...args: AnyType[]) => T;
-type TClass<T> = TConstructor<T> & { [property: string]: AnyType };
-type TConstValue<T extends TClass<AnyType>> = Extract<ValueOf<T>, string | number> & {};
+type TConstructor<T> = new (...args: any[]) => T;
+type TAbstractConstructor<T> = abstract new (...args: any[]) => T;
+type TClass<T> = TConstructor<T> & { [property: string]: any };
+type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {};
 type TBindingKey = string | symbol;
 type AnyType = any;
 
 interface IBindingTag {
-  [name: string]: AnyType;
+  [name: string]: any;
 }
 
-function isClass<T>(target: AnyType): target is TClass<T>;
+function isClass<T>(target: any): target is TClass<T>;
 ```
+<!-- docs-code: on -->
 
 `isClass` tests `typeof target === 'function' && target.prototype !== undefined` plus a regex match on the function's stringified source (`/^class[\s{]/`). It relies on the class being emitted as an ES2015+ `class`, not transpiled down to an ES5 constructor function.
 
+<!-- docs-code: off -->
 ```typescript
 interface IProvider<T> {
   value(container: IContainer): T;
 }
 
-function isClassProvider<T>(target: AnyType): target is TClass<IProvider<T>>;
+function isClassProvider<T>(target: any): target is TClass<IProvider<T>>;
 ```
+<!-- docs-code: on -->
 
 `value` takes `IContainer`, the interface, not the concrete `Container` class. `binding/` and `container/` talk only through that interface, which is what keeps the two folders free of an import cycle.
 

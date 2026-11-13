@@ -183,9 +183,9 @@ Use `null` to distinguish "not computed" from "computed as undefined" for lazy-i
 ```typescript
 class Repository {
   // null = not computed yet, undefined = computed but no value
-  private _visibleProperties: Record<string, AnyType> | null | undefined = null;
+  private _visibleProperties: Record<string, unknown> | null | undefined = null;
 
-  get visibleProperties(): Record<string, AnyType> | undefined {
+  get visibleProperties(): Record<string, unknown> | undefined {
     if (this._visibleProperties !== null) {
       return this._visibleProperties;
     }

@@ -48,7 +48,7 @@ export class FileController extends BaseRestController {
 
 | Method | Signature | What it does |
 |--------|-----------|---------------|
-| `RequestUtility.parseMultipartBody` | `parseMultipartBody(opts: { context: IMultipartContext; storage?: 'memory' \| 'disk'; uploadDir?: string; maxFiles?: number }): Promise<IParsedMultipartBody>` | Parses a `multipart/form-data` body into `{ files, fields }`. See [Multipart bodies](#multipart-bodies) |
+| `RequestUtility.parseMultipartBody` | `parseMultipartBody(opts: IParseMultipartOptions): Promise<IParsedMultipartBody>` | Parses a `multipart/form-data` body into `{ files, fields }`. See [Multipart bodies](#multipart-bodies) |
 | `FormBodyUtility.readFormBody` | `readFormBody(opts: { req: { formData: () => Promise<FormData> } }): Promise<FormData>` | Reads a form body through the request's own cache. See [Multipart bodies](#multipart-bodies) |
 | `RequestUtility.sanitizeFilename` | `sanitizeFilename({ filename: string }): string` | Strips path components and dangerous characters from `filename`. Returns `'download'` for empty or suspicious input. |
 | `RequestUtility.encodeRfc5987` | `encodeRfc5987({ filename: string }): string` | RFC 5987 encodes `filename` for the `filename*` header parameter (`encodeURIComponent` plus escaped `'`, `(`, `)`, `*`). |
@@ -57,6 +57,7 @@ export class FileController extends BaseRestController {
 
 ### Multipart bodies
 
+- `IParseMultipartOptions` takes `context` (anything with `req.formData()`, a Hono context fits), `storage` (`'memory'` default or `'disk'`), `uploadDir` (default `./uploads`) and `maxFiles` (more file parts than this is refused with 413; unset means no limit).
 - `parseMultipartBody` returns `{ files, fields }`: a form carries both, and text fields posted beside a file are part of the upload. A repeated field name keeps the last value.
 - `readFormBody` reads through the request's own cache, so a later `formData()` call on the same request gets the same result. A body the runtime cannot parse becomes `400 core.request.body_malformed` instead of the runtime's own error, which renders as a `500`.
 - `readFormBody` is on the root barrel and on `@venizia/ignis-helpers/core`. Its error definition, `RequestBodyErrors`, is on `/core` only: use the kernel's `RequestErrors.BODY_MALFORMED` instead, the same object.
