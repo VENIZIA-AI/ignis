@@ -23,7 +23,7 @@ export type TBindingProvider<T> =
 export type TBindingResolverValue<T> = TClass<T> | T | TBindingProvider<T>;
 
 /** A container entry: one key bound to a class, a value or a provider, with a scope and tags. */
-export interface IBinding<T = any> {
+export interface IBinding<T = unknown> {
   /** Normalized at construction - a symbol key arrives here as its string form. */
   key: string;
 
