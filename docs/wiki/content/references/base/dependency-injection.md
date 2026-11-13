@@ -233,7 +233,7 @@ Name the binding key, or name the class bound under it. Never both - the union r
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `key` | `string \| symbol` | - | The binding key to resolve from the container. |
-| `target` | `TClass` | - | The artifact class. The container looks up the key that class was registered under. |
+| `target` | `TInjectTarget` | - | The artifact class, or a function returning it. The container looks up the key that class was registered under. |
 | `isOptional` | `boolean` | `false` | If `true`, returns `undefined` instead of throwing when the binding is not found. |
 
 ```typescript
@@ -359,14 +359,14 @@ MetadataKeys.INJECT      = Symbol.for('ignis:inject')
 ```typescript
 interface IInjectMetadata {
   key?: TBindingKey;
-  target?: TClass;
+  target?: TInjectTarget;
   index: number;
   isOptional?: boolean;
 }
 
 interface IPropertyMetadata {
   bindingKey?: TBindingKey;
-  target?: TClass;
+  target?: TInjectTarget;
   isOptional?: boolean;
 }
 ```

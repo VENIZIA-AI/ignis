@@ -1,7 +1,7 @@
 ---
 title: Class, constructor and resolver types take never arguments, not any
 description: "TConstructor, TClass, TResolver, TAsyncResolver, TTask and the open defaults of IBindingTag, IConfigurable, the metadata registry, executeWithMeasure and TUpdateData no longer let an unread value through as any."
-packages: ['@venizia/ignis-inversion', '@venizia/ignis-helpers', '@venizia/ignis-kernel']
+packages: ['@venizia/ignis-inversion', '@venizia/ignis-helpers', '@venizia/ignis-kernel', '@venizia/ignis-connectors', '@venizia/ignis']
 migration:
   - id: tclass-has-no-index-signature
     symbols: [TClass, TAbstractClass, TConstValue, TStringConstValue, TNumberConstValue]
@@ -75,7 +75,7 @@ migration:
       steps:
         - "Pass classes of any instance type again; the older parameter and result were TClass<any>."
   - id: class-results-are-tclass-unknown
-    symbols: [ResolverUtility.resolveInjectTarget, isDataSourceClass, MetadataRegistry.getDataSourceModelClasses, TDataSourceDriverClass, TBootProbeTarget, MetadataRegistry.resolveModelKey]
+    symbols: [ResolverUtility.resolveInjectTarget, isDataSourceClass, MetadataRegistry.getDataSourceModelClasses, MetadataRegistry.datasourceModels, Container.resolveBindingKey, TDataSourceDriverClass, TBootProbeTarget, MetadataRegistry.resolveModelKey]
     upgrade:
       before: |
         // a result typed TClass<any> was used as any class
@@ -86,7 +86,7 @@ migration:
         const target = resolved && resolved.prototype instanceof MyService ? resolved : undefined;
     downgrade:
       steps:
-        - "Use the result as a TClass of any instance type again; the older results were TClass<any>. The parameters (TDataSourceDriverClass, TBootProbeTarget, resolveModelKey) only widened and need no change."
+        - "Use the result as a TClass of any instance type again; the older results were TClass<any>. The parameters (TDataSourceDriverClass, TBootProbeTarget, resolveModelKey, Container.resolveBindingKey) only widened and need no change."
   - id: class-guards-and-targets-widen
     symbols: [TInjectTarget, isClass, isClassProvider, MetadataRegistry.getMethodNames]
     upgrade:
@@ -203,7 +203,7 @@ migration:
 ## Breaking changes
 
 > [!WARNING]
-> These are type-level breaks: behaviour is unchanged. The typecheck names each line.
+> These are type-level breaks. Two behaviours differ, both at the edges: injecting into a read-only property now throws the framework's `ApplicationError` (`... cannot be injected | It is read-only`) instead of a `TypeError`, and `assertApplicationBoots` skips a target that is not a class. The typecheck names each line.
 
 **Before:**
 
