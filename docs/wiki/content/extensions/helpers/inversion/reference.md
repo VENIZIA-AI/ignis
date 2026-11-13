@@ -38,6 +38,7 @@ Exhaustive reference for `Container`, `Binding`, `MetadataRegistry`, the `@injec
 
 ### Import paths
 
+<!-- docs-code: off -->
 ```typescript
 import {
   Container,
@@ -83,6 +84,7 @@ import type {
   TInjectOptions,
 } from '@venizia/ignis-inversion';
 ```
+<!-- docs-code: on -->
 
 > [!NOTE]
 > The framework package `@venizia/ignis` re-exports these DI symbols from `@venizia/ignis-inversion`, types included: `Binding`, `BindingKeys`, `BindingScopes`, `BindingValueTypes`, `IProvider`, `isClass`, `isClassProvider`, `TBindingScope`, `TBindingValueType`, `IBindingTag`. It also adds higher-level helpers of its own (`app.controller()`, `app.service()`, etc.).

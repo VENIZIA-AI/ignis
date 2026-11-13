@@ -451,6 +451,7 @@ type TCustomizableRouteConfig = TRouteAuthConfig & {
 
 ### `ICustomizableRoutes`
 
+<!-- docs-code: off -->
 ```typescript
 interface ICustomizableRoutes<
   RouteConfig extends TCustomizableRouteConfig = TCustomizableRouteConfig,
@@ -469,7 +470,7 @@ interface ICustomizableRoutes<
 }
 
 /** What `routes` of `CrudControllerFactory.build` takes: a listed route is `true` or a config; the restore keys only for a repository that has those methods. */
-type TCrudRoutes<Repository extends object = any> = {
+type TCrudRoutes<Repository extends object = AnyType> = {
   [Key in keyof ICustomizableRoutes]?: Key extends 'restoreById' | 'restoreBy'
     ? Repository extends { [Name in Key]: unknown }
       ? true | TCustomizableRouteConfig
@@ -477,6 +478,7 @@ type TCrudRoutes<Repository extends object = any> = {
     : true | TCustomizableRouteConfig;
 };
 ```
+<!-- docs-code: on -->
 
 ## Route Decorators
 

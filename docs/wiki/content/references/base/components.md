@@ -205,7 +205,7 @@ export interface IAuthService<
 // Auth user type
 export interface IAuthUser {
   userId: IdType;
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 ```
 

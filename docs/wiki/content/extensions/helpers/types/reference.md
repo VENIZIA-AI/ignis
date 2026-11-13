@@ -46,6 +46,7 @@ Exhaustive reference for every utility type, resolver function, and constant cla
 
 ## Import paths
 
+<!-- docs-code: off -->
 ```typescript
 // Types
 import type {
@@ -122,6 +123,7 @@ import type {
 // JSX types (re-exported from hono/jsx)
 import type { Child, FC, PropsWithChildren } from '@venizia/ignis-helpers';
 ```
+<!-- docs-code: on -->
 
 All of the above resolve through the root `@venizia/ignis-helpers` barrel. It re-exports `./common` in full, which includes `./common/types` and `./common/constants`.
 
@@ -384,6 +386,7 @@ The runtime types are `'string'` -> `string`, `'number'` -> `number`, `'strings'
 
 `Source ->` [`types/injection.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/injection.ts)
 
+<!-- docs-code: off -->
 ```typescript
 type TInjectionGetter = <T>(opts: { key: string | symbol }) => T;
 
@@ -391,6 +394,7 @@ interface IConfigurable<Options extends object = any, Result = any> {
   configure(opts?: Options): ValueOrPromise<Result>;
 }
 ```
+<!-- docs-code: on -->
 
 | Type | Meaning | Use |
 |------|---------|-----|
