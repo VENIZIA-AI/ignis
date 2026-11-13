@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-217 exports, 217 with TSDoc. 227 more are re-exported from other entries (listed at the end).
+217 exports, 217 with TSDoc. 229 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -4833,7 +4833,7 @@ Source: `packages/helpers/src/modules/storage/common/constants.ts`
 An async task as `executeWithLimit` takes it.
 
 ```ts
-export type TTask<T> = (...args: any[]) => Promise<T>;
+export type TTask<T> = (...args: never[]) => Promise<T>;
 ```
 
 Source: `packages/helpers/src/utilities/promise.utility.ts`
@@ -5637,6 +5637,7 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `SnowflakeUidHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TAbstractClass` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TAbstractConstructor` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `TAbstractMixinConstructor` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TAbstractMixinTarget` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TAsyncResolver` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TBuildInfoRecord` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -5676,6 +5677,7 @@ Source: `packages/helpers/src/modules/worker-thread/worker-pool.ts`
 - `TInjectionGetter` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TLogLevel` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TMimeTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `TMixinConstructor` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TMixinTarget` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TNodePredicate` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TNullable` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)

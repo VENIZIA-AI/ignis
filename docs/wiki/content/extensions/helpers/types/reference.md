@@ -63,6 +63,8 @@ import type {
   TAbstractConstructor,
   TClass,
   TAbstractClass,
+  TMixinConstructor,
+  TAbstractMixinConstructor,
   TMixinTarget,
   TAbstractMixinTarget,
   TResolver,
@@ -163,25 +165,34 @@ type ValueOrPromise<T> = T | Promise<T>;
 
 `Source ->` [`types/class.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/class.ts)
 
+```typescript
+type TConstructor<T> = new (...args: never[]) => T;
+type TAbstractConstructor<T> = abstract new (...args: never[]) => T;
+type TClass<T> = TConstructor<T>;
+type TAbstractClass<T> = TAbstractConstructor<T>;
+```
+
+The mixin types keep `any[]` because TypeScript requires it of a mixin base (error TS2545):
+
 <!-- docs-code: off -->
 ```typescript
-type TConstructor<T> = new (...args: any[]) => T;
-type TAbstractConstructor<T> = abstract new (...args: any[]) => T;
-type TClass<T> = TConstructor<T> & { [property: string]: any };
-type TAbstractClass<T> = TAbstractConstructor<T> & { [property: string]: any };
-type TMixinTarget<T> = TConstructor<{ [P in keyof T]: T[P] }>;
-type TAbstractMixinTarget<T> = TAbstractConstructor<{ [P in keyof T]: T[P] }>;
+type TMixinConstructor<T> = new (...args: any[]) => T;
+type TAbstractMixinConstructor<T> = abstract new (...args: any[]) => T;
+type TMixinTarget<T> = TMixinConstructor<{ [P in keyof T]: T[P] }>;
+type TAbstractMixinTarget<T> = TAbstractMixinConstructor<{ [P in keyof T]: T[P] }>;
 ```
 <!-- docs-code: on -->
 
 | Type | Meaning | Use |
 |------|---------|-----|
-| `TConstructor<T>` | A concrete `new (...args) => T` constructor | Typing a parameter that must be `new`-able |
+| `TConstructor<T>` | A concrete constructor producing `T`; its arguments are `never[]`, so every constructor fits | Typing a parameter that must be `new`-able. Build an instance with `Reflect.construct` |
 | `TAbstractConstructor<T>` | An `abstract new (...args) => T` constructor | Typing a parameter that accepts an abstract class reference |
-| `TClass<T>` | `TConstructor<T>` plus an index signature for static members | The most commonly used class type - a concrete class with arbitrary static properties |
-| `TAbstractClass<T>` | `TAbstractConstructor<T>` plus an index signature for static members | Same as `TClass`, for abstract classes |
-| `TMixinTarget<T>` | `TConstructor` over a mapped-identity copy of `T` | Types a mixin factory's `Base` parameter so the returned class keeps `T`'s shape |
-| `TAbstractMixinTarget<T>` | `TAbstractConstructor` over a mapped-identity copy of `T` | Same as `TMixinTarget`, for mixins over an abstract base |
+| `TClass<T>` | Same as `TConstructor<T>` | The most commonly used class type. Read statics through `typeof MyClass`, not through `TClass` |
+| `TAbstractClass<T>` | Same as `TAbstractConstructor<T>` | Same as `TClass`, for abstract classes |
+| `TMixinConstructor<T>` | `new (...args: any[]) => T`, the shape TypeScript requires of a mixin base | The base of `TMixinTarget`; use it for a mixin constructor parameter |
+| `TAbstractMixinConstructor<T>` | The `abstract new (...args: any[]) => T` form | Same, for an abstract base |
+| `TMixinTarget<T>` | `TMixinConstructor` over a mapped-identity copy of `T` | Types a mixin factory's `Base` parameter so the returned class keeps `T`'s shape |
+| `TAbstractMixinTarget<T>` | `TAbstractMixinConstructor` over a mapped-identity copy of `T` | Same as `TMixinTarget`, for mixins over an abstract base |
 
 ```typescript
 function MyMixin<T extends TMixinTarget<BaseClass>>(Base: T) {
@@ -195,11 +206,9 @@ function MyMixin<T extends TMixinTarget<BaseClass>>(Base: T) {
 
 `Source ->` [`packages/inversion/src/common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/utilities.ts)
 
-<!-- docs-code: off -->
 ```typescript
-declare const isClass: <T>(target: any) => target is TClass<T>;
+declare const isClass: <T>(target: unknown) => target is TClass<T>;
 ```
-<!-- docs-code: on -->
 
 Declared in `@venizia/ignis-inversion` and re-exported by `helpers`. It's the single predicate that tells a constructor from a resolver function. Controller factories and `resolveValue`/`resolveValueAsync`/`ClassResolver.resolveClass` all branch on it.
 
@@ -229,13 +238,11 @@ type TPrettify<T> = { [K in keyof T]: T[K] } & {};
 
 `Source ->` [`types/const-value.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/const-value.ts)
 
-<!-- docs-code: off -->
 ```typescript
-type TStringConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string> & {};
-type TNumberConstValue<T extends TClass<any>> = Extract<ValueOf<T>, number> & {};
-type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {};
+type TStringConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string> & {};
+type TNumberConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, number> & {};
+type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string | number> & {};
 ```
-<!-- docs-code: on -->
 
 The `& {}` keeps the union literal: a value copied into an object literal, a `let` or an inferred generic stays `'bun'`, not `string`.
 
@@ -258,14 +265,12 @@ Types and functions for lazy/deferred value resolution - a core pattern in the f
 
 `Source ->` [`types/resolver.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/resolver.ts)
 
-<!-- docs-code: off -->
 ```typescript
-type TResolver<T> = (...args: any[]) => T;
-type TAsyncResolver<T> = (...args: any[]) => T | Promise<T>;
+type TResolver<T> = (...args: never[]) => T;
+type TAsyncResolver<T> = (...args: never[]) => T | Promise<T>;
 type TValueOrResolver<T> = T | TResolver<T>;
 type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>;
 ```
-<!-- docs-code: on -->
 
 | Type | Meaning | Use |
 |------|---------|-----|
@@ -386,15 +391,13 @@ The runtime types are `'string'` -> `string`, `'number'` -> `number`, `'strings'
 
 `Source ->` [`types/injection.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/injection.ts)
 
-<!-- docs-code: off -->
 ```typescript
 type TInjectionGetter = <T>(opts: { key: string | symbol }) => T;
 
-interface IConfigurable<Options extends object = any, Result = any> {
+interface IConfigurable<Options extends object = object, Result = unknown> {
   configure(opts?: Options): ValueOrPromise<Result>;
 }
 ```
-<!-- docs-code: on -->
 
 | Type | Meaning | Use |
 |------|---------|-----|

@@ -1683,13 +1683,13 @@ export declare class PerformanceUtility {
         from: number;
         digit?: number;
     }): number;
-    static executeWithMeasure<R = any>(opts: {
+    static executeWithMeasure<R>(opts: {
         logger?: ILogger;
         level?: string;
         description?: string;
-        args?: any;
+        args?: unknown;
         scope: string;
-        task: Function;
+        task: () => R | Promise<R>;
     }): Promise<R>;
 }
 ```

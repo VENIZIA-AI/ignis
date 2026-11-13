@@ -2,7 +2,7 @@ import type { BaseApplication } from '@/base/applications';
 import { ServerBootSteps, type TServerBootStep } from '@/base/applications';
 import type { AnyType, TClass } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import { BindingVerifier } from '@venizia/ignis-inversion';
+import { BindingVerifier, isClass } from '@venizia/ignis-inversion';
 import {
   type AbstractRestController,
   AuthorizationEnforcerRegistry,
@@ -15,7 +15,7 @@ import {
 } from '@venizia/ignis-kernel';
 
 /** A class (matched against the instance's constructor) or a string (matched against the binding key or the class name). */
-export type TBootProbeTarget = TClass<AnyType> | string;
+export type TBootProbeTarget = TClass<unknown> | string;
 
 /** Options of `ApplicationBootAssertion.assert`; each field narrows or relaxes what the boot probe runs and verifies. */
 export interface IAssertApplicationBootsOptions {
@@ -172,6 +172,11 @@ const assertNoDuplicateRoutes = (opts: { application: BaseApplication }): void =
       continue;
     }
 
+    // A bound controller is a class; this narrows it for the `prototype` read below.
+    if (!isClass(target)) {
+      continue;
+    }
+
     const instance = application.get<AbstractRestController>({
       key: binding.key,
       isOptional: true,
@@ -192,7 +197,7 @@ const assertNoDuplicateRoutes = (opts: { application: BaseApplication }): void =
     const declared = new Map<string, number>();
 
     for (const route of MetadataRegistry.getInstance()
-      .getRoutes({ target: (target as TClass<AnyType>).prototype })
+      .getRoutes({ target: target.prototype })
       ?.values() ?? []) {
       const signature = `${String(route.method).toUpperCase()} ${normalizePath(`${metadata.path}/${route.path}`)}`;
       declared.set(signature, (declared.get(signature) ?? 0) + 1);

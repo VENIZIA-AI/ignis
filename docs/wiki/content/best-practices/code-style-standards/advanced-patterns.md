@@ -120,13 +120,11 @@ export class UserController extends UserCrudController {
 
 Support multiple input types that resolve to a single value:
 
-<!-- docs-code: off -->
 ```typescript
-export type TResolver<T> = (...args: any[]) => T;
+export type TResolver<T> = (...args: never[]) => T;
 export type TValueOrResolver<T> = T | TResolver<T>;
-declare const isClass: <T>(target: any) => target is TClass<T>;
+declare const isClass: <T>(target: unknown) => target is TClass<T>;
 ```
-<!-- docs-code: on -->
 
 `isClass` tells a class constructor from an arrow or regular function by testing the function's source against `/^class[\s{]/`, since every non-arrow function has a prototype. It is sound only on ES2020+ output.
 

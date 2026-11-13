@@ -3,7 +3,7 @@ import { ArtifactNamespaces, BindingNamespaces, CoreBindings } from '@/common/bi
 import type { Binding, TBindingScope } from '@/helpers/inversion';
 import { BindingScopes, MetadataRegistry } from '@/helpers/inversion';
 import { BindingVerifier } from '@venizia/ignis-inversion';
-import type { AnyType, IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   PerformanceUtility,
   getError,
@@ -750,7 +750,7 @@ export abstract class RestApplication<
     });
 
     const registry = MetadataRegistry.getInstance();
-    const kinds: Array<[ReadonlyArray<TClass<AnyType>>, TBindingNamespace]> = [
+    const kinds: Array<[ReadonlyArray<TClass<unknown>>, TBindingNamespace]> = [
       [resolved.configurations, BindingNamespaces.CONFIGURATION],
       [resolved.dataSources, BindingNamespaces.DATASOURCE],
       [resolved.components, BindingNamespaces.COMPONENT],
@@ -837,7 +837,7 @@ export abstract class RestApplication<
   }
 
   /** Each `@provide` method becomes a lazy provider: the component is resolved (SINGLETON) and the method called on first `get`, so a provided value may depend on datasources or secrets that do not exist yet at registration time. */
-  private bindProvidedKeys(opts: { target: TClass<any> }): void {
+  private bindProvidedKeys(opts: { target: TClass<unknown> }): void {
     const { target } = opts;
     const registry = MetadataRegistry.getInstance();
     const provides = registry.getProvideMetadata({ target });

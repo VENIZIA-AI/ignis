@@ -3,7 +3,7 @@ import '@/base/applications';
 
 import { BaseApplication } from '@/base/applications';
 import { ServerBootSteps } from '@/base/applications';
-import type { IApplicationConfigs } from '@/base/applications';
+import type { IApplicationConfigs, IArtifactIndex } from '@/base/applications';
 import { BaseRestController } from '@/base/controllers';
 import { controller, get, inject, model, repository, service } from '@/base/metadata';
 import { ApplicationBootAssertion } from '@/testing';
@@ -13,7 +13,7 @@ import {
   BasePostgresEntity,
   DefaultCRUDRepository,
 } from '@venizia/ignis-connectors/postgres';
-import type { AnyType, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import {
   BaseComponent,
@@ -257,12 +257,10 @@ class ContributingComponent extends BaseComponent {
   }
 }
 
-interface IPlan {
-  dataSources?: Array<TClass<AnyType>>;
-  repositories?: Array<TClass<AnyType>>;
-  services?: Array<TClass<AnyType>>;
-  controllers?: Array<TClass<AnyType>>;
-  components?: Array<TClass<AnyType>>;
+interface IPlan extends Pick<
+  IArtifactIndex,
+  'dataSources' | 'repositories' | 'services' | 'controllers' | 'components'
+> {
   config?: Partial<IApplicationConfigs>;
 }
 

@@ -7,8 +7,8 @@ import type { ValueOf } from './utility';
  * `string` / `number` in an object literal, a `let`, or a generic inference.
  */
 /** The string values held by the `static readonly` members of const class `T`, as a plain union. */
-export type TStringConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string> & {};
+export type TStringConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string> & {};
 /** The number values held by the `static readonly` members of const class `T`, as a plain union. */
-export type TNumberConstValue<T extends TClass<any>> = Extract<ValueOf<T>, number> & {};
+export type TNumberConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, number> & {};
 /** The string and number values held by the `static readonly` members of const class `T`, as a plain union. */
-export type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {};
+export type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string | number> & {};

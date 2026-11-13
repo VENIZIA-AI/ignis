@@ -38,7 +38,7 @@ export const RepositoryMetadataMixin = <
      * repository named it with (`dataSource: 'PgDataSource'`), which only a class of that name
      * can match. Never by class name alone: a minified build gives two datasources one name.
      */
-    datasourceModels: Map<string | Function, Set<TClass<AnyType>>>;
+    datasourceModels: Map<string | Function, Set<TClass<unknown>>>;
 
     setRepositoryMetadata<
       Target extends object = object,
@@ -110,7 +110,7 @@ export const RepositoryMetadataMixin = <
     /** A class finds what was registered under it, and under a string equal to its name. */
     getDataSourceModelClasses(opts: {
       dataSource: string | TClass<IDataSource>;
-    }): Set<TClass<AnyType>> {
+    }): Set<TClass<unknown>> {
       const { dataSource } = opts;
 
       if (typeof dataSource === 'string') {
@@ -213,7 +213,7 @@ export const RepositoryMetadataMixin = <
     }
 
     /** The key a model occupies in `modelRegistry` - its table name, or its class name when it has none. */
-    resolveModelKey(opts: { modelClass: TClass<AnyType> }): string {
+    resolveModelKey(opts: { modelClass: TClass<unknown> }): string {
       const { modelClass } = opts;
       const modelMetadata = this.getModelMetadata({ target: modelClass });
 

@@ -4,7 +4,7 @@ import { component, configuration, model, service } from '@/base/metadata';
 import { MetadataRegistry } from '@/helpers/inversion';
 import { BaseComponent } from '@/base/components';
 import { BaseConfiguration } from '@/base/configurations';
-import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { beforeEach, describe, expect, test } from 'bun:test';
 
 class DiscoveringApplication extends RestApplication {
@@ -47,7 +47,9 @@ class DiscoveredModel {}
 export class OtherApplicationOnlyService {}
 
 const buildApplication = <ApplicationType extends DiscoveringApplication>(opts: {
-  ApplicationClass: TClass<ApplicationType>;
+  ApplicationClass: new (
+    ...args: ConstructorParameters<typeof DiscoveringApplication>
+  ) => ApplicationType;
   configs?: Partial<IApplicationConfigs>;
 }) => {
   const application = new opts.ApplicationClass({

@@ -8,7 +8,7 @@ export interface IProvider<T> {
 }
 
 /** True for a function whose prototype has a `value` method, so a provider class is told apart from a plain provider function. */
-export const isClassProvider = <T>(target: any): target is TClass<IProvider<T>> => {
+export const isClassProvider = <T>(target: unknown): target is TClass<IProvider<T>> => {
   return (
     typeof target === 'function' && target.prototype && typeof target.prototype.value === 'function'
   );

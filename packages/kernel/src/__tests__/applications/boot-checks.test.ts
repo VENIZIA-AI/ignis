@@ -2,7 +2,7 @@ import { RestApplication } from '@/base/applications/rest';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/common';
 import { inject, service } from '@/base/metadata';
 import { BindingNamespaces } from '@/common/bindings';
-import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 
 /** Runs the real boot sequence; only the server-only hooks are stubbed. */
@@ -42,7 +42,9 @@ const buildConfigs = (overrides: Partial<IApplicationConfigs> = {}): IApplicatio
 });
 
 const buildApplication = <ApplicationType extends CheckedApplication>(opts: {
-  ApplicationClass: TClass<ApplicationType>;
+  ApplicationClass: new (
+    ...args: ConstructorParameters<typeof CheckedApplication>
+  ) => ApplicationType;
   configs: IApplicationConfigs;
 }) => {
   const application = new opts.ApplicationClass({

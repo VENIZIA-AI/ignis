@@ -157,11 +157,11 @@ The second message continues with `Decorate it (@service, @repository, ...) or r
 - If the slot is empty (an undecorated parameter left a hole), throws `[ClassName] Constructor parameter N has no @inject | Every parameter of a container-instantiated class must be decorated - the container cannot supply an undecorated one`.
 - Otherwise resolves the key with `resolveBindingKey({ key: meta.key, target: meta.target, cls, at })`, calls `this.get({ key, isOptional: meta.isOptional ?? false })`, and places the result at `args[meta.index]`.
 
-The array is already index-keyed (`setInjectMetadata` writes to `injects[index]`) - there is no sort step. Once all arguments are resolved, `new cls(...args)` builds the instance.
+The array is already index-keyed (`setInjectMetadata` writes to `injects[index]`) - there is no sort step. Once all arguments are resolved, `Reflect.construct(cls, args)` builds the instance: `TClass` takes `never[]` arguments, so `new cls(...args)` does not type-check.
 
 **Phase 2 - property injection.** Reads `registry.getPropertiesMetadata({ target: instance })`. If there is none, returns the instance as-is.
 
-Otherwise, for each `[propertyKey, metadata]` entry, resolves the key with `resolveBindingKey({ key: metadata.bindingKey, target: metadata.target, cls, at })`, calls `this.get({ key, isOptional: metadata.isOptional ?? false })`, and assigns the result to `instance[propertyKey]`.
+Otherwise, for each `[propertyKey, metadata]` entry, resolves the key with `resolveBindingKey({ key: metadata.bindingKey, target: metadata.target, cls, at })`, calls `this.get({ key, isOptional: metadata.isOptional ?? false })`, and assigns the result with `Reflect.set(instance, propertyKey, value)`. A write that fails (a read-only property) throws `[Class] Property 'name' cannot be injected`.
 
 `@inject({ key, isOptional: true })` on a **property** behaves exactly like on a constructor parameter: an unbound key resolves to `undefined` instead of throwing. A required property (`isOptional` omitted or `false`) still throws when its key is unbound.
 
@@ -506,37 +506,38 @@ Logger.debug('Resolved binding: %s', key);          // console.log('[DEBUG] ...'
 
 `Source ->` [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/types.ts) and [`common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/utilities.ts) (`isClass`)
 
-<!-- docs-code: off -->
 ```typescript
 type TNullable<T> = T | undefined | null;
 type ValueOrPromise<T> = T | Promise<T>;
 type ValueOf<T> = T[keyof T];
-type TConstructor<T> = new (...args: any[]) => T;
-type TAbstractConstructor<T> = abstract new (...args: any[]) => T;
-type TClass<T> = TConstructor<T> & { [property: string]: any };
-type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {};
+type TConstructor<T> = new (...args: never[]) => T;
+type TAbstractConstructor<T> = abstract new (...args: never[]) => T;
+type TClass<T> = TConstructor<T>;
+type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string | number> & {};
 type TBindingKey = string | symbol;
-type AnyType = any;
 
 interface IBindingTag {
-  [name: string]: any;
+  [name: string]: unknown;
 }
 
-function isClass<T>(target: any): target is TClass<T>;
+function isClass<T>(target: unknown): target is TClass<T>;
+```
+
+<!-- docs-code: off -->
+```typescript
+type AnyType = any;
 ```
 <!-- docs-code: on -->
 
 `isClass` tests `typeof target === 'function' && target.prototype !== undefined` plus a regex match on the function's stringified source (`/^class[\s{]/`). It relies on the class being emitted as an ES2015+ `class`, not transpiled down to an ES5 constructor function.
 
-<!-- docs-code: off -->
 ```typescript
 interface IProvider<T> {
   value(container: IContainer): T;
 }
 
-function isClassProvider<T>(target: any): target is TClass<IProvider<T>>;
+function isClassProvider<T>(target: unknown): target is TClass<IProvider<T>>;
 ```
-<!-- docs-code: on -->
 
 `value` takes `IContainer`, the interface, not the concrete `Container` class. `binding/` and `container/` talk only through that interface, which is what keeps the two folders free of an import cycle.
 

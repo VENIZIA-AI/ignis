@@ -1,5 +1,5 @@
 import { getError } from '@venizia/ignis-helpers';
-import type { AnyType, TClass } from '@venizia/ignis-helpers';
+import type { TClass } from '@venizia/ignis-helpers';
 import { dirname } from 'node:path';
 import {
   ArtifactStereotypes,
@@ -60,14 +60,14 @@ export class AutoArtifactsLoader {
           left.className.localeCompare(right.className),
       );
 
-    const loaded = new Map<IScannedArtifact, TClass<AnyType>>();
+    const loaded = new Map<IScannedArtifact, TClass<unknown>>();
 
     for (const artifact of emitted) {
       const module = await import(artifact.filePath);
       loaded.set(artifact, module[artifact.className]);
     }
 
-    const index: Record<string, Array<TClass<AnyType>>> = {};
+    const index: Record<string, Array<TClass<unknown>>> = {};
 
     for (const { type, field } of ArtifactStereotypes.EMIT_ORDER) {
       const classes = emitted

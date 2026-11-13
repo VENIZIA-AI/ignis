@@ -4,6 +4,6 @@ import type { ValueOrPromise } from './utility';
 export type TInjectionGetter = <T>(opts: { key: string | symbol }) => T;
 
 /** Something set up by a `configure` call, which may be asynchronous. */
-export interface IConfigurable<Options extends object = any, Result = any> {
+export interface IConfigurable<Options extends object = object, Result = unknown> {
   configure(opts?: Options): ValueOrPromise<Result>;
 }

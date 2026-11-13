@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/common, from the built decl
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-52 exports, 52 with TSDoc. 7 more are re-exported from other entries (listed at the end).
+54 exports, 54 with TSDoc. 7 more are re-exported from other entries (listed at the end).
 
 ## `AnyObject`
 
@@ -625,7 +625,7 @@ Source: `packages/helpers/src/common/constants/http.ts`
 Something set up by a `configure` call, which may be asynchronous.
 
 ```ts
-export interface IConfigurable<Options extends object = any, Result = any> {
+export interface IConfigurable<Options extends object = object, Result = unknown> {
     configure(opts?: Options): ValueOrPromise<Result>;
 }
 ```
@@ -761,12 +761,10 @@ Source: `packages/helpers/src/common/constants/app.ts`
 
 *type*
 
-An abstract class producing `T`, with any static members allowed.
+An abstract class producing `T`.
 
 ```ts
-export type TAbstractClass<T> = TAbstractConstructor<T> & {
-    [property: string]: any;
-};
+export type TAbstractClass<T> = TAbstractConstructor<T>;
 ```
 
 Source: `packages/helpers/src/common/types/class.ts`
@@ -778,7 +776,19 @@ Source: `packages/helpers/src/common/types/class.ts`
 An abstract class constructor producing `T`; it cannot be called with `new` directly.
 
 ```ts
-export type TAbstractConstructor<T> = abstract new (...args: any[]) => T;
+export type TAbstractConstructor<T> = abstract new (...args: never[]) => T;
+```
+
+Source: `packages/helpers/src/common/types/class.ts`
+
+## `TAbstractMixinConstructor`
+
+*type*
+
+The abstract form of {@link TMixinConstructor}.
+
+```ts
+export type TAbstractMixinConstructor<T> = abstract new (...args: any[]) => T;
 ```
 
 Source: `packages/helpers/src/common/types/class.ts`
@@ -790,7 +800,7 @@ Source: `packages/helpers/src/common/types/class.ts`
 `TMixinTarget` for an abstract base class.
 
 ```ts
-export type TAbstractMixinTarget<T> = TAbstractConstructor<{
+export type TAbstractMixinTarget<T> = TAbstractMixinConstructor<{
     [P in keyof T]: T[P];
 }>;
 ```
@@ -801,12 +811,10 @@ Source: `packages/helpers/src/common/types/class.ts`
 
 *type*
 
-A concrete class producing `T`, with any static members allowed.
+A concrete class producing `T`. Read its static members through a type that declares them, such as `typeof MyClass`.
 
 ```ts
-export type TClass<T> = TConstructor<T> & {
-    [property: string]: any;
-};
+export type TClass<T> = TConstructor<T>;
 ```
 
 Source: `packages/helpers/src/common/types/class.ts`
@@ -818,7 +826,7 @@ Source: `packages/helpers/src/common/types/class.ts`
 A concrete class constructor producing `T`.
 
 ```ts
-export type TConstructor<T> = new (...args: any[]) => T;
+export type TConstructor<T> = new (...args: never[]) => T;
 ```
 
 Source: `packages/helpers/src/common/types/class.ts`
@@ -830,7 +838,7 @@ Source: `packages/helpers/src/common/types/class.ts`
 The string and number values held by the `static readonly` members of const class `T`, as a plain union.
 
 ```ts
-export type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {};
+export type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string | number> & {};
 ```
 
 Source: `packages/helpers/src/common/types/const-value.ts`
@@ -1660,6 +1668,18 @@ export type TMimeTypes = TConstValue<typeof MimeTypes>;
 
 Source: `packages/helpers/src/common/constants/mime.ts`
 
+## `TMixinConstructor`
+
+*type*
+
+The constructor shape a mixin base takes. TypeScript requires `new (...args: any[]) => T` here (error TS2545: a mixin class must have a constructor with a single rest parameter of type `any[]`), so this is the one `any` the language mandates.
+
+```ts
+export type TMixinConstructor<T> = new (...args: any[]) => T;
+```
+
+Source: `packages/helpers/src/common/types/class.ts`
+
 ## `TMixinTarget`
 
 *type*
@@ -1667,7 +1687,7 @@ Source: `packages/helpers/src/common/constants/mime.ts`
 The constructor type a mixin accepts as its base: it must produce at least the members of `T`.
 
 ```ts
-export type TMixinTarget<T> = TConstructor<{
+export type TMixinTarget<T> = TMixinConstructor<{
     [P in keyof T]: T[P];
 }>;
 ```
@@ -1693,7 +1713,7 @@ Source: `packages/helpers/src/common/types/utility.ts`
 The number values held by the `static readonly` members of const class `T`, as a plain union.
 
 ```ts
-export type TNumberConstValue<T extends TClass<any>> = Extract<ValueOf<T>, number> & {};
+export type TNumberConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, number> & {};
 ```
 
 Source: `packages/helpers/src/common/types/const-value.ts`
@@ -1781,7 +1801,7 @@ Source: `packages/helpers/src/common/constants/app.ts`
 The string values held by the `static readonly` members of const class `T`, as a plain union.
 
 ```ts
-export type TStringConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string> & {};
+export type TStringConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string> & {};
 ```
 
 Source: `packages/helpers/src/common/types/const-value.ts`

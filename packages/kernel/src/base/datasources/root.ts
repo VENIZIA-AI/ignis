@@ -1,5 +1,5 @@
 import { NotSupportedUtility } from '@/utilities/not-supported.utility';
-import type { AnyType, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type {
   IDataSource,
@@ -28,7 +28,7 @@ import { OPENING_HANDLES } from './opening-handles';
 export const DATA_SOURCE_BRAND = Symbol.for('@venizia/ignis-kernel:abstract-data-source');
 
 /** True for `DataSourceRoot` itself and for any class extending it (`AbstractDataSource` among them), across package copies. */
-export const isDataSourceClass = (value: unknown): value is TClass<AnyType> => {
+export const isDataSourceClass = (value: unknown): value is TClass<unknown> => {
   return typeof value === 'function' && DATA_SOURCE_BRAND in value;
 };
 

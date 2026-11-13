@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-107 exports, 107 with TSDoc. 968 more are re-exported from other entries (listed at the end).
+107 exports, 107 with TSDoc. 970 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -249,7 +249,7 @@ export declare class AuthControllerFactory {
                 scope: string;
                 args: unknown;
                 task: () => Promise<R>;
-            }): Promise<any>;
+            }): Promise<R>;
             normalizeCountData<ResponseSchema extends unknown, RequestContext extends import("@venizia/ignis-kernel").TRouteContext<import("hono").Env> = import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>, ResponseData extends {
                 count: number;
                 data?: import("@venizia/ignis-helpers").TNullable<ResponseSchema>;
@@ -3902,6 +3902,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TableColumnCache` from [`@venizia/ignis-connectors/relational`](/references/api/venizia-ignis-connectors-relational)
 - `TAbstractClass` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TAbstractConstructor` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `TAbstractMixinConstructor` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TAbstractMixinTarget` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TAESSecret` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TAnyConnector` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
@@ -4055,6 +4056,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TLoggerFormat` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
 - `TLogLevel` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TMimeTypes` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `TMixinConstructor` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TMixinOpts` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TMixinTarget` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TModelAccessSettings` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
