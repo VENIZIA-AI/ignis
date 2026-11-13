@@ -2,7 +2,8 @@ import { ParseUtility } from '@/utilities';
 import { ModuleUtility } from '@/utilities/module.utility';
 import type { Cluster, ClusterOptions } from 'ioredis';
 import { AbstractRedisHelper } from './../base';
-import { RedisDefaults, type IRedisClusterHelperOptions } from './../common';
+import { RedisDefaults } from './../common';
+import type { IRedisClusterHelperOptions } from './types';
 
 /** Redis helper over an ioredis `Cluster`. `autoConnect: false` creates the client with `lazyConnect`; `clusterOptions` is applied last and overrides the defaults. */
 export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {

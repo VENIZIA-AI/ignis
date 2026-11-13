@@ -2,7 +2,8 @@ import { ModuleUtility } from '@/utilities/module.utility';
 import { ParseUtility } from '@/utilities/parse.utility';
 import type { Redis } from 'ioredis';
 import { AbstractRedisHelper } from './../base';
-import { RedisDefaults, type IRedisSingleHelperOptions } from './../common';
+import { RedisDefaults } from './../common';
+import type { IRedisSingleHelperOptions } from './types';
 
 /** Redis helper over one ioredis `Redis` client connected to a single node. */
 export class RedisSingleHelper extends AbstractRedisHelper<Redis> {

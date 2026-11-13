@@ -18,8 +18,10 @@ Backed by **ioredis** under the hood.
 - [`packages/helpers/src/modules/redis/sentinel/sentinel.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/sentinel/sentinel.helper.ts) - `RedisSentinelHelper`
 - [`packages/helpers/src/modules/redis/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/factory.ts) - `RedisHelperFactory`
 - [`packages/helpers/src/modules/redis/common/interfaces.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/interfaces.ts) - `IRedisHelper` and its nine capability interfaces
-- [`packages/helpers/src/modules/redis/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/types.ts) - option and callback types
-- [`packages/helpers/src/modules/redis/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/constants.ts) - `RedisSentinelRoles`, `RedisDefaults`
+- [`packages/helpers/src/modules/redis/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/types.ts) - the types more than one mode shares: `IRedisNode`, `IRedisCredentials`, `TRedisClient`, `IRedisHelperCallbacks`, `IRedisModuleOption`
+- [`packages/helpers/src/modules/redis/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/constants.ts) - `RedisDefaults`
+- [`packages/helpers/src/modules/redis/single/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/single/types.ts), [`cluster/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/cluster/types.ts) and [`sentinel/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/sentinel/types.ts) - the props and options type of each mode
+- [`packages/helpers/src/modules/redis/sentinel/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/sentinel/constants.ts) - `RedisSentinelRoles`, `RedisSentinelDefaults`
 
 ## Find what you need
 
@@ -289,7 +291,7 @@ const redis = new RedisSentinelHelper({
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `name` | `string` | Yes | - | Helper identifier (logs, `IRedisHelper.name`) |
-| `sentinel` | `{ masterName: string; role?: TRedisSentinelRole; username?: string; password?: string; nodes: Array<{ host: string; port?: string \| number }> }` | Yes | - | Everything that belongs to Sentinel; see the table below |
+| `sentinel` | `IRedisCredentials & { masterName; role?; nodes }` | Yes | - | Everything that belongs to Sentinel; see the table below |
 | `username` | `string` | No | - | Data-node ACL user (master and replicas), with `password` |
 | `password` | `string` | No | - | Data-node password (master and replicas) |
 | `database` | `number` | No | `0` | Redis database index |
@@ -318,7 +320,7 @@ The fields of `sentinel`:
 | `role` | `TRedisSentinelRole` (`RedisSentinelRoles.MASTER \| SLAVE`) | No | `RedisSentinelRoles.MASTER` | Connect to the master (writes) or a replica (reads) |
 | `username` | `string` | No | - | ACL user of the Sentinel processes |
 | `password` | `string` | No | - | `requirepass` of the Sentinel processes |
-| `nodes` | `IRedisNode[]` (`{ host: string; port?: string \| number }`) | Yes | - | Sentinel process addresses; the port defaults to `26379`. A Sentinel node takes no credentials: ioredis reads only its host and port, so set `sentinel.username` and `sentinel.password` once |
+| `nodes` | `IRedisNode[]` | Yes | - | Sentinel addresses; port defaults to `26379`. No per-node credentials: use `sentinel.username` and `.password` |
 
 Other ioredis Sentinel options (`sentinelTLS`, `natMap`, `preferredSlaves`) stay reachable through `redisOptions`.
 
