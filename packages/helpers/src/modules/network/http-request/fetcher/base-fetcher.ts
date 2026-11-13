@@ -1,5 +1,4 @@
 import { HTTP, type THttpMethod } from '@/common/constants/http';
-import { type AnyObject } from '@/common/types';
 // The leaf file, never the logger BARREL: that barrel reaches `node:module` and would drag this
 // browser-pure fetcher contract with it.
 import type { ILogger } from '@/modules/logger/common/types';
@@ -12,7 +11,7 @@ export type TFetcherLogger = Pick<ILogger, 'debug' | 'info'>;
 export interface IRequestOptions {
   url: string;
   method?: THttpMethod;
-  params?: AnyObject;
+  params?: Record<string, unknown>;
   timeout?: number;
   [extra: symbol | string]: unknown;
 }

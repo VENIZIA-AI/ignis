@@ -3,7 +3,7 @@ import type { TFetcherVariant } from '../../common';
 
 export type TFetcherResponse<T extends TFetcherVariant> = T extends 'node-fetch'
   ? Response
-  : AxiosResponse;
+  : AxiosResponse<unknown>;
 
 export type TFetcherWorker<T extends TFetcherVariant> = T extends 'axios'
   ? AxiosInstance

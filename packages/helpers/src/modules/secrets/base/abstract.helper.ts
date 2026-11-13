@@ -1,4 +1,3 @@
-import type { AnyType } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import type {
@@ -27,7 +26,12 @@ interface IRawFetchResult {
 const DEFAULT_CLOCK: IClock = { now: () => Date.now() };
 const DEFAULT_TIMERS: ITimerAdapter = {
   set: (handler, ms) => setTimeout(handler, ms),
-  clear: (handle) => clearTimeout(handle as AnyType),
+  clear: (handle) => {
+    // Only a real timer handle can be cleared: a number, or an object that carries `unref` (Node and Bun timers); an opaque fake from a test adapter has nothing to clear.
+    if (typeof handle === 'number' || (typeof handle === 'object' && 'unref' in handle)) {
+      clearTimeout(handle);
+    }
+  },
 };
 
 const DEFAULT_CACHE_TTL_SECONDS = 300;
@@ -115,7 +119,7 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
       ? Object.hasOwn(bundle, opts.key)
         ? bundle[opts.key]
         : undefined
-      : (bundle as AnyType);
+      : bundle;
 
     return (raw ?? opts.defaultValue) as TValue;
   }

@@ -1,4 +1,4 @@
-import { type AnyObject, HTTP, type THttpMethod } from '@/common';
+import { HTTP, type THttpMethod } from '@/common';
 import { RedactUtility } from '@/common/redact';
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import https from 'node:https';
@@ -11,9 +11,9 @@ import { AbstractNetworkFetchableHelper, type IRequestOptions } from './base-fet
 export interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOptions {
   url: string;
   method?: THttpMethod;
-  params?: AnyObject;
-  body?: AnyObject;
-  headers?: AnyObject;
+  params?: Record<string, unknown>;
+  body?: Record<string, unknown>;
+  headers?: Record<string, string>;
   /** Whether this call rejects an HTTPS server whose certificate fails verification; `false` turns verification off for this call. */
   rejectUnauthorized?: boolean;
 }
@@ -24,7 +24,7 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
   IAxiosRequestOptions,
   // The named type, not the `axios.` NAMESPACE: the namespace form resolves only under node16
   // module resolution, and this package also emits an ESM build under `bundler` resolution.
-  AxiosResponse<any, any>['data'],
+  AxiosResponse<unknown>,
   AxiosInstance
 > {
   /**
@@ -105,7 +105,7 @@ export class AxiosNetworkRequest extends BaseNetworkRequest<'axios'> {
     const { name, networkOptions } = opts;
     const { headers, baseUrl, timeout, ...rest } = networkOptions;
 
-    const mergedHeaders: AnyObject = {
+    const mergedHeaders: NonNullable<AxiosRequestConfig['headers']> = {
       ['content-type']: 'application/json; charset=utf-8',
       ...headers,
     };
