@@ -286,7 +286,7 @@ The only async method on the helper. It waits for all 3 Redis clients to reach `
 | Method | Signature | Behavior |
 |---|---|---|
 | `getIOServer()` | `(): IOServer` | Returns the underlying `socket.io` `Server` - for APIs the helper doesn't expose, like `io.of()` or `io.fetchSockets()` |
-| `getEngine()` | `(): any` | Returns the `@socket.io/bun-engine` instance |
+| `getEngine()` | `(): TSocketIOBunEngine \| undefined` | Returns the `@socket.io/bun-engine` instance |
 | `getClients()` | `(opts?: { id? }): ISocketIOClient \| Map<string, ISocketIOClient> \| undefined` | Without `id`, returns the full client map. With `id`, returns that client or `undefined` |
 | `on()` | `(opts: { topic; handler }): void` | Registers a server-level event handler. Throws if `topic` is empty, `handler` is falsy, or the IO server isn't initialized |
 | `ping()` | `(opts: { socket; doIgnoreAuth }): void` | Sends `{ time }` to one client. No-op if `socket` or the client entry is missing. Disconnects the client if `doIgnoreAuth` is `false` and it isn't authenticated |
@@ -303,7 +303,7 @@ The only async method on the helper. It waits for all 3 Redis clients to reach `
 ```typescript
 send(opts: {
   destination?: string;    // Socket ID, room name, or omit for broadcast
-  payload: { topic: string; data: any };
+  payload: { topic: string; data: unknown };
   doLog?: boolean;         // Log the emission (default: false)
   callback?: () => void;   // Executed via setImmediate after emit
 })
@@ -444,7 +444,7 @@ The component registers one hook, `'socket-io-initialize'`, in `registerBunHook(
 class SocketIOBunHandler {
   static async createEngine(opts: {
     serverOptions: Partial<ServerOptions>;
-  }): Promise<{ engine: any; engineHandler: any }> {
+  }) {
     const { serverOptions } = opts;
     const { Server: BunEngine } = await import('@socket.io/bun-engine');
 
@@ -620,7 +620,7 @@ interface ISocketIOServerBaseOptions {
 
 interface ISocketIOServerBunOptions extends ISocketIOServerBaseOptions {
   runtime: typeof RuntimeModules.BUN;
-  engine: any;                            // @socket.io/bun-engine Server instance
+  engine: TSocketIOBunEngine;             // @socket.io/bun-engine Server instance
 }
 
 // Tracked client entry (server-side)
@@ -658,7 +658,7 @@ interface ISocketIOClientOptions {
 // Socket connection options (extends socket.io-client's SocketOptions)
 interface IOptions extends SocketOptions {
   path: string;
-  extraHeaders: Record<string | symbol | number, any>;
+  extraHeaders: Record<string, string>;
 }
 
 type TSocketIOEventHandler<T = unknown> = (data: T) => ValueOrPromise<void>;
@@ -680,7 +680,7 @@ interface IHandshake {
   issued: number;
   url: string;
   query: ParsedUrlQuery;
-  auth: { [key: string]: any };
+  auth: { [key: string]: unknown };
 }
 
 type TSocketIOAuthenticateFn = (args: IHandshake) => ValueOrPromise<boolean>;

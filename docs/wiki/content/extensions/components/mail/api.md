@@ -489,7 +489,7 @@ interface IMailService {
 
   sendTemplate(opts: {
     templateName: string;
-    data: Record<string, any>;
+    data: Record<string, unknown>;
     recipients: string | string[];
     options?: Partial<IMailMessage>;
   }): Promise<IMailSendResult>;
@@ -556,7 +556,7 @@ interface IMailMessage {
   attachments?: IMailAttachment[];
   headers?: Record<string, string>;
   requireValidate?: boolean;      // Passed through to sendTemplate()'s render() call
-  [key: string]: any;             // Open-ended -- provider-specific fields pass through
+  [key: string]: unknown;             // Open-ended -- provider-specific fields pass through
 }
 ```
 
@@ -579,7 +579,7 @@ interface IMailAttachment {
   content?: string | Buffer | Uint8Array | Readable | ReadableStream<Uint8Array>;
   encoding?: BufferEncoding;            // How a string content decodes; default utf-8
   cid?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 ```
 
@@ -601,14 +601,14 @@ interface IMailTemplateEngine {
   render(opts: {
     templateData?: string;
     templateName?: string;
-    data: Record<string, any>;
+    data: Record<string, unknown>;
     requireValidate?: boolean;
     format?: TMailTemplateFormat;
   }): string;
 
   registerTemplate(opts: { name: string; content: string }): void;
 
-  validateTemplateData(opts: { template: string; data: Record<string, any> }): {
+  validateTemplateData(opts: { template: string; data: Record<string, unknown> }): {
     isValid: boolean;
     missingKeys: string[];
     allKeys: string[];
@@ -823,7 +823,7 @@ interface IBullMQMailExecutorOpts {
 interface IMailSendResult {
   success: boolean;
   messageId?: string;
-  response?: any;
+  response?: unknown;
   error?: string;
 }
 

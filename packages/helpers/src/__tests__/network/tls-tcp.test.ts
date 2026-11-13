@@ -158,7 +158,7 @@ describe('NetworkTlsTcpServer / NetworkTlsTcpClient - real handshake', () => {
       identifier: 'tls-tcp-test-client-untrusted',
       options: { port, host: '127.0.0.1' },
       onError: (error) => {
-        failed.resolve(error);
+        failed.resolve(error instanceof Error ? error : new Error(String(error)));
       },
     });
     openClients.push(client);

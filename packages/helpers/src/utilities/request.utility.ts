@@ -10,7 +10,7 @@ export interface IRequestedRemark {
   id: string;
   url: string;
   method: string;
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 
 /** Where `RequestUtility.parseMultipartBody` keeps an uploaded file: MEMORY (a buffer) or DISK (spooled to `uploadDir`). */
@@ -28,7 +28,12 @@ export class MultipartStorages {
 /** Valid multipart storage values. */
 export type TMultipartStorage = TConstValue<typeof MultipartStorages>;
 
-interface IParseMultipartOptions<C extends { req: any } = { req: any }> {
+/** The part of a request context a multipart body is read from: its `formData()`. A Hono context satisfies it. */
+interface IMultipartContext {
+  req: { formData: () => Promise<FormData> };
+}
+
+interface IParseMultipartOptions<C extends IMultipartContext = IMultipartContext> {
   storage?: TMultipartStorage;
   uploadDir?: string;
   /** The most file parts one request may carry; more is refused (413) before anything is spooled. Unset: no limit. */
@@ -87,7 +92,7 @@ export class RequestUtility {
     return RequestUtility.uploadTokens;
   }
 
-  static async parseMultipartBody<C extends { req: any } = { req: any }>(
+  static async parseMultipartBody<C extends IMultipartContext = IMultipartContext>(
     opts: IParseMultipartOptions<C>,
   ): Promise<IParsedMultipartBody> {
     const { storage = MultipartStorages.MEMORY, uploadDir = './uploads', context, maxFiles } = opts;

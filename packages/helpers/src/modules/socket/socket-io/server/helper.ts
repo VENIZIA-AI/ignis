@@ -17,6 +17,7 @@ import {
   SocketIOConstants,
   type TSocketIOAuthenticateFn,
   type TSocketIOClientConnectedFn,
+  type TSocketIOBunEngine,
   type TSocketIOServerOptions,
   type TSocketIOValidateRoomFn,
 } from '../common';
@@ -27,7 +28,7 @@ const CLIENT_PING_INTERVAL = 30_000;
 /** Socket.IO server over a Redis adapter. Clients must authenticate through `authenticateFn` within `authenticateTimeout` and are pinged every `pingInterval`. */
 export class SocketIOServerHelper extends BaseHelper {
   private runtime: TRuntimeModule;
-  private bunEngine?: any;
+  private bunEngine?: TSocketIOBunEngine;
   private serverOptions: Partial<ServerOptions> = {};
 
   private io: IOServer;
@@ -447,7 +448,7 @@ export class SocketIOServerHelper extends BaseHelper {
     const { socket, clientId: id } = opts;
 
     const joinLogger = this.logger.for(SocketIOConstants.EVENT_JOIN);
-    socket.on(SocketIOConstants.EVENT_JOIN, (payload: any) => {
+    socket.on(SocketIOConstants.EVENT_JOIN, (payload: unknown) => {
       const rooms = SocketIOServerHelper.toRoomList(payload);
 
       if (!rooms.length) {
@@ -502,7 +503,7 @@ export class SocketIOServerHelper extends BaseHelper {
     });
 
     const leaveLogger = this.logger.for(SocketIOConstants.EVENT_LEAVE);
-    socket.on(SocketIOConstants.EVENT_LEAVE, (payload: any) => {
+    socket.on(SocketIOConstants.EVENT_LEAVE, (payload: unknown) => {
       const rooms = SocketIOServerHelper.toRoomList(payload);
 
       if (!rooms.length) {
@@ -587,7 +588,7 @@ export class SocketIOServerHelper extends BaseHelper {
 
   send(opts: {
     destination?: string;
-    payload: { topic: string; data: any };
+    payload: { topic: string; data: unknown };
     doLog?: boolean;
     callback?: () => void;
   }) {

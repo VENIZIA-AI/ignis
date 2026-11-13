@@ -31,7 +31,7 @@ export interface ITcpSocketClient<SocketClientType> {
     connectedAt: Date;
     authenticatedAt: Date | null;
     authenticateTimeout?: ReturnType<typeof setTimeout> | null;
-    [additionField: symbol | string]: any;
+    [additionField: symbol | string]: unknown;
   };
 }
 
@@ -50,7 +50,7 @@ export interface ITcpSocketServerOptions<
 
   extraEvents?: Record<
     string,
-    (opts: { id: string; socket: SocketClientType; args: any }) => ValueOrPromise<void>
+    (opts: { id: string; socket: SocketClientType; args: unknown }) => ValueOrPromise<void>
   >;
 
   createServerFn: (
@@ -81,7 +81,7 @@ export class BaseNetworkTcpServer<
 
   protected extraEvents: Record<
     string,
-    (opts: { id: string; socket: SocketClientType; args: any }) => ValueOrPromise<void>
+    (opts: { id: string; socket: SocketClientType; args: unknown }) => ValueOrPromise<void>
   >;
 
   protected createServerFn: (

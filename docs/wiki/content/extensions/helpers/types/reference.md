@@ -354,7 +354,7 @@ type TObjectFromFieldMappings<
   T extends readonly {
     name: string;
     type: string;
-    [extra: string | symbol]: any;
+    [extra: string | symbol]: unknown;
   }[],
 > = {
   [K in T[number]['name']]: /* mapped to the declared type */

@@ -357,6 +357,30 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
 });
 ```
 
+## Read the claims your app adds
+
+`IAuthUser` and `IJWTTokenPayload` carry an open `[extra]` index typed `unknown`, so an extra claim reads as `unknown` until you declare it. Declare it once, on the interface where the framework exports it, and every read is typed with no cast and no parse:
+
+```typescript
+// src/common/auth-claims.ts: any file of your program
+declare module '@venizia/ignis' {
+  interface IAuthUser {
+    tenantId: string;
+  }
+}
+
+export {};
+```
+
+```typescript
+import { Authentication } from '@venizia/ignis';
+
+const user = context.get(Authentication.CURRENT_USER);
+const tenantId: string = user.tenantId; // typed by the declaration above
+```
+
+A declared member must be assignable to `unknown`, the type of the open index: every type is. `IJWTTokenPayload` extends `IAuthUser`, so the same declaration types the claims of a token payload. The file only has to be part of the TypeScript program (under your `tsconfig` `include`); nothing imports it.
+
 ## Hono context extension
 
 The module augments Hono's `ContextVariableMap` (a plain interface, not generic) so `c.get()` is type-safe:

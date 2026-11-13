@@ -13,13 +13,13 @@ export interface IMailTemplateEngine {
   render(opts: {
     templateData?: string;
     templateName?: string;
-    data: Record<string, any>;
+    data: Record<string, unknown>;
     requireValidate?: boolean;
     /** @default MailTemplateFormats.HTML */
     format?: TMailTemplateFormat;
   }): string;
   registerTemplate(opts: { name: string; content: string }): void;
-  validateTemplateData(opts: { template: string; data: Record<string, any> }): {
+  validateTemplateData(opts: { template: string; data: Record<string, unknown> }): {
     isValid: boolean;
     missingKeys: string[];
     allKeys: string[];

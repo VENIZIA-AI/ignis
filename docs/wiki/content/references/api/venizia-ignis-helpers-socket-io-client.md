@@ -18,7 +18,7 @@ Connection options for the Socket.IO client helper: the `socket.io-client` optio
 ```ts
 export interface IOptions extends SocketOptions {
     path: string;
-    extraHeaders: Record<string | symbol | number, any>;
+    extraHeaders: Record<string, string>;
 }
 ```
 

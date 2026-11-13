@@ -703,7 +703,7 @@ interface IMiddlewareConfigs {
   csrf?: ICSRFOptions;
   bodyLimit?: IBodyLimitOptions;
   ipRestriction?: IBaseMiddlewareOptions & IIPRestrictionRules;
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 ```
 
@@ -713,7 +713,7 @@ Each option interface extends `IBaseMiddlewareOptions`:
 interface IBaseMiddlewareOptions {
   enable?: boolean; // Default true: only false switches the middleware off
   path?: string;
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 ```
 

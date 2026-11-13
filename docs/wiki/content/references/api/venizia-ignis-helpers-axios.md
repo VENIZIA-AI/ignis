@@ -35,7 +35,7 @@ export declare class AxiosFetcher extends AbstractNetworkFetchableHelper<'axios'
          */
         rejectUnauthorized?: boolean;
     });
-    send<T = any>(opts: IAxiosRequestOptions, logger?: ILogger): Promise<AxiosResponse<T, any, {}, any>>;
+    send<T = unknown>(opts: IAxiosRequestOptions, logger?: ILogger): Promise<AxiosResponse<T, any, {}, any>>;
 }
 ```
 

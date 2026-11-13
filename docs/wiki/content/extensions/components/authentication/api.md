@@ -312,7 +312,7 @@ type TRouteAuthenticateConfig =
 ```typescript
 interface IAuthUser {
   userId: IdType;
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 
 type TJWTTokenRole = { id: IdType; identifier: string; priority: number };
@@ -324,7 +324,7 @@ interface IJWTTokenPayload extends JWTPayload, IAuthUser {
   provider?: string;
   email?: string;
   name?: string;
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 ```
 
@@ -493,8 +493,8 @@ AbstractBearerTokenService<E>          (extends BaseService)
 | `verify` | `(opts: { type, token }) => Promise<IJWTTokenPayload>` | Calls `doVerify()`, wraps errors as sanitized `401` |
 | `generate` | `(opts: { payload, getTokenExpiresFn? }) => Promise<string>` | Calls `getSigner()` then signs with `getSigningKey()` |
 | `serializeField` / `deserializeField` | `(opts) => string` / `any` | Per-field codec lookup, `JSON.stringify`/`JSON.parse` fallback |
-| `encryptPayload` | `(payload) => Promise<Record<string, any>>` | AES-encrypts non-standard fields (keys and values); `null` is kept and `undefined` is skipped. No-op if AES not configured. Async: callers `await` it |
-| `decryptPayload` | `(opts: { result }) => Promise<IJWTTokenPayload>` | Reverses `encryptPayload`. No-op if AES not configured. Async: callers `await` it |
+| `encryptPayload` | `(payload) => Promise<Record<string, unknown>>` | AES-encrypts non-standard fields (keys and values); `null` is kept and `undefined` is skipped. No-op if AES not configured. Async: callers `await` it |
+| `decryptPayload` | `(opts: { result }) => Promise<IJWTTokenPayload>` | Reverses `encryptPayload`; `401` for a claim that is not a string or a payload with no `userId`. No-op without AES |
 
 Static: `JWT_COMMON_FIELDS: Set<'iss'|'sub'|'aud'|'jti'|'nbf'|'exp'|'iat'>` - never encrypted or touched by field codecs.
 

@@ -11,7 +11,7 @@ export interface IBaseMiddlewareOptions {
    */
   enable?: boolean;
   path?: string;
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 
 /** Options of the compress middleware. Typed only: the framework does not install it. */
@@ -82,5 +82,5 @@ export interface IMiddlewareConfigs {
   bodyLimit?: IBodyLimitOptions;
   /** Typed only: the framework installs no ip restriction. Wire it in `setupMiddlewares()`. */
   ipRestriction?: IBaseMiddlewareOptions & IIPRestrictionRules;
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }

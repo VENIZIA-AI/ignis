@@ -86,7 +86,7 @@ export interface IApplicationConfigs {
    * @default 10_000
    */
   dataSourceCloseTimeoutMs?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /** Identity of an application, returned by `getAppInfo()`. Extra keys are allowed. */
@@ -95,7 +95,7 @@ export interface IApplicationInfo {
   version: string;
   description: string;
   author?: { name: string; email: string; url?: string };
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 
 /** Exactly what EVERY host implements. `getServerHost`/`getServerPort`/`getServerAddress`/`start`/`stop` are not here on purpose - a browser Worker can implement none of them; they live on `@venizia/ignis`'s `IServerApplication`. */

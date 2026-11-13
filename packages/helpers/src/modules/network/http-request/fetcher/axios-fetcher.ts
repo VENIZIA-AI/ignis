@@ -58,7 +58,7 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
     this.worker = axios.create({ ...defaultConfigs });
   }
 
-  override send<T = any>(opts: IAxiosRequestOptions, logger?: ILogger) {
+  override send<T = unknown>(opts: IAxiosRequestOptions, logger?: ILogger) {
     const { url, method = HTTP.Methods.GET, params = {}, body: data, headers, ...rest } = opts;
     const props: AxiosRequestConfig = {
       url,

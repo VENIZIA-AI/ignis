@@ -166,13 +166,13 @@ interface IFetchable<
   RQ extends IRequestOptions,
   RS extends TFetcherResponse<V>,
 > {
-  send(opts: RQ, logger?: any): Promise<RS>;
-  get(opts: RQ, logger?: any): Promise<RS>;
-  post(opts: RQ, logger?: any): Promise<RS>;
-  put(opts: RQ, logger?: any): Promise<RS>;
-  patch(opts: RQ, logger?: any): Promise<RS>;
-  delete(opts: RQ, logger?: any): Promise<RS>;
-  query(opts: RQ, logger?: any): Promise<RS>;
+  send(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
+  get(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
+  post(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
+  put(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
+  patch(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
+  delete(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
+  query(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
 
   getWorker(): TFetcherWorker<V>;
 }
@@ -188,7 +188,7 @@ interface IRequestOptions {
   method?: THttpMethod;
   params?: AnyObject;
   timeout?: number;
-  [extra: symbol | string]: any;
+  [extra: symbol | string]: unknown;
 }
 ```
 
@@ -237,18 +237,18 @@ constructor(opts: { name: string; variant: V })
 Subclasses must implement the actual request dispatch.
 
 ```typescript
-abstract send(opts: RQ, logger?: any): Promise<RS>;
+abstract send(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
 ```
 
 ##### `get(opts, logger?)` / `post(opts, logger?)` / `put(opts, logger?)` / `patch(opts, logger?)` / `delete(opts, logger?)` / `query(opts, logger?)`
 
 ```typescript
-get(opts: RQ, logger?: any): Promise<RS>
-post(opts: RQ, logger?: any): Promise<RS>
-put(opts: RQ, logger?: any): Promise<RS>
-patch(opts: RQ, logger?: any): Promise<RS>
-delete(opts: RQ, logger?: any): Promise<RS>
-query(opts: RQ, logger?: any): Promise<RS>
+get(opts: RQ, logger?: TFetcherLogger): Promise<RS>
+post(opts: RQ, logger?: TFetcherLogger): Promise<RS>
+put(opts: RQ, logger?: TFetcherLogger): Promise<RS>
+patch(opts: RQ, logger?: TFetcherLogger): Promise<RS>
+delete(opts: RQ, logger?: TFetcherLogger): Promise<RS>
+query(opts: RQ, logger?: TFetcherLogger): Promise<RS>
 ```
 
 Each calls `send()` with `method` set to the matching `HTTP.Methods` token (`get` → `HTTP.Methods.GET`, ... `query` → `HTTP.Methods.QUERY`). Any other field on `opts` (`body`, `headers`, `params`, ...) passes through untouched.
@@ -289,7 +289,7 @@ Axios-based fetcher implementation. Creates an `axios` instance with the provide
 constructor(opts: {
   name: string;
   defaultConfigs: AxiosRequestConfig;
-  logger?: any;
+  logger?: TFetcherLogger;
 })
 ```
 
@@ -317,7 +317,7 @@ interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOptions {
 ##### `send(opts, logger?)`
 
 ```typescript
-override send<T = any>(opts: IAxiosRequestOptions, logger?: any): Promise<AxiosResponse<T>>
+override send<T = unknown>(opts: IAxiosRequestOptions, logger?: ILogger): Promise<AxiosResponse<T>>
 ```
 
 Dispatches the request via the internal `axios` instance.
@@ -637,7 +637,7 @@ interface ITcpSocketClient<SocketClientType> {
     connectedAt: Date;
     authenticatedAt: Date | null;
     authenticateTimeout?: ReturnType<typeof setTimeout> | null;
-    [additionField: symbol | string]: any;
+    [additionField: symbol | string]: unknown;
   };
 }
 ```
@@ -804,7 +804,7 @@ Default handlers used when the matching `onConnected`/`onData`/`onClosed`/`onErr
 handleConnected(): void                                                   // Logs, resets retry.currentReconnect to 0
 handleData(_opts: { identifier: string; message: string | Buffer }): void // No-op
 handleClosed(): void                                                      // Logs the closure
-handleError(error: any): void                                             // Logs; schedules a reconnect if eligible
+handleError(error: unknown): void                                             // Logs; schedules a reconnect if eligible
 ```
 
 **Reconnect gate on `handleError`:**
@@ -1010,7 +1010,7 @@ interface ITcpSocketServerOptions<
 
   extraEvents?: Record<
     string,
-    (opts: { id: string; socket: SocketClientType; args: any }) => ValueOrPromise<void>
+    (opts: { id: string; socket: SocketClientType; args: unknown }) => ValueOrPromise<void>
   >;
 
   createServerFn: (
@@ -1049,7 +1049,7 @@ interface INetworkTcpClientProps<
   onConnected?: (opts: { client: SocketClientType }) => ValueOrPromise<void>;
   onData?: (opts: { identifier: string; message: string | Buffer }) => ValueOrPromise<void>;
   onClosed?: (opts: { client: SocketClientType }) => void;
-  onError?: (error: any) => void;
+  onError?: (error: unknown) => void;
 }
 ```
 

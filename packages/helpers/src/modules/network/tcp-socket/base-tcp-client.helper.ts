@@ -43,7 +43,7 @@ export interface INetworkTcpClientProps<
   onConnected?: (opts: { client: SocketClientType }) => ValueOrPromise<void>;
   onData?: (opts: { identifier: string; message: string | Buffer }) => ValueOrPromise<void>;
   onClosed?: (opts: { client: SocketClientType }) => void;
-  onError?: (error: any) => void;
+  onError?: (error: unknown) => void;
 }
 
 /** TCP or TLS client that opens its socket through `createClientFn`, reports connect, data, close and error to the `on*` callbacks, and reconnects when enabled. */
@@ -60,7 +60,7 @@ export class BaseNetworkTcpClient<
     currentReconnect: 0,
   };
 
-  protected reconnectTimeout: any;
+  protected reconnectTimeout?: ReturnType<typeof setTimeout> | null;
   protected encoding?: BufferEncoding;
 
   protected createClientFn: (
@@ -71,7 +71,7 @@ export class BaseNetworkTcpClient<
   protected onConnected: (opts: { client: SocketClientType }) => void;
   protected onData: (opts: { identifier: string; message: string | Buffer }) => void;
   protected onClosed?: (opts: { client: SocketClientType }) => void;
-  protected onError?: (error: any) => void;
+  protected onError?: (error: unknown) => void;
 
   constructor(opts: INetworkTcpClientProps<SocketClientOptions, SocketClientType>) {
     super({
@@ -127,7 +127,7 @@ export class BaseNetworkTcpClient<
       );
   }
 
-  handleError(error: any) {
+  handleError(error: unknown) {
     this.logger
       .for(this.handleError.name)
       .error(
@@ -242,7 +242,7 @@ export class BaseNetworkTcpClient<
     this.client?.destroy();
     this.client = null;
 
-    clearTimeout(this.reconnectTimeout);
+    clearTimeout(this.reconnectTimeout ?? undefined);
     this.reconnectTimeout = null;
     this.logger
       .for(this.disconnect.name)

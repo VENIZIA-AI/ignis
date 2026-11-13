@@ -77,7 +77,7 @@ export declare abstract class AbstractBearerTokenService<E extends Env = Env> ex
     /** A `null` is written as `null` whatever the field's codec is: a codec converts a value, and `null` is none. */
     protected serializeField(opts: {
         key: string;
-        value: any;
+        value: unknown;
     }): string;
     /**
      * With `applicationSecret` set, AES-encrypts the key and the value of every claim outside `JWT_COMMON_FIELDS`;
@@ -85,7 +85,7 @@ export declare abstract class AbstractBearerTokenService<E extends Env = Env> ex
      * so the token decodes to the same payload with encryption on or off and `null` stays distinct from absent. An
      * `undefined` claim is skipped, as JSON drops it.
      */
-    encryptPayload(payload: IJWTTokenPayload): Promise<Record<string, any>>;
+    encryptPayload(payload: IJWTTokenPayload): Promise<Record<string, unknown>>;
     /** The text `null` reads as `null` before any codec sees it, the other half of {@link serializeField}. */
     protected deserializeField(opts: {
         key: string;
@@ -110,6 +110,8 @@ export declare abstract class AbstractBearerTokenService<E extends Env = Env> ex
     decryptPayload(opts: {
         result: JWTVerifyResult<IJWTTokenPayload>;
     }): Promise<IJWTTokenPayload>;
+    /** A decrypted claim set is a payload only if it names its user. */
+    private static isTokenPayload;
     protected abstract doVerify(token: string): Promise<IJWTTokenPayload>;
     abstract getSigner(opts: {
         payload: IJWTTokenPayload;
@@ -1345,8 +1347,8 @@ export interface IApiReferenceOptions {
             description?: string;
         }>;
     };
-    uiConfig?: Record<string, any>;
-    securitySchemes?: Record<string, Record<string, any>>;
+    uiConfig?: Record<string, unknown>;
+    securitySchemes?: Record<string, Record<string, unknown>>;
 }
 ```
 
@@ -1887,7 +1889,7 @@ Input of `IUIProvider.render`. Fields beyond `title` and `url` are passed throug
 export interface IUIConfig {
     title: string;
     url: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 ```
 

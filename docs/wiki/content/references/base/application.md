@@ -408,7 +408,7 @@ interface IApplicationConfigs {
   debug?: { shouldShowRoutes?: boolean }; // Show registered routes on startup
   transports?: TControllerTransport[];    // Controller transports: 'rest' | 'grpc' (default: ['rest'])
   dataSourceCloseTimeoutMs?: number;      // How long stop() waits per datasource close() (default 10_000; 0 waits without limit)
-  [key: string]: any;                     // Extensible
+  [key: string]: unknown;                     // Extensible
 }
 ```
 
@@ -469,7 +469,7 @@ interface IApplicationInfo {
   version: string;
   description: string;
   author?: { name: string; email: string; url?: string };
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 ```
 
@@ -538,13 +538,13 @@ interface IMiddlewareConfigs {
   csrf?: ICSRFOptions;
   bodyLimit?: IBodyLimitOptions;
   ipRestriction?: IBaseMiddlewareOptions & IIPRestrictionRules;
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 
 interface IBaseMiddlewareOptions {
   enable: boolean;
   path?: string;
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 ```
 

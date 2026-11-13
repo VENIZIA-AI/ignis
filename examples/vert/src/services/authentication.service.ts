@@ -148,7 +148,7 @@ export class AuthenticationService
   ): Promise<TChangePasswordResponseSchema> {
     const currentUser = context.get(Authentication.CURRENT_USER);
     const isAlwaysAllowed = currentUser?.roles?.some(
-      (role: { identifier: string }) => role.identifier === ALWAYS_ALLOWED_ROLE,
+      (role) => (typeof role === 'string' ? role : role.identifier) === ALWAYS_ALLOWED_ROLE,
     );
 
     if (!isAlwaysAllowed && currentUser?.userId !== opts.userId) {

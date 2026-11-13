@@ -662,7 +662,7 @@ export declare class BaseNetworkTcpClient<SocketClientOptions extends PlainConne
         maxReconnect: number;
         currentReconnect: number;
     };
-    protected reconnectTimeout: any;
+    protected reconnectTimeout?: ReturnType<typeof setTimeout> | null;
     protected encoding?: BufferEncoding;
     protected createClientFn: (options: SocketClientOptions, connectionListener?: () => void) => SocketClientType;
     protected onConnected: (opts: {
@@ -675,7 +675,7 @@ export declare class BaseNetworkTcpClient<SocketClientOptions extends PlainConne
     protected onClosed?: (opts: {
         client: SocketClientType;
     }) => void;
-    protected onError?: (error: any) => void;
+    protected onError?: (error: unknown) => void;
     constructor(opts: INetworkTcpClientProps<SocketClientOptions, SocketClientType>);
     getClient(): SocketClientType | null | undefined;
     /** Redacts before logging - a TLS client's options ARE its private key (`key`/`cert`/`passphrase`). */
@@ -686,7 +686,7 @@ export declare class BaseNetworkTcpClient<SocketClientOptions extends PlainConne
         message: string | Buffer;
     }): void;
     handleClosed(): void;
-    handleError(error: any): void;
+    handleError(error: unknown): void;
     connect(opts: {
         resetReconnectCounter: boolean;
     }): void;
@@ -720,7 +720,7 @@ export declare class BaseNetworkTcpServer<SocketServerOptions extends ServerOpts
     protected extraEvents: Record<string, (opts: {
         id: string;
         socket: SocketClientType;
-        args: any;
+        args: unknown;
     }) => ValueOrPromise<void>>;
     protected createServerFn: (options: Partial<SocketServerOptions>, connectionListener: (socket: SocketClientType) => void) => SocketServerType;
     protected onServerReady?: (opts: {
@@ -2041,7 +2041,7 @@ export interface INetworkTcpClientProps<SocketClientOptions extends PlainConnect
     onClosed?: (opts: {
         client: SocketClientType;
     }) => void;
-    onError?: (error: any) => void;
+    onError?: (error: unknown) => void;
 }
 ```
 
@@ -2758,7 +2758,7 @@ export interface IRequestedRemark {
     id: string;
     url: string;
     method: string;
-    [extra: string | symbol]: any;
+    [extra: string | symbol]: unknown;
 }
 ```
 
@@ -3079,7 +3079,7 @@ export interface ITcpSocketClient<SocketClientType> {
         connectedAt: Date;
         authenticatedAt: Date | null;
         authenticateTimeout?: ReturnType<typeof setTimeout> | null;
-        [additionField: symbol | string]: any;
+        [additionField: symbol | string]: unknown;
     };
 }
 ```
@@ -3105,7 +3105,7 @@ export interface ITcpSocketServerOptions<SocketServerOptions extends ServerOpts 
     extraEvents?: Record<string, (opts: {
         id: string;
         socket: SocketClientType;
-        args: any;
+        args: unknown;
     }) => ValueOrPromise<void>>;
     createServerFn: (options: Partial<SocketServerOptions>, connectionListener: (socket: SocketClientType) => void) => SocketServerType;
     onServerReady?: (opts: {
@@ -4117,11 +4117,7 @@ export declare class RequestUtility {
     private static uploadTokens?;
     /** Uniqueness for a spooled filename, not a secret; the helper's 16-byte floor is the shortest it makes. */
     private static getUploadTokens;
-    static parseMultipartBody<C extends {
-        req: any;
-    } = {
-        req: any;
-    }>(opts: IParseMultipartOptions<C>): Promise<IParsedMultipartBody>;
+    static parseMultipartBody<C extends IMultipartContext = IMultipartContext>(opts: IParseMultipartOptions<C>): Promise<IParsedMultipartBody>;
     private static removeSpooled;
     private static readParts;
     /** Sanitizes a filename by removing path components and dangerous characters. The result is printable ASCII. */
@@ -4153,11 +4149,14 @@ export declare class RequestUtility {
     };
 }
 
-interface IParseMultipartOptions<C extends {
-    req: any;
-} = {
-    req: any;
-}> {
+/** The part of a request context a multipart body is read from: its `formData()`. A Hono context satisfies it. */
+interface IMultipartContext {
+    req: {
+        formData: () => Promise<FormData>;
+    };
+}
+
+interface IParseMultipartOptions<C extends IMultipartContext = IMultipartContext> {
     storage?: TMultipartStorage;
     uploadDir?: string;
     /** The most file parts one request may carry; more is refused (413) before anything is spooled. Unset: no limit. */

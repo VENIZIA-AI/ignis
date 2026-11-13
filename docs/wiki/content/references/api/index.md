@@ -53,7 +53,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-helpers/kafka`](/references/api/venizia-ignis-helpers-kafka) | 40 | 40 |
 | [`@venizia/ignis-helpers/mqtt`](/references/api/venizia-ignis-helpers-mqtt) | 2 | 2 |
 | [`@venizia/ignis-helpers/pino`](/references/api/venizia-ignis-helpers-pino) | 10 | 10 |
-| [`@venizia/ignis-helpers/socket-io`](/references/api/venizia-ignis-helpers-socket-io) | 11 | 11 |
+| [`@venizia/ignis-helpers/socket-io`](/references/api/venizia-ignis-helpers-socket-io) | 12 | 12 |
 | [`@venizia/ignis-helpers/socket-io/client`](/references/api/venizia-ignis-helpers-socket-io-client) | 6 | 6 |
 | [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal) | 35 | 35 |
 | [`@venizia/ignis-helpers/uuid`](/references/api/venizia-ignis-helpers-uuid) | 0 | 0 |

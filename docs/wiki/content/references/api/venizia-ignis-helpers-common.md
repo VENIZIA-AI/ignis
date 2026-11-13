@@ -1708,28 +1708,28 @@ The object a list of field mappings yields: one key per `name`, typed from its `
 export type TObjectFromFieldMappings<T extends readonly {
     name: string;
     type: string;
-    [extra: string | symbol]: any;
+    [extra: string | symbol]: unknown;
 }[]> = {
     [K in T[number]['name']]: T extends {
         name: K;
         type: 'string';
-        [extra: string | symbol]: any;
+        [extra: string | symbol]: unknown;
     } ? string : T extends {
         name: K;
         type: 'number';
-        [extra: string | symbol]: any;
+        [extra: string | symbol]: unknown;
     } ? number : T extends {
         name: K;
         type: 'boolean';
-        [extra: string | symbol]: any;
+        [extra: string | symbol]: unknown;
     } ? boolean : T extends {
         name: K;
         type: 'strings';
-        [extra: string | symbol]: any;
+        [extra: string | symbol]: unknown;
     } ? string[] : T extends {
         name: K;
         type: 'numbers';
-        [extra: string | symbol]: any;
+        [extra: string | symbol]: unknown;
     } ? number[] : never;
 };
 ```

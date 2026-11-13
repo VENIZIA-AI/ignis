@@ -224,7 +224,7 @@ export interface IJWTTokenPayload extends JWTPayload, IAuthUser {
   email?: string;
   name?: string;
 
-  [extra: string | symbol]: any;
+  [extra: string | symbol]: unknown;
 }
 
 /** Converts one payload field, found under `key`, to a string and back around the AES envelope. */

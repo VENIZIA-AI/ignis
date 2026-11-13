@@ -9,7 +9,7 @@ export interface IMailAttachment {
   content?: string | Buffer | Uint8Array | Readable | ReadableStream<Uint8Array>;
   encoding?: BufferEncoding;
   cid?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /** A mail to send. `to` needs at least one recipient, `subject` is required, and at least one of `text` or `html` must be set; `from` falls back to the options' `from` (with `fromName`). */
@@ -30,14 +30,14 @@ export interface IMailMessage {
   attachments?: IMailAttachment[];
   headers?: Record<string, string>;
   requireValidate?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /** Outcome of one send: `success` plus the provider `messageId`, or an `error` string when the send failed. */
 export interface IMailSendResult {
   success: boolean;
   messageId?: string;
-  response?: any;
+  response?: unknown;
   error?: string;
 }
 
@@ -59,7 +59,7 @@ export interface IMailService {
   ): Promise<IMailSendResult[]>;
   sendTemplate(opts: {
     templateName: string;
-    data: Record<string, any>;
+    data: Record<string, unknown>;
     recipients: string | string[];
     options?: Partial<IMailMessage>;
   }): Promise<IMailSendResult>;
