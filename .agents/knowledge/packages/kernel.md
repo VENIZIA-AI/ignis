@@ -248,7 +248,7 @@ metadata type is a union discriminated on it (`TRepositoryMetadata`):
   binding and the datasource injection are registered.
 - `REMOTE` refuses `model`. Only the datasource injection is registered, so no model binding
   exists and the datasource discovers no schema through it. `HttpRepository` subclasses use it.
-- `validateRepositoryMetadata` (`base/metadata/persistents.ts`) mirrors the union for JavaScript
+- `validateRepositoryMetadata` (`base/metadata/persistents/repository/validate.ts`) mirrors the union for JavaScript
   callers, unknown `type` included. A bare `@repository()` on a subclass inherits the parent's `type`.
 - Keep the two values only in `RepositoryTypes`. Tests and messages reference the constant, never
   the literal.
@@ -307,7 +307,7 @@ Inversion's `MetadataRegistry.setInjectMetadata` is copy-on-write: the first wri
 the list it inherits. It used to write into the parent's list found through the prototype chain, so
 a subclass's `@inject` rewrote its parent's list and every sibling subclass inherited the change.
 
-`@repository` does not rely on that. `registerDataSourceInjection` (`base/metadata/persistents.ts`)
+`@repository` does not rely on that. `registerDataSourceInjection` (`base/metadata/persistents/repository/injection.ts`)
 copies the inherited list itself before writing parameter 0, because the kernel's inversion range
 still admits 0.2.0-23. Without the copy, a subclass naming its own `dataSource` moves its parent
 repository onto that datasource. The CRUD and search factories do rely on inversion's copy, so

@@ -12,7 +12,7 @@ Every option, binding key, class, and method the Authorization component exposes
 
 - [`packages/core-server/src/components/auth/authorize/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authorize) - component, providers, enforcers, adapters, models, middleware
 - [`packages/kernel/src/base/auth/base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/auth/base/abstract-auth-registry.ts) - `AbstractAuthRegistry` (shared with Authentication)
-- [`packages/kernel/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts) - `@model` populating `AUTHORIZATION_SUBJECT`
+- [`packages/kernel/src/base/metadata/persistents/model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents/model.ts) - `@model` populating `AUTHORIZATION_SUBJECT`
 - [`packages/kernel/src/helpers/inversion/mixins/model.mixin.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/helpers/inversion/mixins/model.mixin.ts) - `MetadataRegistry` authorize-settings queries
 
 ## Find what you need
@@ -1445,7 +1445,7 @@ Source -> [`builders/grant.builder.ts`](https://github.com/VENIZIA-AI/ignis/blob
 
 `@model({ settings: { authorize: { principal } } })` (see [Persistent Models](/guides/core-concepts/persistent/models#authorization-settings)) drives two things:
 
-**1. `AUTHORIZATION_SUBJECT` static.** The `@model` decorator (`base/metadata/persistents.ts`) copies `settings.authorize.principal` onto the class as `AUTHORIZATION_SUBJECT`, unless the class already declares its own:
+**1. `AUTHORIZATION_SUBJECT` static.** The `@model` decorator (`base/metadata/persistents/model.ts`) copies `settings.authorize.principal` onto the class as `AUTHORIZATION_SUBJECT`, unless the class already declares its own:
 
 ```typescript
 const principal = metadata.settings?.authorize?.principal;
@@ -1477,7 +1477,7 @@ getAuthorizeModelSettings(opts: { format: 'array' }): Array<{ name: string; auth
 getAuthorizeModelSettings(opts: { format: 'record' }): Record<string, { authorize: IModelAuthorizeSettings; entry: IModelRegistryEntry }>;
 ```
 
-Source -> [`base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts), [`helpers/inversion/mixins/model.mixin.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/helpers/inversion/mixins/model.mixin.ts)
+Source -> [`base/metadata/persistents/model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents/model.ts), [`helpers/inversion/mixins/model.mixin.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/helpers/inversion/mixins/model.mixin.ts)
 
 ## Controller integration
 

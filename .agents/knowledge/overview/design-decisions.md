@@ -42,7 +42,7 @@ and parameter index - never a silent `undefined`.
 
 `@repository({ model, dataSource })` auto-injects the DataSource at constructor param[0] unless an
 explicit `@inject` already claims that slot. Source: `registerDataSourceInjection` in
-`packages/kernel/src/base/metadata/persistents.ts` validates the first parameter type extends
+`packages/kernel/src/base/metadata/persistents/repository/validate.ts` validates the first parameter type extends
 `AbstractDataSource` and checks compatibility with the declared `dataSource` before wiring it.
 This removes the single most repetitive line in every repository class without hiding what gets
 injected - the type check still fails loudly on a mismatched constructor.
