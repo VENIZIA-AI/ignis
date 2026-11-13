@@ -1,21 +1,33 @@
 import { readFile } from 'node:fs/promises';
-import type { AnyObject, AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
 import { ModuleUtility } from '@/utilities/module.utility';
 import { AbstractSecretsHelper } from '../base';
 import { VaultAuthMethods, type IClock, type ITimerAdapter, type TTimerHandle } from '../common';
 import { vaultAuthSchema, type TVaultAuth } from './auth';
 
-// node-vault's wire contract uses snake_case (role_id, secret_id, client_token, lease_duration, ...); built/read via bracket-notation on AnyObject here so the snake_case stays confined to this boundary instead of leaking into our camelCase-only typing convention.
+// node-vault's wire contract uses snake_case (role_id, secret_id, client_token, lease_duration, ...); built/read via bracket-notation on a record here so the snake_case stays confined to this boundary instead of leaking into our camelCase-only typing convention.
+/** What Vault answers is the body node-vault passes on: nothing is assumed of it, each key is read and narrowed where it is used. */
 interface TVaultClient {
   token: string;
-  read(path: string): Promise<AnyType>;
-  write(path: string, data: AnyObject): Promise<AnyType>;
-  approleLogin(opts: AnyObject): Promise<AnyType>;
-  kubernetesLogin?(opts: AnyObject): Promise<AnyType>;
-  tokenRenewSelf(): Promise<AnyType>;
-  tokenLookupSelf(): Promise<AnyType>;
+  read(path: string): Promise<unknown>;
+  write(path: string, data: Record<string, unknown>): Promise<unknown>;
+  approleLogin(opts: Record<string, unknown>): Promise<unknown>;
+  kubernetesLogin?(opts: Record<string, unknown>): Promise<unknown>;
+  tokenRenewSelf(): Promise<unknown>;
+  tokenLookupSelf(): Promise<unknown>;
 }
+
+/** The object a Vault answer is, or an empty one: a body that is not an object reads as no keys. */
+const toRecord = (value: unknown): Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+    ? Object.fromEntries(Object.entries(value))
+    : {};
+};
+
+/** The nested object under `key` of a Vault answer, or an empty one. */
+const readRecord = (opts: { source: unknown; key: string }): Record<string, unknown> => {
+  return toRecord(toRecord(opts.source)[opts.key]);
+};
 
 /** Options for `HashiCorpVaultHelper`. `auth` is validated on construction; `client` replaces the `node-vault` client the helper would otherwise create. */
 export interface IHashiCorpVaultHelperOptions {
@@ -69,9 +81,12 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
     const logger = this.logger.for(this.configure.name);
 
     if (!this.client) {
-      const result = await ModuleUtility.load<AnyType>({ module: 'node-vault' });
-      const factory = result.default;
-      this.client = factory({ endpoint: this.endpoint, apiVersion: 'v1' }) as TVaultClient;
+      const result = await ModuleUtility.load<{
+        default: (opts: { endpoint: string; apiVersion: string }) => TVaultClient;
+      }>({
+        module: 'node-vault',
+      });
+      this.client = result.default({ endpoint: this.endpoint, apiVersion: 'v1' });
     }
 
     const { ttlSeconds, renewable } = await this.login();
@@ -92,6 +107,17 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
     await super.shutdown();
   }
 
+  /** The `client_token` of a login answer: a login that carries none is refused, where an undefined token would fail on the first read. */
+  private static readClientToken(opts: { auth: Record<string, unknown> }): string {
+    const token = opts.auth['client_token'];
+
+    if (typeof token !== 'string' || !token) {
+      throw getError({ message: '[HashiCorpVaultHelper.login] Vault answered no client_token' });
+    }
+
+    return token;
+  }
+
   private requireClient(): TVaultClient {
     if (!this.client) {
       throw getError({ message: '[HashiCorpVaultHelper] configure() must run before use' });
@@ -107,24 +133,26 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
     switch (this.auth.method) {
       case VaultAuthMethods.TOKEN: {
         client.token = this.auth.token;
-        const res = await client.tokenLookupSelf();
+        const answer = await client.tokenLookupSelf();
+        const data = readRecord({ source: answer, key: 'data' });
 
         return {
-          ttlSeconds: Number(res?.data?.['ttl'] ?? 0),
-          renewable: Boolean(res?.data?.['renewable']),
+          ttlSeconds: Number(data['ttl'] ?? 0),
+          renewable: Boolean(data['renewable']),
         };
       }
       case VaultAuthMethods.APP_ROLE: {
-        const payload: AnyObject = {};
+        const payload: Record<string, unknown> = {};
         payload['role_id'] = this.auth.roleId;
         payload['secret_id'] = this.auth.secretId;
         payload['mount_point'] = this.auth.mountPath ?? 'approle';
-        const res = await client.approleLogin(payload);
-        client.token = res.auth['client_token'];
+        const answer = await client.approleLogin(payload);
+        const auth = readRecord({ source: answer, key: 'auth' });
+        client.token = HashiCorpVaultHelper.readClientToken({ auth });
 
         return {
-          ttlSeconds: Number(res.auth['lease_duration'] ?? 0),
-          renewable: Boolean(res.auth['renewable']),
+          ttlSeconds: Number(auth['lease_duration'] ?? 0),
+          renewable: Boolean(auth['renewable']),
         };
       }
       case VaultAuthMethods.KUBERNETES: {
@@ -139,14 +167,15 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
           'utf8',
         );
         const jwt = result.trimEnd();
-        const payload: AnyObject = { role: this.auth.role, jwt };
+        const payload: Record<string, unknown> = { role: this.auth.role, jwt };
         payload['mount_point'] = this.auth.mountPath ?? 'kubernetes';
-        const res = await client.kubernetesLogin(payload);
-        client.token = res.auth['client_token'];
+        const answer = await client.kubernetesLogin(payload);
+        const auth = readRecord({ source: answer, key: 'auth' });
+        client.token = HashiCorpVaultHelper.readClientToken({ auth });
 
         return {
-          ttlSeconds: Number(res.auth['lease_duration'] ?? 0),
-          renewable: Boolean(res.auth['renewable']),
+          ttlSeconds: Number(auth['lease_duration'] ?? 0),
+          renewable: Boolean(auth['renewable']),
         };
       }
       default: {
@@ -195,9 +224,10 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
     const logger = this.logger.for(this.handleTokenRenewal.name);
 
     try {
-      const res = await this.requireClient().tokenRenewSelf();
-      const ttlSeconds = Number(res?.auth?.['lease_duration'] ?? 0);
-      const renewable = Boolean(res?.auth?.['renewable']);
+      const answer = await this.requireClient().tokenRenewSelf();
+      const auth = readRecord({ source: answer, key: 'auth' });
+      const ttlSeconds = Number(auth['lease_duration'] ?? 0);
+      const renewable = Boolean(auth['renewable']);
 
       if (renewable && ttlSeconds > 0) {
         this.tokenRenewalRetryCount = 0;
@@ -226,24 +256,26 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
 
   protected async fetchRaw(opts: { path: string }) {
     const res = await this.requireClient().read(opts.path);
-    const nested = res?.['data']?.['data'];
-    const inner = nested && typeof nested === 'object' ? nested : res?.['data'];
+    const data = readRecord({ source: res, key: 'data' });
+    const nested = data['data'];
+    const inner = nested && typeof nested === 'object' ? toRecord(nested) : data;
     const value: Record<string, string> = {};
-    const innerEntries = Object.entries(inner ?? {});
+    const innerEntries = Object.entries(inner);
 
     for (const [key, raw] of innerEntries) {
       value[key] = typeof raw === 'string' ? raw : JSON.stringify(raw);
     }
 
-    const leaseId = res?.['lease_id'];
+    const lease = toRecord(res);
+    const leaseId = lease['lease_id'];
 
-    if (leaseId) {
+    if (typeof leaseId === 'string' && leaseId) {
       return {
         value,
         lease: {
           leaseId,
-          ttlSeconds: res['lease_duration'] ?? 0,
-          renewable: Boolean(res['renewable']),
+          ttlSeconds: Number(lease['lease_duration'] ?? 0),
+          renewable: Boolean(lease['renewable']),
         },
       };
     }
@@ -255,11 +287,11 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
     const logger = this.logger.for(this.renewRaw.name);
 
     try {
-      const payload: AnyObject = { increment: opts.ttlSeconds };
+      const payload: Record<string, unknown> = { increment: opts.ttlSeconds };
       payload['lease_id'] = opts.leaseId;
       const res = await this.requireClient().write('sys/leases/renew', payload);
 
-      return { ttlSeconds: res['lease_duration'] ?? opts.ttlSeconds };
+      return { ttlSeconds: Number(toRecord(res)['lease_duration'] ?? opts.ttlSeconds) };
     } catch (error) {
       logger.warn('Renew rejected | leaseId: %s | error: %s', opts.leaseId, error);
 
@@ -268,7 +300,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
   }
 
   protected async revokeRaw(opts: { leaseId: string }) {
-    const payload: AnyObject = {};
+    const payload: Record<string, unknown> = {};
     payload['lease_id'] = opts.leaseId;
     await this.requireClient().write('sys/leases/revoke', payload);
   }

@@ -100,11 +100,9 @@ An application opts in by overriding `registerSecrets()` on its `BaseApplication
 
 **File:** `packages/helpers/src/modules/secrets/common/types/registration.ts`
 
-<!-- docs-code: off -->
 ```typescript
-interface ISecretsRegistration {
-  provider: TSecretProvider;              // SecretProviders.*
-  config?: AnyObject;                     // provider-specific (endpoint, auth, ...)
+// What every registration carries
+interface ISecretsRegistrationBase {
   hydrate?: Array<{                       // static KV -> merged into applicationEnvironment at boot
     path: string;
     prefix?: string;                      // prepend to every merged key
@@ -117,8 +115,13 @@ interface ISecretsRegistration {
   renewBeforeRatio?: number;              // renew a lease at ttl * ratio (default 0.66)
   cacheTtlSeconds?: number;               // TTL for the get/getBundle cache (default 300)
 }
+
+// The provider selects the shape of `config`
+type ISecretsRegistration =
+  | ISystemEnvsSecretsRegistration // provider 'system-envs', no config
+  | IHashiCorpSecretsRegistration  // provider 'hashicorp-vault', config: the helper options (endpoint, auth, client?)
+  | IDotenvSecretsRegistration;    // provider 'dotenv-vault', config?: the helper options (path, dotenvKey, decode?)
 ```
-<!-- docs-code: on -->
 
 ### `registerSecrets()` default
 

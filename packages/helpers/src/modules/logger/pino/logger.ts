@@ -30,7 +30,7 @@ export class PinoLogger extends BaseLogger {
         ? LogFormatUtility.formatMessage({ message: opts.message, args: opts.args })
         : opts.message;
 
-    const backing = PinoBackingLogger.get() as AnyType;
+    const backing = PinoBackingLogger.get();
     backing[opts.level](this._formattedPrefix + line);
   }
 

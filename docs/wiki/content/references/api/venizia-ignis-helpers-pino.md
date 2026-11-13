@@ -90,7 +90,7 @@ export declare class PinoDestination {
     /** `pino.transport()` is SYNCHRONOUS - it returns a `ThreadStream` that BUFFERS writes until its worker thread loads, so no async gating is needed; `ModuleUtility.assertInstalled` runs first so a missing optional peer fails loudly here, not as an opaque worker-thread crash. */
     static build(opts: {
         plan: TDestinationPlan;
-    }): pino.DestinationStream | undefined;
+    }): ReturnType<typeof pino.transport> | undefined;
 }
 ```
 

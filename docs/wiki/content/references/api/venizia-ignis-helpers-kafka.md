@@ -39,7 +39,7 @@ export declare abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>>
     protected swapClient(newClient: TClient): void;
     protected resetHealthState(): void;
     protected closeClient(): Promise<void>;
-    /** Force-close through the callback overload: only Producer and Consumer expose `close(force, cb)`, and the `Base` type this class is generic over declares no such overload - hence the cast. */
+    /** Force-close through the callback overload: only Producer and Consumer expose `close(force, cb)`, and the `Base` type this class is generic over declares no such overload - hence the guard. */
     protected closeClientWithCallback(): Promise<void>;
     protected gracefulCloseClient(): Promise<void>;
 }

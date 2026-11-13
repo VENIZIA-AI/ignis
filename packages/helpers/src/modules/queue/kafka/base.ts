@@ -1,4 +1,3 @@
-import type { AnyType } from '@/common';
 import { getError } from '@/modules/error';
 import { BaseHelper } from '@/modules/base';
 import type { Base, BaseOptions, ConnectionPoolEventPayload } from '@platformatic/kafka';
@@ -10,6 +9,20 @@ import {
   type TKafkaHealthStatus,
 } from './common/constants';
 import type { TKafkaBrokerEventCallback } from './common/types';
+
+/** A client that closes through `close(force, callback)`, which only Producer and Consumer expose. */
+interface ICallbackCloseClient {
+  close(force: boolean, callback: (error?: Error | null) => void): void;
+}
+
+const hasCallbackClose = (client: unknown): client is ICallbackCloseClient => {
+  return (
+    typeof client === 'object' &&
+    client !== null &&
+    'close' in client &&
+    typeof client.close === 'function'
+  );
+};
 
 /** Options shared by the Kafka helpers. */
 export interface IKafkaBaseOptions<TClient extends Base<BaseOptions>> {
@@ -157,12 +170,20 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
     return this.client.close();
   }
 
-  /** Force-close through the callback overload: only Producer and Consumer expose `close(force, cb)`, and the `Base` type this class is generic over declares no such overload - hence the cast. */
+  /** Force-close through the callback overload: only Producer and Consumer expose `close(force, cb)`, and the `Base` type this class is generic over declares no such overload - hence the guard. */
   protected closeClientWithCallback(): Promise<void> {
-    const client = this.client as AnyType;
+    const client = this.client;
+
+    if (!hasCallbackClose(client)) {
+      return Promise.reject(
+        getError({ message: '[closeClientWithCallback] The client has no close(force, callback)' }),
+      );
+    }
+
+    const closable: ICallbackCloseClient = client;
 
     return new Promise<void>((resolve, reject) => {
-      client.close(true, (error?: Error | null) => {
+      closable.close(true, (error?: Error | null) => {
         if (error) {
           reject(error);
 

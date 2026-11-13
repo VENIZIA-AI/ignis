@@ -840,7 +840,7 @@ Request accepted by `NodeFetcher`: `RequestInit` plus `url`; `params` are writte
 export interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
     url: string;
     method?: THttpMethod;
-    params?: AnyObject;
+    params?: Record<string, unknown>;
 }
 ```
 
@@ -1093,7 +1093,7 @@ Options every fetcher accepts. `timeout` is in milliseconds; other keys pass thr
 export interface IRequestOptions {
     url: string;
     method?: THttpMethod;
-    params?: AnyObject;
+    params?: Record<string, unknown>;
     timeout?: number;
     [extra: symbol | string]: unknown;
 }
@@ -1843,7 +1843,7 @@ export declare class QueryStringUtility {
      * the trip. Without them the behavior is the one above.
      */
     static toQueryString(opts: {
-        params: AnyObject;
+        params: Record<string, unknown>;
     } & IQueryStringOptions): string;
 }
 ```
