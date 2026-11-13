@@ -74,6 +74,19 @@ migration:
     downgrade:
       steps:
         - "Pass classes of any instance type again; the older parameter and result were TClass<any>."
+  - id: class-results-are-tclass-unknown
+    symbols: [ResolverUtility.resolveInjectTarget, isDataSourceClass, MetadataRegistry.getDataSourceModelClasses, TDataSourceDriverClass, TBootProbeTarget, MetadataRegistry.resolveModelKey]
+    upgrade:
+      before: |
+        // a result typed TClass<any> was used as any class
+        const target: TClass<MyService> | undefined = ResolverUtility.resolveInjectTarget({ target: injected });
+      after: |
+        // the result is TClass<unknown>: narrow it to the class you expect
+        const resolved = ResolverUtility.resolveInjectTarget({ target: injected });
+        const target = resolved && resolved.prototype instanceof MyService ? resolved : undefined;
+    downgrade:
+      steps:
+        - "Use the result as a TClass of any instance type again; the older results were TClass<any>. The parameters (TDataSourceDriverClass, TBootProbeTarget, resolveModelKey) only widened and need no change."
   - id: class-guards-and-targets-widen
     symbols: [TInjectTarget, isClass, isClassProvider, MetadataRegistry.getMethodNames]
     upgrade:
@@ -103,9 +116,9 @@ migration:
         const result: string = await configurable.configure();
     downgrade:
       steps:
-        - "Use IConfigurable without type arguments and read its result without a narrow; the older defaults were any."
+        - "Use IConfigurable without type arguments again: Options defaulted to any (it is object now) and Result to any (it is unknown now)."
   - id: registry-values-unknown
-    symbols: [MetadataRegistry]
+    symbols: [MetadataRegistry.get, MetadataRegistry.define]
     upgrade:
       before: |
         const value = registry.get({ target, key }); // any
@@ -113,7 +126,7 @@ migration:
         const value = registry.get<typeof target, string>({ target, key });
     downgrade:
       steps:
-        - "Drop the type argument; the older Value default was any."
+        - "Drop the type argument; the older Value default was any, for get and for define."
   - id: measure-result-inferred
     symbols: [PerformanceUtility.executeWithMeasure, BaseRestController.measure]
     upgrade:

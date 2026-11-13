@@ -63,6 +63,8 @@ import type {
   TAbstractConstructor,
   TClass,
   TAbstractClass,
+  TMixinConstructor,
+  TAbstractMixinConstructor,
   TMixinTarget,
   TAbstractMixinTarget,
   TResolver,
@@ -187,6 +189,8 @@ type TAbstractMixinTarget<T> = TAbstractMixinConstructor<{ [P in keyof T]: T[P] 
 | `TAbstractConstructor<T>` | An `abstract new (...args) => T` constructor | Typing a parameter that accepts an abstract class reference |
 | `TClass<T>` | Same as `TConstructor<T>` | The most commonly used class type. Read statics through `typeof MyClass`, not through `TClass` |
 | `TAbstractClass<T>` | Same as `TAbstractConstructor<T>` | Same as `TClass`, for abstract classes |
+| `TMixinConstructor<T>` | `new (...args: any[]) => T`, the shape TypeScript requires of a mixin base | The base of `TMixinTarget`; use it for a mixin constructor parameter |
+| `TAbstractMixinConstructor<T>` | The `abstract new (...args: any[]) => T` form | Same, for an abstract base |
 | `TMixinTarget<T>` | `TMixinConstructor` over a mapped-identity copy of `T` | Types a mixin factory's `Base` parameter so the returned class keeps `T`'s shape |
 | `TAbstractMixinTarget<T>` | `TAbstractMixinConstructor` over a mapped-identity copy of `T` | Same as `TMixinTarget`, for mixins over an abstract base |
 

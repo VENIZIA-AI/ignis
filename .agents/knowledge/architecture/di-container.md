@@ -81,8 +81,8 @@ tagging by hand, and why the binding-key namespaces are load-bearing rather than
 ## Injection is two-phase
 
 `Container.instantiate(cls)` does constructor injection first, then property injection: read
-`@inject` metadata, resolve each entry into `args[meta.index]`, `new cls(...args)`; then read
-property metadata off the instance's constructor, resolve each and assign.
+`@inject` metadata, resolve each entry into `args[meta.index]`, `Reflect.construct(cls, args)` (`TClass` takes `never[]`, so `new` does not type-check); then read
+property metadata off the instance's constructor, resolve each and `Reflect.set` it (a failed write throws).
 
 `@inject` serves both, branching on whether it was handed a `parameterIndex` or a `propertyName`, and
 throwing if neither. Optional dependencies resolve to `undefined` instead of throwing when the key is

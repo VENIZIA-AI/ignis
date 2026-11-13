@@ -157,11 +157,11 @@ The second message continues with `Decorate it (@service, @repository, ...) or r
 - If the slot is empty (an undecorated parameter left a hole), throws `[ClassName] Constructor parameter N has no @inject | Every parameter of a container-instantiated class must be decorated - the container cannot supply an undecorated one`.
 - Otherwise resolves the key with `resolveBindingKey({ key: meta.key, target: meta.target, cls, at })`, calls `this.get({ key, isOptional: meta.isOptional ?? false })`, and places the result at `args[meta.index]`.
 
-The array is already index-keyed (`setInjectMetadata` writes to `injects[index]`) - there is no sort step. Once all arguments are resolved, `new cls(...args)` builds the instance.
+The array is already index-keyed (`setInjectMetadata` writes to `injects[index]`) - there is no sort step. Once all arguments are resolved, `Reflect.construct(cls, args)` builds the instance: `TClass` takes `never[]` arguments, so `new cls(...args)` does not type-check.
 
 **Phase 2 - property injection.** Reads `registry.getPropertiesMetadata({ target: instance })`. If there is none, returns the instance as-is.
 
-Otherwise, for each `[propertyKey, metadata]` entry, resolves the key with `resolveBindingKey({ key: metadata.bindingKey, target: metadata.target, cls, at })`, calls `this.get({ key, isOptional: metadata.isOptional ?? false })`, and assigns the result to `instance[propertyKey]`.
+Otherwise, for each `[propertyKey, metadata]` entry, resolves the key with `resolveBindingKey({ key: metadata.bindingKey, target: metadata.target, cls, at })`, calls `this.get({ key, isOptional: metadata.isOptional ?? false })`, and assigns the result with `Reflect.set(instance, propertyKey, value)`. A write that fails (a read-only property) throws `[Class] Property 'name' cannot be injected`.
 
 `@inject({ key, isOptional: true })` on a **property** behaves exactly like on a constructor parameter: an unbound key resolves to `undefined` instead of throwing. A required property (`isOptional` omitted or `false`) still throws when its key is unbound.
 
