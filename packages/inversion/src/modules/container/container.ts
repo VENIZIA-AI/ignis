@@ -1,5 +1,5 @@
 import { getError } from '../error';
-import { type AnyType, type TBindingKey, type TClass, type TInjectTarget } from '@/common/types';
+import { type TBindingKey, type TClass, type TInjectTarget } from '@/common/types';
 import { ResolverUtility } from '@/common/utilities';
 import { BaseContainer } from './base';
 
@@ -20,7 +20,7 @@ export class Container extends BaseContainer {
     key?: TBindingKey;
     target?: TInjectTarget;
     isOptional?: boolean;
-    cls: TClass<AnyType>;
+    cls: TClass<unknown>;
     at: string;
   }): TBindingKey | undefined {
     const { key, target: declared, isOptional = false, cls, at } = opts;
@@ -101,8 +101,13 @@ export class Container extends BaseContainer {
     // `TClass` takes `never[]`, so any constructor fits; Reflect.construct is how the arguments reach it.
     const instance: T = Reflect.construct(cls, args);
 
+    // A constructor always answers an object (or a function); the guard narrows `T` to something `Reflect.set` takes.
+    if ((typeof instance !== 'object' && typeof instance !== 'function') || instance === null) {
+      return instance;
+    }
+
     const propertyMetadata = registry.getPropertiesMetadata({
-      target: instance as object,
+      target: instance,
     });
 
     if (!propertyMetadata?.size) {
@@ -121,8 +126,18 @@ export class Container extends BaseContainer {
         at: `Property '${String(propertyKey)}'`,
       });
 
-      (instance as any)[propertyKey] =
-        key === undefined ? undefined : this.get({ key, isOptional });
+      const assigned = Reflect.set(
+        instance,
+        propertyKey,
+        key === undefined ? undefined : this.get({ key, isOptional }),
+      );
+
+      // Assigning to a read-only property threw; Reflect.set only answers false, so keep the throw.
+      if (!assigned) {
+        throw getError({
+          message: `[${cls.name}] Property '${String(propertyKey)}' cannot be injected | It is read-only`,
+        });
+      }
     }
 
     return instance;

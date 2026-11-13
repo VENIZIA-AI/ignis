@@ -40,7 +40,7 @@ export class ArtifactIndexHelper extends BaseHelper {
   /** The index a decorator-only application has: every class a stereotype saw at import time, bucketed by its type. `when` and `order` still apply - `resolve` does that, exactly as it does for a declared index. */
   buildDiscoveredIndex(): IArtifactIndex {
     const registry = MetadataRegistry.getInstance();
-    const index: Record<string, TClass<AnyType>[]> = {};
+    const index: Record<string, TClass<unknown>[]> = {};
 
     const discoveredArtifacts = registry.getDiscoveredArtifacts();
 

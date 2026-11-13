@@ -4,7 +4,7 @@ description: "TConstructor, TClass, TResolver, TAsyncResolver, TTask and the ope
 packages: ['@venizia/ignis-inversion', '@venizia/ignis-helpers', '@venizia/ignis-kernel']
 migration:
   - id: tclass-has-no-index-signature
-    symbols: [TClass, TAbstractClass]
+    symbols: [TClass, TAbstractClass, TConstValue, TStringConstValue, TNumberConstValue]
     upgrade:
       before: |
         const readVersion = (cls: TClass<Service>): string => cls.version; // any
@@ -62,6 +62,26 @@ migration:
     downgrade:
       steps:
         - "Call a TResolver, TAsyncResolver or TTask with arguments again; the older arguments were any[]."
+  - id: sort-configurations-keeps-one-class-type
+    symbols: [ArtifactIndexHelper.sortConfigurationsTopologically]
+    upgrade:
+      before: |
+        // classes of different kinds in one call: the parameter and result were TClass<any>
+        const sorted = helper.sortConfigurationsTopologically({ classes: [ConfigA, ConfigB] });
+      after: |
+        // T is inferred from the classes; give one common instance type when the classes differ
+        const sorted = helper.sortConfigurationsTopologically<BaseConfiguration>({ classes: [ConfigA, ConfigB] });
+    downgrade:
+      steps:
+        - "Pass classes of any instance type again; the older parameter and result were TClass<any>."
+  - id: class-guards-and-targets-widen
+    symbols: [TInjectTarget, isClass, isClassProvider, MetadataRegistry.getMethodNames]
+    upgrade:
+      steps:
+        - "Nothing to change. isClass and isClassProvider take unknown (any value fits), TInjectTarget names TClass<unknown>, and getMethodNames defaults its type argument to unknown. These accept everything they accepted."
+    downgrade:
+      steps:
+        - "Nothing to undo."
   - id: binding-tag-values-unknown
     symbols: [IBindingTag]
     upgrade:
@@ -95,7 +115,7 @@ migration:
       steps:
         - "Drop the type argument; the older Value default was any."
   - id: measure-result-inferred
-    symbols: [PerformanceUtility.executeWithMeasure]
+    symbols: [PerformanceUtility.executeWithMeasure, BaseRestController.measure]
     upgrade:
       before: |
         const rows = await PerformanceUtility.executeWithMeasure({ scope: 'load', task: loadRows, args: [id] });
@@ -111,7 +131,7 @@ migration:
       steps:
         - "Pass a task that takes arguments again; the older task type was Function and the result any."
   - id: measure-result-is-the-task-type
-    symbols: [PerformanceUtility.executeWithMeasure]
+    symbols: [PerformanceUtility.executeWithMeasure, BaseRestController.measure]
     upgrade:
       before: |
         const counted: TCountResponse<TRow> = await PerformanceUtility.executeWithMeasure({
@@ -170,7 +190,7 @@ migration:
 ## Breaking changes
 
 > [!WARNING]
-> These are type-level breaks: nothing changes at runtime. The typecheck names each line.
+> These are type-level breaks: behaviour is unchanged. The typecheck names each line.
 
 **Before:**
 

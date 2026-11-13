@@ -1,5 +1,4 @@
 import type {
-  AnyType,
   IConfigurable,
   TClass,
   TConstValue,
@@ -118,7 +117,7 @@ export type TDataSourceDriver = TConstValue<typeof DataSourceDrivers> | (string 
  * package into a bundle - a name string pulls nothing, and a bare side-effect import may be
  * dropped. Untyped because `IRelationalDriver` lives under `connectors/`, off-limits to `base/`.
  */
-export type TDataSourceDriverClass = TClass<AnyType>;
+export type TDataSourceDriverClass = TClass<unknown>;
 
 /** Loose schema record of a datasource; the default `Schema` type argument of `IDataSource`. */
 export type TAnyDataSourceSchema = Record<string, any>;

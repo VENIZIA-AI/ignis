@@ -740,7 +740,7 @@ declare const BaseRegistry: {
     new (...args: any[]): {
         repositoryBindings: Map<string, IRepositoryBinding<import("../../index.js").AbstractEntity>>;
         repositoryBindingsByClass: Map<Function, IRepositoryBinding<import("../../index.js").AbstractEntity>>;
-        datasourceModels: Map<string | Function, Set<TClass<AnyType>>>;
+        datasourceModels: Map<string | Function, Set<TClass<unknown>>>;
         setRepositoryMetadata<Target extends object = object, Model extends import("../../index.js").AbstractEntity = import("../../index.js").AbstractEntity<unknown>, DataSource extends import("../../index.js").IDataSource = import("../../index.js").IDataSource<{}, import("../../index.js").TAnyDataSourceSchema, {}>>(opts: {
             target: Target;
             metadata: import("./common/index.js").TRepositoryMetadata<Model, DataSource> & {
@@ -760,7 +760,7 @@ declare const BaseRegistry: {
         }): IRepositoryBinding<import("../../index.js").AbstractEntity> | undefined;
         getDataSourceModelClasses(opts: {
             dataSource: string | TClass<import("../../index.js").IDataSource>;
-        }): Set<TClass<AnyType>>;
+        }): Set<TClass<unknown>>;
         resolveModelRelations(modelMeta: IModelRegistryEntry): unknown;
         getModels(opts: {
             dataSource: string | TClass<import("../../index.js").IDataSource>;
@@ -773,7 +773,7 @@ declare const BaseRegistry: {
             dataSource: string | TClass<import("../../index.js").IDataSource>;
         }): Array<TClass<unknown>>;
         resolveModelKey(opts: {
-            modelClass: TClass<AnyType>;
+            modelClass: TClass<unknown>;
         }): string;
         buildSchema(opts: {
             dataSource: string | TClass<import("../../index.js").IDataSource>;

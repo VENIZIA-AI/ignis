@@ -4782,7 +4782,7 @@ Source: `packages/kernel/src/helpers/inversion/common/types/controller.ts`
 True for `DataSourceRoot` itself and for any class extending it (`AbstractDataSource` among them), across package copies.
 
 ```ts
-export declare const isDataSourceClass: (value: unknown) => value is TClass<AnyType>;
+export declare const isDataSourceClass: (value: unknown) => value is TClass<unknown>;
 ```
 
 Source: `packages/kernel/src/base/datasources/root.ts`
@@ -7892,7 +7892,7 @@ package into a bundle - a name string pulls nothing, and a bare side-effect impo
 dropped. Untyped because `IRelationalDriver` lives under `connectors/`, off-limits to `base/`.
 
 ```ts
-export type TDataSourceDriverClass = TClass<AnyType>;
+export type TDataSourceDriverClass = TClass<unknown>;
 ```
 
 Source: `packages/kernel/src/base/datasources/common/types.ts`

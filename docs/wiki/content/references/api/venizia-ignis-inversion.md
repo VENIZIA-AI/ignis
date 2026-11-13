@@ -429,7 +429,7 @@ export declare class Container extends BaseContainer {
         key?: TBindingKey;
         target?: TInjectTarget;
         isOptional?: boolean;
-        cls: TClass<AnyType>;
+        cls: TClass<unknown>;
         at: string;
     }): TBindingKey | undefined;
     instantiate<T>(cls: TClass<T>): T;
@@ -1037,7 +1037,7 @@ export declare class ResolverUtility {
     /** Reads what `@inject({ target })` named. The function form is called HERE, never at decoration: that is what lets a class reached through an import cycle be named at all. Answers `undefined` when the function hands back something that is not a class. The container resolves synchronously, so there is no async form. */
     static resolveInjectTarget(opts: {
         target: TInjectTarget;
-    }): TClass<AnyType> | undefined;
+    }): TClass<unknown> | undefined;
 }
 ```
 
