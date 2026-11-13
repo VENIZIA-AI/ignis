@@ -192,7 +192,7 @@ const cluster = new RedisClusterHelper({
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `name` | `string` | Yes | - | Helper identifier |
-| `nodes` | `IRedisNode[]` | Yes | - | Startup nodes; ioredis finds the rest. Port defaults to `6379`. No per-node credentials: see [Credentials](#credentials-on-a-cluster) |
+| `nodes` | `IRedisNode[]` | Yes | - | Startup nodes; the port defaults to `6379`. No per-node credentials: see [Credentials](#credentials-on-a-cluster) |
 | `username` | `string` | No | - | The ACL user of every data node, with `password`. Sent through `redisOptions` |
 | `password` | `string` | No | - | The password of every data node. Sent through `redisOptions`, so nodes found after startup get it |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` sets `lazyConnect` so you call `connect()` later |
