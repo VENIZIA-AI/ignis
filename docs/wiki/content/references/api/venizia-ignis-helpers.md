@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-217 exports, 217 with TSDoc. 229 more are re-exported from other entries (listed at the end).
+220 exports, 220 with TSDoc. 229 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -2249,25 +2249,18 @@ export interface IRedisClusterHelperOptions extends IRedisClusterHelperProps, IR
 }
 ```
 
-Source: `packages/helpers/src/modules/redis/common/types.ts`
+Source: `packages/helpers/src/modules/redis/cluster/types.ts`
 
 ## `IRedisClusterHelperProps`
 
 *interface*
 
-Connection settings for a Redis Cluster: the startup `nodes`, plus raw ioredis `clusterOptions` that override the helper defaults.
+Connection settings for a Redis Cluster: the startup `nodes` and one credential pair for every node, plus raw ioredis `clusterOptions` that override the helper defaults. The credentials go through `redisOptions`, so nodes found after startup get them too.
 
 ```ts
-export interface IRedisClusterHelperProps {
+export interface IRedisClusterHelperProps extends IRedisCredentials {
     name: string;
-    nodes: Array<{
-        host: string;
-        port: string | number;
-    }>;
-    /** The Redis ACL user of every data node, with `password`. Omit it to authenticate as the `default` user. Applied through `redisOptions`, so nodes found after startup get it too. */
-    username?: string;
-    /** The password of every data node. Omit it for a cluster with no password. */
-    password?: string;
+    nodes: IRedisNode[];
     /**
      * Same meaning as on single and sentinel: `false` holds the client open for a later `connect()`.
      *
@@ -2280,7 +2273,7 @@ export interface IRedisClusterHelperProps {
 }
 ```
 
-Source: `packages/helpers/src/modules/redis/common/types.ts`
+Source: `packages/helpers/src/modules/redis/cluster/types.ts`
 
 ## `IRedisCommand`
 
@@ -2313,6 +2306,23 @@ export interface IRedisConnection {
 ```
 
 Source: `packages/helpers/src/modules/redis/common/interfaces.ts`
+
+## `IRedisCredentials`
+
+*interface*
+
+An ACL user and its password. Omit both to authenticate as the `default` user with no password.
+
+```ts
+export interface IRedisCredentials {
+    /** The Redis ACL user, with `password`. Omit it to authenticate as the `default` user. */
+    username?: string;
+    /** Omit it for a Redis with no password. */
+    password?: string;
+}
+```
+
+Source: `packages/helpers/src/modules/redis/common/types.ts`
 
 ## `IRedisHash`
 
@@ -2592,6 +2602,22 @@ export interface IRedisModuleOption {
 
 Source: `packages/helpers/src/modules/redis/common/types.ts`
 
+## `IRedisNode`
+
+*interface*
+
+The address of one Redis node. A node has no credentials of its own: ioredis reads only the host and port of a Sentinel endpoint, and applies a cluster node's credentials to the startup nodes only.
+
+```ts
+export interface IRedisNode {
+    host: string;
+    /** @default RedisDefaults.PORT (6379), or RedisSentinelDefaults.PORT (26379) for a Sentinel node */
+    port?: string | number;
+}
+```
+
+Source: `packages/helpers/src/modules/redis/common/types.ts`
+
 ## `IRedisPubSub`
 
 *interface*
@@ -2627,34 +2653,25 @@ export interface IRedisSentinelHelperOptions extends IRedisSentinelHelperProps, 
 }
 ```
 
-Source: `packages/helpers/src/modules/redis/common/types.ts`
+Source: `packages/helpers/src/modules/redis/sentinel/types.ts`
 
 ## `IRedisSentinelHelperProps`
 
 *interface*
 
-Connection settings for Redis behind Sentinel. `redisOptions` overrides the helper defaults.
+Connection settings for Redis behind Sentinel. Top-level `username` and `password` are the data nodes' (master and replica) credentials; everything Sentinel-specific is in `sentinel`. Precedence (low -> high): the helper defaults, `redisOptions`, then the first-class fields; an auth field left unset falls back to `redisOptions`.
 
 ```ts
-export interface IRedisSentinelHelperProps {
+export interface IRedisSentinelHelperProps extends IRedisCredentials {
     name: string;
-    /** Everything that belongs to Sentinel: the monitored group, which side to read, the processes' own ACL user and password (not the data nodes') and their addresses. */
-    sentinel: {
+    /** The monitored group, which side to read, the Sentinel processes' own credentials and their addresses. `username` and `password` here are the Sentinel processes' (ioredis `sentinelUsername`, `sentinelPassword`), never the data nodes'. */
+    sentinel: IRedisCredentials & {
         /** The group name in sentinel.conf (`sentinel monitor <masterName> ...`). Maps to ioredis `name`. */
         masterName: string;
         /** Connect to the master or to a replica. @default RedisSentinelRoles.MASTER */
         role?: TRedisSentinelRole;
-        username?: string;
-        password?: string;
-        nodes: Array<{
-            host: string;
-            /** @default 26379 */
-            port?: string | number;
-        }>;
+        nodes: IRedisNode[];
     };
-    /** The Redis ACL user of the data nodes (master and replicas), with `password`. Omit it to authenticate as the `default` user. The Sentinel processes' own credentials are `sentinel.username` and `sentinel.password`. */
-    username?: string;
-    password?: string;
     /** @default 0 */
     database?: number;
     /** @default true */
@@ -2665,7 +2682,7 @@ export interface IRedisSentinelHelperProps {
 }
 ```
 
-Source: `packages/helpers/src/modules/redis/common/types.ts`
+Source: `packages/helpers/src/modules/redis/sentinel/types.ts`
 
 ## `IRedisSet`
 
@@ -2709,7 +2726,7 @@ export interface IRedisSingleHelperOptions extends IRedisSingleHelperProps, IRed
 }
 ```
 
-Source: `packages/helpers/src/modules/redis/common/types.ts`
+Source: `packages/helpers/src/modules/redis/single/types.ts`
 
 ## `IRedisSingleHelperProps`
 
@@ -2718,14 +2735,8 @@ Source: `packages/helpers/src/modules/redis/common/types.ts`
 Connection settings for a single Redis node.
 
 ```ts
-export interface IRedisSingleHelperProps {
+export interface IRedisSingleHelperProps extends IRedisNode, IRedisCredentials {
     name: string;
-    host: string;
-    port: string | number;
-    /** The Redis ACL user to authenticate as, with `password`. Omit it to authenticate as the `default` user. */
-    username?: string;
-    /** Omit it for a Redis with no password. */
-    password?: string;
     /** @default 0 */
     database?: number;
     /** @default true */
@@ -2735,7 +2746,7 @@ export interface IRedisSingleHelperProps {
 }
 ```
 
-Source: `packages/helpers/src/modules/redis/common/types.ts`
+Source: `packages/helpers/src/modules/redis/single/types.ts`
 
 ## `IRedisSocketMessage`
 
@@ -4015,6 +4026,8 @@ Reconnect defaults of a Redis helper.
 
 ```ts
 export declare class RedisDefaults {
+    /** The port of a data node when none is given. */
+    static readonly PORT = 6379;
     /** Reconnect attempts before the helper gives up: `0` never reconnects, `RETRY_FOREVER` never stops. */
     static readonly MAX_RETRY = 5;
     static readonly RETRY_FOREVER = -1;
@@ -4047,6 +4060,21 @@ export declare class RedisHelperFactory {
 
 Source: `packages/helpers/src/modules/redis/factory.ts`
 
+## `RedisSentinelDefaults`
+
+*class*
+
+Defaults of the Sentinel helper.
+
+```ts
+export declare class RedisSentinelDefaults {
+    /** The port of a Sentinel process when none is given. */
+    static readonly PORT = 26379;
+}
+```
+
+Source: `packages/helpers/src/modules/redis/sentinel/constants.ts`
+
 ## `RedisSentinelHelper`
 
 *class*
@@ -4074,7 +4102,7 @@ export declare class RedisSentinelRoles {
 }
 ```
 
-Source: `packages/helpers/src/modules/redis/common/constants.ts`
+Source: `packages/helpers/src/modules/redis/sentinel/constants.ts`
 
 ## `RedisSingleHelper`
 
@@ -4785,7 +4813,7 @@ Union of the `RedisSentinelRoles` values.
 export type TRedisSentinelRole = TConstValue<typeof RedisSentinelRoles>;
 ```
 
-Source: `packages/helpers/src/modules/redis/common/constants.ts`
+Source: `packages/helpers/src/modules/redis/sentinel/constants.ts`
 
 ## `TS3Audience`
 

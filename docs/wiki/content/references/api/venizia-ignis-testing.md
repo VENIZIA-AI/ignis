@@ -129,7 +129,7 @@ Source: `packages/core-server/src/testing/assert-application-boots.ts`
 A class (matched against the instance's constructor) or a string (matched against the binding key or the class name).
 
 ```ts
-export type TBootProbeTarget = TClass<AnyType> | string;
+export type TBootProbeTarget = TClass<unknown> | string;
 ```
 
 Source: `packages/core-server/src/testing/assert-application-boots.ts`

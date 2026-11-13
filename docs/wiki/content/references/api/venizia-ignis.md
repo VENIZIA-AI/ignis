@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-107 exports, 107 with TSDoc. 971 more are re-exported from other entries (listed at the end).
+107 exports, 107 with TSDoc. 973 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -249,7 +249,7 @@ export declare class AuthControllerFactory {
                 scope: string;
                 args: unknown;
                 task: () => Promise<R>;
-            }): Promise<any>;
+            }): Promise<R>;
             normalizeCountData<ResponseSchema extends unknown, RequestContext extends import("@venizia/ignis-kernel").TRouteContext<import("hono").Env> = import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>, ResponseData extends {
                 count: number;
                 data?: import("@venizia/ignis-helpers").TNullable<ResponseSchema>;

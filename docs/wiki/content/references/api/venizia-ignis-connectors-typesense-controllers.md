@@ -482,7 +482,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                 scope: string;
                 args: unknown;
                 task: () => Promise<R>;
-            }): Promise<any>;
+            }): Promise<R>;
             normalizeCountData<ResponseSchema extends unknown, RequestContext extends import("@venizia/ignis-kernel").TRouteContext<RouteEnv> = import("@venizia/ignis-kernel").TRouteContext<RouteEnv>, ResponseData extends {
                 count: number;
                 data?: import("@venizia/ignis-helpers").TNullable<ResponseSchema>;
