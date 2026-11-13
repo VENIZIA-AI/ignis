@@ -65,7 +65,7 @@ const container = new Container({ scope: 'MyApp' }); // scope is optional, defau
 | **`unbind`** | `unbind({ key: string \| symbol }): boolean` | Removes a binding. Returns `true` if it existed. |
 | **`resolve`** | `resolve<T>(cls: TClass<T>): T` | Alias for `instantiate()`. Creates a new instance of the class with DI. |
 | **`instantiate`** | `instantiate<T>(cls: TClass<T>): T` | Creates a new instance of a class, injecting constructor parameters and property dependencies from the container. |
-| **`findByTag`** | `findByTag<T>({ tag, exclude? }): Binding<T>[]` | Finds all bindings tagged with `tag`. |
+| **`findByTag`** | `findByTag<T = unknown>({ tag, exclude? }): Binding<T>[]` | Finds all bindings tagged with `tag`. |
 | **`clear`** | `clear(): void` | Clears cached singleton values on all bindings (does not remove bindings). |
 | **`reset`** | `reset(): void` | Removes all bindings entirely. |
 | **`getMetadataRegistry`** | `getMetadataRegistry(): MetadataRegistry` | Returns the metadata registry. The core `Container` overrides this to return `MetadataRegistry.getInstance()`. |

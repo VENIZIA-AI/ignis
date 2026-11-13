@@ -10,7 +10,10 @@ const CYCLE_CHECK_DEPTH = 64;
 
 /** Storage half of the container, keyed by normalized binding-key strings - resolution (`instantiate`) stays abstract, it is the part an implementation swaps. */
 export abstract class BaseContainer extends AbstractContainer {
-  protected bindings = new Map<string, Binding>();
+  /**
+   * Every binding of the container, whatever its `T`. The one deliberate `any` of the container: `Binding<T>` is invariant in `T` and this store holds every `T`, so no concrete type argument lets a lookup answer the `Binding<T>` its caller names without a cast. Everything around it is typed; a token-keyed container is the way to remove it.
+   */
+  protected bindings = new Map<string, Binding<any>>();
 
   /** How often each bound key has been handed out since counting started. */
   protected resolutionCounts = new Map<string, number>();
@@ -233,7 +236,7 @@ export abstract class BaseContainer extends AbstractContainer {
     return this.instantiate(cls);
   }
 
-  override findByTag<T = any>(opts: {
+  override findByTag<T = unknown>(opts: {
     tag: string;
     exclude?: Array<string> | Set<string>;
   }): Binding<T>[] {

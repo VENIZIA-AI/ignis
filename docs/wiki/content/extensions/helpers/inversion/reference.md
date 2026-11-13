@@ -126,7 +126,7 @@ const container = new Container({ scope: 'MyApp' });
 | `unbind` | `unbind(opts: { key: TBindingKey }): boolean` | Remove a binding; returns `true` if one was removed |
 | `resolve` | `resolve<T>(cls: TClass<T>): T` | Alias for `instantiate` |
 | `instantiate` | `instantiate<T>(cls: TClass<T>): T` | Build an instance with full DI (constructor + property injection), see below |
-| `findByTag` | `findByTag<T>(opts: { tag: string, exclude?: string[] \| Set<string> }): Binding<T>[]` | Find every binding with a matching tag, optionally excluding keys |
+| `findByTag` | `findByTag<T = unknown>(opts: { tag: string, exclude?: string[] \| Set<string> }): Binding<T>[]` | Find every binding with a matching tag, optionally excluding keys |
 | `clear` | `clear(): void` | Clear every binding's singleton cache; bindings themselves remain registered |
 | `reset` | `reset(): void` | Remove all bindings entirely |
 | `getMetadataRegistry` | `getMetadataRegistry(): MetadataRegistry` | Return the shared `metadataRegistry` singleton |

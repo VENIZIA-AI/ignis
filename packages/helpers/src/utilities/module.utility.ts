@@ -1,7 +1,6 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import type { AnyType } from '@/common/types';
 import { LoggerFactory } from '@/modules/logger';
 import { getError } from '@/modules/error';
 import { ProjectRootRegistry } from './project-root.utility';
@@ -10,18 +9,22 @@ const logger = LoggerFactory.getLogger(['ModuleUtility']);
 
 /** Loads an optional peer without letting `Bun.build` see it: every specifier stays a parameter, so there is no literal (nor a `minify.syntax`-folded const) for the bundler to resolve. */
 export class ModuleUtility {
-  /** Peers handed over by the application, keyed by specifier. Checked before any filesystem lookup. The map lives in a globalThis slot because a process (or a compiled bundle) can carry two copies of this module, and a peer registered through one copy must be found by the other. */
-  private static readonly registered: Map<string, AnyType> = ModuleUtility.sharedRegistry();
+  /**
+   * Peers handed over by the application, keyed by specifier. Checked before any filesystem lookup. The map lives in a globalThis slot because a process (or a compiled bundle) can carry two copies of this module, and a peer registered through one copy must be found by the other.
+   *
+   * The one deliberate `any` of this class: a module's shape is whatever the peer is, and `load<T>`/`loadSync<T>` hand it back as the `T` the caller names, as `import()` and `require()` do (both answer `any`).
+   */
+  private static readonly registered: Map<string, any> = ModuleUtility.sharedRegistry();
 
-  private static sharedRegistry(): Map<string, AnyType> {
+  private static sharedRegistry(): Map<string, any> {
     const slot = Symbol.for('ignis:module-registry');
-    const shared: Map<string, AnyType> | undefined = Reflect.get(globalThis, slot);
+    const shared: Map<string, any> | undefined = Reflect.get(globalThis, slot);
 
     if (shared) {
       return shared;
     }
 
-    const created = new Map<string, AnyType>();
+    const created = new Map<string, any>();
     Reflect.set(globalThis, slot, created);
 
     return created;
@@ -64,7 +67,7 @@ export class ModuleUtility {
    * logger provider yet, where `LoggerFactory` throws - and a throw mid-loop would drop every
    * module after the first.
    */
-  static register(opts: { modules: Record<string, AnyType> }): void {
+  static register(opts: { modules: Record<string, unknown> }): void {
     const modulesEntries = Object.entries(opts.modules);
 
     for (const [module, value] of modulesEntries) {
@@ -98,18 +101,18 @@ export class ModuleUtility {
    * one. A module handed over with {@link register} wins; one that does not resolve from the project root is
    * imported by name as before. Use this everywhere except a constructor, which cannot await - see {@link preload}.
    */
-  static async load<T = AnyType>(opts: { module: string }): Promise<T> {
+  static async load<T = unknown>(opts: { module: string }): Promise<T> {
     const { module } = opts;
 
     if (this.registered.has(module)) {
-      return this.registered.get(module) as T;
+      return this.registered.get(module);
     }
 
     try {
       const file = this.resolveEsmFile({ module });
       const result = await import(file === undefined ? module : pathToFileURL(file).href);
 
-      return result as T;
+      return result;
     } catch (error) {
       throw this.fail({ method: 'load', module, error });
     }
@@ -122,7 +125,7 @@ export class ModuleUtility {
    * is loaded before any is registered, so one that is missing registers nothing.
    */
   static async preload(opts: { modules: Array<string> }): Promise<void> {
-    const loaded: Record<string, AnyType> = {};
+    const loaded: Record<string, unknown> = {};
 
     for (const module of opts.modules) {
       // `load` answers from the registry first, so a module the application handed over comes back as itself.
@@ -139,15 +142,15 @@ export class ModuleUtility {
    * the one an application's `import` holds, and `instanceof` across the two fails. `await preload(...)` at the
    * entrypoint registers the ES module copy first, and this returns that.
    */
-  static loadSync<T = AnyType>(opts: { module: string }): T {
+  static loadSync<T = unknown>(opts: { module: string }): T {
     const { module } = opts;
 
     if (this.registered.has(module)) {
-      return this.registered.get(module) as T;
+      return this.registered.get(module);
     }
 
     try {
-      return this.appRequire()(module) as T;
+      return this.appRequire()(module);
     } catch (error) {
       throw this.fail({ method: 'loadSync', module, error });
     }
