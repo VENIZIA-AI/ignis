@@ -123,7 +123,7 @@ migration:
 ## What changed
 
 - **Sentinel.** Everything that belongs to Sentinel moves into `sentinel`: `masterName`, `role`, `sentinels` (now `nodes`), `sentinelUsername` and `sentinelPassword` (now `username` and `password`). `password`, `database` and the lifecycle fields stay top-level. New top-level `username` is the data-node ACL user, which Sentinel had no field for.
-- **Cluster.** New top-level `username` and `password` apply to every node. They go through `redisOptions`, so nodes found after startup get them too. `nodes[].password` is gone: ioredis applies a per-node password to the startup nodes only, so replicas, failovers and reconnects answered `NOAUTH`. An explicit `clusterOptions.redisOptions.username` or `password` still wins.
+- **Cluster.** A node's `port` is optional and defaults to `6379`. New top-level `username` and `password` apply to every node. They go through `redisOptions`, so nodes found after startup get them too. `nodes[].password` is gone: ioredis applies a per-node password to the startup nodes only, so replicas, failovers and reconnects answered `NOAUTH`. An explicit `clusterOptions.redisOptions.username` or `password` still wins.
 - **Single.** `port` is optional now and defaults to `6379`. Nothing else changes.
 - **Shared types.** `IRedisNode` (`host`, `port?`) and `IRedisCredentials` (`username?`, `password?`) are exported; the three props types are built from them. A node carries no credentials in any mode.
 

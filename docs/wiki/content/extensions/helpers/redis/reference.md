@@ -196,6 +196,7 @@ const cluster = new RedisClusterHelper({
 | `username` | `string` | No | - | The ACL user of every data node, with `password`. Sent through `redisOptions` |
 | `password` | `string` | No | - | The password of every data node. Sent through `redisOptions`, so nodes found after startup get it |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` sets `lazyConnect` so you call `connect()` later |
+| `maxRetry` | `number` | No | `5` | Reconnect attempts before giving up - see [Retry strategy](#retry-strategy) |
 | `clusterOptions` | `ClusterOptions` | No | - | Merged over the four defaults, then passed to `new Cluster` |
 | `module` | `typeof import('ioredis')` | No | loaded by name | Same as single |
 | `onInitialized` / `onConnected` / `onReady` / `onError` | callbacks | No | - | Same shape as single |
