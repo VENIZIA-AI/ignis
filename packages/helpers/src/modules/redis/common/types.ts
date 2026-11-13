@@ -25,7 +25,11 @@ export interface IRedisSingleHelperProps {
 /** Connection settings for a Redis Cluster: the startup `nodes`, plus raw ioredis `clusterOptions` that override the helper defaults. */
 export interface IRedisClusterHelperProps {
   name: string;
-  nodes: Array<{ host: string; port: string | number; password?: string }>;
+  nodes: Array<{ host: string; port: string | number }>;
+  /** The Redis ACL user of every data node, with `password`. Omit it to authenticate as the `default` user. Applied through `redisOptions`, so nodes found after startup get it too. */
+  username?: string;
+  /** The password of every data node. Omit it for a cluster with no password. */
+  password?: string;
   /**
    * Same meaning as on single and sentinel: `false` holds the client open for a later `connect()`.
    *
@@ -40,17 +44,23 @@ export interface IRedisClusterHelperProps {
 /** Connection settings for Redis behind Sentinel. `redisOptions` overrides the helper defaults. */
 export interface IRedisSentinelHelperProps {
   name: string;
-  sentinels: Array<{
-    host: string;
-    /** @default 26379 */
-    port?: string | number;
-  }>;
-  masterName: string;
-  /** @default RedisSentinelRoles.MASTER */
-  role?: TRedisSentinelRole;
+  /** Everything that belongs to Sentinel: the monitored group, which side to read, the processes' own ACL user and password (not the data nodes') and their addresses. */
+  sentinel: {
+    /** The group name in sentinel.conf (`sentinel monitor <masterName> ...`). Maps to ioredis `name`. */
+    masterName: string;
+    /** Connect to the master or to a replica. @default RedisSentinelRoles.MASTER */
+    role?: TRedisSentinelRole;
+    username?: string;
+    password?: string;
+    nodes: Array<{
+      host: string;
+      /** @default 26379 */
+      port?: string | number;
+    }>;
+  };
+  /** The Redis ACL user of the data nodes (master and replicas), with `password`. Omit it to authenticate as the `default` user. The Sentinel processes' own credentials are `sentinel.username` and `sentinel.password`. */
+  username?: string;
   password?: string;
-  sentinelPassword?: string;
-  sentinelUsername?: string;
   /** @default 0 */
   database?: number;
   /** @default true */

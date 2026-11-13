@@ -9,21 +9,18 @@ export class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
   constructor(opts: IRedisSentinelHelperOptions) {
     const {
       name,
-      sentinels,
-      masterName,
-      role = RedisSentinelRoles.MASTER,
+      sentinel,
+      username,
       password,
-      sentinelPassword,
-      sentinelUsername,
       database = 0,
       autoConnect = true,
       maxRetry = RedisDefaults.MAX_RETRY,
       redisOptions = {},
     } = opts;
 
-    const normalizedSentinels = sentinels.map((sentinel) => ({
-      host: sentinel.host,
-      port: ParseUtility.toInt({ input: sentinel.port ?? 26379 }),
+    const normalizedSentinels = sentinel.nodes.map((node) => ({
+      host: node.host,
+      port: ParseUtility.toInt({ input: node.port ?? 26379 }),
     }));
 
     const ioredis =
@@ -42,13 +39,14 @@ export class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
         }),
         ...redisOptions,
         sentinels: normalizedSentinels,
-        name: masterName,
-        role,
+        name: sentinel.masterName,
+        role: sentinel.role ?? RedisSentinelRoles.MASTER,
         db: database,
         lazyConnect: !autoConnect,
+        username: username ?? redisOptions.username,
         password: password ?? redisOptions.password,
-        sentinelPassword: sentinelPassword ?? redisOptions.sentinelPassword,
-        sentinelUsername: sentinelUsername ?? redisOptions.sentinelUsername,
+        sentinelUsername: sentinel.username ?? redisOptions.sentinelUsername,
+        sentinelPassword: sentinel.password ?? redisOptions.sentinelPassword,
       }),
     });
   }

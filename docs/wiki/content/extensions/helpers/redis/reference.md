@@ -131,7 +131,7 @@ Notes on the fields:
 
 - `username`: omit it to authenticate as the `default` user.
 - `password`: omit it for a Redis with no password.
-- A cluster takes the user as `clusterOptions.redisOptions.username`. A sentinel takes `sentinelUsername` / `sentinelPassword` for the sentinels and `redisOptions.username` for the data nodes.
+- One rule in all three modes: top-level `username` and `password` are the data nodes' credentials. A sentinel keeps the Sentinel processes' own in `sentinel.username` and `sentinel.password`. A cluster applies them through `redisOptions`, so every node gets them, including nodes found after startup; an explicit `clusterOptions.redisOptions.username` or `password` still wins.
 - `maxRetry`: `0` = no reconnect; `-1` = reconnect forever; any other value is refused at construction.
 
 ### Retry strategy
@@ -176,9 +176,8 @@ const cluster = new RedisClusterHelper({
     { host: 'redis-node-2', port: 7001 },
     { host: 'redis-node-3', port: 7002 },
   ],
-  clusterOptions: {
-    redisOptions: { password: 'cluster-password' },
-  },
+  username: 'app-user',        // data-node ACL user (omit it for the default user)
+  password: 'cluster-password',
   onReady: ({ name }) => {
     console.log(`[${name}] cluster ready`);
   },
@@ -190,7 +189,9 @@ const cluster = new RedisClusterHelper({
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `name` | `string` | Yes | - | Helper identifier |
-| `nodes` | `Array<{ host: string; port: string \| number; password?: string }>` | Yes | - | Startup nodes - ioredis discovers the rest |
+| `nodes` | `Array<{ host: string; port: string \| number }>` | Yes | - | Startup nodes - ioredis discovers the rest |
+| `username` | `string` | No | - | The ACL user of every data node, with `password`. Sent through `redisOptions` |
+| `password` | `string` | No | - | The password of every data node. Sent through `redisOptions`, so nodes found after startup get it |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` sets `lazyConnect` so you call `connect()` later |
 | `clusterOptions` | `ClusterOptions` | No | - | Merged over the four defaults, then passed to `new Cluster` |
 | `module` | `typeof import('ioredis')` | No | loaded by name | Same as single |
@@ -253,7 +254,7 @@ Redis Sentinel is a high-availability (HA) architecture made of three process ty
 ### Why your app connects to sentinels, not the master
 
 - **The master's address can change after a failover.** Hard-coding a master host would break on every failover.
-- **You give ioredis the sentinel addresses instead**, plus the monitored master group name (`masterName`). ioredis asks a sentinel for the current master, then connects to it.
+- **You give ioredis the sentinel addresses instead**, plus the monitored master group name (`sentinel.masterName`). ioredis asks a sentinel for the current master, then connects to it.
 - **ioredis re-queries sentinels automatically after a failover** - no manual reconnection logic needed.
 - **Your application code does not change during a failover.** The only observable effect is a few seconds of transient command failures. Set `maxRetry: -1` so the client reconnects and drains its queued commands - `maxRetry: 0` rejects them instead (the default is `5`).
 
@@ -264,15 +265,18 @@ import { RedisSentinelHelper, RedisSentinelRoles } from '@venizia/ignis-helpers'
 
 const redis = new RedisSentinelHelper({
   name: 'ha-cache',          // helper identifier (logging/scope)
-  masterName: 'mymaster',    // group name in sentinel.conf "sentinel monitor mymaster ..."
-  sentinels: [
-    { host: '10.0.0.1', port: 26379 },
-    { host: '10.0.0.2', port: 26379 },
-    { host: '10.0.0.3' },   // port defaults to 26379
-  ],
-  role: RedisSentinelRoles.MASTER, // MASTER (default) or SLAVE
-  password: 'data-secret',   // master/replica requirepass
-  sentinelPassword: 'sentinel-secret', // sentinel.conf requirepass
+  sentinel: {
+    masterName: 'mymaster',    // group name in sentinel.conf "sentinel monitor mymaster ..."
+    role: RedisSentinelRoles.MASTER, // MASTER (default) or SLAVE
+    password: 'sentinel-secret', // sentinel.conf requirepass
+    nodes: [
+      { host: '10.0.0.1', port: 26379 },
+      { host: '10.0.0.2', port: 26379 },
+      { host: '10.0.0.3' },   // port defaults to 26379
+    ],
+  },
+  username: 'app-user',      // data-node ACL user (omit it for the default user)
+  password: 'data-secret',   // master/replica password
   database: 0,
   autoConnect: true,
   maxRetry: 5,
@@ -284,12 +288,9 @@ const redis = new RedisSentinelHelper({
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `name` | `string` | Yes | - | Helper identifier (logs, `IRedisHelper.name`) |
-| `masterName` | `string` | Yes | - | Sentinel-monitored master group name - maps to ioredis `name` |
-| `sentinels` | `Array<{ host: string; port?: string \| number }>` | Yes | - | Sentinel process addresses |
-| `role` | `TRedisSentinelRole` (`RedisSentinelRoles.MASTER \| SLAVE`) | No | `RedisSentinelRoles.MASTER` | Connect to master (writes) or a replica (reads) |
-| `password` | `string` | No | - | Data-node `requirepass` (master and replicas) |
-| `sentinelPassword` | `string` | No | - | Sentinel-process `requirepass` |
-| `sentinelUsername` | `string` | No | - | Sentinel ACL username |
+| `sentinel` | `{ masterName: string; role?: TRedisSentinelRole; username?: string; password?: string; nodes: Array<{ host: string; port?: string \| number }> }` | Yes | - | Everything that belongs to Sentinel; see the table below |
+| `username` | `string` | No | - | Data-node ACL user (master and replicas), with `password` |
+| `password` | `string` | No | - | Data-node password (master and replicas) |
 | `database` | `number` | No | `0` | Redis database index |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately |
 | `maxRetry` | `number` | No | `5` | Reconnect attempts before giving up - see [Retry strategy](#retry-strategy) |
@@ -297,16 +298,28 @@ const redis = new RedisSentinelHelper({
 | `module` | `typeof import('ioredis')` | No | loaded by name | Same as single |
 | `onInitialized` / `onConnected` / `onReady` / `onError` | callbacks | No | - | Same shape as single |
 
-### Field clarity - name vs masterName
+### Field clarity - name vs sentinel.masterName
 
 This is the most common source of confusion:
 
 | Field | What it is | Where it goes |
 |-------|-----------|---------------|
 | `name` | The helper's own identifier used for logging and `IRedisHelper.name` | `AbstractRedisHelper` identifier |
-| `masterName` | The master group being monitored by Sentinel processes, matching `sentinel monitor <name> ...` in sentinel.conf | Maps to ioredis `name` option |
+| `sentinel.masterName` | The master group being monitored by Sentinel processes, matching `sentinel monitor <name> ...` in sentinel.conf | Maps to ioredis `name` option |
 
-They are independent. You can name the helper `'ha-cache'` while `masterName` is `'mymaster'`.
+They are independent. You can name the helper `'ha-cache'` while `sentinel.masterName` is `'mymaster'`.
+
+The fields of `sentinel`:
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `masterName` | `string` | Yes | - | Sentinel-monitored master group name - maps to ioredis `name` |
+| `role` | `TRedisSentinelRole` (`RedisSentinelRoles.MASTER \| SLAVE`) | No | `RedisSentinelRoles.MASTER` | Connect to the master (writes) or a replica (reads) |
+| `username` | `string` | No | - | ACL user of the Sentinel processes |
+| `password` | `string` | No | - | `requirepass` of the Sentinel processes |
+| `nodes` | `Array<{ host: string; port?: string \| number }>` | Yes | - | Sentinel process addresses; the port defaults to `26379` |
+
+Other ioredis Sentinel options (`sentinelTLS`, `natMap`, `preferredSlaves`) stay reachable through `redisOptions`.
 
 ### The authentication model - 4 relationships
 
@@ -314,7 +327,7 @@ Sentinel deployments have four separate authentication relationships. The app co
 
 | # | From | To | App field | Server config |
 |---|------|----|-----------|---------------|
-| 1 | **App** | **Sentinel processes** | `sentinelPassword` | `requirepass` in sentinel.conf |
+| 1 | **App** | **Sentinel processes** | `sentinel.username`, `sentinel.password` | `requirepass` in sentinel.conf |
 | 2 | **App** | **Data nodes** (master/replica) | `password` | `requirepass` in redis.conf |
 | 3 | **Sentinel** | **Data nodes** | (not set by app) | `sentinel auth-pass <group> <pass>` in sentinel.conf |
 | 4 | **Replica** | **Master** (replication) | (not set by app) | `masterauth` in redis.conf |
@@ -323,7 +336,7 @@ Sentinel deployments have four separate authentication relationships. The app co
 
 **Common cases:**
 - Private network, sentinels unauthenticated: set only `password`.
-- Fully secured cluster: set both `password` and `sentinelPassword`; configure relationships 3 and 4 on the servers.
+- Fully secured cluster: set both `password` and `sentinel.password`; configure relationships 3 and 4 on the servers.
 
 ### Failover behavior
 
@@ -384,10 +397,12 @@ import { RedisSentinelHelper } from '@venizia/ignis-helpers';
 
 const redis = new RedisSentinelHelper({
   name: 'test',
-  masterName: 'mymaster',
-  sentinels: [{ host: 'localhost', port: 26379 }],
+  sentinel: {
+    masterName: 'mymaster',
+    password: 'sentinel-secret',
+    nodes: [{ host: 'localhost', port: 26379 }],
+  },
   password: 'data-secret',
-  sentinelPassword: 'sentinel-secret',
   onReady: ({ name }) => console.log(`[${name}] ready`),
 });
 
@@ -419,8 +434,7 @@ const single = RedisHelperFactory.single({
 // Type: RedisSentinelHelper
 const sentinel = RedisHelperFactory.sentinel({
   name: 'cache-ha',
-  masterName: 'mymaster',
-  sentinels: [{ host: process.env.SENTINEL_HOST! }],
+  sentinel: { masterName: 'mymaster', nodes: [{ host: process.env.SENTINEL_HOST! }] },
   password: process.env.REDIS_PASSWORD!,
 });
 ```
@@ -688,7 +702,7 @@ const queue = BullMQHelper.newInstance({
 import { AbstractRedisHelper, RedisSentinelHelper } from '@venizia/ignis-helpers';
 
 // In your Application preConfigure:
-const redis = new RedisSentinelHelper({ name: 'socket-redis', masterName: 'mymaster', sentinels, password });
+const redis = new RedisSentinelHelper({ name: 'socket-redis', sentinel: { masterName: 'mymaster', nodes }, password });
 this.bind<AbstractRedisHelper>({ key: '@app/socket-io/redis-connection' }).toValue(redis);
 ```
 

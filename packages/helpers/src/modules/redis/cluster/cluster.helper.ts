@@ -1,12 +1,12 @@
 import { ParseUtility } from '@/utilities';
 import { ModuleUtility } from '@/utilities/module.utility';
-import type { Cluster, ClusterOptions } from 'ioredis';
+import type { Cluster, ClusterOptions, RedisOptions } from 'ioredis';
 import { AbstractRedisHelper } from './../base';
 import { RedisDefaults, type IRedisClusterHelperOptions } from './../common';
 
 /** Redis helper over an ioredis `Cluster`. `autoConnect: false` creates the client with `lazyConnect`; `clusterOptions` is applied last and overrides the defaults. */
 export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
-  private startupNodes: Array<{ host: string; port: number; password?: string }>;
+  private startupNodes: Array<{ host: string; port: number }>;
   private clusterOpts: ClusterOptions;
   private ioredis: typeof import('ioredis');
 
@@ -16,8 +16,18 @@ export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
     const startupNodes = opts.nodes.map((node) => ({
       host: node.host,
       port: ParseUtility.toInt({ input: node.port }),
-      password: node.password,
     }));
+
+    // ioredis applies a per-node password to the startup nodes only; nodes found later are built from host:port and `redisOptions`. So the credentials go in `redisOptions`, where every node gets them.
+    const credentials: RedisOptions = {};
+
+    if (opts.username !== undefined) {
+      credentials.username = opts.username;
+    }
+
+    if (opts.password !== undefined) {
+      credentials.password = opts.password;
+    }
 
     // Precedence (low -> high): the framework defaults, then `clusterOptions` verbatim. The raw
     // hatch stays the last word, because a caller already threading `lazyConnect` through it must
@@ -34,8 +44,12 @@ export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
         maxRetry,
       }),
       ...opts.clusterOptions,
-      // Merged, not replaced: node passwords and TLS live in `redisOptions`, and an app that sets them must keep what BullMQ needs. An explicit `maxRetriesPerRequest` still wins.
-      redisOptions: { maxRetriesPerRequest: null, ...opts.clusterOptions?.redisOptions },
+      // Merged, not replaced: TLS and the like live in `redisOptions`, and an app that sets them must keep what BullMQ needs. Precedence (low -> high): `maxRetriesPerRequest: null`, the first-class credentials, then an explicit `clusterOptions.redisOptions`, which stays the last word.
+      redisOptions: {
+        maxRetriesPerRequest: null,
+        ...credentials,
+        ...opts.clusterOptions?.redisOptions,
+      },
     };
 
     const ioredis =

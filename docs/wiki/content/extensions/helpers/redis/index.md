@@ -87,7 +87,7 @@ const redis: IRedisHelper = RedisHelperFactory.single({
 });
 ```
 
-See [Full reference](/extensions/helpers/redis/reference) for the cluster (`nodes`) and Sentinel (`sentinels`, `masterName`) constructor shapes.
+See [Full reference](/extensions/helpers/redis/reference) for the cluster (`nodes`) and Sentinel (`sentinel`) constructor shapes. In all three, top-level `username` and `password` are the data nodes' credentials.
 
 ### Cache a value with a TTL
 

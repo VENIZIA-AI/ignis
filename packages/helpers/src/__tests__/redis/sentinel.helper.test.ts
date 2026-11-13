@@ -1,17 +1,23 @@
 import { afterEach, describe, expect, it } from 'bun:test';
-import { RedisSentinelHelper } from '@/modules/redis';
+import { RedisSentinelHelper, type IRedisSentinelHelperProps } from '@/modules/redis';
 
 describe('RedisSentinelHelper', () => {
   let helper: RedisSentinelHelper | undefined;
 
-  const build = (overrides: Record<string, unknown> = {}) => {
+  const build = (
+    overrides: Record<string, unknown> = {},
+    sentinel: Partial<IRedisSentinelHelperProps['sentinel']> = {},
+  ) => {
     helper = new RedisSentinelHelper({
       name: 'sentinel-test',
-      masterName: 'mymaster',
-      sentinels: [
-        { host: '127.0.0.1', port: 26379 },
-        { host: '127.0.0.2', port: '26380' },
-      ],
+      sentinel: {
+        masterName: 'mymaster',
+        nodes: [
+          { host: '127.0.0.1', port: 26379 },
+          { host: '127.0.0.2', port: '26380' },
+        ],
+        ...sentinel,
+      },
       autoConnect: false,
       ...overrides,
     });
@@ -24,11 +30,13 @@ describe('RedisSentinelHelper', () => {
     helper = undefined;
   });
 
-  it('maps masterName to ioredis name and coerces/defaults sentinel ports', () => {
+  it('maps sentinel.masterName to ioredis name and coerces/defaults sentinel ports', () => {
     helper = new RedisSentinelHelper({
       name: 'sentinel-test',
-      masterName: 'mymaster',
-      sentinels: [{ host: '127.0.0.1' }, { host: '127.0.0.2', port: '26380' }],
+      sentinel: {
+        masterName: 'mymaster',
+        nodes: [{ host: '127.0.0.1' }, { host: '127.0.0.2', port: '26380' }],
+      },
       autoConnect: false,
     });
     const options = helper.getClient().options;
@@ -39,9 +47,9 @@ describe('RedisSentinelHelper', () => {
     ]);
   });
 
-  it('defaults role to master and respects slave', () => {
+  it('defaults sentinel.role to master and respects slave', () => {
     expect(build().getClient().options.role).toBe('master');
-    expect(build({ role: 'slave' }).getClient().options.role).toBe('slave');
+    expect(build({}, { role: 'slave' }).getClient().options.role).toBe('slave');
   });
 
   it('honors autoConnect:false and the maxRetry-bounded retry strategy', () => {
@@ -70,6 +78,39 @@ describe('RedisSentinelHelper', () => {
       // password (first-class) intentionally omitted
     }).getClient().options;
     expect(options.password).toBe('from-redis-options');
+  });
+
+  it('sends the data-node user and password as username and password, and the Sentinel credentials as sentinelUsername and sentinelPassword', () => {
+    const options = build(
+      { username: 'data-user', password: 'data-secret' },
+      {
+        username: 'sentinel-user',
+        password: 'sentinel-secret',
+        nodes: [{ host: '127.0.0.1' }],
+      },
+    ).getClient().options;
+
+    expect(options.username).toBe('data-user');
+    expect(options.password).toBe('data-secret');
+    expect(options.sentinelUsername).toBe('sentinel-user');
+    expect(options.sentinelPassword).toBe('sentinel-secret');
+    expect(options.sentinels).toEqual([{ host: '127.0.0.1', port: 26379 }]);
+  });
+
+  it('keeps the Sentinel credentials apart from the data-node ones', () => {
+    const options = build({ password: 'data-secret' }, { password: 'sentinel-secret' }).getClient()
+      .options;
+
+    expect(options.username ?? null).toBeNull();
+    expect(options.sentinelUsername ?? null).toBeNull();
+    expect(options.password).toBe('data-secret');
+    expect(options.sentinelPassword).toBe('sentinel-secret');
+  });
+
+  it('does NOT clobber a redisOptions username when the first-class field is omitted', () => {
+    const options = build({ redisOptions: { username: 'from-redis-options' } }).getClient().options;
+
+    expect(options.username).toBe('from-redis-options');
   });
 
   it('first-class password wins over redisOptions when both are provided', () => {
