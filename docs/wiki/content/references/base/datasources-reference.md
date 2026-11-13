@@ -449,7 +449,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 
 ### `@datasource` decorator
 
-`Source ->` [`packages/kernel/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts)
+`Source ->` [`packages/kernel/src/base/metadata/persistents/datasource.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents/datasource.ts)
 
 ```typescript
 @datasource({

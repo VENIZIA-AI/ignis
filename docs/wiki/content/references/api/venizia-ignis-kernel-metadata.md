@@ -293,7 +293,7 @@ class AppDataSource extends BasePostgresDataSource<{ connectionString: string }>
 export declare const datasource: (metadata?: IDataSourceMetadata) => ClassDecorator;
 ```
 
-Source: `packages/kernel/src/base/metadata/persistents.ts`
+Source: `packages/kernel/src/base/metadata/persistents/datasource.ts`
 
 ## `IArtifactGroup`
 
@@ -1039,7 +1039,7 @@ class Note extends ModelFactory.defineEntity({ table: noteTable }) {}
 export declare const model: (input?: IModelMetadata) => ClassDecorator;
 ```
 
-Source: `packages/kernel/src/base/metadata/persistents.ts`
+Source: `packages/kernel/src/base/metadata/persistents/model.ts`
 
 ## `provide`
 
@@ -1077,7 +1077,7 @@ class NoteRepository extends DefaultCRUDRepository<typeof noteTable> {}
 export declare const repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: TRepositoryMetadata<Model, DataSource>) => ClassDecorator;
 ```
 
-Source: `packages/kernel/src/base/metadata/persistents.ts`
+Source: `packages/kernel/src/base/metadata/persistents/repository/index.ts`
 
 ## `service`
 

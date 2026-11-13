@@ -16,7 +16,7 @@ Exhaustive reference for the `@model` decorator, the entity class hierarchy, and
 - [`packages/connectors/src/relational/core/models/relations.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/relations.ts) - `one`, `many`, `toRelationConfigs`
 - [`packages/connectors/src/relational/core/repositories/dialect/relations/one.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/dialect/relations/one.ts) - how a `one` relation finds its columns
 - [`packages/connectors/src/relational/postgres/models/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/index.ts) - the `BaseEntity`/`BasePostgresEntity` aliases
-- [`packages/kernel/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts) - `@model` decorator
+- [`packages/kernel/src/base/metadata/persistents/model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents/model.ts) - `@model` decorator
 - [`packages/connectors/src/relational/postgres/models/enrichers`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers) - schema enrichers
 
 ## `AbstractEntity` (neutral) vs. `BaseEntity` (connector)
@@ -61,7 +61,7 @@ export abstract class AbstractEntity<Schema = unknown> extends BaseHelper {
 
 Marks a class as a database entity and configures its behavior.
 
-`Source ->` [`packages/kernel/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts)
+`Source ->` [`packages/kernel/src/base/metadata/persistents/model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents/model.ts)
 
 ```typescript
 @model({
