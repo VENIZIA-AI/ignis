@@ -109,13 +109,13 @@ const redis = new RedisSingleHelper({
 
 ### IRedisSingleHelperOptions
 
-Combines `IRedisSingleHelperProps`, `IRedisHelperCallbacks` and `IRedisModuleOption`.
+Combines `IRedisSingleHelperProps`, `IRedisHelperCallbacks` and `IRedisModuleOption`. `IRedisSingleHelperProps` extends the two shared pieces of `redis/common/types.ts`: `IRedisNode` (`host`, `port?`) and `IRedisCredentials` (`username?`, `password?`), both exported from the helpers barrel.
 
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `name` | `string` | Yes | - | Helper identifier used in logs and as `IRedisHelper.name` |
 | `host` | `string` | Yes | - | Redis server hostname |
-| `port` | `string \| number` | Yes | - | Redis server port |
+| `port` | `string \| number` | No | `6379` | Redis server port |
 | `username` | `string` | No | - | The Redis ACL user to authenticate as, with `password` |
 | `password` | `string` | No | - | Redis `requirepass` value (or the ACL user's password) |
 | `database` | `number` | No | `0` | Redis database index (0-15) |
@@ -131,6 +131,7 @@ Notes on the fields:
 
 - `username`: omit it to authenticate as the `default` user.
 - `password`: omit it for a Redis with no password.
+- A node has no credentials of its own, in any mode: ioredis cannot honor them (it reads only the host and port of a Sentinel endpoint, and applies a cluster node's credentials to the startup nodes only).
 - One rule in all three modes: top-level `username` and `password` are the data nodes' credentials. A sentinel keeps the Sentinel processes' own in `sentinel.username` and `sentinel.password`. A cluster applies them through `redisOptions`, so every node gets them, including nodes found after startup; an explicit `clusterOptions.redisOptions.username` or `password` still wins.
 - `maxRetry`: `0` = no reconnect; `-1` = reconnect forever; any other value is refused at construction.
 
@@ -189,7 +190,7 @@ const cluster = new RedisClusterHelper({
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `name` | `string` | Yes | - | Helper identifier |
-| `nodes` | `Array<{ host: string; port: string \| number }>` | Yes | - | Startup nodes - ioredis discovers the rest |
+| `nodes` | `IRedisNode[]` (`{ host: string; port?: string \| number }`) | Yes | - | Startup nodes - ioredis discovers the rest. The port defaults to `6379`. A node takes no credentials: set `username` and `password` once, below |
 | `username` | `string` | No | - | The ACL user of every data node, with `password`. Sent through `redisOptions` |
 | `password` | `string` | No | - | The password of every data node. Sent through `redisOptions`, so nodes found after startup get it |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` sets `lazyConnect` so you call `connect()` later |
@@ -317,7 +318,7 @@ The fields of `sentinel`:
 | `role` | `TRedisSentinelRole` (`RedisSentinelRoles.MASTER \| SLAVE`) | No | `RedisSentinelRoles.MASTER` | Connect to the master (writes) or a replica (reads) |
 | `username` | `string` | No | - | ACL user of the Sentinel processes |
 | `password` | `string` | No | - | `requirepass` of the Sentinel processes |
-| `nodes` | `Array<{ host: string; port?: string \| number }>` | Yes | - | Sentinel process addresses; the port defaults to `26379` |
+| `nodes` | `IRedisNode[]` (`{ host: string; port?: string \| number }`) | Yes | - | Sentinel process addresses; the port defaults to `26379`. A Sentinel node takes no credentials: ioredis reads only its host and port, so set `sentinel.username` and `sentinel.password` once |
 
 Other ioredis Sentinel options (`sentinelTLS`, `natMap`, `preferredSlaves`) stay reachable through `redisOptions`.
 

@@ -29,7 +29,7 @@ export class RedisSingleHelper extends AbstractRedisHelper<Redis> {
       client: new ioredis.Redis({
         name,
         host,
-        port: ParseUtility.toInt({ input: port }),
+        port: ParseUtility.toInt({ input: port ?? RedisDefaults.PORT }),
         username,
         password,
         db: database,

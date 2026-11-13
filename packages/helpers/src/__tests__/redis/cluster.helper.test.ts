@@ -30,6 +30,19 @@ describe('RedisClusterHelper', () => {
     ]);
   });
 
+  it('defaults a startup node port to 6379', () => {
+    helper = new RedisClusterHelper({
+      name: 'cluster-port',
+      nodes: [{ host: '127.0.0.1' }],
+      clusterOptions: { lazyConnect: true },
+    });
+    const nodes = (
+      helper.getClient() as AnyType as { startupNodes: Array<{ host: string; port: number }> }
+    ).startupNodes;
+
+    expect(nodes).toEqual([{ host: '127.0.0.1', port: 6379 }]);
+  });
+
   it('duplicateClient returns a fresh Cluster', () => {
     helper = new RedisClusterHelper({
       name: 'cluster-test',

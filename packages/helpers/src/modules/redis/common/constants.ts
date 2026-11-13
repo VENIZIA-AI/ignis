@@ -16,6 +16,11 @@ export type TRedisSentinelRole = TConstValue<typeof RedisSentinelRoles>;
 
 /** Reconnect defaults of a Redis helper. */
 export class RedisDefaults {
+  /** The port of a data node when none is given. */
+  static readonly PORT = 6379;
+  /** The port of a Sentinel process when none is given. */
+  static readonly SENTINEL_PORT = 26379;
+
   /** Reconnect attempts before the helper gives up: `0` never reconnects, `RETRY_FOREVER` never stops. */
   static readonly MAX_RETRY = 5;
   static readonly RETRY_FOREVER = -1;

@@ -15,7 +15,7 @@ export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
 
     const startupNodes = opts.nodes.map((node) => ({
       host: node.host,
-      port: ParseUtility.toInt({ input: node.port }),
+      port: ParseUtility.toInt({ input: node.port ?? RedisDefaults.PORT }),
     }));
 
     // ioredis applies a per-node password to the startup nodes only; nodes found later are built from host:port and `redisOptions`. So the credentials go in `redisOptions`, where every node gets them.

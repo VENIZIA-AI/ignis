@@ -20,7 +20,7 @@ export class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
 
     const normalizedSentinels = sentinel.nodes.map((node) => ({
       host: node.host,
-      port: ParseUtility.toInt({ input: node.port ?? 26379 }),
+      port: ParseUtility.toInt({ input: node.port ?? RedisDefaults.SENTINEL_PORT }),
     }));
 
     const ioredis =

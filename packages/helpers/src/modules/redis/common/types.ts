@@ -5,15 +5,24 @@ import type { IRedisHelper } from './interfaces';
 /** The ioredis client a helper wraps: a single or Sentinel `Redis`, or a `Cluster`. */
 export type TRedisClient = Redis | Cluster;
 
-/** Connection settings for a single Redis node. */
-export interface IRedisSingleHelperProps {
-  name: string;
+/** The address of one Redis node. A node has no credentials of its own: ioredis reads only the host and port of a Sentinel endpoint, and applies a cluster node's credentials to the startup nodes only. */
+export interface IRedisNode {
   host: string;
-  port: string | number;
-  /** The Redis ACL user to authenticate as, with `password`. Omit it to authenticate as the `default` user. */
+  /** @default RedisDefaults.PORT (6379), or RedisDefaults.SENTINEL_PORT (26379) for a Sentinel node */
+  port?: string | number;
+}
+
+/** An ACL user and its password. Omit both to authenticate as the `default` user with no password. */
+export interface IRedisCredentials {
+  /** The Redis ACL user, with `password`. Omit it to authenticate as the `default` user. */
   username?: string;
   /** Omit it for a Redis with no password. */
   password?: string;
+}
+
+/** Connection settings for a single Redis node. */
+export interface IRedisSingleHelperProps extends IRedisNode, IRedisCredentials {
+  name: string;
   /** @default 0 */
   database?: number;
   /** @default true */
@@ -22,14 +31,10 @@ export interface IRedisSingleHelperProps {
   maxRetry?: number;
 }
 
-/** Connection settings for a Redis Cluster: the startup `nodes`, plus raw ioredis `clusterOptions` that override the helper defaults. */
-export interface IRedisClusterHelperProps {
+/** Connection settings for a Redis Cluster: the startup `nodes` and one credential pair for every node, plus raw ioredis `clusterOptions` that override the helper defaults. The credentials go through `redisOptions`, so nodes found after startup get them too. */
+export interface IRedisClusterHelperProps extends IRedisCredentials {
   name: string;
-  nodes: Array<{ host: string; port: string | number }>;
-  /** The Redis ACL user of every data node, with `password`. Omit it to authenticate as the `default` user. Applied through `redisOptions`, so nodes found after startup get it too. */
-  username?: string;
-  /** The password of every data node. Omit it for a cluster with no password. */
-  password?: string;
+  nodes: IRedisNode[];
   /**
    * Same meaning as on single and sentinel: `false` holds the client open for a later `connect()`.
    *
@@ -41,26 +46,17 @@ export interface IRedisClusterHelperProps {
   clusterOptions?: ClusterOptions;
 }
 
-/** Connection settings for Redis behind Sentinel. `redisOptions` overrides the helper defaults. */
-export interface IRedisSentinelHelperProps {
+/** Connection settings for Redis behind Sentinel. Top-level `username` and `password` are the data nodes'; everything Sentinel-specific is in `sentinel`. `redisOptions` overrides the helper defaults. */
+export interface IRedisSentinelHelperProps extends IRedisCredentials {
   name: string;
-  /** Everything that belongs to Sentinel: the monitored group, which side to read, the processes' own ACL user and password (not the data nodes') and their addresses. */
-  sentinel: {
+  /** The monitored group, which side to read, the Sentinel processes' own credentials (not the data nodes') and their addresses. */
+  sentinel: IRedisCredentials & {
     /** The group name in sentinel.conf (`sentinel monitor <masterName> ...`). Maps to ioredis `name`. */
     masterName: string;
     /** Connect to the master or to a replica. @default RedisSentinelRoles.MASTER */
     role?: TRedisSentinelRole;
-    username?: string;
-    password?: string;
-    nodes: Array<{
-      host: string;
-      /** @default 26379 */
-      port?: string | number;
-    }>;
+    nodes: IRedisNode[];
   };
-  /** The Redis ACL user of the data nodes (master and replicas), with `password`. Omit it to authenticate as the `default` user. The Sentinel processes' own credentials are `sentinel.username` and `sentinel.password`. */
-  username?: string;
-  password?: string;
   /** @default 0 */
   database?: number;
   /** @default true */
