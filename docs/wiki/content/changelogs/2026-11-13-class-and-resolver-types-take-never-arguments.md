@@ -31,6 +31,24 @@ migration:
     downgrade:
       steps:
         - "Call new cls(...args) on a TConstructor again; the older arguments were any[]. Reflect.construct keeps working."
+  - id: class-map-typed-per-key
+    symbols: [TClass, TConstructor]
+    upgrade:
+      before: |
+        // one union entity type over per-entity classes
+        const finders: Record<TTarget, TClass<IFinder<IRole | IPermission>>> = {
+          roles: RoleRepository,
+          permissions: PermissionRepository,
+        };
+      after: |
+        // the class type is checked against the instance now, so name each class by its own entity
+        const finders: { roles: TClass<IFinder<IRole>>; permissions: TClass<IFinder<IPermission>> } = {
+          roles: RoleRepository,
+          permissions: PermissionRepository,
+        };
+    downgrade:
+      steps:
+        - "Type the map with one union entity again; with any[] arguments TypeScript skipped the instance check, so the unsound assignment compiled."
   - id: resolvers-take-never-arguments
     symbols: [TResolver, TAsyncResolver, TValueOrResolver, TValueOrAsyncResolver, TTask]
     upgrade:
@@ -92,6 +110,25 @@ migration:
     downgrade:
       steps:
         - "Pass a task that takes arguments again; the older task type was Function and the result any."
+  - id: measure-result-is-the-task-type
+    symbols: [PerformanceUtility.executeWithMeasure]
+    upgrade:
+      before: |
+        const counted: TCountResponse<TRow> = await PerformanceUtility.executeWithMeasure({
+          scope: 'update',
+          task: async () => this.normalizeCountData<TRow>({ context, payload }), // any hid the union
+        });
+      after: |
+        // the result is what the task returns: the payload, or its data when the count is off
+        const counted = await PerformanceUtility.executeWithMeasure({
+          scope: 'update',
+          task: async () => this.normalizeCountData<TRow>({ context, payload }),
+        });
+
+        // hand it on as it is, or narrow it before you treat it as the count shape
+    downgrade:
+      steps:
+        - "Annotate the result as the count shape again; the older result was any."
   - id: update-data-unknown
     symbols: [TUpdateData]
     upgrade:
@@ -125,6 +162,8 @@ migration:
 ## Who is affected
 
 - **Code that reads a static member through a `TClass` value, or calls a `TConstructor` or `TResolver` with arguments.** Type the call: see the migration below.
+- **Code that assigns per-entity classes to one `TClass` of a union entity.** With `any[]` arguments TypeScript skipped the instance check; it runs now. Type the map per key.
+- **Code that annotates the result of `executeWithMeasure` as a type its task does not return.** The result is the task's type now.
 - **Code that reads `registry.get`, `IBindingTag`, `IConfigurable` or `TUpdateData` values, or the result of `executeWithMeasure`, without a narrow.** Narrow it or name the type.
 - **Everyone else.** No action needed.
 
