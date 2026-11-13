@@ -3698,7 +3698,11 @@ Loads an optional peer without letting `Bun.build` see it: every specifier stays
 
 ```ts
 export declare class ModuleUtility {
-    /** Peers handed over by the application, keyed by specifier. Checked before any filesystem lookup. The map lives in a globalThis slot because a process (or a compiled bundle) can carry two copies of this module, and a peer registered through one copy must be found by the other. */
+    /**
+     * Peers handed over by the application, keyed by specifier. Checked before any filesystem lookup. The map lives in a globalThis slot because a process (or a compiled bundle) can carry two copies of this module, and a peer registered through one copy must be found by the other.
+     *
+     * The one deliberate `any` of this class: a module's shape is whatever the peer is, and `load<T>`/`loadSync<T>` hand it back as the `T` the caller names, as `import()` and `require()` do (both answer `any`).
+     */
     private static readonly registered;
     private static sharedRegistry;
     /** Called by the application once it knows its root (`configs.projectRoot` or the cwd); every peer lookup below follows it. Delegates to `ProjectRootRegistry`, which a browser Worker host reaches too through `/core` - the two must share ONE slot. */
@@ -3720,7 +3724,7 @@ export declare class ModuleUtility {
      * module after the first.
      */
     static register(opts: {
-        modules: Record<string, AnyType>;
+        modules: Record<string, unknown>;
     }): void;
     /**
      * The file `module` resolves to from the project root under the ES module conditions (`import`), so
@@ -3734,7 +3738,7 @@ export declare class ModuleUtility {
      * one. A module handed over with {@link register} wins; one that does not resolve from the project root is
      * imported by name as before. Use this everywhere except a constructor, which cannot await - see {@link preload}.
      */
-    static load<T = AnyType>(opts: {
+    static load<T = unknown>(opts: {
         module: string;
     }): Promise<T>;
     /**
@@ -3752,7 +3756,7 @@ export declare class ModuleUtility {
      * the one an application's `import` holds, and `instanceof` across the two fails. `await preload(...)` at the
      * entrypoint registers the ES module copy first, and this returns that.
      */
-    static loadSync<T = AnyType>(opts: {
+    static loadSync<T = unknown>(opts: {
         module: string;
     }): T;
     /**
