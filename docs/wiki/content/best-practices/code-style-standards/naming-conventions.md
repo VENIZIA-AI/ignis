@@ -110,7 +110,7 @@ interface IHealthCheckOptions {
 }
 
 interface IAuthService {
-  signIn(context: TContext, opts: TSignInRequest): Promise<AnyObject>;
+  signIn(context: TContext, opts: TSignInRequest): Promise<Record<string, unknown>>;
 }
 
 // Type aliases use 'T' prefix

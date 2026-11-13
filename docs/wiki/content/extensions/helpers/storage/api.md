@@ -438,11 +438,15 @@ Both go **inside** the signature, so the client must send them back unchanged:
 ```typescript
 import { HTTP } from '@venizia/ignis-helpers/common';
 
-await fetch(url, {
+const response = await fetch(url, {
   method: 'PUT',
   headers: { 'x-amz-tagging': 'temp=true', [HTTP.Headers.CONTENT_LENGTH]: String(file.size) },
   body: file,
 });
+
+if (!response.ok) {
+  throw new Error(`Upload failed: ${response.status}`);
+}
 ```
 
 A tag merely *sent* is a tag S3 ignores - a step gated on reading it back would fail with no upload
@@ -825,9 +829,11 @@ Scans the bucket directory via a local `scanDirectory()` closure. Returns `[]` i
 
 Generic in-memory key-value store, backed by a `Map`. Extends `BaseHelper` directly - does **not** implement `IStorageHelper` and has no bucket or file operations.
 
+<!-- docs-code: off -->
 ```typescript
 class MemoryStorageHelper<T extends object = AnyObject> extends BaseHelper
 ```
+<!-- docs-code: on -->
 
 ### Constructor
 
@@ -843,9 +849,11 @@ constructor(opts?: { scope?: string })
 
 #### newInstance
 
+<!-- docs-code: off -->
 ```typescript
 static newInstance<T extends object = AnyObject>(): MemoryStorageHelper<T>
 ```
+<!-- docs-code: on -->
 
 Factory method - equivalent to `new MemoryStorageHelper<T>()`.
 

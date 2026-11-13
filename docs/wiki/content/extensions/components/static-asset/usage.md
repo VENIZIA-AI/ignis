@@ -48,7 +48,16 @@ Who may read is the entry's [`auth`](./security#authentication-and-authorization
 ## List objects
 
 ```ts
-export const listInvoices = async (): Promise<unknown> => {
+import { z } from 'zod';
+
+const objectSchema = z.object({
+  name: z.string(),
+  size: z.number(),
+  lastModified: z.string(),
+  etag: z.string(),
+});
+
+export const listInvoices = async (): Promise<Array<z.infer<typeof objectSchema>>> => {
   const url = new URL('/assets/objects', 'https://api.example.com');
 
   url.searchParams.set('prefix', 'invoices/2026/');
@@ -57,8 +66,12 @@ export const listInvoices = async (): Promise<unknown> => {
 
   const response = await fetch(url);
 
+  if (!response.ok) {
+    throw new Error(`List failed: ${response.status}`);
+  }
+
   // [{ name: 'invoices/2026/document.pdf', size: 1024, lastModified: '...', etag: '...' }]
-  return response.json();
+  return z.array(objectSchema).parse(await response.json());
 };
 ```
 

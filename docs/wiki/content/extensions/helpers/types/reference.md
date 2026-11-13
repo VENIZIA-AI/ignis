@@ -834,7 +834,7 @@ The same file carries three more const classes, for the concrete extension and M
 
 | Const class | Derived type | Holds |
 |---|---|---|
-| `FileExtensions` | `TFileExtension` | 19 lowercase extensions, dot included (`'.png'`, `'.mp4'`) |
+| `FileExtensions` | `TFileExtension` | 19 lowercase extensions, dot included (`'.png'`, `'.mp4'`, `'.xml'`) |
 | `ContentTypes` | `TContentType` | 19 MIME strings - `'image/png'`, `'application/json'`, plus `OCTET_STREAM` as the fallback |
 | `ContentTypeTable` | - | `BY_EXTENSION`, the extension-to-content-type map, and `resolve()` over it |
 

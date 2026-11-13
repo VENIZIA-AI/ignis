@@ -256,7 +256,7 @@ const validationErrorSchema = z.object({
 
 const response = await fetch('/users', {
   method: 'POST',
-  headers: { [HTTP.Headers.CONTENT_TYPE]: 'application/json' },
+  headers: { [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON },
   body: JSON.stringify(data),
 });
 

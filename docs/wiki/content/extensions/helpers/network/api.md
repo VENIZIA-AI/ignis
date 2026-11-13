@@ -184,6 +184,7 @@ All HTTP method shortcuts (`get`, `post`, `put`, `patch`, `delete`, `query`) del
 
 ### IRequestOptions
 
+<!-- docs-code: off -->
 ```typescript
 interface IRequestOptions {
   url: string;
@@ -193,6 +194,7 @@ interface IRequestOptions {
   [extra: symbol | string]: unknown;
 }
 ```
+<!-- docs-code: on -->
 
 ### HTTP.Methods
 
@@ -299,6 +301,7 @@ constructor(opts: {
 
 #### IAxiosRequestOptions
 
+<!-- docs-code: off -->
 ```typescript
 interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOptions {
   url: string;
@@ -308,6 +311,7 @@ interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOptions {
   headers?: AnyObject;
 }
 ```
+<!-- docs-code: on -->
 
 > [!NOTE]
 > - **`body` maps to Axios's `data`** field internally.
@@ -393,6 +397,7 @@ constructor(opts: {
 
 #### INodeFetchRequestOptions
 
+<!-- docs-code: off -->
 ```typescript
 interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
   url: string;
@@ -400,6 +405,7 @@ interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
   params?: AnyObject;
 }
 ```
+<!-- docs-code: on -->
 
 #### Methods
 
@@ -465,9 +471,11 @@ If `headers` is a `Headers` instance, it is converted to a plain object via `Obj
 
 ### `QueryStringUtility.toQueryString`
 
+<!-- docs-code: off -->
 ```typescript
 QueryStringUtility.toQueryString(opts: { params: AnyObject; nullish?: 'empty' | 'skip'; nested?: 'drop' | 'json' }): string
 ```
+<!-- docs-code: on -->
 
 Writes `params` as a query string without `node:querystring`, so it works in a browser. The defaults match `node:querystring`: an array repeats its key (`a=1&a=2`), `null` and `undefined` give an empty value (`a=`), an object gives an empty value, a space is `%20`.
 

@@ -176,7 +176,7 @@ async refreshToken(context: TContext<Env>): Promise<{ token: string }> {
 **Implement `getUserInformation` (optional).** Backs both `GET /me` and `GET /who-am-i?withUserInformation=true`.
 
 ```typescript
-async getUserInformation(context: TContext<Env>, _opts: AnyObject): Promise<AnyObject> {
+async getUserInformation(context: TContext<Env>, _opts: Record<string, unknown>): Promise<Record<string, unknown>> {
   const currentUser = context.get(Authentication.CURRENT_USER);
   return this.userRepository.findById({ id: currentUser.userId });
 }

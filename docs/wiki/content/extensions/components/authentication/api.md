@@ -328,7 +328,7 @@ type TRouteAuthenticateConfig =
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `authenticate.strategies` | `TAuthStrategy[]` | -- | Strategy names to try, for example `['jwt', 'basic']` |
+| `authenticate.strategies` | `TAuthStrategy[]` | -- | Strategy names to try: `['jwt']` or `['jwt', 'basic']` |
 | `authenticate.mode` | `'any' \| 'all'` | `'any'` | `'any'`: first success wins. `'all'`: every strategy must pass |
 | `authenticate.skip` | `true` | -- | Skips authentication for this route entirely |
 
@@ -362,6 +362,7 @@ interface IJWTTokenPayload extends JWTPayload, IAuthUser {
 
 ### IAuthService
 
+<!-- docs-code: off -->
 ```typescript
 interface IAuthService<
   E extends Env = Env,
@@ -378,6 +379,7 @@ interface IAuthService<
   refreshToken?(context: TContext<E>): Promise<RTRS>;
 }
 ```
+<!-- docs-code: on -->
 
 > [!NOTE]
 > `getUserInformation` and `refreshToken` are optional. The generated auth controller returns `501` for `/me`, `/token/refresh`, or `?withUserInformation=true` on `/who-am-i` if the bound service doesn't implement the corresponding method.

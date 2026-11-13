@@ -729,6 +729,7 @@ flusher.stop();
 
 `HfLogger` implements the full `ILogger` contract plus its own static/bytes surface:
 
+<!-- docs-code: off -->
 | Method | Signature | Description |
 |--------|-----------|--------------|
 | `HfLogger.get` | `(scope: string) => HfLogger` | Get or create a cached logger instance (allocates the ring lazily on first call) |
@@ -736,6 +737,8 @@ flusher.stop();
 | `logger.debug/info/warn/error/emerg` | `(message: string, ...args: AnyType[]) => void` | `ILogger` methods; the cost depends on whether you pass args |
 | `logger.log` | `(level, message, ...args) => void`<br>`(level, messageBytes: Uint8Array) => void` | Overloaded: a string form and a bytes form |
 | `logger.for` | `(methodName: string) => ILogger` | Returns `HfLogger.get(`${scope}-${methodName}`)`, same dash composition as `BaseLogger` |
+
+<!-- docs-code: on -->
 
 With no args, `debug`/`info`/`warn`/`error`/`emerg` do a cache-lookup encode, then the bytes-path write. With args, they go through `LogFormatUtility.formatMessage` (deep inspection, redaction) and an uncached encode, the slow path. The string form of `log` follows the same cost model. The `Uint8Array` form is the legacy bytes hot path, unchanged.
 

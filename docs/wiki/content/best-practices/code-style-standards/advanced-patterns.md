@@ -121,9 +121,7 @@ export class UserController extends UserCrudController {
 Support multiple input types that resolve to a single value:
 
 <!-- docs-code: off -->
-<!-- docs-code: off -->
 ```typescript
-// From @venizia/ignis-helpers; the `any` is the library's deliberate-unchecked argument list
 export type TResolver<T> = (...args: any[]) => T;
 export type TValueOrResolver<T> = T | TResolver<T>;
 declare const isClass: <T>(target: any) => target is TClass<T>;
@@ -150,7 +148,6 @@ export class ResolverUtility {
   }
 }
 ```
-<!-- docs-code: on -->
 
 ### Usage
 

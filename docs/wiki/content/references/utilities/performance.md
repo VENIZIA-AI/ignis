@@ -42,7 +42,9 @@ await PerformanceUtility.executeWithMeasure({
 ## Notes
 
 - **`executeWithMeasure` resolves to whatever `task` returns**, sync or async.
+<!-- docs-code: off -->
 - **`opts`** is `{ logger?: ILogger; level?: string; description?: string; args?: any; scope: string; task: Function }`.
+<!-- docs-code: on -->
 - **Defaults:** `logger` falls back to `console`, `level` to `'debug'`, `description` to `'Executing'`.
 - **`args`, when provided, are logged as JSON (`%j`)** on both the `START` and `DONE` lines - handy for correlating a specific call's timing.
 - **`task` is wrapped in `Promise.resolve()`**, so a plain synchronous function works exactly like an `async` one.

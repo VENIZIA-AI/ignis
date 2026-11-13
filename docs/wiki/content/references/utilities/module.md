@@ -30,6 +30,7 @@ const client = vault.default({ endpoint, apiVersion: 'v1' });
 
 ## Methods
 
+<!-- docs-code: off -->
 | Method | Signature | What it does |
 |--------|-----------|---------------|
 | `load` | `load<T>(opts: { module: string }): Promise<T>` | Imports the module as an ES module, resolved from the project root |
@@ -39,6 +40,8 @@ const client = vault.default({ endpoint, apiVersion: 'v1' });
 | `register` | `register(opts: { modules: Record<string, AnyType> }): void` | Hands the framework peers the application already holds |
 | `setProjectRoot` | `setProjectRoot(opts: { projectRoot: string }): void` | Sets the root every peer lookup resolves against |
 | `getProjectRoot` | `getProjectRoot(): string` | The current root: `ProjectRootRegistry.getShared() ?? process.cwd()` |
+
+<!-- docs-code: on -->
 
 - `load` gives the copy your own `import` gets. Use it everywhere except a constructor.
 - `loadSync` resolves with `require`, so a peer that ships both builds comes back as its CommonJS copy unless it was registered (see `preload`).

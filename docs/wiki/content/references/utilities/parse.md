@@ -28,6 +28,7 @@ const camelObject = ParseUtility.keysToCamel({
 
 ## Methods
 
+<!-- docs-code: off -->
 | Method | Signature | What it does |
 |--------|-----------|---------------|
 | `isInt` | `isInt({ input: any }): boolean` | `true` when `input` is (or coerces to) an integer. |
@@ -36,13 +37,15 @@ const camelObject = ParseUtility.keysToCamel({
 | `toFloat` | `toFloat({ input: any, digit?: number }): number` | Parses `input` to a float, rounded to `digit` places (default `2`); `0` for invalid input |
 | `toBoolean` | `toBoolean({ input: any }): boolean` | `false` for `''`, `'false'`, `'0'`, `false`, `0`, `null`, `undefined`; `true` for everything else. |
 | `toCamel` | `toCamel({ input: string }): string` | Converts a `snake_case` or `kebab-case` string to `camelCase`. |
-| `keysToCamel` | `keysToCamel({ source: object }): any` | Recursively camelizes every key in `source` |
+| `keysToCamel` | `keysToCamel({ source: object })` | Recursively camelizes every key in `source` and returns the new object. The source declares no return type |
 | `parseArrayToMapWithKey` | `parseArrayToMapWithKey<T, K>({ items: T[], key: K }): Map<T[K], T>` | Turns an array of objects into a `Map` keyed by `key` |
 | `toDelimitedArray` | `toDelimitedArray({ input: unknown, separator?: string }): string[]` | Splits `input` on `separator` (default `,`) into trimmed, non-empty entries. `null`/`undefined` input returns `[]`. |
 | `blankToUndefined` | `blankToUndefined({ input: string \| undefined }): string \| undefined` | Trims `input`; `undefined` when nothing is left |
 | `toTrimmed` | `toTrimmed({ input: unknown }): string` | Stringifies and trims `input`; `null`/`undefined` returns `''`. |
 | `getDeepProperty` | `getDeepProperty<T, V>({ source: T, path: string }): V` | Reads a dotted path (`'a.b.c'`) off `source`; throws when a step is `null` or `undefined`. |
 | `getUID` | `getUID(): string` | Generates a short, uppercase, `Math.random()`-based ID - not cryptographically unique. |
+
+<!-- docs-code: on -->
 
 ## Notes
 

@@ -160,6 +160,7 @@ export interface IHealthCheckOptions {
 
 **For complex components with service interfaces:**
 
+<!-- docs-code: off -->
 ```typescript
 // src/components/auth/authenticate/common/types.ts
 import { AnyObject } from '@venizia/ignis-helpers';
@@ -208,6 +209,7 @@ export interface IAuthUser {
   [extra: string | symbol]: unknown;
 }
 ```
+<!-- docs-code: on -->
 
 **Naming Conventions:**
 - Interfaces: `I` prefix (e.g., `IHealthCheckOptions`, `IAuthService`)

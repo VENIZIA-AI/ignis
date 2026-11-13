@@ -114,6 +114,7 @@ type RouteKey = keyof typeof RouteConfigs; // 'GET_USERS' | 'GET_USER_BY_ID'
 
 ### Generic Type Constraints
 
+<!-- docs-code: off -->
 ```typescript
 export class DefaultRelationalRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId
@@ -129,6 +130,7 @@ export interface IAuthService<
   signIn(context: TContext<E>, opts: SIRQ): Promise<SIRS>;
 }
 ```
+<!-- docs-code: on -->
 
 ### Method Overloading for Conditional Returns
 

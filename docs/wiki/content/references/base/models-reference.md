@@ -853,24 +853,7 @@ Adds polymorphic data storage columns for entities that store values of differen
 
 `Source ->` [`packages/connectors/src/relational/postgres/models/enrichers/data-type.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/data-type.enricher.ts)
 
-<!-- docs-code: off -->
-```typescript
-interface IDataTypeColumns {
-  dataType: PgTextBuilderInitial;
-  nValue: PgDoublePrecisionBuilderInitial;
-  tValue: PgTextBuilderInitial;
-  bValue: PgCustomColumnBuilder<Buffer>;
-  jValue: PgJsonbBuilderInitial<Record<string, AnyType>>;
-  boValue: PgBooleanBuilderInitial;
-}
-
-declare class PostgresDataTypeEnricher {
-  static generateColumnDefs(opts?: TDataTypeEnricherOptions): IDataTypeColumns;
-}
-```
-<!-- docs-code: on -->
-
-The source writes the return type inline; `IDataTypeColumns` only names it here.
+`generateColumnDefs(opts?: TDataTypeEnricherOptions)` is static and returns the six columns below. The source declares no return type: it is inferred from the drizzle builders.
 
 Options (`TDataTypeEnricherOptions`):
 
@@ -889,6 +872,7 @@ type TDataTypeEnricherOptions = {
 
 Emitted columns:
 
+<!-- docs-code: off -->
 | Column | SQL type | DB column name | TypeScript type | Purpose |
 |--------|----------|----------------|-----------------|---------|
 | `dataType` | `text` | `data_type` | `string` | Type discriminator (`'number'`, `'text'`, `'json'`) |
@@ -897,6 +881,8 @@ Emitted columns:
 | `bValue` | `bytea` | `b_value` | `Buffer` | Binary values |
 | `jValue` | `jsonb` | `j_value` | `Record<string, any>` | JSON values |
 | `boValue` | `boolean` | `bo_value` | `boolean` | Boolean values |
+
+<!-- docs-code: on -->
 
 All columns are nullable by default (no `NOT NULL`), since typically only one value column is populated per row depending on the `dataType` discriminator. Pass `defaultValue` to attach SQL defaults to individual columns.
 

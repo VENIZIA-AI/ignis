@@ -121,7 +121,7 @@ Combines `IRedisSingleHelperProps`, `IRedisHelperCallbacks` and `IRedisModuleOpt
 | `database` | `number` | No | `0` | Redis database index (0-15) |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` uses ioredis `lazyConnect` |
 | `maxRetry` | `number` | No | `5` | Reconnect attempts before giving up - see [Retry strategy](#retry-strategy) |
-| `module` | `typeof import('ioredis')` | No | loaded by name | `ioredis` itself, for a compiled binary - see [Run in a compiled binary](./#run-in-a-compiled-binary) |
+| `module` | `typeof import('ioredis')` | No | loaded by name | [Compiled binary](./#run-in-a-compiled-binary): `ioredis` itself, for `bun build --compile` with no `node_modules` |
 | `onInitialized` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired synchronously after construction |
 | `onConnected` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired on TCP connection established |
 | `onReady` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired when client is ready for commands |
