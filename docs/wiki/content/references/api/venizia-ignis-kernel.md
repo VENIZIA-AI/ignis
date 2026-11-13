@@ -5249,7 +5249,7 @@ export declare class ModelUtility {
     }): TEntityId;
     static snakeToCamel<T extends z.ZodRawShape>(opts: {
         shape: T;
-    }): z.ZodPipe<z.ZodPipe<z.ZodObject<{ -readonly [P in keyof T]: T[P]; }, z.core.$strip>, z.ZodTransform<any, z.core.$InferObjectOutput<{ -readonly [P in keyof T]: T[P]; }, {}>>>, z.ZodObject<TCamelCaseKeys<T> extends infer T_1 ? { -readonly [P_1 in keyof T_1]: T_1[P_1]; } : never, z.core.$strip>>;
+    }): z.ZodPipe<z.ZodPipe<z.ZodObject<{ -readonly [P in keyof T]: T[P]; }, z.core.$strip>, z.ZodTransform<Record<string, unknown>, z.core.$InferObjectOutput<{ -readonly [P in keyof T]: T[P]; }, {}>>>, z.ZodObject<TCamelCaseKeys<T> extends infer T_1 ? { -readonly [P_1 in keyof T_1]: T_1[P_1]; } : never, z.core.$strip>>;
 }
 
 type TCamelCaseKeys<T extends z.ZodRawShape> = {

@@ -44,7 +44,7 @@ export declare class DgramTransport extends Transport {
         message: string;
         label?: string;
         timestamp?: string;
-        [extra: symbol]: any;
+        [extra: symbol]: unknown;
     }, callback: () => void): void;
 }
 ```
@@ -166,7 +166,7 @@ export declare class WinstonLogger extends BaseLogger {
     protected write(opts: {
         level: TLogLevel;
         message: string;
-        args: Array<AnyType>;
+        args: unknown[];
     }): void;
     protected child(opts: {
         scope: string;
@@ -233,7 +233,7 @@ export declare class WinstonLogger extends BaseLogger {
     protected write(opts: {
         level: TLogLevel;
         message: string;
-        args: Array<AnyType>;
+        args: unknown[];
     }): void;
     protected child(opts: {
         scope: string;

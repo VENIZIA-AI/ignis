@@ -17,12 +17,12 @@ The ILogger contract as a class - for instanceof and implementations sharing no 
 
 ```ts
 export declare abstract class AbstractLogger implements ILogger {
-    abstract debug(message: string, ...args: AnyType[]): void;
-    abstract info(message: string, ...args: AnyType[]): void;
-    abstract warn(message: string, ...args: AnyType[]): void;
-    abstract error(message: string, ...args: AnyType[]): void;
-    abstract emerg(message: string, ...args: AnyType[]): void;
-    abstract log(level: TLogLevel, message: string, ...args: AnyType[]): void;
+    abstract debug(message: string, ...args: unknown[]): void;
+    abstract info(message: string, ...args: unknown[]): void;
+    abstract warn(message: string, ...args: unknown[]): void;
+    abstract error(message: string, ...args: unknown[]): void;
+    abstract emerg(message: string, ...args: unknown[]): void;
+    abstract log(level: TLogLevel, message: string, ...args: unknown[]): void;
     abstract for(methodName: string): ILogger;
 }
 ```
@@ -429,7 +429,7 @@ Base for the worker-side helper that holds message buses by key.
 ```ts
 export declare abstract class AbstractWorkerThreadHelper extends BaseHelper implements IWorkerThread {
     buses: {
-        [workerKey: string | symbol]: IWorkerBus<AnyType, AnyType>;
+        [workerKey: string | symbol]: IWorkerBus<never, never>;
     };
     abstract bindWorkerBus<IC, IP>(opts: {
         key: string;
@@ -630,17 +630,17 @@ export declare abstract class BaseLogger extends AbstractLogger {
     protected abstract write(opts: {
         level: TLogLevel;
         message: string;
-        args: Array<AnyType>;
+        args: unknown[];
     }): void;
     protected abstract child(opts: {
         scope: string;
     }): ILogger;
-    debug(message: string, ...args: AnyType[]): void;
-    info(message: string, ...args: AnyType[]): void;
-    warn(message: string, ...args: AnyType[]): void;
-    error(message: string, ...args: AnyType[]): void;
-    emerg(message: string, ...args: AnyType[]): void;
-    log(level: TLogLevel, message: string, ...args: AnyType[]): void;
+    debug(message: string, ...args: unknown[]): void;
+    info(message: string, ...args: unknown[]): void;
+    warn(message: string, ...args: unknown[]): void;
+    error(message: string, ...args: unknown[]): void;
+    emerg(message: string, ...args: unknown[]): void;
+    log(level: TLogLevel, message: string, ...args: unknown[]): void;
     for(methodName: string): ILogger;
 }
 ```
@@ -1639,12 +1639,12 @@ export declare class HfLogger extends AbstractLogger {
     private static evictOldestMessage;
     private writeEntry;
     private writeString;
-    debug(message: string, ...args: AnyType[]): void;
-    info(message: string, ...args: AnyType[]): void;
-    warn(message: string, ...args: AnyType[]): void;
-    error(message: string, ...args: AnyType[]): void;
-    emerg(message: string, ...args: AnyType[]): void;
-    log(level: TLogLevel, message: string, ...args: AnyType[]): void;
+    debug(message: string, ...args: unknown[]): void;
+    info(message: string, ...args: unknown[]): void;
+    warn(message: string, ...args: unknown[]): void;
+    error(message: string, ...args: unknown[]): void;
+    emerg(message: string, ...args: unknown[]): void;
+    log(level: TLogLevel, message: string, ...args: unknown[]): void;
     log(level: TLogLevel, messageBytes: Uint8Array): void;
     for(methodName: string): ILogger;
 }
@@ -3486,7 +3486,7 @@ Message buses held by a worker thread, keyed by name.
 ```ts
 export interface IWorkerThread {
     buses: {
-        [workerKey: string | symbol]: IWorkerBus<AnyType, AnyType>;
+        [workerKey: string | symbol]: IWorkerBus<never, never>;
     };
 }
 ```
@@ -3645,12 +3645,12 @@ Source: `packages/helpers/src/modules/logger/common/constants.ts`
 An in-process keyed container, NOT an `IStorageHelper`: it stores values, not objects in a bucket.
 
 ```ts
-export declare class MemoryStorageHelper<T extends object = AnyObject> extends BaseHelper {
+export declare class MemoryStorageHelper<T extends object = Record<string, unknown>> extends BaseHelper {
     private container;
     constructor(opts?: {
         scope?: string;
     });
-    static newInstance<T extends object = AnyObject>(): MemoryStorageHelper<T>;
+    static newInstance<T extends object = Record<string, unknown>>(): MemoryStorageHelper<T>;
     isBound(key: keyof T): boolean;
     get<K extends keyof T>(key: K): T[K] | undefined;
     set<K extends keyof T>(key: K, value: T[K]): void;
@@ -3734,7 +3734,7 @@ export declare class ModuleUtility {
      * one. A module handed over with {@link register} wins; one that does not resolve from the project root is
      * imported by name as before. Use this everywhere except a constructor, which cannot await - see {@link preload}.
      */
-    static load<T = AnyType>(opts: {
+    static load<T = unknown>(opts: {
         module: string;
     }): Promise<T>;
     /**
@@ -3752,7 +3752,7 @@ export declare class ModuleUtility {
      * the one an application's `import` holds, and `instanceof` across the two fails. `await preload(...)` at the
      * entrypoint registers the ES module copy first, and this returns that.
      */
-    static loadSync<T = AnyType>(opts: {
+    static loadSync<T = unknown>(opts: {
         module: string;
     }): T;
     /**
@@ -5509,7 +5509,7 @@ Registry of workers by key. `register` refuses a worker once the pool holds one 
 ```ts
 export declare class WorkerPoolHelper extends BaseHelper {
     private static instance;
-    protected registry: Map<string | symbol, IWorker<any>>;
+    protected registry: Map<string | symbol, IWorker<unknown>>;
     private numberOfCPUs;
     private ignoreMaxWarning;
     constructor(opts?: {

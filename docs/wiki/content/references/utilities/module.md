@@ -33,8 +33,8 @@ const client = vault.default({ endpoint, apiVersion: 'v1' });
 <!-- docs-code: off -->
 | Method | Signature | What it does |
 |--------|-----------|---------------|
-| `load` | `load<T>(opts: { module: string }): Promise<T>` | Imports the module as an ES module, resolved from the project root |
-| `loadSync` | `loadSync<T>(opts: { module: string }): T` | Same, without awaiting - for a constructor or any path that cannot be async |
+| `load` | `load<T = unknown>(opts: { module: string }): Promise<T>` | Imports the module as an ES module, resolved from the project root |
+| `loadSync` | `loadSync<T = unknown>(opts: { module: string }): T` | Same, without awaiting - for a constructor or any path that cannot be async |
 | `preload` | `preload(opts: { modules: Array<string> }): Promise<void>` | Loads each module with `load` and registers it, so `loadSync` returns that copy |
 | `assertInstalled` | `assertInstalled(opts: { modules: Array<string>; scope?: string; allowRegistered?: boolean }): void` | Presence check only. Resolves each module in order and throws on the first miss, without executing any of them |
 | `register` | `register(opts: { modules: Record<string, AnyType> }): void` | Hands the framework peers the application already holds |

@@ -41,7 +41,7 @@ export class ParseUtility {
       return value;
     }
 
-    const camelized: any = {};
+    const camelized: Record<string, unknown> = {};
     const valueKeys = Object.keys(value);
 
     for (const key of valueKeys) {
@@ -80,7 +80,7 @@ export class ParseUtility {
 
   static keysToCamel(opts: { source: object }) {
     const { source } = opts;
-    const n: any = {};
+    const n: Record<string, unknown> = {};
     const keys = Object.keys(source);
 
     for (const key of keys) {
@@ -92,10 +92,10 @@ export class ParseUtility {
     return n;
   }
 
-  static isInt(opts: { input: any }) {
+  static isInt(opts: { input: unknown }) {
     const { input } = opts;
 
-    if (isNaN(input)) {
+    if (Number.isNaN(Number(input))) {
       return false;
     }
 
@@ -104,10 +104,10 @@ export class ParseUtility {
     );
   }
 
-  static isFloat(opts: { input: any }) {
+  static isFloat(opts: { input: unknown }) {
     const { input } = opts;
 
-    if (isNaN(input)) {
+    if (Number.isNaN(Number(input))) {
       return false;
     }
 
@@ -130,16 +130,16 @@ export class ParseUtility {
    * The second form is silent: a missing port reads `0` and a missing retry budget reads `0`, which
    * through `AbstractRedisHelper.buildRetryStrategy` means "give up after the first failure".
    */
-  static toInt(opts: { input: any }) {
+  static toInt(opts: { input: unknown }) {
     const { input } = opts;
 
     if (!input) {
       return 0;
     }
 
-    const normalized = input?.toString()?.replace(/,/g, '');
+    const normalized = String(input).replace(/,/g, '');
 
-    if (isNaN(normalized)) {
+    if (Number.isNaN(Number(normalized))) {
       return 0;
     }
 
@@ -148,16 +148,16 @@ export class ParseUtility {
     return Number.isNaN(parsed) ? 0 : parsed;
   }
 
-  static toFloat(opts: { input: any; digit?: number }) {
+  static toFloat(opts: { input: unknown; digit?: number }) {
     const { input, digit = 2 } = opts;
 
     if (!input) {
       return 0;
     }
 
-    const normalized = input?.toString()?.replace(/,/g, '');
+    const normalized = String(input).replace(/,/g, '');
 
-    if (isNaN(normalized)) {
+    if (Number.isNaN(Number(normalized))) {
       return 0;
     }
 
@@ -166,7 +166,7 @@ export class ParseUtility {
     return Number.isNaN(parsed) ? 0 : parsed;
   }
 
-  static toBoolean(opts: { input: any }): boolean {
+  static toBoolean(opts: { input: unknown }): boolean {
     const { input } = opts;
 
     return (
@@ -252,14 +252,14 @@ export class ParseUtility {
   /** Traverse a dotted property path on an object. */
   static getDeepProperty<T, V>(opts: { source: T; path: string }): V {
     const keys = opts.path.split('.');
-    let result: any = opts.source;
+    let result: unknown = opts.source;
 
     for (const key of keys) {
       if (result == null) {
         throw getError({ message: `Cannot read property '${key}' of ${result}` });
       }
 
-      result = result[key];
+      result = Reflect.get(Object(result), key);
     }
 
     return result as V;
