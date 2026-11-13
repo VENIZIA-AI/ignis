@@ -61,7 +61,13 @@ export const model = (input: IModelMetadata = {}): ClassDecorator => {
     const principal = settings?.authorize?.principal;
 
     if (principal && !Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {
-      Reflect.set(target, 'AUTHORIZATION_SUBJECT', principal);
+      // Assigning to a read-only or getter-only inherited property, or on a non-extensible class, threw;
+      // `Reflect.set` only answers false, so keep the throw.
+      if (!Reflect.set(target, 'AUTHORIZATION_SUBJECT', principal)) {
+        throw getError({
+          message: `[model][${target.name}] Cannot set 'AUTHORIZATION_SUBJECT' | The class has a read-only or getter-only 'AUTHORIZATION_SUBJECT', or is not extensible`,
+        });
+      }
     }
 
     MetadataRegistry.getInstance().registerModel({ target, metadata });
