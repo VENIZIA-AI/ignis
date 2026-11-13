@@ -1,10 +1,10 @@
 ---
 title: Logger arguments, parse inputs, storage and worker-thread types are unknown or typed, not any
 description: "ILogger and its classes take unknown arguments, ParseUtility takes unknown inputs and answers a record, MemoryStorageHelper defaults to a record, and the worker-thread buses are typed never, so nothing is trusted as any."
-packages: ['@venizia/ignis-helpers']
+packages: ['@venizia/ignis-helpers', '@venizia/ignis-kernel']
 migration:
   - id: logger-arguments-unknown
-    symbols: [ILogger, AbstractLogger, BaseLogger, ConsoleLogger, HfLogger, LoggerFactory]
+    symbols: [ILogger, AbstractLogger, BaseLogger, ConsoleLogger, HfLogger, PinoLogger, WinstonLogger, DgramTransport, LoggerFactory]
     upgrade:
       before: |
         class AuditLogger extends BaseLogger {
@@ -31,11 +31,12 @@ migration:
       steps:
         - "Nothing to undo."
   - id: keys-to-camel-answers-a-record
-    symbols: [ParseUtility.keysToCamel]
+    symbols: [ParseUtility.keysToCamel, ModelUtility.snakeToCamel]
     upgrade:
       before: |
         const row = ParseUtility.keysToCamel({ source: raw });
         const id: string = row.userId.value; // any
+        // ModelUtility.snakeToCamel, which wraps it, now yields the same record
       after: |
         const row = ParseUtility.keysToCamel({ source: raw });
         // a Record<string, unknown>: narrow what you read
@@ -58,7 +59,7 @@ migration:
       steps:
         - "Drop the type argument; the older default was AnyObject."
   - id: worker-buses-never
-    symbols: [IWorkerThread, IWorkerBus, AbstractWorkerThreadHelper]
+    symbols: [IWorkerThread, IWorkerBus, AbstractWorkerThreadHelper, BaseWorkerThreadHelper, WorkerPoolHelper]
     upgrade:
       before: |
         const bus = thread.buses['jobs']; // IWorkerBus<any, any>
@@ -100,7 +101,7 @@ migration:
 - **Logger.** `ILogger` and its classes take `...args: unknown[]`.
 - **Parse.** `ParseUtility.isInt`, `isFloat`, `toInt`, `toFloat` and `toBoolean` take an `unknown` input; `keysToCamel` answers a `Record<string, unknown>`.
 - **Storage.** `MemoryStorageHelper` and `newInstance` default to `Record<string, unknown>`.
-- **Worker thread.** `IWorkerThread.buses` holds `IWorkerBus<never, never>`.
+- **Worker thread.** `IWorkerThread.buses` holds `IWorkerBus<never, never>`, and the pool's protected registry holds `IWorker<unknown>`.
 - **Modules.** `ModuleUtility.load` and `loadSync` default to `unknown`.
 
 ## Who is affected
