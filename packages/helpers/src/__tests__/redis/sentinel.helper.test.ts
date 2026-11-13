@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'bun:test';
+import { Redis } from 'ioredis';
 import { RedisSentinelHelper, type IRedisSentinelHelperProps } from '@/modules/redis';
 
 describe('RedisSentinelHelper', () => {
@@ -105,6 +106,50 @@ describe('RedisSentinelHelper', () => {
     expect(options.sentinelUsername ?? null).toBeNull();
     expect(options.password).toBe('data-secret');
     expect(options.sentinelPassword).toBe('sentinel-secret');
+  });
+
+  it('first-class credentials win over redisOptions, and an omitted one does not clobber it', () => {
+    const wins = build(
+      {
+        username: 'data-user',
+        redisOptions: {
+          username: 'raw-user',
+          sentinelUsername: 'raw-sentinel-user',
+          sentinelPassword: 'raw-sentinel-secret',
+        },
+      },
+      { username: 'sentinel-user', password: 'sentinel-secret' },
+    ).getClient().options;
+    const kept = build({
+      redisOptions: {
+        sentinelUsername: 'raw-sentinel-user',
+        sentinelPassword: 'raw-sentinel-secret',
+      },
+    }).getClient().options;
+
+    expect(wins.username).toBe('data-user');
+    expect(wins.sentinelUsername).toBe('sentinel-user');
+    expect(wins.sentinelPassword).toBe('sentinel-secret');
+    expect(kept.sentinelUsername).toBe('raw-sentinel-user');
+    expect(kept.sentinelPassword).toBe('raw-sentinel-secret');
+  });
+
+  it('duplicateClient keeps the data-node and Sentinel credentials', () => {
+    const source = build(
+      { username: 'data-user', password: 'data-secret' },
+      { username: 'sentinel-user', password: 'sentinel-secret' },
+    );
+    const copy = source.duplicateClient();
+
+    if (!(copy instanceof Redis)) {
+      throw new Error('a Sentinel helper duplicates to a Redis client');
+    }
+
+    expect(copy.options.username).toBe('data-user');
+    expect(copy.options.password).toBe('data-secret');
+    expect(copy.options.sentinelUsername).toBe('sentinel-user');
+    expect(copy.options.sentinelPassword).toBe('sentinel-secret');
+    copy.disconnect();
   });
 
   it('does NOT clobber a redisOptions username when the first-class field is omitted', () => {

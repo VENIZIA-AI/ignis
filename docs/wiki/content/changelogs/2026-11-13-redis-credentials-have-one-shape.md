@@ -4,7 +4,7 @@ description: "Top-level username and password are always the data nodes' credent
 packages: ['@venizia/ignis-helpers']
 migration:
   - id: sentinels-to-sentinel-nodes
-    symbols: [IRedisSentinelHelperProps, IRedisSentinelHelperOptions, RedisSentinelHelper]
+    symbols: [IRedisSentinelHelperProps, IRedisSentinelHelperOptions, RedisSentinelHelper, RedisHelperFactory]
     upgrade:
       before: |
         new RedisSentinelHelper({
@@ -25,7 +25,7 @@ migration:
         - "Pass the list as sentinels at the top level again, with masterName beside it, and drop the sentinel scope."
     data: "A JavaScript caller that still passes sentinels at the top level gets a TypeError at construction, because sentinel.nodes is read."
   - id: master-name-to-sentinel-master-name
-    symbols: [IRedisSentinelHelperProps, IRedisSentinelHelperOptions, RedisSentinelHelper]
+    symbols: [IRedisSentinelHelperProps, IRedisSentinelHelperOptions, RedisSentinelHelper, RedisHelperFactory]
     upgrade:
       before: |
         new RedisSentinelHelper({ name: 'ha-cache', masterName: 'mymaster', sentinels });
@@ -34,9 +34,9 @@ migration:
     downgrade:
       steps:
         - "Move masterName back to the top level."
-    data: "A JavaScript caller that still passes masterName at the top level has it ignored: ioredis then looks for a group with no name. Move it before you deploy."
+    data: "A JavaScript caller that still passes masterName at the top level fails at construction: with no sentinel scope, reading sentinel.nodes throws a TypeError; with the scope but no sentinel.masterName, ioredis throws 'Requires the name of master.'. Move it before you deploy."
   - id: role-to-sentinel-role
-    symbols: [IRedisSentinelHelperProps, IRedisSentinelHelperOptions, RedisSentinelHelper]
+    symbols: [IRedisSentinelHelperProps, IRedisSentinelHelperOptions, RedisSentinelHelper, RedisHelperFactory]
     upgrade:
       before: |
         new RedisSentinelHelper({ name: 'ha-cache', masterName: 'mymaster', sentinels, role: RedisSentinelRoles.SLAVE });
@@ -49,36 +49,44 @@ migration:
       steps:
         - "Move role back to the top level."
     data: "A JavaScript caller that still passes role at the top level has it ignored: the helper then connects to the master, not a replica. Move it before you deploy."
-  - id: sentinel-credentials-to-sentinel-scope
-    symbols: [IRedisSentinelHelperProps, IRedisSentinelHelperOptions]
+  - id: sentinel-username-to-sentinel-scope
+    symbols: [IRedisSentinelHelperProps, IRedisSentinelHelperOptions, RedisSentinelHelper, RedisHelperFactory]
+    upgrade:
+      before: |
+        new RedisSentinelHelper({ name: 'ha-cache', masterName: 'mymaster', sentinels, sentinelUsername: 'sentinel-user' });
+      after: |
+        new RedisSentinelHelper({
+          name: 'ha-cache',
+          sentinel: { masterName: 'mymaster', username: 'sentinel-user', nodes: sentinels },
+        });
+    downgrade:
+      steps:
+        - "Move sentinel.username back to sentinelUsername at the top level."
+    data: "A JavaScript caller that still passes sentinelUsername at the top level has it ignored: the Sentinel processes then get no user. Move it before you deploy."
+  - id: sentinel-password-to-sentinel-scope
+    symbols: [IRedisSentinelHelperProps, IRedisSentinelHelperOptions, RedisSentinelHelper, RedisHelperFactory]
     upgrade:
       before: |
         new RedisSentinelHelper({
           name: 'ha-cache',
           masterName: 'mymaster',
-          sentinels: [{ host: '10.0.0.1' }],
-          sentinelUsername: 'sentinel-user',
+          sentinels,
           sentinelPassword: 'sentinel-secret',
           password: 'data-secret',
         });
       after: |
         new RedisSentinelHelper({
           name: 'ha-cache',
-          sentinel: {
-            masterName: 'mymaster',
-            username: 'sentinel-user',
-            password: 'sentinel-secret',
-            nodes: [{ host: '10.0.0.1' }],
-          },
+          sentinel: { masterName: 'mymaster', password: 'sentinel-secret', nodes: sentinels },
           username: 'data-user', // new: the data nodes' ACL user
           password: 'data-secret',
         });
     downgrade:
       steps:
-        - "Move sentinel.username and sentinel.password back to sentinelUsername and sentinelPassword at the top level, and drop username if you added it."
-    data: "A JavaScript caller that still passes sentinelUsername or sentinelPassword at the top level has them ignored: the Sentinel processes then get no credentials. Move them before you deploy."
+        - "Move sentinel.password back to sentinelPassword at the top level, and drop username if you added it."
+    data: "A JavaScript caller that still passes sentinelPassword at the top level has it ignored: the Sentinel processes then get no password. Move it before you deploy."
   - id: cluster-node-password-to-top-level
-    symbols: [IRedisClusterHelperProps, IRedisClusterHelperOptions, RedisClusterHelper]
+    symbols: [IRedisClusterHelperProps, IRedisClusterHelperOptions, RedisClusterHelper, RedisHelperFactory]
     upgrade:
       before: |
         new RedisClusterHelper({
@@ -150,3 +158,22 @@ new RedisSentinelHelper({
   password: 'data-secret',
 });
 ```
+
+A cluster takes the password once, for every node:
+
+```typescript
+// Before
+new RedisClusterHelper({
+  name: 'cache-cluster',
+  nodes: [{ host: 'redis-node-1', port: 7000, password: 'cluster-secret' }],
+});
+
+// After
+new RedisClusterHelper({
+  name: 'cache-cluster',
+  nodes: [{ host: 'redis-node-1', port: 7000 }],
+  password: 'cluster-secret',
+});
+```
+
+The Sentinel `role` and `username` move the same way: `role: RedisSentinelRoles.SLAVE` and `sentinelUsername: 'user'` at the top level become `sentinel: { role: RedisSentinelRoles.SLAVE, username: 'user', ... }`.

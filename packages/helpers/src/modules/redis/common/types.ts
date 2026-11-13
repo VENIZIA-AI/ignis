@@ -46,11 +46,12 @@ export interface IRedisClusterHelperProps extends IRedisCredentials {
   clusterOptions?: ClusterOptions;
 }
 
-/** Connection settings for Redis behind Sentinel. Top-level `username` and `password` are the data nodes'; everything Sentinel-specific is in `sentinel`. `redisOptions` overrides the helper defaults. */
+/** Connection settings for Redis behind Sentinel. Top-level `username` and `password` are the data nodes'; everything Sentinel-specific is in `sentinel`. Precedence (low -> high): the helper defaults, `redisOptions`, then the first-class fields; an auth field left unset falls back to `redisOptions`. */
 export interface IRedisSentinelHelperProps extends IRedisCredentials {
   name: string;
   /** The monitored group, which side to read, the Sentinel processes' own credentials (not the data nodes') and their addresses. */
   sentinel: IRedisCredentials & {
+    /** `username` and `password` here are the Sentinel processes' own (ioredis `sentinelUsername`, `sentinelPassword`), never the data nodes'. */
     /** The group name in sentinel.conf (`sentinel monitor <masterName> ...`). Maps to ioredis `name`. */
     masterName: string;
     /** Connect to the master or to a replica. @default RedisSentinelRoles.MASTER */

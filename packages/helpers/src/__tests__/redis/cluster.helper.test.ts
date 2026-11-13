@@ -1,4 +1,3 @@
-import type { AnyType } from '@/common/types';
 import { afterEach, describe, expect, it } from 'bun:test';
 import { RedisClusterHelper } from '@/modules/redis';
 
@@ -19,11 +18,7 @@ describe('RedisClusterHelper', () => {
       ],
       clusterOptions: { lazyConnect: true },
     });
-    const nodes = (
-      helper.getClient() as AnyType as {
-        startupNodes: Array<{ host: string; port: number }>;
-      }
-    ).startupNodes;
+    const nodes = Reflect.get(helper.getClient(), 'startupNodes');
     expect(nodes).toEqual([
       { host: '127.0.0.1', port: 7000 },
       { host: '127.0.0.2', port: 7001 },
@@ -36,9 +31,7 @@ describe('RedisClusterHelper', () => {
       nodes: [{ host: '127.0.0.1' }],
       clusterOptions: { lazyConnect: true },
     });
-    const nodes = (
-      helper.getClient() as AnyType as { startupNodes: Array<{ host: string; port: number }> }
-    ).startupNodes;
+    const nodes = Reflect.get(helper.getClient(), 'startupNodes');
 
     expect(nodes).toEqual([{ host: '127.0.0.1', port: 6379 }]);
   });
@@ -124,6 +117,24 @@ describe('RedisClusterHelper reconnect policy', () => {
     expect(client.options.redisOptions?.username).toBe('acl-user');
     expect(client.options.redisOptions?.password).toBe('raw-secret');
     client.disconnect();
+  });
+
+  it('an explicit clusterOptions.redisOptions username wins, and an undefined one does not clobber', () => {
+    const wins = build({
+      username: 'acl-user',
+      clusterOptions: { redisOptions: { username: 'raw-user' } },
+    }).getClient();
+    const unset = build({
+      username: 'acl-user',
+      password: 'acl-secret',
+      clusterOptions: { redisOptions: { username: undefined, password: undefined } },
+    }).getClient();
+
+    expect(wins.options.redisOptions?.username).toBe('raw-user');
+    expect(unset.options.redisOptions?.username).toBe('acl-user');
+    expect(unset.options.redisOptions?.password).toBe('acl-secret');
+    wins.disconnect();
+    unset.disconnect();
   });
 
   it('duplicateClient keeps the credentials', () => {

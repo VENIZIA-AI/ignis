@@ -329,14 +329,14 @@ Sentinel deployments have four separate authentication relationships. The app co
 | # | From | To | App field | Server config |
 |---|------|----|-----------|---------------|
 | 1 | **App** | **Sentinel processes** | `sentinel.username`, `sentinel.password` | `requirepass` in sentinel.conf |
-| 2 | **App** | **Data nodes** (master/replica) | `password` | `requirepass` in redis.conf |
+| 2 | **App** | **Data nodes** (master/replica) | `username`, `password` | `requirepass` or an ACL user in redis.conf |
 | 3 | **Sentinel** | **Data nodes** | (not set by app) | `sentinel auth-pass <group> <pass>` in sentinel.conf |
 | 4 | **Replica** | **Master** (replication) | (not set by app) | `masterauth` in redis.conf |
 
 **Relationship 3 is the silent failure.** If the data nodes require a password but `sentinel.conf` has no `sentinel auth-pass`, the sentinel processes can't check master health. They trigger false failovers instead. Configure `sentinel auth-pass` on the server side, even when your app sets only `password`.
 
 **Common cases:**
-- Private network, sentinels unauthenticated: set only `password`.
+- Private network, sentinels unauthenticated: set only `password` (and `username` for an ACL user).
 - Fully secured cluster: set both `password` and `sentinel.password`; configure relationships 3 and 4 on the servers.
 
 ### Failover behavior
