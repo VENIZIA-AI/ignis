@@ -459,12 +459,12 @@ declare const BaseRegistry: {
         getProvideMetadata<Target extends object = object>(opts: {
             target: Target;
         }): import("./common/index.js").IProvideMetadata[];
-        define: <Target extends object = object, Value = unknown>(opts: {
+        define: <Target extends object = object, Value = any>(opts: {
             target: Target;
             key: import("@venizia/ignis-inversion").TBindingKey;
             value: Value;
         }) => void;
-        get: <Target extends object = object, Value = unknown>(opts: {
+        get: <Target extends object = object, Value = any>(opts: {
             target: Target;
             key: import("@venizia/ignis-inversion").TBindingKey;
         }) => Value | undefined;
@@ -479,7 +479,7 @@ declare const BaseRegistry: {
         getKeys: <Target extends object = object>(opts: {
             target: Target;
         }) => import("@venizia/ignis-inversion").TBindingKey[];
-        getMethodNames: <T = unknown>(opts: {
+        getMethodNames: <T = any>(opts: {
             target: import("@venizia/ignis-inversion").TClass<T>;
         }) => string[];
         clearMetadata: <T extends object = object>(opts: {
@@ -533,12 +533,12 @@ declare const BaseRegistry: {
         hasRpcs<Target extends object = object>(opts: {
             target: Target;
         }): boolean;
-        define: <Target extends object = object, Value = unknown>(opts: {
+        define: <Target extends object = object, Value = any>(opts: {
             target: Target;
             key: import("@venizia/ignis-inversion").TBindingKey;
             value: Value;
         }) => void;
-        get: <Target extends object = object, Value = unknown>(opts: {
+        get: <Target extends object = object, Value = any>(opts: {
             target: Target;
             key: import("@venizia/ignis-inversion").TBindingKey;
         }) => Value | undefined;
@@ -553,7 +553,7 @@ declare const BaseRegistry: {
         getKeys: <Target extends object = object>(opts: {
             target: Target;
         }) => import("@venizia/ignis-inversion").TBindingKey[];
-        getMethodNames: <T = unknown>(opts: {
+        getMethodNames: <T = any>(opts: {
             target: import("@venizia/ignis-inversion").TClass<T>;
         }) => string[];
         clearMetadata: <T extends object = object>(opts: {
@@ -607,12 +607,12 @@ declare const BaseRegistry: {
             methodName: string | symbol;
             configs: import("../../index.js").IAuthRouteConfig;
         }): void;
-        define: <Target extends object = object, Value = unknown>(opts: {
+        define: <Target extends object = object, Value = any>(opts: {
             target: Target;
             key: import("@venizia/ignis-inversion").TBindingKey;
             value: Value;
         }) => void;
-        get: <Target extends object = object, Value = unknown>(opts: {
+        get: <Target extends object = object, Value = any>(opts: {
             target: Target;
             key: import("@venizia/ignis-inversion").TBindingKey;
         }) => Value | undefined;
@@ -627,7 +627,7 @@ declare const BaseRegistry: {
         getKeys: <Target extends object = object>(opts: {
             target: Target;
         }) => import("@venizia/ignis-inversion").TBindingKey[];
-        getMethodNames: <T = unknown>(opts: {
+        getMethodNames: <T = any>(opts: {
             target: import("@venizia/ignis-inversion").TClass<T>;
         }) => string[];
         clearMetadata: <T extends object = object>(opts: {
@@ -679,12 +679,12 @@ declare const BaseRegistry: {
         getGrpcControllerMetadata<Target extends object = object>(opts: {
             target: Target;
         }): import("./common/index.js").IGrpcControllerMetadata | undefined;
-        define: <Target extends object = object, Value = unknown>(opts: {
+        define: <Target extends object = object, Value = any>(opts: {
             target: Target;
             key: import("@venizia/ignis-inversion").TBindingKey;
             value: Value;
         }) => void;
-        get: <Target extends object = object, Value = unknown>(opts: {
+        get: <Target extends object = object, Value = any>(opts: {
             target: Target;
             key: import("@venizia/ignis-inversion").TBindingKey;
         }) => Value | undefined;
@@ -699,7 +699,7 @@ declare const BaseRegistry: {
         getKeys: <Target extends object = object>(opts: {
             target: Target;
         }) => import("@venizia/ignis-inversion").TBindingKey[];
-        getMethodNames: <T = unknown>(opts: {
+        getMethodNames: <T = any>(opts: {
             target: import("@venizia/ignis-inversion").TClass<T>;
         }) => string[];
         clearMetadata: <T extends object = object>(opts: {
@@ -740,7 +740,7 @@ declare const BaseRegistry: {
     new (...args: any[]): {
         repositoryBindings: Map<string, IRepositoryBinding<import("../../index.js").AbstractEntity>>;
         repositoryBindingsByClass: Map<Function, IRepositoryBinding<import("../../index.js").AbstractEntity>>;
-        datasourceModels: Map<string | Function, Set<TClass<unknown>>>;
+        datasourceModels: Map<string | Function, Set<TClass<AnyType>>>;
         setRepositoryMetadata<Target extends object = object, Model extends import("../../index.js").AbstractEntity = import("../../index.js").AbstractEntity<unknown>, DataSource extends import("../../index.js").IDataSource = import("../../index.js").IDataSource<{}, import("../../index.js").TAnyDataSourceSchema, {}>>(opts: {
             target: Target;
             metadata: import("./common/index.js").TRepositoryMetadata<Model, DataSource> & {
@@ -760,7 +760,7 @@ declare const BaseRegistry: {
         }): IRepositoryBinding<import("../../index.js").AbstractEntity> | undefined;
         getDataSourceModelClasses(opts: {
             dataSource: string | TClass<import("../../index.js").IDataSource>;
-        }): Set<TClass<unknown>>;
+        }): Set<TClass<AnyType>>;
         resolveModelRelations(modelMeta: IModelRegistryEntry): unknown;
         getModels(opts: {
             dataSource: string | TClass<import("../../index.js").IDataSource>;
@@ -773,7 +773,7 @@ declare const BaseRegistry: {
             dataSource: string | TClass<import("../../index.js").IDataSource>;
         }): Array<TClass<unknown>>;
         resolveModelKey(opts: {
-            modelClass: TClass<unknown>;
+            modelClass: TClass<AnyType>;
         }): string;
         buildSchema(opts: {
             dataSource: string | TClass<import("../../index.js").IDataSource>;
@@ -784,12 +784,12 @@ declare const BaseRegistry: {
         hasModels(opts: {
             dataSource: string | TClass<import("../../index.js").IDataSource>;
         }): boolean;
-        define: <Target extends object = object, Value = unknown>(opts: {
+        define: <Target extends object = object, Value = any>(opts: {
             target: Target;
             key: import("@venizia/ignis-inversion").TBindingKey;
             value: Value;
         }) => void;
-        get: <Target extends object = object, Value = unknown>(opts: {
+        get: <Target extends object = object, Value = any>(opts: {
             target: Target;
             key: import("@venizia/ignis-inversion").TBindingKey;
         }) => Value | undefined;
@@ -804,7 +804,7 @@ declare const BaseRegistry: {
         getKeys: <Target extends object = object>(opts: {
             target: Target;
         }) => import("@venizia/ignis-inversion").TBindingKey[];
-        getMethodNames: <T = unknown>(opts: {
+        getMethodNames: <T = any>(opts: {
             target: import("@venizia/ignis-inversion").TClass<T>;
         }) => string[];
         clearMetadata: <T extends object = object>(opts: {
@@ -889,12 +889,12 @@ declare const BaseRegistry: {
             authorize: import("./common/index.js").IModelAuthorizeSettings;
             entry: IModelRegistryEntry;
         }>;
-        define: <Target extends object = object, Value = unknown>(opts: {
+        define: <Target extends object = object, Value = any>(opts: {
             target: Target;
             key: import("@venizia/ignis-inversion").TBindingKey;
             value: Value;
         }) => void;
-        get: <Target extends object = object, Value = unknown>(opts: {
+        get: <Target extends object = object, Value = any>(opts: {
             target: Target;
             key: import("@venizia/ignis-inversion").TBindingKey;
         }) => Value | undefined;
@@ -909,7 +909,7 @@ declare const BaseRegistry: {
         getKeys: <Target extends object = object>(opts: {
             target: Target;
         }) => import("@venizia/ignis-inversion").TBindingKey[];
-        getMethodNames: <T = unknown>(opts: {
+        getMethodNames: <T = any>(opts: {
             target: import("@venizia/ignis-inversion").TClass<T>;
         }) => string[];
         clearMetadata: <T extends object = object>(opts: {
@@ -955,12 +955,12 @@ declare const BaseRegistry: {
         getDataSourceMetadata<Target extends object = object>(opts: {
             target: Target;
         }): import("./common/index.js").IDataSourceMetadata | undefined;
-        define: <Target extends object = object, Value = unknown>(opts: {
+        define: <Target extends object = object, Value = any>(opts: {
             target: Target;
             key: import("@venizia/ignis-inversion").TBindingKey;
             value: Value;
         }) => void;
-        get: <Target extends object = object, Value = unknown>(opts: {
+        get: <Target extends object = object, Value = any>(opts: {
             target: Target;
             key: import("@venizia/ignis-inversion").TBindingKey;
         }) => Value | undefined;
@@ -975,7 +975,7 @@ declare const BaseRegistry: {
         getKeys: <Target extends object = object>(opts: {
             target: Target;
         }) => import("@venizia/ignis-inversion").TBindingKey[];
-        getMethodNames: <T = unknown>(opts: {
+        getMethodNames: <T = any>(opts: {
             target: import("@venizia/ignis-inversion").TClass<T>;
         }) => string[];
         clearMetadata: <T extends object = object>(opts: {

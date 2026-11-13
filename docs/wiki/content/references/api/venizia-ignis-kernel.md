@@ -1523,7 +1523,7 @@ export declare abstract class BaseRestController<RouteEnv extends Env = Env, Rou
         scope: string;
         args: unknown;
         task: () => Promise<R>;
-    }): Promise<R>;
+    }): Promise<any>;
     /** Returns the full `{ count, data }` envelope, or just `data` when the client sent `x-request-count: false`; `X-Response-Count` is set either way. */
     normalizeCountData<ResponseSchema extends AnyType, RequestContext extends TRouteContext<RouteEnv> = TRouteContext<RouteEnv>, ResponseData extends {
         count: number;
@@ -2141,7 +2141,7 @@ export declare class CrudControllerFactory extends BaseHelper {
                 scope: string;
                 args: unknown;
                 task: () => Promise<R>;
-            }): Promise<R>;
+            }): Promise<any>;
             normalizeCountData<ResponseSchema extends unknown, RequestContext extends import("../index.js").TRouteContext<RouteEnv> = import("../index.js").TRouteContext<RouteEnv>, ResponseData extends {
                 count: number;
                 data?: import("@venizia/ignis-helpers/common").TNullable<ResponseSchema>;
@@ -4782,7 +4782,7 @@ Source: `packages/kernel/src/helpers/inversion/common/types/controller.ts`
 True for `DataSourceRoot` itself and for any class extending it (`AbstractDataSource` among them), across package copies.
 
 ```ts
-export declare const isDataSourceClass: (value: unknown) => value is TClass<unknown>;
+export declare const isDataSourceClass: (value: unknown) => value is TClass<AnyType>;
 ```
 
 Source: `packages/kernel/src/base/datasources/root.ts`
@@ -7892,7 +7892,7 @@ package into a bundle - a name string pulls nothing, and a bare side-effect impo
 dropped. Untyped because `IRelationalDriver` lives under `connectors/`, off-limits to `base/`.
 
 ```ts
-export type TDataSourceDriverClass = TClass<unknown>;
+export type TDataSourceDriverClass = TClass<AnyType>;
 ```
 
 Source: `packages/kernel/src/base/datasources/common/types.ts`
@@ -9065,8 +9065,8 @@ Source: `packages/kernel/src/base/auth/authorize/builders/policy.builder.ts`
 Update data supporting both regular fields and JSON path updates via dot notation.
 
 ```ts
-export type TUpdateData<T = object> = Partial<T> & {
-    [jsonPath: string]: unknown;
+export type TUpdateData<T = any> = Partial<T> & {
+    [jsonPath: string]: any;
 };
 ```
 

@@ -970,7 +970,7 @@ export declare class StaticAssetControllerFactory {
                 scope: string;
                 args: unknown;
                 task: () => Promise<R>;
-            }): Promise<R>;
+            }): Promise<any>;
             normalizeCountData<ResponseSchema extends unknown, RequestContext extends import("@venizia/ignis-kernel").TRouteContext<import("hono").Env> = import("@venizia/ignis-kernel").TRouteContext<import("hono").Env>, ResponseData extends {
                 count: number;
                 data?: import("@venizia/ignis-helpers").TNullable<ResponseSchema>;

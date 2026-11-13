@@ -236,7 +236,6 @@ export class HTTP {
 
 /** An HTTP method from `HTTP.Methods`, in lowercase or uppercase. */
 export type THttpMethod = ValueOf<typeof HTTP.Methods> | Uppercase<ValueOf<typeof HTTP.Methods>>;
-
 /** An HTTP protocol from `HTTP.Protocols`, in lowercase or uppercase. */
 export type THttpProtocol =
   | ValueOf<typeof HTTP.Protocols>
