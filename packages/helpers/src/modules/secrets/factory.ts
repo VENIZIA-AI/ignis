@@ -1,4 +1,3 @@
-import type { AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
 import { ModuleUtility } from '@/utilities/module.utility';
 import { SecretProviders, type ISecretsHelper, type ISecretsRegistration } from './common';
@@ -19,7 +18,8 @@ export class SecretsHelperFactory {
       renewBeforeRatio: opts.renewBeforeRatio,
     };
 
-    const config = opts.config as AnyType;
+    // Named before the switch: in `default` the union is exhausted and `opts` is `never`, yet an untyped JS caller can still land there.
+    const provider: string = opts.provider;
 
     switch (opts.provider) {
       case SecretProviders.SYSTEM_ENVS: {
@@ -27,7 +27,7 @@ export class SecretsHelperFactory {
       }
       case SecretProviders.HASHICORP_VAULT: {
         // `client` is the injected escape: the helper never reaches for the peer, so demanding it here would defeat the escape.
-        if (!config?.client) {
+        if (!opts.config.client) {
           ModuleUtility.assertInstalled({
             scope: 'HashiCorpVaultHelper',
             modules: ['node-vault'],
@@ -35,11 +35,11 @@ export class SecretsHelperFactory {
           });
         }
 
-        return new HashiCorpVaultHelper({ ...config, ...shared });
+        return new HashiCorpVaultHelper({ ...opts.config, ...shared });
       }
       case SecretProviders.DOTENV_VAULT: {
         // `decode` is the injected escape - same reasoning as `client` above.
-        if (!config?.decode) {
+        if (!opts.config?.decode) {
           ModuleUtility.assertInstalled({
             scope: 'DotenvVaultHelper',
             modules: ['@dotenvx/dotenvx'],
@@ -47,11 +47,11 @@ export class SecretsHelperFactory {
           });
         }
 
-        return new DotenvVaultHelper({ ...config, ...shared });
+        return new DotenvVaultHelper({ ...opts.config, ...shared });
       }
       default: {
         throw getError({
-          message: `[createSecretsHelper] Unsupported secret provider: ${opts.provider}`,
+          message: `[createSecretsHelper] Unsupported secret provider: ${provider}`,
         });
       }
     }

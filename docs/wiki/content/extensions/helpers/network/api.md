@@ -184,17 +184,15 @@ All HTTP method shortcuts (`get`, `post`, `put`, `patch`, `delete`, `query`) del
 
 ### IRequestOptions
 
-<!-- docs-code: off -->
 ```typescript
 interface IRequestOptions {
   url: string;
   method?: THttpMethod;
-  params?: AnyObject;
+  params?: Record<string, unknown>;
   timeout?: number;
   [extra: symbol | string]: unknown;
 }
 ```
-<!-- docs-code: on -->
 
 ### HTTP.Methods
 
@@ -301,17 +299,15 @@ constructor(opts: {
 
 #### IAxiosRequestOptions
 
-<!-- docs-code: off -->
 ```typescript
 interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOptions {
   url: string;
   method?: THttpMethod;
-  params?: AnyObject;
-  body?: AnyObject;       // Mapped to Axios `data`
-  headers?: AnyObject;
+  params?: Record<string, unknown>;
+  body?: Record<string, unknown>;       // Mapped to Axios `data`
+  headers?: Record<string, string>;
 }
 ```
-<!-- docs-code: on -->
 
 > [!NOTE]
 > - **`body` maps to Axios's `data`** field internally.
@@ -397,15 +393,13 @@ constructor(opts: {
 
 #### INodeFetchRequestOptions
 
-<!-- docs-code: off -->
 ```typescript
 interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
   url: string;
   method?: THttpMethod;
-  params?: AnyObject;
+  params?: Record<string, unknown>;
 }
 ```
-<!-- docs-code: on -->
 
 #### Methods
 
@@ -471,11 +465,9 @@ If `headers` is a `Headers` instance, it is converted to a plain object via `Obj
 
 ### `QueryStringUtility.toQueryString`
 
-<!-- docs-code: off -->
 ```typescript
-QueryStringUtility.toQueryString(opts: { params: AnyObject; nullish?: 'empty' | 'skip'; nested?: 'drop' | 'json' }): string
+QueryStringUtility.toQueryString(opts: { params: Record<string, unknown>; nullish?: 'empty' | 'skip'; nested?: 'drop' | 'json' }): string
 ```
-<!-- docs-code: on -->
 
 Writes `params` as a query string without `node:querystring`, so it works in a browser. The defaults match `node:querystring`: an array repeats its key (`a=1&a=2`), `null` and `undefined` give an empty value (`a=`), an object gives an empty value, a space is `%20`.
 

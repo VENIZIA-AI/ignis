@@ -169,9 +169,11 @@ describe('QUERY wire integration against a live Bun.serve echo', () => {
         headers: { ['content-type']: 'application/json' },
       });
 
-      expect(response.data.method).toBe('QUERY');
-      expect(response.data.body).toBe(payload);
-      expect(response.data.contentType).toBe('application/json');
+      expect(response.data).toEqual({
+        method: 'QUERY',
+        body: payload,
+        contentType: 'application/json',
+      });
     });
   });
 });

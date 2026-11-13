@@ -1,6 +1,5 @@
 import { RedactUtility } from '@/common/redact';
 import { HTTP, type THttpMethod } from '@/common/constants/http';
-import { type AnyObject } from '@/common/types';
 import {
   type IQueryStringOptions,
   QueryStringSeparators,
@@ -18,7 +17,7 @@ import {
 export interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
   url: string;
   method?: THttpMethod;
-  params?: AnyObject;
+  params?: Record<string, unknown>;
 }
 
 /** What `fetch` takes as a body as it is: encoding any of these again would change the bytes sent. A constructor is looked up on `globalThis` so a runtime without one (no `FormData`) just never matches it. */
@@ -169,12 +168,10 @@ export class NodeFetchNetworkRequest extends BaseNetworkRequest<'node-fetch'> {
     const { name, networkOptions } = opts;
     const { headers, baseUrl, queryString, ...rest } = networkOptions;
 
-    const userHeaders =
-      headers instanceof Headers ? Object.fromEntries(headers.entries()) : headers;
-    const mergedHeaders: AnyObject = {
-      ['content-type']: 'application/json; charset=utf-8',
-      ...userHeaders,
-    };
+    // Case-insensitive, like the wire: a caller's `Content-Type` replaces the default one.
+    const mergedHeaders = new Headers({ 'content-type': 'application/json; charset=utf-8' });
+
+    new Headers(headers).forEach((value, key) => mergedHeaders.set(key, value));
 
     const defaultConfigs: Partial<RequestInit> = {
       ...rest,

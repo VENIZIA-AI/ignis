@@ -16,7 +16,7 @@ description: "Every export of @venizia/ignis-helpers/axios, from the built decla
 Fetcher over an axios instance (`getWorker()`). HTTPS calls share one keep-alive agent that verifies certificates unless `rejectUnauthorized` is `false`; an `httpsAgent` passed in the request wins.
 
 ```ts
-export declare class AxiosFetcher extends AbstractNetworkFetchableHelper<'axios', IAxiosRequestOptions, AxiosResponse<any, any>['data'], AxiosInstance> {
+export declare class AxiosFetcher extends AbstractNetworkFetchableHelper<'axios', IAxiosRequestOptions, AxiosResponse<unknown>, AxiosInstance> {
     /**
      * One agent for the instance, not one per request. Built here so TLS verification is decided
      * ONCE, at construction, rather than per call - and so connections are actually reused: a fresh
@@ -82,9 +82,9 @@ Request accepted by `AxiosFetcher`: an axios config where `body` is sent as the 
 export interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOptions {
     url: string;
     method?: THttpMethod;
-    params?: AnyObject;
-    body?: AnyObject;
-    headers?: AnyObject;
+    params?: Record<string, unknown>;
+    body?: Record<string, unknown>;
+    headers?: Record<string, string>;
     /** Whether this call rejects an HTTPS server whose certificate fails verification; `false` turns verification off for this call. */
     rejectUnauthorized?: boolean;
 }

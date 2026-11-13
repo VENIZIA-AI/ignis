@@ -1,5 +1,4 @@
 import { Defaults } from '@/common/constants';
-import { type AnyType } from '@/common/types';
 import pino from 'pino';
 import { LoggerConfigUtility } from '../common';
 
@@ -10,7 +9,7 @@ import { PinoDestination } from './destination';
 export class PinoBackingLogger {
   private static instance: TPinoInstance | undefined;
   /** The `ThreadStream` behind `instance`, held ONLY when built via a transport (pretty/roll) and `undefined` for `stdout` or an injected instance - tracked so a replacement can close the worker instead of orphaning it. */
-  private static transport: pino.DestinationStream | undefined;
+  private static transport: ReturnType<typeof pino.transport> | undefined;
 
   /** Pure: pino constructor options derived from env at CALL time. Public so tests can build a REAL instance against an in-memory destination, without the impure singleton. */
   static buildOptions() {
@@ -52,7 +51,7 @@ export class PinoBackingLogger {
     }
 
     try {
-      (PinoBackingLogger.transport as AnyType).end();
+      PinoBackingLogger.transport.end();
     } catch (error) {
       console.error('[setPinoBackingLogger] Failed to close previous transport stream', error);
     }

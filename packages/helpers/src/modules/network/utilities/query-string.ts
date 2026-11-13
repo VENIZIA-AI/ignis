@@ -1,4 +1,4 @@
-import { type AnyObject, type TConstValue } from '@/common/types';
+import { type TConstValue } from '@/common/types';
 
 /** The punctuation of a query string, named so a reader sees the role rather than the character. */
 export class QueryStringSeparators {
@@ -62,7 +62,7 @@ export class QueryStringUtility {
    * array as ONE JSON parameter instead (an array does not repeat its key), so a filter object survives
    * the trip. Without them the behavior is the one above.
    */
-  static toQueryString(opts: { params: AnyObject } & IQueryStringOptions): string {
+  static toQueryString(opts: { params: Record<string, unknown> } & IQueryStringOptions): string {
     const {
       params,
       nullish = QueryStringNullishModes.EMPTY,

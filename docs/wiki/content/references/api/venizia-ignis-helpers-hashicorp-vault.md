@@ -27,6 +27,8 @@ export declare class HashiCorpVaultHelper extends AbstractSecretsHelper {
     constructor(opts: IHashiCorpVaultHelperOptions);
     configure(): Promise<void>;
     shutdown(): Promise<void>;
+    /** The `client_token` of a login answer: a login that carries none is refused, where an undefined token would fail on the first read. */
+    private static readClientToken;
     private requireClient;
     /** Authenticates against Vault and returns the resulting token's TTL/renewability so callers can schedule self-renewal. */
     private login;
@@ -39,8 +41,8 @@ export declare class HashiCorpVaultHelper extends AbstractSecretsHelper {
     }): Promise<{
         value: Record<string, string>;
         lease: {
-            leaseId: any;
-            ttlSeconds: any;
+            leaseId: string;
+            ttlSeconds: number;
             renewable: boolean;
         };
     } | {
@@ -51,7 +53,7 @@ export declare class HashiCorpVaultHelper extends AbstractSecretsHelper {
         leaseId: string;
         ttlSeconds: number;
     }): Promise<{
-        ttlSeconds: any;
+        ttlSeconds: number;
     } | null>;
     protected revokeRaw(opts: {
         leaseId: string;
@@ -80,14 +82,15 @@ export interface IHashiCorpVaultHelperOptions {
     client?: TVaultClient;
 }
 
+/** What Vault answers is the body node-vault passes on: nothing is assumed of it, each key is read and narrowed where it is used. */
 interface TVaultClient {
     token: string;
-    read(path: string): Promise<AnyType>;
-    write(path: string, data: AnyObject): Promise<AnyType>;
-    approleLogin(opts: AnyObject): Promise<AnyType>;
-    kubernetesLogin?(opts: AnyObject): Promise<AnyType>;
-    tokenRenewSelf(): Promise<AnyType>;
-    tokenLookupSelf(): Promise<AnyType>;
+    read(path: string): Promise<unknown>;
+    write(path: string, data: Record<string, unknown>): Promise<unknown>;
+    approleLogin(opts: Record<string, unknown>): Promise<unknown>;
+    kubernetesLogin?(opts: Record<string, unknown>): Promise<unknown>;
+    tokenRenewSelf(): Promise<unknown>;
+    tokenLookupSelf(): Promise<unknown>;
 }
 ```
 
