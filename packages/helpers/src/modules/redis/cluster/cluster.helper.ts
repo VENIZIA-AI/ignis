@@ -40,11 +40,12 @@ export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
 
     // ioredis applies a per-node password to the startup nodes only; nodes found later are built
     // from host:port and `redisOptions`. So the credentials go in `redisOptions`, where every node
-    // gets them. The first-class credentials fill what `clusterOptions.redisOptions` leaves unset
-    // (an explicit value there wins, an `undefined` does not clobber), as the Sentinel helper does.
+    // gets them. The rule is the Sentinel helper's: a first-class credential that is given wins,
+    // and `redisOptions` only fills what is unset. (The other cluster knobs keep `clusterOptions`
+    // as the last word, because callers already thread timing through it.)
     clusterOpts.redisOptions ??= {};
-    clusterOpts.redisOptions.username ??= opts.username;
-    clusterOpts.redisOptions.password ??= opts.password;
+    clusterOpts.redisOptions.username = opts.username ?? clusterOpts.redisOptions.username;
+    clusterOpts.redisOptions.password = opts.password ?? clusterOpts.redisOptions.password;
 
     const ioredis =
       opts.module ?? ModuleUtility.loadSync<typeof import('ioredis')>({ module: 'ioredis' });

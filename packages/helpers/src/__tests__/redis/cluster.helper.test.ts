@@ -107,11 +107,22 @@ describe('RedisClusterHelper reconnect policy', () => {
     client.disconnect();
   });
 
-  it('an explicit clusterOptions.redisOptions credential still wins over the first-class one', () => {
+  it('a given first-class credential wins over clusterOptions.redisOptions, as in Sentinel', () => {
     const client = build({
       username: 'acl-user',
       password: 'acl-secret',
-      clusterOptions: { redisOptions: { password: 'raw-secret' } },
+      clusterOptions: { redisOptions: { username: 'raw-user', password: 'raw-secret' } },
+    }).getClient();
+
+    expect(client.options.redisOptions?.username).toBe('acl-user');
+    expect(client.options.redisOptions?.password).toBe('acl-secret');
+    client.disconnect();
+  });
+
+  it('clusterOptions.redisOptions fills a credential the first-class field leaves unset', () => {
+    const client = build({
+      username: 'acl-user',
+      clusterOptions: { redisOptions: { username: 'raw-user', password: 'raw-secret' } },
     }).getClient();
 
     expect(client.options.redisOptions?.username).toBe('acl-user');
@@ -119,22 +130,16 @@ describe('RedisClusterHelper reconnect policy', () => {
     client.disconnect();
   });
 
-  it('an explicit clusterOptions.redisOptions username wins, and an undefined one does not clobber', () => {
-    const wins = build({
-      username: 'acl-user',
-      clusterOptions: { redisOptions: { username: 'raw-user' } },
-    }).getClient();
-    const unset = build({
+  it('an undefined clusterOptions.redisOptions credential does not clobber the first-class one', () => {
+    const client = build({
       username: 'acl-user',
       password: 'acl-secret',
       clusterOptions: { redisOptions: { username: undefined, password: undefined } },
     }).getClient();
 
-    expect(wins.options.redisOptions?.username).toBe('raw-user');
-    expect(unset.options.redisOptions?.username).toBe('acl-user');
-    expect(unset.options.redisOptions?.password).toBe('acl-secret');
-    wins.disconnect();
-    unset.disconnect();
+    expect(client.options.redisOptions?.username).toBe('acl-user');
+    expect(client.options.redisOptions?.password).toBe('acl-secret');
+    client.disconnect();
   });
 
   it('duplicateClient keeps the credentials', () => {

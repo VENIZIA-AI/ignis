@@ -134,7 +134,7 @@ Notes on the fields:
 - `username`: omit it to authenticate as the `default` user.
 - `password`: omit it for a Redis with no password.
 - A node has no credentials of its own, in any mode: ioredis cannot honor them (it reads only the host and port of a Sentinel endpoint, and applies a cluster node's credentials to the startup nodes only).
-- One rule in all three modes: top-level `username` and `password` are the data nodes' credentials. A sentinel keeps the Sentinel processes' own in `sentinel.username` and `sentinel.password`. A cluster applies them through `redisOptions`, so every node gets them, including nodes found after startup; an explicit `clusterOptions.redisOptions.username` or `password` still wins.
+- One rule in all three modes: top-level `username` and `password` are the data nodes' credentials. A sentinel keeps the Sentinel processes' own in `sentinel.username` and `sentinel.password`. A cluster applies them through `redisOptions`, so every node gets them, including nodes found after startup; as in Sentinel, a first-class credential that is given wins over `redisOptions`, which only fills what is unset.
 - `maxRetry`: `0` = no reconnect; `-1` = reconnect forever; any other value is refused at construction.
 
 ### Retry strategy
@@ -192,7 +192,7 @@ const cluster = new RedisClusterHelper({
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `name` | `string` | Yes | - | Helper identifier |
-| `nodes` | `IRedisNode[]` | Yes | - | Startup nodes; ioredis finds the rest. Port defaults to `6379`. No per-node credentials: see below |
+| `nodes` | `IRedisNode[]` | Yes | - | Startup nodes; ioredis finds the rest. Port defaults to `6379`. No per-node credentials: see [Credentials](#credentials-on-a-cluster) |
 | `username` | `string` | No | - | The ACL user of every data node, with `password`. Sent through `redisOptions` |
 | `password` | `string` | No | - | The password of every data node. Sent through `redisOptions`, so nodes found after startup get it |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` sets `lazyConnect` so you call `connect()` later |
@@ -200,6 +200,10 @@ const cluster = new RedisClusterHelper({
 | `clusterOptions` | `ClusterOptions` | No | - | Merged over the four defaults, then passed to `new Cluster` |
 | `module` | `typeof import('ioredis')` | No | loaded by name | Same as single |
 | `onInitialized` / `onConnected` / `onReady` / `onError` | callbacks | No | - | Same shape as single |
+
+#### Credentials on a cluster
+
+A node has no credentials of its own because ioredis gives nodes discovered after startup only `redisOptions` (host and port come from the cluster), so a per-node password reaches the startup nodes and nothing else. `username` and `password` are applied through `redisOptions` instead, so every node gets them. The rule is the same as in Sentinel: a first-class credential that is given wins, and `clusterOptions.redisOptions` only fills what is unset. The other `clusterOptions` knobs keep it as the last word.
 
 The four defaults of `clusterOptions`: `enableOfflineQueue: true`, `lazyConnect`, `clusterRetryStrategy` and `redisOptions.maxRetriesPerRequest: null`.
 
@@ -298,7 +302,7 @@ const redis = new RedisSentinelHelper({
 | `database` | `number` | No | `0` | Redis database index |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately |
 | `maxRetry` | `number` | No | `5` | Reconnect attempts before giving up - see [Retry strategy](#retry-strategy) |
-| `redisOptions` | `Partial<RedisOptions>` | No | - | Extra ioredis options; first-class fields above always override matching keys here |
+| `redisOptions` | `Partial<RedisOptions>` | No | - | Extra ioredis options. A first-class field wins over its key here; an unset auth field falls back to it |
 | `module` | `typeof import('ioredis')` | No | loaded by name | Same as single |
 | `onInitialized` / `onConnected` / `onReady` / `onError` | callbacks | No | - | Same shape as single |
 
