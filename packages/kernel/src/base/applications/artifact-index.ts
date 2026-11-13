@@ -113,7 +113,7 @@ export class ArtifactIndexHelper extends BaseHelper {
    * Siblings with no dependency relation are sorted deterministically by class name.
    * Throws if an unknown `after` dependency is referenced or if a dependency cycle is detected.
    */
-  sortConfigurationsTopologically(opts: { classes: ReadonlyArray<TClass<any>> }): TClass<any>[] {
+  sortConfigurationsTopologically<T>(opts: { classes: ReadonlyArray<TClass<T>> }): TClass<T>[] {
     const { classes } = opts;
 
     if (classes.length === 0) {
@@ -124,8 +124,8 @@ export class ArtifactIndexHelper extends BaseHelper {
 
     // Keyed by the class itself: two configurations may share a name (a minified build renames them),
     // and a name-keyed graph silently drops one of them.
-    const inDegree = new Map<TClass<any>, number>();
-    const adjacency = new Map<TClass<any>, TClass<any>[]>();
+    const inDegree = new Map<TClass<T>, number>();
+    const adjacency = new Map<TClass<T>, TClass<T>[]>();
 
     for (const target of classes) {
       inDegree.set(target, 0);
@@ -157,9 +157,9 @@ export class ArtifactIndexHelper extends BaseHelper {
 
     // Kahn's algorithm. Siblings run in class-name order; a minified build renames classes, so an
     // order that matters belongs in `after`.
-    const byName = (a: TClass<any>, b: TClass<any>) => a.name.localeCompare(b.name);
+    const byName = (a: TClass<T>, b: TClass<T>) => a.name.localeCompare(b.name);
     const available = classes.filter((target) => inDegree.get(target) === 0).sort(byName);
-    const sorted: TClass<any>[] = [];
+    const sorted: TClass<T>[] = [];
 
     while (available.length > 0) {
       const current = available.shift()!;

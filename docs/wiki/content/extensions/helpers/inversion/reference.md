@@ -506,37 +506,38 @@ Logger.debug('Resolved binding: %s', key);          // console.log('[DEBUG] ...'
 
 `Source ->` [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/types.ts) and [`common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/utilities.ts) (`isClass`)
 
-<!-- docs-code: off -->
 ```typescript
 type TNullable<T> = T | undefined | null;
 type ValueOrPromise<T> = T | Promise<T>;
 type ValueOf<T> = T[keyof T];
-type TConstructor<T> = new (...args: any[]) => T;
-type TAbstractConstructor<T> = abstract new (...args: any[]) => T;
-type TClass<T> = TConstructor<T> & { [property: string]: any };
-type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {};
+type TConstructor<T> = new (...args: never[]) => T;
+type TAbstractConstructor<T> = abstract new (...args: never[]) => T;
+type TClass<T> = TConstructor<T>;
+type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string | number> & {};
 type TBindingKey = string | symbol;
-type AnyType = any;
 
 interface IBindingTag {
-  [name: string]: any;
+  [name: string]: unknown;
 }
 
-function isClass<T>(target: any): target is TClass<T>;
+function isClass<T>(target: unknown): target is TClass<T>;
+```
+
+<!-- docs-code: off -->
+```typescript
+type AnyType = any;
 ```
 <!-- docs-code: on -->
 
 `isClass` tests `typeof target === 'function' && target.prototype !== undefined` plus a regex match on the function's stringified source (`/^class[\s{]/`). It relies on the class being emitted as an ES2015+ `class`, not transpiled down to an ES5 constructor function.
 
-<!-- docs-code: off -->
 ```typescript
 interface IProvider<T> {
   value(container: IContainer): T;
 }
 
-function isClassProvider<T>(target: any): target is TClass<IProvider<T>>;
+function isClassProvider<T>(target: unknown): target is TClass<IProvider<T>>;
 ```
-<!-- docs-code: on -->
 
 `value` takes `IContainer`, the interface, not the concrete `Container` class. `binding/` and `container/` talk only through that interface, which is what keeps the two folders free of an import cycle.
 

@@ -75,7 +75,7 @@ export class Container extends BaseContainer {
       target: cls,
     });
 
-    const args: any[] = [];
+    const args: unknown[] = [];
 
     for (let index = 0; index < (injectMetadata?.length ?? 0); index++) {
       const meta = injectMetadata?.[index];
@@ -98,7 +98,8 @@ export class Container extends BaseContainer {
       args[meta.index] = key === undefined ? undefined : this.get({ key, isOptional });
     }
 
-    const instance = new cls(...args);
+    // `TClass` takes `never[]`, so any constructor fits; Reflect.construct is how the arguments reach it.
+    const instance: T = Reflect.construct(cls, args);
 
     const propertyMetadata = registry.getPropertiesMetadata({
       target: instance as object,

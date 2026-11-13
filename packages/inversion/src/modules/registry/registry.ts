@@ -16,7 +16,7 @@ export class MetadataRegistry extends BaseHelper {
     super({ scope: MetadataRegistry.name });
   }
 
-  define<Target extends object = object, Value = any>(opts: {
+  define<Target extends object = object, Value = unknown>(opts: {
     target: Target;
     key: TBindingKey;
     value: Value;
@@ -33,7 +33,7 @@ export class MetadataRegistry extends BaseHelper {
     Reflect.defineMetadata(key, value, target);
   }
 
-  get<Target extends object = object, Value = any>(opts: {
+  get<Target extends object = object, Value = unknown>(opts: {
     target: Target;
     key: TBindingKey;
   }): Value | undefined {
@@ -64,7 +64,7 @@ export class MetadataRegistry extends BaseHelper {
     );
   }
 
-  getMethodNames<T = any>(opts: { target: TClass<T> }): string[] {
+  getMethodNames<T = unknown>(opts: { target: TClass<T> }): string[] {
     const { target } = opts;
     const prototype = target.prototype;
     const methods = Object.getOwnPropertyNames(prototype).filter(

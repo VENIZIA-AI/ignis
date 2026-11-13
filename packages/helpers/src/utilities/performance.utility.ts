@@ -19,13 +19,13 @@ export class PerformanceUtility {
     });
   }
 
-  static executeWithMeasure<R = any>(opts: {
+  static executeWithMeasure<R>(opts: {
     logger?: ILogger;
     level?: string;
     description?: string;
-    args?: any;
+    args?: unknown;
     scope: string;
-    task: Function;
+    task: () => R | Promise<R>;
   }) {
     return new Promise<R>((resolve, reject) => {
       const t = performance.now();

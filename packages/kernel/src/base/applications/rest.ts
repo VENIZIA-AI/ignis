@@ -837,7 +837,7 @@ export abstract class RestApplication<
   }
 
   /** Each `@provide` method becomes a lazy provider: the component is resolved (SINGLETON) and the method called on first `get`, so a provided value may depend on datasources or secrets that do not exist yet at registration time. */
-  private bindProvidedKeys(opts: { target: TClass<any> }): void {
+  private bindProvidedKeys(opts: { target: TClass<unknown> }): void {
     const { target } = opts;
     const registry = MetadataRegistry.getInstance();
     const provides = registry.getProvideMetadata({ target });

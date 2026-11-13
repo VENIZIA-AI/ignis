@@ -575,7 +575,7 @@ Free-form map of tag names to values.
 
 ```ts
 export interface IBindingTag {
-    [name: string]: any;
+    [name: string]: unknown;
 }
 ```
 
@@ -762,7 +762,7 @@ Source: `packages/inversion/src/modules/error/app-error.ts`
 Tells a CONSTRUCTOR from a RESOLVER via source text - `prototype !== undefined` is true of every non-arrow function. Sound only on ES2020+ output (classes emit as `class`); ES5 bundling breaks it.
 
 ```ts
-export declare const isClass: <T>(target: any) => target is TClass<T>;
+export declare const isClass: <T>(target: unknown) => target is TClass<T>;
 ```
 
 Source: `packages/inversion/src/common/utilities.ts`
@@ -774,7 +774,7 @@ Source: `packages/inversion/src/common/utilities.ts`
 True for a function whose prototype has a `value` method, so a provider class is told apart from a plain provider function.
 
 ```ts
-export declare const isClassProvider: <T>(target: any) => target is TClass<IProvider<T>>;
+export declare const isClassProvider: <T>(target: unknown) => target is TClass<IProvider<T>>;
 ```
 
 Source: `packages/inversion/src/modules/binding/common/types.ts`
@@ -921,12 +921,12 @@ Central metadata registry for storing and retrieving decorator metadata.
 ```ts
 export declare class MetadataRegistry extends BaseHelper {
     constructor();
-    define<Target extends object = object, Value = any>(opts: {
+    define<Target extends object = object, Value = unknown>(opts: {
         target: Target;
         key: TBindingKey;
         value: Value;
     }): void;
-    get<Target extends object = object, Value = any>(opts: {
+    get<Target extends object = object, Value = unknown>(opts: {
         target: Target;
         key: TBindingKey;
     }): Value | undefined;
@@ -941,7 +941,7 @@ export declare class MetadataRegistry extends BaseHelper {
     getKeys<Target extends object = object>(opts: {
         target: Target;
     }): TBindingKey[];
-    getMethodNames<T = any>(opts: {
+    getMethodNames<T = unknown>(opts: {
         target: TClass<T>;
     }): string[];
     clearMetadata<T extends object = object>(opts: {
@@ -1050,7 +1050,7 @@ Source: `packages/inversion/src/common/utilities.ts`
 Like `TConstructor`, but also matches abstract classes.
 
 ```ts
-export type TAbstractConstructor<T> = abstract new (...args: any[]) => T;
+export type TAbstractConstructor<T> = abstract new (...args: never[]) => T;
 ```
 
 Source: `packages/inversion/src/common/types.ts`
@@ -1062,7 +1062,7 @@ Source: `packages/inversion/src/common/types.ts`
 A function that returns `T` or a `Promise` of `T`.
 
 ```ts
-export type TAsyncResolver<T> = (...args: any[]) => T | Promise<T>;
+export type TAsyncResolver<T> = (...args: never[]) => T | Promise<T>;
 ```
 
 Source: `packages/inversion/src/common/types.ts`
@@ -1143,12 +1143,10 @@ Source: `packages/inversion/src/modules/binding/common/constants.ts`
 
 *type*
 
-A `TConstructor` that also exposes static properties of any name.
+A class producing `T`. Read its static members through a type that declares them, such as `typeof MyClass`.
 
 ```ts
-export type TClass<T> = TConstructor<T> & {
-    [property: string]: any;
-};
+export type TClass<T> = TConstructor<T>;
 ```
 
 Source: `packages/inversion/src/common/types.ts`
@@ -1157,10 +1155,10 @@ Source: `packages/inversion/src/common/types.ts`
 
 *type*
 
-A concrete class constructor taking any arguments and producing `T`.
+A concrete class constructor producing `T`. Its arguments are `never[]`, so any constructor fits; build an instance with `Reflect.construct`.
 
 ```ts
-export type TConstructor<T> = new (...args: any[]) => T;
+export type TConstructor<T> = new (...args: never[]) => T;
 ```
 
 Source: `packages/inversion/src/common/types.ts`
@@ -1172,7 +1170,7 @@ Source: `packages/inversion/src/common/types.ts`
 `& {}` keeps the literal set but stops it widening to `string` / `number` in mutable positions; see `TConstValue` in `@venizia/ignis-helpers`.
 
 ```ts
-export type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {};
+export type TConstValue<T extends TClass<unknown>> = Extract<ValueOf<T>, string | number> & {};
 ```
 
 Source: `packages/inversion/src/common/types.ts`
@@ -1412,7 +1410,7 @@ Source: `packages/inversion/src/modules/metadata/injectors.ts`
 What `@inject({ target })` names: the class, or a function returning it. The function form defers the reference to resolve time, which is how a class reached through an import cycle stays reachable.
 
 ```ts
-export type TInjectTarget = TValueOrResolver<TClass<AnyType>>;
+export type TInjectTarget = TValueOrResolver<TClass<unknown>>;
 ```
 
 Source: `packages/inversion/src/common/types.ts`
@@ -1448,7 +1446,7 @@ Source: `packages/inversion/src/modules/error/common/types.ts`
 A function that returns `T` when called.
 
 ```ts
-export type TResolver<T> = (...args: any[]) => T;
+export type TResolver<T> = (...args: never[]) => T;
 ```
 
 Source: `packages/inversion/src/common/types.ts`

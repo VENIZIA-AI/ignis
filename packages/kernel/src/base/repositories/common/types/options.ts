@@ -6,8 +6,8 @@ import type { TLockStrength } from '../constants';
 import type { TDataWithRange } from './results';
 
 /** Update data supporting both regular fields and JSON path updates via dot notation. */
-export type TUpdateData<T = any> = Partial<T> & {
-  [jsonPath: string]: any;
+export type TUpdateData<T = object> = Partial<T> & {
+  [jsonPath: string]: unknown;
 };
 
 /** Options for Drizzle ORM query building, used internally by FilterBuilder. */

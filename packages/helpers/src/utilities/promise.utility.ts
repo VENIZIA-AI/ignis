@@ -4,7 +4,7 @@ import { getError } from '@/modules/error';
 import type { ILogger } from '@/modules/logger';
 
 /** An async task as `executeWithLimit` takes it. */
-export type TTask<T> = (...args: any[]) => Promise<T>;
+export type TTask<T> = (...args: never[]) => Promise<T>;
 
 /** Check if a value is a promise. */
 export const isPromiseLike = <T>(value: T | PromiseLike<T>): value is PromiseLike<T> => {

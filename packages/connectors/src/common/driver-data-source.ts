@@ -55,7 +55,10 @@ export abstract class AbstractDriverDataSource<
 
     const DriverClass = this.resolveDriverClass();
 
-    return this.useDriver({ driver: new DriverClass({ client: this.client }) });
+    // `TClass` takes `never[]`, so any driver constructor fits; Reflect.construct passes the client through.
+    const driver: TDriver = Reflect.construct(DriverClass, [{ client: this.client }]);
+
+    return this.useDriver({ driver });
   }
 
   /**
@@ -284,7 +287,7 @@ export abstract class AbstractDriverDataSource<
 
     try {
       const DriverClass = this.resolveDriverClass();
-      newDriver = new DriverClass({ client: newClient as AnyType });
+      newDriver = Reflect.construct(DriverClass, [{ client: newClient }]);
       newConnector = newDriver.createConnector({ schema: this.getSchema() });
     } catch (error) {
       this.restoreSettings({ saved: savedSettings });

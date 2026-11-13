@@ -1,0 +1,148 @@
+---
+title: Class, constructor and resolver types take never arguments, not any
+description: "TConstructor, TClass, TResolver, TAsyncResolver, TTask and the open defaults of IBindingTag, IConfigurable, the metadata registry, executeWithMeasure and TUpdateData no longer let an unread value through as any."
+packages: ['@venizia/ignis-inversion', '@venizia/ignis-helpers', '@venizia/ignis-kernel']
+migration:
+  - id: tclass-has-no-index-signature
+    symbols: [TClass, TAbstractClass]
+    upgrade:
+      before: |
+        const readVersion = (cls: TClass<Service>): string => cls.version; // any
+      after: |
+        // name the static you read, on the type of the class itself
+        const readVersion = (cls: typeof Service): string => cls.version;
+
+        // or, when the parameter must stay a TClass
+        const readTagged = (cls: TClass<Service> & { version: string }): string => cls.version;
+    downgrade:
+      steps:
+        - "Read the static off a TClass value directly again; the older index signature was any. The typeof and intersection forms you added keep compiling."
+  - id: constructors-take-never-arguments
+    symbols: [TConstructor, TAbstractConstructor, TClass, TAbstractClass]
+    upgrade:
+      before: |
+        const build = <T>(cls: TConstructor<T>): T => new cls('a', 1);
+      after: |
+        // the arguments are never[], so every constructor fits and none can be called with arguments
+        const build = <T>(cls: TConstructor<T>): T => Reflect.construct(cls, ['a', 1]);
+
+        // or type the constructor you call
+        const buildKnown = <T>(cls: new (name: string, count: number) => T): T => new cls('a', 1);
+    downgrade:
+      steps:
+        - "Call new cls(...args) on a TConstructor again; the older arguments were any[]. Reflect.construct keeps working."
+  - id: resolvers-take-never-arguments
+    symbols: [TResolver, TAsyncResolver, TValueOrResolver, TValueOrAsyncResolver, TTask]
+    upgrade:
+      before: |
+        const resolver: TResolver<Service> = () => service;
+        const value = resolver('key'); // any[]
+      after: |
+        // call it with no arguments, or type the resolver with the arguments it takes
+        const keyed: (key: string) => Service = () => service;
+        const value = keyed('key');
+    downgrade:
+      steps:
+        - "Call a TResolver, TAsyncResolver or TTask with arguments again; the older arguments were any[]."
+  - id: binding-tag-values-unknown
+    symbols: [IBindingTag]
+    upgrade:
+      before: |
+        const owner: string = tags.owner; // any
+      after: |
+        const owner = typeof tags.owner === 'string' ? tags.owner : undefined;
+    downgrade:
+      steps:
+        - "Read a tag value without a narrow again; the older values were any."
+  - id: configurable-defaults-unknown
+    symbols: [IConfigurable]
+    upgrade:
+      before: |
+        const result: string = await configurable.configure(); // any
+      after: |
+        // name the result type, or narrow it
+        const configurable: IConfigurable<object, string> = service;
+        const result: string = await configurable.configure();
+    downgrade:
+      steps:
+        - "Use IConfigurable without type arguments and read its result without a narrow; the older defaults were any."
+  - id: registry-values-unknown
+    symbols: [MetadataRegistry]
+    upgrade:
+      before: |
+        const value = registry.get({ target, key }); // any
+      after: |
+        const value = registry.get<typeof target, string>({ target, key });
+    downgrade:
+      steps:
+        - "Drop the type argument; the older Value default was any."
+  - id: measure-result-inferred
+    symbols: [PerformanceUtility.executeWithMeasure]
+    upgrade:
+      before: |
+        const rows = await PerformanceUtility.executeWithMeasure({ scope: 'load', task: loadRows, args: [id] });
+        // rows: any, task: Function
+      after: |
+        // R is inferred from the task, task takes no arguments, args is only logged
+        const rows = await PerformanceUtility.executeWithMeasure({
+          scope: 'load',
+          task: () => loadRows(id),
+          args: { id },
+        });
+    downgrade:
+      steps:
+        - "Pass a task that takes arguments again; the older task type was Function and the result any."
+  - id: update-data-unknown
+    symbols: [TUpdateData]
+    upgrade:
+      before: |
+        const rename: TUpdateData = { 'profile.name': 'a' };
+        const name: string = rename['profile.name']; // any
+      after: |
+        const name = typeof rename['profile.name'] === 'string' ? rename['profile.name'] : undefined;
+    downgrade:
+      steps:
+        - "Read a JSON-path key of TUpdateData without a narrow again; the older index was any and the default type argument was any."
+---
+
+# Changelog - 2026-11-13
+
+## Class, constructor and resolver types take never arguments, not any
+
+<Badge type="warning" text="Breaking Change" />
+
+**In one line.** The class, constructor and resolver types no longer say `any`: a constructor or resolver fits whatever arguments it takes, and the compiler asks you to type a call that passes them.
+
+## What changed
+
+- **Constructors and classes.** `TConstructor` and `TAbstractConstructor` take `never[]`, so every constructor fits, and none is called with arguments through the type. `TClass` and `TAbstractClass` equal them: the index signature for statics is gone, because a class is not assignable to an index signature of `unknown`.
+- **Resolvers and tasks.** `TResolver`, `TAsyncResolver`, `TValueOrResolver`, `TValueOrAsyncResolver` and `TTask` take `never[]`.
+- **Open defaults.** The values of `IBindingTag`, the result of `IConfigurable`, the `Value` of `MetadataRegistry.define` and `get`, and the keys of `TUpdateData` are `unknown`. `TUpdateData` defaults to `object`.
+- **`executeWithMeasure`.** It infers its result from `task`, which takes no arguments; `args` is `unknown`.
+- **The container.** It builds an instance with `Reflect.construct`; resolve speed is unchanged.
+- **Added.** `TMixinConstructor` and `TAbstractMixinConstructor`: TypeScript requires `any[]` of a mixin base (error TS2545), so `TMixinTarget` and `TAbstractMixinTarget` keep it through these two.
+
+## Who is affected
+
+- **Code that reads a static member through a `TClass` value, or calls a `TConstructor` or `TResolver` with arguments.** Type the call: see the migration below.
+- **Code that reads `registry.get`, `IBindingTag`, `IConfigurable` or `TUpdateData` values, or the result of `executeWithMeasure`, without a narrow.** Narrow it or name the type.
+- **Everyone else.** No action needed.
+
+## Breaking changes
+
+> [!WARNING]
+> These are type-level breaks: nothing changes at runtime. The typecheck names each line.
+
+**Before:**
+
+```typescript
+const readVersion = (cls: TClass<Service>): string => cls.version;
+const build = <T>(cls: TConstructor<T>): T => new cls('a', 1);
+```
+
+**After:**
+
+```typescript
+const readVersion = (cls: typeof Service): string => cls.version;
+const build = <T>(cls: TConstructor<T>): T => Reflect.construct(cls, ['a', 1]);
+```

@@ -1523,7 +1523,7 @@ export declare abstract class BaseRestController<RouteEnv extends Env = Env, Rou
         scope: string;
         args: unknown;
         task: () => Promise<R>;
-    }): Promise<any>;
+    }): Promise<R>;
     /** Returns the full `{ count, data }` envelope, or just `data` when the client sent `x-request-count: false`; `X-Response-Count` is set either way. */
     normalizeCountData<ResponseSchema extends AnyType, RequestContext extends TRouteContext<RouteEnv> = TRouteContext<RouteEnv>, ResponseData extends {
         count: number;
@@ -2141,7 +2141,7 @@ export declare class CrudControllerFactory extends BaseHelper {
                 scope: string;
                 args: unknown;
                 task: () => Promise<R>;
-            }): Promise<any>;
+            }): Promise<R>;
             normalizeCountData<ResponseSchema extends unknown, RequestContext extends import("../index.js").TRouteContext<RouteEnv> = import("../index.js").TRouteContext<RouteEnv>, ResponseData extends {
                 count: number;
                 data?: import("@venizia/ignis-helpers/common").TNullable<ResponseSchema>;
@@ -9065,8 +9065,8 @@ Source: `packages/kernel/src/base/auth/authorize/builders/policy.builder.ts`
 Update data supporting both regular fields and JSON path updates via dot notation.
 
 ```ts
-export type TUpdateData<T = any> = Partial<T> & {
-    [jsonPath: string]: any;
+export type TUpdateData<T = object> = Partial<T> & {
+    [jsonPath: string]: unknown;
 };
 ```
 
