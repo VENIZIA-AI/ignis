@@ -192,7 +192,7 @@ const cluster = new RedisClusterHelper({
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `name` | `string` | Yes | - | Helper identifier |
-| `nodes` | `IRedisNode[]` (`{ host: string; port?: string \| number }`) | Yes | - | Startup nodes - ioredis discovers the rest. The port defaults to `6379`. A node takes no credentials: set `username` and `password` once, below |
+| `nodes` | `IRedisNode[]` | Yes | - | Startup nodes; ioredis finds the rest. Port defaults to `6379`. No per-node credentials: see below |
 | `username` | `string` | No | - | The ACL user of every data node, with `password`. Sent through `redisOptions` |
 | `password` | `string` | No | - | The password of every data node. Sent through `redisOptions`, so nodes found after startup get it |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` sets `lazyConnect` so you call `connect()` later |
@@ -792,8 +792,11 @@ import {
   RedisSentinelHelper,
   // Factory
   RedisHelperFactory,
-  // Sentinel role const-class
+  // Sentinel const-classes
   RedisSentinelRoles,
+  RedisSentinelDefaults,
+  // Defaults shared by the modes
+  RedisDefaults,
 } from '@venizia/ignis-helpers';
 
 import type {
@@ -808,6 +811,9 @@ import type {
   IRedisSentinelHelperProps,
   IRedisHelperCallbacks,
   IRedisModuleOption,
+  // Shared pieces of the props types
+  IRedisNode,
+  IRedisCredentials,
   // Client + enum types
   TRedisClient,
   TRedisSentinelRole,
