@@ -66,11 +66,12 @@ migration:
       before: |
         // definitions was any: an interface-typed object fit
         interface ISearchDefinitions { search: IAuthRouteConfig }
-        const definitions: ISearchDefinitions = { search: { authenticate: { strategies: ['jwt'] } } };
+        declare const searchRoute: IAuthRouteConfig;
+        const definitions: ISearchDefinitions = { search: searchRoute };
         super({ scope: 'SearchController', repository, definitions }); // TS2322 now: no index signature
       after: |
         // definitions is Record<string, IAuthRouteConfig>: use a type alias or satisfies
-        const definitions = { search: { authenticate: { strategies: ['jwt'] } } } satisfies Record<string, IAuthRouteConfig>;
+        const definitions = { search: searchRoute } satisfies Record<string, IAuthRouteConfig>;
         super({ scope: 'SearchController', repository, definitions });
     downgrade:
       steps:
