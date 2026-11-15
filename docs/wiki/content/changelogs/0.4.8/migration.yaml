@@ -203,7 +203,7 @@ hidden-field-filter-parity:
   data: Nothing stored changes. A client that filters or sorts on a hidden property gets 400 and must use a visible property, or the filter moves into server code. A dialect that extends a shipped one already has both methods.
 
 search-raw-mode-closed:
-  symbols: [SearchControllerFactory.build, SearchControllerFactory.defineSearchController, SearchEngineParams, modes.raw, engineParams.allow]
+  symbols: [SearchControllerFactory.build, SearchControllerFactory.defineSearchController, SearchEngineParams, SearchRawAccess.resolve, modes.raw, query.allow]
   upgrade:
     before: |-
       // 0.4.7: the generated controller served mode 'raw', /multi-search and any engineParams
@@ -216,17 +216,20 @@ search-raw-mode-closed:
     after: |-
       // opt in only for trusted callers, and name what callers may send
       // (see search-controller-factory-build for the rest of the shape)
+      // ProductSearchRepository extends DefaultSearchRepository<TProduct, TypesenseDataSource>, so the tuning names are typed
       SearchControllerFactory.build({
         repository: ProductSearchRepository,
-        routes: { search: true, multiSearch: true },
-        modes: { raw: { allow: true } },
-        engineParams: { allow: ['num_typos'] },
+        routes: { search: { use: true }, multiSearch: { use: true } },
+        authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+        modes: { raw: { use: true } },
+        query: { allow: { tuning: ['numTypos'] } },
       });
+      // accepted: { "mode": "keyword", "query": "lamp", "queryBy": ["title"], "engineParams": { "numTypos": 1 } }
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors and @venizia/ignis to 0.4.7, where raw mode, multi-search and engineParams are always open on a generated search controller.
-      - Remove the modes.raw.allow and engineParams.allow options you added; they do not exist there.
-  data: Nothing stored changes. A scoped controller cannot set modes.raw.allow; the definition throws. A request that sends engineParams gets 400 unless the parameter is listed; row and field parameters (filter_by, include_fields, query_by, sort_by, preset, vector_query and the Meilisearch equivalents) can never be listed, so use the neutral filter, queryBy and fields input. Server code that calls repository.search({ mode 'raw', engineParams }) or dataSource.multiSearch() is unchanged.
+      - Remove the modes.raw and query.allow options you added; they do not exist there.
+  data: Nothing stored changes. A scoped controller cannot switch modes.raw on; the definition throws. A request that sends engineParams gets 400 unless the knob is named in query.allow.tuning; row and field parameters (filter_by, include_fields, query_by, sort_by, preset, vector_query and the Meilisearch equivalents) can never be listed, so use the neutral filter, queryBy and fields input. Server code that calls repository.search({ mode 'raw', engineParams }) or dataSource.multiSearch() is unchanged.
 
 remove-aes-rsa-do-throw:
   symbols: [AES.encrypt, AES.decrypt, RSA.encrypt, RSA.decrypt]
@@ -440,13 +443,14 @@ search-controller-factory-build:
       const _Search = SearchControllerFactory.build({
         repository: ArticleRepository,
         isStrict: true,
-        routes: { search: true },
+        routes: { search: { use: true } },
+        authenticate: { strategies: [Authentication.STRATEGY_JWT] },
       });
       // ArticleRepository extends DefaultSearchRepository<TArticle>: the document type must be named
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7 and call SearchControllerFactory.defineSearchController with entity, repository and controller again.
-  data: Both routes were on before unless switched off, so list search and multiSearch to keep both. A scoped controller cannot list multiSearch, and build throws when it does.
+  data: "Both routes were on before unless switched off, so switch search and multiSearch on to keep both; a route is a toggle, and one left out or { use: false } is not served. authenticate is required ({ skip: true } opens the routes on purpose and also drops authorize), and a config with no strategy and no skip throws when the controller is built. A scoped controller cannot switch multiSearch on, and build throws when it does."
 
 model-properties-group:
   symbols: [hiddenProperties, getServerStampedKeys, AbstractEntity.getServerStampedKeys, BaseRelationalEntity.getServerStampedKeys, AuditFields, properties.hidden, properties.stamped]
@@ -1035,13 +1039,13 @@ search-scope-resolver-input:
       // a test or a wrapper that calls the resolver itself
       resolver({ context });
     after: |-
-      // the resolver is called with the validated body too
-      resolver({ context, input });
+      // the resolver is called with the validated body and the injected instances too ({} when the controller declares no inject)
+      resolver({ context, input, injected: {} });
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7 and call the resolver with { context } only.
       - Remove request.body.extend from SearchControllerFactory.build; 0.4.7 has no such option, so a scope that read input.<key> reads it from the request another way.
-  data: A resolver you write is unaffected. The new last type parameter of build() and AbstractSearchController defaults to no extra keys, so type arguments passed by position still line up.
+  data: A resolver you write is unaffected. The new last type parameters of build() and AbstractSearchController default to no extra keys and no injected classes, so type arguments passed by position still line up.
 
 class-types-never-arguments:
   symbols: [TConstructor, TAbstractConstructor, TClass, TAbstractClass, TConstValue, TStringConstValue, TNumberConstValue, ArtifactIndexHelper.sortConfigurationsTopologically, ResolverUtility.resolveInjectTarget, isDataSourceClass, MetadataRegistry.getDataSourceModelClasses, MetadataRegistry.datasourceModels, Container.resolveBindingKey, TDataSourceDriverClass, TBootProbeTarget, MetadataRegistry.resolveModelKey, TInjectTarget, isClass, isClassProvider, MetadataRegistry.getMethodNames]
