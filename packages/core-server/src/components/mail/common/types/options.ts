@@ -84,7 +84,7 @@ export type TMailgunConfig = {
  * a compile error rather than a boot crash.
  */
 export type TNodemailerModule = {
-  createTransport(config: TNodemailerConfig, defaults?: object): INodemailerTransporter;
+  createTransport(config: TNodemailerConfig): INodemailerTransporter;
 };
 
 /** The part of a `nodemailer` transporter the transport calls. */

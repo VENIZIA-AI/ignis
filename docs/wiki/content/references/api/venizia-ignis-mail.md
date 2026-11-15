@@ -952,7 +952,7 @@ The one place a message is checked for header injection, before any transport se
 
 ```ts
 export declare class MailHeaderUtility {
-    /** `value` is `unknown`: the message types end in `[key: string]: any`, so nothing stops a controller forwarding a request body from putting an array where a string is declared. */
+    /** `value` is `unknown`: the message types end in `[key: string]: unknown`, so nothing stops a controller forwarding a request body from putting an array where a string is declared. */
     static assertValue(opts: {
         field: string;
         value: unknown;
@@ -1499,7 +1499,7 @@ a compile error rather than a boot crash.
 
 ```ts
 export type TNodemailerModule = {
-    createTransport(config: TNodemailerConfig, defaults?: object): INodemailerTransporter;
+    createTransport(config: TNodemailerConfig): INodemailerTransporter;
 };
 ```
 

@@ -7,8 +7,8 @@ migration:
     symbols: [IGenericMailOptions, MailService.sendTemplate, TemplateEngineService.render, TemplateEngineService.validateTemplateData, TemplateEngineService.renderSimpleTemplate]
     upgrade:
       before: |
-        const data: Record<string, AnyType> = user; // an interface-typed object
-        await mailService.sendTemplate({ templateName: 'welcome', data, recipients: 'a@b.c' });
+        // user is an interface-typed object (IUser): Record<string, any> accepted it
+        await mailService.sendTemplate({ templateName: 'welcome', data: user, recipients: 'a@b.c' });
       after: |
         // the data is Record<string, unknown>: an interface-typed value needs a spread
         await mailService.sendTemplate({ templateName: 'welcome', data: { ...user }, recipients: 'a@b.c' });
@@ -16,14 +16,26 @@ migration:
       steps:
         - "Type the data as Record<string, any> again; it is accepted everywhere."
   - id: mailgun-config-is-typed
-    symbols: [TMailgunConfig]
+    symbols: [TMailgunConfig, IMailgunMailOptions]
     upgrade:
       before: |
-        const config: TMailgunConfig = clientOptions; // TMailgunConfig was any & { domain: string }, so anything fit
+        // TMailgunConfig was any & { domain: string }, so anything fit, including values read from the environment
+        const options: IMailgunMailOptions = {
+          provider: 'mailgun',
+          config: { username: 'api', key: process.env.MAILGUN_KEY, domain: 'mg.example.com' },
+        };
+        const fromSdk: TMailgunConfig = clientOptions; // an interface-typed value, mailgun.js MailgunClientOptions
       after: |
-        // username and key are required by the type (the transport already threw without them); an
-        // interface-typed value, such as mailgun.js MailgunClientOptions, needs a spread
-        const config: TMailgunConfig = { ...clientOptions, domain: 'mg.example.com' };
+        // username and key are string: require the value first, and spread an interface-typed value
+        const options: IMailgunMailOptions = {
+          provider: 'mailgun',
+          config: {
+            username: 'api',
+            key: applicationEnvironment.getRequired('APP_ENV_MAILGUN_KEY'),
+            domain: 'mg.example.com',
+          },
+        };
+        const fromSdk: TMailgunConfig = { ...clientOptions, domain: 'mg.example.com' };
     downgrade:
       steps:
         - "Type the config as any & { domain: string } again."
@@ -48,6 +60,7 @@ migration:
     downgrade:
       steps:
         - "Hand over the module as before: the older types accepted any shape, so a double that fit the newer types fits the older ones."
+    data: "The SES transport reads the answer of the client without assuming an object: an answer that is null or not an object (the SDK never answers one) used to end in a TypeError and a failed send (send reported success false, verify logged a failure); now send reports success with no messageId and verify reports the account as disabled."
   - id: mail-type-guards-take-unknown
     symbols: [MailTypeUtility.isTransport, MailTypeUtility.isValidOptions]
     upgrade:

@@ -9,7 +9,7 @@ const HEADER_VALUE_FORBIDDEN = /[\r\n\0]/;
 
 /** The one place a message is checked for header injection, before any transport sees it. A transport called directly skips it. */
 export class MailHeaderUtility {
-  /** `value` is `unknown`: the message types end in `[key: string]: any`, so nothing stops a controller forwarding a request body from putting an array where a string is declared. */
+  /** `value` is `unknown`: the message types end in `[key: string]: unknown`, so nothing stops a controller forwarding a request body from putting an array where a string is declared. */
   static assertValue(opts: { field: string; value: unknown }): void {
     const { field, value } = opts;
 
