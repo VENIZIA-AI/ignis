@@ -1,4 +1,6 @@
 import type {
+  TAnyObjectSchema,
+  TCustomizableRouteConfig,
   TRepositoryDataObject,
   TRouteAuthenticateConfig,
   TToggle,
@@ -29,10 +31,15 @@ import type {
   TSearchExtra,
 } from './types';
 
+/** What a search route takes beside `use`: the request headers its OpenAPI document shows, the same `request.headers` a CRUD route takes. */
+export interface ISearchRouteOptions {
+  request?: Pick<NonNullable<TCustomizableRouteConfig['request']>, 'headers'>;
+}
+
 /** The routes of a search controller: a route that is not `{ use: true }` does not exist. */
 export interface ISearchRoutes {
-  search?: TToggle;
-  multiSearch?: TToggle;
+  search?: TToggle<ISearchRouteOptions>;
+  multiSearch?: TToggle<ISearchRouteOptions>;
 }
 
 /** Configuration options for creating a search controller via SearchControllerFactory.build. */
@@ -176,6 +183,8 @@ export class SearchControllerFactory extends BaseHelper {
     allowedTuning?: string[];
     /** `query.fixed` or `query.default` is set: a hybrid body then takes its `queryBy` from the server when the client sends none. */
     isQueryBySettable?: boolean;
+    /** The `request.headers` of `routes.search` and `routes.multiSearch`; none leaves the route config without headers. */
+    requestHeaders?: { search?: TAnyObjectSchema; multiSearch?: TAnyObjectSchema };
     /** `response.document`: the documents of the response, in place of the model's schema. */
     responseDocument?: z.ZodType;
   }) {
@@ -210,6 +219,7 @@ export class SearchControllerFactory extends BaseHelper {
         authenticate: resolvedAuthenticate,
         authorize,
         request: {
+          ...(opts.requestHeaders?.search ? { headers: opts.requestHeaders.search } : {}),
           body: OpenApiResponses.jsonContent({
             description: 'Search input, discriminated by mode',
             schema: searchBodySchema,
@@ -228,6 +238,7 @@ export class SearchControllerFactory extends BaseHelper {
         authenticate: resolvedAuthenticate,
         authorize,
         request: {
+          ...(opts.requestHeaders?.multiSearch ? { headers: opts.requestHeaders.multiSearch } : {}),
           body: OpenApiResponses.jsonContent({
             description: 'Multi-search input - one or more per-collection native search params',
             schema: MultiSearchInputSchema,
@@ -290,6 +301,7 @@ export class SearchControllerFactory extends BaseHelper {
       allowedTuning: opts.query?.allow?.tuning,
       isQueryBySettable:
         resolved.query?.fixed !== undefined || resolved.query?.default !== undefined,
+      requestHeaders: resolved.requestHeaders,
       responseDocument: resolved.response?.document,
     });
 

@@ -18,6 +18,7 @@ packages: ['@venizia/ignis-connectors', '@venizia/ignis-kernel']
 - **Typed settings.** `queryBy`, `queryByWeights` (keyed by field name, not a positional list), `order` and `tuning` are camelCase and typed against the model. `tuning` is typed by the engine through the repository's datasource: write `DefaultSearchRepository<TArticle, TypesenseDataSource>`. A list knob such as `numTypos` is a record keyed by field name.
 - **Checked when the controller is built.** A field the model does not have, a hidden field, a `queryBy` field that is not text, and a weight for a field outside `queryBy` throw. A function source is checked on every request and answers `500`, because the value is the server's.
 - **`response`.** `{ use: true, document, transform }` reshapes the hits of `POST /search`. The transform may drop hits, `document` is the OpenAPI schema and is checked against every transformed document (`500` on a mismatch), and the list headers keep the engine's page.
+- **Request headers.** A route toggle takes `request: { headers }`, the same Zod object schema a CRUD route takes: the OpenAPI document lists the headers and a request without them is a `400`.
 - **`TToggle` and `ToggleUtility` are in the kernel.** Components and controllers share one toggle shape.
 
 ## Who is affected

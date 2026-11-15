@@ -578,6 +578,46 @@ describe('response transform', () => {
   });
 });
 
+describe('request headers', () => {
+  const headers = z.object({ ['x-merchant-id']: z.string() });
+
+  test('a route that names headers documents and requires them; one that does not is unchanged', async () => {
+    const { send } = await mount({
+      routes: { search: { use: true, request: { headers } } },
+    });
+    const missing = await send(keyword());
+    const served = await send(keyword(), { ['x-merchant-id']: 'm-1' });
+
+    expect(missing.status).toBe(400);
+    expect(served.status).toBe(200);
+
+    const configs = SearchControllerFactory.defineRouteConfigs({
+      selectSchema: z.object({}),
+      authenticate: {},
+      requestHeaders: { search: headers },
+    });
+
+    expect(configs.SEARCH.request.headers).toBe(headers);
+    expect('headers' in configs.MULTI_SEARCH.request).toBe(false);
+
+    const plain = await mount({});
+
+    const unchanged = await plain.send(keyword());
+
+    expect(unchanged.status).toBe(200);
+  });
+
+  test('headers that are not a Zod schema are refused when the controller is built', () => {
+    expect(() =>
+      SearchControllerFactory.build({
+        repository: QuerySettingsProductRepository,
+        authenticate: { skip: true },
+        routes: { search: { use: true, request: { headers: { name: 'x' } } } },
+      } as never),
+    ).toThrow(/routes\.search\.request\.headers must be a Zod object schema/);
+  });
+});
+
 describe('authenticate', () => {
   test('is required, and a route is open only by { skip: true }', () => {
     for (const authenticate of [undefined, {}, { strategies: [] }]) {

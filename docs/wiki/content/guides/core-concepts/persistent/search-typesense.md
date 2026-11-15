@@ -604,6 +604,18 @@ Import the factory from `@venizia/ignis-connectors/typesense/controllers` (or `@
 
 `routes.search: { use: true }` registers `POST /search` (request body is the mode-discriminated schema, so validation and OpenAPI come for free, and the handler dispatches to `repository.search`). `routes.multiSearch: { use: true }` registers `POST /multi-search`, which dispatches to `dataSource.multiSearch`. A route that is left out, or `{ use: false }`, is not served. The routes register after the subclass's `binding()`. `mode: 'raw'` and multi-search answer `400` until the controller opts in: see [Raw mode and multi-search over HTTP](#raw-mode-and-multi-search-over-http). For anything the factory does not cover, write a custom `BaseRestController` calling `repository.search()` or `getClient()` directly.
 
+A route can document, and require, request headers with the same `request.headers` a CRUD route takes: a Zod object schema.
+
+```typescript
+const BaseSearchController = SearchControllerFactory.build({
+  repository: ArticleRepository,
+  routes: { search: { use: true, request: { headers: z.object({ 'x-merchant-id': z.string() }) } } },
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+});
+```
+
+A request without the header is a `400`, and the OpenAPI document lists it. A route that names no headers is unchanged.
+
 ### Scope the search per request
 
 Search repositories ignore the `@model` `access` setting (a model that sets it refuses to boot), so a search route sees every document unless you scope it. Give the factory a `scope`: a function of the request context that returns the filter this caller may search within.
@@ -750,7 +762,6 @@ SearchControllerFactory.build({
 - **The query text.** The body's `query` reaches the engine as sent: only an empty string (or none) becomes `*`. To normalize it (case, accents, spaces), write a route of your own that calls `repository.search()`.
 - **A dependency in the transform.** The transform gets `{ hits, found, context, input }`. `context` carries the request's state (the current user, the authorization rules), not the container, so a transform that needs another repository cannot resolve one.
 - **A sort expression and hidden fields.** `order` entries are checked against the model's fields. The inside of a `tuning.sortBy` string (`_text_match:desc,...`) is the engine's to check, so a hidden field named there is not caught.
-- **Request headers in the OpenAPI document.** The generated routes document the body only.
 - **No rows for a caller.** A scope that returns `{ or: [] }` answers `200` with no hits and never calls the engine. `null` is the refusal (`403`).
 
 ### Raw mode and multi-search over HTTP

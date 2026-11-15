@@ -2,6 +2,7 @@ import type {
   AbstractEntity,
   IAuthorizationSpec,
   TAuthMode,
+  TAnyObjectSchema,
   TAuthStrategy,
   TToggle,
 } from '@venizia/ignis-kernel';
@@ -14,6 +15,7 @@ import type { ISearchFieldDefinition } from '@/search/core/models';
 import { SearchEngineParams } from './engine-params';
 import { SearchRawAccess } from './raw-access';
 import { SearchToggles } from './toggles';
+import type { ISearchRouteOptions } from './factory';
 import type { ISearchLooseResponse } from './response';
 import { SearchSettingsUtility } from './settings';
 import type { ISearchFieldCatalog, ISearchResolvedQuery, TSearchLooseSource } from './settings';
@@ -22,7 +24,7 @@ import type { ISearchFieldCatalog, ISearchResolvedQuery, TSearchLooseSource } fr
 export interface ISearchOptionsInput {
   authenticate?: TRouteAuthenticateConfig;
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
-  routes: { search?: TToggle; multiSearch?: TToggle };
+  routes: { search?: TToggle<ISearchRouteOptions>; multiSearch?: TToggle<ISearchRouteOptions> };
   modes?: { raw?: TToggle };
   query?: { fixed?: unknown; default?: unknown; allow?: { tuning?: unknown } };
   response?: { use: boolean; document?: unknown; transform?: unknown };
@@ -38,6 +40,8 @@ export interface ISearchResolvedOptions {
   allowedEngineParams: ReadonlySet<string>;
   isSearchOn: boolean;
   isMultiSearchOn: boolean;
+  /** The `request.headers` of each route that is on and names some. */
+  requestHeaders: { search?: TAnyObjectSchema; multiSearch?: TAnyObjectSchema };
   query?: ISearchResolvedQuery;
   response?: ISearchLooseResponse;
 }
@@ -73,6 +77,25 @@ export class SearchControllerOptionsUtility {
       hidden: new Set(hidden),
       defaultQueryBy: defaultQueryBy ?? [],
     };
+  }
+
+  /** The `request.headers` schema of a route that is on, when it names one: it must be a Zod object schema. */
+  private static readHeaders(opts: { scope: string; name: string; toggle: unknown }) {
+    const { scope, name, toggle } = opts;
+    const headers = (toggle as { request?: { headers?: unknown } } | undefined)?.request?.headers;
+
+    if (headers === undefined) {
+      return undefined;
+    }
+
+    if (typeof (headers as { safeParse?: unknown } | null)?.safeParse !== 'function') {
+      throw SearchControllerOptionsUtility.fail({
+        scope,
+        message: `${name}.request.headers must be a Zod object schema | write { use: true, request: { headers: z.object({ 'x-merchant-id': z.string() }) } }`,
+      });
+    }
+
+    return headers as TAnyObjectSchema;
   }
 
   /** `authenticate` is required: a route is open only by an explicit `{ skip: true }`. */
@@ -176,6 +199,22 @@ export class SearchControllerOptionsUtility {
       allowedEngineParams,
       isSearchOn,
       isMultiSearchOn,
+      requestHeaders: {
+        search: isSearchOn
+          ? SearchControllerOptionsUtility.readHeaders({
+              scope,
+              name: 'routes.search',
+              toggle: routes.search,
+            })
+          : undefined,
+        multiSearch: isMultiSearchOn
+          ? SearchControllerOptionsUtility.readHeaders({
+              scope,
+              name: 'routes.multiSearch',
+              toggle: routes.multiSearch,
+            })
+          : undefined,
+      },
     };
 
     // `raw` mode and multi-search hand the engine their own parameters and return its documents as they are: neither can carry a server setting or a response transform.

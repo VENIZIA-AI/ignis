@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/typesense/controllers, f
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-27 exports, 27 with TSDoc.
+28 exports, 28 with TSDoc.
 
 ## `AbstractSearchController`
 
@@ -198,8 +198,8 @@ export interface ISearchOptionsInput {
     authenticate?: TRouteAuthenticateConfig;
     authorize?: IAuthorizationSpec | IAuthorizationSpec[];
     routes: {
-        search?: TToggle;
-        multiSearch?: TToggle;
+        search?: TToggle<ISearchRouteOptions>;
+        multiSearch?: TToggle<ISearchRouteOptions>;
     };
     modes?: {
         raw?: TToggle;
@@ -282,6 +282,11 @@ export interface ISearchResolvedOptions {
     allowedEngineParams: ReadonlySet<string>;
     isSearchOn: boolean;
     isMultiSearchOn: boolean;
+    /** The `request.headers` of each route that is on and names some. */
+    requestHeaders: {
+        search?: TAnyObjectSchema;
+        multiSearch?: TAnyObjectSchema;
+    };
     query?: ISearchResolvedQuery;
     response?: ISearchLooseResponse;
 }
@@ -331,6 +336,20 @@ export interface ISearchResponseTransform<Document extends object, TOutDocument 
 
 Source: `packages/connectors/src/search/core/controllers/types.ts`
 
+## `ISearchRouteOptions`
+
+*interface*
+
+What a search route takes beside `use`: the request headers its OpenAPI document shows, the same `request.headers` a CRUD route takes.
+
+```ts
+export interface ISearchRouteOptions {
+    request?: Pick<NonNullable<TCustomizableRouteConfig['request']>, 'headers'>;
+}
+```
+
+Source: `packages/connectors/src/search/core/controllers/factory.ts`
+
 ## `ISearchRoutes`
 
 *interface*
@@ -339,8 +358,8 @@ The routes of a search controller: a route that is not `{ use: true }` does not 
 
 ```ts
 export interface ISearchRoutes {
-    search?: TToggle;
-    multiSearch?: TToggle;
+    search?: TToggle<ISearchRouteOptions>;
+    multiSearch?: TToggle<ISearchRouteOptions>;
 }
 ```
 
@@ -374,6 +393,11 @@ export declare class SearchControllerFactory extends BaseHelper {
         allowedTuning?: string[];
         /** `query.fixed` or `query.default` is set: a hybrid body then takes its `queryBy` from the server when the client sends none. */
         isQueryBySettable?: boolean;
+        /** The `request.headers` of `routes.search` and `routes.multiSearch`; none leaves the route config without headers. */
+        requestHeaders?: {
+            search?: TAnyObjectSchema;
+            multiSearch?: TAnyObjectSchema;
+        };
         /** `response.document`: the documents of the response, in place of the model's schema. */
         responseDocument?: z.ZodType;
     }): {
@@ -665,6 +689,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                     };
                     required: boolean | undefined;
                 };
+                readonly headers?: TAnyObjectSchema | undefined;
             };
             readonly responses: {
                 '4XX': {
@@ -786,6 +811,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                     };
                     required: boolean | undefined;
                 };
+                readonly headers?: TAnyObjectSchema | undefined;
             };
             readonly responses: {
                 '4XX': {
@@ -918,13 +944,6 @@ export declare class SearchControllerFactory extends BaseHelper {
                 extra: Partial<Record<keyof Extra, unknown>>;
             } | null | undefined>;
             respond<R>(opts: {
-                context: import("@venizia/ignis-kernel").TRouteContext<RouteEnv>;
-                format: import("@venizia/ignis-kernel").TResponseFormat;
-                payload: {
-                    count: number;
-                    data?: import("@venizia/ignis-helpers").TNullable<R>;
-                };
-                range?: import("@venizia/ignis-kernel").TDataRange;
 // ... cut
 ```
 
@@ -944,6 +963,8 @@ export declare class SearchControllerOptionsUtility {
         scope: string;
         entityClass: TClass<AbstractEntity>;
     }): ISearchFieldCatalog;
+    /** The `request.headers` schema of a route that is on, when it names one: it must be a Zod object schema. */
+    private static readHeaders;
     /** `authenticate` is required: a route is open only by an explicit `{ skip: true }`. */
     private static resolveAuthenticate;
     /** One `query.fixed` or `query.default`: a function is kept for the request, a value is checked now. */
