@@ -7,31 +7,7 @@ description: "Every export of @venizia/ignis-helpers/common, from the built decl
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-54 exports, 54 with TSDoc. 7 more are re-exported from other entries (listed at the end).
-
-## `AnyObject`
-
-*type*
-
-An object with any string, number or symbol keys.
-
-```ts
-export type AnyObject = Record<string | symbol | number, any>;
-```
-
-Source: `packages/helpers/src/common/types/utility.ts`
-
-## `AnyType`
-
-*type*
-
-Escape hatch for a value of unknown shape; prefer a real type.
-
-```ts
-export type AnyType = any;
-```
-
-Source: `packages/helpers/src/common/types/utility.ts`
+52 exports, 52 with TSDoc. 7 more are re-exported from other entries (listed at the end).
 
 ## `ClassResolver`
 

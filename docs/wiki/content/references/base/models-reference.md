@@ -872,17 +872,14 @@ type TDataTypeEnricherOptions = {
 
 Emitted columns:
 
-<!-- docs-code: off -->
 | Column | SQL type | DB column name | TypeScript type | Purpose |
 |--------|----------|----------------|-----------------|---------|
 | `dataType` | `text` | `data_type` | `string` | Type discriminator (`'number'`, `'text'`, `'json'`) |
 | `nValue` | `double precision` | `n_value` | `number` | Numeric values |
 | `tValue` | `text` | `t_value` | `string` | Text values |
 | `bValue` | `bytea` | `b_value` | `Buffer` | Binary values |
-| `jValue` | `jsonb` | `j_value` | `Record<string, any>` | JSON values |
+| `jValue` | `jsonb` | `j_value` | `Record<string, unknown>` | JSON values |
 | `boValue` | `boolean` | `bo_value` | `boolean` | Boolean values |
-
-<!-- docs-code: on -->
 
 All columns are nullable by default (no `NOT NULL`), since typically only one value column is populated per row depending on the `dataType` discriminator. Pass `defaultValue` to attach SQL defaults to individual columns.
 

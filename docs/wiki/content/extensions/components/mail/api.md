@@ -221,7 +221,7 @@ interface INodemailerMailOptions extends IBaseMailOptions {
 
 interface IMailgunMailOptions extends IBaseMailOptions {
   provider: 'mailgun';
-  config: TMailgunConfig; // AnyType & { domain: string } -- also requires username, key at runtime
+  config: TMailgunConfig; // { username, key, domain, url? } plus other mailgun.js client options
   module?: TMailgunModule; // the peer itself; see "Peer dependency loading"
 }
 
@@ -238,7 +238,7 @@ interface ICustomMailOptions extends IBaseMailOptions {
 
 interface IGenericMailOptions extends IBaseMailOptions {
   provider: string;
-  config: Record<string, AnyType>;
+  config: Record<string, unknown>;
 }
 
 type TMailOptions =
@@ -903,8 +903,8 @@ interface IInternalQueueMailExecutorOpts {
 ```typescript
 // type.utility.ts
 class MailTypeUtility {
-  static isTransport(value: AnyType): value is IMailTransport;
-  static isValidOptions(options: AnyType): options is TMailOptions;
+  static isTransport(value: unknown): value is IMailTransport;
+  static isValidOptions(options: unknown): options is TMailOptions;
 }
 
 // verification.utility.ts

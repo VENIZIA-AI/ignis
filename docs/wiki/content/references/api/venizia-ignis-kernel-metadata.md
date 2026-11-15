@@ -389,7 +389,7 @@ Source: `packages/kernel/src/helpers/inversion/common/types/artifact.ts`
 `inject` writes to its module-level registry - metadata written there is never read back.
 
 ```ts
-export declare const inject: (opts: TInjectOptions) => (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => void;
+export declare const inject: (opts: TInjectOptions) => (target: object, propertyName: string | symbol | undefined, parameterIndex?: number) => void;
 ```
 
 Source: `packages/kernel/src/base/metadata/injectors.ts`

@@ -366,11 +366,11 @@ interface IJWTTokenPayload extends JWTPayload, IAuthUser {
 ```typescript
 interface IAuthService<
   E extends Env = Env,
-  SIRQ extends TSignInRequest = TSignInRequest, SIRS = AnyObject,
-  SURQ extends TSignUpRequest = TSignUpRequest, SURS = AnyObject,
-  CPRQ extends TChangePasswordRequest = TChangePasswordRequest, CPRS = AnyObject,
-  UIRQ = AnyObject, UIRS = AnyObject,
-  RTRS = AnyObject,
+  SIRQ extends TSignInRequest = TSignInRequest, SIRS = Record<string, unknown>,
+  SURQ extends TSignUpRequest = TSignUpRequest, SURS = Record<string, unknown>,
+  CPRQ extends TChangePasswordRequest = TChangePasswordRequest, CPRS = Record<string, unknown>,
+  UIRQ = Record<string, unknown>, UIRS = Record<string, unknown>,
+  RTRS = Record<string, unknown>,
 > {
   signIn(context: TContext<E>, opts: SIRQ): Promise<SIRS>;
   signUp(context: TContext<E>, opts: SURQ): Promise<SURS>;
