@@ -798,7 +798,9 @@ export type TDataTypeEnricherOptions = {
         nValue: number;
         tValue: string;
         bValue: Buffer;
-        jValue: TJsonValue;
+        jValue: TJsonValue[] | {
+            [key: string]: TJsonValue;
+        };
         boValue: boolean;
     }>;
 };
