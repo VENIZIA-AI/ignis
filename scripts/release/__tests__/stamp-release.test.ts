@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { ReleaseStamp } from '../stamp-release';
+import { ReleaseStampText } from '../stamp-text';
 
 const roots: string[] = [];
 
@@ -40,36 +41,38 @@ const project = (opts: { log?: string }): string => {
 const logOf = (root: string): string =>
   readFileSync(join(root, 'docs', 'changelogs', '0.4.8', 'log.md'), 'utf8');
 
-describe('ReleaseStamp.stamped', () => {
+describe('ReleaseStampText.stamped', () => {
   test('writes released: as the last frontmatter line and leaves the body alone', () => {
-    expect(ReleaseStamp.stamped({ text: LOG, date: '2026-11-20' })).toBe(
+    expect(ReleaseStampText.stamped({ text: LOG, date: '2026-11-20' })).toBe(
       "---\ntitle: 0.4.8\nversion: 0.4.8\npackages: ['@x/core']\nreleased: 2026-11-20\n---\nThe line.\n",
     );
   });
 
   test('keeps the line endings of a log written with CRLF', () => {
-    expect(ReleaseStamp.stamped({ text: LOG.replaceAll('\n', '\r\n'), date: '2026-11-20' })).toBe(
+    expect(
+      ReleaseStampText.stamped({ text: LOG.replaceAll('\n', '\r\n'), date: '2026-11-20' }),
+    ).toBe(
       "---\r\ntitle: 0.4.8\r\nversion: 0.4.8\r\npackages: ['@x/core']\r\nreleased: 2026-11-20\r\n---\r\nThe line.\r\n",
     );
   });
 
   test('a log that already says that date is left as it is; another date is refused', () => {
-    const stamped = ReleaseStamp.stamped({ text: LOG, date: '2026-11-20' }) ?? '';
+    const stamped = ReleaseStampText.stamped({ text: LOG, date: '2026-11-20' }) ?? '';
 
-    expect(ReleaseStamp.stamped({ text: stamped, date: '2026-11-20' })).toBeUndefined();
-    expect(() => ReleaseStamp.stamped({ text: stamped, date: '2026-11-21' })).toThrow('frozen');
+    expect(ReleaseStampText.stamped({ text: stamped, date: '2026-11-20' })).toBeUndefined();
+    expect(() => ReleaseStampText.stamped({ text: stamped, date: '2026-11-21' })).toThrow('frozen');
   });
 
   test('a log with no frontmatter is refused', () => {
-    expect(() => ReleaseStamp.stamped({ text: 'no frontmatter\n', date: '2026-11-20' })).toThrow(
-      'no frontmatter',
-    );
+    expect(() =>
+      ReleaseStampText.stamped({ text: 'no frontmatter\n', date: '2026-11-20' }),
+    ).toThrow('no frontmatter');
   });
 
   test('a released: in the body is not the folder being released', () => {
     const text = `${LOG}released: 2020-01-01\n`;
 
-    expect(ReleaseStamp.stamped({ text, date: '2026-11-20' })).toContain(
+    expect(ReleaseStampText.stamped({ text, date: '2026-11-20' })).toContain(
       'released: 2026-11-20\n---',
     );
   });
@@ -145,7 +148,7 @@ describe('the real changelog of this repository', () => {
     const folder = resolve(import.meta.dir, '../../../docs/wiki/content/changelogs/0.4.8/log.md');
 
     expect(
-      ReleaseStamp.stamped({ text: readFileSync(folder, 'utf8'), date: '2099-01-01' }),
+      ReleaseStampText.stamped({ text: readFileSync(folder, 'utf8'), date: '2099-01-01' }),
     ).toContain('\nreleased: 2099-01-01\n---\n');
   });
 });

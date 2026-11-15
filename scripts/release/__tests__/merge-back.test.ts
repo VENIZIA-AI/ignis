@@ -360,6 +360,103 @@ describe('ReleaseMergeBack.mergeInto', () => {
   });
 });
 
+describe('ReleaseMergeBack.resolveStampConflict', () => {
+  const front = (...lines: string[]): string => `---\n${lines.join('\n')}\n---\nBody.\n`;
+  const resolve = (opts: { base: string; ours: string; theirs: string }) =>
+    ReleaseMergeBack.resolveStampConflict({ ...opts, scratchRoot: scratch() });
+  const BASE = front('title: 0.4.9', "version: '0.4.9'");
+
+  test('keeps the edit of develop and the released: line of the release', () => {
+    const resolved = resolve({
+      base: BASE,
+      ours: front('title: 0.4.9', 'version: 0.4.9'),
+      theirs: front('title: 0.4.9', "version: '0.4.9'", 'released: 2026-11-20'),
+    });
+
+    expect(resolved).toEqual({
+      text: front('title: 0.4.9', 'version: 0.4.9', 'released: 2026-11-20'),
+    });
+  });
+
+  test('stops when other lines conflict, when the base is already released, when neither side is, or when the dates differ', () => {
+    expect(
+      resolve({
+        base: BASE,
+        ours: front('title: 0.4.9', 'version: a'),
+        theirs: front('title: 0.4.9', 'version: b', 'released: 2026-11-20'),
+      }).problem,
+    ).toContain('other lines conflict');
+    expect(
+      resolve({ base: front('released: 2026-11-19'), ours: BASE, theirs: BASE }).problem,
+    ).toContain('frozen');
+    expect(resolve({ base: BASE, ours: BASE, theirs: BASE }).problem).toContain('not a stamp');
+    expect(
+      resolve({
+        base: BASE,
+        ours: front('title: 0.4.9', "version: '0.4.9'", 'released: 2026-11-19'),
+        theirs: front('title: 0.4.9', "version: '0.4.9'", 'released: 2026-11-20'),
+      }).problem,
+    ).toContain('differently');
+  });
+});
+
+describe('ReleaseMergeBack.mergeInto: a version folder that develop edited next to the stamp', () => {
+  const LOG_PATH = 'docs/changelogs/0.4.9/log.md';
+  const front = (version: string, released?: string): string =>
+    `---\ntitle: 0.4.9\nversion: ${version}\n${released === undefined ? '' : `released: ${released}\n`}---\nBody.\n`;
+
+  /** `main` and `develop` share the folder; the release stamps it on `release`, develop edits its last frontmatter line. */
+  const prepared = (): string => {
+    const root = fixture({ developVersion: '0.4.9-3' });
+
+    write({ root, path: LOG_PATH, text: front("'0.4.9'") });
+    run({ cwd: root, args: ['add', '-A'] });
+    run({ cwd: root, args: ['commit', '-q', '-m', 'the folder'] });
+    run({ cwd: root, args: ['checkout', '-q', 'develop'] });
+    run({ cwd: root, args: ['merge', '-q', '--no-edit', 'main'] });
+    run({ cwd: root, args: ['checkout', '-q', '-b', 'release', 'main'] });
+    release({ root, version: '0.4.9', message: 'chore(release): v' });
+    write({ root, path: LOG_PATH, text: front("'0.4.9'", '2026-11-20') });
+    run({ cwd: root, args: ['commit', '-q', '-am', 'the stamp'] });
+    run({ cwd: root, args: ['checkout', '-q', 'develop'] });
+    write({ root, path: LOG_PATH, text: front('0.4.9') });
+    run({ cwd: root, args: ['commit', '-q', '-am', 'develop edits the last frontmatter line'] });
+
+    return root;
+  };
+
+  test('resolves the conflict: the edit of develop and the released: line both stay', () => {
+    const root = prepared();
+    const result = ReleaseMergeBack.mergeInto({
+      cwd: root,
+      from: 'release',
+      scratchRoot: scratch(),
+      commit: { message: 'Merge main into develop' },
+    });
+
+    expect(result.problems).toEqual([]);
+    expect(result.resolved).toContain(LOG_PATH);
+    expect(readFileSync(join(root, LOG_PATH), 'utf8')).toBe(front('0.4.9', '2026-11-20'));
+  });
+
+  test('an edit of another frontmatter key by develop merges with the stamp, and the resolver is not needed for it', () => {
+    const root = prepared();
+
+    write({ root, path: LOG_PATH, text: front('0.4.9').replace('title: 0.4.9', 'title: other') });
+    run({ cwd: root, args: ['commit', '-q', '-am', 'develop edits the title too'] });
+
+    const result = ReleaseMergeBack.mergeInto({
+      cwd: root,
+      from: 'release',
+      scratchRoot: scratch(),
+      commit: { message: 'Merge main into develop' },
+    });
+
+    expect(result.problems).toEqual([]);
+    expect(readFileSync(join(root, LOG_PATH), 'utf8')).toContain('released: 2026-11-20');
+  });
+});
+
 describe('ReleaseMergeBack.flagValue', () => {
   test('a value is the next argument, and a flag followed by a flag has none', () => {
     expect(ReleaseMergeBack.flagValue({ args: ['--bump', 'patch'], flag: '--bump' })).toBe('patch');

@@ -24,6 +24,7 @@
  * line is frozen. The plan job refuses a stable with no folder, or whose folder already says it is released.
  */
 import { appendFileSync } from 'node:fs';
+import { GithubReleaseConstants } from './github-release';
 import { ReleaseChangelog } from './release-changelog';
 import { ReleaseModes, ReleaseOrder, type TReleaseMode } from './release-constants';
 import { ReleaseKinds, ReleaseTargets, type TReleaseKind } from './release-kind';
@@ -186,10 +187,12 @@ export class ReleaseRun {
     const toRecord: IRecordJob[] = [];
     /** `name@version` of every package this run published or found already on npm: the registry lists them late, so the pin check trusts this first. */
     const releasedHere = new Set<string>();
-    // The Release is made on the tag of the last package in release order; a stable dates the folder in its release commit.
+    // A stable dates its version folder in the release commit of `core-server`, the package the folders are named for;
+    // a stable without it dates nothing.
     const releasePackage =
-      ReleaseKinds.ofMode({ mode }) === ReleaseKinds.STABLE
-        ? ReleaseOrder.sort({ names: entries.map((entry) => entry.name) }).at(-1)
+      ReleaseKinds.ofMode({ mode }) === ReleaseKinds.STABLE &&
+      entries.some((entry) => entry.name === GithubReleaseConstants.LEADING_DIR)
+        ? GithubReleaseConstants.LEADING_DIR
         : undefined;
 
     // Phase 1: bump, pack, check and publish every package. Publishing needs no tarball wait: a dependent package only

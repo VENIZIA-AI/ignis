@@ -2,14 +2,16 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { GithubRelease, GithubReleaseConstants } from './github-release';
 import { ReleaseKinds } from './release-kind';
+import { ReleaseStampConstants, ReleaseStampText } from './stamp-text';
 import type { IReleasePlanSummary } from './release-kind';
 
 /**
  * What a stable of a project with version folders (`knowledge.migrationFrom` is a version) needs of its changelog, read
  * by the plan job: the folder of the version the Release is made for, not yet released, and the previous stable tag the
- * history check of the `scripts` job measures from. The version is the one of the last package of the plan (`core-server`
- * when it is in the plan), the package the Release is made on. Ported from VULCAN's `ReleasePlan.changelogProblems` and
- * `changelogBase` (scripts/release/plan.ts, PR 949).
+ * history check of the `scripts` job measures from. The version is `core-server`'s (the leading package, the one the
+ * folders are named for); a plan without it has no folder to need or to stamp. Ported from VULCAN's
+ * `ReleasePlan.changelogProblems` and `changelogBase` (scripts/release/plan.ts); a change to the rule is made in VULCAN
+ * first.
  */
 export class ReleaseChangelog {
   /**
@@ -25,7 +27,7 @@ export class ReleaseChangelog {
 
     const { changelogs: folder, migrationFrom: from } = GithubRelease.manifestOf({ cwd: opts.cwd });
 
-    if (from === undefined || !/^\d+\.\d+\.\d+$/.test(from)) {
+    if (from === undefined || !ReleaseStampConstants.VERSION.test(from)) {
       return [];
     }
 
@@ -37,9 +39,13 @@ export class ReleaseChangelog {
       ];
     }
 
-    return !opts.healing && /^released:/m.test(readFileSync(log, 'utf8'))
-      ? [`${folder}/${opts.version}/log.md already says released: a stable is released once`]
-      : [];
+    // The stamp is dry-run here: a log.md it cannot be written into is refused before anything is published.
+    const problem = ReleaseStampText.problemOf({
+      text: readFileSync(log, 'utf8'),
+      healing: opts.healing,
+    });
+
+    return problem === undefined ? [] : [`${folder}/${opts.version}/log.md ${problem}`];
   }
 
   /** The highest stable tag of the package below `version`: where the history check measures from; empty when there is none. */
@@ -60,28 +66,31 @@ export class ReleaseChangelog {
   }
 
   /**
-   * What the plan job says about the changelog of a plan: nothing for a prerelease. For a stable, the problems and the
-   * base tag, from the last package of the plan; `versions` are the versions on the dispatched commit (`dir` -> version),
-   * which say whether the run is the continuation of one that already made that package's release commit.
+   * What the plan job says about the changelog of a plan: nothing for a prerelease, and nothing for a stable without
+   * `core-server` (the folders are named for its version, and it is the package the Release is made on). For a stable
+   * with it, the problems and the base tag; `versions` are the versions on the dispatched commit (`dir` -> version),
+   * which say whether the run continues one that already made the release commit of `core-server`.
    */
   static ofPlan(opts: {
     cwd: string;
     plan: IReleasePlanSummary;
     versions: ReadonlyMap<string, string>;
   }): { problems: string[]; base: string } {
-    const last = opts.plan.targets.at(-1);
+    const leading = opts.plan.targets.find(
+      (target) => target.name === GithubReleaseConstants.LEADING_DIR,
+    );
 
-    if (opts.plan.kind !== ReleaseKinds.STABLE || last === undefined) {
+    if (opts.plan.kind !== ReleaseKinds.STABLE || leading === undefined) {
       return { problems: [], base: '' };
     }
 
     return {
       problems: ReleaseChangelog.problems({
         cwd: opts.cwd,
-        version: last.target,
-        healing: opts.versions.get(last.name) === last.target,
+        version: leading.target,
+        healing: opts.versions.get(leading.name) === leading.target,
       }),
-      base: ReleaseChangelog.base({ cwd: opts.cwd, dir: last.name, version: last.target }),
+      base: ReleaseChangelog.base({ cwd: opts.cwd, dir: leading.name, version: leading.target }),
     };
   }
 }

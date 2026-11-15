@@ -18,7 +18,8 @@
  *
  * A conflict is resolved only when it is the `version` field of a `package.json` (the greater version wins, so a
  * stable `0.4.9` beats `0.4.9-3` and `0.4.10-0` beats `0.4.9`) or `bun.lock` (regenerated, never merged by hand,
- * and checked to differ from `develop`'s only in workspace versions). Anything else stops the merge, with the
+ * and checked to differ from `develop`'s only in workspace versions) or a version folder's `log.md` (the `released:`
+ * line the release commit added; resolved when it is the only difference). Anything else stops the merge, with the
  * checkout back as it was, and the reason is printed.
  */
 import {
@@ -31,6 +32,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { ReleaseStampText } from './stamp-text';
 
 export class MergeBackConstants {
   /** Stands for the version while a three-way merge of a `package.json` runs, so only other lines can conflict. */
@@ -43,6 +45,7 @@ export class MergeBackConstants {
   static readonly LOCK_VERSION_LINE = /^\s*"version": "[^"]+",?$/;
 
   static readonly LOCK_FILE = 'bun.lock';
+  static readonly LOG_FILE = 'log.md';
   static readonly PACKAGE_FILE = 'package.json';
   static readonly DEFAULT_MAIN = 'origin/main';
   static readonly DEFAULT_DEVELOP = 'origin/develop';
@@ -162,6 +165,62 @@ export class ReleaseMergeBack {
     }
   }
 
+  /**
+   * The text a conflicted version folder `log.md` resolves to, or the reason it cannot: the release commit added
+   * `released: <date>` as the last line of the frontmatter, and `develop` edited the lines around it. The three sides
+   * lose that line and are merged by `git merge-file`: clean means the stamp was the only difference, and the line is
+   * written back. A folder `develop` already dated differently, or released before the stamp, is not resolved.
+   */
+  static resolveStampConflict(opts: {
+    base: string;
+    ours: string;
+    theirs: string;
+    scratchRoot: string;
+  }): { text?: string; problem?: string } {
+    const dates = [opts.base, opts.ours, opts.theirs].map((text) =>
+      ReleaseStampText.releasedOf({ text }),
+    );
+    const [base, ours, theirs] = dates;
+    const date = theirs ?? ours;
+
+    if (base !== undefined) {
+      return { problem: 'the base already says released:, a released folder is frozen' };
+    }
+
+    if (date === undefined) {
+      return { problem: 'neither side has a released: line, so it is not a stamp conflict' };
+    }
+
+    if (ours !== undefined && theirs !== undefined && ours !== theirs) {
+      return { problem: `the sides date the folder differently (${ours}, ${theirs})` };
+    }
+
+    const directory = mkdtempSync(join(opts.scratchRoot, 'merge-back-'));
+
+    try {
+      const sides = { ours: opts.ours, base: opts.base, theirs: opts.theirs };
+
+      for (const [name, text] of Object.entries(sides)) {
+        writeFileSync(join(directory, name), ReleaseStampText.withoutReleased({ text }));
+      }
+
+      const merged = ReleaseMergeBack.git({
+        cwd: directory,
+        args: ['merge-file', '-p', 'ours', 'base', 'theirs'],
+      });
+
+      if (merged.status !== 0) {
+        return { problem: 'its other lines conflict too, not only the released: line' };
+      }
+
+      return { text: ReleaseStampText.stamped({ text: merged.stdout, date }) ?? merged.stdout };
+    } catch (error) {
+      return { problem: error instanceof Error ? error.message : String(error) };
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  }
+
   /** Why a regenerated lockfile may not replace `develop`'s: a line other than a workspace version moved. */
   static lockProblems(opts: { before: string; after: string }): string[] {
     const before = opts.before.split('\n');
@@ -229,8 +288,12 @@ export class ReleaseMergeBack {
           continue;
         }
 
-        if (file.split('/').pop() !== MergeBackConstants.PACKAGE_FILE) {
-          result.problems.push(`${file}: a conflict that is not the version of a package.json`);
+        const name = file.split('/').pop();
+
+        if (name !== MergeBackConstants.PACKAGE_FILE && name !== MergeBackConstants.LOG_FILE) {
+          result.problems.push(
+            `${file}: a conflict that is not the version of a package.json or the released: line of a log.md`,
+          );
           continue;
         }
 
@@ -250,12 +313,11 @@ export class ReleaseMergeBack {
           continue;
         }
 
-        const resolution = ReleaseMergeBack.resolveVersionConflict({
-          base,
-          ours,
-          theirs,
-          scratchRoot: opts.scratchRoot,
-        });
+        const resolution = (
+          name === MergeBackConstants.LOG_FILE
+            ? ReleaseMergeBack.resolveStampConflict
+            : ReleaseMergeBack.resolveVersionConflict
+        )({ base, ours, theirs, scratchRoot: opts.scratchRoot });
 
         if (resolution.text === undefined) {
           result.problems.push(`${file}: ${resolution.problem}`);

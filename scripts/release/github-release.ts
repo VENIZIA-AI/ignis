@@ -663,12 +663,16 @@ export class GithubRelease {
     const template = GithubRelease.templateOf({ manifest: opts.manifest, dir: opts.last.dir });
     const tags = GithubRelease.tagsOf({ cwd: opts.cwd });
     const from = GithubRelease.previousTag({ tags, template, version: opts.last.version });
-    const folder = GithubRelease.folderNotes({
-      cwd: opts.cwd,
-      tag: opts.tag,
-      folder: opts.manifest.changelogs,
-      version: opts.last.version,
-    });
+    // The folders are named for core-server's version: another package's Release has none and uses the dated entries.
+    const folder =
+      opts.last.dir === GithubReleaseConstants.LEADING_DIR
+        ? GithubRelease.folderNotes({
+            cwd: opts.cwd,
+            tag: opts.tag,
+            folder: opts.manifest.changelogs,
+            version: opts.last.version,
+          })
+        : undefined;
     let notes =
       folder === undefined
         ? GithubRelease.stableNotes({

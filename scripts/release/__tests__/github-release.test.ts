@@ -782,6 +782,29 @@ describe('GithubRelease.create of a stable with a version folder', () => {
     expect(outcome.message).toContain('docs/changelogs/0.4.9');
   });
 
+  test('the folder is core-server only: a Release made on another package takes the dated entries, even when a folder of its version exists', () => {
+    const root = fixture();
+
+    commit({
+      root,
+      message: '[#14] chore(kernel): release v0.4.12 [patch]',
+      files: { 'docs/changelogs/0.4.12/log.md': LOG.replaceAll('0.4.9', '0.4.12') },
+    });
+    tag({ root, name: 'kernel-v0.4.12' });
+
+    const stub = stubGh({});
+    const outcome = make({
+      root,
+      targets: [{ dir: 'kernel', version: '0.4.12' }],
+      kind: 'stable',
+      stub,
+    });
+
+    expect(outcome.state).toBe('created');
+    expect(stub.notes()).not.toContain('IGNIS 0.4.12 fixes the bug');
+    expect(stub.created()[stub.created().indexOf('--title') + 1]).toBe('IGNIS kernel 0.4.12');
+  });
+
   test('folderNotes is undefined for a version the tag holds no folder of', () => {
     expect(
       GithubRelease.folderNotes({
