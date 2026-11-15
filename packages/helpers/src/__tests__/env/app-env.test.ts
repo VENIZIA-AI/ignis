@@ -105,3 +105,31 @@ describe('ApplicationEnvironment.get - an inherited property name is not a varia
     },
   );
 });
+
+describe('ApplicationEnvironment.getRequired', () => {
+  test('answers a value that is set', () => {
+    const environment = makeEnvironment({ APP_ENV_SECRET: 's3cret' });
+
+    expect(environment.getRequired('APP_ENV_SECRET')).toBe('s3cret');
+  });
+
+  test('throws an error naming the key when the variable is unset', () => {
+    const environment = makeEnvironment({});
+
+    expect(() => environment.getRequired('APP_ENV_MISSING_KEY')).toThrow('APP_ENV_MISSING_KEY');
+  });
+
+  test('throws for an empty and for a whitespace-only value, the blank rule of get', () => {
+    const environment = makeEnvironment({ APP_ENV_EMPTY_REQ: '', APP_ENV_BLANK_REQ: '   ' });
+
+    expect(() => environment.getRequired('APP_ENV_EMPTY_REQ')).toThrow('APP_ENV_EMPTY_REQ');
+    expect(() => environment.getRequired('APP_ENV_BLANK_REQ')).toThrow('APP_ENV_BLANK_REQ');
+  });
+
+  test('answers a value set after construction', () => {
+    const environment = makeEnvironment({});
+    environment.set('APP_ENV_LATE', 'value');
+
+    expect(environment.getRequired('APP_ENV_LATE')).toBe('value');
+  });
+});

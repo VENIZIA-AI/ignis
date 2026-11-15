@@ -1,5 +1,6 @@
 import { ParseUtility } from '@/utilities/parse.utility';
 import { BaseHelper } from '@/modules/base';
+import { getError } from '@/modules/error';
 import { EnvironmentNames } from './names';
 import {
   type IApplicationEnvironment,
@@ -77,6 +78,19 @@ export class ApplicationEnvironment extends BaseHelper implements IApplicationEn
     }
 
     return opts.transform(rs) ?? opts.defaultValue;
+  }
+
+  /** The value of a variable the app cannot run without: a string that is set and not blank (the same rule `get` applies to a `defaultValue`), or an error naming the key. */
+  getRequired(key: string): string {
+    const value = this.get(key);
+
+    if (typeof value !== 'string' || !value.trim()) {
+      throw getError({
+        message: `[getRequired] Application environment variable ${key} is not set or is blank`,
+      });
+    }
+
+    return value;
   }
 
   set(key: string, value: string | undefined): void {

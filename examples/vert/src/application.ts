@@ -30,7 +30,6 @@ import {
 import { cors } from 'hono/cors';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common';
-import { requireEnv } from './common/require-env';
 import { PostgresDataSource } from './datasources/postgres.datasource';
 import { GeneratedArtifacts } from './generated/artifacts';
 import { Organization, Permission, PolicyDefinition, Role } from './models/entities';
@@ -147,7 +146,7 @@ export class Application extends BaseApplication {
 
     const redis = new RedisSingleHelper({
       name: 'authorization-cache',
-      host: requireEnv(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_HOST),
+      host: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_HOST),
       port: applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PORT),
       password: applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PASSWORD),
       database: ParseUtility.toInt({

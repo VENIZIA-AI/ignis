@@ -1,6 +1,5 @@
 import { EnvironmentKeys } from '@/common/environments';
 import { getJwtClaims } from '@/common/jwt-claims';
-import { requireEnv } from '@/common/require-env';
 import { JWSTokenService } from '@venizia/ignis';
 import type { IJWTTokenPayload } from '@venizia/ignis';
 import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
@@ -19,7 +18,7 @@ import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
 export const mintToken = async (opts: { subject: string; role?: string }): Promise<string> => {
   const { subject, role = 'authenticated' } = opts;
 
-  const jwtSecret = requireEnv(EnvironmentKeys.APP_ENV_JWT_SECRET);
+  const jwtSecret = applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWT_SECRET);
   const expiresIn = ParseUtility.toInt({
     input: applicationEnvironment.get(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN, {
       defaultValue: '3600',

@@ -1,5 +1,4 @@
 import { EnvironmentKeys } from '@/common';
-import { requireEnv } from '@/common/require-env';
 import {
   ChangePasswordRequestSchema,
   ChangePasswordResponseSchema,
@@ -141,18 +140,18 @@ export class PlatformComponent extends BaseComponent {
         mode: JWKSModes.ISSUER,
         algorithm: z
           .enum([JWKSAlgorithms.ES256, JWKSAlgorithms.RS256, JWKSAlgorithms.EDDSA])
-          .parse(requireEnv(EnvironmentKeys.APP_ENV_JWKS_ALGORITHM)),
+          .parse(applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWKS_ALGORITHM)),
         keys: {
           driver: z
             .enum([JWKSKeyDrivers.TEXT, JWKSKeyDrivers.FILE])
-            .parse(requireEnv(EnvironmentKeys.APP_ENV_JWKS_KEY_DRIVER)),
+            .parse(applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWKS_KEY_DRIVER)),
           format: z
             .enum([JWKSKeyFormats.PEM, JWKSKeyFormats.JWK])
-            .parse(requireEnv(EnvironmentKeys.APP_ENV_JWKS_KEY_FORMAT)),
-          private: requireEnv(EnvironmentKeys.APP_ENV_JWKS_PRIVATE_KEY),
-          public: requireEnv(EnvironmentKeys.APP_ENV_JWKS_PUBLIC_KEY),
+            .parse(applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWKS_KEY_FORMAT)),
+          private: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWKS_PRIVATE_KEY),
+          public: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWKS_PUBLIC_KEY),
         },
-        kid: requireEnv(EnvironmentKeys.APP_ENV_JWKS_KID),
+        kid: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWKS_KID),
         // This server issues and verifies its own tokens: both claims name it.
         claims: { issuer: 'vert', audience: 'vert' },
         getTokenExpiresFn: () => {

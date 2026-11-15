@@ -84,6 +84,9 @@ migration:
         if (host === undefined || host.trim() === '') {
           throw new Error('APP_ENV_DB_HOST is not set');
         }
+
+        // or, in one call: throws an error naming the key when it is unset or blank
+        const required = applicationEnvironment.getRequired('APP_ENV_DB_HOST');
     downgrade:
       steps:
         - "Read it with get<string>(key) again and drop the check."
@@ -114,6 +117,7 @@ migration:
 - **`get(key)`** answers `string | undefined`.
 - **`get(key, { defaultValue })`** answers `string`.
 - **`get(key, { transform, defaultValue? })`** answers what `transform` returns. `transform` takes `string | undefined`.
+- **Added.** `getRequired(key)` answers a `string`, or throws an error naming the key when the variable is unset, empty or whitespace-only. Use it for a variable the app cannot run without.
 - **Gone.** The `BeforeTransformType` generic, and the `as ReturnType` cast inside `get`.
 - **The store.** `set(key, value)`, the constructor's `envs` and the store hold strings, not any value.
 
