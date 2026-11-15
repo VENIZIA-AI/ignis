@@ -917,7 +917,7 @@ redis-sentinel-scope:
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7 and move the fields back to the top level (sentinels, masterName, role, sentinelUsername, sentinelPassword); drop the sentinel scope and the top-level username.
-  data: A JavaScript caller that keeps the old top-level fields gets no help from the typecheck. sentinels or masterName at the top level throws at construction (a TypeError, or "Requires the name of master."), and role, sentinelUsername and sentinelPassword are ignored, so the helper would connect to the master with no Sentinel credentials. Move them before you deploy.
+  data: A JavaScript caller that keeps the old top-level fields gets no help from the typecheck. an old-shape config fails when the helper is constructed, not only at typecheck: sentinels or masterName at the top level, with no sentinel scope, throws "[RedisSentinelHelper] sentinel.nodes is required | pass sentinel: { masterName, nodes }", and role, sentinelUsername and sentinelPassword are ignored, so the helper would connect to the master with no Sentinel credentials. Move them before you deploy.
 
 redis-cluster-node-password:
   symbols: [IRedisClusterHelperProps, IRedisClusterHelperOptions, RedisClusterHelper, RedisHelperFactory.cluster, IRedisNode, IRedisCredentials]
