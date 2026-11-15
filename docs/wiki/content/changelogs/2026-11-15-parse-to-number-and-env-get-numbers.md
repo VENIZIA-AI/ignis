@@ -15,7 +15,7 @@ packages: ['@venizia/ignis-helpers', '@venizia/dev-configs']
 ## What changed
 
 - **`ParseUtility.toNumber({ input })`** answers `undefined` for an unset or blank value, so a `defaultValue` applies; the number for a decimal numeric string (whitespace around it, a sign, a fraction and an exponent are fine: `' 12 '`, `'-5'`, `'.5'`, `'1e3'`); and **throws** `[toNumber] ... is not a number` for anything else (`'abc'`, `'12px'`, `'0x10'`, `'1,000'`, `'Infinity'`, `'NaN'`, a boolean, an object). `ParseUtility.toInt` answers `0` for garbage and `Number` answers `NaN`; this one never lets a bad value through.
-- **`devz codemod env-get --numbers`** (opt-in) rewrites `get<number>(key)` and `get<number>(key, { defaultValue })` to `get(key, { transform: (raw) => ParseUtility.toNumber({ input: raw }), defaultValue })` and adds `ParseUtility` to the import. Every rewrite is listed.
+- **`devz codemod env-get --numbers`** (opt-in) rewrites `get<number>(key)` and `get<number>(key, { defaultValue })` to `get(key, { transform: (raw) => ParseUtility.toNumber({ input: raw }), defaultValue })` and adds `ParseUtility` to the import. Every rewrite is listed. A call it cannot rewrite safely is left and listed as manual: options held in a variable, a `defaultValue` that is not a number, or a `ParseUtility` name the file already uses for something else.
 
 ```typescript
 const port = applicationEnvironment.get('APP_ENV_PORT', {
