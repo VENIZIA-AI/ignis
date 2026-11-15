@@ -1,0 +1,978 @@
+old-function-names-removed:
+  symbols:
+  - isEmpty
+  - omit
+  - resolveValue
+  - resolveValueAsync
+  - resolveInjectTarget
+  - verifyBindings
+  - assertBindingsResolve
+  - parseOrderEntry
+  - buildQuerySchemas
+  - getPerformanceCheckpoint
+  - getExecutedPerformance
+  - executeWithPerformanceMeasure
+  - hrTime
+  - parseMultipartBody
+  - sanitizeFilename
+  - encodeRFC5987
+  - createContentDispositionHeader
+  - parseContentDisposition
+  - readFormBody
+  - getUID
+  - toCamel
+  - keysToCamel
+  - isInt
+  - isFloat
+  - int
+  - float
+  - toBoolean
+  - parseArrayToMapWithKey
+  - toDelimitedArray
+  - blankToUndefined
+  - toTrimmed
+  - getDeepProperty
+  - sleep
+  - executePromiseWithLimit
+  - voidExecution
+  - toError
+  - isNotFoundError
+  - toExpirySeconds
+  - createUuidV4
+  - uuidV4
+  - createUuidV5
+  - uuidV5
+  - createUuidV7
+  - uuidV7
+  - redactSecrets
+  - toJsonSafe
+  - redactUrlCredentials
+  - resolveClass
+  - createRedisHelper
+  - createSecretsHelper
+  - waitForRedisReady
+  - ensureRedisClientsConnecting
+  - isUrlRefusedError
+  - toQueryString
+  - invokeHook
+  - awaitHook
+  - resolveLoggerLevel
+  - resolveLoggerColorize
+  - formatLogMessage
+  - buildPinoOptions
+  - getPinoBackingLogger
+  - setPinoBackingLogger
+  - mapFrequency
+  - mapMaxFilesToCount
+  - resolveDestinationPlan
+  - buildDestination
+  - defineCustomLogger
+  - defineJsonLoggerFormatter
+  - defineLogFormatter
+  - definePrettyLoggerFormatter
+  - resolveDefaultTransportOptions
+  - deepSplat
+  - platformaticRequirePlugin
+  - platformaticWasmPlugin
+  - platformaticKafkaPlugins
+  - generateArtifactIndex
+  - checkArtifactIndex
+  - htmlContent
+  - htmlResponse
+  - jsonContent
+  - errorResponses
+  - jsonResponse
+  - requiredString
+  - idParamsSchema
+  - asTypedContext
+  - registerFactoryRepositoryInjection
+  - toContentRange
+  - buildDataRange
+  - toEntityId
+  - snakeToCamel
+  - readDeclarative
+  - resolveRequestDomain
+  - pickRegistrationOptions
+  - emojiFavicon
+  - throwNotSupported
+  - conditionalCountResponse
+  - resolveCountConfig
+  - resolveFindConfig
+  - resolveFindByIdConfig
+  - resolveFindOneConfig
+  - resolveCreateConfig
+  - defineControllerRouteConfigs
+  - generateDataTypeColumnDefs
+  - enrichDataTypes
+  - generateIdColumnDefs
+  - enrichId
+  - generatePrincipalColumnDefs
+  - enrichPrincipal
+  - generateTzColumnDefs
+  - enrichTz
+  - generateUserAuditColumnDefs
+  - enrichUserAudit
+  - assertScopeFilterSupported
+  - getIdType
+  - resolveAuditUserId
+  - toRelationConfigs
+  - getCachedColumns
+  - isJsonPath
+  - parseJsonPath
+  - validateJsonPathComponents
+  - validateJsonColumnType
+  - createRelations
+  - buildPostgresJsOptions
+  - withAuthContext
+  - defineSearchRouteConfigs
+  - defineSearchCollection
+  - deriveSearchDocumentSchema
+  - toSearchQueryParams
+  - compileMeilisearchCollection
+  - compileTypesenseCollection
+  - installBffFetch
+  - readRuntimeSnapshot
+  - assertBunRuntime
+  - defineAuthController
+  - extraUserColumns
+  - extraRoleColumns
+  - extraPermissionColumns
+  - extraPolicyDefinitionColumns
+  - policyDefinitionDomainShapeCheck
+  - splitAddressList
+  - formatAddressHeader
+  - buildRawMimeMessage
+  - getExpiryTime
+  - getExpiryTimeInHours
+  - buildCommitToken
+  - readCommitToken
+  - findLabelsInQuery
+  - buildObjectLink
+  - resolveServedContentType
+  - assertApplicationBoots
+  - readResultRows
+  - findCatalogProblems
+  - runModuleCycles
+  - assertNoWorkspaceExternal
+  - deriveEntries
+  - assertBrowserEsmEntry
+  - buildManifest
+  - stripBundlerPathComments
+  - probeEntry
+  - checkPurity
+  - listTestTitles
+  - checkControls
+  - findDeadTestCode
+  - replayLedger
+  - formatLedgerResults
+  - analyseJunit
+  - formatTestWeight
+  - rejectionOf
+  - expectRejection
+  - findRepositoryRoot
+  - useRepoTmp
+  - spawnSyncBounded
+  - readField
+  - nodeType
+  - isMailTransport
+  - isValidMailOptions
+  - ObjectUtility.isEmpty
+  - ObjectUtility.omit
+  - ResolverUtility.resolveValue
+  - ResolverUtility.resolveValueAsync
+  - ResolverUtility.resolveInjectTarget
+  - BindingVerifier.verify
+  - BindingVerifier.assertResolve
+  - Sorts.parseEntry
+  - QuerySchemaFactory.build
+  - PerformanceUtility.getCheckpoint
+  - PerformanceUtility.getExecuted
+  - PerformanceUtility.executeWithMeasure
+  - HrTimeUtility.getSeconds
+  - RequestUtility.parseMultipartBody
+  - RequestUtility.sanitizeFilename
+  - RequestUtility.encodeRfc5987
+  - RequestUtility.buildContentDispositionHeader
+  - RequestUtility.parseContentDisposition
+  - FormBodyUtility.readFormBody
+  - ParseUtility.getUID
+  - ParseUtility.toCamel
+  - ParseUtility.keysToCamel
+  - ParseUtility.isInt
+  - ParseUtility.isFloat
+  - ParseUtility.toInt
+  - ParseUtility.toFloat
+  - ParseUtility.toBoolean
+  - ParseUtility.parseArrayToMapWithKey
+  - ParseUtility.toDelimitedArray
+  - ParseUtility.blankToUndefined
+  - ParseUtility.toTrimmed
+  - ParseUtility.getDeepProperty
+  - PromiseUtility.sleep
+  - PromiseUtility.executeWithLimit
+  - PromiseUtility.voidExecution
+  - ErrorUtility.toError
+  - StorageUtility.isNotFoundError
+  - StorageUtility.toExpirySeconds
+  - UuidV4Generator.create
+  - UuidV4Generator.generate
+  - UuidV5Generator.create
+  - UuidV5Generator.generate
+  - UuidV7Generator.create
+  - UuidV7Generator.generate
+  - RedactUtility.redactSecrets
+  - RedactUtility.toJsonSafe
+  - RedactUtility.redactUrlCredentials
+  - ClassResolver.resolveClass
+  - RedisHelperFactory.create
+  - SecretsHelperFactory.create
+  - RedisUtility.waitForReady
+  - RedisUtility.ensureConnecting
+  - UrlPolicy.isRefusedError
+  - QueryStringUtility.toQueryString
+  - HookUtility.invoke
+  - HookUtility.execute
+  - LoggerConfigUtility.resolveLevel
+  - LoggerConfigUtility.resolveColorize
+  - LogFormatUtility.formatMessage
+  - PinoBackingLogger.buildOptions
+  - PinoBackingLogger.get
+  - PinoBackingLogger.set
+  - PinoDestination.mapFrequency
+  - PinoDestination.mapMaxFilesToCount
+  - PinoDestination.resolvePlan
+  - PinoDestination.build
+  - WinstonLoggerFactory.defineCustomLogger
+  - WinstonFormatFactory.json
+  - WinstonFormatFactory.log
+  - WinstonFormatFactory.pretty
+  - WinstonLoggerFactory.resolveDefaultTransportOptions
+  - WinstonFormatFactory.deepSplat
+  - PlatformaticKafkaPlugins.buildRequirePlugin
+  - PlatformaticKafkaPlugins.buildWasmPlugin
+  - PlatformaticKafkaPlugins.build
+  - ArtifactIndexGenerator.generate
+  - ArtifactIndexGenerator.check
+  - OpenApiResponses.htmlContent
+  - OpenApiResponses.htmlResponse
+  - OpenApiResponses.jsonContent
+  - OpenApiResponses.errorResponses
+  - OpenApiResponses.jsonResponse
+  - OpenApiSchemas.requiredString
+  - OpenApiSchemas.idParams
+  - ContextUtility.asTypedContext
+  - ControllerFactory.registerRepositoryInjection
+  - DataRangeUtility.toContentRange
+  - DataRangeUtility.buildDataRange
+  - ModelUtility.toEntityId
+  - ModelUtility.snakeToCamel
+  - RequestDomainResolver.readDeclarative
+  - RequestDomainResolver.resolveRequestDomain
+  - InjectableUtility.pickRegistrationOptions
+  - EmojiFaviconMiddleware.create
+  - NotSupportedUtility.throwNotSupported
+  - RouteConfigResolver.conditionalCountResponse
+  - RouteConfigResolver.resolveCountConfig
+  - RouteConfigResolver.resolveFindConfig
+  - RouteConfigResolver.resolveFindByIdConfig
+  - RouteConfigResolver.resolveFindOneConfig
+  - RouteConfigResolver.resolveCreateConfig
+  - RouteConfigResolver.defineControllerRouteConfigs
+  - PostgresDataTypeEnricher.generateColumnDefs
+  - PostgresDataTypeEnricher.enrich
+  - PostgresIdEnricher.generateColumnDefs
+  - PostgresIdEnricher.enrich
+  - PostgresPrincipalEnricher.generateColumnDefs
+  - PostgresPrincipalEnricher.enrich
+  - PostgresTzEnricher.generateColumnDefs
+  - PostgresTzEnricher.enrich
+  - PostgresUserAuditEnricher.generateColumnDefs
+  - PostgresUserAuditEnricher.enrich
+  - SqliteDataTypeEnricher.generateColumnDefs
+  - SqliteDataTypeEnricher.enrich
+  - SqliteIdEnricher.generateColumnDefs
+  - SqliteIdEnricher.enrich
+  - SqlitePrincipalEnricher.generateColumnDefs
+  - SqlitePrincipalEnricher.enrich
+  - SqliteTzEnricher.generateColumnDefs
+  - SqliteTzEnricher.enrich
+  - SqliteUserAuditEnricher.generateColumnDefs
+  - SqliteUserAuditEnricher.enrich
+  - ScopeFilterUtility.assertScopeFilterSupported
+  - RelationalEntityUtility.getIdType
+  - AuditUserResolver.resolveAuditUserId
+  - RelationDeclarations.toRelationConfigs
+  - TableColumnCache.get
+  - JsonPathUtility.isJsonPath
+  - JsonPathUtility.parseJsonPath
+  - JsonPathUtility.validateJsonPathComponents
+  - JsonPathUtility.validateJsonColumnType
+  - RelationsFactory.create
+  - SupabasePooler.buildPostgresJsOptions
+  - SupabaseRls.withAuthContext
+  - SearchControllerFactory.defineRouteConfigs
+  - SearchCollectionFactory.define
+  - SearchCollectionFactory.deriveDocumentSchema
+  - SearchQueryParamsUtility.toSearchQueryParams
+  - MeilisearchCollectionCompiler.compile
+  - TypesenseCollectionCompiler.compile
+  - BffFetchBridge.install
+  - BunRuntimeGuard.readSnapshot
+  - BunRuntimeGuard.assert
+  - AuthControllerFactory.define
+  - AuthModelColumns.buildUser
+  - AuthModelColumns.buildRole
+  - AuthModelColumns.buildPermission
+  - AuthModelColumns.buildPolicyDefinition
+  - AuthModelColumns.buildPolicyDefinitionDomainShapeCheck
+  - MailAddressUtility.splitList
+  - MailMimeUtility.formatAddressHeader
+  - MailMimeUtility.buildRawMessage
+  - MailVerificationUtility.getExpiryTime
+  - MailVerificationUtility.getExpiryTimeInHours
+  - AssetCommitToken.build
+  - AssetCommitToken.read
+  - AssetControllerFactory.findLabelsInQuery
+  - AssetControllerFactory.buildObjectLink
+  - AssetControllerFactory.resolveServedContentType
+  - ApplicationBootAssertion.assert
+  - DrizzleResultUtility.readResultRows
+  - CatalogCheck.find
+  - ModuleCyclesCheck.run
+  - PurityManifest.assertNoWorkspaceExternal
+  - PurityManifest.deriveEntries
+  - PurityManifest.assertBrowserEsmEntry
+  - PurityManifest.build
+  - PurityProbe.stripBundlerPathComments
+  - PurityProbe.probeEntry
+  - PurityCheck.run
+  - TestControlsCheck.listTitles
+  - TestControlsCheck.run
+  - DeadTestCodeCheck.find
+  - TestMutateCheck.replayLedger
+  - TestMutateCheck.formatLedgerResults
+  - TestWeightCheck.analyseJunit
+  - TestWeightCheck.formatReport
+  - RejectionHelper.rejectionOf
+  - RejectionHelper.expectRejection
+  - RepoTmp.findRoot
+  - RepoTmp.apply
+  - SpawnHelper.spawnSyncBounded
+  - AstNode.readField
+  - AstNode.getType
+  - MailTypeUtility.isTransport
+  - MailTypeUtility.isValidOptions
+  upgrade:
+    before: |
+      import { isEmpty, uuidV4, sleep } from '@venizia/ignis-helpers';
+
+      if (!isEmpty({ value: payload })) {
+        const id = uuidV4();
+        await sleep(100);
+      }
+    after: |
+      import { ObjectUtility, PromiseUtility, UuidV4Generator } from '@venizia/ignis-helpers';
+
+      if (!ObjectUtility.isEmpty({ value: payload })) {
+        const id = UuidV4Generator.generate();
+        await PromiseUtility.sleep({ ms: 100 });
+      }
+  downgrade:
+    steps:
+    - Move @venizia/ignis, -kernel, -helpers, -boot, -connectors, -worker and @venizia/dev-configs back to 0.4.6, and @venizia/ignis-inversion and @venizia/ignis-filter back to 0.4.5 (the versions the 0.4.6 line of the other packages pins).
+    - Rename each call back to its bare function, using the pairs in the data field, and give the 39 options-object calls their positional arguments again (ObjectUtility.isEmpty({ value }) is isEmpty({ value }); PromiseUtility.sleep({ ms }) is sleep(ms)).
+    - devz codemod namespace-functions has no reverse mode, so this is by hand.
+  data: |
+    Every old name and its replacement, by package (a name listed twice under connectors is the Postgres and the SQLite form; use the class of your dialect):
+    @venizia/ignis-inversion:
+      isEmpty -> ObjectUtility.isEmpty
+      omit -> ObjectUtility.omit
+      resolveValue -> ResolverUtility.resolveValue
+      resolveValueAsync -> ResolverUtility.resolveValueAsync
+      resolveInjectTarget -> ResolverUtility.resolveInjectTarget
+      verifyBindings -> BindingVerifier.verify
+      assertBindingsResolve -> BindingVerifier.assertResolve
+    @venizia/ignis-filter:
+      parseOrderEntry -> Sorts.parseEntry
+      buildQuerySchemas -> QuerySchemaFactory.build
+    @venizia/ignis-helpers:
+      getPerformanceCheckpoint -> PerformanceUtility.getCheckpoint
+      getExecutedPerformance -> PerformanceUtility.getExecuted
+      executeWithPerformanceMeasure -> PerformanceUtility.executeWithMeasure
+      hrTime -> HrTimeUtility.getSeconds
+      parseMultipartBody -> RequestUtility.parseMultipartBody
+      sanitizeFilename -> RequestUtility.sanitizeFilename
+      encodeRFC5987 -> RequestUtility.encodeRfc5987
+      createContentDispositionHeader -> RequestUtility.buildContentDispositionHeader
+      parseContentDisposition -> RequestUtility.parseContentDisposition
+      readFormBody -> FormBodyUtility.readFormBody
+      getUID -> ParseUtility.getUID
+      toCamel -> ParseUtility.toCamel
+      keysToCamel -> ParseUtility.keysToCamel
+      isInt -> ParseUtility.isInt
+      isFloat -> ParseUtility.isFloat
+      int -> ParseUtility.toInt
+      float -> ParseUtility.toFloat
+      toBoolean -> ParseUtility.toBoolean
+      parseArrayToMapWithKey -> ParseUtility.parseArrayToMapWithKey
+      toDelimitedArray -> ParseUtility.toDelimitedArray
+      blankToUndefined -> ParseUtility.blankToUndefined
+      toTrimmed -> ParseUtility.toTrimmed
+      getDeepProperty -> ParseUtility.getDeepProperty
+      sleep -> PromiseUtility.sleep
+      executePromiseWithLimit -> PromiseUtility.executeWithLimit
+      voidExecution -> PromiseUtility.voidExecution
+      toError -> ErrorUtility.toError
+      isNotFoundError -> StorageUtility.isNotFoundError
+      toExpirySeconds -> StorageUtility.toExpirySeconds
+      createUuidV4 -> UuidV4Generator.create
+      uuidV4 -> UuidV4Generator.generate
+      createUuidV5 -> UuidV5Generator.create
+      uuidV5 -> UuidV5Generator.generate
+      createUuidV7 -> UuidV7Generator.create
+      uuidV7 -> UuidV7Generator.generate
+      redactSecrets -> RedactUtility.redactSecrets
+      toJsonSafe -> RedactUtility.toJsonSafe
+      redactUrlCredentials -> RedactUtility.redactUrlCredentials
+      resolveClass -> ClassResolver.resolveClass
+      createRedisHelper -> RedisHelperFactory.create
+      createSecretsHelper -> SecretsHelperFactory.create
+      waitForRedisReady -> RedisUtility.waitForReady
+      ensureRedisClientsConnecting -> RedisUtility.ensureConnecting
+      isUrlRefusedError -> UrlPolicy.isRefusedError
+      toQueryString -> QueryStringUtility.toQueryString
+      invokeHook -> HookUtility.invoke
+      awaitHook -> HookUtility.execute
+      resolveLoggerLevel -> LoggerConfigUtility.resolveLevel
+      resolveLoggerColorize -> LoggerConfigUtility.resolveColorize
+      formatLogMessage -> LogFormatUtility.formatMessage
+      buildPinoOptions -> PinoBackingLogger.buildOptions
+      getPinoBackingLogger -> PinoBackingLogger.get
+      setPinoBackingLogger -> PinoBackingLogger.set
+      mapFrequency -> PinoDestination.mapFrequency
+      mapMaxFilesToCount -> PinoDestination.mapMaxFilesToCount
+      resolveDestinationPlan -> PinoDestination.resolvePlan
+      buildDestination -> PinoDestination.build
+      defineCustomLogger -> WinstonLoggerFactory.defineCustomLogger
+      defineJsonLoggerFormatter -> WinstonFormatFactory.json
+      defineLogFormatter -> WinstonFormatFactory.log
+      definePrettyLoggerFormatter -> WinstonFormatFactory.pretty
+      resolveDefaultTransportOptions -> WinstonLoggerFactory.resolveDefaultTransportOptions
+      deepSplat -> WinstonFormatFactory.deepSplat
+      platformaticRequirePlugin -> PlatformaticKafkaPlugins.buildRequirePlugin
+      platformaticWasmPlugin -> PlatformaticKafkaPlugins.buildWasmPlugin
+      platformaticKafkaPlugins -> PlatformaticKafkaPlugins.build
+    @venizia/ignis-boot:
+      generateArtifactIndex -> ArtifactIndexGenerator.generate
+      checkArtifactIndex -> ArtifactIndexGenerator.check
+    @venizia/ignis-kernel:
+      htmlContent -> OpenApiResponses.htmlContent
+      htmlResponse -> OpenApiResponses.htmlResponse
+      jsonContent -> OpenApiResponses.jsonContent
+      errorResponses -> OpenApiResponses.errorResponses
+      jsonResponse -> OpenApiResponses.jsonResponse
+      requiredString -> OpenApiSchemas.requiredString
+      idParamsSchema -> OpenApiSchemas.idParams
+      asTypedContext -> ContextUtility.asTypedContext
+      registerFactoryRepositoryInjection -> ControllerFactory.registerRepositoryInjection
+      toContentRange -> DataRangeUtility.toContentRange
+      buildDataRange -> DataRangeUtility.buildDataRange
+      toEntityId -> ModelUtility.toEntityId
+      snakeToCamel -> ModelUtility.snakeToCamel
+      readDeclarative -> RequestDomainResolver.readDeclarative
+      resolveRequestDomain -> RequestDomainResolver.resolveRequestDomain
+      pickRegistrationOptions -> InjectableUtility.pickRegistrationOptions
+      emojiFavicon -> EmojiFaviconMiddleware.create
+      throwNotSupported -> NotSupportedUtility.throwNotSupported
+      conditionalCountResponse -> RouteConfigResolver.conditionalCountResponse
+      resolveCountConfig -> RouteConfigResolver.resolveCountConfig
+      resolveFindConfig -> RouteConfigResolver.resolveFindConfig
+      resolveFindByIdConfig -> RouteConfigResolver.resolveFindByIdConfig
+      resolveFindOneConfig -> RouteConfigResolver.resolveFindOneConfig
+      resolveCreateConfig -> RouteConfigResolver.resolveCreateConfig
+      defineControllerRouteConfigs -> RouteConfigResolver.defineControllerRouteConfigs
+    @venizia/ignis-connectors:
+      generateDataTypeColumnDefs -> PostgresDataTypeEnricher.generateColumnDefs
+      enrichDataTypes -> PostgresDataTypeEnricher.enrich
+      generateIdColumnDefs -> PostgresIdEnricher.generateColumnDefs
+      enrichId -> PostgresIdEnricher.enrich
+      generatePrincipalColumnDefs -> PostgresPrincipalEnricher.generateColumnDefs
+      enrichPrincipal -> PostgresPrincipalEnricher.enrich
+      generateTzColumnDefs -> PostgresTzEnricher.generateColumnDefs
+      enrichTz -> PostgresTzEnricher.enrich
+      generateUserAuditColumnDefs -> PostgresUserAuditEnricher.generateColumnDefs
+      enrichUserAudit -> PostgresUserAuditEnricher.enrich
+      generateDataTypeColumnDefs -> SqliteDataTypeEnricher.generateColumnDefs
+      enrichDataTypes -> SqliteDataTypeEnricher.enrich
+      generateIdColumnDefs -> SqliteIdEnricher.generateColumnDefs
+      enrichId -> SqliteIdEnricher.enrich
+      generatePrincipalColumnDefs -> SqlitePrincipalEnricher.generateColumnDefs
+      enrichPrincipal -> SqlitePrincipalEnricher.enrich
+      generateTzColumnDefs -> SqliteTzEnricher.generateColumnDefs
+      enrichTz -> SqliteTzEnricher.enrich
+      generateUserAuditColumnDefs -> SqliteUserAuditEnricher.generateColumnDefs
+      enrichUserAudit -> SqliteUserAuditEnricher.enrich
+      assertScopeFilterSupported -> ScopeFilterUtility.assertScopeFilterSupported
+      getIdType -> RelationalEntityUtility.getIdType
+      resolveAuditUserId -> AuditUserResolver.resolveAuditUserId
+      toRelationConfigs -> RelationDeclarations.toRelationConfigs
+      getCachedColumns -> TableColumnCache.get
+      isJsonPath -> JsonPathUtility.isJsonPath
+      parseJsonPath -> JsonPathUtility.parseJsonPath
+      validateJsonPathComponents -> JsonPathUtility.validateJsonPathComponents
+      validateJsonColumnType -> JsonPathUtility.validateJsonColumnType
+      createRelations -> RelationsFactory.create
+      buildPostgresJsOptions -> SupabasePooler.buildPostgresJsOptions
+      withAuthContext -> SupabaseRls.withAuthContext
+      defineSearchRouteConfigs -> SearchControllerFactory.defineRouteConfigs
+      defineSearchCollection -> SearchCollectionFactory.define
+      deriveSearchDocumentSchema -> SearchCollectionFactory.deriveDocumentSchema
+      toSearchQueryParams -> SearchQueryParamsUtility.toSearchQueryParams
+      compileMeilisearchCollection -> MeilisearchCollectionCompiler.compile
+      compileTypesenseCollection -> TypesenseCollectionCompiler.compile
+    @venizia/ignis-worker:
+      installBffFetch -> BffFetchBridge.install
+    @venizia/ignis:
+      readRuntimeSnapshot -> BunRuntimeGuard.readSnapshot
+      assertBunRuntime -> BunRuntimeGuard.assert
+      defineAuthController -> AuthControllerFactory.define
+      extraUserColumns -> AuthModelColumns.buildUser
+      extraRoleColumns -> AuthModelColumns.buildRole
+      extraPermissionColumns -> AuthModelColumns.buildPermission
+      extraPolicyDefinitionColumns -> AuthModelColumns.buildPolicyDefinition
+      policyDefinitionDomainShapeCheck -> AuthModelColumns.buildPolicyDefinitionDomainShapeCheck
+      splitAddressList -> MailAddressUtility.splitList
+      formatAddressHeader -> MailMimeUtility.formatAddressHeader
+      buildRawMimeMessage -> MailMimeUtility.buildRawMessage
+      getExpiryTime -> MailVerificationUtility.getExpiryTime
+      getExpiryTimeInHours -> MailVerificationUtility.getExpiryTimeInHours
+      buildCommitToken -> AssetCommitToken.build
+      readCommitToken -> AssetCommitToken.read
+      findLabelsInQuery -> AssetControllerFactory.findLabelsInQuery
+      buildObjectLink -> AssetControllerFactory.buildObjectLink
+      resolveServedContentType -> AssetControllerFactory.resolveServedContentType
+      assertApplicationBoots -> ApplicationBootAssertion.assert
+      readResultRows -> DrizzleResultUtility.readResultRows
+    @venizia/dev-configs:
+      findCatalogProblems -> CatalogCheck.find
+      runModuleCycles -> ModuleCyclesCheck.run
+      assertNoWorkspaceExternal -> PurityManifest.assertNoWorkspaceExternal
+      deriveEntries -> PurityManifest.deriveEntries
+      assertBrowserEsmEntry -> PurityManifest.assertBrowserEsmEntry
+      buildManifest -> PurityManifest.build
+      stripBundlerPathComments -> PurityProbe.stripBundlerPathComments
+      probeEntry -> PurityProbe.probeEntry
+      checkPurity -> PurityCheck.run
+      listTestTitles -> TestControlsCheck.listTitles
+      checkControls -> TestControlsCheck.run
+      findDeadTestCode -> DeadTestCodeCheck.find
+      replayLedger -> TestMutateCheck.replayLedger
+      formatLedgerResults -> TestMutateCheck.formatLedgerResults
+      analyseJunit -> TestWeightCheck.analyseJunit
+      formatTestWeight -> TestWeightCheck.formatReport
+      rejectionOf -> RejectionHelper.rejectionOf
+      expectRejection -> RejectionHelper.expectRejection
+      findRepositoryRoot -> RepoTmp.findRoot
+      useRepoTmp -> RepoTmp.apply
+      spawnSyncBounded -> SpawnHelper.spawnSyncBounded
+      readField -> AstNode.readField
+      nodeType -> AstNode.getType
+    @venizia/ignis (mail guards, from @venizia/ignis/mail):
+      isMailTransport -> MailTypeUtility.isTransport
+      isValidMailOptions -> MailTypeUtility.isValidOptions
+
+    39 of these took positional arguments and now take one options object whose keys are the old parameter names: sleep(ms) is PromiseUtility.sleep({ ms }); sanitizeFilename, encodeRFC5987, toCamel, keysToCamel, isInt, isFloat, int, float(input, digit?), toBoolean, parseArrayToMapWithKey, toDelimitedArray, blankToUndefined, toTrimmed, getDeepProperty, toError, redactSecrets, redactUrlCredentials, mapFrequency and buildDestination in helpers; the five enrich* functions and toSearchQueryParams in connectors; asTypedContext and snakeToCamel in kernel; splitAddressList, formatAddressHeader, buildRawMimeMessage, getExpiryTime, getExpiryTimeInHours and assertApplicationBoots in @venizia/ignis; assertNoWorkspaceExternal, stripBundlerPathComments, formatLedgerResults, rejectionOf and findRepositoryRoot in dev-configs. The enrich* functions use PostgresXEnricher.enrich or SqliteXEnricher.enrich (X is DataType, Id, Principal, Tz or UserAudit).
+
+    Message tags that began with an old name now begin with the class and method; update tests, logs and alerts that match them: [toEntityId] is [ModelUtility.toEntityId]; [idParamsSchema] is [OpenApiSchemas.idParams]; [extraPermissionColumns] is [AuthModelColumns.buildPermission]; [extraPolicyDefinitionColumns] is [AuthModelColumns.buildPolicyDefinition]; [releaseAttachmentStreams] is [MailAttachmentUtility.release]; [createRedisHelper] is [RedisHelperFactory.create]; [assertApplicationBoots] is [ApplicationBootAssertion.assert]; [readResultRows] is [DrizzleResultUtility.readResultRows]; [defineControllerRouteConfigs] is [RouteConfigResolver.defineControllerRouteConfigs]; [spawnSyncBounded] is [SpawnHelper.spawnSyncBounded]. The BaseSearchEntity message that said to define a static schema "via defineSearchCollection" now says "via SearchCollectionFactory.define". A removed name that was never exported from a package entry, such as StaticAssetDefinitions, needs no step. The codemod rewrites named, aliased and namespace imports, adds the class to the import, drops the old name once nothing uses it, and lists a spread argument, an old name used as a value, a re-export, a name collision and an @/ alias it cannot follow. Call functions that stay functions as they are: decorators, inject, getError, the authenticate and authorize middleware DSL, field.*, schema and column builders, mixins and hooks.
+  codemod: namespace-functions
+logger-types-removed:
+  symbols:
+  - ApplicationLogger
+  - ApplicationLogger.get
+  - LoggerResolver
+  - LoggerResolver.use
+  - TLoggerResolver
+  - SHOULD_LOG_DEBUG
+  - ConsoleLogger.get
+  - LoggerFactory.getLogger
+  - LoggerFactory.use
+  - LoggerDebugGate.isOpen
+  - ILoggerProvider
+  upgrade:
+    before: |
+      import { ApplicationLogger, ConsoleLogger, LoggerResolver } from '@venizia/ignis-helpers';
+
+      const logger = ApplicationLogger.get('UserService');
+
+      LoggerResolver.use({
+        resolver: ({ scopes }) => ConsoleLogger.get({ scope: scopes.join('-') }),
+      });
+    after: |
+      import { LoggerFactory, LogLevels } from '@venizia/ignis-helpers';
+
+      const logger = LoggerFactory.getLogger(['UserService']);
+
+      // Choose the provider and the level in one call. Pass a class with a static get(scope: string): ILogger as provider.
+      LoggerFactory.use({ level: LogLevels.INFO });
+
+      // ConsoleLogger.get({ scope: 'x' }) is now ConsoleLogger.get('x')
+  downgrade:
+    steps:
+    - Move @venizia/ignis-helpers and @venizia/ignis back to 0.4.6.
+    - Import ApplicationLogger again and call ApplicationLogger.get(scope); LoggerFactory.getLogger([scope]) keeps working on 0.4.6.
+    - Change ConsoleLogger.get(scope) back to ConsoleLogger.get({ scope }), and turn a LoggerFactory.use({ provider, level }) call into LoggerFactory.use({ provider }); a call with a level and no provider is a type error on 0.4.6, so remove it.
+    - 'A provider class with a static get(scope: string): ILogger needs no change; LoggerResolver.use({ resolver }) is available on 0.4.6 if you want it.'
+    - The codemod has no reverse mode, so this is by hand.
+  data: 'Debug lines follow one gate: off by default, on only when DEBUG is truthy and NODE_ENV is unset or an allowed name (APP_ENV_EXTRA_LOG_ENVS adds names); LoggerFactory.use({ level }) overrides it (LogLevels.DEBUG forces debug on, a higher level forces it off), and it is read on every line, where SHOULD_LOG_DEBUG was read once at load. A value outside LogLevels is ignored. LoggerFactory.use can be called at any time; existing loggers switch on their next line. An identifier passed to ApplicationLogger.get is taken for a scope by the codemod, so one that held the old { scope } object fails the typecheck. A use of ApplicationLogger that is not a call (a type, a re-export, a value) is listed with file and line. Delete a LoggerFactory.use call that only existed to keep a compiled binary from failing, unless it picks Pino.'
+  codemod: namespace-functions
+minio-removed:
+  symbols:
+  - MinioHelper
+  - IMinioHelperOptions
+  - '@venizia/ignis-helpers/minio'
+  - StaticAssetStorageTypes.MINIO
+  - StaticAssetStorageTypes.BUN_S3
+  - BunS3Helper
+  - IBunS3HelperOptions
+  - '@venizia/ignis-helpers/bun-s3'
+  upgrade:
+    before: |
+      import { MinioHelper } from '@venizia/ignis-helpers/minio';
+
+      const helper = new MinioHelper({
+        endPoint: 'minio.internal',
+        port: 9000,
+        useSSL: false,
+        accessKey,
+        secretKey,
+      });
+      // static-asset options: { storage: StaticAssetStorageTypes.MINIO, helper }
+    after: |
+      import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
+
+      const helper = new BunS3Helper({
+        accessKey,
+        secretKey,
+        endpoint: { default: 'http://minio.internal:9000' },
+      });
+      // static-asset options: { storage: StaticAssetStorageTypes.BUN_S3, helper }
+  downgrade:
+    steps:
+    - Move @venizia/ignis-helpers and @venizia/ignis back to 0.4.6; MinioHelper, the /minio sub-path and StaticAssetStorageTypes.MINIO are there again (MinioHelper is marked deprecated there).
+    - Add the minio package (^8.0.7) to your dependencies, as it is an optional peer there.
+    - BunS3Helper is on 0.4.6 too, so you can stay on it.
+  data: BunS3Helper uses path-style addressing unless virtualHostedStyle is true, which is what a MinIO server expects. Objects already in MinIO are not touched. Existing MetaLink rows keep the text "minio" in storage_type; the component no longer writes that value and StaticAssetStorageTypes.SCHEME_SET no longer lists it, so update the column to "bun-s3" if you filter on it.
+read-affected-row-count-removed:
+  symbols:
+  - readAffectedRowCount
+  upgrade:
+    before: |
+      import { readAffectedRowCount } from '@venizia/ignis';
+
+      const count = readAffectedRowCount({ result });
+    after: |
+      // A statement that returns rows:
+      const count = rows.length;
+      // Otherwise read the driver's own field from the raw result:
+      // rowCount (node-postgres), count (postgres-js), affectedRows (PGlite).
+  downgrade:
+    steps:
+    - Move @venizia/ignis back to 0.4.6, where readAffectedRowCount is exported (deprecated, with no replacement).
+    - Code that reads rows.length or the driver field keeps working there.
+aes-rsa-async:
+  symbols:
+  - AES
+  - AES.encrypt
+  - AES.decrypt
+  - AES.encryptFile
+  - AES.decryptFile
+  - RSA
+  - RSA.encrypt
+  - RSA.decrypt
+  - RSA.generateDERKeyPair
+  - BaseCryptoAlgorithm
+  - BaseCryptoAlgorithm.normalizeSecretKey
+  - AbstractBearerTokenService
+  - AbstractBearerTokenService.encryptPayload
+  - AbstractBearerTokenService.decryptPayload
+  upgrade:
+    before: |
+      const encrypted = aes.encrypt({ message, secret });
+      const plain = aes.decrypt({ message: encrypted, secret });
+      const { publicKey, privateKey } = rsa.generateDERKeyPair();
+    after: |
+      const encrypted = await aes.encrypt({ message, secret });
+      const plain = await aes.decrypt({ message: encrypted, secret });
+      const { publicKey, privateKey } = await rsa.generateDERKeyPair();
+  downgrade:
+    steps:
+    - Move @venizia/ignis-helpers and @venizia/ignis back to 0.4.6.
+    - An await on a synchronous 0.4.6 result is harmless, so calls you updated keep working.
+    - Change your own overrides of encryptPayload and decryptPayload back to return Record<string, any> and IJWTTokenPayload, and a subclass of BaseCryptoAlgorithm that awaits normalizeSecretKey back to a synchronous Buffer.
+    - Put back an error check that matched Node crypto messages (Unsupported state or unable to authenticate data, or a padding error) in place of the OperationError one.
+  data: 'No codemod: it cannot add await safely. Run your typecheck first; it finds a result used as a string. It does not find a call inside a template string or a log line (an unawaited promise prints [object Promise]), a result put in an any or unknown parameter, a call in a JavaScript file, a floating call inside a try with no await (the catch is bypassed), a subclass of BaseCryptoAlgorithm that calls normalizeSecretKey as if it returned a Buffer, or an override of encryptPayload or decryptPayload. Turn on @typescript-eslint/no-floating-promises. Stored data still reads: the envelope format, aes-256-cbc padding, GCM tag position, PBKDF2 settings (SHA-256, 100000 iterations, default salt) and RSA settings (OAEP with SHA-1, exponent 65537, DER spki and pkcs8) are unchanged, and the new code writes the same bytes for the same input. Decrypt a real stored value after you update. AES and RSA are still not exported from @venizia/ignis-helpers/core.'
+legacy-aes-removed:
+  symbols:
+  - LegacyAES
+  - IPayloadCipher
+  - DEFAULT_PAD_END
+  - IJWSTokenServiceOptions.cipher
+  - IJWKSIssuerOptions.cipher
+  - IJWKSVerifierOptions.cipher
+  - JWSTokenService
+  upgrade:
+    before: |
+      import { LegacyAES } from '@venizia/ignis-helpers';
+
+      const legacy = LegacyAES.withAlgorithm('aes-256-cbc');
+      const plain = await legacy.decrypt({ message: stored, secret: APPLICATION_SECRET });
+
+      new JWSTokenService({
+        jwtSecret,
+        getTokenExpiresFn,
+        applicationSecret,
+        cipher: LegacyAES.withAlgorithm('aes-256-cbc'),
+      });
+    after: |
+      import { AES } from '@venizia/ignis-helpers';
+
+      const aes = AES.withAlgorithm('aes-256-cbc');
+      const plain = await aes.decrypt({ message: stored, secret: APPLICATION_SECRET });
+
+      new JWSTokenService({ jwtSecret, getTokenExpiresFn, applicationSecret });
+  downgrade:
+    steps:
+    - Move @venizia/ignis-helpers, @venizia/ignis-kernel and @venizia/ignis back to 0.4.6; LegacyAES, IPayloadCipher, DEFAULT_PAD_END and the cipher option are there again.
+    - Data you re-encrypted with AES still reads on 0.4.6, because AES is unchanged.
+    - 'Pass cipher: LegacyAES.withAlgorithm(...) again only if you must read tokens or values still in the old format.'
+  data: 'Do this before you update. Find what is stored in the old format: a value that does not start with the AES version byte and decrypts with LegacyAES. On 0.4.6, decrypt it with LegacyAES and write it back with AES. AES rejects the old format on its version byte, and LegacyAES fails the auth tag on the new one, so the two never read each other and nothing was converted for you. Tokens issued under the old envelope no longer decrypt after the update, so those sessions end and users sign in again. The IV rules of AES are unchanged: a 16-byte IV, a 16-byte GCM tag, the tag before the ciphertext.'
+envs-alias-removed:
+  symbols:
+  - Envs
+  - applicationEnvironment
+  - AppEnvs
+  upgrade:
+    before: |
+      import { Envs } from '@venizia/ignis-helpers';
+
+      const port = Envs.get('APP_ENV_SERVER_PORT');
+    after: |
+      import { applicationEnvironment } from '@venizia/ignis-helpers';
+
+      const port = applicationEnvironment.get('APP_ENV_SERVER_PORT');
+  downgrade:
+    steps:
+    - Move @venizia/ignis-helpers back to 0.4.6, where Envs is exported again.
+    - applicationEnvironment and AppEnvs exist on 0.4.6, so code you changed keeps working.
+connector-subpaths-removed:
+  symbols:
+  - '@venizia/ignis/postgres'
+  - '@venizia/ignis/postgres/node-postgres'
+  - '@venizia/ignis/postgres/postgres-js'
+  - '@venizia/ignis/postgres/pglite'
+  - '@venizia/ignis/postgres/supabase'
+  - '@venizia/ignis/relational'
+  - '@venizia/ignis/sqlite'
+  - '@venizia/ignis/sqlite/libsql'
+  - '@venizia/ignis/search'
+  - '@venizia/ignis/search/controllers'
+  - '@venizia/ignis/meilisearch'
+  - '@venizia/ignis/typesense'
+  - '@venizia/ignis/typesense/controllers'
+  - '@venizia/ignis-connectors'
+  upgrade:
+    before: |
+      import { BasePostgresDataSource } from '@venizia/ignis/postgres';
+      import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+      import { TypesenseDataSource } from '@venizia/ignis/typesense';
+    after: |
+      import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
+      import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
+      import { TypesenseDataSource } from '@venizia/ignis-connectors/typesense';
+  downgrade:
+    steps:
+    - Move @venizia/ignis and @venizia/ignis-connectors back to 0.4.6; the 13 @venizia/ignis sub-paths exist again, and the @venizia/ignis-connectors sub-paths still exist there, so imports you moved keep working.
+    - Re-adding the sub-path imports is optional.
+    - The codemod has no reverse mode.
+  data: 'Commit first so git can undo the codemod. Add @venizia/ignis-connectors to your own dependencies at the version @venizia/ignis depends on (the codemod never edits a package.json; it warns for each nearest package.json that does not list it). @venizia/ignis no longer declares pg, postgres, @electric-sql/pglite, @libsql/client, meilisearch and typesense as optional peers; @venizia/ignis-connectors declares them (pg ^8.23.1, postgres ^3.4.9, @electric-sql/pglite ^0.5.10, @libsql/client ^0.17.4, meilisearch ^0.62.0, typesense ^3.2.0) and its package.json is unchanged. List the driver you use in your own dependencies at a range the connectors accept; peers were optional before, so no package manager installed a driver for you then either. Tooling that reads the peerDependencies of @venizia/ignis to decide which drivers an app needs must read those of @venizia/ignis-connectors. The codemod reads .ts, .tsx, .mts and .cts only: edit .js, .cjs and .mjs files by hand. It changes the quoted specifier and nothing else, so run your formatter. The root of @venizia/ignis still re-exports the Postgres connector, and @venizia/ignis/mail, /static-asset, /testing, /websocket, /grpc and /socket-io stay. devz codemod connector-imports and namespace-functions can run in either order.'
+  codemod: connector-imports
+unused-exports-removed:
+  symbols:
+  - TApplicationError
+  - TLimit
+  - TOffset
+  - TSkip
+  - TOrderBy
+  - TQueryOperator
+  - TQuerySchemas
+  - App
+  - App.APPLICATION_NAME
+  - App.DEFAULT_QUERY_LIMIT
+  - App.DEFAULT_QUERY_OFFSET
+  - App.DS_POSTGRES
+  - App.DS_MEMORY
+  - App.DS_REDIS
+  - isSqliteTransaction
+  - isRelationalTransaction
+  - IInjectMetadata
+  - IPropertyMetadata
+  - ReactEslintConfigs
+  - IReactEslintPlugins
+  - ReactOxlintConfigs
+  upgrade:
+    before: |
+      import type { IInjectMetadata } from '@venizia/ignis';
+      import type { TQueryOperator } from '@venizia/ignis-filter';
+    after: |
+      import type { IInjectMetadata, TConstValue } from '@venizia/ignis-inversion';
+      import type { QueryOperators } from '@venizia/ignis-filter';
+
+      type TQueryOperator = TConstValue<typeof QueryOperators>;
+  downgrade:
+    steps:
+    - Move @venizia/ignis, -kernel, -connectors and @venizia/dev-configs back to 0.4.6, and @venizia/ignis-inversion and @venizia/ignis-filter back to 0.4.5; every removed name is exported there again.
+    - Code you wrote in place of a removed name keeps working.
+  data: 'Replacements: TApplicationError is ApplicationError; TLimit, TOffset and TSkip are number | undefined; TOrderBy is string[] | undefined; TQueryOperator is TConstValue<typeof QueryOperators> (TConstValue is from @venizia/ignis-inversion); TQuerySchemas (@venizia/ignis-filter/schemas) is ReturnType<typeof QuerySchemaFactory.build>; the App constants (APPLICATION_NAME, DEFAULT_QUERY_LIMIT, DEFAULT_QUERY_OFFSET, DS_POSTGRES, DS_MEMORY, DS_REDIS) have no reader, so write the value you need (50, 0, "postgresql", "memory", "redis") or read the application name from applicationEnvironment; isSqliteTransaction (@venizia/ignis-connectors/sqlite) is isRelationalTransaction(transaction) from @venizia/ignis-connectors, cast to ISqliteTransaction where you need that type; IInjectMetadata and IPropertyMetadata are imported from @venizia/ignis-inversion, which defines them (they were re-exported by the kernel and @venizia/ignis); ReactEslintConfigs and IReactEslintPlugins are replaced by ReactOxlintConfigs (oxlint), or spread eslintConfigs and add the React rules in your own ESLint config. tsconfig.common.json no longer carries the ts-node block: a project that runs ts-node on a tsconfig extending it adds "ts-node": { "transpileOnly": true } to its own tsconfig.'
+model-settings-keys-removed:
+  symbols:
+  - model
+  - IModelSettings
+  - IModelMetadata
+  - defaultFilter
+  - defaultLimit
+  - maxLimit
+  - scopeFilter
+  - skipMigrate
+  - access
+  - migration.use
+  upgrade:
+    steps:
+    - 'An app that boots on 0.4.6 needs no code change here: the 0.4.6 decorator threw for every old key, so none of its models carries one.'
+    - 'Remove any script, CI step or hook that runs devz codemod model-settings; devz exits 2 for it on 0.4.7 because the codemod no longer exists.'
+    - "Search .js files, any-typed code and model factories for defaultFilter, defaultLimit, maxLimit, scopeFilter and skipMigrate next to @model or model(: an old key there is now ignored without an error. Move each to its new key: settings.query.filter, settings.query.limit.default, settings.query.limit.max, settings.access, migration: { use: false }."
+  downgrade:
+    steps:
+    - Move @venizia/ignis-kernel, @venizia/ignis and @venizia/dev-configs back to 0.4.6.
+    - The new keys already work on 0.4.6, so models you moved keep working; on 0.4.6 the decorator throws again for an old key, and bunx devz codemod model-settings --write is there to rewrite them.
+  data: 'Key map: settings.defaultFilter is settings.query.filter; settings.defaultLimit is settings.query.limit.default; settings.maxLimit is settings.query.limit.max; settings.scopeFilter is settings.access; settings.scopeFilter.writeGuard is settings.access.write.mode; settings.scopeFilter.sharedRows is settings.access.write.sharedRows; skipMigrate: true is migration: { use: false }; skipMigrate: false is removed (migration.use is true by default). The decorator used to throw at decoration for these keys; it does not any more. A typed model that still writes an old key fails the typecheck as an excess property, but a scopeFilter in an untyped or JavaScript model that is not moved to access leaves the model with no row scope, and nothing says so.'
+jwt-roles-optional:
+  symbols:
+  - IJWTTokenPayload
+  - IJWTTokenPayload.roles
+  - TJWTTokenRole
+  - AuthenticationFieldCodecs.ROLES_CODEC
+  - IPayloadFieldCodec
+  - Authentication.CURRENT_USER
+  upgrade:
+    before: |
+      const payload = await tokenService.verify({ type: 'Bearer', token });
+      const roleIds = payload.roles.map((role) => role.id);
+    after: |
+      const payload = await tokenService.verify({ type: 'Bearer', token });
+      const roleIds = (payload.roles ?? []).map((role) => role.id);
+  downgrade:
+    steps:
+    - Move @venizia/ignis-kernel and @venizia/ignis back to 0.4.6.
+    - payload.roles ?? [] compiles there too (the field is required, so the fallback is never taken), so nothing has to change.
+    - 'A codec typed IPayloadFieldCodec<TJWTTokenRole[]> needs TJWTTokenRole, which is new: type it IPayloadFieldCodec<IJWTTokenPayload["roles"]> again.'
+  data: 'Type-only: nothing changes at run time. A token without roles was already signed and verified as is; encryption skips the missing field and authorization reads the roles as none. Run bun check and handle a missing roles at each read. If you signed tokens without roles behind a cast to IJWTTokenPayload, delete the cast. Type a roles codec as IPayloadFieldCodec<TJWTTokenRole[]>.'
+hash-needs-bun:
+  symbols:
+  - Hash
+  - Hash.digest
+  - Hash.hmac
+  - AssetCommitToken
+  - AssetCommitToken.build
+  - AssetCommitToken.read
+  upgrade:
+    before: |
+      import { Hash } from '@venizia/ignis-helpers';
+
+      // 0.4.6: also ran under Node, in a Vite config and in a browser bundle
+      const digest = Hash.withAlgorithm('sha256').digest({ message: 'payload' });
+    after: |
+      import { Hash } from '@venizia/ignis-helpers';
+
+      // Bun: unchanged
+      const digest = Hash.withAlgorithm('sha256').digest({ message: 'payload' });
+
+      // Node or a browser: Web Crypto, async, and no md5
+      const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('payload'));
+  downgrade:
+    steps:
+    - Move @venizia/ignis-helpers and @venizia/ignis back to 0.4.6, where Hash and the commit token use node:crypto and run under Node.
+  data: 'Algorithms (md5, sha1, sha256, sha384, sha512), output encodings (hex, base64, base64url) and the output for the same input are unchanged, so stored digests and commit tokens already handed out still verify. A secretKey that is not a string now throws "[AssetCommitToken][sign] Invalid secretKey | Expected a string"; Bun would otherwise sign with no key and answer a plain SHA-256 that anyone can compute. Outside Bun the failure is ReferenceError: Bun is not defined, in a vitest run under Node, a Vite config, a script started with node and a browser bundle.'
+search-engine-4xx-status:
+  symbols:
+  - TypesenseConnector
+  - MeilisearchConnector
+  - TypesenseConnector.updateDocument
+  - TypesenseConnector.importDocuments
+  upgrade:
+    before: |
+      try {
+        await connector.document.update({ collection: 'products', id: '1', document: {} });
+      } catch (error) {
+        // 503 core.search_engine.dependency_unavailable, with the engine's 400 only in `cause`
+      }
+    after: |
+      try {
+        await connector.document.update({ collection: 'products', id: '1', document: {} });
+      } catch (error) {
+        // 400, message "[updateDocument] The search engine rejected the request. <engine text>"
+      }
+  downgrade:
+    steps:
+    - Move @venizia/ignis-connectors and @venizia/ignis back to 0.4.6; a request the engine rejects throws the 503 again.
+    - Remove a 4xx handler you added for it, and put back a retry policy that retried every search error if you relied on that.
+  data: 'A 400 or 422 throws that status with the engine message and no new error code; a 404 the verb does not tolerate throws 404 core.search_engine.not_found; a 409 throws 409 core.search_engine.already_exists. Verbs that already treated a missing document or collection as a result (deleteDocument, getAlias, search on an unprovisioned collection) are unchanged. A connect or timeout failure (no HTTP status), a 5xx, a 401 or 403, a 408 and a 429 still throw the sanitized 503 core.search_engine.dependency_unavailable without the engine text. An import batch the engine rejects with a 4xx throws that 4xx and still carries details: { totalCount, processedCount, ... } so you can resume. Retry code should retry only 5xx and the 503: a 400, 404, 409 or 422 fails the same way on a second try. Alerts on dependency_unavailable stop firing for caller mistakes. Typesense importDocuments never threw ImportError (it passes throwOnFail: false to typesense-js and returns count.fail and responses); read count.fail, or pass the new throwOnFail: true.'
+search-facet-counts-shape:
+  symbols:
+  - ISearchResult.facetCounts
+  - ISearchFacetCount
+  - ISearchFacetCount.fieldName
+  - ISearchFacetCount.counts
+  - ISearchFacetCount.stats
+  - ReadableSearchRepository.search
+  - ReadableSearchRepository.facets
+  - ReadableSearchRepository.suggest
+  - ReadableSearchRepository.searchCount
+  upgrade:
+    before: |
+      const [category] = (result.facetCounts ?? []) as Array<{
+        field_name: string;
+        stats?: { total_values?: number };
+      }>;
+      console.log(category?.field_name, category?.stats?.total_values);
+    after: |
+      const [category] = result.facetCounts ?? [];
+      console.log(category?.fieldName, category?.stats?.totalValues);
+  downgrade:
+    steps:
+    - Move @venizia/ignis-connectors and @venizia/ignis back to 0.4.6, where facetCounts is the engine raw JSON.
+    - 'Read field_name and stats.total_values again; on Meilisearch read facetCounts[0] as the whole facetDistribution record ({ genre: { drama: 2 } }) again.'
+    - A search() on a hidden field returns its value counts again on 0.4.6, so remove any handler you wrote for the 400.
+  data: 'Before: each Typesense entry was the engine snake_case object; Meilisearch facetCounts[0] was the whole facetDistribution record. After: each entry is { fieldName, counts: [{ value, count, highlighted? }], sampled?, stats? }, with fieldName from field_name, stats.totalValues from stats.total_values, and, on Meilisearch, one entry per field with stats { min, max } from facetStats. An entry without a field name, or a count without a value and a count, is dropped. value is always a string; counts[].value, count and highlighted keep their names. search(), searchCount(), facets() and suggest() refuse with a 400 a field the model hides (hiddenProperties) used as facetBy, in facetQuery, as queryBy, as groupBy, or in highlightFields or highlightFullFields; before, search({ facetBy: ["hiddenField"] }) returned its value counts. Check that no call names a hidden field there.'
+typesense-client-like-export-stream:
+  symbols:
+  - ITypesenseClientLike
+  - ITypesenseClientLike.documents
+  - exportStream
+  - TypesenseConnector.streamDocuments
+  upgrade:
+    before: |
+      const documents = {
+        export: async () => '',
+        import: async () => [],
+      };
+    after: |
+      const documents = {
+        export: async () => '',
+        import: async () => [],
+        exportStream: async () => (async function* () {})(), // the NDJSON chunks; none here
+      };
+  downgrade:
+    steps:
+    - Move @venizia/ignis-connectors and @venizia/ignis back to 0.4.6.
+    - A fake with exportStream still type-checks there; the extra member does no harm.
+  data: documents() of the client the connector accepts now needs exportStream(options?), resolving to an async iterable of text or bytes (the Readable that typesense-js returns is one). The real typesense Client already has it, so only a client you wrote yourself (a test fake or a wrapper) must add it. A call that sets timeoutMs on a connector built with your own client also needs the createClient connector option, or it is refused with a 400.

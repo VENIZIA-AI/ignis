@@ -85,7 +85,8 @@
     "bundle": ".agents/knowledge",
     "wiki": "docs/wiki/content",
     "changelogs": "docs/wiki/content/changelogs",
-    "migrationFrom": "2026-11-12"
+    "migrationFrom": "0.4.5",
+    "datedUntil": "2026-11-15"
   },
   "release": {
     "tagPattern": "<dir>-v<version>",
