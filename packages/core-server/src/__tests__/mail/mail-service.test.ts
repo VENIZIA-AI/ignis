@@ -6,9 +6,7 @@ import {
   type TMailOptions,
 } from '@/components/mail/common';
 import { MailService, TemplateEngineService } from '@/components/mail/services';
-import { isApplicationError } from '@venizia/ignis-helpers/core';
-import { type AnyType } from '@venizia/ignis-helpers/common';
-import { FakeMailTransport } from './fakes';
+import { catchApplicationError, FakeMailTransport } from './fakes';
 
 const buildService = (opts?: {
   transport?: FakeMailTransport;
@@ -32,15 +30,10 @@ describe('MailService - validation errors', () => {
   test('a missing recipient keeps its 400 / INVALID_RECIPIENT identity', async () => {
     const { service, transport } = buildService();
 
-    let error: AnyType;
+    const error = await catchApplicationError(() =>
+      service.send({ to: '', subject: 'Hi', text: 'body' }),
+    );
 
-    try {
-      await service.send({ to: '', subject: 'Hi', text: 'body' });
-    } catch (caught) {
-      error = caught;
-    }
-
-    expect(isApplicationError(error)).toBe(true);
     expect(error.statusCode).toBe(400);
     expect(error.normalized.code).toBe(MailErrors.INVALID_RECIPIENT.message.code);
     expect(transport.sentMessages).toHaveLength(0);
@@ -49,13 +42,9 @@ describe('MailService - validation errors', () => {
   test('an empty recipient array keeps its 400 identity', async () => {
     const { service } = buildService();
 
-    let error: AnyType;
-
-    try {
-      await service.send({ to: [], subject: 'Hi', text: 'body' });
-    } catch (caught) {
-      error = caught;
-    }
+    const error = await catchApplicationError(() =>
+      service.send({ to: [], subject: 'Hi', text: 'body' }),
+    );
 
     expect(error.statusCode).toBe(400);
     expect(error.normalized.code).toBe(MailErrors.INVALID_RECIPIENT.message.code);
@@ -64,13 +53,9 @@ describe('MailService - validation errors', () => {
   test('a missing subject keeps its 400 identity', async () => {
     const { service } = buildService();
 
-    let error: AnyType;
-
-    try {
-      await service.send({ to: 'a@b.com', subject: '', text: 'body' });
-    } catch (caught) {
-      error = caught;
-    }
+    const error = await catchApplicationError(() =>
+      service.send({ to: 'a@b.com', subject: '', text: 'body' }),
+    );
 
     expect(error.statusCode).toBe(400);
     expect(error.normalized.code).toBe(MailErrors.INVALID_CONFIGURATION.message.code);
@@ -80,13 +65,9 @@ describe('MailService - validation errors', () => {
     const transport = new FakeMailTransport({ sendError: new Error('socket hang up') });
     const { service } = buildService({ transport });
 
-    let error: AnyType;
-
-    try {
-      await service.send({ to: 'a@b.com', subject: 'Hi', text: 'body' });
-    } catch (caught) {
-      error = caught;
-    }
+    const error = await catchApplicationError(() =>
+      service.send({ to: 'a@b.com', subject: 'Hi', text: 'body' }),
+    );
 
     expect(error.statusCode).toBe(500);
     expect(error.normalized.code).toBe(MailErrorCodes.SEND_FAILED);
@@ -135,15 +116,11 @@ describe('MailService - default sender', () => {
 });
 
 describe('MailService - header checks', () => {
-  const refused = async (message: AnyType) => {
+  const refused = async (message: Record<string, unknown>) => {
     const { service, transport } = buildService();
-    let error: AnyType;
-
-    try {
-      await service.send({ to: 'a@b.com', subject: 'Hi', text: 'body', ...message });
-    } catch (caught) {
-      error = caught;
-    }
+    const error = await catchApplicationError(() => {
+      return service.send({ to: 'a@b.com', subject: 'Hi', text: 'body', ...message });
+    });
 
     expect(transport.sentMessages).toHaveLength(0);
 
@@ -278,13 +255,9 @@ describe('MailService - sendTemplate', () => {
   test('an unknown template surfaces 404 / TEMPLATE_NOT_FOUND', async () => {
     const { service } = buildService({ templateEngine: new TemplateEngineService() });
 
-    let error: AnyType;
-
-    try {
-      await service.sendTemplate({ templateName: 'nope', data: {}, recipients: 'a@b.com' });
-    } catch (caught) {
-      error = caught;
-    }
+    const error = await catchApplicationError(() =>
+      service.sendTemplate({ templateName: 'nope', data: {}, recipients: 'a@b.com' }),
+    );
 
     expect(error.statusCode).toBe(404);
     expect(error.normalized.code).toBe(MailErrors.TEMPLATE_NOT_FOUND.message.code);
@@ -293,13 +266,9 @@ describe('MailService - sendTemplate', () => {
   test('a missing template engine surfaces INVALID_CONFIGURATION', async () => {
     const { service } = buildService();
 
-    let error: AnyType;
-
-    try {
-      await service.sendTemplate({ templateName: 'welcome', data: {}, recipients: 'a@b.com' });
-    } catch (caught) {
-      error = caught;
-    }
+    const error = await catchApplicationError(() =>
+      service.sendTemplate({ templateName: 'welcome', data: {}, recipients: 'a@b.com' }),
+    );
 
     expect(error.normalized.code).toBe(MailErrors.INVALID_CONFIGURATION.message.code);
   });
@@ -318,13 +287,7 @@ describe('MailService - verify', () => {
     const transport = new FakeMailTransport({ verifyError: new Error('ECONNREFUSED') });
     const { service } = buildService({ transport });
 
-    let error: AnyType;
-
-    try {
-      await service.verify();
-    } catch (caught) {
-      error = caught;
-    }
+    const error = await catchApplicationError(() => service.verify());
 
     expect(error.statusCode).toBe(500);
     expect(error.normalized.code).toBe(MailErrorCodes.VERIFICATION_FAILED);

@@ -1,7 +1,6 @@
 import { BaseService } from '@venizia/ignis-kernel';
 import type { IMailTemplateEngine, ITemplate, TMailTemplateFormat } from '../common';
 import { MailErrors, MailTemplateFormats } from '../common';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 
 /** `{{{key}}}` (group 1, raw) or `{{key}}` (group 2). The raw form comes first: `{{key}}` also matches inside it. */
@@ -33,7 +32,7 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
   render(opts: {
     templateData?: string;
     templateName?: string;
-    data: Record<string, AnyType>;
+    data: Record<string, unknown>;
     requireValidate?: boolean;
     format?: TMailTemplateFormat;
   }): string {
@@ -93,7 +92,7 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
     this.templates.clear();
   }
 
-  validateTemplateData(opts: { template: string; data: Record<string, AnyType> }): {
+  validateTemplateData(opts: { template: string; data: Record<string, unknown> }): {
     isValid: boolean;
     missingKeys: string[];
     allKeys: string[];
@@ -131,7 +130,7 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
 
   renderSimpleTemplate(
     template: string,
-    data: Record<string, AnyType>,
+    data: Record<string, unknown>,
     opts?: { requireValidate?: boolean; format?: TMailTemplateFormat },
   ): string {
     if (opts?.requireValidate) {
@@ -163,10 +162,10 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
   }
 
   /** Reads own properties only: `{{constructor}}` or `{{__proto__.x}}` must not reach the prototype chain. */
-  private getNestedValue(obj: AnyType, path: string) {
-    return path.split('.').reduce((current, key) => {
+  private getNestedValue(obj: unknown, path: string): unknown {
+    return path.split('.').reduce<unknown>((current, key) => {
       return current !== null && typeof current === 'object' && Object.hasOwn(current, key)
-        ? current[key]
+        ? Reflect.get(current, key)
         : undefined;
     }, obj);
   }

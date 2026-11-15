@@ -3,6 +3,8 @@ import { MailComponent } from '@/components/mail/component';
 import {
   MailKeys,
   MailQueueExecutorTypes,
+  type ICustomMailOptions,
+  type IMailQueueExecutor,
   type IMailTransport,
   type TMailOptions,
   type TMailQueueExecutorConfig,
@@ -11,25 +13,22 @@ import {
   DirectMailExecutorHelper,
   InternalQueueMailExecutorHelper,
 } from '@/components/mail/helpers';
-import { Container } from '@venizia/ignis-kernel';
-import type { AnyType } from '@venizia/ignis-helpers/common';
-import { FakeLogger, FakeMailTransport } from './fakes';
+import { catchError, FakeLogger, FakeMailTransport, MailTestApplication } from './fakes';
 
-/** The component only ever talks to the container (isBound/bind/get), so a plain Container stands in for the application; the transport is bound through the `custom` provider, so no SMTP peer is needed. */
+/** The component only ever talks to the container (isBound/bind/get), so a bare application stands in for a full one; the transport is bound through the `custom` provider, so no SMTP peer is needed. */
 const buildComponent = (opts: {
   mailOptions?: TMailOptions | null;
-  queueConfig?: AnyType | null;
+  queueConfig?: TMailQueueExecutorConfig | Record<string, unknown> | null;
   transport?: FakeMailTransport;
 }) => {
-  const container = new Container({ scope: 'MailComponentTest' });
+  const container = new MailTestApplication({ scope: 'MailComponentTest' });
   const transport = opts.transport ?? new FakeMailTransport();
 
   if (opts.mailOptions !== null) {
     container
       .bind({ key: MailKeys.MAIL_OPTIONS })
       .toValue(
-        opts.mailOptions ??
-          ({ provider: 'custom', config: transport, from: 'sender@example.com' } as TMailOptions),
+        opts.mailOptions ?? { provider: 'custom', config: transport, from: 'sender@example.com' },
       );
   }
 
@@ -39,18 +38,11 @@ const buildComponent = (opts: {
       .toValue(opts.queueConfig ?? { type: 'direct' });
   }
 
-  // The container is not an application: it has no stop hooks, so this records what the component registers.
-  const stopHooks: Array<{ identifier: string; hook: () => unknown }> = [];
-
-  (container as AnyType).registerPostStopHook = (hook: (typeof stopHooks)[number]) => {
-    stopHooks.push(hook);
-  };
-
-  const component = new MailComponent(container as AnyType);
+  const component = new MailComponent(container);
   const fakeLogger = new FakeLogger();
-  component['logger'] = fakeLogger as AnyType;
+  Reflect.set(component, 'logger', fakeLogger);
 
-  return { container, component, transport, fakeLogger, stopHooks };
+  return { container, component, transport, fakeLogger, stopHooks: container.stopHooks };
 };
 
 describe('MailComponent - stop', () => {
@@ -81,7 +73,7 @@ describe('MailComponent - wiring', () => {
     await component.configure();
 
     expect(container.get<IMailTransport>({ key: MailKeys.MAIL_TRANSPORT_INSTANCE })).toBe(
-      transport as AnyType,
+      transport,
     );
     expect(container.get({ key: MailKeys.MAIL_QUEUE_EXECUTOR_INSTANCE })).toBeInstanceOf(
       DirectMailExecutorHelper,
@@ -121,13 +113,7 @@ describe('MailComponent - wiring', () => {
   test('missing mail options fail loudly', async () => {
     const { component } = buildComponent({ mailOptions: null });
 
-    let error: AnyType;
-
-    try {
-      await component.configure();
-    } catch (caught) {
-      error = caught;
-    }
+    const error = await catchError(() => component.configure());
 
     expect(error.message).toContain('Mail options not configured');
   });
@@ -161,16 +147,20 @@ describe('MailComponent - wiring', () => {
     const { container, component, transport } = buildComponent({});
 
     await component.configure();
-    const firstTransport = container.get<AnyType>({ key: MailKeys.MAIL_TRANSPORT_INSTANCE });
-    const firstExecutor = container.get<AnyType>({ key: MailKeys.MAIL_QUEUE_EXECUTOR_INSTANCE });
+    const firstTransport = container.get<IMailTransport>({ key: MailKeys.MAIL_TRANSPORT_INSTANCE });
+    const firstExecutor = container.get<IMailQueueExecutor>({
+      key: MailKeys.MAIL_QUEUE_EXECUTOR_INSTANCE,
+    });
     const firstOptions = container.get<TMailOptions>({ key: MailKeys.MAIL_OPTIONS });
 
     await component.configure();
     // A second call CARRYING options must not swap them under the transport already built.
     await component.configure({ provider: 'custom', config: transport, from: 'late@example.com' });
 
-    expect(container.get<AnyType>({ key: MailKeys.MAIL_TRANSPORT_INSTANCE })).toBe(firstTransport);
-    expect(container.get<AnyType>({ key: MailKeys.MAIL_QUEUE_EXECUTOR_INSTANCE })).toBe(
+    expect(container.get<IMailTransport>({ key: MailKeys.MAIL_TRANSPORT_INSTANCE })).toBe(
+      firstTransport,
+    );
+    expect(container.get<IMailQueueExecutor>({ key: MailKeys.MAIL_QUEUE_EXECUTOR_INSTANCE })).toBe(
       firstExecutor,
     );
     expect(container.get<TMailOptions>({ key: MailKeys.MAIL_OPTIONS })).toBe(firstOptions);
@@ -179,14 +169,13 @@ describe('MailComponent - wiring', () => {
 
 describe('MailComponent - confidentiality', () => {
   test('the SMTP password is never written to the logs', async () => {
-    const { component, fakeLogger } = buildComponent({
-      mailOptions: {
-        provider: 'custom',
-        config: new FakeMailTransport(),
-        from: 'sender@example.com',
-        auth: { user: 'mailer', pass: 'super-secret-pass' },
-      } as AnyType,
-    });
+    const mailOptions: ICustomMailOptions & { auth: { user: string; pass: string } } = {
+      provider: 'custom',
+      config: new FakeMailTransport(),
+      from: 'sender@example.com',
+      auth: { user: 'mailer', pass: 'super-secret-pass' },
+    };
+    const { component, fakeLogger } = buildComponent({ mailOptions });
 
     await component.configure();
 
@@ -202,7 +191,7 @@ describe('MailComponent - confidentiality', () => {
           redis: {
             getClient: () => ({ options: { password: 'super-secret-redis' } }),
             duplicateClient: () => ({}),
-          } as AnyType,
+          },
           queue: { identifier: 'mail', name: 'mail' },
           mode: 'both',
         },

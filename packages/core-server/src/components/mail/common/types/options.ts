@@ -1,4 +1,3 @@
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 import type { IMailTransport } from './message';
 
@@ -54,7 +53,7 @@ export interface ICustomMailOptions extends IBaseMailOptions {
 /** Mail options with an arbitrary provider name and config; accepted by the type, but the transport provider throws on a name it does not support. */
 export interface IGenericMailOptions extends IBaseMailOptions {
   provider: string;
-  config: Record<string, AnyType>;
+  config: Record<string, unknown>;
 }
 
 /** Options passed to the mail component, discriminated by `provider`. */
@@ -68,9 +67,14 @@ export type TMailOptions =
 /** Nodemailer `createTransport` argument: a transport instance, SMTP options or a connection URL. */
 export type TNodemailerConfig = SMTPTransport | SMTPTransport.Options | string;
 
-// MailgunClientOptions & {domain: string}
-/** Mailgun client options (`mailgun.js`) plus the sending `domain`. */
-export type TMailgunConfig = AnyType & { domain: string };
+/** Mailgun client options (`mailgun.js`) plus the sending `domain`; the transport throws on a missing `username`, `key` or `domain`. */
+export type TMailgunConfig = {
+  username: string;
+  key: string;
+  domain: string;
+  url?: string;
+  [option: string]: unknown;
+};
 
 /**
  * The peer module itself, handed over by an application that already holds it. A `bun build
@@ -80,11 +84,30 @@ export type TMailgunConfig = AnyType & { domain: string };
  * a compile error rather than a boot crash.
  */
 export type TNodemailerModule = {
-  createTransport: (config: AnyType, defaults?: AnyType) => AnyType;
+  createTransport(config: TNodemailerConfig): INodemailerTransporter;
 };
 
+/** The part of a `nodemailer` transporter the transport calls. */
+export interface INodemailerTransporter {
+  sendMail(mailOptions: object): Promise<{ messageId?: string; response?: unknown }>;
+  verify(): Promise<unknown>;
+  close(): void;
+}
+
+/** The result of one `mailgun.js` send; `id` is the message id. */
+export interface IMailgunSendResult {
+  id?: string;
+}
+
+/** The part of the `mailgun.js` messages client the transport calls. */
+export interface IMailgunMessagesClient {
+  create(domain: string, message: object): Promise<IMailgunSendResult>;
+}
+
 /** The `mailgun.js` class, as a constructor taking the form-data implementation. */
-export type TMailgunModule = new (formData: AnyType) => AnyType;
+export type TMailgunModule = new (formData: typeof FormData) => {
+  client(config: object): { messages: IMailgunMessagesClient };
+};
 
 /** Amazon SES client configuration: `region` is required; `credentials` and `endpoint` are optional. */
 export type TAmazonSesConfig = {
@@ -93,17 +116,31 @@ export type TAmazonSesConfig = {
   endpoint?: string;
 };
 
+/** The part of an `@aws-sdk/client-sesv2` client the transport calls; `send` resolves with the command's output. */
+export interface IAmazonSesClient {
+  send(command: object): Promise<unknown>;
+  destroy?(): void;
+}
+
+/** The input of a `SendEmailCommand`: the sender, the recipients and the raw MIME body. */
+export interface IAmazonSesSendEmailInput {
+  FromEmailAddress?: string;
+  Destination: { ToAddresses: string[]; CcAddresses?: string[]; BccAddresses?: string[] };
+  ReplyToAddresses?: string[];
+  Content: { Raw: { Data: Uint8Array } };
+}
+
 /** Same story as {@link TNodemailerModule} - a compiled binary hands this over explicitly since there is no `node_modules` to resolve `@aws-sdk/client-sesv2` against. */
 export type TAmazonSesModule<
-  TConfig extends AnyType = AnyType,
-  TClient extends AnyType = AnyType,
+  TConfig = TAmazonSesConfig,
+  TClient extends IAmazonSesClient = IAmazonSesClient,
 > = {
   SESv2Client: new (config: TConfig) => TClient;
-  SendEmailCommand: new (input: AnyType) => AnyType;
-  GetAccountCommand: new (input?: AnyType) => AnyType;
+  SendEmailCommand: new (input: IAmazonSesSendEmailInput) => object;
+  GetAccountCommand: new (input: object) => object;
 };
 
 /** An Amazon SES client with the command classes the transport sends and verifies with. */
 export type TAmazonSesClient = Pick<TAmazonSesModule, 'SendEmailCommand' | 'GetAccountCommand'> & {
-  client: AnyType;
+  client: IAmazonSesClient;
 };
