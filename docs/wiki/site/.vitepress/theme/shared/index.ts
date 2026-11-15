@@ -24,7 +24,6 @@ import './docs-shell.css';
 import './docs-blocks.css';
 import './changelog.css';
 import AtAGlance from './AtAGlance.vue';
-import ChangelogIndex from './ChangelogIndex.vue';
 import SiteLayout from './SiteLayout.vue';
 import WhereToStart from './WhereToStart.vue';
 import HomeLanding from '../HomeLanding.vue';
@@ -35,7 +34,6 @@ export default {
   Layout: () => h(SiteLayout, { site: SITE, home: HOME }),
   enhanceApp({ app }) {
     app.component('HomeLanding', HomeLanding);
-    app.component('ChangelogIndex', ChangelogIndex);
     app.component('AtAGlance', AtAGlance);
     app.component('WhereToStart', WhereToStart);
   },
