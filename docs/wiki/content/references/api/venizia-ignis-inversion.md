@@ -68,7 +68,7 @@ export declare abstract class AbstractContainer extends BaseHelper implements IC
     };
     abstract resolve<T>(cls: TClass<T>): T;
     abstract instantiate<T>(cls: TClass<T>): T;
-    abstract findByTag<T = any>(opts: {
+    abstract findByTag<T = unknown>(opts: {
         tag: string;
         exclude?: Array<string> | Set<string>;
     }): IBinding<T>[];
@@ -159,6 +159,9 @@ Storage half of the container, keyed by normalized binding-key strings - resolut
 
 ```ts
 export declare abstract class BaseContainer extends AbstractContainer {
+    /**
+     * Every binding of the container, whatever its `T`. The one deliberate `any` of the container: `Binding<T>` is invariant in `T` and this store holds every `T`, so no concrete type argument lets a lookup answer the `Binding<T>` its caller names without a cast. Everything around it is typed; a token-keyed container is the way to remove it.
+     */
     protected bindings: Map<string, Binding<any>>;
     /** How often each bound key has been handed out since counting started. */
     protected resolutionCounts: Map<string, number>;
@@ -252,7 +255,7 @@ export declare abstract class BaseContainer extends AbstractContainer {
     /** How many times each bound key has been read since counting started. A key that was bound and never read is absent. The map is a copy. */
     getResolutionCounts(): ReadonlyMap<string, number>;
     resolve<T>(cls: TClass<T>): T;
-    findByTag<T = any>(opts: {
+    findByTag<T = unknown>(opts: {
         tag: string;
         exclude?: Array<string> | Set<string>;
     }): Binding<T>[];
@@ -290,7 +293,7 @@ Source: `packages/inversion/src/common/base-helper.ts`
 One container entry under `key`, resolved to a class, a value or a provider (set with `toClass`, `toValue`, `toProvider`). Scope is transient unless `setScope` selects singleton; a key with a dot gets its first segment as a tag.
 
 ```ts
-export declare class Binding<T = any> extends BaseHelper implements IBinding<T> {
+export declare class Binding<T = unknown> extends BaseHelper implements IBinding<T> {
     key: string;
     private bindScope;
     private tags;
@@ -300,7 +303,7 @@ export declare class Binding<T = any> extends BaseHelper implements IBinding<T> 
     constructor(opts: {
         key: string;
     });
-    static bind<T = any>(opts: {
+    static bind<T = unknown>(opts: {
         key: string;
     }): Binding<T>;
     toClass(value: TClass<T>): this;
@@ -509,7 +512,7 @@ Source: `packages/inversion/src/modules/error/app-error.ts`
 A container entry: one key bound to a class, a value or a provider, with a scope and tags.
 
 ```ts
-export interface IBinding<T = any> {
+export interface IBinding<T = unknown> {
     /** Normalized at construction - a symbol key arrives here as its string form. */
     key: string;
     toClass(value: TClass<T>): this;
@@ -654,7 +657,7 @@ export interface IContainer {
     };
     resolve<T>(cls: TClass<T>): T;
     instantiate<T>(cls: TClass<T>): T;
-    findByTag<T = any>(opts: {
+    findByTag<T = unknown>(opts: {
         tag: string;
         exclude?: Array<string> | Set<string>;
     }): IBinding<T>[];

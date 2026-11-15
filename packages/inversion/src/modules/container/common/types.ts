@@ -31,7 +31,10 @@ export interface IContainer {
   resolve<T>(cls: TClass<T>): T;
   instantiate<T>(cls: TClass<T>): T;
 
-  findByTag<T = any>(opts: { tag: string; exclude?: Array<string> | Set<string> }): IBinding<T>[];
+  findByTag<T = unknown>(opts: {
+    tag: string;
+    exclude?: Array<string> | Set<string>;
+  }): IBinding<T>[];
   clear(): void;
   reset(): void;
 }
