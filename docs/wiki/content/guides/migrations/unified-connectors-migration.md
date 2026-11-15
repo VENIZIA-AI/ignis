@@ -47,15 +47,15 @@ The second positional argument became an options object (and gained `transform`)
 
 ```typescript
 // Before
-const port = applicationEnvironment.get<string>(Keys.PORT, '3000');
+const port = applicationEnvironment.get(Keys.PORT, '3000');
 
 // After
-const port = applicationEnvironment.get<string>(Keys.PORT, { defaultValue: '3000' });
+const port = applicationEnvironment.get(Keys.PORT, { defaultValue: '3000' });
 
 // New capability - transform raw env values in one read:
-const nodes = applicationEnvironment.get<string[], string>(Keys.NODES, {
+const nodes = applicationEnvironment.get(Keys.NODES, {
   defaultValue: [],
-  transform: value => ParseUtility.toDelimitedArray({ input: value }),
+  transform: (raw) => ParseUtility.toDelimitedArray({ input: raw }),
 });
 ```
 

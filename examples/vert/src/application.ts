@@ -30,6 +30,7 @@ import {
 import { cors } from 'hono/cors';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common';
+import { requireEnv } from './common/require-env';
 import { PostgresDataSource } from './datasources/postgres.datasource';
 import { GeneratedArtifacts } from './generated/artifacts';
 import { Organization, Permission, PolicyDefinition, Role } from './models/entities';
@@ -105,7 +106,7 @@ export class Application extends BaseApplication {
 
   /** The suites write, delete and lock rows, so they run only on request and never in production. */
   private async runRepositoryTests(): Promise<void> {
-    const isRequested = applicationEnvironment.get<string>(
+    const isRequested = applicationEnvironment.get(
       EnvironmentKeys.APP_ENV_RUN_REPOSITORY_TESTS,
     );
 
@@ -146,9 +147,9 @@ export class Application extends BaseApplication {
 
     const redis = new RedisSingleHelper({
       name: 'authorization-cache',
-      host: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_HOST),
-      port: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PORT),
-      password: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PASSWORD),
+      host: requireEnv(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_HOST),
+      port: applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PORT),
+      password: applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PASSWORD),
       database: ParseUtility.toInt({
         input: applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_DB, {
           defaultValue: '8',

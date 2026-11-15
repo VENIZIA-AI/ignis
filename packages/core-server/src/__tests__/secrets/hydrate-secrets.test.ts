@@ -36,7 +36,7 @@ describe('hydrateSecrets', () => {
     await app.hydrateSecrets();
     const provider = app.get({ key: CoreBindings.APPLICATION_CONFIG, isOptional: false });
     expect(provider).toBeDefined();
-    expect(applicationEnvironment.get<string>('APP_ENV_TARGET')).toBe('hydrated');
+    expect(applicationEnvironment.get('APP_ENV_TARGET')).toBe('hydrated');
     expect(process.env.APP_ENV_TARGET).toBe('hydrated');
   });
 });

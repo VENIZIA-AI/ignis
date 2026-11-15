@@ -32,7 +32,7 @@ const host = process.env.APP_ENV_POSTGRES_HOST;
 // Using applicationEnvironment helper (recommended)
 import { applicationEnvironment } from '@venizia/ignis-helpers';
 import { EnvironmentKeys } from '@venizia/ignis';
-const host = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_HOST);
+const host = applicationEnvironment.get(EnvironmentKeys.APP_ENV_POSTGRES_HOST);
 ```
 
 

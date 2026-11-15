@@ -1,4 +1,5 @@
 import { EnvironmentKeys } from '@/common/environments';
+import { requireEnv } from '@/common/require-env';
 import { datasource, type TAnyDataSourceSchema, type ValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { PostgresJsDriver } from '@venizia/ignis-connectors/postgres/postgres-js';
@@ -35,15 +36,14 @@ export class SupabaseDataSource extends BasePostgresDataSource<
     super({
       name: SupabaseDataSource.name,
       config: {
-        url: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_SUPABASE_DATABASE_URL),
-        mode: applicationEnvironment.get<TPoolerMode>(
-          EnvironmentKeys.APP_ENV_SUPABASE_POOLER_MODE,
-          { defaultValue: PoolerModes.DIRECT },
-        ),
-        max: applicationEnvironment.get<number | undefined, string>(
+        url: requireEnv(EnvironmentKeys.APP_ENV_SUPABASE_DATABASE_URL),
+        mode: applicationEnvironment.get<TPoolerMode>(EnvironmentKeys.APP_ENV_SUPABASE_POOLER_MODE, {
+          transform: (raw) =>
+            raw !== undefined && PoolerModes.isValid(raw) ? raw : PoolerModes.DIRECT,
+        }),
+        max: applicationEnvironment.get<number | undefined>(
           EnvironmentKeys.APP_ENV_SUPABASE_POOL_MAX,
           {
-            defaultValue: undefined,
             transform: (value) => (value ? ParseUtility.toInt({ input: value }) : undefined),
           },
         ),

@@ -1,7 +1,10 @@
 import { ParseUtility } from '@/utilities/parse.utility';
 import { BaseHelper } from '@/modules/base';
 import { EnvironmentNames } from './names';
-import { type IApplicationEnvironment } from './common';
+import {
+  type IApplicationEnvironment,
+  type IApplicationEnvironmentTransformOptions,
+} from './common';
 
 /** Adds the `NODE_ENV` reads to {@link EnvironmentNames}. Every name and set is inherited, so `Environment.PRODUCTION`, `Environment.COMMON_ENVS` and `Environment.DEVELOPMENT_ENVS` keep resolving here; only these two members need a `process`. */
 export class Environment extends EnvironmentNames {
@@ -24,9 +27,9 @@ export class Environment extends EnvironmentNames {
 /** Key-value store of the environment entries whose key starts with `prefix`; other keys are dropped at construction. `get` applies a default and an optional transform. Use the shared `applicationEnvironment` instance rather than constructing one. */
 export class ApplicationEnvironment extends BaseHelper implements IApplicationEnvironment {
   private prefix: string;
-  private arguments: Record<string, any> = Object.create(null);
+  private arguments: Record<string, string | undefined> = Object.create(null);
 
-  constructor(opts: { prefix: string; envs: Record<string, string | number | undefined> }) {
+  constructor(opts: { prefix: string; envs: Record<string, string | undefined> }) {
     super({ scope: ApplicationEnvironment.name });
 
     this.prefix = opts.prefix;
@@ -51,28 +54,26 @@ export class ApplicationEnvironment extends BaseHelper implements IApplicationEn
    * receives `''` unchanged, so no existing read changes shape. `'0'` and `'false'` are values and
    * are never normalised.
    */
-  get<ReturnType, BeforeTransformType = unknown>(
+  get(key: string): string | undefined;
+  get(key: string, opts: { defaultValue: string }): string;
+  get<R>(key: string, opts: IApplicationEnvironmentTransformOptions<R>): R;
+  get<R>(
     key: string,
-    opts?: {
-      defaultValue?: ReturnType;
-      transform?: (value: BeforeTransformType) => ReturnType;
-    },
-  ): ReturnType {
+    opts?: { defaultValue?: string | R; transform?: (raw: string | undefined) => R },
+  ): string | R | undefined {
     const raw = this.arguments[key];
 
-    const isBlank = raw === undefined || raw === null || (typeof raw === 'string' && !raw.trim());
+    const isBlank = raw == null || !raw.trim();
     const rs = opts?.defaultValue !== undefined && isBlank ? undefined : raw;
 
     if (!opts?.transform) {
-      return (rs ?? opts?.defaultValue) as ReturnType;
+      return rs ?? opts?.defaultValue;
     }
 
-    const transformed = opts.transform(rs);
-
-    return (transformed ?? opts?.defaultValue) as ReturnType;
+    return opts.transform(rs) ?? opts.defaultValue;
   }
 
-  set<ValueType>(key: string, value: ValueType) {
+  set(key: string, value: string | undefined): void {
     this.arguments[key] = value;
   }
 

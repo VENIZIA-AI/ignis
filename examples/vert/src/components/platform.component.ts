@@ -1,4 +1,5 @@
 import { EnvironmentKeys } from '@/common';
+import { requireEnv } from '@/common/require-env';
 import {
   ChangePasswordRequestSchema,
   ChangePasswordResponseSchema,
@@ -22,6 +23,9 @@ import {
   HealthCheckBindingKeys,
   inject,
   JOSEStandards,
+  JWKSAlgorithms,
+  JWKSKeyDrivers,
+  JWKSKeyFormats,
   JWKSModes,
   provide,
 } from '@venizia/ignis';
@@ -33,13 +37,11 @@ import type {
   IHealthCheckOptions,
   TAuthenticationRestOptions,
   TBasicTokenServiceOptions,
-  TJWKSAlgorithm,
-  TJWKSKeyDriver,
-  TJWKSKeyFormat,
   TJWTTokenServiceOptions,
 } from '@venizia/ignis';
 import type { TStaticAssetComponentOptions } from '@venizia/ignis/static-asset';
 import { applicationEnvironment, DiskHelper, getError, ParseUtility } from '@venizia/ignis-helpers';
+import { z } from '@hono/zod-openapi';
 import { MetaLinkRepository } from '@/repositories/meta-link.repository';
 
 /**
@@ -137,24 +139,24 @@ export class PlatformComponent extends BaseComponent {
       standard: JOSEStandards.JWKS,
       options: {
         mode: JWKSModes.ISSUER,
-        algorithm: applicationEnvironment.get<TJWKSAlgorithm>(
-          EnvironmentKeys.APP_ENV_JWKS_ALGORITHM,
-        ),
+        algorithm: z
+          .enum([JWKSAlgorithms.ES256, JWKSAlgorithms.RS256, JWKSAlgorithms.EDDSA])
+          .parse(requireEnv(EnvironmentKeys.APP_ENV_JWKS_ALGORITHM)),
         keys: {
-          driver: applicationEnvironment.get<TJWKSKeyDriver>(
-            EnvironmentKeys.APP_ENV_JWKS_KEY_DRIVER,
-          ),
-          format: applicationEnvironment.get<TJWKSKeyFormat>(
-            EnvironmentKeys.APP_ENV_JWKS_KEY_FORMAT,
-          ),
-          private: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWKS_PRIVATE_KEY),
-          public: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWKS_PUBLIC_KEY),
+          driver: z
+            .enum([JWKSKeyDrivers.TEXT, JWKSKeyDrivers.FILE])
+            .parse(requireEnv(EnvironmentKeys.APP_ENV_JWKS_KEY_DRIVER)),
+          format: z
+            .enum([JWKSKeyFormats.PEM, JWKSKeyFormats.JWK])
+            .parse(requireEnv(EnvironmentKeys.APP_ENV_JWKS_KEY_FORMAT)),
+          private: requireEnv(EnvironmentKeys.APP_ENV_JWKS_PRIVATE_KEY),
+          public: requireEnv(EnvironmentKeys.APP_ENV_JWKS_PUBLIC_KEY),
         },
-        kid: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWKS_KID),
+        kid: requireEnv(EnvironmentKeys.APP_ENV_JWKS_KID),
         // This server issues and verifies its own tokens: both claims name it.
         claims: { issuer: 'vert', audience: 'vert' },
         getTokenExpiresFn: () => {
-          const expiresIn = applicationEnvironment.get<string>(
+          const expiresIn = applicationEnvironment.get(
             EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN,
           );
 

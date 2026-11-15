@@ -213,12 +213,12 @@ export class SearchDataSource extends TypesenseDataSource {
       config: {
         nodes: [
           {
-            host: applicationEnvironment.get<string>('APP_ENV_TYPESENSE_HOST'),
-            port: ParseUtility.toInt({ input: applicationEnvironment.get<string>('APP_ENV_TYPESENSE_PORT') }),
-            protocol: applicationEnvironment.get<string>('APP_ENV_TYPESENSE_PROTOCOL'),
+            host: applicationEnvironment.get('APP_ENV_TYPESENSE_HOST'),
+            port: ParseUtility.toInt({ input: applicationEnvironment.get('APP_ENV_TYPESENSE_PORT') }),
+            protocol: applicationEnvironment.get('APP_ENV_TYPESENSE_PROTOCOL'),
           },
         ],
-        apiKey: applicationEnvironment.get<string>('APP_ENV_TYPESENSE_API_KEY'),
+        apiKey: applicationEnvironment.get('APP_ENV_TYPESENSE_API_KEY'),
       },
       // NO schema property - collections auto-discovered from @repository bindings, same convention as postgres.
     });

@@ -1,5 +1,6 @@
 // The application class. `src/index.ts` starts it; the smoke test boots the same class.
 import { EnvironmentKeys } from '@/common/environments';
+import { requireEnv } from '@/common/require-env';
 import {
   ApiReferenceComponent,
   AuthenticateBindingKeys,
@@ -37,11 +38,11 @@ export class Application extends BaseApplication {
     this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
       standard: JOSEStandards.JWS,
       options: {
-        jwtSecret: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_SECRET),
+        jwtSecret: requireEnv(EnvironmentKeys.APP_ENV_JWT_SECRET),
         claims: getJwtClaims(),
         getTokenExpiresFn: () =>
           ParseUtility.toInt({
-            input: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN),
+            input: applicationEnvironment.get(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN),
           }),
       },
     });

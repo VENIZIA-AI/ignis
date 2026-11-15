@@ -137,7 +137,7 @@ export const buildOrderImport = (opts: {
     routes: { uploadCommit: { use: false } },
     directUpload: {
       use: true,
-      secretKey: applicationEnvironment.get<string>('APP_ENV_UPLOAD_SECRET'),
+      secretKey: applicationEnvironment.get('APP_ENV_UPLOAD_SECRET'),
       maxBytes: 20 * 1024 * 1024,
       resolvers: {
         owner: ({ context }) => String(context.get(Authentication.CURRENT_USER).userId),

@@ -1,20 +1,20 @@
 ---
 title: Environment
-description: Prefix-filtered, type-safe access to environment variables plus deployment-stage detection
+description: Prefix-filtered access to environment variables as strings, plus deployment-stage detection
 difficulty: beginner
 ---
 
 # Environment
 
-`applicationEnvironment` is a singleton that filters `process.env` down to your app's prefix, and gives typed access to it. `Environment` reads the current deployment stage from `NODE_ENV`.
+`applicationEnvironment` is a singleton that filters `process.env` down to your app's prefix and reads it as strings. `Environment` reads the current deployment stage from `NODE_ENV`.
 
 ## In one example
 
 ```typescript
 import { applicationEnvironment } from '@venizia/ignis-helpers';
 
-const jwtSecret = applicationEnvironment.get<string>('APP_ENV_JWT_SECRET');
-const timeout = applicationEnvironment.get<number>('APP_ENV_TIMEOUT', { defaultValue: 5000 });
+const jwtSecret = applicationEnvironment.get('APP_ENV_JWT_SECRET');
+const timeout = applicationEnvironment.get('APP_ENV_TIMEOUT', { transform: Number, defaultValue: 5000 });
 ```
 
 The singleton is created once at module load. It reads only keys that start with `APP_ENV` (the default prefix) from `process.env`. `AppEnvs` is an exported alias for the same instance.
@@ -22,14 +22,16 @@ The singleton is created once at module load. It reads only keys that start with
 ## How it works
 
 - **Construction filters by prefix.** `new ApplicationEnvironment({ prefix, envs })` copies only the keys of `envs` that start with `prefix` into an internal map. Everything else stays invisible to `get()`. The default singleton uses `process.env.APPLICATION_ENV_PREFIX ?? 'APP_ENV'` and `process.env`.
-- **`get()` takes an options object, not a positional default.** The signature is `get<ReturnType, BeforeTransformType = unknown>(key, opts?: { defaultValue?, transform? })`.
-- **Without `transform`,** `get()` returns the raw value - still a `string` - or `defaultValue` when the key is missing.
-- **With `transform`,** `get()` calls `transform(rawValue)`. It falls back to `defaultValue` only if that call returns `undefined` or `null`.
+- **`get()` has three forms, and every value is a string.**
+  - `get(key)` returns `string | undefined`.
+  - `get(key, { defaultValue })` returns `string`: the value, or `defaultValue` when the key is missing.
+  - `get(key, { transform, defaultValue? })` returns what `transform` makes of the raw `string | undefined`. It falls back to `defaultValue` only if `transform` returns `undefined` or `null`.
+- **The default is an options object, not a positional argument.**
 - **A present-but-empty line counts as missing, but only when you pass `defaultValue`.** `APP_ENV_HOST=` and `APP_ENV_HOST=   ` both read as `undefined`, so `defaultValue` applies and `transform` receives `undefined` rather than `''`. Call `get()` without a `defaultValue` and you still get `''` back unchanged. `'0'` and `'false'` are values and are never treated as missing.
 
 > [!WARNING] Put the fallback in `get()`, not after it
 > `ParseUtility.toInt()` always answers a number - `0` for anything unparseable - so `ParseUtility.toInt({ input: get(KEY) }) ?? 6379` never reaches its fallback. Write `ParseUtility.toInt({ input: get(KEY, { defaultValue: '6379' }) })` instead. The broken form is silent: a missing port reads `0`, and a missing retry budget reads `0`, which means "give up after the first failure".
-- **`get<T>()` is a type cast, not a runtime conversion, unless you pass `transform`.** Every `process.env` value is a `string`. Asking for `get<number>('APP_ENV_PORT')` still returns a string at runtime, unless you also pass `transform: Number`.
+- **Nothing is converted unless you pass `transform`.** Every `process.env` value is a `string`, and `get()` types it as one. For a number, write `get('APP_ENV_PORT', { transform: Number })`. A required variable is checked where you read it: `get()` answers `undefined` when it is missing.
 - **Stage detection is separate from the singleton.** `Environment.current` reads `process.env.NODE_ENV` directly. It falls back to `'development'` when `NODE_ENV` is unset.
 - **`Environment.is({ name })` compares a name against `Environment.current`.**
 - **`ApplicationEnvironment.isDevelopment()` is narrower.** It checks `NODE_ENV === 'development'` exactly. The `'dev'` alias fails that check, even though `dev` counts as a development stage everywhere else in IGNIS.
@@ -58,7 +60,7 @@ All ten stages are in `Environment.COMMON_ENVS`, which the Logger uses to decide
 `defaultValue` goes inside the options object, not as a second positional argument.
 
 ```typescript
-const port = applicationEnvironment.get<string>('APP_ENV_SERVER_PORT', { defaultValue: '3000' });
+const port = applicationEnvironment.get('APP_ENV_SERVER_PORT', { defaultValue: '3000' });
 ```
 
 ### Convert a value while reading it
@@ -66,8 +68,8 @@ const port = applicationEnvironment.get<string>('APP_ENV_SERVER_PORT', { default
 Pass `transform` to parse instead of casting.
 
 ```typescript
-const timeout = applicationEnvironment.get<number>('APP_ENV_TIMEOUT', {
-  transform: value => Number(value),
+const timeout = applicationEnvironment.get('APP_ENV_TIMEOUT', {
+  transform: (raw) => (raw === undefined ? undefined : Number(raw)),
   defaultValue: 5000,
 });
 ```

@@ -454,7 +454,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     }
 
     for (const argKey of envKeys) {
-      const argValue = applicationEnvironment.get<string | number>(argKey);
+      const argValue = applicationEnvironment.get(argKey);
 
       if (!ObjectUtility.isEmpty({ value: argValue })) {
         continue;
