@@ -846,29 +846,15 @@ model-settings-keys-removed:
   - access
   - migration.use
   upgrade:
-    before: |
-      @model({
-        settings: {
-          defaultLimit: 20,
-          scopeFilter: { resolve: () => ({ merchantId: currentMerchantId() }) },
-        },
-        skipMigrate: true,
-      })
-      export class Product extends ModelFactory.defineEntity({ table: productTable }) {}
-    after: |
-      @model({
-        settings: {
-          query: { limit: { default: 20 } },
-          access: { resolve: () => ({ merchantId: currentMerchantId() }) },
-        },
-        migration: { use: false },
-      })
-      export class Product extends ModelFactory.defineEntity({ table: productTable }) {}
+    steps:
+    - 'An app that boots on 0.4.6 needs no code change here: the 0.4.6 decorator threw for every old key, so none of its models carries one.'
+    - 'Remove any script, CI step or hook that runs devz codemod model-settings; devz exits 2 for it on 0.4.7 because the codemod no longer exists.'
+    - "Search .js files, any-typed code and model factories for defaultFilter, defaultLimit, maxLimit, scopeFilter and skipMigrate next to @model or model(: an old key there is now ignored without an error. Move each to its new key: settings.query.filter, settings.query.limit.default, settings.query.limit.max, settings.access, migration: { use: false }."
   downgrade:
     steps:
     - Move @venizia/ignis-kernel, @venizia/ignis and @venizia/dev-configs back to 0.4.6.
-    - The new keys already work on 0.4.6, so models you moved keep working; on 0.4.6 the decorator throws again for an old key and bunx devz codemod model-settings --write is there to rewrite them.
-  data: 'Key map: settings.defaultFilter is settings.query.filter; settings.defaultLimit is settings.query.limit.default; settings.maxLimit is settings.query.limit.max; settings.scopeFilter is settings.access; settings.scopeFilter.writeGuard is settings.access.write.mode; settings.scopeFilter.sharedRows is settings.access.write.sharedRows; skipMigrate: true is migration: { use: false }; skipMigrate: false is removed (migration.use is true by default). The decorator used to throw at decoration for these keys; it does not any more. Run your typecheck: a typed model that still writes an old key is an excess property. Search .js files and any-typed code for the five names next to @model or model(: an old key there is ignored, so a scopeFilter that is not moved to access means the model has no row scope and nothing says so. On 0.4.6 an app that boots has none of these keys, because the decorator threw for them there. devz codemod model-settings no longer exists (devz exits 2 as an unknown codemod); move any remaining keys by hand.'
+    - The new keys already work on 0.4.6, so models you moved keep working; on 0.4.6 the decorator throws again for an old key, and bunx devz codemod model-settings --write is there to rewrite them.
+  data: 'Key map: settings.defaultFilter is settings.query.filter; settings.defaultLimit is settings.query.limit.default; settings.maxLimit is settings.query.limit.max; settings.scopeFilter is settings.access; settings.scopeFilter.writeGuard is settings.access.write.mode; settings.scopeFilter.sharedRows is settings.access.write.sharedRows; skipMigrate: true is migration: { use: false }; skipMigrate: false is removed (migration.use is true by default). The decorator used to throw at decoration for these keys; it does not any more. A typed model that still writes an old key fails the typecheck as an excess property, but a scopeFilter in an untyped or JavaScript model that is not moved to access leaves the model with no row scope, and nothing says so.'
 jwt-roles-optional:
   symbols:
   - IJWTTokenPayload

@@ -4,7 +4,7 @@ scope-operations:
     before: |
       import { ScopeWriteOperations, type TScopeWriteOperation } from '@venizia/ignis-connectors/relational';
 
-      scoped(opts: { where: TWhere; mutation?: string }) {
+      scoped(opts: { where: TWhere; mutation?: TScopeWriteOperation }) {
         return this.applyScopeFilter({ userFilter: { where: opts.where }, mutation: opts.mutation });
       }
     after: |
@@ -596,7 +596,7 @@ static-asset-names:
   data: 'An application that registers options through configs.artifacts binds the key string as well: the old string is @app/static-asset-component/options, the new one @app/static-asset/options. A read through the old string fails at run time, not at compile time. WHITELIST_HEADERS has no replacement; the StaticAssetStorageTypes check is StorageTypes from @venizia/ignis-helpers.'
 
 static-asset-entry-flat:
-  symbols: [StaticAssetComponent, TStaticAssetEntry, TStaticAssetComponentOptions, TStaticAssetDirectUploadOptions, controller.bucket, controller.directUpload, directUpload.onCommit, useMetaLink, extra.normalizeNameFn, defineRoutesBefore, defineExtraRoutes, getBuckets, getBucketByName, createBucket, deleteBucket]
+  symbols: [StaticAssetComponent, TStaticAssetEntry, TStaticAssetComponentOptions, TStaticAssetDirectUploadOptions, TStaticAssetServerUploadOptions, controller.bucket, controller.directUpload, directUpload.onCommit, useMetaLink, metaLink.model, metaLink.createMetaLink, extra.normalizeNameFn, defineRoutesBefore, defineExtraRoutes, extend.before, extend.after, getBuckets, getBucketByName, createBucket, deleteBucket]
   upgrade:
     before: |-
       assets: {
@@ -627,7 +627,7 @@ static-asset-entry-flat:
     steps:
       - Pin @venizia/ignis and @venizia/ignis-helpers to 0.4.7 and move each entry back under controller, storage and extra.
   data: |-
-    Move the options as the entry shape says: controller.keyPrefix becomes keyPrefix (required with directUpload, and pendingPrefix must not contain it nor be contained by it); extra.maxBytes becomes serverUpload.maxBytes (serverUpload.maxFiles is new, 20 by default, and the extra.parseMultipartBody spool options are gone); extra.maxFolderDepth becomes maxFolderDepth; extra.normalizeNameFn and resolveObjectName become serverUpload.objectKey; extra.normalizeLinkFn becomes link; auth.publicRead is a toggle. The bucket routes are removed: create buckets in your storage or with helper.createBucket, and rewrite stored links that contain /buckets/<name>/ (without a createMetaLink hook, PUT /meta-links/{objectName} rewrites a row's link). Commit tokens issued before the upgrade fail with 404, and objects committed before the keyPrefix existed sit outside the new scope. Branch on core.storage.folder_path_invalid and core.storage.folder_depth_exceeded instead of the core.static_asset.folder_* codes; the codes labels_in_query and max_keys_invalid are removed (a label in the URL is ignored).
+    Move the options as the entry shape says: controller.keyPrefix becomes keyPrefix (required with directUpload, and pendingPrefix must not contain it nor be contained by it); extra.maxBytes becomes serverUpload.maxBytes (serverUpload.maxFiles is new, 20 by default, and the extra.parseMultipartBody spool options are gone); extra.maxFolderDepth becomes maxFolderDepth; extra.normalizeNameFn and resolveObjectName become serverUpload.objectKey; extra.normalizeLinkFn becomes link; auth.publicRead is a toggle. The bucket routes are removed: create buckets in your storage or with helper.createBucket, and a metaLink config drops model, and a createMetaLink hook receives labels where it received query; defineRoutesBefore and defineExtraRoutes are extend.before and extend.after; rewrite stored links that contain /buckets/<name>/ (without a createMetaLink hook, PUT /meta-links/{objectName} rewrites a row's link). Commit tokens issued before the upgrade fail with 404, and objects committed before the keyPrefix existed sit outside the new scope. Branch on core.storage.folder_path_invalid and core.storage.folder_depth_exceeded instead of the core.static_asset.folder_* codes; the codes labels_in_query and max_keys_invalid are removed (a label in the URL is ignored).
 
 direct-upload-one-object-per-policy:
   symbols: [BunS3Helper.presignPost, IPresignPostOptions, directUpload.expiresIn, directUpload.expires, IStaticAssetCommitTokenPayload, StaticAssetUploadCommitService.commit]
@@ -881,10 +881,11 @@ redis-default-retry:
     steps:
       - "To keep the helper giving up at once, set maxRetry: 0. The default is now 5, with a backoff that doubles from 1 s to 30 s."
       - Pass maxRetry as 0, -1 or a positive integer. A negative number other than -1, a fraction or NaN throws when the helper is built.
+      - "A cluster helper used the ioredis reconnect strategy, which never stops; it now gives up after 5 attempts. Set maxRetry: -1 on a cluster that must keep trying."
       - "On a cluster behind BullMQ, remove the maxRetriesPerRequest: null you set in clusterOptions.redisOptions; it is the default now."
   downgrade:
     steps:
-      - "Pin @venizia/ignis-helpers to 0.4.7, or set maxRetry: 0 to get the older no-reconnect default. The older 2 s, 4 s, 5 s delays cannot be restored by configuration."
+      - "Pin @venizia/ignis-helpers to 0.4.7, or set maxRetry: 0 on a single or Sentinel helper to get the older no-reconnect default, or -1 on a cluster to get its older never-stop behaviour. The older 2 s, 4 s, 5 s delays cannot be restored by configuration."
   data: Back BullMQ with a Redis helper whose maxRetry is -1, because BullMQ never reconnects a client that ioredis gave up on.
 
 redis-sentinel-scope:
@@ -1393,3 +1394,233 @@ environment-get-string:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7 and put the type arguments back (get<string>(key), get<R, string>(key, { transform })), or restore the files from git, since the codemod has no reverse.
   data: The old get<number>(key) returned the raw string at run time while its type said number, so code that compared it with a number or added to it behaved as a string operation. Check each call that carried a non-string type argument.
+
+unusable-access-scope-unresolved:
+  symbols: [IModelAccessSettings.resolve, ScopeFilters.UNRESTRICTED, ScopeFilterMissingBehaviors, ScopeResolution]
+  upgrade:
+    before: |
+      // a resolver whose result was {} (or false, 0, '', []) or held an undefined value
+      // applied no scope: the rows of every tenant were visible
+      access: {
+        resolve: () => ({ merchantId: currentUser()?.merchantId }),
+      }
+    after: |
+      // every unusable result is "unresolved" and follows onMissing (deny by default)
+      access: {
+        resolve: () => {
+          const merchantId = currentUser()?.merchantId;
+
+          if (isOperator()) {
+            return ScopeFilters.UNRESTRICTED; // the caller that must see everything
+          }
+
+          return merchantId ? { merchantId } : null; // null denies on purpose
+        },
+      }
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-connectors and @venizia/ignis to 0.4.7, where a false, 0, empty string, empty list, {} or a where holding an undefined value is merged as it is and restricts nothing.
+      - Keep the corrected resolver; it behaves the same on 0.4.7, so nothing has to be reverted in your code.
+  data: Nothing stored changes. An app whose resolver returned one of those values now matches no rows on reads and refuses the writes, until the resolver returns a usable where or ScopeFilters.UNRESTRICTED. With onMissing set to ScopeFilterMissingBehaviors.ALLOW an unresolved scope still applies no filter; that opt-out is unchanged.
+
+socketio-broadcast-authenticated-only:
+  symbols: [SocketIOServerHelper.send, SocketIOServerHelper.getIOServer, SocketIOConstants.ROOM_AUTHENTICATED, SocketIOBindingKeys.SOCKET_IO_INSTANCE]
+  upgrade:
+    before: |
+      // no destination: every connected socket got it, signed in or not
+      helper.send({ payload: { topic: 'announcement', data: { text: 'Hello' } } });
+    after: |
+      // no destination now means SocketIOConstants.ROOM_AUTHENTICATED, which a socket joins after it authenticates.
+      // Sockets that must receive a message before they authenticate join a room of your own. The helper is the
+      // configured one the Socket.IO component binds at SocketIOBindingKeys.SOCKET_IO_INSTANCE:
+      helper.getIOServer().on('connection', (socket) => socket.join('public-announcements'));
+
+      helper.send({
+        destination: 'public-announcements',
+        payload: { topic: 'announcement', data: { text: 'Hello' } },
+      });
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-helpers to 0.4.7, where a send with no destination reaches every connected socket, authenticated or not.
+      - The room you added for unauthenticated sockets is harmless on 0.4.7; keep it or drop it.
+  data: Nothing stored changes. An authenticated socket joins SocketIOConstants.ROOM_AUTHENTICATED before the defaultRooms you configured, so a configuration that replaced the default rooms still receives broadcasts. A broadcast that used to reach a socket still waiting to authenticate no longer does.
+
+websocket-handshake-before-established:
+  symbols: [WebSocketServerHelper, TWebSocketHandshakeFn, WebSocketClientStates.AUTHENTICATING, WebSocketClientStates.AUTHENTICATED, WebSocketEvents.CONNECTED]
+  upgrade:
+    before: |
+      // requireEncryption: true. The client sent its first message right after the authenticate
+      // frame; on 0.4.7 the state was already AUTHENTICATED while handshakeFn ran, so it was accepted
+      socket.send(JSON.stringify({ event: 'authenticate', data: { token } }));
+      socket.send(JSON.stringify({ event: 'join', data: { rooms: ['orders'] } }));
+    after: |
+      // the client stays AUTHENTICATING until handshakeFn returns; wait for the connected event
+      socket.send(JSON.stringify({ event: 'authenticate', data: { token } }));
+      socket.addEventListener('message', (message) => {
+        const frame = JSON.parse(message.data);
+
+        if (frame.event === 'connected') {
+          socket.send(JSON.stringify({ event: 'join', data: { rooms: ['orders'] } }));
+        }
+      });
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-helpers and @venizia/ignis to 0.4.7, where the client is AUTHENTICATED as soon as authenticateFn returns, before the encryption handshake finishes.
+      - Or stay on the new version and send only after the connected event; that order works on 0.4.7 too.
+  data: Nothing stored changes. Only a server with requireEncryption true is affected; without it the client is established at once, as before. A message or a room join sent before the handshake ends gets the error event with 'Not authenticated' and is not replayed.
+
+http-datasource-path-guard:
+  symbols: [HttpDataSource, HttpDataSource.request, HttpDataSource.buildUrl, IHttpDataSourceSettings.baseUrl]
+  upgrade:
+    before: |
+      // a path built from an input could climb out of the base path
+      const dataSource = new HttpDataSource({ name: 'api', baseUrl: 'https://api.example.com/v1' });
+
+      await dataSource.request({ paths: ['files', fileName] }); // fileName '../../admin' reached /admin, outside the base path /v1
+    after: |
+      // a segment that is . or .. (percent-encoded too), or holds a backslash or a control character, answers 400:
+      // check the input first, and keep a query out of baseUrl (pass it with the call)
+      const dataSource = new HttpDataSource({ name: 'api', baseUrl: 'https://api.example.com/v1' });
+
+      await dataSource.request({ paths: ['files', safeFileName], query: { download: '1' } });
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-connectors and @venizia/ignis to 0.4.7, where a request path is joined to the base URL as it is.
+      - Or stay on the new version and keep the checked input; it behaves the same on 0.4.7.
+  data: Nothing stored changes. A request path with a . or .. segment (percent-encoded too), a backslash or a control character answers 400, and so does a URL that ends outside the base origin or base path. A baseUrl that holds ? or # makes the constructor throw, so the application stops at boot. An id that holds a backslash is refused.
+
+fetch-guarded-pins-address:
+  symbols: [UrlIngest.fetchGuarded, IUrlSafetyPolicy.proxy, IUrlSafetyPolicy.timeout]
+  upgrade:
+    before: |
+      // egress went through the proxy the platform fetch read from HTTPS_PROXY
+      const response = await UrlIngest.fetchGuarded({ url });
+    after: |
+      // the environment's HTTP_PROXY and HTTPS_PROXY are ignored; name the proxy in the policy
+      const response = await UrlIngest.fetchGuarded({
+        url,
+        policy: { proxy: 'http://proxy.internal:3128' },
+      });
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-helpers to 0.4.7, where fetchGuarded checks the host once and connects through the platform fetch, which reads the environment proxy.
+      - Remove the method and body options you added, and policy.proxy; 0.4.7 sends a GET and takes only url, policy and headers.
+  data: Nothing stored changes. With policy.proxy the address check still runs but the connection is not pinned, so point it at a proxy that refuses internal addresses. A caller header other than accept, accept-language and user-agent is dropped when a redirect leaves the origin, and timeout now counts the whole call, not each hop. An app that needs the environment proxy and sets no policy.proxy now connects direct, so a locked-down network times out.
+
+service-assertion-not-user-token:
+  symbols: [ServiceAssertion.TYP, ServiceAssertion.HEADER, AbstractBearerTokenService, IJWTVerifyOptions.algorithms, headerAlgorithm]
+  upgrade:
+    before: |
+      # a service assertion (header typ svc+jwt) sent as a user token verified when a JWKS issuer shared its key
+      curl -H "Authorization: Bearer $SERVICE_ASSERTION" https://api.example.com/orders
+    after: |
+      # the assertion has its own header; the bearer token stays a user token
+      curl -H "x-service-assertion: $SERVICE_ASSERTION" -H "Authorization: Bearer $USER_TOKEN" https://api.example.com/orders
+
+      // and a token service gets a verify object with real algorithms
+      options: { jwtSecret, claims: { issuer: 'my-api' }, verify: { algorithms: ['HS256'] } }
+  downgrade:
+    steps:
+      - Pin @venizia/ignis to 0.4.7, where bearer and JWKS verification accept a token whose typ is svc+jwt and a malformed verify option is ignored.
+      - Do not send assertions as bearer tokens on 0.4.7 either; the x-service-assertion header works on both versions.
+  data: Nothing stored changes. A bearer or JWKS call that sends a service assertion as its user token now gets 401. A verify option that is not an object, or the algorithm none in headerAlgorithm or verify.algorithms, stops the boot with a message that names the option.
+
+upload-file-count-and-spool-cleanup:
+  symbols: [TStaticAssetServerUploadOptions.maxFiles, TStaticAssetDirectUploadOptions.maxFiles, StaticAssetDefaults.MAX_UPLOAD_FILES, RequestUtility.parseMultipartBody, RequestBodyErrors.TOO_MANY_FILES, serverUpload, directUpload]
+  upgrade:
+    steps:
+    - "A client that uploads more than 20 files in one request gets 413 core.request.too_many_files. Set serverUpload.maxFiles to the number you accept (the entry shape itself is the static-asset-entry-flat item)."
+    - "A client that asks for more than 20 upload policies at once gets 422. Set directUpload.maxFiles to the number you accept."
+    - "A route of your own that calls RequestUtility.parseMultipartBody applies no count unless you pass maxFiles, so add maxFiles there if you want one. With storage 'disk' the call now removes its spool files when it fails; delete any cleanup of your own for that case."
+  downgrade:
+    steps:
+    - Pin @venizia/ignis and @venizia/ignis-helpers to 0.4.7, where an upload request has no file-count ceiling and a failed disk parse leaves its spool files behind.
+    - Remove maxFiles from serverUpload, directUpload and parseMultipartBody calls (0.4.7 has no such option).
+  data: Nothing stored changes. The default is StaticAssetDefaults.MAX_UPLOAD_FILES, 20. The count is checked before anything is written, so a refused request leaves no object and no spool file behind.
+
+disk-helper-path-containment:
+  symbols: [DiskHelper, DiskHelper.writeStream, DiskHelper.createBucket, DiskHelper.hasBucket, IWriteStreamOptions.maxFolderDepth]
+  upgrade:
+    before: |
+      // writeStream created the bucket folder on the way
+      await helper.writeStream({ bucket: { name: 'exports' }, object: { key: 'a.csv' }, source: stream });
+    after: |
+      // create the bucket first: writeStream refuses a bucket that does not exist, as upload does
+      const bucket = { name: 'exports' };
+
+      if (!(await helper.hasBucket({ bucket }))) {
+        await helper.createBucket({ bucket });
+      }
+
+      await helper.writeStream({ bucket, object: { key: 'a.csv' }, source: stream });
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-helpers and @venizia/ignis to 0.4.7, where DiskHelper does not follow links for containment and writeStream creates a missing bucket folder.
+      - Remove the createBucket calls you added if you want writeStream to create folders again.
+  data: A storage root whose bucket or object path is a symbolic link leading outside the root now fails with Invalid object name; move the data under the root or point basePath at the real folder. A directory or any entry that is not a regular file is no longer an object. writeStream validates the bucket name and the key, with the folder depth limit, like every other call. A failure to resolve a real path reports the error code, never the absolute path.
+
+s3-virtual-hosted-object-calls:
+  symbols: [BunS3Helper, IBunS3HelperOptions.virtualHostedStyle, BunS3Helper.upload, BunS3Helper.writeStream, BunS3Helper.getObject, BunS3Helper.getObjectStream, BunS3Helper.getStat, BunS3Helper.removeObject, BunS3Helper.listObjects, BunS3Helper.hasBucket, BunS3Helper.presignGet, BunS3Helper.presignPut, BunS3Helper.presignPost]
+  upgrade:
+    before: |
+      // virtual-hosted style with a bucket that is not one DNS label was passed into the host unchecked
+      const helper = new BunS3Helper({
+        accessKey,
+        secretKey,
+        endpoint: { default: 'https://s3.example.com' },
+        virtualHostedStyle: true,
+      });
+
+      await helper.presignGet({ bucket: { name: 'logs.2026' }, object: { key: 'a.txt' } });
+    after: |
+      // a bucket in a host is one lower-case DNS label: 1 to 63 characters of a-z, 0-9 and hyphen
+      await helper.presignGet({ bucket: { name: 'logs-2026' }, object: { key: 'a.txt' } });
+
+      // or keep the bucket name and use path style
+      const pathStyleHelper = new BunS3Helper({
+        accessKey,
+        secretKey,
+        endpoint: { default: 'https://s3.example.com' },
+        virtualHostedStyle: false,
+      });
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-helpers and @venizia/ignis to 0.4.7, where the bucket name is not checked as a host label and object calls with virtualHostedStyle true go to the bare endpoint.
+      - Or stay on the new version and set virtualHostedStyle to false for a bucket with a dot or an upper-case letter.
+  data: Nothing stored changes. With virtualHostedStyle true the object calls now go to https://{bucket}.{endpoint}/{key}, so the endpoint must resolve bucket subdomains (DNS and a wildcard certificate); an endpoint that serves only path style, such as a default MinIO, needs virtualHostedStyle false. A bucket that is not one DNS label throws before a URL is built, presigned URLs included.
+
+where-depth-limit:
+  symbols: [QuerySchemaFactory.build, limits.whereDepth]
+  upgrade:
+    before: |
+      // a where nested 25 levels deep in and / or was accepted
+      const schema = QuerySchemaFactory.build();
+    after: |
+      // more than 20 levels is a validation issue: flatten the filter, or raise the limit
+      const schema = QuerySchemaFactory.build({ limits: { whereDepth: 40 } });
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-filter to 0.4.6, the last stable release without the depth check (this package has no 0.4.7 stable tag).
+      - Remove the limits option from QuerySchemaFactory.build calls.
+  data: Nothing stored changes. A client that sends a where with more than 20 levels of and / or nesting now gets a validation error instead of a result. The default 20 applies to every controller that builds its schema with the factory.
+
+blank-line-padding-rules:
+  symbols: [houseConfigs, reactHouseConfigs, eslintConfigs, paddingConfigs, '@stylistic/padding-line-between-statements', '@stylistic/lines-between-class-members']
+  upgrade:
+    before: |
+      // .configs/lints/eslint.config.mjs
+      import { houseConfigs } from '@venizia/dev-configs/linters';
+
+      export default houseConfigs;
+    after: |
+      // the file is unchanged: the preset now carries paddingConfigs. Fix the code once:
+      //   devz lint --fix
+      import { houseConfigs } from '@venizia/dev-configs/linters';
+
+      export default houseConfigs;
+  downgrade:
+    steps:
+      - Pin @venizia/dev-configs to 0.4.7, which has no padding rules and does not depend on @stylistic/eslint-plugin.
+      - "Or stay on the new version and turn the two rules off in a config object after the preset: set '@stylistic/padding-line-between-statements' and '@stylistic/lines-between-class-members' to 'off'."
+  data: Nothing stored changes. houseConfigs, reactHouseConfigs and eslintConfigs report a missing blank line after imports, before a return, between class members and around block-like statements at error, so devz lint fails until you run devz lint --fix. The fix only adds blank lines; commit it apart from other changes. oxlint has no port of these rules.
+
