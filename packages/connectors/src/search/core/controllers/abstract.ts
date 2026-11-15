@@ -10,6 +10,10 @@ import { SearchInputSchema, SearchModes } from '@/search/core/repositories/commo
 import type { ReadableSearchRepository } from '../repositories/core/readable';
 import { SearchEngineParams } from './engine-params';
 import { SearchRawAccess } from './raw-access';
+import { SearchResponseUtility } from './response';
+import type { ISearchLooseResponse, TSearchLooseHit } from './response';
+import { SearchSettingsUtility } from './settings';
+import type { ISearchResolvedQuery } from './settings';
 import { SearchControllerScope } from './scope';
 import type { TSearchScopeResolver } from './scope';
 
@@ -57,11 +61,17 @@ export abstract class AbstractSearchController<
   /** The `engineParams` names a caller may send, normalised (see {@link SearchEngineParams}). Empty: any `engineParams` is refused. */
   allowedEngineParams: ReadonlySet<string>;
 
-  /** Whether the controller serves `mode: 'raw'` and multi-search over HTTP (`modes.raw.allow`). Closed by default: see {@link SearchRawAccess}. */
+  /** Whether the controller serves `mode: 'raw'` and multi-search over HTTP (`modes.raw`). Closed by default: see {@link SearchRawAccess}. */
   isRawAllowed: boolean;
 
   /** `request.body.extend` was given: its keys are the scope's to read, and they do not go on to the repository. */
   isBodyExtended: boolean;
+
+  /** The `query` option, resolved: the server's settings for a query. */
+  querySettings?: ISearchResolvedQuery<RouteEnv>;
+
+  /** The `response` option when it is on. */
+  responseTransform?: ISearchLooseResponse<RouteEnv>;
 
   constructor(opts: {
     scope: string;
@@ -70,12 +80,16 @@ export abstract class AbstractSearchController<
     definitions: Record<string, IAuthRouteConfig>;
     /** Per-request search scope; see {@link TSearchScopeResolver}. */
     searchScope?: TSearchScopeResolver<RouteEnv, TExtra>;
-    /** Names from `engineParams.allow`, as `SearchEngineParams.resolveAllowlist` answers them. */
+    /** Names from `query.allow.tuning`, as `SearchEngineParams.resolveAllowlist` answers them. */
     allowedEngineParams?: ReadonlySet<string>;
-    /** `modes.raw.allow`, as `SearchRawAccess.resolve` answers it. */
+    /** `modes.raw`, as `SearchRawAccess.resolve` answers it. */
     isRawAllowed?: boolean;
     /** `request.body.extend` was given. */
     isBodyExtended?: boolean;
+    /** The `query` option, as `SearchControllerOptionsUtility.resolve` answers it. */
+    querySettings?: ISearchResolvedQuery<RouteEnv>;
+    /** The `response` option when it is on. */
+    responseTransform?: ISearchLooseResponse<RouteEnv>;
   }) {
     super({ scope: opts.scope, isStrict: opts.isStrict });
     this.repository = opts.repository;
@@ -83,6 +97,8 @@ export abstract class AbstractSearchController<
     this.allowedEngineParams = opts.allowedEngineParams ?? new Set();
     this.isRawAllowed = opts.isRawAllowed ?? false;
     this.isBodyExtended = opts.isBodyExtended ?? false;
+    this.querySettings = opts.querySettings;
+    this.responseTransform = opts.responseTransform;
     this.definitions = opts.definitions;
   }
 
@@ -110,8 +126,17 @@ export abstract class AbstractSearchController<
       input = scoped;
     }
 
-    // The scope was the only reader of the extra keys: the base schema drops them, so the repository and the log never see them.
-    if (this.isBodyExtended) {
+    // The server's settings go in after the scope, so a function source reads the extra keys; the result is parsed, which drops them.
+    if (this.querySettings) {
+      const applied = await SearchSettingsUtility.apply({
+        query: this.querySettings,
+        context,
+        input,
+        dialect: this.repository.dataSource.getQueryDialect(),
+      });
+      input = applied;
+    } else if (this.isBodyExtended) {
+      // The scope was the only reader of the extra keys: the base schema drops them, so the repository and the log never see them.
       input = SearchInputSchema.parse(input);
     }
 
@@ -126,6 +151,20 @@ export abstract class AbstractSearchController<
       },
     });
 
+    // The page keeps the engine's range, whatever the transform dropped; `count` is what this response carries, and an empty page prints `records */<found>`.
+    let hits: Array<TSearchLooseHit> = rs.hits;
+
+    if (this.responseTransform && input.mode !== SearchModes.RAW) {
+      const transformed = await SearchResponseUtility.apply({
+        response: this.responseTransform,
+        hits: rs.hits,
+        found: rs.found,
+        context,
+        input,
+      });
+      hits = transformed;
+    }
+
     const start = resolveSearchStart({ input, hitCount: rs.hits.length });
     this.setListHeaders({
       context,
@@ -134,10 +173,10 @@ export abstract class AbstractSearchController<
         dataLength: rs.hits.length,
         total: rs.found,
       }),
-      count: rs.hits.length,
+      count: hits.length,
     });
 
-    return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
+    return context.json({ ...rs, hits }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   /** POST /multi-search - cross-collection search, forwarded verbatim to the engine. */

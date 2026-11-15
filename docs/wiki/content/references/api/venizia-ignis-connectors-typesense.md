@@ -17,6 +17,8 @@ Engine contract only (connector, dialect, collection compile/ensure) - mirrors A
 
 ```ts
 export declare abstract class AbstractSearchDataSource<Settings extends object = {}> extends AbstractDataSource<Settings, TSearchSchema> {
+    /** Phantom, never set at runtime: the engine's typed tuning knobs, read by `SearchControllerFactory.build` to type `query`. A datasource that does not bind it leaves `query.tuning` closed; `TypesenseDataSource` binds `ITypesenseTuning`. */
+    readonly $inferTuning?: unknown;
     abstract getConnector(): ISearchConnector;
     abstract getQueryDialect(): ISearchQueryDialect;
     abstract compileCollection(opts: {
@@ -1751,6 +1753,8 @@ export declare class SearchFieldTypes {
     static readonly VECTOR = "vector";
     static readonly SCHEME_SET: Set<string>;
     static isValid(value: string): value is TSearchFieldType;
+    /** Full-text search matches text fields only (`string`, `string[]`): the rule `defaultQueryBy` and a route's `query.queryBy` share. */
+    static isText(type: string): boolean;
 }
 ```
 
@@ -2619,6 +2623,7 @@ Typesense-backed search datasource: builds/injects a connector, compiles the neu
 
 ```ts
 export declare class TypesenseDataSource extends BaseSearchDataSource<ITypesenseDataSourceSettings, TypesenseConnector> {
+    readonly $inferTuning?: ITypesenseTuning;
     /** Stateless dialect - shared across every TypesenseDataSource instance. */
     private static readonly queryDialect;
     protected createConnector(): TypesenseConnector;

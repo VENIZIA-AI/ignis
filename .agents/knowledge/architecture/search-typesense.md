@@ -6,6 +6,21 @@ resource: packages/connectors/src/search
 tags: [architecture, search, typesense, connectors]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [The mirror](#the-mirror)
+- [Collections instead of tables](#collections-instead-of-tables)
+- [Reading](#reading)
+- [Hidden fields on the write path](#hidden-fields-on-the-write-path)
+- [Read-after-write is engine-specific](#read-after-write-is-engine-specific)
+- [Transactions](#transactions)
+- [Signature divergences from the base contract](#signature-divergences-from-the-base-contract)
+- [Big collections: streaming export, per-call timeout, import errors](#big-collections-streaming-export-per-call-timeout-import-errors)
+- [Counting a search, facets, suggest, tuning and scores](#counting-a-search-facets-suggest-tuning-and-scores)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 Search is a **paradigm family**, not a single engine. `connectors/search` holds the engine-neutral tier and `connectors/typesense` / `connectors/meilisearch` hold the engines. The neutral tier is the seam and deliberately imports neither engine - a `BaseSearchDataSource` holds its connector through an `ISearchConnector`-bounded generic, and the only engine-specific step of the lifecycle is `createConnector()`.
 
 ## The mirror
@@ -86,9 +101,29 @@ Method parameters are bivariant in TypeScript, so a search repository can drop a
 
 `ISearchResult.facetCounts` is `ISearchFacetCount[]` in camelCase (`fieldName`, `counts[{ value, count, highlighted? }]`, `sampled`, `stats`); `value` is always the string the engine sent. The Typesense mapper drops a malformed entry; Meilisearch's `facetDistribution` / `facetStats` map to the same shape (its stats carry only `min` and `max`).
 
-**`mode: 'raw'` and multi-search over HTTP are refused on every search controller** (`SearchRawAccess`, `controllers/raw-access.ts`) unless the definition sets `modes.raw.allow: true`: both hand the engine their parameters as they are, so the model's default filter and hidden fields do not apply and an entry names any collection. A scoped controller cannot opt in (the definition throws); the repository call keeps raw.
+**`SearchControllerFactory.build` options** (`ISearchControllerOptions`, `controllers/factory.ts`; resolved once at build by `SearchControllerOptionsUtility`, `controllers/options.ts`):
 
-**`engineParams` over HTTP is refused on every search controller** (`SearchEngineParams`, `connectors/src/search/core/controllers/engine-params.ts`): `AbstractSearchController.search` and `.multiSearch` (each entry) check it before the scope, and a controller lists what callers may send in `engineParams.allow` (names compared as lower-case alphanumerics, so `num_typos` = `numTypos`). `SearchControllerFactory.build` throws when the list holds a parameter that selects rows or fields or orders them (`NEVER_ALLOWED`: `filter_by`, `include_fields`, `exclude_fields`, `query_by`, `facet_by`, `group_by`, `highlight_fields`, `sort_by`, `preset`, `pinned_hits`, `vector_query` and the Meilisearch equivalents). `raw` mode is untouched; the repository call takes any `engineParams`.
+- `authenticate` is REQUIRED: `{ strategies: [Authentication.STRATEGY_JWT] }`, or `{ skip: true }` to open the routes on purpose. A config with neither a strategy nor `skip` throws at build, so a route is never open by omission.
+- `routes` entries are `TToggle`s: `routes: { search: { use: true }, multiSearch: { use: true } }`. A route that is absent or `{ use: false }` is not served. `TToggle` and `ToggleUtility` come from `@venizia/ignis-kernel`.
+- A scoped controller (`scope`) throws at build when `routes.multiSearch` is on, and when `modes.raw` is on.
+
+**`mode: 'raw'` and multi-search over HTTP are refused on every search controller** (`SearchRawAccess`, `controllers/raw-access.ts`) unless the definition sets `modes: { raw: { use: true } }`: both hand the engine their parameters as they are, so the model's default filter and hidden fields do not apply and an entry names any collection. A scoped controller cannot opt in (the definition throws); the repository call keeps raw.
+
+**`engineParams` over HTTP is refused on every search controller** (`SearchEngineParams`, `connectors/src/search/core/controllers/engine-params.ts`) unless `query.allow.tuning` lists the knob. `query.allow.tuning` is a list of camelCase names typed by the engine (Typesense: the keys of `ITypesenseTuning`, so `['typoTokensThreshold']`). The old `engineParams: { allow: [...] }` option is gone. A request's body `engineParams` is a strict object of exactly those names: a wire spelling (`typo_tokens_threshold`) or an unlisted name is a 400, and the OpenAPI document lists the names. `AbstractSearchController.search` and `.multiSearch` (each entry) check it before the scope. `SearchControllerFactory.build` throws when the list holds a parameter that selects rows or fields or orders them (`NEVER_ALLOWED`: `filter_by`, `include_fields`, `exclude_fields`, `query_by`, `facet_by`, `group_by`, `highlight_fields`, `sort_by`, `preset`, `pinned_hits`, `vector_query` and the Meilisearch equivalents). `raw` mode is untouched; the repository call takes any `engineParams`.
+
+**`query: { fixed, default, allow }`** (`ISearchQueryOptions`, `controllers/types.ts`; `SearchSettingsUtility`, `controllers/settings.ts`): server-chosen settings `queryBy`, `queryByWeights` (keyed by field name), `order`, `tuning`, typed against the model's fields and the engine.
+
+- `fixed` wins over the client: a client value for a fixed setting is a 400. `default` fills in what the client left out and sits above the model's `defaultQueryBy`. A tuning name is fixed or allowed, never both.
+- Each of `fixed` and `default` is a value or a function `({ context, input }) => settings`.
+- `tuning` is typed only when the repository names its datasource as the second type argument: `DefaultSearchRepository<TArticle, TypesenseDataSource>` (`TRepositoryTuning`, read from the datasource's `$inferTuning`). A list-valued knob (`numTypos`, `infix`) is written as a record keyed by field name. A repository that leaves it out gets no typed tuning. Meilisearch leaves `$inferTuning` unset, so `query.tuning` is closed there.
+- A string literal a function source returns can widen: write `'off' as const`, or call `build<typeof Repository>`.
+- A hidden field, an unknown field or a non-text `queryBy` field throws when the controller is built, or answers 500 when a function returns it.
+- `query.fixed` and `query.default` cannot be combined with `modes.raw` or `routes.multiSearch` (build throws): both hand the engine their own parameters.
+
+**`response: { use: true, document, transform }`** (`ISearchResponseTransform`, `controllers/response.ts`): reshapes the hits of `POST /search` only (never `raw`, never multi-search; build throws with either).
+
+- `transform({ hits, found, context, input })` may drop hits. Every returned document is parsed against `document` (a zod schema, also the OpenAPI document shape); a mismatch is 500.
+- `found` stays the engine's count. `Content-Range` keeps the engine page, `X-Response-Count` is the response length, and an all-dropped page prints `records */found`.
 
 Typesense tuning (`ITypesenseTuning`: `numTypos`, `infix`, `useCache`, `cacheTtl`, `maxCandidates`, ...) is accepted as fields of `ITypesenseSearchQuery` and as camelCase keys of `engineParams`; `TypesenseQueryDialect.toWireParams` maps both to the wire names, joins a list, and refuses a numeric value that is not a non-negative integer (`maxCandidates`: positive). The cache switches (`use_cache`, `cache_ttl`) are the one tuning that `TypesenseConnector.search` moves out of the per-search body into the multi-search common params, where Typesense reads them. Naming a param in both spellings is refused. `search()` refuses a hidden field in `facetBy`, `facetQuery`, `queryBy`, `groupBy` and the highlight fields. `searchCount`, `facets` and `suggest` take `engineParams` and hand it to `search()`, so they match what a tuned search matches. `engineParams` stays the only door to engine-native params, so the scoped search controller's refusal covers the typed names too; its routes call `search()` and `multiSearch()` only. Sort by a declared field is `filter.order` (neutral), sent as `sort_by` by `search()`; `suggest()` takes no `order`. The special forms (`_text_match`, `_eval(...)`) go through `ITypesenseTuning.sortBy` in `engineParams` (or its wire name `sort_by`): `sortBy` is a `TuningWireKeys` entry, so the given-once check of `setTuning` covers it; `SortByWire.assert` requires a non-empty, balanced string with at most three top-level entries (commas inside `()`, `[]` or a backtick string are not separators), and the same entry check serves `filter.order` through `assertFieldCount`. It is refused together with `filter.order` (labelled `query.sortBy`) or the other spelling instead of letting one win; `{ sortBy: undefined }` is skipped. Field names are not checked. A field declared `{ optional: true, nullable: true }` (`ISearchFieldDefinition.nullable`, refused by `SearchCollectionFactory.define` without `optional`) is read back as `null` when Typesense dropped the key: `BaseSearchRepository.shapeDocument`/`shapeDocuments` fill it (memoized `nullableFields`, like `collectionFields`) and then drop the hidden fields, at the two read choke points (`find`, `search` hits, hence `findOne`/`findById`/`suggest`) and the three write responses; `mode: 'raw'` and `multiSearch` are not touched. A `filter.fields` selection (names via `SearchDialectHelper.toFieldNames`, which `toFieldsCsv` now uses) limits the fill to selected fields, and an empty selection counts as none: both dialects skip an empty include list, so the engine returns whole documents. A selection given only through `engineParams` (`include_fields`, `exclude_fields`, `attributesToRetrieve`) or a dotted path is NOT seen by the fill: seeing it would need either engine key names in this engine-neutral tier or a new `ISearchQueryDialect` method, so it is a documented limit. The fill is engine-neutral, so Meilisearch fills a never-set nullable field too (one behaviour on both engines). `deriveDocumentSchema` follows: `select` is `.nullable().default(null)`, `create`/`update` are `.nullable().optional()`; `TSearchDocument` types it `T | null`. `nullable` is never compiled (the Typesense compiler builds each field from named flags, and the Meilisearch plan reads three). A stored null and a never-set field are indistinguishable after a round trip. A hit's `score` is `text_match` in every mode; a hybrid hit also carries `rankFusionScore` and `vectorDistance`.
 

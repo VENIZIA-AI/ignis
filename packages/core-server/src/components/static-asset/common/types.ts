@@ -3,6 +3,7 @@ import type { z } from '@hono/zod-openapi';
 import type { IDuration } from '@venizia/ignis-helpers/common';
 import type { TTableInsert, TTableObject } from '@venizia/ignis-connectors/postgres';
 import type { TWhere } from '@venizia/ignis-filter';
+import type { TToggle } from '@venizia/ignis-kernel';
 import type {
   DiskHelper,
   IBucketRef,
@@ -24,13 +25,8 @@ import type { TMetaLink, TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../m
 import type { StaticAssetRouteKeys, TStaticAssetTokenStage } from './constants';
 import type { StaticAssetPinnedFile } from '../utilities/pinned-file.utility';
 
-/**
- * A feature that is on or off. `{ use: false }` is the whole off state; `{ use: true, ... }` carries
- * the options. One shape for every switch, so an option is never read from a feature that is off.
- */
-export type TToggle<Options extends object = Record<never, never>> =
-  | { use: false }
-  | ({ use: true } & Options);
+/** Moved to the kernel, shared by components and controllers; kept here under the same name. */
+export type { TToggle };
 
 /** The storage backends a static asset entry can serve from: the helpers that declare one. */
 export type TStaticAssetStorageType = typeof StorageTypes.DISK | typeof StorageTypes.BUN_S3;

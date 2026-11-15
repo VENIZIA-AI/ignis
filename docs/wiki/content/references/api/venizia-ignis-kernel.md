@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-358 exports, 358 with TSDoc. 87 more are re-exported from other entries (listed at the end).
+360 exports, 360 with TSDoc. 87 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -8478,6 +8478,27 @@ export type TModelType = TConstValue<typeof ModelTypes>;
 
 Source: `packages/kernel/src/base/models/common/constants.ts`
 
+## `ToggleUtility`
+
+*class*
+
+Reads the `{ use }` switches a component or controller option is written with.
+
+```ts
+export declare class ToggleUtility {
+    /** The only place a toggle's `use` is read. Narrowing here is what lets every caller reach the options without a cast. */
+    static isUsed<Options extends object>(toggle: TToggle<Options> | undefined): toggle is Extract<TToggle<Options>, {
+        use: true;
+    }>;
+    /** The options of a toggle that is on, without `use`; `undefined` when it is off or absent. */
+    static pick<Options extends object>(toggle: TToggle<Options> | undefined): Omit<Extract<TToggle<Options>, {
+        use: true;
+    }>, 'use'> | undefined;
+}
+```
+
+Source: `packages/kernel/src/utilities/toggle.utility.ts`
+
 ## `TOneRelationNameOf`
 
 *type*
@@ -9062,6 +9083,24 @@ export type TSubsetGrantMetadata = {
 ```
 
 Source: `packages/kernel/src/base/auth/authorize/builders/policy.builder.ts`
+
+## `TToggle`
+
+*type*
+
+A feature that is on or off. `{ use: false }` is the whole off state; `{ use: true, ... }` carries
+the options. One shape for every switch, so an option is never read from a feature that is off.
+Shared by components and controllers.
+
+```ts
+export type TToggle<Options extends object = Record<never, never>> = {
+    use: false;
+} | ({
+    use: true;
+} & Options);
+```
+
+Source: `packages/kernel/src/utilities/toggle.utility.ts`
 
 ## `TUpdateData`
 

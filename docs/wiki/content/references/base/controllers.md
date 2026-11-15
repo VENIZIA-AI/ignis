@@ -847,6 +847,8 @@ CrudControllerFactory.registerRepositoryInjection({
 
 `target` is the generated class itself, typed `TClass<unknown>` - a bare function or an abstract class is refused. `CrudControllerFactory.build` and `SearchControllerFactory.build` call it too. An empty `repositoryName` throws a message that names `factoryName`.
 
+`SearchControllerFactory.build` differs from the CRUD factory in two options: `routes` entries are toggles (`routes: { search: { use: true } }`, the `TToggle` shape from `@venizia/ignis-kernel`), and `authenticate` is required. See [Search Controller Factory](../../guides/core-concepts/persistent/search-typesense#search-controller-factory).
+
 ### Routes Configuration
 
 The `routes` option provides per-route customization of request/response schemas and auth:

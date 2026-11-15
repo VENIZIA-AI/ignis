@@ -41,7 +41,8 @@ const mount = async (opts: { extend?: boolean } = {}) => {
   const BuiltController = opts.extend
     ? SearchControllerFactory.build({
         repository: BodyExtensionProductRepository,
-        routes: { search: true },
+        routes: { search: { use: true } },
+        authenticate: { skip: true },
         request: { body: { extend: { ids: z.array(z.string().min(1)).max(3) } } },
         // `input.ids` is a string[] only because the controller's own `extend` says so.
         scope: ({ input }) => {
@@ -52,7 +53,8 @@ const mount = async (opts: { extend?: boolean } = {}) => {
       })
     : SearchControllerFactory.build({
         repository: BodyExtensionProductRepository,
-        routes: { search: true },
+        routes: { search: { use: true } },
+        authenticate: { skip: true },
         scope: () => ({ status: 'active' }),
       });
 
@@ -193,7 +195,8 @@ describe('SearchControllerFactory - request.body.extend', () => {
     expect(() =>
       SearchControllerFactory.build({
         repository: BodyExtensionProductRepository,
-        routes: { search: true },
+        routes: { search: { use: true } },
+        authenticate: { skip: true },
         request: { body: { extend: { query: z.string() } } },
       }),
     ).toThrow(/already has/);

@@ -18,7 +18,7 @@ import {
 
 /**
  * `mode: 'raw'` and multi-search hand the engine their parameters as they are: the model's default filter and hidden fields
- * do not apply to them. Over HTTP every search controller refuses both (400) unless `modes.raw.allow` is true.
+ * do not apply to them. Over HTTP every search controller refuses both (400) unless `modes.raw` is `{ use: true }`.
  */
 
 // `FakeSearchEngineHelper.multiSearch()` returns `Promise<never>`, which no subclass override can widen, so a recorder is patched onto the fake instance.
@@ -55,7 +55,10 @@ const build = (opts: { modes?: unknown; scope?: () => unknown }) => {
 
   const BuiltController = SearchControllerFactory.build({
     repository: RawAccessProductRepository,
-    routes: opts.scope ? { search: true } : { search: true, multiSearch: true },
+    routes: opts.scope
+      ? { search: { use: true } }
+      : { search: { use: true }, multiSearch: { use: true } },
+    authenticate: { skip: true },
     scope: opts.scope as never,
     modes: opts.modes as never,
   });
@@ -88,8 +91,8 @@ describe('an unscoped controller that did not opt in', () => {
   test.each([
     ['no modes', undefined],
     ['modes without raw', {}],
-    ['raw without allow', { raw: {} }],
-    ['allow: false', { raw: { allow: false } }],
+    ['raw without use', { raw: {} }],
+    ['use: false', { raw: { use: false } }],
   ])("refuses mode 'raw' with 400, and the engine is not reached (%s)", async (_name, modes) => {
     const { controller, dataSource } = build({ modes });
 
@@ -121,9 +124,9 @@ describe('an unscoped controller that did not opt in', () => {
   });
 });
 
-describe('a controller that opts in with modes.raw.allow', () => {
+describe('a controller that opts in with modes.raw', () => {
   test("serves mode 'raw' and multi-search", async () => {
-    const { controller, dataSource } = build({ modes: { raw: { allow: true } } });
+    const { controller, dataSource } = build({ modes: { raw: { use: true } } });
 
     await controller['search']({ context: fakeContext(RAW) as never });
     await controller['multiSearch']({ context: fakeContext(MULTI) as never });
@@ -133,7 +136,7 @@ describe('a controller that opts in with modes.raw.allow', () => {
   });
 
   test('the check of engineParams still applies', async () => {
-    const { controller } = build({ modes: { raw: { allow: true } } });
+    const { controller } = build({ modes: { raw: { use: true } } });
 
     const error = await refusal(
       controller['search']({
@@ -156,7 +159,7 @@ describe('a scoped controller', () => {
 
   test('cannot opt in: the definition throws', () => {
     expect(() =>
-      build({ scope: () => ({ status: 'm-a' }), modes: { raw: { allow: true } } }),
+      build({ scope: () => ({ status: 'm-a' }), modes: { raw: { use: true } } }),
     ).toThrow(/cannot allow mode 'raw'/);
   });
 });
@@ -171,20 +174,12 @@ describe('server code keeps raw on the repository call', () => {
   });
 });
 
-describe('modes is validated when the controller is defined', () => {
-  test.each([['yes'], [1], [null]])('modes.raw.allow of %p is refused', (allow) => {
-    expect(() => build({ modes: { raw: { allow } } })).toThrow(
-      /modes\.raw\.allow must be true or false/,
+describe('modes.raw is read when the controller is defined', () => {
+  test('only { use: true } opens it', () => {
+    expect(SearchRawAccess.resolve({ scope: 's', raw: { use: true }, isScoped: false })).toBe(true);
+    expect(SearchRawAccess.resolve({ scope: 's', raw: { use: false }, isScoped: false })).toBe(
+      false,
     );
-  });
-
-  test('only a literal true opens it', () => {
-    expect(
-      SearchRawAccess.resolve({ scope: 's', modes: { raw: { allow: true } }, isScoped: false }),
-    ).toBe(true);
-    expect(
-      SearchRawAccess.resolve({ scope: 's', modes: { raw: { allow: false } }, isScoped: false }),
-    ).toBe(false);
-    expect(SearchRawAccess.resolve({ scope: 's', modes: undefined, isScoped: false })).toBe(false);
+    expect(SearchRawAccess.resolve({ scope: 's', raw: undefined, isScoped: false })).toBe(false);
   });
 });

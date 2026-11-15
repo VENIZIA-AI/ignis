@@ -84,7 +84,7 @@ Everything under `src/base/` was the engine-neutral half of `packages/core-serve
 
 Alongside it: `src/common/` carries `BindingNamespaces`, `CoreBindings`, the framework error codes,
 and `Statuses`; `src/helpers/inversion/` carries the kernel `Container` and `MetadataRegistry`;
-`src/utilities/` carries the error helpers only - the JSX and schema builders moved to `base/controllers/common/` because they call `z.object()` at module load, which made a barrel named `utilities/` pull zod into any bundle that touched it.
+`src/utilities/` carries `NotSupportedUtility` and the toggle pair `TToggle` / `ToggleUtility` (`isUsed`, `pick`; `toggle.utility.ts`) - the JSX and schema builders moved to `base/controllers/common/` because they call `z.object()` at module load, which made a barrel named `utilities/` pull zod into any bundle that touched it.
 
 ## Browser purity is the design constraint, and it is measured
 
@@ -288,7 +288,7 @@ The public helper functions of the kernel are static methods of classes: `OpenAp
 (`buildDataRange`, `toContentRange`), `ModelUtility` (`toEntityId`, `snakeToCamel`),
 `RequestDomainResolver` (`readDeclarative`, `resolveRequestDomain`),
 `InjectableUtility.pickRegistrationOptions`, `EmojiFaviconMiddleware.create`,
-`NotSupportedUtility.throwNotSupported` and `CrudControllerFactory.registerRepositoryInjection`, and
+`NotSupportedUtility.throwNotSupported`, `ToggleUtility` (`isUsed`, `pick`) and `CrudControllerFactory.registerRepositoryInjection`, and
 `RouteConfigResolver` holds the route-config resolvers. The old function names are not exported:
 `devz codemod namespace-functions --write` moves a caller to the class form, from the table in
 `packages/dev-configs/src/cli/codemod/namespace-functions/mappings/kernel.ts`, and

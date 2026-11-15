@@ -1,4 +1,8 @@
-import type { TRepositoryDataObject } from '@venizia/ignis-kernel';
+import type {
+  TRepositoryDataObject,
+  TRouteAuthenticateConfig,
+  TToggle,
+} from '@venizia/ignis-kernel';
 import type { AbstractEntity } from '@venizia/ignis-kernel';
 import { CrudControllerFactory, OpenApiResponses, SchemaTypes } from '@venizia/ignis-kernel';
 import { MetadataRegistry } from '@venizia/ignis-kernel/metadata';
@@ -14,20 +18,28 @@ import type { Env, Schema } from 'hono';
 import { MultiSearchInputSchema, SearchInputSchema } from '@/search/core/repositories/common';
 import type { ReadableSearchRepository } from '../repositories/core/readable';
 import { AbstractSearchController } from './abstract';
-import { SearchEngineParams } from './engine-params';
-import { SearchRawAccess } from './raw-access';
+import { SearchControllerOptionsUtility } from './options';
+import type { ISearchLooseResponse } from './response';
+import type { ISearchResolvedQuery } from './settings';
 import type { TSearchScopeResolver } from './scope';
+import type {
+  ISearchQueryOptions,
+  ISearchResponseTransform,
+  TRepositoryTuning,
+  TSearchExtra,
+} from './types';
 
-/** The routes of a search controller: only a listed route exists. */
+/** The routes of a search controller: a route that is not `{ use: true }` does not exist. */
 export interface ISearchRoutes {
-  search?: true;
-  multiSearch?: true;
+  search?: TToggle;
+  multiSearch?: TToggle;
 }
 
 /** Configuration options for creating a search controller via SearchControllerFactory.build. */
 export interface ISearchControllerOptions<
   Repository extends TCrudRepositoryClass = TCrudRepositoryClass,
   Shape extends z.ZodRawShape = {},
+  TOutDocument extends object = TRepositoryDataObject<InstanceType<Repository>>,
 > {
   /** The repository class; its name is the binding the container injects, and its `@repository({ model })` supplies the entity whose SELECT schema drives the `hits[].document` shape in the response. */
   repository: Repository;
@@ -35,13 +47,17 @@ export interface ISearchControllerOptions<
   /** When true, /search and /search/ are different routes. @default true */
   isStrict?: boolean;
 
-  /** Authentication config applied to both generated routes. */
-  authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
+  /**
+   * Authentication of both generated routes. Required: `{ strategies: [Authentication.STRATEGY_JWT] }` admits
+   * a JWT caller only, and opening the routes means writing `{ skip: true }`. A config with no strategy and no `skip`
+   * is refused when the controller is built, so a route is never open by omission.
+   */
+  authenticate: TRouteAuthenticateConfig;
 
   /** Authorization config applied to both generated routes. */
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
 
-  /** The routes to generate. */
+  /** The routes to generate: `{ search: { use: true } }`. A route left out, or `{ use: false }`, is not served. */
   routes: ISearchRoutes;
 
   /**
@@ -53,7 +69,7 @@ export interface ISearchControllerOptions<
    * `raw` mode hands the engine its own wire parameters, and a multi-search entry carries a raw
    * `filterBy`; neither can take a scope, so a scoped controller refuses `raw` (400) and must disable the
    * multi-search route (leave `routes.multiSearch` out), which `SearchControllerFactory.build` requires.
-   * `engineParams` is refused on every controller unless `engineParams.allow` lists it.
+   * `engineParams` is refused on every controller unless `query.allow.tuning` lists it.
    */
   scope?: TSearchScopeResolver<Env, z.infer<z.ZodObject<Shape>>>;
 
@@ -67,22 +83,30 @@ export interface ISearchControllerOptions<
   request?: { body?: { extend: Shape } };
 
   /**
-   * Which engine parameters a caller may send in a request's `engineParams`. Unset or empty, a request that carries
-   * `engineParams` is refused with 400, on a scoped and an unscoped controller alike: raw engine parameters can replace
-   * the controller's own filter and name fields the model hides. A parameter that selects rows or fields, or orders
-   * them (`filter_by`, `include_fields`, `query_by`, `facet_by`, `group_by`, `highlight_fields`, `sort_by`, a
-   * `preset`, ...) can never be listed: the definition throws. Server code still passes `engineParams` on the
-   * repository call.
+   * What the server decides for a query (`fixed` wins over the client, `default` fills in what the client left out) and
+   * which tuning knobs a client may send (`allow.tuning`). Typed against the model's fields and the datasource's engine.
+   * A field the model hides, or a `queryBy` field that is not text, is refused when the controller is built, or with 500
+   * when a function source returns it. `fixed` and `default` cannot be combined with `modes.raw` or `routes.multiSearch`:
+   * both hand the engine their own parameters.
    */
-  engineParams?: { allow?: string[] };
+  query?: ISearchQueryOptions<
+    TRepositoryDataObject<InstanceType<Repository>>,
+    TRepositoryTuning<Repository>,
+    TSearchExtra<Shape>
+  >;
+
+  /** Reshapes the hits of `POST /search` before they leave the route: `{ use: true, document, transform }`. */
+  response?: TToggle<
+    ISearchResponseTransform<TRepositoryDataObject<InstanceType<Repository>>, TOutDocument>
+  >;
 
   /**
-   * `modes.raw.allow: true` serves `mode: 'raw'` and multi-search over HTTP. Left out, both answer 400: they hand the
+   * `modes.raw: { use: true }` serves `mode: 'raw'` and multi-search over HTTP. Left out, both answer 400: they hand the
    * engine their parameters as they are, so the model's default filter and its hidden fields do not apply to them, and
    * opting in exposes the whole collection to every caller the route admits. A scoped controller cannot opt in. Server
    * code keeps `search({ mode: 'raw' })` and `multiSearch()` on the repository.
    */
-  modes?: { raw?: { allow?: boolean } };
+  modes?: { raw?: TToggle };
 }
 
 /** Factory for generating turnkey search controllers (single-collection + cross-collection) from entity definitions. */
@@ -91,9 +115,13 @@ export class SearchControllerFactory extends BaseHelper {
     super({ scope: SearchControllerFactory.name });
   }
 
-  /** `SearchInputSchema` with `shape` added to each of its four modes (a discriminated union has no `extend` of its own). */
-  private static extendSearchBody(opts: { shape: z.ZodRawShape }) {
-    const { shape } = opts;
+  /**
+   * `SearchInputSchema` with `shape` added to each of its four modes (a discriminated union has no `extend` of its own), and
+   * with `engineParams` of the three friendly modes narrowed to the names of `query.allow.tuning`: a strict object, so an
+   * unknown name is a 400 and the OpenAPI document lists the names a client may send.
+   */
+  private static extendSearchBody(opts: { shape?: z.ZodRawShape; tuning: string[] }) {
+    const { shape = {}, tuning } = opts;
     const [keyword, semantic, hybrid, raw] = SearchInputSchema.options;
     const taken = Object.keys(shape).filter(
       (key) =>
@@ -106,11 +134,23 @@ export class SearchControllerFactory extends BaseHelper {
       });
     }
 
+    const engineParams =
+      tuning.length > 0
+        ? {
+            engineParams: z
+              .strictObject(
+                Object.fromEntries(tuning.map((name) => [name, z.unknown().optional()])),
+              )
+              .optional()
+              .describe('Tuning knobs this route allows a client to set'),
+          }
+        : {};
+
     // `extend` drops the `.describe()` of a member, and the OpenAPI document shows it as the name of the mode.
     return z.discriminatedUnion('mode', [
-      keyword.extend(shape).describe(keyword.description ?? ''),
-      semantic.extend(shape).describe(semantic.description ?? ''),
-      hybrid.extend(shape).describe(hybrid.description ?? ''),
+      keyword.extend({ ...shape, ...engineParams }).describe(keyword.description ?? ''),
+      semantic.extend({ ...shape, ...engineParams }).describe(semantic.description ?? ''),
+      hybrid.extend({ ...shape, ...engineParams }).describe(hybrid.description ?? ''),
       raw.extend(shape).describe(raw.description ?? ''),
     ]);
   }
@@ -121,18 +161,23 @@ export class SearchControllerFactory extends BaseHelper {
     authorize?: IAuthorizationSpec | IAuthorizationSpec[];
     /** The keys `request.body.extend` adds to every `mode` of the search body; none leaves `SearchInputSchema` as it is. */
     bodyExtension?: z.ZodRawShape;
+    /** The names of `query.allow.tuning`: what `engineParams` of the search body may carry. */
+    allowedTuning?: string[];
+    /** `response.document`: the documents of the response, in place of the model's schema. */
+    responseDocument?: z.ZodType;
   }) {
-    const { selectSchema, authenticate, authorize, bodyExtension } = opts;
-    const searchBodySchema = bodyExtension
-      ? SearchControllerFactory.extendSearchBody({ shape: bodyExtension })
-      : SearchInputSchema;
+    const { selectSchema, authenticate, authorize, bodyExtension, allowedTuning = [] } = opts;
+    const searchBodySchema =
+      bodyExtension || allowedTuning.length > 0
+        ? SearchControllerFactory.extendSearchBody({ shape: bodyExtension, tuning: allowedTuning })
+        : SearchInputSchema;
 
     const searchResponseSchema = z.object({
       found: z.number(),
       isFoundExact: z
         .boolean()
         .openapi({ description: 'False when the engine reports `found` as an estimate.' }),
-      hits: z.array(z.object({ document: selectSchema })),
+      hits: z.array(z.object({ document: opts.responseDocument ?? selectSchema })),
     });
 
     const multiSearchResponseSchema = z.record(z.string(), z.unknown());
@@ -187,26 +232,11 @@ export class SearchControllerFactory extends BaseHelper {
     ConfigurableOptions extends object = {},
     TDataObject extends object = TRepositoryDataObject<InstanceType<Repository>>,
     Shape extends z.ZodRawShape = {},
-  >(opts: ISearchControllerOptions<Repository, Shape>) {
-    const { repository, authenticate, authorize, routes, scope, isStrict = true } = opts;
+    TOutDocument extends object = TDataObject,
+  >(opts: ISearchControllerOptions<Repository, Shape, TOutDocument>) {
+    const { repository, authorize, scope, isStrict = true } = opts;
 
     const factoryScope = `SearchControllerFactory.build | repository: ${repository.name}`;
-    const isRawAllowed = SearchRawAccess.resolve({
-      scope: factoryScope,
-      modes: opts.modes,
-      isScoped: scope !== undefined,
-    });
-    const allowedEngineParams = SearchEngineParams.resolveAllowlist({
-      scope: factoryScope,
-      allow: opts.engineParams?.allow,
-    });
-
-    if (scope && routes.multiSearch) {
-      throw getError({
-        message: `[SearchControllerFactory.build] A scoped search controller cannot serve multi-search | repository: ${repository.name} | leave routes.multiSearch out`,
-      });
-    }
-
     const model = MetadataRegistry.getInstance().getRepositoryBinding({
       target: repository,
     })?.model;
@@ -218,14 +248,28 @@ export class SearchControllerFactory extends BaseHelper {
     }
 
     const entityClass: TClass<AbstractEntity> = isClass(model) ? model : model();
-    const entityInstance = new entityClass();
+    const resolved = SearchControllerOptionsUtility.resolve({
+      scope: factoryScope,
+      entityClass,
+      options: {
+        authenticate: opts.authenticate,
+        routes: opts.routes,
+        modes: opts.modes,
+        query: opts.query,
+        response: opts.response,
+        hasScope: scope !== undefined,
+      },
+    });
 
+    const entityInstance = new entityClass();
     const selectSchema = entityInstance.getSchema<z.ZodType>({ type: SchemaTypes.SELECT });
     const routeDefinitions = SearchControllerFactory.defineRouteConfigs({
       selectSchema,
-      authenticate,
+      authenticate: resolved.authenticate,
       authorize,
       bodyExtension: opts.request?.body?.extend,
+      allowedTuning: opts.query?.allow?.tuning,
+      responseDocument: resolved.response?.document,
     });
 
     const controllerClass = class extends AbstractSearchController<
@@ -246,25 +290,28 @@ export class SearchControllerFactory extends BaseHelper {
           searchScope: scope as
             | TSearchScopeResolver<RouteEnv, z.infer<z.ZodObject<Shape>>>
             | undefined,
-          allowedEngineParams,
-          isRawAllowed,
+          allowedEngineParams: resolved.allowedEngineParams,
+          isRawAllowed: resolved.isRawAllowed,
           isBodyExtended: opts.request?.body !== undefined,
+          // Same boundary cast as `searchScope`: the options are typed over `Env`, the controller over its `RouteEnv`.
+          querySettings: resolved.query as ISearchResolvedQuery<RouteEnv> | undefined,
+          responseTransform: resolved.response as ISearchLooseResponse<RouteEnv> | undefined,
         });
       }
 
       /** The routes of a generated controller come from `routes`; a subclass adds its own here. */
       override binding(): ValueOrPromise<void> {}
 
-      /** Registers each listed route, after the subclass's `binding()`. */
+      /** Registers each route that is on, after the subclass's `binding()`. */
       override bindDefaultRoutes(): ValueOrPromise<void> {
-        if (routes.search) {
+        if (resolved.isSearchOn) {
           this.defineRoute({
             configs: routeDefinitions.SEARCH,
             handler: async (context) => this.search({ context }),
           });
         }
 
-        if (routes.multiSearch) {
+        if (resolved.isMultiSearchOn) {
           this.defineRoute({
             configs: routeDefinitions.MULTI_SEARCH,
             handler: async (context) => this.multiSearch({ context }),
