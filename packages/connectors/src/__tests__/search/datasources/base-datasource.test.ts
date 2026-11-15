@@ -1,11 +1,11 @@
 import { describe, test, expect } from 'bun:test';
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
 import { datasource, model, repository } from '@venizia/ignis-kernel';
+import { DuckTypingUtility } from '@/common/internal';
 import { BaseSearchDataSource } from '@/search/core/datasources';
 import { type ISearchConnector } from '@/search/core';
 import { type ISearchDataSourceOptions } from '@/search/core/datasources';
@@ -18,6 +18,23 @@ import {
 } from '@/search/core/models';
 import { type ISearchQueryDialect, SearchFilterOutcomes } from '@/search/core/repositories/common';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
+
+/** A fake that carries only the members a test reaches, stated as a guard so it can be handed over as the connector. */
+const hasMultiSearch = (value: unknown): value is ISearchConnector =>
+  DuckTypingUtility.hasMembers({ value, members: { multiSearch: 'function' } });
+
+const isNamedConnector = (value: unknown): value is ISearchConnector =>
+  DuckTypingUtility.hasMembers({ value, members: { name: 'string' } });
+
+const buildNamedConnector = (name: string): ISearchConnector => {
+  const connector = { name };
+
+  if (!isNamedConnector(connector)) {
+    throw new Error('[buildNamedConnector] The fake lacks a name');
+  }
+
+  return connector;
+};
 
 /** Records every `ensureCollection` call so provisioning can be asserted on. */
 class FakeSearchDataSource extends BaseSearchDataSource<{}> {
@@ -303,13 +320,19 @@ describe('BaseSearchDataSource - multiSearch injects @model hidden fields into e
       };
 
       // Only multiSearch is exercised here; the rest of the surface is unreachable in this test.
-      return {
+      const connector = {
         multiSearch: async (opts: { searches: Array<Record<string, unknown>> }) => {
           capture(opts.searches);
 
           return {};
         },
-      } as AnyType;
+      };
+
+      if (!hasMultiSearch(connector)) {
+        throw new Error('[getConnector] The fake lacks multiSearch()');
+      }
+
+      return connector;
     }
   }
 
@@ -418,11 +441,11 @@ describe('BaseSearchDataSource - connector lifecycle (shared by every engine dat
     protected override createConnector(): ISearchConnector {
       this.createConnectorCalls += 1;
 
-      return { name: 'built-connector' } as AnyType;
+      return buildNamedConnector('built-connector');
     }
   }
 
-  const injectedConnector = { name: 'injected-connector' } as AnyType as ISearchConnector;
+  const injectedConnector = buildNamedConnector('injected-connector');
 
   test('getConnector() before configure() throws the not-initialized error', () => {
     const dataSource = new LifecycleDataSource({ name: 'lifecycle-ds', config: {} });
@@ -451,7 +474,7 @@ describe('BaseSearchDataSource - connector lifecycle (shared by every engine dat
     await dataSource.configure();
 
     expect(dataSource.createConnectorCalls).toBe(1);
-    expect(dataSource.getConnector()).toEqual({ name: 'built-connector' } as AnyType);
+    expect(dataSource.getConnector()).toEqual(buildNamedConnector('built-connector'));
   });
 
   test('configure() is re-entrant - a second call is a no-op, not a rebuild', async () => {

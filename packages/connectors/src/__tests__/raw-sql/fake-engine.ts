@@ -2,7 +2,6 @@ import type { IRawSqlConnector, IRawSqlResult, TRawSqlDriver, TRawSqlQuery } fro
 import { BaseRawSqlDataSource } from '@/raw-sql';
 import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { datasource } from '@venizia/ignis-kernel';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 
 /**
  * A made-up analytics engine, the shape a ClickHouse or DuckDB adapter has: a client that runs SQL
@@ -91,8 +90,6 @@ export class FakeDataSource extends FakeEngineDataSource {
     super({ name: 'fake-engine', config: { host: 'analytics.local', token: 'old' } });
   }
 }
-
-export type TAnyDriver = AnyType;
 
 /** bun's `expect().rejects` is not typed as a Thenable, so a rejection is captured explicitly. */
 export const captureRejection = async (task: () => Promise<unknown>): Promise<unknown> => {

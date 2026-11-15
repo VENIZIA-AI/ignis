@@ -49,9 +49,9 @@ Bind it with a datasource and no model, the same shape a remote repository has:
 
 ```ts
 export declare abstract class BaseRawSqlRepository<TConnector extends IRawSqlConnector = IRawSqlConnector> extends BaseHelper implements IRepository {
-    dataSource: BaseRawSqlDataSource<AnyType, AnyType, TConnector>;
+    dataSource: BaseRawSqlDataSource<object, unknown, TConnector>;
     entity: AbstractEntity;
-    constructor(dataSource: BaseRawSqlDataSource<AnyType, AnyType, TConnector>);
+    constructor(dataSource: BaseRawSqlDataSource<object, unknown, TConnector>);
     getEntity(): AbstractEntity;
     /** The engine's connector, typed by the generic this repository was declared with. */
     get connector(): TConnector;

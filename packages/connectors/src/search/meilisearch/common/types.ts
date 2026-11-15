@@ -76,6 +76,11 @@ export interface IMeilisearchTask {
   details?: Record<string, unknown>;
 }
 
+/** A task as `getTask` returns it: the SDK names the id `uid`, so `taskUid` may be absent. */
+export interface IMeilisearchPolledTask extends Omit<IMeilisearchTask, 'taskUid'> {
+  taskUid?: number;
+}
+
 /** One page of `getDocuments` results with the total number of matching documents. */
 export interface IMeilisearchDocumentsPage {
   results: unknown[];
@@ -106,7 +111,7 @@ export interface IMeilisearchClientLike {
   getIndexes(params?: unknown): Promise<{ results: unknown[] }>;
   deleteIndex(uid: string): Promise<IMeilisearchTask>;
   swapIndexes(pairs: Array<{ indexes: string[] }>): Promise<IMeilisearchTask>;
-  getTask(taskUid: number): Promise<IMeilisearchTask>;
+  getTask(taskUid: number): Promise<IMeilisearchPolledTask>;
   health(): Promise<{ status: string }>;
   multiSearch(params: unknown): Promise<unknown>;
 }

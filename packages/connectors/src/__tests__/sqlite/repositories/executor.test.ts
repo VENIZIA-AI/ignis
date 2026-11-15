@@ -2,7 +2,6 @@ import type { TSqliteConnector } from '@/relational/sqlite/drivers';
 import { SqliteQueryExecutor } from '@/relational/sqlite/repositories/executor';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { asc, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
@@ -255,7 +254,12 @@ describe('SqliteQueryExecutor - against a real in-memory libsql database', () =>
 
 describe('SqliteQueryExecutor - missing query interface', () => {
   test('findMany names the missing schema registration', async () => {
-    const connectorWithoutQuery = { query: undefined } as AnyType;
+    const connectorWithoutQuery = drizzle({
+      client: createClient({ url: ':memory:' }),
+      schema: { users },
+    });
+    // Stripped of the `query` interface a schema registration gives it.
+    Object.defineProperty(connectorWithoutQuery, 'query', { value: undefined });
 
     await RejectionHelper.expectRejection({
       task: new SqliteQueryExecutor().findMany({

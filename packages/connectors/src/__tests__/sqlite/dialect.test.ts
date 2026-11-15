@@ -1,7 +1,7 @@
 import { SqliteIdEnricher } from '@/relational/sqlite/models';
 import { SqliteFilterBuilder } from '@/relational/sqlite/repositories/dialect/filter';
 import { SqliteQueryDialect } from '@/relational/sqlite/repositories/dialect/query-dialect';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { TWhere } from '@venizia/ignis-kernel';
 import { describe, expect, test } from 'bun:test';
 import type { SQL } from 'drizzle-orm';
 import { real, SQLiteSyncDialect, sqliteTable, text } from 'drizzle-orm/sqlite-core';
@@ -28,7 +28,7 @@ const dialect = new SqliteQueryDialect();
 const compile = (expression: SQL | undefined) =>
   expression ? sqliteDialect.sqlToQuery(expression) : { sql: '', params: [] };
 
-const toWhere = (where: AnyType) =>
+const toWhere = (where: TWhere) =>
   compile(dialect.toWhere({ tableName: TABLE_NAME, schema: table, where })).sql;
 
 const toOrderBy = (order: string[]) =>
@@ -182,7 +182,7 @@ describe('SqliteQueryDialect.transformUpdate - json_set composition', () => {
 });
 
 describe('SqliteQueryOperators - capability gaps refuse instead of approximating', () => {
-  const gaps: Array<{ operator: string; where: AnyType }> = [
+  const gaps: Array<{ operator: string; where: TWhere }> = [
     { operator: 'regexp', where: { title: { regexp: '^a' } } },
     { operator: 'iregexp', where: { title: { iregexp: '^a' } } },
     { operator: 'contains', where: { title: { contains: ['a'] } } },

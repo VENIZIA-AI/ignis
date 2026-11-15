@@ -19,7 +19,7 @@ import { MeilisearchInternal } from './internal';
 import type {
   IMeilisearchClientLike,
   IMeilisearchConnectorOptions,
-  IMeilisearchTask,
+  IMeilisearchPolledTask,
 } from './common';
 import {
   MEILISEARCH_DEFAULT_FETCH_PAGE_SIZE,
@@ -149,7 +149,10 @@ export class MeilisearchConnector extends BaseSearchConnector {
   }
 
   /** Writes are invisible until their task succeeds; polls manually against a caller-configured ceiling because the SDK's own `waitForTask` 5 s default is too short for bulk imports. */
-  private async waitForTask(opts: { taskUid: number; method: string }): Promise<IMeilisearchTask> {
+  private async waitForTask(opts: {
+    taskUid: number;
+    method: string;
+  }): Promise<IMeilisearchPolledTask> {
     const { taskUid, method } = opts;
     const deadline = Date.now() + this.taskTimeoutMs;
     // Exponential backoff: a fast task still resolves in the first poll or two, while a long-running one is not polled ~20x/s throughout - the interval doubles up to a 1 s ceiling.
@@ -196,7 +199,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
   private async awaitWrite(opts: {
     method: string;
     run: () => Promise<{ taskUid: number }>;
-  }): Promise<IMeilisearchTask> {
+  }): Promise<IMeilisearchPolledTask> {
     const { method, run } = opts;
     const enqueued = await run();
 

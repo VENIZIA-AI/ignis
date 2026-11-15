@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/meilisearch, from the bu
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-16 exports, 16 with TSDoc.
+17 exports, 17 with TSDoc.
 
 ## `IMeilisearchClientLike`
 
@@ -27,7 +27,7 @@ export interface IMeilisearchClientLike {
     swapIndexes(pairs: Array<{
         indexes: string[];
     }>): Promise<IMeilisearchTask>;
-    getTask(taskUid: number): Promise<IMeilisearchTask>;
+    getTask(taskUid: number): Promise<IMeilisearchPolledTask>;
     health(): Promise<{
         status: string;
     }>;
@@ -145,6 +145,20 @@ export interface IMeilisearchIndexPlan {
 ```
 
 Source: `packages/connectors/src/search/meilisearch/compiler.ts`
+
+## `IMeilisearchPolledTask`
+
+*interface*
+
+A task as `getTask` returns it: the SDK names the id `uid`, so `taskUid` may be absent.
+
+```ts
+export interface IMeilisearchPolledTask extends Omit<IMeilisearchTask, 'taskUid'> {
+    taskUid?: number;
+}
+```
+
+Source: `packages/connectors/src/search/meilisearch/common/types.ts`
 
 ## `IMeilisearchSearchQuery`
 

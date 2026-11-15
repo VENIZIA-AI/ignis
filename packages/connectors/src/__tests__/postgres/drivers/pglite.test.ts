@@ -1,5 +1,4 @@
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import type { SQL } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
@@ -7,8 +6,7 @@ import { jsonb, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
 import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
-import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
-import { PostgresQueryExecutor } from '@/relational/postgres/repositories/executor';
+import { StubDataSource } from '../repositories/stub-data-source';
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -17,10 +15,18 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
  * driver's result HKT, which erases to `unknown` here.
  */
 const executeRows = async (opts: {
-  connector: AnyType;
+  connector: { execute(statement: SQL): PromiseLike<unknown> };
   statement: SQL;
-}): Promise<Array<AnyType>> => {
+}): Promise<Array<unknown>> => {
   const result = await opts.connector.execute(opts.statement);
+
+  if (typeof result !== 'object' || result === null || !('rows' in result)) {
+    throw new Error('[executeRows] The result carries no rows');
+  }
+
+  if (!Array.isArray(result.rows)) {
+    throw new Error('[executeRows] The rows are not an array');
+  }
 
   return result.rows;
 };
@@ -48,13 +54,13 @@ describe('PGliteDriver - constructor guard', () => {
       totalCount: 0,
     };
 
-    expect(() => new PGliteDriver({ client: poolShaped as AnyType })).toThrow(/PGlite/);
+    expect(() => Reflect.construct(PGliteDriver, [{ client: poolShaped }])).toThrow(/PGlite/);
   });
 
   test('rejects a `postgres` Sql-shaped object', () => {
     const sqlShaped = { reserve: () => undefined, unsafe: () => undefined, end: () => undefined };
 
-    expect(() => new PGliteDriver({ client: sqlShaped as AnyType })).toThrow(/PGlite/);
+    expect(() => Reflect.construct(PGliteDriver, [{ client: sqlShaped }])).toThrow(/PGlite/);
   });
 });
 
@@ -64,12 +70,12 @@ describe('PGliteDriver - constructor guard', () => {
  */
 describe('PGliteDriver - against a real PGlite instance', () => {
   let client: PGlite;
-  let driver: PGliteDriver<AnyType>;
+  let driver: PGliteDriver;
 
   beforeAll(async () => {
     client = new PGlite();
     await client.waitReady;
-    driver = new PGliteDriver<AnyType>({ client });
+    driver = new PGliteDriver({ client });
 
     await client.exec(`
       CREATE TABLE serialisation_probe (id int primary key);
@@ -201,13 +207,11 @@ describe('PGliteDriver - against a real PGlite instance', () => {
   });
 
   test('a repository round-trips uuid, jsonb and timestamptz through the driver', async () => {
-    const dataSource = {
-      getQueryDialect: () => new PostgresQueryDialect(),
-      getQueryExecutor: () => new PostgresQueryExecutor(),
-      getConnector: () => driver.createConnector({ schema: { roundTripTable } }),
-    } as AnyType;
+    const dataSource = new StubDataSource({
+      connector: () => driver.createConnector({ schema: { roundTripTable } }),
+    });
 
-    const repository = new DefaultCRUDRepository<AnyType>(dataSource, {
+    const repository = new DefaultCRUDRepository(dataSource, {
       entityClass: RoundTripEntity,
     });
 
@@ -225,7 +229,7 @@ describe('PGliteDriver - against a real PGlite instance', () => {
       name: 'pglite',
       metadata: { engine: 'wasm', score: 7 },
     });
-    expect(found.createdAt).toBeInstanceOf(Date);
+    expect(found?.createdAt).toBeInstanceOf(Date);
   });
 
   test('getClient() returns the raw PGlite the driver was constructed with', () => {
@@ -239,14 +243,14 @@ describe('PGliteDriver - against a real PGlite instance', () => {
  */
 describe('PGliteDriver - acquire timeout', () => {
   let client: PGlite;
-  let driver: PGliteDriver<AnyType>;
+  let driver: PGliteDriver;
 
   beforeAll(async () => {
     client = new PGlite();
     await client.waitReady;
 
     // Short enough to assert without the suite waiting; the shipped default is 30s.
-    driver = new PGliteDriver<AnyType>({ client, acquireTimeoutMs: 150 });
+    driver = new PGliteDriver({ client, acquireTimeoutMs: 150 });
 
     await client.exec('CREATE TABLE timeout_probe (id int primary key);');
   });
@@ -317,7 +321,7 @@ describe('PGliteDriver host exit status', () => {
   test('end() clears the status PGlite planted on the host process', async () => {
     const host = globalThis.process;
     const client = new PGlite();
-    const driver = new PGliteDriver<AnyType>({ client });
+    const driver = new PGliteDriver({ client });
 
     // The query is load-bearing, not decoration: closing a PGlite that was never queried writes 0
     // to the host exit code on its own, which would make either assertion below meaningless.
@@ -333,7 +337,7 @@ describe('PGliteDriver host exit status', () => {
   test('end() leaves an exit code the application set itself alone', async () => {
     const host = globalThis.process;
     const client = new PGlite();
-    const driver = new PGliteDriver<AnyType>({ client });
+    const driver = new PGliteDriver({ client });
 
     await client.query('SELECT 1');
 

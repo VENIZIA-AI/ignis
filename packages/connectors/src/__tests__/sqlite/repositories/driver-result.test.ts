@@ -1,5 +1,6 @@
 import { SqliteQueryExecutor } from '@/relational/sqlite/repositories/executor';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import { DuckTypingUtility } from '@/common/internal';
+import type { TSqliteConnector } from '@/relational/sqlite/drivers';
 import { describe, expect, test } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
@@ -15,13 +16,24 @@ const rows = sqliteTable('driver_result_fixture', {
 
 const executor = new SqliteQueryExecutor();
 
-const insertWithResult = (result: unknown) =>
-  executor.insert({
-    connector: { insert: () => ({ values: () => Promise.resolve(result) }) } as AnyType,
+/** The one verb the fake connector carries, stated as a guard so it can be handed over as a connector. */
+const isInsertConnector = (value: unknown): value is TSqliteConnector =>
+  DuckTypingUtility.hasMembers({ value, members: { insert: 'function' } });
+
+const insertWithResult = (result: unknown) => {
+  const connector = { insert: () => ({ values: () => Promise.resolve(result) }) };
+
+  if (!isInsertConnector(connector)) {
+    throw new Error('[insertWithResult] The fake lacks insert()');
+  }
+
+  return executor.insert({
+    connector,
     table: rows,
     values: [{ name: 'a' }],
     shouldReturn: false,
   });
+};
 
 /** Empty when the insert resolved, which reads as a failed assertion rather than a passing one. */
 const captureFailureMessage = (result: unknown): Promise<string> =>

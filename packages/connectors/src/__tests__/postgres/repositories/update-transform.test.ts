@@ -1,12 +1,14 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import { SQL } from 'drizzle-orm';
+import { DuckTypingUtility } from '@/common/internal';
+import type { TRelationalConnector } from '@/relational/postgres/datasources/common';
 import { jsonb, pgTable, PgDialect, serial, varchar } from 'drizzle-orm/pg-core';
 import { BasePostgresEntity } from '@/relational/postgres/models';
 import { PersistableRepository } from '@/relational/postgres/repositories';
 import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
 import { UpdateBuilder } from '@/relational/postgres/repositories/dialect/update';
-import { PostgresQueryExecutor } from '@/relational/postgres/repositories/executor';
 import { buildFakeConnector } from './fake-connector';
+import { StubDataSource } from './stub-data-source';
 
 /**
  * The update transform is the only engine-specific step between a caller's `data` and the driver's
@@ -29,7 +31,7 @@ const pgDialect = new PgDialect();
 const transform = (data: Record<string, unknown>) =>
   dialect.transformUpdate({ tableName: 'update_transform_fixture', schema: table, data });
 
-const compile = (expression: AnyType): string => pgDialect.sqlToQuery(expression).sql;
+const compile = (expression: SQL): string => pgDialect.sqlToQuery(expression).sql;
 
 describe('PostgresQueryDialect.transformUpdate - plain columns', () => {
   test('a plain column update passes through to regularFields untouched', () => {
@@ -130,7 +132,14 @@ describe('PostgresQueryDialect.toUpdateData', () => {
 
     expect(Object.keys(updateData).sort()).toEqual(['metadata', 'name']);
     expect(updateData.name).toBe('updated');
-    expect(compile(updateData.metadata)).toContain('jsonb_set');
+
+    const { metadata } = updateData;
+
+    if (!(metadata instanceof SQL)) {
+      throw new Error('toUpdateData did not return a SQL expression for metadata');
+    }
+
+    expect(compile(metadata)).toContain('jsonb_set');
   });
 
   test('an empty transform yields an empty set() payload', () => {
@@ -149,13 +158,12 @@ describe('PersistableRepository.updateBuilder (compatibility accessor)', () => {
 
   test('returns the very object the dialect exposes', () => {
     const repositoryDialect = new PostgresQueryDialect();
-    const dataSource = {
-      getQueryDialect: () => repositoryDialect,
-      getConnector: () => buildFakeConnector({ result: { rows: [], rowCount: 0 } }),
-      getQueryExecutor: () => undefined,
-    } as AnyType;
+    const dataSource = new StubDataSource({
+      connector: () => buildFakeConnector({ result: { rows: [], rowCount: 0 } }),
+      dialect: repositoryDialect,
+    });
 
-    const repository = new PersistableRepository<AnyType>(dataSource, {
+    const repository = new PersistableRepository(dataSource, {
       entityClass: UpdateAccessorFixtureEntity,
     });
 
@@ -164,8 +172,10 @@ describe('PersistableRepository.updateBuilder (compatibility accessor)', () => {
   });
 
   test('is undefined for a dialect that exposes no update builder', () => {
-    const dataSource = { getQueryDialect: () => ({}) } as AnyType;
-    const repository = new PersistableRepository<AnyType>(dataSource, {
+    const bareDialect = new PostgresQueryDialect();
+    Object.defineProperty(bareDialect, 'updateBuilder', { get: () => undefined });
+    const dataSource = new StubDataSource({ dialect: bareDialect });
+    const repository = new PersistableRepository(dataSource, {
       entityClass: UpdateAccessorFixtureEntity,
     });
 
@@ -178,6 +188,10 @@ describe('PersistableRepository.updateBuilder (compatibility accessor)', () => {
  * `.set()`. The shared `fake-connector` discards its `set()` argument, so nothing else in the suite
  * would notice a repository that dropped the payload entirely.
  */
+/** The one verb the recording fake carries, stated as a guard so it can be handed over as a connector. */
+const isUpdateConnector = (value: unknown): value is TRelationalConnector =>
+  DuckTypingUtility.hasMembers({ value, members: { update: 'function' } });
+
 describe('PersistableRepository.updateBy - the transform result reaches set()', () => {
   class UpdatePayloadFixtureEntity extends BasePostgresEntity {
     static override schema = table;
@@ -186,31 +200,30 @@ describe('PersistableRepository.updateBy - the transform result reaches set()', 
 
   /** Like `buildFakeConnector`, but records what `set()` receives instead of throwing it away. */
   const buildRecordingConnector = () => {
-    const captured: { setArgument?: Record<string, AnyType> } = {};
+    const captured: { setArgument?: Record<string, unknown> } = {};
 
-    return {
-      captured,
-      connector: {
-        update: () => ({
-          set: (data: Record<string, AnyType>) => {
-            captured.setArgument = data;
+    const connector = {
+      update: () => ({
+        set: (data: Record<string, unknown>) => {
+          captured.setArgument = data;
 
-            return { where: () => Promise.resolve({ rows: [], rowCount: 1 }) };
-          },
-        }),
-      } as AnyType,
+          return { where: () => Promise.resolve({ rows: [], rowCount: 1 }) };
+        },
+      }),
     };
+
+    if (!isUpdateConnector(connector)) {
+      throw new Error('[buildRecordingConnector] The fake lacks update()');
+    }
+
+    return { captured, connector };
   };
 
   test('set() receives both the plain field and the JSON expression, not an empty object', async () => {
     const { captured, connector } = buildRecordingConnector();
-    const dataSource = {
-      getQueryDialect: () => new PostgresQueryDialect(),
-      getConnector: () => connector,
-      getQueryExecutor: () => new PostgresQueryExecutor(),
-    } as AnyType;
+    const dataSource = new StubDataSource({ connector: () => connector });
 
-    const repository = new PersistableRepository<AnyType>(dataSource, {
+    const repository = new PersistableRepository(dataSource, {
       entityClass: UpdatePayloadFixtureEntity,
     });
 
@@ -220,13 +233,24 @@ describe('PersistableRepository.updateBy - the transform result reaches set()', 
       options: { shouldReturn: false },
     });
 
-    const setArgument = captured.setArgument as Record<string, AnyType>;
+    const { setArgument } = captured;
 
     expect(setArgument).toBeDefined();
+
+    if (!setArgument) {
+      throw new Error('set() was never called');
+    }
+
+    const { metadata } = setArgument;
+
     expect(Object.keys(setArgument).sort()).toEqual(['metadata', 'name']);
     expect(setArgument.name).toBe('updated');
-    expect(compile(setArgument.metadata)).toBe(
-      `jsonb_set("meta_data", '{"tier"}', '"gold"'::jsonb, true)`,
-    );
+    expect(metadata).toBeInstanceOf(SQL);
+
+    if (!(metadata instanceof SQL)) {
+      throw new Error('set() did not receive a SQL expression for metadata');
+    }
+
+    expect(compile(metadata)).toBe(`jsonb_set("meta_data", '{"tier"}', '"gold"'::jsonb, true)`);
   });
 });

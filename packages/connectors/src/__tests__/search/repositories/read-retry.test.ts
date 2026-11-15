@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { RetryBackoffStrategies, RetryJitterModes } from '@venizia/ignis-helpers';
 
 import type { ISearchResult } from '@/search/core';
@@ -80,7 +79,7 @@ describe('search readable retry wiring', () => {
       await repository.find({
         filter: {},
         options: {
-          transaction: {} as AnyType,
+          transaction: { isActive: true, commit: async () => {}, rollback: async () => {} },
           retry: { maxAttempts: 3, backoff: FAST_RETRY_BACKOFF },
         },
       });

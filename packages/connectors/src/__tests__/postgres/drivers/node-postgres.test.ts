@@ -1,14 +1,13 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { NodePostgresDriver } from '@/relational/postgres/drivers/node-postgres';
 import { run } from './conformance/driver-conformance';
-import { FakePool } from './fake-pg-client';
+import { createFakePool } from './fake-pg-client';
 
 type TSchema = Record<string, never>;
 
 const build = (failOn?: string) => {
-  const pool = new FakePool({ failOn });
-  const driver = new NodePostgresDriver<TSchema>({ client: pool as AnyType });
+  const pool = createFakePool({ failOn });
+  const driver = new NodePostgresDriver<TSchema>({ client: pool });
 
   return {
     driver,
@@ -50,8 +49,8 @@ describe('NodePostgresDriver - pg-specific behaviour', () => {
   });
 
   test('acquire() checks out a NEW client per call, not the pool itself', async () => {
-    const pool = new FakePool();
-    const driver = new NodePostgresDriver<TSchema>({ client: pool as AnyType });
+    const pool = createFakePool();
+    const driver = new NodePostgresDriver<TSchema>({ client: pool });
 
     await driver.acquire({ schema: {} });
     await driver.acquire({ schema: {} });
@@ -61,9 +60,9 @@ describe('NodePostgresDriver - pg-specific behaviour', () => {
   });
 
   test('getClient() returns the pool the driver was constructed with', () => {
-    const pool = new FakePool();
-    const driver = new NodePostgresDriver<TSchema>({ client: pool as AnyType });
+    const pool = createFakePool();
+    const driver = new NodePostgresDriver<TSchema>({ client: pool });
 
-    expect(driver.getClient()).toBe(pool as AnyType);
+    expect(driver.getClient()).toBe(pool);
   });
 });

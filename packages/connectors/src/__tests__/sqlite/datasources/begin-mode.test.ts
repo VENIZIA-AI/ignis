@@ -1,8 +1,10 @@
 import type { TSqliteBeginMode } from '@/relational/sqlite/datasources';
 import { SqliteBeginModes } from '@/relational/sqlite/datasources';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { SqliteDataSourceFixture } from './fixtures/sqlite-datasource.fixture';
+
+/** A mode the type forbids, on purpose: built through `JSON.parse`, which is the one way to hold a wrong-shaped value without a cast. */
+const wrongMode = (value: string): TSqliteBeginMode => JSON.parse(JSON.stringify(value));
 
 describe('BaseSqliteDataSource - beginMode validation', () => {
   test('defaults to IMMEDIATE', () => {
@@ -26,7 +28,7 @@ describe('BaseSqliteDataSource - beginMode validation', () => {
   test('refuses an unknown mode before it becomes SQL', () => {
     const dataSource = new SqliteDataSourceFixture();
 
-    expect(() => dataSource.exposeBeginStatement({ beginMode: 'CONCURRENT' as AnyType })).toThrow(
+    expect(() => dataSource.exposeBeginStatement({ beginMode: wrongMode('CONCURRENT') })).toThrow(
       /beginMode.+CONCURRENT/,
     );
   });
@@ -35,7 +37,7 @@ describe('BaseSqliteDataSource - beginMode validation', () => {
     const dataSource = new SqliteDataSourceFixture();
     const injected = 'IMMEDIATE; DROP TABLE users; --';
 
-    expect(() => dataSource.exposeBeginStatement({ beginMode: injected as AnyType })).toThrow(
+    expect(() => dataSource.exposeBeginStatement({ beginMode: wrongMode(injected) })).toThrow(
       /beginMode/,
     );
   });
@@ -43,7 +45,7 @@ describe('BaseSqliteDataSource - beginMode validation', () => {
   test('refuses lower-case: the mode is interpolated as written, never normalised', () => {
     const dataSource = new SqliteDataSourceFixture();
 
-    expect(() => dataSource.exposeBeginStatement({ beginMode: 'immediate' as AnyType })).toThrow(
+    expect(() => dataSource.exposeBeginStatement({ beginMode: wrongMode('immediate') })).toThrow(
       /beginMode/,
     );
   });
@@ -89,7 +91,7 @@ describe('BaseSqliteDataSource - beginTransaction', () => {
     let failure: unknown;
 
     try {
-      await dataSource.beginTransaction({ beginMode: 'CONCURRENT' as AnyType });
+      await dataSource.beginTransaction({ beginMode: wrongMode('CONCURRENT') });
     } catch (error) {
       failure = error;
     }

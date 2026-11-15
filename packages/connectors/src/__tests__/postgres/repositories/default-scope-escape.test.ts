@@ -1,21 +1,27 @@
 import { describe, expect, test } from 'bun:test';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { pgTable, serial, text } from 'drizzle-orm/pg-core';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { TWhere } from '@venizia/ignis-kernel';
 import { PostgresFilterBuilder } from '@/relational/postgres/repositories/dialect/filter';
 
 /**
  * A `@model` `settings.query.filter` is a SCOPE (soft-delete, tenant, ownership): a caller filter may only
  * NARROW it - dropping a default condition is a data-leak primitive.
  */
-const mergeWhere = (defaultWhere: AnyType, userWhere: AnyType): AnyType => {
-  const builder = new PostgresFilterBuilder() as AnyType;
+const mergeWhere = (defaultWhere: TWhere, userWhere: TWhere): TWhere => {
+  const builder = new PostgresFilterBuilder();
+  // `mergeWhere` is private; the test reads it by name.
+  const merge: unknown = Reflect.get(builder, 'mergeWhere');
 
-  return builder.mergeWhere({ defaultWhere, userWhere });
+  if (typeof merge !== 'function') {
+    throw new Error('[mergeWhere] FilterBuilder has no mergeWhere');
+  }
+
+  return Reflect.apply(merge, builder, [{ defaultWhere, userWhere }]);
 };
 
 /** Flattens the merge result into the set of conditions that must ALL hold. */
-const conjuncts = (merged: AnyType): AnyType[] => {
+const conjuncts = (merged: TWhere): TWhere[] => {
   const { and: andGroup, ...rest } = merged;
 
   return [...Object.entries(rest).map(([key, value]) => ({ [key]: value })), ...(andGroup ?? [])];
@@ -72,8 +78,8 @@ describe('an EMPTY logical group', () => {
 
   const dialect = new PgDialect();
 
-  const compile = (where: AnyType): string => {
-    const builder = new PostgresFilterBuilder() as AnyType;
+  const compile = (where: TWhere): string => {
+    const builder = new PostgresFilterBuilder();
     const condition = builder.toWhere({ tableName: 'articles', schema: table, where });
 
     return condition ? dialect.sqlToQuery(condition).sql : 'NO CONDITION';

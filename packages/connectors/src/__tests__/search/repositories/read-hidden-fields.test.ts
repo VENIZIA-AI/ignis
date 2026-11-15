@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { ReadableSearchRepository } from '@/search/core/repositories';
 import { FakeSearchDataSource, ProductDocument } from './fake-search-connector';
 
@@ -21,7 +20,7 @@ const buildRepository = (opts: {
   // Stand in for the `@model({ settings: { hidden properties } })` the entity would carry.
   Object.defineProperty(repository, 'hiddenFields', { get: () => opts.hiddenFields });
 
-  return repository as AnyType;
+  return repository;
 };
 
 describe('a hidden field never leaves the read path', () => {
@@ -34,7 +33,7 @@ describe('a hidden field never leaves the read path', () => {
       ],
     });
 
-    return repository.find({ filter: {} }).then((rows: AnyType[]) => {
+    return repository.find({ filter: {} }).then((rows) => {
       expect(JSON.stringify(rows)).not.toContain('LEAKED');
       expect(rows[0].name).toBe('a');
     });
