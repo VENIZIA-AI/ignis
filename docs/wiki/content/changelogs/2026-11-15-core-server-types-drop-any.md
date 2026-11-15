@@ -18,7 +18,6 @@ migration:
     downgrade:
       steps:
         - "Type the schemes as Record<string, Record<string, unknown>> again; every scheme that fits the newer type fits it."
-    data: "A bound options object that sets explorer.openapi to undefined now serves openapi 3.0.0, where it served a document with no version."
   - id: static-asset-meta-link-repository
     symbols: [TMetaLinkConfig, IMetaLinkRepository]
     upgrade:
@@ -36,9 +35,11 @@ migration:
     symbols: [TCasbinPolicyConnector]
     upgrade:
       before: |
-        const connector: TCasbinPolicyConnector = drizzle(pool); // PgDatabase<PgQueryResultHKT, Record<string, any>>
+        // the schema slot was Record<string, any>
+        const connector: TCasbinPolicyConnector = drizzle(pool, { schema });
       after: |
-        // the schema slot is Record<string, unknown>; a drizzle database over a typed schema still fits
+        // non-breaking in the shipped adapters: the schema slot is Record<string, unknown>, and a drizzle
+        // database over a typed schema still fits
         const connector: TCasbinPolicyConnector = drizzle(pool, { schema });
     downgrade:
       steps:
@@ -48,16 +49,18 @@ migration:
     upgrade:
       before: |
         protected override applySignClaims(opts: { signer: SignJWT; payload: Record<string, any>; claims?: IJWTIssueClaims }) {
+          const tenant: string = opts.payload.tenant.id; // any
           return super.applySignClaims(opts);
         }
       after: |
-        // the protected hook reads the payload as Record<string, unknown>
+        // the payload is Record<string, unknown>: narrow what you read
         protected override applySignClaims(opts: { signer: SignJWT; payload: Record<string, unknown>; claims?: IJWTIssueClaims }) {
+          const tenant = opts.payload.tenant;
           return super.applySignClaims(opts);
         }
     downgrade:
       steps:
-        - "Type the override's payload as Record<string, any> again."
+        - "Read the payload properties without a narrow again; the older values were any."
 ---
 
 # Changelog - 2026-11-15
