@@ -50,6 +50,7 @@ export class ReleaseWorkflowGuards {
   static readonly GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES = 'github-release-only-views-and-creates';
   static readonly PUBLISH_ENVIRONMENT_IS_CLOSED = 'publish-environment-is-closed';
   static readonly ATLAS_INDEX_JOB_CONFINED = 'atlas-index-job-confined';
+  static readonly CHANGELOG_HISTORY_FOR_A_STABLE = 'changelog-history-for-a-stable';
 
   static readonly SCHEME_SET = new Set<string>([
     this.REF_BY_KIND,
@@ -91,6 +92,7 @@ export class ReleaseWorkflowGuards {
     this.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
     this.PUBLISH_ENVIRONMENT_IS_CLOSED,
     this.ATLAS_INDEX_JOB_CONFINED,
+    this.CHANGELOG_HISTORY_FOR_A_STABLE,
   ]);
 }
 
@@ -177,6 +179,12 @@ const TRIAL_STEP = 'Try the merge back into develop';
 const MERGE_BACK_STEP = 'Merge main back into develop';
 const REPORT_STEP = 'Report - published, merge back not done';
 const GITHUB_RELEASE_STEP = 'Create the GitHub Release';
+const CHANGELOG_HISTORY_STEP = 'Changelog history (a stable)';
+const CHANGELOG_HISTORY_COMMAND =
+  'bun x --no-install vulcan changelog check --history --base "$CHANGELOG_BASE"';
+const CHANGELOG_HISTORY_CONDITION =
+  "${{ needs.plan.outputs.kind == 'stable' && needs.plan.outputs.changelog_base != '' }}";
+const STAMP_COMMAND = 'scripts/release/stamp-release.ts';
 /** The variables of the workflow's own `env`, sorted; the one flag a publish step may write to `$GITHUB_ENV`. */
 const WORKFLOW_ENVIRONMENT = ['BUILD_MODE', 'FORCE_JAVASCRIPT_ACTIONS_TO_NODE24', 'TARBALLS'];
 const MERGE_BACK_FLAG_WRITE = 'echo "MERGE_BACK_STARTED=true" >> "$GITHUB_ENV"';
@@ -370,6 +378,31 @@ export class ReleaseWorkflowCheck {
       violate(
         ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
         `the '${ATLAS_JOB}' job must need '${PLAN_JOB}' and '${PUBLISH_JOB}' and run after the publish, whether it ended well or failed (a tag stays); hold \`contents: write\` and nothing else (no \`id-token\`, no environment); continue on error; run one tag at a time over the plan matrix; check out the whole history without keeping credentials; and read ATLAS_INDEX_KEY, the one secret of the workflow, on the single step that runs VULCAN's pinned atlas-index action with only \`ref\` set`,
+      );
+    }
+
+    // A stable releases a version folder: the plan names the previous stable tag, and the `scripts` job (once per run)
+    // checks the history against it. The check needs the tags, so the checkout takes the whole history. The loop dates
+    // the folder in the release commit of the last package: its text names the stamp script and adds the file it prints.
+    const scriptsCheckout = stepsOf(scripts).find((step) =>
+      step.uses?.startsWith('actions/checkout@'),
+    );
+    const changelogHistory = stepsOf(scripts).find((step) => step.name === CHANGELOG_HISTORY_STEP);
+    const stampsTheFolder =
+      withoutScriptComments(runnerText).includes(`'${STAMP_COMMAND}'`) &&
+      /\['git',\s*'add',\s*'--',\s*stamped\]/.test(withoutScriptComments(runnerText));
+    if (
+      plan?.outputs?.changelog_base !== '${{ steps.plan.outputs.changelog_base }}' ||
+      scriptsCheckout?.with?.['fetch-depth'] !== 0 ||
+      changelogHistory === undefined ||
+      changelogHistory.if?.trim() !== CHANGELOG_HISTORY_CONDITION ||
+      changelogHistory.env?.CHANGELOG_BASE !== '${{ needs.plan.outputs.changelog_base }}' ||
+      commandsOf(changelogHistory).trim() !== CHANGELOG_HISTORY_COMMAND ||
+      !stampsTheFolder
+    ) {
+      violate(
+        ReleaseWorkflowGuards.CHANGELOG_HISTORY_FOR_A_STABLE,
+        `the '${PLAN_JOB}' job must output \`changelog_base\`, the '${SCRIPTS_JOB}' job must check out the whole history and run '${CHANGELOG_HISTORY_STEP}' for a stable with a base (\`if: ${CHANGELOG_HISTORY_CONDITION}\`, \`CHANGELOG_BASE\` from the plan, exactly \`${CHANGELOG_HISTORY_COMMAND}\`), and release-run.ts must date the version folder of a stable (\`${STAMP_COMMAND}\`, then \`git add -- <the file it prints>\`) before the release commit`,
       );
     }
 

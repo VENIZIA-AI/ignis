@@ -18,8 +18,13 @@
  *
  * The mode decides the kind: a prerelease releases from `develop` and its release commits go to `develop`, a stable
  * (`patch`, `minor`, `major`) from `main` and to `main`. The dist-tag of a package follows its own version.
+ *
+ * A stable dates its version folder: the release commit of the last package of the plan (the one the GitHub Release is
+ * made on) also carries `released: <date>` in `changelogs/<version>/log.md` (stamp-release.ts), so a folder with that
+ * line is frozen. The plan job refuses a stable with no folder, or whose folder already says it is released.
  */
 import { appendFileSync } from 'node:fs';
+import { ReleaseChangelog } from './release-changelog';
 import { ReleaseModes, ReleaseOrder, type TReleaseMode } from './release-constants';
 import { ReleaseKinds, ReleaseTargets, type TReleaseKind } from './release-kind';
 import { type IPlanEntry, ReleasePlanInput } from './release-plan-input';
@@ -70,6 +75,8 @@ interface IRecordJob {
   published: boolean;
   /** An earlier dispatch published it: this run only records it. */
   healed: boolean;
+  /** Set on the package the Release is made on, in a stable: the date its release commit writes into the version folder. */
+  stampDate?: string;
 }
 
 /** What one package of the plan gave: its outcome, and the record still to make when it is on npm. */
@@ -157,9 +164,11 @@ export class ReleaseRun {
     branch: 'develop' | 'main';
     issue?: string;
     tarballs: string;
+    /** Today, `YYYY-MM-DD`: what a stable writes as `released:` into the version folder it releases. */
+    date: string;
     ports: IReleasePorts;
   }): Promise<IReleaseOutcome[]> {
-    const { entries, mode, branch, issue, tarballs, ports } = opts;
+    const { entries, mode, branch, issue, tarballs, date, ports } = opts;
 
     const expected = ReleaseKinds.branchOf({ kind: ReleaseKinds.ofMode({ mode }) });
     if (branch !== expected) {
@@ -177,6 +186,11 @@ export class ReleaseRun {
     const toRecord: IRecordJob[] = [];
     /** `name@version` of every package this run published or found already on npm: the registry lists them late, so the pin check trusts this first. */
     const releasedHere = new Set<string>();
+    // The Release is made on the tag of the last package in release order; a stable dates the folder in its release commit.
+    const releasePackage =
+      ReleaseKinds.ofMode({ mode }) === ReleaseKinds.STABLE
+        ? ReleaseOrder.sort({ names: entries.map((entry) => entry.name) }).at(-1)
+        : undefined;
 
     // Phase 1: bump, pack, check and publish every package. Publishing needs no tarball wait: a dependent package only
     // needs its sibling to be on npm, which the pin check takes from `releasedHere` (this run published it) before it asks
@@ -202,7 +216,11 @@ export class ReleaseRun {
         });
         outcomes.push(result.outcome);
         if (result.record) {
-          toRecord.push(result.record);
+          toRecord.push(
+            result.record.dir === releasePackage
+              ? { ...result.record, stampDate: date }
+              : result.record,
+          );
         }
       }
     } catch (error) {
@@ -486,8 +504,9 @@ export class ReleaseRun {
     issue?: string;
     ports: IReleasePorts;
     published: boolean;
+    stampDate?: string;
   }): Promise<void> {
-    const { dir, packageName, version, mode, branch, issue, ports } = opts;
+    const { dir, packageName, version, mode, branch, issue, ports, stampDate } = opts;
     const cwd = `packages/${dir}`;
     const tag = `${dir}-v${version}`;
     const npmTag = ReleaseTargets.distTagOf({ version });
@@ -535,6 +554,25 @@ export class ReleaseRun {
 
       const subject = `${issue ? `[#${issue}] ` : ''}chore(${dir}): release v${version} [${mode}]`;
       await ports.run({ command: ['git', 'add', 'package.json'], cwd });
+
+      if (stampDate !== undefined) {
+        // It prints the path of the log it dated, and nothing when the project keeps no folder for the version.
+        const { stdout: stamped } = await ports.run({
+          command: [
+            'bun',
+            'scripts/release/stamp-release.ts',
+            '--version',
+            version,
+            '--date',
+            stampDate,
+          ],
+        });
+
+        if (stamped !== '') {
+          await ports.run({ command: ['git', 'add', '--', stamped] });
+        }
+      }
+
       await ports.run({ command: ['git', 'commit', '-m', subject], cwd });
       await ports.run({ command: ['git', 'push', 'origin', `HEAD:${branch}`] });
       state.committed = true;
@@ -645,6 +683,13 @@ const main = async (): Promise<void> => {
 
     const plan = ReleaseTargets.plan({ entries, mode, ref: process.env.GITHUB_REF, versions });
 
+    // A stable of a project with version folders needs its folder, not yet released; the gates measure the history from
+    // the previous stable tag.
+    const changelog = ReleaseChangelog.ofPlan({ cwd: process.cwd(), plan, versions });
+    if (changelog.problems.length > 0) {
+      throw new Error(`the plan is refused:\n  - ${changelog.problems.join('\n  - ')}`);
+    }
+
     // The issue goes into the run title and into every release commit subject: only digits, or nothing.
     const issue = process.env.RELEASE_ISSUE ?? '';
     if (!/^\d*$/.test(issue)) {
@@ -674,6 +719,8 @@ const main = async (): Promise<void> => {
       `branch=${plan.branch}`,
       `headline=${plan.headline}`,
       `targets=${plan.targets.map((entry) => `${entry.name}=${entry.target}`).join(',')}`,
+      // The previous stable tag of a stable (empty for a prerelease, or with none): the history check measures from it.
+      `changelog_base=${changelog.base}`,
     ];
     for (const line of outputs) {
       console.log(line);
@@ -707,6 +754,7 @@ const main = async (): Promise<void> => {
       branch,
       issue: process.env.RELEASE_ISSUE || undefined,
       tarballs,
+      date: new Date().toISOString().slice(0, 10),
       ports: realPorts(),
     });
     return;

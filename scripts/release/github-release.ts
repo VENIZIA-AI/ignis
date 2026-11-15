@@ -1,14 +1,17 @@
 /**
- * The GitHub Release of a publish run: ONE Release for the run, on the tag of the last package of its plan.
+ * The GitHub Release of a publish run: ONE Release for the run of a stable, on the tag of the last package of its
+ * plan, and none for a prerelease (the Releases page lists stables only; a prerelease is on npm under `next` and in git).
  *
  *   bun scripts/release/github-release.ts create --targets <dir=version,...> --kind stable|prerelease
  *   bun scripts/release/github-release.ts backfill --tag <tag> [--yes]
  *
  * A run publishes up to nine packages, each with its own tag `<dir>-v<version>`. The Release is made on the tag of
  * the last package in release order (`core-server` when it is in the plan), so the previous tag and the newest stable
- * are read from the tags of that one package. `create` is what the workflow calls; `backfill` makes the Release of
- * one tag by hand, is a dry run without `--yes`, and is never called by the workflow. The `atlas-index` release is
- * never created, edited or moved.
+ * are read from the tags of that one package. A stable whose version has a folder `changelogs/<version>/` is released
+ * with the body of its `log.md` and, when its `migration.yaml` holds a block, with that file attached as
+ * `migration-<version>.yaml`; a stable with no folder is released with the dated entries added since the previous
+ * stable. `create` is what the workflow calls; `backfill` makes the Release of one tag by hand, is a dry run without
+ * `--yes`, and is never called by the workflow. The `atlas-index` release is never created, edited or moved.
  */
 import { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -16,19 +19,18 @@ import { join } from 'node:path';
 import { ReleaseMergeBack } from './merge-back';
 import { ReleaseOrder } from './release-constants';
 import { ReleaseKinds } from './release-kind';
-import type { TReleaseKind } from './release-kind';
+import { ReleaseNotes } from './release-notes';
 
 export class GithubReleaseConstants {
   /** The release the atlas index publishes its pairs to. */
   static readonly ATLAS_INDEX_TAG = 'atlas-index';
   static readonly MANIFEST = '.agents/vulcan.manifest.json';
-  static readonly MAX_PRERELEASE_SUBJECTS = 30;
+  /** The commit subjects a backfill of a stable with no changelog lists, at most. */
+  static readonly MAX_SUBJECTS = 30;
   static readonly DATED_ENTRY = /^\d{4}-\d{2}-\d{2}-.*\.md$/;
-  static readonly FRONT_MATTER = /^---\r?\n[\s\S]*?\r?\n---\r?\n/;
   static readonly DATE_HEADING = /^# Changelog - \d{4}-\d{2}-\d{2}\s*$/m;
   /** The badge line under an entry heading (one badge or several): a VitePress component, which a Release cannot render. */
   static readonly BADGE_LINE = /^(?:<Badge\b[^>]*\/>[ \t]*)+\r?\n?/gm;
-  static readonly ISSUE_SUBJECT = /^\[#\d+\]/;
   /** The release commit the loop makes per package: `[#N] chore(<dir>): release v<version> [<mode>]`. */
   static readonly RELEASE_COMMIT_SUBJECT = /^(?:\[#\d+\] )?chore\([^)]+\): release v\d\S* \[\w+\]$/;
   static readonly TITLE_PREFIX = 'IGNIS';
@@ -56,7 +58,7 @@ export class GithubReleaseConstants {
   static readonly ROOT_LINK = /\]\(\/(?!\/)/g;
   /** GitHub refuses a body of 125000 characters or more. */
   static readonly MAX_BODY_LENGTH = 120_000;
-  /** The notes of a stable with no changelog entry: the changelog records what affects users, and nothing did. */
+  /** The notes of a stable whose changelog says nothing: the changelog records what affects users, and nothing did. */
   static readonly NO_USER_CHANGES = 'No change for users of the packages in this release.';
   static readonly USAGE =
     'github-release: create --targets <dir=version,...> --kind stable|prerelease | backfill --tag <tag> [--yes]';
@@ -73,6 +75,8 @@ export interface IGithubReleaseManifest {
   /** The tag pattern, `<dir>-v<version>`. */
   tagPattern: string;
   changelogs: string;
+  /** `knowledge.migrationFrom`: a version once the project keeps a folder per version, a date or absent before. */
+  migrationFrom?: string;
   /** In the manifest's order, which is the release order. */
   packages: IGithubReleasePackage[];
 }
@@ -95,7 +99,13 @@ export interface IGhResult {
 
 export type TGh = (opts: { args: string[] }) => IGhResult;
 
-export type TGithubReleaseState = 'created' | 'exists' | 'planned' | 'refused' | 'failed';
+export type TGithubReleaseState =
+  | 'created'
+  | 'exists'
+  | 'planned'
+  | 'skipped'
+  | 'refused'
+  | 'failed';
 
 export interface IGithubReleaseOutcome {
   state: TGithubReleaseState;
@@ -170,6 +180,9 @@ export class GithubRelease {
     const changelogs = GithubRelease.isRecord(knowledge)
       ? knowledge.value['changelogs']
       : undefined;
+    const migrationFrom = GithubRelease.isRecord(knowledge)
+      ? knowledge.value['migrationFrom']
+      : undefined;
 
     if (
       typeof pattern !== 'string' ||
@@ -186,6 +199,7 @@ export class GithubRelease {
     return {
       tagPattern: pattern,
       changelogs,
+      ...(typeof migrationFrom === 'string' ? { migrationFrom } : {}),
       packages: packages.flatMap((entry) => {
         const holder = { value: entry };
 
@@ -282,12 +296,11 @@ export class GithubRelease {
       : `${GithubReleaseConstants.TITLE_PREFIX} ${opts.target.dir} ${opts.target.version}`;
   }
 
-  /** The highest tag of this package below `version`: of stables only when `stableOnly`, of every kind otherwise. */
+  /** The highest stable tag of this package below `version`. */
   static previousTag(opts: {
     tags: string[];
     template: string;
     version: string;
-    stableOnly: boolean;
   }): string | undefined {
     let best: { tag: string; version: string } | undefined;
 
@@ -297,7 +310,7 @@ export class GithubRelease {
       if (
         version === undefined ||
         Bun.semver.order(version, opts.version) >= 0 ||
-        (opts.stableOnly && version.includes('-')) ||
+        version.includes('-') ||
         (best !== undefined && Bun.semver.order(version, best.version) <= 0)
       ) {
         continue;
@@ -355,8 +368,7 @@ export class GithubRelease {
 
   /** An entry as a Release shows it: no front matter, no date heading, no badge line. */
   static stripEntry(opts: { text: string }): string {
-    return opts.text
-      .replace(GithubReleaseConstants.FRONT_MATTER, '')
+    return ReleaseNotes.bodyOf({ log: opts.text })
       .replace(GithubReleaseConstants.DATE_HEADING, '')
       .replace(GithubReleaseConstants.BADGE_LINE, '')
       .replace(/\n{3,}/g, '\n\n')
@@ -456,7 +468,43 @@ export class GithubRelease {
     return { inside, open };
   }
 
-  /** The notes of a stable: the entries added since the previous stable, joined; empty when there are none. */
+  /**
+   * The notes and the migration file of a version folder as the tag holds them, or `undefined` when the tag holds no
+   * folder of that version: the project keeps dated entries, or has not adopted the folders yet. The notes are the
+   * body of `log.md` as a Release shows it (`stripEntry`, `publicText`), empty when `log.md` says nothing; the
+   * migration is the text of `migration.yaml` when it holds a block, and absent when the file is missing, empty or `{}`.
+   */
+  static folderNotes(opts: {
+    cwd: string;
+    tag: string;
+    folder: string;
+    version: string;
+  }): { notes: string; migration?: string } | undefined {
+    const path = `${opts.folder}/${opts.version}`;
+    const log = ReleaseMergeBack.git({
+      cwd: opts.cwd,
+      args: ['show', `${opts.tag}:${path}/log.md`],
+    });
+
+    if (log.status !== 0) {
+      return undefined;
+    }
+
+    const migration = ReleaseMergeBack.git({
+      cwd: opts.cwd,
+      args: ['show', `${opts.tag}:${path}/migration.yaml`],
+    });
+    const text = migration.status === 0 ? migration.stdout : undefined;
+
+    return {
+      notes: GithubRelease.publicText({ text: GithubRelease.stripEntry({ text: log.stdout }) }),
+      ...(ReleaseNotes.hasBlocks({ migration: text }) && text !== undefined
+        ? { migration: text }
+        : {}),
+    };
+  }
+
+  /** The notes of a stable of dated entries: the entries added since the previous stable, joined; empty when there are none. */
   static stableNotes(opts: { cwd: string; from?: string; to: string; folder: string }): string {
     return GithubRelease.entriesAdded(opts)
       .map((path) => {
@@ -471,14 +519,10 @@ export class GithubRelease {
   }
 
   /** The subjects of the commits in `from..to`, without merges and without the release commits of the loop. */
-  static subjectsOf(opts: {
-    cwd: string;
-    from?: string;
-    to: string;
-    onlyIssues: boolean;
-  }): string[] {
+  static subjectsOf(opts: { cwd: string; from?: string; to: string }): string[] {
     const range = opts.from === undefined ? opts.to : `${opts.from}..${opts.to}`;
-    const subjects = ReleaseMergeBack.mustGit({
+
+    return ReleaseMergeBack.mustGit({
       cwd: opts.cwd,
       args: ['log', '--no-merges', '--format=%s', range],
     })
@@ -486,10 +530,6 @@ export class GithubRelease {
       .filter(
         (subject) => subject !== '' && !GithubReleaseConstants.RELEASE_COMMIT_SUBJECT.test(subject),
       );
-
-    return opts.onlyIssues
-      ? subjects.filter((subject) => GithubReleaseConstants.ISSUE_SUBJECT.test(subject))
-      : subjects;
   }
 
   /** A fenced list: a line in it cannot ping anyone, close an issue or break the markdown. */
@@ -497,9 +537,9 @@ export class GithubRelease {
     return ['```text', ...opts.lines.map((line) => line.replaceAll('```', "'''")), '```'];
   }
 
-  /** At most `MAX_PRERELEASE_SUBJECTS` subjects, with a closing line that says how many were left out. */
+  /** At most `MAX_SUBJECTS` subjects, with a closing line that says how many were left out. */
   static cappedSubjects(opts: { subjects: string[] }): string[] {
-    const max = GithubReleaseConstants.MAX_PRERELEASE_SUBJECTS;
+    const max = GithubReleaseConstants.MAX_SUBJECTS;
 
     return opts.subjects.length <= max
       ? opts.subjects
@@ -517,30 +557,14 @@ export class GithubRelease {
     ];
   }
 
+  /** The body of a Release: the notes of the stable, then the packages of the run, cut when it is too long for GitHub. */
   static bodyOf(opts: {
-    kind: TReleaseKind;
     notes: string;
-    subjects: string[];
-    /** The packages of the run in release order: the last is named in the install line of a prerelease. */
+    /** The packages of the run in release order. */
     packages: IGithubReleasePackageVersion[];
   }): string {
-    const sections =
-      opts.kind === ReleaseKinds.STABLE
-        ? [opts.notes]
-        : [
-            `Install: \`npm install ${opts.packages.at(-1)?.name ?? ''}@next\``,
-            '',
-            ...(opts.subjects.length === 0
-              ? []
-              : [
-                  'Changes since the previous tag:',
-                  '',
-                  ...GithubRelease.fencedLines({ lines: opts.subjects }),
-                ]),
-          ];
-
     const packages = GithubRelease.packagesOf({ packages: opts.packages }).join('\n');
-    const head = sections.join('\n');
+    const head = opts.notes;
     const notice = [
       '',
       `... cut: these notes are longer than a GitHub Release can hold. The full changelog: ${GithubReleaseConstants.CHANGELOG_URL}`,
@@ -566,7 +590,8 @@ export class GithubRelease {
 
   /**
    * Makes the Release of the run, or says why it did not: a git or filesystem failure is an outcome too. The tag is
-   * the last package's. With `dryRun` it stops before `gh` creates anything and returns the notes as the message.
+   * the last package's. A prerelease has no Release: `skipped`, and nothing is asked of `gh`. With `dryRun` it stops
+   * before `gh` creates anything and returns the notes as the message.
    */
   static create(opts: {
     cwd: string;
@@ -574,7 +599,7 @@ export class GithubRelease {
     kind: string;
     gh: TGh;
     scratchRoot: string;
-    /** Falls back to commit subjects when no changelog entry covers a stable (a backfill). */
+    /** Falls back to commit subjects when no dated entry covers a stable with no folder (a backfill). */
     withSubjectFallback?: boolean;
     dryRun?: boolean;
   }): IGithubReleaseOutcome {
@@ -606,11 +631,19 @@ export class GithubRelease {
         };
       }
 
+      // A prerelease is on npm under `next` and in git; the Releases page lists stables only.
+      if (opts.kind === ReleaseKinds.PRERELEASE) {
+        return {
+          state: 'skipped',
+          message: `${tag} is a prerelease: only a stable has a GitHub Release`,
+        };
+      }
+
       if (opts.gh({ args: ['release', 'view', tag, '--json', 'tagName'] }).status === 0) {
         return { state: 'exists', message: `${tag} already has a Release - skipped` };
       }
 
-      return GithubRelease.make({ ...opts, kind: opts.kind, manifest, last, tag });
+      return GithubRelease.make({ ...opts, manifest, last, tag });
     } catch (error) {
       return { state: 'failed', message: error instanceof Error ? error.message : String(error) };
     }
@@ -622,41 +655,40 @@ export class GithubRelease {
     targets: IGithubReleaseTarget[];
     last: IGithubReleaseTarget;
     tag: string;
-    kind: TReleaseKind;
     gh: TGh;
     scratchRoot: string;
     withSubjectFallback?: boolean;
     dryRun?: boolean;
   }): IGithubReleaseOutcome {
-    const stable = opts.kind === ReleaseKinds.STABLE;
     const template = GithubRelease.templateOf({ manifest: opts.manifest, dir: opts.last.dir });
     const tags = GithubRelease.tagsOf({ cwd: opts.cwd });
-    const from = GithubRelease.previousTag({
-      tags,
-      template,
-      version: opts.last.version,
-      stableOnly: stable,
-    });
-    const subjects = GithubRelease.subjectsOf({
+    const from = GithubRelease.previousTag({ tags, template, version: opts.last.version });
+    const folder = GithubRelease.folderNotes({
       cwd: opts.cwd,
-      from,
-      to: opts.tag,
-      onlyIssues: !(stable && opts.withSubjectFallback),
+      tag: opts.tag,
+      folder: opts.manifest.changelogs,
+      version: opts.last.version,
     });
-    let notes = stable
-      ? GithubRelease.stableNotes({
-          cwd: opts.cwd,
-          from,
-          to: opts.tag,
-          folder: opts.manifest.changelogs,
-        })
-      : '';
+    let notes =
+      folder === undefined
+        ? GithubRelease.stableNotes({
+            cwd: opts.cwd,
+            from,
+            to: opts.tag,
+            folder: opts.manifest.changelogs,
+          })
+        : folder.notes;
 
-    // No entry since the previous stable is no fault: the changelog records only what affects users. A backfill of an
-    // old stable that predates the changelog still lists its commits.
-    if (stable && notes === '') {
+    // Nothing for users is no fault: the changelog records only what affects users. A backfill of an old stable that
+    // predates the changelog still lists its commits.
+    if (notes === '') {
+      const subjects =
+        folder === undefined && opts.withSubjectFallback
+          ? GithubRelease.subjectsOf({ cwd: opts.cwd, from, to: opts.tag })
+          : [];
+
       notes =
-        opts.withSubjectFallback && subjects.length > 0
+        subjects.length > 0
           ? [
               'Commits in this release:',
               '',
@@ -666,9 +698,7 @@ export class GithubRelease {
     }
 
     const body = GithubRelease.bodyOf({
-      kind: opts.kind,
       notes,
-      subjects: GithubRelease.cappedSubjects({ subjects }),
       packages: opts.targets.map((target) => ({
         name:
           opts.manifest.packages.find((candidate) => candidate.dir === target.dir)?.name ??
@@ -678,14 +708,13 @@ export class GithubRelease {
     });
     // Latest is one per repository, not per package: only the leading package's newest stable may take it.
     const latest =
-      stable &&
       opts.last.dir === GithubReleaseConstants.LEADING_DIR &&
       GithubRelease.isNewestStable({ tags, template, version: opts.last.version });
 
     if (opts.dryRun) {
       return {
         state: 'planned',
-        message: `${opts.tag} (${opts.kind}, ${latest ? 'Latest' : 'not Latest'}), notes since ${from ?? 'the start of history'}:\n\n${body}`,
+        message: `${opts.tag} (stable, ${latest ? 'Latest' : 'not Latest'}${folder?.migration === undefined ? '' : `, with migration-${opts.last.version}.yaml`}), notes ${folder === undefined ? `since ${from ?? 'the start of history'}` : `of the folder ${opts.manifest.changelogs}/${opts.last.version}`}:\n\n${body}`,
       };
     }
 
@@ -696,19 +725,41 @@ export class GithubRelease {
 
       writeFileSync(file, body);
 
-      const created = opts.gh({
-        args: [
-          'release',
-          'create',
-          opts.tag,
-          '--title',
-          GithubRelease.titleOf({ target: opts.last }),
-          '--notes-file',
-          file,
-          '--verify-tag',
-          stable ? (latest ? '--latest' : '--latest=false') : '--prerelease',
-        ],
-      });
+      let created: IGhResult;
+
+      if (folder?.migration === undefined) {
+        created = opts.gh({
+          args: [
+            'release',
+            'create',
+            opts.tag,
+            '--title',
+            GithubRelease.titleOf({ target: opts.last }),
+            '--notes-file',
+            file,
+            '--verify-tag',
+            latest ? '--latest' : '--latest=false',
+          ],
+        });
+      } else {
+        const migration = join(directory, `migration-${opts.last.version}.yaml`);
+
+        writeFileSync(migration, folder.migration);
+        created = opts.gh({
+          args: [
+            'release',
+            'create',
+            opts.tag,
+            migration,
+            '--title',
+            GithubRelease.titleOf({ target: opts.last }),
+            '--notes-file',
+            file,
+            '--verify-tag',
+            latest ? '--latest' : '--latest=false',
+          ],
+        });
+      }
 
       return created.status === 0
         ? { state: 'created', message: `${opts.tag}: ${created.stdout.trim()}` }

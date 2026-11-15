@@ -19,8 +19,20 @@ class FakeWorld {
   origin = new Map<string, string>();
   npm = new Set<string>();
   tags = new Map<string, string>();
-  commits: Array<{ sha: string; subject: string; dir: string; version: string; pushed: boolean }> =
-    [];
+  commits: Array<{
+    sha: string;
+    subject: string;
+    dir: string;
+    version: string;
+    pushed: boolean;
+    /** What `git add --` staged from the root before the commit (the dated version folder). */
+    staged: string[];
+  }> = [];
+  /** The versions whose folder `changelogs/<version>/log.md` the project has: the stamp script prints its path. */
+  folders = new Set<string>();
+  /** The `--date` of every `stamp-release.ts` call. */
+  stamped: string[] = [];
+  private staged: string[] = [];
   calls: string[] = [];
   logs: string[] = [];
   highest = new Map<string, string>();
@@ -213,6 +225,15 @@ class FakeWorld {
       this.highest.set(name, version);
       return ok();
     }
+    if (tool === 'bun' && verb === 'scripts/release/stamp-release.ts') {
+      const version = command[command.indexOf('--version') + 1];
+      this.stamped.push(command[command.indexOf('--date') + 1]);
+      return ok(this.folders.has(version) ? `/work/docs/changelogs/${version}/log.md` : '');
+    }
+    if (tool === 'git' && verb === 'add' && command[2] === '--') {
+      this.staged.push(command[3]);
+      return ok();
+    }
     if (tool === 'git' && verb === 'commit' && pkg) {
       this.commits.push({
         sha: `sha${this.commits.length + 1}`,
@@ -220,7 +241,9 @@ class FakeWorld {
         dir,
         version: pkg.version,
         pushed: false,
+        staged: this.staged,
       });
+      this.staged = [];
       return ok();
     }
     if (tool === 'git' && verb === 'push' && command[3]?.startsWith('HEAD')) {
@@ -277,6 +300,8 @@ const entries = (...names: string[]): IPlanEntry[] =>
         : '0.4.4',
   }));
 
+const DATE = '2026-11-20';
+
 const execute = (opts: {
   world: FakeWorld;
   plan?: IPlanEntry[];
@@ -292,6 +317,7 @@ const execute = (opts: {
       ReleaseKinds.branchOf({ kind: ReleaseKinds.ofMode({ mode: opts.mode ?? 'patch' }) }),
     issue: opts.issue ?? '638',
     tarballs: TARBALLS,
+    date: DATE,
     ports: opts.world.ports(),
   });
 
@@ -338,6 +364,7 @@ describe('ReleaseRun.execute: a clean run', () => {
       mode: 'patch',
       branch: 'main',
       tarballs: TARBALLS,
+      date: DATE,
       ports: world.ports(),
     });
 
@@ -764,6 +791,98 @@ describe('ReleaseRun.execute: a stable and a prerelease', () => {
     expect(world.calls).toContain(
       'bun scripts/release/sync-next-tag.ts --published @venizia/ignis-kernel@0.4.6 --tag latest',
     );
+  });
+
+  test('a stable dates its version folder in the release commit of the last package of the plan, and in no other', async () => {
+    const world = new FakeWorld();
+    const plan = prereleased(world);
+
+    world.folders.add('0.4.6');
+    await execute({ world, plan, mode: 'patch' });
+
+    expect(world.stamped).toEqual([DATE]);
+    expect(world.commits.map((commit) => [commit.dir, commit.staged])).toEqual([
+      ['helpers', []],
+      ['kernel', []],
+      ['connectors', ['/work/docs/changelogs/0.4.6/log.md']],
+    ]);
+  });
+
+  test('the folder is stamped and added after the package.json and before its commit, with the version of that package', async () => {
+    const world = new FakeWorld();
+    const plan = prereleased(world);
+
+    world.folders.add('0.4.6');
+    await execute({ world, plan, mode: 'patch' });
+
+    const stamp = indexOfCall(world, 'stamp-release.ts --version 0.4.6 --date 2026-11-20');
+    const add = world.calls.indexOf('git add -- /work/docs/changelogs/0.4.6/log.md');
+    const commit = world.calls.indexOf(
+      '[connectors] git commit -m [#638] chore(connectors): release v0.4.6 [patch]',
+    );
+
+    expect(world.calls.filter((call) => call.includes('stamp-release.ts'))).toHaveLength(1);
+    expect(stamp).toBeGreaterThan(world.calls.indexOf('[connectors] git add package.json'));
+    expect(add).toBeGreaterThan(stamp);
+    expect(commit).toBeGreaterThan(add);
+  });
+
+  test('a project with no folder for the version adds nothing: the stamp prints no path', async () => {
+    const world = new FakeWorld();
+    const plan = prereleased(world);
+
+    await execute({ world, plan, mode: 'patch' });
+
+    expect(world.calls.some((call) => call.startsWith('git add --'))).toBe(false);
+    expect(world.commits.every((commit) => commit.staged.length === 0)).toBe(true);
+  });
+
+  test('a prerelease dates nothing', async () => {
+    const world = new FakeWorld();
+    const plan = prereleased(world, '0.4.6-0');
+
+    world.folders.add('0.4.6-1');
+    await execute({ world, plan, mode: 'prerelease' });
+
+    expect(world.calls.some((call) => call.includes('stamp-release.ts'))).toBe(false);
+  });
+
+  test('the folder is dated once: a dispatch of the same plan, whose last package is already released, stamps nothing', async () => {
+    const world = new FakeWorld();
+    const plan = prereleased(world);
+
+    world.folders.add('0.4.6');
+    await execute({ world, plan, mode: 'patch' });
+    world.checkout();
+    world.stamped = [];
+    world.calls = [];
+    await execute({ world, plan, mode: 'patch' });
+
+    expect(world.stamped).toEqual([]);
+    expect(world.calls.some((call) => call.includes('stamp-release.ts'))).toBe(false);
+  });
+
+  test('a run that published the last package but lost its commit dates the folder when it records it', async () => {
+    const world = new FakeWorld();
+    const plan = prereleased(world);
+
+    world.folders.add('0.4.6');
+    world.faults.pushFor.add('connectors');
+    await expect(execute({ world, plan, mode: 'patch' })).rejects.toThrow(/push/);
+    expect(world.commits.filter((commit) => commit.pushed).map((commit) => commit.dir)).toEqual([
+      'helpers',
+      'kernel',
+    ]);
+
+    world.faults.pushFor.clear();
+    world.checkout();
+    world.stamped = [];
+    await execute({ world, plan, mode: 'patch' });
+
+    expect(world.stamped).toEqual([DATE]);
+    expect(world.commits.find((commit) => commit.dir === 'connectors')?.staged).toEqual([
+      '/work/docs/changelogs/0.4.6/log.md',
+    ]);
   });
 
   test('refuses a branch that is not the branch of the mode, before anything is touched', async () => {
