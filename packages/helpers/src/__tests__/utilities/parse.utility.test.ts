@@ -262,3 +262,60 @@ describe('getUID', () => {
     expect(seen.size).toBe(36);
   });
 });
+
+describe('toNumber', () => {
+  test('unset and blank answer undefined, so a default applies', () => {
+    expect(ParseUtility.toNumber({ input: undefined })).toBeUndefined();
+    expect(ParseUtility.toNumber({ input: null })).toBeUndefined();
+    expect(ParseUtility.toNumber({ input: '' })).toBeUndefined();
+    expect(ParseUtility.toNumber({ input: '   ' })).toBeUndefined();
+  });
+
+  test('a decimal number as text answers its value: zero, negative, padded, fraction, exponent', () => {
+    expect(ParseUtility.toNumber({ input: '0' })).toBe(0);
+    expect(ParseUtility.toNumber({ input: '-5' })).toBe(-5);
+    expect(ParseUtility.toNumber({ input: '+7' })).toBe(7);
+    expect(ParseUtility.toNumber({ input: ' 12 ' })).toBe(12);
+    expect(ParseUtility.toNumber({ input: '1e3' })).toBe(1000);
+    expect(ParseUtility.toNumber({ input: '-2.5E-1' })).toBe(-0.25);
+    expect(ParseUtility.toNumber({ input: '.5' })).toBe(0.5);
+    expect(ParseUtility.toNumber({ input: '5.' })).toBe(5);
+    expect(ParseUtility.toNumber({ input: '3000' })).toBe(3000);
+  });
+
+  test('a finite number answers itself', () => {
+    expect(ParseUtility.toNumber({ input: 42 })).toBe(42);
+    expect(ParseUtility.toNumber({ input: 0 })).toBe(0);
+  });
+
+  test.each(['abc', '12px', '0x10', '1,000', 'Infinity', '-Infinity', 'NaN', '1e', '--1', '1 2'])(
+    '%s throws',
+    (input) => {
+      expect(() => ParseUtility.toNumber({ input })).toThrow(/\[toNumber\] .* is not a number/);
+    },
+  );
+
+  test('a non-finite number, a boolean and an object throw', () => {
+    expect(() => ParseUtility.toNumber({ input: Number.POSITIVE_INFINITY })).toThrow(
+      'is not a number',
+    );
+    expect(() => ParseUtility.toNumber({ input: Number.NaN })).toThrow('is not a number');
+    expect(() => ParseUtility.toNumber({ input: true })).toThrow('is not a number');
+    expect(() => ParseUtility.toNumber({ input: {} })).toThrow('is not a number');
+  });
+
+  test('a value with a control character is echoed escaped, not raw', () => {
+    let message = '';
+
+    expect(() => {
+      try {
+        ParseUtility.toNumber({ input: 'a\nb' });
+      } catch (error) {
+        message = String(error);
+
+        throw error;
+      }
+    }).toThrow(/is not a number/);
+    expect(message).not.toContain('\n');
+  });
+});

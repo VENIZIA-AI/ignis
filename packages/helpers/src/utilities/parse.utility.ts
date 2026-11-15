@@ -1,8 +1,12 @@
 import { getError } from '@/modules/error';
 import { UidRandom } from '@/modules/uid/common/random';
+import { EchoUtility } from './echo.utility';
 
 const UID_BASE = 36;
 const UID_HALF_LENGTH = 5;
+
+/** A decimal number as text: optional sign, digits with an optional fraction (`5.`, `.5`), an optional exponent. Hex, octal, separators, `Infinity` and `NaN` are not numbers here. */
+const DECIMAL_NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
 
 /** Number, string and key conversions that tolerate bad input; no node import, so it ships on `/core`. */
 export class ParseUtility {
@@ -160,6 +164,57 @@ export class ParseUtility {
     const parsed = ParseUtility.round({ value: Number.parseFloat(normalized), precision: digit });
 
     return Number.isNaN(parsed) ? 0 : parsed;
+  }
+
+  /**
+   * Reads a number from a value that should hold one, and refuses anything else: the read of an environment
+   * variable, where `ParseUtility.toInt` answers `0` for garbage and `Number` answers `NaN`.
+   *
+   * - `undefined`, `null` and a blank string answer `undefined`: nothing was set, so a `defaultValue` applies.
+   * - A decimal number as text answers its value. Surrounding whitespace is allowed (`' 12 '` is `12`), so is
+   *   an exponent (`'1e3'` is `1000`), a sign (`'-5'`) and a fraction (`'.5'`, `'5.'`).
+   * - Anything else throws: `'abc'`, `'12px'`, `'0x10'`, `'1,000'`, `'Infinity'`, `'NaN'`, a boolean or an object.
+   *   A number that is not finite throws too; a finite number answers itself.
+   *
+   * @throws ApplicationError `[toNumber] <the value> is not a number`.
+   * @example
+   * ```ts
+   * applicationEnvironment.get(KEY, {
+   *   transform: (raw) => ParseUtility.toNumber({ input: raw }),
+   *   defaultValue: 6379,
+   * });
+   * ```
+   */
+  static toNumber(opts: { input: unknown }): number | undefined {
+    const { input } = opts;
+
+    if (input === undefined || input === null) {
+      return undefined;
+    }
+
+    if (typeof input === 'number' && Number.isFinite(input)) {
+      return input;
+    }
+
+    if (typeof input === 'string') {
+      const trimmed = input.trim();
+
+      if (trimmed === '') {
+        return undefined;
+      }
+
+      if (DECIMAL_NUMBER.test(trimmed)) {
+        const parsed = Number(trimmed);
+
+        if (Number.isFinite(parsed)) {
+          return parsed;
+        }
+      }
+    }
+
+    throw getError({
+      message: `[toNumber] ${EchoUtility.toSafeEcho({ value: input })} is not a number`,
+    });
   }
 
   static toBoolean(opts: { input: unknown }): boolean {

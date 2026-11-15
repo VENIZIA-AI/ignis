@@ -6,14 +6,14 @@ import ts from 'typescript';
 import { CodemodCommand } from '../cli/codemod';
 import { EnvGet } from '../cli/codemod/env-get';
 
-const rewriteRaw = (source: string, fileName = 'file.ts') =>
-  EnvGet.rewrite({ typescript: ts, fileName, source });
+const rewriteRaw = (source: string, fileName = 'file.ts', numbers = false) =>
+  EnvGet.rewrite({ typescript: ts, fileName, source, numbers });
 
 /** The store import every fixture of these tests needs: a name nobody imported is not the store. It sits on the first line, so line numbers stay the fixture's own. */
 const STORE_IMPORT = `import { applicationEnvironment, AppEnvs } from '@venizia/ignis-helpers'; `;
 
-const rewrite = (source: string, fileName = 'file.ts') => {
-  const result = rewriteRaw(`${STORE_IMPORT}${source}`, fileName);
+const rewrite = (source: string, fileName = 'file.ts', numbers = false) => {
+  const result = rewriteRaw(`${STORE_IMPORT}${source}`, fileName, numbers);
 
   return { ...result, output: result.output.slice(STORE_IMPORT.length) };
 };
@@ -258,6 +258,82 @@ describe('devz codemod env-get: the rewrite', () => {
     expect(result.skipped).toEqual([{ line: 4, receiver: 'loose' }]);
   });
 
+  test('--numbers rewrites a number read to a transform, keeps a defaultValue, and joins ParseUtility to the store import', () => {
+    const result = rewriteRaw(
+      [
+        `import { AppEnvs } from '@venizia/ignis-helpers';`,
+        `export const a = AppEnvs.get<number>(KEY);`,
+        `export const b = AppEnvs.get<number | undefined>(KEY, { defaultValue: 3000 });`,
+        `export const c = AppEnvs.get<number>(KEY, {});`,
+        '',
+      ].join('\n'),
+      'file.ts',
+      true,
+    );
+
+    expect(result.output).toBe(
+      [
+        `import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';`,
+        `export const a = AppEnvs.get(KEY, { transform: (raw) => ParseUtility.toNumber({ input: raw }) });`,
+        `export const b = AppEnvs.get(KEY, { transform: (raw) => ParseUtility.toNumber({ input: raw }), defaultValue: 3000 });`,
+        `export const c = AppEnvs.get(KEY, { transform: (raw) => ParseUtility.toNumber({ input: raw }),});`,
+        '',
+      ].join('\n'),
+    );
+    expect(result.numbered).toEqual([2, 3, 4]);
+    expect(result.rewritten).toBe(3);
+    expect(result.manual).toEqual([]);
+  });
+
+  test('--numbers uses the ParseUtility the file already imports, adds a new import beside a type-only one, and is idempotent', () => {
+    const existing = rewriteRaw(
+      [
+        `import { AppEnvs, ParseUtility as Parse } from '@venizia/ignis-helpers';`,
+        `export const a = AppEnvs.get<number>(KEY);`,
+        '',
+      ].join('\n'),
+      'file.ts',
+      true,
+    );
+
+    expect(existing.output).toContain(`Parse.toNumber({ input: raw })`);
+    expect(existing.output).not.toContain(`ParseUtility.toNumber`);
+
+    const typeOnly = rewriteRaw(
+      [
+        `import type { AppEnvs } from '@venizia/ignis-helpers';`,
+        `export const a = AppEnvs.get<number>(KEY);`,
+        '',
+      ].join('\n'),
+      'file.ts',
+      true,
+    );
+
+    expect(typeOnly.output).toContain(`import { ParseUtility } from '@venizia/ignis-helpers';`);
+
+    const second = rewriteRaw(existing.output, 'file.ts', true);
+
+    expect(second.changed).toBe(false);
+    expect(second.manual).toEqual([]);
+  });
+
+  test('without --numbers a number read stays manual; with it a boolean, unknown and options that are not a literal stay manual', () => {
+    const source = [
+      `export const a = AppEnvs.get<number>(KEY);`,
+      `export const b = AppEnvs.get<boolean>(KEY);`,
+      `export const c = AppEnvs.get<unknown>(KEY);`,
+      `export const d = AppEnvs.get<number>(KEY, opts);`,
+      '',
+    ].join('\n');
+
+    expect(rewrite(source).manual.map((item) => item.line)).toEqual([1, 2, 3]);
+
+    const withNumbers = rewrite(source, 'file.ts', true);
+
+    expect(withNumbers.numbered).toEqual([1]);
+    expect(withNumbers.manual.map((item) => item.type)).toEqual(['boolean', 'unknown']);
+  });
+
   test('a get on another receiver is not touched', () => {
     const source = `const s = container.get<string>({ key });\n`;
 
@@ -450,6 +526,22 @@ describe('devz codemod env-get: the command', () => {
     expect(warnings.join('\n')).toContain('skipped  src/s.ts:1  settings.get<...>()');
     expect(logs.join('\n')).toContain('manual by type argument: number x2, unknown x1');
     expect(logs.join('\n')).toContain('3 manual, 1 skipped');
+  });
+
+  test('--numbers lists every rewrite and counts it in the summary', async () => {
+    commit({
+      'src/n.ts': `${IMPORT_LINE}export const n = AppEnvs.get<number>(KEY);\n`,
+    });
+
+    const code = await CodemodCommand.run({
+      root,
+      args: ['env-get', '--numbers', '--write', 'src/n.ts'],
+    });
+
+    expect(code).toBe(0);
+    expect(logs.join('\n')).toContain('numbers  src/n.ts:2');
+    expect(logs.join('\n')).toContain('1 number read(s) rewritten');
+    expect(read('src/n.ts')).toContain('ParseUtility.toNumber({ input: raw })');
   });
 
   test('--reverse is refused with exit 2, and an unknown option is a usage error', async () => {

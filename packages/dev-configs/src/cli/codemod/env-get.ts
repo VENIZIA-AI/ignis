@@ -31,6 +31,12 @@ is not read: edit it by hand.
 
   --write    write the changed files (without it, nothing is written); it needs a path, or --all
   --all      with --write and no path: rewrite every source file under the working directory
+  --numbers  also rewrite the number reads: get<number>(key) and get<number>(key, { defaultValue }) become
+             get(key, { transform: (raw) => ParseUtility.toNumber({ input: raw }), defaultValue }) and
+             ParseUtility joins the import of the store. Every rewrite is listed ("numbers"). The old call returned
+             the environment STRING typed as a number: after the rewrite the value is a real number, an unset
+             variable still answers undefined (or the default), and a non-numeric value throws at the read
+             instead of flowing on as a string. A boolean (the "false" string is truthy) stays manual.
   --check    dry run that exits 1 while a file would change (for CI)
   --help     print this text and exit
 
@@ -50,6 +56,7 @@ const STORE_MODULE = /^@venizia\/ignis(?:-helpers)?(?:\/.*)?$/;
 class EnvGetFlags {
   static readonly WRITE = '--write';
   static readonly ALL = '--all';
+  static readonly NUMBERS = '--numbers';
   static readonly CHECK = '--check';
   static readonly HELP = '--help';
   static readonly HELP_SHORT = '-h';
@@ -57,6 +64,7 @@ class EnvGetFlags {
   static readonly SCHEME_SET = new Set<string>([
     this.WRITE,
     this.ALL,
+    this.NUMBERS,
     this.CHECK,
     this.HELP,
     this.HELP_SHORT,
@@ -74,6 +82,8 @@ export interface IEnvGetResult {
   rewritten: number;
   /** The store calls with a type argument the codemod cannot rewrite: file line (1-based) and the first type argument. */
   manual: Array<{ line: number; type: string }>;
+  /** With `--numbers`: the lines of the number reads rewritten to a transform (they are counted in `rewritten` too). */
+  numbered: number[];
   /** The `get<...>(key)` calls on a receiver the file does not bind to the store (or through an optional chain), left alone and listed: file line (1-based) and the receiver text. */
   skipped: Array<{ line: number; receiver: string }>;
 }
@@ -190,13 +200,21 @@ export class EnvGet {
   static isStore(opts: {
     typescript: typeof import('typescript');
     identifier: import('typescript').Identifier;
-    seen?: Set<import('typescript').Node>;
   }): boolean {
+    return EnvGet.storeImport(opts) !== undefined;
+  }
+
+  /** The import specifier of the store that `identifier` resolves to (through const aliases), or `undefined` when it is not the store. */
+  static storeImport(opts: {
+    typescript: typeof import('typescript');
+    identifier: import('typescript').Identifier;
+    seen?: Set<import('typescript').Node>;
+  }): import('typescript').ImportSpecifier | undefined {
     const { typescript: ts, identifier } = opts;
     const seen = opts.seen ?? new Set<import('typescript').Node>();
 
     if (seen.has(identifier)) {
-      return false;
+      return undefined;
     }
 
     seen.add(identifier);
@@ -215,11 +233,11 @@ export class EnvGet {
       if (ts.isImportSpecifier(declaration)) {
         const importDeclaration = declaration.parent.parent.parent;
 
-        return (
-          ts.isStringLiteral(importDeclaration.moduleSpecifier) &&
+        return ts.isStringLiteral(importDeclaration.moduleSpecifier) &&
           STORE_MODULE.test(importDeclaration.moduleSpecifier.text) &&
           RECEIVERS.has((declaration.propertyName ?? declaration.name).text)
-        );
+          ? declaration
+          : undefined;
       }
 
       if (
@@ -229,26 +247,31 @@ export class EnvGet {
         declaration.initializer !== undefined &&
         ts.isIdentifier(declaration.initializer)
       ) {
-        return EnvGet.isStore({ typescript: ts, identifier: declaration.initializer, seen });
+        return EnvGet.storeImport({ typescript: ts, identifier: declaration.initializer, seen });
       }
 
-      return false;
+      return undefined;
     }
 
-    return false;
+    return undefined;
   }
 
   static rewrite(opts: {
     typescript: typeof import('typescript');
     fileName: string;
     source: string;
+    /** `--numbers`: rewrite `get<number>(key)` and `get<number>(key, { defaultValue })` to a `ParseUtility.toNumber` transform. */
+    numbers?: boolean;
   }): IEnvGetResult {
-    const { typescript: ts, fileName, source } = opts;
+    const { typescript: ts, fileName, source, numbers = false } = opts;
     const language = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
     const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, language);
     const edits: Array<{ start: number; end: number; text: string }> = [];
     const manual: Array<{ line: number; type: string }> = [];
     const skipped: Array<{ line: number; receiver: string }> = [];
+    const numbered: number[] = [];
+    let rewrittenCalls = 0;
+    let parseUtilityName: string | undefined;
     const lineOf = (node: import('typescript').Node): number =>
       file.getLineAndCharacterOfPosition(node.getStart(file)).line + 1;
 
@@ -285,6 +308,77 @@ export class EnvGet {
           property.name.text === 'transform',
       );
 
+    /** `number`, or `number | undefined`: the types `--numbers` rewrites. */
+    const isNumberType = (node: import('typescript').TypeNode): boolean => {
+      if (node.kind === ts.SyntaxKind.NumberKeyword) {
+        return true;
+      }
+
+      if (ts.isParenthesizedTypeNode(node)) {
+        return isNumberType(node.type);
+      }
+
+      if (ts.isUnionTypeNode(node) && node.types.length === 2) {
+        const parts = node.types.map((part) => part.kind);
+
+        return (
+          parts.includes(ts.SyntaxKind.NumberKeyword) &&
+          parts.includes(ts.SyntaxKind.UndefinedKeyword)
+        );
+      }
+
+      return false;
+    };
+
+    /** The local name of `ParseUtility` in this file: the one it already imports from the store module, or a new import next to the store's. */
+    const ensureParseUtility = (storeImport: import('typescript').ImportSpecifier): string => {
+      if (parseUtilityName !== undefined) {
+        return parseUtilityName;
+      }
+
+      for (const statement of file.statements) {
+        if (
+          ts.isImportDeclaration(statement) &&
+          ts.isStringLiteral(statement.moduleSpecifier) &&
+          STORE_MODULE.test(statement.moduleSpecifier.text) &&
+          statement.importClause?.namedBindings !== undefined &&
+          ts.isNamedImports(statement.importClause.namedBindings)
+        ) {
+          const element = statement.importClause.namedBindings.elements.find(
+            (candidate) =>
+              (candidate.propertyName ?? candidate.name).text === 'ParseUtility' &&
+              !candidate.isTypeOnly &&
+              !statement.importClause?.isTypeOnly,
+          );
+
+          if (element !== undefined) {
+            parseUtilityName = element.name.text;
+
+            return parseUtilityName;
+          }
+        }
+      }
+
+      const declaration = storeImport.parent.parent.parent;
+      const named = storeImport.parent;
+
+      if (declaration.importClause?.isTypeOnly) {
+        edits.push({
+          start: declaration.getEnd(),
+          end: declaration.getEnd(),
+          text: `\nimport { ParseUtility } from ${declaration.moduleSpecifier.getText(file)};`,
+        });
+      } else {
+        const last = named.elements[named.elements.length - 1];
+
+        edits.push({ start: last.getEnd(), end: last.getEnd(), text: ', ParseUtility' });
+      }
+
+      parseUtilityName = 'ParseUtility';
+
+      return parseUtilityName;
+    };
+
     const visit = (node: import('typescript').Node): void => {
       if (
         ts.isCallExpression(node) &&
@@ -296,18 +390,45 @@ export class EnvGet {
         const isOptional =
           node.questionDotToken !== undefined || callee.questionDotToken !== undefined;
 
-        if (
-          !isOptional &&
-          ts.isIdentifier(callee.expression) &&
-          EnvGet.isStore({ typescript: ts, identifier: callee.expression })
-        ) {
+        const storeImport =
+          !isOptional && ts.isIdentifier(callee.expression)
+            ? EnvGet.storeImport({ typescript: ts, identifier: callee.expression })
+            : undefined;
+
+        if (storeImport !== undefined) {
           const [first, second] = node.typeArguments;
           const start = callee.name.getEnd();
           const end = node.arguments.pos - 1;
+          const options = node.arguments[1];
+          const isNumberRead =
+            numbers &&
+            node.typeArguments.length === 1 &&
+            isNumberType(first) &&
+            !hasTransform(options) &&
+            (options === undefined || ts.isObjectLiteralExpression(options));
 
-          if (node.typeArguments.length === 2 && node.arguments.length > 1) {
+          if (isNumberRead) {
+            const parseUtility = ensureParseUtility(storeImport);
+            const transform = `transform: (raw) => ${parseUtility}.toNumber({ input: raw })`;
+
+            edits.push({ start, end, text: '' });
+
+            if (options !== undefined && ts.isObjectLiteralExpression(options)) {
+              const insertAt = options.getStart(file) + 1;
+
+              edits.push({ start: insertAt, end: insertAt, text: ` ${transform},` });
+            } else {
+              const insertAt = node.arguments[0].getEnd();
+
+              edits.push({ start: insertAt, end: insertAt, text: `, { ${transform} }` });
+            }
+
+            numbered.push(lineOf(node));
+            rewrittenCalls += 1;
+          } else if (node.typeArguments.length === 2 && node.arguments.length > 1) {
             // `get<R, B>(key, options)` keeps R, even when R is `string`: a second run leaves `get<string>(key, { transform })` alone.
             edits.push({ start, end, text: `<${first.getText(file)}>` });
+            rewrittenCalls += 1;
           } else if (
             node.typeArguments.length === 1 &&
             (hasTransform(node.arguments[1]) ||
@@ -319,6 +440,7 @@ export class EnvGet {
             // Nothing to do and nothing to list.
           } else if (isStringType(first) && second === undefined) {
             edits.push({ start, end, text: '' });
+            rewrittenCalls += 1;
           } else {
             manual.push({ line: lineOf(node), type: first.getText(file) });
           }
@@ -336,7 +458,7 @@ export class EnvGet {
     visit(file);
 
     if (edits.length === 0) {
-      return { output: source, changed: false, rewritten: 0, manual, skipped };
+      return { output: source, changed: false, rewritten: 0, manual, numbered, skipped };
     }
 
     let output = source;
@@ -345,7 +467,14 @@ export class EnvGet {
       output = output.slice(0, edit.start) + edit.text + output.slice(edit.end);
     }
 
-    return { output, changed: output !== source, rewritten: edits.length, manual, skipped };
+    return {
+      output,
+      changed: output !== source,
+      rewritten: rewrittenCalls,
+      manual,
+      numbered,
+      skipped,
+    };
   }
 }
 
@@ -376,6 +505,7 @@ export class EnvGetCommand {
 
     const isWrite = flags.includes(EnvGetFlags.WRITE);
     const isCheck = flags.includes(EnvGetFlags.CHECK);
+    const isNumbers = flags.includes(EnvGetFlags.NUMBERS);
 
     if (isWrite && isCheck) {
       console.error(
@@ -414,6 +544,7 @@ export class EnvGetCommand {
     let callCount = 0;
     let manualCount = 0;
     let skippedCount = 0;
+    let numberedCount = 0;
     const manualByType = new Map<string, number>();
     let refusedCount = 0;
 
@@ -434,7 +565,12 @@ export class EnvGetCommand {
           continue;
         }
 
-        const result = EnvGet.rewrite({ typescript, fileName: file, source });
+        const result = EnvGet.rewrite({
+          typescript,
+          fileName: file,
+          source,
+          numbers: isNumbers,
+        });
         const shown = relative(root, file).split('\\').join('/') || file;
 
         for (const item of result.manual) {
@@ -442,6 +578,13 @@ export class EnvGetCommand {
           manualByType.set(item.type, (manualByType.get(item.type) ?? 0) + 1);
           console.warn(
             `manual  ${shown}:${item.line}  get<${item.type}>: a type argument the rewrite cannot place (not string or string | undefined, or two without an options argument, or options that are not a literal): a number or other conversion goes in a transform, for example get(key, { transform: Number })`,
+          );
+        }
+
+        for (const line of result.numbered) {
+          numberedCount += 1;
+          console.log(
+            `numbers  ${shown}:${line}  get<number> rewritten to a transform: the value is now a real number and a non-numeric value throws at the read`,
           );
         }
 
@@ -478,6 +621,7 @@ export class EnvGetCommand {
 
     console.log(
       `devz codemod env-get: ${changedCount} file(s) ${isWrite ? 'changed' : 'would change'}, ${callCount} call(s) ${isWrite ? 'rewritten' : 'would be rewritten'}, ${manualCount} manual, ${skippedCount} skipped` +
+        (isNumbers ? `, ${numberedCount} number read(s) rewritten` : '') +
         (refusedCount > 0 ? `, ${refusedCount} refused` : ''),
     );
 

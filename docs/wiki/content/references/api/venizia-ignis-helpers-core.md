@@ -1627,6 +1627,28 @@ export declare class ParseUtility {
         input: unknown;
         digit?: number;
     }): number;
+    /**
+     * Reads a number from a value that should hold one, and refuses anything else: the read of an environment
+     * variable, where `ParseUtility.toInt` answers `0` for garbage and `Number` answers `NaN`.
+     *
+     * - `undefined`, `null` and a blank string answer `undefined`: nothing was set, so a `defaultValue` applies.
+     * - A decimal number as text answers its value. Surrounding whitespace is allowed (`' 12 '` is `12`), so is
+     *   an exponent (`'1e3'` is `1000`), a sign (`'-5'`) and a fraction (`'.5'`, `'5.'`).
+     * - Anything else throws: `'abc'`, `'12px'`, `'0x10'`, `'1,000'`, `'Infinity'`, `'NaN'`, a boolean or an object.
+     *   A number that is not finite throws too; a finite number answers itself.
+     *
+     * @throws ApplicationError `[toNumber] <the value> is not a number`.
+     * @example
+     * ```ts
+     * applicationEnvironment.get(KEY, {
+     *   transform: (raw) => ParseUtility.toNumber({ input: raw }),
+     *   defaultValue: 6379,
+     * });
+     * ```
+     */
+    static toNumber(opts: {
+        input: unknown;
+    }): number | undefined;
     static toBoolean(opts: {
         input: unknown;
     }): boolean;
