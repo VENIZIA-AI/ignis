@@ -57,7 +57,7 @@ export class ScenariosCases extends BaseTestCases {
               { 'jValue.metadata.created': { gte: '2025-01-01' } },
               { 'jValue.metadata.created': { lt: '2026-01-01' } },
             ],
-          } as any,
+          },
         },
       });
 

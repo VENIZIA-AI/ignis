@@ -2684,6 +2684,7 @@ jvalue-column-is-json-value:
           : undefined;
 
       // an array, a record and a scalar are accepted; spread an interface value, or declare its shape as a type alias
+      // a readonly array or an `as const` value is refused, so copy it with [...arr]
       await repository.create({ data: { jValue: { ...meta } } });
     steps:
       - "Narrow every read of jValue: check typeof object, not null and not an array before you read a key."
