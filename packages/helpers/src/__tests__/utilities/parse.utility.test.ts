@@ -215,7 +215,8 @@ describe('parseArrayToMapWithKey', () => {
   });
 
   test('throws when an element lacks the key', () => {
-    const elements = [{ id: 1 }, JSON.parse('{}')];
+    // @ts-expect-error - an element without the key on purpose
+    const elements: Array<{ id: number }> = [{ id: 1 }, {}];
 
     expect(() => ParseUtility.parseArrayToMapWithKey({ items: elements, key: 'id' })).toThrow(
       'Invalid keyMap',

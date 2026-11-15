@@ -194,7 +194,8 @@ afterEach(async () => {
 
 describe('SocketIOServerHelper | constructor', () => {
   test('rejects the Node runtime: IGNIS runs on Bun only', () => {
-    expect(() => createHelper(JSON.parse('{"runtime":"node"}'))).toThrow(/Unsupported runtime/);
+    // @ts-expect-error - 'node' is not a supported runtime
+    expect(() => createHelper({ runtime: 'node' })).toThrow(/Unsupported runtime/);
   });
 
   test('rejects a BUN runtime without an engine', () => {
@@ -204,7 +205,8 @@ describe('SocketIOServerHelper | constructor', () => {
   });
 
   test('rejects an unsupported runtime', () => {
-    expect(() => createHelper(JSON.parse('{"runtime":"deno"}'))).toThrow(/Unsupported runtime/);
+    // @ts-expect-error - 'deno' is not a supported runtime
+    expect(() => createHelper({ runtime: 'deno' })).toThrow(/Unsupported runtime/);
   });
 
   test('rejects a missing redis connection', () => {
@@ -252,7 +254,8 @@ describe('SocketIOServerHelper | on', () => {
     const { helper } = createHelper();
 
     expect(() => helper.on({ topic: '', handler: () => {} })).toThrow(/Invalid topic/);
-    expect(() => helper.on(JSON.parse('{"topic":"a-topic"}'))).toThrow(/Invalid event handler/);
+    // @ts-expect-error - a handler is required
+    expect(() => helper.on({ topic: 'a-topic' })).toThrow(/Invalid event handler/);
   });
 
   test('rejects binding before the IO server is initialized', () => {
@@ -733,7 +736,8 @@ describe('SocketIOServerHelper | send', () => {
   test('ignores an empty payload', () => {
     const { helper, sent } = createHelper();
 
-    helper.send(JSON.parse('{}'));
+    // @ts-expect-error - a payload is required
+    helper.send({});
     helper.send({ payload: { topic: '', data: { value: 1 } } });
 
     expect(sent).toHaveLength(0);
@@ -751,7 +755,8 @@ describe('SocketIOServerHelper | send', () => {
 
   test('does not throw when the emitter is not configured yet', () => {
     const { helper } = createHelper();
-    Reflect.set(helper, 'emitter', undefined);
+    // @ts-expect-error - the emitter is unset on purpose
+    helper['emitter'] = undefined;
 
     expect(() =>
       helper.send({ destination: 'client-a', payload: { topic: 'a-topic', data: { value: 1 } } }),

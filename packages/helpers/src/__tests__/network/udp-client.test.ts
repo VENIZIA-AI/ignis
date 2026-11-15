@@ -255,11 +255,10 @@ describe('NetworkUdpClient - error paths', () => {
   });
 
   test('a MISSING port creates no socket', () => {
+    // @ts-expect-error - a missing port on purpose: the option type requires one
     const client = NetworkUdpClient.newInstance({
       identifier: 'udp-missing-port',
       host: '127.0.0.1',
-      // A missing port on purpose: `Reflect.get` on an empty object yields `undefined` typed `any`.
-      port: Reflect.get({}, 'port'),
     });
 
     client.connect();

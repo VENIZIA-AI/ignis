@@ -10,10 +10,11 @@ describe('createSecretsHelper', () => {
   });
 
   test('throws on unsupported provider', () => {
-    const unsupportedProvider = JSON.parse('"aws"');
-
-    return expect(SecretsHelperFactory.create({ provider: unsupportedProvider })).rejects.toThrow(
-      /Unsupported secret provider/,
-    );
+    return expect(
+      SecretsHelperFactory.create({
+        // @ts-expect-error - 'aws' is not one of the supported providers
+        provider: 'aws',
+      }),
+    ).rejects.toThrow(/Unsupported secret provider/);
   });
 });

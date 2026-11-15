@@ -186,7 +186,8 @@ describe('NetworkTcpClient - guards', () => {
     const client = NetworkTcpClient.newInstance({
       identifier: 'tcp-client-empty-options',
       // An empty options object on purpose; the option type requires a port or a path.
-      options: JSON.parse('{}'),
+      // @ts-expect-error - neither a port nor a path
+      options: {},
     });
 
     client.connect({ resetReconnectCounter: true });
