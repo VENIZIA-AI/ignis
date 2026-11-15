@@ -38,13 +38,15 @@ migration:
         // convert in a transform: the value is a string
         // handle undefined in the transform: Number(undefined) is NaN, and NaN is not nullish, so a defaultValue would never apply
         const timeout = applicationEnvironment.get('APP_ENV_TIMEOUT', {
-          transform: (raw) => (raw === undefined ? undefined : Number(raw)),
+          transform: (raw) => ParseUtility.toNumber({ input: raw }),
           defaultValue: 5000,
         });
+        // ParseUtility.toNumber answers undefined for an unset or blank value (the default applies), the number
+        // for a decimal numeric string, and throws for anything else. `devz codemod env-get --numbers` writes this form.
     downgrade:
       steps:
         - "Call get<number>(key, { defaultValue }) again; the older get<T> was a cast."
-    data: "The old get<number>(key) returned the raw string at runtime while its type said number. Code that compared it with a number, or added to it, behaved as a string operation: check each call that carried a non-string type argument."
+    data: "The old get<number>(key) returned the raw string at runtime while its type said number. Code that compared it with a number, or added to it, behaved as a string operation: check each call that carried a non-string type argument. The rewrite to a transform (by hand, or with `devz codemod env-get --numbers`) changes the value: it is a real number now, an unset variable still answers undefined or the default, and a non-numeric value throws at the read where it used to flow on as a string. A boolean read stays manual: the string \"false\" is truthy."
   - id: get-default-value-is-a-string
     symbols: [ApplicationEnvironment.get, IApplicationEnvironment.get, IApplicationEnvironmentTransformOptions, IApplicationEnvironmentDefaultedTransformOptions]
     upgrade:
