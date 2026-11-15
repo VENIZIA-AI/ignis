@@ -2,34 +2,41 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { CodemodFiles } from './files';
 
-const USAGE = `Usage: devz codemod any-aliases [paths...] [--write [--all] | --check]
+const USAGE = `Usage: devz codemod any-aliases [paths...] [--strict] [--write [--all] | --check]
 
-Removes the AnyType and AnyObject aliases the @venizia/ignis-helpers and @venizia/ignis-inversion
-releases deleted:
+Replaces the AnyType and AnyObject aliases the @venizia/ignis-helpers and @venizia/ignis-inversion
+releases deleted, by what they stood for, so a bump changes no type in your code:
 
-  AnyType      becomes  unknown
-  AnyObject    becomes  Record<string, unknown>
+  AnyType      becomes  any
+  AnyObject    becomes  Record<string | symbol | number, any>
 
 in every file that imports them from @venizia/ignis, @venizia/ignis-helpers, @venizia/ignis-inversion,
 @venizia/ardor or @venizia/ardor-kernel (ARDOR re-exported the same two names; a sub-path such as
 @venizia/ignis-helpers/common too), whatever local name the import gives them
 (import { AnyType as Loose } ...). The names leave the import, and an import left empty is dropped.
 
+With --strict it writes the tighter types instead, for code that wants to stop using any:
+
+  AnyType      becomes  unknown
+  AnyObject    becomes  Record<string, unknown>
+
+--strict surfaces errors that any hid: a value is no longer assignable to unknown without a check, and an
+interface-typed value is not assignable to Record<string, unknown> (an interface has no implicit index
+signature). Declare the shape as a type alias, spread the value, or narrow it; run your typecheck after it.
+Run it on a path at a time to tighten one part of an app.
+
 It lists, and leaves alone:
   manual  a re-export (export { AnyType }, export type { AnyObject } from ...), an import("...").AnyType
-          type, and AnyType in a heritage clause (extends unknown is not valid)
+          type, and AnyType in a heritage clause (extends any and extends unknown are not valid)
   local   a same-named type the file declares (in any scope: a namespace, a function, a block, a type
           parameter) or imports from somewhere else; a use that such a declaration shadows is left alone
 
 A name used in a heritage clause keeps its import, and so keeps all its other uses in that file: once you
 replace the heritage use by hand, run the codemod again and the other uses are rewritten.
 
-A value that the alias used to accept may not fit the new type: an interface-typed value is not assignable
-to Record<string, unknown> (an interface has no implicit index signature). Declare the shape as a type
-alias, or spread the value; run your typecheck after the codemod.
-
 It reads TypeScript files (.ts, .tsx, .mts, .cts) and is idempotent: a second run changes nothing.
 
+  --strict   write unknown and Record<string, unknown> instead of any
   --write    write the changed files (without it, nothing is written); it needs a path, or --all
   --all      with --write and no path: rewrite every source file under the working directory
   --check    dry run that exits 1 while a file would change or a manual case is left (for CI)
@@ -58,16 +65,26 @@ const ALIAS_MODULE = new RegExp(
   `^(?:${ALIAS_PACKAGES.map((name) => name.replace(/[/.-]/g, '\\$&')).join('|')})(?:/.*)?$`,
 );
 
-/** The deleted aliases and what each becomes. */
+/** The deleted aliases and what each becomes by default: what they stood for, so the types of the code do not change. */
 const REPLACEMENTS = new Map<string, string>([
+  ['AnyType', 'any'],
+  ['AnyObject', 'Record<string | symbol | number, any>'],
+]);
+
+/** With `--strict`: the tighter types, for code that wants to stop using `any`. */
+const STRICT_REPLACEMENTS = new Map<string, string>([
   ['AnyType', 'unknown'],
   ['AnyObject', 'Record<string, unknown>'],
 ]);
+
+/** What `AnyType` becomes in either mode: neither `extends any` nor `extends unknown` is valid, so a heritage use is left. */
+const HERITAGE_BLOCKED = new Set(['any', 'unknown']);
 
 class AnyAliasesFlags {
   static readonly WRITE = '--write';
   static readonly ALL = '--all';
   static readonly CHECK = '--check';
+  static readonly STRICT = '--strict';
   static readonly HELP = '--help';
   static readonly HELP_SHORT = '-h';
 
@@ -75,6 +92,7 @@ class AnyAliasesFlags {
     this.WRITE,
     this.ALL,
     this.CHECK,
+    this.STRICT,
     this.HELP,
     this.HELP_SHORT,
   ]);
@@ -95,14 +113,17 @@ export interface IAnyAliasesResult {
   local: Array<{ line: number; name: string }>;
 }
 
-/** Replaces the deleted `AnyType` and `AnyObject` aliases by what they stood for. */
+/** Replaces the deleted `AnyType` and `AnyObject` aliases by what they stood for (`any`), or with `isStrict` by the tighter types. */
 export class AnyAliases {
   static rewrite(opts: {
     typescript: typeof import('typescript');
     fileName: string;
     source: string;
+    /** Write `unknown` and `Record<string, unknown>` instead of `any`. */
+    isStrict?: boolean;
   }): IAnyAliasesResult {
-    const { typescript: ts, fileName, source } = opts;
+    const { typescript: ts, fileName, source, isStrict = false } = opts;
+    const replacements = isStrict ? STRICT_REPLACEMENTS : REPLACEMENTS;
     const language = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
     const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, language);
     const edits: Array<{ start: number; end: number; text: string }> = [];
@@ -218,8 +239,8 @@ export class AnyAliases {
       }
     }
 
-    // `extends unknown` and `implements unknown` are not valid TypeScript: an alias used in a heritage clause whose
-    // replacement is `unknown` is left (import and references) and reported where it is used.
+    // `extends any`, `extends unknown` and `implements` of either are not valid TypeScript: an alias used in a heritage
+    // clause whose replacement is `any` or `unknown` is left (import and references) and reported where it is used.
     const heritageBlocked = new Set<string>();
     const importedReplacement = new Map<string, string>();
 
@@ -232,7 +253,7 @@ export class AnyAliases {
         ts.isNamedImports(statement.importClause.namedBindings)
       ) {
         for (const element of statement.importClause.namedBindings.elements) {
-          const replacement = REPLACEMENTS.get((element.propertyName ?? element.name).text);
+          const replacement = replacements.get((element.propertyName ?? element.name).text);
 
           if (replacement !== undefined) {
             importedReplacement.set(element.name.text, replacement);
@@ -245,7 +266,7 @@ export class AnyAliases {
       if (
         ts.isExpressionWithTypeArguments(node) &&
         ts.isIdentifier(node.expression) &&
-        importedReplacement.get(node.expression.text) === 'unknown' &&
+        HERITAGE_BLOCKED.has(importedReplacement.get(node.expression.text) ?? '') &&
         !isShadowed(node, node.expression.text, false)
       ) {
         heritageBlocked.add(node.expression.text);
@@ -280,7 +301,7 @@ export class AnyAliases {
       }
 
       if (clause.namedBindings === undefined || !ts.isNamedImports(clause.namedBindings)) {
-        if (clause.name !== undefined && REPLACEMENTS.has(clause.name.text) && !isAliasSource) {
+        if (clause.name !== undefined && replacements.has(clause.name.text) && !isAliasSource) {
           local.push({ line: lineOf(clause.name), name: clause.name.text });
         }
 
@@ -319,7 +340,7 @@ export class AnyAliases {
       for (const [index, element] of named.elements.entries()) {
         const imported = (element.propertyName ?? element.name).text;
         const localName = element.name.text;
-        const replacement = REPLACEMENTS.get(imported);
+        const replacement = replacements.get(imported);
 
         if (replacement === undefined) {
           keep(element, index);
@@ -413,7 +434,7 @@ export class AnyAliases {
           ts.isClassDeclaration(statement) ||
           ts.isEnumDeclaration(statement)) &&
         statement.name !== undefined &&
-        REPLACEMENTS.has(statement.name.text) &&
+        replacements.has(statement.name.text) &&
         !aliasNames.has(statement.name.text)
       ) {
         local.push({ line: lineOf(statement.name), name: statement.name.text });
@@ -430,7 +451,7 @@ export class AnyAliases {
           ts.isEnumDeclaration(node) ||
           ts.isTypeParameterDeclaration(node)) &&
         node.name !== undefined &&
-        REPLACEMENTS.has(node.name.text) &&
+        replacements.has(node.name.text) &&
         !ts.isSourceFile(node.parent)
       ) {
         local.push({ line: lineOf(node.name), name: node.name.text });
@@ -447,7 +468,7 @@ export class AnyAliases {
           ts.isIdentifier(typeName.left) &&
           namespaces.has(typeName.left.text) &&
           !isShadowed(node, typeName.left.text, true)
-            ? REPLACEMENTS.get(typeName.right.text)
+            ? replacements.get(typeName.right.text)
             : undefined;
         const replacement = byName ?? byNamespace;
 
@@ -469,14 +490,14 @@ export class AnyAliases {
           ts.isIdentifier(expression.expression) &&
           namespaces.has(expression.expression.text) &&
           !isShadowed(node, expression.expression.text, true)
-            ? REPLACEMENTS.get(expression.name.text)
+            ? replacements.get(expression.name.text)
             : undefined;
         const replacement = byName ?? byNamespace;
 
-        if (replacement === 'unknown') {
+        if (replacement !== undefined && HERITAGE_BLOCKED.has(replacement)) {
           manual.push({
             line: lineOf(node),
-            reason: `${node.getText(file)} in a heritage clause: extends unknown and implements unknown are not valid, name the members you mean`,
+            reason: `${node.getText(file)} in a heritage clause: extends any, extends unknown and implements are not valid, name the members you mean`,
           });
 
           return;
@@ -495,7 +516,7 @@ export class AnyAliases {
         ) {
           manual.push({
             line: lineOf(node),
-            reason: `${expression.text} in a heritage clause: extends unknown and implements unknown are not valid, name the members you mean`,
+            reason: `${expression.text} in a heritage clause: extends any, extends unknown and implements are not valid, name the members you mean`,
           });
 
           return;
@@ -506,7 +527,7 @@ export class AnyAliases {
         ts.isImportTypeNode(node) &&
         node.qualifier !== undefined &&
         ts.isIdentifier(node.qualifier) &&
-        REPLACEMENTS.has(node.qualifier.text) &&
+        replacements.has(node.qualifier.text) &&
         ts.isLiteralTypeNode(node.argument) &&
         ts.isStringLiteral(node.argument.literal) &&
         ALIAS_MODULE.test(node.argument.literal.text)
@@ -530,7 +551,7 @@ export class AnyAliases {
         for (const element of node.exportClause.elements) {
           const exported = (element.propertyName ?? element.name).text;
 
-          if (REPLACEMENTS.has(exported) && isIgnisSource) {
+          if (replacements.has(exported) && isIgnisSource) {
             manual.push({
               line: lineOf(element),
               reason: `a re-export of ${exported}: the alias is gone, export the type you meant`,
@@ -585,6 +606,7 @@ export class AnyAliasesCommand {
 
     const isWrite = flags.includes(AnyAliasesFlags.WRITE);
     const isCheck = flags.includes(AnyAliasesFlags.CHECK);
+    const isStrict = flags.includes(AnyAliasesFlags.STRICT);
 
     if (isWrite && isCheck) {
       console.error(
@@ -642,7 +664,7 @@ export class AnyAliasesCommand {
           continue;
         }
 
-        const result = AnyAliases.rewrite({ typescript, fileName: file, source });
+        const result = AnyAliases.rewrite({ typescript, fileName: file, source, isStrict });
         const shown = relative(root, file).split('\\').join('/') || file;
 
         for (const item of result.manual) {
@@ -688,7 +710,7 @@ export class AnyAliasesCommand {
 
     if (!isWrite && changedCount > 0) {
       console.log(
-        `Nothing was written. Run again with ${AnyAliasesFlags.WRITE} to apply, then run your typecheck: a value an alias used to accept may need a type alias or a spread.`,
+        `Nothing was written. Run again with ${AnyAliasesFlags.WRITE} to apply, then run your typecheck${isStrict ? ': a value an alias used to accept may need a type alias, a spread or a narrowing' : ''}.`,
       );
     }
 

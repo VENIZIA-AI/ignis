@@ -1,6 +1,6 @@
 ---
 title: AnyType and AnyObject are gone
-description: "The AnyType and AnyObject aliases are removed from the helpers and inversion packages: write the shape, or use unknown and narrow it."
+description: "The AnyType and AnyObject aliases are removed from the helpers and inversion packages. devz codemod any-aliases writes what they stood for, so no type in your code changes; tighten later with --strict or by hand."
 packages: ['@venizia/ignis-helpers', '@venizia/ignis-inversion']
 migration:
   - id: any-type-alias-removed
@@ -20,22 +20,28 @@ migration:
         // a parameter
         const log = (value: AnyType) => console.log(value);
       after: |
-        // no alias to import. A bag of values read later is Record<string, unknown>: narrow what you read
-        const headers: Record<string, unknown> = {};
-        const id = headers['x-id'];
+        // devz codemod any-aliases writes what AnyType stood for, so no type changes and nothing new fails
+        const headers: Record<string, any> = {};
+        headers['x-id'].toUpperCase();
+
+        interface IResult<TData = any> { data: TData }
+
+        const log = (value: any) => console.log(value);
+
+        // Later, to stop using any (devz codemod any-aliases --strict, or by hand): unknown, and narrow what you read
+        const strictHeaders: Record<string, unknown> = {};
+        const id = strictHeaders['x-id'];
         if (typeof id === 'string') {
           id.toUpperCase();
         }
 
-        // a generic default is unknown, or the type you really mean
-        interface IResult<TData = unknown> { data: TData }
+        interface IStrictResult<TData = unknown> { data: TData }
 
-        // a parameter that only passes the value on is unknown
-        const log = (value: unknown) => console.log(value);
+        const strictLog = (value: unknown) => console.log(value);
     downgrade:
       steps:
         - "Declare the alias in your own code: `export type AnyType = any;` and import it from there."
-    data: "A bag that holds interface-typed values: Record<string, unknown> accepts them as values, but a variable typed with an interface is not assignable to Record<string, unknown> (an interface has no implicit index signature). Declare the shape as a type alias, or take `object`."
+    data: "The codemod writes any, so a bag that holds interface-typed values keeps compiling. When you tighten (--strict or by hand), a variable typed with an interface is not assignable to Record<string, unknown> (an interface has no implicit index signature): declare the shape as a type alias, or take `object`."
   - id: any-object-alias-removed
     symbols: [AnyObject]
     codemod: any-aliases
@@ -53,23 +59,26 @@ migration:
         declare const user: IUser;
         pick(user, 'id');
       after: |
-        // AnyObject was Record<string | symbol | number, any>; it becomes Record<string, unknown>.
-        // An interface-typed argument needs an index signature: declare the shape as a type alias, or take `object` and read with Reflect.get
-        const pick = (source: object, key: string): unknown => Reflect.get(source, key);
+        // devz codemod any-aliases writes what AnyObject stood for: no type changes
+        const pick = (source: Record<string | symbol | number, any>, key: string) => source[key];
 
-        interface IPage<TItem extends Record<string, unknown> = Record<string, unknown>> { items: TItem[] }
+        interface IPage<TItem extends Record<string | symbol | number, any> = Record<string | symbol | number, any>> { items: TItem[] }
 
-        type TUser = { id: number };
-        declare const user: TUser;
+        interface IUser { id: number }
+        declare const user: IUser;
         pick(user, 'id');
+
+        // Later, to tighten (--strict or by hand): take object and read with Reflect.get, or name the shape
+        const strictPick = (source: object, key: string): unknown => Reflect.get(source, key);
+        strictPick(user, 'id');
     downgrade:
       steps:
-        - "Declare the alias in your own code: `export type AnyObject = Record<string | symbol | number, any>;` and import it from there."
+        - "Declare the alias in your own code: `export type AnyObject = Record<string | symbol | number, any>;` and import it from there. The codemod already wrote that type, so the downgrade is only needed for the import."
   - id: interface-values-and-record-unknown
     symbols: [AnyType, AnyObject]
     upgrade:
       before: |
-        // after the alias is replaced one for one, an interface-typed value no longer fits a Record<string, unknown> parameter
+        // when you tighten AnyObject to Record<string, unknown> (--strict or by hand), an interface-typed value no longer fits it
         interface IUser { id: number; name: string }
         declare const user: IUser;
 
@@ -93,7 +102,7 @@ migration:
         const bag: Record<string, unknown> = typedUser;
     downgrade:
       steps:
-        - "Declare the alias in your own code and use it for the parameter; an interface fits Record<string | symbol | number, any>."
+        - "Write Record<string | symbol | number, any> again (it is what the codemod writes by default); an interface fits it."
   - id: inversion-any-type-removed
     symbols: [AnyType]
     codemod: any-aliases
@@ -103,7 +112,7 @@ migration:
 
         const decorate = (target: AnyType) => Reflect.getMetadata('design:type', target);
       after: |
-        // the inversion package no longer exports AnyType; a decorator target is an object
+        // the codemod writes any, so nothing changes; to tighten, a decorator target is an object
         const decorate = (target: object) => Reflect.getMetadata('design:type', target);
     downgrade:
       steps:
@@ -134,7 +143,7 @@ migration:
 
 <Badge type="warning" text="Breaking Change" />
 
-**In one line.** `AnyType` and `AnyObject` are no longer exported: say what the value is, or use `unknown` and narrow it. Nothing changes at runtime.
+**In one line.** `AnyType` and `AnyObject` are no longer exported. `devz codemod any-aliases` writes what they stood for, so no type in your code changes; tighten at your own pace. Nothing changes at runtime.
 
 ## What changed
 
@@ -144,9 +153,21 @@ migration:
 
 ## Who is affected
 
-- **Code that imports `AnyType` or `AnyObject` from `@venizia/ignis-helpers`, `@venizia/ignis-inversion` or the `@venizia/ignis` root.** The import fails to compile. Run `devz codemod any-aliases --write <paths>` (from the `@venizia/dev-configs` release that carries this change): it rewrites `AnyType` to `unknown` and `AnyObject` to `Record<string, unknown>`, drops the names from the import, and lists what it leaves (a re-export, an `import()` type, a same-named local type). It also reads imports from `@venizia/ardor` and `@venizia/ardor-kernel`, which re-exported the two names, so one run covers both frameworks. A value an alias used to accept may then fail the typecheck: an interface-typed value is not assignable to `Record<string, unknown>`; the migration item `interface-values-and-record-unknown` says how to fix it by hand.
+- **Code that imports `AnyType` or `AnyObject` from `@venizia/ignis-helpers`, `@venizia/ignis-inversion` or the `@venizia/ignis` root.** The import fails to compile. Run `devz codemod any-aliases --write <paths>` (from the `@venizia/dev-configs` release that carries this change): it rewrites `AnyType` to `any` and `AnyObject` to `Record<string | symbol | number, any>`, what they stood for, so a bump changes no type in your code. It drops the names from the import, and lists what it leaves (a re-export, an `import()` type, a heritage clause, a same-named local type). It also reads imports from `@venizia/ardor` and `@venizia/ardor-kernel`, which re-exported the two names, so one run covers both frameworks. To tighten while you migrate, add `--strict` (on a path at a time): it writes `unknown` and `Record<string, unknown>`, which surfaces errors that `any` hid. An interface-typed value is not assignable to `Record<string, unknown>`; the migration item `interface-values-and-record-unknown` says how to fix it.
 - **Code that wraps the decorator `@inject()` and forwards its target typed `unknown` or as an unconstrained type parameter.** The call fails with TS2345: type the target `object` (see `inject-target-is-object`).
 - **Everyone else.** No action needed.
+
+## What to change it to
+
+When you want to stop using `any`, pick the first row that fits:
+
+| The value is | Write |
+|---|---|
+| A shape you know | That type: an interface or a type alias |
+| Read later, shape unknown | `unknown`, then narrow with `typeof` or a schema |
+| An object whose keys you read | `object` and `Reflect.get(value, key)` |
+| A bag of values of one kind | `Record<string, TheKind>` |
+| A decorator target | `object` |
 
 ## Breaking changes
 
@@ -161,7 +182,13 @@ import type { AnyType } from '@venizia/ignis-helpers';
 const bag: Record<string, AnyType> = {};
 ```
 
-**After:**
+**After** (`devz codemod any-aliases`, no type changes):
+
+```typescript
+const bag: Record<string, any> = {};
+```
+
+**Tightened** (`--strict`, or by hand):
 
 ```typescript
 const bag: Record<string, unknown> = {};
