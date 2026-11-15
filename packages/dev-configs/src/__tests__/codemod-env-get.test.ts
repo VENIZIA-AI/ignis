@@ -49,6 +49,91 @@ describe('devz codemod env-get: the rewrite', () => {
     expect(result.manual).toEqual([2]);
   });
 
+  test('get<string | undefined> loses its type argument too, in either order', () => {
+    const result = rewrite(
+      [
+        `const a = applicationEnvironment.get<string | undefined>(KEY);`,
+        `const b = applicationEnvironment.get<undefined | string>(KEY);`,
+        `const c = applicationEnvironment.get<(string | undefined)>(KEY, { defaultValue: 'x' });`,
+        `const d = applicationEnvironment.get<string | null>(KEY);`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.output).toBe(
+      [
+        `const a = applicationEnvironment.get(KEY);`,
+        `const b = applicationEnvironment.get(KEY);`,
+        `const c = applicationEnvironment.get(KEY, { defaultValue: 'x' });`,
+        `const d = applicationEnvironment.get<string | null>(KEY);`,
+        '',
+      ].join('\n'),
+    );
+    expect(result.rewritten).toBe(3);
+    expect(result.manual).toEqual([4]);
+    expect(result.manualTypes).toEqual(['string | null']);
+  });
+
+  test('the two-type-argument form with options keeps its first type argument, whatever it is', () => {
+    const result = rewrite(
+      [
+        `const a = AppEnvs.get<string[], string>(KEY, { transform });`,
+        `const b = AppEnvs.get<Config['nodes'], string>(KEY, { transform });`,
+        `const c = AppEnvs.get<unknown>(KEY);`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.output).toBe(
+      [
+        `const a = AppEnvs.get<string[]>(KEY, { transform });`,
+        `const b = AppEnvs.get<Config['nodes']>(KEY, { transform });`,
+        `const c = AppEnvs.get<unknown>(KEY);`,
+        '',
+      ].join('\n'),
+    );
+    expect(result.rewritten).toBe(2);
+    expect(result.manual).toEqual([3]);
+    expect(result.manualTypes).toEqual(['unknown']);
+  });
+
+  test('a receiver bound by an import alias or a const alias is rewritten', () => {
+    const result = rewrite(
+      [
+        `import { applicationEnvironment as AppEnv, AppEnvs as Envs } from '@venizia/ignis-helpers';`,
+        `const env = AppEnv;`,
+        `const a = AppEnv.get<string>(KEY);`,
+        `const b = Envs.get<string>(KEY);`,
+        `const c = env.get<string>(KEY);`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.rewritten).toBe(3);
+    expect(result.output).toContain(`const a = AppEnv.get(KEY);`);
+    expect(result.output).toContain(`const c = env.get(KEY);`);
+    expect(result.skipped).toEqual([]);
+  });
+
+  test('a name nobody imported is not a receiver, and the call is listed as skipped', () => {
+    const result = rewrite(
+      [
+        `const a = AppEnv.get<string>(KEY);`,
+        `const b = this.env.get<string>(KEY);`,
+        `const c = applicationEnvironment?.get<string>(KEY);`,
+        `const d = container.get<Service>({ key: 'service' });`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.changed).toBe(false);
+    expect(result.skipped).toEqual([
+      { line: 1, receiver: 'AppEnv' },
+      { line: 2, receiver: 'this.env' },
+      { line: 3, receiver: 'applicationEnvironment' },
+    ]);
+  });
+
   test('a get on another receiver is not touched', () => {
     const source = `const s = container.get<string>({ key });\n`;
 
@@ -82,8 +167,8 @@ describe('devz codemod env-get: edge cases', () => {
     expect(result.manual).toEqual([1]);
   });
 
-  test('a union type argument is listed as manual', () => {
-    expect(rewrite(`const a = AppEnvs.get<string | undefined>(KEY);\n`).manual).toEqual([1]);
+  test('a union that is not string or string | undefined is listed as manual', () => {
+    expect(rewrite(`const a = AppEnvs.get<string | null>(KEY);\n`).manual).toEqual([1]);
   });
 });
 
