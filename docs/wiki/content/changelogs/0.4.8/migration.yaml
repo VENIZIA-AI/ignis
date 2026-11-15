@@ -535,7 +535,7 @@ search-controller-factory-build:
       - "Pass the repository class directly to repository, moving isStrict to the top level and removing entity and controller."
       - "Name document types on any class extending DefaultSearchRepository."
       - "Set { use: true } on search and multiSearch, whichever you want served; a route left out or { use: false } is not served. multiSearch also needs `modes: { raw: { use: true } }`, or every call answers 400: serve it only to trusted callers, and a scoped controller cannot set it."
-      - "Set the required `authenticate` option with `strategies`, or with `{ skip: true }`."
+      - "Set the required `authenticate` option with `strategies`, or with `{ skip: true }`, which opens the routes and drops `authorize`."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7 and call SearchControllerFactory.defineSearchController with entity, repository and controller again.
