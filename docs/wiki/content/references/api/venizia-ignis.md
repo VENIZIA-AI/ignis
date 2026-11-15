@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-108 exports, 108 with TSDoc. 976 more are re-exported from other entries (listed at the end).
+108 exports, 108 with TSDoc. 981 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -3602,6 +3602,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `inject` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `injectable` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
 - `InjectableUtility` from [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata)
+- `Injection` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `INodeFetchNetworkRequestOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `INodeFetchRequestOptions` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `INodeWithPath` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -4050,7 +4051,9 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TIdSchemaType` from [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository)
 - `TInclusion` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
 - `TInferSchema` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `TInjected` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TInjectionGetter` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
+- `TInjectMap` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TInjectOptions` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TInjectTarget` from [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion)
 - `TIsAllowedOriginHandler` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
@@ -4086,6 +4089,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TNumberConstValue` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TObjectFromFieldMappings` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TObjectStreamOptions` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `ToggleUtility` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TokenUidHelper` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
 - `TOneRelationNameOf` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TOnVisit` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)
@@ -4186,6 +4190,7 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TTemporalUnit` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `TTemporalWrittenDateStyle` from [`@venizia/ignis-helpers/temporal`](/references/api/venizia-ignis-helpers-temporal)
 - `TTimerHandle` from [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers)
+- `TToggle` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TTzEnricherOptions` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TTzEnricherResult` from [`@venizia/ignis-connectors/postgres`](/references/api/venizia-ignis-connectors-postgres)
 - `TUidCaseForm` from [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core)

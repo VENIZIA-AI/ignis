@@ -77,7 +77,8 @@ describe('SearchControllerFactory.build', () => {
 
     const BuiltProductSearchController = SearchControllerFactory.build({
       repository: SearchFactoryProductRepository,
-      routes: { search: true, multiSearch: true },
+      routes: { search: { use: true }, multiSearch: { use: true } },
+      authenticate: { skip: true },
     });
 
     @controllerDecorator({ path: '/products' })
@@ -101,7 +102,8 @@ describe('SearchControllerFactory.build', () => {
 
     const BuiltSearchOnlyController = SearchControllerFactory.build({
       repository: SearchFactoryProductRepository,
-      routes: { search: true },
+      routes: { search: { use: true } },
+      authenticate: { skip: true },
     });
 
     @controllerDecorator({ path: '/products' })
@@ -127,7 +129,8 @@ describe('SearchControllerFactory.build', () => {
 
     const BuiltProductSearchController = SearchControllerFactory.build({
       repository: SearchFactoryProductRepository,
-      routes: { search: true, multiSearch: true },
+      routes: { search: { use: true }, multiSearch: { use: true } },
+      authenticate: { skip: true },
     });
 
     @controllerDecorator({ path: '/products' })
@@ -158,9 +161,10 @@ describe('SearchControllerFactory.build', () => {
 
     const BuiltProductSearchController = SearchControllerFactory.build({
       repository: SearchFactoryProductRepository,
-      routes: { search: true, multiSearch: true },
+      routes: { search: { use: true }, multiSearch: { use: true } },
+      authenticate: { skip: true },
       // Multi-search hands the engine its own parameters, so a controller serves it only when it opts in.
-      modes: { raw: { allow: true } },
+      modes: { raw: { use: true } },
     });
 
     @controllerDecorator({ path: '/products' })
@@ -205,8 +209,9 @@ describe('AbstractSearchController list headers', () => {
     };
     const BuiltController = SearchControllerFactory.build({
       repository: SearchFactoryProductRepository,
-      routes: { search: true, multiSearch: true },
-      modes: opts.isRawAllowed ? { raw: { allow: true } } : undefined,
+      routes: { search: { use: true }, multiSearch: { use: true } },
+      authenticate: { skip: true },
+      modes: opts.isRawAllowed ? { raw: { use: true } } : undefined,
     });
 
     @controllerDecorator({ path: '/products' })

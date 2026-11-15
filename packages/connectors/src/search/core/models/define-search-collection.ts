@@ -169,10 +169,7 @@ export class SearchCollectionFactory {
           });
         }
 
-        if (
-          queryByField.type !== SearchFieldTypes.STRING &&
-          queryByField.type !== SearchFieldTypes.STRING_ARRAY
-        ) {
+        if (!SearchFieldTypes.isText(queryByField.type)) {
           throw getError({
             message: `[defineSearchCollection] Invalid defaultQueryBy | full-text search matches text fields only (string, string[]) | name: ${name} | field: ${queryByFieldName} | type: ${queryByField.type}`,
           });

@@ -180,7 +180,7 @@ Every peer is optional in `peerDependenciesMeta`; a sub-path needs what it impor
 `/postgres`, `/sqlite`). `./search`, `./typesense` and `./meilisearch` import neither `hono` nor
 `drizzle-orm` - they reach only `kernel/metadata` and `kernel/repository` - so the search
 controllers (`AbstractSearchController`, `SearchControllerFactory` with `defineRouteConfigs`,
-`ISearchControllerOptions`, `ISearchCustomizableRoutes`) are NOT exported from them any more, nor
+`ISearchControllerOptions`, `ISearchRoutes`) are NOT exported from them any more, nor
 from the package root: only `./search/controllers` and `./typesense/controllers` carry them, and only
 those two import `@hono/zod-openapi`. `./http` loads with no hono and no `@hono/zod-openapi` either.
 What each sub-path may need is pinned per sub-path in `scripts/checks/clean-install/manifest.ts` and proved
@@ -326,7 +326,7 @@ shipped, so nothing migrates from it.
 | `relational/postgres/supabase` | `PoolerModes`, `SupabasePooler` and `SupabaseRls` |
 | `relational/sqlite` | `BaseSqliteDataSource`, `LibSqlDriver`, `DefaultSqliteRepository` and its chain, `SqliteQueryDialect`, `SqliteBeginModes` |
 | `search/core` | `ISearchConnector` and `BaseSearchConnector`, `BaseSearchDataSource`, `SearchCollectionFactory`, the search repository chain |
-| `search/core/controllers` | `AbstractSearchController`, `SearchControllerFactory` (with `defineRouteConfigs`) - published only as `./search/controllers` and `./typesense/controllers`; `request.body.extend` (a Zod shape) is added to each of the four `SearchInputSchema` members by `extendSearchBody` (a discriminated union has no `extend`), a key the base has throws at build, and the validated body reaches `scope` as `input` typed `TSearchInput & z.infer<z.ZodObject<Shape>>` (`TSearchScopeResolver`'s second type argument, `AbstractSearchController`'s last) |
+| `search/core/controllers` | `AbstractSearchController`, `SearchControllerFactory` (with `defineRouteConfigs`) - published only as `./search/controllers` and `./typesense/controllers`; `request.body.extend` (a Zod shape) is added to each of the four `SearchInputSchema` members by `extendSearchBody` (a discriminated union has no `extend`), a key the base has throws at build, and the validated body reaches `scope` as `input` typed `TSearchInput & z.infer<z.ZodObject<Shape>>` (`TSearchScopeResolver`'s second type argument, `AbstractSearchController`'s last); `build` options: `authenticate` REQUIRED (`{ strategies }` or `{ skip: true }`, build throws otherwise), `routes` and `modes.raw` are `TToggle`s (`{ use: true }`), `query: { fixed, default, allow: { tuning } }` (server-chosen `queryBy`, `queryByWeights`, `order`, `tuning`; `allow.tuning` replaces the old `engineParams.allow`; tuning is typed only when the repository names its datasource as the second type argument), `response: { use: true, document, transform }` reshapes the hits of `POST /search`; `query.fixed`/`query.default` and `response` cannot combine with `modes.raw` or `routes.multiSearch` - see [Typesense search](/architecture/search-typesense.md) |
 | `search/typesense` | `TypesenseConnector`, `TypesenseDataSource`, `TypesenseQueryDialect`, the collection compiler |
 | `search/meilisearch` | `MeilisearchConnector`, `MeilisearchDataSource`, `MeilisearchQueryDialect`, the collection compiler |
 

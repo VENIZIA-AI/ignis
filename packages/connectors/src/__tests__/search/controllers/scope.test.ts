@@ -52,9 +52,10 @@ const build = (opts: {
 
   const BuiltController = SearchControllerFactory.build({
     repository: SearchScopeProductRepository,
-    routes: opts.routes ?? { search: true },
+    routes: opts.routes ?? { search: { use: true } },
+    authenticate: { skip: true },
     scope: opts.scope as any,
-    modes: opts.isRawAllowed ? { raw: { allow: true } } : undefined,
+    modes: opts.isRawAllowed ? { raw: { use: true } } : undefined,
   });
 
   @controllerDecorator({ path: '/products' })
@@ -260,7 +261,8 @@ describe('SearchControllerFactory - scope', () => {
     expect(() =>
       SearchControllerFactory.build({
         repository: SearchScopeProductRepository,
-        routes: { search: true, multiSearch: true },
+        routes: { search: { use: true }, multiSearch: { use: true } },
+        authenticate: { skip: true },
         scope: () => ({ status: 'm-a' }),
       }),
     ).toThrow(/routes\.multiSearch/);
@@ -280,7 +282,7 @@ describe('SearchControllerFactory - scope', () => {
 
   test('a controller without a scope behaves as before', async () => {
     const { controller, dataSource } = build({
-      routes: { search: true, multiSearch: true },
+      routes: { search: { use: true }, multiSearch: { use: true } },
       isRawAllowed: true,
     });
 

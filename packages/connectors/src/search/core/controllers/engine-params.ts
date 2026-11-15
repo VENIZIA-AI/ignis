@@ -9,10 +9,20 @@ const normalize = (name: string): string => name.toLowerCase().replace(/[^a-z0-9
  * What a search request's `engineParams` may carry. `engineParams` hands the engine its own wire parameters, and some of
  * them choose the rows (`filter_by`), the fields (`include_fields`, `query_by`, `facet_by`, `highlight_fields`) or both
  * (a preset). Over the wire it is refused on every search controller, scoped or not, unless the controller names the
- * parameters a caller may send (`engineParams.allow`). A parameter that selects rows or fields, or reorders them, can
+ * parameters a caller may send (`query.allow.tuning`). A parameter that selects rows or fields, or reorders them, can
  * never be named. Server code passes `engineParams` on the repository call as before.
  */
 export class SearchEngineParams {
+  /** Two spellings of one parameter (`numTypos`, `num_typos`, `NumTypos`) are one name. */
+  static isSameName(opts: { left: string; right: string }): boolean {
+    return normalize(opts.left) === normalize(opts.right);
+  }
+
+  /** A parameter that selects rows, fields or order, in either spelling: no allowlist and no server tuning can hold it. */
+  static isNeverAllowed(opts: { name: string }): boolean {
+    return SearchEngineParams.NEVER_ALLOWED.has(normalize(opts.name));
+  }
+
   /**
    * Parameters no allowlist can hold, in the form `normalize` gives: they choose rows, fields or order, in either engine.
    * `preset` and `override_tags` / `pinned_hits` / `hidden_hits` change which rows come back, and `vector_query` /
@@ -68,7 +78,7 @@ export class SearchEngineParams {
 
     if (!Array.isArray(allow)) {
       throw getError({
-        message: `[${scope}] engineParams.allow must be a list of engine parameter names`,
+        message: `[${scope}] query.allow.tuning must be a list of tuning names`,
       });
     }
 
@@ -77,13 +87,20 @@ export class SearchEngineParams {
     for (const name of allow) {
       if (typeof name !== 'string' || normalize(name).length === 0) {
         throw getError({
-          message: `[${scope}] engineParams.allow holds ${JSON.stringify(name)} | list engine parameter names, for example 'typo_tokens_threshold'`,
+          message: `[${scope}] query.allow.tuning holds ${JSON.stringify(name)} | list tuning names, for example 'typoTokensThreshold'`,
         });
       }
 
       if (SearchEngineParams.NEVER_ALLOWED.has(normalize(name))) {
         throw getError({
-          message: `[${scope}] engineParams.allow holds ${JSON.stringify(name)} | a parameter that selects rows or fields, or orders them, can never be allowed`,
+          message: `[${scope}] query.allow.tuning holds ${JSON.stringify(name)} | a parameter that selects rows or fields, or orders them, can never be allowed`,
+        });
+      }
+
+      // The body schema takes the names as written, so a wire spelling (`num_typos`) or `NumTypos` would be a second name for `numTypos`.
+      if (!/^[a-z][A-Za-z0-9]*$/.test(name)) {
+        throw getError({
+          message: `[${scope}] query.allow.tuning holds ${JSON.stringify(name)} | write the camelCase name, for example 'typoTokensThreshold'`,
         });
       }
 

@@ -38,7 +38,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-connectors/sqlite/libsql`](/references/api/venizia-ignis-connectors-sqlite-libsql) | 2 | 2 |
 | [`@venizia/ignis-connectors/testing`](/references/api/venizia-ignis-connectors-testing) | 12 | 12 |
 | [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense) | 82 | 82 |
-| [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers) | 7 | 7 |
+| [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers) | 31 | 31 |
 | [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter) | 19 | 19 |
 | [`@venizia/ignis-filter/schemas`](/references/api/venizia-ignis-filter-schemas) | 11 | 11 |
 | [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers) | 225 | 225 |
@@ -59,7 +59,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-helpers/uuid`](/references/api/venizia-ignis-helpers-uuid) | 0 | 0 |
 | [`@venizia/ignis-helpers/winston`](/references/api/venizia-ignis-helpers-winston) | 9 | 9 |
 | [`@venizia/ignis-inversion`](/references/api/venizia-ignis-inversion) | 71 | 71 |
-| [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel) | 358 | 358 |
+| [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel) | 363 | 363 |
 | [`@venizia/ignis-kernel/metadata`](/references/api/venizia-ignis-kernel-metadata) | 21 | 21 |
 | [`@venizia/ignis-kernel/repository`](/references/api/venizia-ignis-kernel-repository) | 37 | 37 |
 | [`@venizia/ignis-kernel/statuses`](/references/api/venizia-ignis-kernel-statuses) | 2 | 2 |
@@ -67,6 +67,6 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis/grpc`](/references/api/venizia-ignis-grpc) | 4 | 4 |
 | [`@venizia/ignis/mail`](/references/api/venizia-ignis-mail) | 74 | 74 |
 | [`@venizia/ignis/socket-io`](/references/api/venizia-ignis-socket-io) | 2 | 2 |
-| [`@venizia/ignis/static-asset`](/references/api/venizia-ignis-static-asset) | 59 | 59 |
+| [`@venizia/ignis/static-asset`](/references/api/venizia-ignis-static-asset) | 58 | 58 |
 | [`@venizia/ignis/testing`](/references/api/venizia-ignis-testing) | 3 | 3 |
 | [`@venizia/ignis/websocket`](/references/api/venizia-ignis-websocket) | 2 | 2 |

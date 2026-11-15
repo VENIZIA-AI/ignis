@@ -129,6 +129,28 @@ styles can live in one application.
 The root entry imports no driver and no engine client. A driver loads only when you import its
 entry and name its class in `@datasource({ driver })`.
 
+### Search controllers
+
+`SearchControllerFactory.build` generates `POST /search` and `POST /multi-search`. It needs `authenticate`
+(a config with no strategy and no `skip` throws when the controller is built), and each route you list is a
+toggle:
+
+```typescript
+import { Authentication } from '@venizia/ignis-kernel';
+import { SearchControllerFactory } from '@venizia/ignis-connectors/typesense/controllers';
+
+const BaseSearchController = SearchControllerFactory.build({
+  repository: ArticleRepository,
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] }, // or { skip: true } to open the routes
+  routes: { search: { use: true } }, // a route that is absent or { use: false } is not served
+  query: { fixed: { queryBy: ['title'] }, allow: { tuning: ['typoTokensThreshold'] } },
+});
+```
+
+`modes: { raw: { use: true } }` serves `mode: 'raw'` and multi-search over HTTP. `query` sets what the server
+decides for a query, and `response` reshapes the hits. See the
+[Typesense guide](https://ignis.venizia.ai/guides/core-concepts/persistent/search-typesense) for each option.
+
 ## Where it sits
 
 Depends on `@venizia/ignis-kernel`, `@venizia/ignis-filter`, `@venizia/ignis-helpers` and

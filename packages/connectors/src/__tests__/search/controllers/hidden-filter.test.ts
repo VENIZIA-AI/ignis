@@ -71,7 +71,10 @@ const build = (opts: { scope?: () => unknown } = {}) => {
 
   const BuiltController = SearchControllerFactory.build({
     repository: HiddenFilterProductRepository,
-    routes: opts.scope ? { search: true } : { search: true, multiSearch: true },
+    routes: opts.scope
+      ? { search: { use: true } }
+      : { search: { use: true }, multiSearch: { use: true } },
+    authenticate: { skip: true },
     scope: opts.scope as never,
   });
 
@@ -170,7 +173,8 @@ describe('byte for byte the error of an undeclared field', () => {
       : new HiddenFilterProductRepository(dataSource);
     const BuiltController = SearchControllerFactory.build({
       repository: isNested ? HiddenFilterNestedRepository : HiddenFilterProductRepository,
-      routes: { search: true },
+      routes: { search: { use: true } },
+      authenticate: { skip: true },
     });
 
     @controllerDecorator({ path: '/x' })
@@ -207,7 +211,8 @@ describe('a hidden nested field', () => {
     });
     const BuiltController = SearchControllerFactory.build({
       repository: HiddenFilterNestedRepository,
-      routes: { search: true, multiSearch: true },
+      routes: { search: { use: true }, multiSearch: { use: true } },
+      authenticate: { skip: true },
     });
 
     @controllerDecorator({ path: '/x' })
