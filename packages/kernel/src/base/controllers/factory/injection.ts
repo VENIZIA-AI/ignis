@@ -20,7 +20,7 @@ export type TInjected<Inject extends TInjectMap> = {
 export class Injection {
   /**
    * Records each declared class as constructor parameter `offset + n` of `target`: the metadata `@inject({ target })`
-   * writes, and the kind `CrudControllerFactory.registerRepositoryInjection` writes for parameter 0. Recorded as
+   * writes, and the metadata `CrudControllerFactory.registerRepositoryInjection` writes for parameter 0. Recorded as
    * metadata rather than a parameter decorator, which Bun drops in some configurations.
    */
   static register(opts: { target: TClass<unknown>; inject: TInjectMap; offset: number }): void {
@@ -39,10 +39,10 @@ export class Injection {
 
   /** The one trust boundary: the container hands instances positionally and untyped; this checks that every name got one. */
   private static isComplete<Inject extends TInjectMap>(opts: {
-    inject: Inject;
+    inject: Inject | undefined;
     injected: Record<string, unknown>;
-  }): opts is { inject: Inject; injected: TInjected<Inject> } {
-    return Object.keys(opts.inject).every((name) => {
+  }): opts is { inject: Inject | undefined; injected: TInjected<Inject> } {
+    return Object.keys(opts.inject ?? {}).every((name) => {
       const instance = opts.injected[name];
 
       return typeof instance === 'object' && instance !== null;
@@ -55,11 +55,12 @@ export class Injection {
    */
   static collect<Inject extends TInjectMap>(opts: {
     scope: string;
-    inject: Inject;
+    /** `undefined` when the options declare none: nothing is collected. */
+    inject: Inject | undefined;
     instances: unknown[];
   }): TInjected<Inject> {
     const { scope, inject, instances } = opts;
-    const names = Object.keys(inject);
+    const names = Object.keys(inject ?? {});
     const candidate = {
       inject,
       injected: Object.fromEntries(names.map((name, position) => [name, instances[position]])),

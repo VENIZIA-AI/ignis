@@ -25,7 +25,7 @@ import type { TMetaLink, TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../m
 import type { StaticAssetRouteKeys, TStaticAssetTokenStage } from './constants';
 import type { StaticAssetPinnedFile } from '../utilities/pinned-file.utility';
 
-/** Moved to the kernel, shared by components and controllers; kept here under the same name. */
+/** The toggle type, shared with the controllers: defined in the kernel. */
 export type { TToggle };
 
 /** The storage backends a static asset entry can serve from: the helpers that declare one. */

@@ -1,4 +1,10 @@
-import type { IAuthRouteConfig, TEntityDataObject, TRouteContext } from '@venizia/ignis-kernel';
+import type {
+  IAuthRouteConfig,
+  TEntityDataObject,
+  TInjected,
+  TInjectMap,
+  TRouteContext,
+} from '@venizia/ignis-kernel';
 import { BaseRestController, DataRangeUtility } from '@venizia/ignis-kernel';
 import type { AbstractEntity } from '@venizia/ignis-kernel';
 import type { TAnyObjectSchema } from '@venizia/ignis-kernel';
@@ -54,9 +60,10 @@ export abstract class AbstractSearchController<
   ConfigurableOptions extends object = {},
   TDataObject extends object = TEntityDataObject<TEntity>,
   TExtra extends object = {},
+  Inject extends TInjectMap = {},
 > extends BaseRestController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions> {
   repository: ReadableSearchRepository<TDataObject>;
-  searchScope?: TSearchScopeResolver<RouteEnv, TExtra, {}>;
+  searchScope?: TSearchScopeResolver<RouteEnv, TExtra, Inject>;
 
   /** The `engineParams` names a caller may send, normalised (see {@link SearchEngineParams}). Empty: any `engineParams` is refused. */
   allowedEngineParams: ReadonlySet<string>;
@@ -68,13 +75,13 @@ export abstract class AbstractSearchController<
   isBodyExtended: boolean;
 
   /** The `query` option, resolved: the server's settings for a query. */
-  querySettings?: ISearchResolvedQuery<RouteEnv>;
+  querySettings?: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
 
   /** The `response` option when it is on. */
-  responseTransform?: ISearchLooseResponse<RouteEnv>;
+  responseTransform?: ISearchLooseResponse<RouteEnv, Inject>;
 
   /** The instances of the classes `inject` declares, by name: what every function source receives as `injected`. */
-  injected: object;
+  injected: TInjected<Inject>;
 
   constructor(opts: {
     scope: string;
@@ -82,7 +89,7 @@ export abstract class AbstractSearchController<
     repository: ReadableSearchRepository<TDataObject>;
     definitions: Record<string, IAuthRouteConfig>;
     /** Per-request search scope; see {@link TSearchScopeResolver}. */
-    searchScope?: TSearchScopeResolver<RouteEnv, TExtra, {}>;
+    searchScope?: TSearchScopeResolver<RouteEnv, TExtra, Inject>;
     /** Names from `query.allow.tuning`, as `SearchEngineParams.resolveAllowlist` answers them. */
     allowedEngineParams?: ReadonlySet<string>;
     /** `modes.raw`, as `SearchRawAccess.resolve` answers it. */
@@ -90,11 +97,11 @@ export abstract class AbstractSearchController<
     /** `request.body.extend` was given. */
     isBodyExtended?: boolean;
     /** The `query` option, as `SearchControllerOptionsUtility.resolve` answers it. */
-    querySettings?: ISearchResolvedQuery<RouteEnv>;
+    querySettings?: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
     /** The `response` option when it is on. */
-    responseTransform?: ISearchLooseResponse<RouteEnv>;
-    /** The instances of the classes `inject` declares, by name. */
-    injected?: object;
+    responseTransform?: ISearchLooseResponse<RouteEnv, Inject>;
+    /** The instances of the classes `inject` declares, by name: `Injection.collect` answers them. */
+    injected: TInjected<Inject>;
   }) {
     super({ scope: opts.scope, isStrict: opts.isStrict });
     this.repository = opts.repository;
@@ -104,7 +111,7 @@ export abstract class AbstractSearchController<
     this.isBodyExtended = opts.isBodyExtended ?? false;
     this.querySettings = opts.querySettings;
     this.responseTransform = opts.responseTransform;
-    this.injected = opts.injected ?? {};
+    this.injected = opts.injected;
     this.definitions = opts.definitions;
   }
 
@@ -112,7 +119,8 @@ export abstract class AbstractSearchController<
   async search(opts: { context: TRouteContext<RouteEnv> }) {
     const { context } = opts;
     const body = context.req.valid<TSearchInput & TExtra>('json');
-    let input: TSearchInput = body;
+    // The scope returns the body with its filter, the extra keys of `request.body.extend` still on it.
+    let scoped: TSearchInput & TExtra = body;
 
     // Before the scope and on every controller: a caller's raw engine parameters can replace the controller's own filter.
     SearchRawAccess.assertSearchInput({ input: body, isAllowed: this.isRawAllowed });
@@ -124,28 +132,30 @@ export abstract class AbstractSearchController<
     }
 
     if (this.searchScope) {
-      const scoped = await SearchControllerScope.applySearchScope({
+      const result = await SearchControllerScope.applySearchScope({
         resolve: this.searchScope,
         context,
         input: body,
         injected: this.injected,
       });
-      input = scoped;
+      scoped = result;
     }
+
+    let input: TSearchInput = scoped;
 
     // The server's settings go in after the scope, so a function source reads the extra keys; the result is parsed, which drops them.
     if (this.querySettings) {
       const applied = await SearchSettingsUtility.apply({
         query: this.querySettings,
         context,
-        input,
+        input: scoped,
         injected: this.injected,
         dialect: this.repository.dataSource.getQueryDialect(),
       });
       input = applied;
     } else if (this.isBodyExtended) {
       // The scope was the only reader of the extra keys: the base schema drops them, so the repository and the log never see them.
-      input = SearchInputSchema.parse(input);
+      input = SearchInputSchema.parse(scoped);
     }
 
     const rs = await this.measure({

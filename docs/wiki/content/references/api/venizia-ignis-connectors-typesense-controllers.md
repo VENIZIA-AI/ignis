@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/typesense/controllers, f
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-29 exports, 29 with TSDoc.
+31 exports, 31 with TSDoc.
 
 ## `AbstractSearchController`
 
@@ -16,9 +16,9 @@ description: "Every export of @venizia/ignis-connectors/typesense/controllers, f
 Base tier of a generated search controller: the repository handle plus the search / multi-search verbs; SearchControllerFactory returns a thin subclass that only builds route configs and wires them.
 
 ```ts
-export declare abstract class AbstractSearchController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEntity>, TExtra extends object = {}> extends BaseRestController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions> {
+export declare abstract class AbstractSearchController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEntity>, TExtra extends object = {}, Inject extends TInjectMap = {}> extends BaseRestController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions> {
     repository: ReadableSearchRepository<TDataObject>;
-    searchScope?: TSearchScopeResolver<RouteEnv, TExtra, {}>;
+    searchScope?: TSearchScopeResolver<RouteEnv, TExtra, Inject>;
     /** The `engineParams` names a caller may send, normalised (see {@link SearchEngineParams}). Empty: any `engineParams` is refused. */
     allowedEngineParams: ReadonlySet<string>;
     /** Whether the controller serves `mode: 'raw'` and multi-search over HTTP (`modes.raw`). Closed by default: see {@link SearchRawAccess}. */
@@ -26,18 +26,18 @@ export declare abstract class AbstractSearchController<TEntity extends AbstractE
     /** `request.body.extend` was given: its keys are the scope's to read, and they do not go on to the repository. */
     isBodyExtended: boolean;
     /** The `query` option, resolved: the server's settings for a query. */
-    querySettings?: ISearchResolvedQuery<RouteEnv>;
+    querySettings?: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
     /** The `response` option when it is on. */
-    responseTransform?: ISearchLooseResponse<RouteEnv>;
+    responseTransform?: ISearchLooseResponse<RouteEnv, Inject>;
     /** The instances of the classes `inject` declares, by name: what every function source receives as `injected`. */
-    injected: object;
+    injected: TInjected<Inject>;
     constructor(opts: {
         scope: string;
         isStrict?: boolean;
         repository: ReadableSearchRepository<TDataObject>;
         definitions: Record<string, IAuthRouteConfig>;
         /** Per-request search scope; see {@link TSearchScopeResolver}. */
-        searchScope?: TSearchScopeResolver<RouteEnv, TExtra, {}>;
+        searchScope?: TSearchScopeResolver<RouteEnv, TExtra, Inject>;
         /** Names from `query.allow.tuning`, as `SearchEngineParams.resolveAllowlist` answers them. */
         allowedEngineParams?: ReadonlySet<string>;
         /** `modes.raw`, as `SearchRawAccess.resolve` answers it. */
@@ -45,11 +45,11 @@ export declare abstract class AbstractSearchController<TEntity extends AbstractE
         /** `request.body.extend` was given. */
         isBodyExtended?: boolean;
         /** The `query` option, as `SearchControllerOptionsUtility.resolve` answers it. */
-        querySettings?: ISearchResolvedQuery<RouteEnv>;
+        querySettings?: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
         /** The `response` option when it is on. */
-        responseTransform?: ISearchLooseResponse<RouteEnv>;
-        /** The instances of the classes `inject` declares, by name. */
-        injected?: object;
+        responseTransform?: ISearchLooseResponse<RouteEnv, Inject>;
+        /** The instances of the classes `inject` declares, by name: `Injection.collect` answers them. */
+        injected: TInjected<Inject>;
     });
     /** POST /search - single-collection keyword/semantic/hybrid/raw search. Carries the list headers of every IGNIS list endpoint; the body keeps `{ found, isFoundExact, hits }` because `isFoundExact` has no place in a `{ count, data }` envelope, and it is the only carrier of "found is an estimate". */
     search(opts: {
@@ -71,7 +71,7 @@ Source: `packages/connectors/src/search/core/controllers/abstract.ts`
 Configuration options for creating a search controller via SearchControllerFactory.build.
 
 ```ts
-export interface ISearchControllerOptions<Repository extends TCrudRepositoryClass = TCrudRepositoryClass, Shape extends z.ZodRawShape = {}, TOutDocument extends object = TRepositoryDataObject<InstanceType<Repository>>, Inject extends TInjectMap = {}> {
+export interface ISearchControllerOptions<Repository extends TCrudRepositoryClass = TCrudRepositoryClass, Shape extends z.ZodRawShape = {}, TOutDocument extends object = TRepositoryDataObject<InstanceType<Repository>>, Inject extends TInjectMap = {}, RouteEnv extends Env = Env> {
     /** The repository class; its name is the binding the container injects, and its `@repository({ model })` supplies the entity whose SELECT schema drives the `hits[].document` shape in the response. */
     repository: Repository;
     /** When true, /search and /search/ are different routes. @default true */
@@ -105,7 +105,7 @@ export interface ISearchControllerOptions<Repository extends TCrudRepositoryClas
      * multi-search route (leave `routes.multiSearch` out), which `SearchControllerFactory.build` requires.
      * `engineParams` is refused on every controller unless `query.allow.tuning` lists it.
      */
-    scope?: TSearchScopeResolver<Env, z.infer<z.ZodObject<Shape>>, Inject>;
+    scope?: TSearchScopeResolver<RouteEnv, TSearchExtra<Shape>, Inject>;
     /**
      * Adds keys to the body of `POST /search`, on every `mode`: `request.body.extend` is a Zod shape, and each key is
      * validated with the rest of the body (a bad value is a 400) and shown in the OpenAPI document. The validated body,
@@ -125,9 +125,9 @@ export interface ISearchControllerOptions<Repository extends TCrudRepositoryClas
      * when a function source returns it. `fixed` and `default` cannot be combined with `modes.raw` or `routes.multiSearch`:
      * both hand the engine their own parameters.
      */
-    query?: ISearchQueryOptions<TRepositoryDataObject<InstanceType<Repository>>, TRepositoryTuning<Repository>, TSearchExtra<Shape>, Inject>;
+    query?: ISearchQueryOptions<TRepositoryDataObject<InstanceType<Repository>>, TRepositoryTuning<Repository>, TSearchExtra<Shape>, Inject, RouteEnv>;
     /** Reshapes the hits of `POST /search` before they leave the route: `{ use: true, document, transform }`. */
-    response?: TToggle<ISearchResponseTransform<TRepositoryDataObject<InstanceType<Repository>>, TOutDocument, Inject>>;
+    response?: TToggle<ISearchResponseTransform<TRepositoryDataObject<InstanceType<Repository>>, TOutDocument, Inject, RouteEnv>>;
     /**
      * `modes.raw: { use: true }` serves `mode: 'raw'` and multi-search over HTTP. Left out, both answer 400: they hand the
      * engine their parameters as they are, so the model's default filter and its hidden fields do not apply to them, and
@@ -167,7 +167,7 @@ Source: `packages/connectors/src/search/core/controllers/settings.ts`
 `response` when it is on, with the document type erased: what the controller runs, whatever the model.
 
 ```ts
-export interface ISearchLooseResponse<RouteEnv extends Env = Env> {
+export interface ISearchLooseResponse<RouteEnv extends Env = Env, Inject extends TInjectMap = {}> {
     document: z.ZodType;
     transform: (opts: {
         hits: Array<TSearchHit<object>>;
@@ -176,7 +176,7 @@ export interface ISearchLooseResponse<RouteEnv extends Env = Env> {
         input: Exclude<TSearchInput, {
             mode: 'raw';
         }>;
-        injected: object;
+        injected: TInjected<Inject>;
     }) => ValueOrPromise<Array<TSearchLooseHit>>;
 }
 ```
@@ -245,11 +245,11 @@ Source: `packages/connectors/src/search/core/controllers/options.ts`
 The `query` option: what the server decides for a query, and what a client may still send.
 
 ```ts
-export interface ISearchQueryOptions<Document extends object, Tuning extends object, TExtra extends object = {}, Inject extends TInjectMap = {}> {
+export interface ISearchQueryOptions<Document extends object, Tuning extends object, TExtra extends object = {}, Inject extends TInjectMap = {}, RouteEnv extends Env = Env> {
     /** Wins over the client. A client value for a fixed setting is refused (400). */
-    fixed?: TSearchSettingsSource<Document, Tuning, Env, TExtra, Inject>;
+    fixed?: TSearchSettingsSource<Document, Tuning, RouteEnv, TExtra, Inject>;
     /** Used when the client sent nothing for that setting; above the model's `defaultQueryBy`. */
-    default?: TSearchSettingsSource<Document, Tuning, Env, TExtra, Inject>;
+    default?: TSearchSettingsSource<Document, Tuning, RouteEnv, TExtra, Inject>;
     /**
      * Rewrites the query text before anything else reads it: `query` of a keyword or hybrid request, `queryText` of a
      * semantic one. It runs after the scope and before `fixed` and `default`, so a function source reads the text it
@@ -258,7 +258,7 @@ export interface ISearchQueryOptions<Document extends object, Tuning extends obj
      */
     normalize?: (opts: {
         text: string;
-        context: TRouteContext<Env>;
+        context: TRouteContext<RouteEnv>;
         input: Exclude<TSearchInput, {
             mode: 'raw';
         }> & TExtra;
@@ -266,7 +266,7 @@ export interface ISearchQueryOptions<Document extends object, Tuning extends obj
     }) => ValueOrPromise<string>;
     /** What a client may send. `tuning` names the knobs a request's `engineParams` may carry; a name is fixed or allowed, never both. */
     allow?: {
-        tuning?: Array<Exclude<keyof Tuning & string, 'sortBy'>>;
+        tuning?: [Tuning] extends [never] ? never[] : Array<Exclude<keyof Tuning & string, 'sortBy'>>;
     };
 }
 ```
@@ -301,7 +301,7 @@ Source: `packages/connectors/src/search/core/controllers/types.ts`
 What the controller needs from its options, after every default and every cross-check.
 
 ```ts
-export interface ISearchResolvedOptions {
+export interface ISearchResolvedOptions<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}> {
     authenticate: {
         strategies?: TAuthStrategy[];
         mode?: TAuthMode;
@@ -317,8 +317,8 @@ export interface ISearchResolvedOptions {
         search?: TAnyObjectSchema;
         multiSearch?: TAnyObjectSchema;
     };
-    query?: ISearchResolvedQuery;
-    response?: ISearchLooseResponse;
+    query?: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
+    response?: ISearchLooseResponse<RouteEnv, Inject>;
 }
 ```
 
@@ -331,11 +331,10 @@ Source: `packages/connectors/src/search/core/controllers/options.ts`
 The `query` option as the controller keeps it.
 
 ```ts
-export interface ISearchResolvedQuery<RouteEnv extends Env = Env> {
-    fixed?: TSearchLooseSource<RouteEnv>;
-    default?: TSearchLooseSource<RouteEnv>;
-    /** `query.normalize`, with its text and its `injected` untyped. */
-    normalize?: TSearchLooseNormalize<RouteEnv>;
+export interface ISearchResolvedQuery<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}> {
+    fixed?: TSearchLooseSource<RouteEnv, TExtra, Inject>;
+    default?: TSearchLooseSource<RouteEnv, TExtra, Inject>;
+    normalize?: TSearchLooseNormalize<RouteEnv, TExtra, Inject>;
     /** The names of `query.allow.tuning`. */
     allowedTuning: ReadonlySet<string>;
     catalog: ISearchFieldCatalog;
@@ -351,14 +350,14 @@ Source: `packages/connectors/src/search/core/controllers/settings.ts`
 The `response` option when it is on: reshapes the hits before they leave the route.
 
 ```ts
-export interface ISearchResponseTransform<Document extends object, TOutDocument extends object, Inject extends TInjectMap = {}> {
+export interface ISearchResponseTransform<Document extends object, TOutDocument extends object, Inject extends TInjectMap = {}, RouteEnv extends Env = Env> {
     /** The documents of the response: it replaces the model's schema in the OpenAPI document, and every transformed document is parsed against it (a mismatch answers 500). */
     document: z.ZodType<TOutDocument>;
     /** May drop hits. `found` stays the engine's count. Never runs for `raw` mode. */
     transform: (opts: {
         hits: Array<TSearchHit<Document>>;
         found: number;
-        context: TRouteContext<Env>;
+        context: TRouteContext<RouteEnv>;
         input: Exclude<TSearchInput, {
             mode: 'raw';
         }>;
@@ -398,6 +397,26 @@ export interface ISearchRoutes {
 ```
 
 Source: `packages/connectors/src/search/core/controllers/factory.ts`
+
+## `ISearchSourceOptions`
+
+*interface*
+
+What a function source is called with, whatever the document: the same context, scoped input and injected instances the typed options declare.
+
+```ts
+export interface ISearchSourceOptions<RouteEnv extends Env, TExtra extends object, Inject extends TInjectMap> {
+    context: TRouteContext<RouteEnv>;
+    input: TNonRawInput & TExtra;
+    injected: TInjected<Inject>;
+}
+
+type TNonRawInput = Exclude<TSearchInput, {
+    mode: typeof SearchModes.RAW;
+}>;
+```
+
+Source: `packages/connectors/src/search/core/controllers/settings.ts`
 
 ## `SearchControllerFactory`
 
@@ -910,20 +929,20 @@ export declare class SearchControllerFactory extends BaseHelper {
         };
     };
     /** Creates a search controller with the routes you list: `POST /search` via `repository.search()`, and `POST /multi-search` via `repository.dataSource.multiSearch()`. The path is the `@controller({ path })` of the subclass. */
-    static build<Repository extends TCrudRepositoryClass, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TRepositoryDataObject<InstanceType<Repository>>, Shape extends z.ZodRawShape = {}, TOutDocument extends object = TDataObject, Inject extends TInjectMap = {}>(opts: ISearchControllerOptions<Repository, Shape, TOutDocument, Inject>): {
+    static build<Repository extends TCrudRepositoryClass, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TRepositoryDataObject<InstanceType<Repository>>, Shape extends z.ZodRawShape = {}, TOutDocument extends object = TDataObject, Inject extends TInjectMap = {}>(opts: ISearchControllerOptions<Repository, Shape, TOutDocument, Inject, RouteEnv>): {
         new (repositoryInstance: ReadableSearchRepository<TDataObject>, ...instances: unknown[]): {
             /** The routes of a generated controller come from `routes`; a subclass adds its own here. */
             binding(): ValueOrPromise<void>;
             /** Registers each route that is on, after the subclass's `binding()`. */
             bindDefaultRoutes(): ValueOrPromise<void>;
             repository: ReadableSearchRepository<TDataObject, import("../index.js").AbstractSearchDataSource<{}>>;
-            searchScope?: TSearchScopeResolver<RouteEnv, z.core.$InferObjectOutput<Shape, {}>, {}> | undefined;
+            searchScope?: TSearchScopeResolver<RouteEnv, TSearchExtra<Shape>, Inject> | undefined;
             allowedEngineParams: ReadonlySet<string>;
             isRawAllowed: boolean;
             isBodyExtended: boolean;
-            querySettings?: ISearchResolvedQuery<RouteEnv> | undefined;
-            responseTransform?: ISearchLooseResponse<RouteEnv> | undefined;
-            injected: object;
+            querySettings?: import("./settings.js").ISearchResolvedQuery<RouteEnv, TSearchExtra<Shape>, Inject> | undefined;
+            responseTransform?: import("./response.js").ISearchLooseResponse<RouteEnv, Inject> | undefined;
+            injected: import("@venizia/ignis-kernel").TInjected<Inject>;
             search(opts: {
                 context: import("@venizia/ignis-kernel").TRouteContext<RouteEnv>;
             }): Promise<import("@venizia/ignis-kernel").TJsonResponse<unknown, 200>>;
@@ -975,9 +994,6 @@ export declare class SearchControllerFactory extends BaseHelper {
                 data?: import("@venizia/ignis-helpers").TNullable<R>;
             } | {
                 count?: number;
-                data?: import("@venizia/ignis-helpers").TNullable<R>;
-                extra: Partial<Record<keyof Extra, unknown>>;
-            } | null | undefined>;
 // ... cut
 ```
 
@@ -1005,11 +1021,11 @@ export declare class SearchControllerOptionsUtility {
     private static resolveAuthenticate;
     /** One `query.fixed` or `query.default`: a function is kept for the request, a value is checked now. */
     private static resolveSource;
-    static resolve(opts: {
+    static resolve<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}>(opts: {
         scope: string;
         options: ISearchOptionsInput;
         entityClass: TClass<AbstractEntity>;
-    }): ISearchResolvedOptions;
+    }): ISearchResolvedOptions<RouteEnv, TExtra, Inject>;
 }
 ```
 
@@ -1027,6 +1043,15 @@ never be named. Server code passes `engineParams` on the repository call as befo
 
 ```ts
 export declare class SearchEngineParams {
+    /** Two spellings of one parameter (`numTypos`, `num_typos`, `NumTypos`) are one name. */
+    static isSameName(opts: {
+        left: string;
+        right: string;
+    }): boolean;
+    /** A parameter that selects rows, fields or order, in either spelling: no allowlist and no server tuning can hold it. */
+    static isNeverAllowed(opts: {
+        name: string;
+    }): boolean;
     /**
      * Parameters no allowlist can hold, in the form `normalize` gives: they choose rows, fields or order, in either engine.
      * `preset` and `override_tags` / `pinned_hits` / `hidden_hits` change which rows come back, and `vector_query` /
@@ -1098,18 +1123,23 @@ Runs the `response` transform of a search controller.
 ```ts
 export declare class SearchResponseUtility {
     /**
+     * The trust boundary of `response`: the typed option erases the document type here. It holds a Zod schema to parse
+     * with and a function to call, which `apply` checks again on what the function returns.
+     */
+    static isResponse<RouteEnv extends Env = Env, Inject extends TInjectMap = {}>(value: unknown): value is ISearchLooseResponse<RouteEnv, Inject>;
+    /**
      * The transformed hits, each document parsed against `response.document`. The transform may drop hits. It is the
      * server's code, so a transform that throws, returns no list, or returns a document the schema refuses answers 500.
      */
-    static apply<RouteEnv extends Env = Env>(opts: {
-        response: ISearchLooseResponse<RouteEnv>;
+    static apply<RouteEnv extends Env = Env, Inject extends TInjectMap = {}>(opts: {
+        response: ISearchLooseResponse<RouteEnv, Inject>;
         hits: Array<TSearchHit<object>>;
         found: number;
         context: TRouteContext<RouteEnv>;
         input: Exclude<TSearchInput, {
             mode: 'raw';
         }>;
-        injected: object;
+        injected: TInjected<Inject>;
     }): Promise<Array<TSearchLooseHit>>;
 }
 ```
@@ -1124,6 +1154,10 @@ Reads, checks and merges the `query` settings of a search controller.
 
 ```ts
 export declare class SearchSettingsUtility {
+    /** The trust boundary of a function source: the typed options erase the document and the engine here, and its result is checked on every request. */
+    static isFunctionSource<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}>(source: unknown): source is TSearchLooseFunction<RouteEnv, TExtra, Inject>;
+    /** The same boundary for `query.normalize`. */
+    static isNormalize<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}>(value: unknown): value is TSearchLooseNormalize<RouteEnv, TExtra, Inject>;
     /** `statusCode` is set for what a request carries and for what a function source returns; a definition error leaves it unset, as every build error does. */
     private static fail;
     /** The values of `record` for `names`, in that order; `undefined` when `names` is empty or one of them has no value. */
@@ -1143,13 +1177,17 @@ export declare class SearchSettingsUtility {
         isFixed: boolean;
         statusCode?: number;
     }): ISearchLooseSettings;
+    /** The top-level entries of an engine sort string: commas inside parentheses and brackets do not split. */
+    static splitSortBy(opts: {
+        value: string;
+    }): string[];
     /** A source's settings for this request: a value as it is, a function called with `{ context, input }` and its result checked like a definition. A function that throws, or returns what is not a valid shape, answers 500: the value is the server's. */
-    static resolveSource<RouteEnv extends Env = Env>(opts: {
-        source?: TSearchLooseSource<RouteEnv>;
+    static resolveSource<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}>(opts: {
+        source?: TSearchLooseSource<RouteEnv, TExtra, Inject>;
         context: TRouteContext<RouteEnv>;
-        input: TNonRawInput;
-        injected: object;
-        query: ISearchResolvedQuery<RouteEnv>;
+        input: TNonRawInput & TExtra;
+        injected: TInjected<Inject>;
+        query: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
         isFixed: boolean;
     }): Promise<ISearchLooseSettings>;
     /**
@@ -1173,22 +1211,22 @@ export declare class SearchSettingsUtility {
      * semantic one. A request without text is left as it is. A throw, or a result that is not a string, answers 500: the
      * function is the server's.
      */
-    static normalize<RouteEnv extends Env = Env>(opts: {
-        query: ISearchResolvedQuery<RouteEnv>;
+    static normalize<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}>(opts: {
+        query: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
         context: TRouteContext<RouteEnv>;
-        input: TNonRawInput;
-        injected: object;
-    }): Promise<TNonRawInput>;
+        input: TNonRawInput & TExtra;
+        injected: TInjected<Inject>;
+    }): Promise<TNonRawInput & TExtra>;
     /**
      * The input of a request with the controller's `query` settings applied. What the server chose is checked with the engine's
      * own converter before the repository runs, so a bad value (`numTypos: -1`) is the server's 500 and not the client's 400.
      * The result is parsed with `SearchInputSchema`, which also drops the keys `request.body.extend` added.
      */
-    static apply<RouteEnv extends Env = Env>(opts: {
-        query: ISearchResolvedQuery<RouteEnv>;
+    static apply<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}>(opts: {
+        query: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
         context: TRouteContext<RouteEnv>;
-        input: TSearchInput;
-        injected: object;
+        input: TSearchInput & TExtra;
+        injected: TInjected<Inject>;
         dialect: ISearchQueryDialect;
     }): Promise<TSearchInput>;
 }
@@ -1252,6 +1290,18 @@ export type TSearchHit<Document extends object> = NonNullable<ISearchResult<Docu
 
 Source: `packages/connectors/src/search/core/controllers/types.ts`
 
+## `TSearchLooseFunction`
+
+*type*
+
+A function `query.fixed` or `query.default`: its result is checked on every request, so it is `unknown` here.
+
+```ts
+export type TSearchLooseFunction<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}> = (opts: ISearchSourceOptions<RouteEnv, TExtra, Inject>) => ValueOrPromise<unknown>;
+```
+
+Source: `packages/connectors/src/search/core/controllers/settings.ts`
+
 ## `TSearchLooseHit`
 
 *type*
@@ -1270,19 +1320,12 @@ Source: `packages/connectors/src/search/core/controllers/response.ts`
 
 *type*
 
-A `query.normalize`, with `injected` untyped.
+A `query.normalize`, with the text its mode carries.
 
 ```ts
-export type TSearchLooseNormalize<RouteEnv extends Env = Env> = (opts: {
+export type TSearchLooseNormalize<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}> = (opts: ISearchSourceOptions<RouteEnv, TExtra, Inject> & {
     text: string;
-    context: TRouteContext<RouteEnv>;
-    input: TNonRawInput;
-    injected: object;
-}) => ValueOrPromise<string>;
-
-type TNonRawInput = Exclude<TSearchInput, {
-    mode: typeof SearchModes.RAW;
-}>;
+}) => ValueOrPromise<unknown>;
 ```
 
 Source: `packages/connectors/src/search/core/controllers/settings.ts`
@@ -1291,18 +1334,10 @@ Source: `packages/connectors/src/search/core/controllers/settings.ts`
 
 *type*
 
-A `query.fixed` or `query.default`, with its names as plain strings.
+A `query.fixed` or `query.default` as the controller keeps it: checked settings, or a function checked per request.
 
 ```ts
-export type TSearchLooseSource<RouteEnv extends Env = Env> = ISearchLooseSettings | ((opts: {
-    context: TRouteContext<RouteEnv>;
-    input: TNonRawInput;
-    injected: object;
-}) => ValueOrPromise<ISearchLooseSettings>);
-
-type TNonRawInput = Exclude<TSearchInput, {
-    mode: typeof SearchModes.RAW;
-}>;
+export type TSearchLooseSource<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}> = ISearchLooseSettings | TSearchLooseFunction<RouteEnv, TExtra, Inject>;
 ```
 
 Source: `packages/connectors/src/search/core/controllers/settings.ts`

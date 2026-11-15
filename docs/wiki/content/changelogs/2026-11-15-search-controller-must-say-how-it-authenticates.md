@@ -9,7 +9,7 @@ migration:
       before: |
         SearchControllerFactory.build({
           repository: ProductSearchRepository,
-          routes: { search: { use: true } },
+          routes: { search: true },
         });
       after: |
         // JWT callers only
@@ -60,7 +60,7 @@ migration:
 ```typescript
 SearchControllerFactory.build({
   repository: ProductSearchRepository,
-  routes: { search: { use: true } },
+  routes: { search: true },
 });
 ```
 

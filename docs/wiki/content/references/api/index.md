@@ -38,7 +38,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-connectors/sqlite/libsql`](/references/api/venizia-ignis-connectors-sqlite-libsql) | 2 | 2 |
 | [`@venizia/ignis-connectors/testing`](/references/api/venizia-ignis-connectors-testing) | 12 | 12 |
 | [`@venizia/ignis-connectors/typesense`](/references/api/venizia-ignis-connectors-typesense) | 82 | 82 |
-| [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers) | 29 | 29 |
+| [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers) | 31 | 31 |
 | [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter) | 19 | 19 |
 | [`@venizia/ignis-filter/schemas`](/references/api/venizia-ignis-filter-schemas) | 11 | 11 |
 | [`@venizia/ignis-helpers`](/references/api/venizia-ignis-helpers) | 225 | 225 |

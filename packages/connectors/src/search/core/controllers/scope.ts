@@ -52,7 +52,7 @@ export class SearchControllerScope {
     context: TRouteContext<RouteEnv>;
     input: TSearchInput & TExtra;
     injected: TInjected<Inject>;
-  }): Promise<TSearchInput> {
+  }): Promise<TSearchInput & TExtra> {
     const { resolve, context, input, injected } = opts;
 
     let scope: Awaited<ReturnType<TSearchScopeResolver<RouteEnv, TExtra, Inject>>>;
@@ -94,6 +94,6 @@ export class SearchControllerScope {
         ...input.filter,
         where: clientWhere ? { and: [scope, clientWhere] } : scope,
       },
-    } as TSearchInput;
+    } as TSearchInput & TExtra;
   }
 }

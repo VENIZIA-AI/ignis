@@ -6,7 +6,9 @@ import type {
   TAuthStrategy,
   TToggle,
 } from '@venizia/ignis-kernel';
-import type { TRouteAuthenticateConfig } from '@venizia/ignis-kernel';
+import type { TInjectMap, TRouteAuthenticateConfig } from '@venizia/ignis-kernel';
+import { ToggleUtility } from '@venizia/ignis-kernel';
+import type { Env } from 'hono';
 import { MetadataRegistry } from '@venizia/ignis-kernel/metadata';
 import type { TClass } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
@@ -17,14 +19,10 @@ import { SearchEngineParams } from './engine-params';
 import { SearchRawAccess } from './raw-access';
 import { SearchToggles } from './toggles';
 import type { ISearchRouteOptions } from './factory';
+import { SearchResponseUtility } from './response';
 import type { ISearchLooseResponse } from './response';
 import { SearchSettingsUtility } from './settings';
-import type {
-  ISearchFieldCatalog,
-  ISearchResolvedQuery,
-  TSearchLooseNormalize,
-  TSearchLooseSource,
-} from './settings';
+import type { ISearchFieldCatalog, ISearchResolvedQuery, TSearchLooseSource } from './settings';
 
 /** The options of `SearchControllerFactory.build`, with the types that depend on the model and the engine left open: what `resolve` reads and checks at runtime. */
 export interface ISearchOptionsInput {
@@ -40,7 +38,11 @@ export interface ISearchOptionsInput {
 }
 
 /** What the controller needs from its options, after every default and every cross-check. */
-export interface ISearchResolvedOptions {
+export interface ISearchResolvedOptions<
+  RouteEnv extends Env = Env,
+  TExtra extends object = {},
+  Inject extends TInjectMap = {},
+> {
   authenticate: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
   /** `authenticate: { skip: true }` drops it, as for any route: with no caller, no authorization applies. */
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
@@ -50,8 +52,8 @@ export interface ISearchResolvedOptions {
   isMultiSearchOn: boolean;
   /** The `request.headers` of each route that is on and names some. */
   requestHeaders: { search?: TAnyObjectSchema; multiSearch?: TAnyObjectSchema };
-  query?: ISearchResolvedQuery;
-  response?: ISearchLooseResponse;
+  query?: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
+  response?: ISearchLooseResponse<RouteEnv, Inject>;
 }
 
 /** Reads every option of `SearchControllerFactory.build` in one place, applies its defaults and makes every cross-check. Throws `[scope] what | why`, so a bad definition never boots. */
@@ -88,22 +90,22 @@ export class SearchControllerOptionsUtility {
   }
 
   /** The `request.headers` schema of a route that is on, when it names one: it must be a Zod object schema. */
-  private static readHeaders(opts: { scope: string; name: string; toggle: unknown }) {
+  private static readHeaders(opts: {
+    scope: string;
+    name: string;
+    toggle: TToggle<ISearchRouteOptions> | undefined;
+  }) {
     const { scope, name, toggle } = opts;
-    const headers = (toggle as { request?: { headers?: unknown } } | undefined)?.request?.headers;
+    const headers = ToggleUtility.pick(toggle)?.request?.headers;
 
-    if (headers === undefined) {
-      return undefined;
-    }
-
-    if (typeof (headers as { safeParse?: unknown } | null)?.safeParse !== 'function') {
+    if (headers !== undefined && typeof headers.safeParse !== 'function') {
       throw SearchControllerOptionsUtility.fail({
         scope,
         message: `${name}.request.headers must be a Zod object schema | write { use: true, request: { headers: z.object({ 'x-merchant-id': z.string() }) } }`,
       });
     }
 
-    return headers as TAnyObjectSchema;
+    return headers;
   }
 
   /** `inject` names classes only: a key, an instance or an optional dependency is not declared here. */
@@ -157,22 +159,26 @@ export class SearchControllerOptionsUtility {
   }
 
   /** One `query.fixed` or `query.default`: a function is kept for the request, a value is checked now. */
-  private static resolveSource(opts: {
+  private static resolveSource<
+    RouteEnv extends Env,
+    TExtra extends object,
+    Inject extends TInjectMap,
+  >(opts: {
     scope: string;
     source: unknown;
     catalog: ISearchFieldCatalog;
     allowedTuning: ReadonlySet<string>;
     isFixed: boolean;
-  }): TSearchLooseSource | undefined {
+  }): TSearchLooseSource<RouteEnv, TExtra, Inject> | undefined {
     const { scope, source, catalog, allowedTuning, isFixed } = opts;
 
     if (source === undefined) {
       return undefined;
     }
 
-    if (typeof source === 'function') {
-      // The function's own types were checked where it was written; its result is checked on every request.
-      return source as TSearchLooseSource;
+    // The function's own types were checked where it was written; its result is checked on every request.
+    if (SearchSettingsUtility.isFunctionSource<RouteEnv, TExtra, Inject>(source)) {
+      return source;
     }
 
     return SearchSettingsUtility.assert({
@@ -184,11 +190,15 @@ export class SearchControllerOptionsUtility {
     });
   }
 
-  static resolve(opts: {
+  static resolve<
+    RouteEnv extends Env = Env,
+    TExtra extends object = {},
+    Inject extends TInjectMap = {},
+  >(opts: {
     scope: string;
     options: ISearchOptionsInput;
     entityClass: TClass<AbstractEntity>;
-  }): ISearchResolvedOptions {
+  }): ISearchResolvedOptions<RouteEnv, TExtra, Inject> {
     const { scope, options, entityClass } = opts;
     const { routes, query, response, hasScope } = options;
 
@@ -220,7 +230,7 @@ export class SearchControllerOptionsUtility {
       });
     }
 
-    const resolved: ISearchResolvedOptions = {
+    const resolved: ISearchResolvedOptions<RouteEnv, TExtra, Inject> = {
       authenticate,
       authorize: 'strategies' in authenticate ? options.authorize : undefined,
       isRawAllowed,
@@ -268,29 +278,33 @@ export class SearchControllerOptionsUtility {
     const catalog = SearchControllerOptionsUtility.readCatalog({ scope, entityClass });
     const allowedTuning = new Set(Array.isArray(query?.allow?.tuning) ? query.allow.tuning : []);
 
-    // Only a server setting or a normalizer needs the per-request step; `allow.tuning` alone is the body schema and the allow list.
-    if (query?.normalize !== undefined && typeof query.normalize !== 'function') {
+    const normalize = query?.normalize;
+
+    if (
+      normalize !== undefined &&
+      !SearchSettingsUtility.isNormalize<RouteEnv, TExtra, Inject>(normalize)
+    ) {
       throw SearchControllerOptionsUtility.fail({
         scope,
         message: 'query.normalize must be a function | write normalize: ({ text }) => text.trim()',
       });
     }
 
+    // Only a server setting or a normalizer needs the per-request step; `allow.tuning` alone is the body schema and the allow list.
     if (
-      query?.fixed !== undefined ||
-      query?.default !== undefined ||
-      query?.normalize !== undefined
+      query !== undefined &&
+      (query.fixed !== undefined || query.default !== undefined || normalize !== undefined)
     ) {
       resolved.query = {
-        normalize: query.normalize as TSearchLooseNormalize | undefined,
-        fixed: SearchControllerOptionsUtility.resolveSource({
+        normalize,
+        fixed: SearchControllerOptionsUtility.resolveSource<RouteEnv, TExtra, Inject>({
           scope,
           source: query.fixed,
           catalog,
           allowedTuning,
           isFixed: true,
         }),
-        default: SearchControllerOptionsUtility.resolveSource({
+        default: SearchControllerOptionsUtility.resolveSource<RouteEnv, TExtra, Inject>({
           scope,
           source: query.default,
           catalog,
@@ -303,10 +317,7 @@ export class SearchControllerOptionsUtility {
     }
 
     if (SearchToggles.read({ scope, name: 'response', toggle: response })) {
-      if (
-        typeof response?.transform !== 'function' ||
-        typeof (response.document as { safeParse?: unknown } | undefined)?.safeParse !== 'function'
-      ) {
+      if (!SearchResponseUtility.isResponse<RouteEnv, Inject>(response)) {
         throw SearchControllerOptionsUtility.fail({
           scope,
           message:
@@ -314,7 +325,7 @@ export class SearchControllerOptionsUtility {
         });
       }
 
-      resolved.response = response as unknown as ISearchLooseResponse;
+      resolved.response = response;
     }
 
     return resolved;

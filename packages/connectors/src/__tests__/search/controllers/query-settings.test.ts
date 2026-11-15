@@ -245,7 +245,7 @@ describe('precedence: fixed > client > default > the model', () => {
   });
 
   test('a default tuning.sortBy is one sort with order: a client order replaces it, a fixed one makes a client order a 400', async () => {
-    const sortBy = '_text_match:desc,createdAt:desc';
+    const sortBy = '_text_match:desc,name:desc';
     const open = await mount({ options: { query: { default: { tuning: { sortBy } } } } });
 
     await open.send(keyword({ queryBy: ['title'] }));
@@ -399,6 +399,66 @@ describe('what the definition refuses', () => {
     ],
   ])('%s', (_name, options, pattern) => {
     refuses(options, pattern, 'routes' in options ? { routes: undefined } : {});
+  });
+});
+
+describe('tuning names and sort strings a server chooses', () => {
+  test('a tuning.sortBy that names a hidden field is refused: at build for a value, 500 for a function', async () => {
+    for (const sortBy of ['secret:desc', 'name:asc,secret:desc', '_eval([(secret:=x):1]):desc']) {
+      expect(() =>
+        SearchControllerFactory.build({
+          repository: QuerySettingsProductRepository,
+          authenticate: { skip: true },
+          routes: { search: { use: true } },
+          query: { fixed: { tuning: { sortBy } } },
+        } as never),
+      ).toThrow(/hidden field/);
+    }
+
+    const { send, dataSource } = await mount({
+      options: { query: { fixed: () => ({ tuning: { sortBy: 'secret:desc' } }) } },
+    });
+    const refused = await send(keyword({ queryBy: ['title'] }));
+
+    expect(refused.status).toBe(500);
+    expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
+  });
+
+  test('a sort string with engine expressions and known fields is accepted', async () => {
+    const sortBy = '_text_match:desc,_eval([(status:=ACTIVATED):1]):desc,name:desc';
+    const { send, dataSource } = await mount({
+      options: { query: { default: { tuning: { sortBy } } } },
+    });
+    const served = await send(keyword({ queryBy: ['title'] }));
+
+    expect(served.status).toBe(200);
+    expect(wire(dataSource)['sort_by']).toBe(sortBy);
+  });
+
+  test('a fixed or default tuning name that selects rows or fields is refused, in either spelling', () => {
+    for (const name of ['filter_by', 'filterBy', 'include_fields', 'queryBy', 'sort_by']) {
+      for (const layer of ['fixed', 'default']) {
+        expect(() =>
+          SearchControllerFactory.build({
+            repository: QuerySettingsProductRepository,
+            authenticate: { skip: true },
+            routes: { search: { use: true } },
+            query: { [layer]: { tuning: { [name]: 'x' } } },
+          } as never),
+        ).toThrow(/selects rows, fields or order/);
+      }
+    }
+  });
+
+  test('allow.tuning names are exact camelCase: NumTypos is refused, and a fixed name is not allowed in another case', () => {
+    expect(() =>
+      SearchControllerFactory.build({
+        repository: QuerySettingsProductRepository,
+        authenticate: { skip: true },
+        routes: { search: { use: true } },
+        query: { allow: { tuning: ['NumTypos'] } },
+      } as never),
+    ).toThrow(/write the camelCase name/);
   });
 });
 
@@ -734,6 +794,7 @@ describe('response transform', () => {
         throw new Error('boom');
       },
       () => 'nope',
+      () => [null],
     ]) {
       const { send } = await mount({
         options: { response: { use: true, document: PublicProduct, transform } as never },

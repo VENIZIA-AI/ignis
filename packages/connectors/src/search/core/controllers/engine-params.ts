@@ -13,6 +13,16 @@ const normalize = (name: string): string => name.toLowerCase().replace(/[^a-z0-9
  * never be named. Server code passes `engineParams` on the repository call as before.
  */
 export class SearchEngineParams {
+  /** Two spellings of one parameter (`numTypos`, `num_typos`, `NumTypos`) are one name. */
+  static isSameName(opts: { left: string; right: string }): boolean {
+    return normalize(opts.left) === normalize(opts.right);
+  }
+
+  /** A parameter that selects rows, fields or order, in either spelling: no allowlist and no server tuning can hold it. */
+  static isNeverAllowed(opts: { name: string }): boolean {
+    return SearchEngineParams.NEVER_ALLOWED.has(normalize(opts.name));
+  }
+
   /**
    * Parameters no allowlist can hold, in the form `normalize` gives: they choose rows, fields or order, in either engine.
    * `preset` and `override_tags` / `pinned_hits` / `hidden_hits` change which rows come back, and `vector_query` /
@@ -87,8 +97,8 @@ export class SearchEngineParams {
         });
       }
 
-      // The body schema takes the names as written, so a wire spelling (`num_typos`) would be a second name for `numTypos`.
-      if (/[^A-Za-z0-9]/.test(name)) {
+      // The body schema takes the names as written, so a wire spelling (`num_typos`) or `NumTypos` would be a second name for `numTypos`.
+      if (!/^[a-z][A-Za-z0-9]*$/.test(name)) {
         throw getError({
           message: `[${scope}] query.allow.tuning holds ${JSON.stringify(name)} | write the camelCase name, for example 'typoTokensThreshold'`,
         });

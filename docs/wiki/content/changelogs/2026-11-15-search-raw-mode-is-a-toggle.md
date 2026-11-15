@@ -9,8 +9,7 @@ migration:
       before: |
         SearchControllerFactory.build({
           repository: ProductSearchRepository,
-          authenticate: { skip: true },
-          routes: { search: { use: true } },
+          routes: { search: true },
           modes: { raw: { allow: true } },
         });
       after: |
@@ -36,11 +35,13 @@ migration:
 ## What changed
 
 - **`modes.raw.allow` is now `modes.raw.use`.** The meaning is the same: raw mode and multi-search answer `400` until a controller opts in, and a scoped controller cannot opt in.
+- **`SearchRawAccess.resolve` takes `raw`.** It is exported from the search controllers entry, and its argument `modes` (the whole option) is now `raw` (the toggle).
 - **No alias.** `{ allow: true }` fails to type-check.
 
 ## Who is affected
 
 - **Apps that opened raw mode.** Rename `allow` to `use`. The typecheck names each call.
+- **Apps that call `SearchRawAccess.resolve`.** Pass `raw` (the toggle) instead of `modes`.
 - **Everyone else.** No action needed.
 
 ## Breaking changes
@@ -53,8 +54,7 @@ migration:
 ```typescript
 SearchControllerFactory.build({
   repository: ProductSearchRepository,
-  authenticate: { skip: true },
-  routes: { search: { use: true } },
+  routes: { search: true },
   modes: { raw: { allow: true } },
 });
 ```

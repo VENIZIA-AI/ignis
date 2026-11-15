@@ -27,8 +27,6 @@ import { MultiSearchInputSchema, SearchInputSchema } from '@/search/core/reposit
 import type { ReadableSearchRepository } from '../repositories/core/readable';
 import { AbstractSearchController } from './abstract';
 import { SearchControllerOptionsUtility } from './options';
-import type { ISearchLooseResponse } from './response';
-import type { ISearchResolvedQuery } from './settings';
 import type { TSearchScopeResolver } from './scope';
 import type {
   ISearchQueryOptions,
@@ -54,6 +52,7 @@ export interface ISearchControllerOptions<
   Shape extends z.ZodRawShape = {},
   TOutDocument extends object = TRepositoryDataObject<InstanceType<Repository>>,
   Inject extends TInjectMap = {},
+  RouteEnv extends Env = Env,
 > {
   /** The repository class; its name is the binding the container injects, and its `@repository({ model })` supplies the entity whose SELECT schema drives the `hits[].document` shape in the response. */
   repository: Repository;
@@ -94,7 +93,7 @@ export interface ISearchControllerOptions<
    * multi-search route (leave `routes.multiSearch` out), which `SearchControllerFactory.build` requires.
    * `engineParams` is refused on every controller unless `query.allow.tuning` lists it.
    */
-  scope?: TSearchScopeResolver<Env, z.infer<z.ZodObject<Shape>>, Inject>;
+  scope?: TSearchScopeResolver<RouteEnv, TSearchExtra<Shape>, Inject>;
 
   /**
    * Adds keys to the body of `POST /search`, on every `mode`: `request.body.extend` is a Zod shape, and each key is
@@ -116,12 +115,18 @@ export interface ISearchControllerOptions<
     TRepositoryDataObject<InstanceType<Repository>>,
     TRepositoryTuning<Repository>,
     TSearchExtra<Shape>,
-    Inject
+    Inject,
+    RouteEnv
   >;
 
   /** Reshapes the hits of `POST /search` before they leave the route: `{ use: true, document, transform }`. */
   response?: TToggle<
-    ISearchResponseTransform<TRepositoryDataObject<InstanceType<Repository>>, TOutDocument, Inject>
+    ISearchResponseTransform<
+      TRepositoryDataObject<InstanceType<Repository>>,
+      TOutDocument,
+      Inject,
+      RouteEnv
+    >
   >;
 
   /**
@@ -280,7 +285,7 @@ export class SearchControllerFactory extends BaseHelper {
     Shape extends z.ZodRawShape = {},
     TOutDocument extends object = TDataObject,
     Inject extends TInjectMap = {},
-  >(opts: ISearchControllerOptions<Repository, Shape, TOutDocument, Inject>) {
+  >(opts: ISearchControllerOptions<Repository, Shape, TOutDocument, Inject, RouteEnv>) {
     const { repository, scope, isStrict = true } = opts;
 
     const factoryScope = `SearchControllerFactory.build | repository: ${repository.name}`;
@@ -295,7 +300,7 @@ export class SearchControllerFactory extends BaseHelper {
     }
 
     const entityClass: TClass<AbstractEntity> = isClass(model) ? model : model();
-    const resolved = SearchControllerOptionsUtility.resolve({
+    const resolved = SearchControllerOptionsUtility.resolve<RouteEnv, TSearchExtra<Shape>, Inject>({
       scope: factoryScope,
       entityClass,
       options: {
@@ -331,7 +336,8 @@ export class SearchControllerFactory extends BaseHelper {
       BasePath,
       ConfigurableOptions,
       TDataObject,
-      z.infer<z.ZodObject<Shape>>
+      TSearchExtra<Shape>,
+      Inject
     > {
       constructor(
         repositoryInstance: ReadableSearchRepository<TDataObject>,
@@ -342,18 +348,15 @@ export class SearchControllerFactory extends BaseHelper {
           isStrict,
           repository: repositoryInstance,
           definitions: routeDefinitions,
-          searchScope: scope as
-            | TSearchScopeResolver<RouteEnv, z.infer<z.ZodObject<Shape>>>
-            | undefined,
+          searchScope: scope,
           allowedEngineParams: resolved.allowedEngineParams,
           isRawAllowed: resolved.isRawAllowed,
           isBodyExtended: opts.request?.body !== undefined,
-          // Same boundary cast as `searchScope`: the options are typed over `Env`, the controller over its `RouteEnv`.
-          querySettings: resolved.query as ISearchResolvedQuery<RouteEnv> | undefined,
-          responseTransform: resolved.response as ISearchLooseResponse<RouteEnv> | undefined,
+          querySettings: resolved.query,
+          responseTransform: resolved.response,
           injected: Injection.collect({
             scope: new.target.name,
-            inject: opts.inject ?? {},
+            inject: opts.inject,
             instances,
           }),
         });

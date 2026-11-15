@@ -94,6 +94,16 @@ describe('query types', () => {
 
     typeOnly(() =>
       SearchControllerFactory.build({
+        repository: UntypedProductRepository,
+        authenticate: { skip: true },
+        routes: { search: { use: true } },
+        // @ts-expect-error a datasource that binds no tuning can allow no name
+        query: { allow: { tuning: ['numTypos'] } },
+      }),
+    );
+
+    typeOnly(() =>
+      SearchControllerFactory.build({
         repository: TypedProductRepository,
         authenticate: { skip: true },
         routes: { search: { use: true } },

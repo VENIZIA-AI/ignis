@@ -78,12 +78,13 @@ export interface ISearchQueryOptions<
   Tuning extends object,
   TExtra extends object = {},
   Inject extends TInjectMap = {},
+  RouteEnv extends Env = Env,
 > {
   /** Wins over the client. A client value for a fixed setting is refused (400). */
-  fixed?: TSearchSettingsSource<Document, Tuning, Env, TExtra, Inject>;
+  fixed?: TSearchSettingsSource<Document, Tuning, RouteEnv, TExtra, Inject>;
 
   /** Used when the client sent nothing for that setting; above the model's `defaultQueryBy`. */
-  default?: TSearchSettingsSource<Document, Tuning, Env, TExtra, Inject>;
+  default?: TSearchSettingsSource<Document, Tuning, RouteEnv, TExtra, Inject>;
 
   /**
    * Rewrites the query text before anything else reads it: `query` of a keyword or hybrid request, `queryText` of a
@@ -93,13 +94,15 @@ export interface ISearchQueryOptions<
    */
   normalize?: (opts: {
     text: string;
-    context: TRouteContext<Env>;
+    context: TRouteContext<RouteEnv>;
     input: Exclude<TSearchInput, { mode: 'raw' }> & TExtra;
     injected: TInjected<Inject>;
   }) => ValueOrPromise<string>;
 
   /** What a client may send. `tuning` names the knobs a request's `engineParams` may carry; a name is fixed or allowed, never both. */
-  allow?: { tuning?: Array<Exclude<keyof Tuning & string, 'sortBy'>> };
+  allow?: {
+    tuning?: [Tuning] extends [never] ? never[] : Array<Exclude<keyof Tuning & string, 'sortBy'>>;
+  };
 }
 
 /** One hit of a search response. */
@@ -112,6 +115,7 @@ export interface ISearchResponseTransform<
   Document extends object,
   TOutDocument extends object,
   Inject extends TInjectMap = {},
+  RouteEnv extends Env = Env,
 > {
   /** The documents of the response: it replaces the model's schema in the OpenAPI document, and every transformed document is parsed against it (a mismatch answers 500). */
   document: z.ZodType<TOutDocument>;
@@ -120,7 +124,7 @@ export interface ISearchResponseTransform<
   transform: (opts: {
     hits: Array<TSearchHit<Document>>;
     found: number;
-    context: TRouteContext<Env>;
+    context: TRouteContext<RouteEnv>;
     input: Exclude<TSearchInput, { mode: 'raw' }>;
     /** The instances of the classes `inject` declares: reread rows from another repository, say. */
     injected: TInjected<Inject>;

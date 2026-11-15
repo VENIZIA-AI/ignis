@@ -4,7 +4,7 @@ description: "SearchControllerFactory.build takes query (fixed, default, allow.t
 packages: ['@venizia/ignis-connectors', '@venizia/ignis-kernel']
 migration:
   - id: search-scope-resolver-injected
-    symbols: [TSearchScopeResolver, SearchControllerScope]
+    symbols: [TSearchScopeResolver]
     upgrade:
       before: |
         // a test or a wrapper that calls the resolver itself

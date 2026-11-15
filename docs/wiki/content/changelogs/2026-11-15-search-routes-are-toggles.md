@@ -9,7 +9,6 @@ migration:
       before: |
         SearchControllerFactory.build({
           repository: ProductSearchRepository,
-          authenticate: { skip: true },
           routes: { search: true, multiSearch: true },
         });
       after: |
@@ -52,7 +51,6 @@ migration:
 ```typescript
 SearchControllerFactory.build({
   repository: ProductSearchRepository,
-  authenticate: { skip: true },
   routes: { search: true, multiSearch: true },
 });
 ```

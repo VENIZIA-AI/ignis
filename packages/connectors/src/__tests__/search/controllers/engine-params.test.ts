@@ -57,7 +57,8 @@ const build = (opts: {
         : { search: { use: true }, multiSearch: { use: true } }),
     authenticate: { skip: true },
     scope: opts.scope as never,
-    query: opts.allow === undefined ? undefined : { allow: { tuning: opts.allow } },
+    // The names come from the cases below, some of them wire names a typed list refuses: this file tests the runtime check.
+    query: opts.allow === undefined ? undefined : { allow: { tuning: opts.allow as never } },
     modes: opts.isRawAllowed ? { raw: { use: true } } : undefined,
   });
 

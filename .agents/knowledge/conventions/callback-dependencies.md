@@ -12,8 +12,19 @@ the classes it needs, and each callback receives the instances in its one option
 
 ```typescript
 SearchControllerFactory.build({
+  repository: ProductSearchRepository,
+  routes: { search: { use: true } },
+  authenticate: { skip: true },
   inject: { products: ProductRepository, tenants: TenantService },
-  response: { use: true, document, transform: async ({ hits, injected }) => injected.products.find({}) },
+  response: {
+    use: true,
+    document: PublicProduct,
+    transform: async ({ hits, injected }) => {
+      const rows = await injected.products.find({ filter: {} });
+
+      return hits.filter((hit) => rows.some((row) => row.id === hit.document.id));
+    },
+  },
 });
 ```
 

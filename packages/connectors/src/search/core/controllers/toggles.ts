@@ -13,7 +13,8 @@ export class SearchToggles {
       return false;
     }
 
-    const use = (toggle as { use?: unknown } | null)?.use;
+    const use =
+      typeof toggle === 'object' && toggle !== null && 'use' in toggle ? toggle.use : undefined;
 
     if (typeof use !== 'boolean') {
       throw getError({

@@ -3,9 +3,10 @@ import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { Sorts } from '@venizia/ignis-filter';
 import { RequestFilterGuard } from '@venizia/ignis-kernel';
-import type { TRouteContext } from '@venizia/ignis-kernel';
+import type { TInjected, TInjectMap, TRouteContext } from '@venizia/ignis-kernel';
 import type { Env } from 'hono';
 import { SearchFieldTypes } from '@/search/core/models';
+import { SearchEngineParams } from './engine-params';
 import type { ISearchQueryDialect, TSearchInput } from '@/search/core/repositories/common';
 import { SearchInputSchema, SearchModes } from '@/search/core/repositories/common';
 
@@ -19,22 +20,39 @@ export interface ISearchLooseSettings {
   tuning?: Record<string, unknown>;
 }
 
-/** A `query.fixed` or `query.default`, with its names as plain strings. */
-export type TSearchLooseSource<RouteEnv extends Env = Env> =
-  | ISearchLooseSettings
-  | ((opts: {
-      context: TRouteContext<RouteEnv>;
-      input: TNonRawInput;
-      injected: object;
-    }) => ValueOrPromise<ISearchLooseSettings>);
-
-/** A `query.normalize`, with `injected` untyped. */
-export type TSearchLooseNormalize<RouteEnv extends Env = Env> = (opts: {
-  text: string;
+/** What a function source is called with, whatever the document: the same context, scoped input and injected instances the typed options declare. */
+export interface ISearchSourceOptions<
+  RouteEnv extends Env,
+  TExtra extends object,
+  Inject extends TInjectMap,
+> {
   context: TRouteContext<RouteEnv>;
-  input: TNonRawInput;
-  injected: object;
-}) => ValueOrPromise<string>;
+  input: TNonRawInput & TExtra;
+  injected: TInjected<Inject>;
+}
+
+/** A function `query.fixed` or `query.default`: its result is checked on every request, so it is `unknown` here. */
+export type TSearchLooseFunction<
+  RouteEnv extends Env = Env,
+  TExtra extends object = {},
+  Inject extends TInjectMap = {},
+> = (opts: ISearchSourceOptions<RouteEnv, TExtra, Inject>) => ValueOrPromise<unknown>;
+
+/** A `query.fixed` or `query.default` as the controller keeps it: checked settings, or a function checked per request. */
+export type TSearchLooseSource<
+  RouteEnv extends Env = Env,
+  TExtra extends object = {},
+  Inject extends TInjectMap = {},
+> = ISearchLooseSettings | TSearchLooseFunction<RouteEnv, TExtra, Inject>;
+
+/** A `query.normalize`, with the text its mode carries. */
+export type TSearchLooseNormalize<
+  RouteEnv extends Env = Env,
+  TExtra extends object = {},
+  Inject extends TInjectMap = {},
+> = (
+  opts: ISearchSourceOptions<RouteEnv, TExtra, Inject> & { text: string },
+) => ValueOrPromise<unknown>;
 
 /** What the model says about its fields, read once when the controller is built. */
 export interface ISearchFieldCatalog {
@@ -46,11 +64,14 @@ export interface ISearchFieldCatalog {
 }
 
 /** The `query` option as the controller keeps it. */
-export interface ISearchResolvedQuery<RouteEnv extends Env = Env> {
-  fixed?: TSearchLooseSource<RouteEnv>;
-  default?: TSearchLooseSource<RouteEnv>;
-  /** `query.normalize`, with its text and its `injected` untyped. */
-  normalize?: TSearchLooseNormalize<RouteEnv>;
+export interface ISearchResolvedQuery<
+  RouteEnv extends Env = Env,
+  TExtra extends object = {},
+  Inject extends TInjectMap = {},
+> {
+  fixed?: TSearchLooseSource<RouteEnv, TExtra, Inject>;
+  default?: TSearchLooseSource<RouteEnv, TExtra, Inject>;
+  normalize?: TSearchLooseNormalize<RouteEnv, TExtra, Inject>;
   /** The names of `query.allow.tuning`. */
   allowedTuning: ReadonlySet<string>;
   catalog: ISearchFieldCatalog;
@@ -63,6 +84,24 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
 
 /** Reads, checks and merges the `query` settings of a search controller. */
 export class SearchSettingsUtility {
+  /** The trust boundary of a function source: the typed options erase the document and the engine here, and its result is checked on every request. */
+  static isFunctionSource<
+    RouteEnv extends Env = Env,
+    TExtra extends object = {},
+    Inject extends TInjectMap = {},
+  >(source: unknown): source is TSearchLooseFunction<RouteEnv, TExtra, Inject> {
+    return typeof source === 'function';
+  }
+
+  /** The same boundary for `query.normalize`. */
+  static isNormalize<
+    RouteEnv extends Env = Env,
+    TExtra extends object = {},
+    Inject extends TInjectMap = {},
+  >(value: unknown): value is TSearchLooseNormalize<RouteEnv, TExtra, Inject> {
+    return typeof value === 'function';
+  }
+
   /** `statusCode` is set for what a request carries and for what a function source returns; a definition error leaves it unset, as every build error does. */
   private static fail(opts: {
     scope: string;
@@ -188,10 +227,35 @@ export class SearchSettingsUtility {
       }
     };
 
+    // The engine's own sort string: `price:desc`, `_text_match:desc,_eval([(status:=ACTIVATED):1]):desc`. Fields it names obey the rules of `order`; an `_eval` body is read for hidden fields.
+    const checkSortBy = (value: unknown) => {
+      if (typeof value !== 'string') {
+        throw fail('tuning.sortBy must be a string');
+      }
+
+      for (const entry of SearchSettingsUtility.splitSortBy({ value })) {
+        const field = entry.split(':')[0]?.trim() ?? '';
+
+        if (field.startsWith('_eval(')) {
+          for (const match of entry.matchAll(/([A-Za-z][\w.]*)\s*:/g)) {
+            const name = match[1] ?? '';
+
+            if (RequestFilterGuard.isHiddenByName({ key: name, hidden: catalog.hidden })) {
+              throw fail(`tuning.sortBy names a hidden field | field: ${name}`);
+            }
+          }
+        } else if (!field.startsWith('_')) {
+          checkField({ name: field, where: 'tuning.sortBy' });
+        }
+      }
+    };
+
     if (queryByWeights !== undefined) {
       checkKeyed({ record: queryByWeights, where: 'queryByWeights' });
 
-      for (const [name, weight] of Object.entries(queryByWeights as Record<string, unknown>)) {
+      for (const [name, weight] of isPlainObject(queryByWeights)
+        ? Object.entries(queryByWeights)
+        : []) {
         if (typeof weight !== 'number' || !Number.isFinite(weight) || weight < 0) {
           throw fail(`queryByWeights needs a finite weight of 0 or more | field: ${name}`);
         }
@@ -233,13 +297,27 @@ export class SearchSettingsUtility {
       }
 
       for (const [name, value] of Object.entries(tuning)) {
-        if (isFixed && allowedTuning.has(name)) {
+        // `sortBy` is the one name that selects order and is allowed here: it is read below like `order`. The others select rows or fields.
+        if (name !== 'sortBy' && SearchEngineParams.isNeverAllowed({ name })) {
+          throw fail(
+            `tuning '${name}' selects rows, fields or order | set queryBy, order or the scope for that, or pass it in server code on a repository call`,
+          );
+        }
+
+        if (
+          isFixed &&
+          [...allowedTuning].some((allowed) =>
+            SearchEngineParams.isSameName({ left: allowed, right: name }),
+          )
+        ) {
           throw fail(
             `tuning '${name}' is fixed and also in allow.tuning | a name is fixed or open to the client, never both`,
           );
         }
 
-        if (isPlainObject(value)) {
+        if (name === 'sortBy') {
+          checkSortBy(value);
+        } else if (isPlainObject(value)) {
           checkKeyed({ record: value, where: `tuning.${name}` });
         }
       }
@@ -248,13 +326,41 @@ export class SearchSettingsUtility {
     return settings;
   }
 
+  /** The top-level entries of an engine sort string: commas inside parentheses and brackets do not split. */
+  static splitSortBy(opts: { value: string }): string[] {
+    const entries: string[] = [];
+    let depth = 0;
+    let start = 0;
+
+    for (let index = 0; index < opts.value.length; index++) {
+      const character = opts.value[index];
+
+      if (character === '(' || character === '[') {
+        depth += 1;
+      } else if (character === ')' || character === ']') {
+        depth -= 1;
+      } else if (character === ',' && depth === 0) {
+        entries.push(opts.value.slice(start, index));
+        start = index + 1;
+      }
+    }
+
+    entries.push(opts.value.slice(start));
+
+    return entries.map((entry) => entry.trim()).filter((entry) => entry.length > 0);
+  }
+
   /** A source's settings for this request: a value as it is, a function called with `{ context, input }` and its result checked like a definition. A function that throws, or returns what is not a valid shape, answers 500: the value is the server's. */
-  static async resolveSource<RouteEnv extends Env = Env>(opts: {
-    source?: TSearchLooseSource<RouteEnv>;
+  static async resolveSource<
+    RouteEnv extends Env = Env,
+    TExtra extends object = {},
+    Inject extends TInjectMap = {},
+  >(opts: {
+    source?: TSearchLooseSource<RouteEnv, TExtra, Inject>;
     context: TRouteContext<RouteEnv>;
-    input: TNonRawInput;
-    injected: object;
-    query: ISearchResolvedQuery<RouteEnv>;
+    input: TNonRawInput & TExtra;
+    injected: TInjected<Inject>;
+    query: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
     isFixed: boolean;
   }): Promise<ISearchLooseSettings> {
     const { source, context, input, injected, query, isFixed } = opts;
@@ -414,7 +520,11 @@ export class SearchSettingsUtility {
       }
 
       if (fixed.tuning?.[name] !== undefined) {
-        if (name in clientTuning) {
+        if (
+          Object.keys(clientTuning).some((sent) =>
+            SearchEngineParams.isSameName({ left: sent, right: name }),
+          )
+        ) {
           throw refuse(`tuning '${name}'`);
         }
 
@@ -459,12 +569,16 @@ export class SearchSettingsUtility {
    * semantic one. A request without text is left as it is. A throw, or a result that is not a string, answers 500: the
    * function is the server's.
    */
-  static async normalize<RouteEnv extends Env = Env>(opts: {
-    query: ISearchResolvedQuery<RouteEnv>;
+  static async normalize<
+    RouteEnv extends Env = Env,
+    TExtra extends object = {},
+    Inject extends TInjectMap = {},
+  >(opts: {
+    query: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
     context: TRouteContext<RouteEnv>;
-    input: TNonRawInput;
-    injected: object;
-  }): Promise<TNonRawInput> {
+    input: TNonRawInput & TExtra;
+    injected: TInjected<Inject>;
+  }): Promise<TNonRawInput & TExtra> {
     const { query, context, input, injected } = opts;
     const text = input.mode === SearchModes.SEMANTIC ? input.queryText : input.query;
 
@@ -504,11 +618,15 @@ export class SearchSettingsUtility {
    * own converter before the repository runs, so a bad value (`numTypos: -1`) is the server's 500 and not the client's 400.
    * The result is parsed with `SearchInputSchema`, which also drops the keys `request.body.extend` added.
    */
-  static async apply<RouteEnv extends Env = Env>(opts: {
-    query: ISearchResolvedQuery<RouteEnv>;
+  static async apply<
+    RouteEnv extends Env = Env,
+    TExtra extends object = {},
+    Inject extends TInjectMap = {},
+  >(opts: {
+    query: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
     context: TRouteContext<RouteEnv>;
-    input: TSearchInput;
-    injected: object;
+    input: TSearchInput & TExtra;
+    injected: TInjected<Inject>;
     dialect: ISearchQueryDialect;
   }): Promise<TSearchInput> {
     const { query, context, input: received, injected, dialect } = opts;

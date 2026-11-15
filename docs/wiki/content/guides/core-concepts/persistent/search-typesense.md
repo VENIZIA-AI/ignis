@@ -669,7 +669,18 @@ A key the search body already has (`query`, `filter`, ...) is refused when the c
 
 ### Settings the server chooses
 
-`query` fixes or defaults what a search asks the engine for, so a route stays one search and the client cannot widen it. Every name is camelCase and typed against the model and the engine:
+`query` fixes or defaults what a search asks the engine for, so a route stays one search and the client cannot widen it. Every name is camelCase and typed against the model and the engine. The engine's tuning is typed through the repository's datasource, so declare the repository of [Repository Tiers](#repository-tiers) with the datasource class as a second type argument:
+
+```typescript
+// src/repositories/article.repository.ts
+import { SearchDataSource } from '@/datasources/search.datasource';
+import { ArticleDocument, TArticleDocument } from '@/models/entities';
+import { repository } from '@venizia/ignis';
+import { DefaultSearchRepository, TypesenseDataSource } from '@venizia/ignis-connectors/typesense';
+
+@repository({ model: ArticleDocument, dataSource: SearchDataSource })
+export class ArticleRepository extends DefaultSearchRepository<TArticleDocument, TypesenseDataSource> {}
+```
 
 ```typescript
 import { Authentication, controller } from '@venizia/ignis';
@@ -681,12 +692,12 @@ const BaseSearchController = SearchControllerFactory.build({
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   query: {
     // Wins over the client: a client queryBy is a 400.
-    fixed: { queryBy: ['title', 'body'], queryByWeights: { title: 3, body: 1 } },
+    fixed: { queryBy: ['title', 'content'], queryByWeights: { title: 3, content: 1 } },
     // Used when the client sent nothing for that setting.
     default: ({ input }) => ({
-      order: ['title DESC' as const],
+      order: ['title DESC'],
       tuning: {
-        numTypos: 'query' in input && /^\d+$/.test(input.query ?? '') ? 0 : { title: 1, body: 1 },
+        numTypos: 'query' in input && /^\d+$/.test(input.query ?? '') ? 0 : { title: 1, content: 1 },
         prioritizeExactMatch: true,
       },
     }),
@@ -704,10 +715,10 @@ const BaseSearchController = SearchControllerFactory.build({
 | `tuning` | The engine's knobs (`ITypesenseTuning` for Typesense). A list knob such as `numTypos` or `infix` is a record keyed by field name |
 
 - **Precedence per setting.** `fixed`, then what the client sent, then `default`, then the model's `defaultQueryBy`. A client value for a fixed setting is a `400` that names it. A tuning name only counts from the client when `allow.tuning` lists it, and a name is fixed or allowed, never both.
-- **A function source.** It gets `{ context, input }`, where `input` is the validated body after the scope, so it sees the `request.body.extend` keys. A string literal it returns widens inside a generic call: write `'title DESC' as const`. Do not pass type arguments to `build`: they switch the inference off, so `injected` would be typed `{}`.
+- **A function source.** It gets `{ context, input }`, where `input` is the validated body after the scope, so it sees the `request.body.extend` keys. A string literal you keep in a variable first widens to `string`: write `const order = ['title DESC' as const]`. A literal returned in place is typed from the option. Do not pass type arguments to `build`: they switch the inference off, so `injected` would be typed `{}`.
 - **Hybrid needs no `queryBy` from the client** once `query.fixed` or `query.default` is set: the body's `queryBy` becomes optional, and the server's list (else the model's `defaultQueryBy`) is used.
-- **A keyed record names every `queryBy` field.** A fixed record that does not cover the request's `queryBy` is a `400`. A default one is dropped.
-- **Typed tuning needs the datasource.** Write the repository as `DefaultSearchRepository<TArticle, TypesenseDataSource>`. A repository that leaves the second type argument out has no typed tuning: `query.tuning` is closed, and `query.allow.tuning` takes any name. Meilisearch binds none.
+- **A keyed record names every `queryBy` field.** A fixed record that does not cover the effective `queryBy` is a `400` when the client sent the `queryBy`, and a `500` when the server or the model chose the list. A default one is dropped.
+- **Typed tuning needs the datasource.** Write the repository as `DefaultSearchRepository<TArticle, TypesenseDataSource>`. A repository that leaves the second type argument out has no typed tuning: `query.tuning` is closed, and `query.allow.tuning` takes no name, so nothing can be allowed over HTTP. Meilisearch binds none, so the same holds there.
 - **The definition is checked when the controller is built.** A field the model does not have, a hidden field (a dotted child of one too), a `queryBy` field that is not text, a weight for a field outside `queryBy`, and `order` with `tuning.sortBy` in one layer all throw. A function source is checked on every request and answers `500`, because the value is the server's: so does a tuning value the engine refuses (`numTypos: -1`).
 - **No fixed setting beside raw access.** `query.fixed` and `query.default` throw when `modes.raw` or `routes.multiSearch` is on: both hand the engine its own parameters, so a fixed setting would not apply.
 
@@ -718,8 +729,9 @@ A search request's `engineParams` hands the engine tuning. It could replace the 
 A controller that wants callers to tune something names the knobs in `query.allow.tuning`:
 
 ```typescript
+// ArticleRepository extends DefaultSearchRepository<TArticleDocument, TypesenseDataSource>
 SearchControllerFactory.build({
-  repository: ProductSearchRepository,
+  repository: ArticleRepository,
   routes: { search: { use: true } },
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   query: { allow: { tuning: ['typoTokensThreshold', 'numTypos'] } },
@@ -728,6 +740,7 @@ SearchControllerFactory.build({
 
 - **The body takes exactly those names.** `engineParams` is a strict object in the OpenAPI document. A name that is not listed, or its wire spelling (`typo_tokens_threshold`), is a `400`.
 - **A name that selects rows or fields, or orders them, can never be listed.** `sortBy`, `preset`, `pinnedHits` and the rest of the parameters that choose rows, fields or order. `SearchControllerFactory.build` throws when the list holds one.
+- **A name `ITypesenseTuning` has no entry for cannot be listed.** `prefix` is one. Set it in server code: `repository.search({ engineParams: { prefix: true } })`. Without the datasource type argument, and on Meilisearch, no name can be listed.
 - **Server code is not affected.** `repository.search({ ..., engineParams })` takes any parameter, as before.
 
 ### Reshape the response
@@ -754,6 +767,7 @@ SearchControllerFactory.build({
 
 - **`document` is the shape of a hit's document.** It replaces the model's schema in the OpenAPI document, and the types of `transform` follow it.
 - **The transform may drop hits.** `found` stays the engine's count. `Content-Range` keeps the engine's page (`records 10-11/40`), `X-Response-Count` is the number of hits in this response, and a page whose hits were all dropped prints `records */40` with a count of `0`. An empty page does not mean the last one.
+- **Only `document` is parsed.** The other keys of a hit (`score`, `highlight`) are returned as the transform gives them.
 - **The server's code is checked.** Every transformed document is parsed against `document`. A document that does not match, a transform that throws, or a result that is not a list answers `500`.
 - **Not with raw access.** `raw` mode and multi-search return the engine's documents as they are, so `response` throws when `modes.raw` or `routes.multiSearch` is on.
 
@@ -762,27 +776,37 @@ SearchControllerFactory.build({
 A callback that runs on a request never looks anything up in the container. It declares the classes it needs in `inject`, and every function source (`scope`, `query.fixed`, `query.default`, `query.normalize`, `response.transform`) receives the instances as `injected`, typed from the map:
 
 ```typescript
+// Placeholders: your own database repository and service.
+declare class ArticleRowRepository {
+  find(opts: { filter: { where: { id: { inq: string[] } } } }): Promise<{ id: string }[]>;
+}
+declare class TenantService {
+  merchantOf(opts: { userId: string }): Promise<string>;
+}
+
 SearchControllerFactory.build({
-  repository: ProductSearchRepository,
+  repository: ArticleRepository,
   routes: { search: { use: true } },
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
-  inject: { products: ProductRepository, tenants: TenantService },
+  inject: { rows: ArticleRowRepository, tenants: TenantService },
   scope: async ({ context, injected }) => {
     const user = context.get(Authentication.CURRENT_USER);
 
-    return { merchantId: await injected.tenants.merchantOf({ userId: user.userId }) };
+    return { merchantId: await injected.tenants.merchantOf({ userId: String(user.userId) }) };
   },
   response: {
     use: true,
-    document: PublicProduct,
+    document: PublicArticle, // the schema of the previous section
     // The index can be stale: reread the rows by id and drop the hits whose row is gone.
     transform: async ({ hits, injected }) => {
-      const rows = await injected.products.find({
+      const rows = await injected.rows.find({
         filter: { where: { id: { inq: hits.map((hit) => hit.document.id) } } },
       });
       const live = new Set(rows.map((row) => row.id));
 
-      return hits.filter((hit) => live.has(hit.document.id)).map(/* ... */);
+      return hits
+        .filter((hit) => live.has(hit.document.id))
+        .map((hit) => ({ ...hit, document: { id: hit.document.id, title: hit.document.title } }));
     },
   },
 });
@@ -812,7 +836,7 @@ query: {
 
 ### What these options do not cover
 
-- **A sort expression and hidden fields.** `order` entries are checked against the model's fields. The inside of a `tuning.sortBy` string (`_text_match:desc,...`) is the engine's to check, so a hidden field named there is not caught.
+- **A sort expression.** A `tuning.sortBy` string is read for the fields it names: a field the model does not have or hides is refused, as for `order` (an `_eval(...)` body is read for hidden fields only). Only the engine knows its own functions and the rest of the expression, so a `sortBy` the engine refuses answers `500` on the first request. A tuning name that selects rows or fields (`filter_by`, `include_fields`, `queryBy`, in either spelling) is refused in `fixed` and `default` like in `allow.tuning`.
 - **No rows for a caller.** A scope that returns `{ or: [] }` answers `200` with no hits and never calls the engine. `null` is the refusal (`403`).
 
 ### Raw mode and multi-search over HTTP

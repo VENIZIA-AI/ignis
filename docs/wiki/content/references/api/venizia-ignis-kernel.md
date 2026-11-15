@@ -4459,7 +4459,7 @@ registered fails the boot and not a request. A callback never looks anything up 
 export declare class Injection {
     /**
      * Records each declared class as constructor parameter `offset + n` of `target`: the metadata `@inject({ target })`
-     * writes, and the kind `CrudControllerFactory.registerRepositoryInjection` writes for parameter 0. Recorded as
+     * writes, and the metadata `CrudControllerFactory.registerRepositoryInjection` writes for parameter 0. Recorded as
      * metadata rather than a parameter decorator, which Bun drops in some configurations.
      */
     static register(opts: {
@@ -4475,7 +4475,8 @@ export declare class Injection {
      */
     static collect<Inject extends TInjectMap>(opts: {
         scope: string;
-        inject: Inject;
+        /** `undefined` when the options declare none: nothing is collected. */
+        inject: Inject | undefined;
         instances: unknown[];
     }): TInjected<Inject>;
 }
