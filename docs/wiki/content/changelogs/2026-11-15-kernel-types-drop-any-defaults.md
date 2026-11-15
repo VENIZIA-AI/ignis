@@ -25,31 +25,29 @@ migration:
     symbols: [TCrudRoutes, TResponseBodyOf]
     upgrade:
       before: |
-        const routes: TCrudRoutes = { restoreById: true }; // default Repository was any
-        type Body = TResponseBodyOf<typeof routeConfig>;
+        // a route map typed without a repository, handed to a controller of a repository with no restore methods
+        const routes: TCrudRoutes = { restoreById: true };
+        CrudControllerFactory.build({ repository: ItemRepository, routes, /* ... */ });
       after: |
-        // TCrudRoutes without a type argument lists every route; to match one repository, name it
+        // name the repository the map is for: restoreById and restoreBy exist only for a repository that has both methods
         const routes: TCrudRoutes<ItemRepository> = { find: true };
-        // a response with no application/json content contributes never; the result is the same for the rest
-        type Body = TResponseBodyOf<typeof routeConfig>;
+        CrudControllerFactory.build({ repository: ItemRepository, routes, /* ... */ });
     downgrade:
       steps:
-        - "Use TCrudRoutes without a type argument as before; the older default accepted every repository."
-    data: "A value typed as the bare TCrudRoutes is not assignable to TCrudRoutes<SomeRepositoryWithoutRestore>."
+        - "Type the map without a type argument as before; the older default accepted every repository."
+    data: "TCrudRoutes without a type argument still lists every route. TResponseBodyOf gives the same type for a route whose responses carry application/json; a response without JSON content contributes never where it was a type error."
   - id: crud-controller-repository-default-options
-    symbols: [AbstractCrudController, CrudControllerFactory, ControllerFactory.crud]
+    symbols: [AbstractCrudController, CrudControllerFactory]
     upgrade:
       before: |
-        // a subclass spelled the repository type with an any options argument
-        constructor(repository: AbstractRepository<IItem, IItemPersist, any>) {
-          super({ scope: 'ItemController', repository, definitions });
-        }
+        // definitions was any: any object fit
+        const definitions = loadDefinitions(); // an untyped record
+        super({ scope: 'ItemController', repository, definitions });
       after: |
-        // the constructor takes AbstractRepository<D, P> (default options) and definitions: Record<string, IAuthRouteConfig>;
+        // definitions is Record<string, IAuthRouteConfig> and the repository is AbstractRepository<D, P> with its default options;
         // the shipped relational and search repositories, whose options narrow IExtraOptions, still fit
-        constructor(repository: AbstractRepository<IItem, IItemPersist>) {
-          super({ scope: 'ItemController', repository, definitions });
-        }
+        const definitions: Record<string, IAuthRouteConfig> = loadDefinitions();
+        super({ scope: 'ItemController', repository, definitions });
     downgrade:
       steps:
         - "Nothing to restore: a repository and a definitions object that fit the newer parameters fit the older any ones."
@@ -59,25 +57,26 @@ migration:
     upgrade:
       before: |
         const handlers: TQueryOperatorHandlers = {
-          like: (opts: { column: any; value: any }) => sql`${opts.column} like ${opts.value}`,
+          // opts was { column: any; value: any }
+          lengthIs: (opts) => sql`length(${opts.column}) = ${opts.value.length}`,
         };
       after: |
-        // column is Column | SQL and value is unknown: build the fragment with a template, or narrow the value.
-        // A handler typed on IQueryHandlerOptions still fits.
+        // opts.value is unknown and opts.column is Column | SQL: narrow the value, or pass it to a template
         const handlers: TQueryOperatorHandlers = {
-          like: (opts) => sql`${opts.column} like ${opts.value}`,
+          lengthIs: (opts) =>
+            typeof opts.value === 'string' ? sql`length(${opts.column}) = ${opts.value.length}` : undefined,
         };
     downgrade:
       steps:
-        - "Type the handler's parameters as any again."
+        - "Type the handler's parameter as { column: any; value: any } again; a handler typed on IQueryHandlerOptions fits both."
   - id: normalize-count-data-constraint
     symbols: [BaseRestController.normalizeCountData]
     upgrade:
       before: |
-        this.normalizeCountData<ResponseSchema extends any>({ context, data });
+        this.normalizeCountData<ZodType>({ context, data });
       after: |
-        // non-breaking: the ResponseSchema type argument has no constraint now
-        this.normalizeCountData<ResponseSchema>({ context, data });
+        // non-breaking: the ResponseSchema type argument has no constraint now, every call still compiles
+        this.normalizeCountData<ZodType>({ context, data });
     downgrade:
       steps:
         - "Nothing to restore: a type argument that compiled with the constraint compiles without it."
