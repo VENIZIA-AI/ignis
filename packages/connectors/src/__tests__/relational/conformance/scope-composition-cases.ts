@@ -1,7 +1,8 @@
 import { ScopeFilters } from '@venizia/ignis-kernel';
 import { describe, expect, test } from 'bun:test';
-import type { DefaultRelationalRepository } from '@/relational/core/repositories/core/default';
-import type { TWhere } from '@venizia/ignis-kernel';
+import type { ITransaction, TWhere } from '@venizia/ignis-kernel';
+import { relatedRowsOf } from './related-rows';
+import type { TRepositoryPort } from './repository-port';
 import type { TScopeResolution } from './scope-resolution';
 
 /**
@@ -134,12 +135,70 @@ export const ATTACKS: IAttackCase[] = [
   },
 ];
 
-export interface IScopeCompositionContext {
-  products: DefaultRelationalRepository;
-  notes: DefaultRelationalRepository;
-  variants: DefaultRelationalRepository;
+/** A row of the product table as a repository returns it. */
+export interface IProductRecord {
+  id: number;
+  merchantId: string | null;
+  region: string;
+  name: string;
+}
+
+/** What an insert into the product table accepts. */
+export interface IProductInsert {
+  id?: number;
+  merchantId?: string | null;
+  region: string;
+  name: string;
+}
+
+export interface IVariantRecord {
+  id: number;
+  productId: number;
+  name: string;
+}
+
+export interface IVariantInsert {
+  id?: number;
+  productId: number;
+  name: string;
+}
+
+export interface INoteRecord {
+  id: number;
+  productId: number;
+  merchantId: string | null;
+  name: string;
+}
+
+export interface INoteInsert {
+  id?: number;
+  productId: number;
+  merchantId?: string | null;
+  name: string;
+}
+
+export interface IItemRecord {
+  id: number;
+  merchantId: string | null;
+  status: string;
+  name: string;
+}
+
+export interface IItemInsert {
+  id?: number;
+  merchantId?: string | null;
+  status: string;
+  name: string;
+}
+
+type TCompositionVerb = 'count' | 'create' | 'deleteBy' | 'find' | 'findOne' | 'updateBy';
+
+export interface IScopeCompositionContext<TTransaction extends ITransaction = ITransaction> {
+  products: TRepositoryPort<IProductRecord, IProductInsert, TCompositionVerb, TTransaction>;
+  notes: TRepositoryPort<INoteRecord, INoteInsert, TCompositionVerb, TTransaction>;
+  variants: TRepositoryPort<IVariantRecord, IVariantInsert, TCompositionVerb, TTransaction>;
   /** A model with a scope AND a default filter (`status: 'live'`); rows (m1,live,a) (m1,archived,b) (m2,live,c) (m2,archived,d). */
-  items: DefaultRelationalRepository;
+  items: TRepositoryPort<IItemRecord, IItemInsert, TCompositionVerb, TTransaction>;
   itemNames: () => Promise<string[]>;
   setProductScope: (scope: TScopeResolution) => void;
   setNoteScope: (scope: TScopeResolution) => void;
@@ -163,15 +222,19 @@ const rejectionOf = async (task: Promise<unknown>): Promise<unknown> => {
   throw new Error('Expected the call to reject, but it resolved');
 };
 
-type TRowRecord = Record<string, unknown>;
+const names = (rows: Array<{ name: string }>): string[] => rows.map((row) => row.name).sort();
 
-const names = (rows: TRowRecord[]): string[] => rows.map((row) => String(row.name)).sort();
+const isNote = (value: unknown): value is INoteRecord =>
+  typeof value === 'object' &&
+  value !== null &&
+  'name' in value &&
+  typeof value.name === 'string' &&
+  'merchantId' in value &&
+  (value.merchantId === null || typeof value.merchantId === 'string');
 
-/** The related rows an include loaded under `notes`. */
-const notesOf = (row: TRowRecord): TRowRecord[] => (Array.isArray(row.notes) ? row.notes : []);
-
-/** Builds a scope the resolver got wrong on purpose: JSON.parse returns `any`, so no cast is needed. */
-const wrongScope = (json: string): TScopeResolution => JSON.parse(json);
+/** The related rows an include loaded under `notes`: the key is not part of the product's row type. */
+const notesOf = (row: object): INoteRecord[] =>
+  relatedRowsOf({ row, relation: 'notes', isRelated: isNote });
 
 const expectedNames = (opts: { allowed: (row: IRow) => boolean; attack: IAttackCase }) => {
   return ROWS.filter((row) => opts.allowed(row) && opts.attack.matches(row))
@@ -179,7 +242,9 @@ const expectedNames = (opts: { allowed: (row: IRow) => boolean; attack: IAttackC
     .sort();
 };
 
-export const defineScopeCompositionCases = (context: () => IScopeCompositionContext): void => {
+export const defineScopeCompositionCases = <TTransaction extends ITransaction>(
+  context: () => IScopeCompositionContext<TTransaction>,
+): void => {
   for (const scopeCase of SCOPES) {
     describe(`scope: ${scopeCase.label}`, () => {
       for (const attack of ATTACKS) {
@@ -261,11 +326,16 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
 
   describe('a scope the resolver built wrong is unresolved, not "no restriction"', () => {
     const UNUSABLE: Array<[string, TScopeResolution]> = [
-      ['false', wrongScope('false')],
-      ['0', wrongScope('0')],
-      ['an empty string', wrongScope('""')],
-      ['an empty list', wrongScope('[]')],
-      ['a list of scopes', wrongScope('[{"merchantId":"m1"}]')],
+      // @ts-expect-error a resolver may not answer a boolean; the repository must treat it as unresolved
+      ['false', false],
+      // @ts-expect-error a resolver may not answer a number
+      ['0', 0],
+      // @ts-expect-error a resolver may not answer a string
+      ['an empty string', ''],
+      // @ts-expect-error a resolver may not answer a list
+      ['an empty list', []],
+      // @ts-expect-error a resolver may not answer a list
+      ['a list of scopes', [{ merchantId: 'm1' }]],
       ['an empty object', {}],
       ['an object whose value is undefined', { merchantId: undefined }],
       ['one defined and one undefined value', { merchantId: 'm1', region: undefined }],
@@ -438,7 +508,7 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
       ctx.setProductScope(ScopeFilters.UNRESTRICTED);
       ctx.setNoteScope({ merchantId: 'm1' });
 
-      const noteNames = (rows: TRowRecord[]) =>
+      const noteNames = (rows: Array<object>) =>
         rows.flatMap((row) => notesOf(row).map((note) => note.name)).sort();
 
       const plain = await ctx.products.find({ filter: { include: [{ relation: 'notes' }] } });
@@ -478,7 +548,7 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
       const attacked = await ctx.products.find({
         filter: { include: [{ relation: 'notes', scope: { where: { merchantId: 'm2' } } }] },
       });
-      const merchants = (rows: TRowRecord[]) => [
+      const merchants = (rows: Array<object>) => [
         ...new Set(rows.flatMap((row) => notesOf(row).map((note) => note.merchantId))),
       ];
 

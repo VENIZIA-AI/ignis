@@ -415,9 +415,11 @@ describe('a write to a through model must name a parent the caller may reach', (
 
   test('a null or absent foreign key is refused like a foreign parent', async () => {
     const foreign = await refusal(() => variants.create({ data: { productId: 3, name: 'x' } }));
-    const absent = await refusal(() => variants.create({ data: JSON.parse('{"name":"x"}') }));
+    // @ts-expect-error `productId` is required; a caller that leaves it out must be refused
+    const absent = await refusal(() => variants.create({ data: { name: 'x' } }));
     const empty = await refusal(() =>
-      variants.create({ data: JSON.parse('{"productId":null,"name":"x"}') }),
+      // @ts-expect-error `productId` is not nullable; a caller that sends null must be refused
+      variants.create({ data: { productId: null, name: 'x' } }),
     );
 
     expect(absent).toBe(foreign);
@@ -438,7 +440,8 @@ describe('a write to a through model must name a parent the caller may reach', (
   test('an update that moves a row to a foreign parent is refused; to an in-scope parent it works', async () => {
     const toForeign = await refusal(() => variants.updateById({ id: 1, data: { productId: 3 } }));
     const toNull = await refusal(() =>
-      variants.updateById({ id: 1, data: JSON.parse('{"productId":null}') }),
+      // @ts-expect-error `productId` is not nullable; a caller that sends null must be refused
+      variants.updateById({ id: 1, data: { productId: null } }),
     );
 
     expect(toForeign).toContain('write refused by the access scope');

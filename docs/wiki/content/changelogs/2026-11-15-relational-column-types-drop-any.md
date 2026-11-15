@@ -16,6 +16,19 @@ migration:
     downgrade:
       steps:
         - "Read jValue without a narrow again; the older values were any."
+  - id: jvalue-column-writers
+    symbols: [PostgresDataTypeEnricher, SqliteDataTypeEnricher]
+    upgrade:
+      before: |
+        // meta is an interface-typed value (IMeta): Record<string, any> accepted it
+        interface IMeta { label: string }
+        await repository.create({ data: { jValue: meta } }); // TS2769 now: no index signature
+      after: |
+        // jValue is Record<string, unknown>: spread the interface value, or declare the shape as a type alias
+        await repository.create({ data: { jValue: { ...meta } } });
+    downgrade:
+      steps:
+        - "Pass the interface value directly again; the older column type accepted it."
   - id: sqlite-connector-run-result-unknown
     symbols: [TSqliteConnector, TSqliteConnection, TSqliteDriver]
     upgrade:
@@ -30,6 +43,20 @@ migration:
     downgrade:
       steps:
         - "Read the run result as any again."
+  - id: sqlite-connector-parameter-type
+    symbols: [TSqliteConnector]
+    upgrade:
+      before: |
+        // a helper that spelled the connector type with the driver's own result
+        const migrate = (connector: BaseSQLiteDatabase<'async', ResultSet, TAnyDataSourceSchema>) => connector.run(sql`select 1`);
+        await migrate(dataSource.getConnector()); // TS2345 now: the run result slot is unknown
+      after: |
+        // type the parameter as TSqliteConnector and read the run result as unknown
+        const migrate = (connector: TSqliteConnector) => connector.run(sql`select 1`);
+        await migrate(dataSource.getConnector());
+    downgrade:
+      steps:
+        - "Spell the parameter with the driver's result type again."
 ---
 
 # Changelog - 2026-11-15
@@ -42,7 +69,7 @@ migration:
 
 ## Who is affected
 
-- **Code that reads a `jValue` property or a SQLite connector's `run()` result without narrowing it.** See the migration above.
+- **Code that reads or writes a `jValue` property with an interface-typed value, reads a SQLite connector's `run()` result without narrowing it, or spells the SQLite connector type with the driver's own result.** See the migration above.
 - **Everyone else.** No action needed.
 
 ## Breaking changes

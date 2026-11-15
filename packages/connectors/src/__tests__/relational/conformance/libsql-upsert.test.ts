@@ -13,11 +13,17 @@ import { afterAll, beforeAll } from 'bun:test';
 import { sql } from 'drizzle-orm';
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { UniqueKeys, type TTableSchemaWithId } from '@/relational/core/models';
-import { DefaultRelationalRepository } from '@/relational/core/repositories/core/default';
 import { BaseSqliteDataSource } from '@/relational/sqlite/datasources';
 import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
 import { BaseSqliteEntity } from '@/relational/sqlite/models';
-import { defineUpsertCases, type IUpsertRow } from './upsert-cases';
+import { DefaultSqliteRepository } from '@/relational/sqlite/repositories';
+import type { TSameShape } from './table-shape';
+import {
+  defineUpsertCases,
+  type IUpsertInsert,
+  type IUpsertRecord,
+  type IUpsertRow,
+} from './upsert-cases';
 
 /** `upsert` on SQLite (libsql in memory); the cases are shared with PGlite. */
 const TABLE_NAME = 'upsert_lite_item';
@@ -52,6 +58,12 @@ const itemTable = sqliteTable(TABLE_NAME, columns(), (table) => [
 const twinTable = sqliteTable('upsert_lite_twin', columns(), (table) => [
   uniqueIndex('upsert_lite_twin_code').on(table.code),
 ]);
+
+/** The cases type rows and data on `IUpsertRecord` and `IUpsertInsert`; this fails to compile if the table drifts from them. */
+export const itemShape: [
+  TSameShape<typeof itemTable.$inferSelect, IUpsertRecord>,
+  TSameShape<typeof itemTable.$inferInsert, IUpsertInsert>,
+] = [true, true];
 
 let resolver: (context: { operation: TScopeOperation }) => TScopeResolution = () => ({});
 
@@ -110,8 +122,8 @@ class UpsertLiteDataSource extends BaseSqliteDataSource<
 
 let client: Client;
 let dataSource: UpsertLiteDataSource;
-let items: DefaultRelationalRepository;
-let assignItems: DefaultRelationalRepository;
+let items: DefaultSqliteRepository<TTableSchemaWithId>;
+let assignItems: DefaultSqliteRepository<TTableSchemaWithId>;
 
 beforeAll(async () => {
   client = createClient({ url: ':memory:' });
@@ -136,10 +148,10 @@ beforeAll(async () => {
   `);
 
   dataSource = new UpsertLiteDataSource({ client });
-  items = new DefaultRelationalRepository<TTableSchemaWithId>(dataSource, {
+  items = new DefaultSqliteRepository<TTableSchemaWithId>(dataSource, {
     entityClass: UpsertLiteItem,
   });
-  assignItems = new DefaultRelationalRepository<TTableSchemaWithId>(dataSource, {
+  assignItems = new DefaultSqliteRepository<TTableSchemaWithId>(dataSource, {
     entityClass: UpsertLiteAssignItem,
   });
 }, 30_000);

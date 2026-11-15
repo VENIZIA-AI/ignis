@@ -2,10 +2,12 @@ import type { TScopeResolution } from './scope-resolution';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
-import { DefaultRelationalRepository } from '@/relational/core/repositories/core/default';
-import { UniqueKeys, type TTableSchemaWithId } from '@/relational/core/models';
-import type { TSoftDeletableTableSchema } from '@/relational/core/repositories/core/soft-deletable';
-import { SoftDeletableRelationalRepository } from '@/relational/core/repositories/core/soft-deletable';
+import { UniqueKeys } from '@/relational/core/models';
+import {
+  SoftDeletableRelationalRepository,
+  type TSoftDeletableTableSchema,
+} from '@/relational/core/repositories/core/soft-deletable';
+import { PGliteDefaultRepository, PGliteSoftDeletableRepository } from './pglite-repositories';
 import { PGlite } from '@electric-sql/pglite';
 import {
   datasource,
@@ -15,8 +17,13 @@ import {
 } from '@venizia/ignis-kernel';
 import { afterAll, beforeAll } from 'bun:test';
 import { pgTable, serial, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
-import type { ISoftDeleteDataRow } from './soft-delete-data-cases';
-import { defineSoftDeleteDataCases } from './soft-delete-data-cases';
+import {
+  defineSoftDeleteDataCases,
+  type ISoftDeleteDataInsert,
+  type ISoftDeleteDataRecord,
+  type ISoftDeleteDataRow,
+} from './soft-delete-data-cases';
+import type { TSameShape } from './table-shape';
 
 /** `deletedAt` on a real Postgres engine (PGlite); the cases are shared with libsql. */
 const TABLE_NAME = 'soft_delete_data_pg';
@@ -32,6 +39,12 @@ const itemTable = pgTable(
   },
   (table) => [uniqueIndex('soft_delete_data_pg_code').on(table.code)],
 );
+
+/** The cases type rows and data on `ISoftDeleteDataRecord` and `ISoftDeleteDataInsert`; this fails to compile if the table drifts from them. */
+export const itemShape: [
+  TSameShape<typeof itemTable.$inferSelect, ISoftDeleteDataRecord>,
+  TSameShape<typeof itemTable.$inferInsert, ISoftDeleteDataInsert>,
+] = [true, true];
 
 /** A row as the raw PGlite client returns it, the columns aliased to property names. */
 interface IRawSoftDeleteRow {
@@ -106,10 +119,10 @@ afterAll(async () => {
 const items = new SoftDeletableRelationalRepository<TSoftDeletableTableSchema>(dataSource, {
   entityClass: ScopedItem,
 });
-const open = new SoftDeletableRelationalRepository<TSoftDeletableTableSchema>(dataSource, {
+const open = new PGliteSoftDeletableRepository<typeof itemTable>(dataSource, {
   entityClass: OpenItem,
 });
-const plain = new DefaultRelationalRepository<TTableSchemaWithId>(dataSource, {
+const plain = new PGliteDefaultRepository<typeof itemTable>(dataSource, {
   entityClass: PlainItem,
 });
 

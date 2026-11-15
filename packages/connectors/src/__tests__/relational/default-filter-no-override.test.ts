@@ -11,11 +11,11 @@ import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { many, ModelFactory, one, RelationDeclarations } from '@/relational/postgres/models';
 import type { TRelationDefinitions, TTableSchemaWithId } from '@/relational/core/models';
-import { DefaultRelationalRepository } from '@/relational/core/repositories/core/default';
+import { relatedOf } from './conformance/related-rows';
 import {
-  SoftDeletableRelationalRepository,
-  type TSoftDeletableTableSchema,
-} from '@/relational/core/repositories/core/soft-deletable';
+  PGliteDefaultRepository,
+  PGliteSoftDeletableRepository,
+} from './conformance/pglite-repositories';
 
 /**
  * A caller's `where` can only narrow a model's default filter, never replace it: on every read, every write that selects rows,
@@ -89,8 +89,8 @@ class NofDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {},
 }
 
 let client: PGlite;
-let posts: SoftDeletableRelationalRepository;
-let comments: DefaultRelationalRepository;
+let posts: PGliteSoftDeletableRepository<typeof postTable>;
+let comments: PGliteDefaultRepository<typeof commentTable>;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -100,10 +100,10 @@ beforeAll(async () => {
     CREATE TABLE nof_comment (id serial primary key, post_id integer not null references nof_post(id), name text not null, is_deleted boolean not null);
   `);
   const ds = new NofDataSource({ client });
-  posts = new SoftDeletableRelationalRepository<TSoftDeletableTableSchema>(ds, {
+  posts = new PGliteSoftDeletableRepository<typeof postTable>(ds, {
     entityClass: NofPost,
   });
-  comments = new DefaultRelationalRepository<TTableSchemaWithId>(ds, {
+  comments = new PGliteDefaultRepository<typeof commentTable>(ds, {
     entityClass: NofComment,
   });
 }, 30_000);
@@ -217,7 +217,8 @@ describe('a caller cannot reach the row the default (deletedAt: null) hides', ()
     // `findById` takes no `where`; a caller that sends one anyway must still not reach the row.
     const result3 = await posts.findById({
       id: 2,
-      filter: JSON.parse('{"where":{"deletedAt":{"neq":null}}}'),
+      // @ts-expect-error `findById` has no `filter` option; a wire caller can still send one
+      filter: { where: { deletedAt: { neq: null } } },
     });
     expect(result3).toBeNull();
     const result4 = await posts.updateById({ id: 2, data: { name: 'x' } });
@@ -259,7 +260,7 @@ describe('an include cannot replace the default of the related model', () => {
   ])('child scope: %s', async (_name, scope) => {
     const rows = await posts.find({ filter: { include: [{ relation: 'comments', scope }] } });
     const got = rows.flatMap((row) =>
-      (Array.isArray(row.comments) ? row.comments : []).map((c) => c.name),
+      relatedOf({ row, relation: 'comments' }).map((comment) => comment.name),
     );
 
     expect(got).not.toContain('c-dead');
@@ -375,7 +376,7 @@ describe('a key that is not a column is refused', () => {
     }
 
     try {
-      const result2 = await posts.find({ filter: parsed });
+      const result2 = await posts.find({ filter: { where: parsed.where } });
       found = names(result2);
     } catch (error) {
       expect(messageOf(error)).toContain('Column NOT FOUND');

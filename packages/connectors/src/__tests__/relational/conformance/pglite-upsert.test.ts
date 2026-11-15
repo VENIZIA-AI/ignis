@@ -12,12 +12,17 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
 import { index, pgTable, serial, text, timestamp, unique, uniqueIndex } from 'drizzle-orm/pg-core';
 import { UniqueKeys, type TTableSchemaWithId } from '@/relational/core/models';
-import { DefaultRelationalRepository } from '@/relational/core/repositories/core/default';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
 import { PGliteDefaultRepository } from './pglite-repositories';
-import { defineUpsertCases, type IUpsertRow } from './upsert-cases';
+import type { TSameShape } from './table-shape';
+import {
+  defineUpsertCases,
+  type IUpsertInsert,
+  type IUpsertRecord,
+  type IUpsertRow,
+} from './upsert-cases';
 
 /** `upsert` on a real Postgres engine (PGlite); the cases are shared with libsql. */
 const TABLE_NAME = 'upsert_pg_item';
@@ -74,6 +79,12 @@ interface IRawUpsertRow {
   modifiedAt: string | null;
   deletedAt: Date | null;
 }
+
+/** The cases type rows and data on `IUpsertRecord` and `IUpsertInsert`; this fails to compile if the table drifts from them. */
+export const itemShape: [
+  TSameShape<typeof itemTable.$inferSelect, IUpsertRecord>,
+  TSameShape<typeof itemTable.$inferInsert, IUpsertInsert>,
+] = [true, true];
 
 let resolver: (context: { operation: TScopeOperation }) => TScopeResolution = () => ({});
 
@@ -137,8 +148,8 @@ class UpsertDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, 
 
 let client: PGlite;
 let dataSource: UpsertDataSource;
-let items: DefaultRelationalRepository;
-let assignItems: DefaultRelationalRepository;
+let items: PGliteDefaultRepository<TTableSchemaWithId>;
+let assignItems: PGliteDefaultRepository<TTableSchemaWithId>;
 let nnd: PGliteDefaultRepository<typeof nndTable>;
 
 beforeAll(async () => {
@@ -172,10 +183,10 @@ beforeAll(async () => {
   `);
 
   dataSource = new UpsertDataSource({ client });
-  items = new DefaultRelationalRepository<TTableSchemaWithId>(dataSource, {
+  items = new PGliteDefaultRepository<TTableSchemaWithId>(dataSource, {
     entityClass: UpsertItem,
   });
-  assignItems = new DefaultRelationalRepository<TTableSchemaWithId>(dataSource, {
+  assignItems = new PGliteDefaultRepository<TTableSchemaWithId>(dataSource, {
     entityClass: UpsertAssignItem,
   });
   nnd = new PGliteDefaultRepository<typeof nndTable>(dataSource, {

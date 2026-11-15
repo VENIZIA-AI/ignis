@@ -9,9 +9,20 @@ import { RelationsFactory } from '@/relational/core/repositories/dialect/relatio
 import { BaseSqliteDataSource } from '@/relational/sqlite/datasources';
 import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
 import { many, ModelFactory, one, RelationDeclarations } from '@/relational/sqlite/models';
-import { DefaultRelationalRepository } from '@/relational/core/repositories/core/default';
-import type { TTableSchemaWithId } from '@/relational/core/models';
-import { defineScopeCompositionCases, ROWS } from './scope-composition-cases';
+import { DefaultSqliteRepository } from '@/relational/sqlite/repositories';
+import {
+  defineScopeCompositionCases,
+  ROWS,
+  type IItemInsert,
+  type IItemRecord,
+  type INoteInsert,
+  type INoteRecord,
+  type IProductInsert,
+  type IProductRecord,
+  type IVariantInsert,
+  type IVariantRecord,
+} from './scope-composition-cases';
+import type { TSameShape } from './table-shape';
 
 /** The access scope is ANDed with the caller's where on libsql; the cases are shared with libsql. */
 const PRODUCT_TABLE = 'comp_product';
@@ -49,6 +60,18 @@ const itemTable = sqliteTable(ITEM_TABLE, {
   status: text('status').notNull(),
   name: text('name').notNull(),
 });
+
+/** The cases type rows and data on these records and inserts; this fails to compile if a table drifts from them. */
+export const tableShapes: [
+  TSameShape<typeof productTable.$inferSelect, IProductRecord>,
+  TSameShape<typeof productTable.$inferInsert, IProductInsert>,
+  TSameShape<typeof variantTable.$inferSelect, IVariantRecord>,
+  TSameShape<typeof variantTable.$inferInsert, IVariantInsert>,
+  TSameShape<typeof noteTable.$inferSelect, INoteRecord>,
+  TSameShape<typeof noteTable.$inferInsert, INoteInsert>,
+  TSameShape<typeof itemTable.$inferSelect, IItemRecord>,
+  TSameShape<typeof itemTable.$inferInsert, IItemInsert>,
+] = [true, true, true, true, true, true, true, true];
 
 let itemScope: TScopeResolution = {};
 let productScope: TScopeResolution = {};
@@ -153,10 +176,10 @@ class CompositionDataSource extends BaseSqliteDataSource<
 
 let client: Client;
 let dataSource: CompositionDataSource;
-let products: DefaultRelationalRepository;
-let variants: DefaultRelationalRepository;
-let notes: DefaultRelationalRepository;
-let items: DefaultRelationalRepository;
+let products: DefaultSqliteRepository<typeof productTable>;
+let variants: DefaultSqliteRepository<typeof variantTable>;
+let notes: DefaultSqliteRepository<typeof noteTable>;
+let items: DefaultSqliteRepository<typeof itemTable>;
 
 beforeAll(async () => {
   client = createClient({ url: ':memory:' });
@@ -168,16 +191,16 @@ beforeAll(async () => {
   `);
 
   dataSource = new CompositionDataSource({ client });
-  products = new DefaultRelationalRepository<TTableSchemaWithId>(dataSource, {
+  products = new DefaultSqliteRepository<typeof productTable>(dataSource, {
     entityClass: Product,
   });
-  variants = new DefaultRelationalRepository<TTableSchemaWithId>(dataSource, {
+  variants = new DefaultSqliteRepository<typeof variantTable>(dataSource, {
     entityClass: Variant,
   });
-  notes = new DefaultRelationalRepository<TTableSchemaWithId>(dataSource, {
+  notes = new DefaultSqliteRepository<typeof noteTable>(dataSource, {
     entityClass: Note,
   });
-  items = new DefaultRelationalRepository<TTableSchemaWithId>(dataSource, {
+  items = new DefaultSqliteRepository<typeof itemTable>(dataSource, {
     entityClass: Item,
   });
 }, 30_000);

@@ -1,3 +1,4 @@
+import type { ISqliteTransaction } from '@/relational/sqlite/datasources/common';
 import { BaseSqliteDataSource } from '@/relational/sqlite/datasources';
 import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
 import { BaseSqliteEntity } from '@/relational/sqlite/models';
@@ -100,7 +101,7 @@ afterAll(() => {
   client.close();
 });
 
-const harness: IFindEveryHarness = {
+const harness: IFindEveryHarness<ISqliteTransaction> = {
   scoped: new DefaultSqliteRepository(dataSource, { entityClass: ScopedItem }),
   open: new DefaultSqliteRepository(dataSource, { entityClass: OpenItem }),
   capped: new DefaultSqliteRepository(dataSource, { entityClass: CappedItem }),

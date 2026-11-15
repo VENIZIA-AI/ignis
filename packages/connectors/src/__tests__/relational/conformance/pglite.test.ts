@@ -1,4 +1,4 @@
-import type { IRelationalTransaction } from '@/relational/core/datasources/common';
+import type { IDatabaseTransaction } from '@/relational/postgres/datasources/common';
 import { datasource, model, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
@@ -83,7 +83,7 @@ class ConformancePostgresDataSource extends BasePostgresDataSource<
  */
 let client: PGlite;
 let dataSource: ConformancePostgresDataSource;
-let harness: IConformanceHarness;
+let harness: IConformanceHarness<IDatabaseTransaction>;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -110,7 +110,7 @@ beforeAll(async () => {
     scopedRepository: new PGliteDefaultRepository(dataSource, {
       entityClass: ScopedConformanceEntity,
     }),
-    beginTransaction: (): Promise<IRelationalTransaction<unknown>> => dataSource.beginTransaction(),
+    beginTransaction: () => dataSource.beginTransaction(),
   };
 });
 

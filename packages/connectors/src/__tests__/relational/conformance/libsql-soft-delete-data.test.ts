@@ -2,12 +2,15 @@ import type { TScopeResolution } from './scope-resolution';
 import { BaseSqliteDataSource } from '@/relational/sqlite/datasources';
 import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
 import { BaseSqliteEntity } from '@/relational/sqlite/models';
-import { DefaultRelationalRepository } from '@/relational/core/repositories/core/default';
-import { UniqueKeys, type TTableSchemaWithId } from '@/relational/core/models';
+import { UniqueKeys } from '@/relational/core/models';
 import {
   SoftDeletableRelationalRepository,
   type TSoftDeletableTableSchema,
 } from '@/relational/core/repositories/core/soft-deletable';
+import {
+  DefaultSqliteRepository,
+  SoftDeletableSqliteRepository,
+} from '@/relational/sqlite/repositories';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
 import {
@@ -18,8 +21,13 @@ import {
 } from '@venizia/ignis-kernel';
 import { afterAll, beforeAll } from 'bun:test';
 import { integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import type { ISoftDeleteDataRow } from './soft-delete-data-cases';
-import { defineSoftDeleteDataCases } from './soft-delete-data-cases';
+import {
+  defineSoftDeleteDataCases,
+  type ISoftDeleteDataInsert,
+  type ISoftDeleteDataRecord,
+  type ISoftDeleteDataRow,
+} from './soft-delete-data-cases';
+import type { TSameShape } from './table-shape';
 
 /** `deletedAt` on a real SQLite engine (libsql, in memory); the cases are shared with Postgres. */
 const TABLE_NAME = 'soft_delete_data_libsql';
@@ -35,6 +43,12 @@ const itemTable = sqliteTable(
   },
   (table) => [uniqueIndex('soft_delete_data_libsql_code').on(table.code)],
 );
+
+/** The cases type rows and data on `ISoftDeleteDataRecord` and `ISoftDeleteDataInsert`; this fails to compile if the table drifts from them. */
+export const itemShape: [
+  TSameShape<typeof itemTable.$inferSelect, ISoftDeleteDataRecord>,
+  TSameShape<typeof itemTable.$inferInsert, ISoftDeleteDataInsert>,
+] = [true, true];
 
 let resolver: (context: { operation: TScopeOperation }) => TScopeResolution = () => ({});
 
@@ -99,10 +113,10 @@ afterAll(() => {
 const items = new SoftDeletableRelationalRepository<TSoftDeletableTableSchema>(dataSource, {
   entityClass: ScopedItem,
 });
-const open = new SoftDeletableRelationalRepository<TSoftDeletableTableSchema>(dataSource, {
+const open = new SoftDeletableSqliteRepository<typeof itemTable>(dataSource, {
   entityClass: OpenItem,
 });
-const plain = new DefaultRelationalRepository<TTableSchemaWithId>(dataSource, {
+const plain = new DefaultSqliteRepository<typeof itemTable>(dataSource, {
   entityClass: PlainItem,
 });
 

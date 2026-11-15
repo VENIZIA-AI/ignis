@@ -1,15 +1,13 @@
 import { RejectionHelper } from '@venizia/dev-configs/testing';
 import type { IUniqueKey } from '@/relational/core/models';
 import type { IRelationalQueryExecutor } from '@/relational/core/repositories/common';
-import type { DefaultRelationalRepository } from '@/relational/core/repositories/core/default';
-import type {
-  SoftDeletableRelationalRepository,
-  TSoftDeletableTableSchema,
-} from '@/relational/core/repositories/core/soft-deletable';
+import type { TTableObject } from '@/relational/core/models';
+import type { TSoftDeletableTableSchema } from '@/relational/core/repositories/core/soft-deletable';
+import type { TRepositoryPort, TSoftDeletablePort } from './repository-port';
 import type { TScopeResolution } from './scope-resolution';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { RepositoryErrorCodes, ScopeOperations } from '@venizia/ignis-kernel';
-import type { TScopeOperation } from '@venizia/ignis-kernel';
+import type { ITransaction, TScopeOperation } from '@venizia/ignis-kernel';
 import { describe, expect, spyOn, test } from 'bun:test';
 
 /** `deletedAt` on a real engine. Seed: 1 `A` and 3 `C` are merchant `m1`'s, 2 `B` is `m2`'s; all open and alive. */
@@ -21,12 +19,48 @@ export interface ISoftDeleteDataRow {
   isDeleted: boolean;
 }
 
-export interface ISoftDeleteDataContext {
-  items: SoftDeletableRelationalRepository;
+/** A row of the item table as a repository returns it. */
+export interface ISoftDeleteDataRecord {
+  id: number;
+  merchantId: string;
+  code: string;
+  status: string;
+  deletedAt: Date | null;
+}
+
+/** What an insert into the item table accepts. */
+export interface ISoftDeleteDataInsert {
+  id?: number;
+  merchantId: string;
+  code: string;
+  status?: string;
+  deletedAt?: Date | null;
+}
+
+type TItemsVerb =
+  | 'deleteBy'
+  | 'deleteById'
+  | 'restoreBy'
+  | 'restoreById'
+  | 'updateBy'
+  | 'updateById'
+  | 'updateEach'
+  | 'upsert';
+
+type TOpenVerb = 'deleteBy' | 'restoreBy' | 'updateBy';
+
+export interface ISoftDeleteDataContext<TTransaction extends ITransaction = ITransaction> {
+  /** Rows stay on the erased schema: `upsert` takes a key of the table, which only the erased schema can share between engines. Data is typed. */
+  items: TSoftDeletablePort<
+    TTableObject<TSoftDeletableTableSchema>,
+    ISoftDeleteDataInsert,
+    TItemsVerb,
+    TTransaction
+  >;
   /** The same table, through a repository that does not soft delete. */
-  plain: DefaultRelationalRepository;
+  plain: TRepositoryPort<ISoftDeleteDataRecord, ISoftDeleteDataInsert, 'updateById', TTransaction>;
   /** The soft-deletable repository of a model with no scope and no default filter. */
-  open: SoftDeletableRelationalRepository;
+  open: TSoftDeletablePort<ISoftDeleteDataRecord, ISoftDeleteDataInsert, TOpenVerb, TTransaction>;
   codeKey: IUniqueKey<TSoftDeletableTableSchema>;
   /** The database column behind the `deletedAt` property: not `deleted_at`, so a key that names the column is a different key from the property. */
   deletedAtColumn: string;
@@ -75,8 +109,10 @@ const messageOf = (error: unknown): string => {
   return error instanceof Error ? error.message : '';
 };
 
-export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext): void => {
-  const setup = async (): Promise<ISoftDeleteDataContext> => {
+export const defineSoftDeleteDataCases = <TTransaction extends ITransaction>(
+  context: () => ISoftDeleteDataContext<TTransaction>,
+): void => {
+  const setup = async (): Promise<ISoftDeleteDataContext<TTransaction>> => {
     const ctx = context();
     await ctx.reset();
     ctx.setResolver(() => MINE);
@@ -84,14 +120,14 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
     return ctx;
   };
 
-  const rowOf = async (opts: { ctx: ISoftDeleteDataContext; code: string }) => {
+  const rowOf = async (opts: { ctx: ISoftDeleteDataContext<TTransaction>; code: string }) => {
     const rows = await opts.ctx.rawRows();
 
     return rows.find((row) => row.code === opts.code);
   };
 
   const expectRow = async (opts: {
-    ctx: ISoftDeleteDataContext;
+    ctx: ISoftDeleteDataContext<TTransaction>;
     code: string;
     row: Partial<ISoftDeleteDataRow>;
   }) => {
@@ -107,7 +143,7 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
   };
 
   const expectBadRequest = async (opts: {
-    ctx: ISoftDeleteDataContext;
+    ctx: ISoftDeleteDataContext<TTransaction>;
     task: () => Promise<unknown>;
   }) => {
     const before = await opts.ctx.rawRows();
@@ -124,7 +160,7 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
   };
 
   const expectRefused = async (opts: {
-    ctx: ISoftDeleteDataContext;
+    ctx: ISoftDeleteDataContext<TTransaction>;
     task: () => Promise<unknown>;
     message?: string;
   }) => {
@@ -361,7 +397,7 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
 
   describe('the extra data is held to the DELETE scope', () => {
     const expectDenied = async (opts: {
-      ctx: ISoftDeleteDataContext;
+      ctx: ISoftDeleteDataContext<TTransaction>;
       task: () => Promise<unknown>;
     }) => {
       const before = await opts.ctx.rawRows();
@@ -462,11 +498,13 @@ export const defineSoftDeleteDataCases = (context: () => ISoftDeleteDataContext)
       await expectRefused({
         ctx,
         message,
+        // @ts-expect-error the type leaves `id` out of a soft delete's data; the repository must refuse it too
         task: () => ctx.items.deleteById({ id: 1, data: { id: 99 } }),
       });
       await expectRefused({
         ctx,
         message,
+        // @ts-expect-error the type leaves `id` out of a soft delete's data; the repository must refuse it too
         task: () => ctx.items.deleteBy({ where: MINE, data: { id: 99 } }),
       });
     });

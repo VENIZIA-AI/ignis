@@ -252,7 +252,8 @@ describe('a write to a through model on SQLite', () => {
     await variants.create({ data: { productId: 1, name: 'v-new' } });
     const foreign = await refusal(() => variants.create({ data: { productId: 3, name: 'x' } }));
     const missing = await refusal(() => variants.create({ data: { productId: 999, name: 'x' } }));
-    const nameless = await refusal(() => variants.create({ data: JSON.parse('{"name":"x"}') }));
+    // @ts-expect-error `productId` is required; a caller that leaves it out must be refused
+    const nameless = await refusal(() => variants.create({ data: { name: 'x' } }));
 
     const result = await variantNames();
     expect(result).toEqual(['v1', 'v2', 'v3', 'v-new']);

@@ -1,3 +1,4 @@
+import type { IDatabaseTransaction } from '@/relational/postgres/datasources/common';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
@@ -98,7 +99,7 @@ afterAll(async () => {
   await client.close();
 });
 
-const harness: IFindEveryHarness = {
+const harness: IFindEveryHarness<IDatabaseTransaction> = {
   scoped: new PGliteCRUDRepository(dataSource, { entityClass: ScopedItem }),
   open: new PGliteCRUDRepository(dataSource, { entityClass: OpenItem }),
   capped: new PGliteCRUDRepository(dataSource, { entityClass: CappedItem }),

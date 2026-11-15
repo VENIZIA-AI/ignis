@@ -1,4 +1,4 @@
-import type { IRelationalTransaction } from '@/relational/core/datasources/common';
+import type { ISqliteTransaction } from '@/relational/sqlite/datasources/common';
 import { datasource, model, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { BaseSqliteDataSource } from '@/relational/sqlite/datasources';
 import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
@@ -71,7 +71,7 @@ class ConformanceSqliteDataSource extends BaseSqliteDataSource<
 
 /** ONE `:memory:` libsql database for the whole suite; every test re-seeds the single table. */
 let client: Client;
-let harness: IConformanceHarness;
+let harness: IConformanceHarness<ISqliteTransaction>;
 
 beforeAll(async () => {
   client = createClient({ url: ':memory:' });
@@ -97,7 +97,7 @@ beforeAll(async () => {
     scopedRepository: new DefaultSqliteRepository(dataSource, {
       entityClass: ScopedConformanceEntity,
     }),
-    beginTransaction: (): Promise<IRelationalTransaction<unknown>> => dataSource.beginTransaction(),
+    beginTransaction: () => dataSource.beginTransaction(),
   };
 });
 
