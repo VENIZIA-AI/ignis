@@ -10,8 +10,9 @@ releases deleted:
   AnyType      becomes  unknown
   AnyObject    becomes  Record<string, unknown>
 
-in every file that imports them from @venizia/ignis, @venizia/ignis-helpers or @venizia/ignis-inversion
-(a sub-path such as @venizia/ignis-helpers/common too), whatever local name the import gives them
+in every file that imports them from @venizia/ignis, @venizia/ignis-helpers, @venizia/ignis-inversion,
+@venizia/ardor or @venizia/ardor-kernel (ARDOR re-exported the same two names; a sub-path such as
+@venizia/ignis-helpers/common too), whatever local name the import gives them
 (import { AnyType as Loose } ...). The names leave the import, and an import left empty is dropped.
 
 It lists, and leaves alone:
@@ -37,8 +38,21 @@ There is no --reverse: a downgrade restores the files from git.`;
 /** A usage error: nothing was read or written. */
 const USAGE_ERROR_CODE = 2;
 
-/** The packages the aliases were exported from: the root package, helpers and inversion, with or without a sub-path. */
-const ALIAS_MODULE = /^@venizia\/ignis(?:-helpers|-inversion)?(?:\/.*)?$/;
+/**
+ * The packages the aliases were exported from, each with or without a sub-path: the IGNIS root package, helpers and
+ * inversion, and the ARDOR packages that re-exported the same two names (same names, same meaning).
+ */
+const ALIAS_PACKAGES = [
+  '@venizia/ignis',
+  '@venizia/ignis-helpers',
+  '@venizia/ignis-inversion',
+  '@venizia/ardor',
+  '@venizia/ardor-kernel',
+];
+
+const ALIAS_MODULE = new RegExp(
+  `^(?:${ALIAS_PACKAGES.map((name) => name.replace(/[/.-]/g, '\\$&')).join('|')})(?:/.*)?$`,
+);
 
 /** The deleted aliases and what each becomes. */
 const REPLACEMENTS = new Map<string, string>([
@@ -175,14 +189,14 @@ export class AnyAliases {
       }
 
       const clause = statement.importClause;
-      const isIgnis = ALIAS_MODULE.test(statement.moduleSpecifier.text);
+      const isAliasSource = ALIAS_MODULE.test(statement.moduleSpecifier.text);
 
       if (clause === undefined) {
         continue;
       }
 
       if (clause.namedBindings !== undefined && ts.isNamespaceImport(clause.namedBindings)) {
-        if (isIgnis) {
+        if (isAliasSource) {
           namespaces.add(clause.namedBindings.name.text);
         }
 
@@ -190,7 +204,7 @@ export class AnyAliases {
       }
 
       if (clause.namedBindings === undefined || !ts.isNamedImports(clause.namedBindings)) {
-        if (clause.name !== undefined && REPLACEMENTS.has(clause.name.text) && !isIgnis) {
+        if (clause.name !== undefined && REPLACEMENTS.has(clause.name.text) && !isAliasSource) {
           local.push({ line: lineOf(clause.name), name: clause.name.text });
         }
 
@@ -225,7 +239,7 @@ export class AnyAliases {
           continue;
         }
 
-        if (!isIgnis) {
+        if (!isAliasSource) {
           keep(element);
           local.push({ line: lineOf(element), name: localName });
 

@@ -50,6 +50,25 @@ describe('devz codemod any-aliases: the rewrite', () => {
     }
   });
 
+  test('the ARDOR packages that re-exported the aliases are sources too, and an unrelated @venizia package is not', () => {
+    for (const specifier of ['@venizia/ardor', '@venizia/ardor-kernel', '@venizia/ardor/common']) {
+      const result = rewrite(
+        `import type { AnyObject, AnyType } from '${specifier}';\nexport const a: AnyType = 1;\nexport const b: AnyObject = {};\n`,
+      );
+
+      expect(result.output).toBe(
+        `export const a: unknown = 1;\nexport const b: Record<string, unknown> = {};\n`,
+      );
+    }
+
+    const other = rewrite(
+      `import type { AnyType } from '@venizia/ardor-react';\nexport const a: AnyType = 1;\n`,
+    );
+
+    expect(other.changed).toBe(false);
+    expect(other.local).toEqual([{ line: 1, name: 'AnyType' }]);
+  });
+
   test('an `as` alias is followed, and a default import beside the names stays', () => {
     const result = rewrite(
       [

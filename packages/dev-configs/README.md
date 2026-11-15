@@ -407,7 +407,7 @@ The codemods are `drop-redundant-casts` (removes `as X` casts the compiler no lo
 fixers and lists the rest), `namespace-functions` (moves calls of a function that moved into a class to the
 class form), `connector-imports` (moves `@venizia/ignis/<connector sub-path>` imports to
 `@venizia/ignis-connectors`) and `env-get` (strips the type arguments of `applicationEnvironment.get()`
-for the string-reading `get()`) and `any-aliases` (replaces the removed `AnyType` and `AnyObject` aliases by `unknown` and `Record<string, unknown>`, and drops them from the imports).
+for the string-reading `get()`) and `any-aliases` (replaces the removed `AnyType` and `AnyObject` aliases by `unknown` and `Record<string, unknown>`, and drops them from the imports; it reads imports from `@venizia/ignis`, `-helpers`, `-inversion`, and from `@venizia/ardor` and `-kernel`, which re-exported them).
 
 ## Where it sits
 
