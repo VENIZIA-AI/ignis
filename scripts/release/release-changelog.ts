@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { GithubRelease, GithubReleaseConstants } from './github-release';
 import { ReleaseKinds } from './release-kind';
-import { ReleaseStampConstants, ReleaseStampText } from './stamp-text';
+import { ReleaseStampConstants, ReleaseStampText } from './merge-back';
 import type { IReleasePlanSummary } from './release-kind';
 
 /**
@@ -20,7 +20,13 @@ export class ReleaseChangelog {
    * continues one which already wrote the release commit of that package, and so already dated the folder: it needs
    * the folder, and accepts the date.
    */
-  static problems(opts: { cwd: string; version: string; healing: boolean }): string[] {
+  static problems(opts: {
+    cwd: string;
+    version: string;
+    healing: boolean;
+    /** The date the release commit would write; today (UTC) when absent. */
+    date?: string;
+  }): string[] {
     if (!existsSync(join(opts.cwd, GithubReleaseConstants.MANIFEST))) {
       return [];
     }
@@ -43,6 +49,7 @@ export class ReleaseChangelog {
     const problem = ReleaseStampText.problemOf({
       text: readFileSync(log, 'utf8'),
       healing: opts.healing,
+      date: opts.date ?? new Date().toISOString().slice(0, 10),
     });
 
     return problem === undefined ? [] : [`${folder}/${opts.version}/log.md ${problem}`];
@@ -75,6 +82,7 @@ export class ReleaseChangelog {
     cwd: string;
     plan: IReleasePlanSummary;
     versions: ReadonlyMap<string, string>;
+    date?: string;
   }): { problems: string[]; base: string } {
     const leading = opts.plan.targets.find(
       (target) => target.name === GithubReleaseConstants.LEADING_DIR,
@@ -89,6 +97,7 @@ export class ReleaseChangelog {
         cwd: opts.cwd,
         version: leading.target,
         healing: opts.versions.get(leading.name) === leading.target,
+        date: opts.date,
       }),
       base: ReleaseChangelog.base({ cwd: opts.cwd, dir: leading.name, version: leading.target }),
     };

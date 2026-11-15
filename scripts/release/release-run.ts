@@ -688,7 +688,12 @@ const main = async (): Promise<void> => {
 
     // A stable of a project with version folders needs its folder, not yet released; the gates measure the history from
     // the previous stable tag.
-    const changelog = ReleaseChangelog.ofPlan({ cwd: process.cwd(), plan, versions });
+    const changelog = ReleaseChangelog.ofPlan({
+      cwd: process.cwd(),
+      plan,
+      versions,
+      date: new Date().toISOString().slice(0, 10),
+    });
     if (changelog.problems.length > 0) {
       throw new Error(`the plan is refused:\n  - ${changelog.problems.join('\n  - ')}`);
     }

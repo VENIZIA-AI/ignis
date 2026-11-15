@@ -99,7 +99,7 @@ describe('ReleaseChangelog.problems', () => {
     });
 
     expect(ReleaseChangelog.problems({ cwd: root, version: '0.4.8', healing: false })).toEqual([
-      'docs/changelogs/0.4.8/log.md already says released: 2026-11-20; a stable is released once',
+      'docs/changelogs/0.4.8/log.md already says released: 2026-11-20; a released folder is frozen',
     ]);
   });
 
@@ -125,6 +125,44 @@ describe('ReleaseChangelog.problems', () => {
     });
 
     expect(ReleaseChangelog.problems({ cwd: root, version: '0.4.8', healing: false })).toEqual([]);
+  });
+
+  test('an empty released: line is refused like the real stamp refuses it, and does not read the next line as its date', () => {
+    const root = project({
+      migrationFrom: '0.4.5',
+      files: {
+        'docs/changelogs/0.4.8/log.md': LOG.replace('---\nThe', 'released:\nafter: x\n---\nThe'),
+      },
+    });
+
+    const problems = (healing: boolean) =>
+      ReleaseChangelog.problems({ cwd: root, version: '0.4.8', healing, date: '2026-11-20' });
+
+    expect(problems(false)).toEqual([
+      'docs/changelogs/0.4.8/log.md already says released: ; a released folder is frozen',
+    ]);
+    expect(problems(true)).toEqual([]);
+  });
+
+  test('a folder dated today is refused too, unless the run continues one that dated it', () => {
+    const root = project({
+      migrationFrom: '0.4.5',
+      files: { 'docs/changelogs/0.4.8/log.md': RELEASED_LOG },
+    });
+
+    expect(
+      ReleaseChangelog.problems({
+        cwd: root,
+        version: '0.4.8',
+        healing: false,
+        date: '2026-11-20',
+      }),
+    ).toEqual([
+      'docs/changelogs/0.4.8/log.md already says released: 2026-11-20; a released folder is frozen',
+    ]);
+    expect(
+      ReleaseChangelog.problems({ cwd: root, version: '0.4.8', healing: true, date: '2026-11-20' }),
+    ).toEqual([]);
   });
 
   test('a log.md with no frontmatter is refused in the plan, before the stamp would fail after the publish', () => {
@@ -284,7 +322,7 @@ describe('ReleaseChangelog.ofPlan', () => {
     ]);
 
     expect(ReleaseChangelog.ofPlan({ cwd: root, plan: plan('patch'), versions }).problems).toEqual([
-      'docs/changelogs/0.4.8/log.md already says released: 2026-11-20; a stable is released once',
+      'docs/changelogs/0.4.8/log.md already says released: 2026-11-20; a released folder is frozen',
     ]);
     expect(
       ReleaseChangelog.ofPlan({ cwd: root, plan: plan('patch'), versions: healing }).problems,

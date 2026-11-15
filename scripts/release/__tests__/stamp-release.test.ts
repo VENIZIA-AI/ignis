@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { ReleaseStamp } from '../stamp-release';
-import { ReleaseStampText } from '../stamp-text';
+import { ReleaseStampText } from '../merge-back';
 
 const roots: string[] = [];
 

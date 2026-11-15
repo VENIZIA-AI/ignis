@@ -7,13 +7,12 @@
  *
  * It prints the path it wrote, so the loop can `git add` it, and nothing when the project keeps no folder for that
  * version. A folder that already carries another date is refused. Copied from VULCAN (`scripts/release/stamp-release.ts`);
- * a change to the rule is made in VULCAN first. The text rules are in stamp-text.ts.
+ * a change to the rule is made in VULCAN first. The text rules are in merge-back.ts, which is copied alone to the runner.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { GithubRelease } from './github-release';
-import { ReleaseMergeBack } from './merge-back';
-import { ReleaseStampConstants, ReleaseStampText } from './stamp-text';
+import { ReleaseMergeBack, ReleaseStampConstants, ReleaseStampText } from './merge-back';
 
 export class ReleaseStamp {
   /** The log.md of the version's folder, from the manifest's changelog folder; `undefined` when the project has none. */
