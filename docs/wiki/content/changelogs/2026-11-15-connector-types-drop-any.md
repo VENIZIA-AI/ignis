@@ -4,21 +4,24 @@ description: "HttpRepository, the raw SQL repository, the driver datasource, the
 packages: ['@venizia/ignis-connectors']
 migration:
   - id: http-repository-defaults
-    symbols: [HttpRepository]
+    symbols: [HttpRepository, HttpRepository.patchWhere, HttpRepository.deleteWhere]
     upgrade:
       before: |
-        const repository = new HttpRepository({ resource: 'articles', dataSource }); // E defaulted to any
-        const rows = await repository.find({});
-        rows[0].title; // any
+        // E defaulted to any: field names and returned rows were unchecked
+        const repository = new HttpRepository({ resource: 'articles', dataSource });
+        const created = await repository.create({ data: { title: 'x' } });
+        created.data.title; // any
+        await repository.find({ filter: { where: { title: 'x' } } });
       after: |
-        // name the row type: E defaults to object, so the rows carry no properties
+        // name the row type: E defaults to object, so the returned rows carry no properties and no field name is accepted
         const repository = new HttpRepository<IArticle>({ resource: 'articles', dataSource });
-        const rows = await repository.find({});
-        rows[0].title;
+        const created = await repository.create({ data: { title: 'x' } });
+        created.data.title;
+        await repository.find({ filter: { where: { title: 'x' } } });
     downgrade:
       steps:
-        - "Drop the type argument and read the rows as any again; every read compiled."
-    data: "The implementation signatures of the write verbs answer data: unknown; the overloads a caller sees follow the row type."
+        - "Drop the type argument; the older default let every read and every field name compile."
+    data: "The protected patchWhere and deleteWhere now answer data: unknown, and search() answers IHttpSearchResult<object> without a row type: a subclass that reads .data.x from them needs the row type or a narrow. Reading find() rows without a type argument still compiles (a keyless object selects any)."
   - id: raw-sql-repository-datasource-type
     symbols: [BaseRawSqlRepository]
     upgrade:
@@ -39,25 +42,35 @@ migration:
     symbols: [AbstractDriverDataSource, AbstractDriverDataSource.mapSecretToSettings]
     upgrade:
       before: |
-        // the protected hook returned AnyObject: any property read compiled
+        // the protected hook returned AnyObject: an interface return and any property read compiled
+        interface IPgSecret { user: string; password: string }
+        class MyDataSource extends AbstractDriverDataSource<ISettings, Schema, {}, Client, Connector, MyDriver> {
+          protected override mapSecretToSettings(opts: { secret: Record<string, string> }): IPgSecret { /* ... */ } // TS2416 now
+        }
         const user = this.mapSecretToSettings({ secret }).user.toLowerCase();
       after: |
-        // it returns Record<string, unknown>: narrow what you read; the TDriver constraint is IConnectorDriver<TConnector, unknown>
+        // it returns Record<string, unknown>: return that (or declare the shape as a type alias) and narrow what you read;
+        // the TDriver constraint is IConnectorDriver<TConnector, unknown>
+        type TPgSecret = { user: string; password: string };
+        class MyDataSource extends AbstractDriverDataSource<ISettings, Schema, {}, Client, Connector, MyDriver> {
+          protected override mapSecretToSettings(opts: { secret: Record<string, string> }): TPgSecret { /* ... */ }
+        }
         const mapped = this.mapSecretToSettings({ secret });
         const user = typeof mapped.user === 'string' ? mapped.user.toLowerCase() : undefined;
     downgrade:
       steps:
-        - "Read the mapped settings without a narrow again; the older return was any-valued."
+        - "Return the interface and read the mapped settings without a narrow again; the older return was any-valued."
   - id: search-controller-definitions
     symbols: [AbstractSearchController]
     upgrade:
       before: |
-        // definitions was any: an untyped object fit
-        const definitions = loadDefinitions();
-        super({ scope: 'SearchController', repository, definitions });
+        // definitions was any: an interface-typed object fit
+        interface ISearchDefinitions { search: IAuthRouteConfig }
+        const definitions: ISearchDefinitions = { search: { authenticate: { strategies: ['jwt'] } } };
+        super({ scope: 'SearchController', repository, definitions }); // TS2322 now: no index signature
       after: |
-        // definitions is Record<string, IAuthRouteConfig>
-        const definitions: Record<string, IAuthRouteConfig> = loadDefinitions();
+        // definitions is Record<string, IAuthRouteConfig>: use a type alias or satisfies
+        const definitions = { search: { authenticate: { strategies: ['jwt'] } } } satisfies Record<string, IAuthRouteConfig>;
         super({ scope: 'SearchController', repository, definitions });
     downgrade:
       steps:
@@ -96,7 +109,7 @@ migration:
 
 ## Who is affected
 
-- **Code that uses `HttpRepository` without a row type, reads a raw SQL repository's `dataSource.settings` untyped, overrides `mapSecretToSettings`, or implements `IMeilisearchClientLike`.** See the migration above.
+- **Code that uses `HttpRepository` without a row type, reads a raw SQL repository's `dataSource.settings` untyped, overrides `mapSecretToSettings` with an interface return, passes an interface-typed `definitions` object to a search controller, or implements `IMeilisearchClientLike`.** See the migration above.
 - **Everyone else.** No action needed.
 
 ## Breaking changes
@@ -107,11 +120,15 @@ migration:
 **Before:**
 
 ```typescript
-const repository = new HttpRepository({ dataSource });
+const repository = new HttpRepository({ resource: 'articles', dataSource });
+const created = await repository.create({ data: { title: 'x' } });
+created.data.title;
 ```
 
 **After:**
 
 ```typescript
-const repository = new HttpRepository<IArticle>({ dataSource });
+const repository = new HttpRepository<IArticle>({ resource: 'articles', dataSource });
+const created = await repository.create({ data: { title: 'x' } });
+created.data.title;
 ```

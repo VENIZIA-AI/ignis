@@ -67,7 +67,7 @@ export interface IMeilisearchDataSourceSettings {
   taskIntervalMs?: number;
 }
 
-/** A Meilisearch task as `getTask` and write calls return it; `status` is one of `MeilisearchTaskStatuses`. */
+/** A Meilisearch task as a write call returns it (`getTask` answers {@link IMeilisearchPolledTask}); `status` is one of `MeilisearchTaskStatuses`. */
 export interface IMeilisearchTask {
   taskUid: number;
   status: string;
@@ -106,7 +106,7 @@ export interface IMeilisearchIndexApi {
 /** Narrow structural view of the Meilisearch client the connector needs, so a test fake can stand in for the real client. */
 export interface IMeilisearchClientLike {
   index(uid: string): IMeilisearchIndexApi;
-  createIndex(uid: string, options?: unknown): Promise<IMeilisearchTask>;
+  createIndex(uid: string, options?: { primaryKey?: string }): Promise<IMeilisearchTask>;
   getIndex(uid: string): Promise<unknown>;
   getIndexes(params?: unknown): Promise<{ results: unknown[] }>;
   deleteIndex(uid: string): Promise<IMeilisearchTask>;

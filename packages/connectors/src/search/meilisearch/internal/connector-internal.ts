@@ -3,7 +3,6 @@ import type { ISearchFacetCount, ISearchResult } from '@/search/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type {
   FederatedMultiSearchParams,
-  IndexOptions,
   IndexSwap,
   Meilisearch,
   MultiSearchParams,
@@ -204,7 +203,8 @@ export class MeilisearchInternal {
 
     return {
       index: (uid: string) => client.index(uid),
-      createIndex: (uid: string, options?: IndexOptions) => client.createIndex(uid, options),
+      createIndex: (uid: string, options?: { primaryKey?: string }) =>
+        client.createIndex(uid, options),
       getIndex: (uid: string) => client.getIndex(uid),
       getIndexes: () => client.getIndexes(),
       deleteIndex: (uid: string) => client.deleteIndex(uid),
