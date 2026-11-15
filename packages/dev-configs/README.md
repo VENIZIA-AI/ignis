@@ -407,7 +407,7 @@ The codemods are `drop-redundant-casts` (removes `as X` casts the compiler no lo
 fixers and lists the rest), `namespace-functions` (moves calls of a function that moved into a class to the
 class form), `connector-imports` (moves `@venizia/ignis/<connector sub-path>` imports to
 `@venizia/ignis-connectors`) and `env-get` (strips the type arguments of `applicationEnvironment.get()`
-for the string-reading `get()`; the receiver is any name the file imports as `applicationEnvironment` or `AppEnvs`, and a call it cannot place is listed as manual or skipped with its file and line).
+for the string-reading `get()`; the receiver is a name the call's scope resolves to an import of `applicationEnvironment` or `AppEnvs` from the store module, or a const initialised from one; every other `get<...>(key)` call is listed as skipped, and a call it cannot place as manual, with its file and line).
 
 ## Where it sits
 

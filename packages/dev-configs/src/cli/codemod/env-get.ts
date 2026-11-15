@@ -16,12 +16,18 @@ Any other type argument (get<number>(key), get<boolean>(key)) was a cast the new
 the codemod lists it as "manual" and leaves it. Move the conversion into a transform, or read the
 string and convert it where you use it: get(key, { transform: Number }).
 
-It reads TypeScript files (.ts, .tsx, .mts, .cts) and only calls whose receiver is the bare identifier
-applicationEnvironment or AppEnvs, or a name the file binds to one of them: an import alias
-(import { applicationEnvironment as AppEnv } from '@venizia/ignis-helpers') or a plain
-const alias (const env = applicationEnvironment). A call through this.applicationEnvironment, a property, a
-parameter, an ApplicationEnvironment instance or an optional chain is not touched and not listed, so run
-your typecheck after it. A comment between the method name and the parenthesis is dropped. A .js, .cjs or .mjs file is not read: edit it by hand.
+A call already in the new form (one type argument and an options literal with a transform) is left alone
+and not listed, and a second run changes nothing.
+
+It reads TypeScript files (.ts, .tsx, .mts, .cts) and rewrites only calls whose receiver resolves, from the
+scope of the call, to the store: a name imported as applicationEnvironment or AppEnvs from @venizia/ignis,
+@venizia/ignis-helpers (or a sub-path), under any local name (import { AppEnvs as Envs } ...), or a const
+initialised from such a name in the same or an enclosing scope. A parameter, a local variable, an import from
+anywhere else (a barrel of your own included) and a name nothing declares are not the store. Every other
+get<...>(key) call (a property, an optional chain, those names) is printed as skipped with its file and line,
+and a call with a type argument it cannot place as manual: nothing is left out without a line, so run your
+typecheck after it. A comment between the method name and the parenthesis is dropped. A .js, .cjs or .mjs file
+is not read: edit it by hand.
 
   --write    write the changed files (without it, nothing is written); it needs a path, or --all
   --all      with --write and no path: rewrite every source file under the working directory
@@ -66,57 +72,169 @@ export interface IEnvGetResult {
   changed: boolean;
   /** How many calls were rewritten. */
   rewritten: number;
-  /** The calls with a type argument the codemod cannot rewrite: file line numbers (1-based). */
-  manual: number[];
-  /** The first type argument of each manual call, in the same order as `manual`. */
-  manualTypes: string[];
+  /** The store calls with a type argument the codemod cannot rewrite: file line (1-based) and the first type argument. */
+  manual: Array<{ line: number; type: string }>;
   /** The `get<...>(key)` calls on a receiver the file does not bind to the store (or through an optional chain), left alone and listed: file line (1-based) and the receiver text. */
   skipped: Array<{ line: number; receiver: string }>;
 }
 
 /** Rewrites the type arguments of `applicationEnvironment.get()` calls. */
 export class EnvGet {
-  /** The default receivers plus the names the file binds to them: an import alias, and a plain `const` alias of one. */
-  static collectReceivers(opts: {
+  /** The names a declaration in `node` binds, for `node` a scope: a block or file, a function, a loop or a catch clause. */
+  private static declarationIn(opts: {
     typescript: typeof import('typescript');
-    file: import('typescript').SourceFile;
-  }): Set<string> {
-    const { typescript: ts, file } = opts;
-    const receivers = new Set(RECEIVERS);
+    scope: import('typescript').Node;
+    name: string;
+  }): import('typescript').Node | undefined {
+    const { typescript: ts, scope, name } = opts;
 
-    for (const statement of file.statements) {
-      if (
-        ts.isImportDeclaration(statement) &&
-        ts.isStringLiteral(statement.moduleSpecifier) &&
-        STORE_MODULE.test(statement.moduleSpecifier.text) &&
-        statement.importClause?.namedBindings !== undefined &&
-        ts.isNamedImports(statement.importClause.namedBindings)
-      ) {
-        for (const element of statement.importClause.namedBindings.elements) {
-          if (RECEIVERS.has((element.propertyName ?? element.name).text)) {
-            receivers.add(element.name.text);
+    const bindingNames = (node: import('typescript').BindingName): string[] => {
+      if (ts.isIdentifier(node)) {
+        return [node.text];
+      }
+
+      return node.elements.flatMap((element) =>
+        ts.isBindingElement(element) ? bindingNames(element.name) : [],
+      );
+    };
+
+    const inDeclarations = (
+      declarations: ReadonlyArray<import('typescript').VariableDeclaration>,
+    ): import('typescript').Node | undefined =>
+      declarations.find((declaration) => bindingNames(declaration.name).includes(name));
+
+    if (
+      ts.isSourceFile(scope) ||
+      ts.isBlock(scope) ||
+      ts.isModuleBlock(scope) ||
+      ts.isCaseClause(scope) ||
+      ts.isDefaultClause(scope)
+    ) {
+      for (const statement of scope.statements) {
+        if (ts.isVariableStatement(statement)) {
+          const found = inDeclarations(statement.declarationList.declarations);
+
+          if (found !== undefined) {
+            return found;
+          }
+        } else if (
+          (ts.isFunctionDeclaration(statement) ||
+            ts.isClassDeclaration(statement) ||
+            ts.isEnumDeclaration(statement)) &&
+          statement.name?.text === name
+        ) {
+          return statement;
+        } else if (ts.isImportDeclaration(statement) && statement.importClause !== undefined) {
+          const clause = statement.importClause;
+
+          if (clause.name?.text === name) {
+            return clause;
+          }
+
+          const bindings = clause.namedBindings;
+
+          if (
+            bindings !== undefined &&
+            ts.isNamespaceImport(bindings) &&
+            bindings.name.text === name
+          ) {
+            return bindings;
+          }
+
+          if (bindings !== undefined && ts.isNamedImports(bindings)) {
+            const element = bindings.elements.find((candidate) => candidate.name.text === name);
+
+            if (element !== undefined) {
+              return element;
+            }
           }
         }
       }
+
+      return undefined;
     }
 
-    const visit = (node: import('typescript').Node): void => {
-      if (
-        ts.isVariableDeclaration(node) &&
-        ts.isIdentifier(node.name) &&
-        node.initializer !== undefined &&
-        ts.isIdentifier(node.initializer) &&
-        receivers.has(node.initializer.text)
-      ) {
-        receivers.add(node.name.text);
+    if (ts.isFunctionLike(scope)) {
+      const parameter = scope.parameters.find((candidate) =>
+        bindingNames(candidate.name).includes(name),
+      );
+
+      if (parameter !== undefined) {
+        return parameter;
       }
 
-      ts.forEachChild(node, visit);
-    };
+      return ts.isFunctionExpression(scope) && scope.name?.text === name ? scope : undefined;
+    }
 
-    visit(file);
+    if (
+      (ts.isForStatement(scope) || ts.isForOfStatement(scope) || ts.isForInStatement(scope)) &&
+      scope.initializer !== undefined &&
+      ts.isVariableDeclarationList(scope.initializer)
+    ) {
+      return inDeclarations(scope.initializer.declarations);
+    }
 
-    return receivers;
+    if (ts.isCatchClause(scope) && scope.variableDeclaration !== undefined) {
+      return inDeclarations([scope.variableDeclaration]);
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Whether `identifier` refers to the environment store: the binding the name resolves to, from the
+   * innermost scope outwards, is an import of `applicationEnvironment` or `AppEnvs` from the store module
+   * (aliased or not), or a `const` that is initialised from such a name. A parameter, a local, an import
+   * from anywhere else and a name nothing declares are not the store.
+   */
+  static isStore(opts: {
+    typescript: typeof import('typescript');
+    identifier: import('typescript').Identifier;
+    seen?: Set<import('typescript').Node>;
+  }): boolean {
+    const { typescript: ts, identifier } = opts;
+    const seen = opts.seen ?? new Set<import('typescript').Node>();
+
+    if (seen.has(identifier)) {
+      return false;
+    }
+
+    seen.add(identifier);
+
+    for (
+      let scope: import('typescript').Node | undefined = identifier.parent;
+      scope !== undefined;
+      scope = scope.parent
+    ) {
+      const declaration = EnvGet.declarationIn({ typescript: ts, scope, name: identifier.text });
+
+      if (declaration === undefined) {
+        continue;
+      }
+
+      if (ts.isImportSpecifier(declaration)) {
+        const importDeclaration = declaration.parent.parent.parent;
+
+        return (
+          ts.isStringLiteral(importDeclaration.moduleSpecifier) &&
+          STORE_MODULE.test(importDeclaration.moduleSpecifier.text) &&
+          RECEIVERS.has((declaration.propertyName ?? declaration.name).text)
+        );
+      }
+
+      if (
+        ts.isVariableDeclaration(declaration) &&
+        ts.isIdentifier(declaration.name) &&
+        declaration.initializer !== undefined &&
+        ts.isIdentifier(declaration.initializer)
+      ) {
+        return EnvGet.isStore({ typescript: ts, identifier: declaration.initializer, seen });
+      }
+
+      return false;
+    }
+
+    return false;
   }
 
   static rewrite(opts: {
@@ -128,10 +246,10 @@ export class EnvGet {
     const scriptKind = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
     const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, scriptKind);
     const edits: Array<{ start: number; end: number; text: string }> = [];
-    const manual: number[] = [];
-    const manualTypes: string[] = [];
+    const manual: Array<{ line: number; type: string }> = [];
     const skipped: Array<{ line: number; receiver: string }> = [];
-    const receivers = EnvGet.collectReceivers({ typescript: ts, file });
+    const lineOf = (node: import('typescript').Node): number =>
+      file.getLineAndCharacterOfPosition(node.getStart(file)).line + 1;
 
     /** `string`, or `string | undefined` (the type `get(key)` already answers): the type argument can go. */
     const isStringType = (node: import('typescript').TypeNode): boolean => {
@@ -144,58 +262,68 @@ export class EnvGet {
       }
 
       if (ts.isUnionTypeNode(node) && node.types.length === 2) {
-        const kinds = node.types.map((part) => part.kind);
+        const parts = node.types.map((part) => part.kind);
 
         return (
-          kinds.includes(ts.SyntaxKind.StringKeyword) &&
-          kinds.includes(ts.SyntaxKind.UndefinedKeyword)
+          parts.includes(ts.SyntaxKind.StringKeyword) &&
+          parts.includes(ts.SyntaxKind.UndefinedKeyword)
         );
       }
 
       return false;
     };
 
+    /** An options literal that already carries a `transform`: the call is in the new form. */
+    const hasTransform = (node: import('typescript').Expression | undefined): boolean =>
+      node !== undefined &&
+      ts.isObjectLiteralExpression(node) &&
+      node.properties.some(
+        (property) =>
+          property.name !== undefined &&
+          ts.isIdentifier(property.name) &&
+          property.name.text === 'transform',
+      );
+
     const visit = (node: import('typescript').Node): void => {
       if (
         ts.isCallExpression(node) &&
         node.typeArguments !== undefined &&
-        node.questionDotToken === undefined &&
-        !(ts.isPropertyAccessExpression(node.expression) && node.expression.questionDotToken) &&
         ts.isPropertyAccessExpression(node.expression) &&
-        node.expression.name.text === 'get' &&
-        ts.isIdentifier(node.expression.expression) &&
-        receivers.has(node.expression.expression.text)
+        node.expression.name.text === 'get'
       ) {
-        const [first, second] = node.typeArguments;
-        const start = node.expression.name.getEnd();
-        const end = node.arguments.pos - 1;
-        const isString = isStringType(first);
+        const callee = node.expression;
+        const isOptional =
+          node.questionDotToken !== undefined || callee.questionDotToken !== undefined;
 
-        if (node.typeArguments.length === 2 && node.arguments.length > 1) {
-          edits.push({ start, end, text: `<${first.getText(file)}>` });
-        } else if (isString && second === undefined) {
-          edits.push({ start, end, text: '' });
-        } else {
-          manual.push(file.getLineAndCharacterOfPosition(node.getStart(file)).line + 1);
-          manualTypes.push(first.getText(file));
+        if (
+          !isOptional &&
+          ts.isIdentifier(callee.expression) &&
+          EnvGet.isStore({ typescript: ts, identifier: callee.expression })
+        ) {
+          const [first, second] = node.typeArguments;
+          const start = callee.name.getEnd();
+          const end = node.arguments.pos - 1;
+
+          if (node.typeArguments.length === 2 && node.arguments.length > 1) {
+            // `get<R, B>(key, options)` keeps R, even when R is `string`: a second run leaves `get<string>(key, { transform })` alone.
+            edits.push({ start, end, text: `<${first.getText(file)}>` });
+          } else if (node.typeArguments.length === 1 && hasTransform(node.arguments[1])) {
+            // One type argument and a transform: the new form, nothing to do and nothing to list.
+          } else if (
+            isStringType(first) &&
+            second === undefined &&
+            !(node.arguments.length > 1 && !ts.isObjectLiteralExpression(node.arguments[1]))
+          ) {
+            edits.push({ start, end, text: '' });
+          } else {
+            manual.push({ line: lineOf(node), type: first.getText(file) });
+          }
+        } else if (node.arguments.length > 0 && !ts.isObjectLiteralExpression(node.arguments[0])) {
+          // Every other `x.get<T>(key)` is listed, never hidden: a name the file does not bind to the store, a
+          // property, a parameter or an optional chain. A container lookup shares the shape (its first
+          // argument is an object literal, so it is not listed).
+          skipped.push({ line: lineOf(node), receiver: callee.expression.getText(file) });
         }
-      }
-
-      // Every other `x.get<T>(key)` is listed, never hidden: a store reached through a property, a
-      // parameter or an optional chain cannot be resolved here, and a container lookup shares the shape
-      // (its first argument is an object literal, so it is not listed).
-      else if (
-        ts.isCallExpression(node) &&
-        node.typeArguments !== undefined &&
-        ts.isPropertyAccessExpression(node.expression) &&
-        node.expression.name.text === 'get' &&
-        node.arguments.length > 0 &&
-        !ts.isObjectLiteralExpression(node.arguments[0])
-      ) {
-        skipped.push({
-          line: file.getLineAndCharacterOfPosition(node.getStart(file)).line + 1,
-          receiver: node.expression.expression.getText(file),
-        });
       }
 
       ts.forEachChild(node, visit);
@@ -204,7 +332,7 @@ export class EnvGet {
     visit(file);
 
     if (edits.length === 0) {
-      return { output: source, changed: false, rewritten: 0, manual, manualTypes, skipped };
+      return { output: source, changed: false, rewritten: 0, manual, skipped };
     }
 
     let output = source;
@@ -213,14 +341,7 @@ export class EnvGet {
       output = output.slice(0, edit.start) + edit.text + output.slice(edit.end);
     }
 
-    return {
-      output,
-      changed: output !== source,
-      rewritten: edits.length,
-      manual,
-      manualTypes,
-      skipped,
-    };
+    return { output, changed: output !== source, rewritten: edits.length, manual, skipped };
   }
 }
 
@@ -305,20 +426,18 @@ export class EnvGetCommand {
       for (const file of files) {
         const source = readFileSync(file, 'utf8');
 
-        if (!/\.get\s*</.test(source)) {
+        if (!/\.\s*get\b/.test(source)) {
           continue;
         }
 
         const result = EnvGet.rewrite({ typescript, fileName: file, source });
         const shown = relative(root, file).split('\\').join('/') || file;
 
-        for (const [index, line] of result.manual.entries()) {
-          const typeText = result.manualTypes[index] ?? '';
-
+        for (const item of result.manual) {
           manualCount += 1;
-          manualByType.set(typeText, (manualByType.get(typeText) ?? 0) + 1);
+          manualByType.set(item.type, (manualByType.get(item.type) ?? 0) + 1);
           console.warn(
-            `manual  ${shown}:${line}  get<${typeText}>: a type argument the rewrite cannot place (not string or string | undefined, or two without an options argument): a number or other conversion goes in a transform, for example get(key, { transform: Number })`,
+            `manual  ${shown}:${item.line}  get<${item.type}>: a type argument the rewrite cannot place (not string or string | undefined, or two without an options argument, or options that are not a literal): a number or other conversion goes in a transform, for example get(key, { transform: Number })`,
           );
         }
 
