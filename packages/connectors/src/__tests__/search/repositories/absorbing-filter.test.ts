@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { DefaultSearchRepository } from '@/search/core/repositories';
 import { FakeSearchDataSource, ProductDocumentNoDefaultFilter } from './fake-search-connector';
 
@@ -22,7 +21,7 @@ const buildRepository = () => {
     entityClass: ProductDocumentNoDefaultFilter,
   });
 
-  return { repository: repository as AnyType, connector: dataSource.fakeConnector as AnyType };
+  return { repository, connector: dataSource.fakeConnector };
 };
 
 /** The permission-scope shape, spelled the way application code spells it. */

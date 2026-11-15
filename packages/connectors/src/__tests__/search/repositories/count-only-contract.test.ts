@@ -1,10 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import type { DefaultSearchRepository } from '@/search/core';
 import type { DefaultCRUDRepository } from '@/relational/postgres';
 
-declare const searchRepository: DefaultSearchRepository<AnyType>;
-declare const postgresRepository: DefaultCRUDRepository<AnyType>;
+declare const searchRepository: DefaultSearchRepository;
+declare const postgresRepository: DefaultCRUDRepository;
 
 /** Compile-time contract: bulk writes on search engines are count-only - `shouldReturn` is rejected at the TYPE level for search updateBy/deleteBy, while postgres keeps its full overloads. */
 async function probeCompileOnly() {
@@ -34,7 +33,7 @@ async function probeCompileOnly() {
     data: { title: 'x' },
     where: { id: '1' },
   });
-  const postgresRows: Array<AnyType> = postgresUpdated.data;
+  const postgresRows: Array<unknown> = postgresUpdated.data;
 
   return { updatedData, deletedData, postgresRows };
 }

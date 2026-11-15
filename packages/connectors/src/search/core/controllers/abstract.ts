@@ -1,8 +1,7 @@
-import type { TEntityDataObject, TRouteContext } from '@venizia/ignis-kernel';
+import type { IAuthRouteConfig, TEntityDataObject, TRouteContext } from '@venizia/ignis-kernel';
 import { BaseRestController, DataRangeUtility } from '@venizia/ignis-kernel';
 import type { AbstractEntity } from '@venizia/ignis-kernel';
 import type { TAnyObjectSchema } from '@venizia/ignis-kernel';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { Env, Schema } from 'hono';
@@ -68,7 +67,7 @@ export abstract class AbstractSearchController<
     scope: string;
     isStrict?: boolean;
     repository: ReadableSearchRepository<TDataObject>;
-    definitions: AnyType;
+    definitions: Record<string, IAuthRouteConfig>;
     /** Per-request search scope; see {@link TSearchScopeResolver}. */
     searchScope?: TSearchScopeResolver<RouteEnv, TExtra>;
     /** Names from `engineParams.allow`, as `SearchEngineParams.resolveAllowlist` answers them. */

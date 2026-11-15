@@ -1,7 +1,12 @@
 import { RecordUtility } from '@venizia/ignis-helpers/core';
 import type { ISearchFacetCount, ISearchResult } from '@/search/core';
-import { HTTP, type AnyType } from '@venizia/ignis-helpers/common';
-import { type Meilisearch } from 'meilisearch';
+import { HTTP } from '@venizia/ignis-helpers/common';
+import type {
+  FederatedMultiSearchParams,
+  IndexSwap,
+  Meilisearch,
+  MultiSearchParams,
+} from 'meilisearch';
 import type { IMeilisearchClientLike } from '../common';
 
 /** Meilisearch error bodies carry `{ message, code, type, link }`; classification keys off `code`. */
@@ -194,20 +199,21 @@ export class MeilisearchInternal {
 
   /** Adapts the SDK client onto the structural view this connector needs. */
   static adaptClient(opts: { sdk: Meilisearch }): IMeilisearchClientLike {
-    // The SDK's task/index return types carry more detail than this connector reads, so each delegate widens to AnyType at the seam rather than restating the SDK's shapes.
-    const client = opts.sdk as AnyType;
+    const client = opts.sdk;
 
     return {
       index: (uid: string) => client.index(uid),
-      createIndex: (uid: string, options?: unknown) => client.createIndex(uid, options),
+      createIndex: (uid: string, options?: { primaryKey?: string }) =>
+        client.createIndex(uid, options),
       getIndex: (uid: string) => client.getIndex(uid),
       getIndexes: () => client.getIndexes(),
       deleteIndex: (uid: string) => client.deleteIndex(uid),
-      swapIndexes: (pairs: Array<{ indexes: string[] }>) => client.swapIndexes(pairs),
+      swapIndexes: (pairs: IndexSwap[]) => client.swapIndexes(pairs),
       // The one real divergence: the SDK exposes getTask under `client.tasks`, not at the root.
       getTask: (taskUid: number) => client.tasks.getTask(taskUid),
       health: () => client.health(),
-      multiSearch: (params: unknown) => client.multiSearch(params),
+      multiSearch: (params: MultiSearchParams | FederatedMultiSearchParams) =>
+        client.multiSearch(params),
     };
   }
 }

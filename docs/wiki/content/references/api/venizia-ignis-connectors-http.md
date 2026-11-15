@@ -158,7 +158,7 @@ vocabulary. `P` is what a write sends - a partial row by default, since the serv
 defaults. There is no `createAll`: the IGNIS REST contract has no bulk-create route.
 
 ```ts
-export declare class HttpRepository<E extends object = AnyType, P extends object = Partial<E>> implements IReadableRepository<E, THttpRepositoryOptions>, IUpdatableRepository<E, P, THttpRepositoryOptions>, IDeletableRepository<E, THttpRepositoryOptions> {
+export declare class HttpRepository<E extends object = object, P extends object = Partial<E>> implements IReadableRepository<E, THttpRepositoryOptions>, IUpdatableRepository<E, P, THttpRepositoryOptions>, IDeletableRepository<E, THttpRepositoryOptions> {
     dataSource: HttpDataSource;
     entity: AbstractEntity;
     protected resource: string;
@@ -364,7 +364,7 @@ export declare class HttpRepository<E extends object = AnyType, P extends object
             shouldReturn?: boolean;
         };
     }): Promise<TCount & {
-        data: AnyType;
+        data: unknown;
     }>;
     deleteById(opts: {
         id: string | number;
@@ -407,7 +407,7 @@ export declare class HttpRepository<E extends object = AnyType, P extends object
             shouldReturn?: boolean;
         };
     }): Promise<TCount & {
-        data: AnyType;
+        data: unknown;
     }>;
 }
 ```

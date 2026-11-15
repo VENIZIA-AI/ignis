@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { MeilisearchConnector } from '@/search/meilisearch/connector';
 import { FakeMeilisearchClient } from './connector/fake-client';
 
@@ -8,8 +7,8 @@ const buildConnector = (client: FakeMeilisearchClient) => {
   return new MeilisearchConnector({
     name: 'reprovision-connector',
     host: 'http://localhost:7700',
-    client: client as AnyType,
-  }) as AnyType;
+    client,
+  });
 };
 
 const plan = { uid: 'products', primaryKey: 'id', settings: {} };

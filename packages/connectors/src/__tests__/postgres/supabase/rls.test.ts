@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import { DuckTypingUtility } from '@/common/internal';
+import type { IDatabaseTransaction } from '@/relational/postgres/datasources/common';
 import { SupabaseRls } from '@/relational/postgres/supabase';
 import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
@@ -9,25 +10,35 @@ const dialect = new PgDialect();
 /** Renders a captured statement exactly as the driver would send it, params separated from text. */
 const compile = (statement: SQL) => dialect.sqlToQuery(statement);
 
+/** The members the fake transaction carries, stated as a guard so it can be handed over as one. */
+const isTransaction = (value: unknown): value is IDatabaseTransaction =>
+  DuckTypingUtility.hasMembers({
+    value,
+    members: { isolationLevel: 'string', commit: 'function', rollback: 'function' },
+  });
+
 const buildTransaction = () => {
   const executed: SQL[] = [];
 
-  return {
-    executed,
-    transaction: {
-      isActive: true,
-      isolationLevel: 'READ COMMITTED',
-      connector: {
-        execute: async (statement: SQL) => {
-          executed.push(statement);
+  const transaction = {
+    isActive: true,
+    isolationLevel: 'READ COMMITTED',
+    connector: {
+      execute: async (statement: SQL) => {
+        executed.push(statement);
 
-          return undefined;
-        },
+        return undefined;
       },
-      commit: async () => undefined,
-      rollback: async () => undefined,
-    } as AnyType,
+    },
+    commit: async () => undefined,
+    rollback: async () => undefined,
   };
+
+  if (!isTransaction(transaction)) {
+    throw new Error('[buildTransaction] The fake lacks the members of a transaction');
+  }
+
+  return { executed, transaction };
 };
 
 describe('SupabaseRls.withAuthContext', () => {

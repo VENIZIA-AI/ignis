@@ -29,7 +29,7 @@ export declare abstract class AbstractSearchController<TEntity extends AbstractE
         scope: string;
         isStrict?: boolean;
         repository: ReadableSearchRepository<TDataObject>;
-        definitions: AnyType;
+        definitions: Record<string, IAuthRouteConfig>;
         /** Per-request search scope; see {@link TSearchScopeResolver}. */
         searchScope?: TSearchScopeResolver<RouteEnv, TExtra>;
         /** Names from `engineParams.allow`, as `SearchEngineParams.resolveAllowlist` answers them. */

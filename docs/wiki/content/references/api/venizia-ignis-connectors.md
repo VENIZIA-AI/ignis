@@ -24,7 +24,7 @@ nothing (`BaseRawSqlDataSource`). Transactions stay NotSupported, as in `Abstrac
 neutral base - do not move it down into a family.
 
 ```ts
-export declare abstract class AbstractDriverDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = unknown, TConnector = unknown, TDriver extends IConnectorDriver<TConnector, AnyType> = IConnectorDriver<TConnector, Client>> extends AbstractDataSource<Settings, Schema, ConfigurableOptions> {
+export declare abstract class AbstractDriverDataSource<Settings extends object = {}, Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, ConfigurableOptions extends object = {}, Client = unknown, TConnector = unknown, TDriver extends IConnectorDriver<TConnector, unknown> = IConnectorDriver<TConnector, Client>> extends AbstractDataSource<Settings, Schema, ConfigurableOptions> {
     connector?: TConnector;
     protected client?: Client;
     protected driver?: TDriver;
@@ -92,7 +92,7 @@ export declare abstract class AbstractDriverDataSource<Settings extends object =
     /** Vault's database engine returns `{ username, password }`; pg expects `{ user, password }`. */
     protected mapSecretToSettings(opts: {
         secret: Record<string, string>;
-    }): AnyObject;
+    }): Record<string, unknown>;
 }
 ```
 

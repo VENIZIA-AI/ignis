@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { NodePostgresDriver } from '@/relational/postgres/drivers/node-postgres';
+import { isPool } from './fake-pg-client';
 
 /** `acquire()` checks a connection OUT before building the Drizzle connector: if that construction throws, the connection must be handed back or every later `beginTransaction()` leaks one until the pool is exhausted. */
 const buildFakePool = () => {
@@ -15,11 +15,15 @@ const buildFakePool = () => {
     end: async () => undefined,
   };
 
-  return { pool: pool as AnyType, released };
+  if (!isPool(pool)) {
+    throw new Error('[buildFakePool] Lacks the pool accounting a Pool has');
+  }
+
+  return { pool, released };
 };
 
 /** A schema drizzle cannot read: it throws the moment the constructor enumerates it. */
-const buildExplodingSchema = (): AnyType => {
+const buildExplodingSchema = (): Record<string, never> => {
   return new Proxy(
     {},
     {

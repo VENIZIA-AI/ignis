@@ -1,8 +1,8 @@
 import { SqliteIdEnricher } from '@/relational/sqlite/models';
 import { SqliteQueryDialect } from '@/relational/sqlite/repositories/dialect/query-dialect';
-import type { Client } from '@libsql/client';
+import type { Client, InValue } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { TWhere } from '@venizia/ignis-kernel';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import type { SQL } from 'drizzle-orm';
 import { blob, SQLiteSyncDialect, sqliteTable, text } from 'drizzle-orm/sqlite-core';
@@ -26,8 +26,32 @@ const dialect = new SqliteQueryDialect();
 
 const compile = (expression: SQL) => sqliteDialect.sqlToQuery(expression);
 
-const toWhere = (where: AnyType) =>
-  compile(dialect.toWhere({ tableName: TABLE_NAME, schema: table, where }) as SQL);
+const toWhere = (where: TWhere) => {
+  const condition = dialect.toWhere({ tableName: TABLE_NAME, schema: table, where });
+
+  if (!condition) {
+    throw new Error('[toWhere] The where compiled to no condition');
+  }
+
+  return compile(condition);
+};
+
+const isInValue = (value: unknown): value is InValue =>
+  value === null ||
+  ['string', 'number', 'bigint', 'boolean'].includes(typeof value) ||
+  value instanceof ArrayBuffer ||
+  value instanceof Uint8Array ||
+  value instanceof Date;
+
+/** The bound parameters of a compiled query, as the arguments libsql takes. */
+const toArgs = (params: unknown[]): InValue[] =>
+  params.map((param) => {
+    if (!isInValue(param)) {
+      throw new Error(`[toArgs] A bound parameter libsql cannot take: ${typeof param}`);
+    }
+
+    return param;
+  });
 
 const toOrderBy = (order: string[]) =>
   dialect.toOrderBy({ tableName: TABLE_NAME, schema: table, order }).map((entry) => compile(entry));
@@ -48,11 +72,11 @@ const seed = async () => {
   `);
 };
 
-const selectMatchingIds = async (where: AnyType): Promise<number[]> => {
+const selectMatchingIds = async (where: TWhere): Promise<number[]> => {
   const query = toWhere(where);
   const result = await client.execute({
     sql: `SELECT id FROM ${TABLE_NAME} WHERE ${query.sql} ORDER BY id`,
-    args: query.params as AnyType[],
+    args: toArgs(query.params),
   });
 
   return result.rows.map((row) => Number(row.id));
@@ -69,7 +93,7 @@ const applyUpdate = async (opts: { document: string; data: Record<string, unknow
   const query = compile(transform(data).jsonExpressions.metadata);
   await client.execute({
     sql: `UPDATE ${TABLE_NAME} SET meta_data = ${query.sql} WHERE id = 99`,
-    args: query.params as AnyType[],
+    args: toArgs(query.params),
   });
 
   const result = await client.execute(`SELECT meta_data FROM ${TABLE_NAME} WHERE id = 99`);

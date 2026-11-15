@@ -1,7 +1,7 @@
 import type { IDataSourceOpening, TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { AbstractDataSource } from '@venizia/ignis-kernel/repository';
 import { MetadataRegistry } from '@venizia/ignis-kernel/metadata';
-import type { AnyObject, AnyType, TClass } from '@venizia/ignis-helpers/common';
+import type { TClass } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IConnectorDriver } from './driver';
 import { DuckTypingUtility } from './internal';
@@ -23,7 +23,7 @@ export abstract class AbstractDriverDataSource<
   ConfigurableOptions extends object = {},
   Client = unknown,
   TConnector = unknown,
-  TDriver extends IConnectorDriver<TConnector, AnyType> = IConnectorDriver<TConnector, Client>,
+  TDriver extends IConnectorDriver<TConnector, unknown> = IConnectorDriver<TConnector, Client>,
 > extends AbstractDataSource<Settings, Schema, ConfigurableOptions> {
   connector?: TConnector;
 
@@ -253,11 +253,11 @@ export abstract class AbstractDriverDataSource<
     // Snapshot so a failed rebuild restores the datasource verbatim;
     // `settings` is copied because rotation mutates it in place.
     const savedClient = this.client;
-    const savedSettings = { ...(this.settings as AnyObject) };
+    const savedSettings = { ...this.settings };
 
     // Rotation only takes effect through this.settings + configure(); a configure() that
     // hard-codes its connection string or reads the environment directly rebuilds with stale credentials.
-    Object.assign(this.settings as AnyObject, this.mapSecretToSettings({ secret: opts.secret }));
+    Object.assign(this.settings, this.mapSecretToSettings({ secret: opts.secret }));
 
     // configure() overwrites this.client, so the new pool is captured
     // into a local and the old client restored at once - live fields
@@ -312,12 +312,12 @@ export abstract class AbstractDriverDataSource<
   }
 
   /** Puts `settings` back to the snapshot: a key the failed rotation added (the rotated `password`) is removed, not left behind. */
-  private restoreSettings(opts: { saved: AnyObject }): void {
-    const settings = this.settings as AnyObject;
+  private restoreSettings(opts: { saved: Settings }): void {
+    const { settings } = this;
 
     for (const key of Object.keys(settings)) {
       if (!(key in opts.saved)) {
-        delete settings[key];
+        Reflect.deleteProperty(settings, key);
       }
     }
 
@@ -351,9 +351,9 @@ export abstract class AbstractDriverDataSource<
   }
 
   /** Vault's database engine returns `{ username, password }`; pg expects `{ user, password }`. */
-  protected mapSecretToSettings(opts: { secret: Record<string, string> }): AnyObject {
+  protected mapSecretToSettings(opts: { secret: Record<string, string> }): Record<string, unknown> {
     const { username, password } = opts.secret;
-    const mapped: AnyObject = {};
+    const mapped: Record<string, unknown> = {};
 
     if (username !== undefined) {
       mapped.user = username;

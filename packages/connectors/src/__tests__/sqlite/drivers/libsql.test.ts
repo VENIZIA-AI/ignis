@@ -1,7 +1,6 @@
 import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
@@ -23,7 +22,7 @@ describe('LibSqlDriver - constructor guard', () => {
       close: () => undefined,
     };
 
-    expect(() => new LibSqlDriver({ client: databaseShaped as AnyType })).toThrow(
+    expect(() => Reflect.construct(LibSqlDriver, [{ client: databaseShaped }])).toThrow(
       /Expected an `@libsql\/client` Client/,
     );
   });
@@ -31,17 +30,17 @@ describe('LibSqlDriver - constructor guard', () => {
   test('rejects a `pg.Pool`-shaped object', () => {
     const poolShaped = { connect: () => undefined, query: () => undefined, end: () => undefined };
 
-    expect(() => new LibSqlDriver({ client: poolShaped as AnyType })).toThrow(/LibSqlDriver/);
+    expect(() => Reflect.construct(LibSqlDriver, [{ client: poolShaped }])).toThrow(/LibSqlDriver/);
   });
 });
 
 describe('LibSqlDriver - against a real in-memory libsql database', () => {
   let client: Client;
-  let driver: LibSqlDriver<AnyType>;
+  let driver: LibSqlDriver;
 
   beforeAll(async () => {
     client = createClient({ url: ':memory:' });
-    driver = new LibSqlDriver<AnyType>({ client });
+    driver = new LibSqlDriver({ client });
 
     await client.executeMultiple(`
       CREATE TABLE rollback_probe (id integer primary key);
@@ -154,13 +153,13 @@ describe('LibSqlDriver - against a real in-memory libsql database', () => {
  */
 describe('LibSqlDriver - acquire timeout', () => {
   let client: Client;
-  let driver: LibSqlDriver<AnyType>;
+  let driver: LibSqlDriver;
 
   beforeAll(async () => {
     client = createClient({ url: ':memory:' });
 
     // Short enough to assert without the suite waiting; the shipped default is 30s.
-    driver = new LibSqlDriver<AnyType>({ client, acquireTimeoutMs: 150 });
+    driver = new LibSqlDriver({ client, acquireTimeoutMs: 150 });
 
     await client.execute('CREATE TABLE timeout_probe (id integer primary key)');
   });
@@ -218,7 +217,7 @@ describe('LibSqlDriver - acquire timeout', () => {
 describe('LibSqlDriver - remote client', () => {
   test('acquire() throws NotSupported: a remote statement runs on its own connection', async () => {
     const remoteClient = createClient({ url: 'http://127.0.0.1:1' });
-    const driver = new LibSqlDriver<AnyType>({ client: remoteClient });
+    const driver = new LibSqlDriver({ client: remoteClient });
 
     await RejectionHelper.expectRejection({
       task: driver.acquire({ schema: {} }),

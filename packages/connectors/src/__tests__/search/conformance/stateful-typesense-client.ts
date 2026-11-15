@@ -1,4 +1,3 @@
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { ITypesenseClientLike } from '@/search/typesense/connector';
 
@@ -97,8 +96,14 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
    * and merge logic pass without ever running.
    */
   readonly multiSearch = {
-    perform: async (requests: AnyType) => {
-      const searches = (requests?.searches ?? []) as Array<Record<string, unknown>>;
+    perform: async (requests: unknown) => {
+      const searches: Array<Record<string, unknown>> =
+        typeof requests === 'object' &&
+        requests !== null &&
+        'searches' in requests &&
+        Array.isArray(requests.searches)
+          ? requests.searches
+          : [];
 
       return {
         results: searches.map((entry) => {
@@ -128,7 +133,7 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
 
   aliases(): { upsert(name: string, mapping: unknown): Promise<unknown> };
   aliases(aliasName: string): { retrieve(): Promise<unknown> };
-  aliases(aliasName?: string): AnyType {
+  aliases(aliasName?: string): unknown {
     if (aliasName === undefined) {
       return { upsert: async () => ({}) };
     }
@@ -142,7 +147,7 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
     retrieve(): Promise<unknown>;
     delete(): Promise<unknown>;
   };
-  synonymSets(synonymSetName?: string): AnyType {
+  synonymSets(synonymSetName?: string): unknown {
     if (synonymSetName === undefined) {
       return { retrieve: async () => [] };
     }
@@ -156,7 +161,7 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
 
   collections(): { create(schema: unknown): Promise<unknown>; retrieve(): Promise<unknown> };
   collections(collectionName: string): ReturnType<StatefulFakeTypesenseClient['collectionApi']>;
-  collections(collectionName?: string): AnyType {
+  collections(collectionName?: string): unknown {
     if (collectionName === undefined) {
       return {
         create: async (schema: unknown) => {

@@ -1,11 +1,10 @@
 import { describe, expect, test, spyOn } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import { BasePostgresEntity } from '@/relational/postgres/models';
 import { PersistableRepository } from '@/relational/postgres/repositories';
 import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
-import { PostgresQueryExecutor } from '@/relational/postgres/repositories/executor';
 import { buildFakeConnector } from './fake-connector';
+import { StubDataSource } from './stub-data-source';
 
 const table = pgTable('single_build_fixture', {
   id: serial('id').primaryKey(),
@@ -21,13 +20,9 @@ class SingleBuildFixtureEntity extends BasePostgresEntity {
 const buildSetup = (opts: { result: unknown }) => {
   const dialect = new PostgresQueryDialect();
   const connector = buildFakeConnector({ result: opts.result });
-  const dataSource = {
-    getQueryDialect: () => dialect,
-    getConnector: () => connector,
-    getQueryExecutor: () => new PostgresQueryExecutor(),
-  } as AnyType;
+  const dataSource = new StubDataSource({ connector: () => connector, dialect });
 
-  const repository = new PersistableRepository<AnyType>(dataSource, {
+  const repository = new PersistableRepository(dataSource, {
     entityClass: SingleBuildFixtureEntity,
   });
 

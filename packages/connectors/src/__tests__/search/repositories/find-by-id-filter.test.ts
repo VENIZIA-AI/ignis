@@ -1,5 +1,4 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 
 import type { ICrudRepository } from '@venizia/ignis-kernel';
 import { DefaultSearchRepository } from '@/search/typesense/repositories';
@@ -42,9 +41,10 @@ describe('findById carries the projection filter', () => {
   });
 
   test('a projection never overrides the id lookup or the default filter', async () => {
-    const untyped = repository as AnyType;
+    // A `where` on a `findById` filter is not in the type; built from JSON, it reaches the repository the way a raw caller's would.
+    const spoofedFilter = JSON.parse(`{ "fields": ["title"], "where": { "id": "spoofed" } }`);
 
-    await untyped.findById({ id: '1', filter: { fields: ['title'], where: { id: 'spoofed' } } });
+    await repository.findById({ id: '1', filter: spoofedFilter });
 
     const [call] = dataSource.fakeConnector.searchCalls;
     const params = call.params as Record<string, unknown>;

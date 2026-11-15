@@ -1,14 +1,13 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { PostgresJsDriver } from '@/relational/postgres/drivers/postgres-js';
 import { run } from './conformance/driver-conformance';
-import { FakeSql } from './fake-postgres-js-client';
+import { createFakeSql } from './fake-postgres-js-client';
 
 type TSchema = Record<string, never>;
 
 const build = (failOn?: string) => {
-  const sql = new FakeSql({ failOn });
-  const driver = new PostgresJsDriver<TSchema>({ client: sql as AnyType });
+  const sql = createFakeSql({ failOn });
+  const driver = new PostgresJsDriver<TSchema>({ client: sql });
 
   return {
     driver,
@@ -22,8 +21,8 @@ run({ driver: 'postgres-js', buildDriverProbe: build });
 
 describe('PostgresJsDriver - postgres-js-specific behaviour', () => {
   test('acquire() reserves a dedicated connection per call', async () => {
-    const sql = new FakeSql();
-    const driver = new PostgresJsDriver<TSchema>({ client: sql as AnyType });
+    const sql = createFakeSql();
+    const driver = new PostgresJsDriver<TSchema>({ client: sql });
 
     await driver.acquire({ schema: {} });
     await driver.acquire({ schema: {} });
@@ -52,9 +51,9 @@ describe('PostgresJsDriver - postgres-js-specific behaviour', () => {
   });
 
   test('getClient() returns the sql client the driver was constructed with', () => {
-    const sql = new FakeSql();
-    const driver = new PostgresJsDriver<TSchema>({ client: sql as AnyType });
+    const sql = createFakeSql();
+    const driver = new PostgresJsDriver<TSchema>({ client: sql });
 
-    expect(driver.getClient()).toBe(sql as AnyType);
+    expect(driver.getClient()).toBe(sql);
   });
 });

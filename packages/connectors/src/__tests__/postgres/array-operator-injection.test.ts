@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test';
 import { pgTable, serial, text } from 'drizzle-orm/pg-core';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { PostgresQueryOperators } from '@/relational/postgres/repositories/dialect/query';
 
 /** `contains`/`containedBy`/`overlaps` are wire-reachable with a `z.any()` operand, so these handlers must build PARAMETERIZED SQL - a concatenated value lets the caller write SQL. */
@@ -9,28 +8,39 @@ const table = pgTable('articles', {
   tags: text('tags').array(),
 });
 
+/** A named member of a chunk the fragment carries, or `undefined` for a chunk that is not an object (a bare parameter value). */
+const readMember = (chunk: unknown, name: string): unknown =>
+  typeof chunk === 'object' && chunk !== null ? Reflect.get(chunk, name) : undefined;
+
 /** Renders a Drizzle SQL fragment into `{ sql, params }` exactly as the driver would receive it. */
-const render = (fragment: AnyType): { sql: string; params: unknown[] } => {
-  const query = (fragment as AnyType).getSQL
-    ? (fragment as AnyType).getSQL()
-    : (fragment as AnyType);
-  const chunks = query.queryChunks as AnyType[];
+const render = (fragment: unknown): { sql: string; params: unknown[] } => {
+  const getSql = readMember(fragment, 'getSQL');
+  const query: unknown =
+    typeof getSql === 'function' ? Reflect.apply(getSql, fragment, []) : fragment;
+  const chunks = readMember(query, 'queryChunks');
+
+  if (!Array.isArray(chunks)) {
+    throw new Error('[render] The fragment carries no queryChunks');
+  }
 
   let statement = '';
   const params: unknown[] = [];
 
   for (const chunk of chunks) {
-    if (chunk?.value !== undefined && Array.isArray(chunk.value)) {
-      statement += chunk.value.join('');
+    const value = readMember(chunk, 'value');
+    const name = readMember(chunk, 'name');
+
+    if (value !== undefined && Array.isArray(value)) {
+      statement += value.join('');
       continue;
     }
 
-    if (chunk?.name !== undefined && chunk?.columnType !== undefined) {
-      statement += `"${chunk.name}"`;
+    if (name !== undefined && readMember(chunk, 'columnType') !== undefined) {
+      statement += `"${String(name)}"`;
       continue;
     }
 
-    if (chunk?.queryChunks) {
+    if (readMember(chunk, 'queryChunks')) {
       const nested = render(chunk);
       statement += nested.sql;
       params.push(...nested.params);
@@ -38,14 +48,16 @@ const render = (fragment: AnyType): { sql: string; params: unknown[] } => {
     }
 
     statement += '?';
-    params.push(chunk?.value ?? chunk);
+    params.push(value ?? chunk);
   }
 
   return { sql: statement, params };
 };
 
-const applyOperator = (operator: string, value: unknown) => {
-  const handler = (PostgresQueryOperators.FNS as AnyType)[operator];
+type TArrayOperator = 'contains' | 'containedBy' | 'overlaps';
+
+const applyOperator = (operator: TArrayOperator, value: unknown) => {
+  const handler = PostgresQueryOperators.FNS[operator];
 
   return handler({ column: table.tags, value });
 };
@@ -53,7 +65,7 @@ const applyOperator = (operator: string, value: unknown) => {
 describe('array operators - the operand must never reach the statement text', () => {
   const injection = '1); DROP TABLE users; --';
 
-  const operators = ['contains', 'containedBy', 'overlaps'];
+  const operators: TArrayOperator[] = ['contains', 'containedBy', 'overlaps'];
 
   for (const operator of operators) {
     test(`${operator}: a NUMERIC-looking array carrying a SQL payload is parameterized, not concatenated`, () => {

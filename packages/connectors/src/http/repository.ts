@@ -1,5 +1,4 @@
 import { HttpReadShapes } from './common/constants';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type {
@@ -48,7 +47,7 @@ export class HttpResourceEntity extends AbstractEntity {
  * vocabulary. `P` is what a write sends - a partial row by default, since the server fills ids and
  * defaults. There is no `createAll`: the IGNIS REST contract has no bulk-create route.
  */
-export class HttpRepository<E extends object = AnyType, P extends object = Partial<E>>
+export class HttpRepository<E extends object = object, P extends object = Partial<E>>
   implements
     IReadableRepository<E, THttpRepositoryOptions>,
     IUpdatableRepository<E, P, THttpRepositoryOptions>,
@@ -261,7 +260,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   async find<R = E>(opts: {
     filter?: TFilter<E>;
     query?: THttpExtraQuery;
-    options?: AnyType;
+    options?: THttpRepositoryOptions & { shouldQueryRange?: boolean; extra?: TExtraRequest };
   }): Promise<Array<R> | TDataWithRange<R> | { data: Array<R>; extra?: Record<string, unknown> }> {
     const filter = this.resolveFindFilter({ filter: opts.filter });
     const rs = await this.dataSource.read<Array<R>>({
@@ -467,7 +466,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     id: string | number;
     data: Partial<P>;
     options?: THttpRepositoryOptions & { shouldReturn?: boolean };
-  }): Promise<TCount & { data: AnyType }> {
+  }): Promise<TCount & { data: unknown }> {
     const result = await this.dataSource.write<R>({
       paths: this.getIdPaths({ id: opts.id }),
       method: HTTP.Methods.PATCH,
@@ -493,7 +492,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     data: Partial<P>;
     where: TWhere<E>;
     options?: THttpRepositoryOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: AnyType }> {
+  }): Promise<TCount & { data: unknown }> {
     return this.patchWhere({ ...opts, method: 'updateBy' });
   }
 
@@ -502,7 +501,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     data: Partial<P>;
     where: TWhere<E>;
     options?: THttpRepositoryOptions & { shouldReturn?: boolean };
-  }): Promise<TCount & { data: AnyType }> {
+  }): Promise<TCount & { data: unknown }> {
     const where = this.assertBulkWhere({ method: opts.method, where: opts.where });
 
     const result = await this.dataSource.write<Array<E>>({
@@ -527,7 +526,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   async deleteById<R = E>(opts: {
     id: string | number;
     options?: THttpRepositoryOptions & { shouldReturn?: boolean };
-  }): Promise<TCount & { data: AnyType }> {
+  }): Promise<TCount & { data: unknown }> {
     const result = await this.dataSource.write<R>({
       paths: this.getIdPaths({ id: opts.id }),
       method: HTTP.Methods.DELETE,
@@ -549,7 +548,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   async deleteBy(opts: {
     where: TWhere<E>;
     options?: THttpRepositoryOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: AnyType }> {
+  }): Promise<TCount & { data: unknown }> {
     return this.deleteWhere({ ...opts, method: 'deleteBy' });
   }
 
@@ -557,7 +556,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     method: string;
     where: TWhere<E>;
     options?: THttpRepositoryOptions & { shouldReturn?: boolean };
-  }): Promise<TCount & { data: AnyType }> {
+  }): Promise<TCount & { data: unknown }> {
     const where = this.assertBulkWhere({ method: opts.method, where: opts.where });
 
     const result = await this.dataSource.write<Array<E>>({
