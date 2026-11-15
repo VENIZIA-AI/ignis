@@ -71,13 +71,16 @@ migration:
         interface IFindable { count(opts: { where?: object }): Promise<{ count: number }> }
         const slot: TClass<IFindable> = OrganizerRepository;
 
+        // or pick the members from the slot's repository type
+        const picked: TClass<Pick<HttpRepository<TNamedEntity>, 'count' | 'findById'>> = OrganizerRepository;
+
         // or make the slot generic, so the entity is inferred from the class
         const register = <TEntity extends TNamedEntity>(repositoryClass: TClass<HttpRepository<TEntity>>) => repositoryClass;
         const registered = register(OrganizerRepository);
     downgrade:
       steps:
         - "Type the slot as TClass<T> & { [property: string]: any } in your own code: the older TClass accepted a class whose instance did not fit the slot."
-    data: "Typing the slot with the instance the class really produces (HttpRepository<IOrganizer>) always worked. The error appears for a slot whose entity is wider than the class's: an optional name in the slot and a required one in the class, which puts undefined inside the filter operators of the slot."
+    data: "Who is affected: a class slot typed TClass<Repo<Wider>> that holds repositories of narrower entities. The cause is the TClass change of this release: the published 0.4.8-15 declared TClass<T> as TConstructor<T> & { [property: string]: any } with any[] arguments, and that intersection let such a class through; TClass<T> is now new (...args: never[]) => T, so the instance is compared. Typing the slot with the instance the class really produces (HttpRepository<IOrganizer>) always worked. The error appears for a slot whose entity is wider than the class's: an optional name in the slot and a required one in the class, which puts undefined inside the filter operators of the slot."
   - id: constructors-take-never-arguments
     symbols: [TConstructor, TAbstractConstructor, TClass, TAbstractClass]
     upgrade:
