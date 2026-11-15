@@ -26,5 +26,5 @@ const port = applicationEnvironment.get('APP_ENV_PORT', {
 
 ## Who is affected
 
-- **Apps that read a number with `get<number>(...)`.** The old call returned the environment string typed as a number. After the rewrite the value is a real number, an unset variable still answers `undefined` or the default, and a non-numeric value throws at the read instead of flowing on as a string. Check each place that compared the value with a string or concatenated it.
+- **Apps that read a number with `get<number>(...)`.** The old call returned the environment string typed as a number. After the rewrite the read converts the value to a number, an unset variable still answers `undefined` or the default, and a non-numeric value throws at the read instead of flowing on as a string. Check each place that compared the value with a string or concatenated it.
 - **Everyone else.** No action needed.

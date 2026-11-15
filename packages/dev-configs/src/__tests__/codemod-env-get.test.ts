@@ -240,7 +240,7 @@ describe('devz codemod env-get: the rewrite', () => {
     expect(second.manual).toEqual([{ line: 1, type: 'number' }]);
   });
 
-  test('a call with a variable as options and a one-type-argument form is left alone, so --check passes after --write', async () => {
+  test('two type arguments and variable options are listed as manual and left, one type argument is left alone, and a second run changes nothing', () => {
     const source = [
       `const a = AppEnvs.get<string, string>(KEY, opts);`,
       `const b = AppEnvs.get<number, string>(KEY, opts);`,
@@ -249,20 +249,27 @@ describe('devz codemod env-get: the rewrite', () => {
     ].join('\n');
     const first = rewrite(source);
 
-    expect(first.output).toBe(
-      [
-        `const a = AppEnvs.get<string>(KEY, opts);`,
-        `const b = AppEnvs.get<number>(KEY, opts);`,
-        `const c = AppEnvs.get<string>(KEY, opts);`,
-        '',
-      ].join('\n'),
-    );
-    expect(first.manual).toEqual([]);
+    expect(first.output).toBe(source);
+    expect(first.manual.map((item) => [item.line, item.type])).toEqual([
+      [1, 'string'],
+      [2, 'number'],
+    ]);
+    expect(first.manual[0].reason).toContain('not an object literal');
 
     const second = rewrite(first.output);
 
     expect(second.changed).toBe(false);
-    expect(second.manual).toEqual([]);
+    expect(second.manual).toHaveLength(2);
+
+    // Under --numbers the number read is listed in the same run, not stripped and listed on the next one.
+    const withNumbers = rewrite(
+      `const b = AppEnvs.get<number, string>(KEY, opts);\n`,
+      'file.ts',
+      true,
+    );
+
+    expect(withNumbers.changed).toBe(false);
+    expect(withNumbers.manual.map((item) => item.line)).toEqual([1]);
   });
 
   test('a let alias is not a receiver, a const alias is', () => {

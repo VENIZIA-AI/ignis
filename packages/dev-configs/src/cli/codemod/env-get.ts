@@ -25,8 +25,8 @@ scope of the call, to the store: a name imported as applicationEnvironment or Ap
 initialised from such a name in the same or an enclosing scope. A parameter, a local variable, an import from
 anywhere else (a barrel of your own included) and a name nothing declares are not the store. Every other
 get<...>(key) call (a property, an optional chain, those names) is printed as skipped with its file and line,
-and a call with a type argument it cannot place as manual, so run your typecheck after it. A call with options
-that are not a literal (a variable) is left alone and not listed, except under --numbers, where a number read with such options is listed as manual (the codemod cannot see whether they hold a transform). A var declared in a nested block counts as block-scoped (a hoisted one is not followed). A comment between the method name and the parenthesis is dropped. A .js, .cjs or .mjs file
+and a call with a type argument it cannot place as manual, so run your typecheck after it. A call with one type argument and options
+that are not a literal (a variable) is left alone and not listed; one with two type arguments and such options is listed as manual, and so is a number read with such options under --numbers (the codemod cannot see what the options hold). A var declared in a nested block counts as block-scoped (a hoisted one is not followed). A comment between the method name and the parenthesis is dropped. A .js, .cjs or .mjs file
 is not read: edit it by hand.
 
   --write    write the changed files (without it, nothing is written); it needs a path, or --all
@@ -34,13 +34,13 @@ is not read: edit it by hand.
   --numbers  also rewrite the number reads: get<number>(key) and get<number>(key, { defaultValue }) become
              get(key, { transform: (raw) => ParseUtility.toNumber({ input: raw }), defaultValue }) and
              ParseUtility joins the import of the store. Every rewrite is listed ("numbers"). The old call returned
-             the environment STRING typed as a number: after the rewrite the value is a real number, an unset
+             the environment STRING typed as a number: after the rewrite the read converts it to a number, an unset
              variable still answers undefined (or the default), and a non-numeric value throws at the read
              instead of flowing on as a string. A boolean (the "false" string is truthy) stays manual. So does a number
              read the rewrite would not compile: a defaultValue that is a literal but not a number ('10'), options that
              are a variable, a ParseUtility name the file already declares for something else (an import from another
              module, a type-only import, a local), and a parameter or local named ParseUtility at the call.
-  --check    dry run that exits 1 while a file would change (for CI)
+  --check    dry run that exits 1 while a file would change or a manual call remains (for CI)
   --help     print this text and exit
 
 With no flag it lists what would change and writes nothing. Inside a git repository it reads the files
@@ -535,12 +535,11 @@ export class EnvGet {
               !hasTransform(options) &&
               (options === undefined || ts.isObjectLiteralExpression(options))) ||
               (isTwo && isPlainLiteral));
-          // `--numbers`: a one-type-argument number read with options the codemod cannot read. It cannot see
+          // `--numbers`: a number read (one type argument or two) with options the codemod cannot read. It cannot see
           // whether they hold a transform, so the call is listed, not left silently.
           const isNumberReadWithVariableOptions =
             numbers &&
             isNumberType(first) &&
-            !isTwo &&
             options !== undefined &&
             !ts.isObjectLiteralExpression(options);
 
@@ -585,9 +584,18 @@ export class EnvGet {
               numbered.push(lineOf(node));
               rewrittenCalls += 1;
             }
-          } else if (isTwo && options !== undefined && !isPlainLiteral) {
-            // `get<R, B>(key, options)` with a transform or variable options keeps R, even when R is `string`: a
-            // second run leaves `get<string>(key, { transform })` alone.
+          } else if (isTwo && options !== undefined && !ts.isObjectLiteralExpression(options)) {
+            // `get<R, B>(key, options)` with options in a variable: the codemod cannot see whether they hold a
+            // transform or a default of the right type, and `get<R>(key, options)` may not compile with them.
+            manual.push({
+              line: lineOf(node),
+              type: first.getText(file),
+              reason:
+                'two type arguments and options that are not an object literal, so the codemod cannot see what they hold: drop the second type argument by hand once the options carry a transform',
+            });
+          } else if (isTwo && hasTransform(options)) {
+            // `get<R, B>(key, { transform })` keeps R, even when R is `string`: a second run leaves
+            // `get<string>(key, { transform })` alone.
             edits.push({ start, end, text: `<${first.getText(file)}>` });
             rewrittenCalls += 1;
           } else if (
