@@ -196,7 +196,7 @@ The metadata a schema carries for documentation. Structural on purpose - naming 
 ```ts
 export type TSchemaMetadata = {
     description?: string;
-    type?: string;
+    type?: 'object';
     examples?: Array<unknown>;
 };
 ```

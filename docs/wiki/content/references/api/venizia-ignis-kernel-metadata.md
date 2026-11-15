@@ -761,7 +761,7 @@ declare const BaseRegistry: {
         getDataSourceModelClasses(opts: {
             dataSource: string | TClass<import("../../index.js").IDataSource>;
         }): Set<TClass<unknown>>;
-        resolveModelRelations(modelMeta: IModelRegistryEntry): unknown;
+        resolveModelRelations(modelMeta: Pick<IModelRegistryEntry, "schema" | "relationsResolver" | "_builtRelations">): unknown;
         getModels(opts: {
             dataSource: string | TClass<import("../../index.js").IDataSource>;
         }): {

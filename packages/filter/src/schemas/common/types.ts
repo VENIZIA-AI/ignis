@@ -1,7 +1,7 @@
 /** The metadata a schema carries for documentation. Structural on purpose - naming the OpenAPI library's type here would pull it into a browser bundle, which is the whole thing this package avoids. */
 export type TSchemaMetadata = {
   description?: string;
-  type?: string;
+  type?: 'object';
   examples?: Array<unknown>;
 };
 

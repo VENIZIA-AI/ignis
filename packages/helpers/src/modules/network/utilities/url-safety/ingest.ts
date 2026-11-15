@@ -9,6 +9,11 @@ import { UrlSafetyErrors } from './common/errors';
 import type { IUrlSafetyPolicy } from './common/types';
 import { UrlPolicy } from './policy';
 
+/** The options Bun's `fetch` takes beyond the standard ones; the standard `RequestInit` does not declare `proxy`. */
+interface IBunFetchInit extends RequestInit {
+  proxy?: string | false;
+}
+
 /** Fetching an untrusted url without letting it reach inside the network. */
 export class UrlIngest {
   /**
@@ -166,7 +171,7 @@ export class UrlIngest {
   private static async send(opts: {
     target: URL;
     addresses: string[];
-    init: RequestInit;
+    init: IBunFetchInit;
   }): Promise<Response> {
     const { target, addresses, init } = opts;
 
@@ -176,7 +181,7 @@ export class UrlIngest {
 
     // `proxy: false` is Bun's way to ignore HTTP_PROXY / HTTPS_PROXY for this call (an empty string or undefined keeps
     // the environment's proxy, which would resolve the name itself and undo the pin). A test pins it.
-    const noProxy = { proxy: false } as unknown as RequestInit;
+    const noProxy: IBunFetchInit = { proxy: false };
     const isHttps = target.protocol === 'https:';
     const hasNameToVerify =
       isHttps &&
@@ -290,7 +295,7 @@ export class UrlIngest {
         addresses: policy?.proxy ? [] : addresses,
         init: {
           method,
-          ...(policy?.proxy ? ({ proxy: policy.proxy } as unknown as RequestInit) : {}),
+          ...(policy?.proxy ? { proxy: policy.proxy } : {}),
           redirect: 'manual',
           signal,
           ...(Object.keys(headers).length ? { headers } : {}),

@@ -12,8 +12,6 @@ import { dirname, join, resolve, sep } from 'node:path';
 /** The folder under the repository root that holds a test run's temp folders. */
 export const REPO_TMP_DIRECTORY = join('.agents', 'local', 'tmp', 'tests');
 
-type TSpawn = (...args: unknown[]) => unknown;
-
 /** Routes test temp folders into the repository: `apply` sets `TMPDIR` and `GIT_CEILING_DIRECTORIES` and makes `Bun.spawn` children inherit them. */
 export class RepoTmp {
   /** The nearest ancestor of `start` that holds a `.git` (folder or file); `start` itself when there is none. */
@@ -41,19 +39,35 @@ export class RepoTmp {
    * it has now, so a TMPDIR set here would never reach it. Wrapped to default to the current one; an
    * `env` a caller passes wins. `spawn(cmd, options)` and `spawn({ cmd, ...options })` are both handled.
    */
-  private static withCurrentEnv(spawn: TSpawn): TSpawn {
-    return (...args) => {
-      const [first, second] = args;
-      const options = Array.isArray(first) ? second : first;
+  private static withCurrentEnv<TSpawnFunction extends Function>(
+    spawn: TSpawnFunction,
+  ): TSpawnFunction {
+    const withEnv = (base: unknown) => ({
+      ...(typeof base === 'object' && base !== null ? base : {}),
+      env: process.env,
+    });
 
-      if ((options as { env?: unknown } | undefined)?.env !== undefined) {
-        return spawn(...args);
-      }
+    return new Proxy(spawn, {
+      apply: (target, thisArg, args: unknown[]) => {
+        const [first, second] = args;
+        const options = Array.isArray(first) ? second : first;
 
-      return Array.isArray(first)
-        ? spawn(first, { ...(second as object), env: process.env })
-        : spawn({ ...(first as object), env: process.env });
-    };
+        if (
+          typeof options === 'object' &&
+          options !== null &&
+          'env' in options &&
+          options.env !== undefined
+        ) {
+          return Reflect.apply(target, thisArg, args);
+        }
+
+        return Reflect.apply(
+          target,
+          thisArg,
+          Array.isArray(first) ? [first, withEnv(second)] : [withEnv(first)],
+        );
+      },
+    });
   }
 
   /**
@@ -72,12 +86,8 @@ export class RepoTmp {
     mkdirSync(join(testTmp, '.git'), { recursive: true });
     process.env.TMPDIR = testTmp;
     process.env.GIT_CEILING_DIRECTORIES = testTmp;
-    Bun.spawn = RepoTmp.withCurrentEnv(
-      Bun.spawn as unknown as TSpawn,
-    ) as unknown as typeof Bun.spawn;
-    Bun.spawnSync = RepoTmp.withCurrentEnv(
-      Bun.spawnSync as unknown as TSpawn,
-    ) as unknown as typeof Bun.spawnSync;
+    Bun.spawn = RepoTmp.withCurrentEnv(Bun.spawn);
+    Bun.spawnSync = RepoTmp.withCurrentEnv(Bun.spawnSync);
 
     return testTmp;
   }

@@ -2,19 +2,23 @@ import 'reflect-metadata';
 
 import type { IDataSource } from '@/base/datasources';
 import type { AbstractEntity } from '@/base/models';
-import type { AnyType, TClass, TMixinTarget } from '@venizia/ignis-helpers/common';
+import type { TClass, TMixinTarget } from '@venizia/ignis-helpers/common';
 import { ResolverUtility } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { MetadataKeys } from '../common/keys';
 import { RelationBuilderRegistry } from '../common/relation-builder';
 import type {
+  IEntityStatics,
   IModelMetadata,
   IModelRegistryEntry,
   IRepositoryBinding,
   IResolvedRepositoryMetadata,
   TRepositoryMetadata,
 } from '../common/types';
+
+/** A model class read for the statics `@model` entities carry; each is optional, so any class fits. */
+type TStaticReadableModelClass = TClass<unknown> & IEntityStatics & { TABLE_NAME?: string };
 
 export const RepositoryMetadataMixin = <
   BaseClass extends TMixinTarget<
@@ -128,7 +132,9 @@ export const RepositoryMetadataMixin = <
      * every `@model` class is registered first, which avoids circular-dependency ordering issues.
      * @internal
      */
-    resolveModelRelations(modelMeta: IModelRegistryEntry): unknown {
+    resolveModelRelations(
+      modelMeta: Pick<IModelRegistryEntry, 'schema' | 'relationsResolver' | '_builtRelations'>,
+    ): unknown {
       if (modelMeta._builtRelations !== undefined) {
         return modelMeta._builtRelations;
       }
@@ -177,12 +183,10 @@ export const RepositoryMetadataMixin = <
           // Read straight off the class: a class -> name -> modelRegistry round-trip collapses two
           // same-named models onto one entry, silently swapping schemas. `modelRegistry` stays
           // name-keyed for the by-name APIs that need it.
-          const entry: IModelRegistryEntry = {
-            target: modelClass as AnyType,
-            metadata:
-              this.getModelMetadata({ target: modelClass }) ?? ({ settings: {} } as AnyType),
-            schema: (modelClass as AnyType).schema,
-            relationsResolver: (modelClass as AnyType).relations,
+          const statics: TStaticReadableModelClass = modelClass;
+          const entry: Pick<IModelRegistryEntry, 'schema' | 'relationsResolver'> = {
+            schema: statics.schema,
+            relationsResolver: statics.relations,
           };
 
           if (entry.schema === undefined) {
@@ -216,11 +220,9 @@ export const RepositoryMetadataMixin = <
     resolveModelKey(opts: { modelClass: TClass<unknown> }): string {
       const { modelClass } = opts;
       const modelMetadata = this.getModelMetadata({ target: modelClass });
+      const statics: TStaticReadableModelClass = modelClass;
 
-      return (
-        [modelMetadata?.tableName, (modelClass as AnyType).TABLE_NAME].find(Boolean) ??
-        modelClass.name
-      );
+      return [modelMetadata?.tableName, statics.TABLE_NAME].find(Boolean) ?? modelClass.name;
     }
 
     /** Assembles table schemas + relations for a datasource's registered models. */
