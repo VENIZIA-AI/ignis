@@ -4,10 +4,12 @@ import { SearchControllerFactory } from '@venizia/ignis-connectors/typesense/con
 
 const BASE_PATH = '/articles';
 
-/** Generates POST /articles/search (keyword/semantic/hybrid) and POST /articles/multi-search. `mode: 'raw'` and multi-search answer 400 here: a controller opts in with `modes.raw.allow`. */
+/** Generates POST /articles/search (keyword/semantic/hybrid) and POST /articles/multi-search. `mode: 'raw'` and multi-search answer 400 here: a controller opts in with `modes.raw`. */
 const BaseSearchController = SearchControllerFactory.build({
   repository: ArticleRepository,
-  routes: { search: true, multiSearch: true },
+  routes: { search: { use: true }, multiSearch: { use: true } },
+  // Open on purpose: this example has no login. An app writes { strategies: [Authentication.STRATEGY_JWT] }.
+  authenticate: { skip: true },
 });
 
 /** The factory injects the repository class, so no constructor is needed. */

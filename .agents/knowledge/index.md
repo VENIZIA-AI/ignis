@@ -81,6 +81,7 @@ How the pieces fit.
 How the code is written. Read before writing any.
 
 - [Options objects](/conventions/options-objects.md)
+- [Callback dependencies](/conventions/callback-dependencies.md)
 - [Coding style](/conventions/coding-style.md)
 - [Error handling](/conventions/error-handling.md)
 - [Const classes](/conventions/const-classes.md)

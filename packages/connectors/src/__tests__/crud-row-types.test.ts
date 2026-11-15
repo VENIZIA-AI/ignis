@@ -137,7 +137,8 @@ describe('a search controller keeps the document type of its repository', () => 
   test('this.repository is typed with the document, and another repository is refused', () => {
     const SearchController = SearchControllerFactory.build({
       repository: RowTypesArticleRepository,
-      routes: { search: true },
+      routes: { search: { use: true } },
+      authenticate: { skip: true },
     });
 
     @controller({ path: '/search-articles' })

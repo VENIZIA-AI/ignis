@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis/static-asset, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-59 exports, 59 with TSDoc.
+58 exports, 58 with TSDoc. 1 more are re-exported from other entries (listed at the end).
 
 ## `BaseMetaLinkModel`
 
@@ -1475,18 +1475,10 @@ Source: `packages/core-server/src/components/static-asset/controller/routes/serv
 
 *class*
 
-Reads the `{ use }` switches an entry is written with.
+Reads the `{ use }` switches an entry is written with. The logic lives in the kernel's `ToggleUtility`, shared with controllers.
 
 ```ts
-export declare class StaticAssetToggleUtility {
-    /** The only place a toggle's `use` is read. Narrowing here is what lets every caller reach the options without a cast. */
-    static isUsed<Options extends object>(toggle: TToggle<Options> | undefined): toggle is Extract<TToggle<Options>, {
-        use: true;
-    }>;
-    /** The options of a toggle that is on, without `use`; `undefined` when it is off or absent. */
-    static pick<Options extends object>(toggle: TToggle<Options> | undefined): Omit<Extract<TToggle<Options>, {
-        use: true;
-    }>, 'use'> | undefined;
+export declare class StaticAssetToggleUtility extends ToggleUtility {
 }
 ```
 
@@ -2692,19 +2684,6 @@ export type TStaticAssetUploadPolicyRequest = {
 
 Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
-## `TToggle`
+## Re-exported
 
-*type*
-
-A feature that is on or off. `{ use: false }` is the whole off state; `{ use: true, ... }` carries
-the options. One shape for every switch, so an option is never read from a feature that is off.
-
-```ts
-export type TToggle<Options extends object = Record<never, never>> = {
-    use: false;
-} | ({
-    use: true;
-} & Options);
-```
-
-Source: `packages/core-server/src/components/static-asset/common/types.ts`
+- `TToggle` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)

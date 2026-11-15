@@ -50,10 +50,16 @@ const build = (opts: {
 
   const BuiltController = SearchControllerFactory.build({
     repository: EngineParamsProductRepository,
-    routes: opts.routes ?? (opts.scope ? { search: true } : { search: true, multiSearch: true }),
+    routes:
+      opts.routes ??
+      (opts.scope
+        ? { search: { use: true } }
+        : { search: { use: true }, multiSearch: { use: true } }),
+    authenticate: { skip: true },
     scope: opts.scope as never,
-    engineParams: opts.allow === undefined ? undefined : { allow: opts.allow },
-    modes: opts.isRawAllowed ? { raw: { allow: true } } : undefined,
+    // The names come from the cases below, some of them wire names a typed list refuses: this file tests the runtime check.
+    query: opts.allow === undefined ? undefined : { allow: { tuning: opts.allow as never } },
+    modes: opts.isRawAllowed ? { raw: { use: true } } : undefined,
   });
 
   @controllerDecorator({ path: '/products' })
@@ -84,11 +90,11 @@ const keyword = (engineParams?: Record<string, unknown>) => ({
 });
 
 const KINDS = [
-  ['an unscoped controller', () => build({}), () => build({ allow: ['typo_tokens_threshold'] })],
+  ['an unscoped controller', () => build({}), () => build({ allow: ['typoTokensThreshold'] })],
   [
     'a scoped controller',
     () => build({ scope: () => ({ status: 'm-a' }) }),
-    () => build({ scope: () => ({ status: 'm-a' }), allow: ['typo_tokens_threshold'] }),
+    () => build({ scope: () => ({ status: 'm-a' }), allow: ['typoTokensThreshold'] }),
   ],
 ] as const;
 
@@ -129,13 +135,14 @@ describe.each(KINDS)('%s', (_name, plain, allowing) => {
     const { controller, dataSource } = allowing();
 
     await controller['search']({
-      context: fakeContext(keyword({ ['typo_tokens_threshold']: 3 })) as never,
+      context: fakeContext(keyword({ ['typoTokensThreshold']: 3 })) as never,
     });
 
     const params = (dataSource.fakeConnector.searchCalls.at(-1)?.params ?? {}) as Record<
       string,
       unknown
     >;
+    // The engine gets the wire name of the camelCase tuning name the client sent.
     expect(params['typo_tokens_threshold']).toBe(3);
   });
 
@@ -144,12 +151,12 @@ describe.each(KINDS)('%s', (_name, plain, allowing) => {
 
     const error = await refusal(
       controller['search']({
-        context: fakeContext(keyword({ ['typo_tokens_threshold']: 3, ['num_typos']: 2 })) as never,
+        context: fakeContext(keyword({ ['typoTokensThreshold']: 3, ['numTypos']: 2 })) as never,
       }),
     );
 
     expect(error.statusCode).toBe(400);
-    expect(error.message).toContain('num_typos');
+    expect(error.message).toContain('numTypos');
     expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
   });
 
@@ -160,7 +167,7 @@ describe.each(KINDS)('%s', (_name, plain, allowing) => {
 
       const error = await refusal(
         controller['search']({
-          context: fakeContext(keyword({ ['typo_tokens_threshold']: 3, [name]: 'x' })) as never,
+          context: fakeContext(keyword({ ['typoTokensThreshold']: 3, [name]: 'x' })) as never,
         }),
       );
 
@@ -169,13 +176,34 @@ describe.each(KINDS)('%s', (_name, plain, allowing) => {
     },
   );
 
-  test('the same name in another spelling is the same name', async () => {
+  test('the allowed name is written in camelCase: the wire spelling of it is refused with 400 by the route', async () => {
     const { controller, dataSource } = allowing();
 
-    await controller['search']({
-      context: fakeContext(keyword({ typoTokensThreshold: 3 })) as never,
-    });
+    await controller.configure();
 
+    const router = controller.getRouter();
+    // The app's error middleware is not mounted here: a request the validator refuses (a ZodError) is a 400 there.
+    router.onError((error, context) =>
+      context.json(
+        { error: String(error.message) },
+        ((error as { statusCode?: number }).statusCode ??
+          (error.name === 'ZodError' ? 400 : 500)) as never,
+      ),
+    );
+
+    const send = (engineParams: Record<string, unknown>) =>
+      router.request('/search', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...keyword(), engineParams }),
+      });
+
+    const wire = await send({ ['typo_tokens_threshold']: 3 });
+    expect(wire.status).toBe(400);
+    expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
+
+    const camel = await send({ typoTokensThreshold: 3 });
+    expect(camel.status).toBe(200);
     expect(dataSource.fakeConnector.searchCalls).toHaveLength(1);
   });
 });
@@ -217,12 +245,12 @@ describe('multi-search on an unscoped controller', () => {
   });
 
   test('with an allowlist, an allowed entry parameter passes and the others are refused', async () => {
-    const { controller } = build({ allow: ['typo_tokens_threshold'], isRawAllowed: true });
+    const { controller } = build({ allow: ['typoTokensThreshold'], isRawAllowed: true });
 
     const passed = await refusal(
       controller['multiSearch']({
         context: fakeContext({
-          searches: [entry({ ['typo_tokens_threshold']: 1 })],
+          searches: [entry({ ['typoTokensThreshold']: 1 })],
         }) as never,
       }),
     );
@@ -266,8 +294,9 @@ describe('an allowlist is validated when the controller is defined', () => {
   const define = (allow: unknown) =>
     SearchControllerFactory.build({
       repository: EngineParamsProductRepository,
-      routes: { search: true },
-      engineParams: { allow: allow as string[] },
+      routes: { search: { use: true } },
+      authenticate: { skip: true },
+      query: { allow: { tuning: allow as never } },
     });
 
   test.each([
@@ -288,9 +317,9 @@ describe('an allowlist is validated when the controller is defined', () => {
   });
 
   test('a list that is not a list, and an entry that is not a name, throw', () => {
-    expect(() => define('typo_tokens_threshold')).toThrow(/must be a list/);
-    expect(() => define([''])).toThrow(/engineParams\.allow holds/);
-    expect(() => define([5])).toThrow(/engineParams\.allow holds/);
+    expect(() => define('typoTokensThreshold')).toThrow(/must be a list/);
+    expect(() => define([''])).toThrow(/query\.allow\.tuning holds/);
+    expect(() => define([5])).toThrow(/query\.allow\.tuning holds/);
   });
 
   test('an empty list is the same as none', () => {
@@ -298,8 +327,6 @@ describe('an allowlist is validated when the controller is defined', () => {
   });
 
   test('a list of tuning names is accepted', () => {
-    expect(() =>
-      define(['typo_tokens_threshold', 'num_typos', 'drop_tokens_threshold']),
-    ).not.toThrow();
+    expect(() => define(['typoTokensThreshold', 'numTypos', 'dropTokensThreshold'])).not.toThrow();
   });
 });

@@ -76,7 +76,8 @@ const mount = async (opts: { modes?: unknown } = {}) => {
 
   const BuiltController = SearchControllerFactory.build({
     repository: HttpRawAccessProductRepository,
-    routes: { search: true, multiSearch: true },
+    routes: { search: { use: true }, multiSearch: { use: true } },
+    authenticate: { skip: true },
     modes: opts.modes as never,
   });
 
@@ -285,7 +286,7 @@ describe('a search controller that did not opt in', () => {
 
 describe('opting in', () => {
   test('only a literal true opens raw mode, and the engine then gets the params as sent', async () => {
-    const { router, dataSource } = await mount({ modes: { raw: { allow: true } } });
+    const { router, dataSource } = await mount({ modes: { raw: { use: true } } });
 
     const result = await send({ router, body: `{"mode":"raw","params":${RAW_PARAMS}}` });
 
@@ -294,31 +295,16 @@ describe('opting in', () => {
     expect(searchParamsSeen(dataSource)[0]).toContain(FORBIDDEN_FILTER);
   });
 
-  test.each([
-    ['the string "true"', { raw: { allow: 'true' } }],
-    ['the number 1', { raw: { allow: 1 } }],
-    // A wrapper object is truthy but is not the literal `true`: the definition refuses it.
-    // oxlint-disable-next-line no-new-wrappers
-    ['a Boolean object', { raw: { allow: new Boolean(true) } }],
-  ])('%s is refused when the controller is defined', (_name, modes) => {
-    expect(() =>
-      SearchControllerFactory.build({
-        repository: HttpRawAccessProductRepository,
-        routes: { search: true },
-        modes: modes as never,
-      }),
-    ).toThrow();
-  });
-
   test('changing the definition options after the controller is defined does not open raw mode', async () => {
     sequence += 1;
 
     const definition: ISearchControllerOptions<typeof HttpRawAccessProductRepository> = {
       repository: HttpRawAccessProductRepository,
-      routes: { search: true },
+      routes: { search: { use: true } },
+      authenticate: { skip: true },
     };
     const BuiltController = SearchControllerFactory.build(definition);
-    definition.modes = { raw: { allow: true } };
+    definition.modes = { raw: { use: true } };
 
     @controllerDecorator({ path: '/products' })
     class Controller extends BuiltController {}

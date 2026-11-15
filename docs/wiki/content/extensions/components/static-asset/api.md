@@ -79,7 +79,7 @@ import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 
 ## Toggles
 
-Every switch of an entry has one shape, `TToggle<Options>`:
+Every switch of an entry has one shape, `TToggle<Options>`. It is defined in `@venizia/ignis-kernel`, shared by components and controllers, and the static-asset component re-exports it:
 
 ```typescript
 type TToggle<Options extends object = Record<never, never>> =

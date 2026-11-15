@@ -54,7 +54,8 @@ const buildContainer = () => {
 
 const ProbeSearchBase = SearchControllerFactory.build({
   repository: InjectionProbeSearchRepository,
-  routes: { search: true },
+  routes: { search: { use: true } },
+  authenticate: { skip: true },
 });
 
 @controller({ path: '/probe-products' })
@@ -97,7 +98,8 @@ describe('SearchControllerFactory.build injects the repository class', () => {
     expect(() =>
       SearchControllerFactory.build({
         repository: ModelessSearchRepository,
-        routes: { search: true },
+        routes: { search: { use: true } },
+        authenticate: { skip: true },
       }),
     ).toThrow('[SearchControllerFactory.build] Cannot resolve the entity');
   });

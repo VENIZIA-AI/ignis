@@ -381,7 +381,7 @@ await repository.search({
 });
 ```
 
-`engineParams` is the one door to the engine's own parameters, so over HTTP every search controller refuses it, scoped or not (`400`), unless the controller lists the parameters a caller may send: see [Engine parameters over HTTP](#engine-parameters-over-http). A repository call from server code takes it as shown here.
+`engineParams` is the one door to the engine's own parameters, so over HTTP every search controller refuses it, scoped or not (`400`), unless the controller names the tuning a caller may send: see [Engine parameters over HTTP](#engine-parameters-over-http). A repository call from server code takes it as shown here.
 
 Sorting by a declared field is `filter.order` in the neutral input, and the dialect sends it as `sort_by` (at most three fields, each one the collection declares; a string field also needs `sortable: true`, which Typesense checks). `suggest()` takes no `order`, so its documents come back in relevance order unless you pass `sortBy`.
 
@@ -582,13 +582,14 @@ Both `searches` entries and `commonParams` are camelCase (`filterBy`, `queryBy`,
 ```typescript
 // src/controllers/search.controller.ts
 import { ArticleRepository } from '@/repositories';
-import { controller } from '@venizia/ignis';
+import { Authentication, controller } from '@venizia/ignis';
 import { SearchControllerFactory } from '@venizia/ignis-connectors/typesense/controllers';
 
-// The entity comes from @repository({ model }) on ArticleRepository; a route you do not list does not exist.
+// The entity comes from @repository({ model }) on ArticleRepository; a route that is not { use: true } does not exist.
 const BaseSearchController = SearchControllerFactory.build({
   repository: ArticleRepository,
-  routes: { search: true, multiSearch: true },
+  routes: { search: { use: true } },
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
 });
 
 @controller({ path: '/articles' })
@@ -599,7 +600,21 @@ The subclass needs no constructor. The factory injects the repository bound unde
 
 Import the factory from `@venizia/ignis-connectors/typesense/controllers` (or `@venizia/ignis-connectors/search/controllers`), never from `@venizia/ignis-connectors/typesense`. That entry loads without `hono`, so it carries no controller.
 
-`routes.search` registers `POST /search` (request body is the mode-discriminated schema, so validation and OpenAPI come for free, and the handler dispatches to `repository.search`). `routes.multiSearch` registers `POST /multi-search`, which dispatches to `dataSource.multiSearch`. The routes register after the subclass's `binding()`. `mode: 'raw'` and multi-search answer `400` until the controller opts in: see [Raw mode and multi-search over HTTP](#raw-mode-and-multi-search-over-http). For anything the factory does not cover, write a custom `BaseRestController` calling `repository.search()` or `getClient()` directly.
+`authenticate` is required. `{ strategies: [Authentication.STRATEGY_JWT] }` admits a JWT caller only, and `{ skip: true }` opens the routes on purpose. A config with no strategy and no `skip` throws when the controller is built, so a route is never open by omission. `{ skip: true }` also drops `authorize`, as it does for any route.
+
+`routes.search: { use: true }` registers `POST /search` (request body is the mode-discriminated schema, so validation and OpenAPI come for free, and the handler dispatches to `repository.search`). `routes.multiSearch: { use: true }` registers `POST /multi-search`, which dispatches to `dataSource.multiSearch`. A route that is left out, or `{ use: false }`, is not served. The routes register after the subclass's `binding()`. `mode: 'raw'` and multi-search answer `400` until the controller opts in: see [Raw mode and multi-search over HTTP](#raw-mode-and-multi-search-over-http). For anything the factory does not cover, write a custom `BaseRestController` calling `repository.search()` or `getClient()` directly.
+
+A route can document, and require, request headers with the same `request.headers` a CRUD route takes: a Zod object schema.
+
+```typescript
+const BaseSearchController = SearchControllerFactory.build({
+  repository: ArticleRepository,
+  routes: { search: { use: true, request: { headers: z.object({ 'x-merchant-id': z.string() }) } } },
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+});
+```
+
+A request without the header is a `400`, and the OpenAPI document lists it. A route that names no headers is unchanged.
 
 ### Scope the search per request
 
@@ -610,7 +625,8 @@ import { Authentication, ScopeFilters } from '@venizia/ignis';
 
 const ScopedSearchController = SearchControllerFactory.build({
   repository: ArticleRepository,
-  routes: { search: true }, // a scoped controller cannot serve multi-search: leave it out
+  routes: { search: { use: true } }, // a scoped controller cannot serve multi-search: leave it out
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   scope: ({ context }) => {
     const user = context.get(Authentication.CURRENT_USER);
 
@@ -631,7 +647,7 @@ const ScopedSearchController = SearchControllerFactory.build({
 
 The client's own `where` sits inside the AND, so it can narrow the scope and never widen or remove it.
 
-A scope is a `where` ANDed into a filter, so the three inputs that carry the engine's own filter string cannot take one. A scoped controller therefore refuses `mode: 'raw'` (`400`), and `SearchControllerFactory.build` throws when `routes.multiSearch` is listed. Every controller refuses `mode: 'raw'`, multi-search and `engineParams` unless it opts in, see below.
+A scope is a `where` ANDed into a filter, so the three inputs that carry the engine's own filter string cannot take one. A scoped controller therefore refuses `mode: 'raw'` (`400`), and `SearchControllerFactory.build` throws when `routes.multiSearch` is on. Every controller refuses `mode: 'raw'`, multi-search and `engineParams` unless it opts in, see below.
 
 ### Extra body keys for the scope
 
@@ -642,7 +658,8 @@ import { z } from '@hono/zod-openapi';
 
 const ScopedSearchController = SearchControllerFactory.build({
   repository: ArticleRepository,
-  routes: { search: true },
+  routes: { search: { use: true } },
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   request: { body: { extend: { ids: z.array(z.string().min(1)).max(50) } } },
   scope: ({ input }) => ({ id: { inq: input.ids } }), // input.ids is string[]
 });
@@ -650,24 +667,177 @@ const ScopedSearchController = SearchControllerFactory.build({
 
 A key the search body already has (`query`, `filter`, ...) is refused when the controller is built. The extra keys are not search fields: nothing but your `scope` reads them. Without `request`, the body is the base body and an unknown key is dropped.
 
-### Engine parameters over HTTP
+### Settings the server chooses
 
-A search request's `engineParams` hands the engine its own wire parameters. It could replace the controller's own `filter_by` and name fields the model hides, so a search controller, scoped or not, refuses a request that carries it with `400 engineParams is not available on this search controller`, in `search` and in every entry of `multi-search`. The key alone is the request: an empty `engineParams: {}` is refused too.
-
-A controller that wants callers to tune something lists the parameters:
+`query` fixes or defaults what a search asks the engine for, so a route stays one search and the client cannot widen it. Every name is camelCase and typed against the model and the engine. The engine's tuning is typed through the repository's datasource, so declare the repository of [Repository Tiers](#repository-tiers) with the datasource class as a second type argument:
 
 ```typescript
-SearchControllerFactory.build({
-  repository: ProductSearchRepository,
-  routes: { search: true },
-  engineParams: { allow: ['typo_tokens_threshold', 'num_typos'] },
+// src/repositories/article.repository.ts
+import { SearchDataSource } from '@/datasources/search.datasource';
+import { ArticleDocument, TArticleDocument } from '@/models/entities';
+import { repository } from '@venizia/ignis';
+import { DefaultSearchRepository, TypesenseDataSource } from '@venizia/ignis-connectors/typesense';
+
+@repository({ model: ArticleDocument, dataSource: SearchDataSource })
+export class ArticleRepository extends DefaultSearchRepository<TArticleDocument, TypesenseDataSource> {}
+```
+
+```typescript
+import { Authentication, controller } from '@venizia/ignis';
+import { SearchControllerFactory } from '@venizia/ignis-connectors/typesense/controllers';
+
+const BaseSearchController = SearchControllerFactory.build({
+  repository: ArticleRepository,
+  routes: { search: { use: true } },
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+  query: {
+    // Wins over the client: a client queryBy is a 400.
+    fixed: { queryBy: ['title', 'content'], queryByWeights: { title: 3, content: 1 } },
+    // Used when the client sent nothing for that setting.
+    default: ({ input }) => ({
+      order: ['title DESC'],
+      tuning: {
+        numTypos: 'query' in input && /^\d+$/.test(input.query ?? '') ? 0 : { title: 1, content: 1 },
+        prioritizeExactMatch: true,
+      },
+    }),
+    // The tuning names a client may send in `engineParams`.
+    allow: { tuning: ['typoTokensThreshold'] },
+  },
 });
 ```
 
-- **Names compare in one spelling.** `num_typos`, `numTypos` and `NUM_TYPOS` are one name.
-- **Anything else is a `400`**, naming the parameters it refused.
-- **A parameter that selects rows or fields, or orders them, can never be listed.** `filter_by`, `include_fields`, `exclude_fields`, `query_by`, `facet_by`, `group_by`, `highlight_fields`, `sort_by`, `preset`, `pinned_hits`, `vector_query` and their Meilisearch counterparts (`filter`, `attributesToRetrieve`, `facets`, `sort`, ...). `SearchControllerFactory.build` throws when the list holds one.
+| Setting | Meaning |
+|---|---|
+| `queryBy` | Text fields searched, in order. Keyword and hybrid only |
+| `queryByWeights` | A weight per field name. The controller writes the positional list for the effective `queryBy` |
+| `order` | Typed entries such as `'title DESC'`. Give it instead of `tuning.sortBy`, never with it |
+| `tuning` | The engine's knobs (`ITypesenseTuning` for Typesense). A list knob such as `numTypos` or `infix` is a record keyed by field name |
+
+- **Precedence per setting.** `fixed`, then what the client sent, then `default`, then the model's `defaultQueryBy`. A client value for a fixed setting is a `400` that names it. A tuning name only counts from the client when `allow.tuning` lists it, and a name is fixed or allowed, never both.
+- **A function source.** It gets `{ context, input }`, where `input` is the validated body after the scope, so it sees the `request.body.extend` keys. A string literal you keep in a variable first widens to `string`: write `const order = ['title DESC' as const]`. A literal returned in place is typed from the option. Do not pass type arguments to `build`: they switch the inference off, so `injected` would be typed `{}`.
+- **Hybrid needs no `queryBy` from the client** once `query.fixed` or `query.default` is set: the body's `queryBy` becomes optional, and the server's list (else the model's `defaultQueryBy`) is used.
+- **A keyed record names every `queryBy` field.** A fixed record that does not cover the effective `queryBy` is a `400` when the client sent the `queryBy`, and a `500` when the server or the model chose the list. A default one is dropped.
+- **Typed tuning needs the datasource.** Write the repository as `DefaultSearchRepository<TArticle, TypesenseDataSource>`. A repository that leaves the second type argument out has no typed tuning: `query.tuning` is closed, and `query.allow.tuning` takes no name, so nothing can be allowed over HTTP. Meilisearch binds none, so the same holds there.
+- **The definition is checked when the controller is built.** A field the model does not have, a hidden field (a dotted child of one too), a `queryBy` field that is not text, a weight for a field outside `queryBy`, and `order` with `tuning.sortBy` in one layer all throw. A function source is checked on every request and answers `500`, because the value is the server's: so does a tuning value the engine refuses (`numTypos: -1`).
+- **No fixed setting beside raw access.** `query.fixed` and `query.default` throw when `modes.raw` or `routes.multiSearch` is on: both hand the engine its own parameters, so a fixed setting would not apply.
+
+### Engine parameters over HTTP
+
+A search request's `engineParams` hands the engine tuning. It could replace the controller's own `filter_by` and name fields the model hides, so a search controller, scoped or not, refuses a request that carries it with `400 engineParams is not available on this search controller`, in `search` and in every entry of `multi-search`. The key alone is the request: an empty `engineParams: {}` is refused too.
+
+A controller that wants callers to tune something names the knobs in `query.allow.tuning`:
+
+```typescript
+// ArticleRepository extends DefaultSearchRepository<TArticleDocument, TypesenseDataSource>
+SearchControllerFactory.build({
+  repository: ArticleRepository,
+  routes: { search: { use: true } },
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+  query: { allow: { tuning: ['typoTokensThreshold', 'numTypos'] } },
+});
+```
+
+- **The body takes exactly those names.** `engineParams` is a strict object in the OpenAPI document. A name that is not listed, or its wire spelling (`typo_tokens_threshold`), is a `400`.
+- **A name that selects rows or fields, or orders them, can never be listed.** `sortBy`, `preset`, `pinnedHits` and the rest of the parameters that choose rows, fields or order. `SearchControllerFactory.build` throws when the list holds one.
+- **A name `ITypesenseTuning` has no entry for cannot be listed.** `prefix` is one. Set it in server code: `repository.search({ engineParams: { prefix: true } })`. Without the datasource type argument, and on Meilisearch, no name can be listed.
 - **Server code is not affected.** `repository.search({ ..., engineParams })` takes any parameter, as before.
+
+### Reshape the response
+
+`response` changes the hits a `POST /search` returns, for a route that must not show every field or every hit:
+
+```typescript
+import { z } from '@hono/zod-openapi';
+
+const PublicArticle = z.object({ id: z.string(), title: z.string() });
+
+SearchControllerFactory.build({
+  repository: ArticleRepository,
+  routes: { search: { use: true } },
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+  response: {
+    use: true,
+    document: PublicArticle,
+    transform: ({ hits }) =>
+      hits.map((hit) => ({ ...hit, document: { id: hit.document.id, title: hit.document.title } })),
+  },
+});
+```
+
+- **`document` is the shape of a hit's document.** It replaces the model's schema in the OpenAPI document, and the types of `transform` follow it.
+- **The transform may drop hits.** `found` stays the engine's count. `Content-Range` keeps the engine's page (`records 10-11/40`), `X-Response-Count` is the number of hits in this response, and a page whose hits were all dropped prints `records */40` with a count of `0`. An empty page does not mean the last one.
+- **Only `document` is parsed.** The other keys of a hit (`score`, `highlight`) are returned as the transform gives them.
+- **The server's code is checked.** Every transformed document is parsed against `document`. A document that does not match, a transform that throws, or a result that is not a list answers `500`.
+- **Not with raw access.** `raw` mode and multi-search return the engine's documents as they are, so `response` throws when `modes.raw` or `routes.multiSearch` is on.
+
+### Dependencies for the function sources
+
+A callback that runs on a request never looks anything up in the container. It declares the classes it needs in `inject`, and every function source (`scope`, `query.fixed`, `query.default`, `query.normalize`, `response.transform`) receives the instances as `injected`, typed from the map:
+
+```typescript
+// Placeholders: your own database repository and service.
+declare class ArticleRowRepository {
+  find(opts: { filter: { where: { id: { inq: string[] } } } }): Promise<{ id: string }[]>;
+}
+declare class TenantService {
+  merchantOf(opts: { userId: string }): Promise<string>;
+}
+
+SearchControllerFactory.build({
+  repository: ArticleRepository,
+  routes: { search: { use: true } },
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+  inject: { rows: ArticleRowRepository, tenants: TenantService },
+  scope: async ({ context, injected }) => {
+    const user = context.get(Authentication.CURRENT_USER);
+
+    return { merchantId: await injected.tenants.merchantOf({ userId: String(user.userId) }) };
+  },
+  response: {
+    use: true,
+    document: PublicArticle, // the schema of the previous section
+    // The index can be stale: reread the rows by id and drop the hits whose row is gone.
+    transform: async ({ hits, injected }) => {
+      const rows = await injected.rows.find({
+        filter: { where: { id: { inq: hits.map((hit) => hit.document.id) } } },
+      });
+      const live = new Set(rows.map((row) => row.id));
+
+      return hits
+        .filter((hit) => live.has(hit.document.id))
+        .map((hit) => ({ ...hit, document: { id: hit.document.id, title: hit.document.title } }));
+    },
+  },
+});
+```
+
+- **Resolved once, at boot.** The container builds the controller with its dependencies, so a class that is not registered fails the boot, not a request.
+- **Classes only.** A key-bound or optional dependency is not declared here, and `inject` throws when a value is not a class.
+- **A subclass with its own constructor** must pass every argument on to `super`. One that leaves them out is refused when it is built (`A declared dependency was not injected`, `500`). One that passes another object in their place is not caught.
+- **A test hands the callback fakes.** A function source is a plain function of its options: call it with `injected: { tenants: { merchantOf: () => 'm-1' } }`.
+- **Type arguments.** Do not pass type arguments to `build`: they switch the inference off, and `injected` is typed `{}`.
+
+### Normalize the query text
+
+`query.normalize` rewrites the text before anything else reads it: `query` of a keyword or hybrid request, `queryText` of a semantic one.
+
+```typescript
+query: {
+  normalize: ({ text }) => text.normalize('NFC').toLowerCase().replace(/\s+/g, ' ').trim(),
+  default: ({ input }) => ({ tuning: { numTypos: 'query' in input && /^\d+$/.test(input.query ?? '') ? 0 : 1 } }),
+},
+```
+
+- **Order.** It runs after the scope and before `fixed` and `default`, so a function source, and the digit-only rule above, read the normalized text.
+- **No text, no call.** A request that carries none is left as it is, and the engine still turns an empty string into `*`.
+- **Errors.** A throw, or a result that is not a string, answers `500`. It cannot be used with `modes.raw` or `routes.multiSearch`.
+- **It receives** `{ text, context, input, injected }`.
+
+### What these options do not cover
+
+- **A sort expression.** The guarantee is that a `tuning.sortBy` string names no hidden field anywhere in it: the string is split on everything that cannot be part of a field name, and a token that equals a hidden field (or reaches one) is refused, so quotes and brackets cannot hide a name. A value that happens to equal a hidden name (`title:=secret`) is refused too. Each top-level entry must also name a field of the model, or one of the engine's own sort names (`_text_match`, `_seq_id`, `_group_found`, `_vector_distance`, `_eval`, `_vector_query`, exact case). Only the engine knows the rest of the expression, so a `sortBy` it refuses answers `500` on the first request. A tuning name that selects rows or fields (`filter_by`, `include_fields`, `queryBy`, in either spelling) is refused in `fixed` and `default` like in `allow.tuning`.
+- **No rows for a caller.** A scope that returns `{ or: [] }` answers `200` with no hits and never calls the engine. `null` is the refusal (`403`).
 
 ### Raw mode and multi-search over HTTP
 
@@ -676,15 +846,16 @@ SearchControllerFactory.build({
 ```typescript
 SearchControllerFactory.build({
   repository: ProductSearchRepository,
-  routes: { search: true },
-  modes: { raw: { allow: true } },
+  routes: { search: { use: true } },
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+  modes: { raw: { use: true } },
 });
 ```
 
 > [!WARNING]
-> `modes.raw.allow: true` exposes the whole collection to every caller the route admits, including the fields the model hides and the rows its default filter leaves out. Opt in only for a route that only trusted callers reach (an internal tool behind its own authorization).
+> `modes.raw: { use: true }` exposes the whole collection to every caller the route admits, including the fields the model hides and the rows its default filter leaves out. Opt in only for a route that only trusted callers reach (an internal tool behind its own authorization).
 
-- **A scoped controller cannot opt in.** The scope cannot be applied to the engine's own parameters, so `SearchControllerFactory.build` throws when `scope` and `modes.raw.allow` are both set.
+- **A scoped controller cannot opt in.** The scope cannot be applied to the engine's own parameters, so `SearchControllerFactory.build` throws when `scope` and `modes.raw` are both on.
 - **Server code is not affected.** `repository.search({ mode: 'raw' })` and `dataSource.multiSearch()` work as before.
 
 ## Big collections: streaming export, timeouts and import errors

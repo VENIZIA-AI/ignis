@@ -11,6 +11,8 @@ describe('the search controllers barrel', () => {
   test('exports TSearchScopeResolver', () => {
     const resolver: TSearchScopeResolver = () => ({ status: 'active' });
 
-    expect(resolver({ context: {} as never, input: {} as never })).toEqual({ status: 'active' });
+    expect(resolver({ context: {} as never, input: {} as never, injected: {} })).toEqual({
+      status: 'active',
+    });
   });
 });

@@ -25,6 +25,11 @@ export class SearchFieldTypes {
   static isValid(value: string): value is TSearchFieldType {
     return this.SCHEME_SET.has(value);
   }
+
+  /** Full-text search matches text fields only (`string`, `string[]`): the rule `defaultQueryBy` and a route's `query.queryBy` share. */
+  static isText(type: string): boolean {
+    return type === this.STRING || type === this.STRING_ARRAY;
+  }
 }
 
 /** Union of the `SearchFieldTypes` values. */

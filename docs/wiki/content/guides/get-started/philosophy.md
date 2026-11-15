@@ -71,6 +71,7 @@ The 0.4 line added the pieces a multi-tenant API needs. Each links to its guide 
 | Default filters and limits per model | `query.filter` and `query.limit` in the model settings |
 | Safe CRUD controllers | `CrudControllerFactory.build` refuses to boot when a listed write route would inherit a read-only `authorize` |
 | Scoped search | `SearchControllerFactory.build({ scope })` applies the scope on the server |
+| Closed search routes | `SearchControllerFactory.build` requires `authenticate`; `modes.raw` is off until `{ use: true }` |
 | Clean shutdown | `installShutdownSignals()` stops the application on SIGTERM and SIGINT |
 | Code in a browser or worker | The browser-pure entries and the `worker` package |
 
