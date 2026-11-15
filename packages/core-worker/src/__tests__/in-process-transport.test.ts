@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { describe, expect, test } from 'bun:test';
+import assert from 'node:assert';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import {
   BaseRestController,
@@ -7,7 +8,6 @@ import {
   OpenApiResponses,
   RestApplication,
 } from '@venizia/ignis-kernel';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { z } from '@hono/zod-openapi';
@@ -183,9 +183,9 @@ describe('InProcessBffTransport mirrors what the envelope does', () => {
       caught = error;
     }
 
-    expect(isApplicationError(caught)).toBe(true);
-    expect((caught as AnyType).statusCode).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
-    expect((caught as AnyType).normalized).toEqual({
+    assert(isApplicationError(caught));
+    expect(caught.statusCode).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
+    expect(caught.normalized).toEqual({
       text: 'the datasource is gone',
       code: 'core.system_error',
       args: {},
@@ -209,8 +209,8 @@ describe('InProcessBffTransport mirrors what the envelope does', () => {
       caught = error;
     }
 
-    expect(isApplicationError(caught)).toBe(true);
-    expect((caught as AnyType).statusCode).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
-    expect((caught as Error).message).toContain('Cannot read properties of undefined');
+    assert(isApplicationError(caught));
+    expect(caught.statusCode).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
+    expect(caught.message).toContain('Cannot read properties of undefined');
   });
 });

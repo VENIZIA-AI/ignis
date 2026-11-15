@@ -1,7 +1,6 @@
 import { EventBus, EventDispatchRetry, EventHandlerTypes } from '@/base/events';
 import type { IDomainEvent, IEventHandler, TEventHandlerReference } from '@/base/events';
 import { Container } from '@/helpers/inversion/container';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { afterEach, beforeEach, describe, expect, jest, test } from 'bun:test';
 import { RecordingLogger } from '../support/recording-logger';
@@ -459,13 +458,17 @@ describe('EventBus - jitter is always applied, never a knob', () => {
     // Pinned so FULL jitter's `Math.floor(Math.random() * delay)` is deterministic: bare exponential
     // delays are 100ms then 200ms (default EventDispatchRetry); jittered they become 50ms then 100ms.
     Math.random = () => 0.5;
-    globalThis.setTimeout = ((callback: AnyType, delay?: number, ...args: AnyType[]) => {
-      if (typeof delay === 'number') {
-        observedDelaysMs.push(delay);
-      }
+    // `Object.assign` carries the original's own members (`__promisify__`), so the wrapper keeps the full `setTimeout` type.
+    globalThis.setTimeout = Object.assign(
+      (callback: Parameters<typeof originalSetTimeout>[0], delay?: number, ...args: unknown[]) => {
+        if (typeof delay === 'number') {
+          observedDelaysMs.push(delay);
+        }
 
-      return originalSetTimeout(callback, delay, ...args);
-    }) as AnyType;
+        return originalSetTimeout(callback, delay, ...args);
+      },
+      originalSetTimeout,
+    );
 
     try {
       bus.publish({ name: 'testEvent', payload: { value: 1 } });

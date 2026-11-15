@@ -1,4 +1,3 @@
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import type { Column, SQL } from 'drizzle-orm';
 
 /** Options passed to query operator handler functions. */
@@ -15,5 +14,6 @@ export interface IQueryHandlerOptions<T = unknown> {
  */
 export type TQueryOperatorHandlers = Record<
   string,
-  (opts: { column: AnyType; value: AnyType }) => SQL | undefined
+  // A method signature on purpose: its parameter is bivariant, so a handler typed for `IQueryHandlerOptions` fits.
+  { handle(opts: { column: Column | SQL; value: unknown }): SQL | undefined }['handle']
 >;

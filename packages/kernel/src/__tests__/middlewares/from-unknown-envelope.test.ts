@@ -1,5 +1,4 @@
 import { BaseAppErrorMiddleware, notFoundHandler } from '@/base/middlewares';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import type { ILogger, TLogLevel } from '@venizia/ignis-helpers/core';
 import { ApplicationError, getError } from '@venizia/ignis-helpers/core';
 import { Hono } from 'hono';
@@ -18,31 +17,31 @@ const SQL_MESSAGE =
 class RecordingLogger implements ILogger {
   readonly text: Array<string> = [];
 
-  private record(message: string, args: Array<AnyType>): void {
+  private record(message: string, args: Array<unknown>): void {
     this.text.push([message, ...args.map(String)].join(' '));
   }
 
-  debug(message: string, ...args: Array<AnyType>): void {
+  debug(message: string, ...args: Array<unknown>): void {
     this.record(message, args);
   }
 
-  info(message: string, ...args: Array<AnyType>): void {
+  info(message: string, ...args: Array<unknown>): void {
     this.record(message, args);
   }
 
-  warn(message: string, ...args: Array<AnyType>): void {
+  warn(message: string, ...args: Array<unknown>): void {
     this.record(message, args);
   }
 
-  error(message: string, ...args: Array<AnyType>): void {
+  error(message: string, ...args: Array<unknown>): void {
     this.record(message, args);
   }
 
-  emerg(message: string, ...args: Array<AnyType>): void {
+  emerg(message: string, ...args: Array<unknown>): void {
     this.record(message, args);
   }
 
-  log(_level: TLogLevel, message: string, ...args: Array<AnyType>): void {
+  log(_level: TLogLevel, message: string, ...args: Array<unknown>): void {
     this.record(message, args);
   }
 
@@ -66,8 +65,8 @@ const answer = async (opts: { thrown: unknown; nodeEnv: 'production' | 'developm
   const response = await application.request(new Request('http://ignis.internal/x'), undefined, {
     NODE_ENV: opts.nodeEnv,
   });
-  const json = await response.json();
-  const body = json as Record<string, AnyType>;
+  const text = await response.text();
+  const body: Record<string, unknown> = JSON.parse(text);
 
   return {
     status: response.status,
@@ -123,8 +122,8 @@ describe('a wrapped value with no usable HTTP status is answered as unexpected',
     application.onError(new BaseAppErrorMiddleware({ logger }).value());
 
     const response = await application.request(new Request('http://ignis.internal/x'));
-    const json = await response.json();
-    const body = json as Record<string, AnyType>;
+    const text = await response.text();
+    const body: Record<string, unknown> = JSON.parse(text);
 
     expect(response.status).toBe(500);
     expect(JSON.stringify(body)).not.toContain('SELECT');

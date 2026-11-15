@@ -1,15 +1,16 @@
 import { AuthorizationActions } from '@/base/auth/authorize/common/constants';
 import { CrudControllerFactory } from '@/base/controllers/factory/controller';
+import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
 import { CrudRoutes } from '@/base/controllers/common';
+import type { TCrudRoutes } from '@/base/controllers/common';
 import { repository } from '@/base/metadata';
 import { AbstractEntity } from '@/base/models';
 import { z } from '@hono/zod-openapi';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
+import { untyped } from '../support/untyped';
 import { RestorableStubRepository, StubRepository } from './stub-repository';
 
 const itemSchema = z.object({ id: z.string(), title: z.string() });
-const schemas: Record<string, AnyType> = { item: itemSchema };
 
 class AuthorizeProbeItem extends AbstractEntity<typeof itemSchema> {
   constructor() {
@@ -17,7 +18,7 @@ class AuthorizeProbeItem extends AbstractEntity<typeof itemSchema> {
   }
 
   getSchema<T>(): T {
-    return schemas.item;
+    return untyped<T>(itemSchema);
   }
 }
 
@@ -31,7 +32,10 @@ const READ = { action: AuthorizationActions.READ, resource: 'Item' };
 const WRITE = { action: AuthorizationActions.WRITE, resource: 'Item' };
 const WRITE_VERBS = ['create', 'updateById', 'updateBy', 'deleteById', 'deleteBy'] as const;
 
-const define = (opts: { authorize?: AnyType; routes?: Record<string, AnyType> }) => {
+const define = (opts: {
+  authorize?: IAuthorizationSpec | IAuthorizationSpec[];
+  routes?: TCrudRoutes<ItemRepository>;
+}) => {
   return () =>
     CrudControllerFactory.build({
       repository: ItemRepository,
@@ -40,7 +44,7 @@ const define = (opts: { authorize?: AnyType; routes?: Record<string, AnyType> })
     });
 };
 
-const listed = (opts: { value: AnyType; verbs?: ReadonlyArray<string> }) =>
+const listed = <Value>(opts: { value: Value; verbs?: ReadonlyArray<string> }) =>
   Object.fromEntries((opts.verbs ?? WRITE_VERBS).map((verb) => [verb, opts.value]));
 
 const ALL_TRUE = listed({ value: true });

@@ -1,6 +1,6 @@
 import { ObjectUtility } from '@venizia/ignis-helpers/common';
 import type { Container } from '@/helpers/inversion/container';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   BaseHelper,
   getError,
@@ -16,13 +16,12 @@ import type {
   TEventHandlerReference,
 } from './common/types';
 
-type TEventHandlerInvoker = (opts: { event: IDomainEvent<unknown> }) => ValueOrPromise<void>;
-
 /** One `register`ed handler, resolved to concrete retry numbers and a ready-to-call invoker -
  * `EventDispatchRetry`'s defaults already applied and `handler`'s shape already resolved, so
  * `dispatch` never has to branch on either. */
 interface IResolvedEventRegistration {
-  invokeHandler: TEventHandlerInvoker;
+  // A method signature on purpose: its parameter is bivariant, so a registration holds the invoker of any payload type, which the registry cannot tell apart.
+  invokeHandler(opts: { event: IDomainEvent<unknown> }): ValueOrPromise<void>;
   /** For the exhaustion log line only - a binding key or `<function fn.name>`. */
   description: string;
   maxAttempts: number;
@@ -113,11 +112,14 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
    * nothing left to re-read on a later attempt. The tag (`handler.type`) is what this switches on,
    * not which field happens to be present - see `EventHandlerTypes`' doc.
    */
-  private static buildHandlerInvoker(opts: {
+  private static buildHandlerInvoker<TPayload>(opts: {
     container: Container;
-    handler: TEventHandlerReference<AnyType>;
+    handler: TEventHandlerReference<TPayload>;
     name: string;
-  }): { invokeHandler: TEventHandlerInvoker; description: string } {
+  }): {
+    invokeHandler: (opts: { event: IDomainEvent<TPayload> }) => ValueOrPromise<void>;
+    description: string;
+  } {
     const { container, handler, name } = opts;
 
     if (ObjectUtility.isEmpty({ value: handler })) {

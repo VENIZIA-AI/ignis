@@ -9,22 +9,20 @@ import { AbstractEntity } from '@/base/models';
 import { BindingNamespaces } from '@/common/bindings';
 import { BindingKeys, Container, MetadataRegistry } from '@/helpers/inversion';
 import { z } from '@hono/zod-openapi';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
+import { untyped } from '../support/untyped';
 import { StubRepository } from './stub-repository';
 
 const itemSchema = z.object({ id: z.string(), title: z.string() });
 
 /** One zod object for every schema type, held untyped so the generic abstract signature accepts it without a cast. */
-const schemas: Record<string, AnyType> = { item: itemSchema };
-
 class InjectionProbeItem extends AbstractEntity<typeof itemSchema> {
   constructor() {
     super({ name: InjectionProbeItem.name });
   }
 
   getSchema<T>(): T {
-    return schemas.item;
+    return untyped<T>(itemSchema);
   }
 }
 

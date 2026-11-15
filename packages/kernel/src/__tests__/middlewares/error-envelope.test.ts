@@ -1,6 +1,5 @@
 import { BaseAppErrorMiddleware, notFoundHandler } from '@/base/middlewares';
 import { z } from '@hono/zod-openapi';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { MessageTemplate } from '@venizia/ignis-helpers/core';
 import type { ILogger, TLogLevel } from '@venizia/ignis-helpers/core';
@@ -25,7 +24,7 @@ interface ILoggedLine {
   sink: TLoggerSink;
   level?: TLogLevel;
   message: string;
-  args: Array<AnyType>;
+  args: Array<unknown>;
 }
 
 /** Records instead of printing: several assertions below are about WHICH sink the middleware chose, which a silenced logger cannot answer. */
@@ -36,27 +35,27 @@ class RecordingLogger implements ILogger {
     this.lines.push(opts);
   }
 
-  debug(message: string, ...args: Array<AnyType>): void {
+  debug(message: string, ...args: Array<unknown>): void {
     this.record({ sink: 'debug', message, args });
   }
 
-  info(message: string, ...args: Array<AnyType>): void {
+  info(message: string, ...args: Array<unknown>): void {
     this.record({ sink: 'info', message, args });
   }
 
-  warn(message: string, ...args: Array<AnyType>): void {
+  warn(message: string, ...args: Array<unknown>): void {
     this.record({ sink: 'warn', message, args });
   }
 
-  error(message: string, ...args: Array<AnyType>): void {
+  error(message: string, ...args: Array<unknown>): void {
     this.record({ sink: 'error', message, args });
   }
 
-  emerg(message: string, ...args: Array<AnyType>): void {
+  emerg(message: string, ...args: Array<unknown>): void {
     this.record({ sink: 'emerg', message, args });
   }
 
-  log(level: TLogLevel, message: string, ...args: Array<AnyType>): void {
+  log(level: TLogLevel, message: string, ...args: Array<unknown>): void {
     this.record({ sink: 'log', level, message, args });
   }
 
@@ -74,10 +73,35 @@ class RecordingLogger implements ILogger {
   }
 }
 
+/** A shape the assertions read, open to the other keys the envelope carries. */
+type TOpen<Shape> = Shape & { [key: string]: unknown };
+
+/** The error envelope as the assertions read it. */
+type TEnvelopeBody = TOpen<{
+  message: string;
+  requestId: string;
+  statusCode: number;
+  error?: unknown;
+  details: TOpen<{ stack?: string; cause?: unknown }>;
+  extra: TOpen<{
+    apiKey?: string;
+    dsn?: string;
+    requestPayload: TOpen<{ password?: string; card?: string }>;
+    upstream: TOpen<{ message?: string; stack?: string }>;
+  }>;
+  normalized: TOpen<{ code?: string; args: TOpen<{ apiKey?: string }> }>;
+}>;
+
+const readEnvelope = async (response: Response): Promise<TEnvelopeBody> => {
+  const text = await response.text();
+
+  return JSON.parse(text);
+};
+
 interface IProbedResponse {
   status: number;
   contentType: string | null;
-  body: Record<string, AnyType>;
+  body: TEnvelopeBody;
   logger: RecordingLogger;
 }
 
@@ -107,8 +131,7 @@ const probe = async (opts: {
   const url = `http://ignis.internal${opts.path ?? REQUEST_PATH}`;
   const response = await application.request(new Request(url), undefined, opts.env);
 
-  const json = await response.json();
-  const body = json as Record<string, AnyType>;
+  const body = await readEnvelope(response);
 
   return {
     status: response.status,
@@ -160,7 +183,7 @@ describe('the error envelope - the exact body every IGNIS host returns', () => {
 
     expect(status).toBe(HTTP.ResultCodes.RS_4.NotFound);
     expect(contentType).toContain(HTTP.HeaderValues.APPLICATION_JSON);
-    expect(body).toEqual({
+    expect<unknown>(body).toEqual({
       message: 'Order not found',
       statusCode: HTTP.ResultCodes.RS_4.NotFound,
       normalized: { text: 'Order not found', code: ORDER_NOT_FOUND_CODE, args: {} },
@@ -174,7 +197,7 @@ describe('the error envelope - the exact body every IGNIS host returns', () => {
     const { status, body } = await probe({ thrower: throwUnexpected });
 
     expect(status).toBe(HTTP.ResultCodes.RS_5.InternalServerError);
-    expect(body).toEqual({
+    expect<unknown>(body).toEqual({
       message: 'Internal Server Error',
       statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
       normalized: {
@@ -193,7 +216,7 @@ describe('the error envelope - the exact body every IGNIS host returns', () => {
     const { status, body } = await probe({ thrower: throwZod });
 
     expect(status).toBe(HTTP.ResultCodes.RS_4.UnprocessableEntity);
-    expect(body).toEqual({
+    expect<unknown>(body).toEqual({
       message: 'Must not exceed 4 decimal places',
       statusCode: HTTP.ResultCodes.RS_4.UnprocessableEntity,
       normalized: {
@@ -226,7 +249,7 @@ describe('the error envelope - the exact body every IGNIS host returns', () => {
 
     expect(status).toBe(HTTP.ResultCodes.RS_4.NotFound);
     expect(contentType).toContain(HTTP.HeaderValues.APPLICATION_JSON);
-    expect(body).toEqual({
+    expect<unknown>(body).toEqual({
       message: 'URL NOT FOUND',
       statusCode: HTTP.ResultCodes.RS_4.NotFound,
       requestId: REQUEST_ID,
@@ -254,7 +277,7 @@ describe('a Hono HTTPException keeps its client status', () => {
     });
 
     expect(status).toBe(HTTP.ResultCodes.RS_4.Unauthorized);
-    expect(body).toEqual({
+    expect<unknown>(body).toEqual({
       message: 'Unauthorized',
       statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
       normalized: { text: 'Unauthorized', code: MessageCode.DEFAULT, args: {} },
@@ -278,8 +301,7 @@ describe('a Hono HTTPException keeps its client status', () => {
       headers: { 'content-type': 'application/json' },
       body: '{"broken":',
     });
-    const result = await response.json();
-    const body = result as Record<string, AnyType>;
+    const body = await readEnvelope(response);
 
     expect(response.status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
     expect(body.message).toBe('Malformed JSON in request body');
@@ -390,7 +412,7 @@ describe('the handler survives what a throw site can attach to an error', () => 
    * or a marker (a cycle reads `[Circular]`), so the authored status survives it: the client gets the 409 the
    * throw site chose, with a well-formed body.
    */
-  const expectAuthoredStatus = (opts: { status: number; body: Record<string, AnyType> }) => {
+  const expectAuthoredStatus = (opts: { status: number; body: TEnvelopeBody }) => {
     expect(opts.status).toBe(HTTP.ResultCodes.RS_4.Conflict);
     expect(opts.body.requestId).toBe(REQUEST_ID);
     expect(opts.body.statusCode).toBe(HTTP.ResultCodes.RS_4.Conflict);
@@ -407,7 +429,7 @@ describe('the handler survives what a throw site can attach to an error', () => 
     expect(logger.rendered()).not.toContain('[unrenderable]');
     expect(contentType).toContain(HTTP.HeaderValues.APPLICATION_JSON);
     expectAuthoredStatus({ status, body });
-    expect(body.extra).toEqual({
+    expect<unknown>(body.extra).toEqual({
       orderId: 'ord-991',
       self: { orderId: 'ord-991', self: '[Circular]' },
     });
@@ -422,7 +444,7 @@ describe('the handler survives what a throw site can attach to an error', () => 
     expect(logger.rendered()).not.toContain('[unrenderable]');
     expect(contentType).toContain(HTTP.HeaderValues.APPLICATION_JSON);
     expectAuthoredStatus({ status, body });
-    expect(body.extra).toEqual({ rows: '9007199254740993' });
+    expect<unknown>(body.extra).toEqual({ rows: '9007199254740993' });
   });
 
   /** `extra` is whatever a throw site chose to attach, and in a Worker this fragment lands in the browser console. */
@@ -496,7 +518,7 @@ describe('the `extra` a response carries', () => {
       }),
     });
 
-    expect(body.extra).toEqual({ requestId: 'req-up-1', upstreamRequestIds: ['a', 'b'] });
+    expect<unknown>(body.extra).toEqual({ requestId: 'req-up-1', upstreamRequestIds: ['a', 'b'] });
   });
 
   test('the correlation-id allowance carries only short strings', async () => {
@@ -593,7 +615,7 @@ describe('the `extra` a response carries', () => {
   test('an error without `extra` has none', async () => {
     const { body } = await probe({ thrower: throwIntentional });
 
-    expect(body.extra).toEqual({ orderId: 'ord-991' });
+    expect<unknown>(body.extra).toEqual({ orderId: 'ord-991' });
 
     const bare = await probe({
       thrower: () => {

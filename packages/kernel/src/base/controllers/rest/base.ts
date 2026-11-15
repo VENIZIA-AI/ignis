@@ -1,7 +1,7 @@
 import type { Hook, OpenAPIHono } from '@hono/zod-openapi';
 import { DataRangeUtility } from '@/base/repositories/common/types';
 import type { TDataRange } from '@/base/repositories/common/types';
-import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { PerformanceUtility, ParseUtility } from '@venizia/ignis-helpers/core';
 import type { Env, Schema } from 'hono';
@@ -46,7 +46,7 @@ export abstract class BaseRestController<
 
   /** Returns the full `{ count, data }` envelope, or just `data` when the client sent `x-request-count: false`; `X-Response-Count` is set either way. */
   normalizeCountData<
-    ResponseSchema extends AnyType,
+    ResponseSchema,
     RequestContext extends TRouteContext<RouteEnv> = TRouteContext<RouteEnv>,
     ResponseData extends {
       count: number;
