@@ -314,7 +314,7 @@ direct-upload route calls `directUpload.authorize` first; the services never do,
 directly owns that decision.
 
 `directUpload.validation` is `{ use: false }` or `StaticAssetValidation.define({ issueSchema, handler })`
-(which returns it `{ use: true, ... }`; typed as `IStaticAssetValidation<z.ZodType>` so no `AnyType` is needed -
+(which returns it `{ use: true, ... }`; typed as `IStaticAssetValidation<z.ZodType>` so no `any` is needed -
 the handler's answer is covariant, and `define` is what types it from the schema). It adds the app's check of
 the PENDING object. The commit service's `validate({ token, owner })` is `verify`, the pin, then the handler
 (valid when none is configured) and answers the `VALIDATED` token; `commit` never runs the handler. The route

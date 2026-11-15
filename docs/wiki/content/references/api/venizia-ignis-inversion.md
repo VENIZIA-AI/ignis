@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-inversion, from the built declarati
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-72 exports, 72 with TSDoc.
+71 exports, 71 with TSDoc.
 
 ## `AbstractContainer`
 
@@ -81,18 +81,6 @@ export declare abstract class AbstractContainer extends BaseHelper implements IC
 ```
 
 Source: `packages/inversion/src/modules/container/abstract.ts`
-
-## `AnyType`
-
-*type*
-
-Alias of `any`, for places where the type is deliberately unchecked.
-
-```ts
-export type AnyType = any;
-```
-
-Source: `packages/inversion/src/common/types.ts`
 
 ## `ApplicationError`
 
@@ -706,7 +694,7 @@ Source: `packages/inversion/src/modules/registry/common/types.ts`
 Marks a property or constructor parameter for dependency injection.
 
 ```ts
-export declare const inject: (opts: TInjectOptions) => (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => void;
+export declare const inject: (opts: TInjectOptions) => (target: object, propertyName: string | symbol | undefined, parameterIndex?: number) => void;
 ```
 
 Source: `packages/inversion/src/modules/metadata/injectors.ts`

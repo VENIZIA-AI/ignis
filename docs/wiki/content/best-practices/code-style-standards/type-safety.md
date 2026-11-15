@@ -125,7 +125,7 @@ export class DefaultRelationalRepository<
 export interface IAuthService<
   E extends Env = Env,
   SIRQ extends TSignInRequest = TSignInRequest,
-  SIRS = AnyObject,
+  SIRS = Record<string, unknown>,
 > {
   signIn(context: TContext<E>, opts: SIRQ): Promise<SIRS>;
 }

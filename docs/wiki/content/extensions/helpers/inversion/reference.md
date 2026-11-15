@@ -66,7 +66,6 @@ import type {
   TNullable,
   ValueOrPromise,
   ValueOf,
-  AnyType,
   TClass,
   TConstructor,
   TAbstractConstructor,
@@ -522,12 +521,6 @@ interface IBindingTag {
 
 function isClass<T>(target: unknown): target is TClass<T>;
 ```
-
-<!-- docs-code: off -->
-```typescript
-type AnyType = any;
-```
-<!-- docs-code: on -->
 
 `isClass` tests `typeof target === 'function' && target.prototype !== undefined` plus a regex match on the function's stringified source (`/^class[\s{]/`). It relies on the class being emitted as an ES2015+ `class`, not transpiled down to an ES5 constructor function.
 
