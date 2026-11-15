@@ -8,16 +8,16 @@ migration:
     upgrade:
       before: |
         const row = await repository.findById({ id: 1 });
-        const label: string = row.jValue.label.text; // jValue was Record<string, any>
+        const label: string = row?.jValue?.label; // jValue was Record<string, any>
       after: |
         // jValue is Record<string, unknown>: narrow what you read
-        const label = row.jValue.label;
-        const text = typeof label === 'object' && label !== null && 'text' in label ? label.text : undefined;
+        const label = row?.jValue?.label;
+        const text = typeof label === 'string' ? label : undefined;
     downgrade:
       steps:
         - "Read jValue without a narrow again; the older values were any."
   - id: sqlite-connector-run-result-unknown
-    symbols: [TSqliteConnector]
+    symbols: [TSqliteConnector, TSqliteConnection, TSqliteDriver]
     upgrade:
       before: |
         const connector: TSqliteConnector = dataSource.getConnector();
@@ -53,11 +53,14 @@ migration:
 **Before:**
 
 ```typescript
-const label: string = row.jValue.label;
+const label: string = row?.jValue?.label;
+const result = await connector.run(sql`select 1`);
+result.rowsAffected;
 ```
 
 **After:**
 
 ```typescript
-const label = typeof row.jValue.label === 'string' ? row.jValue.label : undefined;
+const label = typeof row?.jValue?.label === 'string' ? row.jValue.label : undefined;
+const result: unknown = await connector.run(sql`select 1`);
 ```
