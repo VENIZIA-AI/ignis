@@ -49,7 +49,7 @@ migration:
     symbols: [ApplicationEnvironment.get, IApplicationEnvironment.get, IApplicationEnvironmentTransformOptions, IApplicationEnvironmentDefaultedTransformOptions]
     upgrade:
       before: |
-        // TS2769: Property 'transform' is missing in type '{ defaultValue: number }' but required in type 'IApplicationEnvironmentTransformOptions<number>'
+        // TS2769: Property 'transform' is missing in type '{ defaultValue: number }' but required in type 'IApplicationEnvironmentDefaultedTransformOptions<number>'
         const retries = applicationEnvironment.get<number>('APP_ENV_RETRIES', { defaultValue: 3 });
         const hosts = applicationEnvironment.get<string[]>('APP_ENV_HOSTS', { defaultValue: [] });
       after: |

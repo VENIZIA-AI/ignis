@@ -21,7 +21,7 @@ migration:
     downgrade:
       steps:
         - "Drop the type argument; the older default let every read and every field name compile."
-    data: "An error about TDataWithRange or a missing `id` in TWhere<object> on a find means the entity type is not named: write HttpRepository<IEntity>, because with the default object entity no field name is accepted in where or order, no overload matches, and the call falls through to the ranged result. The protected patchWhere and deleteWhere now answer data: unknown, and search() answers IHttpSearchResult<object> without a row type: a subclass that reads .data.x from them needs the row type or a narrow. Reading find() rows without a type argument still compiles (a keyless object selects any)."
+    data: "An error about TDataWithRange on a find, or an excess property such as `'id' does not exist in type 'TWhere<object>'`, means the entity type is not named: write HttpRepository<IEntity>, because with the default object entity no field name is accepted in where, no overload matches, and the call falls through to the ranged result. The protected patchWhere and deleteWhere now answer data: unknown, and search() answers IHttpSearchResult<object> without a row type: a subclass that reads .data.x from them needs the row type or a narrow. Reading find() rows without a type argument still compiles (a keyless object selects any)."
   - id: raw-sql-repository-datasource-type
     symbols: [BaseRawSqlRepository]
     upgrade:

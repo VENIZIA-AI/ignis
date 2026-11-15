@@ -20,14 +20,15 @@ migration:
     symbols: [AxiosFetcher, TFetcherResponse]
     upgrade:
       before: |
-        const response = await axiosFetcher.send({ url });
+        const response = await axiosFetcher.get({ url }); // the verb methods answered any
         const name: string = response.data.name; // any
       after: |
-        // the data is unknown (TS2322 into a typed local, TS18046 on a read): name it with send<T>, or parse it
-        const response = await axiosFetcher.send<{ name: string }>({ url });
-        const name = response.data.name;
+        // the data is unknown (TS18046 on a read, TS2322 into a typed local): parse it, or name it with send<T>
+        const response = await axiosFetcher.get({ url });
+        const parsed = NameSchema.parse(response.data);
 
-        const parsed = NameSchema.parse((await axiosFetcher.send({ url })).data);
+        const typed = await axiosFetcher.send<{ name: string }>({ url });
+        const name = typed.data.name;
     downgrade:
       steps:
         - "Read response.data without a type argument again; the older response data was any."
