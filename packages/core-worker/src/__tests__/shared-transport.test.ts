@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { BffEnvelope } from '@/envelope/encode';
 import type { IBffRequestEnvelope } from '@/envelope/common';
 import { BffRoles, SharedBffTransport } from '@/transport/shared';
@@ -58,6 +57,9 @@ class AnsweringWorker {
   }
 }
 
+type TLockCallback = (lock: unknown) => Promise<unknown>;
+type TLockOptions = { ifAvailable?: boolean; signal?: AbortSignal };
+
 /**
  * Models the parts of `LockManager` this transport relies on: `ifAvailable` answers immediately with
  * `null` when the lock is held, and a plain request queues until the holder's callback settles.
@@ -73,14 +75,14 @@ class LockManagerStub {
     return this.queue.length;
   }
 
-  async request(_name: string, ...rest: AnyType[]): Promise<AnyType> {
-    const options =
-      typeof rest[0] === 'function'
-        ? {}
-        : (rest[0] as { ifAvailable?: boolean; signal?: AbortSignal });
-    const callback = (typeof rest[0] === 'function' ? rest[0] : rest[1]) as (
-      lock: unknown,
-    ) => Promise<AnyType>;
+  request(_name: string, callback: TLockCallback): Promise<unknown>;
+  request(_name: string, options: TLockOptions, callback: TLockCallback): Promise<unknown>;
+  async request(
+    _name: string,
+    ...rest: [TLockCallback] | [TLockOptions, TLockCallback]
+  ): Promise<unknown> {
+    const [options, callback]: [TLockOptions, TLockCallback] =
+      rest.length === 1 ? [{}, rest[0]] : rest;
 
     // A real `LockManager` grants from a QUEUED TASK - it never invokes the callback synchronously
     // inside `request()`. Modelling that is not pedantry: granting synchronously makes the role

@@ -1,7 +1,7 @@
 import { describe, expect, spyOn, test } from 'bun:test';
+import assert from 'node:assert';
 import path from 'node:path';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { WorkerBffTransport } from '@/transport/worker';
 import type {
   IBffErrorEnvelope,
@@ -248,8 +248,8 @@ describe('WorkerBffTransport', () => {
       caught = error;
     }
 
-    expect(isApplicationError(caught)).toBe(true);
-    expect((caught as AnyType).statusCode).toBe(503);
+    assert(isApplicationError(caught));
+    expect(caught.statusCode).toBe(503);
   });
 
   test('buffers the caller body once, not once per hop', async () => {

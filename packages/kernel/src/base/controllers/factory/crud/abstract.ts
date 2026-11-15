@@ -1,10 +1,14 @@
 import type { AbstractEntity } from '@/base/models/base';
 import type { AbstractRepository } from '@/base/repositories';
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import type { Env, Schema } from 'hono';
-import type { TEntityDataObject, TEntityPersistObject, TRouteContext } from '../../common';
+import type {
+  IAuthRouteConfig,
+  TEntityDataObject,
+  TEntityPersistObject,
+  TRouteContext,
+} from '../../common';
 import { BaseRestController } from '../../rest/base';
 
 type TBulkWhereResolution<WhereType> =
@@ -26,8 +30,8 @@ export abstract class AbstractCrudController<
   constructor(opts: {
     scope: string;
     isStrict?: boolean;
-    repository: AbstractRepository<TDataObject, TPersistObject, AnyType>;
-    definitions: AnyType;
+    repository: AbstractRepository<TDataObject, TPersistObject>;
+    definitions: Record<string, IAuthRouteConfig>;
   }) {
     super({ scope: opts.scope, isStrict: opts.isStrict });
     this.repository = opts.repository;

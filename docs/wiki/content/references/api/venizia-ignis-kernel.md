@@ -112,8 +112,8 @@ export declare abstract class AbstractCrudController<TEntity extends AbstractEnt
     constructor(opts: {
         scope: string;
         isStrict?: boolean;
-        repository: AbstractRepository<TDataObject, TPersistObject, AnyType>;
-        definitions: AnyType;
+        repository: AbstractRepository<TDataObject, TPersistObject>;
+        definitions: Record<string, IAuthRouteConfig>;
     });
     /**
      * Refuses (400) a filter the client sent when it names a field the model hides (`where`, `order`, an include scope).
@@ -1525,7 +1525,7 @@ export declare abstract class BaseRestController<RouteEnv extends Env = Env, Rou
         task: () => Promise<R>;
     }): Promise<R>;
     /** Returns the full `{ count, data }` envelope, or just `data` when the client sent `x-request-count: false`; `X-Response-Count` is set either way. */
-    normalizeCountData<ResponseSchema extends AnyType, RequestContext extends TRouteContext<RouteEnv> = TRouteContext<RouteEnv>, ResponseData extends {
+    normalizeCountData<ResponseSchema, RequestContext extends TRouteContext<RouteEnv> = TRouteContext<RouteEnv>, ResponseData extends {
         count: number;
         data?: TNullable<ResponseSchema>;
     } = {
@@ -2067,7 +2067,7 @@ export declare class CrudControllerFactory extends BaseHelper {
         repositoryName: string;
     }): void;
     static build<Repository extends TCrudRepositoryClass, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TRepositoryDataObject<InstanceType<Repository>>, TPersistObject extends object = TRepositoryPersistObject<InstanceType<Repository>>>(opts: ICrudControllerOptions<Repository>): {
-        new (repositoryInstance: AbstractRepository<TDataObject, TPersistObject, AnyType>): {
+        new (repositoryInstance: AbstractRepository<TDataObject, TPersistObject>): {
             /** The routes of a generated controller come from `routes`; a subclass adds its own here. */
             binding(): ValueOrPromise<void>;
             /** Registers each listed CRUD route, after `binding()`: a custom static path is never taken by `/{id}`. */
@@ -2142,7 +2142,7 @@ export declare class CrudControllerFactory extends BaseHelper {
                 args: unknown;
                 task: () => Promise<R>;
             }): Promise<R>;
-            normalizeCountData<ResponseSchema extends unknown, RequestContext extends import("../index.js").TRouteContext<RouteEnv> = import("../index.js").TRouteContext<RouteEnv>, ResponseData extends {
+            normalizeCountData<ResponseSchema, RequestContext extends import("../index.js").TRouteContext<RouteEnv> = import("../index.js").TRouteContext<RouteEnv>, ResponseData extends {
                 count: number;
                 data?: import("@venizia/ignis-helpers/common").TNullable<ResponseSchema>;
             } = {
@@ -3128,7 +3128,7 @@ Source: `packages/kernel/src/base/controllers/common/types/route.ts`
 The service behind the auth controller routes. `getUserInformation` and `refreshToken` are optional. The type parameters set each route's request and response types.
 
 ```ts
-export interface IAuthService<E extends Env = Env, SIRQ extends TSignInRequest = TSignInRequest, SIRS = AnyObject, SURQ extends TSignUpRequest = TSignUpRequest, SURS = AnyObject, CPRQ extends TChangePasswordRequest = TChangePasswordRequest, CPRS = AnyObject, UIRQ = AnyObject, UIRS = AnyObject, RTRS = AnyObject> {
+export interface IAuthService<E extends Env = Env, SIRQ extends TSignInRequest = TSignInRequest, SIRS = Record<string, unknown>, SURQ extends TSignUpRequest = TSignUpRequest, SURS = Record<string, unknown>, CPRQ extends TChangePasswordRequest = TChangePasswordRequest, CPRS = Record<string, unknown>, UIRQ = Record<string, unknown>, UIRS = Record<string, unknown>, RTRS = Record<string, unknown>> {
     signIn(context: TContext<E>, opts: SIRQ): Promise<SIRS>;
     signUp(context: TContext<E>, opts: SURQ): Promise<SURS>;
     changePassword(context: TContext<E>, opts: CPRQ): Promise<CPRS>;
@@ -4508,11 +4508,11 @@ Source: `packages/kernel/src/helpers/inversion/common/types/artifact.ts`
 
 *interface*
 
-Options passed to query operator handler functions.
+Options passed to query operator handler functions. `column` is a `Column` or, on the JSON-path branch, a raw `#>>` extraction expression: both are `SQLWrapper`.
 
 ```ts
 export interface IQueryHandlerOptions<T = unknown> {
-    column: Column;
+    column: SQLWrapper;
     value: T;
 }
 ```
@@ -7824,7 +7824,10 @@ The routes of a CRUD controller: only a listed route exists, as `true` (on, with
 (on, with overrides). `restoreById` and `restoreBy` are listed only for a repository that has both methods.
 
 ```ts
-export type TCrudRoutes<Repository extends object = AnyType> = {
+export type TCrudRoutes<Repository extends object = {
+    restoreById: unknown;
+    restoreBy: unknown;
+}> = {
     [Key in keyof ICustomizableRoutes]?: Key extends 'restoreById' | 'restoreBy' ? Repository extends {
         restoreById: unknown;
         restoreBy: unknown;
@@ -8547,16 +8550,10 @@ Source: `packages/kernel/src/base/auth/authorize/builders/policy.builder.ts`
 
 *type*
 
-Operator-name to SQL-handler table a relational dialect translates with, so a second SQL engine
-swaps the whole table without touching the walk that reaches it. `column` is wider than
-`IQueryHandlerOptions` names it: the JSON-path branch hands handlers a raw `#>>` extraction
-expression, not a `Column`.
+Operator-name to SQL-handler table a relational dialect translates with, so a second SQL engine swaps the whole table without touching the walk that reaches it.
 
 ```ts
-export type TQueryOperatorHandlers = Record<string, (opts: {
-    column: AnyType;
-    value: AnyType;
-}) => SQL | undefined>;
+export type TQueryOperatorHandlers = Record<string, (opts: IQueryHandlerOptions) => SQL | undefined>;
 ```
 
 Source: `packages/kernel/src/base/repositories/common/types/query.ts`
@@ -8736,10 +8733,18 @@ The JSON response body type of a route config `R`: the union of the schemas unde
 
 ```ts
 export type TResponseBodyOf<R extends {
-    responses: AnyType;
-}> = TInferDistributive<R['responses'][keyof R['responses']]['content']['application/json']['schema']>;
+    responses: object;
+}> = TInferDistributive<TJsonSchemaOf<R['responses'][keyof R['responses']]>>;
 
 type TInferDistributive<S> = S extends z.ZodType ? z.infer<S> : never;
+
+type TJsonSchemaOf<Response> = Response extends {
+    content: {
+        'application/json': {
+            schema: infer JsonSchema;
+        };
+    };
+} ? JsonSchema : never;
 ```
 
 Source: `packages/kernel/src/base/controllers/common/types/route.ts`

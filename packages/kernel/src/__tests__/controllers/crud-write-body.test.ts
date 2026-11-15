@@ -13,10 +13,10 @@ import { AuditFields } from '@/base/models/common/constants';
 import { BindingNamespaces } from '@/common/bindings';
 import { BindingKeys, Container } from '@/helpers/inversion';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { describe, expect, test } from 'bun:test';
-import { StubRepository } from './stub-repository';
+import { untyped } from '../support/untyped';
+import { answer, StubRepository } from './stub-repository';
 
 /** The shape an entity with the audit and timestamp enrichers exposes; `deletedAt` is soft-delete state, not a stamp. */
 const auditedShape = {
@@ -36,10 +36,10 @@ const plainUpdateSchema = z.object({ code: z.string().optional() });
 /** What a relational entity with both enrichers reports. */
 const AUDIT_KEYS = ['createdBy', 'modifiedBy', 'createdAt', 'modifiedAt'];
 
-/** A `.transform()` pipe is no object schema, so the typed signature refuses it; held untyped to reach the runtime guard without a cast. */
-const untypedSchemas: Record<string, AnyType> = {
-  transformed: z.object({ code: z.string() }).transform((value) => value),
-};
+/** A `.transform()` pipe is no object schema, so the typed signature refuses it; handed over untyped to reach the runtime guard. */
+const transformedSchema = untyped<TAnyObjectSchema>(
+  z.object({ code: z.string() }).transform((value) => value),
+);
 
 type TRouteWithBody = {
   request: { body: { content: { 'application/json': { schema: TAnyObjectSchema } } } };
@@ -235,12 +235,12 @@ describe('the default body is the entity schema itself when nothing is dropped',
 
   test('a transformed schema is used as it is on create; an update route needs its own body', () => {
     const routes = buildRoutes({
-      create: untypedSchemas.transformed,
+      create: transformedSchema,
       update: plainUpdateSchema,
     });
 
-    expect(toBody({ route: routes.CREATE })).toBe(untypedSchemas.transformed);
-    expect(() => buildRoutes({ create: plainSchema, update: untypedSchemas.transformed })).toThrow(
+    expect(toBody({ route: routes.CREATE })).toBe(transformedSchema);
+    expect(() => buildRoutes({ create: plainSchema, update: transformedSchema })).toThrow(
       'Pass routes.updateById.request.body',
     );
   });
@@ -273,9 +273,6 @@ const variantSchema = z.object({
   modifiedAt: z.number().optional(),
 });
 
-/** Held untyped so the generic abstract `getSchema` returns it without a cast. */
-const entitySchemas: Record<string, AnyType> = { variant: variantSchema };
-
 /** Declares no settings, so the default stamped keys apply. */
 class VariantDocument extends AbstractEntity<typeof variantSchema> {
   constructor() {
@@ -283,7 +280,7 @@ class VariantDocument extends AbstractEntity<typeof variantSchema> {
   }
 
   getSchema<T>(): T {
-    return entitySchemas.variant;
+    return untyped<T>(variantSchema);
   }
 }
 
@@ -299,10 +296,10 @@ class StampedVariantDocument extends VariantDocument {}
 class RecordingRepository extends StubRepository {
   readonly created: object[] = [];
 
-  override create(opts: { data: object }): Promise<AnyType> {
+  override create(opts: { data: object }) {
     this.created.push(opts.data);
 
-    return Promise.resolve({ count: 1, data: opts.data });
+    return answer({ count: 1, data: opts.data });
   }
 }
 

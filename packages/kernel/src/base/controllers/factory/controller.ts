@@ -1,4 +1,3 @@
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import type { AbstractRepository } from '@/base/repositories';
 import { AuthorizationActions } from '@/base/auth/authorize/common/constants';
 import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
@@ -125,8 +124,7 @@ export class CrudControllerFactory extends BaseHelper {
       TDataObject,
       TPersistObject
     > {
-      // Any extra options: a repository whose options narrow `IExtraOptions` (a typed transaction) must fit.
-      constructor(repositoryInstance: AbstractRepository<TDataObject, TPersistObject, AnyType>) {
+      constructor(repositoryInstance: AbstractRepository<TDataObject, TPersistObject>) {
         super({
           scope: new.target.name,
           isStrict: isStrict.path ?? true,

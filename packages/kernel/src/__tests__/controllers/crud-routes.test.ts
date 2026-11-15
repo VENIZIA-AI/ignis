@@ -4,13 +4,14 @@ import { controller, repository } from '@/base/metadata';
 import { AbstractEntity } from '@/base/models';
 import { BindingNamespaces } from '@/common/bindings';
 import { BindingKeys, Container } from '@/helpers/inversion';
+import type { OpenAPIHono } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
-import { RestorableStubRepository, StubRepository } from './stub-repository';
+import { untyped } from '../support/untyped';
+import { answer, RestorableStubRepository, StubRepository } from './stub-repository';
 
 const itemSchema = z.object({ id: z.string(), title: z.string() });
-const schemas: Record<string, AnyType> = { item: itemSchema };
+const schemas = { item: itemSchema };
 
 class RoutesProbeItem extends AbstractEntity<typeof itemSchema> {
   constructor() {
@@ -18,7 +19,7 @@ class RoutesProbeItem extends AbstractEntity<typeof itemSchema> {
   }
 
   getSchema<T>(): T {
-    return schemas.item;
+    return untyped<T>(schemas.item);
   }
 }
 
@@ -28,7 +29,7 @@ class PlainProbeRepository extends StubRepository {}
 /** Has `restoreById` and not `restoreBy`: the restore routes need both. */
 @repository({ model: RoutesProbeItem, dataSource: 'ProbeDataSource' })
 class HalfRestorableRepository extends StubRepository {
-  restoreById(_opts?: AnyType): Promise<AnyType> {
+  restoreById(_opts?: unknown) {
     return Promise.resolve({ count: 0, data: null });
   }
 }
@@ -38,26 +39,26 @@ class HalfRestorableRepository extends StubRepository {
 class SoftProbeRepository extends RestorableStubRepository {
   readonly restored: object[] = [];
 
-  override findById(opts: { id: string }): Promise<AnyType> {
-    return Promise.resolve({ id: opts.id, title: 'found' });
+  override findById(opts: { id: string }) {
+    return answer({ id: opts.id, title: 'found' });
   }
 
-  override restoreById(opts: { id: string }): Promise<AnyType> {
+  override restoreById(opts: { id: string }) {
     this.restored.push({ id: opts.id });
 
     return Promise.resolve({ count: 1, data: { id: opts.id, title: 'restored' } });
   }
 
-  override restoreBy(opts: { where: object }): Promise<AnyType> {
+  override restoreBy(opts: { where: object }) {
     this.restored.push({ where: opts.where });
 
     return Promise.resolve({ count: 1, data: [{ id: '1', title: 'restored' }] });
   }
 }
 
-const open = async (opts: {
-  controllerClass: new (repositoryInstance: AnyType) => { configure(): Promise<AnyType> };
-  repositoryInstance: object;
+const open = async <Repository extends object>(opts: {
+  controllerClass: new (repositoryInstance: Repository) => { configure(): Promise<OpenAPIHono> };
+  repositoryInstance: Repository;
   repositoryName: string;
 }) => {
   const container = new Container();
@@ -73,7 +74,7 @@ const open = async (opts: {
   return container.resolve(opts.controllerClass).configure();
 };
 
-const statusOf = async (opts: { router: AnyType; method: string; path: string }) => {
+const statusOf = async (opts: { router: OpenAPIHono; method: string; path: string }) => {
   const response = await opts.router.request(opts.path, { method: opts.method });
 
   return response.status;

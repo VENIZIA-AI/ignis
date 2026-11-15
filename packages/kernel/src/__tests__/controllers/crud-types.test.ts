@@ -3,8 +3,8 @@ import type { TRepositoryDataObject, TRepositoryPersistObject } from '@/base/con
 import { controller, repository } from '@/base/metadata';
 import { AbstractEntity } from '@/base/models';
 import { z } from '@hono/zod-openapi';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
+import { untyped } from '../support/untyped';
 import { StubRepository } from './stub-repository';
 
 type TEqual<A, B> =
@@ -21,15 +21,13 @@ interface IWidget {
 type TWidgetInsert = { name: string };
 
 const widgetSchema = z.object({ id: z.string(), name: z.string() });
-const schemas: Record<string, AnyType> = { widget: widgetSchema };
-
 class TypedProbeWidget extends AbstractEntity<typeof widgetSchema> {
   constructor() {
     super({ name: TypedProbeWidget.name });
   }
 
   getSchema<T>(): T {
-    return schemas.widget;
+    return untyped<T>(widgetSchema);
   }
 }
 
@@ -83,9 +81,9 @@ describe('CrudControllerFactory.build - the row types come from the repository c
 
   test('a repository that is not an AbstractRepository is refused when its instance is injected', () => {
     class LooksLikeARepository {
-      dataSource: AnyType;
-      entity: AnyType;
-      getEntity(): AnyType {
+      dataSource: unknown;
+      entity: unknown;
+      getEntity(): unknown {
         return undefined;
       }
     }

@@ -1,6 +1,5 @@
 import type { TContext } from '@/base/controllers/common/types';
 import type { IdType } from '@/base/models/common';
-import type { AnyObject } from '@venizia/ignis-helpers/common';
 import type { Env, MiddlewareHandler } from 'hono';
 import type {
   TChangePasswordRequest,
@@ -34,18 +33,18 @@ export interface IAuthService<
   E extends Env = Env,
   // SignIn types
   SIRQ extends TSignInRequest = TSignInRequest,
-  SIRS = AnyObject,
+  SIRS = Record<string, unknown>,
   // SignUp types
   SURQ extends TSignUpRequest = TSignUpRequest,
-  SURS = AnyObject,
+  SURS = Record<string, unknown>,
   // ChangePassword types
   CPRQ extends TChangePasswordRequest = TChangePasswordRequest,
-  CPRS = AnyObject,
+  CPRS = Record<string, unknown>,
   // UserInformation types
-  UIRQ = AnyObject,
-  UIRS = AnyObject,
+  UIRQ = Record<string, unknown>,
+  UIRS = Record<string, unknown>,
   // RefreshToken types
-  RTRS = AnyObject,
+  RTRS = Record<string, unknown>,
 > {
   signIn(context: TContext<E>, opts: SIRQ): Promise<SIRS>;
   signUp(context: TContext<E>, opts: SURQ): Promise<SURS>;

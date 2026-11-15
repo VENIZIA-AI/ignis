@@ -8,8 +8,8 @@ import {
   OpenApiResponses,
   RestApplication,
 } from '@venizia/ignis-kernel';
+import type { ILogger } from '@venizia/ignis-helpers/core';
 import { getError } from '@venizia/ignis-helpers/core';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { z } from '@hono/zod-openapi';
 import { WorkerApplication } from '@/applications/worker';
@@ -104,14 +104,15 @@ const buildConfigs = (): IApplicationConfigs => ({
 const SERVER_SHAPED_ENVIRONMENT = (): string | undefined => process.env.NODE_ENV;
 
 /** Silenced: both hosts log the thrown error, and neither log is what these tests read. */
-const SILENT_LOGGER = {
+const SILENT_LOGGER: ILogger = {
   error: () => {},
   log: () => {},
   warn: () => {},
   info: () => {},
   debug: () => {},
+  emerg: () => {},
   for: () => SILENT_LOGGER,
-} as AnyType;
+};
 
 /**
  * The SERVER's wiring, taken from the kernel rather than rebuilt: `registerDefaultMiddlewares()` is
