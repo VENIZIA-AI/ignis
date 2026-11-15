@@ -57,7 +57,7 @@ access-settings-union:
   data: Nothing stored changes. An application that declares both or neither of resolve and through on one model no longer starts (the types already refused it).
 
 drop-eslint-plugin-n-unicorn:
-  symbols: [eslintConfigs, oxlintConfigs, n/prefer-node-protocol, unicorn/switch-case-braces, venizia/no-unbraced-case]
+  symbols: [eslintConfigs, oxlintConfigs]
   upgrade:
     before: |
       // your own ESLint config
@@ -203,7 +203,7 @@ hidden-field-filter-parity:
   data: Nothing stored changes. A client that filters or sorts on a hidden property gets 400 and must use a visible property, or the filter moves into server code. A dialect that extends a shipped one already has both methods.
 
 search-raw-mode-closed:
-  symbols: [SearchControllerFactory.build, SearchControllerFactory.defineSearchController, SearchEngineParams, modes.raw.allow, engineParams.allow]
+  symbols: [SearchControllerFactory.build, SearchControllerFactory.defineSearchController, SearchEngineParams, modes.raw, engineParams.allow]
   upgrade:
     before: |-
       // 0.4.7: the generated controller served mode 'raw', /multi-search and any engineParams
@@ -346,7 +346,7 @@ jwt-secret-min-length:
   data: Changing the secret signs every user out, because tokens signed with the old one stop verifying.
 
 jwks-url-https:
-  symbols: [IJWKSVerifierOptions, IJWKSHosts, IServiceAuthOptions, jwks.hosts.http]
+  symbols: [IJWKSVerifierOptions, IJWKSHosts, IServiceAuthOptions, jwks.hosts]
   upgrade:
     before: |-
       options: { mode: JWKSModes.VERIFIER, jwksUrl: 'http://identity-service:3000/certs' }
@@ -917,7 +917,7 @@ redis-sentinel-scope:
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7 and move the fields back to the top level (sentinels, masterName, role, sentinelUsername, sentinelPassword); drop the sentinel scope and the top-level username.
-  data: A JavaScript caller that keeps the old top-level fields gets no help from the typecheck. an old-shape config fails when the helper is constructed, not only at typecheck: sentinels or masterName at the top level, with no sentinel scope, throws "[RedisSentinelHelper] sentinel.nodes is required | pass sentinel: { masterName, nodes }", and role, sentinelUsername and sentinelPassword are ignored, so the helper would connect to the master with no Sentinel credentials. Move them before you deploy.
+  data: "A JavaScript caller that keeps the old top-level fields gets no help from the typecheck. An old-shape config fails when the helper is constructed, not only at typecheck: sentinels or masterName at the top level, with no sentinel scope, throws '[RedisSentinelHelper] sentinel.nodes is required | pass sentinel: { masterName, nodes }', and role, sentinelUsername and sentinelPassword are ignored, so the helper would connect to the master with no Sentinel credentials. Move them before you deploy."
 
 redis-cluster-node-password:
   symbols: [IRedisClusterHelperProps, IRedisClusterHelperOptions, RedisClusterHelper, RedisHelperFactory.cluster, IRedisNode, IRedisCredentials]
