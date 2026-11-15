@@ -34,8 +34,6 @@ migration:
           return Stamped;
         }
 
-        // a class that extends the mixin result can report TS4113 ("not declared in the base class") or TS2322 on its overrides,
-        // because the mixed class's type falls back when the mixin does not compile
         class Controller extends stamped(CrudBase) {
           override async find(): Promise<string[]> { return ['x']; }
         }
@@ -54,8 +52,8 @@ migration:
         }
     downgrade:
       steps:
-        - "Constrain the base by TAbstractClass (TClass) again; the older types had any[] arguments, and TAbstractMixinConstructor keeps compiling."
-    data: "TMixinTarget<T> and TAbstractMixinTarget<T> also fit a mixin base, but they map the members of T to properties: a subclass of the mixin result that overrides a method with method syntax then reports TS2425. Use TMixinConstructor<T> or TAbstractMixinConstructor<T> when a subclass overrides methods. A TS4113 'not declared in the base class' or a TS2322 on a class that extends a mixin result has the same cause: fix the mixin's base type."
+        - "Constrain the base by TAbstractMixinTarget (TMixinTarget for a concrete base) or by TAbstractClass (TClass) again: the older types had any[] arguments. TMixinConstructor and TAbstractMixinConstructor are new in this release, so the older release does not export them."
+    data: "TMixinTarget<T> and TAbstractMixinTarget<T> also fit a mixin base, but they map the members of T to properties: when the mixin's return type is inferred, or the base parameter is not generic and is typed TAbstractMixinTarget<T>, a subclass of the mixin result that overrides a method with method syntax reports TS2425. Use TMixinConstructor<T> or TAbstractMixinConstructor<T> when a subclass overrides methods. A mixin that reports TS2545 also loses the members of its base for the classes that extend its result: those classes report errors on their overrides (TS2510 when the return type is inferred), so fix the mixin's base type first."
   - id: class-slot-checks-the-instance
     symbols: [TClass, TAbstractClass, TConstructor, TAbstractConstructor]
     upgrade:

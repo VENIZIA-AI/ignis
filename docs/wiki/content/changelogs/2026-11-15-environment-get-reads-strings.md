@@ -49,7 +49,7 @@ migration:
     symbols: [ApplicationEnvironment.get, IApplicationEnvironment.get, IApplicationEnvironmentTransformOptions, IApplicationEnvironmentDefaultedTransformOptions]
     upgrade:
       before: |
-        // TS2769: Property 'transform' is missing in type '{ defaultValue: number }' but required in type 'IApplicationEnvironmentDefaultedTransformOptions<number>'
+        // TS2769: Property 'transform' is missing in type '{ defaultValue: number; }' but required in type 'IApplicationEnvironmentDefaultedTransformOptions<number>'
         const retries = applicationEnvironment.get<number>('APP_ENV_RETRIES', { defaultValue: 3 });
         const hosts = applicationEnvironment.get<string[]>('APP_ENV_HOSTS', { defaultValue: [] });
       after: |
@@ -81,7 +81,7 @@ migration:
     downgrade:
       steps:
         - "Implement the older get<ReturnType, BeforeTransformType> and a set that returns any."
-    data: "set returns void, where it returned any. A class that implements IApplicationEnvironment adds the three get overloads and the string-valued set."
+    data: "set returns void, where it returned any. A class that implements IApplicationEnvironment adds the four get overloads and the string-valued set."
   - id: required-variable-checked-at-the-read
     symbols: [ApplicationEnvironment.get, IApplicationEnvironment.get]
     upgrade:
