@@ -1,10 +1,15 @@
-import { datasource, model, type ITransaction } from '@venizia/ignis-kernel';
+import {
+  datasource,
+  model,
+  type ITransaction,
+  type TAnyDataSourceSchema,
+} from '@venizia/ignis-kernel';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
-import { SoftDeletableRepository } from '@/relational/postgres/repositories';
+import { PGliteSoftDeletableRepository } from './pglite-repositories';
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 
@@ -39,13 +44,13 @@ const eachTable = pgTable(TABLE_NAME, {
     query: { filter: { where: { deletedAt: null } } },
   },
 })
-class EachEntity extends BasePostgresEntity {
+class EachEntity extends BasePostgresEntity<typeof eachTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = eachTable;
 }
 
 @datasource({ driver: PGliteDriver })
-class EachDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class EachDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
   constructor(opts: { client: PGlite }) {
     super({ name: EachDataSource.name, config: {}, schema: { [TABLE_NAME]: eachTable } });
 
@@ -64,7 +69,7 @@ class EachDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
 }
 
 /** Records the transaction each statement resolves its connector from. */
-class RecordingRepository extends SoftDeletableRepository<typeof eachTable> {
+class RecordingRepository extends PGliteSoftDeletableRepository<typeof eachTable> {
   routedThrough: Array<ITransaction | undefined> = [];
 
   protected override resolveConnector(opts?: { transaction?: ITransaction }) {
@@ -95,8 +100,8 @@ beforeAll(async () => {
   `);
 
   dataSource = new EachDataSource({ client });
-  repository = new RecordingRepository(dataSource as AnyType, {
-    entityClass: EachEntity as AnyType,
+  repository = new RecordingRepository(dataSource, {
+    entityClass: EachEntity,
   });
 });
 

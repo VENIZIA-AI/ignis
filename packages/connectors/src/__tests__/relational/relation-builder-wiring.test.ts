@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Relations } from 'drizzle-orm';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { RelationTypes } from '@venizia/ignis-kernel';
 // Imported as a VALUE, not a type: the module body of `connectors/relational/datasources/base.ts`
 // installs the concrete relation builder (`RelationBuilderRegistry.set({ builder: RelationsFactory.create })`)
@@ -9,6 +8,8 @@ import { RelationTypes } from '@venizia/ignis-kernel';
 // this reference - is what guarantees the install has run before `buildSchema()` is exercised. A
 // later "unused import" cleanup that deletes this import would silently disable this test's guard.
 import { BaseRelationalDataSource } from '@/relational/core';
+import { BasePostgresDataSource } from '@/relational/postgres/datasources';
+import { BasePostgresEntity } from '@/relational/postgres/models';
 import type { TRelationConfig } from '@/relational/core/repositories/common';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 
@@ -26,13 +27,19 @@ const relationsConfig: Array<TRelationConfig> = [
   { name: 'child', type: RelationTypes.ONE, schema: childTable, metadata: undefined },
 ];
 
-class RelationWiringParentEntity {
-  static schema = parentTable;
-  static relations = () => relationsConfig;
+class RelationWiringParentEntity extends BasePostgresEntity<typeof parentTable> {
+  static override schema = parentTable;
+  static override relations = () => relationsConfig;
 }
 
 class RelationWiringParentRepository {}
-class RelationWiringParentDataSource {}
+class RelationWiringParentDataSource extends BasePostgresDataSource {
+  override configure(): void {}
+
+  override getConnectionString(): string {
+    return 'postgresql://relation-wiring';
+  }
+}
 
 /**
  * The wiring this test protects: `RepositoryMetadataMixin.resolveModelRelations()` never imports
@@ -51,25 +58,25 @@ describe('relation builder wiring - registry-driven relation building end-to-end
     const registry = MetadataRegistry.getInstance();
 
     registry.registerModel({
-      target: RelationWiringParentEntity as AnyType,
+      target: RelationWiringParentEntity,
       metadata: { type: 'entity', tableName: 'relation_wiring_parent' },
     });
 
     registry.registerRepositoryBinding({
-      repository: RelationWiringParentRepository as AnyType,
-      model: RelationWiringParentEntity as AnyType,
-      dataSource: RelationWiringParentDataSource as AnyType,
+      repository: RelationWiringParentRepository,
+      model: RelationWiringParentEntity,
+      dataSource: RelationWiringParentDataSource,
     });
 
     const built = registry.buildSchema({
-      dataSource: RelationWiringParentDataSource as AnyType,
+      dataSource: RelationWiringParentDataSource,
     });
 
     // 1. Relations were actually produced, not the empty-case default every other test asserts.
     expect(Object.keys(built.relations).length).toBeGreaterThan(0);
 
     // 2. Keyed the way buildSchema() documents: `${tableName}Relations`.
-    const builtRelations = built.relations['relation_wiring_parentRelations'] as AnyType;
+    const builtRelations = built.relations['relation_wiring_parentRelations'];
     expect(builtRelations).toBeDefined();
 
     // 3. Structural, not a passthrough: only `RelationsFactory.create()` calling drizzle-orm's own
@@ -77,6 +84,8 @@ describe('relation builder wiring - registry-driven relation building end-to-end
     // echoed back the raw `TRelationConfig` array (or `{ relations: opts.relations }`) would be a
     // plain object/array here and fail both checks below.
     expect(builtRelations).toBeInstanceOf(Relations);
-    expect(builtRelations.table).toBe(parentTable);
+    expect(builtRelations instanceof Relations ? builtRelations.table : undefined).toBe(
+      parentTable,
+    );
   });
 });

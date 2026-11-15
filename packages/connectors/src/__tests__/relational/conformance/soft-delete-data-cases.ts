@@ -1,5 +1,12 @@
 import { RejectionHelper } from '@venizia/dev-configs/testing';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { IUniqueKey } from '@/relational/core/models';
+import type { IRelationalQueryExecutor } from '@/relational/core/repositories/common';
+import type { DefaultRelationalRepository } from '@/relational/core/repositories/core/default';
+import type {
+  SoftDeletableRelationalRepository,
+  TSoftDeletableTableSchema,
+} from '@/relational/core/repositories/core/soft-deletable';
+import type { TScopeResolution } from './scope-resolution';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { RepositoryErrorCodes, ScopeOperations } from '@venizia/ignis-kernel';
 import type { TScopeOperation } from '@venizia/ignis-kernel';
@@ -15,20 +22,20 @@ export interface ISoftDeleteDataRow {
 }
 
 export interface ISoftDeleteDataContext {
-  items: AnyType;
+  items: SoftDeletableRelationalRepository;
   /** The same table, through a repository that does not soft delete. */
-  plain: AnyType;
+  plain: DefaultRelationalRepository;
   /** The soft-deletable repository of a model with no scope and no default filter. */
-  open: AnyType;
-  codeKey: AnyType;
+  open: SoftDeletableRelationalRepository;
+  codeKey: IUniqueKey<TSoftDeletableTableSchema>;
   /** The database column behind the `deletedAt` property: not `deleted_at`, so a key that names the column is a different key from the property. */
   deletedAtColumn: string;
   /** The query executor every repository of the engine shares, to count the statements a call runs. */
-  executor: AnyType;
+  executor: IRelationalQueryExecutor<unknown>;
   /** Every row, read with the raw client: what is really stored, past every scope. */
   rawRows: () => Promise<ISoftDeleteDataRow[]>;
   reset: () => Promise<void>;
-  setResolver: (resolver: (context: { operation: TScopeOperation }) => AnyType) => void;
+  setResolver: (resolver: (context: { operation: TScopeOperation }) => TScopeResolution) => void;
 }
 
 const ME = 'm1';

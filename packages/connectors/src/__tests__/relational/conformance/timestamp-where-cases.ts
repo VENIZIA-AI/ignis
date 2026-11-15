@@ -1,4 +1,4 @@
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { TWhere } from '@venizia/ignis-kernel';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
 import { describe, expect, test } from 'bun:test';
@@ -8,6 +8,15 @@ import { describe, expect, test } from 'bun:test';
  * epoch milliseconds, and the filter builder turns it into a `Date`. These cases run against both engines
  * (`pglite-timestamp-where.test.ts`, `libsql-timestamp-where.test.ts`).
  */
+
+/** The row ids in the `data` list a generated CRUD route answers with. */
+export const idsOfBody = (body: unknown): unknown[] => {
+  if (typeof body !== 'object' || body === null || !('data' in body) || !Array.isArray(body.data)) {
+    throw new Error('Expected a response body with a `data` list');
+  }
+
+  return body.data.map((row: Record<string, unknown>) => row.id);
+};
 
 export const TIMESTAMP_TABLE = 'ts_where_event';
 
@@ -26,7 +35,7 @@ const NOV_8_MS = Date.parse(NOV_8);
 
 interface IAcceptedCase {
   name: string;
-  where: (column: string) => AnyType;
+  where: (column: string) => TWhere;
   ids: number[];
 }
 
@@ -104,7 +113,7 @@ const ACCEPTED: IAcceptedCase[] = [
 
 interface IRefusedCase {
   name: string;
-  where: (column: string) => AnyType;
+  where: (column: string) => TWhere;
   /** Text the refusal echoes back, when the value is echoed. */
   echo?: string;
 }
@@ -175,7 +184,7 @@ export class TimestampWhereCases {
   static register(opts: {
     engine: string;
     columns: string[];
-    find: (where: AnyType) => Promise<Array<{ id: number }>>;
+    find: (where: TWhere) => Promise<Array<{ id: number }>>;
   }) {
     const { engine, columns, find } = opts;
 

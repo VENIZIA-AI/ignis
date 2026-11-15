@@ -1,6 +1,7 @@
+import type { TScopeResolution } from './scope-resolution';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TClass, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import {
   datasource,
@@ -8,6 +9,7 @@ import {
   RepositoryErrorCodes,
   ScopeFilterMissingBehaviors,
   ScopeFilters,
+  type TAnyDataSourceSchema,
 } from '@venizia/ignis-kernel';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
@@ -35,29 +37,29 @@ const itemsTable = sqliteTable(TABLE_NAME, {
 });
 
 /** What `resolve()` returns right now: each test sets it. `undefined` is "no scope could be resolved". */
-let scope: AnyType = { merchantId: 'm-a' };
+let scope: TScopeResolution = { merchantId: 'm-a' };
 const resolve = () => scope;
 
 @model({ type: 'entity', settings: { access: { resolve } } })
-class RejectItem extends BaseSqliteEntity {
+class RejectItem extends BaseSqliteEntity<typeof itemsTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = itemsTable;
 }
 
 @model({ type: 'entity', settings: { access: { resolve, write: { mode: 'assign' } } } })
-class AssignItem extends BaseSqliteEntity {
+class AssignItem extends BaseSqliteEntity<typeof itemsTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = itemsTable;
 }
 
 @model({ type: 'entity', settings: { access: { resolve, write: { sharedRows: true } } } })
-class SharedItem extends BaseSqliteEntity {
+class SharedItem extends BaseSqliteEntity<typeof itemsTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = itemsTable;
 }
 
 @model({ type: 'entity', settings: { access: { resolve, columns: ['merchantId'] } } })
-class DeclaredItem extends BaseSqliteEntity {
+class DeclaredItem extends BaseSqliteEntity<typeof itemsTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = itemsTable;
 }
@@ -68,7 +70,7 @@ class DeclaredItem extends BaseSqliteEntity {
     access: { resolve, onMissing: ScopeFilterMissingBehaviors.ALLOW },
   },
 })
-class AllowItem extends BaseSqliteEntity {
+class AllowItem extends BaseSqliteEntity<typeof itemsTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = itemsTable;
 }
@@ -77,7 +79,7 @@ class AllowItem extends BaseSqliteEntity {
   type: 'entity',
   settings: { access: { resolve }, query: { filter: { where: { deletedAt: null } } } },
 })
-class SoftItem extends BaseSqliteEntity {
+class SoftItem extends BaseSqliteEntity<typeof itemsTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = itemsTable;
 }
@@ -89,13 +91,18 @@ class SoftItem extends BaseSqliteEntity {
     query: { filter: { where: { deletedAt: null } } },
   },
 })
-class SoftSharedItem extends BaseSqliteEntity {
+class SoftSharedItem extends BaseSqliteEntity<typeof itemsTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = itemsTable;
 }
 
 @datasource({ driver: LibSqlDriver })
-class ResolveSqliteDataSource extends BaseSqliteDataSource<{ url: string }, AnyType, {}, Client> {
+class ResolveSqliteDataSource extends BaseSqliteDataSource<
+  { url: string },
+  TAnyDataSourceSchema,
+  {},
+  Client
+> {
   constructor(opts: { client: Client }) {
     super({
       name: ResolveSqliteDataSource.name,
@@ -113,12 +120,12 @@ let client: Client;
 let dataSource: ResolveSqliteDataSource;
 
 /** The repository for an entity. */
-const build = (entityClass: AnyType): AnyType => {
+const build = (entityClass: TClass<BaseSqliteEntity<typeof itemsTable>>) => {
   return new DefaultSqliteRepository<typeof itemsTable>(dataSource, { entityClass });
 };
 
 /** The repository for an entity that declares a `deletedAt` filter: it can soft delete and restore. */
-const buildSoft = (entityClass: AnyType): AnyType => {
+const buildSoft = (entityClass: TClass<BaseSqliteEntity<typeof itemsTable>>) => {
   return new SoftDeletableSqliteRepository<typeof itemsTable>(dataSource, {
     entityClass,
   });
@@ -229,7 +236,7 @@ describe('access.resolve on SQLite - read verbs are scoped', () => {
   test('find hides every other merchant', async () => {
     const found = await buildSoft(SoftItem).find({ filter: { order: ['id asc'] } });
 
-    expect(found.map((row: AnyType) => row.name)).toEqual(['a-active']);
+    expect(found.map((row) => row.name)).toEqual(['a-active']);
   });
 
   test('findOne, findById and count scope the same way', async () => {
@@ -252,7 +259,7 @@ describe('access.resolve on SQLite - read verbs are scoped', () => {
       options: { shouldSkipDefaultFilter: true },
     });
 
-    expect(found.map((row: AnyType) => row.name)).toEqual(['a-active', 'a-deleted']);
+    expect(found.map((row) => row.name)).toEqual(['a-active', 'a-deleted']);
   });
 
   test('UNRESTRICTED reads every row', async () => {
@@ -277,8 +284,8 @@ describe('access.resolve on SQLite - read verbs are scoped', () => {
     const narrowed = await repository.find({ filter: {} });
 
     expect(listed).toHaveLength(4);
-    expect(shared.map((row: AnyType) => row.name)).toEqual(['a-active', 'a-deleted', 'shared']);
-    expect(narrowed.map((row: AnyType) => row.name)).toEqual(['a-active']);
+    expect(shared.map((row) => row.name)).toEqual(['a-active', 'a-deleted', 'shared']);
+    expect(narrowed.map((row) => row.name)).toEqual(['a-active']);
   });
 });
 
@@ -415,7 +422,7 @@ describe("access.resolve on SQLite - onMissing: 'allow' applies no scope", () =>
 
     const found = await build(AllowItem).find({ filter: { order: ['id asc'] } });
 
-    expect(found.map((row: AnyType) => row.name)).toEqual(['a-active', 'a-deleted']);
+    expect(found.map((row) => row.name)).toEqual(['a-active', 'a-deleted']);
   });
 });
 
@@ -430,7 +437,7 @@ describe('access.resolve on SQLite - a throwing resolver propagates', () => {
     };
 
     @model({ type: 'entity', settings: { access: { resolve: throwing } } })
-    class ThrowingItem extends BaseSqliteEntity {
+    class ThrowingItem extends BaseSqliteEntity<typeof itemsTable> {
       static override TABLE_NAME = TABLE_NAME;
       static override schema = itemsTable;
     }
@@ -621,7 +628,7 @@ describe('access.resolve on SQLite - write.sharedRows', () => {
     test('reads still return my rows and the shared rows, never the other merchant', async () => {
       const found = await build(RejectItem).find({ filter: {} });
 
-      expect(found.map((row: AnyType) => row.name).sort()).toEqual(['mine', 'shared']);
+      expect(found.map((row) => row.name).sort()).toEqual(['mine', 'shared']);
     });
 
     test('updateById and deleteById change my row and leave the shared one (count 0)', async () => {
@@ -670,7 +677,7 @@ describe('access.resolve on SQLite - write.sharedRows', () => {
 
       const changed = await repository.updateById({ id: 2, data: { name: 'shared-2' } });
       const theirs = await repository.updateById({ id: 3, data: { name: 'theirs-2' } });
-      const deleted = await repository.deleteById({ id: 2, options: { force: true } });
+      const deleted = await repository.deleteById({ id: 2 });
 
       expect(changed.count).toBe(1);
       expect(theirs.count).toBe(0);

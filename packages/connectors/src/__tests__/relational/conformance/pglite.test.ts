@@ -1,14 +1,14 @@
 import type { IRelationalTransaction } from '@/relational/core/datasources/common';
-import { datasource, model } from '@venizia/ignis-kernel';
+import { datasource, model, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
-import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
+import { PGliteDefaultRepository } from './pglite-repositories';
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll } from 'bun:test';
 import { integer, jsonb, pgTable, serial, text } from 'drizzle-orm/pg-core';
-import type { IConformanceHarness, TConformanceRepository } from './repository-conformance';
+import type { IConformanceHarness } from './repository-conformance';
 import { runRepositoryConformance } from './repository-conformance';
 
 /**
@@ -46,7 +46,12 @@ class ScopedConformanceEntity extends BasePostgresEntity {
 }
 
 @datasource({ driver: PGliteDriver })
-class ConformancePostgresDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class ConformancePostgresDataSource extends BasePostgresDataSource<
+  {},
+  TAnyDataSourceSchema,
+  {},
+  PGlite
+> {
   constructor(opts: { client: PGlite }) {
     super({
       name: ConformancePostgresDataSource.name,
@@ -99,13 +104,13 @@ beforeAll(async () => {
   dataSource = new ConformancePostgresDataSource({ client });
 
   harness = {
-    repository: new DefaultCRUDRepository<AnyType>(dataSource as AnyType, {
+    repository: new PGliteDefaultRepository(dataSource, {
       entityClass: ConformanceEntity,
-    }) as TConformanceRepository,
-    scopedRepository: new DefaultCRUDRepository<AnyType>(dataSource as AnyType, {
+    }),
+    scopedRepository: new PGliteDefaultRepository(dataSource, {
       entityClass: ScopedConformanceEntity,
-    }) as TConformanceRepository,
-    beginTransaction: (): Promise<IRelationalTransaction<AnyType>> => dataSource.beginTransaction(),
+    }),
+    beginTransaction: (): Promise<IRelationalTransaction<unknown>> => dataSource.beginTransaction(),
   };
 });
 

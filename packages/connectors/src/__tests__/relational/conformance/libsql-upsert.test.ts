@@ -1,15 +1,22 @@
+import type { TScopeResolution } from './scope-resolution';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { datasource, model, ScopeWriteGuards, type TScopeOperation } from '@venizia/ignis-kernel';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import {
+  datasource,
+  model,
+  ScopeWriteGuards,
+  type TScopeOperation,
+  type TAnyDataSourceSchema,
+} from '@venizia/ignis-kernel';
 import { afterAll, beforeAll } from 'bun:test';
 import { sql } from 'drizzle-orm';
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import { UniqueKeys } from '@/relational/core/models';
+import { UniqueKeys, type TTableSchemaWithId } from '@/relational/core/models';
+import { DefaultRelationalRepository } from '@/relational/core/repositories/core/default';
 import { BaseSqliteDataSource } from '@/relational/sqlite/datasources';
 import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
 import { BaseSqliteEntity } from '@/relational/sqlite/models';
-import { DefaultSqliteRepository } from '@/relational/sqlite/repositories';
 import { defineUpsertCases, type IUpsertRow } from './upsert-cases';
 
 /** `upsert` on SQLite (libsql in memory); the cases are shared with PGlite. */
@@ -46,7 +53,7 @@ const twinTable = sqliteTable('upsert_lite_twin', columns(), (table) => [
   uniqueIndex('upsert_lite_twin_code').on(table.code),
 ]);
 
-let resolver: (context: { operation: TScopeOperation }) => AnyType = () => ({});
+let resolver: (context: { operation: TScopeOperation }) => TScopeResolution = () => ({});
 
 const SETTINGS = {
   properties: { hidden: ['secret'] },
@@ -57,7 +64,7 @@ const SETTINGS = {
   type: 'entity',
   settings: { ...SETTINGS, access: { resolve: (context) => resolver(context) } },
 })
-class UpsertLiteItem extends BaseSqliteEntity {
+class UpsertLiteItem extends BaseSqliteEntity<typeof itemTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = itemTable;
 }
@@ -72,13 +79,18 @@ class UpsertLiteItem extends BaseSqliteEntity {
     },
   },
 })
-class UpsertLiteAssignItem extends BaseSqliteEntity {
+class UpsertLiteAssignItem extends BaseSqliteEntity<typeof itemTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = itemTable;
 }
 
 @datasource({ driver: LibSqlDriver })
-class UpsertLiteDataSource extends BaseSqliteDataSource<{ url: string }, AnyType, {}, Client> {
+class UpsertLiteDataSource extends BaseSqliteDataSource<
+  { url: string },
+  TAnyDataSourceSchema,
+  {},
+  Client
+> {
   constructor(opts: { client: Client }) {
     super({
       name: UpsertLiteDataSource.name,
@@ -98,8 +110,8 @@ class UpsertLiteDataSource extends BaseSqliteDataSource<{ url: string }, AnyType
 
 let client: Client;
 let dataSource: UpsertLiteDataSource;
-let items: DefaultSqliteRepository<typeof itemTable>;
-let assignItems: DefaultSqliteRepository<typeof itemTable>;
+let items: DefaultRelationalRepository;
+let assignItems: DefaultRelationalRepository;
 
 beforeAll(async () => {
   client = createClient({ url: ':memory:' });
@@ -124,11 +136,11 @@ beforeAll(async () => {
   `);
 
   dataSource = new UpsertLiteDataSource({ client });
-  items = new DefaultSqliteRepository<typeof itemTable>(dataSource as AnyType, {
-    entityClass: UpsertLiteItem as AnyType,
+  items = new DefaultRelationalRepository<TTableSchemaWithId>(dataSource, {
+    entityClass: UpsertLiteItem,
   });
-  assignItems = new DefaultSqliteRepository<typeof itemTable>(dataSource as AnyType, {
-    entityClass: UpsertLiteAssignItem as AnyType,
+  assignItems = new DefaultRelationalRepository<TTableSchemaWithId>(dataSource, {
+    entityClass: UpsertLiteAssignItem,
   });
 }, 30_000);
 
@@ -139,9 +151,15 @@ afterAll(async () => {
 defineUpsertCases(() => ({
   items,
   assignItems,
-  codeKey: UniqueKeys.of({ table: itemTable, index: 'upsert_lite_item_code' }),
-  slugKey: UniqueKeys.of({ table: itemTable, index: 'upsert_lite_item_merchant_slug' }),
-  foreignKey: UniqueKeys.of({ table: twinTable, index: 'upsert_lite_twin_code' }),
+  codeKey: UniqueKeys.of<TTableSchemaWithId>({ table: itemTable, index: 'upsert_lite_item_code' }),
+  slugKey: UniqueKeys.of<TTableSchemaWithId>({
+    table: itemTable,
+    index: 'upsert_lite_item_merchant_slug',
+  }),
+  foreignKey: UniqueKeys.of<TTableSchemaWithId>({
+    table: twinTable,
+    index: 'upsert_lite_twin_code',
+  }),
   executor: dataSource.getQueryExecutor(),
   setResolver: (next) => {
     resolver = next;

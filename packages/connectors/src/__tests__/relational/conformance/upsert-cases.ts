@@ -1,4 +1,7 @@
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { IUniqueKey, TTableSchemaWithId } from '@/relational/core/models';
+import type { IRelationalQueryExecutor } from '@/relational/core/repositories/common';
+import type { DefaultRelationalRepository } from '@/relational/core/repositories/core/default';
+import type { TScopeResolution } from './scope-resolution';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { RepositoryErrorCodes, ScopeOperations } from '@venizia/ignis-kernel';
 import type { TScopeOperation } from '@venizia/ignis-kernel';
@@ -32,19 +35,19 @@ export interface IUpsertRow {
 
 export interface IUpsertContext {
   /** The scoped model in write mode `reject`: the default filter hides soft-deleted rows, `secret` is hidden. */
-  items: AnyType;
+  items: DefaultRelationalRepository;
   /** The same table and scope, write mode `assign`. */
-  assignItems: AnyType;
-  codeKey: AnyType;
-  slugKey: AnyType;
+  assignItems: DefaultRelationalRepository;
+  codeKey: IUniqueKey<TTableSchemaWithId>;
+  slugKey: IUniqueKey<TTableSchemaWithId>;
   /** A key of another table whose columns are named exactly as this one's. */
-  foreignKey: AnyType;
+  foreignKey: IUniqueKey<TTableSchemaWithId>;
   /** The query executor every repository of the engine shares, to prove a refusal runs no SQL. */
-  executor: AnyType;
+  executor: IRelationalQueryExecutor<unknown>;
   /** Every row, read with the raw client: what is really stored, past every scope. */
   rawRows: () => Promise<IUpsertRow[]>;
   reset: () => Promise<void>;
-  setResolver: (resolver: (context: { operation: TScopeOperation }) => AnyType) => void;
+  setResolver: (resolver: (context: { operation: TScopeOperation }) => TScopeResolution) => void;
 }
 
 const ME = 'm1';
@@ -351,7 +354,7 @@ export const defineUpsertCases = (context: () => IUpsertContext): void => {
   describe('upsert - refused before any guard or SQL', () => {
     const refusals: Array<{
       label: string;
-      opts: (ctx: IUpsertContext) => AnyType;
+      opts: (ctx: IUpsertContext) => Parameters<DefaultRelationalRepository['upsert']>[0];
       message: RegExp;
       status: number;
     }> = [
@@ -391,7 +394,7 @@ export const defineUpsertCases = (context: () => IUpsertContext): void => {
         label: 'a hand-built key naming a column the table does not have',
         opts: (ctx) => ({
           data: { merchantId: ME, code: 'A', value: 'x' },
-          on: { ...ctx.codeKey, columns: ['ghost'] } as never,
+          on: { ...ctx.codeKey, columns: ['ghost'] },
         }),
         message: /names a column the table does not have \| column: 'ghost'/,
         status: 400,

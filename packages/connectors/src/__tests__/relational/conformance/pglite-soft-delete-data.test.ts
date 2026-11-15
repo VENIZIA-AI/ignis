@@ -1,12 +1,18 @@
+import type { TScopeResolution } from './scope-resolution';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
-import { PGliteCRUDRepository } from '@/relational/postgres/repositories';
-import { UniqueKeys } from '@/relational/core/models';
+import { DefaultRelationalRepository } from '@/relational/core/repositories/core/default';
+import { UniqueKeys, type TTableSchemaWithId } from '@/relational/core/models';
+import type { TSoftDeletableTableSchema } from '@/relational/core/repositories/core/soft-deletable';
 import { SoftDeletableRelationalRepository } from '@/relational/core/repositories/core/soft-deletable';
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType } from '@venizia/ignis-helpers/common';
-import { datasource, model, type TScopeOperation } from '@venizia/ignis-kernel';
+import {
+  datasource,
+  model,
+  type TScopeOperation,
+  type TAnyDataSourceSchema,
+} from '@venizia/ignis-kernel';
 import { afterAll, beforeAll } from 'bun:test';
 import { pgTable, serial, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import type { ISoftDeleteDataRow } from './soft-delete-data-cases';
@@ -27,7 +33,16 @@ const itemTable = pgTable(
   (table) => [uniqueIndex('soft_delete_data_pg_code').on(table.code)],
 );
 
-let resolver: (context: { operation: TScopeOperation }) => AnyType = () => ({});
+/** A row as the raw PGlite client returns it, the columns aliased to property names. */
+interface IRawSoftDeleteRow {
+  id: number;
+  merchantId: string;
+  code: string;
+  status: string;
+  removedAt: Date | null;
+}
+
+let resolver: (context: { operation: TScopeOperation }) => TScopeResolution = () => ({});
 
 @model({
   type: 'entity',
@@ -54,7 +69,7 @@ class PlainItem extends BasePostgresEntity<typeof itemTable> {
 }
 
 @datasource({ driver: PGliteDriver })
-class SoftDeleteDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class SoftDeleteDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
   constructor(opts: { client: PGlite }) {
     super({ name: SoftDeleteDataSource.name, config: {}, schema: { [TABLE_NAME]: itemTable } });
 
@@ -88,18 +103,25 @@ afterAll(async () => {
   await client.close();
 });
 
-const items = new SoftDeletableRelationalRepository<AnyType>(dataSource, {
+const items = new SoftDeletableRelationalRepository<TSoftDeletableTableSchema>(dataSource, {
   entityClass: ScopedItem,
 });
-const open = new SoftDeletableRelationalRepository<AnyType>(dataSource, { entityClass: OpenItem });
-const plain = new PGliteCRUDRepository<AnyType>(dataSource, { entityClass: PlainItem });
+const open = new SoftDeletableRelationalRepository<TSoftDeletableTableSchema>(dataSource, {
+  entityClass: OpenItem,
+});
+const plain = new DefaultRelationalRepository<TTableSchemaWithId>(dataSource, {
+  entityClass: PlainItem,
+});
 
 defineSoftDeleteDataCases(() => ({
   items,
   plain,
   open,
   deletedAtColumn: 'removed_at',
-  codeKey: UniqueKeys.of({ table: itemTable, index: 'soft_delete_data_pg_code' }),
+  codeKey: UniqueKeys.of<TSoftDeletableTableSchema>({
+    table: itemTable,
+    index: 'soft_delete_data_pg_code',
+  }),
   executor: dataSource.getQueryExecutor(),
   setResolver: (next) => {
     resolver = next;
@@ -114,14 +136,16 @@ defineSoftDeleteDataCases(() => ({
     `);
   },
   rawRows: async () => {
-    const { rows } = await client.query<AnyType>(`SELECT * FROM ${TABLE_NAME} ORDER BY id`);
+    const { rows } = await client.query<IRawSoftDeleteRow>(
+      `SELECT id, merchant_id AS "merchantId", code, status, removed_at AS "removedAt" FROM ${TABLE_NAME} ORDER BY id`,
+    );
 
     return rows.map((row): ISoftDeleteDataRow => ({
       id: Number(row.id),
-      merchantId: row.merchant_id,
+      merchantId: row.merchantId,
       code: row.code,
       status: row.status,
-      isDeleted: row.removed_at !== null,
+      isDeleted: row.removedAt !== null,
     }));
   },
 }));

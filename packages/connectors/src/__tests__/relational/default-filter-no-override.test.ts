@@ -1,6 +1,7 @@
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { datasource, model } from '@venizia/ignis-kernel';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { datasource, model, type TAnyDataSourceSchema, type TWhere } from '@venizia/ignis-kernel';
 import { FilterSchema } from '@venizia/ignis-filter/schemas';
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { boolean, integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
@@ -9,7 +10,12 @@ import { RelationsFactory } from '@/relational/core/repositories/dialect/relatio
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { many, ModelFactory, one, RelationDeclarations } from '@/relational/postgres/models';
-import { DefaultCRUDRepository, SoftDeletableRepository } from '@/relational/postgres/repositories';
+import type { TRelationDefinitions, TTableSchemaWithId } from '@/relational/core/models';
+import { DefaultRelationalRepository } from '@/relational/core/repositories/core/default';
+import {
+  SoftDeletableRelationalRepository,
+  type TSoftDeletableTableSchema,
+} from '@/relational/core/repositories/core/soft-deletable';
 
 /**
  * A caller's `where` can only narrow a model's default filter, never replace it: on every read, every write that selects rows,
@@ -45,7 +51,10 @@ const CommentBase = ModelFactory.defineEntity({
 @model({ type: 'entity', settings: { query: { filter: { where: { isDeleted: false } } } } })
 class NofComment extends CommentBase {}
 
-const relationsOf = (source: AnyType, entity: AnyType) =>
+const relationsOf = (
+  source: TTableSchemaWithId,
+  entity: { readonly relationDefinitions: TRelationDefinitions | undefined },
+) =>
   RelationsFactory.create({
     source,
     relations: RelationDeclarations.toRelationConfigs({
@@ -54,7 +63,7 @@ const relationsOf = (source: AnyType, entity: AnyType) =>
   }).relations;
 
 @datasource({ driver: PGliteDriver })
-class NofDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class NofDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
   constructor(opts: { client: PGlite }) {
     super({
       name: NofDataSource.name,
@@ -80,8 +89,8 @@ class NofDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
 }
 
 let client: PGlite;
-let posts: AnyType;
-let comments: AnyType;
+let posts: SoftDeletableRelationalRepository;
+let comments: DefaultRelationalRepository;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -91,8 +100,12 @@ beforeAll(async () => {
     CREATE TABLE nof_comment (id serial primary key, post_id integer not null references nof_post(id), name text not null, is_deleted boolean not null);
   `);
   const ds = new NofDataSource({ client });
-  posts = new SoftDeletableRepository(ds as AnyType, { entityClass: NofPost as AnyType });
-  comments = new DefaultCRUDRepository(ds as AnyType, { entityClass: NofComment as AnyType });
+  posts = new SoftDeletableRelationalRepository<TSoftDeletableTableSchema>(ds, {
+    entityClass: NofPost,
+  });
+  comments = new DefaultRelationalRepository<TTableSchemaWithId>(ds, {
+    entityClass: NofComment,
+  });
 }, 30_000);
 
 beforeEach(async () => {
@@ -101,7 +114,7 @@ beforeEach(async () => {
     INSERT INTO nof_comment (post_id, name, is_deleted) VALUES (1,'c-live',false),(1,'c-dead',true),(2,'c2-live',false);`);
 });
 
-const names = (rows: AnyType[]) => rows.map((row) => row.name).sort();
+const names = (rows: Array<Record<string, unknown>>) => rows.map((row) => String(row.name)).sort();
 
 const dbNames = async () => {
   const result = await client.query<{ name: string }>('SELECT name FROM nof_post ORDER BY id');
@@ -110,7 +123,7 @@ const dbNames = async () => {
 };
 
 /** What a caller might send to reach the row the default hides (`dead`). */
-const ATTACKS: Array<[string, AnyType]> = [
+const ATTACKS: Array<[string, TWhere]> = [
   ['not-null operator', { deletedAt: { neq: null } }],
   ['ne null', { deletedAt: { ne: null } }],
   ['not null', { deletedAt: { not: null } }],
@@ -131,9 +144,9 @@ const ATTACKS: Array<[string, AnyType]> = [
 ];
 
 /** How a call ended. A call may throw for an attack it cannot compile (a date string on a timestamp); then nothing was reached. */
-const outcomeOf = async (
-  call: () => Promise<AnyType>,
-): Promise<{ value: AnyType } | { error: unknown }> => {
+const outcomeOf = async <Result>(
+  call: () => Promise<Result>,
+): Promise<{ value: Result } | { error: unknown }> => {
   try {
     const result = await call();
 
@@ -201,9 +214,10 @@ describe('a caller cannot reach the row the default (deletedAt: null) hides', ()
   test('by id', async () => {
     const result2 = await posts.findById({ id: 2 });
     expect(result2).toBeNull();
+    // `findById` takes no `where`; a caller that sends one anyway must still not reach the row.
     const result3 = await posts.findById({
       id: 2,
-      filter: { where: { deletedAt: { neq: null } } },
+      filter: JSON.parse('{"where":{"deletedAt":{"neq":null}}}'),
     });
     expect(result3).toBeNull();
     const result4 = await posts.updateById({ id: 2, data: { name: 'x' } });
@@ -244,7 +258,9 @@ describe('an include cannot replace the default of the related model', () => {
     ['an and', { where: { and: [{ isDeleted: true }] } }],
   ])('child scope: %s', async (_name, scope) => {
     const rows = await posts.find({ filter: { include: [{ relation: 'comments', scope }] } });
-    const got = rows.flatMap((row: AnyType) => (row.comments ?? []).map((c: AnyType) => c.name));
+    const got = rows.flatMap((row) =>
+      (Array.isArray(row.comments) ? row.comments : []).map((c) => c.name),
+    );
 
     expect(got).not.toContain('c-dead');
   });
@@ -279,6 +295,21 @@ describe('an include cannot replace the default of the related model', () => {
   });
 });
 
+/** What a call raised, or `undefined` when it resolved. */
+const failureOf = async (call: () => Promise<unknown>): Promise<unknown> => {
+  try {
+    await call();
+  } catch (error) {
+    return error;
+  }
+
+  return undefined;
+};
+
+const messageOf = (error: unknown): string | undefined => {
+  return error instanceof Error ? error.message : undefined;
+};
+
 describe('a key that is not a column is refused', () => {
   const unsafe = (name: string) => JSON.parse(`{"${name}": {"neq": null}}`);
 
@@ -294,16 +325,10 @@ describe('a key that is not a column is refused', () => {
       ];
 
       for (const call of calls) {
-        let failure: AnyType;
+        const failure = await failureOf(call);
 
-        try {
-          await call();
-        } catch (error) {
-          failure = error;
-        }
-
-        expect(failure?.message).toContain('Column NOT FOUND');
-        expect(failure?.statusCode).toBe(400);
+        expect(messageOf(failure)).toContain('Column NOT FOUND');
+        expect(isApplicationError(failure) ? failure.statusCode : undefined).toBe(400);
       }
 
       const result = await dbNames();
@@ -314,49 +339,29 @@ describe('a key that is not a column is refused', () => {
   test.each(['__proto__', 'constructor', 'prototype'])(
     'an order or data key %s is refused too',
     async (name) => {
-      let ordered: AnyType;
-      let updated: AnyType;
+      const ordered = await failureOf(() => posts.find({ filter: { order: [`${name} ASC`] } }));
+      const updated = await failureOf(() =>
+        posts.updateById({ id: 1, data: JSON.parse(`{"${name}": "x"}`) }),
+      );
 
-      try {
-        await posts.find({ filter: { order: [`${name} ASC`] } });
-      } catch (error) {
-        ordered = error;
-      }
-
-      try {
-        await posts.updateById({ id: 1, data: JSON.parse(`{"${name}": "x"}`) });
-      } catch (error) {
-        updated = error;
-      }
-
-      expect(ordered?.message).toContain('Column NOT FOUND');
-      expect(updated?.message).toContain('Column NOT FOUND');
+      expect(messageOf(ordered)).toContain('Column NOT FOUND');
+      expect(messageOf(updated)).toContain('Column NOT FOUND');
     },
   );
 
   test('a nested and, or and include scope refuse the same keys', async () => {
     const where = { and: [{ or: [unsafe('__proto__')] }] };
-    let failure: AnyType;
+    const failure = await failureOf(() => posts.find({ filter: { where } }));
 
-    try {
-      await posts.find({ filter: { where } });
-    } catch (error) {
-      failure = error;
-    }
+    expect(messageOf(failure)).toContain('Column NOT FOUND');
 
-    expect(failure?.message).toContain('Column NOT FOUND');
-
-    let scoped: AnyType;
-
-    try {
-      await posts.find({
+    const scoped = await failureOf(() =>
+      posts.find({
         filter: { include: [{ relation: 'comments', scope: { where: unsafe('constructor') } }] },
-      });
-    } catch (error) {
-      scoped = error;
-    }
+      }),
+    );
 
-    expect(scoped?.message).toContain('Column NOT FOUND');
+    expect(messageOf(scoped)).toContain('Column NOT FOUND');
   });
 
   test('the parsed wire form of a prototype key does not change what the default allows', async () => {
@@ -365,11 +370,15 @@ describe('a key that is not a column is refused', () => {
     );
     let found: string[] = [];
 
+    if (parsed === undefined) {
+      throw new Error('the schema dropped the filter');
+    }
+
     try {
       const result2 = await posts.find({ filter: parsed });
       found = names(result2);
     } catch (error) {
-      expect((error as Error).message).toContain('Column NOT FOUND');
+      expect(messageOf(error)).toContain('Column NOT FOUND');
     }
 
     expect(found).not.toContain('dead');

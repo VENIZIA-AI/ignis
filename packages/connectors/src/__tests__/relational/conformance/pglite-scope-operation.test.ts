@@ -1,16 +1,18 @@
+import type { TScopeResolution } from './scope-resolution';
 import {
   datasource,
   model,
   ScopeFilters,
   ScopeOperations,
   type TScopeOperation,
+  type TAnyDataSourceSchema,
 } from '@venizia/ignis-kernel';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
-import { SoftDeletableRepository } from '@/relational/postgres/repositories';
+import { PGliteSoftDeletableRepository } from './pglite-repositories';
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 
@@ -33,7 +35,9 @@ const ME = 'm1';
 /** What the resolver under test was called with, one entry per call. */
 let calls: Array<unknown> = [];
 /** Swapped per test. */
-let resolver: (context: { operation: TScopeOperation }) => AnyType = () => ({ merchantId: ME });
+let resolver: (context: { operation: TScopeOperation }) => TScopeResolution = () => ({
+  merchantId: ME,
+});
 
 @model({
   type: 'entity',
@@ -48,7 +52,7 @@ let resolver: (context: { operation: TScopeOperation }) => AnyType = () => ({ me
     query: { filter: { where: { deletedAt: null } } },
   },
 })
-class ReadWiderEntity extends BasePostgresEntity {
+class ReadWiderEntity extends BasePostgresEntity<typeof scopeTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = scopeTable;
 }
@@ -61,7 +65,7 @@ class ReadWiderEntity extends BasePostgresEntity {
     query: { filter: { where: { deletedAt: null } } },
   },
 })
-class ZeroArgEntity extends BasePostgresEntity {
+class ZeroArgEntity extends BasePostgresEntity<typeof scopeTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = scopeTable;
 }
@@ -77,13 +81,13 @@ class ZeroArgEntity extends BasePostgresEntity {
     query: { filter: { where: { deletedAt: null } } },
   },
 })
-class SharedRowsEntity extends BasePostgresEntity {
+class SharedRowsEntity extends BasePostgresEntity<typeof scopeTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = scopeTable;
 }
 
 @datasource({ driver: PGliteDriver })
-class OperationDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class OperationDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
   constructor(opts: { client: PGlite }) {
     super({
       name: OperationDataSource.name,
@@ -107,9 +111,9 @@ class OperationDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite
 
 let client: PGlite;
 let dataSource: OperationDataSource;
-let repository: SoftDeletableRepository<typeof scopeTable>;
-let zeroArgRepository: SoftDeletableRepository<typeof scopeTable>;
-let sharedRowsRepository: SoftDeletableRepository<typeof scopeTable>;
+let repository: PGliteSoftDeletableRepository<typeof scopeTable>;
+let zeroArgRepository: PGliteSoftDeletableRepository<typeof scopeTable>;
+let sharedRowsRepository: PGliteSoftDeletableRepository<typeof scopeTable>;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -127,14 +131,14 @@ beforeAll(async () => {
 
   dataSource = new OperationDataSource({ client });
 
-  repository = new SoftDeletableRepository<typeof scopeTable>(dataSource as AnyType, {
-    entityClass: ReadWiderEntity as AnyType,
+  repository = new PGliteSoftDeletableRepository<typeof scopeTable>(dataSource, {
+    entityClass: ReadWiderEntity,
   });
-  zeroArgRepository = new SoftDeletableRepository<typeof scopeTable>(dataSource as AnyType, {
-    entityClass: ZeroArgEntity as AnyType,
+  zeroArgRepository = new PGliteSoftDeletableRepository<typeof scopeTable>(dataSource, {
+    entityClass: ZeroArgEntity,
   });
-  sharedRowsRepository = new SoftDeletableRepository<typeof scopeTable>(dataSource as AnyType, {
-    entityClass: SharedRowsEntity as AnyType,
+  sharedRowsRepository = new PGliteSoftDeletableRepository<typeof scopeTable>(dataSource, {
+    entityClass: SharedRowsEntity,
   });
 });
 
@@ -184,7 +188,7 @@ const refusal = async (opts: { write: Promise<unknown> }): Promise<string> => {
 const METHODS: Array<{
   name: string;
   expected: TScopeOperation;
-  run: (repo: SoftDeletableRepository<typeof scopeTable>) => Promise<unknown>;
+  run: (repo: PGliteSoftDeletableRepository<typeof scopeTable>) => Promise<unknown>;
 }> = [
   { name: 'find', expected: 'read', run: (repo) => repo.find({ filter: {} }) },
   { name: 'findOne', expected: 'read', run: (repo) => repo.findOne({ filter: {} }) },

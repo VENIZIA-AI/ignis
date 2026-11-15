@@ -1,15 +1,15 @@
 import type { IRelationalTransaction } from '@/relational/core/datasources/common';
-import { datasource, model } from '@venizia/ignis-kernel';
+import { datasource, model, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { BaseSqliteDataSource } from '@/relational/sqlite/datasources';
 import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
 import { BaseSqliteEntity } from '@/relational/sqlite/models';
 import { DefaultSqliteRepository } from '@/relational/sqlite/repositories';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import type { IConformanceHarness, TConformanceRepository } from './repository-conformance';
+import type { IConformanceHarness } from './repository-conformance';
 import { runRepositoryConformance } from './repository-conformance';
 
 /**
@@ -52,7 +52,7 @@ class ScopedConformanceEntity extends BaseSqliteEntity {
 @datasource({ driver: LibSqlDriver })
 class ConformanceSqliteDataSource extends BaseSqliteDataSource<
   { url: string },
-  AnyType,
+  TAnyDataSourceSchema,
   {},
   Client
 > {
@@ -91,13 +91,13 @@ beforeAll(async () => {
   const dataSource = new ConformanceSqliteDataSource({ client });
 
   harness = {
-    repository: new DefaultSqliteRepository<AnyType>(dataSource as AnyType, {
+    repository: new DefaultSqliteRepository(dataSource, {
       entityClass: ConformanceEntity,
-    }) as TConformanceRepository,
-    scopedRepository: new DefaultSqliteRepository<AnyType>(dataSource as AnyType, {
+    }),
+    scopedRepository: new DefaultSqliteRepository(dataSource, {
       entityClass: ScopedConformanceEntity,
-    }) as TConformanceRepository,
-    beginTransaction: (): Promise<IRelationalTransaction<AnyType>> => dataSource.beginTransaction(),
+    }),
+    beginTransaction: (): Promise<IRelationalTransaction<unknown>> => dataSource.beginTransaction(),
   };
 });
 

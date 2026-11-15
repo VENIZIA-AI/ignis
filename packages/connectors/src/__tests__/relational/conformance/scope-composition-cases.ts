@@ -1,6 +1,8 @@
 import { ScopeFilters } from '@venizia/ignis-kernel';
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { DefaultRelationalRepository } from '@/relational/core/repositories/core/default';
+import type { TWhere } from '@venizia/ignis-kernel';
+import type { TScopeResolution } from './scope-resolution';
 
 /**
  * The access scope is a condition the caller can only NARROW. These cases run against both engines
@@ -24,7 +26,7 @@ export const ROWS: IRow[] = [
 
 interface IScopeCase {
   label: string;
-  scope: AnyType;
+  scope: TScopeResolution;
   /** Rows the scope lets the caller READ. */
   reads: (row: IRow) => boolean;
   /** Rows an update or a delete may reach: the shared (null) rows need `write.sharedRows`, which is off here. */
@@ -84,7 +86,7 @@ export const SCOPES: IScopeCase[] = [
 
 interface IAttackCase {
   label: string;
-  where: AnyType;
+  where: TWhere;
   matches: (row: IRow) => boolean;
 }
 
@@ -133,15 +135,15 @@ export const ATTACKS: IAttackCase[] = [
 ];
 
 export interface IScopeCompositionContext {
-  products: AnyType;
-  notes: AnyType;
-  variants: AnyType;
+  products: DefaultRelationalRepository;
+  notes: DefaultRelationalRepository;
+  variants: DefaultRelationalRepository;
   /** A model with a scope AND a default filter (`status: 'live'`); rows (m1,live,a) (m1,archived,b) (m2,live,c) (m2,archived,d). */
-  items: AnyType;
+  items: DefaultRelationalRepository;
   itemNames: () => Promise<string[]>;
-  setProductScope: (scope: AnyType) => void;
-  setNoteScope: (scope: AnyType) => void;
-  setItemScope: (scope: AnyType) => void;
+  setProductScope: (scope: TScopeResolution) => void;
+  setNoteScope: (scope: TScopeResolution) => void;
+  setItemScope: (scope: TScopeResolution) => void;
   /** Truncates and seeds `ROWS` into the product table, then two notes per product (merchant of the parent). */
   reset: () => Promise<void>;
   /** The product names still in the table, in id order. */
@@ -161,7 +163,15 @@ const rejectionOf = async (task: Promise<unknown>): Promise<unknown> => {
   throw new Error('Expected the call to reject, but it resolved');
 };
 
-const names = (rows: AnyType[]): string[] => rows.map((row) => row.name).sort();
+type TRowRecord = Record<string, unknown>;
+
+const names = (rows: TRowRecord[]): string[] => rows.map((row) => String(row.name)).sort();
+
+/** The related rows an include loaded under `notes`. */
+const notesOf = (row: TRowRecord): TRowRecord[] => (Array.isArray(row.notes) ? row.notes : []);
+
+/** Builds a scope the resolver got wrong on purpose: JSON.parse returns `any`, so no cast is needed. */
+const wrongScope = (json: string): TScopeResolution => JSON.parse(json);
 
 const expectedNames = (opts: { allowed: (row: IRow) => boolean; attack: IAttackCase }) => {
   return ROWS.filter((row) => opts.allowed(row) && opts.attack.matches(row))
@@ -197,7 +207,7 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
 
             expect(one === null ? 0 : 1).toBe(expected.length === 0 ? 0 : 1);
 
-            if (one !== null) {
+            if (one) {
               expect(expected).toContain(one.name);
             }
           });
@@ -250,12 +260,12 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
   }
 
   describe('a scope the resolver built wrong is unresolved, not "no restriction"', () => {
-    const UNUSABLE: Array<[string, AnyType]> = [
-      ['false', false],
-      ['0', 0],
-      ['an empty string', ''],
-      ['an empty list', []],
-      ['a list of scopes', [{ merchantId: 'm1' }]],
+    const UNUSABLE: Array<[string, TScopeResolution]> = [
+      ['false', wrongScope('false')],
+      ['0', wrongScope('0')],
+      ['an empty string', wrongScope('""')],
+      ['an empty list', wrongScope('[]')],
+      ['a list of scopes', wrongScope('[{"merchantId":"m1"}]')],
       ['an empty object', {}],
       ['an object whose value is undefined', { merchantId: undefined }],
       ['one defined and one undefined value', { merchantId: 'm1', region: undefined }],
@@ -330,7 +340,7 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
       await ctx.reset();
       ctx.setItemScope({ merchantId: 'm1' });
 
-      const find = async (where: AnyType) => {
+      const find = async (where: TWhere) => {
         const rows = await ctx.items.find({ filter: { where } });
 
         return names(rows);
@@ -428,8 +438,8 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
       ctx.setProductScope(ScopeFilters.UNRESTRICTED);
       ctx.setNoteScope({ merchantId: 'm1' });
 
-      const noteNames = (rows: AnyType[]) =>
-        rows.flatMap((row) => (row.notes ?? []).map((note: AnyType) => note.name)).sort();
+      const noteNames = (rows: TRowRecord[]) =>
+        rows.flatMap((row) => notesOf(row).map((note) => note.name)).sort();
 
       const plain = await ctx.products.find({ filter: { include: [{ relation: 'notes' }] } });
       const optedOut = await ctx.products.find({
@@ -468,10 +478,8 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
       const attacked = await ctx.products.find({
         filter: { include: [{ relation: 'notes', scope: { where: { merchantId: 'm2' } } }] },
       });
-      const merchants = (rows: AnyType[]) => [
-        ...new Set(
-          rows.flatMap((row) => (row.notes ?? []).map((note: AnyType) => note.merchantId)),
-        ),
+      const merchants = (rows: TRowRecord[]) => [
+        ...new Set(rows.flatMap((row) => notesOf(row).map((note) => note.merchantId))),
       ];
 
       expect(merchants(plain)).toEqual(['m1']);

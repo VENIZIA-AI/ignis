@@ -1,7 +1,6 @@
 import { DEFAULT_MAX_LIMIT, LockStrengths } from '@venizia/ignis-kernel';
 import type { IRelationalTransaction } from '@/relational/core/datasources/common';
 import type { DefaultRelationalRepository } from '@/relational/core/repositories';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { beforeEach, describe, expect, test } from 'bun:test';
@@ -26,7 +25,19 @@ export interface IConformanceRow {
  * Loosely typed on purpose: each engine binds its own `ExtraOptions` and datasource, and the suite
  * must run either.
  */
-export type TConformanceRepository = DefaultRelationalRepository<AnyType>;
+export type TConformanceRepository = Pick<
+  DefaultRelationalRepository,
+  | 'count'
+  | 'create'
+  | 'createAll'
+  | 'deleteBy'
+  | 'deleteById'
+  | 'find'
+  | 'findById'
+  | 'findEvery'
+  | 'updateBy'
+  | 'updateById'
+>;
 
 /**
  * Two kinds of engine difference, both ASSERTED rather than skipped. A refusal (`rowLocking`,
@@ -81,7 +92,7 @@ export interface IConformanceHarness {
    */
   scopedRepository: TConformanceRepository;
 
-  beginTransaction(): Promise<IRelationalTransaction<AnyType>>;
+  beginTransaction(): Promise<IRelationalTransaction<unknown>>;
 }
 
 const SEED = [

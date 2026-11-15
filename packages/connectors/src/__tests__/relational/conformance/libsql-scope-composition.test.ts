@@ -1,14 +1,16 @@
+import type { TScopeResolution } from './scope-resolution';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { datasource, model, ScopeThrough } from '@venizia/ignis-kernel';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { datasource, model, ScopeThrough, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { afterAll, beforeAll } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
 import { BaseSqliteDataSource } from '@/relational/sqlite/datasources';
 import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
 import { many, ModelFactory, one, RelationDeclarations } from '@/relational/sqlite/models';
-import { DefaultSqliteRepository } from '@/relational/sqlite/repositories';
+import { DefaultRelationalRepository } from '@/relational/core/repositories/core/default';
+import type { TTableSchemaWithId } from '@/relational/core/models';
 import { defineScopeCompositionCases, ROWS } from './scope-composition-cases';
 
 /** The access scope is ANDed with the caller's where on libsql; the cases are shared with libsql. */
@@ -48,9 +50,9 @@ const itemTable = sqliteTable(ITEM_TABLE, {
   name: text('name').notNull(),
 });
 
-let itemScope: AnyType = {};
-let productScope: AnyType = {};
-let noteScope: AnyType = {};
+let itemScope: TScopeResolution = {};
+let productScope: TScopeResolution = {};
+let noteScope: TScopeResolution = {};
 
 const ProductBase = ModelFactory.defineEntity({
   table: productTable,
@@ -118,7 +120,12 @@ const relationsOf = (opts: {
 };
 
 @datasource({ driver: LibSqlDriver })
-class CompositionDataSource extends BaseSqliteDataSource<{ url: string }, AnyType, {}, Client> {
+class CompositionDataSource extends BaseSqliteDataSource<
+  { url: string },
+  TAnyDataSourceSchema,
+  {},
+  Client
+> {
   constructor(opts: { client: Client }) {
     super({
       name: CompositionDataSource.name,
@@ -146,10 +153,10 @@ class CompositionDataSource extends BaseSqliteDataSource<{ url: string }, AnyTyp
 
 let client: Client;
 let dataSource: CompositionDataSource;
-let products: DefaultSqliteRepository<typeof productTable>;
-let variants: DefaultSqliteRepository<typeof variantTable>;
-let notes: DefaultSqliteRepository<typeof noteTable>;
-let items: DefaultSqliteRepository<typeof itemTable>;
+let products: DefaultRelationalRepository;
+let variants: DefaultRelationalRepository;
+let notes: DefaultRelationalRepository;
+let items: DefaultRelationalRepository;
 
 beforeAll(async () => {
   client = createClient({ url: ':memory:' });
@@ -161,17 +168,17 @@ beforeAll(async () => {
   `);
 
   dataSource = new CompositionDataSource({ client });
-  products = new DefaultSqliteRepository<typeof productTable>(dataSource as AnyType, {
-    entityClass: Product as AnyType,
+  products = new DefaultRelationalRepository<TTableSchemaWithId>(dataSource, {
+    entityClass: Product,
   });
-  variants = new DefaultSqliteRepository<typeof variantTable>(dataSource as AnyType, {
-    entityClass: Variant as AnyType,
+  variants = new DefaultRelationalRepository<TTableSchemaWithId>(dataSource, {
+    entityClass: Variant,
   });
-  notes = new DefaultSqliteRepository<typeof noteTable>(dataSource as AnyType, {
-    entityClass: Note as AnyType,
+  notes = new DefaultRelationalRepository<TTableSchemaWithId>(dataSource, {
+    entityClass: Note,
   });
-  items = new DefaultSqliteRepository<typeof itemTable>(dataSource as AnyType, {
-    entityClass: Item as AnyType,
+  items = new DefaultRelationalRepository<TTableSchemaWithId>(dataSource, {
+    entityClass: Item,
   });
 }, 30_000);
 

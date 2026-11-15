@@ -6,16 +6,17 @@ import {
   RelationTypes,
   ScopeFilterMissingBehaviors,
   ScopeOperations,
+  type TAnyDataSourceSchema,
 } from '@venizia/ignis-kernel';
 import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
 import type { TRelationConfig } from '@/relational/core/repositories/common';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
-import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
+import { PGliteDefaultRepository } from './pglite-repositories';
 import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { integer, pgTable, serial, text } from 'drizzle-orm/pg-core';
 
@@ -162,7 +163,7 @@ let includeCalls: Array<unknown> = [];
     },
   },
 })
-class ScopeIncludeMerchantEntity extends BasePostgresEntity {
+class ScopeIncludeMerchantEntity extends BasePostgresEntity<typeof merchantTable> {
   static override TABLE_NAME = MERCHANT_TABLE;
   static override schema = merchantTable;
   static override relations = (): TRelationConfig[] => merchantRelationsConfig;
@@ -188,7 +189,7 @@ class ScopeIncludeMerchantEntity extends BasePostgresEntity {
     query: { filter: { where: { name: { neq: 'hidden-by-default' } } } },
   },
 })
-class ScopeIncludeProductEntity extends BasePostgresEntity {
+class ScopeIncludeProductEntity extends BasePostgresEntity<typeof productTable> {
   static override TABLE_NAME = PRODUCT_TABLE;
   static override schema = productTable;
   static override relations = (): TRelationConfig[] => productRelationsConfig;
@@ -196,7 +197,7 @@ class ScopeIncludeProductEntity extends BasePostgresEntity {
 
 /** No `settings.access` at all - the control group for "a child with no access is unaffected". */
 @model({ type: 'entity' })
-class ScopeIncludeProductOpenEntity extends BasePostgresEntity {
+class ScopeIncludeProductOpenEntity extends BasePostgresEntity<typeof productOpenTable> {
   static override TABLE_NAME = PRODUCT_OPEN_TABLE;
   static override schema = productOpenTable;
   static override relations = (): TRelationConfig[] => productOpenRelationsConfig;
@@ -214,7 +215,7 @@ class ScopeIncludeProductOpenEntity extends BasePostgresEntity {
     },
   },
 })
-class ScopeIncludeProductAllowEntity extends BasePostgresEntity {
+class ScopeIncludeProductAllowEntity extends BasePostgresEntity<typeof productAllowTable> {
   static override TABLE_NAME = PRODUCT_ALLOW_TABLE;
   static override schema = productAllowTable;
   static override relations = (): TRelationConfig[] => productAllowRelationsConfig;
@@ -234,7 +235,7 @@ class ScopeIncludeProductAllowEntity extends BasePostgresEntity {
     },
   },
 })
-class ScopeIncludeReviewEntity extends BasePostgresEntity {
+class ScopeIncludeReviewEntity extends BasePostgresEntity<typeof reviewTable> {
   static override TABLE_NAME = REVIEW_TABLE;
   static override schema = reviewTable;
   static override relations = (): TRelationConfig[] => [];
@@ -262,7 +263,7 @@ const reviewRelationsBuilt = RelationsFactory.create({
 });
 
 @datasource({ driver: PGliteDriver })
-class ScopeIncludeDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class ScopeIncludeDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
   constructor(opts: { client: PGlite }) {
     super({
       name: ScopeIncludeDataSource.name,
@@ -314,7 +315,7 @@ interface IMerchantRow {
 
 let client: PGlite;
 let dataSource: ScopeIncludeDataSource;
-let merchantRepository: DefaultCRUDRepository<typeof merchantTable>;
+let merchantRepository: PGliteDefaultRepository<typeof merchantTable>;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -354,8 +355,8 @@ beforeAll(async () => {
 
   dataSource = new ScopeIncludeDataSource({ client });
 
-  merchantRepository = new DefaultCRUDRepository<typeof merchantTable>(dataSource as AnyType, {
-    entityClass: ScopeIncludeMerchantEntity as AnyType,
+  merchantRepository = new PGliteDefaultRepository<typeof merchantTable>(dataSource, {
+    entityClass: ScopeIncludeMerchantEntity,
   });
 });
 

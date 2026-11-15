@@ -1,6 +1,5 @@
 import type { IRelationalTransaction } from '@/relational/core/datasources/common';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { beforeEach, describe, expect, spyOn, test } from 'bun:test';
@@ -23,7 +22,7 @@ export interface IFindEveryHarness {
   composite: TFindEveryRepository;
   setTenant(tenant: string): void;
   reset(): Promise<void>;
-  beginTransaction(): Promise<IRelationalTransaction<AnyType>>;
+  beginTransaction(): Promise<IRelationalTransaction<unknown>>;
 }
 
 const pagesOf = async <T>(pages: AsyncIterable<Array<T>>): Promise<Array<Array<T>>> => {
@@ -36,7 +35,7 @@ const pagesOf = async <T>(pages: AsyncIterable<Array<T>>): Promise<Array<Array<T
   return all;
 };
 
-const idsOf = (pages: Array<Array<{ id: unknown }>>) =>
+const idsOf = (pages: Array<Array<Record<string, unknown>>>) =>
   pages.map((page) => page.map((row) => row.id));
 
 /** Runs `run` with `find` spied on: each page is one `find` call. */

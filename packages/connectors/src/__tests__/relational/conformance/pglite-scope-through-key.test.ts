@@ -1,13 +1,19 @@
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { datasource, model, ScopeThrough, type TScopeOperation } from '@venizia/ignis-kernel';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import {
+  datasource,
+  model,
+  ScopeThrough,
+  type TScopeOperation,
+  type TAnyDataSourceSchema,
+} from '@venizia/ignis-kernel';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { pgTable, serial, text } from 'drizzle-orm/pg-core';
 import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { many, ModelFactory, one, RelationDeclarations } from '@/relational/postgres/models';
-import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
+import { PGliteDefaultRepository } from './pglite-repositories';
 
 /**
  * A child that points at a parent column which is NOT unique (`code` repeats across merchants): the write check
@@ -82,7 +88,7 @@ const relationsOf = (opts: {
 };
 
 @datasource({ driver: PGliteDriver })
-class KeyDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class KeyDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
   constructor(opts: { client: PGlite }) {
     super({
       name: KeyDataSource.name,
@@ -111,8 +117,8 @@ class KeyDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
 
 let client: PGlite;
 let dataSource: KeyDataSource;
-let parents: DefaultCRUDRepository<typeof parentTable>;
-let children: DefaultCRUDRepository<typeof childTable>;
+let parents: PGliteDefaultRepository<typeof parentTable>;
+let children: PGliteDefaultRepository<typeof childTable>;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -123,11 +129,11 @@ beforeAll(async () => {
   `);
 
   dataSource = new KeyDataSource({ client });
-  parents = new DefaultCRUDRepository<typeof parentTable>(dataSource as AnyType, {
-    entityClass: Parent as AnyType,
+  parents = new PGliteDefaultRepository<typeof parentTable>(dataSource, {
+    entityClass: Parent,
   });
-  children = new DefaultCRUDRepository<typeof childTable>(dataSource as AnyType, {
-    entityClass: Child as AnyType,
+  children = new PGliteDefaultRepository<typeof childTable>(dataSource, {
+    entityClass: Child,
   });
 });
 

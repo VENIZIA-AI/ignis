@@ -1,6 +1,7 @@
+import type { OpenAPIHono } from '@hono/zod-openapi';
 import { PGlite } from '@electric-sql/pglite';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   BaseAppErrorMiddleware,
   CrudControllerFactory,
@@ -19,7 +20,7 @@ import { BasePostgresEntity } from '@/relational/postgres/models';
 import { isoTimestamp } from '@/relational/postgres/models/common/columns';
 import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 import type { IDatabaseExtraOptions } from '@/relational/postgres/repositories/common';
-import { TIMESTAMP_TABLE, TimestampWhereCases } from './timestamp-where-cases';
+import { idsOfBody, TIMESTAMP_TABLE, TimestampWhereCases } from './timestamp-where-cases';
 
 const eventTable = pgTable(TIMESTAMP_TABLE, {
   id: integer('id').primaryKey(),
@@ -129,7 +130,7 @@ describe('Postgres - a column that takes a string natively', () => {
 });
 
 describe('Postgres - a generated CRUD route', () => {
-  let router: AnyType;
+  let router: OpenAPIHono;
 
   beforeAll(async () => {
     const RouteController = CrudControllerFactory.build({
@@ -154,10 +155,10 @@ describe('Postgres - a generated CRUD route', () => {
 
   test('filters a timestamp column with a date string', async () => {
     const response = await get({ at: { gt: '2026-11-07' } });
-    const body: { data: Array<{ id: number }> } = await response.json();
+    const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.data.map((row) => row.id)).toEqual([3]);
+    expect(idsOfBody(body)).toEqual([3]);
   });
 
   test('answers 400, not 500, for a value that is no timestamp', async () => {

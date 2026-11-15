@@ -1,7 +1,8 @@
+import type { TScopeResolution } from './scope-resolution';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { datasource, model, ScopeThrough } from '@venizia/ignis-kernel';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { datasource, model, ScopeThrough, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
@@ -42,7 +43,7 @@ const optionTable = sqliteTable(OPTION_TABLE, {
 });
 
 const SHARED_SCOPE = { or: [{ merchantId: { inq: ['m1'] } }, { merchantId: null }] };
-let productScope: AnyType = SHARED_SCOPE;
+let productScope: TScopeResolution = SHARED_SCOPE;
 
 /** The parent's `access`, held by reference so a test can flip `write.sharedRows` and the scope shape. */
 const productAccess = {
@@ -104,7 +105,12 @@ const relationsOf = (opts: {
 };
 
 @datasource({ driver: LibSqlDriver })
-class SharedThroughDataSource extends BaseSqliteDataSource<{ url: string }, AnyType, {}, Client> {
+class SharedThroughDataSource extends BaseSqliteDataSource<
+  { url: string },
+  TAnyDataSourceSchema,
+  {},
+  Client
+> {
   constructor(opts: { client: Client }) {
     super({
       name: SharedThroughDataSource.name,
@@ -139,14 +145,14 @@ beforeAll(async () => {
   `);
 
   const dataSource = new SharedThroughDataSource({ client });
-  products = new DefaultSqliteRepository<typeof productTable>(dataSource as AnyType, {
-    entityClass: Product as AnyType,
+  products = new DefaultSqliteRepository<typeof productTable>(dataSource, {
+    entityClass: Product,
   });
-  variants = new DefaultSqliteRepository<typeof variantTable>(dataSource as AnyType, {
-    entityClass: Variant as AnyType,
+  variants = new DefaultSqliteRepository<typeof variantTable>(dataSource, {
+    entityClass: Variant,
   });
-  options = new DefaultSqliteRepository<typeof optionTable>(dataSource as AnyType, {
-    entityClass: Option as AnyType,
+  options = new DefaultSqliteRepository<typeof optionTable>(dataSource, {
+    entityClass: Option,
   });
 });
 
