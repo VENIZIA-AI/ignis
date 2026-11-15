@@ -13,7 +13,6 @@ import { ServiceAssertion } from '@venizia/ignis-kernel';
 import type { IServiceAuthOptions } from '@venizia/ignis-kernel';
 import { ServiceAssertionSignerService } from '@/components/auth/authenticate/services/service/signer.service';
 import { ServiceAssertionVerifierService } from '@/components/auth/authenticate/services/service/verifier.service';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
 
 /**
@@ -31,10 +30,10 @@ let jwksUrl: string;
 
 /** `@inject` is dropped by bun's transpiler, so options are passed positionally. */
 const buildSigner = (options: IServiceAuthOptions): ServiceAssertionSignerService =>
-  new ServiceAssertionSignerService(options as AnyType);
+  new ServiceAssertionSignerService(options);
 
 const buildVerifier = (options: IServiceAuthOptions): ServiceAssertionVerifierService =>
-  new ServiceAssertionVerifierService(options as AnyType);
+  new ServiceAssertionVerifierService(options);
 
 /**
  * The window tests sit exactly on a second boundary, and jose reads the verifier's clock from
@@ -201,7 +200,7 @@ describe('a callee refuses everything else', () => {
   test('a caller named after an Object.prototype member', async () => {
     const prototypeIssuer = buildSigner({
       name: 'constructor',
-      keys: (signer as AnyType).options.keys,
+      keys: signer['options'].keys,
       resolvePrincipal: async () => ({ userId: 1 }),
     });
 
@@ -221,7 +220,7 @@ describe('a callee refuses everything else', () => {
 
     // Minted directly so `iat` can be backdated: `maxTokenAge` measures against `iat`, and the
     // service always stamps "now".
-    const privateKey = await (signer as AnyType).resolvePrivateKey();
+    const privateKey = await signer['resolvePrivateKey']();
     const jwt = new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({
         alg: ServiceAssertion.ALGORITHM,
@@ -251,7 +250,7 @@ describe('a callee refuses everything else', () => {
   });
 
   test('an assertion with no iss', async () => {
-    const privateKey = await (signer as AnyType).resolvePrivateKey();
+    const privateKey = await signer['resolvePrivateKey']();
     const jwt = new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({ alg: ServiceAssertion.ALGORITHM, typ: ServiceAssertion.TYP })
       .setAudience(CALLEE)
@@ -273,7 +272,7 @@ describe('the callee decides the window, per caller', () => {
   test('a per-caller override widens the window for that caller alone', async () => {
     const stale = Math.floor(Date.now() / 1000) - 300;
 
-    const privateKey = await (signer as AnyType).resolvePrivateKey();
+    const privateKey = await signer['resolvePrivateKey']();
     const jwt = new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({
         alg: ServiceAssertion.ALGORITHM,
@@ -339,7 +338,7 @@ describe('the clock tolerance window', () => {
 
   const mint = async (opts: { iatOffsetSeconds: number }) => {
     const iat = FROZEN_NOW_SECONDS + opts.iatOffsetSeconds;
-    const privateKey = await (signer as AnyType).resolvePrivateKey();
+    const privateKey = await signer['resolvePrivateKey']();
 
     return new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({
@@ -418,7 +417,7 @@ describe('the replay window is wider than the acceptance window', () => {
 
   const mintSkewed = async (opts: { mintedAgoOnOurClock: number; callerSkewSeconds: number }) => {
     const iat = FROZEN_NOW_SECONDS - opts.mintedAgoOnOurClock + opts.callerSkewSeconds;
-    const privateKey = await (signer as AnyType).resolvePrivateKey();
+    const privateKey = await signer['resolvePrivateKey']();
 
     return new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({

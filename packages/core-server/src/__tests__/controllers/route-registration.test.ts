@@ -15,7 +15,7 @@ import {
   DefaultCRUDRepository,
 } from '@venizia/ignis-connectors/postgres';
 import { z } from '@hono/zod-openapi';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getDroppedRouteDecorators } from '@venizia/ignis-kernel';
 import { applyMethodDecorator, fakeCrudRepository } from './fixtures';
@@ -247,11 +247,11 @@ describe('Route registration - decorator, imperative, fluent', () => {
   test('a TC39-shaped decorator call registers nothing on the method and is recorded, not swallowed', () => {
     const decorate = api({
       configs: { method: HTTP.Methods.GET, path: '/tc39', responses: okResponse },
-    }) as AnyType;
+    });
 
     const handler = function tc39Handler() {};
 
-    decorate(handler, { kind: 'method', name: 'tc39Handler' });
+    Reflect.apply(decorate, undefined, [handler, { kind: 'method', name: 'tc39Handler' }]);
 
     // The config must never be attached to the method function: nothing reads metadata from there.
     expect(Reflect.getMetadataKeys(handler)).toEqual([]);
@@ -311,7 +311,10 @@ describe('Route registration - decorator, imperative, fluent', () => {
 
   test('a static decorator route wins over an inherited CRUD param route on the same path segment', async () => {
     const restController = new RouteOrderSubscriberController(
-      fakeCrudRepository({ records: [{ id: 1, email: 'a@b.c' }] }),
+      fakeCrudRepository({
+        repository: RouteOrderSubscriberRepository,
+        records: [{ id: 1, email: 'a@b.c' }],
+      }),
     );
     await restController.configure();
 
@@ -324,7 +327,10 @@ describe('Route registration - decorator, imperative, fluent', () => {
 
   test('a decorator PARAM route does NOT swallow the generated static routes of its CRUD base', async () => {
     const restController = new RouteOrderCountOnlyController(
-      fakeCrudRepository({ records: [{ id: 1, email: 'a@b.c' }] }),
+      fakeCrudRepository({
+        repository: RouteOrderSubscriberRepository,
+        records: [{ id: 1, email: 'a@b.c' }],
+      }),
     );
     await restController.configure();
 

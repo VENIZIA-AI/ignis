@@ -4,7 +4,7 @@ import { BaseApplication } from '@/base/applications';
 import { PGlite } from '@electric-sql/pglite';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { PGliteDriver } from '@venizia/ignis-connectors/postgres/pglite';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import {
   AbstractDataSource,
@@ -13,11 +13,12 @@ import {
   datasource,
   type IApplicationConfigs,
   type IApplicationInfo,
+  type TAnyDataSourceSchema,
 } from '@venizia/ignis-kernel';
 import { afterEach, describe, expect, test } from 'bun:test';
 
 @datasource({ driver: PGliteDriver, autoDiscovery: false })
-class StopProbeDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class StopProbeDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
   constructor() {
     super({ name: StopProbeDataSource.name, config: {}, schema: {} });
   }
@@ -140,9 +141,9 @@ describe('stop() closes the datasources the application configured', () => {
     await application.initialize();
     const client = application.getProbeClient();
 
-    application['serverInstance'] = {
+    Reflect.set(application, 'serverInstance', {
       stop: () => Promise.reject(getError({ message: 'server was not running' })),
-    } as AnyType;
+    });
 
     let stopResult: unknown;
 

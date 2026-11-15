@@ -6,7 +6,7 @@ import type {
   IUploadResult,
 } from '@venizia/ignis-helpers';
 import { ResolverUtility } from '@venizia/ignis-helpers/common';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { TMetaLink, TMetaLinkCompatibleSchema } from '../models';
 import type { TMetaLinkConfig, TStaticAssetStorageType, TStaticAssetUploadLabels } from '../common';
 
 export class StaticAssetMetaLinkUtility {
@@ -53,13 +53,13 @@ export class StaticAssetMetaLinkUtility {
 
   /** The MetaLink row for one stored object. Every path that creates a row goes through here, so each lands exactly the row an ordinary upload does. */
   static async createRow(opts: {
-    metaLink: TMetaLinkConfig<AnyType>;
+    metaLink: TMetaLinkConfig<TMetaLinkCompatibleSchema>;
     helper: IStorageHelper;
     storage: TStaticAssetStorageType;
     uploadResult: IUploadResult;
     fileStat: IFileStat;
     labels: TStaticAssetUploadLabels;
-  }): Promise<AnyType> {
+  }): Promise<TMetaLink> {
     const { metaLink, helper, storage, uploadResult, fileStat, labels } = opts;
 
     if (metaLink.createMetaLink) {
@@ -99,13 +99,13 @@ export class StaticAssetMetaLinkUtility {
    * `metadata`, so with one only the stat columns change; without one, `metadata` is merged per row.
    */
   static async refreshRows(opts: {
-    metaLink: TMetaLinkConfig<AnyType>;
+    metaLink: TMetaLinkConfig<TMetaLinkCompatibleSchema>;
     helper: IStorageHelper;
     bucket: IBucketRef;
     object: IObjectRef;
     link: string;
     fileStat: IFileStat;
-  }): Promise<{ count: number; data: AnyType[] }> {
+  }): Promise<{ count: number; data: TMetaLink[] }> {
     const { metaLink, helper, bucket, object, link, fileStat } = opts;
 
     const repository = await ResolverUtility.resolveValueAsync({ value: metaLink.repository });

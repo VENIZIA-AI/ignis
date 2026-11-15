@@ -1,9 +1,8 @@
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 
 /** Applies a route/rpc decorator with the legacy (`experimentalDecorators`) call shape - the only one supported. `@decorator` syntax is unusable in these tests: bun does not resolve the tsconfig `extends` chain, compiles TC39 semantics, and the decorators reject that shape loudly. */
 export const applyMethodDecorator = (opts: {
-  decorator: AnyType;
+  decorator: (target: object, methodName: string, descriptor: PropertyDescriptor) => unknown;
   target: object;
   methodName: string;
 }): void => {
@@ -20,11 +19,17 @@ export const applyMethodDecorator = (opts: {
   decorator(target, methodName, descriptor);
 };
 
-/** Minimal repository stand-in: the generated CRUD handlers only ever call these verbs. */
-export const fakeCrudRepository = (opts: { records: Array<Record<string, unknown>> }) => {
-  const { records } = opts;
+/** Minimal repository stand-in: an uninitialised instance of the real repository class whose verbs are replaced by the ones the generated CRUD handlers call. */
+export const fakeCrudRepository = <Repository extends object>(opts: {
+  repository: abstract new (...args: never[]) => Repository;
+  records: Array<Record<string, unknown>>;
+}): Repository => {
+  const { repository, records } = opts;
+  const instance: Repository = Object.create(repository.prototype);
 
-  return {
+  return Object.assign(instance, {
+    // The real filter check needs a datasource; the stand-in has no hidden fields to hold a filter to.
+    assertRequestFilter: () => {},
     count: async () => ({ count: records.length }),
     find: async () => ({
       data: records,
@@ -37,5 +42,5 @@ export const fakeCrudRepository = (opts: { records: Array<Record<string, unknown
     updateBy: async () => ({ count: 1, data: records }),
     deleteById: async () => ({ count: 1, data: records[0] }),
     deleteBy: async () => ({ count: 1, data: records }),
-  } as AnyType;
+  });
 };

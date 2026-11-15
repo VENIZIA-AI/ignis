@@ -2,7 +2,6 @@ import { BaseApplication } from '@/base/applications/base';
 import { BaseComponent } from '@venizia/ignis-kernel';
 import { BindingNamespaces } from '@venizia/ignis-kernel';
 import { BindingScopes } from '@venizia/ignis-kernel';
-import { type AnyType } from '@venizia/ignis-helpers/common';
 import {
   SecretProviders,
   type ISecretRotatable,
@@ -34,7 +33,7 @@ class DataSourceContributingComponent extends BaseComponent {
       .toValue({
         configure: async () => {},
         onSecretRotated: async () => {},
-      } as AnyType)
+      })
       .setScope(BindingScopes.SINGLETON);
   }
 }
@@ -47,7 +46,7 @@ class ComponentDataSourceApp extends BaseApplication {
   }
 
   override getAppInfo() {
-    return { name: 'probe', version: '0', description: '' } as AnyType;
+    return { name: 'probe', version: '0', description: '' };
   }
 
   override staticConfigure() {}

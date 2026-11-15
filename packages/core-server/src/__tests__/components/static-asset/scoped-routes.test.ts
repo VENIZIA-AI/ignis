@@ -15,9 +15,13 @@ import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kerne
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { StorageTypes } from '@venizia/ignis-helpers';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TTableInsert } from '@venizia/ignis-connectors/postgres';
+import type { TMetaLinkSchema } from '@/components/static-asset/models';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
+import { readJson } from '../../helpers/json-shape';
+import { FakeMetaLinkRepository } from './fake-meta-link.repository';
 import { buildDirectUploadServices } from './direct-upload-services';
 import { FakeStorageHelper } from './fake-storage.helper';
 
@@ -41,59 +45,31 @@ class ScopedAssetApplication extends BaseApplication {
   setupMiddlewares() {}
 }
 
-type TMetaLinkRow = Record<string, AnyType>;
-
-/** The repository calls the component makes: create, and the updates over the (bucket, object) pair. */
-class FakeMetaLinkRepository {
-  readonly rows: TMetaLinkRow[] = [];
-  readonly updateCalls: string[] = [];
-
-  private matchRows(opts: { where: TMetaLinkRow }) {
-    return this.rows.filter((row) =>
-      Object.entries(opts.where).every(([key, value]) => row[key] === value),
-    );
-  }
-
-  async create(opts: { data: TMetaLinkRow }) {
-    const row = { id: String(this.rows.length + 1), ...opts.data };
-    this.rows.push(row);
-
-    return { count: 1, data: row };
-  }
-
-  async updateById(opts: { id: string; data: TMetaLinkRow }) {
-    this.updateCalls.push('updateById');
-    const [row] = this.matchRows({ where: { id: opts.id } });
-    Object.assign(row, opts.data);
-
-    return { count: 1, data: row };
-  }
-
-  async updateBy(opts: { data: TMetaLinkRow; where: TMetaLinkRow }) {
-    this.updateCalls.push('updateBy');
-    const matched = this.matchRows({ where: opts.where });
-
-    for (const row of matched) {
-      Object.assign(row, opts.data);
-    }
-
-    return { count: matched.length, data: matched };
-  }
-}
-
-/** The component reads `repository` through `ResolverUtility.resolveValueAsync`, so a resolver stands in for the class a fake cannot structurally be. */
+/** The component reads `repository` through `ResolverUtility.resolveValueAsync`, so a resolver is the form a test hands it. */
 const toRepositoryResolver = (opts: {
   repository: FakeMetaLinkRepository;
-}): TMetaLinkConfig<AnyType>['repository'] => {
-  const resolveRepository = (): AnyType => opts.repository;
+}): TMetaLinkConfig['repository'] => {
+  const resolveRepository = (): FakeMetaLinkRepository => opts.repository;
 
   return resolveRepository;
 };
 
+type TCreateMetaLinkOptions = Parameters<NonNullable<TMetaLinkConfig['createMetaLink']>>[0];
+
+/** The row a `createMetaLink` hook writes for one upload. */
+const insertFor = (opts: TCreateMetaLinkOptions): TTableInsert<TMetaLinkSchema> => ({
+  bucketName: opts.uploadResult.bucket.name,
+  objectName: opts.uploadResult.object.key,
+  link: opts.uploadResult.link,
+  mimetype: opts.uploadResult.object.contentType,
+  size: opts.uploadResult.object.size,
+  storageType: StorageTypes.BUN_S3,
+});
+
 const toMetaLinkConfig = (opts: {
   repository: FakeMetaLinkRepository;
-  createMetaLink?: TMetaLinkConfig<AnyType>['createMetaLink'];
-}): TMetaLinkConfig<AnyType> => ({
+  createMetaLink?: TMetaLinkConfig['createMetaLink'];
+}): TMetaLinkConfig => ({
   repository: toRepositoryResolver({ repository: opts.repository }),
   createMetaLink: opts.createMetaLink,
 });
@@ -107,7 +83,7 @@ const mount = async (opts: {
     directUpload?: Omit<TStaticAssetDirectUploadOptions, 'validation'>;
   };
   serverUpload?: TStaticAssetServerUploadOptions;
-  metaLink?: TMetaLinkConfig<AnyType>;
+  metaLink?: TMetaLinkConfig;
 }): Promise<OpenAPIHono> => {
   MetadataRegistry.getInstance().clearAll();
   const application = new ScopedAssetApplication({
@@ -651,7 +627,7 @@ describe('serverUpload.maxBytes refuses a declared length before the body is rea
 describe('recreate-metalink refreshes every row of the pair, or creates one the upload way', () => {
   const seedRows = (repository: FakeMetaLinkRepository) => {
     for (const principalId of ['product-1', 'variant-7']) {
-      repository.rows.push({
+      repository.seed({
         id: principalId,
         bucketName: 'images',
         objectName: 'photo.jpg',
@@ -677,8 +653,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
     const router = await mount({ helper, metaLink: toMetaLinkConfig({ repository }) });
 
     const response = await router.request('/assets/meta-links/photo.jpg', { method: 'PUT' });
-    const result = await response.json();
-    const body = result as Record<string, AnyType>;
+    const body = await readJson<{ metaLinks: unknown[] }>(response);
 
     expect(response.status).toBe(200);
     expect(body).toMatchObject({
@@ -722,7 +697,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
     const helper = new FakeStorageHelper();
     helper.seedObject({ bucket: 'images', key: 'photo.jpg', mimetype: 'image/jpeg' });
     const repository = new FakeMetaLinkRepository();
-    const hookCalls: AnyType[] = [];
+    const hookCalls: TCreateMetaLinkOptions[] = [];
     const router = await mount({
       helper,
       metaLink: toMetaLinkConfig({
@@ -730,19 +705,13 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
         createMetaLink: async (hookOptions) => {
           hookCalls.push(hookOptions);
 
-          return repository.create({
-            data: {
-              objectName: hookOptions.uploadResult.object.key,
-              storageType: StorageTypes.BUN_S3,
-            },
-          });
+          return repository.create({ data: insertFor(hookOptions) });
         },
       }),
     });
 
     const response = await router.request('/assets/meta-links/photo.jpg', { method: 'PUT' });
-    const result = await response.json();
-    const body = result as Record<string, AnyType>;
+    const body = await readJson<unknown>(response);
 
     expect(body).toMatchObject({
       success: true,
@@ -777,8 +746,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
       helper,
       metaLink: toMetaLinkConfig({
         repository,
-        createMetaLink: async (hookOptions) =>
-          repository.create({ data: { objectName: hookOptions.uploadResult.object.key } }),
+        createMetaLink: async (hookOptions) => repository.create({ data: insertFor(hookOptions) }),
       }),
     });
 
@@ -809,8 +777,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
     const router = await mount({ helper, metaLink: toMetaLinkConfig({ repository }) });
 
     const response = await router.request('/assets/meta-links/photo.jpg', { method: 'PUT' });
-    const result = await response.json();
-    const body = result as Record<string, AnyType>;
+    const body = await readJson<unknown>(response);
 
     expect(body).toMatchObject({ action: MetaLinkRecreateActions.REFRESHED, count: 2 });
     expect(repository.updateCalls).toEqual(['updateBy', 'updateById', 'updateById']);

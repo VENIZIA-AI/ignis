@@ -13,8 +13,9 @@ import {
   BasePostgresEntity,
   DefaultCRUDRepository,
 } from '@venizia/ignis-connectors/postgres';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
+import type { ILogger } from '@venizia/ignis-helpers/core';
 import {
   BaseComponent,
   BindingNamespaces,
@@ -23,6 +24,7 @@ import {
   OpenApiResponses,
 } from '@venizia/ignis-kernel';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
+import type { Context } from 'hono';
 import { beforeEach, describe, expect, spyOn, test } from 'bun:test';
 
 const okResponse = OpenApiResponses.jsonResponse({
@@ -105,7 +107,7 @@ class AccountController extends BaseRestController {
   override binding(): ValueOrPromise<void> {}
 
   @get({ configs: { path: '/', responses: okResponse } })
-  list(context: AnyType) {
+  list(context: Context) {
     return context.json({ hit: 'list' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
@@ -137,7 +139,7 @@ class FirstDuplicateController extends BaseRestController {
   override binding(): ValueOrPromise<void> {}
 
   @get({ configs: { path: '/users/:id', responses: okResponse } })
-  one(context: AnyType) {
+  one(context: Context) {
     return context.json({ hit: 'first' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
@@ -151,7 +153,7 @@ class SecondDuplicateController extends BaseRestController {
   override binding(): ValueOrPromise<void> {}
 
   @get({ configs: { path: '/users/:userId', responses: okResponse } })
-  one(context: AnyType) {
+  one(context: Context) {
     return context.json({ hit: 'second' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
@@ -172,7 +174,7 @@ class ValidatedController extends BaseRestController {
       responses: okResponse,
     },
   })
-  one(context: AnyType) {
+  one(context: Context) {
     return context.json({ hit: 'one' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
@@ -187,12 +189,12 @@ class SelfDuplicateController extends BaseRestController {
   override binding(): ValueOrPromise<void> {}
 
   @get({ configs: { path: '/same', responses: okResponse } })
-  first(context: AnyType) {
+  first(context: Context) {
     return context.json({ hit: 'first' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   @get({ configs: { path: '/same', responses: okResponse } })
-  second(context: AnyType) {
+  second(context: Context) {
     return context.json({ hit: 'second' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
@@ -225,16 +227,22 @@ class ThrowingComponent extends BaseComponent {
 /** Records what an application logs, so a test can read the lines of one level. */
 const recordLogs = (application: BaseApplication): Array<{ level: string; message: string }> => {
   const lines: Array<{ level: string; message: string }> = [];
-  const recorder: AnyType = {
-    for: () => recorder,
-    log: () => {},
-  };
 
-  for (const level of ['debug', 'info', 'warn', 'error']) {
-    recorder[level] = (...args: unknown[]) => {
+  const record =
+    (level: string) =>
+    (...args: unknown[]): void => {
       lines.push({ level, message: args.map(String).join(' ') });
     };
-  }
+
+  const recorder: ILogger = {
+    for: () => recorder,
+    log: () => {},
+    debug: record('debug'),
+    info: record('info'),
+    warn: record('warn'),
+    error: record('error'),
+    emerg: () => {},
+  };
 
   application.logger = recorder;
 

@@ -1,6 +1,6 @@
 import type { BaseApplication } from '@/base/applications';
 import { ServerBootSteps, type TServerBootStep } from '@/base/applications';
-import type { AnyType, TClass } from '@venizia/ignis-helpers/common';
+import type { IConfigurable, TClass } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { BindingVerifier, isClass } from '@venizia/ignis-inversion';
 import {
@@ -94,8 +94,11 @@ interface IProbeBinding {
 
 interface IDynamicBindingsOptions {
   namespace: string;
-  onBeforeConfigure?: (opts: { binding: Binding<AnyType> }) => Promise<void>;
-  onAfterConfigure?: (opts: { binding: Binding<AnyType>; instance: AnyType }) => Promise<void>;
+  onBeforeConfigure?: (opts: { binding: Binding<IConfigurable> }) => Promise<void>;
+  onAfterConfigure?: (opts: {
+    binding: Binding<IConfigurable>;
+    instance: IConfigurable;
+  }) => Promise<void>;
 }
 
 /** What the helper replaced, so every path puts it back. */
@@ -106,7 +109,7 @@ interface IPatch {
 const matchesTarget = (opts: {
   targets: TBootProbeTarget[];
   binding: IProbeBinding;
-  instance: AnyType;
+  instance: IConfigurable;
 }): boolean => {
   const { targets, binding, instance } = opts;
   const className: string | undefined = instance?.constructor?.name;
@@ -123,7 +126,7 @@ const fail = (message: string): never => {
 };
 
 /** Replaces `object[name]` and returns the way back, even when `name` was inherited. */
-const patchProperty = (opts: { object: AnyType; name: string; value: unknown }): IPatch => {
+const patchProperty = (opts: { object: object; name: string; value: unknown }): IPatch => {
   const { object, name, value } = opts;
   const descriptor = Object.getOwnPropertyDescriptor(object, name);
 
@@ -137,7 +140,7 @@ const patchProperty = (opts: { object: AnyType; name: string; value: unknown }):
         return;
       }
 
-      delete object[name];
+      Reflect.deleteProperty(object, name);
     },
   };
 };
@@ -328,7 +331,7 @@ export class ApplicationBootAssertion {
 
     const neutralise = async (entry: {
       namespace: string;
-      binding: Binding<AnyType>;
+      binding: Binding<IConfigurable>;
     }): Promise<void> => {
       const { namespace, binding } = entry;
       const isDataSource = namespace === BindingNamespaces.DATASOURCE;
@@ -338,7 +341,7 @@ export class ApplicationBootAssertion {
         return;
       }
 
-      const instance = target.get<AnyType>({ key: binding.key, isOptional: false });
+      const instance = target.get<IConfigurable>({ key: binding.key, isOptional: false });
 
       if (typeof instance?.configure !== 'function') {
         return;
@@ -370,7 +373,7 @@ export class ApplicationBootAssertion {
           await neutralise({ namespace: sweepOptions.namespace, binding });
 
           if (sweepOptions.namespace === BindingNamespaces.COMPONENT) {
-            const instance = target.get<AnyType>({ key: binding.key, isOptional: true });
+            const instance = target.get<IConfigurable>({ key: binding.key, isOptional: true });
             configuringComponents.push(String(instance?.constructor?.name ?? binding.key));
           }
 

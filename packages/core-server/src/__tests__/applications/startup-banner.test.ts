@@ -4,7 +4,7 @@ import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications';
 import { EnvironmentKeys } from '@/common/environments';
 import { ControllerTransports } from '@venizia/ignis-kernel';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterEach, describe, expect, test } from 'bun:test';
 
 const TEST_CONFIGS: IApplicationConfigs = {
@@ -34,7 +34,7 @@ const captureBanner = (): string[] => {
     lines.push(args.reduce<string>((text, value) => text.replace('%s', String(value)), message));
   };
 
-  application['logger'] = { for: () => ({ info: record, debug: () => {} }) } as AnyType;
+  Reflect.set(application, 'logger', { for: () => ({ info: record, debug: () => {} }) });
   application['printStartUpInfo']({ scope: 'BannerApp' });
 
   return lines;

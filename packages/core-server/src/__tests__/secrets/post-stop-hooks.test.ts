@@ -1,5 +1,4 @@
 import { BaseApplication } from '@/base/applications/base';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
 
 class ProbeApp extends BaseApplication {
@@ -8,7 +7,7 @@ class ProbeApp extends BaseApplication {
   }
 
   override getAppInfo() {
-    return { name: 'probe', version: '0', description: '' } as AnyType;
+    return { name: 'probe', version: '0', description: '' };
   }
 
   override staticConfigure() {}

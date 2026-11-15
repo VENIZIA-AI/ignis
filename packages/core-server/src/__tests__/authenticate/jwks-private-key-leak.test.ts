@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { exportJWK, generateKeyPair, importJWK } from 'jose';
+import { exportJWK, generateKeyPair, importJWK, type JWK } from 'jose';
 import { JWKSIssuerTokenService } from '@/components/auth/authenticate/services/bearer/jwks/issuer.service';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 
 /**
  * `/certs` is served without authentication, so anything that reaches its document is public by
@@ -12,10 +11,12 @@ import type { AnyType } from '@venizia/ignis-helpers/common';
  * reach that state, because `importSPKI` rejects a private PEM outright.
  */
 
-const buildService = (): AnyType => {
+const assertPublicJWK = (jwk: JWK): void => {
   // Constructed without options: only the pure key-material guard is under test, and reaching it
   // through `initialize()` would need real files and a bound container.
-  return Object.create(JWKSIssuerTokenService.prototype) as AnyType;
+  const service: JWKSIssuerTokenService = Object.create(JWKSIssuerTokenService.prototype);
+
+  service['assertPublicJWK']({ jwk });
 };
 
 describe('a private key can never reach the JWKS document', () => {
@@ -27,8 +28,8 @@ describe('a private key can never reach the JWKS document', () => {
 
     // This is the raw jose behaviour the guard exists to stop, asserted so the test explains itself
     // if jose ever changes it.
-    const imported = await importJWK({ ...privateJwk, ext: true } as AnyType, 'EdDSA');
-    const exported = await exportJWK(imported as AnyType);
+    const imported = await importJWK({ ...privateJwk, ext: true }, 'EdDSA');
+    const exported = await exportJWK(imported);
 
     expect(exported.d).toBeDefined();
   });
@@ -37,17 +38,17 @@ describe('a private key can never reach the JWKS document', () => {
     const { privateKey } = await generateKeyPair('EdDSA', { extractable: true });
     const privateJwk = await exportJWK(privateKey);
 
-    expect(() => buildService().assertPublicJWK({ jwk: privateJwk })).toThrow(/PRIVATE members/);
+    expect(() => assertPublicJWK(privateJwk)).toThrow(/PRIVATE members/);
   });
 
   test('the guard names the members it found, so the operator can see which field is wrong', async () => {
     const { privateKey } = await generateKeyPair('RS256', { extractable: true });
     const privateJwk = await exportJWK(privateKey);
 
-    let caught: AnyType;
+    let caught: unknown;
 
     try {
-      buildService().assertPublicJWK({ jwk: privateJwk });
+      assertPublicJWK(privateJwk);
     } catch (error) {
       caught = error;
     }
@@ -63,12 +64,10 @@ describe('a private key can never reach the JWKS document', () => {
     const publicJwk = await exportJWK(publicKey);
 
     expect(publicJwk.d).toBeUndefined();
-    expect(() => buildService().assertPublicJWK({ jwk: publicJwk })).not.toThrow();
+    expect(() => assertPublicJWK(publicJwk)).not.toThrow();
   });
 
   test('a symmetric key is refused too - `k` is the whole secret', () => {
-    expect(() => buildService().assertPublicJWK({ jwk: { kty: 'oct', k: 'c2VjcmV0' } })).toThrow(
-      /PRIVATE members/,
-    );
+    expect(() => assertPublicJWK({ kty: 'oct', k: 'c2VjcmV0' })).toThrow(/PRIVATE members/);
   });
 });

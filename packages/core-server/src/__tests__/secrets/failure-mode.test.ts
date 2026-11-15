@@ -1,5 +1,4 @@
 import { BaseApplication } from '@/base/applications/base';
-import { type AnyType } from '@venizia/ignis-helpers/common';
 import { SecretProviders, type ISecretsRegistration } from '@venizia/ignis-helpers';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
@@ -10,7 +9,7 @@ class FailingSecretsApp extends BaseApplication {
   }
 
   override getAppInfo() {
-    return { name: 'probe', version: '0', description: '' } as AnyType;
+    return { name: 'probe', version: '0', description: '' };
   }
 
   override staticConfigure() {}

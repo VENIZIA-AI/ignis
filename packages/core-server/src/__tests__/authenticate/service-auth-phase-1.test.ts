@@ -8,7 +8,7 @@ import {
   type TAuthStrategy,
   type TContext,
 } from '@venizia/ignis-kernel';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import { BaseRestController } from '@/base/controllers';
 
 /**
  * The open strategy type, and the registry that is the only source of truth for a strategy name.
@@ -36,7 +36,7 @@ describe('a third strategy name typechecks with no cast', () => {
    * `scripts/rebuild.sh` type-checks `__tests__`, so a narrowed alias fails the build here.
    */
   test('an application name sits alongside the built-ins in a strategy list', () => {
-    // Typed as TAuthStrategy[] ON PURPOSE. `AnyType` here would make the test a tautology: it would
+    // Typed as TAuthStrategy[] ON PURPOSE. `any` here would make the test a tautology: it would
     // still compile against the narrow `'basic' | 'jwt'` alias, so it would prove nothing about the
     // widening it claims to pin.
     const strategies: TAuthStrategy[] = [AuthenticateStrategy.JWT, 'service'];
@@ -160,9 +160,7 @@ describe('a route naming an unregistered strategy still builds', () => {
       strategies: [{ name: 'service-jwt', strategy: ServiceStrategy }],
     });
 
-    const { AbstractRestController } = await import('@venizia/ignis-kernel');
-
-    class ProbeController extends (AbstractRestController as AnyType) {
+    class ProbeController extends BaseRestController {
       constructor() {
         super({ scope: 'ProbeController', path: '/probe' });
       }
@@ -170,12 +168,17 @@ describe('a route naming an unregistered strategy still builds', () => {
       async binding(): Promise<void> {}
     }
 
-    const controller = new ProbeController() as AnyType;
+    const controller = new ProbeController();
 
     // 'jwt' is what the framework's own auth controller asks for, and it is not registered here.
     expect(() =>
       controller.buildRouteMiddlewares({
-        configs: { authenticate: { strategies: ['jwt'] } },
+        configs: {
+          method: 'get',
+          path: '/probe',
+          responses: {},
+          authenticate: { strategies: ['jwt'] },
+        },
       }),
     ).not.toThrow();
   });

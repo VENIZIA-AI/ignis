@@ -4,8 +4,7 @@ import { exportPKCS8, exportSPKI, generateKeyPair, SignJWT } from 'jose';
 import type { CryptoKey } from 'jose';
 import { JWKSIssuerTokenService } from '@/components/auth/authenticate/services/bearer/jwks/issuer.service';
 import { JWKSVerifierTokenService } from '@/components/auth/authenticate/services/bearer/jwks/verifier.service';
-import type { IJWTTokenPayload } from '@venizia/ignis-kernel';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { IJWKSIssuerOptions, IJWTTokenPayload } from '@venizia/ignis-kernel';
 
 /**
  * The JWKS pair: the issuer stamps and requires `claims` and pins the algorithm it signs with; the verifier
@@ -16,12 +15,12 @@ const CLAIMS = { issuer: 'identity', audience: 'inventory' };
 const REFUSED = /Invalid or expired token/;
 
 let privateKey: CryptoKey;
-let issuerOptions: AnyType;
+let issuerOptions: IJWKSIssuerOptions;
 let server: ReturnType<typeof Bun.serve>;
 let jwksUrl: string;
 
 const buildIssuer = (overrides?: Record<string, unknown>) =>
-  new JWKSIssuerTokenService({ ...issuerOptions, ...overrides } as AnyType);
+  new JWKSIssuerTokenService({ ...issuerOptions, ...overrides });
 
 const buildVerifier = (overrides?: Record<string, unknown>) =>
   new JWKSVerifierTokenService({
@@ -30,7 +29,7 @@ const buildVerifier = (overrides?: Record<string, unknown>) =>
     claims: CLAIMS,
     verify: { algorithms: ['ES256'] },
     ...overrides,
-  } as AnyType);
+  });
 
 const payload = (): IJWTTokenPayload => ({ userId: 1, roles: [] }) as unknown as IJWTTokenPayload;
 

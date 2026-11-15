@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis/static-asset, from the built declar
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-58 exports, 58 with TSDoc.
+59 exports, 59 with TSDoc.
 
 ## `BaseMetaLinkModel`
 
@@ -599,6 +599,44 @@ export declare class BaseMetaLinkRepository extends DefaultCRUDRepository<typeof
 ```
 
 Source: `packages/core-server/src/components/static-asset/repositories/base.repository.ts`
+
+## `IMetaLinkRepository`
+
+*interface*
+
+The repository verbs the component calls, on MetaLink rows. A `DefaultCRUDRepository` over any `TMetaLinkCompatibleSchema` table satisfies it, and so does a small fake in a test.
+
+```ts
+export interface IMetaLinkRepository {
+    create(opts: {
+        data: TTableInsert<TMetaLinkSchema>;
+    }): Promise<{
+        count: number;
+        data: TMetaLink;
+    }>;
+    updateBy(opts: {
+        data: Partial<TTableInsert<TMetaLinkSchema>>;
+        where: TWhere<TMetaLink>;
+    }): Promise<{
+        count: number;
+        data: TMetaLink[] | null;
+    }>;
+    updateById(opts: {
+        id: string;
+        data: Partial<TTableInsert<TMetaLinkSchema>>;
+    }): Promise<{
+        count: number;
+        data: TMetaLink;
+    }>;
+    deleteBy(opts: {
+        where: TWhere<TMetaLink>;
+    }): Promise<{
+        count: number;
+    }>;
+}
+```
+
+Source: `packages/core-server/src/components/static-asset/common/types.ts`
 
 ## `IStaticAssetCommitResult`
 
@@ -1627,7 +1665,7 @@ The MetaLink table belongs to the application. `Schema` defaults to the table IG
 
 ```ts
 export type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
-    repository: TValueOrAsyncResolver<DefaultCRUDRepository<Schema>>;
+    repository: TValueOrAsyncResolver<IMetaLinkRepository>;
     createMetaLink?: (opts: {
         uploadResult: IUploadResult;
         fileStat: IFileStat;

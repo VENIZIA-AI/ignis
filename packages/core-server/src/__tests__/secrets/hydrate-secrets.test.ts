@@ -1,6 +1,5 @@
 import { BaseApplication } from '@/base/applications/base';
 import { CoreBindings } from '@venizia/ignis-kernel';
-import { type AnyType } from '@venizia/ignis-helpers/common';
 import {
   applicationEnvironment,
   SecretProviders,
@@ -14,7 +13,7 @@ class HydrateApp extends BaseApplication {
   }
 
   override getAppInfo() {
-    return { name: 'probe', version: '0', description: '' } as AnyType;
+    return { name: 'probe', version: '0', description: '' };
   }
 
   override staticConfigure() {}

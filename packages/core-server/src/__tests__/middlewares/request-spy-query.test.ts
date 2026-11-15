@@ -1,23 +1,26 @@
 import { describe, expect, test } from 'bun:test';
 import { Hono } from 'hono';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { RedactUtility } from '@venizia/ignis-helpers/common';
+import type { ILogger } from '@venizia/ignis-helpers/core';
 import { RequestSpyMiddleware } from '@/base/middlewares/request-spy/request-spy.middleware';
 
 /** The query string is logged on every request in every environment: credential-looking parameters must not reach the line. */
 const logRequest = async (url: string): Promise<string> => {
   const middleware = new RequestSpyMiddleware();
-  const captured: AnyType[][] = [];
+  const captured: unknown[][] = [];
 
-  (middleware as AnyType).logger = {
-    info: (...args: AnyType[]) => {
+  const logger: ILogger = {
+    info: (...args: unknown[]) => {
       captured.push(args);
     },
     error: () => {},
     warn: () => {},
     debug: () => {},
-    trace: () => {},
+    emerg: () => {},
+    log: () => {},
+    for: () => logger,
   };
+  middleware.logger = logger;
 
   const application = new Hono();
   application.use(middleware.value());

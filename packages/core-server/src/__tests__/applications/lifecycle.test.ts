@@ -5,7 +5,7 @@ import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications'
 import { BindingNamespaces } from '@venizia/ignis-kernel';
 import { RequestTrackerComponent } from '@/components';
 import { BindingKeys, BindingScopes } from '@venizia/ignis-kernel';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
@@ -273,7 +273,7 @@ describe('BaseApplication - stop()', () => {
         }),
     };
 
-    application['serverInstance'] = instance as AnyType;
+    Reflect.set(application, 'serverInstance', instance);
 
     await application.stop();
 
@@ -287,9 +287,9 @@ describe('BaseApplication - stop()', () => {
       config: buildConfigs(),
     });
 
-    application['serverInstance'] = {
+    Reflect.set(application, 'serverInstance', {
       stop: () => Promise.reject(getError({ message: 'server was not running' })),
-    } as AnyType;
+    });
 
     let stopResult: unknown;
 

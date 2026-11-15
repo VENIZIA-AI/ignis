@@ -77,7 +77,9 @@ describe('CrudControllerFactory.build - generated routes', () => {
     @controller({ path: '/accounts' })
     class AccountController extends AccountCrudController {}
 
-    const restController = new AccountController(fakeCrudRepository({ records: [] }));
+    const restController = new AccountController(
+      fakeCrudRepository({ repository: CrudFactoryAccountRepository, records: [] }),
+    );
     await restController.configure();
 
     expect(mountedRoutes({ router: restController.getRouter() })).toEqual(
@@ -108,7 +110,9 @@ describe('CrudControllerFactory.build - generated routes', () => {
     @controller({ path: '/accounts' })
     class ReadController extends ReadCrudController {}
 
-    const restController = new ReadController(fakeCrudRepository({ records: [] }));
+    const restController = new ReadController(
+      fakeCrudRepository({ repository: CrudFactoryAccountRepository, records: [] }),
+    );
     await restController.configure();
 
     expect(mountedRoutes({ router: restController.getRouter() })).toEqual(
@@ -125,7 +129,9 @@ describe('CrudControllerFactory.build - generated routes', () => {
     @controller({ path: '/accounts' })
     class ListedController extends ListedCrudController {}
 
-    const restController = new ListedController(fakeCrudRepository({ records: [] }));
+    const restController = new ListedController(
+      fakeCrudRepository({ repository: CrudFactoryAccountRepository, records: [] }),
+    );
     await restController.configure();
 
     expect(mountedRoutes({ router: restController.getRouter() })).toEqual(
@@ -141,7 +147,9 @@ describe('CrudControllerFactory.build - generated routes', () => {
     @controller({ path: '/accounts' })
     class BareController extends BareCrudController {}
 
-    const restController = new BareController(fakeCrudRepository({ records: [] }));
+    const restController = new BareController(
+      fakeCrudRepository({ repository: CrudFactoryAccountRepository, records: [] }),
+    );
     await restController.configure();
 
     expect(mountedRoutes({ router: restController.getRouter() }).size).toBe(0);
@@ -167,8 +175,12 @@ describe('CrudControllerFactory.build - generated routes', () => {
     @controller({ path: '/accounts' })
     class SecondController extends SecondCrudController {}
 
-    const first = new FirstController(fakeCrudRepository({ records: [] }));
-    const second = new SecondController(fakeCrudRepository({ records: [] }));
+    const first = new FirstController(
+      fakeCrudRepository({ repository: CrudFactoryAccountRepository, records: [] }),
+    );
+    const second = new SecondController(
+      fakeCrudRepository({ repository: CrudFactoryAccountRepository, records: [] }),
+    );
     await first.configure();
     await second.configure();
 
@@ -191,7 +203,10 @@ describe('CrudControllerFactory.build - request schemas', () => {
     class AccountController extends AccountCrudController {}
 
     const restController = new AccountController(
-      fakeCrudRepository({ records: [{ id: 7, email: 'a@b.c' }] }),
+      fakeCrudRepository({
+        repository: CrudFactoryAccountRepository,
+        records: [{ id: 7, email: 'a@b.c' }],
+      }),
     );
     await restController.configure();
 
@@ -213,7 +228,10 @@ describe('CrudControllerFactory.build - request schemas', () => {
     class DocumentController extends DocumentCrudController {}
 
     const restController = new DocumentController(
-      fakeCrudRepository({ records: [{ id: 'doc-1', title: 'x' }] }),
+      fakeCrudRepository({
+        repository: CrudFactoryDocumentRepository,
+        records: [{ id: 'doc-1', title: 'x' }],
+      }),
     );
     await restController.configure();
 
@@ -239,7 +257,10 @@ describe('CrudControllerFactory.build - request schemas', () => {
     class OverriddenController extends OverriddenCrudController {}
 
     const restController = new OverriddenController(
-      fakeCrudRepository({ records: [{ id: 'ext-1', email: 'a@b.c' }] }),
+      fakeCrudRepository({
+        repository: CrudFactoryAccountRepository,
+        records: [{ id: 'ext-1', email: 'a@b.c' }],
+      }),
     );
     await restController.configure();
 
@@ -269,8 +290,12 @@ describe('CrudControllerFactory.build - request schemas', () => {
     @controller({ path: '/accounts' })
     class LooseController extends LooseCrudController {}
 
-    const strict = new StrictController(fakeCrudRepository({ records: [] }));
-    const loose = new LooseController(fakeCrudRepository({ records: [] }));
+    const strict = new StrictController(
+      fakeCrudRepository({ repository: CrudFactoryAccountRepository, records: [] }),
+    );
+    const loose = new LooseController(
+      fakeCrudRepository({ repository: CrudFactoryAccountRepository, records: [] }),
+    );
     await strict.configure();
     await loose.configure();
 
@@ -297,19 +322,21 @@ describe('CrudControllerFactory.build - request schemas', () => {
 describe('CrudControllerFactory.build - bulk where in the query or the body', () => {
   const buildBulkController = async () => {
     const calls: Array<{ verb: string; where: unknown; data?: unknown }> = [];
-    const recordingRepository = {
-      ...fakeCrudRepository({ records: [] }),
-      updateBy: async (updateOpts: { where: unknown; data: unknown }) => {
-        calls.push({ verb: 'updateBy', where: updateOpts.where, data: updateOpts.data });
+    const recordingRepository = Object.assign(
+      fakeCrudRepository({ repository: CrudFactoryAccountRepository, records: [] }),
+      {
+        updateBy: async (updateOpts: { where: unknown; data: unknown }) => {
+          calls.push({ verb: 'updateBy', where: updateOpts.where, data: updateOpts.data });
 
-        return { count: 1, data: [] };
-      },
-      deleteBy: async (deleteOpts: { where: unknown }) => {
-        calls.push({ verb: 'deleteBy', where: deleteOpts.where });
+          return { count: 1, data: [] };
+        },
+        deleteBy: async (deleteOpts: { where: unknown }) => {
+          calls.push({ verb: 'deleteBy', where: deleteOpts.where });
 
-        return { count: 1, data: [] };
+          return { count: 1, data: [] };
+        },
       },
-    };
+    );
 
     const BulkCrudController = CrudControllerFactory.build({
       repository: CrudFactoryAccountRepository,

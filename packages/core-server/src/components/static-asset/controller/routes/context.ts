@@ -2,7 +2,7 @@ import type { BaseRestController, TRouteContext, TRouteHandler } from '@/base/co
 import type { IAuthRouteConfig } from '@/base';
 import type { IBucketRef, IObjectRef } from '@venizia/ignis-helpers';
 import { ResolverUtility } from '@venizia/ignis-helpers/common';
-import type { AnyType, TConstValue } from '@venizia/ignis-helpers/common';
+import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import {
   StaticAssetErrors,
@@ -13,6 +13,7 @@ import type {
   StaticAssetUploadCommitService,
   StaticAssetUploadPolicyService,
 } from '../../services';
+import type { TMetaLinkCompatibleSchema } from '../../models';
 import type { IStaticAssetResolvedEntry } from '../../utilities/entry.utility';
 import { StaticAssetKeyScopeUtility } from '../../utilities/key-scope.utility';
 import type { TStaticAssetRouteOverride } from '../../utilities/route-options.utility';
@@ -30,12 +31,14 @@ export type TStaticAssetFeature = TConstValue<typeof StaticAssetFeatures>;
 
 /** What every route reads: the entry, resolved once, plus what only the running controller has. The table is erased at this seam on purpose: inside the routes every read and write is on MetaLink COLUMNS. */
 export interface IStaticAssetRouteEnv extends Omit<
-  IStaticAssetResolvedEntry<AnyType>,
+  IStaticAssetResolvedEntry<TMetaLinkCompatibleSchema>,
   'directUpload'
 > {
   logger: BaseRestController['logger'];
   /** The resolved options with the services the component bound: the instances an application resolves from the container. */
-  directUpload?: NonNullable<IStaticAssetResolvedEntry<AnyType>['directUpload']> & {
+  directUpload?: NonNullable<
+    IStaticAssetResolvedEntry<TMetaLinkCompatibleSchema>['directUpload']
+  > & {
     policyService: Pick<StaticAssetUploadPolicyService, 'issuePolicies'>;
     commitService: Pick<StaticAssetUploadCommitService, 'commit' | 'validate'>;
   };
