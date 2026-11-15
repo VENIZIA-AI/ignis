@@ -924,7 +924,7 @@ interface ICasbinPolicySource {
   getConnector?(): TCasbinPolicyConnector; // preferred: lazily wires the driver on first read, survives pool rotation
   connector?: TCasbinPolicyConnector;      // back-compat: a pre-wired connector
 }
-type TCasbinPolicyConnector = PgDatabase<PgQueryResultHKT, Record<string, AnyType>>;
+type TCasbinPolicyConnector = PgDatabase<PgQueryResultHKT, Record<string, unknown>>;
 ```
 <!-- docs-code: on -->
 

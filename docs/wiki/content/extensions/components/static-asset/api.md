@@ -188,7 +188,7 @@ See [Direct upload](./direct-upload#options).
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `repository` | `DefaultCRUDRepository<Schema>` or a resolver | - | The repository that writes rows. Required with `use: true`. |
+| `repository` | `IMetaLinkRepository` (a `DefaultCRUDRepository` over a MetaLink-compatible table fits) or a resolver | - | The repository that writes rows. Required with `use: true`. |
 | `createMetaLink` | `({ uploadResult, fileStat, labels }) => ValueOrPromise<{ count, data }>` | a default insert of every standard field | Replaces the insert. |
 
 See [`TMetaLinkConfig`](#tmetalinkconfig) and the [MetaLink SQL schema](#metalink-sql-schema).
@@ -814,7 +814,7 @@ const { upload, stat } = await StaticAssetIngestUtility.fromUrl({
 
 ```typescript
 type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
-  repository: TValueOrAsyncResolver<DefaultCRUDRepository<Schema>>;
+  repository: TValueOrAsyncResolver<IMetaLinkRepository>;
   createMetaLink?: (opts: {
     uploadResult: IUploadResult;
     fileStat: IFileStat;

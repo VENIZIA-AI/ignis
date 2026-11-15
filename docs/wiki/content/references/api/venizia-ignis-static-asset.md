@@ -604,7 +604,7 @@ Source: `packages/core-server/src/components/static-asset/repositories/base.repo
 
 *interface*
 
-The repository verbs the component calls, on MetaLink rows. A `DefaultCRUDRepository` over any `TMetaLinkCompatibleSchema` table satisfies it, and so does a small fake in a test.
+The repository verbs the component calls, on MetaLink rows. A `DefaultCRUDRepository` over any `TMetaLinkCompatibleSchema` table satisfies it, and so does a small fake in a test. The contract checks the select row only (see the static-asset usage page for what that leaves to the table).
 
 ```ts
 export interface IMetaLinkRepository {

@@ -189,7 +189,7 @@ export interface IStaticAssetValidateResult<Issue> extends IStaticAssetValidatio
 /** Body of the upload policy route: the files the client intends to upload. */
 export type TStaticAssetUploadPolicyRequest = { files: TStaticAssetUploadPolicyFile[] };
 
-/** The repository verbs the component calls, on MetaLink rows. A `DefaultCRUDRepository` over any `TMetaLinkCompatibleSchema` table satisfies it, and so does a small fake in a test. */
+/** The repository verbs the component calls, on MetaLink rows. A `DefaultCRUDRepository` over any `TMetaLinkCompatibleSchema` table satisfies it, and so does a small fake in a test. The contract checks the select row only (see the static-asset usage page for what that leaves to the table). */
 export interface IMetaLinkRepository {
   create(opts: {
     data: TTableInsert<TMetaLinkSchema>;

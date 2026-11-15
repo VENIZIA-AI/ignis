@@ -95,7 +95,6 @@ export class ApiReferenceComponent extends BaseComponent {
       description: appInfo.description,
       contact: appInfo.author,
     };
-    explorer.info = info;
 
     if (!explorer.servers?.length) {
       explorer.servers = [

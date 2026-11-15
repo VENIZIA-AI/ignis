@@ -48,19 +48,23 @@ migration:
     symbols: [AbstractBearerTokenService.applySignClaims]
     upgrade:
       before: |
-        protected override applySignClaims(opts: { signer: SignJWT; payload: Record<string, any>; claims?: IJWTIssueClaims }) {
-          const tenant: string = opts.payload.tenant.id; // any
-          return super.applySignClaims(opts);
+        // a subclass that calls the protected hook with an interface-typed payload, or overrides it typed on an interface
+        interface ITokenPayload { sub: string; tenant: string }
+        class MyTokenService extends AbstractBearerTokenService {
+          issue(signer: SignJWT, payload: ITokenPayload) {
+            return this.applySignClaims({ signer, payload }); // TS2322 now: no index signature
+          }
         }
       after: |
-        // the payload is Record<string, unknown>: narrow what you read
-        protected override applySignClaims(opts: { signer: SignJWT; payload: Record<string, unknown>; claims?: IJWTIssueClaims }) {
-          const tenant = opts.payload.tenant;
-          return super.applySignClaims(opts);
+        // the payload is Record<string, unknown>: spread the interface value, or declare the shape as a type alias
+        class MyTokenService extends AbstractBearerTokenService {
+          issue(signer: SignJWT, payload: ITokenPayload) {
+            return this.applySignClaims({ signer, payload: { ...payload } });
+          }
         }
     downgrade:
       steps:
-        - "Read the payload properties without a narrow again; the older values were any."
+        - "Pass the interface value directly again; the older payload was Record<string, any>."
 ---
 
 # Changelog - 2026-11-15
@@ -79,7 +83,7 @@ migration:
 
 ## Who is affected
 
-- **Code that types its security schemes as free-form records, or overrides `applySignClaims`.** See the migration above.
+- **Code that types its security schemes as free-form records, or overrides or calls `applySignClaims` with an interface-typed payload.** See the migration above.
 - **Everyone else.** No action needed.
 
 ## Breaking changes
