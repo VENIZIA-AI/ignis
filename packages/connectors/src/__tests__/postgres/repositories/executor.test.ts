@@ -143,9 +143,10 @@ describe('PostgresQueryExecutor', () => {
 
   test('select refuses a projection entry that is not a column or an SQL expression', async () => {
     const { connector } = createFakeConnector();
+    const postgresQueryExecutor = new PostgresQueryExecutor();
 
     await RejectionHelper.expectRejection({
-      task: new PostgresQueryExecutor().select({
+      task: postgresQueryExecutor.select({
         connector: connector as never,
         table: usersTable,
         columns: { id: usersTable.id, bad: 'email' },
