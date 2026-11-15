@@ -1788,7 +1788,7 @@ blank-line-padding-rules:
     steps:
       - Pin @venizia/dev-configs to 0.4.7, which has no padding rules and does not depend on @stylistic/eslint-plugin.
       - "Or stay on the new version and turn the two rules off in a config object after the preset: set '@stylistic/padding-line-between-statements' and '@stylistic/lines-between-class-members' to 'off'."
-  data: Nothing stored changes. houseConfigs, reactHouseConfigs and eslintConfigs report a missing blank line after imports, before a return, between class members and around block-like statements at error, so devz lint fails until you run devz lint --fix. The fix only adds blank lines; commit it apart from other changes. oxlint has no port of these rules.
+  data: Nothing stored changes. houseConfigs, reactHouseConfigs and eslintConfigs report a missing blank line after imports, before a return, between class members and around block-like statements at error, so the lint fails until you run bun run devz lint --fix. The fix only adds blank lines; commit it apart from other changes. oxlint has no port of these rules.
 
 
 any-aliases-removed:

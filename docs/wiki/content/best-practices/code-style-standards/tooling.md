@@ -14,7 +14,7 @@ export default defineConfig(oxlintConfigs);
 > **Bun is the only package manager** - never npm, yarn, or pnpm. **Compile with `tsc` directly**,
 > through a package script; never reach for `npx` or `bun x`.
 >
-> `bunx` is fine for running a one-off CLI that is not a project dependency.
+> `bunx` is only for a scoped or well-known package name, never for `vulcan`, `devz`, `ardor` or `ignis`: those names on npm belong to unrelated packages (see [Run the tools with bun run](#run-the-tools-with-bun-run)).
 
 ## Installation
 
@@ -252,7 +252,11 @@ bun run devz lint
 node_modules/.bin/devz lint
 ```
 
-Use the same form in a Makefile, a git hook and a workflow; inside a `package.json` script the bare `devz` is the linked bin and is fine. Every `devz ...` command on this page runs as `bun run devz ...`. A scoped package (`bun x @venizia/vulcan init`) is ours; pin its version when a command repeats. To drop a copy an earlier run cached, delete `~/.bun/install/cache/.bunx-*/{vulcan,devz,ardor,ignis,vulcan-atlas}@*`.
+`node_modules/.bin/<bin>` is the strict form: `bun run <name>` falls back to your `$PATH` when no local bin matches, so a global copy of the same name would run. Remove any global copy (`bun pm ls -g`, `npm ls -g`).
+
+Use the same form in a Makefile, a git hook and a workflow; inside a `package.json` script the bare `devz` is the linked bin and is fine. Every `devz ...` command on this page runs as `bun run devz ...`. A scoped package (`bun x @venizia/vulcan init`) is ours; pin its version when a command repeats.
+
+To drop a copy an earlier run cached, delete `~/.bun/install/cache/.bunx-*/{vulcan,devz,ardor,ignis,vulcan-atlas}@*` and `~/.npm/_npx/*/node_modules/{vulcan,devz,ardor,ignis}`. If you find one, assume the foreign code ran: check that machine and rotate the tokens it held.
 
 ### The `devz check` commands
 
