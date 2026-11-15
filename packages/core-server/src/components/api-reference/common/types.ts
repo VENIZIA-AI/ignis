@@ -1,6 +1,12 @@
+import type { OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 import type { Context, Next } from 'hono';
 import type { DocumentUITypes } from './constants';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
+
+/** An OpenAPI security scheme (`apiKey`, `http`, `oauth2`, `openIdConnect`) or a reference to one, as the document registry takes it. */
+export type TApiReferenceSecurityScheme = Parameters<
+  typeof OpenAPIRegistry.prototype.registerComponent<'securitySchemes'>
+>[2];
 
 /** One of the `DocumentUITypes` values. */
 export type TDocumentUIType = TConstValue<typeof DocumentUITypes>;
@@ -39,7 +45,7 @@ export interface IApiReferenceOptions {
     }>;
   };
   uiConfig?: Record<string, unknown>;
-  securitySchemes?: Record<string, Record<string, unknown>>;
+  securitySchemes?: Record<string, TApiReferenceSecurityScheme>;
 }
 
 /** Renders the interactive API documentation page for the OpenAPI document. Register an implementation on `UIProviderFactory` to serve a custom UI. */

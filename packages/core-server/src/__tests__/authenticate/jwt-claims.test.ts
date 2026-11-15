@@ -4,7 +4,6 @@ import { decodeJwt, SignJWT } from 'jose';
 import { JWSTokenService } from '@/components/auth/authenticate/services/bearer/jws.service';
 import { AbstractBearerTokenService } from '@/components/auth/authenticate/services/bearer/abstract.service';
 import type { IJWSTokenServiceOptions, IJWTTokenPayload } from '@venizia/ignis-kernel';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 
 /**
  * The `iss` and `aud` of a service are required: stamped on every token it signs, required on every
@@ -28,7 +27,7 @@ const buildService = (overrides?: Partial<IJWSTokenServiceOptions>): JWSTokenSer
   };
 
   // `@inject` is dropped by bun's transpiler, so the options are passed positionally.
-  return new JWSTokenService(options as AnyType);
+  return new JWSTokenService(options);
 };
 
 const basePayload = (): IJWTTokenPayload =>
@@ -183,7 +182,7 @@ describe('a token signed with the same key for another purpose does not authenti
   test('the jose failure survives as `cause`, so aud is distinguishable from expiry', async () => {
     const token = await signedElsewhere({ issuer: 'identity', audience: 'commerce' });
 
-    let caught: AnyType;
+    let caught: unknown;
 
     try {
       await buildService().verify({ type: 'Bearer', token });
@@ -192,8 +191,10 @@ describe('a token signed with the same key for another purpose does not authenti
     }
 
     // jose names the CLAIM: `unexpected "aud" claim value`.
-    expect(String(caught?.cause)).toMatch(/JWTClaimValidationFailed/);
-    expect(String(caught?.cause)).toMatch(/"aud"/);
+    expect(String(caught instanceof Error ? caught.cause : undefined)).toMatch(
+      /JWTClaimValidationFailed/,
+    );
+    expect(String(caught instanceof Error ? caught.cause : undefined)).toMatch(/"aud"/);
   });
 
   test('a token minted for another service by the same config is refused here', async () => {
@@ -452,7 +453,7 @@ describe('hardening: tokens and options that must not pass', () => {
   test.each([['maxTokenAge'], [5], [['maxTokenAge']], [null]])(
     'a verify option that is not an object (%p) refuses the boot',
     (verify) => {
-      expect(refusalOf(() => buildService({ verify: verify as AnyType }))).toContain(
+      expect(refusalOf(() => buildService(JSON.parse(JSON.stringify({ verify }))))).toContain(
         'verify must be an object',
       );
     },
@@ -504,7 +505,7 @@ describe('hardening: tokens and options that must not pass', () => {
     );
 
     test('the cause names the service assertion', async () => {
-      let caught: AnyType;
+      let caught: unknown;
       const token = await withTyp('svc+jwt');
 
       try {
@@ -513,7 +514,9 @@ describe('hardening: tokens and options that must not pass', () => {
         caught = error;
       }
 
-      expect(String(caught?.cause)).toContain('service assertion');
+      expect(String(caught instanceof Error ? caught.cause : undefined)).toContain(
+        'service assertion',
+      );
     });
 
     test('an ordinary typ (JWT) is accepted', async () => {

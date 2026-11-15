@@ -8,8 +8,37 @@ import { MetadataRegistry } from '@venizia/ignis-kernel';
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import { BaseGrpcController } from '@/base/controllers/grpc/base';
 import type { IConnectRpcModule } from '@/base/controllers/grpc/common/types';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { GRPC } from '@venizia/ignis-helpers/common';
+import type { ConnectRouter } from '@connectrpc/connect';
+import type { UniversalHandler } from '@connectrpc/connect/protocol';
+
+/** A router that only records that a service was registered on it. */
+class FakeConnectRouter implements ConnectRouter {
+  readonly handlers: UniversalHandler[] = [];
+
+  constructor(private readonly calls: string[] = []) {}
+
+  service = (): this => {
+    this.calls.push('service');
+
+    return this;
+  };
+
+  rpc = (): this => this;
+}
+
+/** The two protocol conversions the adapter holds on to; neither runs during `configure()`. */
+const buildFakeProtocol = (): IConnectRpcModule['protocol'] => ({
+  universalServerRequestFromFetch: () => ({
+    httpVersion: '1.1',
+    url: 'http://localhost/grpc',
+    method: 'POST',
+    header: new Headers(),
+    body: {},
+    signal: new AbortController().signal,
+  }),
+  universalServerResponseToFetch: () => new Response(),
+});
 
 describe('BaseGrpcController', () => {
   const registry = MetadataRegistry.getInstance();
@@ -323,13 +352,10 @@ describe('BaseGrpcController - ConnectRPC module handed over through the options
           calls.push('createConnectRouter');
           routerOpts.push(opts);
 
-          return { service: () => calls.push('service'), handlers: [] } as AnyType;
+          return new FakeConnectRouter(calls);
         },
       },
-      protocol: {
-        universalServerRequestFromFetch: (() => ({})) as AnyType,
-        universalServerResponseToFetch: (() => new Response()) as AnyType,
-      },
+      protocol: buildFakeProtocol(),
     };
 
     return { module, calls, routerOpts };
@@ -347,7 +373,7 @@ describe('BaseGrpcController - ConnectRPC module handed over through the options
 
     const { module, calls } = buildFakeModule();
     const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
-    ctrl.service = {} as AnyType;
+    ctrl.service = {};
     ctrl.connectRpcModule = module;
 
     await ctrl.configure();
@@ -383,13 +409,10 @@ describe('BaseGrpcController - interceptors from the component options', () => {
         createConnectRouter: (opts) => {
           routerOpts.push(opts);
 
-          return { service: () => {}, handlers: [] } as AnyType;
+          return new FakeConnectRouter();
         },
       },
-      protocol: {
-        universalServerRequestFromFetch: (() => ({})) as AnyType,
-        universalServerResponseToFetch: (() => new Response()) as AnyType,
-      },
+      protocol: buildFakeProtocol(),
     };
 
     await ctrl.configure();
@@ -458,18 +481,15 @@ describe('BaseGrpcController - ConnectRPC peers registered through ModuleUtility
           createConnectRouter: () => {
             calls.push('createConnectRouter');
 
-            return { service: () => calls.push('service'), handlers: [] } as AnyType;
+            return new FakeConnectRouter(calls);
           },
         },
-        '@connectrpc/connect/protocol': {
-          universalServerRequestFromFetch: (() => ({})) as AnyType,
-          universalServerResponseToFetch: (() => new Response()) as AnyType,
-        },
+        '@connectrpc/connect/protocol': buildFakeProtocol(),
       },
     });
 
     const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
-    ctrl.service = {} as AnyType;
+    ctrl.service = {};
     await ctrl.configure();
 
     expect(calls).toEqual(['createConnectRouter', 'service']);

@@ -11,8 +11,9 @@ import {
   type IServerTime,
 } from '@/components/server-info';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import { HTTP, type AnyType, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
+import { readJson, wrongShape } from '../../helpers/json-shape';
 
 const TEST_CONFIGS: IApplicationConfigs = {
   host: '0.0.0.0',
@@ -73,8 +74,7 @@ describe('ServerInfoComponent — GET /server/info/time', () => {
     const after = Date.now();
 
     expect(response.status).toBe(200);
-    const json = await response.json();
-    const body = json as Record<string, AnyType>;
+    const body = await readJson<IServerTime>(response);
 
     expect(Object.keys(body).sort()).toEqual(['server', 'tz', 'utc']);
     expect(Object.keys(body.server).sort()).toEqual(['date', 'epoch', 'iso', 'time']);
@@ -97,8 +97,7 @@ describe('ServerInfoComponent — GET /server/info/time', () => {
     const router = await bootServerInfoApplication();
 
     const response = await router.request('/server/info/time');
-    const json = await response.json();
-    const body = json as IServerTime;
+    const body = await readJson<IServerTime>(response);
 
     expect(Date.parse(body.server.iso)).toBe(body.server.epoch);
     expect(body.utc.iso).toBe(new Date(body.server.epoch).toISOString());
@@ -113,8 +112,7 @@ describe('ServerInfoComponent — GET /server/info/time', () => {
     try {
       process.env.TZ = 'America/New_York';
       const response = await router.request('/server/info/time');
-      const json = await response.json();
-      const body = json as IServerTime;
+      const body = await readJson<IServerTime>(response);
 
       expect(body.tz).toBe('America/New_York');
       // EST or EDT depending on the day the suite runs; never positive.
@@ -182,7 +180,7 @@ describe('ServerInfoComponent — GET /server/info/time', () => {
   });
 
   test('a partial restOptions binding falls back to the default path instead of crashing at boot', async () => {
-    const router = await bootServerInfoApplication({ options: { restOptions: {} as AnyType } });
+    const router = await bootServerInfoApplication({ options: { restOptions: wrongShape({}) } });
 
     const response = await router.request('/server/info/time');
 

@@ -16,8 +16,9 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { beforeEach, describe, expect, test } from 'bun:test';
+import { FakeMetaLinkRepository } from './fake-meta-link.repository';
 import { FakeStorageHelper } from './fake-storage.helper';
 
 const TEST_CONFIGS: IApplicationConfigs = {
@@ -44,70 +45,6 @@ const readJson = async (response: Response): Promise<Record<string, any>> => {
 
   return result as Record<string, any>;
 };
-
-/** Minimal in-memory stand-in for the MetaLink repository (create/findOne/findById/updateById/updateBy/deleteBy). */
-class FakeMetaLinkRepository {
-  readonly rows: Array<Record<string, AnyType>> = [];
-  private sequence = 0;
-
-  async create(opts: { data: Record<string, AnyType> }) {
-    this.sequence += 1;
-    const row = { id: String(this.sequence), ...opts.data };
-    this.rows.push(row);
-
-    return { count: 1, data: row };
-  }
-
-  async findOne(opts: { filter?: { where?: Record<string, AnyType> } }) {
-    const where = opts.filter?.where ?? {};
-
-    return (
-      this.rows.find((row) => Object.entries(where).every(([key, value]) => row[key] === value)) ??
-      null
-    );
-  }
-
-  async findById(opts: { id: string }) {
-    return this.rows.find((row) => row['id'] === opts.id) ?? null;
-  }
-
-  async updateById(opts: { id: string; data: Record<string, AnyType> }) {
-    const row = this.rows.find((item) => item['id'] === opts.id);
-
-    if (!row) {
-      return { count: 0, data: null };
-    }
-
-    Object.assign(row, opts.data);
-
-    return { count: 1, data: row };
-  }
-
-  /** recreate-metalink refreshes every row of a pair through this, not findOne + updateById. */
-  async updateBy(opts: { data: Record<string, AnyType>; where: Record<string, AnyType> }) {
-    const matched = this.rows.filter((row) =>
-      Object.entries(opts.where).every(([key, value]) => row[key] === value),
-    );
-
-    for (const row of matched) {
-      Object.assign(row, opts.data);
-    }
-
-    return { count: matched.length, data: matched };
-  }
-
-  async deleteBy(opts: { where?: Record<string, AnyType> }) {
-    const where = opts.where ?? {};
-    const kept = this.rows.filter(
-      (row) => !Object.entries(where).every(([key, value]) => row[key] === value),
-    );
-    const count = this.rows.length - kept.length;
-    this.rows.length = 0;
-    this.rows.push(...kept);
-
-    return { count, data: null };
-  }
-}
 
 const UUID_SEGMENT = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\//;
 
@@ -268,7 +205,7 @@ describe('StaticAsset controller — path traversal hardening', () => {
     );
 
     for (const call of storageCalls) {
-      const name = String((call as AnyType).args?.name ?? '');
+      const name = String(call.args['name'] ?? '');
 
       // The name that reached storage is the literal, still-encoded string: no `..`, no separator.
       expect(name).not.toContain('..');
@@ -558,7 +495,7 @@ describe('StaticAsset controller — nested folder objects', () => {
     const metaLinkRepository = new FakeMetaLinkRepository();
     const router = await mountAssetController({
       helper,
-      metaLink: { repository: metaLinkRepository as AnyType },
+      metaLink: { repository: metaLinkRepository },
     });
 
     await uploadFiles({
@@ -1497,7 +1434,7 @@ describe('labels travel in the body, and a label in the URL is ignored', () => {
     const metaLinkRepository = new FakeMetaLinkRepository();
     const router = await mountAssetController({
       helper,
-      metaLink: { repository: metaLinkRepository as AnyType },
+      metaLink: { repository: metaLinkRepository },
     });
 
     await uploadFiles({

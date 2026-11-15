@@ -1,7 +1,7 @@
 import { datasource } from '@venizia/ignis-kernel';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { describe, expect, test } from 'bun:test';
 
 class FakePool {
@@ -9,7 +9,7 @@ class FakePool {
   totalCount = 0;
   idleCount = 0;
   waitingCount = 0;
-  constructor(public config: AnyType) {}
+  constructor(public config: object) {}
   async connect() {
     return { query: async () => ({}), release: () => {} };
   }
@@ -24,14 +24,19 @@ class FakePool {
 }
 
 @datasource({ driver: NodePostgresDriver })
-class RotatingDataSource extends BasePostgresDataSource<{ user?: string; password?: string }> {
+class RotatingDataSource extends BasePostgresDataSource<
+  { user?: string; password?: string },
+  TAnyDataSourceSchema,
+  {},
+  FakePool
+> {
   builds: FakePool[] = [];
   constructor() {
     super({ name: 'rotating', config: { user: 'old', password: 'old-pass' } });
   }
 
   configure(): void {
-    const pool = new FakePool(this.getSettings()) as AnyType;
+    const pool = new FakePool(this.getSettings());
     this.builds.push(pool);
     this.client = pool;
   }
@@ -42,10 +47,12 @@ class RotatingDataSource extends BasePostgresDataSource<{ user?: string; passwor
 }
 
 @datasource({ driver: NodePostgresDriver })
-class FailingRotatingDataSource extends BasePostgresDataSource<{
-  user?: string;
-  password?: string;
-}> {
+class FailingRotatingDataSource extends BasePostgresDataSource<
+  { user?: string; password?: string },
+  TAnyDataSourceSchema,
+  {},
+  FakePool
+> {
   builds: FakePool[] = [];
   failNext = false;
   constructor() {
@@ -53,7 +60,7 @@ class FailingRotatingDataSource extends BasePostgresDataSource<{
   }
 
   configure(): void {
-    const pool = new FakePool(this.getSettings()) as AnyType;
+    const pool = new FakePool(this.getSettings());
     this.builds.push(pool);
     this.client = pool;
 
@@ -110,11 +117,11 @@ describe('Postgres onSecretRotated', () => {
 
     // The datasource must be UNCHANGED and still usable on the old pool.
     expect(oldPool.ended).toBe(false);
-    expect(ds.getClient()).toBe(oldPool as AnyType);
+    expect(ds.getClient()).toBe(oldPool);
     expect(() => ds.getConnector()).not.toThrow();
 
     // Old credentials must be restored so a later query/rebuild does not use half-rotated settings.
-    expect((ds.getSettings() as AnyType).user).toBe('old');
-    expect((ds.getSettings() as AnyType).password).toBe('old-pass');
+    expect(ds.getSettings().user).toBe('old');
+    expect(ds.getSettings().password).toBe('old-pass');
   });
 });

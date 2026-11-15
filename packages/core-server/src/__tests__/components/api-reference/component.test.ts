@@ -12,8 +12,9 @@ import {
 } from '@/components/api-reference/common';
 import { UIProviderFactory } from '@/components/api-reference/ui';
 import type { Context } from 'hono';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
+import { readJson, wrongShape } from '../../helpers/json-shape';
 
 const buildConfigs = (opts?: { port?: number }): IApplicationConfigs => ({
   host: '0.0.0.0',
@@ -31,6 +32,13 @@ class TestApplication extends BaseApplication {
   preConfigure() {}
   postConfigure() {}
   setupMiddlewares() {}
+}
+
+/** The part of the served OpenAPI document the tests read. */
+interface IOpenApiDocument {
+  openapi?: string;
+  info: { title: string; version: string };
+  servers: Array<{ url: string }>;
 }
 
 /** Boots an application with the ApiReferenceComponent configured. */
@@ -59,12 +67,11 @@ const bootApiReferenceApplication = async (opts?: {
 const readDocument = async (opts: {
   application: TestApplication;
   path?: string;
-}): Promise<Record<string, AnyType>> => {
+}): Promise<IOpenApiDocument> => {
   const response = await opts.application.getRootRouter().request(opts.path ?? '/doc/openapi.json');
   expect(response.status).toBe(200);
-  const result = await response.json();
 
-  return result as Record<string, AnyType>;
+  return readJson<IOpenApiDocument>(response);
 };
 
 describe('ApiReferenceComponent — options binding', () => {
@@ -107,7 +114,7 @@ describe('ApiReferenceComponent — partial options resilience', () => {
   test('a partial restOptions binding falls back to the defaults', async () => {
     const application = await bootApiReferenceApplication({
       options: {
-        restOptions: { ui: { path: '/explorer', type: DocumentUITypes.SCALAR } } as AnyType,
+        restOptions: { ui: { path: '/explorer', type: DocumentUITypes.SCALAR } },
       },
     });
 
@@ -180,7 +187,7 @@ describe('UIProviderFactory — pluggability', () => {
         restOptions: {
           base: { path: '/doc' },
           doc: { path: '/openapi.json' },
-          ui: { path: '/explorer', type: 'redoc' as AnyType },
+          ui: { path: '/explorer', type: wrongShape('redoc') },
         },
         explorer: { openapi: '3.0.0' },
       },

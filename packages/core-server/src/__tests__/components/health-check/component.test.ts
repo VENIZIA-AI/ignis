@@ -8,17 +8,23 @@ import { HealthCheckComponent } from '@/components/health-check';
 import { HealthCheckBindingKeys, type IHealthCheckOptions } from '@/components/health-check/common';
 import { HealthCheckController } from '@/components/health-check/controller';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { beforeAll, describe, expect, test } from 'bun:test';
+import { readJson, wrongShape } from '../../helpers/json-shape';
 
 /** Applies a method decorator with the legacy call shape `tsc` emits for every consumer app: bun does not resolve the `extends` chain carrying `experimentalDecorators`, so decorator SYNTAX inside this package compiles with TC39 semantics, the decorators reject that shape, and the route is silently dropped. */
 const applyMethodDecorator = (opts: {
-  decorator: AnyType;
+  decorator: (target: object, methodName: string, descriptor: PropertyDescriptor) => void;
   target: object;
   methodName: string;
 }): void => {
   const { decorator, target, methodName } = opts;
   const descriptor = Object.getOwnPropertyDescriptor(target, methodName);
+
+  if (!descriptor) {
+    throw new Error(`[applyMethodDecorator] ${methodName} is not an own member of the target`);
+  }
+
   decorator(target, methodName, descriptor);
 };
 
@@ -98,8 +104,7 @@ describe('HealthCheckComponent — routes', () => {
     });
     expect(response.status).toBe(200);
 
-    const result = await response.json();
-    const body = result as Record<string, AnyType>;
+    const body = await readJson<{ type: string; message: string; date: string }>(response);
     expect(body.type).toBe('PONG');
     expect(body.message).toBe('hello');
     expect(typeof body.date).toBe('string');
@@ -135,7 +140,7 @@ describe('HealthCheckComponent — options resilience', () => {
   });
 
   test('a partial restOptions binding falls back to the default path instead of crashing at boot', async () => {
-    const router = await bootHealthApplication({ options: { restOptions: {} as AnyType } });
+    const router = await bootHealthApplication({ options: { restOptions: wrongShape({}) } });
 
     const response = await router.request('/health');
     expect(response.status).toBe(200);

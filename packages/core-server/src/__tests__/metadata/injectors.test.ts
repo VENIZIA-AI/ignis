@@ -7,7 +7,6 @@ import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import { inject, model, repository } from '@/base/metadata';
 import { BasePostgresDataSource, BasePostgresEntity } from '@venizia/ignis-connectors/postgres';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 
 const registry = MetadataRegistry.getInstance();
 
@@ -45,7 +44,7 @@ const declareParamTypes = (opts: { target: Function; paramTypes: Array<Function>
 };
 
 const applyParamInject = (opts: { target: Function; index: number; key: string }): void => {
-  (inject({ key: opts.key }) as AnyType)(opts.target, undefined, opts.index);
+  inject({ key: opts.key })(opts.target, undefined, opts.index);
 };
 
 describe('@repository - datasource auto-injection at param[0]', () => {
@@ -217,11 +216,18 @@ describe('@repository - datasource auto-injection at param[0]', () => {
     class NoDataSourceRepository {}
 
     expect(() => {
-      repository({ dataSource: InjectorPrimaryDataSource } as AnyType)(NoModelRepository);
+      // Reflect.apply takes untyped arguments: the missing `model` is what this test feeds on purpose.
+      const decorate: ClassDecorator = Reflect.apply(repository, undefined, [
+        { dataSource: InjectorPrimaryDataSource },
+      ]);
+      decorate(NoModelRepository);
     }).toThrow(/Missing 'model'/);
 
     expect(() => {
-      repository({ model: InjectorAccount } as AnyType)(NoDataSourceRepository);
+      const decorate: ClassDecorator = Reflect.apply(repository, undefined, [
+        { model: InjectorAccount },
+      ]);
+      decorate(NoDataSourceRepository);
     }).toThrow(/Missing 'dataSource'/);
   });
 });
@@ -232,7 +238,7 @@ describe('@inject - property injection', () => {
       dataSource!: InjectorPrimaryDataSource;
     }
 
-    (inject({ key: 'datasources.InjectorPrimaryDataSource' }) as AnyType)(
+    inject({ key: 'datasources.InjectorPrimaryDataSource' })(
       PropertyInjectedService.prototype,
       'dataSource',
       undefined,
@@ -250,7 +256,7 @@ describe('@inject - property injection', () => {
 
   test('@inject outside a property or constructor parameter is rejected', () => {
     expect(() => {
-      (inject({ key: 'datasources.InjectorPrimaryDataSource' }) as AnyType)(
+      inject({ key: 'datasources.InjectorPrimaryDataSource' })(
         class Orphan {},
         undefined,
         undefined,

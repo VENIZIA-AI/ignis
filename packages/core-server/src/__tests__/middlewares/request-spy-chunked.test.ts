@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test';
 import { OpenAPIHono } from '@hono/zod-openapi';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { LoggerFactory } from '@venizia/ignis-helpers';
 import { AppErrorMiddleware } from '@/base/middlewares/app-error/app-error.middleware';
@@ -33,13 +32,15 @@ const postChunked = async (opts: { body: string; contentType: string }) => {
     },
   });
 
-  return buildServer().request('/echo', {
+  const init: RequestInit = {
     method: 'POST',
     headers: { [HTTP.Headers.CONTENT_TYPE]: contentType },
     body: stream,
     // Required by the runtime for a streamed request body.
     duplex: 'half',
-  } as AnyType);
+  };
+
+  return buildServer().request('/echo', init);
 };
 
 describe('RequestSpyMiddleware - a chunked body is still parsed', () => {

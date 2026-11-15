@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-107 exports, 107 with TSDoc. 978 more are re-exported from other entries (listed at the end).
+108 exports, 108 with TSDoc. 978 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -104,7 +104,7 @@ export declare abstract class AbstractBearerTokenService<E extends Env = Env> ex
      */
     protected applySignClaims(opts: {
         signer: SignJWT;
-        payload: Record<string, any>;
+        payload: Record<string, unknown>;
         claims?: IJWTIssueClaims;
     }): SignJWT;
     decryptPayload(opts: {
@@ -1348,7 +1348,7 @@ export interface IApiReferenceOptions {
         }>;
     };
     uiConfig?: Record<string, unknown>;
-    securitySchemes?: Record<string, Record<string, unknown>>;
+    securitySchemes?: Record<string, TApiReferenceSecurityScheme>;
 }
 ```
 
@@ -2902,6 +2902,18 @@ export declare class SwaggerUIProvider extends BaseHelper implements IUIProvider
 
 Source: `packages/core-server/src/components/api-reference/ui/swagger.ts`
 
+## `TApiReferenceSecurityScheme`
+
+*type*
+
+An OpenAPI security scheme (`apiKey`, `http`, `oauth2`, `openIdConnect`) or a reference to one, as the document registry takes it.
+
+```ts
+export type TApiReferenceSecurityScheme = Parameters<typeof OpenAPIRegistry.prototype.registerComponent<'securitySchemes'>>[2];
+```
+
+Source: `packages/core-server/src/components/api-reference/common/types.ts`
+
 ## `TBunServerInstance`
 
 *type*
@@ -2921,7 +2933,7 @@ Source: `packages/core-server/src/base/applications/server.ts`
 Drizzle connector for policy queries, typed on the shared `PgDatabase` base so postgres-js fits too. Declared here rather than imported from `@/connectors/postgres`: components depend on a minimal local contract, never a connector class.
 
 ```ts
-export type TCasbinPolicyConnector = PgDatabase<PgQueryResultHKT, Record<string, AnyType>>;
+export type TCasbinPolicyConnector = PgDatabase<PgQueryResultHKT, Record<string, unknown>>;
 ```
 
 Source: `packages/core-server/src/components/auth/authorize/adapters/common/types.ts`

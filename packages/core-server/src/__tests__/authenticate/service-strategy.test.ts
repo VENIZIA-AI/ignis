@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { exportPKCS8, exportSPKI, generateKeyPair } from 'jose';
+import { Context, type Env } from 'hono';
 import {
   AuthenticateStrategy,
   Authentication,
@@ -10,7 +11,6 @@ import {
 import { ServiceAssertionSignerService } from '@/components/auth/authenticate/services/service/signer.service';
 import { ServiceAssertionVerifierService } from '@/components/auth/authenticate/services/service/verifier.service';
 import { ServiceAuthenticationStrategy } from '@/components/auth/authenticate/strategies/service.strategy';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
 
 /**
@@ -21,14 +21,15 @@ import { RejectionHelper } from '@venizia/dev-configs/testing';
 const CALLER = 'commerce';
 const CALLEE = 'pricing';
 
-const buildContext = (opts: { url: string; method: string; token?: string }) =>
-  ({
-    req: {
-      url: opts.url,
-      method: opts.method,
-      header: (name: string) => (name === ServiceAssertion.HEADER ? opts.token : undefined),
-    },
-  }) as AnyType;
+const buildContext = (opts: { url: string; method: string; token?: string }): Context<Env> => {
+  const headers = new Headers();
+
+  if (opts.token !== undefined) {
+    headers.set(ServiceAssertion.HEADER, opts.token);
+  }
+
+  return new Context<Env>(new Request(opts.url, { method: opts.method, headers }));
+};
 
 const buildStack = async (opts: { resolvePrincipal: IServiceAuthOptions['resolvePrincipal'] }) => {
   const { privateKey, publicKey } = await generateKeyPair(ServiceAssertion.ALGORITHM, {
@@ -48,7 +49,7 @@ const buildStack = async (opts: { resolvePrincipal: IServiceAuthOptions['resolve
     name: CALLER,
     keys,
     resolvePrincipal: async () => ({ userId: 1 }),
-  } as AnyType);
+  });
 
   const server = Bun.serve({
     port: 0,
@@ -66,8 +67,8 @@ const buildStack = async (opts: { resolvePrincipal: IServiceAuthOptions['resolve
   };
 
   const strategy = new ServiceAuthenticationStrategy(
-    new ServiceAssertionVerifierService(options as AnyType),
-    options as AnyType,
+    new ServiceAssertionVerifierService(options),
+    options,
   );
 
   return { signer, strategy, server };
@@ -140,7 +141,7 @@ describe('the strategy validates what the application hands back', () => {
    */
   test('a principal with no userId is refused', async () => {
     const { signer, strategy, server } = await buildStack({
-      resolvePrincipal: async () => ({ roles: [] }) as AnyType,
+      resolvePrincipal: async () => JSON.parse('{"roles":[]}'),
     });
 
     const token = await signer.sign({ method: 'GET', path: '/v1/api/x', audience: CALLEE });

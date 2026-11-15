@@ -18,8 +18,7 @@ import type {
 } from '@venizia/ignis-kernel';
 import { AuthorizationEnforcerRegistry, MetadataRegistry } from '@venizia/ignis-kernel';
 import { BaseHelper } from '@venizia/ignis-helpers/core';
-import type { AnyType } from '@venizia/ignis-helpers/common';
-import type { Env } from 'hono';
+import { Context, type Env, type MiddlewareHandler } from 'hono';
 
 /**
  * One Hono context carries one middleware PER SPEC, so everything a spec writes there is visible to
@@ -27,6 +26,11 @@ import type { Env } from 'hono';
  * the authorize suite if they were reverted - nothing else registers two enforcers on one request,
  * or resolves one enforcer concurrently.
  */
+
+/** The rule set the probe enforcers build: it may name its owner, so borrowing another enforcer's is visible. */
+interface IProbeRules {
+  ownedBy?: string;
+}
 
 /** Records what each enforcer was actually asked, so a leak shows up as the WRONG input, not a decision. */
 interface IRecordingEnforcerState {
@@ -50,7 +54,7 @@ const createRecordingEnforcer = (opts: {
 
   class RecordingEnforcer
     extends BaseHelper
-    implements IAuthorizationEnforcer<Env, AnyType, AnyType, AnyType>
+    implements IAuthorizationEnforcer<Env, string, string, IProbeRules>
   {
     name = opts.name;
 
@@ -67,7 +71,7 @@ const createRecordingEnforcer = (opts: {
       await new Promise((resolve) => setTimeout(resolve, opts.configureDelayMs ?? 5));
     }
 
-    async buildRules(): Promise<AnyType> {
+    async buildRules(): Promise<IProbeRules> {
       state.buildRulesCalls += 1;
 
       // A rule set that names its owner, so borrowing another enforcer's is visible.
@@ -75,7 +79,7 @@ const createRecordingEnforcer = (opts: {
     }
 
     async evaluate(evaluateOpts: {
-      rules: AnyType;
+      rules: IProbeRules;
       request: IAuthorizationRequest;
       context: TContext;
     }): Promise<TAuthorizationDecision> {
@@ -96,24 +100,17 @@ const createRecordingEnforcer = (opts: {
   return { RecordingEnforcer, state };
 };
 
-const createContext = (user: IAuthUser & { principalType?: string }) => {
-  const store = new Map<string, unknown>();
-  store.set(Authentication.CURRENT_USER, { principalType: 'user', ...user });
+const createContext = (user: IAuthUser & { principalType?: string }): Context<Env> => {
+  const context = new Context<Env>(new Request('http://localhost/test'));
+  context.set(Authentication.CURRENT_USER, { principalType: 'user', ...user });
 
-  return {
-    get: (key: string) => store.get(key),
-    set: (key: string, value: unknown) => store.set(key, value),
-    req: {
-      path: '/test',
-      param: () => undefined,
-      header: () => undefined,
-      query: () => undefined,
-    },
-    _store: store,
-  };
+  return context;
 };
 
-const run = async (middleware: AnyType, context: AnyType): Promise<{ error?: unknown }> => {
+const run = async (
+  middleware: MiddlewareHandler<Env>,
+  context: Context<Env>,
+): Promise<{ error?: unknown }> => {
   try {
     await middleware(context, async () => {});
 
@@ -164,7 +161,8 @@ describe('per-request authorization state is not shared across specs', () => {
       ],
     });
 
-    const context = createContext({ id: 1, userId: 1 } as AnyType);
+    const user = { id: 1, userId: 1 };
+    const context = createContext(user);
 
     const first = authorize({
       spec: { action: 'read', resource: 'User' },
@@ -223,7 +221,8 @@ describe('per-request authorization state is not shared across specs', () => {
       ],
     });
 
-    const context = createContext({ id: 1, userId: 1 } as AnyType);
+    const user = { id: 1, userId: 1 };
+    const context = createContext(user);
 
     const scoped = authorize({
       spec: {
@@ -302,7 +301,7 @@ describe('AuthorizationEnforcerRegistry warms an enforcer once', () => {
 
     class FlakyEnforcer
       extends BaseHelper
-      implements IAuthorizationEnforcer<Env, AnyType, AnyType, AnyType>
+      implements IAuthorizationEnforcer<Env, string, string, IProbeRules>
     {
       name = 'flaky';
 
@@ -319,7 +318,7 @@ describe('AuthorizationEnforcerRegistry warms an enforcer once', () => {
         }
       }
 
-      async buildRules(): Promise<AnyType> {
+      async buildRules(): Promise<IProbeRules> {
         return {};
       }
 

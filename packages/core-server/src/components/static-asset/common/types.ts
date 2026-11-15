@@ -1,7 +1,8 @@
 import type { BaseRestController, IAuthRouteConfig, TRouteAuthConfig, TRouteContext } from '@/base';
 import type { z } from '@hono/zod-openapi';
 import type { IDuration } from '@venizia/ignis-helpers/common';
-import type { DefaultCRUDRepository, TTableObject } from '@venizia/ignis-connectors/postgres';
+import type { TTableInsert, TTableObject } from '@venizia/ignis-connectors/postgres';
+import type { TWhere } from '@venizia/ignis-filter';
 import type {
   DiskHelper,
   IBucketRef,
@@ -19,7 +20,7 @@ import type {
   TValueOrAsyncResolver,
   ValueOrPromise,
 } from '@venizia/ignis-helpers/common';
-import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../models';
+import type { TMetaLink, TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../models';
 import type { StaticAssetRouteKeys, TStaticAssetTokenStage } from './constants';
 import type { StaticAssetPinnedFile } from '../utilities/pinned-file.utility';
 
@@ -188,9 +189,25 @@ export interface IStaticAssetValidateResult<Issue> extends IStaticAssetValidatio
 /** Body of the upload policy route: the files the client intends to upload. */
 export type TStaticAssetUploadPolicyRequest = { files: TStaticAssetUploadPolicyFile[] };
 
+/** The repository verbs the component calls, on MetaLink rows. A `DefaultCRUDRepository` over any `TMetaLinkCompatibleSchema` table satisfies it, and so does a small fake in a test. The contract checks the select row only (see the static-asset usage page for what that leaves to the table). */
+export interface IMetaLinkRepository {
+  create(opts: {
+    data: TTableInsert<TMetaLinkSchema>;
+  }): Promise<{ count: number; data: TMetaLink }>;
+  updateBy(opts: {
+    data: Partial<TTableInsert<TMetaLinkSchema>>;
+    where: TWhere<TMetaLink>;
+  }): Promise<{ count: number; data: TMetaLink[] | null }>;
+  updateById(opts: {
+    id: string;
+    data: Partial<TTableInsert<TMetaLinkSchema>>;
+  }): Promise<{ count: number; data: TMetaLink }>;
+  deleteBy(opts: { where: TWhere<TMetaLink> }): Promise<{ count: number }>;
+}
+
 /** The MetaLink table belongs to the application. `Schema` defaults to the table IGNIS ships, and widens to any table whose row carries the same fields. */
 export type TMetaLinkConfig<Schema extends TMetaLinkCompatibleSchema = TMetaLinkSchema> = {
-  repository: TValueOrAsyncResolver<DefaultCRUDRepository<Schema>>;
+  repository: TValueOrAsyncResolver<IMetaLinkRepository>;
   createMetaLink?: (opts: {
     uploadResult: IUploadResult;
     fileStat: IFileStat;

@@ -3,12 +3,13 @@ import 'reflect-metadata';
 import { BaseApplication } from '@/base/applications';
 import { AuthenticateComponent } from '@/components/auth/authenticate/component';
 import { JWSTokenService } from '@/components/auth/authenticate/services/bearer/jws.service';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   AuthenticateBindingKeys,
   JOSEStandards,
   type IApplicationConfigs,
   type IApplicationInfo,
+  type IJWSTokenServiceOptions,
   type TJWTTokenServiceOptions,
 } from '@venizia/ignis-kernel';
 import { describe, expect, test } from 'bun:test';
@@ -32,13 +33,15 @@ class ProbeApplication extends BaseApplication {
   setupMiddlewares(): void {}
 }
 
+const jwsOptions = (jwtSecret: string): IJWSTokenServiceOptions => ({
+  jwtSecret,
+  getTokenExpiresFn: () => 60,
+  claims: { issuer: 'test-issuer', audience: 'test-audience' },
+});
+
 const jwtOptions = (jwtSecret: string): TJWTTokenServiceOptions => ({
   standard: JOSEStandards.JWS,
-  options: {
-    jwtSecret,
-    getTokenExpiresFn: () => 60,
-    claims: { issuer: 'test-issuer', audience: 'test-audience' },
-  },
+  options: jwsOptions(jwtSecret),
 });
 
 const boot = async (jwtSecret: string): Promise<string | null> => {
@@ -59,9 +62,7 @@ const boot = async (jwtSecret: string): Promise<string | null> => {
 };
 
 const build = (jwtSecret: string): JWSTokenService => {
-  const { options } = jwtOptions(jwtSecret) as { options: AnyType };
-
-  return new JWSTokenService(options);
+  return new JWSTokenService(jwsOptions(jwtSecret));
 };
 
 const refusal = (task: () => unknown): string => {
@@ -118,7 +119,7 @@ describe('the JWT secret has a minimum length', () => {
 
   test('a longer secret signs and verifies a token', async () => {
     const service = build('a-secret-of-forty-characters-for-hs256-ok');
-    const token = await service.generate({ payload: { userId: 1, roles: [] } as AnyType });
+    const token = await service.generate({ payload: { userId: 1, roles: [] } });
 
     const result6 = await service.verify({ type: 'Bearer', token });
     expect(result6.userId).toBe(1);

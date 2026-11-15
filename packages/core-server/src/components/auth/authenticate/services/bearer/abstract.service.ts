@@ -396,7 +396,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
    */
   protected applySignClaims(opts: {
     signer: SignJWT;
-    payload: Record<string, any>;
+    payload: Record<string, unknown>;
     claims?: IJWTIssueClaims;
   }): SignJWT {
     const { signer, payload, claims } = opts;

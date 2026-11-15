@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { Hono } from 'hono';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { ILogger } from '@venizia/ignis-helpers/core';
 import { RequestSpyMiddleware } from '@/base/middlewares/request-spy/request-spy.middleware';
 
 /**
@@ -16,7 +16,7 @@ const BINARY = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0xff, 0xfe, 0x80, 0x00, 0
 
 const buildServer = (opts: {
   environment: string;
-  captured?: AnyType[][];
+  captured?: unknown[][];
   readsBodyFirst?: boolean;
 }) => {
   process.env.NODE_ENV = opts.environment;
@@ -24,13 +24,18 @@ const buildServer = (opts: {
 
   if (opts.captured) {
     const captured = opts.captured;
-    (middleware as AnyType).logger = {
-      info: (...args: AnyType[]) => captured.push(args),
+    const logger: ILogger = {
+      info: (...args: unknown[]) => {
+        captured.push(args);
+      },
       error: () => {},
       warn: () => {},
       debug: () => {},
-      trace: () => {},
+      emerg: () => {},
+      log: () => {},
+      for: () => logger,
     };
+    middleware.logger = logger;
   }
 
   const server = new Hono();
@@ -116,7 +121,7 @@ describe('RequestSpyMiddleware - bodies it does not parse reach the handler unto
   }
 
   test('development logs a binary body as its size and type, never its bytes', async () => {
-    const captured: AnyType[][] = [];
+    const captured: unknown[][] = [];
 
     await buildServer({ environment: 'development', captured }).request('/upload', {
       method: 'PUT',
@@ -130,7 +135,7 @@ describe('RequestSpyMiddleware - bodies it does not parse reach the handler unto
   });
 
   test('development still logs a text body', async () => {
-    const captured: AnyType[][] = [];
+    const captured: unknown[][] = [];
 
     await buildServer({ environment: 'development', captured }).request('/text', {
       method: 'POST',

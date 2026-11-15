@@ -1,17 +1,21 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import { Context, type Env } from 'hono';
 import { BasicTokenService } from '@/components/auth/authenticate/services/basic/service';
 
 /** The header is attacker-controlled: the parse must be exact (a password containing ':' survives intact) and every rejection IDENTICAL - per-failure-mode messages make the endpoint an oracle. */
 const buildService = () => {
-  return new BasicTokenService({ verifyCredentials: async () => ({ userId: 1 }) } as AnyType);
+  return new BasicTokenService({ verifyCredentials: async () => ({ userId: 1 }) });
 };
 
 /** A context whose only job is to serve one Authorization header. */
-const contextWith = (authorization?: string): AnyType => {
-  return {
-    req: { header: (name: string) => (name === 'Authorization' ? authorization : undefined) },
-  };
+const contextWith = (authorization?: string): Context<Env> => {
+  const headers = new Headers();
+
+  if (authorization !== undefined) {
+    headers.set('Authorization', authorization);
+  }
+
+  return new Context<Env>(new Request('http://localhost/', { headers }));
 };
 
 const basic = (raw: string) => `Basic ${Buffer.from(raw, 'utf-8').toString('base64')}`;

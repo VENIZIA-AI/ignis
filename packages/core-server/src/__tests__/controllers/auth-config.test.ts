@@ -7,7 +7,7 @@ import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import type { TRouteContext } from '@/base/controllers';
 import { BaseRestController } from '@/base/controllers';
 import { RouteConfigResolver } from '@venizia/ignis-kernel';
-import type { TCrudRoutes } from '@venizia/ignis-kernel';
+import type { IAuthRouteConfig, TCrudRoutes } from '@venizia/ignis-kernel';
 import { model } from '@/base/metadata';
 import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { SchemaTypes } from '@venizia/ignis-kernel';
@@ -16,7 +16,7 @@ import { AuthorizationActions } from '@venizia/ignis-kernel';
 import { BasePostgresEntity } from '@venizia/ignis-connectors/postgres';
 import type { TAnyObjectSchema } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 
 const okResponse = OpenApiResponses.jsonResponse({
@@ -77,13 +77,19 @@ const probeController = new AuthProbeController({ scope: 'AuthProbeController', 
 
 /** `getRouteConfigs` is typed as the caller's own RouteConfig; `middleware`/`security` are the fields it injects, so they only exist on the value, never on that type. */
 const injectedRouteConfigs = (
-  configs: AnyType,
+  configs: IAuthRouteConfig | undefined,
 ): {
   middleware?: Array<unknown>;
   security?: Array<Record<string, Array<string>>>;
   tags?: Array<string>;
 } => {
-  return probeController.getRouteConfigs({ configs }) as AnyType;
+  if (!configs) {
+    throw new Error('the route has no definition to process');
+  }
+
+  const { middleware, security, tags } = probeController.getRouteConfigs({ configs });
+
+  return { middleware: Array.isArray(middleware) ? middleware : undefined, security, tags };
 };
 
 describe('Route auth config - controller level vs route level', () => {

@@ -4,7 +4,7 @@ import { BaseApplication } from '@/base/applications';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { AuthControllerFactory } from '@/components/auth/authenticate/controllers';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import type { AnyObject, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   AuthenticationStrategyRegistry,
   BindingKeys,
@@ -61,17 +61,20 @@ class SignedInStrategy implements IAuthenticationStrategy {
 }
 
 class RecordingAuthService implements IAuthService {
-  readonly received: Array<AnyObject> = [];
+  readonly received: Array<Record<string, unknown>> = [];
 
-  async signIn(): Promise<AnyObject> {
+  async signIn(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async signUp(): Promise<AnyObject> {
+  async signUp(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async changePassword(_context: TContext, opts: TChangePasswordRequest): Promise<AnyObject> {
+  async changePassword(
+    _context: TContext,
+    opts: TChangePasswordRequest,
+  ): Promise<Record<string, unknown>> {
     this.received.push(opts);
 
     return { isChanged: true };
@@ -108,7 +111,7 @@ const mountAuthController = async (opts: {
 
 const postChangePassword = async (opts: {
   server: OpenAPIHono;
-  body: AnyObject;
+  body: Record<string, unknown>;
 }): Promise<Response> => {
   return opts.server.request('/auth/change-password', {
     method: 'POST',
@@ -137,7 +140,7 @@ describe('POST /auth/change-password', () => {
 });
 
 describe('ChangePasswordRequestSchema documents what it validates', () => {
-  const documentBody = (): AnyObject => {
+  const documentedSchema = (): { required: string[]; examples: unknown[] } => {
     const application = new OpenAPIHono();
 
     application.openapi(
@@ -157,11 +160,21 @@ describe('ChangePasswordRequestSchema documents what it validates', () => {
       info: { title: 'change-password-probe', version: '1' },
     });
 
-    return document.paths?.['/probe']?.post?.requestBody ?? {};
+    const requestBody = document.paths?.['/probe']?.post?.requestBody;
+    const schema =
+      requestBody && 'content' in requestBody
+        ? requestBody.content['application/json']?.schema
+        : undefined;
+
+    if (!schema || '$ref' in schema) {
+      throw new Error('the probe route documents no inline request body schema');
+    }
+
+    return { required: schema.required ?? [], examples: schema.examples ?? [] };
   };
 
   test('the required list is exactly the fields validation rejects when missing', () => {
-    const schema = documentBody().content['application/json'].schema;
+    const schema = documentedSchema();
 
     const requiredByValidation = Object.keys(VALID_BODY).filter((field) => {
       const withoutField = Object.fromEntries(
@@ -178,7 +191,7 @@ describe('ChangePasswordRequestSchema documents what it validates', () => {
   });
 
   test('every documented example passes validation', () => {
-    const schema = documentBody().content['application/json'].schema;
+    const schema = documentedSchema();
 
     expect(schema.examples.length).toBeGreaterThan(0);
 

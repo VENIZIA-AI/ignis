@@ -1,5 +1,4 @@
 import type { IdType } from '@/base';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 
 /** Filter passed to loadFilteredPolicy: which principal's policies to load. */
@@ -8,7 +7,7 @@ export interface ICasbinPolicyFilter {
 }
 
 /** Drizzle connector for policy queries, typed on the shared `PgDatabase` base so postgres-js fits too. Declared here rather than imported from `@/connectors/postgres`: components depend on a minimal local contract, never a connector class. */
-export type TCasbinPolicyConnector = PgDatabase<PgQueryResultHKT, Record<string, AnyType>>;
+export type TCasbinPolicyConnector = PgDatabase<PgQueryResultHKT, Record<string, unknown>>;
 
 /** Minimal source the adapters depend on - any drizzle-backed datasource satisfies it. */
 export interface ICasbinPolicySource {
