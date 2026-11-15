@@ -9,8 +9,14 @@ import { AnyAliases } from '../cli/codemod/any-aliases';
 const rewrite = (source: string, fileName = 'file.ts') =>
   AnyAliases.rewrite({ typescript: ts, fileName, source });
 
+const rewriteStrict = (source: string, fileName = 'file.ts') =>
+  AnyAliases.rewrite({ typescript: ts, fileName, source, isStrict: true });
+
+const HERITAGE_REASON =
+  'in a heritage clause: extends any, extends unknown and implements are not valid, name the members you mean';
+
 describe('devz codemod any-aliases: the rewrite', () => {
-  test('AnyType becomes unknown and AnyObject becomes Record<string, unknown>, and the import loses the names', () => {
+  test('AnyType becomes any and AnyObject becomes Record<string | symbol | number, any> by default, and the import loses the names', () => {
     const result = rewrite(
       [
         `import type { AnyObject, AnyType, TClass } from '@venizia/ignis-helpers';`,
@@ -24,9 +30,9 @@ describe('devz codemod any-aliases: the rewrite', () => {
     expect(result.output).toBe(
       [
         `import type { TClass } from '@venizia/ignis-helpers';`,
-        `const bag: Record<string, unknown> = {};`,
-        `interface IResult<TData = unknown> { data: TData }`,
-        `const log = (value: unknown, source: Record<string, unknown>): Record<string, unknown>[] => [source];`,
+        `const bag: Record<string, any> = {};`,
+        `interface IResult<TData = any> { data: TData }`,
+        `const log = (value: any, source: Record<string | symbol | number, any>): Record<string | symbol | number, any>[] => [source];`,
         '',
       ].join('\n'),
     );
@@ -46,7 +52,7 @@ describe('devz codemod any-aliases: the rewrite', () => {
         `import { type AnyType } from '${specifier}';\nexport const value: AnyType = 1;\n`,
       );
 
-      expect(result.output).toBe(`export const value: unknown = 1;\n`);
+      expect(result.output).toBe(`export const value: any = 1;\n`);
     }
   });
 
@@ -57,7 +63,7 @@ describe('devz codemod any-aliases: the rewrite', () => {
       );
 
       expect(result.output).toBe(
-        `export const a: unknown = 1;\nexport const b: Record<string, unknown> = {};\n`,
+        `export const a: any = 1;\nexport const b: Record<string | symbol | number, any> = {};\n`,
       );
     }
 
@@ -82,8 +88,8 @@ describe('devz codemod any-aliases: the rewrite', () => {
     expect(result.output).toBe(
       [
         `import Helpers from '@venizia/ignis-helpers';`,
-        `const a: unknown = 1;`,
-        `const b: Record<string, unknown> = {};`,
+        `const a: any = 1;`,
+        `const b: Record<string | symbol | number, any> = {};`,
         '',
       ].join('\n'),
     );
@@ -100,9 +106,9 @@ describe('devz codemod any-aliases: the rewrite', () => {
       ].join('\n'),
     );
 
-    expect(result.output).toContain(`type A = unknown;`);
+    expect(result.output).toContain(`type A = any;`);
     expect(result.output).toContain(
-      `interface IOptions extends Record<string, unknown> { extra: string }`,
+      `interface IOptions extends Record<string | symbol | number, any> { extra: string }`,
     );
     expect(result.output).not.toContain(`import type { AnyObject }`);
   });
@@ -150,7 +156,7 @@ describe('devz codemod any-aliases: the rewrite', () => {
 
     expect(result.manual.map((item) => item.line)).toEqual([2]);
     expect(result.output).toContain(`type A = import('@venizia/ignis-helpers').AnyObject;`);
-    expect(result.output).toContain(`export const a: unknown = 1;`);
+    expect(result.output).toContain(`export const a: any = 1;`);
   });
 
   test('a type parameter named like the alias shadows only its own scope: that use is left and listed, the rest is rewritten', () => {
@@ -169,7 +175,7 @@ describe('devz codemod any-aliases: the rewrite', () => {
         `export const f = <AnyType>(value: AnyType) => value;`,
         `export class Box<AnyType> { value?: AnyType }`,
         `export type Pick2<TValue> = TValue extends Array<infer AnyType> ? AnyType : never;`,
-        `export const outer: unknown = 1;`,
+        `export const outer: any = 1;`,
         '',
       ].join('\n'),
     );
@@ -189,8 +195,8 @@ describe('devz codemod any-aliases: the rewrite', () => {
 
     expect(result.output).toBe(
       [
-        `export type U<TValue> = TValue extends Array<infer AnyType> ? AnyType : unknown;`,
-        `export type Y<TValue> = TValue extends [infer AnyType, unknown] ? 1 : 0;`,
+        `export type U<TValue> = TValue extends Array<infer AnyType> ? AnyType : any;`,
+        `export type Y<TValue> = TValue extends [infer AnyType, any] ? 1 : 0;`,
         '',
       ].join('\n'),
     );
@@ -227,8 +233,8 @@ describe('devz codemod any-aliases: the rewrite', () => {
         `  const value: AnyObject = { id: 1 };`,
         `  return value.id;`,
         `}`,
-        `export const a: unknown = 1;`,
-        `export const b: Record<string, unknown> = {};`,
+        `export const a: any = 1;`,
+        `export const b: Record<string | symbol | number, any> = {};`,
         '',
       ].join('\n'),
     );
@@ -257,11 +263,11 @@ describe('devz codemod any-aliases: the rewrite', () => {
 
     expect(result.manual).toEqual([]);
     expect(result.output).toContain(`interface IChild extends AnyType {}`);
-    expect(result.output).toContain(`export const a: unknown = 1;`);
+    expect(result.output).toContain(`export const a: any = 1;`);
     expect(result.output).not.toContain(`import type`);
   });
 
-  test('AnyType in a heritage clause is manual (extends unknown is invalid) and keeps its import; AnyObject there is rewritten', () => {
+  test('AnyType in a heritage clause is manual (extends any and extends unknown are invalid) and keeps its import; AnyObject there is rewritten', () => {
     const source = [
       `import type { AnyObject, AnyType } from '@venizia/ignis-helpers';`,
       `export interface IBag extends AnyObject { id: string }`,
@@ -273,7 +279,7 @@ describe('devz codemod any-aliases: the rewrite', () => {
 
     expect(result.output).toContain(`import type { AnyType } from '@venizia/ignis-helpers';`);
     expect(result.output).toContain(
-      `export interface IBag extends Record<string, unknown> { id: string }`,
+      `export interface IBag extends Record<string | symbol | number, any> { id: string }`,
     );
     expect(result.output).toContain(`export interface ILoose extends AnyType {}`);
     expect(result.manual.map((item) => item.line)).toEqual([3, 4]);
@@ -290,7 +296,7 @@ describe('devz codemod any-aliases: the rewrite', () => {
     );
 
     expect(result.output).toContain(
-      `export interface IBag extends Record<string, unknown> { id: string }`,
+      `export interface IBag extends Record<string | symbol | number, any> { id: string }`,
     );
     expect(result.output).toContain(`export interface ILoose extends H.AnyType {}`);
     expect(result.manual.map((item) => item.line)).toEqual([3]);
@@ -336,7 +342,7 @@ describe('devz codemod any-aliases: the rewrite', () => {
         `  TClass,`,
         `  TNullable, // nullable`,
         `} from '@venizia/ignis-helpers';`,
-        `export const a: unknown = 1;`,
+        `export const a: any = 1;`,
         '',
       ].join('\n'),
     );
@@ -365,8 +371,8 @@ describe('devz codemod any-aliases: the rewrite', () => {
         `  TNullable, // nullable`,
         `  TValue, // the value`,
         `} from '@venizia/ignis-helpers';`,
-        `export const a: unknown = 1;`,
-        `export const b: Record<string, unknown> = {};`,
+        `export const a: any = 1;`,
+        `export const b: Record<string | symbol | number, any> = {};`,
         '',
       ].join('\n'),
     );
@@ -381,7 +387,7 @@ describe('devz codemod any-aliases: the rewrite', () => {
       ].join('\n'),
     );
 
-    expect(emptied.output).toBe(`export const a: unknown = 1;\n`);
+    expect(emptied.output).toBe(`export const a: any = 1;\n`);
   });
 
   test('two adjacent imports that are both emptied leave no blank line at the top of the file', () => {
@@ -397,9 +403,11 @@ describe('devz codemod any-aliases: the rewrite', () => {
     );
 
     expect(adjacent.output).toBe(
-      [`export const a: unknown = 1;`, `export const b: Record<string, unknown> = {};`, ''].join(
-        '\n',
-      ),
+      [
+        `export const a: any = 1;`,
+        `export const b: Record<string | symbol | number, any> = {};`,
+        '',
+      ].join('\n'),
     );
     expect(rewrite(adjacent.output).changed).toBe(false);
 
@@ -420,14 +428,95 @@ describe('devz codemod any-aliases: the rewrite', () => {
       [
         `import { Other } from './other';`,
         '',
-        `export const a: unknown = Other;`,
-        `export const b: Record<string, unknown> = {};`,
+        `export const a: any = Other;`,
+        `export const b: Record<string | symbol | number, any> = {};`,
         '',
       ].join('\n'),
     );
   });
 
-  test('the rewritten files type-check: no syntax or semantic error is left in the output', () => {
+  test('with isStrict the same source gives unknown and Record<string, unknown>, and a second strict run changes nothing', () => {
+    const source = [
+      `import type { AnyObject, AnyType, TClass } from '@venizia/ignis-helpers';`,
+      `const bag: Record<string, AnyType> = {};`,
+      `interface IResult<TData = AnyType> { data: TData }`,
+      `const log = (value: AnyType, source: AnyObject): AnyObject[] => [source];`,
+      '',
+    ].join('\n');
+    const result = rewriteStrict(source);
+
+    expect(result.output).toBe(
+      [
+        `import type { TClass } from '@venizia/ignis-helpers';`,
+        `const bag: Record<string, unknown> = {};`,
+        `interface IResult<TData = unknown> { data: TData }`,
+        `const log = (value: unknown, source: Record<string, unknown>): Record<string, unknown>[] => [source];`,
+        '',
+      ].join('\n'),
+    );
+    expect(result.rewritten).toBe(5);
+    expect(result.manual).toEqual([]);
+    expect(result.local).toEqual([]);
+
+    const second = rewriteStrict(result.output);
+
+    expect(second.changed).toBe(false);
+    expect(second.output).toBe(result.output);
+    expect(rewrite(result.output).changed).toBe(false);
+  });
+
+  test('the default run is idempotent on every shape it rewrites', () => {
+    const source = [
+      `import * as H from '@venizia/ignis-helpers';`,
+      `import type { AnyObject, AnyType as Loose } from '@venizia/ignis-inversion';`,
+      `export interface IBag extends AnyObject { id: string }`,
+      `export type A = H.AnyType;`,
+      `export const b: Loose = 1;`,
+      '',
+    ].join('\n');
+    const first = rewrite(source);
+    const second = rewrite(first.output);
+
+    expect(first.changed).toBe(true);
+    expect(first.output).toContain(`export type A = any;`);
+    expect(first.output).toContain(`extends Record<string | symbol | number, any>`);
+    expect(second.changed).toBe(false);
+    expect(second.output).toBe(first.output);
+  });
+
+  test('AnyType in a heritage clause is manual in the default and the strict mode, with the same message and the import kept', () => {
+    const source = [
+      `import type { AnyObject, AnyType } from '@venizia/ignis-helpers';`,
+      `import * as H from '@venizia/ignis-helpers';`,
+      `export interface IBag extends AnyObject { id: string }`,
+      `export interface ILoose extends AnyType {}`,
+      `export class Impl implements AnyType {}`,
+      `export interface IQualified extends H.AnyType {}`,
+      '',
+    ].join('\n');
+
+    for (const result of [rewrite(source), rewriteStrict(source)]) {
+      expect(result.output).toContain(`import type { AnyType } from '@venizia/ignis-helpers';`);
+      expect(result.output).toContain(`export interface ILoose extends AnyType {}`);
+      expect(result.output).toContain(`export class Impl implements AnyType {}`);
+      expect(result.output).toContain(`export interface IQualified extends H.AnyType {}`);
+      expect(result.manual.map((item) => item.line)).toEqual([4, 5, 6]);
+      expect(result.manual.map((item) => item.reason)).toEqual([
+        `AnyType ${HERITAGE_REASON}`,
+        `AnyType ${HERITAGE_REASON}`,
+        `H.AnyType ${HERITAGE_REASON}`,
+      ]);
+    }
+
+    expect(rewrite(source).output).toContain(
+      `export interface IBag extends Record<string | symbol | number, any> { id: string }`,
+    );
+    expect(rewriteStrict(source).output).toContain(
+      `export interface IBag extends Record<string, unknown> { id: string }`,
+    );
+  });
+
+  test('the rewritten files type-check, in the default mode and with isStrict: no syntax or semantic error is left in the output', () => {
     const fixture = [
       `import type { AnyObject, AnyType } from '@venizia/ignis-helpers';`,
       `export const bag: Record<string, AnyType> = {};`,
@@ -436,32 +525,40 @@ describe('devz codemod any-aliases: the rewrite', () => {
       `export interface IOptions extends AnyObject { extra: string }`,
       '',
     ].join('\n');
-    const output = rewrite(fixture).output;
-    const fileName = '/virtual/fixture.ts';
-    const options: import('typescript').CompilerOptions = {
-      strict: true,
-      noEmit: true,
-      target: ts.ScriptTarget.ES2022,
-      lib: ['lib.es2022.d.ts'],
-      types: [],
+
+    const diagnose = (output: string): string[] => {
+      const fileName = '/virtual/fixture.ts';
+      const options: import('typescript').CompilerOptions = {
+        strict: true,
+        noEmit: true,
+        target: ts.ScriptTarget.ES2022,
+        lib: ['lib.es2022.d.ts'],
+        types: [],
+      };
+      const host = ts.createCompilerHost(options);
+      const getSourceFile = host.getSourceFile.bind(host);
+
+      host.getSourceFile = (name, languageVersion, ...rest) =>
+        name === fileName
+          ? ts.createSourceFile(name, output, languageVersion, true)
+          : getSourceFile(name, languageVersion, ...rest);
+      host.fileExists = (name) => name === fileName || ts.sys.fileExists(name);
+      host.readFile = (name) => (name === fileName ? output : ts.sys.readFile(name));
+
+      const program = ts.createProgram([fileName], options, host);
+
+      return [...program.getSyntacticDiagnostics(), ...program.getSemanticDiagnostics()].map(
+        (item) => ts.flattenDiagnosticMessageText(item.messageText, ' '),
+      );
     };
-    const host = ts.createCompilerHost(options);
-    const getSourceFile = host.getSourceFile.bind(host);
 
-    host.getSourceFile = (name, languageVersion, ...rest) =>
-      name === fileName
-        ? ts.createSourceFile(name, output, languageVersion, true)
-        : getSourceFile(name, languageVersion, ...rest);
-    host.fileExists = (name) => name === fileName || ts.sys.fileExists(name);
-    host.readFile = (name) => (name === fileName ? output : ts.sys.readFile(name));
+    const loose = rewrite(fixture).output;
+    const tight = rewriteStrict(fixture).output;
 
-    const program = ts.createProgram([fileName], options, host);
-    const diagnostics = [
-      ...program.getSyntacticDiagnostics(),
-      ...program.getSemanticDiagnostics(),
-    ].map((item) => ts.flattenDiagnosticMessageText(item.messageText, ' '));
-
-    expect(diagnostics).toEqual([]);
+    expect(loose).toContain('Record<string | symbol | number, any>');
+    expect(tight).toContain('Record<string, unknown>');
+    expect(diagnose(loose)).toEqual([]);
+    expect(diagnose(tight)).toEqual([]);
   });
 
   test('a second run changes nothing', () => {
@@ -487,7 +584,7 @@ describe('devz codemod any-aliases: the rewrite', () => {
       'view.tsx',
     );
 
-    expect(result.output).toContain(`props: { value: unknown }`);
+    expect(result.output).toContain(`props: { value: any }`);
   });
 });
 
@@ -545,7 +642,7 @@ describe('devz codemod any-aliases: the command', () => {
 
   const read = (path: string) => readFileSync(join(root, path), 'utf8');
   const OLD = `import type { AnyType } from '@venizia/ignis-helpers';\nexport const a: AnyType = 1;\n`;
-  const NEW = `export const a: unknown = 1;\n`;
+  const NEW = `export const a: any = 1;\n`;
 
   test('a dry run lists the file and writes nothing', async () => {
     commit({ 'src/a.ts': OLD });
@@ -606,6 +703,78 @@ describe('devz codemod any-aliases: the command', () => {
     expect(code).toBe(1);
     expect(warnings.join('\n')).toContain('manual  src/m.ts:1');
     expect(warnings.join('\n')).toContain('local  src/l.ts:1  AnyType');
+  });
+
+  test('--strict writes unknown and Record<string, unknown>, and a second strict run is clean', async () => {
+    commit({
+      'src/a.ts': `import type { AnyObject, AnyType } from '@venizia/ignis-helpers';\nexport const a: AnyType = 1;\nexport const b: AnyObject = {};\n`,
+    });
+
+    const code = await CodemodCommand.run({
+      root,
+      args: ['any-aliases', '--strict', '--write', '--all'],
+    });
+
+    expect(code).toBe(0);
+    expect(read('src/a.ts')).toBe(
+      `export const a: unknown = 1;\nexport const b: Record<string, unknown> = {};\n`,
+    );
+
+    execFileSync('git', ['add', '-A'], { cwd: root });
+    logs.length = 0;
+
+    const second = await CodemodCommand.run({ root, args: ['any-aliases', '--strict', '--check'] });
+
+    expect(second).toBe(0);
+    expect(logs.join('\n')).toContain('0 file(s) would change');
+  });
+
+  test('--strict on a dry run names the typecheck follow-up, and the default dry run does not', async () => {
+    commit({ 'src/a.ts': OLD });
+
+    await CodemodCommand.run({ root, args: ['any-aliases', '--strict'] });
+
+    expect(read('src/a.ts')).toBe(OLD);
+    expect(logs.join('\n')).toContain('would change  src/a.ts  (1 reference(s))');
+    expect(logs.join('\n')).toContain('a value an alias used to accept may need a type alias');
+
+    logs.length = 0;
+    await CodemodCommand.run({ root, args: ['any-aliases'] });
+    expect(logs.join('\n')).not.toContain('a value an alias used to accept may need a type alias');
+  });
+
+  test('a heritage use is manual under --check in both modes: --check exits 1 and lists it', async () => {
+    commit({
+      'src/h.ts': `import type { AnyType } from '@venizia/ignis-helpers';\nexport interface ILoose extends AnyType {}\n`,
+    });
+
+    for (const args of [
+      ['any-aliases', '--check'],
+      ['any-aliases', '--strict', '--check'],
+    ]) {
+      warnings.length = 0;
+
+      const code = await CodemodCommand.run({ root, args });
+
+      expect(code).toBe(1);
+      expect(warnings.join('\n')).toContain(`manual  src/h.ts:2  AnyType ${HERITAGE_REASON}`);
+    }
+  });
+
+  test('--strict is a known flag and --nope is a usage error with exit 2', async () => {
+    commit({ 'src/a.ts': OLD });
+
+    const known = await CodemodCommand.run({ root, args: ['any-aliases', '--strict'] });
+
+    expect(known).toBe(0);
+    expect(errors).toEqual([]);
+
+    const unknown = await CodemodCommand.run({ root, args: ['any-aliases', '--nope'] });
+
+    expect(unknown).toBe(2);
+    expect(errors.join('\n')).toContain('unknown option "--nope"');
+    expect(errors.join('\n')).toContain('--strict');
+    expect(read('src/a.ts')).toBe(OLD);
   });
 
   test('--reverse is refused with exit 2, and the codemod is listed', async () => {
