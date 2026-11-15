@@ -51,8 +51,6 @@ Exhaustive reference for every utility type, resolver function, and constant cla
 // Types
 import type {
   TNullable,
-  AnyType,
-  AnyObject,
   TOptions,
   ValueOrPromise,
   ValueOf,
@@ -135,16 +133,12 @@ All of the above resolve through the root `@venizia/ignis-helpers` barrel. It re
 
 <!-- docs-code: off -->
 ```typescript
-type AnyType = any;
-type AnyObject = Record<string | symbol | number, AnyType>;
 type TOptions<T extends object = {}> = T;
 ```
 <!-- docs-code: on -->
 
 | Type | Meaning | Use |
 |------|---------|-----|
-| `AnyType` | Alias for `any` | Escape hatch when a shape truly cannot be known at compile time |
-| `AnyObject` | Loosely-typed record | Objects whose keys and value types are not known at compile time |
 | `TOptions<T>` | Identity wrapper around `T` (defaults to `{}`) | Semantic marker that a parameter follows the framework's options-object pattern |
 
 ## Nullable and Promise Types

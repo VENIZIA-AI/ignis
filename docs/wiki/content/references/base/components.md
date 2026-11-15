@@ -163,7 +163,6 @@ export interface IHealthCheckOptions {
 <!-- docs-code: off -->
 ```typescript
 // src/components/auth/authenticate/common/types.ts
-import { AnyObject } from '@venizia/ignis-helpers';
 import { Env } from 'hono';
 
 // Options interface for the component
@@ -183,18 +182,18 @@ export interface IAuthService<
   E extends Env = Env,
   // SignIn types
   SIRQ extends TSignInRequest = TSignInRequest,
-  SIRS = AnyObject,
+  SIRS = Record<string, unknown>,
   // SignUp types
   SURQ extends TSignUpRequest = TSignUpRequest,
-  SURS = AnyObject,
+  SURS = Record<string, unknown>,
   // ChangePassword types
   CPRQ extends TChangePasswordRequest = TChangePasswordRequest,
-  CPRS = AnyObject,
+  CPRS = Record<string, unknown>,
   // UserInformation types
-  UIRQ = AnyObject,
-  UIRS = AnyObject,
+  UIRQ = Record<string, unknown>,
+  UIRS = Record<string, unknown>,
   // RefreshToken types
-  RTRS = AnyObject,
+  RTRS = Record<string, unknown>,
 > {
   signIn(context: TContext<E>, opts: SIRQ): Promise<SIRS>;
   signUp(context: TContext<E>, opts: SURQ): Promise<SURS>;

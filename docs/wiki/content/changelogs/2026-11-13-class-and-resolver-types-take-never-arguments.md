@@ -17,6 +17,70 @@ migration:
     downgrade:
       steps:
         - "Read the static off a TClass value directly again; the older index signature was any. The typeof and intersection forms you added keep compiling."
+  - id: mixin-base-takes-tmixinconstructor
+    symbols: [TClass, TAbstractClass, TConstructor, TMixinConstructor, TAbstractMixinConstructor, TMixinTarget, TAbstractMixinTarget]
+    upgrade:
+      before: |
+        // a generic mixin over an abstract base, its base parameter constrained by TAbstractClass: the arguments were any[]
+        abstract class CrudBase {
+          async find(): Promise<string[]> { return []; }
+        }
+
+        function stamped<TBase extends TAbstractClass<CrudBase>>(base: TBase): TBase {
+          abstract class Stamped extends base { // TS2545: A mixin class must have a constructor with a single rest parameter of type 'any[]'
+            stamp = 'x';
+          }
+
+          return Stamped;
+        }
+
+        class Controller extends stamped(CrudBase) {
+          override async find(): Promise<string[]> { return ['x']; }
+        }
+      after: |
+        // constrain the base by TAbstractMixinConstructor (TMixinConstructor for a concrete base): it keeps the any[] arguments TypeScript requires of a mixin
+        function stamped<TBase extends TAbstractMixinConstructor<CrudBase>>(base: TBase): TBase {
+          abstract class Stamped extends base {
+            stamp = 'x';
+          }
+
+          return Stamped;
+        }
+
+        class Controller extends stamped(CrudBase) {
+          override async find(): Promise<string[]> { return ['x']; }
+        }
+    downgrade:
+      steps:
+        - "Constrain the base by TAbstractMixinTarget (TMixinTarget for a concrete base) or by TAbstractClass (TClass) again: the older types had any[] arguments. TMixinConstructor and TAbstractMixinConstructor are new in this release, so the older release does not export them."
+    data: "TMixinTarget<T> and TAbstractMixinTarget<T> also fit a mixin base, but they map the members of T to properties: when the mixin's return type is inferred, or the base parameter is not generic and is typed TAbstractMixinTarget<T>, a subclass of the mixin result that overrides a method with method syntax reports TS2425. Use TMixinConstructor<T> or TAbstractMixinConstructor<T> when a subclass overrides methods. A mixin that reports TS2545 also loses the members of its base for the classes that extend its result: those classes report errors on their overrides (TS2510 when the return type is inferred), so fix the mixin's base type first."
+  - id: class-slot-checks-the-instance
+    symbols: [TClass, TAbstractClass, TConstructor, TAbstractConstructor]
+    upgrade:
+      before: |
+        // a slot typed with a wider entity than the class carries: TClass had a { [property: string]: any } intersection,
+        // which relaxed the assignment of a class to the slot
+        interface IMultiLang { en: string }
+        type TNamedEntity = { id: string } & { name?: IMultiLang };
+        interface IOrganizer { id: string; name: IMultiLang; code: string }
+        class OrganizerRepository extends HttpRepository<IOrganizer> {}
+
+        const slot: TClass<HttpRepository<TNamedEntity>> = OrganizerRepository; // TS2419: Types of construct signatures are incompatible
+      after: |
+        // TClass compares the class's instance with the slot's: type the slot by the members you read,
+        interface IFindable { count(opts: { where?: object }): Promise<{ count: number }> }
+        const slot: TClass<IFindable> = OrganizerRepository;
+
+        // or pick the members from the slot's repository type
+        const picked: TClass<Pick<HttpRepository<TNamedEntity>, 'count' | 'findById'>> = OrganizerRepository;
+
+        // or make the slot generic, so the entity is inferred from the class
+        const register = <TEntity extends TNamedEntity>(repositoryClass: TClass<HttpRepository<TEntity>>) => repositoryClass;
+        const registered = register(OrganizerRepository);
+    downgrade:
+      steps:
+        - "Type the slot as TClass<T> & { [property: string]: any } in your own code: the older TClass accepted a class whose instance did not fit the slot."
+    data: "Who is affected: a class slot typed TClass<Repo<Wider>> that holds repositories of narrower entities. The cause is the TClass change of this release: the published 0.4.8-15 declared TClass<T> as TConstructor<T> & { [property: string]: any } with any[] arguments, and that intersection let such a class through; TClass<T> is now new (...args: never[]) => T, so the instance is compared. Typing the slot with the instance the class really produces (HttpRepository<IOrganizer>) always worked. The error appears for a slot whose entity is wider than the class's: an optional name in the slot and a required one in the class, which puts undefined inside the filter operators of the slot."
   - id: constructors-take-never-arguments
     symbols: [TConstructor, TAbstractConstructor, TClass, TAbstractClass]
     upgrade:
