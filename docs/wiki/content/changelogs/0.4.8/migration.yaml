@@ -106,12 +106,12 @@ remove-async-style-configs:
     steps:
       - "Remove asyncStyleConfigs or reactAsyncStyleConfigs from the @venizia/dev-configs/linters import and from the spread."
       - "Replace the spread array export with export default houseConfigs or export default reactHouseConfigs."
-      - "Run bun run devz codemod async-style for the fixable findings."
+      - "Run `bun run devz codemod async-style [paths...] --write` (or `--write --all`) for the fixable findings, then fix the listed ones by hand."
   downgrade:
     steps:
       - Pin @venizia/dev-configs to 0.4.7 and import asyncStyleConfigs (or reactAsyncStyleConfigs for a React project) again.
       - Spread it after houseConfigs (or reactHouseConfigs) as before. houseConfigs alone on 0.4.7 has no async rules.
-  data: A project that spread only houseConfigs, or a React project that did not spread the second array, now gets the four async style rules and, for React, the two hook rules at error. Run bun run devz codemod async-style for the fixable findings.
+  data: A project that spread only houseConfigs, or a React project that did not spread the second array, now gets the four async style rules and, for React, the two hook rules at error. Run `bun run devz codemod async-style [paths...] --write` (or `--write --all`) for the fixable findings, then fix the listed ones by hand.
   codemod: async-style
 
 typesense-single-sort:
@@ -233,7 +233,7 @@ hidden-field-filter-parity:
     steps:
       - "Remove client filters or sorts on hidden properties, replace them with visible properties, or move the query into server code on the repository."
       - "Replace wildcards with explicit field lists in search controller field parameters on models with hidden fields."
-      - "Send Meilisearch undeclared order fields through mode: raw instead of filter.order."
+      - "Send Meilisearch undeclared order fields through `mode: 'raw'` instead of `filter.order`; raw mode needs `modes.raw` on a non-scoped controller and trusted callers only."
       - "Implement resolveInclusion on any custom class implementing IRelationalQueryDialect."
       - "Implement includeNotSupportedError on any custom class implementing ISearchQueryDialect."
   downgrade:
@@ -393,7 +393,8 @@ jwt-claims-required:
       }
     steps:
       - "Replace `sign`, `verify.issuer`, and `verify.audience` in your JWS options with `claims: { issuer }` and optional `claims.audience`."
-      - "Add `claims: { issuer }` to every JWKS issuer and verifier configuration."
+      - "Add `claims: { issuer }` to every JWKS issuer and verifier configuration; the verifier's claims.issuer must equal what the issuer stamps."
+      - "Expect tokens issued before the upgrade to be refused, so users sign in again."
       - "Add `verify.algorithms` with the accepted signing algorithm list to every JWKS verifier configuration."
   downgrade:
     steps:
@@ -501,7 +502,7 @@ crud-controller-factory-build:
     steps:
       - "Find call sites with: rg -n '\\bControllerFactory\\b|defineCrudController|enabledRoutes|super\\.binding\\(\\)|controllerName'."
       - "Replace ControllerFactory.defineCrudController calls with CrudControllerFactory.build, passing the repository class directly."
-      - "Configure routes explicitly using CrudRoutes or TCrudRoutes, removing controller.basePath, controller.name, controller.readonly, and controller.enabledRoutes."
+      - "Configure routes explicitly using CrudRoutes or TCrudRoutes, put the path on @controller({ path }), and remove controller.basePath, controller.name, controller.readonly, and controller.enabledRoutes."
       - "Remove super.binding() calls from controller subclasses and rename any subclass members named $inferData or $inferPersist."
   downgrade:
     steps:
@@ -533,12 +534,12 @@ search-controller-factory-build:
       - "Replace SearchControllerFactory.defineSearchController with SearchControllerFactory.build."
       - "Pass the repository class directly to repository, moving isStrict to the top level and removing entity and controller."
       - "Name document types on any class extending DefaultSearchRepository."
-      - "Set { use: true } on search and multiSearch, whichever you want served; a route left out or { use: false } is not served."
-      - "Set the required authenticate option with strategies or '{ skip: true }'."
+      - "Set { use: true } on search and multiSearch, whichever you want served; a route left out or { use: false } is not served. multiSearch also needs `modes: { raw: { use: true } }`, or every call answers 400: serve it only to trusted callers, and a scoped controller cannot set it."
+      - "Set the required `authenticate` option with `strategies`, or with `{ skip: true }`."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7 and call SearchControllerFactory.defineSearchController with entity, repository and controller again.
-  data: "Both routes were on before unless switched off, so switch search and multiSearch on to keep both; a route is a toggle, and one left out or { use: false } is not served. authenticate is required ({ skip: true } opens the routes on purpose and also drops authorize), and a config with no strategy and no skip throws when the controller is built. A scoped controller cannot switch multiSearch on, and build throws when it does."
+  data: "Both routes were on before unless switched off, so switch search and multiSearch on to keep both; a route is a toggle, and one left out or { use: false } is not served. authenticate is required ({ skip: true } opens the routes on purpose and also drops authorize), and a config with no strategy and no skip throws when the controller is built. multiSearch also needs `modes: { raw: { use: true } }` or every call answers 400, so serve it only to trusted callers. A scoped controller cannot switch multiSearch or modes.raw on, and build throws when it does."
 
 model-properties-group:
   symbols: [hiddenProperties, getServerStampedKeys, AbstractEntity.getServerStampedKeys, BaseRelationalEntity.getServerStampedKeys, AuditFields, properties.hidden, properties.stamped]
@@ -602,7 +603,7 @@ remove-bulk-all-methods:
     steps:
       - "Find call sites with: rg -n '\\b(updateAll|restoreAll|deleteAll)\\b'."
       - "Replace updateAll with updateBy, deleteAll with deleteBy, and restoreAll with restoreBy."
-      - "Pass where: {} with options: { force: true } on updateBy, deleteBy or restoreBy calls that target the whole table."
+      - "Pass where: {} with options: { force: true } on updateBy, deleteBy or restoreBy calls that target the whole table (not on HttpRepository: force cannot cross HTTP, and an empty where is refused)."
       - "Update subclasses and mocks overriding the removed methods to override updateBy, deleteBy, or restoreBy instead."
   downgrade:
     steps:
@@ -755,11 +756,11 @@ static-asset-entry-flat:
         metaLink: { use: true, repository },
       },
     steps:
-      - "Flatten each static-asset entry by moving bucket, routes, and keyPrefix out of controller, removing storage, and dropping extra."
+      - "Move name, basePath, bucket, routes and keyPrefix from controller to the entry (a route's enabled becomes use); move extra.maxBytes to serverUpload.maxBytes, extra.maxFolderDepth to maxFolderDepth and extra.normalizeLinkFn to link; then remove controller, storage and extra."
       - "Configure serverUpload, directUpload, and metaLink as feature toggles with use set to true or false."
       - "Map extra.normalizeNameFn to serverUpload.objectKey, rename defineRoutesBefore and defineExtraRoutes to extend.before and extend.after, and drop model from metaLink."
       - "Update error handling to check core.storage.folder_path_invalid and core.storage.folder_depth_exceeded instead of the old folder error codes."
-      - "Rewrite stored links containing /buckets/<name>/ across your data store."
+      - "Rewrite stored links that contain /buckets/<name>/ to the form <basePath>/objects/<key>; a PUT /meta-links/{objectName} rewrites one row."
   downgrade:
     steps:
       - Pin @venizia/ignis and @venizia/ignis-helpers to 0.4.7 and move each entry back under controller, storage and extra.
@@ -1426,7 +1427,7 @@ open-defaults-unknown:
       const value = registry.get<typeof target, string>({ target, key });
       const name = typeof rename['profile.name'] === 'string' ? rename['profile.name'] : undefined;
     steps:
-      - "Pass explicit type arguments to IConfigurable when declaring or casting configurable services."
+      - "Pass explicit type arguments to IConfigurable when declaring configurable services."
       - "Provide type arguments for the target and value types on calls to MetadataRegistry.get and MetadataRegistry.define."
       - "Narrow reads from IBindingTag properties before assigning them to typed variables."
       - "Narrow property reads from TUpdateData objects before use."
@@ -1736,7 +1737,7 @@ network-request-bags-typed:
       const typed = await axiosFetcher.send<{ name: string }>({ url });
       const name = typed.data.name;
     steps:
-      - "Cast or convert non-string values in headers to string when calling fetcher methods."
+      - "Convert non-string values in headers with String(value) when calling fetcher methods."
       - "Pass a Record<string, unknown> object for params when calling QueryStringUtility.toQueryString or fetcher methods."
       - "Parse response.data from AxiosFetcher verb methods before reading fields or assigning to typed locals."
       - "Call AxiosFetcher.send with an explicit type parameter to type the response data directly."
@@ -1854,12 +1855,12 @@ environment-get-string:
       - "Convert skipped calls, non-string defaults, and custom types manually using `transform` or `ParseUtility` functions."
       - "Replace manual unset or empty checks for mandatory variables with `applicationEnvironment.getRequired`."
       - "Update `ApplicationEnvironment.set` calls and constructor `envs` maps to pass strings or `undefined`."
-      - "Update any custom class implementing `IApplicationEnvironment` to match the four `get` overloads and the string-valued `set`."
+      - "Update any custom class implementing `IApplicationEnvironment` to match the four `get` overloads, the two `getRequired` overloads and the string-valued `set`."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7 and put the type arguments back (get<string>(key), get<R, string>(key, { transform })), or restore the files from git, since the codemod has no reverse.
       - "A class that implements IApplicationEnvironment goes back to the older get<ReturnType, BeforeTransformType> and a set that returns any. Pass numbers or any value to the constructor and set again; the older store held any."
-  data: "The old get<number>(key) returned the raw string at run time while its type said number, so code that compared it with a number or added to it behaved as a string operation. Check each call that carried a non-string type argument. Moving a read to a transform changes the value: with `bun run devz codemod env-get --numbers` (opt-in, it rewrites get<number>(key) and get<number>(key, { defaultValue }) to a transform that calls ParseUtility.toNumber) or by hand, a value that used to be a string at run time is a real number, an unset variable still gives undefined or the default, and a non-numeric value throws at the read instead of flowing on as a string. A boolean read stays manual, because the string 'false' is truthy. set returns void where it returned any, and takes string | undefined. A class that implements IApplicationEnvironment adds the four get overloads and the string-valued set. A value read with get() and passed to a library option that requires a string (drizzle-kit dbCredentials, a server config, a bucket name) is string | undefined now: read it with getRequired(key) or give get a defaultValue. The codemod is a style rewrite with no downgrade."
+  data: "The old get<number>(key) returned the raw string at run time while its type said number, so code that compared it with a number or added to it behaved as a string operation. Check each call that carried a non-string type argument. Moving a read to a transform changes the value: with `bun run devz codemod env-get --numbers` (opt-in, it rewrites get<number>(key) and get<number>(key, { defaultValue }) to a transform that calls ParseUtility.toNumber) or by hand, a value that used to be a string at run time is a real number, an unset variable still gives undefined or the default, and a non-numeric value throws at the read instead of flowing on as a string. A boolean read stays manual, because the string 'false' is truthy. set returns void where it returned any, and takes string | undefined. A class that implements IApplicationEnvironment adds the four get overloads, the two getRequired overloads and the string-valued set. A value read with get() and passed to a library option that requires a string (drizzle-kit dbCredentials, a server config, a bucket name) is string | undefined now: read it with getRequired(key) or give get a defaultValue. The codemod is a style rewrite with no downgrade."
 
 unusable-access-scope-unresolved:
   symbols: [IModelAccessSettings.resolve, ScopeFilters.UNRESTRICTED, ScopeFilterMissingBehaviors, ScopeResolution]
@@ -2190,7 +2191,7 @@ any-aliases-removed:
 
       const strictDecorate = (target: object) => Reflect.getMetadata('design:type', target);
     steps:
-      - "Run `bun run devz codemod any-aliases [paths...] --write` (or `--all`) to rewrite `AnyType` and `AnyObject` imports to `any` and `Record<string | symbol | number, any>`."
+      - "Run `bun run devz codemod any-aliases [paths...] --write` (or `--write --all`) to rewrite `AnyType` and `AnyObject` imports to `any` and `Record<string | symbol | number, any>`."
       - "Pass `--strict` if you want to rewrite the aliases to `unknown` and `Record<string, unknown>` instead."
       - "Update any re-export, `import()` type, or heritage clause listed by the codemod as manual by hand."
       - "Run `bun run devz codemod any-aliases [paths...] --check` to verify that no files would change and no manual cases remain."
@@ -2684,12 +2685,12 @@ jvalue-column-is-json-value:
           : undefined;
 
       // an array, a record and a scalar are accepted; spread an interface value, or declare its shape as a type alias
-      // a readonly array or an `as const` value is refused, so copy it with [...arr]
+      // a readonly array is refused at any depth, so copy it with [...arr]; an `as const` object of scalars is accepted
       await repository.create({ data: { jValue: { ...meta } } });
     steps:
       - "Narrow every read of jValue: check typeof object, not null and not an array before you read a key."
       - "Spread an interface-typed value you write (jValue: { ...meta }), or declare its shape as a type alias."
-      - "Copy a readonly array or an as const value you write (jValue: [...list]), because it is refused."
+      - "Copy each readonly array you write, at every level (jValue: [...list]); an as const object holding a readonly array needs its arrays copied too."
       - "Type a variable that holds a jValue as TJsonValue, imported from @venizia/ignis-helpers."
   downgrade:
     steps:
