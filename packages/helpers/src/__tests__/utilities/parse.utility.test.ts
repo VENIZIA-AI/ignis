@@ -262,3 +262,113 @@ describe('getUID', () => {
     expect(seen.size).toBe(36);
   });
 });
+
+describe('toNumber', () => {
+  test('unset and blank answer undefined, so a default applies', () => {
+    expect(ParseUtility.toNumber({ input: undefined })).toBeUndefined();
+    expect(ParseUtility.toNumber({ input: null })).toBeUndefined();
+    expect(ParseUtility.toNumber({ input: '' })).toBeUndefined();
+    expect(ParseUtility.toNumber({ input: '   ' })).toBeUndefined();
+  });
+
+  test('a decimal number as text answers its value: zero, negative, padded, fraction, exponent', () => {
+    expect(ParseUtility.toNumber({ input: '0' })).toBe(0);
+    expect(ParseUtility.toNumber({ input: '-5' })).toBe(-5);
+    expect(ParseUtility.toNumber({ input: '+7' })).toBe(7);
+    expect(ParseUtility.toNumber({ input: ' 12 ' })).toBe(12);
+    expect(ParseUtility.toNumber({ input: '1e3' })).toBe(1000);
+    expect(ParseUtility.toNumber({ input: '-2.5E-1' })).toBe(-0.25);
+    expect(ParseUtility.toNumber({ input: '.5' })).toBe(0.5);
+    expect(ParseUtility.toNumber({ input: '5.' })).toBe(5);
+    expect(ParseUtility.toNumber({ input: '3000' })).toBe(3000);
+  });
+
+  test('a finite number answers itself', () => {
+    expect(ParseUtility.toNumber({ input: 42 })).toBe(42);
+    expect(ParseUtility.toNumber({ input: 0 })).toBe(0);
+  });
+
+  test.each(['abc', '12px', '0x10', '1,000', 'Infinity', '-Infinity', 'NaN', '1e', '--1', '1 2'])(
+    '%s throws',
+    (input) => {
+      expect(() => ParseUtility.toNumber({ input })).toThrow(/\[toNumber\] .* is not a number/);
+    },
+  );
+
+  test('a non-finite number, a boolean and an object throw', () => {
+    expect(() => ParseUtility.toNumber({ input: Number.POSITIVE_INFINITY })).toThrow(
+      'is not a number',
+    );
+    expect(() => ParseUtility.toNumber({ input: Number.NaN })).toThrow('is not a number');
+    expect(() => ParseUtility.toNumber({ input: true })).toThrow('is not a number');
+    expect(() => ParseUtility.toNumber({ input: {} })).toThrow('is not a number');
+  });
+
+  test('a value with a control character is echoed escaped, not raw', () => {
+    let message = '';
+
+    expect(() => {
+      try {
+        ParseUtility.toNumber({ input: 'a\nb' });
+      } catch (error) {
+        message = String(error);
+
+        throw error;
+      }
+    }).toThrow(/is not a number/);
+    expect(message).not.toContain('\n');
+  });
+
+  test('a number that is not finite is named as it reads, not as null', () => {
+    expect(() => ParseUtility.toNumber({ input: Number.NaN })).toThrow(
+      '[toNumber] NaN is not a number',
+    );
+    expect(() => ParseUtility.toNumber({ input: Number.POSITIVE_INFINITY })).toThrow(
+      '[toNumber] Infinity is not a number',
+    );
+    expect(() => ParseUtility.toNumber({ input: Number.NEGATIVE_INFINITY })).toThrow(
+      '[toNumber] -Infinity is not a number',
+    );
+  });
+
+  test('a long value is echoed cut at 40 characters with an ellipsis', () => {
+    const message = (() => {
+      try {
+        ParseUtility.toNumber({ input: `${'a'.repeat(100)}` });
+      } catch (error) {
+        return String(error);
+      }
+
+      return '';
+    })();
+
+    expect(message).toContain(`"${'a'.repeat(40)}..."`);
+    expect(message).not.toContain('a'.repeat(41));
+    expect(() => ParseUtility.toNumber({ input: 'a'.repeat(40) })).toThrow(
+      `"${'a'.repeat(40)}" is not a number`,
+    );
+  });
+
+  test('a very long run of digits ending in a letter is rejected in linear time', () => {
+    const started = performance.now();
+
+    expect(() => ParseUtility.toNumber({ input: `${'1'.repeat(200_000)}x` })).toThrow(
+      'is not a number',
+    );
+    expect(() =>
+      ParseUtility.toNumber({ input: `${'1'.repeat(100_000)}.${'1'.repeat(100_000)}x` }),
+    ).toThrow('is not a number');
+
+    expect(performance.now() - started).toBeLessThan(200);
+  });
+
+  test('a very long valid number still parses', () => {
+    const started = performance.now();
+
+    expect(ParseUtility.toNumber({ input: `1${'0'.repeat(200)}` })).toBe(1e200);
+    expect(ParseUtility.toNumber({ input: `0.${'0'.repeat(100_000)}1` })).toBe(0);
+    expect(ParseUtility.toNumber({ input: `${'0'.repeat(200_000)}7` })).toBe(7);
+
+    expect(performance.now() - started).toBeLessThan(200);
+  });
+});

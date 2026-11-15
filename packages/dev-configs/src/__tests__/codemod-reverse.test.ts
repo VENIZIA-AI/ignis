@@ -294,6 +294,7 @@ describe('devz codemod --list and --reverse', () => {
         'namespace-functions',
         'connector-imports',
         'env-get',
+        'any-aliases',
       ].join('\n'),
     ]);
     expect(errors).toEqual([]);
