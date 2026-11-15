@@ -1,6 +1,7 @@
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { datasource, model, type TFilter } from '@venizia/ignis-kernel';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { isApplicationError, type ApplicationError } from '@venizia/ignis-helpers/core';
+import { datasource, model, type TAnyDataSourceSchema, type TFilter } from '@venizia/ignis-kernel';
 import { beforeAll, describe, expect, test } from 'bun:test';
 import { integer, jsonb, pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
@@ -8,7 +9,8 @@ import { RelationsFactory } from '@/relational/core/repositories/dialect/relatio
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { many, ModelFactory, one, RelationDeclarations } from '@/relational/postgres/models';
-import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
+import type { TRelationDefinitions, TTableSchemaWithId } from '@/relational/core/models';
+import { PGliteDefaultRepository } from './conformance/pglite-repositories';
 
 /**
  * A filter that comes from a request cannot name a field its model hides: the repository answers `assertRequestFilter`, the generated
@@ -44,7 +46,10 @@ const CommentBase = ModelFactory.defineEntity({
 @model({ type: 'entity', settings: { properties: { hidden: ['internalNote'] } } })
 class RfhComment extends CommentBase {}
 
-const relationsOf = (source: AnyType, entity: AnyType) =>
+const relationsOf = (
+  source: TTableSchemaWithId,
+  entity: { readonly relationDefinitions: TRelationDefinitions | undefined },
+) =>
   RelationsFactory.create({
     source,
     relations: RelationDeclarations.toRelationConfigs({
@@ -53,7 +58,7 @@ const relationsOf = (source: AnyType, entity: AnyType) =>
   }).relations;
 
 @datasource({ driver: PGliteDriver })
-class RfhDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class RfhDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
   constructor(opts: { client: PGlite }) {
     super({
       name: RfhDataSource.name,
@@ -78,8 +83,8 @@ class RfhDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
   }
 }
 
-let posts: AnyType;
-let comments: AnyType;
+let posts: PGliteDefaultRepository;
+let comments: PGliteDefaultRepository;
 
 beforeAll(async () => {
   const client = new PGlite();
@@ -91,15 +96,19 @@ beforeAll(async () => {
     INSERT INTO rfh_comment (post_id, body, internal_note) VALUES (1, 'c1', 'n-1'), (1, 'c2', 'n-2'), (2, 'c3', 'n-3');
   `);
   const ds = new RfhDataSource({ client });
-  posts = new DefaultCRUDRepository(ds as AnyType, { entityClass: RfhPost as AnyType });
-  comments = new DefaultCRUDRepository(ds as AnyType, { entityClass: RfhComment as AnyType });
+  posts = new PGliteDefaultRepository<TTableSchemaWithId>(ds, { entityClass: RfhPost });
+  comments = new PGliteDefaultRepository<TTableSchemaWithId>(ds, { entityClass: RfhComment });
 }, 30_000);
 
-const refusal = (task: () => void): AnyType => {
+const refusal = (task: () => void): ApplicationError => {
   try {
     task();
   } catch (error) {
-    return error;
+    if (isApplicationError(error)) {
+      return error;
+    }
+
+    throw error;
   }
 
   throw new Error('expected a refusal');
@@ -118,7 +127,7 @@ describe('the request filter of a model that hides `secret`', () => {
     const error = refusal(() => posts.assertRequestFilter({ filter }));
 
     expect(error.statusCode).toBe(400);
-    expect(error.message).toContain('Column NOT FOUND');
+    expect(error instanceof Error ? error.message : '').toContain('Column NOT FOUND');
   });
 
   test.each([
@@ -139,7 +148,7 @@ describe('the request filter of a model that hides `secret`', () => {
   test("a column's database name is not a property: the guard leaves it, and the query refuses it as an unknown column", async () => {
     // eslint-disable-next-line @typescript-eslint/naming-convention -- the database name of the column, which is not a property
     const filter = { where: { secret_col: 's-1' } };
-    let error: AnyType;
+    let error: unknown;
 
     expect(() => posts.assertRequestFilter({ filter })).not.toThrow();
 
@@ -149,16 +158,20 @@ describe('the request filter of a model that hides `secret`', () => {
       error = caught;
     }
 
-    expect(error.message).toContain('Column NOT FOUND');
+    expect(error instanceof Error ? error.message : '').toContain('Column NOT FOUND');
   });
 
   /** The refusal of a hidden field is the very text the query gives for a column that does not exist: nothing tells them apart. */
   describe('byte for byte the error of a column that does not exist', () => {
-    const queryError = async (filter: object): Promise<AnyType> => {
+    const queryError = async (filter: object): Promise<ApplicationError> => {
       try {
         await posts.find({ filter });
       } catch (error) {
-        return error;
+        if (isApplicationError(error)) {
+          return error;
+        }
+
+        throw error;
       }
 
       throw new Error('the query accepted a column that does not exist');
@@ -196,7 +209,7 @@ describe('the request filter of a model that hides `secret`', () => {
           filter: { include: [{ relation: 'comments', scope: { where: { internalNote: 'x' } } }] },
         }),
       );
-      let missing: AnyType;
+      let missing: unknown;
 
       try {
         await posts.find({
@@ -206,7 +219,9 @@ describe('the request filter of a model that hides `secret`', () => {
         missing = error;
       }
 
-      expect(hidden.message).toBe(missing.message.replaceAll('nope', 'internalNote'));
+      expect(hidden.message).toBe(
+        (missing instanceof Error ? missing.message : '').replaceAll('nope', 'internalNote'),
+      );
     });
   });
 
@@ -229,15 +244,22 @@ describe('the request filter of a model that hides `secret`', () => {
  * order; the query API reads order, then where, then each include in turn, its scope the same way.
  */
 describe('the first refusal in the order the query reads the filter', () => {
-  const queryError = async (opts: { filter: TFilter; isCount?: boolean }): Promise<AnyType> => {
+  const queryError = async (opts: {
+    filter: TFilter;
+    isCount?: boolean;
+  }): Promise<ApplicationError> => {
     try {
       if (opts.isCount) {
-        await posts.count({ where: opts.filter.where });
+        await posts.count({ where: opts.filter.where ?? {} });
       } else {
         await posts.find({ filter: opts.filter });
       }
     } catch (error) {
-      return error;
+      if (isApplicationError(error)) {
+        return error;
+      }
+
+      throw error;
     }
 
     throw new Error('the query accepted the filter');
@@ -426,19 +448,19 @@ describe('server code is not held to it', () => {
     const counted = await posts.count({ where: { secret: { like: 's-%' } } });
     const ordered = await posts.find({ filter: { order: ['secret DESC'] } });
 
-    expect(found.map((row: AnyType) => row.name)).toEqual(['beta']);
+    expect(found.map((row) => row.name)).toEqual(['beta']);
     expect(counted.count).toBe(2);
-    expect(ordered.map((row: AnyType) => row.name)).toEqual(['beta', 'alpha']);
+    expect(ordered.map((row) => row.name)).toEqual(['beta', 'alpha']);
   });
 
   test('an include scope on a hidden field of the child works on the repository, and the field is not returned', async () => {
     const rows = await posts.find({
       filter: { include: [{ relation: 'comments', scope: { where: { internalNote: 'n-1' } } }] },
     });
-    const first = rows.find((row: AnyType) => row.name === 'alpha');
+    const first = rows.find((row) => row.name === 'alpha');
 
-    expect(first.comments).toHaveLength(1);
-    expect(first.comments[0].body).toBe('c1');
+    expect(first?.comments).toHaveLength(1);
+    expect(first?.comments[0].body).toBe('c1');
     expect(JSON.stringify(rows)).not.toContain('n-1');
     expect(JSON.stringify(rows)).not.toContain('s-1');
   });

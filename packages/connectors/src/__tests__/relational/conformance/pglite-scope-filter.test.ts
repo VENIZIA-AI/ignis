@@ -1,10 +1,15 @@
-import { datasource, model, ScopeFilterMissingBehaviors } from '@venizia/ignis-kernel';
+import {
+  datasource,
+  model,
+  ScopeFilterMissingBehaviors,
+  type TAnyDataSourceSchema,
+} from '@venizia/ignis-kernel';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
-import { DefaultCRUDRepository, SoftDeletableRepository } from '@/relational/postgres/repositories';
+import { PGliteDefaultRepository, PGliteSoftDeletableRepository } from './pglite-repositories';
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 
@@ -43,7 +48,7 @@ let currentTenant: TNullable<string> | '__throw__' = 'tenant-a';
     query: { filter: { where: { deletedAt: null } } },
   },
 })
-class TenantScopedEntity extends BasePostgresEntity {
+class TenantScopedEntity extends BasePostgresEntity<typeof scopeTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = scopeTable;
 }
@@ -59,13 +64,13 @@ let allowTenant: TNullable<string> = null;
     },
   },
 })
-class AllowOnMissingEntity extends BasePostgresEntity {
+class AllowOnMissingEntity extends BasePostgresEntity<typeof scopeTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = scopeTable;
 }
 
 @datasource({ driver: PGliteDriver })
-class ScopeFilterDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class ScopeFilterDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
   constructor(opts: { client: PGlite }) {
     super({
       name: ScopeFilterDataSource.name,
@@ -89,8 +94,8 @@ class ScopeFilterDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGli
 
 let client: PGlite;
 let dataSource: ScopeFilterDataSource;
-let repository: SoftDeletableRepository<typeof scopeTable>;
-let allowRepository: DefaultCRUDRepository<typeof scopeTable>;
+let repository: PGliteSoftDeletableRepository<typeof scopeTable>;
+let allowRepository: PGliteDefaultRepository<typeof scopeTable>;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -107,12 +112,12 @@ beforeAll(async () => {
 
   dataSource = new ScopeFilterDataSource({ client });
 
-  repository = new SoftDeletableRepository<typeof scopeTable>(dataSource as AnyType, {
-    entityClass: TenantScopedEntity as AnyType,
+  repository = new PGliteSoftDeletableRepository<typeof scopeTable>(dataSource, {
+    entityClass: TenantScopedEntity,
   });
 
-  allowRepository = new DefaultCRUDRepository<typeof scopeTable>(dataSource as AnyType, {
-    entityClass: AllowOnMissingEntity as AnyType,
+  allowRepository = new PGliteDefaultRepository<typeof scopeTable>(dataSource, {
+    entityClass: AllowOnMissingEntity,
   });
 });
 

@@ -1,7 +1,8 @@
+import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   BaseAppErrorMiddleware,
   CrudControllerFactory,
@@ -10,6 +11,7 @@ import {
   datasource,
   model,
   repository as repositoryDecorator,
+  type TAnyDataSourceSchema,
 } from '@venizia/ignis-kernel';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
@@ -18,7 +20,7 @@ import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
 import { BaseSqliteEntity } from '@/relational/sqlite/models';
 import { isoTimestamp } from '@/relational/sqlite/models/common/columns';
 import { DefaultSqliteRepository } from '@/relational/sqlite/repositories';
-import { TIMESTAMP_TABLE, TimestampWhereCases } from './timestamp-where-cases';
+import { idsOfBody, TIMESTAMP_TABLE, TimestampWhereCases } from './timestamp-where-cases';
 
 const eventTable = sqliteTable(TIMESTAMP_TABLE, {
   id: integer('id').primaryKey(),
@@ -29,13 +31,18 @@ const eventTable = sqliteTable(TIMESTAMP_TABLE, {
 });
 
 @model({ type: 'entity' })
-class TimestampEvent extends BaseSqliteEntity {
+class TimestampEvent extends BaseSqliteEntity<typeof eventTable> {
   static override TABLE_NAME = TIMESTAMP_TABLE;
   static override schema = eventTable;
 }
 
 @datasource({ driver: LibSqlDriver })
-class TimestampDataSource extends BaseSqliteDataSource<{ url: string }, AnyType, {}, Client> {
+class TimestampDataSource extends BaseSqliteDataSource<
+  { url: string },
+  TAnyDataSourceSchema,
+  {},
+  Client
+> {
   constructor(opts: { client: Client }) {
     super({
       name: TimestampDataSource.name,
@@ -50,10 +57,10 @@ class TimestampDataSource extends BaseSqliteDataSource<{ url: string }, AnyType,
 }
 
 @repositoryDecorator({ model: TimestampEvent, dataSource: 'TimestampDataSource' })
-class TimestampEventRepository extends DefaultSqliteRepository<AnyType> {}
+class TimestampEventRepository extends DefaultSqliteRepository<typeof eventTable> {}
 
 let client: Client;
-let repository: AnyType;
+let repository: TimestampEventRepository;
 
 beforeAll(async () => {
   client = createClient({ url: ':memory:' });
@@ -113,7 +120,7 @@ describe('SQLite - a column that takes a string natively', () => {
 });
 
 describe('SQLite - a generated CRUD route', () => {
-  let router: AnyType;
+  let router: OpenAPIHono;
 
   beforeAll(async () => {
     const RouteController = CrudControllerFactory.build({
@@ -138,10 +145,10 @@ describe('SQLite - a generated CRUD route', () => {
 
   test('filters a timestamp column with a date string', async () => {
     const response = await get({ at: { gt: '2026-11-07' } });
-    const body: { data: Array<{ id: number }> } = await response.json();
+    const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.data.map((row) => row.id)).toEqual([3]);
+    expect(idsOfBody(body)).toEqual([3]);
   });
 
   test('answers 400, not 500, for a value that is no timestamp', async () => {

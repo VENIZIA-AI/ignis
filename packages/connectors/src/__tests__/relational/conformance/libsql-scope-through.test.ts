@@ -1,7 +1,13 @@
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { datasource, model, ScopeFilters, ScopeThrough } from '@venizia/ignis-kernel';
+import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import {
+  datasource,
+  model,
+  ScopeFilters,
+  ScopeThrough,
+  type TAnyDataSourceSchema,
+} from '@venizia/ignis-kernel';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
@@ -11,6 +17,7 @@ import { BaseSqliteDataSource } from '@/relational/sqlite/datasources';
 import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
 import { many, ModelFactory, one, RelationDeclarations } from '@/relational/sqlite/models';
 import { DefaultSqliteRepository } from '@/relational/sqlite/repositories';
+import { relatedOf } from './related-rows';
 
 /**
  * `access.through` on SQLite: the same chain as the Postgres suite (Option through Variant through Product), run
@@ -112,7 +119,12 @@ const relationsOf = (opts: {
 };
 
 @datasource({ driver: LibSqlDriver })
-class ThroughSqliteDataSource extends BaseSqliteDataSource<{ url: string }, AnyType, {}, Client> {
+class ThroughSqliteDataSource extends BaseSqliteDataSource<
+  { url: string },
+  TAnyDataSourceSchema,
+  {},
+  Client
+> {
   constructor(opts: { client: Client }) {
     super({
       name: ThroughSqliteDataSource.name,
@@ -148,14 +160,14 @@ beforeAll(async () => {
 
   const dataSource = new ThroughSqliteDataSource({ client });
 
-  products = new DefaultSqliteRepository<typeof productTable>(dataSource as AnyType, {
-    entityClass: Product as AnyType,
+  products = new DefaultSqliteRepository<typeof productTable>(dataSource, {
+    entityClass: Product,
   });
-  variants = new DefaultSqliteRepository<typeof variantTable>(dataSource as AnyType, {
-    entityClass: Variant as AnyType,
+  variants = new DefaultSqliteRepository<typeof variantTable>(dataSource, {
+    entityClass: Variant,
   });
-  options = new DefaultSqliteRepository<typeof optionTable>(dataSource as AnyType, {
-    entityClass: Option as AnyType,
+  options = new DefaultSqliteRepository<typeof optionTable>(dataSource, {
+    entityClass: Option,
   });
 });
 
@@ -212,9 +224,9 @@ describe('access.through on SQLite', () => {
       filter: { include: [{ relation: 'options' }], order: ['id asc'] },
     });
 
-    expect(scoped.map((row) => (row as AnyType).options.map((item: AnyType) => item.name))).toEqual(
-      [['o1'], ['o2']],
-    );
+    expect(
+      scoped.map((row) => relatedOf({ row, relation: 'options' }).map((item) => item.name)),
+    ).toEqual([['o1'], ['o2']]);
   });
 });
 
@@ -240,7 +252,8 @@ describe('a write to a through model on SQLite', () => {
     await variants.create({ data: { productId: 1, name: 'v-new' } });
     const foreign = await refusal(() => variants.create({ data: { productId: 3, name: 'x' } }));
     const missing = await refusal(() => variants.create({ data: { productId: 999, name: 'x' } }));
-    const nameless = await refusal(() => variants.create({ data: { name: 'x' } as AnyType }));
+    // @ts-expect-error `productId` is required; a caller that leaves it out must be refused
+    const nameless = await refusal(() => variants.create({ data: { name: 'x' } }));
 
     const result = await variantNames();
     expect(result).toEqual(['v1', 'v2', 'v3', 'v-new']);

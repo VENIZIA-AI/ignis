@@ -1,10 +1,10 @@
-import { datasource, model, ScopeFilters } from '@venizia/ignis-kernel';
+import { datasource, model, ScopeFilters, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
-import { DefaultCRUDRepository, SoftDeletableRepository } from '@/relational/postgres/repositories';
+import { PGliteDefaultRepository, PGliteSoftDeletableRepository } from './pglite-repositories';
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 
@@ -50,19 +50,24 @@ let currentTenant: TTenantState = 'tenant-a';
     query: { filter: { where: { deletedAt: null } } },
   },
 })
-class UnrestrictedScopedEntity extends BasePostgresEntity {
+class UnrestrictedScopedEntity extends BasePostgresEntity<typeof scopeTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = scopeTable;
 }
 
 @model({ type: 'entity' })
-class NoScopeFilterEntity extends BasePostgresEntity {
+class NoScopeFilterEntity extends BasePostgresEntity<typeof controlTable> {
   static override TABLE_NAME = CONTROL_TABLE_NAME;
   static override schema = controlTable;
 }
 
 @datasource({ driver: PGliteDriver })
-class UnrestrictedScopeDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class UnrestrictedScopeDataSource extends BasePostgresDataSource<
+  {},
+  TAnyDataSourceSchema,
+  {},
+  PGlite
+> {
   constructor(opts: { client: PGlite }) {
     super({
       name: UnrestrictedScopeDataSource.name,
@@ -86,8 +91,8 @@ class UnrestrictedScopeDataSource extends BasePostgresDataSource<{}, AnyType, {}
 
 let client: PGlite;
 let dataSource: UnrestrictedScopeDataSource;
-let repository: SoftDeletableRepository<typeof scopeTable>;
-let controlRepository: DefaultCRUDRepository<typeof controlTable>;
+let repository: PGliteSoftDeletableRepository<typeof scopeTable>;
+let controlRepository: PGliteDefaultRepository<typeof controlTable>;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -109,12 +114,12 @@ beforeAll(async () => {
 
   dataSource = new UnrestrictedScopeDataSource({ client });
 
-  repository = new SoftDeletableRepository<typeof scopeTable>(dataSource as AnyType, {
-    entityClass: UnrestrictedScopedEntity as AnyType,
+  repository = new PGliteSoftDeletableRepository<typeof scopeTable>(dataSource, {
+    entityClass: UnrestrictedScopedEntity,
   });
 
-  controlRepository = new DefaultCRUDRepository<typeof controlTable>(dataSource as AnyType, {
-    entityClass: NoScopeFilterEntity as AnyType,
+  controlRepository = new PGliteDefaultRepository<typeof controlTable>(dataSource, {
+    entityClass: NoScopeFilterEntity,
   });
 });
 

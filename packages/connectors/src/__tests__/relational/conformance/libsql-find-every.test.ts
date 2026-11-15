@@ -1,11 +1,11 @@
+import type { ISqliteTransaction } from '@/relational/sqlite/datasources/common';
 import { BaseSqliteDataSource } from '@/relational/sqlite/datasources';
 import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
 import { BaseSqliteEntity } from '@/relational/sqlite/models';
 import { DefaultSqliteRepository } from '@/relational/sqlite/repositories';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { AnyType } from '@venizia/ignis-helpers/common';
-import { datasource, model } from '@venizia/ignis-kernel';
+import { datasource, model, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { afterAll, beforeAll } from 'bun:test';
 import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import type { IFindEveryHarness } from './find-every-conformance';
@@ -68,7 +68,12 @@ class CompositeItem extends BaseSqliteEntity<typeof compositeTable> {
 }
 
 @datasource({ driver: LibSqlDriver })
-class FindEveryDataSource extends BaseSqliteDataSource<{ url: string }, AnyType, {}, Client> {
+class FindEveryDataSource extends BaseSqliteDataSource<
+  { url: string },
+  TAnyDataSourceSchema,
+  {},
+  Client
+> {
   constructor(opts: { client: Client }) {
     super({
       name: FindEveryDataSource.name,
@@ -96,12 +101,12 @@ afterAll(() => {
   client.close();
 });
 
-const harness: IFindEveryHarness = {
-  scoped: new DefaultSqliteRepository<AnyType>(dataSource, { entityClass: ScopedItem }),
-  open: new DefaultSqliteRepository<AnyType>(dataSource, { entityClass: OpenItem }),
-  capped: new DefaultSqliteRepository<AnyType>(dataSource, { entityClass: CappedItem }),
-  hiddenKey: new DefaultSqliteRepository<AnyType>(dataSource, { entityClass: HiddenKeyItem }),
-  composite: new DefaultSqliteRepository<AnyType>(dataSource, { entityClass: CompositeItem }),
+const harness: IFindEveryHarness<ISqliteTransaction> = {
+  scoped: new DefaultSqliteRepository(dataSource, { entityClass: ScopedItem }),
+  open: new DefaultSqliteRepository(dataSource, { entityClass: OpenItem }),
+  capped: new DefaultSqliteRepository(dataSource, { entityClass: CappedItem }),
+  hiddenKey: new DefaultSqliteRepository(dataSource, { entityClass: HiddenKeyItem }),
+  composite: new DefaultSqliteRepository(dataSource, { entityClass: CompositeItem }),
   setTenant: (tenant) => {
     currentTenant = tenant;
   },

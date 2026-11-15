@@ -1,7 +1,8 @@
+import type { TScopeResolution } from './scope-resolution';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { datasource, model, ScopeThrough } from '@venizia/ignis-kernel';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { datasource, model, ScopeThrough, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { afterAll, beforeAll } from 'bun:test';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
@@ -9,7 +10,19 @@ import { BaseSqliteDataSource } from '@/relational/sqlite/datasources';
 import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
 import { many, ModelFactory, one, RelationDeclarations } from '@/relational/sqlite/models';
 import { DefaultSqliteRepository } from '@/relational/sqlite/repositories';
-import { defineScopeCompositionCases, ROWS } from './scope-composition-cases';
+import {
+  defineScopeCompositionCases,
+  ROWS,
+  type IItemInsert,
+  type IItemRecord,
+  type INoteInsert,
+  type INoteRecord,
+  type IProductInsert,
+  type IProductRecord,
+  type IVariantInsert,
+  type IVariantRecord,
+} from './scope-composition-cases';
+import type { TSameShape } from './table-shape';
 
 /** The access scope is ANDed with the caller's where on libsql; the cases are shared with libsql. */
 const PRODUCT_TABLE = 'comp_product';
@@ -48,9 +61,21 @@ const itemTable = sqliteTable(ITEM_TABLE, {
   name: text('name').notNull(),
 });
 
-let itemScope: AnyType = {};
-let productScope: AnyType = {};
-let noteScope: AnyType = {};
+/** The cases type rows and data on these records and inserts; this fails to compile if a table drifts from them. */
+export const tableShapes: [
+  TSameShape<typeof productTable.$inferSelect, IProductRecord>,
+  TSameShape<typeof productTable.$inferInsert, IProductInsert>,
+  TSameShape<typeof variantTable.$inferSelect, IVariantRecord>,
+  TSameShape<typeof variantTable.$inferInsert, IVariantInsert>,
+  TSameShape<typeof noteTable.$inferSelect, INoteRecord>,
+  TSameShape<typeof noteTable.$inferInsert, INoteInsert>,
+  TSameShape<typeof itemTable.$inferSelect, IItemRecord>,
+  TSameShape<typeof itemTable.$inferInsert, IItemInsert>,
+] = [true, true, true, true, true, true, true, true];
+
+let itemScope: TScopeResolution = {};
+let productScope: TScopeResolution = {};
+let noteScope: TScopeResolution = {};
 
 const ProductBase = ModelFactory.defineEntity({
   table: productTable,
@@ -118,7 +143,12 @@ const relationsOf = (opts: {
 };
 
 @datasource({ driver: LibSqlDriver })
-class CompositionDataSource extends BaseSqliteDataSource<{ url: string }, AnyType, {}, Client> {
+class CompositionDataSource extends BaseSqliteDataSource<
+  { url: string },
+  TAnyDataSourceSchema,
+  {},
+  Client
+> {
   constructor(opts: { client: Client }) {
     super({
       name: CompositionDataSource.name,
@@ -161,17 +191,17 @@ beforeAll(async () => {
   `);
 
   dataSource = new CompositionDataSource({ client });
-  products = new DefaultSqliteRepository<typeof productTable>(dataSource as AnyType, {
-    entityClass: Product as AnyType,
+  products = new DefaultSqliteRepository<typeof productTable>(dataSource, {
+    entityClass: Product,
   });
-  variants = new DefaultSqliteRepository<typeof variantTable>(dataSource as AnyType, {
-    entityClass: Variant as AnyType,
+  variants = new DefaultSqliteRepository<typeof variantTable>(dataSource, {
+    entityClass: Variant,
   });
-  notes = new DefaultSqliteRepository<typeof noteTable>(dataSource as AnyType, {
-    entityClass: Note as AnyType,
+  notes = new DefaultSqliteRepository<typeof noteTable>(dataSource, {
+    entityClass: Note,
   });
-  items = new DefaultSqliteRepository<typeof itemTable>(dataSource as AnyType, {
-    entityClass: Item as AnyType,
+  items = new DefaultSqliteRepository<typeof itemTable>(dataSource, {
+    entityClass: Item,
   });
 }, 30_000);
 

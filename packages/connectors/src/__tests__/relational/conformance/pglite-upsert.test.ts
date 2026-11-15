@@ -1,15 +1,28 @@
+import type { TScopeResolution } from './scope-resolution';
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { datasource, model, ScopeWriteGuards, type TScopeOperation } from '@venizia/ignis-kernel';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import {
+  datasource,
+  model,
+  ScopeWriteGuards,
+  type TScopeOperation,
+  type TAnyDataSourceSchema,
+} from '@venizia/ignis-kernel';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
 import { index, pgTable, serial, text, timestamp, unique, uniqueIndex } from 'drizzle-orm/pg-core';
-import { UniqueKeys } from '@/relational/core/models';
+import { UniqueKeys, type TTableSchemaWithId } from '@/relational/core/models';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
-import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
-import { defineUpsertCases, type IUpsertRow } from './upsert-cases';
+import { PGliteDefaultRepository } from './pglite-repositories';
+import type { TSameShape } from './table-shape';
+import {
+  defineUpsertCases,
+  type IUpsertInsert,
+  type IUpsertRecord,
+  type IUpsertRow,
+} from './upsert-cases';
 
 /** `upsert` on a real Postgres engine (PGlite); the cases are shared with libsql. */
 const TABLE_NAME = 'upsert_pg_item';
@@ -52,7 +65,28 @@ const nndTable = pgTable(
   (table) => [unique('upsert_pg_nnd_ab').on(table.a, table.b).nullsNotDistinct()],
 );
 
-let resolver: (context: { operation: TScopeOperation }) => AnyType = () => ({});
+/** A row as the raw PGlite client returns it, the columns aliased to property names. */
+interface IRawUpsertRow {
+  id: number;
+  merchantId: string | null;
+  code: string;
+  slug: string | null;
+  name: string | null;
+  value: string | null;
+  secret: string | null;
+  status: string;
+  createdAt: string | null;
+  modifiedAt: string | null;
+  deletedAt: Date | null;
+}
+
+/** The cases type rows and data on `IUpsertRecord` and `IUpsertInsert`; this fails to compile if the table drifts from them. */
+export const itemShape: [
+  TSameShape<typeof itemTable.$inferSelect, IUpsertRecord>,
+  TSameShape<typeof itemTable.$inferInsert, IUpsertInsert>,
+] = [true, true];
+
+let resolver: (context: { operation: TScopeOperation }) => TScopeResolution = () => ({});
 
 const SETTINGS = {
   properties: { hidden: ['secret'] },
@@ -63,7 +97,7 @@ const SETTINGS = {
   type: 'entity',
   settings: { ...SETTINGS, access: { resolve: (context) => resolver(context) } },
 })
-class UpsertItem extends BasePostgresEntity {
+class UpsertItem extends BasePostgresEntity<typeof itemTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = itemTable;
 }
@@ -78,19 +112,19 @@ class UpsertItem extends BasePostgresEntity {
     },
   },
 })
-class UpsertAssignItem extends BasePostgresEntity {
+class UpsertAssignItem extends BasePostgresEntity<typeof itemTable> {
   static override TABLE_NAME = TABLE_NAME;
   static override schema = itemTable;
 }
 
 @model({ type: 'entity' })
-class UpsertNnd extends BasePostgresEntity {
+class UpsertNnd extends BasePostgresEntity<typeof nndTable> {
   static override TABLE_NAME = NND_TABLE;
   static override schema = nndTable;
 }
 
 @datasource({ driver: PGliteDriver })
-class UpsertDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class UpsertDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
   constructor(opts: { client: PGlite }) {
     super({
       name: UpsertDataSource.name,
@@ -114,9 +148,9 @@ class UpsertDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
 
 let client: PGlite;
 let dataSource: UpsertDataSource;
-let items: DefaultCRUDRepository<typeof itemTable>;
-let assignItems: DefaultCRUDRepository<typeof itemTable>;
-let nnd: DefaultCRUDRepository<typeof nndTable>;
+let items: PGliteDefaultRepository<TTableSchemaWithId>;
+let assignItems: PGliteDefaultRepository<TTableSchemaWithId>;
+let nnd: PGliteDefaultRepository<typeof nndTable>;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -149,14 +183,14 @@ beforeAll(async () => {
   `);
 
   dataSource = new UpsertDataSource({ client });
-  items = new DefaultCRUDRepository<typeof itemTable>(dataSource as AnyType, {
-    entityClass: UpsertItem as AnyType,
+  items = new PGliteDefaultRepository<TTableSchemaWithId>(dataSource, {
+    entityClass: UpsertItem,
   });
-  assignItems = new DefaultCRUDRepository<typeof itemTable>(dataSource as AnyType, {
-    entityClass: UpsertAssignItem as AnyType,
+  assignItems = new PGliteDefaultRepository<TTableSchemaWithId>(dataSource, {
+    entityClass: UpsertAssignItem,
   });
-  nnd = new DefaultCRUDRepository<typeof nndTable>(dataSource as AnyType, {
-    entityClass: UpsertNnd as AnyType,
+  nnd = new PGliteDefaultRepository<typeof nndTable>(dataSource, {
+    entityClass: UpsertNnd,
   });
 }, 30_000);
 
@@ -167,9 +201,12 @@ afterAll(async () => {
 defineUpsertCases(() => ({
   items,
   assignItems,
-  codeKey: UniqueKeys.of({ table: itemTable, index: 'upsert_pg_item_code' }),
-  slugKey: UniqueKeys.of({ table: itemTable, index: 'upsert_pg_item_merchant_slug' }),
-  foreignKey: UniqueKeys.of({ table: twinTable, index: 'upsert_pg_twin_code' }),
+  codeKey: UniqueKeys.of<TTableSchemaWithId>({ table: itemTable, index: 'upsert_pg_item_code' }),
+  slugKey: UniqueKeys.of<TTableSchemaWithId>({
+    table: itemTable,
+    index: 'upsert_pg_item_merchant_slug',
+  }),
+  foreignKey: UniqueKeys.of<TTableSchemaWithId>({ table: twinTable, index: 'upsert_pg_twin_code' }),
   executor: dataSource.getQueryExecutor(),
   setResolver: (next) => {
     resolver = next;
@@ -185,20 +222,22 @@ defineUpsertCases(() => ({
     `);
   },
   rawRows: async () => {
-    const { rows } = await client.query<AnyType>(`SELECT * FROM ${TABLE_NAME} ORDER BY id`);
+    const { rows } = await client.query<IRawUpsertRow>(
+      `SELECT id, merchant_id AS "merchantId", code, slug, name, value, secret, status, created_at AS "createdAt", modified_at AS "modifiedAt", deleted_at AS "deletedAt" FROM ${TABLE_NAME} ORDER BY id`,
+    );
 
     return rows.map((row): IUpsertRow => ({
       id: Number(row.id),
-      merchantId: row.merchant_id,
+      merchantId: row.merchantId,
       code: row.code,
       slug: row.slug,
       name: row.name,
       value: row.value,
       secret: row.secret,
       status: row.status,
-      createdAt: row.created_at,
-      modifiedAt: row.modified_at,
-      isDeleted: row.deleted_at !== null,
+      createdAt: row.createdAt,
+      modifiedAt: row.modifiedAt,
+      isDeleted: row.deletedAt !== null,
     }));
   },
 }));
@@ -211,7 +250,9 @@ describe('upsert - a NULLS NOT DISTINCT key (Postgres only)', () => {
 
     const first = await nnd.upsert({ data: { a: 'x', b: null, value: '1' }, on: key });
     const second = await nnd.upsert({ data: { a: 'x', b: null, value: '2' }, on: key });
-    const { rows } = await client.query<AnyType>(`SELECT a, b, value FROM ${NND_TABLE}`);
+    const { rows } = await client.query<{ a: string; b: string | null; value: string }>(
+      `SELECT a, b, value FROM ${NND_TABLE}`,
+    );
 
     expect(first.data).toMatchObject({ value: '1' });
     expect(second.data).toMatchObject({ id: first.data.id, value: '2' });

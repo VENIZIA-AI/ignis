@@ -1,7 +1,11 @@
-import { DEFAULT_MAX_LIMIT, LockStrengths } from '@venizia/ignis-kernel';
-import type { IRelationalTransaction } from '@/relational/core/datasources/common';
+import {
+  DEFAULT_MAX_LIMIT,
+  LockStrengths,
+  type IExtraOptions,
+  type ITransaction,
+} from '@venizia/ignis-kernel';
+import type { TTableInsert, TTableObject, TTableSchemaWithId } from '@/relational/core/models';
 import type { DefaultRelationalRepository } from '@/relational/core/repositories';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { beforeEach, describe, expect, test } from 'bun:test';
@@ -22,11 +26,33 @@ export interface IConformanceRow {
   metadata?: Record<string, unknown> | null;
 }
 
+/** The options every repository verb takes, with `transaction` narrowed to one engine's handle. */
+export interface IConformanceOptions<TTransaction extends ITransaction> extends IExtraOptions {
+  transaction?: TTransaction;
+}
+
 /**
- * Loosely typed on purpose: each engine binds its own `ExtraOptions` and datasource, and the suite
- * must run either.
+ * Generic over the transaction type because the one a repository accepts is the one its own
+ * datasource hands out: each engine binds its own, and the suite runs either.
  */
-export type TConformanceRepository = DefaultRelationalRepository<AnyType>;
+export type TConformanceRepository<TTransaction extends ITransaction = ITransaction> = Pick<
+  DefaultRelationalRepository<
+    TTableSchemaWithId,
+    TTableObject<TTableSchemaWithId>,
+    TTableInsert<TTableSchemaWithId>,
+    IConformanceOptions<TTransaction>
+  >,
+  | 'count'
+  | 'create'
+  | 'createAll'
+  | 'deleteBy'
+  | 'deleteById'
+  | 'find'
+  | 'findById'
+  | 'findEvery'
+  | 'updateBy'
+  | 'updateById'
+>;
 
 /**
  * Two kinds of engine difference, both ASSERTED rather than skipped. A refusal (`rowLocking`,
@@ -71,17 +97,17 @@ export interface IConformanceCapabilities {
   jsonPathRaisesOnScalarRoot: boolean;
 }
 
-export interface IConformanceHarness {
+export interface IConformanceHarness<TTransaction extends ITransaction = ITransaction> {
   /** CRUD over the conformance table. `secret` is hidden; no default filter. */
-  repository: TConformanceRepository;
+  repository: TConformanceRepository<TTransaction>;
 
   /**
    * The same table through a model whose `@model` settings
    * pin `defaultFilter: { where: { tenant: 'acme' } }`.
    */
-  scopedRepository: TConformanceRepository;
+  scopedRepository: TConformanceRepository<TTransaction>;
 
-  beginTransaction(): Promise<IRelationalTransaction<AnyType>>;
+  beginTransaction(): Promise<TTransaction>;
 }
 
 const SEED = [
@@ -114,17 +140,17 @@ const captureRejection = async (execution: () => Promise<unknown>): Promise<unkn
  * repository consumer depends on, never an engine's SQL text; where an engine cannot do something
  * it pins the NotSupported throw, because a suite that skips the differences proves nothing.
  */
-export const runRepositoryConformance = (opts: {
+export const runRepositoryConformance = <TTransaction extends ITransaction>(opts: {
   engine: string;
   capabilities: IConformanceCapabilities;
-  build: () => IConformanceHarness;
+  build: () => IConformanceHarness<TTransaction>;
 }): void => {
   const { engine, capabilities, build } = opts;
 
   describe(`Relational repository conformance - ${engine}`, () => {
-    let harness: IConformanceHarness;
-    let repository: TConformanceRepository;
-    let scopedRepository: TConformanceRepository;
+    let harness: IConformanceHarness<TTransaction>;
+    let repository: TConformanceRepository<TTransaction>;
+    let scopedRepository: TConformanceRepository<TTransaction>;
 
     /** Name -> id of the seeded rows; ids are engine-assigned, so nothing may hardcode them. */
     let seededIds: Record<string, number>;

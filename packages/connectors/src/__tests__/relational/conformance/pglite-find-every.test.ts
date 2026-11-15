@@ -1,10 +1,10 @@
+import type { IDatabaseTransaction } from '@/relational/postgres/datasources/common';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { BasePostgresEntity } from '@/relational/postgres/models';
 import { PGliteCRUDRepository } from '@/relational/postgres/repositories';
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType } from '@venizia/ignis-helpers/common';
-import { datasource, model } from '@venizia/ignis-kernel';
+import { datasource, model, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { afterAll, beforeAll } from 'bun:test';
 import { integer, pgTable, primaryKey, serial, text, timestamp } from 'drizzle-orm/pg-core';
 import type { IFindEveryHarness } from './find-every-conformance';
@@ -67,7 +67,7 @@ class CompositeItem extends BasePostgresEntity<typeof compositeTable> {
 }
 
 @datasource({ driver: PGliteDriver })
-class FindEveryDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class FindEveryDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
   constructor(opts: { client: PGlite }) {
     super({
       name: FindEveryDataSource.name,
@@ -99,12 +99,12 @@ afterAll(async () => {
   await client.close();
 });
 
-const harness: IFindEveryHarness = {
-  scoped: new PGliteCRUDRepository<AnyType>(dataSource, { entityClass: ScopedItem }),
-  open: new PGliteCRUDRepository<AnyType>(dataSource, { entityClass: OpenItem }),
-  capped: new PGliteCRUDRepository<AnyType>(dataSource, { entityClass: CappedItem }),
-  hiddenKey: new PGliteCRUDRepository<AnyType>(dataSource, { entityClass: HiddenKeyItem }),
-  composite: new PGliteCRUDRepository<AnyType>(dataSource, { entityClass: CompositeItem }),
+const harness: IFindEveryHarness<IDatabaseTransaction> = {
+  scoped: new PGliteCRUDRepository(dataSource, { entityClass: ScopedItem }),
+  open: new PGliteCRUDRepository(dataSource, { entityClass: OpenItem }),
+  capped: new PGliteCRUDRepository(dataSource, { entityClass: CappedItem }),
+  hiddenKey: new PGliteCRUDRepository(dataSource, { entityClass: HiddenKeyItem }),
+  composite: new PGliteCRUDRepository(dataSource, { entityClass: CompositeItem }),
   setTenant: (tenant) => {
     currentTenant = tenant;
   },

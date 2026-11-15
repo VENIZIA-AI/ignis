@@ -1,7 +1,10 @@
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { IUniqueKey, TTableSchemaWithId } from '@/relational/core/models';
+import type { IRelationalQueryExecutor } from '@/relational/core/repositories/common';
+import type { TRepositoryPort } from './repository-port';
+import type { TScopeResolution } from './scope-resolution';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { RepositoryErrorCodes, ScopeOperations } from '@venizia/ignis-kernel';
-import type { TScopeOperation } from '@venizia/ignis-kernel';
+import type { ITransaction, TScopeOperation } from '@venizia/ignis-kernel';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
 import { describe, expect, spyOn, test } from 'bun:test';
 
@@ -30,21 +33,59 @@ export interface IUpsertRow {
   isDeleted: boolean;
 }
 
-export interface IUpsertContext {
+/** A row of the item table as a repository returns it: both engines declare these columns and types. */
+export interface IUpsertRecord {
+  id: number;
+  merchantId: string | null;
+  code: string;
+  slug: string | null;
+  name: string | null;
+  value: string | null;
+  secret: string | null;
+  status: string;
+  createdAt: string | null;
+  modifiedAt: string | null;
+  deletedAt: Date | null;
+}
+
+/** What an insert into the item table accepts: `code` is the only required column. */
+export interface IUpsertInsert {
+  id?: number;
+  merchantId?: string | null;
+  code: string;
+  slug?: string | null;
+  name?: string | null;
+  value?: string | null;
+  secret?: string | null;
+  status?: string;
+  createdAt?: string | null;
+  modifiedAt?: string | null;
+  deletedAt?: Date | null;
+}
+
+/** The one verb the cases call, typed on the item table's rows and on the engine's transaction. */
+export type TUpsertRepository<TTransaction extends ITransaction = ITransaction> = TRepositoryPort<
+  IUpsertRecord,
+  IUpsertInsert,
+  'upsert',
+  TTransaction
+>;
+
+export interface IUpsertContext<TTransaction extends ITransaction = ITransaction> {
   /** The scoped model in write mode `reject`: the default filter hides soft-deleted rows, `secret` is hidden. */
-  items: AnyType;
+  items: TUpsertRepository<TTransaction>;
   /** The same table and scope, write mode `assign`. */
-  assignItems: AnyType;
-  codeKey: AnyType;
-  slugKey: AnyType;
+  assignItems: TUpsertRepository<TTransaction>;
+  codeKey: IUniqueKey<TTableSchemaWithId>;
+  slugKey: IUniqueKey<TTableSchemaWithId>;
   /** A key of another table whose columns are named exactly as this one's. */
-  foreignKey: AnyType;
+  foreignKey: IUniqueKey<TTableSchemaWithId>;
   /** The query executor every repository of the engine shares, to prove a refusal runs no SQL. */
-  executor: AnyType;
+  executor: IRelationalQueryExecutor<unknown>;
   /** Every row, read with the raw client: what is really stored, past every scope. */
   rawRows: () => Promise<IUpsertRow[]>;
   reset: () => Promise<void>;
-  setResolver: (resolver: (context: { operation: TScopeOperation }) => AnyType) => void;
+  setResolver: (resolver: (context: { operation: TScopeOperation }) => TScopeResolution) => void;
 }
 
 const ME = 'm1';
@@ -58,8 +99,10 @@ const statusOf = (error: unknown): unknown => {
   return isApplicationError(error) ? error.statusCode : undefined;
 };
 
-export const defineUpsertCases = (context: () => IUpsertContext): void => {
-  const setup = async (): Promise<IUpsertContext> => {
+export const defineUpsertCases = <TTransaction extends ITransaction>(
+  context: () => IUpsertContext<TTransaction>,
+): void => {
+  const setup = async (): Promise<IUpsertContext<TTransaction>> => {
     const ctx = context();
     await ctx.reset();
     ctx.setResolver(() => MINE);
@@ -67,14 +110,17 @@ export const defineUpsertCases = (context: () => IUpsertContext): void => {
     return ctx;
   };
 
-  const rowOf = async (opts: { ctx: IUpsertContext; code: string }) => {
+  const rowOf = async (opts: { ctx: IUpsertContext<TTransaction>; code: string }) => {
     const rows = await opts.ctx.rawRows();
 
     return rows.find((row) => row.code === opts.code);
   };
 
   /** The call is refused with the write-denied 403 and the table is byte for byte what it was. */
-  const expectDenied = async (opts: { ctx: IUpsertContext; task: () => Promise<unknown> }) => {
+  const expectDenied = async (opts: {
+    ctx: IUpsertContext<TTransaction>;
+    task: () => Promise<unknown>;
+  }) => {
     const before = await opts.ctx.rawRows();
 
     const error = await RejectionHelper.rejectionOf({ task: opts.task() });
@@ -349,25 +395,33 @@ export const defineUpsertCases = (context: () => IUpsertContext): void => {
   });
 
   describe('upsert - refused before any guard or SQL', () => {
-    const refusals: Array<{
+    /** One refusal: the call that must be turned away and what the refusal says. */
+    interface IRefusalCase {
       label: string;
-      opts: (ctx: IUpsertContext) => AnyType;
+      opts: (
+        ctx: IUpsertContext<TTransaction>,
+      ) => Parameters<TUpsertRepository<TTransaction>['upsert']>[0];
       message: RegExp;
       status: number;
-    }> = [
-      {
+    }
+
+    // A literal case, so a case the type forbids on purpose carries its own `@ts-expect-error`.
+    const refusalCase = (refusal: IRefusalCase): IRefusalCase => refusal;
+
+    const refusals: Array<IRefusalCase> = [
+      refusalCase({
         label: 'a null in a key column',
         opts: (ctx) => ({ data: { merchantId: ME, slug: null, code: 'N' }, on: ctx.slugKey }),
         message: /the key 'upsert_\w+_merchant_slug' needs a value in every column \| column: slug/,
         status: 400,
-      },
-      {
+      }),
+      refusalCase({
         label: 'a key of another table',
         opts: (ctx) => ({ data: { merchantId: ME, code: 'A', value: 'x' }, on: ctx.foreignKey }),
         message: /'on' is a key of another table/,
         status: 400,
-      },
-      {
+      }),
+      refusalCase({
         label: 'an update column of the key',
         opts: (ctx) => ({
           data: { merchantId: ME, code: 'A', value: 'x' },
@@ -376,8 +430,8 @@ export const defineUpsertCases = (context: () => IUpsertContext): void => {
         }),
         message: /'update' names a column of the key 'upsert_\w+_code'/,
         status: 400,
-      },
-      {
+      }),
+      refusalCase({
         label: 'an update column that is the primary key, with another key as on',
         opts: (ctx) => ({
           data: { id: 777, merchantId: ME, code: 'A', value: 'x' },
@@ -386,27 +440,28 @@ export const defineUpsertCases = (context: () => IUpsertContext): void => {
         }),
         message: /'update' names a primary key column \| key: 'id'/,
         status: 400,
-      },
-      {
+      }),
+      refusalCase({
         label: 'a hand-built key naming a column the table does not have',
         opts: (ctx) => ({
           data: { merchantId: ME, code: 'A', value: 'x' },
-          on: { ...ctx.codeKey, columns: ['ghost'] } as never,
+          on: { ...ctx.codeKey, columns: ['ghost'] },
         }),
         message: /names a column the table does not have \| column: 'ghost'/,
         status: 400,
-      },
-      {
+      }),
+      refusalCase({
         label: 'an update column that is a creation audit column',
         opts: (ctx) => ({
           data: { merchantId: ME, code: 'A', createdAt: 'x' },
           on: ctx.codeKey,
+          // @ts-expect-error the type forbids a creation audit column here; the repository must refuse it too
           update: ['createdAt'],
         }),
         message: /'update' names a creation audit column \| key: 'createdAt'/,
         status: 400,
-      },
-      {
+      }),
+      refusalCase({
         label: 'an update column the data does not set',
         opts: (ctx) => ({
           data: { merchantId: ME, code: 'A' },
@@ -415,23 +470,24 @@ export const defineUpsertCases = (context: () => IUpsertContext): void => {
         }),
         message: /'update' names a column the data does not set \| key: 'value'/,
         status: 400,
-      },
-      {
+      }),
+      refusalCase({
         label: 'an update column that is no column, echoed safely',
         opts: (ctx) => ({
           data: { merchantId: ME, code: 'A' },
           on: ctx.codeKey,
+          // @ts-expect-error the type allows only column names; the repository must refuse any other string
           update: ['nope"; DROP TABLE x;--\n'],
         }),
         message: /'update' names no column of the table \| key: 'nope"; DROP TABLE x;--\\u000a'/,
         status: 400,
-      },
-      {
+      }),
+      refusalCase({
         label: 'nothing left to update',
         opts: (ctx) => ({ data: { code: 'A' }, on: ctx.codeKey }),
         message: /nothing to update on a conflict/,
         status: 400,
-      },
+      }),
     ];
 
     for (const refusal of refusals) {

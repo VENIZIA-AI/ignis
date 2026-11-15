@@ -1,12 +1,14 @@
 import { PGlite } from '@electric-sql/pglite';
+import { isSQLWrapper } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
-import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   datasource,
   model,
   ScopeFilters,
   ScopeThrough,
   type TScopeOperation,
+  type TAnyDataSourceSchema,
 } from '@venizia/ignis-kernel';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
@@ -17,7 +19,8 @@ import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
 import { many, ModelFactory, one, RelationDeclarations } from '@/relational/postgres/models';
-import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
+import { PGliteDefaultRepository } from './pglite-repositories';
+import { relatedOf } from './related-rows';
 
 /**
  * `access.through`: a child with only a foreign key is scoped by the parent's own `access`. Option goes
@@ -127,7 +130,7 @@ const relationsOf = (opts: {
 };
 
 @datasource({ driver: PGliteDriver })
-class ThroughDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class ThroughDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
   constructor(opts: { client: PGlite }) {
     super({
       name: ThroughDataSource.name,
@@ -158,9 +161,9 @@ class ThroughDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> 
 
 let client: PGlite;
 let dataSource: ThroughDataSource;
-let products: DefaultCRUDRepository<typeof productTable>;
-let variants: DefaultCRUDRepository<typeof variantTable>;
-let options: DefaultCRUDRepository<typeof optionTable>;
+let products: PGliteDefaultRepository<typeof productTable>;
+let variants: PGliteDefaultRepository<typeof variantTable>;
+let options: PGliteDefaultRepository<typeof optionTable>;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -172,14 +175,14 @@ beforeAll(async () => {
   `);
 
   dataSource = new ThroughDataSource({ client });
-  products = new DefaultCRUDRepository<typeof productTable>(dataSource as AnyType, {
-    entityClass: Product as AnyType,
+  products = new PGliteDefaultRepository<typeof productTable>(dataSource, {
+    entityClass: Product,
   });
-  variants = new DefaultCRUDRepository<typeof variantTable>(dataSource as AnyType, {
-    entityClass: Variant as AnyType,
+  variants = new PGliteDefaultRepository<typeof variantTable>(dataSource, {
+    entityClass: Variant,
   });
-  options = new DefaultCRUDRepository<typeof optionTable>(dataSource as AnyType, {
-    entityClass: Option as AnyType,
+  options = new PGliteDefaultRepository<typeof optionTable>(dataSource, {
+    entityClass: Option,
   });
 });
 
@@ -198,6 +201,22 @@ beforeEach(async () => {
     INSERT INTO through_option (variant_id, name) VALUES (1, 'o1'), (2, 'o2'), (3, 'o3'), (1, 'o-hidden');
   `);
 });
+
+/** The `inSql` subquery a `through` scope puts on the foreign key column `productId`. */
+const scopeSubquery = (scope: unknown) => {
+  const productId: unknown =
+    typeof scope === 'object' && scope !== null ? Reflect.get(scope, 'productId') : undefined;
+  const inSql: unknown =
+    typeof productId === 'object' && productId !== null
+      ? Reflect.get(productId, 'inSql')
+      : undefined;
+
+  if (!isSQLWrapper(inSql)) {
+    throw new Error('expected the scope to hold a subquery on productId');
+  }
+
+  return inSql.getSQL();
+};
 
 const names = (rows: Array<{ name: string }>): string[] => rows.map((row) => row.name).sort();
 
@@ -279,10 +298,9 @@ describe('a child is scoped by its parent', () => {
       filter: { include: [{ relation: 'options' }], order: ['id asc'] },
     });
 
-    expect(scoped.map((row) => (row as AnyType).options.map((o: AnyType) => o.name))).toEqual([
-      ['o1'],
-      ['o2'],
-    ]);
+    expect(
+      scoped.map((row) => relatedOf({ row, relation: 'options' }).map((option) => option.name)),
+    ).toEqual([['o1'], ['o2']]);
   });
 });
 
@@ -299,7 +317,7 @@ describe('what the scope is built from', () => {
       schema: variantTable,
       operation: 'read',
     });
-    const subquery = (scope as AnyType).productId.inSql.getSQL();
+    const subquery = scopeSubquery(scope);
     const { sql, params } = new PgDialect().sqlToQuery(subquery);
 
     expect(sql).toBe(
@@ -328,7 +346,7 @@ describe('what the scope is built from', () => {
       },
     });
 
-    expect(names((first as AnyType).options)).toEqual(['o-hidden', 'o1']);
+    expect(names(relatedOf({ row: first, relation: 'options' }))).toEqual(['o-hidden', 'o1']);
   });
 
   test('children included from the parent are scoped through it', async () => {
@@ -336,7 +354,10 @@ describe('what the scope is built from', () => {
       filter: { include: [{ relation: 'variants' }], order: ['id asc'] },
     });
 
-    expect(listed.map((row) => names((row as AnyType).variants))).toEqual([['v1'], ['v2']]);
+    expect(listed.map((row) => names(relatedOf({ row, relation: 'variants' })))).toEqual([
+      ['v1'],
+      ['v2'],
+    ]);
   });
 });
 
@@ -394,9 +415,11 @@ describe('a write to a through model must name a parent the caller may reach', (
 
   test('a null or absent foreign key is refused like a foreign parent', async () => {
     const foreign = await refusal(() => variants.create({ data: { productId: 3, name: 'x' } }));
-    const absent = await refusal(() => variants.create({ data: { name: 'x' } as AnyType }));
+    // @ts-expect-error `productId` is required; a caller that leaves it out must be refused
+    const absent = await refusal(() => variants.create({ data: { name: 'x' } }));
     const empty = await refusal(() =>
-      variants.create({ data: { productId: null, name: 'x' } as AnyType }),
+      // @ts-expect-error `productId` is not nullable; a caller that sends null must be refused
+      variants.create({ data: { productId: null, name: 'x' } }),
     );
 
     expect(absent).toBe(foreign);
@@ -417,7 +440,8 @@ describe('a write to a through model must name a parent the caller may reach', (
   test('an update that moves a row to a foreign parent is refused; to an in-scope parent it works', async () => {
     const toForeign = await refusal(() => variants.updateById({ id: 1, data: { productId: 3 } }));
     const toNull = await refusal(() =>
-      variants.updateById({ id: 1, data: { productId: null } as AnyType }),
+      // @ts-expect-error `productId` is not nullable; a caller that sends null must be refused
+      variants.updateById({ id: 1, data: { productId: null } }),
     );
 
     expect(toForeign).toContain('write refused by the access scope');
@@ -518,11 +542,11 @@ describe('products still scope themselves', () => {
 
 describe('upsert on a through model', () => {
   const variantRows = async (): Promise<Array<{ id: number; productId: number; name: string }>> => {
-    const { rows } = await client.query<AnyType>(
-      'SELECT id, product_id, name FROM through_variant ORDER BY id',
+    const { rows } = await client.query<{ id: number; productId: number; name: string }>(
+      'SELECT id, product_id AS "productId", name FROM through_variant ORDER BY id',
     );
 
-    return rows.map((row) => ({ id: row.id, productId: row.product_id, name: row.name }));
+    return rows;
   };
 
   const expectDenied = async (task: () => Promise<unknown>) => {

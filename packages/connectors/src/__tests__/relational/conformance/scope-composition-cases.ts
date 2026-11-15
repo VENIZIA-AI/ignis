@@ -1,6 +1,9 @@
 import { ScopeFilters } from '@venizia/ignis-kernel';
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import type { ITransaction, TWhere } from '@venizia/ignis-kernel';
+import { relatedRowsOf } from './related-rows';
+import type { TRepositoryPort } from './repository-port';
+import type { TScopeResolution } from './scope-resolution';
 
 /**
  * The access scope is a condition the caller can only NARROW. These cases run against both engines
@@ -24,7 +27,7 @@ export const ROWS: IRow[] = [
 
 interface IScopeCase {
   label: string;
-  scope: AnyType;
+  scope: TScopeResolution;
   /** Rows the scope lets the caller READ. */
   reads: (row: IRow) => boolean;
   /** Rows an update or a delete may reach: the shared (null) rows need `write.sharedRows`, which is off here. */
@@ -84,7 +87,7 @@ export const SCOPES: IScopeCase[] = [
 
 interface IAttackCase {
   label: string;
-  where: AnyType;
+  where: TWhere;
   matches: (row: IRow) => boolean;
 }
 
@@ -132,16 +135,74 @@ export const ATTACKS: IAttackCase[] = [
   },
 ];
 
-export interface IScopeCompositionContext {
-  products: AnyType;
-  notes: AnyType;
-  variants: AnyType;
+/** A row of the product table as a repository returns it. */
+export interface IProductRecord {
+  id: number;
+  merchantId: string | null;
+  region: string;
+  name: string;
+}
+
+/** What an insert into the product table accepts. */
+export interface IProductInsert {
+  id?: number;
+  merchantId?: string | null;
+  region: string;
+  name: string;
+}
+
+export interface IVariantRecord {
+  id: number;
+  productId: number;
+  name: string;
+}
+
+export interface IVariantInsert {
+  id?: number;
+  productId: number;
+  name: string;
+}
+
+export interface INoteRecord {
+  id: number;
+  productId: number;
+  merchantId: string | null;
+  name: string;
+}
+
+export interface INoteInsert {
+  id?: number;
+  productId: number;
+  merchantId?: string | null;
+  name: string;
+}
+
+export interface IItemRecord {
+  id: number;
+  merchantId: string | null;
+  status: string;
+  name: string;
+}
+
+export interface IItemInsert {
+  id?: number;
+  merchantId?: string | null;
+  status: string;
+  name: string;
+}
+
+type TCompositionVerb = 'count' | 'create' | 'deleteBy' | 'find' | 'findOne' | 'updateBy';
+
+export interface IScopeCompositionContext<TTransaction extends ITransaction = ITransaction> {
+  products: TRepositoryPort<IProductRecord, IProductInsert, TCompositionVerb, TTransaction>;
+  notes: TRepositoryPort<INoteRecord, INoteInsert, TCompositionVerb, TTransaction>;
+  variants: TRepositoryPort<IVariantRecord, IVariantInsert, TCompositionVerb, TTransaction>;
   /** A model with a scope AND a default filter (`status: 'live'`); rows (m1,live,a) (m1,archived,b) (m2,live,c) (m2,archived,d). */
-  items: AnyType;
+  items: TRepositoryPort<IItemRecord, IItemInsert, TCompositionVerb, TTransaction>;
   itemNames: () => Promise<string[]>;
-  setProductScope: (scope: AnyType) => void;
-  setNoteScope: (scope: AnyType) => void;
-  setItemScope: (scope: AnyType) => void;
+  setProductScope: (scope: TScopeResolution) => void;
+  setNoteScope: (scope: TScopeResolution) => void;
+  setItemScope: (scope: TScopeResolution) => void;
   /** Truncates and seeds `ROWS` into the product table, then two notes per product (merchant of the parent). */
   reset: () => Promise<void>;
   /** The product names still in the table, in id order. */
@@ -161,7 +222,19 @@ const rejectionOf = async (task: Promise<unknown>): Promise<unknown> => {
   throw new Error('Expected the call to reject, but it resolved');
 };
 
-const names = (rows: AnyType[]): string[] => rows.map((row) => row.name).sort();
+const names = (rows: Array<{ name: string }>): string[] => rows.map((row) => row.name).sort();
+
+const isNote = (value: unknown): value is INoteRecord =>
+  typeof value === 'object' &&
+  value !== null &&
+  'name' in value &&
+  typeof value.name === 'string' &&
+  'merchantId' in value &&
+  (value.merchantId === null || typeof value.merchantId === 'string');
+
+/** The related rows an include loaded under `notes`: the key is not part of the product's row type. */
+const notesOf = (row: object): INoteRecord[] =>
+  relatedRowsOf({ row, relation: 'notes', isRelated: isNote });
 
 const expectedNames = (opts: { allowed: (row: IRow) => boolean; attack: IAttackCase }) => {
   return ROWS.filter((row) => opts.allowed(row) && opts.attack.matches(row))
@@ -169,7 +242,9 @@ const expectedNames = (opts: { allowed: (row: IRow) => boolean; attack: IAttackC
     .sort();
 };
 
-export const defineScopeCompositionCases = (context: () => IScopeCompositionContext): void => {
+export const defineScopeCompositionCases = <TTransaction extends ITransaction>(
+  context: () => IScopeCompositionContext<TTransaction>,
+): void => {
   for (const scopeCase of SCOPES) {
     describe(`scope: ${scopeCase.label}`, () => {
       for (const attack of ATTACKS) {
@@ -197,7 +272,7 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
 
             expect(one === null ? 0 : 1).toBe(expected.length === 0 ? 0 : 1);
 
-            if (one !== null) {
+            if (one) {
               expect(expected).toContain(one.name);
             }
           });
@@ -250,11 +325,16 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
   }
 
   describe('a scope the resolver built wrong is unresolved, not "no restriction"', () => {
-    const UNUSABLE: Array<[string, AnyType]> = [
+    const UNUSABLE: Array<[string, TScopeResolution]> = [
+      // @ts-expect-error a resolver may not answer a boolean; the repository must treat it as unresolved
       ['false', false],
+      // @ts-expect-error a resolver may not answer a number
       ['0', 0],
+      // @ts-expect-error a resolver may not answer a string
       ['an empty string', ''],
+      // @ts-expect-error a resolver may not answer a list
       ['an empty list', []],
+      // @ts-expect-error a resolver may not answer a list
       ['a list of scopes', [{ merchantId: 'm1' }]],
       ['an empty object', {}],
       ['an object whose value is undefined', { merchantId: undefined }],
@@ -330,7 +410,7 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
       await ctx.reset();
       ctx.setItemScope({ merchantId: 'm1' });
 
-      const find = async (where: AnyType) => {
+      const find = async (where: TWhere) => {
         const rows = await ctx.items.find({ filter: { where } });
 
         return names(rows);
@@ -428,8 +508,8 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
       ctx.setProductScope(ScopeFilters.UNRESTRICTED);
       ctx.setNoteScope({ merchantId: 'm1' });
 
-      const noteNames = (rows: AnyType[]) =>
-        rows.flatMap((row) => (row.notes ?? []).map((note: AnyType) => note.name)).sort();
+      const noteNames = (rows: Array<object>) =>
+        rows.flatMap((row) => notesOf(row).map((note) => note.name)).sort();
 
       const plain = await ctx.products.find({ filter: { include: [{ relation: 'notes' }] } });
       const optedOut = await ctx.products.find({
@@ -468,10 +548,8 @@ export const defineScopeCompositionCases = (context: () => IScopeCompositionCont
       const attacked = await ctx.products.find({
         filter: { include: [{ relation: 'notes', scope: { where: { merchantId: 'm2' } } }] },
       });
-      const merchants = (rows: AnyType[]) => [
-        ...new Set(
-          rows.flatMap((row) => (row.notes ?? []).map((note: AnyType) => note.merchantId)),
-        ),
+      const merchants = (rows: Array<object>) => [
+        ...new Set(rows.flatMap((row) => notesOf(row).map((note) => note.merchantId))),
       ];
 
       expect(merchants(plain)).toEqual(['m1']);

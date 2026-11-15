@@ -1,13 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import { pgTable, serial, timestamp, varchar } from 'drizzle-orm/pg-core';
-import type { AnyType, TNullable } from '@venizia/ignis-helpers/common';
+import type { TNullable } from '@venizia/ignis-helpers/common';
 import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { RetryBackoffStrategies, RetryJitterModes } from '@venizia/ignis-helpers';
 import { model } from '@venizia/ignis-kernel';
 import type { TDataWithRange } from '@venizia/ignis-kernel';
 import { RepositoryErrors } from '@venizia/ignis-kernel';
-import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
-import { PostgresQueryExecutor } from '@/relational/postgres/repositories/executor';
+import { StubDataSource } from './fixtures/stub-datasource.fixture';
 import type { TTableObject } from '@/relational/core/models';
 import { BaseRelationalEntity } from '@/relational/core/models';
 import type { RelationalBaseRepository } from '@/relational/core/repositories/core/base';
@@ -45,12 +44,12 @@ class RetryAccountEntity extends BaseRelationalEntity<typeof retryAccounts> {
  * Every `select()` resolves the next queued row set, so an N-attempt retry loop shows up as N
  * entries in `selectCalls`. A queue shorter than the attempt count keeps yielding the empty set.
  */
-const buildQueuedSelectConnector = (opts: { rowSets: Array<Array<AnyType>> }) => {
+const buildQueuedSelectConnector = (opts: { rowSets: Array<Array<Record<string, unknown>>> }) => {
   const pending = [...opts.rowSets];
   const selectCalls: number[] = [];
 
-  const buildChain = (rows: Array<AnyType>): Record<string, AnyType> => {
-    const chain: Record<string, AnyType> = {};
+  const buildChain = (rows: Array<Record<string, unknown>>): Record<string, unknown> => {
+    const chain: Record<string, unknown> = {};
     chain.from = () => chain;
     chain.$dynamic = () => chain;
     chain.where = () => chain;
@@ -73,23 +72,19 @@ const buildQueuedSelectConnector = (opts: { rowSets: Array<Array<AnyType>> }) =>
         return buildChain(rows);
       },
       $count: async () => 0,
-    } as AnyType,
+    },
   };
 };
 
 const buildRepository = (opts: {
-  rowSets: Array<Array<AnyType>>;
+  rowSets: Array<Array<Record<string, unknown>>>;
 }): {
   repository: SoftDeletableRelationalRepository<typeof retryAccounts>;
   selectCalls: number[];
 } => {
   const { connector, selectCalls } = buildQueuedSelectConnector({ rowSets: opts.rowSets });
 
-  const dataSource = {
-    getQueryDialect: () => new PostgresQueryDialect(),
-    getQueryExecutor: () => new PostgresQueryExecutor(),
-    getConnector: () => connector,
-  } as AnyType;
+  const dataSource = new StubDataSource({ connector });
 
   const repository = new SoftDeletableRelationalRepository<typeof retryAccounts>(dataSource, {
     entityClass: RetryAccountEntity,

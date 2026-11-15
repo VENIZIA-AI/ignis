@@ -1,29 +1,28 @@
-import type { IRelationalTransaction } from '@/relational/core/datasources/common';
+import type { ITransaction } from '@venizia/ignis-kernel';
 import { RejectionHelper } from '@venizia/dev-configs/testing';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import type { TConformanceRepository } from './repository-conformance';
 
-type TFindEveryRepository = Pick<
-  TConformanceRepository,
+type TFindEveryRepository<TTransaction extends ITransaction> = Pick<
+  TConformanceRepository<TTransaction>,
   'find' | 'findEvery' | 'createAll' | 'deleteById'
 >;
 
-export interface IFindEveryHarness {
+export interface IFindEveryHarness<TTransaction extends ITransaction = ITransaction> {
   /** Table `items`, scoped to the current tenant, `deletedAt` null by default, `secret` hidden. */
-  scoped: TFindEveryRepository;
+  scoped: TFindEveryRepository<TTransaction>;
   /** Table `items` with no scope, no default filter, nothing hidden, `limit.max` 20 000. */
-  open: TFindEveryRepository;
+  open: TFindEveryRepository<TTransaction>;
   /** Table `items` with `limit.max` 3. */
-  capped: TFindEveryRepository;
-  hiddenKey: TFindEveryRepository;
+  capped: TFindEveryRepository<TTransaction>;
+  hiddenKey: TFindEveryRepository<TTransaction>;
   /** Primary key `(id, tenant)`. */
-  composite: TFindEveryRepository;
+  composite: TFindEveryRepository<TTransaction>;
   setTenant(tenant: string): void;
   reset(): Promise<void>;
-  beginTransaction(): Promise<IRelationalTransaction<AnyType>>;
+  beginTransaction(): Promise<TTransaction>;
 }
 
 const pagesOf = async <T>(pages: AsyncIterable<Array<T>>): Promise<Array<Array<T>>> => {
@@ -36,11 +35,14 @@ const pagesOf = async <T>(pages: AsyncIterable<Array<T>>): Promise<Array<Array<T
   return all;
 };
 
-const idsOf = (pages: Array<Array<{ id: unknown }>>) =>
+const idsOf = (pages: Array<Array<Record<string, unknown>>>) =>
   pages.map((page) => page.map((row) => row.id));
 
 /** Runs `run` with `find` spied on: each page is one `find` call. */
-const withFinds = async <T>(opts: { repository: TFindEveryRepository; run: () => Promise<T> }) => {
+const withFinds = async <T, TTransaction extends ITransaction>(opts: {
+  repository: TFindEveryRepository<TTransaction>;
+  run: () => Promise<T>;
+}) => {
   const find = spyOn(opts.repository, 'find');
 
   try {
@@ -52,8 +54,8 @@ const withFinds = async <T>(opts: { repository: TFindEveryRepository; run: () =>
   }
 };
 
-const expectBadRequest = async (opts: {
-  repository: TFindEveryRepository;
+const expectBadRequest = async <TTransaction extends ITransaction>(opts: {
+  repository: TFindEveryRepository<TTransaction>;
   task: () => Promise<unknown>;
   message: RegExp;
 }) => {
@@ -77,12 +79,12 @@ const rowsOf = (opts: { ids: Array<number>; tenant?: string; deletedAt?: Date })
   }));
 
 /** `findEvery` on a real engine: the pages a caller sees and how many `find` calls they cost. */
-export const runFindEveryConformance = (opts: {
+export const runFindEveryConformance = <TTransaction extends ITransaction>(opts: {
   engine: string;
-  build: () => IFindEveryHarness;
+  build: () => IFindEveryHarness<TTransaction>;
 }): void => {
   describe(`findEvery - ${opts.engine}`, () => {
-    let harness: IFindEveryHarness;
+    let harness: IFindEveryHarness<TTransaction>;
 
     const seed = async (rows: Array<Record<string, unknown>>) => {
       await harness.open.createAll({ data: rows, options: { shouldReturn: false } });

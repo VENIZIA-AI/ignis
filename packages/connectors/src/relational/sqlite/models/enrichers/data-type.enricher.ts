@@ -1,4 +1,3 @@
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { blob, integer, real, text } from 'drizzle-orm/sqlite-core';
 import type { TColumnDefinitions, TDataTypeEnricherOptions } from '../common/types';
 
@@ -33,8 +32,8 @@ export class SqliteDataTypeEnricher {
         defaultValue?.jValue !== undefined
           ? text('j_value', { mode: 'json' })
               .default(defaultValue.jValue)
-              .$type<Record<string, AnyType>>()
-          : text('j_value', { mode: 'json' }).$type<Record<string, AnyType>>(),
+              .$type<Record<string, unknown>>()
+          : text('j_value', { mode: 'json' }).$type<Record<string, unknown>>(),
       boValue:
         defaultValue?.boValue !== undefined
           ? integer('bo_value', { mode: 'boolean' }).default(defaultValue.boValue)

@@ -1,4 +1,4 @@
-import { datasource } from '@venizia/ignis-kernel';
+import { datasource, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { BaseRelationalDataSource } from '@/relational/core/datasources';
 import type { TRelationalTransactionOptions } from '@/relational/core/datasources';
 import type { IRelationalConnection, IRelationalDriver } from '@/relational/core/drivers';
@@ -9,7 +9,7 @@ import type {
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { describe, expect, test } from 'bun:test';
 
@@ -22,18 +22,18 @@ class RecordingClient {
   }
 }
 
-class RecordingDriver implements IRelationalDriver<AnyType, RecordingClient> {
+class RecordingDriver implements IRelationalDriver<unknown, RecordingClient> {
   private readonly client: RecordingClient;
 
   constructor(opts: { client: RecordingClient }) {
     this.client = opts.client;
   }
 
-  createConnector(): AnyType {
+  createConnector(): unknown {
     return {};
   }
 
-  acquire(): Promise<IRelationalConnection<AnyType>> {
+  acquire(): Promise<IRelationalConnection<unknown>> {
     throw getError({ message: '[RecordingDriver] acquire is not exercised by this fixture' });
   }
 
@@ -54,7 +54,7 @@ class EndlessDriver {
     this.client = opts.client;
   }
 
-  createConnector(): AnyType {
+  createConnector(): unknown {
     return {};
   }
 
@@ -65,10 +65,10 @@ class EndlessDriver {
 
 abstract class RecordingDataSourceFixture extends BaseRelationalDataSource<
   {},
-  AnyType,
+  TAnyDataSourceSchema,
   {},
   RecordingClient,
-  AnyType
+  unknown
 > {
   constructor() {
     super({ name: 'recording', config: {}, schema: {} });
@@ -90,7 +90,7 @@ abstract class RecordingDataSourceFixture extends BaseRelationalDataSource<
     throw getError({ message: '[RecordingDataSourceFixture] dialect is not exercised' });
   }
 
-  override getQueryExecutor(): IRelationalQueryExecutor<AnyType> {
+  override getQueryExecutor(): IRelationalQueryExecutor<unknown> {
     throw getError({ message: '[RecordingDataSourceFixture] executor is not exercised' });
   }
 }
@@ -105,7 +105,7 @@ class DriverlessDataSource extends RecordingDataSourceFixture {}
 class EndlessDriverDataSource extends RecordingDataSourceFixture {}
 
 @datasource({ driver: PGliteDriver, autoDiscovery: false })
-class MemoryPGliteDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class MemoryPGliteDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
   constructor() {
     super({ name: MemoryPGliteDataSource.name, config: {}, schema: {} });
   }

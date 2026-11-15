@@ -315,7 +315,7 @@ export declare class SqliteDataTypeEnricher {
         nValue: import("drizzle-orm/sqlite-core").SQLiteRealBuilderInitial<"n_value">;
         tValue: import("drizzle-orm/sqlite-core").SQLiteTextBuilderInitial<"t_value", [string, ...string[]], number | undefined>;
         bValue: import("drizzle-orm/sqlite-core").SQLiteBlobBufferBuilderInitial<"b_value">;
-        jValue: import("drizzle-orm").$Type<import("drizzle-orm/sqlite-core").SQLiteTextJsonBuilderInitial<"j_value">, Record<string, any>>;
+        jValue: import("drizzle-orm").$Type<import("drizzle-orm/sqlite-core").SQLiteTextJsonBuilderInitial<"j_value">, Record<string, unknown>>;
         boValue: import("drizzle-orm/sqlite-core").SQLiteBooleanBuilderInitial<"bo_value">;
     };
     static enrich(opts: {
@@ -326,7 +326,7 @@ export declare class SqliteDataTypeEnricher {
         nValue: import("drizzle-orm/sqlite-core").SQLiteRealBuilderInitial<"n_value">;
         tValue: import("drizzle-orm/sqlite-core").SQLiteTextBuilderInitial<"t_value", [string, ...string[]], number | undefined>;
         bValue: import("drizzle-orm/sqlite-core").SQLiteBlobBufferBuilderInitial<"b_value">;
-        jValue: import("drizzle-orm").$Type<import("drizzle-orm/sqlite-core").SQLiteTextJsonBuilderInitial<"j_value">, Record<string, any>>;
+        jValue: import("drizzle-orm").$Type<import("drizzle-orm/sqlite-core").SQLiteTextJsonBuilderInitial<"j_value">, Record<string, unknown>>;
         boValue: import("drizzle-orm/sqlite-core").SQLiteBooleanBuilderInitial<"bo_value">;
     };
 }
@@ -855,7 +855,7 @@ driver would block the event loop. The run-result type stays open: it is the one
 disagree on, and pinning it would drag an optional peer's types into this tier.
 
 ```ts
-export type TSqliteConnector<DataSourceSchema extends TAnyDataSourceSchema = TAnyDataSourceSchema> = BaseSQLiteDatabase<'async', AnyType, DataSourceSchema>;
+export type TSqliteConnector<DataSourceSchema extends TAnyDataSourceSchema = TAnyDataSourceSchema> = BaseSQLiteDatabase<'async', unknown, DataSourceSchema>;
 ```
 
 Source: `packages/connectors/src/relational/sqlite/drivers/driver.ts`

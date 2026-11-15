@@ -1,6 +1,7 @@
+import type { TScopeResolution } from './scope-resolution';
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { datasource, model, ScopeThrough } from '@venizia/ignis-kernel';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { datasource, model, ScopeThrough, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { afterAll, beforeAll } from 'bun:test';
 import { integer, pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
@@ -8,8 +9,20 @@ import { RelationsFactory } from '@/relational/core/repositories/dialect/relatio
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { many, ModelFactory, one, RelationDeclarations } from '@/relational/postgres/models';
-import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
-import { defineScopeCompositionCases, ROWS } from './scope-composition-cases';
+import { PGliteDefaultRepository } from './pglite-repositories';
+import {
+  defineScopeCompositionCases,
+  ROWS,
+  type IItemInsert,
+  type IItemRecord,
+  type INoteInsert,
+  type INoteRecord,
+  type IProductInsert,
+  type IProductRecord,
+  type IVariantInsert,
+  type IVariantRecord,
+} from './scope-composition-cases';
+import type { TSameShape } from './table-shape';
 
 /** The access scope is ANDed with the caller's where on PGlite; the cases are shared with libsql. */
 const PRODUCT_TABLE = 'comp_product';
@@ -48,9 +61,21 @@ const itemTable = pgTable(ITEM_TABLE, {
   name: text('name').notNull(),
 });
 
-let itemScope: AnyType = {};
-let productScope: AnyType = {};
-let noteScope: AnyType = {};
+/** The cases type rows and data on these records and inserts; this fails to compile if a table drifts from them. */
+export const tableShapes: [
+  TSameShape<typeof productTable.$inferSelect, IProductRecord>,
+  TSameShape<typeof productTable.$inferInsert, IProductInsert>,
+  TSameShape<typeof variantTable.$inferSelect, IVariantRecord>,
+  TSameShape<typeof variantTable.$inferInsert, IVariantInsert>,
+  TSameShape<typeof noteTable.$inferSelect, INoteRecord>,
+  TSameShape<typeof noteTable.$inferInsert, INoteInsert>,
+  TSameShape<typeof itemTable.$inferSelect, IItemRecord>,
+  TSameShape<typeof itemTable.$inferInsert, IItemInsert>,
+] = [true, true, true, true, true, true, true, true];
+
+let itemScope: TScopeResolution = {};
+let productScope: TScopeResolution = {};
+let noteScope: TScopeResolution = {};
 
 const ProductBase = ModelFactory.defineEntity({
   table: productTable,
@@ -118,7 +143,7 @@ const relationsOf = (opts: {
 };
 
 @datasource({ driver: PGliteDriver })
-class CompositionDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class CompositionDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
   constructor(opts: { client: PGlite }) {
     super({
       name: CompositionDataSource.name,
@@ -150,10 +175,10 @@ class CompositionDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGli
 
 let client: PGlite;
 let dataSource: CompositionDataSource;
-let products: DefaultCRUDRepository<typeof productTable>;
-let variants: DefaultCRUDRepository<typeof variantTable>;
-let notes: DefaultCRUDRepository<typeof noteTable>;
-let items: DefaultCRUDRepository<typeof itemTable>;
+let products: PGliteDefaultRepository<typeof productTable>;
+let variants: PGliteDefaultRepository<typeof variantTable>;
+let notes: PGliteDefaultRepository<typeof noteTable>;
+let items: PGliteDefaultRepository<typeof itemTable>;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -166,17 +191,17 @@ beforeAll(async () => {
   `);
 
   dataSource = new CompositionDataSource({ client });
-  products = new DefaultCRUDRepository<typeof productTable>(dataSource as AnyType, {
-    entityClass: Product as AnyType,
+  products = new PGliteDefaultRepository<typeof productTable>(dataSource, {
+    entityClass: Product,
   });
-  variants = new DefaultCRUDRepository<typeof variantTable>(dataSource as AnyType, {
-    entityClass: Variant as AnyType,
+  variants = new PGliteDefaultRepository<typeof variantTable>(dataSource, {
+    entityClass: Variant,
   });
-  notes = new DefaultCRUDRepository<typeof noteTable>(dataSource as AnyType, {
-    entityClass: Note as AnyType,
+  notes = new PGliteDefaultRepository<typeof noteTable>(dataSource, {
+    entityClass: Note,
   });
-  items = new DefaultCRUDRepository<typeof itemTable>(dataSource as AnyType, {
-    entityClass: Item as AnyType,
+  items = new PGliteDefaultRepository<typeof itemTable>(dataSource, {
+    entityClass: Item,
   });
 }, 30_000);
 

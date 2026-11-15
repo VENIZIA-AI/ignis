@@ -1,6 +1,7 @@
+import type { TScopeResolution } from './scope-resolution';
 import { PGlite } from '@electric-sql/pglite';
-import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { datasource, model, ScopeThrough } from '@venizia/ignis-kernel';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { datasource, model, ScopeThrough, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { integer, pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
@@ -8,7 +9,7 @@ import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
 import { many, ModelFactory, one, RelationDeclarations } from '@/relational/postgres/models';
-import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
+import { PGliteDefaultRepository } from './pglite-repositories';
 
 /**
  * `access.through` and the parent's `write.sharedRows`. The parent reads its own rows and the shared ones (merchant null);
@@ -42,7 +43,7 @@ const optionTable = pgTable(OPTION_TABLE, {
 });
 
 const SHARED_SCOPE = { or: [{ merchantId: { inq: ['m1'] } }, { merchantId: null }] };
-let productScope: AnyType = SHARED_SCOPE;
+let productScope: TScopeResolution = SHARED_SCOPE;
 
 /** The parent's `access`, held by reference so a test can flip `write.sharedRows` and the scope shape. */
 const productAccess = {
@@ -104,7 +105,7 @@ const relationsOf = (opts: {
 };
 
 @datasource({ driver: PGliteDriver })
-class SharedThroughDataSource extends BasePostgresDataSource<{}, AnyType, {}, PGlite> {
+class SharedThroughDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
   constructor(opts: { client: PGlite }) {
     super({
       name: SharedThroughDataSource.name,
@@ -135,9 +136,9 @@ class SharedThroughDataSource extends BasePostgresDataSource<{}, AnyType, {}, PG
 
 let client: PGlite;
 let dataSource: SharedThroughDataSource;
-let products: DefaultCRUDRepository<typeof productTable>;
-let variants: DefaultCRUDRepository<typeof variantTable>;
-let options: DefaultCRUDRepository<typeof optionTable>;
+let products: PGliteDefaultRepository<typeof productTable>;
+let variants: PGliteDefaultRepository<typeof variantTable>;
+let options: PGliteDefaultRepository<typeof optionTable>;
 
 beforeAll(async () => {
   client = new PGlite();
@@ -149,14 +150,14 @@ beforeAll(async () => {
   `);
 
   dataSource = new SharedThroughDataSource({ client });
-  products = new DefaultCRUDRepository<typeof productTable>(dataSource as AnyType, {
-    entityClass: Product as AnyType,
+  products = new PGliteDefaultRepository<typeof productTable>(dataSource, {
+    entityClass: Product,
   });
-  variants = new DefaultCRUDRepository<typeof variantTable>(dataSource as AnyType, {
-    entityClass: Variant as AnyType,
+  variants = new PGliteDefaultRepository<typeof variantTable>(dataSource, {
+    entityClass: Variant,
   });
-  options = new DefaultCRUDRepository<typeof optionTable>(dataSource as AnyType, {
-    entityClass: Option as AnyType,
+  options = new PGliteDefaultRepository<typeof optionTable>(dataSource, {
+    entityClass: Option,
   });
 });
 
