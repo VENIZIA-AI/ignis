@@ -1102,7 +1102,7 @@ class-slot-checks-the-instance:
       interface IOrganizer { id: string; name: IMultiLang; code: string }
       class OrganizerRepository extends HttpRepository<IOrganizer> {}
 
-      const slot: TClass<HttpRepository<TNamedEntity>> = OrganizerRepository; // TS2419: Types of construct signatures are incompatible
+      const slot: TClass<HttpRepository<TNamedEntity>> = OrganizerRepository; // TS2322: Type 'typeof OrganizerRepository' is not assignable to type 'TClass<HttpRepository<TNamedEntity>>'
     after: |-
       // TClass compares the class's instance with the slot's: type the slot by the members you read,
       interface IFindable { count(opts: { where?: object }): Promise<{ count: number }> }
@@ -1489,7 +1489,7 @@ environment-get-string:
         transform: (value) => (value ? Number(value) : undefined),
       });
       const timeout = applicationEnvironment.get<number>('APP_ENV_TIMEOUT', { defaultValue: 5000 }); // a string at run time
-      // TS2769: Property 'transform' is missing in type '{ defaultValue: number; }' but required in type 'IApplicationEnvironmentDefaultedTransformOptions<number>'
+      // TS2769: No overload matches this call: Property 'transform' is missing in type '{ defaultValue: number; }' but required in type 'IApplicationEnvironmentTransformOptions<number>'
       const retries = applicationEnvironment.get<number>('APP_ENV_RETRIES', { defaultValue: 3 });
       const hosts = applicationEnvironment.get<string[]>('APP_ENV_HOSTS', { defaultValue: [] });
       const host: string = applicationEnvironment.get<string>('APP_ENV_DB_HOST'); // undefined at run time when unset
