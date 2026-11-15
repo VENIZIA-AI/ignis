@@ -1,6 +1,11 @@
-import type { AbstractEntity, TAuthMode, TAuthStrategy, TToggle } from '@venizia/ignis-kernel';
+import type {
+  AbstractEntity,
+  IAuthorizationSpec,
+  TAuthMode,
+  TAuthStrategy,
+  TToggle,
+} from '@venizia/ignis-kernel';
 import type { TRouteAuthenticateConfig } from '@venizia/ignis-kernel';
-import { ToggleUtility } from '@venizia/ignis-kernel';
 import { MetadataRegistry } from '@venizia/ignis-kernel/metadata';
 import type { TClass } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
@@ -8,6 +13,7 @@ import { BaseSearchEntity } from '@/search/core/models';
 import type { ISearchFieldDefinition } from '@/search/core/models';
 import { SearchEngineParams } from './engine-params';
 import { SearchRawAccess } from './raw-access';
+import { SearchToggles } from './toggles';
 import type { ISearchLooseResponse } from './response';
 import { SearchSettingsUtility } from './settings';
 import type { ISearchFieldCatalog, ISearchResolvedQuery, TSearchLooseSource } from './settings';
@@ -15,6 +21,7 @@ import type { ISearchFieldCatalog, ISearchResolvedQuery, TSearchLooseSource } fr
 /** The options of `SearchControllerFactory.build`, with the types that depend on the model and the engine left open: what `resolve` reads and checks at runtime. */
 export interface ISearchOptionsInput {
   authenticate?: TRouteAuthenticateConfig;
+  authorize?: IAuthorizationSpec | IAuthorizationSpec[];
   routes: { search?: TToggle; multiSearch?: TToggle };
   modes?: { raw?: TToggle };
   query?: { fixed?: unknown; default?: unknown; allow?: { tuning?: unknown } };
@@ -25,6 +32,8 @@ export interface ISearchOptionsInput {
 /** What the controller needs from its options, after every default and every cross-check. */
 export interface ISearchResolvedOptions {
   authenticate: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
+  /** `authenticate: { skip: true }` drops it, as for any route: with no caller, no authorization applies. */
+  authorize?: IAuthorizationSpec | IAuthorizationSpec[];
   isRawAllowed: boolean;
   allowedEngineParams: ReadonlySet<string>;
   isSearchOn: boolean;
@@ -136,8 +145,12 @@ export class SearchControllerOptionsUtility {
       scope,
       authenticate: options.authenticate,
     });
-    const isSearchOn = ToggleUtility.isUsed(routes.search);
-    const isMultiSearchOn = ToggleUtility.isUsed(routes.multiSearch);
+    const isSearchOn = SearchToggles.read({ scope, name: 'routes.search', toggle: routes.search });
+    const isMultiSearchOn = SearchToggles.read({
+      scope,
+      name: 'routes.multiSearch',
+      toggle: routes.multiSearch,
+    });
     const isRawAllowed = SearchRawAccess.resolve({
       scope,
       raw: options.modes?.raw,
@@ -158,6 +171,7 @@ export class SearchControllerOptionsUtility {
 
     const resolved: ISearchResolvedOptions = {
       authenticate,
+      authorize: 'strategies' in authenticate ? options.authorize : undefined,
       isRawAllowed,
       allowedEngineParams,
       isSearchOn,
@@ -183,7 +197,8 @@ export class SearchControllerOptionsUtility {
     const catalog = SearchControllerOptionsUtility.readCatalog({ scope, entityClass });
     const allowedTuning = new Set(Array.isArray(query?.allow?.tuning) ? query.allow.tuning : []);
 
-    if (query !== undefined) {
+    // Only a server setting needs the per-request step; `allow.tuning` alone is the body schema and the allow list.
+    if (query?.fixed !== undefined || query?.default !== undefined) {
       resolved.query = {
         fixed: SearchControllerOptionsUtility.resolveSource({
           scope,
@@ -204,9 +219,9 @@ export class SearchControllerOptionsUtility {
       };
     }
 
-    if (response?.use === true) {
+    if (SearchToggles.read({ scope, name: 'response', toggle: response })) {
       if (
-        typeof response.transform !== 'function' ||
+        typeof response?.transform !== 'function' ||
         typeof (response.document as { safeParse?: unknown } | undefined)?.safeParse !== 'function'
       ) {
         throw SearchControllerOptionsUtility.fail({

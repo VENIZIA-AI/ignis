@@ -53,7 +53,8 @@ migration:
 ## What changed
 
 - **`engineParams.allow` is removed.** Its names were the engine's wire names, typed as plain strings. `query.allow.tuning` takes the camelCase keys of the engine's tuning type (`ITypesenseTuning` for Typesense), so a misspelled name fails to compile.
-- **The body's `engineParams` is a strict object.** It holds exactly the listed names, so the OpenAPI document shows them and any other name is a `400`. Before, it was a free key-value bag checked at request time.
+- **The body's `engineParams` of `POST /search` is a strict object.** It holds exactly the listed names, so the OpenAPI document shows them and any other name is a `400`. Before, it was a free key-value bag checked at request time. Multi-search entries are unchanged: they stay a raw passthrough that needs `modes.raw`.
+- **Names are camelCase.** A wire spelling in `query.allow.tuning` (`num_typos`) throws when the controller is built, and `sortBy` cannot be listed.
 - **No alias.** The old option fails to type-check.
 
 ## Who is affected

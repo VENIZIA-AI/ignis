@@ -1,7 +1,6 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import { ToggleUtility } from '@venizia/ignis-kernel';
-import type { TToggle } from '@venizia/ignis-kernel';
+import { SearchToggles } from './toggles';
 import type { TSearchInput } from '@/search/core/repositories/common';
 import { SearchModes } from '@/search/core/repositories/common';
 
@@ -13,9 +12,9 @@ import { SearchModes } from '@/search/core/repositories/common';
  */
 export class SearchRawAccess {
   /** Reads `modes.raw`: only `{ use: true }` opens it. A scoped controller cannot open it, and the definition throws. */
-  static resolve(opts: { scope: string; raw?: TToggle; isScoped: boolean }): boolean {
+  static resolve(opts: { scope: string; raw?: unknown; isScoped: boolean }): boolean {
     const { scope, raw, isScoped } = opts;
-    const isAllowed = ToggleUtility.isUsed(raw);
+    const isAllowed = SearchToggles.read({ scope, name: 'modes.raw', toggle: raw });
 
     if (isAllowed && isScoped) {
       throw getError({

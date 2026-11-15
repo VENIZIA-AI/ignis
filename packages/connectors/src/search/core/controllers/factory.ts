@@ -54,7 +54,7 @@ export interface ISearchControllerOptions<
    */
   authenticate: TRouteAuthenticateConfig;
 
-  /** Authorization config applied to both generated routes. */
+  /** Authorization config applied to both generated routes. `authenticate: { skip: true }` drops it, as it does for any route. */
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
 
   /** The routes to generate: `{ search: { use: true } }`. A route left out, or `{ use: false }`, is not served. */
@@ -120,8 +120,12 @@ export class SearchControllerFactory extends BaseHelper {
    * with `engineParams` of the three friendly modes narrowed to the names of `query.allow.tuning`: a strict object, so an
    * unknown name is a 400 and the OpenAPI document lists the names a client may send.
    */
-  private static extendSearchBody(opts: { shape?: z.ZodRawShape; tuning: string[] }) {
-    const { shape = {}, tuning } = opts;
+  private static extendSearchBody(opts: {
+    shape?: z.ZodRawShape;
+    tuning: string[];
+    isQueryBySettable: boolean;
+  }) {
+    const { shape = {}, tuning, isQueryBySettable } = opts;
     const [keyword, semantic, hybrid, raw] = SearchInputSchema.options;
     const taken = Object.keys(shape).filter(
       (key) =>
@@ -150,7 +154,14 @@ export class SearchControllerFactory extends BaseHelper {
     return z.discriminatedUnion('mode', [
       keyword.extend({ ...shape, ...engineParams }).describe(keyword.description ?? ''),
       semantic.extend({ ...shape, ...engineParams }).describe(semantic.description ?? ''),
-      hybrid.extend({ ...shape, ...engineParams }).describe(hybrid.description ?? ''),
+      hybrid
+        .extend({
+          ...shape,
+          ...engineParams,
+          // The server may choose the fields (`query.fixed` or `query.default`), so the client need not.
+          ...(isQueryBySettable ? { queryBy: z.array(z.string()).optional() } : {}),
+        })
+        .describe(hybrid.description ?? ''),
       raw.extend(shape).describe(raw.description ?? ''),
     ]);
   }
@@ -163,13 +174,20 @@ export class SearchControllerFactory extends BaseHelper {
     bodyExtension?: z.ZodRawShape;
     /** The names of `query.allow.tuning`: what `engineParams` of the search body may carry. */
     allowedTuning?: string[];
+    /** `query.fixed` or `query.default` is set: a hybrid body then takes its `queryBy` from the server when the client sends none. */
+    isQueryBySettable?: boolean;
     /** `response.document`: the documents of the response, in place of the model's schema. */
     responseDocument?: z.ZodType;
   }) {
     const { selectSchema, authenticate, authorize, bodyExtension, allowedTuning = [] } = opts;
+    const isQueryBySettable = opts.isQueryBySettable ?? false;
     const searchBodySchema =
-      bodyExtension || allowedTuning.length > 0
-        ? SearchControllerFactory.extendSearchBody({ shape: bodyExtension, tuning: allowedTuning })
+      bodyExtension || allowedTuning.length > 0 || isQueryBySettable
+        ? SearchControllerFactory.extendSearchBody({
+            shape: bodyExtension,
+            tuning: allowedTuning,
+            isQueryBySettable,
+          })
         : SearchInputSchema;
 
     const searchResponseSchema = z.object({
@@ -234,7 +252,7 @@ export class SearchControllerFactory extends BaseHelper {
     Shape extends z.ZodRawShape = {},
     TOutDocument extends object = TDataObject,
   >(opts: ISearchControllerOptions<Repository, Shape, TOutDocument>) {
-    const { repository, authorize, scope, isStrict = true } = opts;
+    const { repository, scope, isStrict = true } = opts;
 
     const factoryScope = `SearchControllerFactory.build | repository: ${repository.name}`;
     const model = MetadataRegistry.getInstance().getRepositoryBinding({
@@ -253,6 +271,7 @@ export class SearchControllerFactory extends BaseHelper {
       entityClass,
       options: {
         authenticate: opts.authenticate,
+        authorize: opts.authorize,
         routes: opts.routes,
         modes: opts.modes,
         query: opts.query,
@@ -266,9 +285,11 @@ export class SearchControllerFactory extends BaseHelper {
     const routeDefinitions = SearchControllerFactory.defineRouteConfigs({
       selectSchema,
       authenticate: resolved.authenticate,
-      authorize,
+      authorize: resolved.authorize,
       bodyExtension: opts.request?.body?.extend,
       allowedTuning: opts.query?.allow?.tuning,
+      isQueryBySettable:
+        resolved.query?.fixed !== undefined || resolved.query?.default !== undefined,
       responseDocument: resolved.response?.document,
     });
 

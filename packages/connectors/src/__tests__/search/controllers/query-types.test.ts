@@ -97,6 +97,16 @@ describe('query types', () => {
         repository: TypedProductRepository,
         authenticate: { skip: true },
         routes: { search: { use: true } },
+        // @ts-expect-error sortBy chooses the order, so no client may send it
+        query: { allow: { tuning: ['sortBy'] } },
+      }),
+    );
+
+    typeOnly(() =>
+      SearchControllerFactory.build({
+        repository: TypedProductRepository,
+        authenticate: { skip: true },
+        routes: { search: { use: true } },
         // @ts-expect-error a field the model does not have
         query: { fixed: { queryBy: ['nothing'] } },
       }),

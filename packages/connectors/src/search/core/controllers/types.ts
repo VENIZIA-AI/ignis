@@ -77,7 +77,7 @@ export interface ISearchQueryOptions<
   default?: TSearchSettingsSource<Document, Tuning, Env, TExtra>;
 
   /** What a client may send. `tuning` names the knobs a request's `engineParams` may carry; a name is fixed or allowed, never both. */
-  allow?: { tuning?: Array<keyof Tuning & string> };
+  allow?: { tuning?: Array<Exclude<keyof Tuning & string, 'sortBy'>> };
 }
 
 /** One hit of a search response. */

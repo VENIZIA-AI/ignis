@@ -42,6 +42,7 @@ migration:
 
 - **`authenticate` is required.** `{ strategies: [Authentication.STRATEGY_JWT] }` admits a JWT caller only. `{ skip: true }` serves the routes without authentication, as `TRouteAuthConfig` does for any other route.
 - **An empty config is refused.** `{}` and `{ strategies: [] }` throw when the controller is built, because they would leave the routes open without saying so.
+- **`{ skip: true }` also drops `authorize`.** As for any route: with no authenticated caller there is nothing to authorize. A controller that sets both serves the routes open.
 - **Why.** A controller built without `authenticate` served every caller. A forgotten option was an open search route.
 
 ## Who is affected

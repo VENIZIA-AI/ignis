@@ -600,7 +600,7 @@ The subclass needs no constructor. The factory injects the repository bound unde
 
 Import the factory from `@venizia/ignis-connectors/typesense/controllers` (or `@venizia/ignis-connectors/search/controllers`), never from `@venizia/ignis-connectors/typesense`. That entry loads without `hono`, so it carries no controller.
 
-`authenticate` is required. `{ strategies: [Authentication.STRATEGY_JWT] }` admits a JWT caller only, and `{ skip: true }` opens the routes on purpose. A config with no strategy and no `skip` throws when the controller is built, so a route is never open by omission.
+`authenticate` is required. `{ strategies: [Authentication.STRATEGY_JWT] }` admits a JWT caller only, and `{ skip: true }` opens the routes on purpose. A config with no strategy and no `skip` throws when the controller is built, so a route is never open by omission. `{ skip: true }` also drops `authorize`, as it does for any route.
 
 `routes.search: { use: true }` registers `POST /search` (request body is the mode-discriminated schema, so validation and OpenAPI come for free, and the handler dispatches to `repository.search`). `routes.multiSearch: { use: true }` registers `POST /multi-search`, which dispatches to `dataSource.multiSearch`. A route that is left out, or `{ use: false }`, is not served. The routes register after the subclass's `binding()`. `mode: 'raw'` and multi-search answer `400` until the controller opts in: see [Raw mode and multi-search over HTTP](#raw-mode-and-multi-search-over-http). For anything the factory does not cover, write a custom `BaseRestController` calling `repository.search()` or `getClient()` directly.
 
@@ -693,8 +693,9 @@ const BaseSearchController = SearchControllerFactory.build({
 
 - **Precedence per setting.** `fixed`, then what the client sent, then `default`, then the model's `defaultQueryBy`. A client value for a fixed setting is a `400` that names it. A tuning name only counts from the client when `allow.tuning` lists it, and a name is fixed or allowed, never both.
 - **A function source.** It gets `{ context, input }`, where `input` is the validated body after the scope, so it sees the `request.body.extend` keys. A string literal it returns widens inside a generic call: write `'title DESC' as const`, or call `build<typeof ArticleRepository>(...)`.
+- **Hybrid needs no `queryBy` from the client** once `query.fixed` or `query.default` is set: the body's `queryBy` becomes optional, and the server's list (else the model's `defaultQueryBy`) is used.
 - **A keyed record names every `queryBy` field.** A fixed record that does not cover the request's `queryBy` is a `400`. A default one is dropped.
-- **Typed tuning needs the datasource.** Write the repository as `DefaultSearchRepository<TArticle, TypesenseDataSource>`. A repository that leaves the second type argument out has no typed tuning, and `query.tuning` is closed. Meilisearch binds none.
+- **Typed tuning needs the datasource.** Write the repository as `DefaultSearchRepository<TArticle, TypesenseDataSource>`. A repository that leaves the second type argument out has no typed tuning: `query.tuning` is closed, and `query.allow.tuning` takes any name. Meilisearch binds none.
 - **The definition is checked when the controller is built.** A field the model does not have, a hidden field (a dotted child of one too), a `queryBy` field that is not text, a weight for a field outside `queryBy`, and `order` with `tuning.sortBy` in one layer all throw. A function source is checked on every request and answers `500`, because the value is the server's: so does a tuning value the engine refuses (`numTypos: -1`).
 - **No fixed setting beside raw access.** `query.fixed` and `query.default` throw when `modes.raw` or `routes.multiSearch` is on: both hand the engine its own parameters, so a fixed setting would not apply.
 
@@ -743,6 +744,14 @@ SearchControllerFactory.build({
 - **The transform may drop hits.** `found` stays the engine's count. `Content-Range` keeps the engine's page (`records 10-11/40`), `X-Response-Count` is the number of hits in this response, and a page whose hits were all dropped prints `records */40` with a count of `0`. An empty page does not mean the last one.
 - **The server's code is checked.** Every transformed document is parsed against `document`. A document that does not match, a transform that throws, or a result that is not a list answers `500`.
 - **Not with raw access.** `raw` mode and multi-search return the engine's documents as they are, so `response` throws when `modes.raw` or `routes.multiSearch` is on.
+
+### What these options do not cover
+
+- **The query text.** The body's `query` reaches the engine as sent: only an empty string (or none) becomes `*`. To normalize it (case, accents, spaces), write a route of your own that calls `repository.search()`.
+- **A dependency in the transform.** The transform gets `{ hits, found, context, input }`. `context` carries the request's state (the current user, the authorization rules), not the container, so a transform that needs another repository cannot resolve one.
+- **A sort expression and hidden fields.** `order` entries are checked against the model's fields. The inside of a `tuning.sortBy` string (`_text_match:desc,...`) is the engine's to check, so a hidden field named there is not caught.
+- **Request headers in the OpenAPI document.** The generated routes document the body only.
+- **No rows for a caller.** A scope that returns `{ or: [] }` answers `200` with no hits and never calls the engine. `null` is the refusal (`403`).
 
 ### Raw mode and multi-search over HTTP
 

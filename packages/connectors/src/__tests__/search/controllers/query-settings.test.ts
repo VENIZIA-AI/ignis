@@ -1,16 +1,20 @@
 // Must precede the controllers/factory import below: avoids a circular-import TDZ error.
 import '@venizia/ignis-kernel';
 
-import { describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, spyOn, test } from 'bun:test';
 import { z } from '@hono/zod-openapi';
+import { getError } from '@venizia/ignis-helpers/core';
+import type { IAuthenticationStrategy, IAuthUser } from '@venizia/ignis-kernel';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 
 import {
   Authentication,
+  AuthenticationStrategyRegistry,
   repository,
   controller as controllerDecorator,
 } from '@venizia/ignis-kernel';
 import { SearchControllerFactory } from '@/search/core/controllers/factory';
+import { SearchControllerOptionsUtility } from '@/search/core/controllers/options';
 import type { ISearchControllerOptions } from '@/search/core/controllers/factory';
 import { DefaultSearchRepository } from '@/search/core/repositories';
 import type { TypesenseDataSource } from '@/search/typesense/datasources';
@@ -97,10 +101,10 @@ const mount = async (opts: {
   const router = controller.getRouter();
   answerErrors(router);
 
-  const send = async (body: unknown) => {
+  const send = async (body: unknown, headers: Record<string, string> = {}) => {
     const response = await router.request('/search', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...headers },
       body: JSON.stringify(body),
     });
 
@@ -160,6 +164,32 @@ describe('precedence: fixed > client > default > the model', () => {
     expect(wire(onlyModel.dataSource)['query_by']).toBe('title,name');
   });
 
+  test('a hybrid body needs no queryBy when the server chooses it: fixed, else the model list', async () => {
+    const hybrid = {
+      mode: 'hybrid',
+      query: 'foo',
+      vectorField: 'embedding',
+      nearVector: [1, 0, 0, 0],
+    };
+    const fixed = await mount({
+      repositoryClass: QuerySettingsDefaultByRepository as never,
+      options: { query: { fixed: { queryBy: ['title'] } } },
+    });
+    const served = await fixed.send(hybrid);
+
+    expect(served.status).toBe(200);
+    expect(wire(fixed.dataSource)['query_by']).toBe('title');
+
+    const modelList = await mount({
+      repositoryClass: QuerySettingsDefaultByRepository as never,
+      options: { query: { default: { order: ['name'] } } },
+    });
+    const fromModel = await modelList.send(hybrid);
+
+    expect(fromModel.status).toBe(200);
+    expect(wire(modelList.dataSource)['query_by']).toBe('title,name');
+  });
+
   test('queryByWeights are keyed and written in the order of the effective queryBy', async () => {
     const fixed = await mount({
       options: {
@@ -210,6 +240,22 @@ describe('precedence: fixed > client > default > the model', () => {
     expect(wire(open.dataSource)['sort_by']).toBe('title:desc');
     await open.send(keyword({ queryBy: ['title'] }));
     expect(wire(open.dataSource)['sort_by']).toBe('name:asc');
+  });
+
+  test('a default tuning.sortBy is one sort with order: a client order replaces it, a fixed one makes a client order a 400', async () => {
+    const sortBy = '_text_match:desc,createdAt:desc';
+    const open = await mount({ options: { query: { default: { tuning: { sortBy } } } } });
+
+    await open.send(keyword({ queryBy: ['title'] }));
+    expect(wire(open.dataSource)['sort_by']).toBe(sortBy);
+
+    await open.send(keyword({ queryBy: ['title'], filter: { order: ['title DESC'] } }));
+    expect(wire(open.dataSource)['sort_by']).toBe('title:desc');
+
+    const fixed = await mount({ options: { query: { fixed: { tuning: { sortBy } } } } });
+    const refused = await fixed.send(keyword({ queryBy: ['title'], filter: { order: ['title'] } }));
+
+    expect(refused.status).toBe(400);
   });
 
   test('tuning: fixed and default values reach the engine, an allowed client key beats the default, a fixed key cannot be sent', async () => {
@@ -398,6 +444,19 @@ describe('hidden fields', () => {
   });
 });
 
+describe('a scope that matches nothing', () => {
+  test('an empty or is an answer of no rows, not a 403', async () => {
+    const { send, dataSource } = await mount({
+      options: { scope: () => ({ or: [] }), query: { fixed: { queryBy: ['title'] } } },
+    });
+    const empty = await send(keyword());
+
+    expect(empty.status).toBe(200);
+    expect(empty.json.hits).toEqual([]);
+    expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
+  });
+});
+
 describe('function sources', () => {
   test('receive the scoped, extended body and may depend on it', async () => {
     const seen: unknown[] = [];
@@ -532,19 +591,69 @@ describe('authenticate', () => {
     }
   });
 
-  test('JWT only: the route configs carry the strategy, and a request without a token is a 401', async () => {
-    const strategies = [Authentication.STRATEGY_JWT];
-    const configs = SearchControllerFactory.defineRouteConfigs({
-      selectSchema: z.object({}),
-      authenticate: { strategies },
+  describe('JWT only, with a jwt strategy registered', () => {
+    // A stand-in for the real strategy: it admits one bearer token and refuses everything else with a 401.
+    const jwt: IAuthenticationStrategy = {
+      name: 'jwt',
+      authenticate: async (context) => {
+        if (context.req.header('authorization') === 'Bearer good-token') {
+          return { userId: 'user-1' } as IAuthUser;
+        }
+
+        throw getError({ statusCode: 401, message: 'bad token' });
+      },
+    };
+
+    afterEach(() => {
+      (
+        AuthenticationStrategyRegistry.getInstance as unknown as { mockRestore?: () => void }
+      ).mockRestore?.();
     });
 
-    expect(configs.SEARCH.authenticate).toEqual({ strategies: ['jwt'] });
+    const mountJwt = () => {
+      spyOn(AuthenticationStrategyRegistry, 'getInstance').mockReturnValue({
+        resolveStrategy: ({ name }: { name: string }) => (name === 'jwt' ? jwt : undefined),
+        reportUnregistered: () => {},
+      } as unknown as AuthenticationStrategyRegistry);
 
-    const { send } = await mount({ authenticate: { strategies } });
-    const unauthenticated = await send(keyword());
+      return mount({ authenticate: { strategies: [Authentication.STRATEGY_JWT] } });
+    };
 
-    expect(unauthenticated.status).toBe(401);
+    test('the route configs carry the strategy', () => {
+      const configs = SearchControllerFactory.defineRouteConfigs({
+        selectSchema: z.object({}),
+        authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+      });
+
+      expect(configs.SEARCH.authenticate).toEqual({ strategies: ['jwt'] });
+    });
+
+    test('a valid token is served, a request without a token or with another scheme is a 401', async () => {
+      const { send } = await mountJwt();
+      const served = await send(keyword(), { authorization: 'Bearer good-token' });
+      const anonymous = await send(keyword());
+      const basic = await send(keyword(), { authorization: 'Basic dXNlcjpwYXNz' });
+
+      expect(served.status).toBe(200);
+      expect(anonymous.status).toBe(401);
+      expect(basic.status).toBe(401);
+    });
+  });
+
+  test('{ skip: true } drops authorize, as it does for any route', () => {
+    const resolved = SearchControllerOptionsUtility.resolve({
+      scope: 's',
+      entityClass: ProductDocument,
+      options: {
+        authenticate: { skip: true },
+        authorize: { rules: [] } as never,
+        routes: { search: { use: true } },
+        hasScope: false,
+      },
+    });
+
+    expect(resolved.authorize).toBeUndefined();
+    expect(resolved.authenticate).toEqual({});
   });
 
   test('{ skip: true } serves the route without a token', async () => {
@@ -566,5 +675,120 @@ describe('the default is unchanged', () => {
       ['query_by_weights']: '2,1',
     });
     expect(wire(dataSource)['num_typos']).toBeUndefined();
+  });
+
+  test('semantic and hybrid requests reach the engine with their own params and nothing the options add', async () => {
+    const { send, dataSource } = await mount({
+      repositoryClass: QuerySettingsDefaultByRepository as never,
+    });
+
+    await send({
+      mode: 'semantic',
+      vectorField: 'embedding',
+      nearVector: [1, 0, 0, 0],
+      filter: { limit: 3 },
+    });
+    expect(wire(dataSource)['vector_query']).toContain('embedding:([1, 0, 0, 0]');
+    expect(wire(dataSource)['query_by']).toBeUndefined();
+    expect(wire(dataSource)['num_typos']).toBeUndefined();
+    expect(wire(dataSource)['sort_by']).toBeUndefined();
+
+    await send({
+      mode: 'hybrid',
+      query: 'foo',
+      queryBy: ['title'],
+      vectorField: 'embedding',
+      nearVector: [1, 0, 0, 0],
+    });
+    expect(wire(dataSource)['query_by']).toBe('title');
+    expect(wire(dataSource)['vector_query']).toContain('embedding:([1, 0, 0, 0]');
+    expect(wire(dataSource)['num_typos']).toBeUndefined();
+  });
+});
+
+describe('a toggle that is not { use: boolean } is refused when the controller is defined', () => {
+  test.each([
+    ['routes.search as true', { routes: { search: true } }, /routes\.search must be/],
+    [
+      'routes.search use "false"',
+      { routes: { search: { use: 'false' } } },
+      /routes\.search must be/,
+    ],
+    ['modes.raw use "yes"', { modes: { raw: { use: 'yes' } } }, /modes\.raw must be/],
+    ['modes.raw use 1', { modes: { raw: { use: 1 } } }, /modes\.raw must be/],
+    ['modes.raw null', { modes: { raw: null } }, /modes\.raw must be/],
+    ['modes.raw without use', { modes: { raw: {} } }, /modes\.raw must be/],
+    [
+      'modes.raw a Boolean object',
+      // oxlint-disable-next-line no-new-wrappers
+      { modes: { raw: { use: new Boolean(true) } } },
+      /modes\.raw must be/,
+    ],
+    ['response use "true"', { response: { use: 'true' } }, /response must be/],
+  ])('%s', (_name, options, pattern) => {
+    expect(() =>
+      SearchControllerFactory.build({
+        repository: QuerySettingsProductRepository,
+        authenticate: { skip: true },
+        routes: { search: { use: true } },
+        ...options,
+      } as never),
+    ).toThrow(pattern);
+  });
+});
+
+describe('server-origin refusals answer 500 and client-origin ones 400', () => {
+  test('a fixed order the engine refuses, and a function order that is not an entry, answer 500', async () => {
+    const tooMany = await mount({
+      options: {
+        query: { fixed: { order: ['name', 'title', 'status', 'isActive'] } },
+      },
+    });
+    const refused = await tooMany.send(keyword({ queryBy: ['title'] }));
+
+    expect(refused.status).toBe(500);
+
+    const notEntry = await mount({ options: { query: { fixed: () => ({ order: [''] }) } } });
+    const badEntry = await notEntry.send(keyword({ queryBy: ['title'] }));
+
+    expect(badEntry.status).toBe(500);
+  });
+
+  test('a fixed keyed knob does not fail a semantic request, which has no queryBy to align to', async () => {
+    const { send } = await mount({
+      repositoryClass: QuerySettingsDefaultByRepository as never,
+      options: { query: { fixed: { tuning: { numTypos: { title: 1, name: 0 } } } } },
+    });
+    const served = await send({
+      mode: 'semantic',
+      vectorField: 'embedding',
+      nearVector: [1, 0, 0, 0],
+    });
+
+    expect(served.status).toBe(200);
+  });
+
+  test('a fixed keyed set that does not cover a list the server chose is a 500, the client queryBy a 400', async () => {
+    const { send } = await mount({
+      repositoryClass: QuerySettingsDefaultByRepository as never,
+      options: { query: { fixed: { queryByWeights: { title: 2 } } } },
+    });
+    // No queryBy from the client: the model's list (title, name) is the one the weights must cover.
+    const serverList = await send(keyword());
+    const clientList = await send(keyword({ queryBy: ['title', 'name'] }));
+
+    expect(serverList.status).toBe(500);
+    expect(clientList.status).toBe(400);
+  });
+
+  test('allow.tuning takes camelCase names only', () => {
+    expect(() =>
+      SearchControllerFactory.build({
+        repository: QuerySettingsProductRepository,
+        authenticate: { skip: true },
+        routes: { search: { use: true } },
+        query: { allow: { tuning: ['num_typos'] } },
+      } as never),
+    ).toThrow(/write the camelCase name/);
   });
 });

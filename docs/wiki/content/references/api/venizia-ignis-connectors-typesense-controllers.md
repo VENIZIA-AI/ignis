@@ -78,7 +78,7 @@ export interface ISearchControllerOptions<Repository extends TCrudRepositoryClas
      * is refused when the controller is built, so a route is never open by omission.
      */
     authenticate: TRouteAuthenticateConfig;
-    /** Authorization config applied to both generated routes. */
+    /** Authorization config applied to both generated routes. `authenticate: { skip: true }` drops it, as it does for any route. */
     authorize?: IAuthorizationSpec | IAuthorizationSpec[];
     /** The routes to generate: `{ search: { use: true } }`. A route left out, or `{ use: false }`, is not served. */
     routes: ISearchRoutes;
@@ -196,6 +196,7 @@ The options of `SearchControllerFactory.build`, with the types that depend on th
 ```ts
 export interface ISearchOptionsInput {
     authenticate?: TRouteAuthenticateConfig;
+    authorize?: IAuthorizationSpec | IAuthorizationSpec[];
     routes: {
         search?: TToggle;
         multiSearch?: TToggle;
@@ -235,7 +236,7 @@ export interface ISearchQueryOptions<Document extends object, Tuning extends obj
     default?: TSearchSettingsSource<Document, Tuning, Env, TExtra>;
     /** What a client may send. `tuning` names the knobs a request's `engineParams` may carry; a name is fixed or allowed, never both. */
     allow?: {
-        tuning?: Array<keyof Tuning & string>;
+        tuning?: Array<Exclude<keyof Tuning & string, 'sortBy'>>;
     };
 }
 ```
@@ -275,6 +276,8 @@ export interface ISearchResolvedOptions {
         strategies?: TAuthStrategy[];
         mode?: TAuthMode;
     };
+    /** `authenticate: { skip: true }` drops it, as for any route: with no caller, no authorization applies. */
+    authorize?: IAuthorizationSpec | IAuthorizationSpec[];
     isRawAllowed: boolean;
     allowedEngineParams: ReadonlySet<string>;
     isSearchOn: boolean;
@@ -369,6 +372,8 @@ export declare class SearchControllerFactory extends BaseHelper {
         bodyExtension?: z.ZodRawShape;
         /** The names of `query.allow.tuning`: what `engineParams` of the search body may carry. */
         allowedTuning?: string[];
+        /** `query.fixed` or `query.default` is set: a hybrid body then takes its `queryBy` from the server when the client sends none. */
+        isQueryBySettable?: boolean;
         /** `response.document`: the documents of the response, in place of the model's schema. */
         responseDocument?: z.ZodType;
     }): {
@@ -606,7 +611,6 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 queryByWeights: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
                                 mode: z.ZodLiteral<"hybrid">;
                                 query: z.ZodString;
-                                queryBy: z.ZodArray<z.ZodString>;
                                 vectorField: z.ZodString;
                                 nearVector: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
                                 alpha: z.ZodOptional<z.ZodNumber>;
@@ -619,6 +623,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     offset: z.ZodOptional<z.ZodNumber>;
                                     skip: z.ZodOptional<z.ZodNumber>;
                                 }, z.core.$strip>>;
+                                queryBy?: z.ZodOptional<z.ZodArray<z.ZodString>> | undefined;
                                 engineParams: z.ZodOptional<z.ZodObject<{
                                     [x: string]: z.ZodOptional<z.ZodUnknown>;
                                 }, z.core.$strict>>;
@@ -639,7 +644,6 @@ export declare class SearchControllerFactory extends BaseHelper {
                                 queryByWeights: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
                                 mode: z.ZodLiteral<"hybrid">;
                                 query: z.ZodString;
-                                queryBy: z.ZodArray<z.ZodString>;
                                 vectorField: z.ZodString;
                                 nearVector: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
                                 alpha: z.ZodOptional<z.ZodNumber>;
@@ -652,6 +656,7 @@ export declare class SearchControllerFactory extends BaseHelper {
                                     offset: z.ZodOptional<z.ZodNumber>;
                                     skip: z.ZodOptional<z.ZodNumber>;
                                 }, z.core.$strip>>;
+                                queryBy?: z.ZodOptional<z.ZodArray<z.ZodString>> | undefined;
                                 engineParams?: undefined;
                             }, z.core.$strip>, z.ZodObject<{
                                 [x: string]: z.core.$ZodType<unknown, unknown, z.core.$ZodTypeInternals<unknown, unknown>>;
@@ -920,11 +925,6 @@ export declare class SearchControllerFactory extends BaseHelper {
                     data?: import("@venizia/ignis-helpers").TNullable<R>;
                 };
                 range?: import("@venizia/ignis-kernel").TDataRange;
-                extra?: Record<string, import("@venizia/ignis-kernel").TResponseExtra>;
-            }): ValueOrPromise<R | {
-                count?: number;
-                data?: import("@venizia/ignis-helpers").TNullable<R>;
-                extra?: Record<string, unknown>;
 // ... cut
 ```
 
@@ -1015,7 +1015,7 @@ export declare class SearchRawAccess {
     /** Reads `modes.raw`: only `{ use: true }` opens it. A scoped controller cannot open it, and the definition throws. */
     static resolve(opts: {
         scope: string;
-        raw?: TToggle;
+        raw?: unknown;
         isScoped: boolean;
     }): boolean;
     /** Refuses (400) a `raw` search body when the controller did not opt in. */
@@ -1107,6 +1107,7 @@ export declare class SearchSettingsUtility {
     }): {
         input: Record<string, unknown>;
         serverTuning: Record<string, unknown>;
+        serverOrder?: string[];
     };
     /**
      * The input of a request with the controller's `query` settings applied. What the server chose is checked with the engine's

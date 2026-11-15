@@ -193,7 +193,20 @@ export class SearchSettingsUtility {
       }
 
       for (const entry of order) {
-        checkField({ name: Sorts.parseEntry({ entry }).field, where: 'order' });
+        let orderField: string;
+
+        try {
+          orderField = Sorts.parseEntry({ entry }).field;
+        } catch (error) {
+          throw SearchSettingsUtility.fail({
+            scope,
+            message: `order holds an entry that is not a field with an optional direction | entry: ${JSON.stringify(entry)}`,
+            statusCode,
+            cause: error,
+          });
+        }
+
+        checkField({ name: orderField, where: 'order' });
       }
     }
 
@@ -279,7 +292,11 @@ export class SearchSettingsUtility {
     fixed: ISearchLooseSettings;
     defaults: ISearchLooseSettings;
     catalog: ISearchFieldCatalog;
-  }): { input: Record<string, unknown>; serverTuning: Record<string, unknown> } {
+  }): {
+    input: Record<string, unknown>;
+    serverTuning: Record<string, unknown>;
+    serverOrder?: string[];
+  } {
     const { input, fixed, defaults, catalog } = opts;
     const next: Record<string, unknown> = { ...input };
     const serverTuning: Record<string, unknown> = {};
@@ -289,11 +306,16 @@ export class SearchSettingsUtility {
         message: `${what} is fixed by this search controller and cannot be sent`,
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
       });
+    // The fields a keyed setting aligns to: the client's own `queryBy` makes a gap its mistake (400); the server's list or the model's makes it the server's (500).
+    const isNamesFromClient =
+      fixed.queryBy === undefined && 'queryBy' in input && input.queryBy !== undefined;
     const notNamed = (what: string) =>
       SearchSettingsUtility.fail({
         scope: 'search',
         message: `the fixed ${what} does not name every queryBy field of this request`,
-        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        statusCode: isNamesFromClient
+          ? HTTP.ResultCodes.RS_4.BadRequest
+          : HTTP.ResultCodes.RS_5.InternalServerError,
       });
     let names: readonly string[] | undefined;
 
@@ -307,6 +329,18 @@ export class SearchSettingsUtility {
 
       if (queryBy) {
         next['queryBy'] = queryBy;
+      } else if (input.mode === SearchModes.HYBRID) {
+        // The schema asks a hybrid body for `queryBy`; with none from anywhere, the model's own list or a 400.
+        if (names.length === 0) {
+          throw SearchSettingsUtility.fail({
+            scope: 'search',
+            message:
+              'hybrid search needs queryBy: send it, or set it in query.fixed or query.default',
+            statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+          });
+        }
+
+        next['queryBy'] = [...names];
       }
 
       if (fixed.queryByWeights) {
@@ -342,8 +376,10 @@ export class SearchSettingsUtility {
 
     const sort = sortOf(fixed) ?? (hasClientOrder ? undefined : sortOf(defaults));
 
-    if (Array.isArray(sort)) {
-      next['filter'] = { ...input.filter, order: sort };
+    const serverOrder = Array.isArray(sort) ? sort : undefined;
+
+    if (serverOrder) {
+      next['filter'] = { ...input.filter, order: serverOrder };
     }
 
     const tuning: Record<string, unknown> = {};
@@ -370,6 +406,11 @@ export class SearchSettingsUtility {
           throw refuse(`tuning '${name}'`);
         }
 
+        // A semantic search has no `queryBy`, so a keyed knob has nothing to align to: it is left out, as a fixed `queryBy` is.
+        if (input.mode === SearchModes.SEMANTIC && isPlainObject(fixed.tuning[name])) {
+          continue;
+        }
+
         const value = SearchSettingsUtility.toKnob({ value: fixed.tuning[name], names });
 
         if (value === undefined) {
@@ -381,6 +422,10 @@ export class SearchSettingsUtility {
       } else if (name in clientTuning) {
         tuning[name] = clientTuning[name];
       } else {
+        if (input.mode === SearchModes.SEMANTIC && isPlainObject(defaults.tuning?.[name])) {
+          continue;
+        }
+
         const value = SearchSettingsUtility.toKnob({ value: defaults.tuning?.[name], names });
 
         if (value !== undefined) {
@@ -394,7 +439,7 @@ export class SearchSettingsUtility {
       next['engineParams'] = tuning;
     }
 
-    return { input: next, serverTuning };
+    return { input: next, serverTuning, serverOrder };
   }
 
   /**
@@ -437,13 +482,17 @@ export class SearchSettingsUtility {
       catalog: query.catalog,
     });
 
-    if (Object.keys(merged.serverTuning).length > 0) {
+    if (Object.keys(merged.serverTuning).length > 0 || merged.serverOrder !== undefined) {
       try {
         dialect.toWireParams({ query: { engineParams: merged.serverTuning } });
+
+        if (merged.serverOrder !== undefined) {
+          dialect.build({ filter: { order: merged.serverOrder } });
+        }
       } catch (error) {
         throw SearchSettingsUtility.fail({
           scope: 'search | query',
-          message: 'the engine refuses the tuning the server chose',
+          message: 'the engine refuses the sort or tuning the server chose',
           statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
           cause: error,
         });

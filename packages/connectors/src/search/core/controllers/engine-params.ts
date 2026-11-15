@@ -87,6 +87,13 @@ export class SearchEngineParams {
         });
       }
 
+      // The body schema takes the names as written, so a wire spelling (`num_typos`) would be a second name for `numTypos`.
+      if (/[^A-Za-z0-9]/.test(name)) {
+        throw getError({
+          message: `[${scope}] query.allow.tuning holds ${JSON.stringify(name)} | write the camelCase name, for example 'typoTokensThreshold'`,
+        });
+      }
+
       resolved.add(normalize(name));
     }
 

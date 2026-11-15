@@ -91,7 +91,6 @@ describe('an unscoped controller that did not opt in', () => {
   test.each([
     ['no modes', undefined],
     ['modes without raw', {}],
-    ['raw without use', { raw: {} }],
     ['use: false', { raw: { use: false } }],
   ])("refuses mode 'raw' with 400, and the engine is not reached (%s)", async (_name, modes) => {
     const { controller, dataSource } = build({ modes });
