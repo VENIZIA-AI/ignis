@@ -320,7 +320,6 @@ bus.postMessage({
 
 `Source ->` [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/worker-thread/common/types.ts)
 
-<!-- docs-code: off -->
 ```typescript
 interface IWorker<MessageType> {
   worker: Worker;
@@ -334,7 +333,7 @@ interface IWorker<MessageType> {
 }
 
 interface IWorkerThread {
-  buses: { [workerKey: string | symbol]: IWorkerBus<AnyType, AnyType> };
+  buses: { [workerKey: string | symbol]: IWorkerBus<never, never> };
 }
 
 interface IWorkerMessageBusHandler<IConsumePayload> {
@@ -356,7 +355,6 @@ interface IWorkerBus<IConsumePayload, IPublishPayload> {
   }): ValueOrPromise<void>;
 }
 ```
-<!-- docs-code: on -->
 
 ## Troubleshooting
 

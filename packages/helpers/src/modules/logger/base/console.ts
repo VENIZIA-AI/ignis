@@ -1,4 +1,3 @@
-import { type AnyType } from '@/common/types';
 import { LoggerDebugGate } from '../common/debug-gate';
 import { type ILogger, LogLevels, type TLogLevel } from '../common/types';
 import { AbstractLogger } from './abstract';
@@ -24,14 +23,14 @@ export class ConsoleLogger extends AbstractLogger {
   }
 
   private emit(opts: {
-    sink: (message: string, ...args: AnyType[]) => void;
+    sink: (message: string, ...args: unknown[]) => void;
     message: string;
-    args: AnyType[];
+    args: unknown[];
   }) {
     opts.sink(`${this.prefix}${opts.message}`, ...opts.args);
   }
 
-  debug(message: string, ...args: AnyType[]) {
+  debug(message: string, ...args: unknown[]) {
     if (!LoggerDebugGate.isOpen()) {
       return;
     }
@@ -39,23 +38,23 @@ export class ConsoleLogger extends AbstractLogger {
     this.emit({ sink: console.debug, message, args });
   }
 
-  info(message: string, ...args: AnyType[]) {
+  info(message: string, ...args: unknown[]) {
     this.emit({ sink: console.log, message, args });
   }
 
-  warn(message: string, ...args: AnyType[]) {
+  warn(message: string, ...args: unknown[]) {
     this.emit({ sink: console.warn, message, args });
   }
 
-  error(message: string, ...args: AnyType[]) {
+  error(message: string, ...args: unknown[]) {
     this.emit({ sink: console.error, message, args });
   }
 
-  emerg(message: string, ...args: AnyType[]) {
+  emerg(message: string, ...args: unknown[]) {
     this.emit({ sink: console.error, message, args });
   }
 
-  log(level: TLogLevel, message: string, ...args: AnyType[]) {
+  log(level: TLogLevel, message: string, ...args: unknown[]) {
     switch (level) {
       case LogLevels.DEBUG: {
         this.debug(message, ...args);

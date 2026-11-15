@@ -1,4 +1,3 @@
-import { type AnyType } from '@/common/types';
 import { AbstractLogger } from './base/abstract';
 import { ConsoleLogger } from './base/console';
 import { LoggerDebugGate } from './common/debug-gate';
@@ -54,7 +53,7 @@ class LoggerDelegator extends AbstractLogger {
   private forward(opts: {
     method: 'debug' | 'info' | 'warn' | 'error' | 'emerg';
     message: string;
-    args: AnyType[];
+    args: unknown[];
   }): void {
     const { method, message, args } = opts;
 
@@ -63,27 +62,27 @@ class LoggerDelegator extends AbstractLogger {
     }
   }
 
-  debug(message: string, ...args: AnyType[]) {
+  debug(message: string, ...args: unknown[]) {
     this.forward({ method: LogLevels.DEBUG, message, args });
   }
 
-  info(message: string, ...args: AnyType[]) {
+  info(message: string, ...args: unknown[]) {
     this.forward({ method: LogLevels.INFO, message, args });
   }
 
-  warn(message: string, ...args: AnyType[]) {
+  warn(message: string, ...args: unknown[]) {
     this.forward({ method: LogLevels.WARN, message, args });
   }
 
-  error(message: string, ...args: AnyType[]) {
+  error(message: string, ...args: unknown[]) {
     this.forward({ method: LogLevels.ERROR, message, args });
   }
 
-  emerg(message: string, ...args: AnyType[]) {
+  emerg(message: string, ...args: unknown[]) {
     this.forward({ method: LogLevels.EMERG, message, args });
   }
 
-  log(level: TLogLevel, message: string, ...args: AnyType[]) {
+  log(level: TLogLevel, message: string, ...args: unknown[]) {
     if (this.isEnabled(level)) {
       this.delegate().log(level, message, ...args);
     }

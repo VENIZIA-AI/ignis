@@ -1,5 +1,4 @@
 import type winston from 'winston';
-import { type AnyType } from '@/common/types';
 import { BaseLogger } from '../base';
 import { type ILogger, type TLogLevel } from '../common';
 import { defaultWinstonLogger } from './define';
@@ -30,7 +29,7 @@ export class WinstonLogger extends BaseLogger {
     return cached;
   }
 
-  protected write(opts: { level: TLogLevel; message: string; args: Array<AnyType> }) {
+  protected write(opts: { level: TLogLevel; message: string; args: unknown[] }) {
     // Asked BEFORE handing the line to winston. The deep-splat format - redaction plus
     // `util.inspect` over the whole argument graph - runs as part of winston's pipeline, so a line
     // the level was going to discard was formatted in full first. Measured: 3.6 us per discarded

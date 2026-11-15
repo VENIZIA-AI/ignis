@@ -98,7 +98,7 @@ export class ModuleUtility {
    * one. A module handed over with {@link register} wins; one that does not resolve from the project root is
    * imported by name as before. Use this everywhere except a constructor, which cannot await - see {@link preload}.
    */
-  static async load<T = AnyType>(opts: { module: string }): Promise<T> {
+  static async load<T = unknown>(opts: { module: string }): Promise<T> {
     const { module } = opts;
 
     if (this.registered.has(module)) {
@@ -139,7 +139,7 @@ export class ModuleUtility {
    * the one an application's `import` holds, and `instanceof` across the two fails. `await preload(...)` at the
    * entrypoint registers the ES module copy first, and this returns that.
    */
-  static loadSync<T = AnyType>(opts: { module: string }): T {
+  static loadSync<T = unknown>(opts: { module: string }): T {
     const { module } = opts;
 
     if (this.registered.has(module)) {

@@ -1,15 +1,14 @@
-import { type AnyObject } from '@/common';
 import { BaseHelper } from '@/modules/base';
 
 /** An in-process keyed container, NOT an `IStorageHelper`: it stores values, not objects in a bucket. */
-export class MemoryStorageHelper<T extends object = AnyObject> extends BaseHelper {
+export class MemoryStorageHelper<T extends object = Record<string, unknown>> extends BaseHelper {
   private container = new Map<keyof T, T[keyof T]>();
 
   constructor(opts?: { scope?: string }) {
     super({ scope: opts?.scope ?? MemoryStorageHelper.name });
   }
 
-  static newInstance<T extends object = AnyObject>() {
+  static newInstance<T extends object = Record<string, unknown>>() {
     return new MemoryStorageHelper<T>();
   }
 

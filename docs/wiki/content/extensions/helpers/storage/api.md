@@ -829,11 +829,9 @@ Scans the bucket directory via a local `scanDirectory()` closure. Returns `[]` i
 
 Generic in-memory key-value store, backed by a `Map`. Extends `BaseHelper` directly - does **not** implement `IStorageHelper` and has no bucket or file operations.
 
-<!-- docs-code: off -->
 ```typescript
-class MemoryStorageHelper<T extends object = AnyObject> extends BaseHelper
+class MemoryStorageHelper<T extends object = Record<string, unknown>> extends BaseHelper
 ```
-<!-- docs-code: on -->
 
 ### Constructor
 
@@ -849,11 +847,9 @@ constructor(opts?: { scope?: string })
 
 #### newInstance
 
-<!-- docs-code: off -->
 ```typescript
-static newInstance<T extends object = AnyObject>(): MemoryStorageHelper<T>
+static newInstance<T extends object = Record<string, unknown>>(): MemoryStorageHelper<T>
 ```
-<!-- docs-code: on -->
 
 Factory method - equivalent to `new MemoryStorageHelper<T>()`.
 
