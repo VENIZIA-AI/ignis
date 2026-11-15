@@ -482,7 +482,7 @@ export const permissions = pgTable('permissions', { ...PostgresIdEnricher.genera
 export const policyDefinitions = pgTable('policy_definitions', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...AuthModelColumns.buildPolicyDefinition() });
 ```
 
-The old function names of these methods are removed. `devz codemod namespace-functions` moves a call written with one to the class form.
+The old function names of these methods are removed. `bun run devz codemod namespace-functions` moves a call written with one to the class form.
 
 **`AuthModelColumns.buildUser(opts?: { idType })`**
 

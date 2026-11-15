@@ -252,7 +252,7 @@ bun run devz lint
 node_modules/.bin/devz lint
 ```
 
-Use the same form in a Makefile, a git hook, a workflow and a `package.json` script. A scoped package (`bun x @venizia/vulcan init`) is ours; pin its version when a command repeats. To drop a copy an earlier run cached, delete `~/.bun/install/cache/.bunx-*/{vulcan,devz,ardor,ignis,vulcan-atlas}@*`.
+Use the same form in a Makefile, a git hook and a workflow; inside a `package.json` script the bare `devz` is the linked bin and is fine. Every `devz ...` command on this page runs as `bun run devz ...`. A scoped package (`bun x @venizia/vulcan init`) is ours; pin its version when a command repeats. To drop a copy an earlier run cached, delete `~/.bun/install/cache/.bunx-*/{vulcan,devz,ardor,ignis,vulcan-atlas}@*`.
 
 ### The `devz check` commands
 
@@ -367,8 +367,8 @@ export const PURITY_OPTIONS: IPurityOptions = { esmEntryPrefix: './dist/esm/' };
 ```
 
 ```bash
-devz check purity --claims scripts/checks/purity/manifest.ts           # every claim
-devz check purity kernel --claims scripts/checks/purity/manifest.ts    # one package
+bun run devz check purity --claims scripts/checks/purity/manifest.ts           # every claim
+bun run devz check purity kernel --claims scripts/checks/purity/manifest.ts    # one package
 ```
 
 | Claim field | Meaning |

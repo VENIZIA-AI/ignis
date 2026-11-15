@@ -10,7 +10,7 @@ difficulty: beginner
 
 ## In one example
 
-`TValueOrResolver` plus `ResolverUtility.resolveValue` is the core pattern for an option that can be given eagerly or lazily. The old free functions `resolveValue` and `resolveValueAsync` are gone; `devz codemod namespace-functions` moves their callers.
+`TValueOrResolver` plus `ResolverUtility.resolveValue` is the core pattern for an option that can be given eagerly or lazily. The old free functions `resolveValue` and `resolveValueAsync` are gone; `bun run devz codemod namespace-functions` moves their callers.
 
 ```typescript
 import { TValueOrResolver, ResolverUtility } from '@venizia/ignis-helpers';

@@ -281,7 +281,7 @@ type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>;
 ResolverUtility.resolveValue<T>(opts: { value: TValueOrResolver<T> }): T;
 ```
 
-Synchronously resolves a lazy value. The old free functions `resolveValue` and `resolveValueAsync` are gone; `devz codemod namespace-functions` moves their callers.
+Synchronously resolves a lazy value. The old free functions `resolveValue` and `resolveValueAsync` are gone; `bun run devz codemod namespace-functions` moves their callers.
 
 | Input | Result |
 |---|---|

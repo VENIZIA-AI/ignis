@@ -8,7 +8,7 @@ difficulty: intermediate
 
 Exhaustive reference for `Logger`, `LoggerFactory`, `HfLogger`/`HfLogFlusher`, the Winston formatter and transport internals, and every environment variable. For a readable introduction and the common tasks, start with the [Logger overview](/extensions/helpers/logger/).
 
-Several functions on this page moved into classes. The old function names are removed, and `devz codemod namespace-functions` moves your calls:
+Several functions on this page moved into classes. The old function names are removed, and `bun run devz codemod namespace-functions` moves your calls:
 
 | Old name | New form |
 |---|---|
@@ -237,7 +237,7 @@ LoggerFactory.use({ provider: PinoLogger, level: LogLevels.INFO });
 | `getLogger(scopes)` | The cached logger for the scopes joined with `-` |
 
 > [!WARNING]
-> `ApplicationLogger` was REMOVED, and so was the scope-less `applicationLogger` instance. Use `LoggerFactory.getLogger(['YourScope'])`; `devz codemod namespace-functions` rewrites the calls. `instanceof AbstractLogger` tests any provider instance. An app that needs a raw winston instance builds one with `WinstonLoggerFactory.defineCustomLogger` (sub-path `/winston`).
+> `ApplicationLogger` was REMOVED, and so was the scope-less `applicationLogger` instance. Use `LoggerFactory.getLogger(['YourScope'])`; `bun run devz codemod namespace-functions` rewrites the calls. `instanceof AbstractLogger` tests any provider instance. An app that needs a raw winston instance builds one with `WinstonLoggerFactory.defineCustomLogger` (sub-path `/winston`).
 
 ## Log Levels
 

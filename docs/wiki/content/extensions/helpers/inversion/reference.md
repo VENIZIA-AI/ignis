@@ -405,7 +405,7 @@ const filtered = container.findByTag({ tag: 'services', exclude: ['services.Inte
 
 ## Verifying a Container
 
-`BindingVerifier.verify` resolves every binding of the namespaces you name, collects every failure and returns them. `BindingVerifier.assertResolve` does the same and throws one error. Both are static methods of `BindingVerifier`, exported from `@venizia/ignis-inversion`. The old functions `verifyBindings` and `assertBindingsResolve` are gone; `devz codemod namespace-functions` moves their callers.
+`BindingVerifier.verify` resolves every binding of the namespaces you name, collects every failure and returns them. `BindingVerifier.assertResolve` does the same and throws one error. Both are static methods of `BindingVerifier`, exported from `@venizia/ignis-inversion`. The old functions `verifyBindings` and `assertBindingsResolve` are gone; `bun run devz codemod namespace-functions` moves their callers.
 
 ```typescript
 import { BindingVerifier } from '@venizia/ignis-inversion';

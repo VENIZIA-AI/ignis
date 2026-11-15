@@ -170,8 +170,8 @@ A project that adds its own entries spreads the array: `[...houseConfigs, { ... 
 To fix an existing codebase, run the codemod. It applies the safe fixes of `no-inline-await`, `no-return-await`, `no-await-new-chain` and `no-await-promise-chain`, and lists the rest with file, line and rule, including every silent catch, which it never fixes:
 
 ```bash
-devz codemod async-style packages/my-package          # dry run
-devz codemod async-style packages/my-package --write  # commit your work first; --write needs a path, or --all for the whole tree
+bun run devz codemod async-style packages/my-package          # dry run
+bun run devz codemod async-style packages/my-package --write  # commit your work first; --write needs a path, or --all for the whole tree
 ```
 
 The ESLint setup these rules extend is in [Tooling](./tooling).

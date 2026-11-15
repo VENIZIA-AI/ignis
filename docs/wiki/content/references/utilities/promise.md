@@ -9,7 +9,7 @@ lastUpdated: 2026-10-30
 
 `PromiseUtility` and `ErrorUtility` are static-method classes for working with Promises - sleeping, bounding concurrency, firing-and-forgetting async work safely, and normalizing thrown values. `isPromiseLike` stays a function, because a type guard needs a positional parameter to narrow.
 
-The old function names (`sleep`, `executePromiseWithLimit`, `voidExecution`, `toError`, `getDeepProperty`) are removed; `devz codemod namespace-functions` moves your calls.
+The old function names (`sleep`, `executePromiseWithLimit`, `voidExecution`, `toError`, `getDeepProperty`) are removed; `bun run devz codemod namespace-functions` moves your calls.
 
 ## In one example
 
