@@ -224,7 +224,10 @@ const rejectionOf = async (task: Promise<unknown>): Promise<unknown> => {
 
 const names = (rows: Array<{ name: string }>): string[] => rows.map((row) => row.name).sort();
 
-const isNote = (value: unknown): value is INoteRecord =>
+/** What the cases read of a note: the rest of the row is not checked. */
+type TNoteFields = Pick<INoteRecord, 'name' | 'merchantId'>;
+
+const isNote = (value: unknown): value is TNoteFields =>
   typeof value === 'object' &&
   value !== null &&
   'name' in value &&
@@ -233,7 +236,7 @@ const isNote = (value: unknown): value is INoteRecord =>
   (value.merchantId === null || typeof value.merchantId === 'string');
 
 /** The related rows an include loaded under `notes`: the key is not part of the product's row type. */
-const notesOf = (row: object): INoteRecord[] =>
+const notesOf = (row: object): TNoteFields[] =>
   relatedRowsOf({ row, relation: 'notes', isRelated: isNote });
 
 const expectedNames = (opts: { allowed: (row: IRow) => boolean; attack: IAttackCase }) => {

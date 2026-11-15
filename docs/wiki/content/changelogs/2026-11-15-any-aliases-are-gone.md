@@ -63,6 +63,32 @@ migration:
     downgrade:
       steps:
         - "Declare the alias in your own code: `export type AnyObject = Record<string | symbol | number, any>;` and import it from there."
+  - id: interface-values-and-record-unknown
+    symbols: [AnyType, AnyObject]
+    upgrade:
+      before: |
+        // after the alias is replaced one for one, an interface-typed value no longer fits a Record<string, unknown> parameter
+        interface IUser { id: number; name: string }
+        declare const user: IUser;
+
+        const save = (data: Record<string, unknown>) => data;
+        save(user); // TS2345: Index signature for type 'string' is missing in type 'IUser'
+
+        const bag: Record<string, unknown> = user; // TS2322: the same reason
+      after: |
+        // declare the shape as a type alias (it has an implicit index signature), or spread the value,
+        // or take object when the function only reads known keys through Reflect.get
+        type TUser = { id: number; name: string };
+        declare const typedUser: TUser;
+
+        const save = (data: Record<string, unknown>) => data;
+        save(typedUser);
+        save({ ...user });
+
+        const bag: Record<string, unknown> = typedUser;
+    downgrade:
+      steps:
+        - "Declare the alias in your own code and use it for the parameter; an interface fits Record<string | symbol | number, any>."
   - id: inversion-any-type-removed
     symbols: [AnyType, inject]
     upgrade:

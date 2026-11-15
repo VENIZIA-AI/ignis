@@ -72,7 +72,11 @@ export type TUpsertRepository<TTransaction extends ITransaction = ITransaction> 
 >;
 
 export interface IUpsertContext<TTransaction extends ITransaction = ITransaction> {
-  /** The scoped model in write mode `reject`: the default filter hides soft-deleted rows, `secret` is hidden. */
+  /**
+   * The scoped model in write mode `reject`: the default filter hides soft-deleted rows, `secret` is hidden.
+   *
+   * Rows stay on the erased schema: `upsert` takes a key of the table, which only the erased schema can share between engines (`IUniqueKey` is invariant in the schema). Data and rows are typed through `IUpsertInsert` and `IUpsertRecord`, tied to each real table by the `TSameShape` check in the engine files.
+   */
   items: TUpsertRepository<TTransaction>;
   /** The same table and scope, write mode `assign`. */
   assignItems: TUpsertRepository<TTransaction>;
