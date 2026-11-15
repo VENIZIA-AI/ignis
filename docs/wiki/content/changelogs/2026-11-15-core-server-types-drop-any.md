@@ -50,14 +50,14 @@ migration:
       before: |
         // a subclass that calls the protected hook with an interface-typed payload, or overrides it typed on an interface
         interface ITokenPayload { sub: string; tenant: string }
-        class MyTokenService extends AbstractBearerTokenService {
+        abstract class MyTokenService extends AbstractBearerTokenService {
           issue(signer: SignJWT, payload: ITokenPayload) {
             return this.applySignClaims({ signer, payload }); // TS2322 now: no index signature
           }
         }
       after: |
         // the payload is Record<string, unknown>: spread the interface value, or declare the shape as a type alias
-        class MyTokenService extends AbstractBearerTokenService {
+        abstract class MyTokenService extends AbstractBearerTokenService {
           issue(signer: SignJWT, payload: ITokenPayload) {
             return this.applySignClaims({ signer, payload: { ...payload } });
           }
