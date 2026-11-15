@@ -17,10 +17,10 @@ const UNLISTED = [
   /^extensions\/(components|helpers)\/template\//,
   /^index$/,
   /^changelogs\/\d{4}-\d{2}-\d{2}-/,
+  // A version folder keeps its page as changelogs/<X.Y.Z>/log.md; the index lists it, so no menu does.
+  /^changelogs\/\d+\.\d+\.\d+\/log$/,
   // The author skeleton, reached from no menu.
   /^changelogs\/template$/,
-  // The version folders of the changelog fold (log.md and migration.yaml): the shared index lists dated entries only, so no menu reaches them yet.
-  /^changelogs\/\d+\.\d+\.\d+\/log$/,
   // Written by `vulcan x atlas api gen`; the sidebar group in config.mts lists them from the folder.
   /^references\/api\/(?!index$)/,
 ];
