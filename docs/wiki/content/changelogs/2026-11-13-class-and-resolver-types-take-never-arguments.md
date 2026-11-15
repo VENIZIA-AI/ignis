@@ -17,26 +17,45 @@ migration:
     downgrade:
       steps:
         - "Read the static off a TClass value directly again; the older index signature was any. The typeof and intersection forms you added keep compiling."
-  - id: mixin-base-takes-tmixintarget
-    symbols: [TClass, TConstructor, TMixinTarget, TMixinConstructor, TAbstractMixinTarget, TAbstractMixinConstructor]
+  - id: mixin-base-takes-tmixinconstructor
+    symbols: [TClass, TAbstractClass, TConstructor, TMixinConstructor, TAbstractMixinConstructor, TMixinTarget, TAbstractMixinTarget]
     upgrade:
       before: |
-        // a mixin whose base parameter is constrained by TClass: TClass had any[] arguments
-        interface IEntity { id: number }
+        // a generic mixin over an abstract base, its base parameter constrained by TAbstractClass: the arguments were any[]
+        abstract class CrudBase {
+          async find(): Promise<string[]> { return []; }
+        }
 
-        const stamped = <TBase extends TClass<IEntity>>(base: TBase) =>
-          class extends base { // TS2545: A mixin class must have a constructor with a single rest parameter of type 'any[]'
+        function stamped<TBase extends TAbstractClass<CrudBase>>(base: TBase): TBase {
+          abstract class Stamped extends base { // TS2545: A mixin class must have a constructor with a single rest parameter of type 'any[]'
             stamp = 'x';
-          };
+          }
+
+          return Stamped;
+        }
+
+        // a class that extends the mixin result can report TS4113 ("not declared in the base class") or TS2322 on its overrides,
+        // because the mixed class's type falls back when the mixin does not compile
+        class Controller extends stamped(CrudBase) {
+          override async find(): Promise<string[]> { return ['x']; }
+        }
       after: |
-        // constrain the base by TMixinTarget (or TAbstractMixinTarget for an abstract base): it keeps the any[] arguments TypeScript requires of a mixin
-        const stamped = <TBase extends TMixinTarget<IEntity>>(base: TBase) =>
-          class extends base {
+        // constrain the base by TAbstractMixinConstructor (TMixinConstructor for a concrete base): it keeps the any[] arguments TypeScript requires of a mixin
+        function stamped<TBase extends TAbstractMixinConstructor<CrudBase>>(base: TBase): TBase {
+          abstract class Stamped extends base {
             stamp = 'x';
-          };
+          }
+
+          return Stamped;
+        }
+
+        class Controller extends stamped(CrudBase) {
+          override async find(): Promise<string[]> { return ['x']; }
+        }
     downgrade:
       steps:
-        - "Constrain the base by TClass again; the older TClass had any[] arguments, and TMixinTarget keeps compiling."
+        - "Constrain the base by TAbstractClass (TClass) again; the older types had any[] arguments, and TAbstractMixinConstructor keeps compiling."
+    data: "TMixinTarget<T> and TAbstractMixinTarget<T> also fit a mixin base, but they map the members of T to properties: a subclass of the mixin result that overrides a method with method syntax then reports TS2425. Use TMixinConstructor<T> or TAbstractMixinConstructor<T> when a subclass overrides methods. A TS4113 'not declared in the base class' or a TS2322 on a class that extends a mixin result has the same cause: fix the mixin's base type."
   - id: constructors-take-never-arguments
     symbols: [TConstructor, TAbstractConstructor, TClass, TAbstractClass]
     upgrade:
