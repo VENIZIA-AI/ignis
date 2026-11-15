@@ -9,11 +9,47 @@ migration:
       before: |
         const handler = (opts: IQueryHandlerOptions) => like(opts.column, opts.value); // value: any
       after: |
-        // name the value you read, or narrow it
-        const handler = (opts: IQueryHandlerOptions<string>) => like(opts.column, opts.value);
+        // value is unknown: build the fragment with a template, as the shipped handlers do, or narrow it first
+        const handler = (opts: IQueryHandlerOptions) => sql`${opts.column} like ${opts.value}`;
+        const lengthHandler = (opts: IQueryHandlerOptions) =>
+          typeof opts.value === 'string' ? sql`length(${opts.column}) = ${opts.value.length}` : undefined;
     downgrade:
       steps:
         - "Use IQueryHandlerOptions without a type argument and read value freely; the older default was any."
+  - id: filter-builder-hooks
+    symbols: [FilterBuilder, buildValueCondition, buildOperatorConditions, toOperatorObject, isOperatorObject]
+    upgrade:
+      before: |
+        class MyFilterBuilder extends FilterBuilder {
+          protected override buildValueCondition(opts: { column: any; value: any }): SQL { ... }
+          protected override buildOperatorConditions(opts: { column: any; value: Record<string, any> }): SQL[] { ... }
+        }
+      after: |
+        // the protected hooks take column: AnyColumn | SQL and value: unknown (Record<string, unknown> for operators);
+        // an SQL.Aliased no longer type-checks as a column. toOperatorObject is new: it answers the operator record or undefined.
+        class MyFilterBuilder extends FilterBuilder {
+          protected override buildValueCondition(opts: { column: AnyColumn | SQL; value: unknown }): SQL { ... }
+          protected override buildOperatorConditions(opts: {
+            column: AnyColumn | SQL;
+            value: Record<string, unknown>;
+          }): SQL[] { ... }
+        }
+    downgrade:
+      steps:
+        - "Type the overrides' column and value as any again; the older signatures accepted them."
+  - id: select-projection-is-flat
+    symbols: [TColumnSelection, ISelectOptions, PostgresQueryExecutor, SqliteQueryExecutor]
+    upgrade:
+      before: |
+        // a subclass that hands the executor a nested selection
+        this.queryExecutor.select({ connector, table, columns: { meta: { id: table.id } } });
+      after: |
+        // a projection is flat: every entry is a column or an SQL expression (SQL, SQL.Aliased)
+        this.queryExecutor.select({ connector, table, columns: { id: table.id, label: sql`upper(${table.name})` } });
+    downgrade:
+      steps:
+        - "Pass the nested selection again; the older executors cast it through to Drizzle."
+    data: "The old executors passed the selection to Drizzle with a cast, so a nested object or a whole table reached Drizzle unchecked. The same call now throws '[toSelectedFields] Invalid column selection'. The repositories in this framework build flat selections only; the break reaches a subclass that calls the executor itself, for select columns or for returning."
   - id: update-builder-may-be-undefined
     symbols: [PersistableRelationalRepository, IRelationalQueryDialect]
     upgrade:
@@ -74,7 +110,7 @@ migration:
 
 <Badge type="warning" text="Breaking Change" />
 
-**In one line.** The relational filter, update and operator internals no longer say `any`: you name or narrow what you read, and nothing changes at runtime.
+**In one line.** The relational filter, update and operator internals no longer say `any`: you name or narrow what you read, and the SQL is unchanged. The one runtime change is that an executor refuses a nested projection (see Selections).
 
 ## What changed
 
@@ -82,7 +118,7 @@ migration:
 - **Builders.** The `FilterBuilder` and `UpdateBuilder` hooks take `unknown` operands. `ITransformedUpdateData.regularFields` and `getVisibleProperties()` are typed.
 - **Repository.** The deprecated `updateBuilder` getter answers `RelationalUpdateBuilder | undefined`, and `IRelationalQueryDialect` has an optional `updateBuilder`.
 - **Dialect.** `mergeFilter`, `composeScope` and the scope helpers lose their `= any` default.
-- **Selections.** A column selection passed to the Postgres or SQLite executors must be columns or SQL expressions (as the repository always builds them); another kind of value is refused with an error.
+- **Selections.** A column selection passed to the Postgres or SQLite executors is flat: every entry is a column or an SQL expression (`SQL`, `SQL.Aliased`), as the repository always builds them. A nested object or a whole table, which the old cast let through to Drizzle, is refused with an error, for `columns` and for `returning`.
 
 ## Who is affected
 

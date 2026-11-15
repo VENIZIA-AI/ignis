@@ -1024,6 +1024,7 @@ export abstract class FilterBuilder extends BaseHelper {
         return sql`false`;
       }
 
+      // Same overload split as `eq` below: `inArray` types a `Column` and an SQL fragment separately, and no overload takes the union.
       return is(column, Column) ? inArray(column, value) : inArray(column, value);
     }
 

@@ -2512,7 +2512,7 @@ Source: `packages/connectors/src/relational/core/models/common/types.ts`
 
 *type*
 
-Column subset for a projection, in Drizzle's own shape. `undefined` selects every column.
+Column subset for a projection: a flat record of name to column or SQL expression (`SQL`, `SQL.Aliased`). A nested object or a whole table is refused by the executors. `undefined` selects every column.
 
 ```ts
 export type TColumnSelection = Record<string, unknown> | undefined;

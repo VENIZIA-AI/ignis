@@ -70,6 +70,21 @@ describe('SqliteQueryExecutor - against a real in-memory libsql database', () =>
     expect(rows).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }]);
   });
 
+  test('select accepts an SQL expression and an aliased one beside a column', async () => {
+    const rows = await executor.select<{ id: number; doubled: number; tripled: number }>({
+      connector,
+      table: users,
+      columns: {
+        id: users.id,
+        doubled: sql<number>`${users.age} * 2`,
+        tripled: sql<number>`${users.age} * 3`.as('tripled'),
+      },
+      orderBy: [asc(users.id)],
+    });
+
+    expect(rows[0]).toEqual({ id: 1, doubled: 60, tripled: 90 });
+  });
+
   test('select refuses a projection entry that is not a column or an SQL expression', async () => {
     await RejectionHelper.expectRejection({
       task: executor.select({ connector, table: users, columns: { id: users.id, bad: 'email' } }),
@@ -122,6 +137,20 @@ describe('SqliteQueryExecutor - against a real in-memory libsql database', () =>
     });
 
     expect(result).toEqual({ count: 1, rows: [{ id: 1, age: 99 }] });
+  });
+
+  test('update refuses a returning entry that is not a column or an SQL expression', async () => {
+    await RejectionHelper.expectRejection({
+      task: executor.update({
+        connector,
+        table: users,
+        data: { age: 99 },
+        where: eq(users.id, 1),
+        returning: { id: users.id, nested: { id: users.id } },
+        shouldReturn: true,
+      }),
+      message: /\[toSelectedFields\] Invalid column selection \| 'nested' must be a SQLite column/,
+    });
   });
 
   test('update with shouldReturn false reports a truthful count for a multi-row match', async () => {

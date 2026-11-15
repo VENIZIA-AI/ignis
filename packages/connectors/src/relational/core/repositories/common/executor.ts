@@ -3,7 +3,7 @@ import type { TNullable } from '@venizia/ignis-helpers/common';
 import type { AnyColumn, SQL } from 'drizzle-orm';
 import type { TTableSchemaWithId } from '@/relational/core/models/common';
 
-/** Column subset for a projection, in Drizzle's own shape. `undefined` selects every column. */
+/** Column subset for a projection: a flat record of name to column or SQL expression (`SQL`, `SQL.Aliased`). A nested object or a whole table is refused by the executors. `undefined` selects every column. */
 export type TColumnSelection = Record<string, unknown> | undefined;
 
 /** Input of a `select` call on the query executor; `connector` is the one resolved for the current operation or transaction. */
