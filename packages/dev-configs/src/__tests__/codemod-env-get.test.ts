@@ -217,6 +217,29 @@ describe('devz codemod env-get: the rewrite', () => {
     expect(second.manual).toEqual([]);
   });
 
+  test('two type arguments and a literal without a transform settle in one run', () => {
+    const source = [
+      `const a = AppEnvs.get<number, string>(KEY, { defaultValue: 8 });`,
+      `const b = AppEnvs.get<string, string>(KEY, { defaultValue: 'x' });`,
+      '',
+    ].join('\n');
+    const first = rewrite(source);
+
+    expect(first.output).toBe(
+      [
+        `const a = AppEnvs.get<number, string>(KEY, { defaultValue: 8 });`,
+        `const b = AppEnvs.get(KEY, { defaultValue: 'x' });`,
+        '',
+      ].join('\n'),
+    );
+    expect(first.manual).toEqual([{ line: 1, type: 'number' }]);
+
+    const second = rewrite(first.output);
+
+    expect(second.changed).toBe(false);
+    expect(second.manual).toEqual([{ line: 1, type: 'number' }]);
+  });
+
   test('a call with a variable as options and a one-type-argument form is left alone, so --check passes after --write', async () => {
     const source = [
       `const a = AppEnvs.get<string, string>(KEY, opts);`,

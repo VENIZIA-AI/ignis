@@ -25,8 +25,8 @@ scope of the call, to the store: a name imported as applicationEnvironment or Ap
 initialised from such a name in the same or an enclosing scope. A parameter, a local variable, an import from
 anywhere else (a barrel of your own included) and a name nothing declares are not the store. Every other
 get<...>(key) call (a property, an optional chain, those names) is printed as skipped with its file and line,
-and a call with a type argument it cannot place as manual: nothing is left out without a line, so run your
-typecheck after it. A var declared in a nested block counts as block-scoped (a hoisted one is not followed). A comment between the method name and the parenthesis is dropped. A .js, .cjs or .mjs file
+and a call with a type argument it cannot place as manual, so run your typecheck after it. A call with options
+that are not a literal (a variable) is left alone and not listed. A var declared in a nested block counts as block-scoped (a hoisted one is not followed). A comment between the method name and the parenthesis is dropped. A .js, .cjs or .mjs file
 is not read: edit it by hand.
 
   --write    write the changed files (without it, nothing is written); it needs a path, or --all
@@ -396,16 +396,23 @@ export class EnvGet {
             : undefined;
 
         if (storeImport !== undefined) {
-          const [first, second] = node.typeArguments;
+          const [first] = node.typeArguments;
           const start = callee.name.getEnd();
           const end = node.arguments.pos - 1;
           const options = node.arguments[1];
+          const isTwo = node.typeArguments.length === 2;
+          const isPlainLiteral =
+            options !== undefined &&
+            ts.isObjectLiteralExpression(options) &&
+            !hasTransform(options);
+          // `get<number>(key)`, `get<number>(key, { defaultValue })` and `get<number, B>(key, { defaultValue })` are one read.
           const isNumberRead =
             numbers &&
-            node.typeArguments.length === 1 &&
             isNumberType(first) &&
-            !hasTransform(options) &&
-            (options === undefined || ts.isObjectLiteralExpression(options));
+            ((!isTwo &&
+              !hasTransform(options) &&
+              (options === undefined || ts.isObjectLiteralExpression(options))) ||
+              (isTwo && isPlainLiteral));
 
           if (isNumberRead) {
             const parseUtility = ensureParseUtility(storeImport);
@@ -425,20 +432,23 @@ export class EnvGet {
 
             numbered.push(lineOf(node));
             rewrittenCalls += 1;
-          } else if (node.typeArguments.length === 2 && node.arguments.length > 1) {
-            // `get<R, B>(key, options)` keeps R, even when R is `string`: a second run leaves `get<string>(key, { transform })` alone.
+          } else if (isTwo && options !== undefined && !isPlainLiteral) {
+            // `get<R, B>(key, options)` with a transform or variable options keeps R, even when R is `string`: a
+            // second run leaves `get<string>(key, { transform })` alone.
             edits.push({ start, end, text: `<${first.getText(file)}>` });
             rewrittenCalls += 1;
           } else if (
-            node.typeArguments.length === 1 &&
-            (hasTransform(node.arguments[1]) ||
-              (node.arguments.length > 1 && !ts.isObjectLiteralExpression(node.arguments[1])))
+            !isTwo &&
+            options !== undefined &&
+            (hasTransform(options) || !ts.isObjectLiteralExpression(options))
           ) {
             // One type argument and a transform: the new form. One type argument and options that are not a
             // literal (a variable): the codemod cannot see what they hold, and what it just left in
             // `get<R, B>(key, options)` would otherwise be listed on the next run; the typecheck names a bad one.
             // Nothing to do and nothing to list.
-          } else if (isStringType(first) && second === undefined) {
+          } else if (isStringType(first) && (!isTwo || isPlainLiteral)) {
+            // `string` is what get() returns without a transform, so the type arguments carry nothing: a literal
+            // without a transform reads the same with one type argument or two.
             edits.push({ start, end, text: '' });
             rewrittenCalls += 1;
           } else {
@@ -577,7 +587,7 @@ export class EnvGetCommand {
           manualCount += 1;
           manualByType.set(item.type, (manualByType.get(item.type) ?? 0) + 1);
           console.warn(
-            `manual  ${shown}:${item.line}  get<${item.type}>: a type argument the rewrite cannot place (not string or string | undefined, or two without an options argument, or options that are not a literal): a number or other conversion goes in a transform, for example get(key, { transform: Number })`,
+            `manual  ${shown}:${item.line}  get<${item.type}>: a type argument the rewrite cannot place (not string or string | undefined, or two type arguments without an options argument): a number or other conversion goes in a transform, for example get(key, { transform: Number })`,
           );
         }
 
