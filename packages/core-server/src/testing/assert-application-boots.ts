@@ -355,12 +355,9 @@ export class ApplicationBootAssertion {
       patches.push(patchProperty({ object: instance, name: 'configure', value: async () => {} }));
     };
 
-    const originalRegisterDynamicBindings = target['registerDynamicBindings'] as unknown as (
-      opts: IDynamicBindingsOptions,
-    ) => Promise<void>;
-    const originalGetBootSequence = target['getBootSequence'] as unknown as () => Array<{
-      name: string;
-    }>;
+    const originalRegisterDynamicBindings: (opts: IDynamicBindingsOptions) => Promise<void> =
+      target['registerDynamicBindings'];
+    const originalGetBootSequence: () => Array<{ name: string }> = target['getBootSequence'];
 
     const wrappedRegister = async (sweepOptions: IDynamicBindingsOptions): Promise<void> => {
       sweepsSeen += 1;
@@ -401,7 +398,7 @@ export class ApplicationBootAssertion {
       }),
     );
 
-    if ((target['registerDynamicBindings'] as unknown) !== wrappedRegister) {
+    if (target['registerDynamicBindings'] !== wrappedRegister) {
       patches.forEach((patch) => patch.restore());
       fail(
         `The wrap of 'registerDynamicBindings' did not take effect | Refusing to boot against real infrastructure`,

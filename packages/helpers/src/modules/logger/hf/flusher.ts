@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import { type AnyType } from '@/common/types';
 import { isPromiseLike } from '@/utilities/promise.utility';
 import {
   BUFFER_SIZE,
@@ -125,7 +124,7 @@ export class HfLogFlusher {
   private async deliverBatch(opts: { lines: Array<string>; dropped: number }): Promise<void> {
     try {
       // THfSink is typed `=> void`, but an async sink still returns a thenable at runtime - await it inside the try so its rejection is caught here, never unhandled.
-      const delivered = this.sink(opts) as AnyType;
+      const delivered: unknown = this.sink(opts);
 
       if (isPromiseLike(delivered)) {
         await delivered;

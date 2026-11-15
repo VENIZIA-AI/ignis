@@ -42,11 +42,10 @@ export class ParseUtility {
     }
 
     const camelized: Record<string, unknown> = {};
-    const valueKeys = Object.keys(value);
 
-    for (const key of valueKeys) {
+    for (const [key, entry] of Object.entries(value)) {
       camelized[ParseUtility.toCamel({ input: key })] = ParseUtility.camelizeValue({
-        value: (value as Record<string, unknown>)[key],
+        value: entry,
       });
     }
 
@@ -81,12 +80,9 @@ export class ParseUtility {
   static keysToCamel(opts: { source: object }) {
     const { source } = opts;
     const n: Record<string, unknown> = {};
-    const keys = Object.keys(source);
 
-    for (const key of keys) {
-      n[ParseUtility.toCamel({ input: key })] = ParseUtility.camelizeValue({
-        value: (source as Record<string, unknown>)[key],
-      });
+    for (const [key, entry] of Object.entries(source)) {
+      n[ParseUtility.toCamel({ input: key })] = ParseUtility.camelizeValue({ value: entry });
     }
 
     return n;

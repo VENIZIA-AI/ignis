@@ -28,7 +28,8 @@ export class RequestDomainResolver {
         return context.req.query(source.key) ?? null;
       }
       case AuthorizationDomainSources.CONTEXT: {
-        const value = context.get(source.key as any);
+        // A declarative key is a string read off the request, so it cannot satisfy `get`'s `keyof Variables` parameter.
+        const value: unknown = Reflect.apply(context.get, context, [source.key]);
 
         return value == null ? null : String(value);
       }

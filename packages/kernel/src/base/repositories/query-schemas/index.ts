@@ -2,10 +2,19 @@ import { QuerySchemaFactory, type TSchemaDecorator } from '@venizia/ignis-filter
 
 /** Load order is the point: `@hono/zod-openapi` peers on `zod`, so importing it patches `.openapi()` onto the shared `ZodType` prototype. `QuerySchemaFactory.build` runs at module scope below, and ESM evaluates imports first, so the method exists by the time the decorator is called. Without this import the schemas silently build undecorated whenever this module happens to load before anything else pulls in the OpenAPI layer. */
 import { z } from '@hono/zod-openapi';
+import { getError } from '@venizia/ignis-helpers/core';
 
 /** The schemas themselves live in `@venizia/ignis-filter`, built with plain `zod` so a browser can use them. Documentation metadata is injected here because it is a server concern - `.openapi()` returns a new schema rather than mutating, and three of the decorations sit on inner nodes, so they cannot be applied after the tree is composed. */
 const openApiDecorator: TSchemaDecorator = (schema, metadata) => {
-  return (schema as any).openapi(metadata);
+  // `.openapi` is patched onto the zod prototype this module loaded; a schema from another copy of zod has none.
+  if (!(schema instanceof z.ZodType) || typeof Reflect.get(schema, 'openapi') !== 'function') {
+    throw getError({
+      message:
+        '[openApiDecorator] Only a zod schema carrying .openapi() can take OpenAPI metadata | Pass a schema built with the zod copy @hono/zod-openapi extends',
+    });
+  }
+
+  return schema.openapi(metadata);
 };
 
 const schemas = QuerySchemaFactory.build({ decorate: openApiDecorator });

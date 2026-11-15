@@ -62,8 +62,7 @@ export class BodyLimits {
   /** Whether the route this request matched carries its own limit, so the default stands aside. */
   static hasRouteLimit(context: Context): boolean {
     return context.req.matchedRoutes.some(
-      (matched) =>
-        (matched.handler as unknown as Record<symbol, unknown>)[ROUTE_BODY_LIMIT] !== undefined,
+      (matched) => Reflect.get(matched.handler, ROUTE_BODY_LIMIT) !== undefined,
     );
   }
 }

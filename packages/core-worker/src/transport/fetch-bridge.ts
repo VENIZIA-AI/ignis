@@ -106,7 +106,7 @@ export class BffFetchBridge {
               (value) => new URL(value).origin,
             ),
           );
-    const carrier = opts.carrier ?? (globalThis as unknown as IFetchCarrier);
+    const carrier: IFetchCarrier = opts.carrier ?? globalThis;
 
     const prefixes = BffFetchBridge.toPrefixList(basePath);
     const previousFetch = carrier.fetch;
