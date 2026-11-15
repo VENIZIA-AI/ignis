@@ -51,7 +51,11 @@ export class SoftDeletableRelationalRepository<
     data?: TSoftDeleteData<PersistObject>;
     deletedAt: Date | null;
   }): Partial<PersistObject> {
-    return { ...opts.data, deletedAt: opts.deletedAt } as any;
+    const patch: Partial<PersistObject> = {};
+    Object.assign(patch, opts.data);
+    Reflect.set(patch, AuditFields.DELETED_AT, opts.deletedAt);
+
+    return patch;
   }
 
   /** `deletedAt` changes only through delete and restore. */

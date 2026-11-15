@@ -2,8 +2,8 @@ import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import { NotSupportedUtility } from '@venizia/ignis-kernel';
 import type { Client } from '@libsql/client';
 import type { ILogger, IPoolControlOptions } from '@venizia/ignis-helpers/core';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { BaseHelper, BasePoolHelper, getError } from '@venizia/ignis-helpers/core';
+import { DuckTypingUtility } from '@/common/internal';
 import { RelationalDialects } from '@/relational/core/drivers';
 import { drizzle } from 'drizzle-orm/libsql';
 import type { TSqliteConnection, TSqliteConnector, TSqliteDriver } from './driver';
@@ -65,11 +65,15 @@ export class LibSqlDriver<
 
     // A `bun:sqlite` / better-sqlite3 Database leads with prepare()/exec() and has none
     // of these, so the wrong driver class fails here rather than at the first query.
-    const isLibSqlClient =
-      typeof (client as AnyType)?.execute === 'function' &&
-      typeof (client as AnyType)?.batch === 'function' &&
-      typeof (client as AnyType)?.transaction === 'function' &&
-      typeof (client as AnyType)?.protocol === 'string';
+    const isLibSqlClient = DuckTypingUtility.hasMembers({
+      value: client,
+      members: {
+        execute: 'function',
+        batch: 'function',
+        transaction: 'function',
+        protocol: 'string',
+      },
+    });
 
     if (!isLibSqlClient) {
       throw getError({

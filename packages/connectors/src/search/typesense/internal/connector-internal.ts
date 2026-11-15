@@ -8,7 +8,7 @@ export class TypesenseInternal {
   private static readonly CACHE_PARAMS = new Set(['use_cache', 'cache_ttl']);
 
   /** Splits a search's wire params into the cache switches (multi-search common params) and the rest (the per-search body). */
-  static splitCacheParams(opts: { params: Record<string, unknown> }) {
+  static splitCacheParams(opts: { params: object }) {
     const common: Record<string, unknown> = {};
     const body: Record<string, unknown> = {};
 

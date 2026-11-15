@@ -2,8 +2,8 @@ import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import type { TRelationalConnector } from '@/relational/postgres/datasources/common';
 import type { PGlite } from '@electric-sql/pglite';
 import type { ILogger, IPoolControlOptions } from '@venizia/ignis-helpers/core';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { BaseHelper, BasePoolHelper, getError } from '@venizia/ignis-helpers/core';
+import { DuckTypingUtility } from '@/common/internal';
 import { RelationalDialects } from '@/relational/core/drivers';
 import { drizzle } from 'drizzle-orm/pglite';
 import type { TRelationalConnection, TRelationalDriver } from './driver';
@@ -62,10 +62,10 @@ export class PGliteDriver<
 
     // PGlite is not a connection pool: it has no connect()/totalCount, which is what a `pg.Pool`
     // leads with. Probing its own verbs names the mistake here instead of at the first query.
-    const isPGlite =
-      typeof (client as AnyType)?.query === 'function' &&
-      typeof (client as AnyType)?.exec === 'function' &&
-      typeof (client as AnyType)?.close === 'function';
+    const isPGlite = DuckTypingUtility.hasMembers({
+      value: client,
+      members: { query: 'function', exec: 'function', close: 'function' },
+    });
 
     if (!isPGlite) {
       throw getError({
