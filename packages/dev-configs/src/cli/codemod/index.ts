@@ -1,3 +1,4 @@
+import { AnyAliasesCommand } from './any-aliases';
 import { AsyncStyleCommand } from './async-style';
 import { ConnectorImportsCommand } from './connector-imports';
 import { ConstClassesCommand } from './const-classes';
@@ -12,6 +13,7 @@ const USAGE = [
   NamespaceFunctionsCommand.USAGE,
   ConnectorImportsCommand.USAGE,
   EnvGetCommand.USAGE,
+  AnyAliasesCommand.USAGE,
 ].join('\n\n');
 
 /** The codemods `devz codemod <name>` runs. */
@@ -22,6 +24,7 @@ const NAME_LIST = [
   'namespace-functions',
   'connector-imports',
   'env-get',
+  'any-aliases',
 ];
 const NAMES = NAME_LIST.join(', ');
 
@@ -29,7 +32,13 @@ const NAMES = NAME_LIST.join(', ');
 const USAGE_ERROR_CODE = 2;
 
 /** The codemods that are style rewrites, not migrations: there is no downgrade of them. */
-const NOT_REVERSIBLE = new Set(['drop-redundant-casts', 'const-classes', 'async-style', 'env-get']);
+const NOT_REVERSIBLE = new Set([
+  'drop-redundant-casts',
+  'const-classes',
+  'async-style',
+  'env-get',
+  'any-aliases',
+]);
 
 /** `devz codemod <name> [args]`: hands the arguments to the codemod called `name`. */
 export class CodemodCommand {
@@ -71,6 +80,10 @@ export class CodemodCommand {
 
     if (name === 'env-get') {
       return EnvGetCommand.run({ root: opts.root, args: rest });
+    }
+
+    if (name === 'any-aliases') {
+      return AnyAliasesCommand.run({ root: opts.root, args: rest });
     }
 
     if (args.includes('--help') || args.includes('-h')) {
