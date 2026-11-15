@@ -178,6 +178,26 @@ describe('devz codemod any-aliases: the rewrite', () => {
     expect(rewrite(result.output).changed).toBe(false);
   });
 
+  test('an infer name is bound in the true branch only: the checked type, the extends clause and the false branch use the import', () => {
+    const source = [
+      `import type { AnyType } from '@venizia/ignis-helpers';`,
+      `export type U<TValue> = TValue extends Array<infer AnyType> ? AnyType : AnyType;`,
+      `export type Y<TValue> = TValue extends [infer AnyType, AnyType] ? 1 : 0;`,
+      '',
+    ].join('\n');
+    const result = rewrite(source);
+
+    expect(result.output).toBe(
+      [
+        `export type U<TValue> = TValue extends Array<infer AnyType> ? AnyType : unknown;`,
+        `export type Y<TValue> = TValue extends [infer AnyType, unknown] ? 1 : 0;`,
+        '',
+      ].join('\n'),
+    );
+    expect(result.rewritten).toBe(2);
+    expect(rewrite(result.output).changed).toBe(false);
+  });
+
   test('a type declared in a namespace or a function shadows the alias there: left and listed, the file-level use is rewritten', () => {
     const source = [
       `import type { AnyObject, AnyType } from '@venizia/ignis-helpers';`,

@@ -138,6 +138,9 @@ export class AnyAliases {
         (ts.isInferTypeNode(type) && type.typeParameter.name.text === name) ||
         ts.forEachChild(type, (child) => (hasInfer(child) ? true : undefined)) === true;
 
+      // `child` is the node the walk came from: an `infer` name is bound in the true branch of its conditional type only.
+      let child: import('typescript').Node = node;
+
       for (let scope: import('typescript').Node | undefined = node.parent; scope !== undefined;) {
         if (ts.isSourceFile(scope)) {
           return false;
@@ -158,7 +161,11 @@ export class AnyAliases {
             return true;
           }
 
-          if (ts.isConditionalTypeNode(scope) && hasInfer(scope.extendsType)) {
+          if (
+            ts.isConditionalTypeNode(scope) &&
+            child === scope.trueType &&
+            hasInfer(scope.extendsType)
+          ) {
             return true;
           }
         }
@@ -190,6 +197,7 @@ export class AnyAliases {
           }
         }
 
+        child = scope;
         scope = scope.parent;
       }
 
