@@ -56,6 +56,30 @@ migration:
       steps:
         - "Constrain the base by TAbstractClass (TClass) again; the older types had any[] arguments, and TAbstractMixinConstructor keeps compiling."
     data: "TMixinTarget<T> and TAbstractMixinTarget<T> also fit a mixin base, but they map the members of T to properties: a subclass of the mixin result that overrides a method with method syntax then reports TS2425. Use TMixinConstructor<T> or TAbstractMixinConstructor<T> when a subclass overrides methods. A TS4113 'not declared in the base class' or a TS2322 on a class that extends a mixin result has the same cause: fix the mixin's base type."
+  - id: class-slot-checks-the-instance
+    symbols: [TClass, TAbstractClass, TConstructor, TAbstractConstructor]
+    upgrade:
+      before: |
+        // a slot typed with a wider entity than the class carries: TClass had a { [property: string]: any } intersection,
+        // which relaxed the assignment of a class to the slot
+        interface IMultiLang { en: string }
+        type TNamedEntity = { id: string } & { name?: IMultiLang };
+        interface IOrganizer { id: string; name: IMultiLang; code: string }
+        class OrganizerRepository extends HttpRepository<IOrganizer> {}
+
+        const slot: TClass<HttpRepository<TNamedEntity>> = OrganizerRepository; // TS2419: Types of construct signatures are incompatible
+      after: |
+        // TClass compares the class's instance with the slot's: type the slot by the members you read,
+        interface IFindable { count(opts: { where?: object }): Promise<{ count: number }> }
+        const slot: TClass<IFindable> = OrganizerRepository;
+
+        // or make the slot generic, so the entity is inferred from the class
+        const register = <TEntity extends TNamedEntity>(repositoryClass: TClass<HttpRepository<TEntity>>) => repositoryClass;
+        const registered = register(OrganizerRepository);
+    downgrade:
+      steps:
+        - "Type the slot as TClass<T> & { [property: string]: any } in your own code: the older TClass accepted a class whose instance did not fit the slot."
+    data: "Typing the slot with the instance the class really produces (HttpRepository<IOrganizer>) always worked. The error appears for a slot whose entity is wider than the class's: an optional name in the slot and a required one in the class, which puts undefined inside the filter operators of the slot."
   - id: constructors-take-never-arguments
     symbols: [TConstructor, TAbstractConstructor, TClass, TAbstractClass]
     upgrade:
