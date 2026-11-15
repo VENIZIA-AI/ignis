@@ -31,6 +31,21 @@ describe('RedisSentinelHelper', () => {
     helper = undefined;
   });
 
+  it('an old-shape config, or no sentinel nodes, fails with a clear error when it is constructed', () => {
+    const oldShape = { name: 'sentinel-test', masterName: 'mymaster', sentinels: [{ host: 'h' }] };
+
+    for (const opts of [
+      oldShape,
+      { name: 'sentinel-test', sentinel: { masterName: 'mymaster' } },
+    ]) {
+      expect(() => new RedisSentinelHelper(opts as never)).toThrow(
+        '[RedisSentinelHelper] sentinel.nodes is required | pass sentinel: { masterName, nodes }',
+      );
+    }
+
+    expect(() => build({}, { nodes: [] })).toThrow('sentinel.nodes is required');
+  });
+
   it('maps sentinel.masterName to ioredis name and coerces/defaults sentinel ports', () => {
     helper = new RedisSentinelHelper({
       name: 'sentinel-test',
