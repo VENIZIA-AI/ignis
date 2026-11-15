@@ -142,6 +142,7 @@ describe('ApplicationEnvironment.getRequired', () => {
   test('a transform never runs for an unset or blank value, which throws first', () => {
     const environment = makeEnvironment({ APP_ENV_BLANK_T: '  ' });
     let calls = 0;
+
     const transform = (raw: string) => {
       calls += 1;
 
