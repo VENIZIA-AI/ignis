@@ -18,13 +18,13 @@ export class ModuleUtility {
 
   private static sharedRegistry(): Map<string, any> {
     const slot = Symbol.for('ignis:module-registry');
-    const shared: Map<string, any> | undefined = Reflect.get(globalThis, slot);
+    const shared = Reflect.get(globalThis, slot);
 
     if (shared) {
       return shared;
     }
 
-    const created = new Map<string, any>();
+    const created = new Map();
     Reflect.set(globalThis, slot, created);
 
     return created;

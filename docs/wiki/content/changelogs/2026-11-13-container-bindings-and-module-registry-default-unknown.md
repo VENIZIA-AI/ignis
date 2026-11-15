@@ -9,10 +9,16 @@ migration:
       before: |
         const bindings = container.findByTag({ tag: 'services' }); // Binding<any>[]
         const first = bindings[0]; // Binding<any>
+        const all: Binding[] = [fooBinding, barBinding]; // Binding<any>[]
       after: |
         // name what the tag holds
         const bindings = container.findByTag<IService>({ tag: 'services' });
         const first = bindings[0]; // Binding<IService>
+
+        // a collection that mixes bindings of different types no longer compiles as Binding[]
+        // (Binding<Foo> is not a Binding<unknown>): keep each under its own type
+        const foo: Binding<Foo> = fooBinding;
+        const bar: Binding<Bar> = barBinding;
     downgrade:
       steps:
         - "Drop the type argument of findByTag and Binding; the older default was any."

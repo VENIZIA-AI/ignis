@@ -102,7 +102,7 @@ export abstract class BaseContainer extends AbstractContainer {
     const { key } = opts;
     const keyStr = typeof key === 'symbol' ? this.bindSymbolKey({ key }) : key;
     const binding = new Binding<T>({ key: keyStr });
-    this.bindings.set(keyStr, binding as Binding);
+    this.bindings.set(keyStr, binding);
 
     return binding;
   }
