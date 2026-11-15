@@ -65,7 +65,7 @@ migration:
         interface IOrganizer { id: string; name: IMultiLang; code: string }
         class OrganizerRepository extends HttpRepository<IOrganizer> {}
 
-        const slot: TClass<HttpRepository<TNamedEntity>> = OrganizerRepository; // TS2419: Types of construct signatures are incompatible
+        const slot: TClass<HttpRepository<TNamedEntity>> = OrganizerRepository; // TS2322: Type 'typeof OrganizerRepository' is not assignable to type 'TClass<HttpRepository<TNamedEntity>>'
       after: |
         // TClass compares the class's instance with the slot's: type the slot by the members you read,
         interface IFindable { count(opts: { where?: object }): Promise<{ count: number }> }
