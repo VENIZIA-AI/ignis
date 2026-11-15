@@ -1,3 +1,4 @@
+import { getError } from '@/modules/error';
 import { ModuleUtility } from '@/utilities/module.utility';
 import { ParseUtility } from '@/utilities/parse.utility';
 import type { Redis } from 'ioredis';
@@ -19,6 +20,13 @@ export class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
       maxRetry = RedisDefaults.MAX_RETRY,
       redisOptions = {},
     } = opts;
+
+    // A JavaScript caller (or a config read from a file) may still pass the old shape, `masterName` and `sentinels` at the top level.
+    if (!Array.isArray(sentinel?.nodes) || sentinel.nodes.length === 0) {
+      throw getError({
+        message: `[${RedisSentinelHelper.name}] sentinel.nodes is required | pass sentinel: { masterName, nodes }`,
+      });
+    }
 
     const normalizedSentinels = sentinel.nodes.map((node) => ({
       host: node.host,
