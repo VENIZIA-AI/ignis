@@ -559,7 +559,7 @@ export declare class ApplicationEnvironment extends BaseHelper implements IAppli
     }): ReturnType;
     set<ValueType>(key: string, value: ValueType): void;
     merge(opts: {
-        envs: Record<string, string>;
+        envs: Record<string, string | undefined>;
     }): void;
     isDevelopment(): boolean;
     keys(): string[];

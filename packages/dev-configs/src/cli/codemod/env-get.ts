@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { CodemodFiles } from './files';
 
-const USAGE = `Usage: devz codemod env-get [paths...] [--write | --check]
+const USAGE = `Usage: devz codemod env-get [paths...] [--write [--all] | --check]
 
 Rewrites the type arguments of applicationEnvironment.get() (and its alias AppEnvs.get()) for the
 @venizia/ignis-helpers release where get() reads strings:
@@ -20,7 +20,8 @@ applicationEnvironment or AppEnvs: a call through this.applicationEnvironment, a
 ApplicationEnvironment instance or an optional chain is not touched and not listed, so run your typecheck
 after it. A comment between the method name and the parenthesis is dropped. A .js, .cjs or .mjs file is not read: edit it by hand.
 
-  --write    write the changed files (without it, nothing is written)
+  --write    write the changed files (without it, nothing is written); it needs a path, or --all
+  --all      with --write and no path: rewrite every source file under the working directory
   --check    dry run that exits 1 while a file would change (for CI)
   --help     print this text and exit
 
@@ -36,12 +37,14 @@ const RECEIVERS = new Set(['applicationEnvironment', 'AppEnvs']);
 
 class EnvGetFlags {
   static readonly WRITE = '--write';
+  static readonly ALL = '--all';
   static readonly CHECK = '--check';
   static readonly HELP = '--help';
   static readonly HELP_SHORT = '-h';
 
   static readonly SCHEME_SET = new Set<string>([
     this.WRITE,
+    this.ALL,
     this.CHECK,
     this.HELP,
     this.HELP_SHORT,
@@ -90,7 +93,7 @@ export class EnvGet {
         const end = node.arguments.pos - 1;
         const isString = first.kind === ts.SyntaxKind.StringKeyword;
 
-        if (node.typeArguments.length === 2) {
+        if (node.typeArguments.length === 2 && node.arguments.length > 1) {
           edits.push({ start, end, text: `<${first.getText(file)}>` });
         } else if (isString && second === undefined) {
           edits.push({ start, end, text: '' });
@@ -154,6 +157,19 @@ export class EnvGetCommand {
       return USAGE_ERROR_CODE;
     }
 
+    const refusal = CodemodFiles.refusal({
+      command: 'env-get',
+      isWrite,
+      isAll: flags.includes(EnvGetFlags.ALL),
+      paths,
+    });
+
+    if (refusal) {
+      console.error(`${refusal}\n${USAGE}`);
+
+      return USAGE_ERROR_CODE;
+    }
+
     let typescript: typeof import('typescript');
 
     try {
@@ -194,7 +210,7 @@ export class EnvGetCommand {
         for (const line of result.manual) {
           manualCount += 1;
           console.warn(
-            `manual  ${shown}:${line}  a type argument other than string: a number or other conversion goes in a transform, a union such as string | undefined is dropped by hand`,
+            `manual  ${shown}:${line}  a type argument the rewrite cannot place (not string, or two without an options argument): a number or other conversion goes in a transform, a union such as string | undefined is dropped by hand`,
           );
         }
 

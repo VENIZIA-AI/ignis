@@ -83,7 +83,7 @@ export class ApplicationEnvironment extends BaseHelper implements IApplicationEn
     this.arguments[key] = value;
   }
 
-  merge(opts: { envs: Record<string, string> }) {
+  merge(opts: { envs: Record<string, string | undefined> }) {
     const envsEntries = Object.entries(opts.envs);
 
     for (const [key, value] of envsEntries) {

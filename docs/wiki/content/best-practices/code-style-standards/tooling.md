@@ -331,11 +331,11 @@ Every codemod below is a dry run unless you pass `--write`, and `--check` exits 
 - `--write` refuses a file with local changes. `--check` exits 1 while a file would change.
 - `--reverse` moves the specifiers back to `@venizia/ignis/<sub-path>` for a downgrade.
 
-**`devz codemod env-get [paths...] [--write \| --check]`**
+**`devz codemod env-get [paths...] [--write [--all] \| --check]`**
 
 - Rewrites the type arguments of `applicationEnvironment.get()` and `AppEnvs.get()` for the release where `get()` reads strings: `get<string>(key)` becomes `get(key)`, and `get<R, B>(key, { transform })` becomes `get<R>(key, { transform })`.
 - Any other type argument (`get<number>(key)`) was a cast the new `get()` refuses: it is listed as `manual` with its file and line and left alone. Use a `transform`.
-- `--write` refuses a file with local changes. `--check` exits 1 while a call would change or is manual. There is no `--reverse`: a downgrade restores the files from git.
+- `--write` needs a path, or `--all` for the whole tree, and refuses a file with local changes. `--check` exits 1 while a call would change or is manual. There is no `--reverse`: a downgrade restores the files from git.
 
 ### Checking browser purity
 

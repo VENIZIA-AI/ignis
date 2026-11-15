@@ -20,6 +20,12 @@ migration:
         const max = applicationEnvironment.get<number | undefined>('APP_ENV_POOL_MAX', {
           transform: (value) => (value ? Number(value) : undefined),
         });
+        // the codemod lists these as manual: a union or literal type argument is dropped by hand
+        // before: applicationEnvironment.get<string | undefined>('APP_ENV_X')
+        // after:  applicationEnvironment.get('APP_ENV_X')
+        // before: applicationEnvironment.get<'a' | 'b'>('APP_ENV_MODE')
+        // after:  z.enum(['a', 'b']).parse(applicationEnvironment.get('APP_ENV_MODE'))
+        // a defaultValue must be a string: get('APP_ENV_X', { defaultValue: maybeUndefined }) no longer compiles
     downgrade:
       steps:
         - "Put the type arguments back (get<string>(key), get<R, string>(key, { transform })); or restore the files from git, since the codemod has no reverse."

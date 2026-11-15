@@ -75,6 +75,13 @@ describe('devz codemod env-get: edge cases', () => {
     expect(rewrite(`const a = applicationEnvironment?.get<string>(KEY);\n`).changed).toBe(false);
   });
 
+  test('two type arguments with no options argument are listed as manual', () => {
+    const result = rewrite(`const a = AppEnvs.get<string, number>(KEY);\n`);
+
+    expect(result.changed).toBe(false);
+    expect(result.manual).toEqual([1]);
+  });
+
   test('a union type argument is listed as manual', () => {
     expect(rewrite(`const a = AppEnvs.get<string | undefined>(KEY);\n`).manual).toEqual([1]);
   });
@@ -146,21 +153,40 @@ describe('devz codemod env-get: the command', () => {
     expect(logs.join('\n')).toContain('would change  src/a.ts');
   });
 
-  test('--write rewrites a committed file, and a bare --write touches only a file with the old text', async () => {
+  test('--write --all rewrites a committed file and touches only a file with the old text', async () => {
     commit({ 'src/a.ts': OLD, 'src/b.ts': 'export const b = 1;\n' });
 
-    const code = await CodemodCommand.run({ root, args: ['env-get', '--write'] });
+    const code = await CodemodCommand.run({ root, args: ['env-get', '--write', '--all'] });
 
     expect(code).toBe(0);
     expect(read('src/a.ts')).toBe(NEW);
     expect(read('src/b.ts')).toBe('export const b = 1;\n');
   });
 
+  test('a bare --write with no path is refused and writes nothing', async () => {
+    commit({ 'src/a.ts': OLD });
+
+    const code = await CodemodCommand.run({ root, args: ['env-get', '--write'] });
+
+    expect(code).toBe(2);
+    expect(errors.join('\n')).toContain('--write needs a path, or --all');
+    expect(read('src/a.ts')).toBe(OLD);
+  });
+
+  test('--write with a path rewrites just that path', async () => {
+    commit({ 'src/a.ts': OLD });
+
+    const code = await CodemodCommand.run({ root, args: ['env-get', '--write', 'src/a.ts'] });
+
+    expect(code).toBe(0);
+    expect(read('src/a.ts')).toBe(NEW);
+  });
+
   test('--write refuses a file with local changes and exits 1', async () => {
     commit({ 'src/a.ts': OLD });
     writeFileSync(join(root, 'src/a.ts'), `${OLD}// edited\n`);
 
-    const code = await CodemodCommand.run({ root, args: ['env-get', '--write'] });
+    const code = await CodemodCommand.run({ root, args: ['env-get', '--write', 'src/a.ts'] });
 
     expect(code).toBe(1);
     expect(read('src/a.ts')).toBe(`${OLD}// edited\n`);
@@ -172,7 +198,7 @@ describe('devz codemod env-get: the command', () => {
     const code1 = await CodemodCommand.run({ root, args: ['env-get', '--check'] });
     expect(code1).toBe(1);
 
-    await CodemodCommand.run({ root, args: ['env-get', '--write'] });
+    await CodemodCommand.run({ root, args: ['env-get', '--write', '--all'] });
     execFileSync('git', ['add', '-A'], { cwd: root });
     const code2 = await CodemodCommand.run({ root, args: ['env-get', '--check'] });
     expect(code2).toBe(0);
