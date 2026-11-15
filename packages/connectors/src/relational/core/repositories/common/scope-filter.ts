@@ -9,7 +9,7 @@ import type { TNullable } from '@venizia/ignis-helpers/common';
  */
 export class ScopeFilterDenial {
   /** The empty `inq` compiles to `sql\`false\`` in every dialect, deterministically matching zero rows. */
-  static where<DataObject = any>(): TWhere<DataObject> {
+  static where<DataObject>(): TWhere<DataObject> {
     return { id: { [QueryOperators.INQ]: [] } } as TWhere<DataObject>;
   }
 }
@@ -59,7 +59,7 @@ export class ScopeResolution {
     });
   }
 
-  static normalize<DataObject = any>(opts: {
+  static normalize<DataObject>(opts: {
     value: unknown;
   }): TNullable<TWhere<DataObject>> | typeof ScopeFilters.UNRESTRICTED {
     const { value } = opts;

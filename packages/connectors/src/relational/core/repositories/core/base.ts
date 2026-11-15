@@ -43,7 +43,7 @@ import type {
 import { FilterKeys } from '@venizia/ignis-filter';
 import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import { and, getTableColumns, inArray } from 'drizzle-orm';
+import { and, getTableColumns, inArray, type AnyColumn } from 'drizzle-orm';
 import type {
   IRelationalExtraOptions,
   IRelationalQueryDialect,
@@ -89,7 +89,7 @@ export abstract class RelationalBaseRepository<
   private _hiddenPropertySet: Set<string> | null = null;
 
   /** Memoized Drizzle column-selection map derived from hidden fields. `null` = not yet computed; `undefined` = computed, no hidden fields. */
-  private _visibleColumns: Record<string, unknown> | null | undefined = null;
+  private _visibleColumns: Record<string, AnyColumn> | null | undefined = null;
 
   constructor(
     dataSource?: TDataSource,
@@ -231,7 +231,7 @@ export abstract class RelationalBaseRepository<
   }
 
   /** Drizzle select/returning column map excluding hidden properties. Undefined if none hidden. Memoized. */
-  getVisibleProperties(): Record<string, any> | undefined {
+  getVisibleProperties(): Record<string, AnyColumn> | undefined {
     if (this._visibleColumns !== null) {
       return this._visibleColumns;
     }
@@ -245,7 +245,7 @@ export abstract class RelationalBaseRepository<
     }
 
     const columns = getTableColumns(this.entity.schema);
-    const visibleProperties: Record<string, any> = {};
+    const visibleProperties: Record<string, AnyColumn> = {};
 
     for (const key in columns) {
       if (!hiddenProps.has(key)) {
@@ -386,7 +386,7 @@ export abstract class RelationalBaseRepository<
    * call) is not scoped a second time, and for explicitly-unscoped administrative code written and
    * reviewed at the repository - never inferable from a request.
    */
-  protected applyScopeFilter<DO = any>(opts: {
+  protected applyScopeFilter<DO = DataObject>(opts: {
     userFilter?: TFilter<DO>;
     dangerouslySkipScopeFilter?: boolean;
     mutation?: TScopeOperation;
@@ -446,7 +446,7 @@ export abstract class RelationalBaseRepository<
   }
 
   /** Merges default filter with user filter. Skippable via shouldSkipDefaultFilter - the row scope from applyScopeFilter is not. */
-  applyDefaultFilter<DO = any>(opts: {
+  applyDefaultFilter<DO = DataObject>(opts: {
     userFilter?: TFilter<DO>;
     shouldSkipDefaultFilter?: boolean;
     dangerouslySkipScopeFilter?: boolean;

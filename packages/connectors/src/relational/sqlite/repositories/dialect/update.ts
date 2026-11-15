@@ -18,7 +18,7 @@ export class SqliteUpdateBuilder extends RelationalUpdateBuilder {
   override transform<Schema extends TTableSchemaWithId>(opts: {
     tableName: string;
     schema: Schema;
-    data: Record<string, any>;
+    data: Record<string, unknown>;
   }): ITransformedUpdateData {
     const { tableName, schema } = opts;
 
@@ -44,7 +44,7 @@ export class SqliteUpdateBuilder extends RelationalUpdateBuilder {
    * survive `sql.raw`. `json(...)` is what keeps an object, an array or `true` from being stored as
    * a JSON string.
    */
-  protected override composeJsonSet(opts: { target: SQL; path: string[]; value: any }): SQL {
+  protected override composeJsonSet(opts: { target: SQL; path: string[]; value: unknown }): SQL {
     const { target, path, value } = opts;
 
     const serialized = JSON.stringify(value);

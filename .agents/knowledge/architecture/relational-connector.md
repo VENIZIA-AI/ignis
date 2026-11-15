@@ -301,9 +301,10 @@ the rest only when your JSON semantics differ. You inherit the other ~700 lines 
 | `buildOperatorConditions()` | Only if `not` needs different composition; it already resolves handlers via `operators` |
 | `toBareJsonOperators()` | Never. Call it - it maps a bare JSON operand to the operator object that decides its cast |
 | `isOperatorObject()` | Never. Call it - your `buildJsonWhereCondition` needs it to tell an operator object from a bare value |
+| `toOperatorObject()` | Never. Call it - `isOperatorObject` that hands the operator object back (`undefined` for a bare value), so the operators need no cast |
 | `buildValueCondition()` | Never. Call it - it is the bare-value branch (null, array, equality) of your `buildJsonWhereCondition` |
 
-The last three are call-only, and they are `protected` for that reason: without them a second engine
+The last four are call-only, and they are `protected` for that reason: without them a second engine
 has to copy the base's own bare-value logic into its JSON override.
 
 Falsified twice. `__tests__/postgres/repositories/dialect-seam.test.ts` builds a

@@ -10,10 +10,10 @@ import type {
   IWriteResult,
 } from '@/relational/core/repositories/common';
 import type { TRelationalConnector } from '@/relational/postgres/datasources';
-import type { AnyType, TNullable } from '@venizia/ignis-helpers/common';
+import type { TNullable } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { AnyColumn } from 'drizzle-orm';
-import { is } from 'drizzle-orm';
+import { is, SQL } from 'drizzle-orm';
 import type { PgTable } from 'drizzle-orm/pg-core';
 import { PgColumn } from 'drizzle-orm/pg-core';
 
@@ -34,10 +34,7 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
     const pgTable = table as PgTable;
 
     let query = columns
-      ? connector
-          .select(columns as AnyType)
-          .from(pgTable)
-          .$dynamic()
+      ? connector.select(this.toSelectedFields({ columns })).from(pgTable).$dynamic()
       : connector.select().from(pgTable).$dynamic();
 
     if (where) {
@@ -73,9 +70,10 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
   async findMany<R>(opts: IRelationalQueryOptions<TRelationalConnector>): Promise<Array<R>> {
     const queryInterface = this.getQueryInterface(opts);
 
-    // Drizzle's relational result (`PgRelationalQuery<{[x: string]: any}[]>`) does not overlap the
-    // caller-chosen R enough for a direct assertion.
-    return queryInterface.findMany(opts.query) as AnyType;
+    // Same drizzle-relational-query-versus-caller-generic boundary as `findFirst` below.
+    const rows = await queryInterface.findMany(opts.query);
+
+    return rows as Array<R>;
   }
 
   async findFirst<R>(opts: IRelationalQueryOptions<TRelationalConnector>): Promise<TNullable<R>> {
@@ -92,7 +90,7 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
 
   async insert<R>(opts: IInsertOptions<TRelationalConnector>): Promise<IWriteResult<R>> {
     const { connector, table, values, returning, shouldReturn, onConflict } = opts;
-    const inserted = connector.insert(table as PgTable).values(values as AnyType);
+    const inserted = connector.insert(table as PgTable).values(values);
     // `onConflictDoUpdate` returns the same builder; its type only drops the conflict methods, which `inserted` also satisfies.
     const query: ReturnType<typeof inserted.onConflictDoUpdate> = onConflict
       ? inserted.onConflictDoUpdate({
@@ -109,7 +107,9 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
       return { count: this.readAffectedRowCount({ result }), rows: [] };
     }
 
-    const pending = returning ? query.returning(returning as AnyType) : query.returning();
+    const pending = returning
+      ? query.returning(this.toSelectedFields({ columns: returning }))
+      : query.returning();
     const rows = await pending;
 
     return { count: rows.length, rows: rows as Array<R> };
@@ -119,7 +119,7 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
     const { connector, table, data, where, returning, shouldReturn } = opts;
     const query = connector
       .update(table as PgTable)
-      .set(data as AnyType)
+      .set(data)
       .where(where);
 
     if (!shouldReturn) {
@@ -128,7 +128,9 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
       return { count: this.readAffectedRowCount({ result }), rows: [] };
     }
 
-    const pending = returning ? query.returning(returning as AnyType) : query.returning();
+    const pending = returning
+      ? query.returning(this.toSelectedFields({ columns: returning }))
+      : query.returning();
     const rows = await pending;
 
     return { count: rows.length, rows: rows as Array<R> };
@@ -144,7 +146,9 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
       return { count: this.readAffectedRowCount({ result }), rows: [] };
     }
 
-    const pending = returning ? query.returning(returning as AnyType) : query.returning();
+    const pending = returning
+      ? query.returning(this.toSelectedFields({ columns: returning }))
+      : query.returning();
     const rows = await pending;
 
     return { count: rows.length, rows: rows as Array<R> };
@@ -187,6 +191,29 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
     }
 
     return columns;
+  }
+
+  /**
+   * The projection a caller built from the table's columns, narrowed to what Drizzle's Postgres
+   * builders take. The neutral options carry it as a plain record; a value that is not a Postgres
+   * column or an SQL expression cannot name a field of this engine.
+   */
+  private toSelectedFields(opts: {
+    columns: Record<string, unknown>;
+  }): Record<string, PgColumn | SQL | SQL.Aliased> {
+    const fields: Record<string, PgColumn | SQL | SQL.Aliased> = {};
+
+    for (const [key, value] of Object.entries(opts.columns)) {
+      if (!is(value, PgColumn) && !is(value, SQL) && !is(value, SQL.Aliased)) {
+        throw getError({
+          message: `[toSelectedFields] Invalid column selection | '${key}' must be a Postgres column or an SQL expression`,
+        });
+      }
+
+      fields[key] = value;
+    }
+
+    return fields;
   }
 
   /**

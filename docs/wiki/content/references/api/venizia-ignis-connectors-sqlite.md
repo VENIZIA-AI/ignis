@@ -364,7 +364,7 @@ export declare class SqliteFilterBuilder extends FilterBuilder {
     protected jsonNeedsNumericCast(): boolean;
     protected buildJsonWhereCondition(opts: {
         key: string;
-        value: any;
+        value: unknown;
         columns: TTableColumns;
         tableName: string;
     }): SQL[];
@@ -505,6 +505,12 @@ export declare class SqliteQueryExecutor implements IRelationalQueryExecutor<TSq
      */
     private getQueryInterface;
     /**
+     * The projection a caller built from the table's columns, narrowed to what Drizzle's SQLite
+     * builders take. The neutral options carry it as a plain record; a value that is not a SQLite
+     * column or an SQL expression cannot name a field of this engine.
+     */
+    private toSelectedFields;
+    /**
      * Rows affected by a write with no RETURNING. Reads libsql's `ResultSet.rowsAffected`
      * off the raw result - engine knowledge the shared repository tier must not hold.
      * Drivers reporting `changes` instead are synchronous, and `TSqliteConnector` is
@@ -601,7 +607,7 @@ export declare class SqliteUpdateBuilder extends RelationalUpdateBuilder {
     transform<Schema extends TTableSchemaWithId>(opts: {
         tableName: string;
         schema: Schema;
-        data: Record<string, any>;
+        data: Record<string, unknown>;
     }): ITransformedUpdateData;
     /**
      * Path and value are BOUND, never interpolated: unlike the extraction side, nothing here has to
@@ -611,7 +617,7 @@ export declare class SqliteUpdateBuilder extends RelationalUpdateBuilder {
     protected composeJsonSet(opts: {
         target: SQL;
         path: string[];
-        value: any;
+        value: unknown;
     }): SQL;
 }
 ```

@@ -2,7 +2,7 @@ import type { IQueryHandlerOptions } from '@venizia/ignis-kernel';
 import { SqlQueryOperators } from '@/relational/core/repositories/dialect/query-operators';
 import { NotSupportedUtility } from '@venizia/ignis-kernel';
 import { BaseHelper } from '@venizia/ignis-helpers/core';
-import { like, notLike } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 
 /**
  * Drizzle-backed handlers for the neutral QueryOperators vocabulary. The operator NAMES live in
@@ -43,8 +43,8 @@ export class SqliteQueryOperators extends SqlQueryOperators {
      * silently widens against its Postgres meaning. Refusing `ilike` would be theatre - renaming it
      * to `like` yields the same SQL. Residual gap: `'ÉCOLE' LIKE 'é%'` is false without ICU.
      */
-    [this.ILIKE]: (opts: IQueryHandlerOptions) => like(opts.column, opts.value),
-    [this.NOT_ILIKE]: (opts: IQueryHandlerOptions) => notLike(opts.column, opts.value),
+    [this.ILIKE]: (opts: IQueryHandlerOptions) => sql`${opts.column} like ${opts.value}`,
+    [this.NOT_ILIKE]: (opts: IQueryHandlerOptions) => sql`${opts.column} not like ${opts.value}`,
 
     // `X REGEXP Y` is sugar for a `regexp()` function SQLite never defines and libsql never
     // registers, so the operator would fail at execution on a query that looked accepted.

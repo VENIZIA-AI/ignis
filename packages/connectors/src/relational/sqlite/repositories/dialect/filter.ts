@@ -55,7 +55,7 @@ export class SqliteFilterBuilder extends FilterBuilder {
 
   protected override buildJsonWhereCondition(opts: {
     key: string;
-    value: any;
+    value: unknown;
     columns: TTableColumns;
     tableName: string;
   }): SQL[] {
@@ -72,7 +72,9 @@ export class SqliteFilterBuilder extends FilterBuilder {
       SqliteJsonPathUtility.toSqliteJsonExtractionChunks({ column, path }),
     );
 
-    if (!this.isOperatorObject({ value })) {
+    const operators = this.toOperatorObject({ value });
+
+    if (!operators) {
       return [this.buildValueCondition({ column: extraction, value })];
     }
 
@@ -81,7 +83,7 @@ export class SqliteFilterBuilder extends FilterBuilder {
     return this.buildJsonOperatorConditions({
       jsonPath: extraction,
       safeNumericCast: extraction,
-      operators: value,
+      operators,
     });
   }
 

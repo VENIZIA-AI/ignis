@@ -6,7 +6,7 @@ import type {
   TTableObject,
   TTableSchemaWithId,
 } from '@/relational/core/models';
-import type { AnyType, TClass, TNullable } from '@venizia/ignis-helpers/common';
+import type { TClass, TNullable } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IExtraOptions, TCount, TRepositoryLogOptions, TWhere } from '@venizia/ignis-kernel';
 import { RepositoryOperationScopes, ScopeOperations } from '@venizia/ignis-kernel';
@@ -17,6 +17,7 @@ import type {
   TUpsertUpdateKey,
 } from '../common';
 import { ScopeWriteGuard } from '../common/scope-write-guard';
+import type { RelationalUpdateBuilder } from '../dialect/update';
 import { UpsertPlan } from '../common/upsert-plan';
 import { ReadableRelationalRepository } from './readable';
 
@@ -42,9 +43,9 @@ export class PersistableRelationalRepository<
     this._operationScope = RepositoryOperationScopes.READ_WRITE;
   }
 
-  /** Reach the engine's update transform through `dataSource.getQueryDialect()`. Engines without an update builder return `undefined`. `AnyType` rather than `unknown`: the concrete builder is engine-specific, and `unknown` breaks every `updateBuilder.transform(...)` call site. */
-  get updateBuilder(): AnyType {
-    return (this.queryDialect as { updateBuilder?: AnyType }).updateBuilder;
+  /** Reach the engine's update transform through `dataSource.getQueryDialect()`. Engines without an update builder return `undefined`. */
+  get updateBuilder(): RelationalUpdateBuilder | undefined {
+    return this.queryDialect.updateBuilder;
   }
 
   /** Throw to refuse an update's data. */

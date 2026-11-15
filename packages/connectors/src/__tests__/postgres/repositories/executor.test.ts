@@ -141,6 +141,54 @@ describe('PostgresQueryExecutor', () => {
     expect(trail[0]).toBe('select(1)');
   });
 
+  test('select accepts an SQL expression and an aliased one beside a column', async () => {
+    const { connector, trail } = createFakeConnector();
+    const postgresQueryExecutor = new PostgresQueryExecutor();
+    await postgresQueryExecutor.select({
+      connector: connector as never,
+      table: usersTable,
+      columns: {
+        id: usersTable.id,
+        upper: sql`upper(${usersTable.email})`,
+        lower: sql`lower(${usersTable.email})`.as('lower'),
+      },
+    });
+
+    expect(trail[0]).toBe('select(1)');
+  });
+
+  test('update refuses a returning entry that is not a column or an SQL expression', async () => {
+    const { connector } = createFakeConnector();
+    const postgresQueryExecutor = new PostgresQueryExecutor();
+
+    await RejectionHelper.expectRejection({
+      task: postgresQueryExecutor.update({
+        connector: connector as never,
+        table: usersTable,
+        data: { email: 'new@b.c' },
+        where: sql`id = 1`,
+        returning: { id: usersTable.id, nested: { id: usersTable.id } },
+        shouldReturn: true,
+      }),
+      message:
+        /\[toSelectedFields\] Invalid column selection \| 'nested' must be a Postgres column/,
+    });
+  });
+
+  test('select refuses a projection entry that is not a column or an SQL expression', async () => {
+    const { connector } = createFakeConnector();
+    const postgresQueryExecutor = new PostgresQueryExecutor();
+
+    await RejectionHelper.expectRejection({
+      task: postgresQueryExecutor.select({
+        connector: connector as never,
+        table: usersTable,
+        columns: { id: usersTable.id, bad: 'email' },
+      }),
+      message: /\[toSelectedFields\] Invalid column selection \| 'bad' must be a Postgres column/,
+    });
+  });
+
   // The `where` is what makes this discriminating: without it an executor that dropped the filter
   // and counted the whole table would still satisfy the assertion.
   test('count delegates to $count, passing its where through', async () => {

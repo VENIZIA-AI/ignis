@@ -4511,7 +4511,7 @@ Source: `packages/kernel/src/helpers/inversion/common/types/artifact.ts`
 Options passed to query operator handler functions.
 
 ```ts
-export interface IQueryHandlerOptions<T = any> {
+export interface IQueryHandlerOptions<T = unknown> {
     column: Column;
     value: T;
 }

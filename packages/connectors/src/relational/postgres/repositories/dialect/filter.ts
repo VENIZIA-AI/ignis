@@ -25,7 +25,7 @@ export class PostgresFilterBuilder extends FilterBuilder {
 
   protected override buildJsonWhereCondition(opts: {
     key: string;
-    value: any;
+    value: unknown;
     columns: TTableColumns;
     tableName: string;
   }): SQL[] {
@@ -44,7 +44,9 @@ export class PostgresFilterBuilder extends FilterBuilder {
       ` #>> '{${PostgresJsonPathUtility.toPostgresJsonPathElements({ path })}}'`,
     );
 
-    if (!this.isOperatorObject({ value })) {
+    const operators = this.toOperatorObject({ value });
+
+    if (!operators) {
       const jsonExtraction = this.jsonNeedsNumericCast({
         operators: this.toBareJsonOperators({ value }),
       })
@@ -57,7 +59,7 @@ export class PostgresFilterBuilder extends FilterBuilder {
     return this.buildJsonOperatorConditions({
       jsonPath: sql.fromList([column, pathSuffix]),
       safeNumericCast: this.toSafeNumericCast({ column, pathSuffix }),
-      operators: value,
+      operators,
     });
   }
 

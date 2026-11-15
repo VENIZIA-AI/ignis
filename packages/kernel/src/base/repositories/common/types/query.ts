@@ -2,7 +2,7 @@ import type { AnyType } from '@venizia/ignis-helpers/common';
 import type { Column, SQL } from 'drizzle-orm';
 
 /** Options passed to query operator handler functions. */
-export interface IQueryHandlerOptions<T = any> {
+export interface IQueryHandlerOptions<T = unknown> {
   column: Column;
   value: T;
 }
