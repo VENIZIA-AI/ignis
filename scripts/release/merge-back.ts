@@ -668,12 +668,14 @@ export class ReleaseMergeBack {
       return undefined;
     }
 
-    const changelogs = (JSON.parse(readFileSync(manifest, 'utf8')) as Record<string, unknown>)[
-      'knowledge'
-    ];
+    const parsed: unknown = JSON.parse(readFileSync(manifest, 'utf8'));
+    const knowledge =
+      typeof parsed === 'object' && parsed !== null && 'knowledge' in parsed
+        ? parsed.knowledge
+        : undefined;
     const folder =
-      typeof changelogs === 'object' && changelogs !== null
-        ? (changelogs as Record<string, unknown>)['changelogs']
+      typeof knowledge === 'object' && knowledge !== null && 'changelogs' in knowledge
+        ? knowledge.changelogs
         : undefined;
 
     if (typeof folder !== 'string') {
