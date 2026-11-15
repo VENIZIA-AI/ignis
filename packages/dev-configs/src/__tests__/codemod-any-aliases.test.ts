@@ -116,7 +116,7 @@ describe('devz codemod any-aliases: the rewrite', () => {
     const result = rewrite(source);
 
     expect(result.changed).toBe(false);
-    expect(result.manual.map((item) => item.line)).toEqual([2, 3]);
+    expect(result.manual.map((item) => item.line)).toEqual([1, 3]);
   });
 
   test('an import("...") type and a type parameter of the same name are manual', () => {
@@ -131,6 +131,135 @@ describe('devz codemod any-aliases: the rewrite', () => {
 
     expect(result.manual.map((item) => item.line)).toEqual([1, 2]);
     expect(result.output).toContain(`import type { AnyType } from '@venizia/ignis-helpers';`);
+  });
+
+  test('AnyType in a heritage clause is manual (extends unknown is invalid) and keeps its import; AnyObject there is rewritten', () => {
+    const source = [
+      `import type { AnyObject, AnyType } from '@venizia/ignis-helpers';`,
+      `export interface IBag extends AnyObject { id: string }`,
+      `export interface ILoose extends AnyType {}`,
+      `export class Impl implements AnyType {}`,
+      '',
+    ].join('\n');
+    const result = rewrite(source);
+
+    expect(result.output).toContain(`import type { AnyType } from '@venizia/ignis-helpers';`);
+    expect(result.output).toContain(
+      `export interface IBag extends Record<string, unknown> { id: string }`,
+    );
+    expect(result.output).toContain(`export interface ILoose extends AnyType {}`);
+    expect(result.manual.map((item) => item.line)).toEqual([3, 4]);
+  });
+
+  test('a namespace-qualified heritage clause is followed: AnyObject is rewritten, AnyType is manual', () => {
+    const result = rewrite(
+      [
+        `import * as H from '@venizia/ignis-helpers';`,
+        `export interface IBag extends H.AnyObject { id: string }`,
+        `export interface ILoose extends H.AnyType {}`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.output).toContain(
+      `export interface IBag extends Record<string, unknown> { id: string }`,
+    );
+    expect(result.output).toContain(`export interface ILoose extends H.AnyType {}`);
+    expect(result.manual.map((item) => item.line)).toEqual([3]);
+  });
+
+  test('an aliased name that the file re-exports is manual with both names, and a re-export of a same-file type is only local', () => {
+    const aliased = rewrite(
+      [
+        `import type { AnyObject as Bag } from '@venizia/ignis-helpers';`,
+        `export type { Bag };`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(aliased.changed).toBe(false);
+    expect(aliased.manual).toHaveLength(1);
+    expect(aliased.manual[0]?.reason).toContain('Bag (the alias AnyObject) is re-exported');
+
+    const local = rewrite([`type AnyType = number;`, `export type { AnyType };`, ''].join('\n'));
+
+    expect(local.manual).toEqual([]);
+    expect(local.local).toEqual([{ line: 1, name: 'AnyType' }]);
+  });
+
+  test('a multi-line import keeps its layout and its comments, and an emptied import leaves no blank line', () => {
+    const multi = rewrite(
+      [
+        `import type {`,
+        `  // the class type`,
+        `  TClass,`,
+        `  AnyType,`,
+        `  TNullable, // nullable`,
+        `} from '@venizia/ignis-helpers';`,
+        `export const a: AnyType = 1;`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(multi.output).toBe(
+      [
+        `import type {`,
+        `  // the class type`,
+        `  TClass,`,
+        `  TNullable, // nullable`,
+        `} from '@venizia/ignis-helpers';`,
+        `export const a: unknown = 1;`,
+        '',
+      ].join('\n'),
+    );
+
+    const emptied = rewrite(
+      [
+        `import type { AnyType } from '@venizia/ignis-helpers';`,
+        '',
+        `export const a: AnyType = 1;`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(emptied.output).toBe(`export const a: unknown = 1;\n`);
+  });
+
+  test('the rewritten files type-check: no syntax or semantic error is left in the output', () => {
+    const fixture = [
+      `import type { AnyObject, AnyType } from '@venizia/ignis-helpers';`,
+      `export const bag: Record<string, AnyType> = {};`,
+      `export interface IResult<TData = AnyType> { data: TData }`,
+      `export const log = (value: AnyType, source: AnyObject): AnyObject[] => [source];`,
+      `export interface IOptions extends AnyObject { extra: string }`,
+      '',
+    ].join('\n');
+    const output = rewrite(fixture).output;
+    const fileName = '/virtual/fixture.ts';
+    const options: import('typescript').CompilerOptions = {
+      strict: true,
+      noEmit: true,
+      target: ts.ScriptTarget.ES2022,
+      lib: ['lib.es2022.d.ts'],
+      types: [],
+    };
+    const host = ts.createCompilerHost(options);
+    const getSourceFile = host.getSourceFile.bind(host);
+
+    host.getSourceFile = (name, languageVersion, ...rest) =>
+      name === fileName
+        ? ts.createSourceFile(name, output, languageVersion, true)
+        : getSourceFile(name, languageVersion, ...rest);
+    host.fileExists = (name) => name === fileName || ts.sys.fileExists(name);
+    host.readFile = (name) => (name === fileName ? output : ts.sys.readFile(name));
+
+    const program = ts.createProgram([fileName], options, host);
+    const diagnostics = [
+      ...program.getSyntacticDiagnostics(),
+      ...program.getSemanticDiagnostics(),
+    ].map((item) => ts.flattenDiagnosticMessageText(item.messageText, ' '));
+
+    expect(diagnostics).toEqual([]);
   });
 
   test('a second run changes nothing', () => {

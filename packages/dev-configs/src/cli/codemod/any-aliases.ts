@@ -131,6 +131,43 @@ export class AnyAliases {
       }
     }
 
+    // `extends unknown` and `implements unknown` are not valid TypeScript: an alias used in a heritage clause whose
+    // replacement is `unknown` is left (import and references) and reported where it is used.
+    const heritageBlocked = new Set<string>();
+    const importedReplacement = new Map<string, string>();
+
+    for (const statement of file.statements) {
+      if (
+        ts.isImportDeclaration(statement) &&
+        ts.isStringLiteral(statement.moduleSpecifier) &&
+        ALIAS_MODULE.test(statement.moduleSpecifier.text) &&
+        statement.importClause?.namedBindings !== undefined &&
+        ts.isNamedImports(statement.importClause.namedBindings)
+      ) {
+        for (const element of statement.importClause.namedBindings.elements) {
+          const replacement = REPLACEMENTS.get((element.propertyName ?? element.name).text);
+
+          if (replacement !== undefined) {
+            importedReplacement.set(element.name.text, replacement);
+          }
+        }
+      }
+    }
+
+    const scanHeritage = (node: import('typescript').Node): void => {
+      if (
+        ts.isExpressionWithTypeArguments(node) &&
+        ts.isIdentifier(node.expression) &&
+        importedReplacement.get(node.expression.text) === 'unknown'
+      ) {
+        heritageBlocked.add(node.expression.text);
+      }
+
+      ts.forEachChild(node, scanHeritage);
+    };
+
+    scanHeritage(file);
+
     // Imports: which local names are the aliases, and how each import is rewritten.
     for (const statement of file.statements) {
       if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
@@ -161,7 +198,19 @@ export class AnyAliases {
       }
 
       const named = clause.namedBindings;
-      const kept: string[] = [];
+      const kept: Array<{ text: string; trailing: string }> = [];
+
+      /** An element as it is kept: its text with its leading comments, and a comment that follows it on its line. */
+      const keep = (element: import('typescript').ImportSpecifier) => {
+        const trailing = /^[ \t]*,?[ \t]*(\/\/[^\r\n]*|\/\*[^\r\n]*?\*\/)/.exec(
+          source.slice(element.getEnd()),
+        );
+
+        kept.push({
+          text: source.slice(element.getFullStart(), element.getEnd()).trim(),
+          trailing: trailing?.[1] ?? '',
+        });
+      };
       let removed = 0;
 
       for (const element of named.elements) {
@@ -170,20 +219,20 @@ export class AnyAliases {
         const replacement = REPLACEMENTS.get(imported);
 
         if (replacement === undefined) {
-          kept.push(element.getText(file));
+          keep(element);
 
           continue;
         }
 
         if (!isIgnis) {
-          kept.push(element.getText(file));
+          keep(element);
           local.push({ line: lineOf(element), name: localName });
 
           continue;
         }
 
         if (typeParameterNames.has(localName)) {
-          kept.push(element.getText(file));
+          keep(element);
           manual.push({
             line: lineOf(element),
             reason: `${localName} is also the name of a type parameter in this file: rewrite it by hand`,
@@ -193,7 +242,17 @@ export class AnyAliases {
         }
 
         if (exportedNames.has(localName)) {
-          kept.push(element.getText(file));
+          keep(element);
+          manual.push({
+            line: lineOf(element),
+            reason: `${localName}${localName === imported ? '' : ` (the alias ${imported})`} is re-exported by this file: the alias is gone, export the type you meant`,
+          });
+
+          continue;
+        }
+
+        if (heritageBlocked.has(localName)) {
+          keep(element);
 
           continue;
         }
@@ -207,6 +266,7 @@ export class AnyAliases {
       }
 
       if (kept.length === 0 && clause.name === undefined) {
+        const start = statement.getStart(file);
         let end = statement.getEnd();
 
         if (source.startsWith('\r\n', end)) {
@@ -215,16 +275,32 @@ export class AnyAliases {
           end += 1;
         }
 
-        edits.push({ start: statement.getStart(file), end, text: '' });
+        // A blank line that only separated this import from the next code (or from the top of the file) goes with it.
+        const before = source.slice(0, start);
+        const isOnlyLeading = before.trim() === '' || /\n\s*\n$/.test(before);
+        const blank = /^[ \t]*\r?\n/.exec(source.slice(end));
+
+        if (isOnlyLeading && blank !== null) {
+          end += blank[0].length;
+        }
+
+        edits.push({ start, end, text: '' });
       } else if (kept.length === 0 && clause.name !== undefined) {
         // A default import stays: `import Default, { AnyType } from ...` -> `import Default from ...`.
         edits.push({ start: clause.name.getEnd(), end: named.getEnd(), text: '' });
       } else {
-        edits.push({
-          start: named.getStart(file),
-          end: named.getEnd(),
-          text: `{ ${kept.join(', ')} }`,
+        const isMultiline = /\r?\n/.test(source.slice(named.getStart(file), named.getEnd()));
+        const hasTrailingComma = named.elements.hasTrailingComma;
+        const lines = kept.map((item, index) => {
+          const comma = index < kept.length - 1 || hasTrailingComma ? ',' : '';
+
+          return `  ${item.text}${comma}${item.trailing === '' ? '' : ` ${item.trailing}`}`;
         });
+        const text = isMultiline
+          ? `{\n${lines.join('\n')}\n}`
+          : `{ ${kept.map((item) => item.text).join(', ')} }`;
+
+        edits.push({ start: named.getStart(file), end: named.getEnd(), text });
       }
     }
 
@@ -262,15 +338,37 @@ export class AnyAliases {
         }
       }
 
-      if (
-        ts.isExpressionWithTypeArguments(node) &&
-        ts.isIdentifier(node.expression) &&
-        node.typeArguments === undefined
-      ) {
-        const replacement = aliasNames.get(node.expression.text);
+      if (ts.isExpressionWithTypeArguments(node) && node.typeArguments === undefined) {
+        const { expression } = node;
+        const byName = ts.isIdentifier(expression) ? aliasNames.get(expression.text) : undefined;
+        const byNamespace =
+          ts.isPropertyAccessExpression(expression) &&
+          ts.isIdentifier(expression.expression) &&
+          namespaces.has(expression.expression.text)
+            ? REPLACEMENTS.get(expression.name.text)
+            : undefined;
+        const replacement = byName ?? byNamespace;
+
+        if (replacement === 'unknown') {
+          manual.push({
+            line: lineOf(node),
+            reason: `${node.getText(file)} in a heritage clause: extends unknown and implements unknown are not valid, name the members you mean`,
+          });
+
+          return;
+        }
 
         if (replacement !== undefined) {
           addReplacement(node, replacement);
+
+          return;
+        }
+
+        if (ts.isIdentifier(expression) && heritageBlocked.has(expression.text)) {
+          manual.push({
+            line: lineOf(node),
+            reason: `${expression.text} in a heritage clause: extends unknown and implements unknown are not valid, name the members you mean`,
+          });
 
           return;
         }
@@ -304,10 +402,7 @@ export class AnyAliases {
         for (const element of node.exportClause.elements) {
           const exported = (element.propertyName ?? element.name).text;
 
-          if (
-            REPLACEMENTS.has(exported) &&
-            (isIgnisSource || (node.moduleSpecifier === undefined && exportedNames.has(exported)))
-          ) {
+          if (REPLACEMENTS.has(exported) && isIgnisSource) {
             manual.push({
               line: lineOf(element),
               reason: `a re-export of ${exported}: the alias is gone, export the type you meant`,
