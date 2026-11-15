@@ -1,5 +1,5 @@
 ---
-title: "Search controller routes are switched on with { use: true }"
+title: "Search controller routes are switched on with use true"
 description: "routes.search and routes.multiSearch take { use: true } like every other toggle, so a route has an explicit off state."
 packages: ['@venizia/ignis-connectors']
 migration:
@@ -25,7 +25,7 @@ migration:
 
 # Changelog - 2026-11-15
 
-## Search controller routes are switched on with { use: true }
+## Search controller routes are switched on with use true
 
 <Badge type="warning" text="Breaking Change" />
 

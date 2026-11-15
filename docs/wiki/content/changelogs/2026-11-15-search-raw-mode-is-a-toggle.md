@@ -1,5 +1,5 @@
 ---
-title: "Raw search mode is switched on with modes.raw { use: true }"
+title: "Raw search mode is switched on with modes.raw use true"
 description: "modes.raw takes { use: true } instead of { allow: true }, the same toggle shape as routes."
 packages: ['@venizia/ignis-connectors']
 migration:
@@ -27,7 +27,7 @@ migration:
 
 # Changelog - 2026-11-15
 
-## Raw search mode is switched on with modes.raw { use: true }
+## Raw search mode is switched on with modes.raw use true
 
 <Badge type="warning" text="Breaking Change" />
 
