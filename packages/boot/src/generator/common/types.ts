@@ -41,7 +41,7 @@ export interface IScanReport {
 }
 
 /**
- * What an application may hand to an {@link AutoArtifactGroup} as its index: a list of classes per kind, structurally the kernel's `IArtifactIndex` (boot does not depend on the kernel). The classes are `TClass<unknown>` so any real class is accepted; the group keeps the exact type the application passed.
+ * What an application may hand to an `AutoArtifactGroup` as its index: a list of classes per kind, with the same kinds as the kernel's `IArtifactIndex` (boot does not depend on the kernel, so it cannot name that type). The classes are `TClass<unknown>` so any real class is accepted; the group keeps the exact type the application passed.
  */
 export type TGeneratedArtifactIndexInput = Partial<
   Record<TArtifactIndexField, ReadonlyArray<TClass<unknown>>>

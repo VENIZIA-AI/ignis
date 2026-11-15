@@ -16,7 +16,7 @@ description: "Every export of @venizia/ignis-boot/auto, from the built declarati
 The application's own decorated classes, found by the scanner - pass it in `configs.artifacts`. From source the run-time plugin builds the index when artifacts are registered; in a binary built with `IgnisArtifactsPlugin` this module is replaced by one carrying the built index.
 
 ```ts
-declare const AutoArtifacts: AutoArtifactGroup<Partial<Record<import("../index.js").TArtifactIndexField, readonly import("@venizia/ignis-helpers").TClass<never>[]>>>;
+declare const AutoArtifacts: AutoArtifactGroup;
 ```
 
 Source: `packages/boot/src/bun/auto.ts`
