@@ -2686,8 +2686,10 @@ jvalue-column-is-json-value:
       // an array, a record and a scalar are accepted; spread an interface value, or declare its shape as a type alias
       await repository.create({ data: { jValue: { ...meta } } });
     steps:
-      - "Narrow properties read from `jValue` with a type check before use."
-      - "Spread interface-typed values assigned to `jValue`, or redeclare their shape as a type alias."
+      - "Narrow every read of jValue: check typeof object, not null and not an array before you read a key."
+      - "Spread an interface-typed value you write (jValue: { ...meta }), or declare its shape as a type alias."
+      - "Copy a readonly array or an as const value you write (jValue: [...list]), because it is refused."
+      - "Type a variable that holds a jValue as TJsonValue, imported from @venizia/ignis-helpers."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7, or read jValue without a narrow and pass the interface value directly again; the older column type was Record<string, any>.
