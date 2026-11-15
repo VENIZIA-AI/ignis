@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { type AnyType } from '@/common';
 import { getError } from '@/modules/error';
+import type { ILogger } from '@/modules/logger';
 import { type ITcpSocketServerOptions, NetworkTcpServer } from '@/modules/network';
-import { type AddressInfo, connect, Socket } from 'node:net';
+import { type AddressInfo, connect, type Server, Socket } from 'node:net';
 
 interface IDeferred<T> {
   promise: Promise<T>;
@@ -73,25 +73,30 @@ const closeSocket = (opts: { socket: Socket }): Promise<void> => {
 
 interface ILoggedError {
   scope: string;
-  args: Array<AnyType>;
+  args: Array<unknown>;
 }
+
+/** A logger that keeps what `error` is handed (the message first), under the scope its `for` was given. */
+const buildErrorRecorder = (opts: { scope: string; recorded: Array<ILoggedError> }): ILogger => {
+  const { scope, recorded } = opts;
+
+  return {
+    debug: () => {},
+    info: () => {},
+    warn: () => {},
+    emerg: () => {},
+    log: () => {},
+    error: (...args: Array<unknown>) => {
+      recorded.push({ scope, args });
+    },
+    for: (nextScope: string) => buildErrorRecorder({ scope: nextScope, recorded }),
+  };
+};
 
 const captureLoggerErrors = (opts: { server: NetworkTcpServer }): Array<ILoggedError> => {
   const recorded: Array<ILoggedError> = [];
 
-  opts.server.logger = {
-    for: (scope: string) => {
-      return {
-        info: () => {},
-        warn: () => {},
-        debug: () => {},
-        fatal: () => {},
-        error: (...args: Array<AnyType>) => {
-          recorded.push({ scope, args });
-        },
-      };
-    },
-  } as AnyType;
+  opts.server.logger = buildErrorRecorder({ scope: '', recorded });
 
   return recorded;
 };
@@ -130,7 +135,7 @@ afterEach(async () => {
 
 describe('NetworkTcpServer - lifecycle and client registry', () => {
   test('server listens on the OS assigned port and hands the server to onServerReady', async () => {
-    let readyServer: AnyType;
+    let readyServer: Server | undefined;
     const { port } = await startServer({
       onServerReady: (options) => {
         readyServer = options.server;
@@ -139,7 +144,7 @@ describe('NetworkTcpServer - lifecycle and client registry', () => {
 
     expect(port).toBeGreaterThan(0);
     expect(readyServer).toBeDefined();
-    expect(readyServer.listening).toBe(true);
+    expect(readyServer?.listening).toBe(true);
   });
 
   test('getClient answers undefined for an inherited property name', async () => {
@@ -321,24 +326,28 @@ describe('NetworkTcpServer - authentication flow', () => {
     const originalClearTimeout = globalThis.clearTimeout;
 
     const duration = 30_000;
-    const scheduled: Array<AnyType> = [];
-    const cleared: Array<AnyType> = [];
+    const scheduled: Array<ReturnType<typeof setTimeout>> = [];
+    const cleared: Array<Parameters<typeof clearTimeout>[0]> = [];
 
-    globalThis.setTimeout = ((handler: AnyType, timeout?: number, ...args: Array<AnyType>) => {
-      const handle = originalSetTimeout(handler, timeout, ...args);
+    Reflect.set(
+      globalThis,
+      'setTimeout',
+      (handler: Parameters<typeof setTimeout>[0], timeout?: number, ...args: Array<unknown>) => {
+        const handle = originalSetTimeout(handler, timeout, ...args);
 
-      if (timeout === duration) {
-        scheduled.push(handle);
-      }
+        if (timeout === duration) {
+          scheduled.push(handle);
+        }
 
-      return handle;
-    }) as AnyType;
+        return handle;
+      },
+    );
 
-    globalThis.clearTimeout = ((handle: AnyType) => {
+    Reflect.set(globalThis, 'clearTimeout', (handle: Parameters<typeof clearTimeout>[0]) => {
       cleared.push(handle);
 
       return originalClearTimeout(handle);
-    }) as AnyType;
+    });
 
     try {
       const closed = createDeferred<void>();

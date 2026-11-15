@@ -1,8 +1,6 @@
 /** Driven against a real socket.io server on port 0 - a bare IOServer stands in for the server helper (which needs Redis) and speaks the same authenticate protocol. */
 
-import type { AnyType } from '@/common/types';
 import {
-  type IOptions,
   SocketIOClientHelper,
   SocketIOClientStates,
   SocketIOConstants,
@@ -32,15 +30,19 @@ const createClient = (opts?: {
   autoConnect?: boolean;
   host?: string;
 }) => {
+  // Held in a variable, not an inline literal: the manager options (transports, reconnection) reach `io()` but `IOptions` does not name them.
+  const options = {
+    path: '/socket.io',
+    transports: ['polling'],
+    autoConnect: opts?.autoConnect ?? true,
+    reconnection: false,
+    extraHeaders: {},
+  };
+
   const client = new SocketIOClientHelper({
     identifier: 'test-io-client',
     host: opts?.host ?? host,
-    options: {
-      transports: ['polling'],
-      autoConnect: opts?.autoConnect ?? true,
-      reconnection: false,
-      extraHeaders: {},
-    } as AnyType as IOptions,
+    options,
     onConnected: opts?.onConnected,
     onDisconnected: opts?.onDisconnected,
     onAuthenticated: opts?.onAuthenticated,

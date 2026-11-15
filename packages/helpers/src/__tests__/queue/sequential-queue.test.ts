@@ -1,4 +1,3 @@
-import { type AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
 import {
   QueueStatuses,
@@ -355,7 +354,7 @@ describe('SequentialQueueHelper — state machine', () => {
   });
 
   test('falsy payloads are rejected before reaching storage', async () => {
-    const queue = new SequentialQueueHelper<AnyType>({
+    const queue = new SequentialQueueHelper<unknown>({
       identifier: 'tc-falsy',
       autoDispatch: false,
       onMessage: () => {},

@@ -1,5 +1,4 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test';
-import type { AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
 import { ErrorUtility } from '@/utilities/error.utility';
 import { ParseUtility } from '@/utilities/parse.utility';
@@ -176,8 +175,7 @@ describe('isPromiseLike', () => {
     expect(isPromiseLike(Promise.resolve(1))).toBe(true);
     expect(isPromiseLike({ then: () => undefined })).toBe(true);
 
-    const thenableFunction = () => undefined;
-    (thenableFunction as AnyType).then = () => undefined;
+    const thenableFunction = Object.assign(() => undefined, { then: () => undefined });
     expect(isPromiseLike(thenableFunction)).toBe(true);
 
     expect(isPromiseLike(null)).toBe(false);

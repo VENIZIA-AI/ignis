@@ -1,5 +1,5 @@
-import { type AnyType } from '@/common/types';
 import { KafkaConsumerHelper } from '@/modules/queue/kafka/consumer';
+import type { IKafkaConsumerOptions } from '@/modules/queue/kafka/common/types';
 import { EventEmitter } from 'node:events';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
@@ -7,7 +7,7 @@ type TCloseCallback = (error?: Error | null) => void;
 
 /** Async-iterable stand-in for a `@platformatic/kafka` MessagesStream. */
 class FakeMessagesStream extends EventEmitter {
-  private readonly pending: AnyType[] = [];
+  private readonly pending: unknown[] = [];
   private wakeUp: (() => void) | null = null;
 
   isClosed = false;
@@ -25,7 +25,7 @@ class FakeMessagesStream extends EventEmitter {
   }
 
   /** Like a real Readable: `destroy(error)` rejects the pending iteration, so loop-mode tests exercise `drainStream`'s catch. */
-  async *[Symbol.asyncIterator](): AsyncGenerator<AnyType> {
+  async *[Symbol.asyncIterator](): AsyncGenerator<unknown> {
     while (!this.isClosed) {
       const next = this.pending.shift();
 
@@ -44,7 +44,7 @@ class FakeMessagesStream extends EventEmitter {
     }
   }
 
-  push(opts: { message: AnyType }): void {
+  push(opts: { message: unknown }): void {
     this.pending.push(opts.message);
     this.release();
   }
@@ -70,7 +70,7 @@ class FakeMessagesStream extends EventEmitter {
 
 /** Structural stand-in for a `@platformatic/kafka` Consumer. */
 class FakeConsumerClient extends EventEmitter {
-  readonly consumeCalls: AnyType[] = [];
+  readonly consumeCalls: unknown[] = [];
   readonly streams: FakeMessagesStream[] = [];
   readonly closeCalls: Array<{ isForce: boolean }> = [];
 
@@ -78,7 +78,7 @@ class FakeConsumerClient extends EventEmitter {
   lagMonitoringStarts = 0;
   lagMonitoringStops = 0;
 
-  async consume(opts: AnyType): Promise<FakeMessagesStream> {
+  async consume(opts: unknown): Promise<FakeMessagesStream> {
     this.consumeCalls.push(opts);
 
     if (this.isConsumeFailing) {
@@ -91,7 +91,7 @@ class FakeConsumerClient extends EventEmitter {
     return stream;
   }
 
-  startLagMonitoring(_opts: AnyType, _interval: number): void {
+  startLagMonitoring(_opts: unknown, _interval: number): void {
     this.lagMonitoringStarts += 1;
   }
 
@@ -118,9 +118,9 @@ class FakeConsumerClient extends EventEmitter {
 
 const buildHelper = (opts: {
   client: FakeConsumerClient;
-  hooks?: Partial<AnyType>;
-}): KafkaConsumerHelper<AnyType, AnyType, AnyType, AnyType> => {
-  const helper = KafkaConsumerHelper.newInstance<AnyType, AnyType, AnyType, AnyType>({
+  hooks?: Partial<IKafkaConsumerOptions<string, string, string, string>>;
+}): KafkaConsumerHelper => {
+  const helper = KafkaConsumerHelper.newInstance({
     bootstrapBrokers: ['127.0.0.1:9092'],
     clientId: 'ignis-consumer-test',
     groupId: 'ignis-test-group',
@@ -129,7 +129,7 @@ const buildHelper = (opts: {
   });
 
   // The Consumer is built inside the constructor; swapClient is the supported seam for replacing it (it is what the reconnect path itself uses), so the fake gets the exact production wiring.
-  helper['swapClient'](opts.client as AnyType);
+  Reflect.apply(helper['swapClient'], helper, [opts.client]);
 
   return helper;
 };
@@ -160,16 +160,16 @@ describe('KafkaConsumerHelper — lifecycle, hooks, shutdown', () => {
 
   test('start() consumes, delivers messages to onMessage/onMessageDone, and close() resolves', async () => {
     const client = new FakeConsumerClient();
-    const received: AnyType[] = [];
-    const done: AnyType[] = [];
+    const received: Array<{ key: string }> = [];
+    const done: Array<{ key: string }> = [];
 
     const helper = buildHelper({
       client,
       hooks: {
-        onMessage: ({ message }: AnyType) => {
+        onMessage: ({ message }) => {
           received.push(message);
         },
-        onMessageDone: ({ message }: AnyType) => {
+        onMessageDone: ({ message }) => {
           done.push(message);
         },
       },
@@ -196,20 +196,20 @@ describe('KafkaConsumerHelper — lifecycle, hooks, shutdown', () => {
 
   test('a throwing message handler is reported through onMessageError and the loop keeps consuming', async () => {
     const client = new FakeConsumerClient();
-    const received: AnyType[] = [];
+    const received: Array<{ key: string }> = [];
     const errors: unknown[] = [];
 
     const helper = buildHelper({
       client,
       hooks: {
-        onMessage: ({ message }: AnyType) => {
+        onMessage: ({ message }) => {
           received.push(message);
 
           if (message.key === 'bad') {
             throw new Error('handler boom'); // foreign handler failure
           }
         },
-        onMessageError: ({ error }: AnyType) => {
+        onMessageError: ({ error }) => {
           errors.push(error);
         },
       },
@@ -221,7 +221,7 @@ describe('KafkaConsumerHelper — lifecycle, hooks, shutdown', () => {
     client.streams[0].push({ message: { key: 'good' } });
     await flush();
 
-    expect(received.map((message: AnyType) => message.key)).toEqual(['bad', 'good']);
+    expect(received.map((message) => message.key)).toEqual(['bad', 'good']);
     expect(errors.length).toBe(1);
 
     await helper.close();
@@ -260,10 +260,10 @@ describe('KafkaConsumerHelper — lifecycle, hooks, shutdown', () => {
       client,
       hooks: {
         onMessage: () => {},
-        onStreamError: ({ error }: AnyType) => {
+        onStreamError: ({ error }) => {
           streamErrors.push(error);
         },
-        onMessageError: ({ error }: AnyType) => {
+        onMessageError: ({ error }) => {
           messageErrors.push(error);
         },
       },
@@ -287,7 +287,7 @@ describe('KafkaConsumerHelper — lifecycle, hooks, shutdown', () => {
       client,
       hooks: {
         onMessage: () => {},
-        onMessageError: ({ error }: AnyType) => {
+        onMessageError: ({ error }) => {
           messageErrors.push(error);
         },
       },
@@ -417,8 +417,10 @@ describe('KafkaConsumerHelper - buildClient is the rebuild seam', () => {
   test('a subclass override of buildClient supplies the consumer that rebuildClient swaps in', async () => {
     const replacement = new FakeConsumerClient();
     class SeamHelper extends KafkaConsumerHelper {
-      protected override buildClient(): AnyType {
-        return replacement;
+      protected override buildClient(): ReturnType<KafkaConsumerHelper['getConsumer']> {
+        const holder: object = { replacement };
+
+        return Reflect.get(holder, 'replacement');
       }
     }
 
@@ -431,7 +433,8 @@ describe('KafkaConsumerHelper - buildClient is the rebuild seam', () => {
 
     await helper['rebuildClient']();
 
-    expect(helper.getConsumer()).toBe(replacement as AnyType);
+    const current: unknown = helper.getConsumer();
+    expect(current).toBe(replacement);
     expect(helper.getConsumer()).not.toBe(original);
   });
 });

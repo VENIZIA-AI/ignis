@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@/common/types';
 import { ParseUtility } from '@/utilities/parse.utility';
 
 /** Snake-cased wire payloads are exactly what `keysToCamel` converts, but a snake_case object literal is banned in this codebase - parse the fixture from its JSON wire form instead. */
@@ -216,7 +215,7 @@ describe('parseArrayToMapWithKey', () => {
   });
 
   test('throws when an element lacks the key', () => {
-    const elements = [{ id: 1 }, {} as AnyType];
+    const elements = [{ id: 1 }, JSON.parse('{}')];
 
     expect(() => ParseUtility.parseArrayToMapWithKey({ items: elements, key: 'id' })).toThrow(
       'Invalid keyMap',

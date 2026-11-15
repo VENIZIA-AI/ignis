@@ -343,8 +343,10 @@ Source: `packages/boot/src/generator/common/constants.ts`
 
 The object a generated index exports - structurally the kernel's `IArtifactIndex` (boot does not depend on the kernel).
 
+A deliberate `any`: each kind of the kernel's index names its own class type (`TClass<BaseConfiguration>`, `TClass<IService>`, ...), which boot cannot name. `TClass<unknown>` is not assignable to any of them, so an `AutoArtifactGroup` would stop being the kernel's `IArtifactGroup`.
+
 ```ts
-export type TGeneratedArtifactIndex = Partial<Record<TArtifactIndexField, ReadonlyArray<TClass<AnyType>>>>;
+export type TGeneratedArtifactIndex = Partial<Record<TArtifactIndexField, ReadonlyArray<TClass<any>>>>;
 ```
 
 Source: `packages/boot/src/generator/common/types.ts`

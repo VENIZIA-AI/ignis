@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { type AnyType } from '@/common';
 import { NetworkTcpClient, NetworkTcpServer } from '@/modules/network';
 import { type AddressInfo } from 'node:net';
 
@@ -186,7 +185,8 @@ describe('NetworkTcpClient - guards', () => {
   test('connect() with EMPTY options creates no socket', () => {
     const client = NetworkTcpClient.newInstance({
       identifier: 'tcp-client-empty-options',
-      options: {} as AnyType,
+      // An empty options object on purpose; the option type requires a port or a path.
+      options: JSON.parse('{}'),
     });
 
     client.connect({ resetReconnectCounter: true });

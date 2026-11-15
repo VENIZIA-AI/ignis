@@ -1,9 +1,42 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
+import type { ILogger, TLogLevel } from '@/modules/logger';
 import { RetryBackoffStrategies, RetryHelper, RetryJitterModes } from '@/modules/retry';
 
 const NO_JITTER = { jitter: RetryJitterModes.NONE } as const;
+
+/** Records every call as `{ level, message }`; `for()` returns the same recorder. */
+class RecordingLogger implements ILogger {
+  readonly records: Array<{ level: string; message: string }> = [];
+
+  debug(message: string): void {
+    this.records.push({ level: 'debug', message });
+  }
+
+  info(message: string): void {
+    this.records.push({ level: 'info', message });
+  }
+
+  warn(message: string): void {
+    this.records.push({ level: 'warn', message });
+  }
+
+  error(message: string): void {
+    this.records.push({ level: 'error', message });
+  }
+
+  emerg(message: string): void {
+    this.records.push({ level: 'emerg', message });
+  }
+
+  log(level: TLogLevel, message: string): void {
+    this.records.push({ level, message });
+  }
+
+  for(): ILogger {
+    return this;
+  }
+}
 
 describe('computeBackoffDelayMs', () => {
   test('FIXED returns initialDelayMs for every attempt', () => {
@@ -394,13 +427,7 @@ describe('executeWithRetry', () => {
   });
 
   test('logger.warn fires on exhaustion, debug per retry', async () => {
-    const events: string[] = [];
-    const fakeLogger = {
-      for: () => ({
-        debug: () => events.push('debug'),
-        warn: () => events.push('warn'),
-      }),
-    } as AnyType;
+    const fakeLogger = new RecordingLogger();
 
     try {
       await RetryHelper.executeWithRetry({
@@ -417,7 +444,7 @@ describe('executeWithRetry', () => {
       expect(error).toBeInstanceOf(Error);
     }
 
-    expect(events).toEqual(['debug', 'debug', 'warn']);
+    expect(fakeLogger.records.map((record) => record.level)).toEqual(['debug', 'debug', 'warn']);
   });
 });
 
@@ -636,15 +663,7 @@ describe('executeWithRetryUntil', () => {
   });
 
   test('exhaustion warns exactly once; real errors never warn', async () => {
-    const warnCalls: string[] = [];
-    const fakeLogger = {
-      for: () => ({
-        warn: (message: string) => {
-          warnCalls.push(message);
-        },
-        debug: () => {},
-      }),
-    } as AnyType;
+    const fakeLogger = new RecordingLogger();
 
     await RetryHelper.executeWithRetryUntil<null>({
       operation: 'warn-once',
@@ -655,8 +674,9 @@ describe('executeWithRetryUntil', () => {
       until: (attemptResult) => attemptResult !== null,
     });
 
+    const warnCalls = fakeLogger.records.filter((record) => record.level === 'warn');
     expect(warnCalls.length).toBe(1);
-    expect(warnCalls[0]).toContain('Exhausted retries');
+    expect(warnCalls[0]?.message).toContain('Exhausted retries');
   });
 
   test('a slow read is never aborted by maxTotalMs - the budget only gates new attempts', async () => {

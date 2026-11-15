@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@/common/types';
 import { LogFormatUtility } from '@/modules/logger';
 
 /** `util.format` hard-codes `depth: 0` for `%s` and no inspect option overrides it, collapsing cause / driver payload / `extra` to `[Object]` - so the arg must be inspected into a string before it reaches `%s`. */
@@ -196,7 +195,7 @@ describe('formatLogMessage - the other placeholders keep their meaning', () => {
   });
 
   test('a circular object does not throw - it renders as [Circular]', () => {
-    const circular: AnyType = { name: 'root' };
+    const circular: Record<string, unknown> = { name: 'root' };
     circular.self = circular;
 
     const formatted = LogFormatUtility.formatMessage({ message: 'Obj: %s', args: [circular] });
@@ -208,7 +207,7 @@ describe('formatLogMessage - the other placeholders keep their meaning', () => {
 /** `JSON.stringify` gives up on the WHOLE payload when a cycle sits anywhere inside it, and it never redacts - so a `%j` argument has to be projected before `util.format` hands it over. */
 describe('formatLogMessage - %j is projected before JSON.stringify sees it', () => {
   const buildCyclicTransaction = () => {
-    const transaction: AnyType = { id: 'tx-1' };
+    const transaction: Record<string, unknown> = { id: 'tx-1' };
     transaction.client = { pool: transaction };
 
     return transaction;

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { type AnyType } from '@/common';
 import { getError } from '@/modules/error';
+import type { ILogger } from '@/modules/logger';
 import { NetworkUdpClient } from '@/modules/network';
 import dgram from 'node:dgram';
 
@@ -21,25 +21,30 @@ const createDeferred = <T>(): IDeferred<T> => {
 
 interface ILoggedError {
   scope: string;
-  args: Array<AnyType>;
+  args: Array<unknown>;
 }
+
+/** A logger that keeps what `error` is handed (the message first), under the scope its `for` was given. */
+const buildErrorRecorder = (opts: { scope: string; recorded: Array<ILoggedError> }): ILogger => {
+  const { scope, recorded } = opts;
+
+  return {
+    debug: () => {},
+    info: () => {},
+    warn: () => {},
+    emerg: () => {},
+    log: () => {},
+    error: (...args: Array<unknown>) => {
+      recorded.push({ scope, args });
+    },
+    for: (nextScope: string) => buildErrorRecorder({ scope: nextScope, recorded }),
+  };
+};
 
 const captureLoggerErrors = (opts: { client: NetworkUdpClient }): Array<ILoggedError> => {
   const recorded: Array<ILoggedError> = [];
 
-  opts.client.logger = {
-    for: (scope: string) => {
-      return {
-        info: () => {},
-        warn: () => {},
-        debug: () => {},
-        fatal: () => {},
-        error: (...args: Array<AnyType>) => {
-          recorded.push({ scope, args });
-        },
-      };
-    },
-  } as AnyType;
+  opts.client.logger = buildErrorRecorder({ scope: '', recorded });
 
   return recorded;
 };
@@ -253,7 +258,8 @@ describe('NetworkUdpClient - error paths', () => {
     const client = NetworkUdpClient.newInstance({
       identifier: 'udp-missing-port',
       host: '127.0.0.1',
-      port: undefined as AnyType,
+      // A missing port on purpose: `Reflect.get` on an empty object yields `undefined` typed `any`.
+      port: Reflect.get({}, 'port'),
     });
 
     client.connect();

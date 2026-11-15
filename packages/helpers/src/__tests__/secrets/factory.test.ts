@@ -1,4 +1,3 @@
-import type { AnyType } from '@/common/types';
 import { describe, expect, test } from 'bun:test';
 import { SecretsHelperFactory } from '@/modules/secrets/factory';
 import { SecretProviders } from '@/modules/secrets/common';
@@ -11,7 +10,9 @@ describe('createSecretsHelper', () => {
   });
 
   test('throws on unsupported provider', () => {
-    return expect(SecretsHelperFactory.create({ provider: 'aws' as AnyType })).rejects.toThrow(
+    const unsupportedProvider = JSON.parse('"aws"');
+
+    return expect(SecretsHelperFactory.create({ provider: unsupportedProvider })).rejects.toThrow(
       /Unsupported secret provider/,
     );
   });

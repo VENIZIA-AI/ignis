@@ -1,16 +1,29 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@/common/types';
+import type { ILogger } from '@/modules/logger';
 import { PromiseUtility } from '@/utilities/promise.utility';
+
+/** A logger whose scoped `error` records every call; the other levels are never reached. */
+class RecordingLogger implements ILogger {
+  constructor(private readonly errors: unknown[]) {}
+
+  debug() {}
+  info() {}
+  warn() {}
+  emerg() {}
+  log() {}
+
+  error(message: string, ...args: unknown[]) {
+    this.errors.push([message, ...args]);
+  }
+
+  for(): ILogger {
+    return this;
+  }
+}
 
 const buildLogger = () => {
   const errors: unknown[] = [];
-  const logger = {
-    for: () => ({
-      error: (...args: unknown[]) => {
-        errors.push(args);
-      },
-    }),
-  } as AnyType;
+  const logger = new RecordingLogger(errors);
 
   return { logger, errors };
 };
