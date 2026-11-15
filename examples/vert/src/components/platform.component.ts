@@ -155,9 +155,7 @@ export class PlatformComponent extends BaseComponent {
         // This server issues and verifies its own tokens: both claims name it.
         claims: { issuer: 'vert', audience: 'vert' },
         getTokenExpiresFn: () => {
-          const expiresIn = applicationEnvironment.get(
-            EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN,
-          );
+          const expiresIn = applicationEnvironment.get(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN);
 
           if (!expiresIn) {
             throw getError({ message: '[getTokenExpiresFn] APP_ENV_JWT_EXPIRES_IN is not set' });

@@ -36,10 +36,13 @@ export class SupabaseDataSource extends BasePostgresDataSource<
       name: SupabaseDataSource.name,
       config: {
         url: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_SUPABASE_DATABASE_URL),
-        mode: applicationEnvironment.get<TPoolerMode>(EnvironmentKeys.APP_ENV_SUPABASE_POOLER_MODE, {
-          transform: (raw) =>
-            raw !== undefined && PoolerModes.isValid(raw) ? raw : PoolerModes.DIRECT,
-        }),
+        mode: applicationEnvironment.get<TPoolerMode>(
+          EnvironmentKeys.APP_ENV_SUPABASE_POOLER_MODE,
+          {
+            transform: (raw) =>
+              raw !== undefined && PoolerModes.isValid(raw) ? raw : PoolerModes.DIRECT,
+          },
+        ),
         max: applicationEnvironment.get<number | undefined>(
           EnvironmentKeys.APP_ENV_SUPABASE_POOL_MAX,
           {
