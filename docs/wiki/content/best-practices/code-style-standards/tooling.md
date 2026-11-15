@@ -241,7 +241,18 @@ Bun's defaults already match the rest of the old IGNIS style: `tabWidth` 2, `tra
 
 `devz lint` stops at the first tool that fails. `devz clean` takes no argument: `--help` prints the usage, and any other argument exits 2 and deletes nothing.
 
-With a file list, the command drops the files the tools do not handle (`.md`, `.json`, ...) and exits 0 when none is left. A listed file that a `.ignore` skips passes quietly, so a commit that touches only generated code is not blocked. Paths are relative to the project, and `bun run lint src/a.ts` passes them through. Outside a script, run `bun x --no-install devz lint`: `--no-install` keeps Bun from fetching a newer version than the project pins.
+With a file list, the command drops the files the tools do not handle (`.md`, `.json`, ...) and exits 0 when none is left. A listed file that a `.ignore` skips passes quietly, so a commit that touches only generated code is not blocked. Paths are relative to the project, and `bun run lint src/a.ts` passes them through. Outside a script, run `bun run devz lint`: it runs the `devz` your project installed, and never the unrelated `devz` package that npm hosts under the same name (see [Run the tools with bun run](#run-the-tools-with-bun-run)).
+
+### Run the tools with `bun run`
+
+The npm names `vulcan`, `devz`, `ardor` and `ignis` belong to unrelated packages. `bunx devz`, `bun x devz` and `npx devz` can run that foreign code, and `--no-install` does not protect you: a copy that an earlier bare run cached is used anyway. Run the copy your project installed:
+
+```bash
+bun run devz lint
+node_modules/.bin/devz lint
+```
+
+Use the same form in a Makefile, a git hook, a workflow and a `package.json` script. A scoped package (`bun x @venizia/vulcan init`) is ours; pin its version when a command repeats. To drop a copy an earlier run cached, delete `~/.bun/install/cache/.bunx-*/{vulcan,devz,ardor,ignis,vulcan-atlas}@*`.
 
 ### The `devz check` commands
 
