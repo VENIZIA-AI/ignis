@@ -1,5 +1,5 @@
 /** The `typeof` result a duck-typed member must have. */
-export type TDuckMemberKind = 'function' | 'string' | 'number';
+export type TDuckMemberType = 'function' | 'string' | 'number';
 
 export class DuckTypingUtility {
   /** The method `name` of `value`, bound to it, when it is a function; otherwise `undefined`. */
@@ -25,7 +25,7 @@ export class DuckTypingUtility {
   /** True when `value` is an object (or function) whose every listed member has the stated `typeof`; `null`, `undefined` and primitives are false. */
   static hasMembers(opts: {
     value: unknown;
-    members: Readonly<Record<string, TDuckMemberKind>>;
+    members: Readonly<Record<string, TDuckMemberType>>;
   }): boolean {
     const { value, members } = opts;
 

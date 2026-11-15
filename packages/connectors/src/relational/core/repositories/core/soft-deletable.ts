@@ -52,8 +52,24 @@ export class SoftDeletableRelationalRepository<
     deletedAt: Date | null;
   }): Partial<PersistObject> {
     const patch: Partial<PersistObject> = {};
-    Object.assign(patch, opts.data);
-    Reflect.set(patch, AuditFields.DELETED_AT, opts.deletedAt);
+
+    // Each own entry is DEFINED, never assigned: an own `__proto__` key from a JSON body stays a plain
+    // key (the update path then refuses it as an unknown column) instead of replacing the patch's prototype.
+    for (const [key, value] of Object.entries(opts.data ?? {})) {
+      Reflect.defineProperty(patch, key, {
+        value,
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
+    }
+
+    Reflect.defineProperty(patch, AuditFields.DELETED_AT, {
+      value: opts.deletedAt,
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
 
     return patch;
   }

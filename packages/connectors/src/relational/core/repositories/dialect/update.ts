@@ -39,9 +39,8 @@ export abstract class RelationalUpdateBuilder extends BaseHelper {
     const regularFields: Record<string, any> = {};
     const jsonExpressions: Record<string, SQL> = {};
 
-    for (const key in data) {
-      const value = data[key];
-
+    // Own entries only: `for...in` would also walk keys inherited through a replaced prototype.
+    for (const [key, value] of Object.entries(data)) {
       if (value === undefined) {
         continue;
       }
