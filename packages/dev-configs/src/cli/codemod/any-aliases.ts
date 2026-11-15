@@ -211,6 +211,7 @@ export class AnyAliases {
           trailing: trailing?.[1] ?? '',
         });
       };
+
       let removed = 0;
 
       for (const element of named.elements) {
