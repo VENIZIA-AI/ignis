@@ -49,6 +49,7 @@ migration:
     symbols: [ApplicationEnvironment.get, IApplicationEnvironment.get, IApplicationEnvironmentTransformOptions, IApplicationEnvironmentDefaultedTransformOptions]
     upgrade:
       before: |
+        // TS2769: Property 'transform' is missing in type '{ defaultValue: number; }' but required in type 'IApplicationEnvironmentDefaultedTransformOptions<number>'
         const retries = applicationEnvironment.get<number>('APP_ENV_RETRIES', { defaultValue: 3 });
         const hosts = applicationEnvironment.get<string[]>('APP_ENV_HOSTS', { defaultValue: [] });
       after: |
@@ -67,11 +68,20 @@ migration:
   - id: set-and-constructor-take-strings
     symbols: [IApplicationEnvironment.set]
     upgrade:
-      steps:
-        - "set returns void, where it returned any, and takes string | undefined. A class that implements IApplicationEnvironment adds the three get overloads and the string-valued set."
+      before: |
+        // a test that sets a value of any type and restores what it read
+        const previous: unknown = Reflect.get(applicationEnvironment, 'arguments')['APP_ENV_PORT'];
+        applicationEnvironment.set('APP_ENV_PORT', 5432); // TS2345: number is not string | undefined
+        applicationEnvironment.set('APP_ENV_PORT', previous); // TS2345: unknown is not string | undefined
+      after: |
+        // set takes string | undefined, and get answers string | undefined: save with get, restore with set
+        const previous = applicationEnvironment.get('APP_ENV_PORT');
+        applicationEnvironment.set('APP_ENV_PORT', String(5432));
+        applicationEnvironment.set('APP_ENV_PORT', previous);
     downgrade:
       steps:
         - "Implement the older get<ReturnType, BeforeTransformType> and a set that returns any."
+    data: "set returns void, where it returned any. A class that implements IApplicationEnvironment adds the four get overloads and the string-valued set."
   - id: required-variable-checked-at-the-read
     symbols: [ApplicationEnvironment.get, IApplicationEnvironment.get]
     upgrade:
@@ -125,6 +135,7 @@ migration:
 
 - **Apps that call `get<string>(...)`.** Run `devz codemod env-get --write <paths>` (from the `@venizia/dev-configs` release that follows this one): it removes the type argument and the second type argument of a `transform` read.
 - **Apps that call `get<number>(...)` or another non-string type argument, or read a required variable as a string.** The typecheck names each line: see the migration below.
+- **Apps that pass a value read with `get()` to a library option that requires a string** (drizzle-kit `dbCredentials`, a server config, a bucket name): the value is `string | undefined` now, so read it with `getRequired(key)` or give `get` a `defaultValue`.
 - **Everyone else.** No action needed.
 
 ## Breaking changes
