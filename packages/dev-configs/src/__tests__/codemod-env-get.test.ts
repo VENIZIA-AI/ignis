@@ -299,7 +299,7 @@ describe('devz codemod env-get: the rewrite', () => {
         `import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';`,
         `export const a = AppEnvs.get(KEY, { transform: (raw) => ParseUtility.toNumber({ input: raw }) });`,
         `export const b = AppEnvs.get(KEY, { transform: (raw) => ParseUtility.toNumber({ input: raw }), defaultValue: 3000 });`,
-        `export const c = AppEnvs.get(KEY, { transform: (raw) => ParseUtility.toNumber({ input: raw }),});`,
+        `export const c = AppEnvs.get(KEY, { transform: (raw) => ParseUtility.toNumber({ input: raw }) });`,
         '',
       ].join('\n'),
     );
@@ -340,7 +340,7 @@ describe('devz codemod env-get: the rewrite', () => {
     expect(second.manual).toEqual([]);
   });
 
-  test('without --numbers a number read stays manual; with it a boolean, unknown and options that are not a literal stay manual', () => {
+  test('without --numbers a number read stays manual; with it a boolean, unknown and options that are not a literal are listed as manual', () => {
     const source = [
       `export const a = AppEnvs.get<number>(KEY);`,
       `export const b = AppEnvs.get<boolean>(KEY);`,
@@ -354,7 +354,252 @@ describe('devz codemod env-get: the rewrite', () => {
     const withNumbers = rewrite(source, 'file.ts', true);
 
     expect(withNumbers.numbered).toEqual([1]);
-    expect(withNumbers.manual.map((item) => item.type)).toEqual(['boolean', 'unknown']);
+    expect(withNumbers.manual.map((item) => item.type)).toEqual(['boolean', 'unknown', 'number']);
+    expect(withNumbers.manual[2].line).toBe(4);
+    expect(withNumbers.manual[2].reason).toContain('not an object literal');
+  });
+
+  test('--numbers lists a number read with variable options as manual and leaves the call; without --numbers it is left and not listed', () => {
+    const source = `export const a = AppEnvs.get<number>(KEY, opts);\nexport const b = AppEnvs.get<string>(KEY, opts);\n`;
+    const withNumbers = rewrite(source, 'file.ts', true);
+
+    expect(withNumbers.changed).toBe(false);
+    expect(withNumbers.manual.map((item) => item.line)).toEqual([1]);
+    expect(withNumbers.manual[0].reason).toContain('cannot see whether they hold a transform');
+
+    // Without --numbers a one-type-argument call with variable options is left alone and not listed, as it always was.
+    expect(rewrite(source).manual).toEqual([]);
+    expect(rewrite(source).changed).toBe(false);
+    expect(rewrite(`export const b = AppEnvs.get<string>(KEY, opts);\n`).manual).toEqual([]);
+    expect(
+      rewrite(`export const c = AppEnvs.get<string>(KEY, opts);\n`, 'file.ts', true).manual,
+    ).toEqual([]);
+  });
+
+  test('--numbers leaves a string defaultValue manual, rewrites a numeric one, in one or two type arguments', () => {
+    const source = [
+      `export const a = AppEnvs.get<number>(KEY, { defaultValue: '10' });`,
+      `export const b = AppEnvs.get<number, string>(KEY, { defaultValue: \`10\` });`,
+      `export const c = AppEnvs.get<number>(KEY, { defaultValue: -1 });`,
+      `export const d = AppEnvs.get<number>(KEY, { defaultValue: DEFAULT_PORT });`,
+      '',
+    ].join('\n');
+    const result = rewrite(source, 'file.ts', true);
+
+    expect(result.manual.map((item) => item.line)).toEqual([1, 2]);
+    expect(result.manual[0].reason).toContain('not a number');
+    expect(result.numbered).toEqual([3, 4]);
+    expect(result.output).toContain(`AppEnvs.get<number>(KEY, { defaultValue: '10' });`);
+    expect(result.output).toContain(`AppEnvs.get<number, string>(KEY, { defaultValue: \`10\` });`);
+    expect(result.output).toContain(
+      `AppEnvs.get(KEY, { transform: (raw) => ParseUtility.toNumber({ input: raw }), defaultValue: -1 });`,
+    );
+  });
+
+  test('--numbers leaves a read manual when ParseUtility is already imported from another module, or as a type', () => {
+    const other = rewriteRaw(
+      [
+        `import { AppEnvs } from '@venizia/ignis-helpers';`,
+        `import { ParseUtility } from './my-parse';`,
+        `export const a = AppEnvs.get<number>(KEY);`,
+        '',
+      ].join('\n'),
+      'file.ts',
+      true,
+    );
+
+    expect(other.changed).toBe(false);
+    expect(other.manual.map((item) => item.line)).toEqual([3]);
+    expect(other.manual[0].reason).toContain('already declared in this file');
+
+    const typeOnly = rewriteRaw(
+      [
+        `import { AppEnvs, type ParseUtility } from '@venizia/ignis-helpers';`,
+        `import type { ParseUtility as Alias } from '@venizia/ignis';`,
+        `export const a = AppEnvs.get<number>(KEY);`,
+        '',
+      ].join('\n'),
+      'file.ts',
+      true,
+    );
+
+    expect(typeOnly.changed).toBe(false);
+    expect(typeOnly.manual.map((item) => item.line)).toEqual([3]);
+
+    const wholeType = rewriteRaw(
+      [
+        `import { AppEnvs } from '@venizia/ignis-helpers';`,
+        `import type { ParseUtility } from '@venizia/ignis-helpers';`,
+        `export const a = AppEnvs.get<number>(KEY);`,
+        '',
+      ].join('\n'),
+      'file.ts',
+      true,
+    );
+
+    expect(wholeType.changed).toBe(false);
+    expect(wholeType.manual.map((item) => item.line)).toEqual([3]);
+
+    const declared = rewriteRaw(
+      [
+        `import { AppEnvs } from '@venizia/ignis-helpers';`,
+        `const ParseUtility = {};`,
+        `export const a = AppEnvs.get<number>(KEY);`,
+        '',
+      ].join('\n'),
+      'file.ts',
+      true,
+    );
+
+    expect(declared.changed).toBe(false);
+    expect(declared.manual.map((item) => item.line)).toEqual([3]);
+  });
+
+  test('--numbers leaves a read manual where a parameter or local named ParseUtility hides the import, and rewrites the others', () => {
+    const result = rewriteRaw(
+      [
+        `import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';`,
+        `export const a = AppEnvs.get<number>(KEY);`,
+        `export function shadowed(ParseUtility: unknown) {`,
+        `  return AppEnvs.get<number>(KEY);`,
+        `}`,
+        `export function local() {`,
+        `  const ParseUtility = 1;`,
+        `  return AppEnvs.get<number>(KEY) + ParseUtility;`,
+        `}`,
+        `export const b = AppEnvs.get<number>(KEY);`,
+        '',
+      ].join('\n'),
+      'file.ts',
+      true,
+    );
+
+    expect(result.numbered).toEqual([2, 10]);
+    expect(result.manual.map((item) => item.line)).toEqual([4, 8]);
+    expect(result.manual[0].reason).toContain('hides the ParseUtility import');
+    expect(result.output).toContain(`return AppEnvs.get<number>(KEY);`);
+  });
+
+  test('--numbers does not add an import when only a shadowed read exists, and an aliased import is checked under its alias', () => {
+    const shadowed = rewriteRaw(
+      [
+        `import { AppEnvs } from '@venizia/ignis-helpers';`,
+        `export function f(ParseUtility: unknown) {`,
+        `  return AppEnvs.get<number>(KEY);`,
+        `}`,
+        '',
+      ].join('\n'),
+      'file.ts',
+      true,
+    );
+
+    expect(shadowed.changed).toBe(false);
+    expect(shadowed.manual.map((item) => item.line)).toEqual([3]);
+
+    const aliased = rewriteRaw(
+      [
+        `import { AppEnvs, ParseUtility as Parse } from '@venizia/ignis-helpers';`,
+        `export function f(Parse: unknown) {`,
+        `  return AppEnvs.get<number>(KEY);`,
+        `}`,
+        `export function g(ParseUtility: unknown) {`,
+        `  return AppEnvs.get<number>(KEY);`,
+        `}`,
+        '',
+      ].join('\n'),
+      'file.ts',
+      true,
+    );
+
+    expect(aliased.manual.map((item) => item.line)).toEqual([3]);
+    expect(aliased.numbered).toEqual([6]);
+    expect(aliased.output).toContain(`Parse.toNumber({ input: raw })`);
+  });
+
+  test('--numbers writes an empty options literal as { transform } with no trailing comma, and keeps the layout of a spaced or multi-line one', () => {
+    const result = rewriteRaw(
+      [
+        `import { AppEnvs } from '@venizia/ignis-helpers';`,
+        `export const a = AppEnvs.get<number>(KEY, {});`,
+        `export const b = AppEnvs.get<number>(KEY, { });`,
+        `export const c = AppEnvs.get<number>(KEY, {defaultValue: 3});`,
+        `export const d = AppEnvs.get<number>(KEY, {`,
+        `  defaultValue: 3,`,
+        `});`,
+        `export const e = AppEnvs.get<number>(KEY, {`,
+        `});`,
+        '',
+      ].join('\n'),
+      'file.ts',
+      true,
+    );
+    const transform = `transform: (raw) => ParseUtility.toNumber({ input: raw })`;
+
+    expect(result.output).toBe(
+      [
+        `import { AppEnvs, ParseUtility } from '@venizia/ignis-helpers';`,
+        `export const a = AppEnvs.get(KEY, { ${transform} });`,
+        `export const b = AppEnvs.get(KEY, { ${transform} });`,
+        `export const c = AppEnvs.get(KEY, { ${transform}, defaultValue: 3});`,
+        `export const d = AppEnvs.get(KEY, {`,
+        `  ${transform},`,
+        `  defaultValue: 3,`,
+        `});`,
+        `export const e = AppEnvs.get(KEY, { ${transform} });`,
+        '',
+      ].join('\n'),
+    );
+  });
+
+  test('--numbers puts ParseUtility on its own line inside a multi-line import, with or without a trailing comma', () => {
+    const withComma = rewriteRaw(
+      [
+        `import {`,
+        `  AppEnvs,`,
+        `  applicationEnvironment,`,
+        `} from '@venizia/ignis-helpers';`,
+        `export const a = AppEnvs.get<number>(KEY);`,
+        '',
+      ].join('\n'),
+      'file.ts',
+      true,
+    );
+
+    expect(withComma.output.split('\n').slice(0, 5)).toEqual([
+      `import {`,
+      `  AppEnvs,`,
+      `  applicationEnvironment,`,
+      `  ParseUtility,`,
+      `} from '@venizia/ignis-helpers';`,
+    ]);
+
+    const withoutComma = rewriteRaw(
+      [
+        `import {`,
+        `\tAppEnvs,`,
+        `\tapplicationEnvironment`,
+        `} from '@venizia/ignis-helpers';`,
+        `export const a = AppEnvs.get<number>(KEY);`,
+        '',
+      ].join('\n'),
+      'file.ts',
+      true,
+    );
+
+    expect(withoutComma.output.split('\n').slice(0, 5)).toEqual([
+      `import {`,
+      `\tAppEnvs,`,
+      `\tapplicationEnvironment,`,
+      `\tParseUtility`,
+      `} from '@venizia/ignis-helpers';`,
+    ]);
+
+    for (const result of [withComma, withoutComma]) {
+      const second = rewriteRaw(result.output, 'file.ts', true);
+
+      expect(second.changed).toBe(false);
+      expect(second.manual).toEqual([]);
+    }
   });
 
   test('a get on another receiver is not touched', () => {
@@ -565,6 +810,23 @@ describe('devz codemod env-get: the command', () => {
     expect(logs.join('\n')).toContain('numbers  src/n.ts:2');
     expect(logs.join('\n')).toContain('1 number read(s) rewritten');
     expect(read('src/n.ts')).toContain('ParseUtility.toNumber({ input: raw })');
+  });
+
+  test('--numbers prints the reason of a manual number read', async () => {
+    commit({
+      'src/m.ts': `${IMPORT_LINE}export const n = AppEnvs.get<number>(KEY, opts);\nexport const d = AppEnvs.get<number>(KEY, { defaultValue: '10' });\n`,
+    });
+
+    const code = await CodemodCommand.run({ root, args: ['env-get', '--numbers', 'src/m.ts'] });
+
+    expect(code).toBe(0);
+    expect(warnings.join('\n')).toContain(
+      'manual  src/m.ts:2  get<number>: the options are not an object literal',
+    );
+    expect(warnings.join('\n')).toContain(
+      'manual  src/m.ts:3  get<number>: the defaultValue is a literal that is not a number',
+    );
+    expect(logs.join('\n')).toContain('2 manual');
   });
 
   test('--reverse is refused with exit 2, and an unknown option is a usage error', async () => {
