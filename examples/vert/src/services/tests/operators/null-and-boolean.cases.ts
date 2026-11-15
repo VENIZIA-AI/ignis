@@ -139,7 +139,7 @@ export class NullAndBooleanCases extends BaseTestCases {
     try {
       const results = await repo.find({
         filter: {
-          where: { group: 'COMPREHENSIVE_TEST', 'jValue.priority': null } as any,
+          where: { group: 'COMPREHENSIVE_TEST', 'jValue.priority': null },
         },
       });
 
@@ -177,7 +177,7 @@ export class NullAndBooleanCases extends BaseTestCases {
       // Query for boolean true - Note: JSON #>> returns text, so we compare as string
       const results = await repo.find({
         filter: {
-          where: { code, 'jValue.active': 'true' } as any,
+          where: { code, 'jValue.active': 'true' },
         },
       });
 

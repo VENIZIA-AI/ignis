@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis, from the built declarations (gener
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-108 exports, 108 with TSDoc. 981 more are re-exported from other entries (listed at the end).
+108 exports, 108 with TSDoc. 983 more are re-exported from other entries (listed at the end).
 
 ## `AbstractBearerTokenService`
 
@@ -4063,7 +4063,9 @@ Source: `packages/core-server/src/components/auth/authorize/enforcers/user-polic
 - `TJOSEStandard` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TJsonColumnKey` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
 - `TJsonPathKey` from [`@venizia/ignis-filter`](/references/api/venizia-ignis-filter)
+- `TJsonPrimitive` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TJsonResponse` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
+- `TJsonValue` from [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common)
 - `TJWKSAlgorithm` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TJWKSKeyDriver` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)
 - `TJWKSKeyFormat` from [`@venizia/ignis-kernel`](/references/api/venizia-ignis-kernel)

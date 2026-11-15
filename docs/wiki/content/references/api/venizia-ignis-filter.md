@@ -212,8 +212,8 @@ export type TJsonColumnKey<T> = {
     [K in keyof T & string]: TIsJsonValue<NonNullable<T[K]>> extends true ? K : never;
 }[keyof T & string];
 
-/** `true` when a column value can hold JSON: `unknown`, `any` or an object other than a `Date` or a `TIsoTimestamp`. */
-type TIsJsonValue<V> = unknown extends V ? true : V extends Date | TIsoTimestamp ? false : V extends object ? true : false;
+/** `true` when a column value can hold JSON: `unknown`, `any`, or a union with an object other than a `Date` or a `TIsoTimestamp` (a `TJsonValue` is one). */
+type TIsJsonValue<V> = unknown extends V ? true : [Exclude<Extract<V, object>, Date | TIsoTimestamp>] extends [never] ? false : true;
 ```
 
 Source: `packages/filter/src/common/types.ts`

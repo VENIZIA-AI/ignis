@@ -147,7 +147,7 @@ export class CombinedCases extends BaseTestCases {
     try {
       const results = await repo.find({
         filter: {
-          where: { group: 'COMPREHENSIVE_TEST', 'jValue.metadata.level': 3 } as any,
+          where: { group: 'COMPREHENSIVE_TEST', 'jValue.metadata.level': 3 },
         },
       });
 
@@ -175,7 +175,7 @@ export class CombinedCases extends BaseTestCases {
       // Find records where metadata is empty object
       const results = await repo.find({
         filter: {
-          where: { group: 'COMPREHENSIVE_TEST', 'jValue.metadata': '{}' } as any,
+          where: { group: 'COMPREHENSIVE_TEST', 'jValue.metadata': '{}' },
         },
       });
 

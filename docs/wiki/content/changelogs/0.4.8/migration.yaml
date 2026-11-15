@@ -2251,22 +2251,25 @@ mail-peer-module-types:
       - Pin @venizia/ignis to 0.4.7, or hand over the module as before; the older types accepted any shape, so a double that fits the newer types fits the older ones.
   data: "Types only, for a module you hand over; a caller that lets the transport load the peer itself is unaffected. One behaviour differs: the SES transport reads the answer of the client without assuming an object. An answer that is null or not an object (the SDK never answers one) used to end in a TypeError and a failed send (send reported success false, verify logged a failure); now send reports success with no messageId and verify reports the account as disabled."
 
-jvalue-column-is-unknown-record:
-  symbols: [PostgresDataTypeEnricher, SqliteDataTypeEnricher]
+jvalue-column-is-json-value:
+  symbols: [PostgresDataTypeEnricher, SqliteDataTypeEnricher, TJsonValue]
   upgrade:
     before: |-
       const row = await repository.findById({ id: 1 });
       const label: string = row?.jValue?.label; // jValue was Record<string, any>
 
-      // meta is an interface-typed value (IMeta): Record<string, any> accepted it
+      // an interface-typed value (IMeta) was accepted
       interface IMeta { label: string }
-      await repository.create({ data: { jValue: meta } }); // TS2769 now: no index signature
+      await repository.create({ data: { jValue: meta } });
     after: |-
-      // jValue is Record<string, unknown>: narrow what you read
-      const label = row?.jValue?.label;
-      const text = typeof label === 'string' ? label : undefined;
+      // jValue is TJsonValue (from '@venizia/ignis-helpers'): narrow what you read
+      const value = row?.jValue;
+      const label =
+        typeof value === 'object' && value !== null && !Array.isArray(value) && typeof value.label === 'string'
+          ? value.label
+          : undefined;
 
-      // spread the interface value, or declare the shape as a type alias
+      // an array, a record and a scalar are accepted; spread an interface value, or declare its shape as a type alias
       await repository.create({ data: { jValue: { ...meta } } });
   downgrade:
     steps:

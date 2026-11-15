@@ -95,7 +95,7 @@ export class PathCases extends BaseTestCases {
     try {
       const results = await repo.find({
         filter: {
-          where: { group, 'jValue.priority': 3 } as any,
+          where: { group, 'jValue.priority': 3 },
         },
       });
 
@@ -122,7 +122,7 @@ export class PathCases extends BaseTestCases {
     try {
       const results = await repo.find({
         filter: {
-          where: { group, 'jValue.metadata.level': 'high' } as any,
+          where: { group, 'jValue.metadata.level': 'high' },
         },
       });
 
@@ -159,7 +159,7 @@ export class PathCases extends BaseTestCases {
     try {
       const results = await repo.find({
         filter: {
-          where: { group, 'jValue.nonExistent': 'value' } as any,
+          where: { group, 'jValue.nonExistent': 'value' },
         },
       });
 
@@ -210,7 +210,7 @@ export class PathCases extends BaseTestCases {
       // Test: Filter by kebab-case key
       const results = await repo.find({
         filter: {
-          where: { group, 'jValue.user-id': 'usr-001' } as any,
+          where: { group, 'jValue.user-id': 'usr-001' },
         },
       });
 

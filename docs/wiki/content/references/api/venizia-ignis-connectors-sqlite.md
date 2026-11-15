@@ -315,7 +315,7 @@ export declare class SqliteDataTypeEnricher {
         nValue: import("drizzle-orm/sqlite-core").SQLiteRealBuilderInitial<"n_value">;
         tValue: import("drizzle-orm/sqlite-core").SQLiteTextBuilderInitial<"t_value", [string, ...string[]], number | undefined>;
         bValue: import("drizzle-orm/sqlite-core").SQLiteBlobBufferBuilderInitial<"b_value">;
-        jValue: import("drizzle-orm").$Type<import("drizzle-orm/sqlite-core").SQLiteTextJsonBuilderInitial<"j_value">, Record<string, unknown>>;
+        jValue: import("drizzle-orm").$Type<import("drizzle-orm/sqlite-core").SQLiteTextJsonBuilderInitial<"j_value">, TJsonValue>;
         boValue: import("drizzle-orm/sqlite-core").SQLiteBooleanBuilderInitial<"bo_value">;
     };
     static enrich(opts: {
@@ -326,7 +326,7 @@ export declare class SqliteDataTypeEnricher {
         nValue: import("drizzle-orm/sqlite-core").SQLiteRealBuilderInitial<"n_value">;
         tValue: import("drizzle-orm/sqlite-core").SQLiteTextBuilderInitial<"t_value", [string, ...string[]], number | undefined>;
         bValue: import("drizzle-orm/sqlite-core").SQLiteBlobBufferBuilderInitial<"b_value">;
-        jValue: import("drizzle-orm").$Type<import("drizzle-orm/sqlite-core").SQLiteTextJsonBuilderInitial<"j_value">, Record<string, unknown>>;
+        jValue: import("drizzle-orm").$Type<import("drizzle-orm/sqlite-core").SQLiteTextJsonBuilderInitial<"j_value">, TJsonValue>;
         boValue: import("drizzle-orm/sqlite-core").SQLiteBooleanBuilderInitial<"bo_value">;
     };
 }
@@ -684,7 +684,9 @@ export type TDataTypeEnricherOptions = {
         nValue: number;
         tValue: string;
         bValue: Buffer;
-        jValue: object;
+        jValue: TJsonValue[] | {
+            [key: string]: TJsonValue;
+        };
         boValue: boolean;
     }>;
 };
