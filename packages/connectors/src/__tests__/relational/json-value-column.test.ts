@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import type { TJsonColumnKey, TWhere } from '@venizia/ignis-filter';
 import type { TJsonValue } from '@venizia/ignis-helpers/common';
 import { pgTable } from 'drizzle-orm/pg-core';
 import { sqliteTable } from 'drizzle-orm/sqlite-core';
@@ -59,11 +60,33 @@ describe('the jValue column holds any JSON value, on both dialects', () => {
     expect([refusedFunction, refusedDate, refusedUndefined]).toHaveLength(3);
   });
 
-  test('a default of any JSON shape is accepted, and an interface value must be spread', () => {
+  test('jValue stays a JSON-path column: its keys and a where on a path compile, a text column still refuses them', () => {
+    assertType<TEqual<Extract<TJsonColumnKey<TPostgresRow>, 'jValue'>, 'jValue'>>();
+
+    const where: TWhere<TPostgresRow> = { 'jValue.a.b': 'x', 'jValue.tags[0]': { eq: 'a' } };
+    // @ts-expect-error a text column takes no JSON path
+    const refused: TWhere<TPostgresRow> = { 'tValue.label': 'x' };
+
+    expect([where, refused]).toHaveLength(2);
+  });
+
+  test('a readonly array and an as const value are refused: copy them', () => {
+    const list = ['a', 'b'] as const;
+    // @ts-expect-error a readonly array is not assignable to a mutable JSON array
+    const refused: TPostgresInsert = { jValue: list };
+    const copied: TPostgresInsert = { jValue: [...list] };
+
+    expect([refused, copied]).toHaveLength(2);
+  });
+
+  test('a default is an array or a record, and an interface value must be spread', () => {
     PostgresDataTypeEnricher.generateColumnDefs({ defaultValue: { jValue: [] } });
     PostgresDataTypeEnricher.generateColumnDefs({ defaultValue: { jValue: { limit: 3 } } });
-    PostgresDataTypeEnricher.generateColumnDefs({ defaultValue: { jValue: 'none' } });
     SqliteDataTypeEnricher.generateColumnDefs({ defaultValue: { jValue: [1, 2] } });
+    // @ts-expect-error a scalar default is refused: drizzle-kit writes it unencoded, which is not valid JSON in SQL
+    PostgresDataTypeEnricher.generateColumnDefs({ defaultValue: { jValue: 'none' } });
+    // @ts-expect-error same for SQLite, where `true` would read back as 1
+    SqliteDataTypeEnricher.generateColumnDefs({ defaultValue: { jValue: true } });
     SqliteDataTypeEnricher.generateColumnDefs({ defaultValue: { jValue: { limit: 3 } } });
 
     interface IMeta {

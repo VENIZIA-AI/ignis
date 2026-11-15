@@ -246,7 +246,7 @@ export class ArrayCases extends BaseTestCases {
     try {
       const results = await repo.find({
         filter: {
-          where: { group: 'COMPREHENSIVE_TEST', 'jValue.metadata.tags[0]': 'a' } as any,
+          where: { group: 'COMPREHENSIVE_TEST', 'jValue.metadata.tags[0]': 'a' },
         },
       });
 
@@ -273,7 +273,7 @@ export class ArrayCases extends BaseTestCases {
     try {
       const results = await repo.find({
         filter: {
-          where: { group: 'COMPREHENSIVE_TEST', 'jValue.metadata.tags': '{}' } as any,
+          where: { group: 'COMPREHENSIVE_TEST', 'jValue.metadata.tags': '{}' },
         },
       });
 

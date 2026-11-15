@@ -264,6 +264,14 @@ try {
 ### Sync templates from a database
 
 ```typescript
+import { z } from '@hono/zod-openapi';
+
+const templateSchema = z.object({
+  content: z.string(),
+  subject: z.string().optional(),
+  description: z.string().optional(),
+});
+
 async syncTemplatesFromDatabase() {
   const templateEngine = this.application.get<TemplateEngineService>({
     key: MailKeys.MAIL_TEMPLATE_ENGINE,
@@ -278,17 +286,18 @@ async syncTemplatesFromDatabase() {
   });
 
   templateConfigs.forEach(config => {
-    const template = config.jValue;
+    // jValue is a TJsonValue: parse it, never read its keys unchecked
+    const parsed = templateSchema.safeParse(config.jValue);
 
-    // jValue is a TJsonValue: check it is an object before reading its keys
-    if (typeof template !== 'object' || template === null || Array.isArray(template)) {
+    if (!parsed.success) {
+      this.logger.warn('[syncTemplates] Skipped template %s: its jValue is not a template', config.code);
       return;
     }
 
     templateEngine.registerTemplate({
       name: config.code,
-      content: String(template.content),
-      options: { subject: String(template.subject), description: String(template.description) },
+      content: parsed.data.content,
+      options: { subject: parsed.data.subject, description: parsed.data.description },
     });
     this.logger.info('[syncTemplates] Registered template: %s', config.code);
   });

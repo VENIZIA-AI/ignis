@@ -16,7 +16,7 @@ export class ArraysCases extends BaseTestCases {
     try {
       const results = await repo.find({
         filter: {
-          where: { group, 'jValue.tags[0]': 'important' } as any,
+          where: { group, 'jValue.tags[0]': 'important' },
         },
       });
 
@@ -45,7 +45,7 @@ export class ArraysCases extends BaseTestCases {
       // Note: JSON #>> operator returns TEXT, so we compare as strings
       const results = await repo.find({
         filter: {
-          where: { group, 'jValue.priority': { in: ['1', '2', '3'] } } as any,
+          where: { group, 'jValue.priority': { in: ['1', '2', '3'] } },
         },
       });
 
@@ -85,7 +85,7 @@ export class ArraysCases extends BaseTestCases {
       // Note: JSON #>> operator returns TEXT, so we compare as strings
       const results = await repo.find({
         filter: {
-          where: { group, 'jValue.priority': { nin: ['1', '2'] } } as any,
+          where: { group, 'jValue.priority': { nin: ['1', '2'] } },
         },
       });
 
@@ -128,7 +128,7 @@ export class ArraysCases extends BaseTestCases {
     try {
       const results = await repo.find({
         filter: {
-          where: { group, 'jValue.metadata.score': { between: [70, 95] } } as any,
+          where: { group, 'jValue.metadata.score': { between: [70, 95] } },
         },
       });
 

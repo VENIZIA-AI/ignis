@@ -16,7 +16,7 @@ export class OperatorsCases extends BaseTestCases {
     try {
       const results = await repo.find({
         filter: {
-          where: { group, 'jValue.priority': { neq: 3 } } as any,
+          where: { group, 'jValue.priority': { neq: 3 } },
         },
       });
 
@@ -51,7 +51,7 @@ export class OperatorsCases extends BaseTestCases {
       // Test gt (greater than)
       const gtResults = await repo.find({
         filter: {
-          where: { group, 'jValue.priority': { gt: 3 } } as any,
+          where: { group, 'jValue.priority': { gt: 3 } },
         },
       });
 
@@ -75,7 +75,7 @@ export class OperatorsCases extends BaseTestCases {
       // Test gte (greater than or equal)
       const gteResults = await repo.find({
         filter: {
-          where: { group, 'jValue.priority': { gte: 3 } } as any,
+          where: { group, 'jValue.priority': { gte: 3 } },
         },
       });
 
@@ -113,7 +113,7 @@ export class OperatorsCases extends BaseTestCases {
       // Test lt (less than)
       const ltResults = await repo.find({
         filter: {
-          where: { group, 'jValue.metadata.score': { lt: 80 } } as any,
+          where: { group, 'jValue.metadata.score': { lt: 80 } },
         },
       });
 
@@ -137,7 +137,7 @@ export class OperatorsCases extends BaseTestCases {
       // Test lte (less than or equal)
       const lteResults = await repo.find({
         filter: {
-          where: { group, 'jValue.metadata.score': { lte: 85 } } as any,
+          where: { group, 'jValue.metadata.score': { lte: 85 } },
         },
       });
 
@@ -175,7 +175,7 @@ export class OperatorsCases extends BaseTestCases {
       // Test like
       const likeResults = await repo.find({
         filter: {
-          where: { group, 'jValue.metadata.level': { like: '%igh%' } } as any,
+          where: { group, 'jValue.metadata.level': { like: '%igh%' } },
         },
       });
 
@@ -201,7 +201,7 @@ export class OperatorsCases extends BaseTestCases {
       // Test ilike (case-insensitive)
       const ilikeResults = await repo.find({
         filter: {
-          where: { group, 'jValue.metadata.level': { ilike: '%IGH%' } } as any,
+          where: { group, 'jValue.metadata.level': { ilike: '%IGH%' } },
         },
       });
 
@@ -230,7 +230,7 @@ export class OperatorsCases extends BaseTestCases {
     try {
       const results = await repo.find({
         filter: {
-          where: { group, 'jValue.priority': { gt: 2 } } as any,
+          where: { group, 'jValue.priority': { gt: 2 } },
         },
       });
 

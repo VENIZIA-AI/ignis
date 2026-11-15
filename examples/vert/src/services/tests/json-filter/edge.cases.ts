@@ -59,7 +59,7 @@ export class EdgeCases extends BaseTestCases {
       // This should match exact object equality, not treat { role: 'admin' } as operators
       const results = await repo.find({
         filter: {
-          where: { group, 'jValue.role': 'admin' } as any,
+          where: { group, 'jValue.role': 'admin' },
         },
       });
 
@@ -132,7 +132,7 @@ export class EdgeCases extends BaseTestCases {
       // Note: This tests that {} is treated as a value, not ignored
       const results = await repo.find({
         filter: {
-          where: { group, 'jValue.name': 'A' } as any,
+          where: { group, 'jValue.name': 'A' },
         },
       });
 
@@ -215,7 +215,7 @@ export class EdgeCases extends BaseTestCases {
       // Should NOT crash, should only return records with valid numeric values > 3
       const results = await repo.find({
         filter: {
-          where: { group, 'jValue.priority': { gt: 3 } } as any,
+          where: { group, 'jValue.priority': { gt: 3 } },
         },
       });
 

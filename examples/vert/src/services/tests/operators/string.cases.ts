@@ -237,7 +237,7 @@ export class StringCases extends BaseTestCases {
       // Query for JSON field containing single quote
       const results = await repo.find({
         filter: {
-          where: { group: 'COMPREHENSIVE_TEST', 'jValue.name': { like: "%'%" } } as any,
+          where: { group: 'COMPREHENSIVE_TEST', 'jValue.name': { like: "%'%" } },
         },
       });
 
