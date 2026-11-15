@@ -609,8 +609,8 @@ import { applicationEnvironment } from '@venizia/ignis-helpers';
 import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 
 const bunS3Helper = new BunS3Helper({
-  accessKey: applicationEnvironment.get<string>('S3_ACCESS_KEY'),
-  secretKey: applicationEnvironment.get<string>('S3_SECRET_KEY'),
+  accessKey: applicationEnvironment.get('S3_ACCESS_KEY'),
+  secretKey: applicationEnvironment.get('S3_SECRET_KEY'),
   endpoint: { default: 'https://s3.us-east-1.amazonaws.com' },
 });
 ```

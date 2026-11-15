@@ -105,9 +105,7 @@ export class Application extends BaseApplication {
 
   /** The suites write, delete and lock rows, so they run only on request and never in production. */
   private async runRepositoryTests(): Promise<void> {
-    const isRequested = applicationEnvironment.get<string>(
-      EnvironmentKeys.APP_ENV_RUN_REPOSITORY_TESTS,
-    );
+    const isRequested = applicationEnvironment.get(EnvironmentKeys.APP_ENV_RUN_REPOSITORY_TESTS);
 
     if (isRequested !== 'true') {
       return;
@@ -146,9 +144,9 @@ export class Application extends BaseApplication {
 
     const redis = new RedisSingleHelper({
       name: 'authorization-cache',
-      host: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_HOST),
-      port: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PORT),
-      password: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PASSWORD),
+      host: applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_HOST),
+      port: applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PORT),
+      password: applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PASSWORD),
       database: ParseUtility.toInt({
         input: applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_DB, {
           defaultValue: '8',

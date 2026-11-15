@@ -405,8 +405,9 @@ The package installs a `devz` binary. Run `devz --help` for the list, and `devz 
 The codemods are `drop-redundant-casts` (removes `as X` casts the compiler no longer needs),
 `const-classes` (turns a string-literal union into a const class), `async-style` (applies the async style
 fixers and lists the rest), `namespace-functions` (moves calls of a function that moved into a class to the
-class form) and `connector-imports` (moves `@venizia/ignis/<connector sub-path>` imports to
-`@venizia/ignis-connectors`).
+class form), `connector-imports` (moves `@venizia/ignis/<connector sub-path>` imports to
+`@venizia/ignis-connectors`) and `env-get` (strips the type arguments of `applicationEnvironment.get()`
+for the string-reading `get()`).
 
 ## Where it sits
 

@@ -24,7 +24,7 @@ export const buildUploads = (opts: { storage: BunS3Helper }): TStaticAssetCompon
     metaLink: { use: false },
     directUpload: {
       use: true,
-      secretKey: applicationEnvironment.get<string>('APP_ENV_UPLOAD_SECRET'),
+      secretKey: applicationEnvironment.getRequired('APP_ENV_UPLOAD_SECRET'),
       maxBytes: 100 * 1024 * 1024,
       validation: { use: false },
       resolvers: {

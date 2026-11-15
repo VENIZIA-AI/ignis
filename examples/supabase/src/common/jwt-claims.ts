@@ -8,10 +8,10 @@ import { applicationEnvironment } from '@venizia/ignis-helpers';
  * local Supabase CLI.
  */
 export const getJwtClaims = (): IJWTClaimsOptions => ({
-  issuer: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_ISSUER, {
+  issuer: applicationEnvironment.get(EnvironmentKeys.APP_ENV_JWT_ISSUER, {
     defaultValue: 'http://127.0.0.1:54321/auth/v1',
   }),
-  audience: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_AUDIENCE, {
+  audience: applicationEnvironment.get(EnvironmentKeys.APP_ENV_JWT_AUDIENCE, {
     defaultValue: 'authenticated',
   }),
 });

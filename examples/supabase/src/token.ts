@@ -18,9 +18,9 @@ import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
 export const mintToken = async (opts: { subject: string; role?: string }): Promise<string> => {
   const { subject, role = 'authenticated' } = opts;
 
-  const jwtSecret = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_SECRET);
+  const jwtSecret = applicationEnvironment.getRequired(EnvironmentKeys.APP_ENV_JWT_SECRET);
   const expiresIn = ParseUtility.toInt({
-    input: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN, {
+    input: applicationEnvironment.get(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN, {
       defaultValue: '3600',
     }),
   });

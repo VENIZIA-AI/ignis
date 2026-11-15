@@ -293,6 +293,7 @@ describe('devz codemod --list and --reverse', () => {
         'async-style',
         'namespace-functions',
         'connector-imports',
+        'env-get',
       ].join('\n'),
     ]);
     expect(errors).toEqual([]);

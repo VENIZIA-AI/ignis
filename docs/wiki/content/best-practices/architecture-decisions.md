@@ -415,11 +415,11 @@ import { applicationEnvironment } from '@venizia/ignis-helpers';
 // Use for: secrets, environment-specific values
 const config = {
   database: {
-    host: applicationEnvironment.get<string>('APP_ENV_POSTGRES_HOST'),
-    password: applicationEnvironment.get<string>('APP_ENV_POSTGRES_PASSWORD'),
+    host: applicationEnvironment.get('APP_ENV_POSTGRES_HOST'),
+    password: applicationEnvironment.get('APP_ENV_POSTGRES_PASSWORD'),
   },
   stripe: {
-    secretKey: applicationEnvironment.get<string>('APP_ENV_STRIPE_SECRET_KEY'),
+    secretKey: applicationEnvironment.get('APP_ENV_STRIPE_SECRET_KEY'),
   },
 };
 ```

@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers, from the built declaration
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-223 exports, 223 with TSDoc. 229 more are re-exported from other entries (listed at the end).
+225 exports, 225 with TSDoc. 229 more are re-exported from other entries (listed at the end).
 
 ## `AbstractLogger`
 
@@ -540,7 +540,7 @@ export declare class ApplicationEnvironment extends BaseHelper implements IAppli
     private arguments;
     constructor(opts: {
         prefix: string;
-        envs: Record<string, string | number | undefined>;
+        envs: Record<string, string | undefined>;
     });
     /**
      * Reads one name. A line that is present but empty - `KEY=`, or padded to `KEY=   ` by a hand
@@ -553,13 +553,22 @@ export declare class ApplicationEnvironment extends BaseHelper implements IAppli
      * receives `''` unchanged, so no existing read changes shape. `'0'` and `'false'` are values and
      * are never normalised.
      */
-    get<ReturnType, BeforeTransformType = unknown>(key: string, opts?: {
-        defaultValue?: ReturnType;
-        transform?: (value: BeforeTransformType) => ReturnType;
-    }): ReturnType;
-    set<ValueType>(key: string, value: ValueType): void;
+    get(key: string): string | undefined;
+    get(key: string, opts: {
+        defaultValue: string;
+    }): string;
+    get<R>(key: string, opts: IApplicationEnvironmentDefaultedTransformOptions<R>): R;
+    get<R>(key: string, opts: IApplicationEnvironmentTransformOptions<R>): R;
+    /**
+     * A variable the app cannot run without: it is set and not blank (the rule `get` applies to a `defaultValue`), or this throws an error naming the key. The check runs before `transform`, so `transform` receives a `string`; a `transform` that answers null or undefined throws too. A required value has no `defaultValue`.
+     */
+    getRequired(key: string): string;
+    getRequired<R>(key: string, opts: {
+        transform: (raw: string) => R | null | undefined;
+    }): R;
+    set(key: string, value: string | undefined): void;
     merge(opts: {
-        envs: Record<string, string>;
+        envs: Record<string, string | undefined>;
     }): void;
     isDevelopment(): boolean;
     keys(): string[];
@@ -1714,15 +1723,51 @@ Source: `packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts`
 
 *interface*
 
-Read and write contract of the application environment store; `get` returns `defaultValue` when the key is absent.
+Read and write contract of the application environment store. Every value is a string: `get` answers the raw string (or `undefined`), the `defaultValue` of a string read, or what a `transform` makes of the raw string.
 
 ```ts
 export interface IApplicationEnvironment {
-    get<ReturnType, BeforeTransformType = unknown>(key: string, opts?: {
-        defaultValue?: ReturnType;
-        transform?: (value: BeforeTransformType) => ReturnType;
-    }): ReturnType;
-    set<ValueType>(key: string, value: ValueType): any;
+    get(key: string): string | undefined;
+    get(key: string, opts: {
+        defaultValue: string;
+    }): string;
+    get<R>(key: string, opts: IApplicationEnvironmentDefaultedTransformOptions<R>): R;
+    get<R>(key: string, opts: IApplicationEnvironmentTransformOptions<R>): R;
+    getRequired(key: string): string;
+    getRequired<R>(key: string, opts: {
+        transform: (raw: string) => R | null | undefined;
+    }): R;
+    set(key: string, value: string | undefined): void;
+}
+```
+
+Source: `packages/helpers/src/modules/env/common/types.ts`
+
+## `IApplicationEnvironmentDefaultedTransformOptions`
+
+*interface*
+
+A `transform` that may answer null or undefined, with the `defaultValue` that then applies: the read answers `R`.
+
+```ts
+export interface IApplicationEnvironmentDefaultedTransformOptions<R> {
+    transform: (raw: string | undefined) => R | null | undefined;
+    defaultValue: R;
+}
+```
+
+Source: `packages/helpers/src/modules/env/common/types.ts`
+
+## `IApplicationEnvironmentTransformOptions`
+
+*interface*
+
+Options of `get` that run a `transform` over the raw value; `defaultValue` applies when the value is absent or the transform answers null or undefined.
+
+```ts
+export interface IApplicationEnvironmentTransformOptions<R> {
+    transform: (raw: string | undefined) => R;
+    defaultValue?: R;
 }
 ```
 

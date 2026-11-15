@@ -27,7 +27,7 @@ export class Application extends BaseApplication {
           host: 'smtp.gmail.com',
           port: 465,
           secure: true,
-          auth: { user: applicationEnvironment.get<string>('APP_ENV_MAIL_USER'), pass: applicationEnvironment.get<string>('APP_ENV_MAIL_PASS') },
+          auth: { user: applicationEnvironment.get('APP_ENV_MAIL_USER'), pass: applicationEnvironment.get('APP_ENV_MAIL_PASS') },
         },
       },
     });
@@ -136,7 +136,7 @@ await this.mailService.sendTemplate({
 {
   provider: MailProviders.MAILGUN,
   from: 'noreply@example.com',
-  config: { username: 'api', key: applicationEnvironment.get<string>('MAILGUN_API_KEY'), domain: 'mg.example.com' },
+  config: { username: 'api', key: applicationEnvironment.get('MAILGUN_API_KEY'), domain: 'mg.example.com' },
 }
 ```
 

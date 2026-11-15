@@ -1,4 +1,3 @@
-import type { AnyType } from '@/common/types';
 import { describe, expect, test } from 'bun:test';
 import { ApplicationEnvironment } from '@/modules/env';
 import { ParseUtility } from '@/utilities/parse.utility';
@@ -10,14 +9,12 @@ const makeEnvironment = (values: Record<string, string>) => {
 describe('ApplicationEnvironment.get - options form', () => {
   test('plain get returns the raw value', () => {
     const environment = makeEnvironment({ APP_ENV_PLAIN: 'value-1' });
-    expect(environment.get<string>('APP_ENV_PLAIN')).toBe('value-1');
+    expect(environment.get('APP_ENV_PLAIN')).toBe('value-1');
   });
 
   test('defaultValue applies when the key is absent', () => {
     const environment = makeEnvironment({});
-    expect(environment.get<string>('APP_ENV_MISSING', { defaultValue: 'fallback' })).toBe(
-      'fallback',
-    );
+    expect(environment.get('APP_ENV_MISSING', { defaultValue: 'fallback' })).toBe('fallback');
   });
 
   test('transform runs on the raw value', () => {
@@ -30,9 +27,9 @@ describe('ApplicationEnvironment.get - options form', () => {
 
   test('defaultValue applies when transform yields null/undefined', () => {
     const environment = makeEnvironment({});
-    const value = environment.get<string>('APP_ENV_MISSING_2', {
+    const value = environment.get<string | undefined>('APP_ENV_MISSING_2', {
       defaultValue: 'after-transform-fallback',
-      transform: () => undefined as AnyType,
+      transform: () => undefined,
     });
     expect(value).toBe('after-transform-fallback');
   });
@@ -62,23 +59,23 @@ describe('env transforms', () => {
 describe('ApplicationEnvironment.get - a present-but-empty value', () => {
   test('an empty value falls back to defaultValue', () => {
     const environment = makeEnvironment({ APP_ENV_EMPTY: '' });
-    expect(environment.get<string>('APP_ENV_EMPTY', { defaultValue: 'fallback' })).toBe('fallback');
+    expect(environment.get('APP_ENV_EMPTY', { defaultValue: 'fallback' })).toBe('fallback');
   });
 
   test('a whitespace-only value falls back too - a hand-edited env file pads', () => {
     const environment = makeEnvironment({ APP_ENV_BLANK: '   ' });
-    expect(environment.get<string>('APP_ENV_BLANK', { defaultValue: 'fallback' })).toBe('fallback');
+    expect(environment.get('APP_ENV_BLANK', { defaultValue: 'fallback' })).toBe('fallback');
   });
 
   test('transform never sees the empty value, it sees undefined', () => {
     const environment = makeEnvironment({ APP_ENV_EMPTY_2: '' });
     const seen: Array<unknown> = [];
-    const value = environment.get<string>('APP_ENV_EMPTY_2', {
+    const value = environment.get<string | undefined>('APP_ENV_EMPTY_2', {
       defaultValue: 'fallback',
       transform: (raw) => {
         seen.push(raw);
 
-        return raw as AnyType;
+        return raw;
       },
     });
     expect(seen).toEqual([undefined]);
@@ -87,13 +84,13 @@ describe('ApplicationEnvironment.get - a present-but-empty value', () => {
 
   test('with NO defaultValue an empty value is still returned as-is', () => {
     const environment = makeEnvironment({ APP_ENV_EMPTY_3: '' });
-    expect(environment.get<string>('APP_ENV_EMPTY_3')).toBe('');
+    expect(environment.get('APP_ENV_EMPTY_3')).toBe('');
   });
 
   test('a meaningful falsy value is untouched', () => {
     const environment = makeEnvironment({ APP_ENV_ZERO: '0', APP_ENV_FALSE: 'false' });
-    expect(environment.get<string>('APP_ENV_ZERO', { defaultValue: '9' })).toBe('0');
-    expect(environment.get<string>('APP_ENV_FALSE', { defaultValue: 'true' })).toBe('false');
+    expect(environment.get('APP_ENV_ZERO', { defaultValue: '9' })).toBe('0');
+    expect(environment.get('APP_ENV_FALSE', { defaultValue: 'true' })).toBe('false');
   });
 });
 
@@ -103,8 +100,68 @@ describe('ApplicationEnvironment.get - an inherited property name is not a varia
     (name) => {
       const environment = makeEnvironment({});
 
-      expect(environment.get<string>(name)).toBeUndefined();
-      expect(environment.get<string>(name, { defaultValue: 'fallback' })).toBe('fallback');
+      expect(environment.get(name)).toBeUndefined();
+      expect(environment.get(name, { defaultValue: 'fallback' })).toBe('fallback');
     },
   );
+});
+
+describe('ApplicationEnvironment.getRequired', () => {
+  test('answers a value that is set', () => {
+    const environment = makeEnvironment({ APP_ENV_SECRET: 's3cret' });
+
+    expect(environment.getRequired('APP_ENV_SECRET')).toBe('s3cret');
+  });
+
+  test('throws an error naming the key when the variable is unset', () => {
+    const environment = makeEnvironment({});
+
+    expect(() => environment.getRequired('APP_ENV_MISSING_KEY')).toThrow('APP_ENV_MISSING_KEY');
+  });
+
+  test('throws for an empty and for a whitespace-only value, the blank rule of get', () => {
+    const environment = makeEnvironment({ APP_ENV_EMPTY_REQ: '', APP_ENV_BLANK_REQ: '   ' });
+
+    expect(() => environment.getRequired('APP_ENV_EMPTY_REQ')).toThrow('APP_ENV_EMPTY_REQ');
+    expect(() => environment.getRequired('APP_ENV_BLANK_REQ')).toThrow('APP_ENV_BLANK_REQ');
+  });
+
+  test('answers a value set after construction', () => {
+    const environment = makeEnvironment({});
+    environment.set('APP_ENV_LATE', 'value');
+
+    expect(environment.getRequired('APP_ENV_LATE')).toBe('value');
+  });
+
+  test('a transform receives the string and its result is answered', () => {
+    const environment = makeEnvironment({ APP_ENV_PORT_REQ: '8080' });
+
+    expect(environment.getRequired('APP_ENV_PORT_REQ', { transform: Number })).toBe(8080);
+  });
+
+  test('a transform never runs for an unset or blank value, which throws first', () => {
+    const environment = makeEnvironment({ APP_ENV_BLANK_T: '  ' });
+    let calls = 0;
+
+    const transform = (raw: string) => {
+      calls += 1;
+
+      return raw;
+    };
+
+    expect(() => environment.getRequired('APP_ENV_BLANK_T', { transform })).toThrow('is not set');
+    expect(() => environment.getRequired('APP_ENV_NONE_T', { transform })).toThrow('is not set');
+    expect(calls).toBe(0);
+  });
+
+  test('a transform that answers undefined or null throws "is not valid"', () => {
+    const environment = makeEnvironment({ APP_ENV_MODE_REQ: 'weird' });
+
+    expect(() =>
+      environment.getRequired('APP_ENV_MODE_REQ', { transform: () => undefined }),
+    ).toThrow('APP_ENV_MODE_REQ is not valid');
+    expect(() => environment.getRequired('APP_ENV_MODE_REQ', { transform: () => null })).toThrow(
+      'is not valid',
+    );
+  });
 });
