@@ -70,13 +70,16 @@ describe('the jValue column holds any JSON value, on both dialects', () => {
     expect([where, refused]).toHaveLength(2);
   });
 
-  test('a readonly array and an as const value are refused: copy them', () => {
+  test('a readonly array is refused at any depth, an as const object of scalars is accepted', () => {
     const list = ['a', 'b'] as const;
     // @ts-expect-error a readonly array is not assignable to a mutable JSON array
     const refused: TPostgresInsert = { jValue: list };
-    const copied: TPostgresInsert = { jValue: [...list] };
+    // @ts-expect-error the same inside a record: the nested array is readonly
+    const refusedNested: TPostgresInsert = { jValue: { tags: list } };
+    const copied: TPostgresInsert = { jValue: { tags: [...list] } };
+    const scalars: TPostgresInsert = { jValue: { limit: 3, mode: 'fast' } as const };
 
-    expect([refused, copied]).toHaveLength(2);
+    expect([refused, refusedNested, copied, scalars]).toHaveLength(4);
   });
 
   test('a default is an array or a record, and an interface value must be spread', () => {

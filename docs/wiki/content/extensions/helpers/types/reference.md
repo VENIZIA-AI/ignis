@@ -245,7 +245,7 @@ type TJsonValue = TJsonPrimitive | TJsonValue[] | { [key: string]: TJsonValue };
 | `TJsonPrimitive` | A JSON scalar | A leaf of a JSON value |
 | `TJsonValue` | Any value JSON can hold: a scalar, an array of JSON values, or an object of them | A `jsonb` or JSON column that stores whatever the app puts in it, such as `jValue` of the data-type enrichers |
 
-A value typed as an `interface` is not assignable to `TJsonValue`, because an interface has no index signature: spread it (`{ ...meta }`) or declare its shape as a `type`. A `readonly` array and a value declared `as const` are refused too (0.4.7 accepted `as const`): copy the array with `[...list]`. A `Date` and an `undefined` member are not JSON either.
+A value typed as an `interface` is not assignable to `TJsonValue`, because an interface has no index signature: spread it (`{ ...meta }`) or declare its shape as a `type`. A `readonly` array is refused too, at any depth (0.4.7 accepted one): copy each array with `[...list]`. An `as const` object of scalars is accepted, but one that holds a readonly array needs its arrays copied. A `Date` and an `undefined` member are not JSON either.
 
 ## Const Value Extraction Types
 
