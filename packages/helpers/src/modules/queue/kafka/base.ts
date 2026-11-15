@@ -183,6 +183,7 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
     const closable: ICallbackCloseClient = client;
 
     return new Promise<void>((resolve, reject) => {
+      // Through `ICallbackCloseClient`, not `client`: on the narrowed type the overload of `Base.close` wins and takes no `force`.
       closable.close(true, (error?: Error | null) => {
         if (error) {
           reject(error);

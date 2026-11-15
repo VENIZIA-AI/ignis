@@ -175,7 +175,8 @@ export class NodeFetchNetworkRequest extends BaseNetworkRequest<'node-fetch'> {
 
     const defaultConfigs: Partial<RequestInit> = {
       ...rest,
-      headers: mergedHeaders,
+      // A plain object, so the request log (which redacts by key) can read it; a `Headers` instance has no own entries.
+      headers: Object.fromEntries(mergedHeaders),
     };
 
     super({

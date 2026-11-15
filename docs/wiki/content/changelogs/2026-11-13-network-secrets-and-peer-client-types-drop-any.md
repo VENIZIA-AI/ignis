@@ -45,15 +45,27 @@ migration:
           provider: provider, // TSecretProvider
           config: { endpoint, auth }, // AnyObject
         };
+
+        // an interface that extended it
+        interface IAppSecrets extends ISecretsRegistration {
+          label: string;
+        }
       after: |
         // the provider selects the shape of config, so name the provider by its literal
         const registration: ISecretsRegistration = {
           provider: SecretProviders.HASHICORP_VAULT,
           config: { endpoint, auth },
         };
+
+        // ISecretsRegistration is a union now, so an interface cannot extend it (TS2312):
+        // intersect it, or extend the provider's own interface
+        type TAppSecrets = ISecretsRegistration & { label: string };
+        interface IAppVaultSecrets extends IHashiCorpSecretsRegistration {
+          label: string;
+        }
     downgrade:
       steps:
-        - "Type the registration with a TSecretProvider variable and an untyped config again; the older registration was one interface with config: AnyObject."
+        - "Type the registration with a TSecretProvider variable and an untyped config again; the older registration was one interface with config: AnyObject, and an interface that extended it compiles again."
   - id: vault-client-answers-unknown
     symbols: [IHashiCorpVaultHelperOptions, HashiCorpVaultHelper]
     upgrade:

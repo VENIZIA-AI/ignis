@@ -27,7 +27,7 @@ export class SecretsHelperFactory {
       }
       case SecretProviders.HASHICORP_VAULT: {
         // `client` is the injected escape: the helper never reaches for the peer, so demanding it here would defeat the escape.
-        if (!opts.config.client) {
+        if (!opts.config?.client) {
           ModuleUtility.assertInstalled({
             scope: 'HashiCorpVaultHelper',
             modules: ['node-vault'],
