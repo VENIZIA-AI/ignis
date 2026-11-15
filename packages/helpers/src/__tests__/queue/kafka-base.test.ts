@@ -1,8 +1,9 @@
-import { type AnyType } from '@/common/types';
 import { getError, isApplicationError } from '@/modules/error';
 import { HookUtility } from '@/modules/queue/common';
 import { KafkaClientEvents, KafkaHealthStatuses } from '@/modules/queue/kafka/common/constants';
 import { BaseKafkaHelper } from '@/modules/queue/kafka/base';
+import type { TKafkaBrokerEventCallback } from '@/modules/queue/kafka/common/types';
+import type { Base, BaseOptions } from '@platformatic/kafka';
 import { EventEmitter } from 'node:events';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
@@ -39,17 +40,24 @@ class FakeKafkaClient extends EventEmitter {
   }
 }
 
-class TestKafkaHelper extends BaseKafkaHelper<AnyType> {
+/** The base helper types its client as a platformatic `Base`; the fake only implements the slice the helper touches, so it is handed over through `Reflect.get` (typed `any`, assignable without a cast). */
+const toBaseClient = (client: FakeKafkaClient): Base<BaseOptions> => {
+  const holder: object = { client };
+
+  return Reflect.get(holder, 'client');
+};
+
+class TestKafkaHelper extends BaseKafkaHelper<Base<BaseOptions>> {
   constructor(opts: {
     client: FakeKafkaClient;
     shutdownTimeout?: number;
-    onBrokerConnect?: (opts: { broker: AnyType }) => void | Promise<void>;
-    onBrokerDisconnect?: (opts: { broker: AnyType }) => void | Promise<void>;
+    onBrokerConnect?: TKafkaBrokerEventCallback;
+    onBrokerDisconnect?: TKafkaBrokerEventCallback;
   }) {
     super({
       scope: TestKafkaHelper.name,
       identifier: 'kafka-base-test',
-      client: opts.client as AnyType,
+      client: toBaseClient(opts.client),
       shutdownTimeout: opts.shutdownTimeout,
       onBrokerConnect: opts.onBrokerConnect,
       onBrokerDisconnect: opts.onBrokerDisconnect,
@@ -59,7 +67,7 @@ class TestKafkaHelper extends BaseKafkaHelper<AnyType> {
   }
 
   swapTo(opts: { client: FakeKafkaClient }) {
-    this.swapClient(opts.client as AnyType);
+    this.swapClient(toBaseClient(opts.client));
   }
 
   closeWithCallback(): Promise<void> {
@@ -215,23 +223,23 @@ describe('BaseKafkaHelper — broker events, health tracking, close paths', () =
 
     const originalSetTimeout = globalThis.setTimeout;
     const originalClearTimeout = globalThis.clearTimeout;
-    const armedTimers = new Set<AnyType>();
+    const armedTimers = new Set<ReturnType<typeof setTimeout>>();
 
-    globalThis.setTimeout = ((handler: AnyType, delay?: number, ...args: AnyType[]) => {
-      const timer = originalSetTimeout(handler, delay, ...args);
+    Reflect.set(globalThis, 'setTimeout', (handler: () => void, delay?: number) => {
+      const timer = originalSetTimeout(handler, delay);
 
       if (delay === shutdownTimeout) {
         armedTimers.add(timer);
       }
 
       return timer;
-    }) as AnyType;
+    });
 
-    globalThis.clearTimeout = ((timer: AnyType) => {
+    Reflect.set(globalThis, 'clearTimeout', (timer: ReturnType<typeof setTimeout>) => {
       armedTimers.delete(timer);
 
       return originalClearTimeout(timer);
-    }) as AnyType;
+    });
 
     try {
       await helper.closeGracefully();
@@ -261,15 +269,12 @@ describe('BaseKafkaHelper — broker events, health tracking, close paths', () =
  * were `private` on `BaseKafkaHelper` before this class could compile - overriding a broker hook and
  * reaching into that state from here was a type error, and `bun run build` type-checks this file.
  */
-class ExtendingKafkaHelper extends BaseKafkaHelper<AnyType> {
-  constructor(opts: {
-    client: FakeKafkaClient;
-    onBrokerConnect?: (opts: { broker: AnyType }) => void;
-  }) {
+class ExtendingKafkaHelper extends BaseKafkaHelper<Base<BaseOptions>> {
+  constructor(opts: { client: FakeKafkaClient; onBrokerConnect?: TKafkaBrokerEventCallback }) {
     super({
       scope: ExtendingKafkaHelper.name,
       identifier: 'kafka-base-extension-test',
-      client: opts.client,
+      client: toBaseClient(opts.client),
       onBrokerConnect: opts.onBrokerConnect,
     });
 

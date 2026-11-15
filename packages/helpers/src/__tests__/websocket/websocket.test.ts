@@ -1,4 +1,3 @@
-import type { AnyType } from '@/common/types';
 /** WebSocket Helpers Test Suite */
 
 import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test';
@@ -13,7 +12,7 @@ import {
   WebSocketEmitter,
 } from '@/modules/socket/websocket';
 import type { IWebSocketServerOptions, IRedisSocketMessage } from '@/modules/socket/websocket';
-import { type IRedisHelper } from '@/modules/redis';
+import { AbstractRedisHelper, type IRedisHelper, type TRedisClient } from '@/modules/redis';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -85,15 +84,37 @@ class MockRedisClient extends EventEmitter {
   }
 }
 
-function createMockRedisHelper(): IRedisHelper & { mockClient: MockRedisClient } {
-  const mockClient = new MockRedisClient();
-  const helper = {
-    getClient: () => mockClient,
-    duplicateClient: () => mockClient.duplicate(),
-    mockClient,
-  } as AnyType as IRedisHelper & { mockClient: MockRedisClient };
+const toRedisClient = (client: MockRedisClient): TRedisClient => {
+  const isRedisClient = (value: unknown): value is TRedisClient => value instanceof EventEmitter;
 
-  return helper;
+  if (!isRedisClient(client)) {
+    throw new Error('[toRedisClient] The fake is not an event emitter');
+  }
+
+  return client;
+};
+
+/** A real helper over the fake client: it hands out the fake's `duplicate()` results, which the tests inspect. */
+class MockRedisHelper extends AbstractRedisHelper {
+  readonly mockClient: MockRedisClient;
+
+  constructor(mockClient: MockRedisClient = new MockRedisClient()) {
+    super({
+      scope: 'MockRedisHelper',
+      identifier: 'mock-redis',
+      client: toRedisClient(mockClient),
+    });
+
+    this.mockClient = mockClient;
+  }
+
+  override duplicateClient(): TRedisClient {
+    return toRedisClient(this.mockClient.duplicate());
+  }
+}
+
+function createMockRedisHelper(): IRedisHelper & { mockClient: MockRedisClient } {
+  return new MockRedisHelper();
 }
 
 function createMockSocket(clientId: string) {
@@ -445,10 +466,7 @@ describe('WebSocketServerHelper', () => {
       const waitClient = new MockRedisClient();
       waitClient.status = 'wait';
 
-      const waitRedisHelper = {
-        getClient: () => waitClient,
-        duplicateClient: () => waitClient.duplicate(),
-      } as AnyType as IRedisHelper;
+      const waitRedisHelper = new MockRedisHelper(waitClient);
 
       const waitHelper = new WebSocketServerHelper({
         ...opts,
@@ -2304,10 +2322,7 @@ describe('WebSocketEmitter', () => {
       const waitClient = new MockRedisClient();
       waitClient.status = 'wait';
 
-      const waitRedisHelper = {
-        getClient: () => waitClient,
-        duplicateClient: () => waitClient.duplicate(),
-      } as AnyType as IRedisHelper;
+      const waitRedisHelper = new MockRedisHelper(waitClient);
 
       const waitEmitter = new WebSocketEmitter({
         redisConnection: waitRedisHelper,

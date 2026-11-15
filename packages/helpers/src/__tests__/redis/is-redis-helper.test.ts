@@ -2,14 +2,28 @@
 
 import { describe, expect, it } from 'bun:test';
 import { EventEmitter } from 'node:events';
-import type { AnyType } from '@/common/types';
-import { AbstractRedisHelper, isRedisHelper, REDIS_HELPER_BRAND } from '@/modules/redis';
+import {
+  AbstractRedisHelper,
+  isRedisHelper,
+  REDIS_HELPER_BRAND,
+  type TRedisClient,
+} from '@/modules/redis';
+
+const isRedisClient = (value: unknown): value is TRedisClient => {
+  return value instanceof EventEmitter;
+};
 
 const buildHelper = () => {
+  const client = new EventEmitter();
+
+  if (!isRedisClient(client)) {
+    throw new Error('[buildHelper] The fake is not an event emitter');
+  }
+
   return new AbstractRedisHelper({
     scope: 'IsRedisHelperTest',
     identifier: 'is-redis-helper',
-    client: new EventEmitter() as AnyType,
+    client,
   });
 };
 

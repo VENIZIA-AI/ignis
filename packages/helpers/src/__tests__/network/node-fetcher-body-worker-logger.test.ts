@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { type AnyType } from '@/common';
 import { LoggerFactory } from '@/modules/logger/factory';
-import { NodeFetcher, NodeFetchNetworkRequest } from '@/modules/network';
+import { type IQueryStringOptions, NodeFetcher, NodeFetchNetworkRequest } from '@/modules/network';
 
 const originalFetch = globalThis.fetch;
 
@@ -18,25 +17,26 @@ interface ICaptured {
 const captureRequest = (): ICaptured => {
   const captured: ICaptured = {};
 
-  globalThis.fetch = ((input: AnyType, init?: RequestInit) => {
+  Reflect.set(globalThis, 'fetch', (input: unknown, init?: RequestInit) => {
     captured.url = String(input);
     captured.init = init;
 
     return Promise.resolve(new Response(null, { status: 204 }));
-  }) as AnyType;
+  });
 
   return captured;
 };
 
-const buildFetcher = (opts?: { queryString?: AnyType }) => {
+const buildFetcher = (opts?: { queryString?: IQueryStringOptions }) => {
   return new NodeFetcher({ name: 'body-test', defaultConfigs: {}, queryString: opts?.queryString });
 };
 
+// The body type is `BodyInit`; a plain object is JSON-encoded at runtime, so these cases feed one through `JSON.parse` (typed `any`).
 describe('NodeFetcher - body', () => {
   test('a plain object is JSON-encoded', async () => {
     const captured = captureRequest();
 
-    await buildFetcher().post({ url: 'http://example.test/a', body: { a: 1 } as AnyType });
+    await buildFetcher().post({ url: 'http://example.test/a', body: JSON.parse('{"a":1}') });
 
     expect(captured.init?.body).toBe('{"a":1}');
   });
@@ -44,7 +44,7 @@ describe('NodeFetcher - body', () => {
   test('an array is JSON-encoded', async () => {
     const captured = captureRequest();
 
-    await buildFetcher().post({ url: 'http://example.test/a', body: [1, { b: 2 }] as AnyType });
+    await buildFetcher().post({ url: 'http://example.test/a', body: JSON.parse('[1,{"b":2}]') });
 
     expect(captured.init?.body).toBe('[1,{"b":2}]');
   });
@@ -60,7 +60,7 @@ describe('NodeFetcher - body', () => {
   });
 
   test('every raw body kind passes through untouched', async () => {
-    const raw: Array<unknown> = [
+    const raw: Array<NonNullable<RequestInit['body']>> = [
       '{"already":"json"}',
       new Blob(['x']),
       new ArrayBuffer(4),
@@ -74,9 +74,9 @@ describe('NodeFetcher - body', () => {
     for (const body of raw) {
       const captured = captureRequest();
 
-      await buildFetcher().post({ url: 'http://example.test/a', body: body as AnyType });
+      await buildFetcher().post({ url: 'http://example.test/a', body });
 
-      expect(captured.init?.body).toBe(body as AnyType);
+      expect(captured.init?.body).toBe(body);
     }
   });
 });
@@ -154,7 +154,7 @@ describe('NodeFetcher - logging', () => {
     await buildFetcher().post(
       {
         url: 'http://example.test/a',
-        body: { secret: 'pw' } as AnyType,
+        body: JSON.parse('{"secret":"pw"}'),
         headers: { authorization: 'Bearer SUPER_SECRET_TOKEN' },
       },
       logger,

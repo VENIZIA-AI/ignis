@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import type { AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
 import { AbstractSecretsHelper } from '@/modules/secrets/base/abstract.helper';
 import type {
@@ -27,6 +26,17 @@ const captureRejection = async (opts: { promise: Promise<unknown> }): Promise<Er
   }
 
   return outcome;
+};
+
+/** Reads the size of one of the provider's private maps (`leases`, `leasePaths`, `cache`). */
+const readMapSize = (opts: { provider: object; field: string }): number => {
+  const map: unknown = Reflect.get(opts.provider, opts.field);
+
+  if (!(map instanceof Map)) {
+    throw getError({ message: `Expected the provider field ${opts.field} to be a Map` });
+  }
+
+  return map.size;
 };
 
 class ManualClock implements IClock {
@@ -278,7 +288,7 @@ describe('AbstractSecretsHelper', () => {
 
     expect(ctx.provider.revoked).toEqual(['L1']);
     expect(ctx.timers.count()).toBe(0); // no timer resurrected
-    expect((ctx.provider as AnyType).leases.size).toBe(0); // lease not re-added
+    expect(readMapSize({ provider: ctx.provider, field: 'leases' })).toBe(0); // lease not re-added
   });
 
   // Fix 3 - a huge ttl must clamp the delay to setTimeout's ceiling, not overflow to ~1ms.
@@ -366,8 +376,8 @@ describe('AbstractSecretsHelper', () => {
     const error = await captureRejection({ promise: pending });
     expect(error.message).toMatch(/shut down/);
 
-    expect((ctx.provider as AnyType).leases.size).toBe(0);
-    expect((ctx.provider as AnyType).leasePaths.size).toBe(0);
+    expect(readMapSize({ provider: ctx.provider, field: 'leases' })).toBe(0);
+    expect(readMapSize({ provider: ctx.provider, field: 'leasePaths' })).toBe(0);
   });
 
   // Fix 7 - getBundle() resolving AFTER shutdown() must not repopulate the cleared cache map.
@@ -381,7 +391,7 @@ describe('AbstractSecretsHelper', () => {
     gate.resolve();
     await pending;
 
-    expect((ctx.provider as AnyType).cache.size).toBe(0);
+    expect(readMapSize({ provider: ctx.provider, field: 'cache' })).toBe(0);
   });
 
   // Fix 6 - rotation refreshes the get/getBundle cache instead of serving a stale secret.

@@ -1,9 +1,8 @@
 /** SocketIOServerHelper Test Suite */
 
 import { RuntimeModules } from '@/common/constants';
-import type { AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
-import type { IRedisHelper } from '@/modules/redis';
+import { AbstractRedisHelper, type IRedisHelper, type TRedisClient } from '@/modules/redis';
 import {
   type ISocketIOClient,
   SocketIOClientStates,
@@ -26,57 +25,83 @@ class MockRedisClient extends EventEmitter {
   connect = mock(() => Promise.resolve());
 }
 
+const toRedisClient = (client: MockRedisClient): TRedisClient => {
+  const isRedisClient = (value: unknown): value is TRedisClient => value instanceof EventEmitter;
+
+  if (!isRedisClient(client)) {
+    throw new Error('[toRedisClient] The fake is not an event emitter');
+  }
+
+  return client;
+};
+
 const createMockRedisHelper = () => {
   const clients: MockRedisClient[] = [];
 
-  const helper = {
-    duplicateClient: () => {
+  /** A real helper over a fake client that hands out, and records, a fake client per `duplicateClient()`. */
+  class MockRedisHelper extends AbstractRedisHelper {
+    override duplicateClient(): TRedisClient {
       const client = new MockRedisClient();
       clients.push(client);
 
-      return client;
-    },
-  } as AnyType as IRedisHelper;
+      return toRedisClient(client);
+    }
+  }
+
+  const helper: IRedisHelper = new MockRedisHelper({
+    scope: 'MockRedisHelper',
+    identifier: 'mock-redis',
+    client: toRedisClient(new MockRedisClient()),
+  });
 
   return { helper, clients };
 };
 
+type TMockSocket = IOSocket & {
+  emitted: Array<{ topic: string; args: unknown[] }>;
+  join: ReturnType<typeof mock>;
+  leave: ReturnType<typeof mock>;
+  disconnect: ReturnType<typeof mock>;
+};
+
+const isMockSocket = (value: unknown): value is TMockSocket =>
+  value instanceof EventEmitter && 'emitted' in value && 'handshake' in value;
+
 /** Socket.IO sockets are EventEmitters; the fake records outbound emits while still dispatching inbound ones. */
-const createMockSocket = (id: string) => {
+const createMockSocket = (id: string): TMockSocket => {
   const emitted: Array<{ topic: string; args: unknown[] }> = [];
-  const socket: AnyType = new EventEmitter();
+  const emitter = new EventEmitter();
+  const originalEmit = emitter.emit.bind(emitter);
 
-  socket.id = id;
-  socket.emitted = emitted;
-  socket.handshake = {
-    headers: {},
-    time: new Date().toISOString(),
-    address: '127.0.0.1',
-    xdomain: false,
-    secure: false,
-    issued: Date.now(),
-    url: '/socket.io',
-    query: {},
-    auth: { token: 'test-token' },
-  };
-  socket.join = mock(() => Promise.resolve());
-  socket.leave = mock(() => Promise.resolve());
-  socket.disconnect = mock(() => socket);
+  const socket = Object.assign(emitter, {
+    id,
+    emitted,
+    handshake: {
+      headers: {},
+      time: new Date().toISOString(),
+      address: '127.0.0.1',
+      xdomain: false,
+      secure: false,
+      issued: Date.now(),
+      url: '/socket.io',
+      query: {},
+      auth: { token: 'test-token' },
+    },
+    join: mock(() => Promise.resolve()),
+    leave: mock(() => Promise.resolve()),
+    disconnect: mock(() => emitter),
+    emit: (topic: string, ...args: unknown[]) => {
+      emitted.push({ topic, args });
 
-  const originalEmit = socket.emit.bind(socket);
+      return originalEmit(topic, ...args);
+    },
+  });
 
-  socket.emit = (topic: string, ...args: unknown[]) => {
-    emitted.push({ topic, args });
+  if (!isMockSocket(socket)) {
+    throw new Error('[createMockSocket] The fake lost its socket fields');
+  }
 
-    return originalEmit(topic, ...args);
-  };
-
-  return socket as IOSocket & {
-    emitted: typeof emitted;
-    join: ReturnType<typeof mock>;
-    leave: ReturnType<typeof mock>;
-    disconnect: ReturnType<typeof mock>;
-  };
+  return socket;
 };
 
 /** Stand-in for the Redis-backed @socket.io/redis-emitter used by send(). */
@@ -146,8 +171,8 @@ const createHelper = (opts?: Partial<TSocketIOServerOptions>) => {
     ...opts,
   } as TSocketIOServerOptions);
 
-  helper['io'] = io as AnyType;
-  helper['emitter'] = emitter as AnyType;
+  Reflect.set(helper, 'io', io);
+  Reflect.set(helper, 'emitter', emitter);
 
   helpers.push(helper);
 
@@ -169,23 +194,23 @@ afterEach(async () => {
 
 describe('SocketIOServerHelper | constructor', () => {
   test('rejects the Node runtime: IGNIS runs on Bun only', () => {
-    expect(() => createHelper({ runtime: 'node' } as AnyType)).toThrow(/Unsupported runtime/);
+    // @ts-expect-error - 'node' is not a supported runtime
+    expect(() => createHelper({ runtime: 'node' })).toThrow(/Unsupported runtime/);
   });
 
   test('rejects a BUN runtime without an engine', () => {
-    expect(() =>
-      createHelper({ runtime: RuntimeModules.BUN, engine: undefined } as AnyType),
-    ).toThrow(/Invalid @socket.io\/bun-engine/);
+    expect(() => createHelper({ runtime: RuntimeModules.BUN, engine: undefined })).toThrow(
+      /Invalid @socket.io\/bun-engine/,
+    );
   });
 
   test('rejects an unsupported runtime', () => {
-    expect(() => createHelper({ runtime: 'deno' } as AnyType)).toThrow(/Unsupported runtime/);
+    // @ts-expect-error - 'deno' is not a supported runtime
+    expect(() => createHelper({ runtime: 'deno' })).toThrow(/Unsupported runtime/);
   });
 
   test('rejects a missing redis connection', () => {
-    expect(() => createHelper({ redisConnection: undefined as AnyType as IRedisHelper })).toThrow(
-      /Invalid redis connection/,
-    );
+    expect(() => createHelper({ redisConnection: undefined })).toThrow(/Invalid redis connection/);
   });
 
   test('duplicates one redis client per adapter role (pub, sub, emitter)', () => {
@@ -229,14 +254,13 @@ describe('SocketIOServerHelper | on', () => {
     const { helper } = createHelper();
 
     expect(() => helper.on({ topic: '', handler: () => {} })).toThrow(/Invalid topic/);
-    expect(() =>
-      helper.on({ topic: 'a-topic', handler: undefined as AnyType as () => void }),
-    ).toThrow(/Invalid event handler/);
+    // @ts-expect-error - a handler is required
+    expect(() => helper.on({ topic: 'a-topic' })).toThrow(/Invalid event handler/);
   });
 
   test('rejects binding before the IO server is initialized', () => {
     const { helper } = createHelper();
-    helper['io'] = undefined as AnyType;
+    Reflect.set(helper, 'io', undefined);
 
     expect(() => helper.on({ topic: 'a-topic', handler: () => {} })).toThrow(
       /IOServer is not initialized/,
@@ -352,7 +376,7 @@ describe('SocketIOServerHelper | authentication', () => {
     helper.onClientConnect({ socket });
     await authenticate({ socket });
 
-    expect(authenticateFn).toHaveBeenCalledWith(socket.handshake as AnyType);
+    expect(authenticateFn).toHaveBeenCalledWith(socket.handshake);
   });
 
   test('clears the authenticate timeout once the client is authenticated', async () => {
@@ -712,7 +736,8 @@ describe('SocketIOServerHelper | send', () => {
   test('ignores an empty payload', () => {
     const { helper, sent } = createHelper();
 
-    helper.send({ payload: undefined as AnyType as { topic: string; data: unknown } });
+    // @ts-expect-error - a payload is required
+    helper.send({});
     helper.send({ payload: { topic: '', data: { value: 1 } } });
 
     expect(sent).toHaveLength(0);
@@ -730,7 +755,8 @@ describe('SocketIOServerHelper | send', () => {
 
   test('does not throw when the emitter is not configured yet', () => {
     const { helper } = createHelper();
-    helper['emitter'] = undefined as AnyType;
+    // @ts-expect-error - the emitter is unset on purpose
+    helper['emitter'] = undefined;
 
     expect(() =>
       helper.send({ destination: 'client-a', payload: { topic: 'a-topic', data: { value: 1 } } }),
@@ -760,7 +786,7 @@ describe('SocketIOServerHelper | shutdown', () => {
 
   test('still quits redis when configure() never ran', async () => {
     const { helper, redisClients } = createHelper();
-    helper['io'] = undefined as AnyType;
+    Reflect.set(helper, 'io', undefined);
 
     await helper.shutdown();
     helpers.pop();

@@ -1,4 +1,3 @@
-import { type AnyType } from '@/common';
 import { RedisUtility, type TRedisClient } from '@/modules/redis';
 import { describe, expect, test } from 'bun:test';
 import { EventEmitter } from 'node:events';
@@ -14,8 +13,16 @@ class FakeRedisClient extends EventEmitter {
   }
 }
 
+const isRedisClient = (value: unknown): value is TRedisClient => {
+  return value instanceof EventEmitter && 'status' in value && 'connect' in value;
+};
+
 const asRedisClient = (client: FakeRedisClient): TRedisClient => {
-  return client as AnyType;
+  if (!isRedisClient(client)) {
+    throw new Error('[asRedisClient] The fake is not shaped like a redis client');
+  }
+
+  return client;
 };
 
 describe('waitForRedisReady', () => {

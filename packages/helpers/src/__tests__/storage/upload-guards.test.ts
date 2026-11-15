@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
-import { type AnyType } from '@/common';
 import { type IUploadFile } from '@/modules/storage/common';
 import { DiskHelper } from '@/modules/storage/disk';
 
@@ -42,10 +41,12 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
 
     spies.push(
       spyOn(fsp, 'access').mockImplementation(async () => undefined),
-      spyOn(fsp, 'stat').mockImplementation(async () => ({ isDirectory: () => true }) as AnyType),
+      spyOn(fsp, 'stat').mockResolvedValue(
+        Object.assign(fs.statSync('.'), { isDirectory: () => true }),
+      ),
       spyOn(fsp, 'mkdir').mockImplementation(async () => undefined),
       spyOn(fsp, 'realpath').mockImplementation((async (target: string) => target) as never),
-      spyOn(fsp, 'writeFile').mockImplementation(async (objectPath: AnyType) => {
+      spyOn(fsp, 'writeFile').mockImplementation(async (objectPath) => {
         writtenPaths.push(String(objectPath));
       }),
     );
@@ -70,7 +71,7 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
   test('a MISSING size is still rejected', async () => {
     const task = helper.upload({
       bucket: { name: 'assets' },
-      files: [buildFile({ size: undefined as AnyType })],
+      files: [buildFile({ size: undefined })],
     });
 
     const result = await captureError({ task });

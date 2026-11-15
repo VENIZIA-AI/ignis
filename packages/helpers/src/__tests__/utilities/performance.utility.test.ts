@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
+import type { ILogger } from '@/modules/logger';
 import { PerformanceUtility } from '@/utilities/performance.utility';
 
 /** `executeWithPerformanceMeasure` resolves from `.then(resolve)` and logs DONE from the later `.finally`, so DONE lands one microtask after the caller resumes - draining the loop once makes that ordering deterministic. */
@@ -16,21 +16,42 @@ const captureRejection = async (execution: Promise<unknown>): Promise<Error> => 
   throw getError({ message: 'Expected the execution to reject, but it resolved' });
 };
 
+/** A logger that records every level call; the measure picks the level by name at run time. */
+class RecordingLogger implements ILogger {
+  constructor(private readonly lines: Array<{ level: string; args: unknown[] }>) {}
+
+  debug(message: string, ...args: unknown[]) {
+    this.lines.push({ level: 'debug', args: [message, ...args] });
+  }
+
+  info(message: string, ...args: unknown[]) {
+    this.lines.push({ level: 'info', args: [message, ...args] });
+  }
+
+  warn(message: string, ...args: unknown[]) {
+    this.lines.push({ level: 'warn', args: [message, ...args] });
+  }
+
+  error(message: string, ...args: unknown[]) {
+    this.lines.push({ level: 'error', args: [message, ...args] });
+  }
+
+  emerg(message: string, ...args: unknown[]) {
+    this.lines.push({ level: 'emerg', args: [message, ...args] });
+  }
+
+  log(level: string, message: string, ...args: unknown[]) {
+    this.lines.push({ level, args: [message, ...args] });
+  }
+
+  for(): ILogger {
+    return this;
+  }
+}
+
 const buildLogger = () => {
   const lines: Array<{ level: string; args: unknown[] }> = [];
-
-  const record = (level: string) => {
-    return (...args: unknown[]) => {
-      lines.push({ level, args });
-    };
-  };
-
-  const logger = {
-    debug: record('debug'),
-    info: record('info'),
-    error: record('error'),
-    warn: record('warn'),
-  } as AnyType;
+  const logger = new RecordingLogger(lines);
 
   return { logger, lines };
 };

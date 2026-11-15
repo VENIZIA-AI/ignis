@@ -1,4 +1,3 @@
-import type { AnyType } from '@/common/types';
 /** LIVE Kafka integration tests, gated on APP_ENV_KAFKA_BROKERS (+ SASL vars) so they auto-skip when unconfigured; a per-test timeout makes a hung path fail loudly instead of stalling the runner. */
 
 import { KafkaAdminHelper, KafkaConsumerHelper, KafkaProducerHelper } from '@/modules/queue/kafka';
@@ -418,7 +417,7 @@ describe('KafkaConsumerHelper (live)', () => {
         'produce',
       );
 
-      let errorSeen: Error | null = null;
+      const seen: { error: Error | null } = { error: null };
       let resolveErr!: () => void;
       const errPromise = new Promise<void>((resolve) => {
         resolveErr = resolve;
@@ -429,7 +428,7 @@ describe('KafkaConsumerHelper (live)', () => {
         },
         {
           onMessageError: ({ error }: { error: Error }) => {
-            errorSeen = error;
+            seen.error = error;
             resolveErr();
           },
         },
@@ -442,8 +441,8 @@ describe('KafkaConsumerHelper (live)', () => {
           'start',
         );
         await withTimeout(errPromise, 25_000, 'error');
-        expect(errorSeen).not.toBeNull();
-        expect((errorSeen as AnyType as Error).message).toBe('handler-failure');
+        expect(seen.error).not.toBeNull();
+        expect(seen.error?.message).toBe('handler-failure');
       } finally {
         await settleQuietly({ pending: consumer.close(), ms: 15_000, label: 'consumer.close' });
       }

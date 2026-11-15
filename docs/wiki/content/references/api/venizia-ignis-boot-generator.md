@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-boot/generator, from the built decl
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-16 exports, 16 with TSDoc.
+17 exports, 17 with TSDoc.
 
 ## `ArtifactIndexEmitter`
 
@@ -341,10 +341,24 @@ Source: `packages/boot/src/generator/common/constants.ts`
 
 *type*
 
-The object a generated index exports - structurally the kernel's `IArtifactIndex` (boot does not depend on the kernel).
+The index boot builds and moves around without knowing the application's classes: the object a generated index exports, and the default of `AutoArtifactGroup`.
+
+Each kind of the kernel's index names its own class type (`TClass<BaseConfiguration>`, `TClass<IService>`, ...), which boot cannot name. `TClass<never>` is the bottom of that family: it is assignable to every one of them, so a group that carries it is still the kernel's `IArtifactGroup`. Its instance type is `never`, so boot only passes the classes along and never constructs one.
 
 ```ts
-export type TGeneratedArtifactIndex = Partial<Record<TArtifactIndexField, ReadonlyArray<TClass<AnyType>>>>;
+export type TGeneratedArtifactIndex = Partial<Record<TArtifactIndexField, ReadonlyArray<TClass<never>>>>;
+```
+
+Source: `packages/boot/src/generator/common/types.ts`
+
+## `TGeneratedArtifactIndexInput`
+
+*type*
+
+What an application may hand to an `AutoArtifactGroup` as its index: a list of classes per kind, with the same kinds as the kernel's `IArtifactIndex` (boot does not depend on the kernel, so it cannot name that type). The classes are `TClass<unknown>` so any real class is accepted; the group keeps the exact type the application passed.
+
+```ts
+export type TGeneratedArtifactIndexInput = Partial<Record<TArtifactIndexField, ReadonlyArray<TClass<unknown>>>>;
 ```
 
 Source: `packages/boot/src/generator/common/types.ts`

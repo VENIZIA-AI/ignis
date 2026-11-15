@@ -1,17 +1,16 @@
 import { describe, expect, test } from 'bun:test';
-import { type AnyType } from '@/common/types';
 import { ParseUtility } from '@/utilities/parse.utility';
 import { BaseLogger, type ILogger, type TLogLevel } from '@/modules/logger';
 
 /** Minimal recording sink - the same shape a future provider (pino) would implement. */
 class RecordingLogger extends BaseLogger {
-  writes: Array<{ level: TLogLevel; message: string; args: Array<AnyType> }> = [];
+  writes: Array<{ level: TLogLevel; message: string; args: Array<unknown> }> = [];
 
   constructor(opts: { scope: string }) {
     super(opts);
   }
 
-  protected write(opts: { level: TLogLevel; message: string; args: Array<AnyType> }): void {
+  protected write(opts: { level: TLogLevel; message: string; args: Array<unknown> }): void {
     this.writes.push(opts);
   }
 

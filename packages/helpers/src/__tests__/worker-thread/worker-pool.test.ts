@@ -3,14 +3,16 @@
 import { getError } from '@/modules/error';
 import { type IWorker, WorkerPoolHelper } from '@/modules/worker-thread';
 import { afterEach, describe, expect, mock, test } from 'bun:test';
-import type { AnyType } from '@/common/types';
 
 type TFakeWorker = IWorker<unknown> & { terminate: ReturnType<typeof mock> };
+
+const isFakeWorker = (value: unknown): value is TFakeWorker =>
+  typeof value === 'object' && value !== null && 'worker' in value && 'terminate' in value;
 
 const createFakeWorker = (opts?: { terminate?: () => Promise<number> }): TFakeWorker => {
   const terminate = mock(opts?.terminate ?? (() => Promise.resolve(0)));
 
-  return {
+  const fake: unknown = {
     worker: { terminate },
     options: {},
     onOnline: () => {},
@@ -19,7 +21,13 @@ const createFakeWorker = (opts?: { terminate?: () => Promise<number> }): TFakeWo
     onMessage: () => {},
     onMessageError: () => {},
     terminate,
-  } as AnyType as TFakeWorker;
+  };
+
+  if (!isFakeWorker(fake)) {
+    throw new Error('[createFakeWorker] The fake lost its worker fields');
+  }
+
+  return fake;
 };
 
 const createPool = (opts?: { ignoreMaxWarning?: boolean; maxWorkers?: number }) => {

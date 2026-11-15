@@ -1,10 +1,8 @@
-import type { AnyType } from '@/common/types';
 /** Kafka Consumer lifecycle & reconnect regression tests (no broker required) */
 
 import { PromiseUtility } from '@/utilities/promise.utility';
 import { KafkaConsumerHelper } from '@/modules/queue/kafka';
 import { KafkaClientEvents, KafkaHealthStatuses } from '@/modules/queue/kafka/common/constants';
-import type { MessagesStream } from '@platformatic/kafka';
 import { describe, expect, test } from 'bun:test';
 import { EventEmitter } from 'node:events';
 import { Readable } from 'node:stream';
@@ -15,9 +13,6 @@ const newConsumer = () =>
     bootstrapBrokers: ['127.0.0.1:9092'],
     groupId: 'ignis-test-lifecycle-group',
   });
-
-const asStream = (readable: Readable) =>
-  readable as AnyType as MessagesStream<string, string, string, string>;
 
 const guard = (signal: Promise<void>, ms: number, label: string) =>
   Promise.race([
@@ -49,7 +44,7 @@ describe('KafkaConsumerHelper - dead stream reconnect', () => {
     };
 
     helper['consumeStartOptions'] = { topics: ['t'] };
-    helper['stream'] = asStream(fakeStream);
+    Reflect.set(helper, 'stream', fakeStream);
 
     const loop = helper['startConsumeLoop']({
       messageHandler: async () => {},
@@ -131,7 +126,7 @@ describe('KafkaConsumerHelper - dead stream reconnect', () => {
     };
 
     helper['consumeStartOptions'] = { topics: ['t'] };
-    helper['stream'] = asStream(endingStream);
+    Reflect.set(helper, 'stream', endingStream);
 
     const loop = helper['startConsumeLoop']({
       messageHandler: async () => {},
@@ -151,7 +146,7 @@ describe('KafkaConsumerHelper - dead stream reconnect', () => {
     expect(() => helper['destroyDeadStream']()).not.toThrow();
     const fakeStream = new Readable({ objectMode: true, read() {} });
     fakeStream.on('error', () => {});
-    helper['stream'] = asStream(fakeStream);
+    Reflect.set(helper, 'stream', fakeStream);
     expect(() => helper['destroyDeadStream']()).not.toThrow();
     expect(helper.getStream()).toBeNull();
     expect(() => helper['destroyDeadStream']()).not.toThrow(); // second call, already null
@@ -188,11 +183,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     expect(helper.getConnectedBrokerCount()).toBe(1);
 
     // Build a synthetic new client by reusing the same options.
-    const newClient = (
-      KafkaConsumerHelper as AnyType as {
-        buildConsumerClient: (opts: unknown) => typeof oldClient;
-      }
-    ).buildConsumerClient(helper['initialOptions']);
+    const newClient = KafkaConsumerHelper['buildConsumerClient'](helper['initialOptions']);
     helper['swapClient'](newClient);
 
     // After swap: connectedBrokers reset, and stray events on the OLD client must not propagate into the helper's state.
@@ -226,11 +217,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     helper['consumeStartOptions'] = { topics: ['t'] };
 
     // Stub the consume() call to avoid touching the network.
-    (
-      helper.getConsumer() as AnyType as {
-        consume: (opts: unknown) => Promise<unknown>;
-      }
-    ).consume = async () => null;
+    Reflect.set(helper.getConsumer(), 'consume', async () => null);
 
     await helper['attemptReconnect']({
       attempt: 1,
@@ -270,11 +257,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     };
 
     helper['consumeStartOptions'] = { topics: ['t'] };
-    (
-      helper.getConsumer() as AnyType as {
-        consume: (opts: unknown) => Promise<unknown>;
-      }
-    ).consume = async () => null;
+    Reflect.set(helper.getConsumer(), 'consume', async () => null);
 
     await helper['attemptReconnect']({
       attempt: 1,
@@ -303,11 +286,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
       /* stub: don't touch the client for this test */
     };
 
-    (
-      helper.getConsumer() as AnyType as {
-        consume: (opts: unknown) => Promise<unknown>;
-      }
-    ).consume = async () => null;
+    Reflect.set(helper.getConsumer(), 'consume', async () => null);
 
     expect(helper['sessionLikelyStale']).toBe(true);
 
@@ -338,11 +317,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     };
 
     helper['consumeStartOptions'] = { topics: ['t'] };
-    (
-      helper.getConsumer() as AnyType as {
-        consume: (opts: unknown) => Promise<unknown>;
-      }
-    ).consume = async () => null;
+    Reflect.set(helper.getConsumer(), 'consume', async () => null);
 
     // Fire BROKER_DISCONNECT mid-sleep (just before the 100ms retry delay elapses), setting sessionLikelyStale while attemptReconnect is suspended on `await sleep(delayMs)`.
     setTimeout(() => {
@@ -368,13 +343,11 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     // Stub the original client's lag-monitoring methods so calling startLagMonitoring() doesn't touch the network.
     let oldStartCalls = 0;
 
-    (helper.getConsumer() as AnyType as { startLagMonitoring: () => void }).startLagMonitoring =
-      () => {
-        oldStartCalls += 1;
-      };
+    Reflect.set(helper.getConsumer(), 'startLagMonitoring', () => {
+      oldStartCalls += 1;
+    });
 
-    (helper.getConsumer() as AnyType as { stopLagMonitoring: () => void }).stopLagMonitoring =
-      () => {};
+    Reflect.set(helper.getConsumer(), 'stopLagMonitoring', () => {});
 
     helper.startLagMonitoring({ topics: ['t'], interval: 5000 });
     expect(oldStartCalls).toBe(1);
@@ -382,26 +355,24 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     expect(helper['lagMonitoringOptions']).toEqual({ topics: ['t'], interval: 5000 });
 
     // Intercept the factory to spy on the NEW client's startLagMonitoring; restored at the end so other tests aren't affected.
-    const KCH = KafkaConsumerHelper as AnyType as {
-      buildConsumerClient: (opts: unknown) => unknown;
-    };
-    const origFactory = KCH.buildConsumerClient;
+    const origFactory = KafkaConsumerHelper['buildConsumerClient'];
     let newStartCalls = 0;
 
-    KCH.buildConsumerClient = (opts: unknown) => {
-      const client = origFactory.call(KafkaConsumerHelper, opts) as {
-        startLagMonitoring: () => void;
-        stopLagMonitoring: () => void;
-      };
+    Reflect.set(
+      KafkaConsumerHelper,
+      'buildConsumerClient',
+      (opts: Parameters<typeof origFactory>[0]) => {
+        const client = origFactory.call(KafkaConsumerHelper, opts);
 
-      client.startLagMonitoring = () => {
-        newStartCalls += 1;
-      };
+        client.startLagMonitoring = () => {
+          newStartCalls += 1;
+        };
 
-      client.stopLagMonitoring = () => {};
+        client.stopLagMonitoring = () => {};
 
-      return client;
-    };
+        return client;
+      },
+    );
 
     // Don't actually close the old client (it would try to talk to brokers).
     helper['closeOldClient'] = async () => {};
@@ -409,7 +380,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     try {
       await helper['rebuildClient']();
     } finally {
-      KCH.buildConsumerClient = origFactory;
+      Reflect.set(KafkaConsumerHelper, 'buildConsumerClient', origFactory);
     }
 
     // The new client must have received the startLagMonitoring call, and helper state must still show monitoring active with the same options as before the swap.
@@ -442,13 +413,9 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     helper['consumeStartOptions'] = { topics: ['t'] };
 
     // consume() keeps failing - simulating brokers still being down.
-    (
-      helper.getConsumer() as AnyType as {
-        consume: (opts: unknown) => Promise<unknown>;
-      }
-    ).consume = async () => {
+    Reflect.set(helper.getConsumer(), 'consume', async () => {
       throw new Error('brokers still unreachable');
-    };
+    });
 
     // Three retry attempts back-to-back.
     await helper['attemptReconnect']({
@@ -471,7 +438,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     // Park a fake stream on the helper so we can observe destruction.
     const fakeStream = new Readable({ objectMode: true, read() {} });
     fakeStream.on('error', () => {}); // swallow destroy(err) emit
-    helper['stream'] = asStream(fakeStream);
+    Reflect.set(helper, 'stream', fakeStream);
     expect(helper['sessionLikelyStale']).toBe(false);
 
     // Bring one broker up, then take it down via BROKER_FAILED (not DISCONNECT).
@@ -508,10 +475,9 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
 
     helper['consumeStartOptions'] = { topics: ['t'] };
 
-    (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
-      async () => {
-        throw new Error('brokers still unreachable');
-      };
+    Reflect.set(helper.getConsumer(), 'consume', async () => {
+      throw new Error('brokers still unreachable');
+    });
 
     await helper['attemptReconnect']({
       attempt: 2,
@@ -537,10 +503,9 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
 
     helper['consumeStartOptions'] = { topics: ['t'] };
 
-    (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
-      async () => {
-        throw new Error('brokers still unreachable');
-      };
+    Reflect.set(helper.getConsumer(), 'consume', async () => {
+      throw new Error('brokers still unreachable');
+    });
 
     await helper['attemptReconnect']({
       attempt: 1,
@@ -666,8 +631,7 @@ describe('KafkaConsumerHelper - reconnect error routing, the other two sites', (
 
     const stream = new EventEmitter();
     helper['consumeStartOptions'] = { topics: ['t'] };
-    (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
-      async () => stream;
+    Reflect.set(helper.getConsumer(), 'consume', async () => stream);
 
     await helper['attemptReconnect']({
       attempt: 1,
@@ -699,8 +663,7 @@ describe('KafkaConsumerHelper - one delivery per stream error on a real Readable
         messageErrors.push(opts.error);
       },
     });
-    (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
-      async () => stream;
+    Reflect.set(helper.getConsumer(), 'consume', async () => stream);
 
     await helper.start({ topics: ['t'], maxReconnectAttempts: 0 });
     stream.destroy(new Error('broker dropped'));
@@ -722,8 +685,7 @@ describe('KafkaConsumerHelper - one delivery per stream error on a real Readable
         streamErrors.push(opts.error);
       },
     });
-    (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
-      async () => stream;
+    Reflect.set(helper.getConsumer(), 'consume', async () => stream);
 
     await helper.start({ topics: ['t'] });
     stream.destroy(new Error('broker dropped'));
@@ -751,8 +713,7 @@ describe('KafkaConsumerHelper - errors after the loop gave up are still reported
         messageErrors.push(opts.error);
       },
     });
-    (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
-      async () => stream;
+    Reflect.set(helper.getConsumer(), 'consume', async () => stream);
 
     await helper.start({ topics: ['t'], maxReconnectAttempts: 0 });
     stream.destroy(new Error('first drop'));

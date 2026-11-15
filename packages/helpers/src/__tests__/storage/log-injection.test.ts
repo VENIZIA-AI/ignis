@@ -9,7 +9,6 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import util from 'node:util';
-import { type AnyType } from '@/common/types';
 import { BaseLogger, type ILogger, type TLogLevel } from '@/modules/logger';
 import {
   type IBucketInfo,
@@ -35,7 +34,7 @@ class RecordingLogger extends BaseLogger {
     this.lines = opts.lines ?? [];
   }
 
-  protected write(opts: { level: TLogLevel; message: string; args: Array<AnyType> }): void {
+  protected write(opts: { level: TLogLevel; message: string; args: Array<unknown> }): void {
     this.lines.push(util.format(`${this._formattedPrefix}${opts.message}`, ...opts.args));
   }
 

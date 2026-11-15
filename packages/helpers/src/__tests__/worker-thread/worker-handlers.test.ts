@@ -1,6 +1,5 @@
 /** BaseWorkerHelper / BaseWorkerBusHelper event-handler Test Suite */
 
-import type { AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
 import {
   BaseWorkerBusHelper,
@@ -34,15 +33,19 @@ const createWorkerHelper = (opts: {
 
 /** MessagePort is a native class - a structural EventEmitter stand-in exercises the same listeners. */
 const createFakePort = () => {
-  const port: AnyType = new EventEmitter();
-  port.postMessage = mock(() => {});
-
-  return port as EventEmitter & {
-    postMessage: ReturnType<typeof mock>;
-  };
+  return Object.assign(new EventEmitter(), { postMessage: mock(() => {}) });
 };
 
-const asMessagePort = (port: ReturnType<typeof createFakePort>) => port as AnyType as MessagePort;
+const isMessagePort = (value: unknown): value is MessagePort =>
+  value instanceof EventEmitter && 'postMessage' in value;
+
+const asMessagePort = (port: ReturnType<typeof createFakePort>): MessagePort => {
+  if (!isMessagePort(port)) {
+    throw new Error('[asMessagePort] The fake lost its postMessage');
+  }
+
+  return port;
+};
 
 afterEach(async () => {
   while (workers.length) {
