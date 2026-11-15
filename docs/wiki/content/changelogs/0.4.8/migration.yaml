@@ -21,6 +21,12 @@ scope-operations:
             ? { merchantId }
             : { or: [{ merchantId }, { counterpartMerchantId: merchantId }] },
       };
+    steps:
+      - "Replace imports of ScopeWriteOperations and TScopeWriteOperation from @venizia/ignis-connectors with ScopeOperations and TScopeOperation from @venizia/ignis-kernel or @venizia/ignis."
+      - "Update mutation or operation parameters passed to applyScopeFilter, applyDefaultFilter, or guardScopedWrite to use type TScopeOperation."
+      - "Update access.resolve functions to accept { operation } if different scopes are needed for READ, CREATE, UPDATE, or DELETE operations."
+      - "Move any soft delete handling from updateById or updateBy overrides into the protected _update or override the delete method instead."
+      - "Ensure updates and deletes evaluated under write.sharedRows use scope filters readable by the guard rather than unsupported range, like, or multi-column or clauses."
   downgrade:
     steps:
       - Pin @venizia/ignis-kernel, @venizia/ignis-connectors and @venizia/ignis to 0.4.7, where ScopeWriteOperations and TScopeWriteOperation exist and resolve takes no argument.
@@ -50,6 +56,12 @@ access-settings-union:
       }
 
       await this.guardScopedWrite({ rows, operation: 'update' });
+    steps:
+      - "Check calls to `IModelSettings.access` or `getAccessSettings()` and narrow the `TModelAccessSettings` union by ruling out `through` before calling `access.resolve(...)`."
+      - "Ensure each model declares exactly one of `resolve` or `through` under `settings.access`."
+      - "Add `await` to every call site of `guardScopedWrite`."
+      - "Add `supportsRowLock` to any custom class implementing `IRelationalQueryExecutor`."
+      - "Implement `resolveThrough`, `toParentWhere` and `resolveAccessScope` on any custom `IRelationalQueryDialect` that does not extend the filter builder."
   downgrade:
     steps:
       - Pin @venizia/ignis-kernel, @venizia/ignis-connectors and @venizia/ignis to 0.4.7, where access is IModelAccessSettings and guardScopedWrite is synchronous.
@@ -70,6 +82,9 @@ drop-eslint-plugin-n-unicorn:
       rules: {
         'venizia/no-unbraced-case': 'error',
       }
+    steps:
+      - "Rename unicorn/switch-case-braces to venizia/no-unbraced-case in your ESLint config."
+      - "Delete n/prefer-node-protocol from your ESLint config rules."
   downgrade:
     steps:
       - Pin @venizia/dev-configs to 0.4.7, which installs eslint-plugin-n and eslint-plugin-unicorn again.
@@ -88,6 +103,10 @@ remove-async-style-configs:
       import { houseConfigs } from '@venizia/dev-configs/linters';
 
       export default houseConfigs;
+    steps:
+      - "Remove asyncStyleConfigs or reactAsyncStyleConfigs from the @venizia/dev-configs/linters import and from the spread."
+      - "Replace the spread array export with export default houseConfigs or export default reactHouseConfigs."
+      - "Run devz codemod async-style for the fixable findings."
   downgrade:
     steps:
       - Pin @venizia/dev-configs to 0.4.7 and import asyncStyleConfigs (or reactAsyncStyleConfigs for a React project) again.
@@ -115,6 +134,10 @@ typesense-single-sort:
         queryBy: ['name'],
         engineParams: { sortBy: 'name:asc' },
       });
+    steps:
+      - "Search your repository queries for places where both `filter.order` and `engineParams.sort_by` or `engineParams.sortBy` are specified together."
+      - "Remove one of the two sort definitions so each search sets only `filter.order` or `engineParams`."
+      - "Check that each `sort_by` or `sortBy` in `engineParams` is non-empty, balanced, and has at most three top-level entries."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7, where a sort_by in engineParams overrides filter.order silently and sortBy does not exist.
@@ -133,6 +156,10 @@ bun-s3-list-objects-top-level:
         prefix: 'photos/',
         useRecursive: true,
       });
+    steps:
+      - "Find every call to BunS3Helper.listObjects in the application."
+      - "Check which calls rely on listing objects recursively across nested prefixes."
+      - "Pass useRecursive true in IListObjectsOptions to each call that must continue listing at any depth."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7, where BunS3Helper.listObjects defaults useRecursive to true.
@@ -148,6 +175,9 @@ authenticate-requires-user-id:
     after: |
       // the answer identifies a user
       return { userId: serviceAccountId, principalType: 'service' };
+    steps:
+      - "Find every custom strategy used with authenticate whose answer lacks a userId."
+      - "Update each custom strategy answer to return the user id alongside any existing fields."
   downgrade:
     steps:
       - Pin @venizia/ignis-kernel and @venizia/ignis to 0.4.7, where any mode accepts a strategy answer with no userId.
@@ -166,6 +196,10 @@ default-filter-not-replaceable:
         filter: { where: { isDeleted: true } },
         options: { shouldSkipDefaultFilter: true },
       });
+    steps:
+      - "Find calls to reads, counts, updateBy, deleteBy, and include scope.where that query default-filter fields like isDeleted."
+      - "Add options: { shouldSkipDefaultFilter: true } to server calls that must access soft-deleted or hidden rows."
+      - "Restate any other default filter conditions in where when shouldSkipDefaultFilter drops the entire default filter."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors and @venizia/ignis to 0.4.7, where a where on a default-filter field replaces the default.
@@ -196,6 +230,12 @@ hidden-field-filter-parity:
       await repository.search({
         input: { mode: 'raw', params: { q: 'cafe', sort: ['_geoPoint(10.77,106.69):asc'] } },
       });
+    steps:
+      - "Remove client filters or sorts on hidden properties, replace them with visible properties, or move the query into server code on the repository."
+      - "Replace wildcards with explicit field lists in search controller field parameters on models with hidden fields."
+      - "Send Meilisearch undeclared order fields through mode: raw instead of filter.order."
+      - "Implement resolveInclusion on any custom class implementing IRelationalQueryDialect."
+      - "Implement includeNotSupportedError on any custom class implementing ISearchQueryDialect."
   downgrade:
     steps:
       - Pin @venizia/ignis-filter, @venizia/ignis-kernel, @venizia/ignis-connectors and @venizia/ignis to 0.4.7, where a request can filter and sort on a hidden property and an undeclared Meilisearch order field reaches the engine.
@@ -225,6 +265,11 @@ search-raw-mode-closed:
         query: { allow: { tuning: ['numTypos'] } },
       });
       // accepted: { "mode": "keyword", "query": "lamp", "queryBy": ["title"], "engineParams": { "numTypos": 1 } }
+    steps:
+      - "Add `modes: { raw: { use: true } }` to `SearchControllerFactory.build` on non-scoped controllers that must serve raw mode."
+      - "List accepted camelCase engine knobs in `query: { allow: { tuning: [...] } }` typed by the repository datasource."
+      - "Update client requests to pass camelCase tuning names in `engineParams`, replacing wire spellings like `num_typos`."
+      - "Use neutral `filter`, `queryBy`, and `fields` input instead of engine-specific row or field selection parameters."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors and @venizia/ignis to 0.4.7, where raw mode, multi-search and engineParams are always open on a generated search controller.
@@ -243,6 +288,10 @@ remove-aes-rsa-do-throw:
       } catch (error) {
         // the message was not sealed for this key: take the fallback path
       }
+    steps:
+      - "Find every call to AES.encrypt, AES.decrypt, RSA.encrypt and RSA.decrypt in the application."
+      - "Remove the doThrow option from the options passed to those calls."
+      - "Wrap calls where a fallback path is needed in a try-catch block and handle the failure in the catch clause."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers and @venizia/ignis to 0.4.7, where doThrow exists.
@@ -257,6 +306,9 @@ remove-aes-iv-option:
     after: |
       const sealed = await aes.encrypt({ message, secret });
       const plain = await aes.decrypt({ message: sealed, secret }); // reads the IV from sealed
+    steps:
+      - "Remove the iv option from every call to AES.encrypt and AES.decrypt."
+      - "Update tests that assert a known ciphertext to stub crypto.getRandomValues or verify by decrypting instead."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers and @venizia/ignis to 0.4.7, where encrypt takes an iv option.
@@ -281,6 +333,11 @@ default-body-limit:
         configs: { ...routeConfig, middleware: [BodyLimits.route({ maxSize: 50 * 1024 * 1024 })] },
         handler,
       });
+    steps:
+      - "Move any `hono/body-limit` added in `setupMiddlewares()` into `middlewares.bodyLimit` in the application config, because the framework limit now runs first."
+      - "Set `middlewares.bodyLimit` in the application config if requests may exceed the 5 MiB default."
+      - "Add `BodyLimits.route({ maxSize })` to the middleware array of each route that needs a larger limit."
+      - "Raise `configs.server.maxRequestBodySize` to at least the largest route limit when it is lower."
   downgrade:
     steps:
       - Pin @venizia/ignis-kernel and @venizia/ignis to 0.4.7, where an application with no middlewares.bodyLimit accepts up to Bun's own limit.
@@ -298,6 +355,10 @@ url-policy-refuses-userinfo-and-ipv6-ranges:
         url: 'https://hooks.example.com/notify',
         headers: { authorization: `Bearer ${token}` },
       });
+    steps:
+      - "Audit callers of UrlPolicy.assertSafeUrl and UrlIngest.fetchGuarded for URLs containing username or password credentials."
+      - "Remove credentials from the URL and pass them in headers instead."
+      - "Check targets passed to UrlPolicy.assertSafeUrl or UrlPolicy.isNonPublicAddress and remove any IPv6 addresses in NAT64, 6to4, or other reserved ranges."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7, where a url with credentials and the IPv6 ranges above are accepted.
@@ -330,6 +391,10 @@ jwt-claims-required:
         claims: { issuer: 'https://auth.example.com' },
         verify: { algorithms: ['ES256'] },
       }
+    steps:
+      - "Replace `sign`, `verify.issuer`, and `verify.audience` in your JWS options with `claims: { issuer }` and optional `claims.audience`."
+      - "Add `claims: { issuer }` to every JWKS issuer and verifier configuration."
+      - "Add `verify.algorithms` with the accepted signing algorithm list to every JWKS verifier configuration."
   downgrade:
     steps:
       - Pin the IGNIS packages to 0.4.7, where claims is unknown and issuer and audience are optional under sign and verify.
@@ -343,6 +408,10 @@ jwt-secret-min-length:
       APP_ENV_JWT_SECRET=change-me
     after: |-
       APP_ENV_JWT_SECRET=$(openssl rand -base64 48)
+    steps:
+      - "Check that the jwtSecret in your JWT options, for example APP_ENV_JWT_SECRET, is at least 32 UTF-8 bytes long."
+      - "Replace a shorter secret with a generated one, for example openssl rand -base64 48."
+      - "Warn users that changing the secret signs everyone out because existing tokens stop verifying."
   downgrade:
     steps:
       - Pin @venizia/ignis to 0.4.7, which accepts a short secret; keep the longer one.
@@ -361,6 +430,9 @@ jwks-url-https:
         jwks: { hosts: { http: ['identity-service'] } },
       }
       { name: 'inventory', callers: { commerce: 'http://commerce:3000/svc-certs' }, jwks: { hosts: { http: ['commerce'] } } }
+    steps:
+      - "Switch every jwksUrl and service-assertion caller URL from http to https, pointing directly to the final destination without redirects."
+      - "Add non-loopback plain-http hosts, IPv4 addresses, or bracketed IPv6 addresses to jwks.hosts.http when https is not used."
   downgrade:
     steps:
       - Pin @venizia/ignis-kernel and @venizia/ignis to 0.4.7, which accepts any http URL. Leave jwks.hosts.http in place; 0.4.7 ignores it.
@@ -393,6 +465,11 @@ rest-router-type-hono:
           this.getRootRouter().doc('/doc', { openapi: '3.0.0', info: { title: 'x', version: '1' } });
         }
       }
+    steps:
+      - "Check your RestApplication or WorkerApplication for calls to .openapi(), .doc() or .openAPIRegistry on getRootRouter() or getServer()."
+      - "Import OpenAPIHono from @hono/zod-openapi if those methods are called on the router without controllers."
+      - "Override createRouter({ strict }) on your application class to return new OpenAPIHono({ strict })."
+      - "Declare `protected rootRouter` as `OpenAPIHono` and override `getRootRouter()` to return it."
   downgrade:
     steps:
       - Pin @venizia/ignis-kernel, @venizia/ignis-worker and @venizia/ignis to 0.4.7, where the getters return OpenAPIHono. Remove the createRouter override and the getter override if you added them.
@@ -421,6 +498,11 @@ crud-controller-factory-build:
 
       @controller({ path: '/notes' })
       export class NoteController extends _Controller {}
+    steps:
+      - "Find call sites with: rg -n '\\bControllerFactory\\b|defineCrudController|enabledRoutes|super\\.binding\\(\\)|controllerName'."
+      - "Replace ControllerFactory.defineCrudController calls with CrudControllerFactory.build, passing the repository class directly."
+      - "Configure routes explicitly using CrudRoutes or TCrudRoutes, removing controller.basePath, controller.name, controller.readonly, and controller.enabledRoutes."
+      - "Remove super.binding() calls from controller subclasses and rename any subclass members named $inferData or $inferPersist."
   downgrade:
     steps:
       - Pin @venizia/ignis, @venizia/ignis-kernel and @venizia/ignis-connectors to 0.4.7 and call ControllerFactory.defineCrudController with entity, repository and controller again.
@@ -447,6 +529,12 @@ search-controller-factory-build:
         authenticate: { strategies: [Authentication.STRATEGY_JWT] },
       });
       // ArticleRepository extends DefaultSearchRepository<TArticle>: the document type must be named
+    steps:
+      - "Replace SearchControllerFactory.defineSearchController with SearchControllerFactory.build."
+      - "Pass the repository class directly to repository, moving isStrict to the top level and removing entity and controller."
+      - "Name document types on any class extending DefaultSearchRepository."
+      - "Set { use: true } on search and multiSearch, whichever you want served; a route left out or { use: false } is not served."
+      - "Set the required authenticate option with strategies or '{ skip: true }'."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7 and call SearchControllerFactory.defineSearchController with entity, repository and controller again.
@@ -468,6 +556,12 @@ model-properties-group:
 
       @model({ settings: { properties: { stamped: [] } } })
       class Article extends BaseSearchEntity<typeof Article.schema> {}
+    steps:
+      - "Rename hiddenProperties to properties.hidden in every @model settings block."
+      - "Replace any getServerStampedKeys() override with properties.stamped in the @model settings."
+      - "Declare properties.stamped without any hand-declared audit column the client must send; a search collection with a required field named like an audit key sets stamped: []."
+      - "Pass routes.<route>.request.body built with stamped keys omitted for controllers over refined or transformed schemas."
+      - "If you import AuditFields, import it from @venizia/ignis-kernel."
   downgrade:
     steps:
       - Pin @venizia/ignis-kernel, @venizia/ignis-connectors and @venizia/ignis to 0.4.7 and rename properties.hidden back to hiddenProperties.
@@ -484,6 +578,11 @@ deleted-at-writes-refused:
     after: |-
       await repository.deleteById({ id, data: { status: 'ARCHIVED' } });
       await repository.restoreById({ id });
+    steps:
+      - "Inspect callers of SoftDeletableRepository and SoftDeletableSqliteRepository for updateById, updateBy, updateEach, and upsert calls passing deletedAt in data."
+      - "Replace calls that set deletedAt to mark a deletion with deleteById or deleteBy, passing any accompanying column updates in data."
+      - "Replace calls that clear deletedAt to restore a record with restoreById or restoreBy."
+      - "Remove deletedAt from the data payload of any remaining updateById, updateBy, updateEach, or upsert calls."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7, where an update may carry deletedAt.
@@ -500,6 +599,11 @@ remove-bulk-all-methods:
       await repo.updateBy({ where: { status: 'OPEN' }, data: { status: 'DONE' } });
       await repo.deleteBy({ where: {}, options: { force: true } });
       await repo.restoreBy({ where: { id: { gt: 10 } } });
+    steps:
+      - "Find call sites with: rg -n '\\b(updateAll|restoreAll|deleteAll)\\b'."
+      - "Replace updateAll with updateBy, deleteAll with deleteBy, and restoreAll with restoreBy."
+      - "Pass where: {} with options: { force: true } on updateBy, deleteBy or restoreBy calls that target the whole table."
+      - "Update subclasses and mocks overriding the removed methods to override updateBy, deleteBy, or restoreBy instead."
   downgrade:
     steps:
       - Pin the IGNIS packages to 0.4.7, where updateAll, deleteAll and restoreAll exist. updateBy, deleteBy and restoreBy exist there too, so leaving them is safe.
@@ -516,6 +620,10 @@ migration-ledger-option:
         driver,
         ledger: { schema: 'public', table: 'ignis_browser_migrations' },
       });
+    steps:
+      - "Find every RelationalMigrationRunner constructor that passes ledgerTable; it now throws at construction."
+      - "Replace ledgerTable with ledger: { schema?, table? }, moving the table name into table."
+      - "On SQLite leave ledger.schema out or set it to main; SQLite accepts no other schema."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7 and pass ledgerTable with the table name only; drop the schema.
@@ -531,6 +639,10 @@ datasource-connector-optional:
       // getConnector() throws until the datasource is open
       const connector = dataSource.getConnector();
       connector.query(sql);
+    steps:
+      - "Replace direct reads of `dataSource.connector` with `dataSource.getConnector()` wherever code requires an open connector."
+      - "Where code reads connector directly, handle undefined: it is empty before the first open and after close()."
+      - "Handle the error getConnector() throws when the datasource is not yet open or after close()."
   downgrade:
     steps:
       - Pin @venizia/ignis-kernel and @venizia/ignis-connectors to 0.4.7, where connector is typed TConnector.
@@ -545,6 +657,11 @@ statuses-is-valid-shape:
     after: |-
       // isValid now checks the NNN_NAME shape; use the set for the built-in list
       Statuses.SCHEME_SET.has('209_SHIPPING');
+    steps:
+      - "Replace Statuses.isValid with Statuses.SCHEME_SET.has wherever code must reject unknown well-formed codes."
+      - "Rename any conflicting custom Statuses subclass constants among OPEN, SUBMITTED, READY, PUBLISHED, ISSUED, RESOLVED or VOIDED."
+      - "Change any conflicting custom Statuses subclass codes among 105, 106, 206, 207, 208, 306 or 508 to another code."
+      - "Stop routing domain classes using the NNN_ prefix as an ordinal step number through these Statuses checks."
   downgrade:
     steps:
       - Pin @venizia/ignis-kernel to 0.4.7, where isValid checks membership of the built-in list.
@@ -557,6 +674,10 @@ mail-token-bytes-minimum:
       { codeLength: 6, tokenBytes: 8, codeExpiryMinutes: 10, tokenExpiryHours: 24 }
     after: |-
       { codeLength: 6, tokenBytes: 32, codeExpiryMinutes: 10, tokenExpiryHours: 24 }
+    steps:
+      - "Find every mail verification setting that passes tokenBytes."
+      - "Check whether `tokenBytes` is set below 16."
+      - "Raise `tokenBytes` to 16 or more, using 32 as the usual setting."
   downgrade:
     steps:
       - Pin @venizia/ignis to 0.4.7, which accepts a shorter tokenBytes; a larger value keeps working.
@@ -593,6 +714,12 @@ static-asset-names:
       const link = StaticAssetObjectLinkUtility.build(opts);
       bind({ key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS }); // '@app/static-asset/options'
       // StaticAssetDefaults.PENDING_PREFIX, StaticAssetMetaLinkCodes.CREATE_FAILED
+    steps:
+      - "Rename imports from @venizia/ignis/static-asset so every export starts with StaticAsset, helper classes end in Utility, and StaticAssetComponentBindingKeys becomes StaticAssetBindingKeys."
+      - "Replace AssetControllerFactory.defineAssetController with StaticAssetControllerFactory.build, and AuthControllerFactory.define with AuthControllerFactory.build."
+      - "Replace AssetControllerFactory.buildObjectLink with StaticAssetObjectLinkUtility.build and resolveServedContentType with StaticAssetServe.resolveServedContentType; read constants such as StaticAssetDefaults.PENDING_PREFIX as class members."
+      - "Import StorageTypes from @venizia/ignis-helpers instead of StaticAssetStorageTypes, and remove WHITELIST_HEADERS, findLabelsInQuery, MetaLinkRecreateActions.isValid and MetaLinkRecreateActions.SCHEME_SET."
+      - "Change the options binding to StaticAssetBindingKeys.STATIC_ASSET_OPTIONS and any '@app/static-asset-component/options' string to '@app/static-asset/options'."
   downgrade:
     steps:
       - Pin @venizia/ignis and @venizia/dev-configs to 0.4.7 and use the old names, renaming them back one for one.
@@ -627,6 +754,12 @@ static-asset-entry-flat:
         directUpload: { use: false },
         metaLink: { use: true, repository },
       },
+    steps:
+      - "Flatten each static-asset entry by moving bucket, routes, and keyPrefix out of controller, removing storage, and dropping extra."
+      - "Configure serverUpload, directUpload, and metaLink as feature toggles with use set to true or false."
+      - "Map extra.normalizeNameFn to serverUpload.objectKey, rename defineRoutesBefore and defineExtraRoutes to extend.before and extend.after, and drop model from metaLink."
+      - "Update error handling to check core.storage.folder_path_invalid and core.storage.folder_depth_exceeded instead of the old folder error codes."
+      - "Rewrite stored links containing /buckets/<name>/ across your data store."
   downgrade:
     steps:
       - Pin @venizia/ignis and @venizia/ignis-helpers to 0.4.7 and move each entry back under controller, storage and extra.
@@ -654,6 +787,11 @@ direct-upload-one-object-per-policy:
       form.append('file', file);
       // entry
       directUpload: { expires: { upload: { unit: 'minute', value: 15 }, commit: { unit: 'hour', value: 6 } }, /* ... */ }
+    steps:
+      - "Replace keyPrefix with object: { key } in every BunS3Helper.presignPost call."
+      - "Remove the client form.append call for key because formData already carries it."
+      - "Replace directUpload.expiresIn with directUpload.expires.upload and add directUpload.expires.commit in the configuration."
+      - "Put a lifecycle rule on the pending prefix that is longer than directUpload.expires.commit."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers and @venizia/ignis to 0.4.7, where a policy allows any key under the prefix. Put form.append('key', policy.objectName) back in the client and rename expires.upload to expiresIn.
@@ -688,6 +826,11 @@ direct-upload-resolvers:
           issueSchema,
         },
       },
+    steps:
+      - "Configure directUpload.resolvers with owner and optionally metadata or commit.destination."
+      - "Move file checks from directUpload.onCommit into directUpload.validation handler taking file, owner, and metadata."
+      - "Ensure clients send only bare names for fileName and handle 409 core.static_asset.upload_already_committed on retry as success."
+      - "Update upload clients when directUpload.validation is enabled to call upload-validate and send its returned commitToken to upload-commit."
   downgrade:
     steps:
       - Pin @venizia/ignis and @venizia/ignis-helpers to 0.4.7, where the entry takes no resolvers and a token has no owner.
@@ -706,6 +849,9 @@ static-asset-unique-upload-key:
       // to keep a name-based key
       export const objectKey: TStaticAssetObjectKeyResolver = ({ file }) =>
         BaseStorageHelper.normalizeObjectName({ file });
+    steps:
+      - "Replace manual URL construction using the file name with the response link or response.object.key."
+      - "Configure serverUpload.objectKey with a TStaticAssetObjectKeyResolver using BaseStorageHelper.normalizeObjectName if name-based keys must be preserved."
   downgrade:
     steps:
       - Pin @venizia/ignis to 0.4.7 to store new objects under the lowercased name again, or set serverUpload.objectKey to a resolver that returns the normalized file name.
@@ -721,6 +867,10 @@ storage-normalize-object-name:
     after: |-
       const key = BaseStorageHelper.normalizeObjectName({ file }); // public and static
       // put the custom naming in serverUpload.objectKey
+    steps:
+      - "Remove any protected override of normalizeObjectName from helper subclasses extending BaseStorageHelper or BunS3Helper."
+      - "Move custom naming logic to the serverUpload.objectKey hook."
+      - "Call static BaseStorageHelper.normalizeObjectName with opts inside the hook if starting from the default key."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7, where normalizeObjectName is a protected instance method.
@@ -765,6 +915,11 @@ mail-queue-executor-config:
         type: MailQueueExecutorTypes.INTERNAL_QUEUE,
         options: { identifier: 'mail' },
       });
+    steps:
+      - "Replace `IMailQueueExecutorConfig` type annotations with `TMailQueueExecutorConfig`."
+      - "Rename the `bullmq` and `internalQueue` fields in `MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG` bindings to `options`."
+      - "Instantiate `RedisSingleHelper`, `RedisSentinelHelper` or `RedisClusterHelper` with `maxRetry: -1` and assign it to `options.redis` for BullMQ."
+      - "Close the Redis helper explicitly during application shutdown."
   downgrade:
     steps:
       - Pin @venizia/ignis to 0.4.7. Rename options back to internalQueue or bullmq, and pass the single-node connection options in bullmq.redis in place of the helper.
@@ -777,6 +932,10 @@ mail-template-escaping:
       <p>{{greetingHtml}}</p>
     after: |-
       <p>{{{greetingHtml}}}</p>
+    steps:
+      - "Replace {{value}} placeholders with {{{value}}} in mail template bodies wherever you intend to insert raw markup you trust."
+      - "Remove hand escaping from the template data you pass to sendTemplate or render for values that stay in {{value}} placeholders."
+      - "Pass format: MailTemplateFormats.TEXT to TemplateEngineService.render calls where plain-text output is required instead of the default HTML format."
   downgrade:
     steps:
       - Pin @venizia/ignis to 0.4.7, where {{value}} inserts the value as it is. Use {{value}} again for the placeholders you switched to {{{value}}}, and remove any hand escaping you added.
@@ -795,6 +954,11 @@ mail-send-template-options:
     after: |-
       // sendTemplate keeps the rendered body and its recipients; to choose them yourself, send
       await mailService.send({ to: ['other@example.com'], subject, html: '<p>replaced</p>' });
+    steps:
+      - "Find calls to MailService.sendTemplate that pass options.to or options.html to override recipients or the rendered body."
+      - "Replace those calls with MailService.send passing to, subject, and html directly."
+      - "Check that nothing reads options.requireValidate from the sent message; sendTemplate now uses it only to render."
+      - "Check that no address, subject or header value contains a line break, CR or NUL; send answers 400 core.mail.invalid_header."
   downgrade:
     steps:
       - Pin @venizia/ignis to 0.4.7, where options.to and options.html replace the recipients and the rendered body.
@@ -807,6 +971,10 @@ mail-error-codes-catalog:
       const code = MailErrorCodes.TEMPLATE_NOT_FOUND;
     after: |-
       const code = MailErrors.TEMPLATE_NOT_FOUND.message.code;
+    steps:
+      - "Locate all references to the seven catalog codes on MailErrorCodes."
+      - "Replace MailErrorCodes.<code> with MailErrors.<code>.message.code for INVALID_CONFIGURATION, INVALID_RECIPIENT, INVALID_HEADER, TEMPLATE_NOT_FOUND, ATTACHMENT_PATH_REFUSED, ATTACHMENT_TOO_LARGE, and BODY_SOURCE_REFUSED."
+      - "Keep MailErrorCodes.SEND_FAILED, MailErrorCodes.VERIFICATION_FAILED, and MailErrorCodes.BATCH_SEND_FAILED unchanged."
   downgrade:
     steps:
       - Pin @venizia/ignis to 0.4.7 and read MailErrorCodes.<code> again for the seven catalog codes. The wire codes are the same in both versions.
@@ -829,6 +997,10 @@ mail-validators-removed:
     after: |-
       const queueExecutorTypes = new Set<string>(Object.values(MailQueueExecutorTypes));
       queueExecutorTypes.has(value);
+    steps:
+      - "Find all usages of MailQueueExecutorTypes.isValid, BullMQExecutorModes.isValid, and MailBackoffTypes.isValid in your application."
+      - "Replace calls to isValid with a check against a Set constructed from Object.values of each respective constant object."
+      - "Remove any direct references to MailQueueExecutorTypes.SCHEME_SET, BullMQExecutorModes.MODE_SET, and MailBackoffTypes.SCHEME_SET."
   downgrade:
     steps:
       - Pin @venizia/ignis to 0.4.7, where the static validators exist; the constant values are the same.
@@ -841,6 +1013,10 @@ helper-validators-removed:
     after: |-
       const mimeTypes = new Set<string>(Object.values(MimeTypes));
       mimeTypes.has(value);
+    steps:
+      - "Find all calls to isValid and SCHEME_SET across S3Audiences, QueueStatuses, BullQueueRoles, KafkaHealthStatuses, KafkaBrokersDownReasons, FetcherVariants, UrlSchemes, TcpClientStates, MimeTypes, DataTypes, FieldMappingDataTypes and RedisSentinelRoles."
+      - "Replace isValid and SCHEME_SET usages by constructing a Set from Object.values of the constant object."
+      - "Check membership against the newly constructed Set using its has method instead of isValid."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7, where the static validators exist; the constant values are the same.
@@ -861,6 +1037,10 @@ redis-factory-per-topology:
         host: '127.0.0.1',
         port: 6379,
       });
+    steps:
+      - "Locate each RedisHelperFactory.create call in your application, and any createRedisHelper call."
+      - "Replace each with RedisHelperFactory.single, RedisHelperFactory.cluster or RedisHelperFactory.sentinel, whichever matches the topology, by hand."
+      - "Remove the mode option and any imports of RedisModes or TRedisMode."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7 and call RedisHelperFactory.create({ mode, ...options }) with RedisModes.SINGLE, CLUSTER or SENTINEL instead of single, cluster or sentinel.
@@ -874,6 +1054,9 @@ redis-single-user-option:
     after: |-
       // username is now sent to ioredis, so the helper authenticates as that ACL user
       new RedisSingleHelper({ name: 'cache', host: 'redis', port: 6379, username: 'app', password });
+    steps:
+      - "Rename the user option to username in every RedisSingleHelper configuration."
+      - "Check that the ACL user exists on the target Redis instance before you deploy."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7, which accepts user and ignores it. A node that needs an ACL user needs a hand-built client there.
@@ -918,6 +1101,11 @@ redis-sentinel-scope:
         username: 'data-user', // new: the data nodes' ACL user
         password: 'data-secret',
       });
+    steps:
+      - "Move masterName and role into the sentinel scope of your RedisSentinelHelper options."
+      - "Rename sentinels to nodes inside sentinel."
+      - "Rename sentinelUsername and sentinelPassword to username and password inside sentinel."
+      - "Keep data node credentials at the top level as username and password."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7 and move the fields back to the top level (sentinels, masterName, role, sentinelUsername, sentinelPassword); drop the sentinel scope and the top-level username.
@@ -944,6 +1132,10 @@ redis-cluster-node-password:
         username: 'app-user', // omit it for the default user
         password: 'cluster-secret',
       });
+    steps:
+      - "Move each `password` from the individual entries in `nodes` up to the top level of `RedisClusterHelper` or `RedisHelperFactory.cluster`."
+      - "Set top-level `username` if the cluster requires a non-default user, or omit it for the default user."
+      - "Check that a top-level username or password you set is the one you want, because it wins over clusterOptions.redisOptions."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7, put password back on each entry of nodes and drop the top-level username and password. Nodes found after startup get no password there.
@@ -958,6 +1150,10 @@ bullmq-helper-type-arguments:
     after: |-
       const queue = new BullMQHelper<TElement, TResult>({ /* ... */ });
       onWorkerData: (job: Job<TElement, TResult>) => Promise<TResult>,
+    steps:
+      - "Pass explicit type arguments BullMQHelper<TElement, TResult> when instantiating BullMQHelper."
+      - "Update onWorkerData handlers to match (job: Job<TElement, TResult>) => Promise<TResult>."
+      - "Remove any widening to BullMQHelper<unknown, unknown> or casts on the helper instance."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7, where the default type arguments are any and handlers compile against any callbacks.
@@ -970,6 +1166,10 @@ storage-metadata-types-unknown:
       const label: string = file.label; // extra field of IUploadFile, any
     after: |-
       const label = typeof file.label === 'string' ? file.label : undefined;
+    steps:
+      - "Narrow any extra field you read from IUploadFile or IObjectMetadata, for example with a typeof check, before you use it."
+      - "Narrow any value you read from IUploadResult.metaLink.data before use."
+      - "Narrow any value you read from the options of IStorageHelper.getObject before use."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7, where the extra fields are any.
@@ -987,6 +1187,9 @@ inversion-entry-reflect-metadata:
       import 'reflect-metadata';
       import { getError } from '@venizia/ignis-inversion';
       const keys = Reflect.getMetadataKeys(target);
+    steps:
+      - "Identify browser entries that call Reflect.getMetadata or sibling Reflect.*Metadata methods directly."
+      - "Add import 'reflect-metadata' once at each affected browser bundle entry."
   downgrade:
     steps:
       - Pin @venizia/ignis-inversion and @venizia/ignis-kernel to their 0.4.7 line, where the package entry loads the polyfill. Leave the import 'reflect-metadata' you added; importing it twice is harmless.
@@ -1010,6 +1213,11 @@ http-data-source-root-class:
         fetch: (url, init) => instrumentedFetch(url, init),
       });
       if (dataSource instanceof DataSourceRoot) { /* ... */ }
+    steps:
+      - "Replace subclass overrides accessing the protected network member with the fetch option on HttpDataSource settings."
+      - "Remove calls to discoverDefinitions() and getBoundModelClasses() from any HttpDataSource subclasses."
+      - "Replace checks against instanceof AbstractDataSource with instanceof DataSourceRoot or isDataSourceClass."
+      - "Drop open.timeoutMs from any HttpDataSource configurations."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors and @venizia/ignis-kernel to 0.4.7, where HttpDataSource extends AbstractDataSource and has the protected network member. Remove the fetch setting; the older data source sends through its own node transport.
@@ -1027,6 +1235,10 @@ repository-data-source-type:
       if (source instanceof AbstractDataSource) {
         // what only an AbstractDataSource has
       }
+    steps:
+      - "Import DataSourceRoot and AbstractDataSource from @venizia/ignis-kernel/repository."
+      - "Update variables or properties typed as AbstractDataSource from repository.dataSource to DataSourceRoot."
+      - "Narrow the DataSourceRoot value with an instanceof AbstractDataSource check before accessing members specific to AbstractDataSource."
   downgrade:
     steps:
       - Pin @venizia/ignis-kernel and @venizia/ignis-connectors to 0.4.7, where the getter and the contracts return AbstractDataSource. Remove an instanceof narrowing you added only for the wider type.
@@ -1041,6 +1253,9 @@ search-scope-resolver-input:
     after: |-
       // the resolver is called with the validated body and the injected instances too ({} when the controller declares no inject)
       resolver({ context, input, injected: {} });
+    steps:
+      - "Find unit tests or wrappers that call a search scope resolver directly and pass input and injected as well as context."
+      - "Declare extra body keys as a Zod shape in request.body.extend of SearchControllerFactory.build if the scope needs them as input."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7 and call the resolver with { context } only.
@@ -1090,6 +1305,12 @@ class-types-never-arguments:
 
       // T is inferred from the classes; give one common instance type when the classes differ
       const sorted = helper.sortConfigurationsTopologically<BaseConfiguration>({ classes: [ConfigA, ConfigB] });
+    steps:
+      - "Replace static property access on `TClass` with `typeof Service` or intersect `TClass` with the required static properties."
+      - "Construct instances from `TConstructor` using `Reflect.construct` or type the parameter with an explicit `new (...) => T` constructor signature."
+      - "Type per-entity collections explicitly per entity instead of using a single `TClass` over a union entity type."
+      - "Narrow `TClass<unknown>` return values from `ResolverUtility.resolveInjectTarget` before assigning them to a specific class type."
+      - "Pass an explicit common base instance type parameter to `ArtifactIndexHelper.sortConfigurationsTopologically` when sorting classes of different kinds."
   downgrade:
     steps:
       - Pin @venizia/ignis-inversion, @venizia/ignis-helpers, @venizia/ignis-kernel, @venizia/ignis-connectors and @venizia/ignis to 0.4.7, where the arguments are any[] and the results TClass<any>. The typeof and intersection forms you added keep compiling.
@@ -1118,6 +1339,11 @@ class-slot-checks-the-instance:
       // or make the slot generic, so the entity is inferred from the class
       const register = <TEntity extends TNamedEntity>(repositoryClass: TClass<HttpRepository<TEntity>>) => repositoryClass;
       const registered = register(OrganizerRepository);
+    steps:
+      - "Run bun check to locate class slots failing with TS2322."
+      - "Retype each failing slot by the members you read, or pick those members from the slot repository type."
+      - "Make the slot generic to infer the entity from the repository class."
+      - "Type the slot with the repository instance the class actually produces."
   downgrade:
     steps:
       - "Pin @venizia/ignis-helpers and the packages that re-export it to 0.4.7, or type the slot as TClass<T> & { [property: string]: any } in your own code: the older TClass accepted a class whose instance did not fit the slot."
@@ -1156,6 +1382,11 @@ mixin-base-takes-tmixinconstructor:
       class Controller extends stamped(CrudBase) {
         override async find(): Promise<string[]> { return ['x']; }
       }
+    steps:
+      - "Fix a mixin that reports TS2545 first, before addressing TS2510 errors on the classes that extend it."
+      - "Constrain a generic mixin base that uses `TClass` with `TMixinConstructor`."
+      - "Constrain a generic mixin base that uses `TAbstractClass` with `TAbstractMixinConstructor`."
+      - "Use `TMixinConstructor` or `TAbstractMixinConstructor` instead of `TMixinTarget` or `TAbstractMixinTarget` when subclasses of the mixin override methods with method syntax."
   downgrade:
     steps:
       - "Pin @venizia/ignis-helpers and the packages that re-export it to 0.4.7, or constrain the base by TAbstractMixinTarget (TMixinTarget for a concrete base) or by TAbstractClass (TClass) again: the older types had any[] arguments. TMixinConstructor and TAbstractMixinConstructor are new in this release, so 0.4.7 does not export them."
@@ -1171,6 +1402,10 @@ resolver-types-never-arguments:
       // call it with no arguments, or type the resolver with the arguments it takes
       const keyed: (key: string) => Service = () => service;
       const value = keyed('key');
+    steps:
+      - "Find call sites passing arguments to `TResolver`, `TAsyncResolver`, `TValueOrResolver`, `TValueOrAsyncResolver`, or `TTask`."
+      - "Remove arguments when calling them with no arguments."
+      - "Replace the resolver type with an explicit function type for functions that require arguments."
   downgrade:
     steps:
       - Pin @venizia/ignis-inversion and the packages that re-export it to 0.4.7, where the arguments are any[].
@@ -1190,6 +1425,11 @@ open-defaults-unknown:
       const result: string = await configurable.configure();
       const value = registry.get<typeof target, string>({ target, key });
       const name = typeof rename['profile.name'] === 'string' ? rename['profile.name'] : undefined;
+    steps:
+      - "Pass explicit type arguments to IConfigurable when declaring or casting configurable services."
+      - "Provide type arguments for the target and value types on calls to MetadataRegistry.get and MetadataRegistry.define."
+      - "Narrow reads from IBindingTag properties before assigning them to typed variables."
+      - "Narrow property reads from TUpdateData objects before use."
   downgrade:
     steps:
       - Pin @venizia/ignis-inversion, @venizia/ignis-helpers and @venizia/ignis-kernel to 0.4.7, where these defaults are any. A type argument you added keeps compiling.
@@ -1215,6 +1455,9 @@ execute-with-measure-inferred:
         scope: 'update',
         task: async () => this.normalizeCountData<TRow>({ context, payload }),
       }); // hand it on as it is, or narrow it before you treat it as the count shape
+    steps:
+      - "Wrap each `task` so it takes no arguments, for example `task: () => loadRows(id)`, and pass `args` only for logging."
+      - "Remove annotations on the result that conflict with what `task` returns, or narrow the result before you use it."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers and @venizia/ignis-kernel to 0.4.7, where the task type is Function and the result any.
@@ -1237,6 +1480,9 @@ open-user-claims-unknown:
 
       const currentUser = context.get(Authentication.CURRENT_USER);
       const tenantId: string = currentUser.tenantId;
+    steps:
+      - "Declare the custom claims your app adds inside a `declare module '@venizia/ignis'` augmentation for `IAuthUser` or `IJWTTokenPayload`."
+      - "Read the declared claims typed directly from `currentUser` or the token payload without type assertions."
   downgrade:
     steps:
       - Pin @venizia/ignis and @venizia/ignis-kernel to 0.4.7, where the index signature is any. The declare module block you added keeps compiling.
@@ -1252,6 +1498,9 @@ open-config-bags-unknown:
       interface IMyAppConfigs extends IApplicationConfigs {
         myFeature?: boolean;
       }
+    steps:
+      - "Declare each key you read on your own interface that extends the config interface, such as `IApplicationConfigs`."
+      - "Narrow values read back from `IUIConfig` or `TObjectFromFieldMappings` before use."
   downgrade:
     steps:
       - Pin @venizia/ignis, @venizia/ignis-kernel and @venizia/ignis-helpers to 0.4.7, where the open keys are any. The keys you declared on your own interface keep compiling.
@@ -1273,6 +1522,10 @@ mail-payloads-unknown:
 
       // the data is Record<string, unknown>: an interface-typed value needs a spread
       await mailService.sendTemplate({ templateName: 'welcome', data: { ...user }, recipients: 'a@b.c' });
+    steps:
+      - "Narrow or parse `result.response` before reading its properties."
+      - "Spread an interface-typed value you pass as `data` to `sendTemplate` or the template engine, as `data: { ...user }`."
+      - "Narrow values you read from `IGenericMailOptions.config`, which is `Record<string, unknown>`."
   downgrade:
     steps:
       - Pin @venizia/ignis to 0.4.7, where result.response and the template data keys are any.
@@ -1305,6 +1558,12 @@ network-payloads-unknown:
       const ProfileSchema = z.object({ name: z.string() });
       const response = await fetcher.send<unknown>({ url, method: 'get' });
       const { name } = ProfileSchema.parse(response.data);
+    steps:
+      - "Narrow TCP onError handlers and extraEvents args from unknown before reading properties."
+      - "Update IOptions.extraHeaders values to strings instead of numbers or other types."
+      - "Keep the engine returned by `SocketIOBunHandler.createEngine` instead of reading it from `getEngine()`, which now answers a `TSocketIOBunEngine` object."
+      - "Provide a formData method on req when passing a hand-built context to RequestUtility.parseMultipartBody."
+      - "Pass a type parameter or validate the unknown response data when calling AxiosFetcher.send."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7, where onError, extraEvents args, getEngine() and the data of send() are any and extraHeaders takes any value.
@@ -1329,6 +1588,11 @@ bearer-payload-encryption-unknown:
           return this.applySignClaims({ signer, payload: { ...payload } });
         }
       }
+    steps:
+      - "Spread interface-typed values passed to `applySignClaims` as `{ ...payload }` or redefine the payload shape as a type alias."
+      - "Update `encryptPayload` overrides to return `Promise<Record<string, unknown>>`."
+      - "Update `serializeField` overrides to accept `unknown` instead of `any`."
+      - "Check that tokens issued by other means carry a string encrypted claim and a `userId` after decryption, because `decryptPayload` now answers 401 otherwise when `applicationSecret` is set."
   downgrade:
     steps:
       - "Pin @venizia/ignis to 0.4.7, or return Promise<Record<string, any>> and take value: any again in the overrides, and pass an interface-typed payload to applySignClaims directly."
@@ -1349,6 +1613,9 @@ logger-arguments-unknown:
           this.write({ level: 'info', message, args });
         }
       }
+    steps:
+      - "Find your own logger classes that implement `ILogger` or extend `BaseLogger` and override its methods."
+      - "Change the signature of each override from `...args: any[]` to `...args: unknown[]`."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers and @venizia/ignis-kernel to 0.4.7, or type the arguments of your override as any[] again. Callers need no change either way.
@@ -1369,6 +1636,9 @@ keys-to-camel-answers-a-record:
 
       // a typed row: parse it with the row's schema (a Record<string, unknown> is not assignable to IUserRow)
       const user = UserRowSchema.parse(ParseUtility.keysToCamel({ source: raw }));
+    steps:
+      - "Narrow what you read from ParseUtility.keysToCamel or ModelUtility.snakeToCamel before accessing nested values."
+      - "Parse the result of ParseUtility.keysToCamel with the row's schema when assigning it to a typed row."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7, where the result is any.
@@ -1383,6 +1653,10 @@ memory-storage-default-record:
       // the default shape is Record<string, unknown>; name your shape
       const storage = MemoryStorageHelper.newInstance<{ owner: { name: string } }>();
       const owner: string | undefined = storage.get('owner')?.name;
+    steps:
+      - "Locate calls to MemoryStorageHelper.newInstance()."
+      - "Pass an explicit type parameter to MemoryStorageHelper.newInstance<T>() to name your stored value shape."
+      - "Update property accesses on storage.get() results to handle undefined or the typed shape instead of any."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7, or drop the type argument; the older default is AnyObject.
@@ -1399,6 +1673,10 @@ worker-buses-never:
       const jobs: IWorkerBus<IJob, IJobResult> = { port, handler, postMessage };
       thread.bindWorkerBus({ key: 'jobs', bus: jobs });
       jobs.postMessage({ message: { id: 1 }, transferList: undefined });
+    steps:
+      - "Retain each typed `IWorkerBus` instance in local scope instead of reading it back from `IWorkerThread.buses`."
+      - "Bind the typed bus to the thread with `thread.bindWorkerBus`."
+      - "Send messages by calling `postMessage` directly on the retained typed bus instance."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7, where the buses are IWorkerBus<any, any> and can be read and sent through directly.
@@ -1413,6 +1691,9 @@ module-utility-default-unknown:
       // name what you load
       const lib = await ModuleUtility.load<typeof import('some-peer')>({ module: 'some-peer' });
       lib.connect();
+    steps:
+      - "Search the codebase for calls to ModuleUtility.load and ModuleUtility.loadSync that omit a type argument."
+      - "Provide explicit type arguments such as load<typeof import('some-peer')> or loadSync<typeof import('some-peer')> naming what each call loads."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7, or drop the type argument; the older default is any.
@@ -1425,6 +1706,10 @@ binding-default-unknown:
     after: |-
       // name what the tag holds
       const bindings = container.findByTag<IService>({ tag: 'services' });
+    steps:
+      - "Locate calls to `findByTag`, `Binding.bind`, and references to `IBinding` or `Binding` without an explicit type argument."
+      - "Provide the explicit type argument on each `findByTag` call, such as `container.findByTag<IService>({ tag })`."
+      - "Supply explicit type arguments on `Binding.bind`, `Binding`, and `IBinding` where `unknown` causes type errors."
   downgrade:
     steps:
       - Pin @venizia/ignis-inversion and @venizia/ignis-helpers to 0.4.7, or drop the type argument of findByTag and Binding; the older default is any.
@@ -1450,6 +1735,11 @@ network-request-bags-typed:
 
       const typed = await axiosFetcher.send<{ name: string }>({ url });
       const name = typed.data.name;
+    steps:
+      - "Cast or convert non-string values in headers to string when calling fetcher methods."
+      - "Pass a Record<string, unknown> object for params when calling QueryStringUtility.toQueryString or fetcher methods."
+      - "Parse response.data from AxiosFetcher verb methods before reading fields or assigning to typed locals."
+      - "Call AxiosFetcher.send with an explicit type parameter to type the response data directly."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7, where params, body and headers take any object and the response data is any.
@@ -1477,6 +1767,10 @@ secrets-registration-by-provider:
       interface IAppVaultSecrets extends IHashiCorpSecretsRegistration {
         label: string;
       }
+    steps:
+      - "Set provider on each ISecretsRegistration to a literal like SecretProviders.HASHICORP_VAULT so config resolves to the options of the named provider."
+      - "Replace any interface extending ISecretsRegistration with a type alias that intersects ISecretsRegistration."
+      - "Alternatively, extend the provider's own interface such as IHashiCorpSecretsRegistration, ISystemEnvsSecretsRegistration, or IDotenvSecretsRegistration."
   downgrade:
     steps:
       - "Pin @venizia/ignis-helpers to 0.4.7, where the registration is one interface with config: AnyObject and an interface that extends it compiles."
@@ -1555,6 +1849,12 @@ environment-get-string:
       const previous = applicationEnvironment.get('APP_ENV_PORT');
       applicationEnvironment.set('APP_ENV_PORT', String(5432));
       applicationEnvironment.set('APP_ENV_PORT', previous);
+    steps:
+      - "Run `devz codemod env-get [paths...] --write` (add `--numbers` to convert numeric reads with `ParseUtility.toNumber`) to remove obsolete type arguments from `applicationEnvironment.get` and `AppEnvs.get`."
+      - "Convert skipped calls, non-string defaults, and custom types manually using `transform` or `ParseUtility` functions."
+      - "Replace manual unset or empty checks for mandatory variables with `applicationEnvironment.getRequired`."
+      - "Update `ApplicationEnvironment.set` calls and constructor `envs` maps to pass strings or `undefined`."
+      - "Update any custom class implementing `IApplicationEnvironment` to match the four `get` overloads and the string-valued `set`."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7 and put the type arguments back (get<string>(key), get<R, string>(key, { transform })), or restore the files from git, since the codemod has no reverse.
@@ -1583,6 +1883,11 @@ unusable-access-scope-unresolved:
           return merchantId ? { merchantId } : null; // null denies on purpose
         },
       }
+    steps:
+      - "Find every IModelAccessSettings.resolve function that returns false, 0, an empty string, an empty list, an empty object, or a where object with undefined values."
+      - "Update the resolver to return a usable where object or null when denying access on purpose."
+      - "Return ScopeFilters.UNRESTRICTED in the resolver for any caller that must see everything."
+      - "Set onMissing to ScopeFilterMissingBehaviors.ALLOW only if an unresolved scope must keep applying no filter."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors and @venizia/ignis to 0.4.7, where a false, 0, empty string, empty list, {} or a where holding an undefined value is merged as it is and restricts nothing.
@@ -1605,6 +1910,11 @@ socketio-broadcast-authenticated-only:
         destination: 'public-announcements',
         payload: { topic: 'announcement', data: { text: 'Hello' } },
       });
+    steps:
+      - "Identify calls to SocketIOServerHelper.send without a destination that must still reach unauthenticated sockets."
+      - "Obtain the configured helper bound at SocketIOBindingKeys.SOCKET_IO_INSTANCE and call helper.getIOServer to handle connection events."
+      - "Join unauthenticated sockets to a custom room when connection events fire."
+      - "Pass that custom room as the destination in SocketIOServerHelper.send for broadcasts targeting those unauthenticated sockets."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7, where a send with no destination reaches every connected socket, authenticated or not.
@@ -1629,6 +1939,9 @@ websocket-handshake-before-established:
           socket.send(JSON.stringify({ event: 'join', data: { rooms: ['orders'] } }));
         }
       });
+    steps:
+      - "Check every WebSocket client that connects to a server configured with requireEncryption true."
+      - "Make it send messages and room joins only after it receives the connected event, not right after the authenticate frame."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers and @venizia/ignis to 0.4.7, where the client is AUTHENTICATED as soon as authenticateFn returns, before the encryption handshake finishes.
@@ -1649,6 +1962,10 @@ http-datasource-path-guard:
       const dataSource = new HttpDataSource({ name: 'api', baseUrl: 'https://api.example.com/v1' });
 
       await dataSource.request({ paths: ['files', safeFileName], query: { download: '1' } });
+    steps:
+      - "Remove any query string or fragment from baseUrl in IHttpDataSourceSettings, passing query parameters with the call query option instead."
+      - "Validate request paths and ids before passing them to HttpDataSource, rejecting backslashes, control characters, and dot segments."
+      - "Ensure resolved request paths stay on the base origin and under the base path of HttpDataSource."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors and @venizia/ignis to 0.4.7, where a request path is joined to the base URL as it is.
@@ -1667,6 +1984,11 @@ fetch-guarded-pins-address:
         url,
         policy: { proxy: 'http://proxy.internal:3128' },
       });
+    steps:
+      - "Set policy.proxy explicitly on UrlIngest.fetchGuarded calls if egress must route through an outbound proxy."
+      - "Point policy.proxy only at a proxy that refuses internal addresses, since address pinning is disabled when proxying."
+      - "Increase policy.timeout on multi-hop redirect requests if the total duration now exceeds the budget for the whole call."
+      - "Check the headers you pass: on a redirect that leaves the origin, any header other than accept, accept-language and user-agent is dropped."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7, where fetchGuarded checks the host once and connects through the platform fetch, which reads the environment proxy.
@@ -1685,6 +2007,10 @@ service-assertion-not-user-token:
 
       // and a token service gets a verify object with real algorithms
       options: { jwtSecret, claims: { issuer: 'my-api' }, verify: { algorithms: ['HS256'] } }
+    steps:
+      - "Send service assertions using the x-service-assertion header instead of the Authorization Bearer header."
+      - "Pass verify as an object in token service options."
+      - "Specify real algorithms in headerAlgorithm or verify.algorithms instead of none."
   downgrade:
     steps:
       - Pin @venizia/ignis to 0.4.7, where bearer and JWKS verification accept a token whose typ is svc+jwt and a malformed verify option is ignored.
@@ -1719,6 +2045,11 @@ disk-helper-path-containment:
       }
 
       await helper.writeStream({ bucket, object: { key: 'a.csv' }, source: stream });
+    steps:
+      - "Check with DiskHelper.hasBucket and create missing buckets with DiskHelper.createBucket before calling DiskHelper.writeStream."
+      - "Move symbolic link targets inside the storage root or set basePath directly to the real folder."
+      - "Check code that treats a directory or any other entry that is not a regular file as an object: DiskHelper no longer does."
+      - "Ensure keys passed to DiskHelper.writeStream stay within IWriteStreamOptions.maxFolderDepth and pass bucket name validation."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers and @venizia/ignis to 0.4.7, where DiskHelper does not follow links for containment and writeStream creates a missing bucket folder.
@@ -1749,6 +2080,10 @@ s3-virtual-hosted-object-calls:
         endpoint: { default: 'https://s3.example.com' },
         virtualHostedStyle: false,
       });
+    steps:
+      - "Check that the endpoint resolves bucket subdomains, with DNS and a wildcard certificate, wherever BunS3Helper has virtualHostedStyle true."
+      - "Rename buckets used with virtualHostedStyle to valid DNS labels containing only lowercase letters, numbers, and hyphens up to 63 characters."
+      - "Set virtualHostedStyle to false on BunS3Helper instances targeting endpoints that only serve path style or using bucket names with dots or uppercase letters."
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers and @venizia/ignis to 0.4.7, where the bucket name is not checked as a host label and object calls with virtualHostedStyle true go to the bare endpoint.
@@ -1764,6 +2099,10 @@ where-depth-limit:
     after: |
       // more than 20 levels is a validation issue: flatten the filter, or raise the limit
       const schema = QuerySchemaFactory.build({ limits: { whereDepth: 40 } });
+    steps:
+      - "Find client queries that send where filters nested more than 20 levels deep in and/or conditions."
+      - "Flatten or split deeply nested where filters in client requests to stay within 20 levels."
+      - "Pass limits: { whereDepth } to QuerySchemaFactory.build where controllers require deeper nesting."
   downgrade:
     steps:
       - Pin @venizia/ignis-filter to 0.4.6, the last stable release without the depth check (this package has no 0.4.7 stable tag).
@@ -1784,6 +2123,10 @@ blank-line-padding-rules:
       import { houseConfigs } from '@venizia/dev-configs/linters';
 
       export default houseConfigs;
+    steps:
+      - "Run devz lint --fix once to automatically insert the required blank-line padding."
+      - "Commit the generated blank-line formatting changes apart from other changes."
+      - "Run devz lint to confirm houseConfigs, reactHouseConfigs, or eslintConfigs pass without errors."
   downgrade:
     steps:
       - Pin @venizia/dev-configs to 0.4.7, which has no padding rules and does not depend on @stylistic/eslint-plugin.
@@ -1846,6 +2189,11 @@ any-aliases-removed:
       const strictPick = (source: object, key: string): unknown => Reflect.get(source, key);
 
       const strictDecorate = (target: object) => Reflect.getMetadata('design:type', target);
+    steps:
+      - "Run `devz codemod any-aliases [paths...] --write` (or `--all`) to rewrite `AnyType` and `AnyObject` imports to `any` and `Record<string | symbol | number, any>`."
+      - "Pass `--strict` if you want to rewrite the aliases to `unknown` and `Record<string, unknown>` instead."
+      - "Update any re-export, `import()` type, or heritage clause listed by the codemod as manual by hand."
+      - "Run `devz codemod any-aliases [paths...] --check` to verify that no files would change and no manual cases remain."
   downgrade:
     steps:
       - "Declare the aliases in your own code and import them from there: `export type AnyType = any;` and `export type AnyObject = Record<string | symbol | number, any>;`."
@@ -1877,6 +2225,11 @@ interface-values-and-record-unknown:
       save({ ...user });
 
       const bag: Record<string, unknown> = typedUser;
+    steps:
+      - "If you tighten the aliases (`--strict` or by hand), find the TS2345 or TS2322 errors on interface-typed values passed where `Record<string, unknown>` is expected."
+      - "Declare that interface's shape as a type alias, which has the implicit index signature."
+      - "Or spread the interface-typed value into a new object at the call site."
+      - "Or type the parameter `object` and read its properties with `Reflect.get`."
   downgrade:
     steps:
       - "Write Record<string | symbol | number, any> again (it is what the codemod writes by default); an interface fits it."
@@ -1896,6 +2249,10 @@ inject-target-is-object:
       const injectKey =
         (key: string) => (target: object, name: string | symbol | undefined, index?: number) =>
           inject({ key })(target, name, index);
+    steps:
+      - "Inspect wrapper functions that forward arguments to inject."
+      - "Update the target parameter type from unknown or unconstrained generic types to object or T extends object."
+      - "Recompile the application and resolve any TS2345 errors on forwarded inject decorator targets."
   downgrade:
     steps:
       - "Type the wrapper's target as unknown again; a decorator whose target is typed object fits the older any."
@@ -1926,6 +2283,10 @@ generated-index-types:
       if (typedClass) {
         new typedClass().run();
       }
+    steps:
+      - "Replace variable annotations of TGeneratedArtifactIndex with satisfies TGeneratedArtifactIndexInput on hand-written index objects."
+      - "Pass typed content or resolve directly when constructing AutoArtifactGroup so TIndex is inferred and retains class types."
+      - "Type constructed groups as IArtifactGroup where only the kernel interface is required."
   downgrade:
     steps:
       - Pin @venizia/ignis-boot to 0.4.7, where TGeneratedArtifactIndex lists TClass<any> per kind and AutoArtifactGroup takes no type argument.
@@ -1946,6 +2307,10 @@ http-repository-row-type:
       const created = await repository.create({ data: { title: 'x' } });
       created.data.title;
       await repository.find({ filter: { where: { title: 'x' } } });
+    steps:
+      - "Pass the row type when you instantiate HttpRepository, as in new HttpRepository<IArticle>(...)."
+      - "If a find fails with a TDataWithRange error or \"'id' does not exist in type 'TWhere<object>'\", name the row type."
+      - "Give a subclass that reads .data.x from patchWhere, deleteWhere or search() the row type, or narrow the value first."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7 and drop the type argument; the older default let every read and every field name compile.
@@ -1964,6 +2329,9 @@ raw-sql-repository-datasource-type:
         constructor(readonly reports: ReportDataSource) { super(reports); }
         rows() { return this.reports.settings.schema; }
       }
+    steps:
+      - "Hold your own datasource under its type in a constructor property of each BaseRawSqlRepository subclass."
+      - "Replace reads of this.dataSource.settings with reads from your own datasource property."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7 and read this.dataSource.settings directly again; it was typed any.
@@ -1988,6 +2356,9 @@ driver-datasource-secret-mapping:
       }
       const mapped = this.mapSecretToSettings({ secret });
       const user = typeof mapped.user === 'string' ? mapped.user.toLowerCase() : undefined;
+    steps:
+      - "Change any interface returned by AbstractDriverDataSource.mapSecretToSettings overrides to a type alias or Record<string, unknown>."
+      - "Narrow property types when reading from the settings returned by AbstractDriverDataSource.mapSecretToSettings before using them."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7, return the interface, and read the mapped settings without a narrow again; the older return was any-valued.
@@ -2011,6 +2382,9 @@ controller-definitions-typed:
       // the shipped relational and search repositories, whose options narrow IExtraOptions, still fit
       const crudDefinitions: Record<string, IAuthRouteConfig> = loadDefinitions();
       super({ scope: 'ItemController', repository, definitions: crudDefinitions });
+    steps:
+      - "Replace interface declarations for controller definitions passed to AbstractSearchController or AbstractCrudController with a type alias or satisfies Record<string, IAuthRouteConfig>."
+      - "Check that a custom repository passed to a CRUD controller does not narrow IExtraOptions in a way a method cannot accept."
   downgrade:
     steps:
       - Pin @venizia/ignis-kernel and @venizia/ignis-connectors to 0.4.7, where definitions is any. A definitions object that fits the newer type fits the older one.
@@ -2026,6 +2400,9 @@ meilisearch-polled-task:
       // getTask answers IMeilisearchPolledTask: the SDK names the id uid, so taskUid may be absent
       const task = await client.getTask(7);
       const id: number | undefined = task.taskUid;
+    steps:
+      - "Locate calls to IMeilisearchClientLike.getTask where taskUid is read from the answered IMeilisearchPolledTask."
+      - "Update callers reading taskUid to accept or handle undefined."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7, where getTask answers IMeilisearchTask. A getTask implementation that carries taskUid fits both types.
@@ -2043,6 +2420,9 @@ api-reference-security-schemes:
         bearer: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
       };
       const options: IApiReferenceOptions = { securitySchemes: schemes };
+    steps:
+      - "Check that each securitySchemes entry in IApiReferenceOptions is an OpenAPI apiKey, http, oauth2 or openIdConnect scheme, or a reference to one."
+      - "Type a separately built schemes record as Record<string, TApiReferenceSecurityScheme>, imported from @venizia/ignis."
   downgrade:
     steps:
       - Pin @venizia/ignis to 0.4.7 and type the schemes as Record<string, Record<string, any>> again; every scheme that fits the newer type fits it.
@@ -2079,6 +2459,10 @@ auth-service-defaults-unknown:
       }
 
       await service.getUserInformation?.(context, userQuery); // userQuery: TUserQuery
+    steps:
+      - "Convert request and response shapes from interface declarations to type aliases, or pass them explicitly as type arguments to IAuthService."
+      - "Update IAuthService implementation method signatures and return types to use the type aliases."
+      - "Pass the updated type-aliased values at call sites such as getUserInformation."
   downgrade:
     steps:
       - Pin @venizia/ignis-kernel and @venizia/ignis to 0.4.7, or drop the type arguments or the aliases; the older defaults were any-valued records, so interfaces and every read compiled.
@@ -2103,6 +2487,10 @@ query-operator-handler-types:
           typeof opts.value === 'string' ? sql`length(${opts.column}) = ${opts.value.length}` : undefined,
         startsWith: (opts) => like(sql`${opts.column}`, `${opts.value}%`),
       };
+    steps:
+      - "Narrow `opts.value` in your `TQueryOperatorHandlers` handlers before using it."
+      - "For `like`, `notLike`, `ilike` and `notIlike`, wrap `opts.column` in a template, as in sql`${opts.column}`."
+      - "Update any helper that accepted `Column | SQL` for the handler's column to accept `SQLWrapper`."
   downgrade:
     steps:
       - Pin @venizia/ignis-kernel and @venizia/ignis-connectors to 0.4.7, or type the handler's parameters as any again.
@@ -2126,6 +2514,10 @@ filter-builder-hook-types:
           value: Record<string, unknown>;
         }): SQL[] { ... }
       }
+    steps:
+      - "Type overrides of buildValueCondition and buildOperatorConditions with column: AnyColumn | SQL and value: unknown (Record<string, unknown> for operators)."
+      - "Stop passing an SQL.Aliased to the hooks as a column."
+      - "Use the new toOperatorObject in an override when you need an operand as an operator record or undefined."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7, or type the overrides' column and value as any again; the older signatures accepted them.
@@ -2155,6 +2547,10 @@ update-builder-types:
 
       // a Record<string, AnyColumn> | undefined: the columns a read exposes
       const visible = repository.getVisibleProperties();
+    steps:
+      - "Check `repository.updateBuilder` for undefined before calling its methods, or access it from the dialect."
+      - "Narrow values read from `ITransformedUpdateData.regularFields` before treating them as concrete types."
+      - "Handle `getVisibleProperties()` returning `Record<string, AnyColumn> | undefined` instead of any values."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7, or call repository.updateBuilder directly and read regularFields and the visible properties without a narrow again; the older types were any.
@@ -2170,6 +2566,9 @@ dialect-merge-defaults-removed:
       const merged = dialect.mergeFilter<IRow>({ defaultFilter, userFilter });
       // ScopeFilterDenial.where<IRow>() and ScopeResolution.normalize<IRow>() name the row type too;
       // applyScopeFilter and applyDefaultFilter now default it to the repository's DataObject, not any
+    steps:
+      - "Pass the explicit row type argument to every call to mergeFilter and composeScope."
+      - "Name the row type argument on calls to ScopeFilterDenial.where and ScopeResolution.normalize."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7, or drop the type argument; the older T defaulted to any.
@@ -2184,6 +2583,9 @@ select-projection-is-flat:
     after: |-
       // a projection is flat: every entry is a column or an SQL expression (SQL, SQL.Aliased)
       this.queryExecutor.select({ connector, table, columns: { id: table.id, label: sql`upper(${table.name})` } });
+    steps:
+      - "Search subclasses calling PostgresQueryExecutor or SqliteQueryExecutor directly for nested objects or whole tables passed to columns or returning."
+      - "Flatten every nested columns or returning selection in ISelectOptions into a flat TColumnSelection whose entries are each a column or an SQL expression."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7, or pass the nested selection again; the older executors cast it through to Drizzle.
@@ -2198,6 +2600,10 @@ schema-metadata-type-is-object:
     after: |-
       // only 'object' is accepted; code that only reads metadata.type is unaffected
       const metadata: TSchemaMetadata = { description: 'A filter', type: 'object' };
+    steps:
+      - "Find any `TSchemaDecorator` or test constructing `TSchemaMetadata` with a `type` other than `'object'`."
+      - "Change `type` in those `TSchemaMetadata` literals to `'object'`."
+      - "Update code or tests that expect a TypeError from the decorator to expect the new named error."
   downgrade:
     steps:
       - Pin @venizia/ignis-filter to 0.4.6, the last stable release without this change (this package has no 0.4.7 stable tag), or keep your own metadata typed with another string.
@@ -2224,6 +2630,9 @@ mailgun-config-typed:
         },
       };
       const fromSdk: TMailgunConfig = { ...clientOptions, domain: 'mg.example.com' };
+    steps:
+      - "Require values read from the environment with applicationEnvironment.getRequired before passing them to IMailgunMailOptions config."
+      - "Spread interface-typed values from mailgun.js when assigning them to TMailgunConfig."
   downgrade:
     steps:
       - "Pin @venizia/ignis to 0.4.7, or type the config as `any & { domain: string }` again."
@@ -2246,6 +2655,11 @@ mail-peer-module-types:
           return { sendMail, verify, close };
         }
       }
+    steps:
+      - "Inspect test doubles or wrappers passed as TNodemailerModule, TMailgunModule or TAmazonSesModule."
+      - "Give a test double handed over as the module a return value with the members the transport calls, such as sendMail, verify and close for nodemailer."
+      - "Make a subclass that overrides buildTransporter or buildClient return INodemailerTransporter, IMailgunMessagesClient or TAmazonSesClient."
+      - "Update tests that expected a failed send for a null or non-object SES answer: send now succeeds without messageId and verify reports the account disabled."
   downgrade:
     steps:
       - Pin @venizia/ignis to 0.4.7, or hand over the module as before; the older types accepted any shape, so a double that fits the newer types fits the older ones.
@@ -2271,6 +2685,9 @@ jvalue-column-is-json-value:
 
       // an array, a record and a scalar are accepted; spread an interface value, or declare its shape as a type alias
       await repository.create({ data: { jValue: { ...meta } } });
+    steps:
+      - "Narrow properties read from `jValue` with a type check before use."
+      - "Spread interface-typed values assigned to `jValue`, or redeclare their shape as a type alias."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7, or read jValue without a narrow and pass the interface value directly again; the older column type was Record<string, any>.
@@ -2295,6 +2712,9 @@ sqlite-connector-run-result-unknown:
       // type the parameter as TSqliteConnector and read the run result as unknown
       const migrate = (connector: TSqliteConnector) => connector.run(sql`select 1`);
       await migrate(dataSource.getConnector());
+    steps:
+      - "Type helper parameters expecting the connector as TSqliteConnector instead of spelling them with the driver's own result type."
+      - "Narrow the run result returned by connector.run before reading result.rowsAffected."
   downgrade:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7, or read the run result as any and spell the parameter with the driver's result type again.
@@ -2307,6 +2727,9 @@ static-asset-resolve-content-type:
       const served = StaticAssetControllerFactory.resolveServedContentType({ helper, object });
     after: |-
       const served = StaticAssetServe.resolveServedContentType({ helper, object });
+    steps:
+      - "Find calls to StaticAssetControllerFactory.resolveServedContentType in your application."
+      - "Replace each with StaticAssetServe.resolveServedContentType({ helper, object })."
   downgrade:
     steps:
       - Pin @venizia/ignis to 0.4.7 and call StaticAssetControllerFactory.resolveServedContentType again.
