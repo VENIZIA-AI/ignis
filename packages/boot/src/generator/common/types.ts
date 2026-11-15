@@ -41,10 +41,17 @@ export interface IScanReport {
 }
 
 /**
- * The object a generated index exports - structurally the kernel's `IArtifactIndex` (boot does not depend on the kernel).
+ * What an application may hand to an {@link AutoArtifactGroup} as its index: a list of classes per kind, structurally the kernel's `IArtifactIndex` (boot does not depend on the kernel). The classes are `TClass<unknown>` so any real class is accepted; the group keeps the exact type the application passed.
+ */
+export type TGeneratedArtifactIndexInput = Partial<
+  Record<TArtifactIndexField, ReadonlyArray<TClass<unknown>>>
+>;
+
+/**
+ * The index boot builds and moves around without knowing the application's classes: the object a generated index exports, and the default of `AutoArtifactGroup`.
  *
- * A deliberate `any`: each kind of the kernel's index names its own class type (`TClass<BaseConfiguration>`, `TClass<IService>`, ...), which boot cannot name. `TClass<unknown>` is not assignable to most of them, so an `AutoArtifactGroup` would stop being the kernel's `IArtifactGroup`.
+ * Each kind of the kernel's index names its own class type (`TClass<BaseConfiguration>`, `TClass<IService>`, ...), which boot cannot name. `TClass<never>` is the bottom of that family: it is assignable to every one of them, so a group that carries it is still the kernel's `IArtifactGroup`. Its instance type is `never`, so boot only passes the classes along and never constructs one.
  */
 export type TGeneratedArtifactIndex = Partial<
-  Record<TArtifactIndexField, ReadonlyArray<TClass<any>>>
+  Record<TArtifactIndexField, ReadonlyArray<TClass<never>>>
 >;

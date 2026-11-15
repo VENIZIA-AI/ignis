@@ -20,7 +20,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-boot/auto`](/references/api/venizia-ignis-boot-auto) | 1 | 1 |
 | [`@venizia/ignis-boot/build-info`](/references/api/venizia-ignis-boot-build-info) | 3 | 3 |
 | [`@venizia/ignis-boot/bun`](/references/api/venizia-ignis-boot-bun) | 6 | 6 |
-| [`@venizia/ignis-boot/generator`](/references/api/venizia-ignis-boot-generator) | 16 | 16 |
+| [`@venizia/ignis-boot/generator`](/references/api/venizia-ignis-boot-generator) | 17 | 17 |
 | [`@venizia/ignis-boot/vite`](/references/api/venizia-ignis-boot-vite) | 2 | 2 |
 | [`@venizia/ignis-connectors`](/references/api/venizia-ignis-connectors) | 3 | 3 |
 | [`@venizia/ignis-connectors/http`](/references/api/venizia-ignis-connectors-http) | 20 | 20 |

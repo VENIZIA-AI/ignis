@@ -1,6 +1,6 @@
 // The kernel's ArtifactGroup and @venizia/ignis-boot's resolver and auto group, together - neither package depends on the other.
 import { AutoArtifactGroup, GroupArtifactsResolver } from '@venizia/ignis-boot/bun';
-import { ArtifactGroup, type IArtifactGroup } from '@venizia/ignis-kernel';
+import { ArtifactGroup, BaseConfiguration, type IArtifactGroup } from '@venizia/ignis-kernel';
 import { describe, expect, test } from 'bun:test';
 
 import { BillingArtifacts } from './fixtures/group-package/src/groups';
@@ -24,5 +24,26 @@ describe('auto artifacts across the kernel and boot', () => {
     const typed: IArtifactGroup = new AutoArtifactGroup({ resolve: async () => ({}) });
     expect(ArtifactGroup.isGroup(typed)).toBe(true);
     expect(() => typed.services).toThrow();
+  });
+
+  test('a group built from an index of real classes keeps their types and is still the kernel\x27s group', () => {
+    class ServerConfiguration extends BaseConfiguration {}
+
+    const group: IArtifactGroup = new AutoArtifactGroup({
+      content: { configurations: [ServerConfiguration] },
+    });
+
+    expect(ArtifactGroup.isGroup(group)).toBe(true);
+  });
+
+  test('an index whose configurations are not configurations is rejected by the kernel type', () => {
+    class NotAConfiguration {}
+
+    // @ts-expect-error - NotAConfiguration is not a BaseConfiguration, so the group is not an IArtifactGroup
+    const group: IArtifactGroup = new AutoArtifactGroup({
+      content: { configurations: [NotAConfiguration] },
+    });
+
+    expect(ArtifactGroup.isGroup(group)).toBe(true);
   });
 });

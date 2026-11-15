@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-boot, from the built declarations (
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-0 exports, 0 with TSDoc. 19 more are re-exported from other entries (listed at the end).
+0 exports, 0 with TSDoc. 20 more are re-exported from other entries (listed at the end).
 
 ## Re-exported
 
@@ -29,4 +29,5 @@ description: "Every export of @venizia/ignis-boot, from the built declarations (
 - `TArtifactIndexField` from [`@venizia/ignis-boot/generator`](/references/api/venizia-ignis-boot-generator)
 - `TArtifactType` from [`@venizia/ignis-boot/generator`](/references/api/venizia-ignis-boot-generator)
 - `TGeneratedArtifactIndex` from [`@venizia/ignis-boot/generator`](/references/api/venizia-ignis-boot-generator)
+- `TGeneratedArtifactIndexInput` from [`@venizia/ignis-boot/generator`](/references/api/venizia-ignis-boot-generator)
 - `TScanSkipReason` from [`@venizia/ignis-boot/generator`](/references/api/venizia-ignis-boot-generator)

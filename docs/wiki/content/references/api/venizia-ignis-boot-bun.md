@@ -109,20 +109,20 @@ Source: `packages/boot/src/bun/sources.ts`
 
 *class*
 
-The application's own artifacts as the kernel's group protocol (`isArtifactGroup`), built without depending on the kernel: inlined `content` in a binary, `resolve()` from source. Reading a kind throws, so a function that walks `configs.artifacts` cannot drop it as an empty index.
+The application's own artifacts as the kernel's group protocol (`isArtifactGroup`), built without depending on the kernel: inlined `content` in a binary, `resolve()` from source. Reading a kind throws, so a function that walks `configs.artifacts` cannot drop it as an empty index. `TIndex` is the index type the content carries: it is inferred from what the application passes, and defaults to the bottom `TGeneratedArtifactIndex` when boot builds the group itself.
 
 ```ts
-export declare class AutoArtifactGroup {
+export declare class AutoArtifactGroup<TIndex extends TGeneratedArtifactIndexInput = TGeneratedArtifactIndex> {
     readonly isArtifactGroup: true;
     readonly folder: undefined;
     readonly site: undefined;
-    readonly content: TGeneratedArtifactIndex | undefined;
+    readonly content: TIndex | undefined;
     private readonly resolver;
     constructor(opts: {
-        content?: TGeneratedArtifactIndex;
-        resolve?: () => Promise<TGeneratedArtifactIndex>;
+        content?: TIndex;
+        resolve?: () => Promise<TIndex>;
     });
-    resolve(): Promise<TGeneratedArtifactIndex>;
+    resolve(): Promise<TIndex>;
     private static unreadKind;
     get configurations(): never;
     get dataSources(): never;
