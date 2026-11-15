@@ -2,15 +2,26 @@
   Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
   scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
 
-  The changelog index: the newest entry set apart as "Latest", filter tabs with the count, and the rest
+  The changelog index. A wiki that keeps a folder per version shows the latest released version in full, then the
+  version in progress, then the older versions as a list of titles, then the dated entries as its history. A wiki
+  with no version folder shows the newest dated entry set apart as "Latest", filter tabs with the count, and the rest
   of the entries grouped by year. Every entry is in the HTML (the tabs only hide rows), so the page reads
-  without script. The entries come from the build-time loader (changelog.data.ts); a wiki mounts this
-  from changelogs/index.md.
+  without script. The entries come from the build-time loaders (changelog.data.ts, changelog-versions.data.ts). A wiki
+  mounts this from changelogs/index.md with a local import in a `<script setup>`, never as a global component: the
+  version data carries the HTML of two pages, and a global registration would put it into the script every page loads
+  (the build check fails when it is there).
 -->
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { data } from './changelog.data';
-import { FILTERS, formatDate, matchesFilter, type TChangelogEntry } from './changelog-entries';
+import { data as versions } from './changelog-versions.data';
+import {
+  FILTERS,
+  formatDate,
+  matchesFilter,
+  shownVersions,
+  type TChangelogEntry,
+} from './changelog-entries';
 
 withDefaults(defineProps<{ lede?: string; feed?: string }>(), {
   lede: 'What changed, who is affected and what to do about it.',
@@ -18,7 +29,10 @@ withDefaults(defineProps<{ lede?: string; feed?: string }>(), {
 });
 
 const entries: TChangelogEntry[] = data;
-const latest = entries[0];
+const shown = shownVersions(versions);
+const hasVersions = versions.length > 0;
+// With version folders the dated entries are the history below them; without, the newest one is the Latest card.
+const latest = hasVersions ? undefined : entries[0];
 const filter = ref('all');
 
 /** Entries newest first, grouped by year, after the filter. */
@@ -36,7 +50,7 @@ const years = computed(() => {
   return [...groups];
 });
 
-const shown = computed(() => years.value.reduce((sum, [, list]) => sum + list.length, 0));
+const count = computed(() => years.value.reduce((sum, [, list]) => sum + list.length, 0));
 
 const meta = (entry: TChangelogEntry): string =>
   [entry.packages.join(', '), entry.version]
@@ -54,6 +68,55 @@ const meta = (entry: TChangelogEntry): string =>
       <a class="cl-rss" :href="feed">RSS</a>
     </header>
 
+    <section v-if="shown.latest" class="cl-version" aria-label="Latest release">
+      <p class="cl-version-line">
+        <span class="cl-chip cl-chip--latest">Latest</span>
+        <time v-if="shown.latest.released" :datetime="shown.latest.released">{{
+          formatDate(shown.latest.released)
+        }}</time>
+      </p>
+      <h2 class="cl-version-title">
+        <a :href="shown.latest.url">{{ shown.latest.title }}</a>
+      </h2>
+      <p v-if="shown.latest.packages.length" class="cl-meta">
+        {{ shown.latest.packages.join(', ') }}
+      </p>
+      <div v-if="shown.latest.html" class="vp-doc cl-version-body" v-html="shown.latest.html"></div>
+    </section>
+
+    <section v-if="shown.inProgress" class="cl-version" aria-label="In progress">
+      <p class="cl-version-line">
+        <span class="cl-chip">In progress</span>
+        <span>Not released yet</span>
+      </p>
+      <h2 class="cl-version-title">
+        <a :href="shown.inProgress.url">{{ shown.inProgress.title }}</a>
+      </h2>
+      <div
+        v-if="shown.inProgress.html"
+        class="vp-doc cl-version-body"
+        v-html="shown.inProgress.html"
+      ></div>
+    </section>
+
+    <section v-if="shown.older.length" class="cl-older" aria-label="Earlier releases">
+      <h2 class="cl-year-label">Earlier releases</h2>
+      <ol class="cl-list">
+        <li v-for="version in shown.older" :key="version.version" class="cl-item">
+          <time v-if="version.released" class="cl-date" :datetime="version.released">{{
+            formatDate(version.released)
+          }}</time>
+          <div class="cl-body">
+            <a class="cl-title" :href="version.url">{{ version.title }}</a>
+            <p v-if="version.summary" class="cl-summary">{{ version.summary }}</p>
+          </div>
+        </li>
+      </ol>
+      <p v-if="entries.length" class="cl-history-link">
+        <a href="#history">Earlier changes, entry by entry</a>
+      </p>
+    </section>
+
     <a v-if="latest" class="cl-latest" :href="latest.url">
       <span class="cl-latest-line">
         <span class="cl-chip cl-chip--latest">Latest</span>
@@ -66,7 +129,9 @@ const meta = (entry: TChangelogEntry): string =>
       <span class="cl-arrow" aria-hidden="true"></span>
     </a>
 
-    <div class="cl-bar">
+    <h2 v-if="hasVersions && entries.length" id="history" class="cl-history-title">History</h2>
+
+    <div class="cl-bar" v-if="entries.length">
       <div class="cl-tabs" role="group" aria-label="Filter the changelog">
         <button
           v-for="tab in FILTERS"
@@ -79,7 +144,7 @@ const meta = (entry: TChangelogEntry): string =>
           {{ tab.label }}
         </button>
       </div>
-      <span class="cl-count">{{ shown }} {{ shown === 1 ? 'entry' : 'entries' }}</span>
+      <span class="cl-count">{{ count }} {{ count === 1 ? 'entry' : 'entries' }}</span>
     </div>
 
     <section v-for="[year, list] in years" :key="year" class="cl-year">
@@ -99,6 +164,6 @@ const meta = (entry: TChangelogEntry): string =>
       </ol>
     </section>
 
-    <p v-if="shown === 0" class="cl-empty">No entry matches this filter.</p>
+    <p v-if="entries.length && count === 0" class="cl-empty">No entry matches this filter.</p>
   </div>
 </template>

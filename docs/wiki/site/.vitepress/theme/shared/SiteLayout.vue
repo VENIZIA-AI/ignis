@@ -30,7 +30,7 @@ useBarState();
 const { Layout } = DefaultTheme;
 const { page } = useData();
 const isChangelogEntry = computed(() =>
-  /^changelogs\/\d{4}-\d{2}-\d{2}-/.test(page.value.relativePath),
+  /^changelogs\/(?:\d{4}-\d{2}-\d{2}-|\d+\.\d+\.\d+(?:\/log)?\.md$)/.test(page.value.relativePath),
 );
 const isHome = computed(() => page.value.relativePath === 'index.md');
 </script>

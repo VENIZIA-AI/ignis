@@ -35,6 +35,8 @@ export type TChangelogEntry = {
   version: string | null;
 };
 
+/** A version folder's page: the loader names it by its source (`/changelogs/0.4.8/log`); the wiki serves it at `/changelogs/0.4.8`. */
+const VERSION_URL = /\/changelogs\/(\d+\.\d+\.\d+)(?:\/log)?$/;
 const DATED = /^(\d{4}-\d{2}-\d{2})-(.+)$/;
 const BADGE = /<Badge\b[^>]*?\btext="([^"]+)"/g;
 const VERSION = /\b(\d+\.\d+\.\d+)\b/;
@@ -66,6 +68,157 @@ const typeOfBadge = (text: string): TChangelogType => {
 };
 
 const text = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+
+/**
+ * One version folder (`changelogs/<X.Y.Z>/log.md`) as the index and the feed know it. Only the frontmatter and the
+ * first paragraph are read: no git, no manifest, so the file is the same in every wiki.
+ */
+export type TVersionEntry = {
+  url: string;
+  /** The stable the line releases: the folder name. */
+  version: string;
+  title: string;
+  /** `YYYY-MM-DD` once the stable is out; null while the line is in progress. */
+  released: string | null;
+  /** The paragraph above the sections: what the release is, as plain text. */
+  summary: string;
+  packages: string[];
+  /** Whether the page has a `## Breaking` section (outside a code fence). */
+  hasBreaking: boolean;
+  /** The page as HTML; set only for the two the index shows in full. */
+  html?: string;
+};
+
+/** A plain day, or the ISO string the page data carries for the Date an unquoted `released:` is read as (UTC midnight). */
+const DAY = /^(\d{4}-\d{2}-\d{2})(?:T00:00:00(?:\.000)?Z)?$/;
+
+/**
+ * The day of a `released:` value: `undefined` when there is none (a line in progress), `null` when it is not a date (the gate
+ * reports it; the wiki shows the page as neither released nor in progress). The frontmatter parser reads an unquoted date as a
+ * Date (UTC midnight), which the page data carries as an ISO string; a quoted one is text. Only the plain day is accepted: a day
+ * with anything after it, or a day the calendar does not have, is not a date.
+ */
+export const releasedOf = (value: unknown): string | null | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const isDate = value instanceof Date;
+
+  if (isDate && Number.isNaN(value.getTime())) {
+    return null;
+  }
+
+  const day = DAY.exec(isDate ? value.toISOString() : text(value))?.[1];
+  const moment = day === undefined ? Number.NaN : Date.parse(`${day}T00:00:00Z`);
+
+  // the day must come back as written: a day the calendar does not have is not a date
+  return day !== undefined &&
+    !Number.isNaN(moment) &&
+    new Date(moment).toISOString().slice(0, 10) === day
+    ? day
+    : null;
+};
+
+/** Markdown as one line of plain text: no code marks, link targets, emphasis or tags. */
+export const plainText = (markdown: string): string =>
+  markdown
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/<[^>]+>/g, '')
+    .replace(/(\*\*|__|\*|_)(.+?)\1/g, '$2')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/** Whether the page has a `## Breaking` heading outside a code fence. */
+const hasBreakingSection = (src: string): boolean => {
+  let fence: string | null = null;
+
+  for (const line of src.split(/\r?\n/)) {
+    const mark = /^\s{0,3}(`{3,}|~{3,})/.exec(line)?.[1];
+
+    if (mark !== undefined) {
+      fence = fence === null ? mark[0] : mark[0] === fence ? null : fence;
+    } else if (fence === null && /^##\s+Breaking\s*$/.test(line)) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+/** The text between the frontmatter and the first heading, as plain text. */
+const introOf = (src: string): string => {
+  const body = src.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
+  const first = body.search(/^## /m);
+
+  return plainText(first === -1 ? body : body.slice(0, first));
+};
+
+/**
+ * A page of the index shows its sections under the card's own heading: the `<h2>` a section brings, with an id and a
+ * permalink anchor, becomes a plain `<h3>`, so two pages on one index never share an id.
+ */
+export const demoteHeadings = (html: string): string =>
+  html.replace(
+    /<h2\b[^>]*>([\s\S]*?)\s*<a class="header-anchor"[^>]*>[^<]*<\/a><\/h2>/g,
+    (_match, title: string) => `<h3>${title.trim()}</h3>`,
+  );
+
+/** A version folder's page as an entry; null for any other page, and for one whose `released:` is not a date. */
+export const parseVersion = (opts: {
+  url: string;
+  frontmatter: Record<string, unknown>;
+  src: string;
+}): TVersionEntry | null => {
+  const version = VERSION_URL.exec(opts.url.replace(/\.html$/, ''))?.[1];
+  const released = releasedOf(opts.frontmatter.released);
+
+  if (version === undefined || released === null) {
+    return null;
+  }
+
+  const packages = Array.isArray(opts.frontmatter.packages)
+    ? opts.frontmatter.packages.filter((entry): entry is string => typeof entry === 'string')
+    : [];
+
+  return {
+    url: `/changelogs/${version}`,
+    version,
+    title: text(opts.frontmatter.title) || version,
+    released: released ?? null,
+    summary: introOf(opts.src),
+    packages,
+    hasBreaking: hasBreakingSection(opts.src),
+  };
+};
+
+const numbers = (version: string): number[] => version.split('.').map(Number);
+
+/** Newest first, by version number. */
+export const sortVersions = (versions: TVersionEntry[]): TVersionEntry[] =>
+  [...versions].sort((a, b) => {
+    const [left, right] = [numbers(a.version), numbers(b.version)];
+
+    return right[0] - left[0] || right[1] - left[1] || right[2] - left[2];
+  });
+
+/**
+ * What the index shows of the version folders, in the order it shows them: the latest released line in full, then
+ * the line in progress, then the older released lines as a list of titles.
+ */
+export const shownVersions = (
+  versions: TVersionEntry[],
+): { latest?: TVersionEntry; inProgress?: TVersionEntry; older: TVersionEntry[] } => {
+  const sorted = sortVersions(versions);
+  const released = sorted.filter((entry) => entry.released !== null);
+
+  return {
+    latest: released[0],
+    inProgress: sorted.find((entry) => entry.released === null),
+    older: released.slice(1),
+  };
+};
 
 export const parseEntry = (opts: {
   url: string;

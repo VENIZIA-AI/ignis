@@ -343,6 +343,86 @@
   }
 }
 
+/* ---- version folders on the index: the latest release and the one in progress in full, the older ones as a list --- */
+.cl-version {
+  margin-top: var(--space-6);
+  padding: var(--space-6) var(--space-6) var(--space-5);
+  border: 1px solid var(--stroke-strong);
+  border-radius: var(--radius);
+}
+
+.cl-version-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-3);
+  color: var(--text-muted);
+  font: 500 13px/1.2 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cl-version-title {
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  border: 0;
+  color: var(--text-title);
+  font-size: clamp(30px, 4vw, 52px);
+  font-weight: 500;
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+}
+
+.cl-version-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.cl-version-title a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 4px;
+}
+
+.cl-version-body {
+  margin-top: var(--space-4);
+}
+
+.cl-older {
+  margin-top: var(--space-7);
+}
+
+.cl-history-link {
+  margin: var(--space-4) 0 0;
+  font: 500 13px/1.2 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cl-history-title {
+  margin: var(--space-8) 0 0;
+  padding: 0;
+  border: 0;
+  color: var(--text-title);
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+@media (max-width: 767px) {
+  .cl-version {
+    padding: var(--space-5);
+  }
+}
+
+/* the link to the migrate guide in a version page's title block: not colour alone */
+.ce-head .cl-meta a {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 /* ---- an entry page: the title block, and the heading the entry carries itself is hidden ---------- */
 .ce-head {
   margin: 0 0 var(--space-5);
@@ -399,6 +479,6 @@
 .ce-head + main .vp-doc h1 + h2 + .VPBadge + .VPBadge + .VPBadge,
 .ce-head + main .vp-doc h1 + h2 + .VPBadge + .VPBadge + .VPBadge + .VPBadge,
 .ce-head + main .vp-doc h1 + h2 + p:has(> .VPBadge),
-.VPDoc:has(.ce-head) .VPDocAsideOutline .root > li:first-child {
+.VPDoc:has(.ce-head:not(.ce-head--version)) .VPDocAsideOutline .root > li:first-child {
   display: none;
 }
