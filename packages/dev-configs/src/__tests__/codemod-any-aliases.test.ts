@@ -138,18 +138,107 @@ describe('devz codemod any-aliases: the rewrite', () => {
     expect(result.manual.map((item) => item.line)).toEqual([1, 3]);
   });
 
-  test('an import("...") type and a type parameter of the same name are manual', () => {
+  test('an import("...") type is manual', () => {
     const result = rewrite(
       [
         `import type { AnyType } from '@venizia/ignis-helpers';`,
         `type A = import('@venizia/ignis-helpers').AnyObject;`,
-        `const f = <AnyType>(value: AnyType) => value;`,
+        `export const a: AnyType = 1;`,
         '',
       ].join('\n'),
     );
 
-    expect(result.manual.map((item) => item.line)).toEqual([1, 2]);
-    expect(result.output).toContain(`import type { AnyType } from '@venizia/ignis-helpers';`);
+    expect(result.manual.map((item) => item.line)).toEqual([2]);
+    expect(result.output).toContain(`type A = import('@venizia/ignis-helpers').AnyObject;`);
+    expect(result.output).toContain(`export const a: unknown = 1;`);
+  });
+
+  test('a type parameter named like the alias shadows only its own scope: that use is left and listed, the rest is rewritten', () => {
+    const source = [
+      `import type { AnyType } from '@venizia/ignis-helpers';`,
+      `export const f = <AnyType>(value: AnyType) => value;`,
+      `export class Box<AnyType> { value?: AnyType }`,
+      `export type Pick2<TValue> = TValue extends Array<infer AnyType> ? AnyType : never;`,
+      `export const outer: AnyType = 1;`,
+      '',
+    ].join('\n');
+    const result = rewrite(source);
+
+    expect(result.output).toBe(
+      [
+        `export const f = <AnyType>(value: AnyType) => value;`,
+        `export class Box<AnyType> { value?: AnyType }`,
+        `export type Pick2<TValue> = TValue extends Array<infer AnyType> ? AnyType : never;`,
+        `export const outer: unknown = 1;`,
+        '',
+      ].join('\n'),
+    );
+    expect(result.rewritten).toBe(1);
+    expect(result.local.map((item) => item.line)).toEqual([2, 3, 4]);
+    expect(rewrite(result.output).changed).toBe(false);
+  });
+
+  test('a type declared in a namespace or a function shadows the alias there: left and listed, the file-level use is rewritten', () => {
+    const source = [
+      `import type { AnyObject, AnyType } from '@venizia/ignis-helpers';`,
+      `namespace N {`,
+      `  type AnyType = string;`,
+      `  export const s: AnyType = 'a';`,
+      `}`,
+      `export function f(): number {`,
+      `  interface AnyObject { id: number }`,
+      `  const value: AnyObject = { id: 1 };`,
+      `  return value.id;`,
+      `}`,
+      `export const a: AnyType = 1;`,
+      `export const b: AnyObject = {};`,
+      '',
+    ].join('\n');
+    const result = rewrite(source);
+
+    expect(result.output).toBe(
+      [
+        `namespace N {`,
+        `  type AnyType = string;`,
+        `  export const s: AnyType = 'a';`,
+        `}`,
+        `export function f(): number {`,
+        `  interface AnyObject { id: number }`,
+        `  const value: AnyObject = { id: 1 };`,
+        `  return value.id;`,
+        `}`,
+        `export const a: unknown = 1;`,
+        `export const b: Record<string, unknown> = {};`,
+        '',
+      ].join('\n'),
+    );
+    expect(result.rewritten).toBe(2);
+    expect(result.manual).toEqual([]);
+    expect(result.local).toEqual([
+      { line: 3, name: 'AnyType' },
+      { line: 7, name: 'AnyObject' },
+    ]);
+    expect(rewrite(result.output).changed).toBe(false);
+  });
+
+  test('a heritage clause that a local declaration shadows does not keep the import', () => {
+    const result = rewrite(
+      [
+        `import type { AnyType } from '@venizia/ignis-helpers';`,
+        `export function f() {`,
+        `  interface AnyType { id: number }`,
+        `  interface IChild extends AnyType {}`,
+        `  return {} as IChild;`,
+        `}`,
+        `export const a: AnyType = 1;`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.manual).toEqual([]);
+    expect(result.output).toContain(`interface IChild extends AnyType {}`);
+    expect(result.output).toContain(`export const a: unknown = 1;`);
+    expect(result.output).not.toContain(`import type`);
   });
 
   test('AnyType in a heritage clause is manual (extends unknown is invalid) and keeps its import; AnyObject there is rewritten', () => {
@@ -232,6 +321,37 @@ describe('devz codemod any-aliases: the rewrite', () => {
       ].join('\n'),
     );
 
+    const comments = rewrite(
+      [
+        `import type {`,
+        `  TClass, // the base`,
+        `  AnyType, // gone`,
+        `  // about nullable`,
+        `  TNullable, // nullable`,
+        `  AnyObject, // gone too`,
+        `  TValue, // the value`,
+        `} from '@venizia/ignis-helpers';`,
+        `export const a: AnyType = 1;`,
+        `export const b: AnyObject = {};`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(comments.output).toBe(
+      [
+        `import type {`,
+        `  TClass, // the base`,
+        `  // about nullable`,
+        `  TNullable, // nullable`,
+        `  TValue, // the value`,
+        `} from '@venizia/ignis-helpers';`,
+        `export const a: unknown = 1;`,
+        `export const b: Record<string, unknown> = {};`,
+        '',
+      ].join('\n'),
+    );
+    expect(rewrite(comments.output).changed).toBe(false);
+
     const emptied = rewrite(
       [
         `import type { AnyType } from '@venizia/ignis-helpers';`,
@@ -242,6 +362,49 @@ describe('devz codemod any-aliases: the rewrite', () => {
     );
 
     expect(emptied.output).toBe(`export const a: unknown = 1;\n`);
+  });
+
+  test('two adjacent imports that are both emptied leave no blank line at the top of the file', () => {
+    const adjacent = rewrite(
+      [
+        `import type { AnyType } from '@venizia/ignis-helpers';`,
+        `import type { AnyObject } from '@venizia/ignis-inversion';`,
+        '',
+        `export const a: AnyType = 1;`,
+        `export const b: AnyObject = {};`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(adjacent.output).toBe(
+      [`export const a: unknown = 1;`, `export const b: Record<string, unknown> = {};`, ''].join(
+        '\n',
+      ),
+    );
+    expect(rewrite(adjacent.output).changed).toBe(false);
+
+    const middle = rewrite(
+      [
+        `import { Other } from './other';`,
+        '',
+        `import type { AnyType } from '@venizia/ignis-helpers';`,
+        `import type { AnyObject } from '@venizia/ignis-inversion';`,
+        '',
+        `export const a: AnyType = Other;`,
+        `export const b: AnyObject = {};`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(middle.output).toBe(
+      [
+        `import { Other } from './other';`,
+        '',
+        `export const a: unknown = Other;`,
+        `export const b: Record<string, unknown> = {};`,
+        '',
+      ].join('\n'),
+    );
   });
 
   test('the rewritten files type-check: no syntax or semantic error is left in the output', () => {

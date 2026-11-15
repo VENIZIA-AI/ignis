@@ -17,8 +17,12 @@ in every file that imports them from @venizia/ignis, @venizia/ignis-helpers, @ve
 
 It lists, and leaves alone:
   manual  a re-export (export { AnyType }, export type { AnyObject } from ...), an import("...").AnyType
-          type, and a name a type parameter of the same name shadows
-  local   a same-named type the file declares or imports from somewhere else
+          type, and AnyType in a heritage clause (extends unknown is not valid)
+  local   a same-named type the file declares (in any scope: a namespace, a function, a block, a type
+          parameter) or imports from somewhere else; a use that such a declaration shadows is left alone
+
+A name used in a heritage clause keeps its import, and so keeps all its other uses in that file: once you
+replace the heritage use by hand, run the codemod again and the other uses are rewritten.
 
 A value that the alias used to accept may not fit the new type: an interface-typed value is not assignable
 to Record<string, unknown> (an interface has no implicit index signature). Declare the shape as a type
@@ -99,8 +103,8 @@ export class AnyAliases {
     source: string;
   }): IAnyAliasesResult {
     const { typescript: ts, fileName, source } = opts;
-    const scriptKind = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
-    const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, scriptKind);
+    const language = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+    const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, language);
     const edits: Array<{ start: number; end: number; text: string }> = [];
     const manual: Array<{ line: number; reason: string }> = [];
     const local: Array<{ line: number; name: string }> = [];
@@ -114,22 +118,83 @@ export class AnyAliases {
       rewritten += 1;
     };
 
-    // The local names bound to an alias (name -> replacement), the namespace imports of a module that held them,
-    // the type parameters (a name they share with an alias is left to the user) and the names the file exports.
+    // The local names bound to an alias (name -> replacement), the namespace imports of a module that held them
+    // and the names the file exports.
     const aliasNames = new Map<string, string>();
     const namespaces = new Set<string>();
-    const typeParameterNames = new Set<string>();
     const exportedNames = new Set<string>();
 
-    const collectTypeParameters = (node: import('typescript').Node): void => {
-      if (ts.isTypeParameterDeclaration(node)) {
-        typeParameterNames.add(node.name.text);
+    /**
+     * Whether a declaration in a scope that encloses `node` (below the file: a namespace, a function, a block, a
+     * type parameter) binds `name`, so the name there is not the file-level import. `isNamespace` is what the use needs:
+     * a namespace (the left side of `H.AnyType`) rather than a type.
+     */
+    const isShadowed = (
+      node: import('typescript').Node,
+      name: string,
+      isNamespace: boolean,
+    ): boolean => {
+      const hasInfer = (type: import('typescript').Node): boolean =>
+        (ts.isInferTypeNode(type) && type.typeParameter.name.text === name) ||
+        ts.forEachChild(type, (child) => (hasInfer(child) ? true : undefined)) === true;
+
+      for (let scope: import('typescript').Node | undefined = node.parent; scope !== undefined;) {
+        if (ts.isSourceFile(scope)) {
+          return false;
+        }
+
+        if (!isNamespace) {
+          if (
+            (ts.isFunctionLike(scope) ||
+              ts.isClassLike(scope) ||
+              ts.isInterfaceDeclaration(scope) ||
+              ts.isTypeAliasDeclaration(scope)) &&
+            scope.typeParameters?.some((parameter) => parameter.name.text === name)
+          ) {
+            return true;
+          }
+
+          if (ts.isMappedTypeNode(scope) && scope.typeParameter.name.text === name) {
+            return true;
+          }
+
+          if (ts.isConditionalTypeNode(scope) && hasInfer(scope.extendsType)) {
+            return true;
+          }
+        }
+
+        if (
+          ts.isBlock(scope) ||
+          ts.isModuleBlock(scope) ||
+          ts.isCaseClause(scope) ||
+          ts.isDefaultClause(scope)
+        ) {
+          for (const statement of scope.statements) {
+            let declared: import('typescript').Node | undefined;
+
+            if (
+              ts.isTypeAliasDeclaration(statement) ||
+              ts.isInterfaceDeclaration(statement) ||
+              ts.isClassDeclaration(statement)
+            ) {
+              declared = !isNamespace ? statement.name : undefined;
+            } else if (ts.isEnumDeclaration(statement) || ts.isImportEqualsDeclaration(statement)) {
+              declared = statement.name;
+            } else if (ts.isModuleDeclaration(statement)) {
+              declared = isNamespace ? statement.name : undefined;
+            }
+
+            if (declared !== undefined && ts.isIdentifier(declared) && declared.text === name) {
+              return true;
+            }
+          }
+        }
+
+        scope = scope.parent;
       }
 
-      ts.forEachChild(node, collectTypeParameters);
+      return false;
     };
-
-    collectTypeParameters(file);
 
     // `export { AnyType }` keeps the import alive: that name is left to the user (reported below).
     for (const statement of file.statements) {
@@ -172,7 +237,8 @@ export class AnyAliases {
       if (
         ts.isExpressionWithTypeArguments(node) &&
         ts.isIdentifier(node.expression) &&
-        importedReplacement.get(node.expression.text) === 'unknown'
+        importedReplacement.get(node.expression.text) === 'unknown' &&
+        !isShadowed(node, node.expression.text, false)
       ) {
         heritageBlocked.add(node.expression.text);
       }
@@ -181,6 +247,8 @@ export class AnyAliases {
     };
 
     scanHeritage(file);
+
+    const removedRanges: Array<{ start: number; end: number }> = [];
 
     // Imports: which local names are the aliases, and how each import is rewritten.
     for (const statement of file.statements) {
@@ -214,50 +282,52 @@ export class AnyAliases {
       const named = clause.namedBindings;
       const kept: Array<{ text: string; trailing: string }> = [];
 
-      /** An element as it is kept: its text with its leading comments, and a comment that follows it on its line. */
-      const keep = (element: import('typescript').ImportSpecifier) => {
-        const trailing = /^[ \t]*,?[ \t]*(\/\/[^\r\n]*|\/\*[^\r\n]*?\*\/)/.exec(
+      // A comment that follows an element on its line (after its comma) belongs to that element: it goes with it
+      // when the element is removed, and it is not part of the next element's leading comments.
+      const trailings = named.elements.map((element) => {
+        const match = /^[ \t]*,?[ \t]*(\/\/[^\r\n]*|\/\*[^\r\n]*?\*\/)/.exec(
           source.slice(element.getEnd()),
         );
 
+        return { comment: match?.[1] ?? '', end: element.getEnd() + (match?.[0].length ?? 0) };
+      });
+
+      /** An element as it is kept: its text with its own leading comments, and the comment that follows it on its line. */
+      const keep = (element: import('typescript').ImportSpecifier, index: number) => {
+        const previous = trailings[index - 1];
+        const from =
+          previous === undefined || previous.comment === ''
+            ? element.getFullStart()
+            : Math.max(element.getFullStart(), previous.end);
+
         kept.push({
-          text: source.slice(element.getFullStart(), element.getEnd()).trim(),
-          trailing: trailing?.[1] ?? '',
+          text: source.slice(from, element.getEnd()).trim(),
+          trailing: trailings[index]?.comment ?? '',
         });
       };
 
       let removed = 0;
 
-      for (const element of named.elements) {
+      for (const [index, element] of named.elements.entries()) {
         const imported = (element.propertyName ?? element.name).text;
         const localName = element.name.text;
         const replacement = REPLACEMENTS.get(imported);
 
         if (replacement === undefined) {
-          keep(element);
+          keep(element, index);
 
           continue;
         }
 
         if (!isAliasSource) {
-          keep(element);
+          keep(element, index);
           local.push({ line: lineOf(element), name: localName });
 
           continue;
         }
 
-        if (typeParameterNames.has(localName)) {
-          keep(element);
-          manual.push({
-            line: lineOf(element),
-            reason: `${localName} is also the name of a type parameter in this file: rewrite it by hand`,
-          });
-
-          continue;
-        }
-
         if (exportedNames.has(localName)) {
-          keep(element);
+          keep(element, index);
           manual.push({
             line: lineOf(element),
             reason: `${localName}${localName === imported ? '' : ` (the alias ${imported})`} is re-exported by this file: the alias is gone, export the type you meant`,
@@ -267,7 +337,7 @@ export class AnyAliases {
         }
 
         if (heritageBlocked.has(localName)) {
-          keep(element);
+          keep(element, index);
 
           continue;
         }
@@ -291,7 +361,14 @@ export class AnyAliases {
         }
 
         // A blank line that only separated this import from the next code (or from the top of the file) goes with it.
-        const before = source.slice(0, start);
+        // The imports removed before this one are not there any more: a file that starts with a removed import
+        // must not start with a blank line.
+        let before = source.slice(0, start);
+
+        for (const range of [...removedRanges].reverse()) {
+          before = before.slice(0, range.start) + before.slice(range.end);
+        }
+
         const isOnlyLeading = before.trim() === '' || /\n\s*\n$/.test(before);
         const blank = /^[ \t]*\r?\n/.exec(source.slice(end));
 
@@ -300,6 +377,7 @@ export class AnyAliases {
         }
 
         edits.push({ start, end, text: '' });
+        removedRanges.push({ start, end });
       } else if (kept.length === 0 && clause.name !== undefined) {
         // A default import stays: `import Default, { AnyType } from ...` -> `import Default from ...`.
         edits.push({ start: clause.name.getEnd(), end: named.getEnd(), text: '' });
@@ -335,13 +413,32 @@ export class AnyAliases {
     }
 
     const visit = (node: import('typescript').Node): void => {
+      // A same-named type declared below the file level (a namespace, a function, a block, a type parameter) is a
+      // different type: it is listed, and the uses it shadows are left alone (see isShadowed).
+      if (
+        (ts.isTypeAliasDeclaration(node) ||
+          ts.isInterfaceDeclaration(node) ||
+          ts.isClassDeclaration(node) ||
+          ts.isEnumDeclaration(node) ||
+          ts.isTypeParameterDeclaration(node)) &&
+        node.name !== undefined &&
+        REPLACEMENTS.has(node.name.text) &&
+        !ts.isSourceFile(node.parent)
+      ) {
+        local.push({ line: lineOf(node.name), name: node.name.text });
+      }
+
       if (ts.isTypeReferenceNode(node) && node.typeArguments === undefined) {
         const { typeName } = node;
-        const byName = ts.isIdentifier(typeName) ? aliasNames.get(typeName.text) : undefined;
+        const byName =
+          ts.isIdentifier(typeName) && !isShadowed(node, typeName.text, false)
+            ? aliasNames.get(typeName.text)
+            : undefined;
         const byNamespace =
           ts.isQualifiedName(typeName) &&
           ts.isIdentifier(typeName.left) &&
-          namespaces.has(typeName.left.text)
+          namespaces.has(typeName.left.text) &&
+          !isShadowed(node, typeName.left.text, true)
             ? REPLACEMENTS.get(typeName.right.text)
             : undefined;
         const replacement = byName ?? byNamespace;
@@ -355,11 +452,15 @@ export class AnyAliases {
 
       if (ts.isExpressionWithTypeArguments(node) && node.typeArguments === undefined) {
         const { expression } = node;
-        const byName = ts.isIdentifier(expression) ? aliasNames.get(expression.text) : undefined;
+        const byName =
+          ts.isIdentifier(expression) && !isShadowed(node, expression.text, false)
+            ? aliasNames.get(expression.text)
+            : undefined;
         const byNamespace =
           ts.isPropertyAccessExpression(expression) &&
           ts.isIdentifier(expression.expression) &&
-          namespaces.has(expression.expression.text)
+          namespaces.has(expression.expression.text) &&
+          !isShadowed(node, expression.expression.text, true)
             ? REPLACEMENTS.get(expression.name.text)
             : undefined;
         const replacement = byName ?? byNamespace;
@@ -379,7 +480,11 @@ export class AnyAliases {
           return;
         }
 
-        if (ts.isIdentifier(expression) && heritageBlocked.has(expression.text)) {
+        if (
+          ts.isIdentifier(expression) &&
+          heritageBlocked.has(expression.text) &&
+          !isShadowed(node, expression.text, false)
+        ) {
           manual.push({
             line: lineOf(node),
             reason: `${expression.text} in a heritage clause: extends unknown and implements unknown are not valid, name the members you mean`,
