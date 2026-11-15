@@ -22,7 +22,7 @@ With --strict it writes the tighter types instead of the default ones, for code 
 
 --strict surfaces errors that any hid: an unknown value cannot be read, or passed as a narrower type, without a
 check; an interface-typed value is not assignable to Record<string, unknown> (an interface has no implicit
-index signature); and a symbol or number key on a former AnyObject fails (TS2538). Declare the shape as a type
+index signature); and a symbol key on a former AnyObject fails (TS2538). Declare the shape as a type
 alias, spread the value, or narrow it; run your typecheck after it.
 --strict acts only on the alias names: a file already rewritten to any is left alone, so run it instead of
 the default run, on a path at a time, and tighten the rest by hand.
