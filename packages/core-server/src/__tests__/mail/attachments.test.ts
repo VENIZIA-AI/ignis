@@ -13,20 +13,20 @@ import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import {
   MailKeys,
+  type IAmazonSesSendEmailInput,
   type IMailMessage,
   type IMailTransport,
   type TMailOptions,
 } from '@/components/mail/common';
 import { MailComponent } from '@/components/mail/component';
-import { Container } from '@venizia/ignis-kernel';
 import {
   AmazonSesTransportHelper,
   MailgunTransportHelper,
   NodemailerTransportHelper,
 } from '@/components/mail/helpers/transporters';
 import { MailService } from '@/components/mail/services';
-import type { AnyType } from '@venizia/ignis-helpers/common';
-import { FakeMailTransport } from './fakes';
+import { isApplicationError, type ApplicationError } from '@venizia/ignis-helpers/core';
+import { FakeMailTransport, MailTestApplication, wrongShape } from './fakes';
 import { SpawnHelper } from '@venizia/dev-configs/testing';
 
 const PATH_REFUSED = 'core.mail.attachment_path_refused';
@@ -106,10 +106,26 @@ const captureError = async (promise: Promise<unknown>) => {
   }
 };
 
-const expectRefusal = (opts: { error: AnyType; code: string; statusCode: number }) => {
+const messageOf = (error: unknown): string => {
+  return error instanceof Error ? error.message : String(error);
+};
+
+/** Returns the refusal, narrowed, so a test can read its message or cause. */
+const expectRefusal = (opts: {
+  error: unknown;
+  code: string;
+  statusCode: number;
+}): ApplicationError => {
   expect(opts.error).toBeDefined();
+
+  if (!isApplicationError(opts.error)) {
+    throw new Error(`Expected an ApplicationError, got: ${messageOf(opts.error)}`);
+  }
+
   expect(opts.error.statusCode).toBe(opts.statusCode);
   expect(opts.error.normalized.code).toBe(opts.code);
+
+  return opts.error;
 };
 
 /** Yields fixed-size chunks and counts how many were pulled, so a test can prove a drain stopped early. */
@@ -141,13 +157,13 @@ describe('Mail attachments - path confinement', () => {
   test('the refusal names the fix and leaks no filesystem path', async () => {
     const { service } = buildService({ attachmentRoot });
 
-    const error: AnyType = await captureError(
+    const error = await captureError(
       service.send(buildMessage([{ filename: 'x', path: '../secret.txt' }])),
     );
 
-    expect(error.message).toContain('attachmentRoot');
-    expect(error.message).toContain('content');
-    expect(error.message).not.toContain(scratchDirectory);
+    expect(messageOf(error)).toContain('attachmentRoot');
+    expect(messageOf(error)).toContain('content');
+    expect(messageOf(error)).not.toContain(scratchDirectory);
   });
 
   test('a `..` escape from the root is refused', async () => {
@@ -359,9 +375,9 @@ describe('Mail attachments - size limit', () => {
 // Each transport records what reaches its wire. The file holds a marker: if any transport read
 // it, the marker bytes would show up in what it recorded.
 class RecordingSmtpTransporter {
-  sentMails: AnyType[] = [];
+  sentMails: object[] = [];
 
-  async sendMail(mailOptions: AnyType) {
+  async sendMail(mailOptions: object) {
     this.sentMails.push(mailOptions);
 
     return { messageId: 'smtp-1', response: '250 OK' };
@@ -375,9 +391,9 @@ class RecordingSmtpTransporter {
 }
 
 class RecordingMailgunClient {
-  createdMessages: AnyType[] = [];
+  createdMessages: object[] = [];
 
-  async create(_domain: string, payload: AnyType) {
+  async create(_domain: string, payload: object) {
     this.createdMessages.push(payload);
 
     return { id: 'mailgun-1' };
@@ -385,18 +401,18 @@ class RecordingMailgunClient {
 }
 
 class RecordingSendEmailCommand {
-  constructor(public input: AnyType) {}
+  constructor(public input: IAmazonSesSendEmailInput) {}
 }
 
 class RecordingGetAccountCommand {
-  constructor(public input?: AnyType) {}
+  constructor(public input?: object) {}
 }
 
 type TTransportUnderTest = {
   name: string;
   options: TMailOptions;
   transport: IMailTransport;
-  recorded: () => AnyType[];
+  recorded: () => object[];
 };
 
 const buildTransports = (opts: { attachmentRoot?: string }): TTransportUnderTest[] => {
@@ -410,7 +426,7 @@ const buildTransports = (opts: { attachmentRoot?: string }): TTransportUnderTest
   const mailgunTransport = new MailgunTransportHelper({
     config: { username: 'api', key: 'fake-key', domain: 'mail.test' },
     module: class {
-      constructor(_formData: AnyType) {}
+      constructor(_formData: typeof FormData) {}
 
       client() {
         return { messages: mailgunClient };
@@ -418,7 +434,7 @@ const buildTransports = (opts: { attachmentRoot?: string }): TTransportUnderTest
     },
   });
 
-  const sesCommands: AnyType[] = [];
+  const sesCommands: IAmazonSesSendEmailInput[] = [];
   const sesTransport = new AmazonSesTransportHelper({
     config: { region: 'us-east-1' },
     module: {
@@ -468,7 +484,7 @@ const buildTransports = (opts: { attachmentRoot?: string }): TTransportUnderTest
   ];
 };
 
-const expectNothingRead = (recorded: AnyType[]) => {
+const expectNothingRead = (recorded: object[]) => {
   const serialized = JSON.stringify(recorded);
   expect(serialized).not.toContain(SECRET_MARKER);
   expect(serialized).not.toContain(Buffer.from(SECRET_MARKER).toString('base64'));
@@ -561,9 +577,9 @@ describe('Mail attachments - every transport', () => {
 // nodemailer reads a `text`/`html` given as `{ path }` or `{ href }` the same way it reads an attachment.
 describe('Mail body - only strings reach a transport', () => {
   const BODY_REFUSED = 'core.mail.body_source_refused';
-  const passwdBody: AnyType = { path: '/etc/passwd' };
-  const fileBody: AnyType = { path: secretFile };
-  const urlBody: AnyType = { href: 'http://169.254.169.254/latest' };
+  const passwdBody = wrongShape({ path: '/etc/passwd' });
+  const fileBody = wrongShape({ path: secretFile });
+  const urlBody = wrongShape({ href: 'http://169.254.169.254/latest' });
 
   test('an `html: { path }` body is refused before the transport runs', async () => {
     const { service, transport } = buildService();
@@ -704,7 +720,6 @@ describe('Mail attachments - streams are released when a send is refused', () =>
     const { service } = buildService();
     const fileStream = createReadStream(join(attachmentRoot, 'big.bin'));
     const { stream: webStream, state } = buildWebStream({ chunkBytes: 16, chunkCount: 4 });
-    const untypedWebStream: AnyType = webStream;
 
     const error = await captureError(
       service.send({
@@ -713,7 +728,7 @@ describe('Mail attachments - streams are released when a send is refused', () =>
         text: 'body',
         attachments: [
           { filename: 'a', content: fileStream },
-          { filename: 'b', content: untypedWebStream },
+          { filename: 'b', content: webStream },
         ],
       }),
     );
@@ -787,10 +802,9 @@ describe('Mail attachments - review fixes', () => {
   test('an oversized web ReadableStream answers 413 and is cancelled', async () => {
     const { service } = buildService({ maxAttachmentBytes: 64 * 1024 });
     const { stream, state } = buildWebStream({ chunkBytes: 16 * 1024, chunkCount: 1000 });
-    const untypedStream: AnyType = stream;
 
     const error = await captureError(
-      service.send(buildMessage([{ filename: 'x', content: untypedStream }])),
+      service.send(buildMessage([{ filename: 'x', content: stream }])),
     );
 
     expectRefusal({ error, code: TOO_LARGE, statusCode: 413 });
@@ -802,9 +816,8 @@ describe('Mail attachments - review fixes', () => {
   test('a web ReadableStream under the limit arrives as its bytes', async () => {
     const { service, transport } = buildService();
     const { stream } = buildWebStream({ chunkBytes: 1024, chunkCount: 3 });
-    const untypedStream: AnyType = stream;
 
-    await service.send(buildMessage([{ filename: 'x', content: untypedStream }]));
+    await service.send(buildMessage([{ filename: 'x', content: stream }]));
 
     const [attachment] = transport.sentMessages[0].attachments ?? [];
     expect(Buffer.isBuffer(attachment.content) ? attachment.content.byteLength : -1).toBe(3072);
@@ -819,8 +832,8 @@ describe('Mail attachments - review fixes', () => {
     const originalStat = prototype.stat;
     // Reports a 1-byte file, as if the file grew between fstat and the read.
     const statSpy = spyOn(prototype, 'stat').mockImplementation(async function (
-      this: AnyType,
-      ...args: AnyType[]
+      this: unknown,
+      ...args: unknown[]
     ) {
       const stats = await originalStat.apply(this, args);
 
@@ -845,10 +858,8 @@ describe('Mail attachments - review fixes', () => {
     const messages: string[] = [];
 
     for (const path of ['does-not-exist.txt', 'invoices', '../secret.txt', 'escape-link.txt']) {
-      const error: AnyType = await captureError(
-        service.send(buildMessage([{ filename: 'x', path }])),
-      );
-      messages.push(error.message);
+      const error = await captureError(service.send(buildMessage([{ filename: 'x', path }])));
+      messages.push(messageOf(error));
     }
 
     expect(new Set(messages).size).toBe(1);
@@ -890,7 +901,7 @@ describe('Mail attachments - review fixes', () => {
 
   test('a content that is not bytes, text or a stream answers 400, not 500', async () => {
     const { service } = buildService();
-    const pathLikeContent: AnyType = { path: '/etc/passwd' };
+    const pathLikeContent = wrongShape({ path: '/etc/passwd' });
 
     const error = await captureError(
       service.send(buildMessage([{ filename: 'x', content: pathLikeContent }])),
@@ -906,11 +917,13 @@ describe('Mail attachments - review fixes', () => {
     const options: TMailOptions = { provider: 'custom', config: transport };
     const service = new MailService(options, transport);
 
-    const error: AnyType = await captureError(service.send(buildMessage(undefined)));
+    const error = await captureError(service.send(buildMessage(undefined)));
 
-    expectRefusal({ error, code: 'core.mail.send_failed', statusCode: 500 });
-    expect(error.message).not.toContain('/srv/secret');
-    expect(String(error.cause?.message)).toContain('/srv/secret');
+    const refusal = expectRefusal({ error, code: 'core.mail.send_failed', statusCode: 500 });
+    expect(refusal.message).not.toContain('/srv/secret');
+    expect(refusal.cause instanceof Error ? refusal.cause.message : undefined).toContain(
+      '/srv/secret',
+    );
   });
 
   test('nodemailer is told to open no file and fetch no URL on its own', async () => {
@@ -924,15 +937,15 @@ describe('Mail attachments - review fixes', () => {
     await underTest.transport.send(buildMessage(undefined));
 
     const [mailOptions] = underTest.recorded();
-    expect(mailOptions.disableFileAccess).toBe(true);
-    expect(mailOptions.disableUrlAccess).toBe(true);
+    expect(Reflect.get(mailOptions, 'disableFileAccess')).toBe(true);
+    expect(Reflect.get(mailOptions, 'disableUrlAccess')).toBe(true);
   });
 });
 
 describe('Mail body - null counts as absent', () => {
   test('a null html next to a string text is sent', async () => {
     const { service, transport } = buildService();
-    const nullBody: AnyType = null;
+    const nullBody = wrongShape(null);
 
     const result = await service.send({ to: 'a@b.com', subject: 'Hi', text: 'hi', html: nullBody });
 
@@ -942,7 +955,7 @@ describe('Mail body - null counts as absent', () => {
 
   test('a Buffer body is still refused', async () => {
     const { service } = buildService();
-    const bufferBody: AnyType = Buffer.from('<p>x</p>');
+    const bufferBody = wrongShape(Buffer.from('<p>x</p>'));
 
     const error = await captureError(
       service.send({ to: 'a@b.com', subject: 'Hi', html: bufferBody }),
@@ -952,58 +965,52 @@ describe('Mail body - null counts as absent', () => {
   });
 });
 
-const buildComponent = (opts: { attachmentRoot?: AnyType; maxAttachmentBytes?: AnyType }) => {
-  const container = new Container({ scope: 'MailAttachmentOptionsTest' });
+const buildComponent = (opts: { attachmentRoot?: string; maxAttachmentBytes?: unknown }) => {
+  const application = new MailTestApplication({ scope: 'MailAttachmentOptionsTest' });
   const transport = new FakeMailTransport();
   const options: TMailOptions = {
     provider: 'custom',
     config: transport,
     attachmentRoot: opts.attachmentRoot,
-    maxAttachmentBytes: opts.maxAttachmentBytes,
+    maxAttachmentBytes: wrongShape(opts.maxAttachmentBytes),
   };
-  container.bind({ key: MailKeys.MAIL_OPTIONS }).toValue(options);
-  const application: AnyType = container;
-
-  // A container is not an application: the component registers its stop hooks on one.
-  application.registerPostStopHook = () => {};
+  application.bind({ key: MailKeys.MAIL_OPTIONS }).toValue(options);
 
   return new MailComponent(application);
 };
 
 describe('Mail component - attachment options are checked at setup', () => {
-  const invalidLimits: AnyType[] = [Number.NaN, -1, 0, 1.5, Number.POSITIVE_INFINITY, '1024'];
+  const invalidLimits: unknown[] = [Number.NaN, -1, 0, 1.5, Number.POSITIVE_INFINITY, '1024'];
 
   for (const maxAttachmentBytes of invalidLimits) {
     test(`maxAttachmentBytes ${String(maxAttachmentBytes)} fails the setup, naming the option`, async () => {
-      const error: AnyType = await captureError(buildComponent({ maxAttachmentBytes }).configure());
+      const error = await captureError(buildComponent({ maxAttachmentBytes }).configure());
 
       expect(error).toBeDefined();
-      expect(error.message).toContain('maxAttachmentBytes');
+      expect(messageOf(error)).toContain('maxAttachmentBytes');
     });
   }
 
   test('a relative attachmentRoot fails the setup, naming the option', async () => {
-    const error: AnyType = await captureError(
+    const error = await captureError(
       buildComponent({ attachmentRoot: 'relative/dir' }).configure(),
     );
 
-    expect(error?.message).toContain('attachmentRoot');
+    expect(messageOf(error)).toContain('attachmentRoot');
   });
 
   test('a missing attachmentRoot directory fails the setup', async () => {
-    const error: AnyType = await captureError(
+    const error = await captureError(
       buildComponent({ attachmentRoot: join(scratchDirectory, 'nope') }).configure(),
     );
 
-    expect(error?.message).toContain('attachmentRoot');
+    expect(messageOf(error)).toContain('attachmentRoot');
   });
 
   test('an attachmentRoot that is a file fails the setup', async () => {
-    const error: AnyType = await captureError(
-      buildComponent({ attachmentRoot: secretFile }).configure(),
-    );
+    const error = await captureError(buildComponent({ attachmentRoot: secretFile }).configure());
 
-    expect(error?.message).toContain('attachmentRoot');
+    expect(messageOf(error)).toContain('attachmentRoot');
   });
 
   test('valid attachment options set up cleanly', async () => {

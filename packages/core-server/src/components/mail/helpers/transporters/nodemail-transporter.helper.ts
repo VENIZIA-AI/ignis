@@ -1,10 +1,10 @@
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { BaseHelper } from '@venizia/ignis-helpers/core';
 import { ErrorUtility, ModuleUtility } from '@venizia/ignis-helpers';
 import type {
   IMailMessage,
   IMailSendResult,
   IMailTransport,
+  INodemailerTransporter,
   TNodemailerConfig,
   TNodemailerModule,
 } from '../../common';
@@ -13,7 +13,7 @@ import { MailBodyUtility } from '../../utilities/body.utility';
 
 /** SMTP transport on `nodemailer`, with its file and URL access switched off. */
 export class NodemailerTransportHelper extends BaseHelper implements IMailTransport {
-  private transporter: AnyType;
+  private transporter: INodemailerTransporter;
   private module?: TNodemailerModule;
 
   constructor(opts: { config: TNodemailerConfig; module?: TNodemailerModule }) {
@@ -28,8 +28,9 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
   }
 
   /** Client factory seam - overridden in tests to run the helper without a real SMTP client. */
-  protected buildTransporter(config: TNodemailerConfig): AnyType {
-    const nodemailer = this.module ?? ModuleUtility.loadSync<AnyType>({ module: 'nodemailer' });
+  protected buildTransporter(config: TNodemailerConfig): INodemailerTransporter {
+    const nodemailer =
+      this.module ?? ModuleUtility.loadSync<TNodemailerModule>({ module: 'nodemailer' });
 
     return nodemailer.createTransport(config);
   }

@@ -11,7 +11,6 @@ import type {
 import { MailDefaults, MailErrorCodes, MailErrors, MailKeys, MailTemplateFormats } from '../common';
 import { inject } from '@/base/metadata';
 import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
-import { type AnyType } from '@venizia/ignis-helpers/common';
 import { ErrorUtility, PromiseUtility } from '@venizia/ignis-helpers';
 import { MailAttachmentUtility } from '../utilities/attachment.utility';
 import { MailBodyUtility } from '../utilities/body.utility';
@@ -135,7 +134,7 @@ export class MailService extends BaseService implements IMailService {
 
   async sendTemplate(opts: {
     templateName: string;
-    data: Record<string, AnyType>;
+    data: Record<string, unknown>;
     recipients: string | string[];
     options?: Partial<IMailMessage>;
   }): Promise<IMailSendResult> {

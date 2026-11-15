@@ -1,21 +1,28 @@
 import { describe, expect, test } from 'bun:test';
-import { MailErrors } from '@/components/mail/common';
+import {
+  MailErrors,
+  type IAmazonSesSendEmailInput,
+  type IMailgunMessagesClient,
+  type INodemailerTransporter,
+  type TAmazonSesClient,
+  type TAmazonSesConfig,
+} from '@/components/mail/common';
 import {
   AmazonSesTransportHelper,
   MailgunTransportHelper,
   NodemailerTransportHelper,
 } from '@/components/mail/helpers/transporters';
-import type { AnyType } from '@venizia/ignis-helpers/common';
+import { catchApplicationError, catchError, wrongShape } from './fakes';
 
 /** `nodemailer` and `mailgun.js` are OPTIONAL peers not installed here, so both helpers are exercised through their client-factory seam - no SMTP socket or Mailgun HTTP call is ever made. */
 
 class FakeSmtpTransporter {
-  sentMails: AnyType[] = [];
+  sentMails: Array<Record<string, unknown>> = [];
   isClosed = false;
 
   constructor(private behaviour: { sendError?: Error; verifyError?: Error } = {}) {}
 
-  async sendMail(mailOptions: AnyType) {
+  async sendMail(mailOptions: Record<string, unknown>) {
     if (this.behaviour.sendError) {
       throw this.behaviour.sendError;
     }
@@ -39,11 +46,11 @@ class FakeSmtpTransporter {
 }
 
 class FakeMailgunMessagesClient {
-  createdMessages: Array<{ domain: string; payload: AnyType }> = [];
+  createdMessages: Array<{ domain: string; payload: Record<string, unknown> }> = [];
 
   constructor(private behaviour: { createError?: Error } = {}) {}
 
-  async create(domain: string, payload: AnyType) {
+  async create(domain: string, payload: Record<string, unknown>) {
     if (this.behaviour.createError) {
       throw this.behaviour.createError;
     }
@@ -55,20 +62,20 @@ class FakeMailgunMessagesClient {
 }
 
 class FakeSendEmailCommand {
-  constructor(public input: AnyType) {}
+  constructor(public input: IAmazonSesSendEmailInput) {}
 }
 
 class FakeGetAccountCommand {
-  constructor(public input?: AnyType) {}
+  constructor(public input?: object) {}
 }
 
 class FakeSesClient {
-  sentCommands: AnyType[] = [];
+  sentCommands: IAmazonSesSendEmailInput[] = [];
   destroyed = false;
 
   constructor(private behaviour: { sendError?: Error; sendingEnabled?: boolean } = {}) {}
 
-  async send(command: AnyType) {
+  async send(command: object) {
     if (command instanceof FakeSendEmailCommand) {
       if (this.behaviour.sendError) {
         throw this.behaviour.sendError;
@@ -97,19 +104,19 @@ let nextMailgunClient: FakeMailgunMessagesClient;
 let nextSesClient: FakeSesClient;
 
 class TestableNodemailerTransport extends NodemailerTransportHelper {
-  protected override buildTransporter(): AnyType {
+  protected override buildTransporter(): INodemailerTransporter {
     return nextSmtpTransporter;
   }
 }
 
 class TestableMailgunTransport extends MailgunTransportHelper {
-  protected override buildClient(): AnyType {
+  protected override buildClient(): IMailgunMessagesClient {
     return nextMailgunClient;
   }
 }
 
 class TestableAmazonSesTransport extends AmazonSesTransportHelper {
-  protected override buildClient(): AnyType {
+  protected override buildClient(): TAmazonSesClient {
     return {
       client: nextSesClient,
       SendEmailCommand: FakeSendEmailCommand,
@@ -142,57 +149,39 @@ const buildSesTransport = (behaviour?: { sendError?: Error; sendingEnabled?: boo
 };
 
 describe('MailgunTransportHelper - configuration', () => {
-  test('a missing domain fails at CONFIGURE time, not at the first send', () => {
+  test('a missing domain fails at CONFIGURE time, not at the first send', async () => {
     nextMailgunClient = new FakeMailgunMessagesClient();
 
-    const error = (() => {
-      try {
-        new TestableMailgunTransport({ config: { username: 'api', key: 'fake-key' } as AnyType });
+    const error = await catchApplicationError(
+      () =>
+        new TestableMailgunTransport({ config: wrongShape({ username: 'api', key: 'fake-key' }) }),
+    );
 
-        return undefined;
-      } catch (caught) {
-        return caught as AnyType;
-      }
-    })();
-
-    expect(error).toBeDefined();
     expect(error.normalized.code).toBe(MailErrors.INVALID_CONFIGURATION.message.code);
     expect(error.message).toContain('domain');
   });
 
-  test('a missing credential fails at configure time', () => {
+  test('a missing credential fails at configure time', async () => {
     nextMailgunClient = new FakeMailgunMessagesClient();
 
-    const error = (() => {
-      try {
-        new TestableMailgunTransport({ config: { domain: 'mail.test' } as AnyType });
+    const error = await catchApplicationError(
+      () => new TestableMailgunTransport({ config: wrongShape({ domain: 'mail.test' }) }),
+    );
 
-        return undefined;
-      } catch (caught) {
-        return caught as AnyType;
-      }
-    })();
-
-    expect(error).toBeDefined();
     expect(error.normalized.code).toBe(MailErrors.INVALID_CONFIGURATION.message.code);
     expect(error.message).toContain('username');
     expect(error.message).toContain('key');
   });
 
-  test('the configuration error never echoes the api key back', () => {
+  test('the configuration error never echoes the api key back', async () => {
     nextMailgunClient = new FakeMailgunMessagesClient();
 
-    const error = (() => {
-      try {
+    const error = await catchApplicationError(
+      () =>
         new TestableMailgunTransport({
-          config: { username: 'api', key: 'super-secret-key' } as AnyType,
-        });
-
-        return undefined;
-      } catch (caught) {
-        return caught as AnyType;
-      }
-    })();
+          config: wrongShape({ username: 'api', key: 'super-secret-key' }),
+        }),
+    );
 
     expect(JSON.stringify({ message: error.message, extra: error.extra })).not.toContain(
       'super-secret-key',
@@ -301,40 +290,28 @@ describe('NodemailerTransportHelper', () => {
 });
 
 describe('AmazonSesTransportHelper - configuration', () => {
-  test('a missing region fails at CONFIGURE time, not at the first send', () => {
+  test('a missing region fails at CONFIGURE time, not at the first send', async () => {
     nextSesClient = new FakeSesClient();
 
-    const error = (() => {
-      try {
-        new TestableAmazonSesTransport({ config: {} as AnyType });
+    const error = await catchApplicationError(
+      () => new TestableAmazonSesTransport({ config: wrongShape({}) }),
+    );
 
-        return undefined;
-      } catch (caught) {
-        return caught as AnyType;
-      }
-    })();
-
-    expect(error).toBeDefined();
     expect(error.normalized.code).toBe(MailErrors.INVALID_CONFIGURATION.message.code);
     expect(error.message).toContain('region');
   });
 
-  test('the configuration error never echoes credentials back', () => {
+  test('the configuration error never echoes credentials back', async () => {
     nextSesClient = new FakeSesClient();
 
-    const error = (() => {
-      try {
+    const error = await catchApplicationError(
+      () =>
         new TestableAmazonSesTransport({
-          config: {
+          config: wrongShape({
             credentials: { accessKeyId: 'AKIA', secretAccessKey: 'super-secret' },
-          } as AnyType,
-        });
-
-        return undefined;
-      } catch (caught) {
-        return caught as AnyType;
-      }
-    })();
+          }),
+        }),
+    );
 
     expect(JSON.stringify({ message: error.message, extra: error.extra })).not.toContain(
       'super-secret',
@@ -367,7 +344,7 @@ describe('AmazonSesTransportHelper - send', () => {
     // channels SES treats independently.
     expect(sent.ReplyToAddresses).toBeUndefined();
 
-    const raw = (sent.Content.Raw.Data as Buffer).toString('utf-8');
+    const raw = Buffer.from(sent.Content.Raw.Data).toString('utf-8');
     expect(raw).toContain('From: sender@example.com');
     expect(raw).toContain('To: a@b.com, c@d.com');
     expect(raw).toContain('Cc: cc@b.com');
@@ -392,7 +369,7 @@ describe('AmazonSesTransportHelper - send', () => {
     expect(result.success).toBe(true);
 
     const [sent] = fakeClient.sentCommands;
-    const raw = (sent.Content.Raw.Data as Buffer).toString('utf-8');
+    const raw = Buffer.from(sent.Content.Raw.Data).toString('utf-8');
     expect(raw).toContain('Content-Type: multipart/mixed');
     expect(raw).toContain('Content-Disposition: attachment; filename="hello.txt"');
     expect(raw).toContain(Buffer.from('Hello World!', 'utf-8').toString('base64'));
@@ -430,7 +407,7 @@ describe('AmazonSesTransportHelper - send', () => {
       /^=\?UTF-8\?B\?[A-Za-z0-9+/=]+\?= <no-reply@example\.com>$/,
     );
 
-    const raw = (sent.Content.Raw.Data as Buffer).toString('utf-8');
+    const raw = Buffer.from(sent.Content.Raw.Data).toString('utf-8');
     const fromLine = raw.split('\r\n').find((line) => line.startsWith('From:'));
     expect(fromLine).toMatch(/^From: =\?UTF-8\?B\?[A-Za-z0-9+/=]+\?= <no-reply@example\.com>$/);
     expect([...fromLine!].every((char) => char.charCodeAt(0) <= 127)).toBe(true);
@@ -446,7 +423,7 @@ describe('AmazonSesTransportHelper - send', () => {
 
     expect(result.success).toBe(true);
     const [sent] = fakeClient.sentCommands;
-    const raw = (sent.Content.Raw.Data as Buffer).toString('utf-8');
+    const raw = Buffer.from(sent.Content.Raw.Data).toString('utf-8');
     const encodedWords = [...raw.matchAll(/=\?UTF-8\?B\?([A-Za-z0-9+/=]+)\?=/g)].map(
       (match) => match[1],
     );
@@ -467,7 +444,7 @@ describe('AmazonSesTransportHelper - send', () => {
 
     expect(result.success).toBe(true);
     const [sent] = fakeClient.sentCommands;
-    const raw = (sent.Content.Raw.Data as Buffer).toString('utf-8');
+    const raw = Buffer.from(sent.Content.Raw.Data).toString('utf-8');
     const lines = raw.split('\r\n');
 
     for (const line of lines) {
@@ -492,7 +469,7 @@ describe('AmazonSesTransportHelper - send', () => {
     const [sent] = fakeClient.sentCommands;
     expect(sent.Destination.ToAddresses).toEqual([longAddress]);
 
-    const raw = (sent.Content.Raw.Data as Buffer).toString('utf-8');
+    const raw = Buffer.from(sent.Content.Raw.Data).toString('utf-8');
     const toBlock = raw
       .split('\r\n\r\n')[0]
       .split('\r\n')
@@ -514,7 +491,7 @@ describe('AmazonSesTransportHelper - send', () => {
 
     expect(result.success).toBe(true);
     const [sent] = fakeClient.sentCommands;
-    const raw = (sent.Content.Raw.Data as Buffer).toString('utf-8');
+    const raw = Buffer.from(sent.Content.Raw.Data).toString('utf-8');
     expect(raw).toContain('Content-Type: multipart/related');
     expect(raw).not.toContain('Content-Type: multipart/mixed');
     expect(raw).toContain('Content-ID: <logo>');
@@ -536,7 +513,7 @@ describe('AmazonSesTransportHelper - send', () => {
 
     expect(result.success).toBe(true);
     const [sent] = fakeClient.sentCommands;
-    const raw = (sent.Content.Raw.Data as Buffer).toString('utf-8');
+    const raw = Buffer.from(sent.Content.Raw.Data).toString('utf-8');
     expect(raw).toContain('Content-Type: multipart/mixed');
     expect(raw).toContain('Content-Type: multipart/related');
     expect(raw).toContain('filename="report.pdf"');
@@ -564,7 +541,7 @@ describe('AmazonSesTransportHelper - send', () => {
 
     expect(result.success).toBe(true);
     const [sent] = fakeClient.sentCommands;
-    const raw = (sent.Content.Raw.Data as Buffer).toString('utf-8');
+    const raw = Buffer.from(sent.Content.Raw.Data).toString('utf-8');
     // Decoding whatever base64 payload landed on the wire must reproduce the ORIGINAL bytes -
     // double-encoding would instead reproduce the already-base64 text.
     const attachmentSection = raw.split('Content-Disposition: attachment')[1];
@@ -675,12 +652,12 @@ describe('AmazonSesTransportHelper - verify and close', () => {
 describe('Transports - module handed over through the options', () => {
   test('nodemailer: the given module builds the transporter, no filesystem lookup', () => {
     const fakeTransporter = new FakeSmtpTransporter();
-    const calls: AnyType[] = [];
+    const calls: unknown[] = [];
 
     const helper = new NodemailerTransportHelper({
       config: { host: 'localhost', port: 1025 },
       module: {
-        createTransport: (config: AnyType) => {
+        createTransport: (config: unknown) => {
           calls.push(config);
 
           return fakeTransporter;
@@ -701,44 +678,37 @@ describe('Transports - module handed over through the options', () => {
         client() {
           return { messages: fakeClient };
         }
-      } as AnyType,
+      },
     });
 
     const result = await helper.send({ to: 'a@b.com', subject: 'Hi', text: 'body' });
     expect(result.success).toBe(true);
   });
 
-  test('without a module, the missing peer still throws the install hint', () => {
-    const error = (() => {
-      try {
-        new NodemailerTransportHelper({ config: { host: 'localhost', port: 1025 } });
+  test('without a module, the missing peer still throws the install hint', async () => {
+    const error = await catchError(
+      () => new NodemailerTransportHelper({ config: { host: 'localhost', port: 1025 } }),
+    );
 
-        return undefined;
-      } catch (caught) {
-        return caught as AnyType;
-      }
-    })();
-
-    expect(error).toBeDefined();
     expect(error.message).toContain("Please install 'nodemailer'");
   });
 
   test('ses: the given module builds the client and command constructors, no filesystem lookup', async () => {
     const fakeClient = new FakeSesClient();
-    const calls: AnyType[] = [];
+    const calls: TAmazonSesConfig[] = [];
 
     const helper = new AmazonSesTransportHelper({
       config: { region: 'us-east-1' },
       module: {
         SESv2Client: class {
-          constructor(config: AnyType) {
+          constructor(config: TAmazonSesConfig) {
             calls.push(config);
           }
 
           send = fakeClient.send.bind(fakeClient);
-        } as AnyType,
-        SendEmailCommand: FakeSendEmailCommand as AnyType,
-        GetAccountCommand: FakeGetAccountCommand as AnyType,
+        },
+        SendEmailCommand: FakeSendEmailCommand,
+        GetAccountCommand: FakeGetAccountCommand,
       },
     });
 
@@ -748,18 +718,11 @@ describe('Transports - module handed over through the options', () => {
     expect(result.success).toBe(true);
   });
 
-  test('without a module, the missing SES peer still throws the install hint', () => {
-    const error = (() => {
-      try {
-        new AmazonSesTransportHelper({ config: { region: 'us-east-1' } });
+  test('without a module, the missing SES peer still throws the install hint', async () => {
+    const error = await catchError(
+      () => new AmazonSesTransportHelper({ config: { region: 'us-east-1' } }),
+    );
 
-        return undefined;
-      } catch (caught) {
-        return caught as AnyType;
-      }
-    })();
-
-    expect(error).toBeDefined();
     expect(error.message).toContain("Please install '@aws-sdk/client-sesv2'");
   });
 });

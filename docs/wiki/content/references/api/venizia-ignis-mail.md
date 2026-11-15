@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis/mail, from the built declarations (
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-69 exports, 69 with TSDoc.
+74 exports, 74 with TSDoc.
 
 ## `AmazonSesTransportHelper`
 
@@ -132,6 +132,21 @@ export declare class DirectMailExecutorHelper extends BaseHelper implements IMai
 
 Source: `packages/core-server/src/components/mail/helpers/executors/direct-executor.helper.ts`
 
+## `IAmazonSesClient`
+
+*interface*
+
+The part of an `@aws-sdk/client-sesv2` client the transport calls; `send` resolves with the command's output.
+
+```ts
+export interface IAmazonSesClient {
+    send(command: object): Promise<unknown>;
+    destroy?(): void;
+}
+```
+
+Source: `packages/core-server/src/components/mail/common/types/options.ts`
+
 ## `IAmazonSesMailOptions`
 
 *interface*
@@ -143,6 +158,31 @@ export interface IAmazonSesMailOptions extends IBaseMailOptions {
     provider: 'amazon-ses';
     config: TAmazonSesConfig;
     module?: TAmazonSesModule;
+}
+```
+
+Source: `packages/core-server/src/components/mail/common/types/options.ts`
+
+## `IAmazonSesSendEmailInput`
+
+*interface*
+
+The input of a `SendEmailCommand`: the sender, the recipients and the raw MIME body.
+
+```ts
+export interface IAmazonSesSendEmailInput {
+    FromEmailAddress?: string;
+    Destination: {
+        ToAddresses: string[];
+        CcAddresses?: string[];
+        BccAddresses?: string[];
+    };
+    ReplyToAddresses?: string[];
+    Content: {
+        Raw: {
+            Data: Uint8Array;
+        };
+    };
 }
 ```
 
@@ -229,7 +269,7 @@ Mail options with an arbitrary provider name and config; accepted by the type, b
 ```ts
 export interface IGenericMailOptions extends IBaseMailOptions {
     provider: string;
-    config: Record<string, AnyType>;
+    config: Record<string, unknown>;
 }
 ```
 
@@ -281,6 +321,34 @@ export interface IMailgunMailOptions extends IBaseMailOptions {
     provider: 'mailgun';
     config: TMailgunConfig;
     module?: TMailgunModule;
+}
+```
+
+Source: `packages/core-server/src/components/mail/common/types/options.ts`
+
+## `IMailgunMessagesClient`
+
+*interface*
+
+The part of the `mailgun.js` messages client the transport calls.
+
+```ts
+export interface IMailgunMessagesClient {
+    create(domain: string, message: object): Promise<IMailgunSendResult>;
+}
+```
+
+Source: `packages/core-server/src/components/mail/common/types/options.ts`
+
+## `IMailgunSendResult`
+
+*interface*
+
+The result of one `mailgun.js` send; `id` is the message id.
+
+```ts
+export interface IMailgunSendResult {
+    id?: string;
 }
 ```
 
@@ -492,6 +560,25 @@ export interface INodemailerMailOptions extends IBaseMailOptions {
     provider: 'nodemailer';
     config: TNodemailerConfig;
     module?: TNodemailerModule;
+}
+```
+
+Source: `packages/core-server/src/components/mail/common/types/options.ts`
+
+## `INodemailerTransporter`
+
+*interface*
+
+The part of a `nodemailer` transporter the transport calls.
+
+```ts
+export interface INodemailerTransporter {
+    sendMail(mailOptions: object): Promise<{
+        messageId?: string;
+        response?: unknown;
+    }>;
+    verify(): Promise<unknown>;
+    close(): void;
 }
 ```
 
@@ -849,7 +936,7 @@ export declare class MailgunTransportHelper extends BaseHelper implements IMailT
     /** Credentials and domain are checked here, not on the first send; the error never echoes a credential value back. */
     private validateConfig;
     /** Client factory seam - overridden in tests to run the helper without the mailgun.js peer. */
-    protected buildClient(config: TMailgunConfig): AnyType;
+    protected buildClient(config: TMailgunConfig): IMailgunMessagesClient;
     send(message: IMailMessage): Promise<IMailSendResult>;
     verify(): Promise<boolean>;
 }
@@ -1021,7 +1108,7 @@ export declare class MailService extends BaseService implements IMailService {
     }): Promise<IMailSendResult[]>;
     sendTemplate(opts: {
         templateName: string;
-        data: Record<string, AnyType>;
+        data: Record<string, unknown>;
         recipients: string | string[];
         options?: Partial<IMailMessage>;
     }): Promise<IMailSendResult>;
@@ -1082,9 +1169,9 @@ caller's variable.
 ```ts
 export declare class MailTypeUtility {
     /** Whether `value` is a transport: `send` and `verify` are functions, and `close` is a function or absent. */
-    static isTransport(value: AnyType): value is IMailTransport;
+    static isTransport(value: unknown): value is IMailTransport;
     /** Whether `options` has a string `provider` and a truthy `config`; the shape of `config` is not checked. */
-    static isValidOptions(options: AnyType): options is TMailOptions;
+    static isValidOptions(options: unknown): options is TMailOptions;
 }
 ```
 
@@ -1125,7 +1212,7 @@ export declare class NodemailerTransportHelper extends BaseHelper implements IMa
     });
     configure(config: TNodemailerConfig): void;
     /** Client factory seam - overridden in tests to run the helper without a real SMTP client. */
-    protected buildTransporter(config: TNodemailerConfig): AnyType;
+    protected buildTransporter(config: TNodemailerConfig): INodemailerTransporter;
     send(message: IMailMessage): Promise<IMailSendResult>;
     verify(): Promise<boolean>;
     close(): Promise<void>;
@@ -1173,7 +1260,7 @@ An Amazon SES client with the command classes the transport sends and verifies w
 
 ```ts
 export type TAmazonSesClient = Pick<TAmazonSesModule, 'SendEmailCommand' | 'GetAccountCommand'> & {
-    client: AnyType;
+    client: IAmazonSesClient;
 };
 ```
 
@@ -1206,10 +1293,10 @@ Source: `packages/core-server/src/components/mail/common/types/options.ts`
 Same story as {@link TNodemailerModule} - a compiled binary hands this over explicitly since there is no `node_modules` to resolve `@aws-sdk/client-sesv2` against.
 
 ```ts
-export type TAmazonSesModule<TConfig extends AnyType = AnyType, TClient extends AnyType = AnyType> = {
+export type TAmazonSesModule<TConfig = TAmazonSesConfig, TClient extends IAmazonSesClient = IAmazonSesClient> = {
     SESv2Client: new (config: TConfig) => TClient;
-    SendEmailCommand: new (input: AnyType) => AnyType;
-    GetAccountCommand: new (input?: AnyType) => AnyType;
+    SendEmailCommand: new (input: IAmazonSesSendEmailInput) => object;
+    GetAccountCommand: new (input: object) => object;
 };
 ```
 
@@ -1233,7 +1320,7 @@ export declare class TemplateEngineService extends BaseService implements IMailT
     render(opts: {
         templateData?: string;
         templateName?: string;
-        data: Record<string, AnyType>;
+        data: Record<string, unknown>;
         requireValidate?: boolean;
         format?: TMailTemplateFormat;
     }): string;
@@ -1244,13 +1331,13 @@ export declare class TemplateEngineService extends BaseService implements IMailT
     clearTemplates(): void;
     validateTemplateData(opts: {
         template: string;
-        data: Record<string, AnyType>;
+        data: Record<string, unknown>;
     }): {
         isValid: boolean;
         missingKeys: string[];
         allKeys: string[];
     };
-    renderSimpleTemplate(template: string, data: Record<string, AnyType>, opts?: {
+    renderSimpleTemplate(template: string, data: Record<string, unknown>, opts?: {
         requireValidate?: boolean;
         format?: TMailTemplateFormat;
     }): string;
@@ -1301,11 +1388,15 @@ Source: `packages/core-server/src/components/mail/common/constants.ts`
 
 *type*
 
-Mailgun client options (`mailgun.js`) plus the sending `domain`.
+Mailgun client options (`mailgun.js`) plus the sending `domain`; the transport throws on a missing `username`, `key` or `domain`.
 
 ```ts
-export type TMailgunConfig = AnyType & {
+export type TMailgunConfig = {
+    username: string;
+    key: string;
     domain: string;
+    url?: string;
+    [option: string]: unknown;
 };
 ```
 
@@ -1318,7 +1409,11 @@ Source: `packages/core-server/src/components/mail/common/types/options.ts`
 The `mailgun.js` class, as a constructor taking the form-data implementation.
 
 ```ts
-export type TMailgunModule = new (formData: AnyType) => AnyType;
+export type TMailgunModule = new (formData: typeof FormData) => {
+    client(config: object): {
+        messages: IMailgunMessagesClient;
+    };
+};
 ```
 
 Source: `packages/core-server/src/components/mail/common/types/options.ts`
@@ -1404,7 +1499,7 @@ a compile error rather than a boot crash.
 
 ```ts
 export type TNodemailerModule = {
-    createTransport: (config: AnyType, defaults?: AnyType) => AnyType;
+    createTransport(config: TNodemailerConfig, defaults?: object): INodemailerTransporter;
 };
 ```
 
