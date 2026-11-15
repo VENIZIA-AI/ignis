@@ -29,7 +29,7 @@ migration:
         - "Type the config as any & { domain: string } again."
     data: "The runtime check is unchanged: a missing username, key or domain still throws when the transport is built."
   - id: mail-peer-module-types
-    symbols: [TNodemailerModule, TMailgunModule, TAmazonSesModule, TAmazonSesClient, INodemailerTransporter, IMailgunMessagesClient, IAmazonSesClient, IAmazonSesSendEmailInput]
+    symbols: [TNodemailerModule, TMailgunModule, TAmazonSesModule, TAmazonSesClient, INodemailerTransporter, IMailgunMessagesClient, IMailgunSendResult, IAmazonSesClient, IAmazonSesSendEmailInput, MailgunTransportHelper.buildClient, NodemailerTransportHelper.buildTransporter]
     upgrade:
       before: |
         // a test double or a wrapper handed over as the peer module; every member was any
@@ -38,6 +38,13 @@ migration:
         // the module types name what the transport calls: the real nodemailer, mailgun.js and
         // @aws-sdk/client-sesv2 modules fit as they are. A double returns a value with sendMail, verify and close.
         const module: TNodemailerModule = { createTransport: () => ({ sendMail, verify, close }) };
+
+        // a subclass that overrides the protected seams returns the same interfaces
+        class TestTransport extends NodemailerTransportHelper {
+          protected override buildTransporter(): INodemailerTransporter {
+            return { sendMail, verify, close };
+          }
+        }
     downgrade:
       steps:
         - "Hand over the module as before: the older types accepted any shape, so a double that fit the newer types fits the older ones."
@@ -60,14 +67,14 @@ migration:
 
 <Badge type="warning" text="Breaking Change" />
 
-**In one line.** The mail types say what they hold, and nothing changes at runtime except one narrowing in the SES transport.
+**In one line.** The mail types say what they hold, and nothing changes at runtime except how the SES transport reads an answer that is not an object.
 
 ## What changed
 
 - **Free-form data.** `IGenericMailOptions.config` and the `data` of `sendTemplate` and the template engine are `Record<string, unknown>`.
 - **Mailgun.** `TMailgunConfig` lists `username`, `key`, `domain` and `url`; other options stay allowed.
 - **Peer modules.** `TNodemailerModule`, `TMailgunModule` and `TAmazonSesModule` describe the parts the transports call. The real `nodemailer`, `mailgun.js` and `@aws-sdk/client-sesv2` modules fit them.
-- **SES.** The transport reports `messageId` only when the SES answer carries it as a string.
+- **SES.** The transport reports `messageId` only when the SES answer carries it as a string. An answer that is `null` or not an object (the SDK never answers one) no longer throws inside the transport: `send` reports success with no `messageId`, and `verify` reports the account as disabled.
 
 ## Who is affected
 
