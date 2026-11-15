@@ -5,6 +5,7 @@ packages: ['@venizia/ignis-helpers', '@venizia/ignis-inversion']
 migration:
   - id: any-type-alias-removed
     symbols: [AnyType]
+    codemod: any-aliases
     upgrade:
       before: |
         import type { AnyType } from '@venizia/ignis-helpers';
@@ -37,6 +38,7 @@ migration:
     data: "A bag that holds interface-typed values: Record<string, unknown> accepts them as values, but a variable typed with an interface is not assignable to Record<string, unknown> (an interface has no implicit index signature). Declare the shape as a type alias, or take `object`."
   - id: any-object-alias-removed
     symbols: [AnyObject]
+    codemod: any-aliases
     upgrade:
       before: |
         import type { AnyObject } from '@venizia/ignis-helpers';
@@ -91,6 +93,7 @@ migration:
         - "Declare the alias in your own code and use it for the parameter; an interface fits Record<string | symbol | number, any>."
   - id: inversion-any-type-removed
     symbols: [AnyType, inject]
+    codemod: any-aliases
     upgrade:
       before: |
         import type { AnyType } from '@venizia/ignis-inversion';
@@ -122,7 +125,7 @@ migration:
 
 ## Who is affected
 
-- **Code that imports `AnyType` or `AnyObject` from `@venizia/ignis-helpers`, `@venizia/ignis-inversion` or the `@venizia/ignis` root.** The import fails to compile. See the migration above.
+- **Code that imports `AnyType` or `AnyObject` from `@venizia/ignis-helpers`, `@venizia/ignis-inversion` or the `@venizia/ignis` root.** The import fails to compile. Run `devz codemod any-aliases --write <paths>` (from the `@venizia/dev-configs` release that carries this change): it rewrites `AnyType` to `unknown` and `AnyObject` to `Record<string, unknown>`, drops the names from the import, and lists what it leaves (a re-export, an `import()` type, a same-named local type). A value an alias used to accept may then fail the typecheck: an interface-typed value is not assignable to `Record<string, unknown>`; the last migration item says how to fix it by hand.
 - **Everyone else.** No action needed.
 
 ## Breaking changes
