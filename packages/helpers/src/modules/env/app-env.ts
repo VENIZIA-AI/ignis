@@ -3,6 +3,7 @@ import { BaseHelper } from '@/modules/base';
 import { EnvironmentNames } from './names';
 import {
   type IApplicationEnvironment,
+  type IApplicationEnvironmentDefaultedTransformOptions,
   type IApplicationEnvironmentTransformOptions,
 } from './common';
 
@@ -56,14 +57,19 @@ export class ApplicationEnvironment extends BaseHelper implements IApplicationEn
    */
   get(key: string): string | undefined;
   get(key: string, opts: { defaultValue: string }): string;
+  get<R>(key: string, opts: IApplicationEnvironmentDefaultedTransformOptions<R>): R;
+  // oxlint-disable-next-line typescript/unified-signatures -- one union parameter infers `R` from the transform alone (`number | undefined`); two overloads let the `defaultValue` fix `R`
   get<R>(key: string, opts: IApplicationEnvironmentTransformOptions<R>): R;
   get<R>(
     key: string,
-    opts?: { defaultValue?: string | R; transform?: (raw: string | undefined) => R },
+    opts?: {
+      defaultValue?: string | R;
+      transform?: (raw: string | undefined) => R | null | undefined;
+    },
   ): string | R | undefined {
     const raw = this.arguments[key];
 
-    const isBlank = raw == null || !raw.trim();
+    const isBlank = raw == null || (typeof raw === 'string' && !raw.trim());
     const rs = opts?.defaultValue !== undefined && isBlank ? undefined : raw;
 
     if (!opts?.transform) {

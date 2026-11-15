@@ -4,10 +4,18 @@ export interface IApplicationEnvironmentTransformOptions<R> {
   defaultValue?: R;
 }
 
+/** A `transform` that may answer null or undefined, with the `defaultValue` that then applies: the read answers `R`. */
+export interface IApplicationEnvironmentDefaultedTransformOptions<R> {
+  transform: (raw: string | undefined) => R | null | undefined;
+  defaultValue: R;
+}
+
 /** Read and write contract of the application environment store. Every value is a string: `get` answers the raw string (or `undefined`), the `defaultValue` of a string read, or what a `transform` makes of the raw string. */
 export interface IApplicationEnvironment {
   get(key: string): string | undefined;
   get(key: string, opts: { defaultValue: string }): string;
+  get<R>(key: string, opts: IApplicationEnvironmentDefaultedTransformOptions<R>): R;
+  // oxlint-disable-next-line typescript/unified-signatures -- one union parameter infers `R` from the transform alone (`number | undefined`); two overloads let the `defaultValue` fix `R`
   get<R>(key: string, opts: IApplicationEnvironmentTransformOptions<R>): R;
   set(key: string, value: string | undefined): void;
 }

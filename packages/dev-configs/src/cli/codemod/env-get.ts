@@ -15,7 +15,10 @@ Any other type argument (get<number>(key), get<boolean>(key)) was a cast the new
 the codemod lists it as "manual" and leaves it. Move the conversion into a transform, or read the
 string and convert it where you use it: get(key, { transform: Number }).
 
-It reads TypeScript files (.ts, .tsx, .mts, .cts). A .js, .cjs or .mjs file is not read: edit it by hand.
+It reads TypeScript files (.ts, .tsx, .mts, .cts) and only calls whose receiver is the bare identifier
+applicationEnvironment or AppEnvs: a call through this.applicationEnvironment, an alias, an
+ApplicationEnvironment instance or an optional chain is not touched and not listed, so run your typecheck
+after it. A comment between the method name and the parenthesis is dropped. A .js, .cjs or .mjs file is not read: edit it by hand.
 
   --write    write the changed files (without it, nothing is written)
   --check    dry run that exits 1 while a file would change (for CI)
@@ -75,6 +78,8 @@ export class EnvGet {
       if (
         ts.isCallExpression(node) &&
         node.typeArguments !== undefined &&
+        node.questionDotToken === undefined &&
+        !(ts.isPropertyAccessExpression(node.expression) && node.expression.questionDotToken) &&
         ts.isPropertyAccessExpression(node.expression) &&
         node.expression.name.text === 'get' &&
         ts.isIdentifier(node.expression.expression) &&
@@ -189,7 +194,7 @@ export class EnvGetCommand {
         for (const line of result.manual) {
           manualCount += 1;
           console.warn(
-            `manual  ${shown}:${line}  a type argument other than string: use a transform`,
+            `manual  ${shown}:${line}  a type argument other than string: a number or other conversion goes in a transform, a union such as string | undefined is dropped by hand`,
           );
         }
 

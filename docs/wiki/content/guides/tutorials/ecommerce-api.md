@@ -875,7 +875,7 @@ export class PaymentService extends BaseService {
   constructor() {
     super({ scope: PaymentService.name });
 
-    const secretKey = applicationEnvironment.get('APP_ENV_STRIPE_SECRET_KEY');
+    const secretKey = requireEnv('APP_ENV_STRIPE_SECRET_KEY'); // see "Read a required variable" in the Environment page
     this._stripe = new Stripe(secretKey, {
       apiVersion: '2023-10-16',
     });
@@ -909,7 +909,7 @@ export class PaymentService extends BaseService {
   }
 
   async createWebhookEvent(opts: { payload: string; signature: string }) {
-    const webhookSecret = applicationEnvironment.get('APP_ENV_STRIPE_WEBHOOK_SECRET');
+    const webhookSecret = requireEnv('APP_ENV_STRIPE_WEBHOOK_SECRET');
     return this._stripe.webhooks.constructEvent(opts.payload, opts.signature, webhookSecret);
   }
 }

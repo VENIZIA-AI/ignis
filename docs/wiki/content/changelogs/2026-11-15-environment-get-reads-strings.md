@@ -30,6 +30,7 @@ migration:
         const timeout = applicationEnvironment.get<number>('APP_ENV_TIMEOUT', { defaultValue: 5000 }); // a string at runtime
       after: |
         // convert in a transform: the value is a string
+        // handle undefined in the transform: Number(undefined) is NaN, and NaN is not nullish, so a defaultValue would never apply
         const timeout = applicationEnvironment.get('APP_ENV_TIMEOUT', {
           transform: (raw) => (raw === undefined ? undefined : Number(raw)),
           defaultValue: 5000,
@@ -38,6 +39,33 @@ migration:
       steps:
         - "Call get<number>(key, { defaultValue }) again; the older get<T> was a cast."
     data: "The old get<number>(key) returned the raw string at runtime while its type said number. Code that compared it with a number, or added to it, behaved as a string operation: check each call that carried a non-string type argument."
+  - id: get-default-value-is-a-string
+    symbols: [ApplicationEnvironment.get, IApplicationEnvironment.get, IApplicationEnvironmentTransformOptions, IApplicationEnvironmentDefaultedTransformOptions]
+    upgrade:
+      before: |
+        const retries = applicationEnvironment.get<number>('APP_ENV_RETRIES', { defaultValue: 3 });
+        const hosts = applicationEnvironment.get<string[]>('APP_ENV_HOSTS', { defaultValue: [] });
+      after: |
+        // a default without a transform is a string; any other type needs the transform that makes it
+        const retries = applicationEnvironment.get('APP_ENV_RETRIES', {
+          transform: (raw) => (raw === undefined ? undefined : Number(raw)),
+          defaultValue: 3,
+        });
+        const hosts = applicationEnvironment.get('APP_ENV_HOSTS', {
+          transform: (raw) => ParseUtility.toDelimitedArray({ input: raw }),
+          defaultValue: [],
+        });
+    downgrade:
+      steps:
+        - "Pass a defaultValue of any type with a type argument again; the older get<T> took one."
+  - id: set-and-constructor-take-strings
+    symbols: [IApplicationEnvironment.set]
+    upgrade:
+      steps:
+        - "set returns void, where it returned any, and takes string | undefined. A class that implements IApplicationEnvironment adds the three get overloads and the string-valued set."
+    downgrade:
+      steps:
+        - "Implement the older get<ReturnType, BeforeTransformType> and a set that returns any."
   - id: required-variable-checked-at-the-read
     symbols: [ApplicationEnvironment.get, IApplicationEnvironment.get]
     upgrade:
@@ -46,7 +74,8 @@ migration:
       after: |
         const host = applicationEnvironment.get('APP_ENV_DB_HOST');
 
-        if (host === undefined) {
+        // an empty line (KEY=) reads as '' without a defaultValue: treat it as unset too
+        if (host === undefined || host.trim() === '') {
           throw new Error('APP_ENV_DB_HOST is not set');
         }
     downgrade:

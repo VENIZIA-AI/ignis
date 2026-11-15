@@ -9,7 +9,7 @@ Every peer dependency below is optional. You install one only when you use the h
 | [Types](./types/) | Shared utility types | You need IGNIS's shared TypeScript utility types | None |
 | [Cron](./cron/) | Scheduled tasks | You run code on a cron schedule | `cron` |
 | [Crypto](./crypto/) | Encryption and signing | You hash, encrypt, or sign data | None |
-| [Environment](./env/) | Env var management | You need typed, validated env var access | None |
+| [Environment](./env/) | Env var management | You need prefix-filtered env vars as strings | None |
 | [Error](./error/) | Error utilities | You throw or handle an error | None |
 | [Secrets & Vault](./secrets/) | Secrets and credentials | You read config or credentials from Vault or a vaulted `.env` | `node-vault` or `@dotenvx/dotenvx` |
 | [Inversion](./inversion/) | DI container | You build custom bindings or providers | None |

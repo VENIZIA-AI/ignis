@@ -286,10 +286,10 @@ See [Attachments](./usage#attachments) for how both apply.
 ```typescript
 {
   provider: MailProviders.NODEMAILER,
-  from: applicationEnvironment.get('APP_ENV_MAIL_FROM') ?? 'noreply@example.com',
-  fromName: applicationEnvironment.get('APP_ENV_MAIL_FROM_NAME') ?? 'Example App',
+  from: applicationEnvironment.get('APP_ENV_MAIL_FROM', { defaultValue: 'noreply@example.com' }),
+  fromName: applicationEnvironment.get('APP_ENV_MAIL_FROM_NAME', { defaultValue: 'Example App' }),
   config: {
-    host: applicationEnvironment.get('APP_ENV_MAIL_HOST') ?? 'smtp.gmail.com',
+    host: applicationEnvironment.get('APP_ENV_MAIL_HOST', { defaultValue: 'smtp.gmail.com' }),
     port: Number(applicationEnvironment.get('APP_ENV_MAIL_PORT', { defaultValue: '465' })),
     secure: ParseUtility.toBoolean({ input: applicationEnvironment.get('APP_ENV_MAIL_SECURE', { defaultValue: 'true' }) }),
     auth: {

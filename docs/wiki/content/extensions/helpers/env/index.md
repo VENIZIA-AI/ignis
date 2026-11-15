@@ -14,7 +14,10 @@ difficulty: beginner
 import { applicationEnvironment } from '@venizia/ignis-helpers';
 
 const jwtSecret = applicationEnvironment.get('APP_ENV_JWT_SECRET');
-const timeout = applicationEnvironment.get('APP_ENV_TIMEOUT', { transform: Number, defaultValue: 5000 });
+const timeout = applicationEnvironment.get('APP_ENV_TIMEOUT', {
+  transform: (raw) => (raw === undefined ? undefined : Number(raw)),
+  defaultValue: 5000,
+});
 ```
 
 The singleton is created once at module load. It reads only keys that start with `APP_ENV` (the default prefix) from `process.env`. `AppEnvs` is an exported alias for the same instance.
@@ -31,7 +34,7 @@ The singleton is created once at module load. It reads only keys that start with
 
 > [!WARNING] Put the fallback in `get()`, not after it
 > `ParseUtility.toInt()` always answers a number - `0` for anything unparseable - so `ParseUtility.toInt({ input: get(KEY) }) ?? 6379` never reaches its fallback. Write `ParseUtility.toInt({ input: get(KEY, { defaultValue: '6379' }) })` instead. The broken form is silent: a missing port reads `0`, and a missing retry budget reads `0`, which means "give up after the first failure".
-- **Nothing is converted unless you pass `transform`.** Every `process.env` value is a `string`, and `get()` types it as one. For a number, write `get('APP_ENV_PORT', { transform: Number })`. A required variable is checked where you read it: `get()` answers `undefined` when it is missing.
+- **Nothing is converted unless you pass `transform`.** Every `process.env` value is a `string`, and `get()` types it as one. For a number, convert in a `transform` that handles `undefined`: `Number(undefined)` is `NaN`, and `NaN` is not nullish, so a `defaultValue` never replaces it. A required variable is checked where you read it: see "Read a required variable" below.
 - **Stage detection is separate from the singleton.** `Environment.current` reads `process.env.NODE_ENV` directly. It falls back to `'development'` when `NODE_ENV` is unset.
 - **`Environment.is({ name })` compares a name against `Environment.current`.**
 - **`ApplicationEnvironment.isDevelopment()` is narrower.** It checks `NODE_ENV === 'development'` exactly. The `'dev'` alias fails that check, even though `dev` counts as a development stage everywhere else in IGNIS.
@@ -61,6 +64,24 @@ All ten stages are in `Environment.COMMON_ENVS`, which the Logger uses to decide
 
 ```typescript
 const port = applicationEnvironment.get('APP_ENV_SERVER_PORT', { defaultValue: '3000' });
+```
+
+### Read a required variable
+
+`get()` answers `string | undefined`, so a variable the app cannot start without is checked where you read it. A small helper of your own keeps that in one place:
+
+```typescript
+import { applicationEnvironment, getError } from '@venizia/ignis-helpers';
+
+export const requireEnv = (key: string): string => {
+  const value = applicationEnvironment.get(key);
+
+  if (value === undefined || value.trim() === '') {
+    throw getError({ message: `[requireEnv] ${key} is not set` });
+  }
+
+  return value;
+};
 ```
 
 ### Convert a value while reading it

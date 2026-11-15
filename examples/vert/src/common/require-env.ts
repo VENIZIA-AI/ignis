@@ -4,7 +4,7 @@ import { applicationEnvironment, getError } from '@venizia/ignis-helpers';
 export const requireEnv = (key: string): string => {
   const value = applicationEnvironment.get(key);
 
-  if (value === undefined || value === '') {
+  if (value === undefined || value.trim() === '') {
     throw getError({ message: `[requireEnv] ${key} is not set` });
   }
 
