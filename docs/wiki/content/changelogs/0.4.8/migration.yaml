@@ -429,7 +429,7 @@ crud-controller-factory-build:
     Find the call sites with: rg -n '\bControllerFactory\b|defineCrudController|enabledRoutes|super\.binding\(\)|controllerName'. The typecheck finds the rest. A repository class with no @repository({ model }) makes build throw. A subclass that declares a member named $inferData or $inferPersist must rename it. A custom GET /count declared in binding() now shadows the generated route, and a static path such as GET /featured is no longer taken by GET /{id}. Type a route map for one repository as TCrudRoutes<ItemRepository>: restoreById and restoreBy are accepted only for a repository that has both restore methods, and a bare TCrudRoutes lists every route.
 
 search-controller-factory-build:
-  symbols: [SearchControllerFactory, SearchControllerFactory.defineSearchController, SearchControllerFactory.build, DefaultSearchRepository]
+  symbols: [SearchControllerFactory, SearchControllerFactory.defineSearchController, SearchControllerFactory.build, DefaultSearchRepository, ISearchControllerOptions, ISearchRoutes]
   upgrade:
     before: |-
       const _Search = SearchControllerFactory.defineSearchController({
@@ -2296,3 +2296,14 @@ sqlite-connector-run-result-unknown:
     steps:
       - Pin @venizia/ignis-connectors to 0.4.7, or read the run result as any and spell the parameter with the driver's result type again.
   data: Types only.
+
+static-asset-resolve-content-type:
+  symbols: [StaticAssetControllerFactory.resolveServedContentType, StaticAssetServe.resolveServedContentType]
+  upgrade:
+    before: |-
+      const served = StaticAssetControllerFactory.resolveServedContentType({ helper, object });
+    after: |-
+      const served = StaticAssetServe.resolveServedContentType({ helper, object });
+  downgrade:
+    steps:
+      - Pin @venizia/ignis to 0.4.7 and call StaticAssetControllerFactory.resolveServedContentType again.
