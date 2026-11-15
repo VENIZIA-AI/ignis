@@ -56,7 +56,7 @@ export abstract class AbstractSearchController<
   TExtra extends object = {},
 > extends BaseRestController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions> {
   repository: ReadableSearchRepository<TDataObject>;
-  searchScope?: TSearchScopeResolver<RouteEnv, TExtra>;
+  searchScope?: TSearchScopeResolver<RouteEnv, TExtra, {}>;
 
   /** The `engineParams` names a caller may send, normalised (see {@link SearchEngineParams}). Empty: any `engineParams` is refused. */
   allowedEngineParams: ReadonlySet<string>;
@@ -73,13 +73,16 @@ export abstract class AbstractSearchController<
   /** The `response` option when it is on. */
   responseTransform?: ISearchLooseResponse<RouteEnv>;
 
+  /** The instances of the classes `inject` declares, by name: what every function source receives as `injected`. */
+  injected: object;
+
   constructor(opts: {
     scope: string;
     isStrict?: boolean;
     repository: ReadableSearchRepository<TDataObject>;
     definitions: Record<string, IAuthRouteConfig>;
     /** Per-request search scope; see {@link TSearchScopeResolver}. */
-    searchScope?: TSearchScopeResolver<RouteEnv, TExtra>;
+    searchScope?: TSearchScopeResolver<RouteEnv, TExtra, {}>;
     /** Names from `query.allow.tuning`, as `SearchEngineParams.resolveAllowlist` answers them. */
     allowedEngineParams?: ReadonlySet<string>;
     /** `modes.raw`, as `SearchRawAccess.resolve` answers it. */
@@ -90,6 +93,8 @@ export abstract class AbstractSearchController<
     querySettings?: ISearchResolvedQuery<RouteEnv>;
     /** The `response` option when it is on. */
     responseTransform?: ISearchLooseResponse<RouteEnv>;
+    /** The instances of the classes `inject` declares, by name. */
+    injected?: object;
   }) {
     super({ scope: opts.scope, isStrict: opts.isStrict });
     this.repository = opts.repository;
@@ -99,6 +104,7 @@ export abstract class AbstractSearchController<
     this.isBodyExtended = opts.isBodyExtended ?? false;
     this.querySettings = opts.querySettings;
     this.responseTransform = opts.responseTransform;
+    this.injected = opts.injected ?? {};
     this.definitions = opts.definitions;
   }
 
@@ -122,6 +128,7 @@ export abstract class AbstractSearchController<
         resolve: this.searchScope,
         context,
         input: body,
+        injected: this.injected,
       });
       input = scoped;
     }
@@ -132,6 +139,7 @@ export abstract class AbstractSearchController<
         query: this.querySettings,
         context,
         input,
+        injected: this.injected,
         dialect: this.repository.dataSource.getQueryDialect(),
       });
       input = applied;
@@ -161,6 +169,7 @@ export abstract class AbstractSearchController<
         found: rs.found,
         context,
         input,
+        injected: this.injected,
       });
       hits = transformed;
     }

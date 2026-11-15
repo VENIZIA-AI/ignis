@@ -1,6 +1,11 @@
 import type { z } from '@hono/zod-openapi';
 import type { TOrderEntry } from '@venizia/ignis-filter';
-import type { TCrudRepositoryClass, TRouteContext } from '@venizia/ignis-kernel';
+import type {
+  TCrudRepositoryClass,
+  TInjected,
+  TInjectMap,
+  TRouteContext,
+} from '@venizia/ignis-kernel';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Env } from 'hono';
 import type { ISearchResult } from '@/search/core/connector';
@@ -45,18 +50,21 @@ export interface ISearchQuerySettings<Document extends object, Tuning extends ob
 
 /**
  * A value, or a function of the request: its `input` is the validated, scoped, typed body, as `scope` reads it. TypeScript widens
- * a string literal a function returns inside a generic call: write `'off' as const`, or pass the repository to `build<typeof Repository>`.
+ * a string literal a function returns inside a generic call: write `'off' as const`. Do not pass type arguments to `build`: they switch the inference off, and `injected` would be typed `{}`.
  */
 export type TSearchSettingsSource<
   Document extends object,
   Tuning extends object,
   RouteEnv extends Env = Env,
   TExtra extends object = {},
+  Inject extends TInjectMap = {},
 > =
   | ISearchQuerySettings<Document, Tuning>
   | ((opts: {
       context: TRouteContext<RouteEnv>;
       input: Exclude<TSearchInput, { mode: 'raw' }> & TExtra;
+      /** The instances of the classes `inject` declares. */
+      injected: TInjected<Inject>;
     }) => ValueOrPromise<ISearchQuerySettings<Document, Tuning>>);
 
 /** The keys `request.body.extend` adds to the body: none for an empty shape, so a function source's `input` is not intersected with an index signature. */
@@ -69,12 +77,26 @@ export interface ISearchQueryOptions<
   Document extends object,
   Tuning extends object,
   TExtra extends object = {},
+  Inject extends TInjectMap = {},
 > {
   /** Wins over the client. A client value for a fixed setting is refused (400). */
-  fixed?: TSearchSettingsSource<Document, Tuning, Env, TExtra>;
+  fixed?: TSearchSettingsSource<Document, Tuning, Env, TExtra, Inject>;
 
   /** Used when the client sent nothing for that setting; above the model's `defaultQueryBy`. */
-  default?: TSearchSettingsSource<Document, Tuning, Env, TExtra>;
+  default?: TSearchSettingsSource<Document, Tuning, Env, TExtra, Inject>;
+
+  /**
+   * Rewrites the query text before anything else reads it: `query` of a keyword or hybrid request, `queryText` of a
+   * semantic one. It runs after the scope and before `fixed` and `default`, so a function source reads the text it
+   * returns. It is not called for a request that carries no text, and the engine still turns an empty string into `*`.
+   * A throw, or a result that is not a string, answers 500.
+   */
+  normalize?: (opts: {
+    text: string;
+    context: TRouteContext<Env>;
+    input: Exclude<TSearchInput, { mode: 'raw' }> & TExtra;
+    injected: TInjected<Inject>;
+  }) => ValueOrPromise<string>;
 
   /** What a client may send. `tuning` names the knobs a request's `engineParams` may carry; a name is fixed or allowed, never both. */
   allow?: { tuning?: Array<Exclude<keyof Tuning & string, 'sortBy'>> };
@@ -86,7 +108,11 @@ export type TSearchHit<Document extends object> = NonNullable<
 >[number];
 
 /** The `response` option when it is on: reshapes the hits before they leave the route. */
-export interface ISearchResponseTransform<Document extends object, TOutDocument extends object> {
+export interface ISearchResponseTransform<
+  Document extends object,
+  TOutDocument extends object,
+  Inject extends TInjectMap = {},
+> {
   /** The documents of the response: it replaces the model's schema in the OpenAPI document, and every transformed document is parsed against it (a mismatch answers 500). */
   document: z.ZodType<TOutDocument>;
 
@@ -96,5 +122,7 @@ export interface ISearchResponseTransform<Document extends object, TOutDocument 
     found: number;
     context: TRouteContext<Env>;
     input: Exclude<TSearchInput, { mode: 'raw' }>;
+    /** The instances of the classes `inject` declares: reread rows from another repository, say. */
+    injected: TInjected<Inject>;
   }) => ValueOrPromise<Array<TSearchHit<TOutDocument>>>;
 }

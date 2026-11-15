@@ -10,6 +10,7 @@ import type { TRouteAuthenticateConfig } from '@venizia/ignis-kernel';
 import { MetadataRegistry } from '@venizia/ignis-kernel/metadata';
 import type { TClass } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
+import { isClass } from '@venizia/ignis-inversion';
 import { BaseSearchEntity } from '@/search/core/models';
 import type { ISearchFieldDefinition } from '@/search/core/models';
 import { SearchEngineParams } from './engine-params';
@@ -18,7 +19,12 @@ import { SearchToggles } from './toggles';
 import type { ISearchRouteOptions } from './factory';
 import type { ISearchLooseResponse } from './response';
 import { SearchSettingsUtility } from './settings';
-import type { ISearchFieldCatalog, ISearchResolvedQuery, TSearchLooseSource } from './settings';
+import type {
+  ISearchFieldCatalog,
+  ISearchResolvedQuery,
+  TSearchLooseNormalize,
+  TSearchLooseSource,
+} from './settings';
 
 /** The options of `SearchControllerFactory.build`, with the types that depend on the model and the engine left open: what `resolve` reads and checks at runtime. */
 export interface ISearchOptionsInput {
@@ -26,7 +32,9 @@ export interface ISearchOptionsInput {
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
   routes: { search?: TToggle<ISearchRouteOptions>; multiSearch?: TToggle<ISearchRouteOptions> };
   modes?: { raw?: TToggle };
-  query?: { fixed?: unknown; default?: unknown; allow?: { tuning?: unknown } };
+  query?: { fixed?: unknown; default?: unknown; normalize?: unknown; allow?: { tuning?: unknown } };
+  /** `inject`: the classes the function sources receive as `injected`. */
+  inject?: unknown;
   response?: { use: boolean; document?: unknown; transform?: unknown };
   hasScope: boolean;
 }
@@ -96,6 +104,26 @@ export class SearchControllerOptionsUtility {
     }
 
     return headers as TAnyObjectSchema;
+  }
+
+  /** `inject` names classes only: a key, an instance or an optional dependency is not declared here. */
+  private static assertInject(opts: { scope: string; inject: unknown }) {
+    const { scope, inject } = opts;
+
+    if (inject === undefined) {
+      return;
+    }
+
+    const isMap = typeof inject === 'object' && inject !== null && !Array.isArray(inject);
+
+    for (const [name, dependency] of isMap ? Object.entries(inject) : [['inject', inject]]) {
+      if (!isClass(dependency)) {
+        throw SearchControllerOptionsUtility.fail({
+          scope,
+          message: `inject.${name} must be a class | write inject: { products: ProductRepository }`,
+        });
+      }
+    }
   }
 
   /** `authenticate` is required: a route is open only by an explicit `{ skip: true }`. */
@@ -222,9 +250,11 @@ export class SearchControllerOptionsUtility {
     const serverOption =
       query?.fixed !== undefined || query?.default !== undefined
         ? 'query.fixed and query.default'
-        : response?.use === true
-          ? 'response'
-          : undefined;
+        : query?.normalize !== undefined
+          ? 'query.normalize'
+          : response?.use === true
+            ? 'response'
+            : undefined;
 
     if (bypass !== undefined && serverOption !== undefined) {
       throw SearchControllerOptionsUtility.fail({
@@ -233,12 +263,26 @@ export class SearchControllerOptionsUtility {
       });
     }
 
+    SearchControllerOptionsUtility.assertInject({ scope, inject: options.inject });
+
     const catalog = SearchControllerOptionsUtility.readCatalog({ scope, entityClass });
     const allowedTuning = new Set(Array.isArray(query?.allow?.tuning) ? query.allow.tuning : []);
 
-    // Only a server setting needs the per-request step; `allow.tuning` alone is the body schema and the allow list.
-    if (query?.fixed !== undefined || query?.default !== undefined) {
+    // Only a server setting or a normalizer needs the per-request step; `allow.tuning` alone is the body schema and the allow list.
+    if (query?.normalize !== undefined && typeof query.normalize !== 'function') {
+      throw SearchControllerOptionsUtility.fail({
+        scope,
+        message: 'query.normalize must be a function | write normalize: ({ text }) => text.trim()',
+      });
+    }
+
+    if (
+      query?.fixed !== undefined ||
+      query?.default !== undefined ||
+      query?.normalize !== undefined
+    ) {
       resolved.query = {
+        normalize: query.normalize as TSearchLooseNormalize | undefined,
         fixed: SearchControllerOptionsUtility.resolveSource({
           scope,
           source: query.fixed,

@@ -1,12 +1,18 @@
 import type {
   TAnyObjectSchema,
   TCustomizableRouteConfig,
+  TInjectMap,
   TRepositoryDataObject,
   TRouteAuthenticateConfig,
   TToggle,
 } from '@venizia/ignis-kernel';
 import type { AbstractEntity } from '@venizia/ignis-kernel';
-import { CrudControllerFactory, OpenApiResponses, SchemaTypes } from '@venizia/ignis-kernel';
+import {
+  CrudControllerFactory,
+  Injection,
+  OpenApiResponses,
+  SchemaTypes,
+} from '@venizia/ignis-kernel';
 import { MetadataRegistry } from '@venizia/ignis-kernel/metadata';
 import type { TAuthMode, TAuthStrategy } from '@venizia/ignis-kernel';
 import type { IAuthorizationSpec } from '@venizia/ignis-kernel';
@@ -47,12 +53,22 @@ export interface ISearchControllerOptions<
   Repository extends TCrudRepositoryClass = TCrudRepositoryClass,
   Shape extends z.ZodRawShape = {},
   TOutDocument extends object = TRepositoryDataObject<InstanceType<Repository>>,
+  Inject extends TInjectMap = {},
 > {
   /** The repository class; its name is the binding the container injects, and its `@repository({ model })` supplies the entity whose SELECT schema drives the `hits[].document` shape in the response. */
   repository: Repository;
 
   /** When true, /search and /search/ are different routes. @default true */
   isStrict?: boolean;
+
+  /**
+   * The classes the function sources below need, by name: `inject: { products: ProductRepository }`. The container resolves
+   * them once, with the controller, so a class that is not registered fails the boot and not a request. Every function
+   * source (`scope`, `query.fixed`, `query.default`, `query.normalize`, `response.transform`) receives the instances as
+   * `injected`, typed from this map: `({ hits, injected }) => injected.products.find(...)`. Classes only. A subclass that
+   * declares its own constructor must pass every argument on to `super`.
+   */
+  inject?: Inject;
 
   /**
    * Authentication of both generated routes. Required: `{ strategies: [Authentication.STRATEGY_JWT] }` admits
@@ -78,7 +94,7 @@ export interface ISearchControllerOptions<
    * multi-search route (leave `routes.multiSearch` out), which `SearchControllerFactory.build` requires.
    * `engineParams` is refused on every controller unless `query.allow.tuning` lists it.
    */
-  scope?: TSearchScopeResolver<Env, z.infer<z.ZodObject<Shape>>>;
+  scope?: TSearchScopeResolver<Env, z.infer<z.ZodObject<Shape>>, Inject>;
 
   /**
    * Adds keys to the body of `POST /search`, on every `mode`: `request.body.extend` is a Zod shape, and each key is
@@ -99,12 +115,13 @@ export interface ISearchControllerOptions<
   query?: ISearchQueryOptions<
     TRepositoryDataObject<InstanceType<Repository>>,
     TRepositoryTuning<Repository>,
-    TSearchExtra<Shape>
+    TSearchExtra<Shape>,
+    Inject
   >;
 
   /** Reshapes the hits of `POST /search` before they leave the route: `{ use: true, document, transform }`. */
   response?: TToggle<
-    ISearchResponseTransform<TRepositoryDataObject<InstanceType<Repository>>, TOutDocument>
+    ISearchResponseTransform<TRepositoryDataObject<InstanceType<Repository>>, TOutDocument, Inject>
   >;
 
   /**
@@ -262,7 +279,8 @@ export class SearchControllerFactory extends BaseHelper {
     TDataObject extends object = TRepositoryDataObject<InstanceType<Repository>>,
     Shape extends z.ZodRawShape = {},
     TOutDocument extends object = TDataObject,
-  >(opts: ISearchControllerOptions<Repository, Shape, TOutDocument>) {
+    Inject extends TInjectMap = {},
+  >(opts: ISearchControllerOptions<Repository, Shape, TOutDocument, Inject>) {
     const { repository, scope, isStrict = true } = opts;
 
     const factoryScope = `SearchControllerFactory.build | repository: ${repository.name}`;
@@ -287,6 +305,7 @@ export class SearchControllerFactory extends BaseHelper {
         modes: opts.modes,
         query: opts.query,
         response: opts.response,
+        inject: opts.inject,
         hasScope: scope !== undefined,
       },
     });
@@ -314,7 +333,10 @@ export class SearchControllerFactory extends BaseHelper {
       TDataObject,
       z.infer<z.ZodObject<Shape>>
     > {
-      constructor(repositoryInstance: ReadableSearchRepository<TDataObject>) {
+      constructor(
+        repositoryInstance: ReadableSearchRepository<TDataObject>,
+        ...instances: unknown[]
+      ) {
         super({
           scope: new.target.name,
           isStrict,
@@ -329,6 +351,11 @@ export class SearchControllerFactory extends BaseHelper {
           // Same boundary cast as `searchScope`: the options are typed over `Env`, the controller over its `RouteEnv`.
           querySettings: resolved.query as ISearchResolvedQuery<RouteEnv> | undefined,
           responseTransform: resolved.response as ISearchLooseResponse<RouteEnv> | undefined,
+          injected: Injection.collect({
+            scope: new.target.name,
+            inject: opts.inject ?? {},
+            instances,
+          }),
         });
       }
 
@@ -358,6 +385,7 @@ export class SearchControllerFactory extends BaseHelper {
       factoryName: 'SearchControllerFactory.build',
       repositoryName: repository.name,
     });
+    Injection.register({ target: controllerClass, inject: opts.inject ?? {}, offset: 1 });
 
     return controllerClass;
   }

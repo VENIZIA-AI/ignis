@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-kernel, from the built declarations
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-360 exports, 360 with TSDoc. 87 more are re-exported from other entries (listed at the end).
+363 exports, 363 with TSDoc. 87 more are re-exported from other entries (listed at the end).
 
 ## `AbstractApplication`
 
@@ -4446,6 +4446,43 @@ export declare const InclusionSchema: z.ZodOptional<z.ZodArray<z.ZodObject<{
 
 Source: `packages/kernel/src/base/repositories/query-schemas/index.ts`
 
+## `Injection`
+
+*class*
+
+Dependencies of a factory's callbacks. A factory takes `inject: { products: ProductRepository }`, records each class
+as a constructor parameter of the controller it generates, and hands the resolved instances to every callback as
+`injected`. The container resolves them once, when it builds the controller at boot, so a class that is not
+registered fails the boot and not a request. A callback never looks anything up in the container.
+
+```ts
+export declare class Injection {
+    /**
+     * Records each declared class as constructor parameter `offset + n` of `target`: the metadata `@inject({ target })`
+     * writes, and the kind `CrudControllerFactory.registerRepositoryInjection` writes for parameter 0. Recorded as
+     * metadata rather than a parameter decorator, which Bun drops in some configurations.
+     */
+    static register(opts: {
+        target: TClass<unknown>;
+        inject: TInjectMap;
+        offset: number;
+    }): void;
+    /** The one trust boundary: the container hands instances positionally and untyped; this checks that every name got one. */
+    private static isComplete;
+    /**
+     * Zips the declared names with the instances the container passed to the constructor, in declaration order. A subclass
+     * with a constructor of its own must pass every argument on to `super`; one that does not is refused here, at boot.
+     */
+    static collect<Inject extends TInjectMap>(opts: {
+        scope: string;
+        inject: Inject;
+        instances: unknown[];
+    }): TInjected<Inject>;
+}
+```
+
+Source: `packages/kernel/src/base/controllers/factory/injection.ts`
+
 ## `IPayloadFieldCodec`
 
 *interface*
@@ -8209,6 +8246,32 @@ export type TInferSchema<T extends z.ZodType> = z.infer<T>;
 ```
 
 Source: `packages/kernel/src/base/controllers/common/schema-builders.ts`
+
+## `TInjected`
+
+*type*
+
+What each callback receives: the same names, holding the instances the container resolved.
+
+```ts
+export type TInjected<Inject extends TInjectMap> = {
+    [Name in keyof Inject]: InstanceType<Inject[Name]>;
+};
+```
+
+Source: `packages/kernel/src/base/controllers/factory/injection.ts`
+
+## `TInjectMap`
+
+*type*
+
+What an options object declares: a name for each class its callbacks need. Classes only: a key or an optional dependency is not declared here.
+
+```ts
+export type TInjectMap = Record<string, TClass<object>>;
+```
+
+Source: `packages/kernel/src/base/controllers/factory/injection.ts`
 
 ## `TInjectOptions`
 

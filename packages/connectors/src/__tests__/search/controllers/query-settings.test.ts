@@ -75,6 +75,8 @@ const mount = async (opts: {
   routes?: ISearchControllerOptions['routes'];
   repositoryClass?: typeof QuerySettingsProductRepository;
   found?: number;
+  /** What the container would pass after the repository: the instances of `inject`, in order. */
+  instances?: unknown[];
 }) => {
   sequence += 1;
   const RepositoryClass = opts.repositoryClass ?? QuerySettingsProductRepository;
@@ -95,7 +97,7 @@ const mount = async (opts: {
   @controllerDecorator({ path: '/products' })
   class Controller extends BuiltController {}
 
-  const controller = new Controller(new RepositoryClass(dataSource));
+  const controller = new Controller(new RepositoryClass(dataSource), ...(opts.instances ?? []));
   await controller.configure();
 
   const router = controller.getRouter();
@@ -454,6 +456,185 @@ describe('a scope that matches nothing', () => {
     expect(empty.status).toBe(200);
     expect(empty.json.hits).toEqual([]);
     expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
+  });
+});
+
+class QueryClock {
+  now() {
+    return 42;
+  }
+}
+
+class QueryTenants {
+  merchantOf(opts: { userId: string }) {
+    return `merchant-of-${opts.userId}`;
+  }
+}
+
+describe('inject: the dependencies of the function sources', () => {
+  test('every function source receives the injected instances, by name', async () => {
+    const seen: Record<string, unknown> = {};
+    const PublicProduct = z.object({ id: z.string() });
+    const { send } = await mount({
+      instances: [new QueryClock(), new QueryTenants()],
+      options: {
+        inject: { clock: QueryClock, tenants: QueryTenants },
+        scope: ({ injected }: { injected: { tenants: QueryTenants } }) => {
+          seen['scope'] = injected.tenants.merchantOf({ userId: 'u' });
+
+          return { status: 'live' };
+        },
+        query: {
+          normalize: ({ text, injected }: { text: string; injected: { clock: QueryClock } }) => {
+            seen['normalize'] = injected.clock.now();
+
+            return text;
+          },
+          fixed: ({ injected }: { injected: { clock: QueryClock } }) => {
+            seen['fixed'] = injected.clock.now();
+
+            return { queryBy: ['title'] };
+          },
+          default: ({ injected }: { injected: { tenants: QueryTenants } }) => {
+            seen['default'] = injected.tenants.merchantOf({ userId: 'd' });
+
+            return {};
+          },
+        },
+        response: {
+          use: true,
+          document: PublicProduct,
+          transform: ({
+            hits,
+            injected,
+          }: {
+            hits: Array<{ document: Record<string, unknown> }>;
+            injected: { clock: QueryClock };
+          }) => {
+            seen['transform'] = injected.clock.now();
+
+            return hits.map((hit) => ({ ...hit, document: { id: String(hit.document['id']) } }));
+          },
+        },
+      },
+    });
+    const served = await send(keyword());
+
+    expect(served.status).toBe(200);
+    expect(seen).toEqual({
+      scope: 'merchant-of-u',
+      normalize: 42,
+      fixed: 42,
+      default: 'merchant-of-d',
+      transform: 42,
+    });
+  });
+
+  test('a class that is not a class is refused when the controller is built', () => {
+    expect(() =>
+      SearchControllerFactory.build({
+        repository: QuerySettingsProductRepository,
+        authenticate: { skip: true },
+        routes: { search: { use: true } },
+        inject: { clock: 'services.QueryClock' },
+      } as never),
+    ).toThrow(/inject\.clock must be a class/);
+  });
+
+  test('a controller built without its instances is refused with a 500 when it is constructed', async () => {
+    let status: number | undefined;
+
+    try {
+      await mount({ options: { inject: { clock: QueryClock } } });
+    } catch (error) {
+      status = (error as { statusCode?: number }).statusCode;
+    }
+
+    expect(status).toBe(500);
+  });
+});
+
+describe('query.normalize', () => {
+  test('rewrites the text before a function source reads it; semantic takes queryText', async () => {
+    const seenByDefault: unknown[] = [];
+    const { send, dataSource } = await mount({
+      options: {
+        query: {
+          normalize: ({ text }: { text: string }) => text.normalize('NFC').toLowerCase().trim(),
+          default: ({ input }: { input: Record<string, unknown> }) => {
+            seenByDefault.push(input['query']);
+
+            return { queryBy: ['title'] };
+          },
+        },
+      },
+    });
+
+    await send(keyword({ query: '  SHOES ' }));
+    expect(seenByDefault).toEqual(['shoes']);
+    expect(wire(dataSource)['q']).toBe('shoes');
+
+    const semantic = await mount({
+      repositoryClass: QuerySettingsDefaultByRepository as never,
+      options: { query: { normalize: ({ text }: { text: string }) => text.trim() } },
+    });
+    const served = await semantic.send({
+      mode: 'semantic',
+      vectorField: 'embedding',
+      queryText: '  hello ',
+    });
+
+    expect(served.status).toBe(200);
+
+    // A request with no text is not normalized.
+    const calls: string[] = [];
+    const none = await mount({
+      options: {
+        query: {
+          normalize: ({ text }: { text: string }) => {
+            calls.push(text);
+
+            return text;
+          },
+        },
+      },
+    });
+
+    await none.send({ mode: 'keyword', queryBy: ['title'] });
+    expect(calls).toEqual([]);
+  });
+
+  test('a normalizer that throws, or does not return a string, answers 500', async () => {
+    for (const normalize of [
+      () => {
+        throw new Error('boom');
+      },
+      () => 42,
+    ]) {
+      const { send } = await mount({ options: { query: { normalize } } });
+      const refused = await send(keyword());
+
+      expect(refused.status).toBe(500);
+    }
+  });
+
+  test('is refused beside raw access, and must be a function', () => {
+    for (const [options, pattern] of [
+      [
+        { query: { normalize: () => '' }, modes: { raw: { use: true } } },
+        /query\.normalize cannot be used with modes\.raw/,
+      ],
+      [{ query: { normalize: 'trim' } }, /query\.normalize must be a function/],
+    ] as const) {
+      expect(() =>
+        SearchControllerFactory.build({
+          repository: QuerySettingsProductRepository,
+          authenticate: { skip: true },
+          routes: { search: { use: true } },
+          ...options,
+        } as never),
+      ).toThrow(pattern);
+    }
   });
 });
 

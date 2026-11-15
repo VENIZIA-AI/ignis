@@ -25,7 +25,16 @@ export type TSearchLooseSource<RouteEnv extends Env = Env> =
   | ((opts: {
       context: TRouteContext<RouteEnv>;
       input: TNonRawInput;
+      injected: object;
     }) => ValueOrPromise<ISearchLooseSettings>);
+
+/** A `query.normalize`, with `injected` untyped. */
+export type TSearchLooseNormalize<RouteEnv extends Env = Env> = (opts: {
+  text: string;
+  context: TRouteContext<RouteEnv>;
+  input: TNonRawInput;
+  injected: object;
+}) => ValueOrPromise<string>;
 
 /** What the model says about its fields, read once when the controller is built. */
 export interface ISearchFieldCatalog {
@@ -40,6 +49,8 @@ export interface ISearchFieldCatalog {
 export interface ISearchResolvedQuery<RouteEnv extends Env = Env> {
   fixed?: TSearchLooseSource<RouteEnv>;
   default?: TSearchLooseSource<RouteEnv>;
+  /** `query.normalize`, with its text and its `injected` untyped. */
+  normalize?: TSearchLooseNormalize<RouteEnv>;
   /** The names of `query.allow.tuning`. */
   allowedTuning: ReadonlySet<string>;
   catalog: ISearchFieldCatalog;
@@ -242,10 +253,11 @@ export class SearchSettingsUtility {
     source?: TSearchLooseSource<RouteEnv>;
     context: TRouteContext<RouteEnv>;
     input: TNonRawInput;
+    injected: object;
     query: ISearchResolvedQuery<RouteEnv>;
     isFixed: boolean;
   }): Promise<ISearchLooseSettings> {
-    const { source, context, input, query, isFixed } = opts;
+    const { source, context, input, injected, query, isFixed } = opts;
     const scope = isFixed ? 'search | query.fixed' : 'search | query.default';
     const statusCode = HTTP.ResultCodes.RS_5.InternalServerError;
 
@@ -260,7 +272,7 @@ export class SearchSettingsUtility {
     let settings: unknown;
 
     try {
-      const result = await source({ context, input });
+      const result = await source({ context, input, injected });
       settings = result;
     } catch (error) {
       throw SearchSettingsUtility.fail({
@@ -443,6 +455,51 @@ export class SearchSettingsUtility {
   }
 
   /**
+   * The input with the query text `query.normalize` returned: `query` of a keyword or hybrid request, `queryText` of a
+   * semantic one. A request without text is left as it is. A throw, or a result that is not a string, answers 500: the
+   * function is the server's.
+   */
+  static async normalize<RouteEnv extends Env = Env>(opts: {
+    query: ISearchResolvedQuery<RouteEnv>;
+    context: TRouteContext<RouteEnv>;
+    input: TNonRawInput;
+    injected: object;
+  }): Promise<TNonRawInput> {
+    const { query, context, input, injected } = opts;
+    const text = input.mode === SearchModes.SEMANTIC ? input.queryText : input.query;
+
+    if (!query.normalize || text === undefined) {
+      return input;
+    }
+
+    let normalized: unknown;
+
+    try {
+      const result = await query.normalize({ text, context, input, injected });
+      normalized = result;
+    } catch (error) {
+      throw SearchSettingsUtility.fail({
+        scope: 'search | query.normalize',
+        message: 'the normalize function threw',
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        cause: error,
+      });
+    }
+
+    if (typeof normalized !== 'string') {
+      throw SearchSettingsUtility.fail({
+        scope: 'search | query.normalize',
+        message: `the normalize function must return a string | got: ${typeof normalized}`,
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+      });
+    }
+
+    return input.mode === SearchModes.SEMANTIC
+      ? { ...input, queryText: normalized }
+      : { ...input, query: normalized };
+  }
+
+  /**
    * The input of a request with the controller's `query` settings applied. What the server chose is checked with the engine's
    * own converter before the repository runs, so a bad value (`numTypos: -1`) is the server's 500 and not the client's 400.
    * The result is parsed with `SearchInputSchema`, which also drops the keys `request.body.extend` added.
@@ -451,19 +508,29 @@ export class SearchSettingsUtility {
     query: ISearchResolvedQuery<RouteEnv>;
     context: TRouteContext<RouteEnv>;
     input: TSearchInput;
+    injected: object;
     dialect: ISearchQueryDialect;
   }): Promise<TSearchInput> {
-    const { query, context, input, dialect } = opts;
+    const { query, context, input: received, injected, dialect } = opts;
 
-    if (input.mode === SearchModes.RAW) {
-      return input;
+    if (received.mode === SearchModes.RAW) {
+      return received;
     }
+
+    // First: every function source below reads the text `normalize` returns.
+    const input = await SearchSettingsUtility.normalize({
+      query,
+      context,
+      input: received,
+      injected,
+    });
 
     const [fixed, defaults] = await Promise.all([
       SearchSettingsUtility.resolveSource({
         source: query.fixed,
         context,
         input,
+        injected,
         query,
         isFixed: true,
       }),
@@ -471,6 +538,7 @@ export class SearchSettingsUtility {
         source: query.default,
         context,
         input,
+        injected,
         query,
         isFixed: false,
       }),

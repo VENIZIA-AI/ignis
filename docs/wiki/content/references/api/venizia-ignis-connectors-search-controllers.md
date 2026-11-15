@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-connectors/search/controllers, from
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-0 exports, 0 with TSDoc. 28 more are re-exported from other entries (listed at the end).
+0 exports, 0 with TSDoc. 29 more are re-exported from other entries (listed at the end).
 
 ## Re-exported
 
@@ -35,6 +35,7 @@ description: "Every export of @venizia/ignis-connectors/search/controllers, from
 - `TSearchField` from [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers)
 - `TSearchHit` from [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers)
 - `TSearchLooseHit` from [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers)
+- `TSearchLooseNormalize` from [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers)
 - `TSearchLooseSource` from [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers)
 - `TSearchScopeResolver` from [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers)
 - `TSearchSettingsSource` from [`@venizia/ignis-connectors/typesense/controllers`](/references/api/venizia-ignis-connectors-typesense-controllers)

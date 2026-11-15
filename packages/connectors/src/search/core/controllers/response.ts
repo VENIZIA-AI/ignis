@@ -18,6 +18,7 @@ export interface ISearchLooseResponse<RouteEnv extends Env = Env> {
     found: number;
     context: TRouteContext<RouteEnv>;
     input: Exclude<TSearchInput, { mode: 'raw' }>;
+    injected: object;
   }) => ValueOrPromise<Array<TSearchLooseHit>>;
 }
 
@@ -33,13 +34,14 @@ export class SearchResponseUtility {
     found: number;
     context: TRouteContext<RouteEnv>;
     input: Exclude<TSearchInput, { mode: 'raw' }>;
+    injected: object;
   }): Promise<Array<TSearchLooseHit>> {
-    const { response, hits, found, context, input } = opts;
+    const { response, hits, found, context, input, injected } = opts;
     const statusCode = HTTP.ResultCodes.RS_5.InternalServerError;
     let transformed: Array<TSearchLooseHit>;
 
     try {
-      const result = await response.transform({ hits, found, context, input });
+      const result = await response.transform({ hits, found, context, input, injected });
       transformed = result;
     } catch (error) {
       throw getError({

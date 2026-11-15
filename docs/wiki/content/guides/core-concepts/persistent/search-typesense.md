@@ -704,7 +704,7 @@ const BaseSearchController = SearchControllerFactory.build({
 | `tuning` | The engine's knobs (`ITypesenseTuning` for Typesense). A list knob such as `numTypos` or `infix` is a record keyed by field name |
 
 - **Precedence per setting.** `fixed`, then what the client sent, then `default`, then the model's `defaultQueryBy`. A client value for a fixed setting is a `400` that names it. A tuning name only counts from the client when `allow.tuning` lists it, and a name is fixed or allowed, never both.
-- **A function source.** It gets `{ context, input }`, where `input` is the validated body after the scope, so it sees the `request.body.extend` keys. A string literal it returns widens inside a generic call: write `'title DESC' as const`, or call `build<typeof ArticleRepository>(...)`.
+- **A function source.** It gets `{ context, input }`, where `input` is the validated body after the scope, so it sees the `request.body.extend` keys. A string literal it returns widens inside a generic call: write `'title DESC' as const`. Do not pass type arguments to `build`: they switch the inference off, so `injected` would be typed `{}`.
 - **Hybrid needs no `queryBy` from the client** once `query.fixed` or `query.default` is set: the body's `queryBy` becomes optional, and the server's list (else the model's `defaultQueryBy`) is used.
 - **A keyed record names every `queryBy` field.** A fixed record that does not cover the request's `queryBy` is a `400`. A default one is dropped.
 - **Typed tuning needs the datasource.** Write the repository as `DefaultSearchRepository<TArticle, TypesenseDataSource>`. A repository that leaves the second type argument out has no typed tuning: `query.tuning` is closed, and `query.allow.tuning` takes any name. Meilisearch binds none.
@@ -757,10 +757,61 @@ SearchControllerFactory.build({
 - **The server's code is checked.** Every transformed document is parsed against `document`. A document that does not match, a transform that throws, or a result that is not a list answers `500`.
 - **Not with raw access.** `raw` mode and multi-search return the engine's documents as they are, so `response` throws when `modes.raw` or `routes.multiSearch` is on.
 
+### Dependencies for the function sources
+
+A callback that runs on a request never looks anything up in the container. It declares the classes it needs in `inject`, and every function source (`scope`, `query.fixed`, `query.default`, `query.normalize`, `response.transform`) receives the instances as `injected`, typed from the map:
+
+```typescript
+SearchControllerFactory.build({
+  repository: ProductSearchRepository,
+  routes: { search: { use: true } },
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+  inject: { products: ProductRepository, tenants: TenantService },
+  scope: async ({ context, injected }) => {
+    const user = context.get(Authentication.CURRENT_USER);
+
+    return { merchantId: await injected.tenants.merchantOf({ userId: user.userId }) };
+  },
+  response: {
+    use: true,
+    document: PublicProduct,
+    // The index can be stale: reread the rows by id and drop the hits whose row is gone.
+    transform: async ({ hits, injected }) => {
+      const rows = await injected.products.find({
+        filter: { where: { id: { inq: hits.map((hit) => hit.document.id) } } },
+      });
+      const live = new Set(rows.map((row) => row.id));
+
+      return hits.filter((hit) => live.has(hit.document.id)).map(/* ... */);
+    },
+  },
+});
+```
+
+- **Resolved once, at boot.** The container builds the controller with its dependencies, so a class that is not registered fails the boot, not a request.
+- **Classes only.** A key-bound or optional dependency is not declared here, and `inject` throws when a value is not a class.
+- **A subclass with its own constructor** must pass every argument on to `super`. One that leaves them out is refused when it is built (`A declared dependency was not injected`, `500`). One that passes another object in their place is not caught.
+- **A test hands the callback fakes.** A function source is a plain function of its options: call it with `injected: { tenants: { merchantOf: () => 'm-1' } }`.
+- **Type arguments.** Do not pass type arguments to `build`: they switch the inference off, and `injected` is typed `{}`.
+
+### Normalize the query text
+
+`query.normalize` rewrites the text before anything else reads it: `query` of a keyword or hybrid request, `queryText` of a semantic one.
+
+```typescript
+query: {
+  normalize: ({ text }) => text.normalize('NFC').toLowerCase().replace(/\s+/g, ' ').trim(),
+  default: ({ input }) => ({ tuning: { numTypos: 'query' in input && /^\d+$/.test(input.query ?? '') ? 0 : 1 } }),
+},
+```
+
+- **Order.** It runs after the scope and before `fixed` and `default`, so a function source, and the digit-only rule above, read the normalized text.
+- **No text, no call.** A request that carries none is left as it is, and the engine still turns an empty string into `*`.
+- **Errors.** A throw, or a result that is not a string, answers `500`. It cannot be used with `modes.raw` or `routes.multiSearch`.
+- **It receives** `{ text, context, input, injected }`.
+
 ### What these options do not cover
 
-- **The query text.** The body's `query` reaches the engine as sent: only an empty string (or none) becomes `*`. To normalize it (case, accents, spaces), write a route of your own that calls `repository.search()`.
-- **A dependency in the transform.** The transform gets `{ hits, found, context, input }`. `context` carries the request's state (the current user, the authorization rules), not the container, so a transform that needs another repository cannot resolve one.
 - **A sort expression and hidden fields.** `order` entries are checked against the model's fields. The inside of a `tuning.sortBy` string (`_text_match:desc,...`) is the engine's to check, so a hidden field named there is not caught.
 - **No rows for a caller.** A scope that returns `{ or: [] }` answers `200` with no hits and never calls the engine. `null` is the refusal (`403`).
 

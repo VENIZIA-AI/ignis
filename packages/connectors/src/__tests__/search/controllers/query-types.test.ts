@@ -176,6 +176,76 @@ describe('query types', () => {
     expect(true).toBe(true);
   });
 
+  test('injected is typed from inject, and only classes can be declared', () => {
+    class TypeTenants {
+      merchantOf(opts: { userId: string }) {
+        return opts.userId;
+      }
+    }
+    class TypeProducts {
+      find() {
+        return [{ id: '1' }];
+      }
+    }
+
+    SearchControllerFactory.build({
+      repository: TypedProductRepository,
+      authenticate: { skip: true },
+      routes: { search: { use: true } },
+      inject: { tenants: TypeTenants, products: TypeProducts },
+      scope: ({ injected }) => ({ merchant: injected.tenants.merchantOf({ userId: 'u' }) }),
+      query: { normalize: ({ text, injected }) => `${text}${injected.products.find().length}` },
+      response: {
+        use: true,
+        document: z.object({ id: z.string() }),
+        transform: ({ hits, injected }) =>
+          hits.map((hit) => ({ ...hit, document: injected.products.find()[0] })),
+      },
+    });
+
+    typeOnly(() =>
+      SearchControllerFactory.build({
+        repository: TypedProductRepository,
+        authenticate: { skip: true },
+        routes: { search: { use: true } },
+        inject: { products: TypeProducts },
+        scope: ({ injected }) => {
+          // @ts-expect-error a name that was not declared in inject
+          injected.tenants.merchantOf({ userId: 'u' });
+
+          return { merchant: 'm' };
+        },
+      }),
+    );
+
+    typeOnly(() =>
+      SearchControllerFactory.build({
+        repository: TypedProductRepository,
+        authenticate: { skip: true },
+        routes: { search: { use: true } },
+        inject: { products: TypeProducts },
+        scope: ({ injected }) => {
+          // @ts-expect-error products has no merchantOf
+          injected.products.merchantOf({ userId: 'u' });
+
+          return { merchant: 'm' };
+        },
+      }),
+    );
+
+    typeOnly(() =>
+      SearchControllerFactory.build({
+        repository: TypedProductRepository,
+        authenticate: { skip: true },
+        routes: { search: { use: true } },
+        // @ts-expect-error a string key is not a class
+        inject: { products: 'repositories.TypeProducts' },
+      }),
+    );
+
+    expect(true).toBe(true);
+  });
+
   test('the response document type is inferred from the schema', () => {
     const PublicProduct = z.object({ id: z.string(), title: z.string() });
 
