@@ -106,7 +106,7 @@ remove-async-style-configs:
     steps:
       - "Remove asyncStyleConfigs or reactAsyncStyleConfigs from the @venizia/dev-configs/linters import and from the spread."
       - "Replace the spread array export with export default houseConfigs or export default reactHouseConfigs."
-      - "Run devz codemod async-style for the fixable findings."
+      - "Run bun run devz codemod async-style for the fixable findings."
   downgrade:
     steps:
       - Pin @venizia/dev-configs to 0.4.7 and import asyncStyleConfigs (or reactAsyncStyleConfigs for a React project) again.
@@ -1850,7 +1850,7 @@ environment-get-string:
       applicationEnvironment.set('APP_ENV_PORT', String(5432));
       applicationEnvironment.set('APP_ENV_PORT', previous);
     steps:
-      - "Run `devz codemod env-get [paths...] --write` (add `--numbers` to convert numeric reads with `ParseUtility.toNumber`) to remove obsolete type arguments from `applicationEnvironment.get` and `AppEnvs.get`."
+      - "Run `bun run devz codemod env-get [paths...] --write` (add `--numbers` to convert numeric reads with `ParseUtility.toNumber`) to remove obsolete type arguments from `applicationEnvironment.get` and `AppEnvs.get`."
       - "Convert skipped calls, non-string defaults, and custom types manually using `transform` or `ParseUtility` functions."
       - "Replace manual unset or empty checks for mandatory variables with `applicationEnvironment.getRequired`."
       - "Update `ApplicationEnvironment.set` calls and constructor `envs` maps to pass strings or `undefined`."
@@ -2124,9 +2124,9 @@ blank-line-padding-rules:
 
       export default houseConfigs;
     steps:
-      - "Run devz lint --fix once to automatically insert the required blank-line padding."
+      - "Run bun run devz lint --fix once to automatically insert the required blank-line padding."
       - "Commit the generated blank-line formatting changes apart from other changes."
-      - "Run devz lint to confirm houseConfigs, reactHouseConfigs, or eslintConfigs pass without errors."
+      - "Run bun run devz lint to confirm houseConfigs, reactHouseConfigs, or eslintConfigs pass without errors."
   downgrade:
     steps:
       - Pin @venizia/dev-configs to 0.4.7, which has no padding rules and does not depend on @stylistic/eslint-plugin.
@@ -2190,10 +2190,10 @@ any-aliases-removed:
 
       const strictDecorate = (target: object) => Reflect.getMetadata('design:type', target);
     steps:
-      - "Run `devz codemod any-aliases [paths...] --write` (or `--all`) to rewrite `AnyType` and `AnyObject` imports to `any` and `Record<string | symbol | number, any>`."
+      - "Run `bun run devz codemod any-aliases [paths...] --write` (or `--all`) to rewrite `AnyType` and `AnyObject` imports to `any` and `Record<string | symbol | number, any>`."
       - "Pass `--strict` if you want to rewrite the aliases to `unknown` and `Record<string, unknown>` instead."
       - "Update any re-export, `import()` type, or heritage clause listed by the codemod as manual by hand."
-      - "Run `devz codemod any-aliases [paths...] --check` to verify that no files would change and no manual cases remain."
+      - "Run `bun run devz codemod any-aliases [paths...] --check` to verify that no files would change and no manual cases remain."
   downgrade:
     steps:
       - "Declare the aliases in your own code and import them from there: `export type AnyType = any;` and `export type AnyObject = Record<string | symbol | number, any>;`."
