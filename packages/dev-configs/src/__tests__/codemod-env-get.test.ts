@@ -217,6 +217,47 @@ describe('devz codemod env-get: the rewrite', () => {
     expect(second.manual).toEqual([]);
   });
 
+  test('a call with a variable as options and a one-type-argument form is left alone, so --check passes after --write', async () => {
+    const source = [
+      `const a = AppEnvs.get<string, string>(KEY, opts);`,
+      `const b = AppEnvs.get<number, string>(KEY, opts);`,
+      `const c = AppEnvs.get<string>(KEY, opts);`,
+      '',
+    ].join('\n');
+    const first = rewrite(source);
+
+    expect(first.output).toBe(
+      [
+        `const a = AppEnvs.get<string>(KEY, opts);`,
+        `const b = AppEnvs.get<number>(KEY, opts);`,
+        `const c = AppEnvs.get<string>(KEY, opts);`,
+        '',
+      ].join('\n'),
+    );
+    expect(first.manual).toEqual([]);
+
+    const second = rewrite(first.output);
+
+    expect(second.changed).toBe(false);
+    expect(second.manual).toEqual([]);
+  });
+
+  test('a let alias is not a receiver, a const alias is', () => {
+    const result = rewriteRaw(
+      [
+        `import { AppEnvs } from '@venizia/ignis-helpers';`,
+        `let loose = AppEnvs;`,
+        `const fixed = AppEnvs;`,
+        `export const a = loose.get<string>(KEY);`,
+        `export const b = fixed.get<string>(KEY);`,
+        '',
+      ].join('\n'),
+    );
+
+    expect(result.rewritten).toBe(1);
+    expect(result.skipped).toEqual([{ line: 4, receiver: 'loose' }]);
+  });
+
   test('a get on another receiver is not touched', () => {
     const source = `const s = container.get<string>({ key });\n`;
 

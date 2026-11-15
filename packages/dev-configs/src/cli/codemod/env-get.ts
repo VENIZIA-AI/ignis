@@ -26,7 +26,7 @@ initialised from such a name in the same or an enclosing scope. A parameter, a l
 anywhere else (a barrel of your own included) and a name nothing declares are not the store. Every other
 get<...>(key) call (a property, an optional chain, those names) is printed as skipped with its file and line,
 and a call with a type argument it cannot place as manual: nothing is left out without a line, so run your
-typecheck after it. A comment between the method name and the parenthesis is dropped. A .js, .cjs or .mjs file
+typecheck after it. A var declared in a nested block counts as block-scoped (a hoisted one is not followed). A comment between the method name and the parenthesis is dropped. A .js, .cjs or .mjs file
 is not read: edit it by hand.
 
   --write    write the changed files (without it, nothing is written); it needs a path, or --all
@@ -224,6 +224,7 @@ export class EnvGet {
 
       if (
         ts.isVariableDeclaration(declaration) &&
+        (ts.getCombinedNodeFlags(declaration) & ts.NodeFlags.Const) !== 0 &&
         ts.isIdentifier(declaration.name) &&
         declaration.initializer !== undefined &&
         ts.isIdentifier(declaration.initializer)
@@ -243,8 +244,8 @@ export class EnvGet {
     source: string;
   }): IEnvGetResult {
     const { typescript: ts, fileName, source } = opts;
-    const scriptKind = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
-    const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, scriptKind);
+    const language = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+    const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, language);
     const edits: Array<{ start: number; end: number; text: string }> = [];
     const manual: Array<{ line: number; type: string }> = [];
     const skipped: Array<{ line: number; receiver: string }> = [];
@@ -307,13 +308,16 @@ export class EnvGet {
           if (node.typeArguments.length === 2 && node.arguments.length > 1) {
             // `get<R, B>(key, options)` keeps R, even when R is `string`: a second run leaves `get<string>(key, { transform })` alone.
             edits.push({ start, end, text: `<${first.getText(file)}>` });
-          } else if (node.typeArguments.length === 1 && hasTransform(node.arguments[1])) {
-            // One type argument and a transform: the new form, nothing to do and nothing to list.
           } else if (
-            isStringType(first) &&
-            second === undefined &&
-            !(node.arguments.length > 1 && !ts.isObjectLiteralExpression(node.arguments[1]))
+            node.typeArguments.length === 1 &&
+            (hasTransform(node.arguments[1]) ||
+              (node.arguments.length > 1 && !ts.isObjectLiteralExpression(node.arguments[1])))
           ) {
+            // One type argument and a transform: the new form. One type argument and options that are not a
+            // literal (a variable): the codemod cannot see what they hold, and what it just left in
+            // `get<R, B>(key, options)` would otherwise be listed on the next run; the typecheck names a bad one.
+            // Nothing to do and nothing to list.
+          } else if (isStringType(first) && second === undefined) {
             edits.push({ start, end, text: '' });
           } else {
             manual.push({ line: lineOf(node), type: first.getText(file) });
