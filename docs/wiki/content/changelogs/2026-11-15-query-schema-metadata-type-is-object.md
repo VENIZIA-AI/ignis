@@ -7,18 +7,14 @@ migration:
     symbols: [TSchemaMetadata, TSchemaDecorator]
     upgrade:
       before: |
-        const decorate: TSchemaDecorator = (schema, metadata) => {
-          const type: string | undefined = metadata.type;
-
-          return withDocs(schema, { ...metadata, type });
-        };
+        // a decorator or a test that builds its own metadata with another string
+        const metadata: TSchemaMetadata = { description: 'A filter', type: 'string' };
       after: |
-        // metadata.type is 'object' | undefined: a decorator that widened it to string still compiles,
-        // but a call that builds its own TSchemaMetadata with another string no longer does
-        const decorate: TSchemaDecorator = (schema, metadata) => withDocs(schema, metadata);
+        // only 'object' is accepted; code that only reads metadata.type is unaffected
+        const metadata: TSchemaMetadata = { description: 'A filter', type: 'object' };
     downgrade:
       steps:
-        - "Type the metadata's type as string again; every value the library passes is still 'object'."
+        - "Nothing to restore: the older type was string, a wider type, so every value that compiled still does."
   - id: decorator-refuses-non-zod
     symbols: [QuerySchemaFactory]
     upgrade:
