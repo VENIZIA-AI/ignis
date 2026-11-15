@@ -378,6 +378,8 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
 const config = defineConfig({
   base: '/',
   appearance: 'dark',
+  // A version folder keeps its page as changelogs/<X.Y.Z>/log.md; the site serves it at /changelogs/<X.Y.Z>.
+  rewrites: { 'changelogs/:version/log.md': 'changelogs/:version.md' },
   markdown: {
     // The code windows are dark in both themes (theme/shared/tokens.css), so one dark theme serves both: the
     // shared theme built from the accent on dark of the manifest theme (the value of --accent-on-dark).
@@ -495,6 +497,8 @@ const config = defineConfig({
     },
   },
   themeConfig: {
+    // The guide to moving an app between releases is VULCAN's (`vulcan migrate plan`): one home, linked from here.
+    migrateGuide: 'https://vulcan.venizia.ai/guides/core-concepts/migrate-between-releases',
     logo: '/logo.svg',
     search: {
       provider: 'local',
