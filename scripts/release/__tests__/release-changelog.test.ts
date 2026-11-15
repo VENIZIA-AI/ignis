@@ -99,7 +99,7 @@ describe('ReleaseChangelog.problems', () => {
     });
 
     expect(ReleaseChangelog.problems({ cwd: root, version: '0.4.8', healing: false })).toEqual([
-      'docs/changelogs/0.4.8/log.md already says released: a stable is released once',
+      'docs/changelogs/0.4.8/log.md already says released: 2026-11-20; a released folder is frozen',
     ]);
   });
 
@@ -118,15 +118,64 @@ describe('ReleaseChangelog.problems', () => {
     ).toHaveLength(1);
   });
 
-  test('a body line that starts with released: counts too, the check reads the whole file', () => {
+  test('a body line that starts with released: is not the stamp: only the frontmatter is read', () => {
     const root = project({
       migrationFrom: '0.4.5',
       files: { 'docs/changelogs/0.4.8/log.md': `${LOG}released: here\n` },
     });
 
-    expect(ReleaseChangelog.problems({ cwd: root, version: '0.4.8', healing: false })).toHaveLength(
-      1,
-    );
+    expect(ReleaseChangelog.problems({ cwd: root, version: '0.4.8', healing: false })).toEqual([]);
+  });
+
+  test('an empty released: line is refused like the real stamp refuses it, and does not read the next line as its date', () => {
+    const root = project({
+      migrationFrom: '0.4.5',
+      files: {
+        'docs/changelogs/0.4.8/log.md': LOG.replace('---\nThe', 'released:\nafter: x\n---\nThe'),
+      },
+    });
+
+    const problems = (healing: boolean) =>
+      ReleaseChangelog.problems({ cwd: root, version: '0.4.8', healing, date: '2026-11-20' });
+
+    expect(problems(false)).toEqual([
+      'docs/changelogs/0.4.8/log.md already says released: ; a released folder is frozen',
+    ]);
+    expect(problems(true)).toEqual([]);
+  });
+
+  test('a folder dated today is refused too, unless the run continues one that dated it', () => {
+    const root = project({
+      migrationFrom: '0.4.5',
+      files: { 'docs/changelogs/0.4.8/log.md': RELEASED_LOG },
+    });
+
+    expect(
+      ReleaseChangelog.problems({
+        cwd: root,
+        version: '0.4.8',
+        healing: false,
+        date: '2026-11-20',
+      }),
+    ).toEqual([
+      'docs/changelogs/0.4.8/log.md already says released: 2026-11-20; a released folder is frozen',
+    ]);
+    expect(
+      ReleaseChangelog.problems({ cwd: root, version: '0.4.8', healing: true, date: '2026-11-20' }),
+    ).toEqual([]);
+  });
+
+  test('a log.md with no frontmatter is refused in the plan, before the stamp would fail after the publish', () => {
+    const root = project({
+      migrationFrom: '0.4.5',
+      files: { 'docs/changelogs/0.4.8/log.md': 'No frontmatter.\n' },
+    });
+
+    for (const healing of [false, true]) {
+      expect(ReleaseChangelog.problems({ cwd: root, version: '0.4.8', healing })).toEqual([
+        'docs/changelogs/0.4.8/log.md has no frontmatter to write released: into',
+      ]);
+    }
   });
 
   test('a project that has not adopted the folders, or has no manifest, needs nothing', () => {
@@ -217,7 +266,25 @@ describe('ReleaseChangelog.ofPlan', () => {
     });
   });
 
-  test('a stable reads the folder of the last package of the plan, and its base is that package previous stable', () => {
+  test('a stable without core-server needs no folder, stamps nothing and has no base: the folders are core-server`s', () => {
+    const root = project({ migrationFrom: '0.4.5', tags: ['core-server-v0.4.7'] });
+    const kernel = ReleaseTargets.plan({
+      entries: [{ name: 'kernel', from: '0.4.9-2' }],
+      mode: 'patch',
+      ref: 'refs/heads/main',
+      versions: new Map([['kernel', '0.4.9-2']]),
+    });
+
+    expect(
+      ReleaseChangelog.ofPlan({
+        cwd: root,
+        plan: kernel,
+        versions: new Map([['kernel', '0.4.9-2']]),
+      }),
+    ).toEqual({ problems: [], base: '' });
+  });
+
+  test('a stable reads the folder of core-server, and its base is its previous stable', () => {
     const root = project({
       migrationFrom: '0.4.5',
       files: { 'docs/changelogs/0.4.8/log.md': LOG },
@@ -230,7 +297,7 @@ describe('ReleaseChangelog.ofPlan', () => {
     });
   });
 
-  test('a stable with no folder is refused in the plan, with the version of core-server (the last package), not the first', () => {
+  test('a stable with no folder is refused in the plan, with the version of core-server, not the first', () => {
     const root = project({
       migrationFrom: '0.4.5',
       files: { 'docs/changelogs/0.4.9/log.md': LOG },
@@ -244,7 +311,7 @@ describe('ReleaseChangelog.ofPlan', () => {
     expect(problem).toContain('the stable 0.4.8 has no version folder');
   });
 
-  test('a stable whose folder is released is refused, unless the last package is already at its target on the commit', () => {
+  test('a stable whose folder is released is refused, unless core-server is already at its target on the commit', () => {
     const root = project({
       migrationFrom: '0.4.5',
       files: { 'docs/changelogs/0.4.8/log.md': RELEASED_LOG },
@@ -255,7 +322,7 @@ describe('ReleaseChangelog.ofPlan', () => {
     ]);
 
     expect(ReleaseChangelog.ofPlan({ cwd: root, plan: plan('patch'), versions }).problems).toEqual([
-      'docs/changelogs/0.4.8/log.md already says released: a stable is released once',
+      'docs/changelogs/0.4.8/log.md already says released: 2026-11-20; a released folder is frozen',
     ]);
     expect(
       ReleaseChangelog.ofPlan({ cwd: root, plan: plan('patch'), versions: healing }).problems,

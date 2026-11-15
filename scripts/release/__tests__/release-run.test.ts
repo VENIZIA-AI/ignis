@@ -730,14 +730,19 @@ describe('ReleaseRun.execute: dispatching the same plan again', () => {
 
 describe('ReleaseRun.execute: a stable and a prerelease', () => {
   /** The three packages as `main` has them right after a Sync: prereleases of 0.4.6. */
-  const prereleased = (world: FakeWorld, version = '0.4.6-1'): IPlanEntry[] => {
-    for (const dir of ['helpers', 'kernel', 'connectors']) {
+  const WITH_CORE = ['helpers', 'kernel', 'core-server'];
+  const prereleased = (
+    world: FakeWorld,
+    version = '0.4.6-1',
+    dirs = ['helpers', 'kernel', 'connectors'],
+  ): IPlanEntry[] => {
+    for (const dir of dirs) {
       world.disk.get(dir)!.version = version;
       world.origin.set(dir, version);
       world.npm.add(`${world.disk.get(dir)!.name}@${version}`);
     }
 
-    return ['helpers', 'kernel', 'connectors'].map((name) => ({ name, from: version }));
+    return dirs.map((name) => ({ name, from: version }));
   };
 
   test('a stable promotes each prerelease, pushes every release commit to main and publishes under latest', async () => {
@@ -793,9 +798,9 @@ describe('ReleaseRun.execute: a stable and a prerelease', () => {
     );
   });
 
-  test('a stable dates its version folder in the release commit of the last package of the plan, and in no other', async () => {
+  test('a stable dates its version folder in the release commit of core-server, and in no other', async () => {
     const world = new FakeWorld();
-    const plan = prereleased(world);
+    const plan = prereleased(world, '0.4.6-1', WITH_CORE);
 
     world.folders.add('0.4.6');
     await execute({ world, plan, mode: 'patch' });
@@ -804,13 +809,13 @@ describe('ReleaseRun.execute: a stable and a prerelease', () => {
     expect(world.commits.map((commit) => [commit.dir, commit.staged])).toEqual([
       ['helpers', []],
       ['kernel', []],
-      ['connectors', ['/work/docs/changelogs/0.4.6/log.md']],
+      ['core-server', ['/work/docs/changelogs/0.4.6/log.md']],
     ]);
   });
 
   test('the folder is stamped and added after the package.json and before its commit, with the version of that package', async () => {
     const world = new FakeWorld();
-    const plan = prereleased(world);
+    const plan = prereleased(world, '0.4.6-1', WITH_CORE);
 
     world.folders.add('0.4.6');
     await execute({ world, plan, mode: 'patch' });
@@ -818,18 +823,29 @@ describe('ReleaseRun.execute: a stable and a prerelease', () => {
     const stamp = indexOfCall(world, 'stamp-release.ts --version 0.4.6 --date 2026-11-20');
     const add = world.calls.indexOf('git add -- /work/docs/changelogs/0.4.6/log.md');
     const commit = world.calls.indexOf(
-      '[connectors] git commit -m [#638] chore(connectors): release v0.4.6 [patch]',
+      '[core-server] git commit -m [#638] chore(core-server): release v0.4.6 [patch]',
     );
 
     expect(world.calls.filter((call) => call.includes('stamp-release.ts'))).toHaveLength(1);
-    expect(stamp).toBeGreaterThan(world.calls.indexOf('[connectors] git add package.json'));
+    expect(stamp).toBeGreaterThan(world.calls.indexOf('[core-server] git add package.json'));
     expect(add).toBeGreaterThan(stamp);
     expect(commit).toBeGreaterThan(add);
   });
 
-  test('a project with no folder for the version adds nothing: the stamp prints no path', async () => {
+  test('a stable without core-server dates nothing, even when a folder of its version exists', async () => {
     const world = new FakeWorld();
     const plan = prereleased(world);
+
+    world.folders.add('0.4.6');
+    await execute({ world, plan, mode: 'patch' });
+
+    expect(world.calls.some((call) => call.includes('stamp-release.ts'))).toBe(false);
+    expect(world.commits.every((commit) => commit.staged.length === 0)).toBe(true);
+  });
+
+  test('a project with no folder for the version adds nothing: the stamp prints no path', async () => {
+    const world = new FakeWorld();
+    const plan = prereleased(world, '0.4.6-1', WITH_CORE);
 
     await execute({ world, plan, mode: 'patch' });
 
@@ -847,9 +863,9 @@ describe('ReleaseRun.execute: a stable and a prerelease', () => {
     expect(world.calls.some((call) => call.includes('stamp-release.ts'))).toBe(false);
   });
 
-  test('the folder is dated once: a dispatch of the same plan, whose last package is already released, stamps nothing', async () => {
+  test('the folder is dated once: a dispatch of the same plan, whose core-server is already released, stamps nothing', async () => {
     const world = new FakeWorld();
-    const plan = prereleased(world);
+    const plan = prereleased(world, '0.4.6-1', WITH_CORE);
 
     world.folders.add('0.4.6');
     await execute({ world, plan, mode: 'patch' });
@@ -862,12 +878,12 @@ describe('ReleaseRun.execute: a stable and a prerelease', () => {
     expect(world.calls.some((call) => call.includes('stamp-release.ts'))).toBe(false);
   });
 
-  test('a run that published the last package but lost its commit dates the folder when it records it', async () => {
+  test('a run that published core-server but lost its commit dates the folder when it records it', async () => {
     const world = new FakeWorld();
-    const plan = prereleased(world);
+    const plan = prereleased(world, '0.4.6-1', WITH_CORE);
 
     world.folders.add('0.4.6');
-    world.faults.pushFor.add('connectors');
+    world.faults.pushFor.add('core-server');
     await expect(execute({ world, plan, mode: 'patch' })).rejects.toThrow(/push/);
     expect(world.commits.filter((commit) => commit.pushed).map((commit) => commit.dir)).toEqual([
       'helpers',
@@ -880,7 +896,7 @@ describe('ReleaseRun.execute: a stable and a prerelease', () => {
     await execute({ world, plan, mode: 'patch' });
 
     expect(world.stamped).toEqual([DATE]);
-    expect(world.commits.find((commit) => commit.dir === 'connectors')?.staged).toEqual([
+    expect(world.commits.find((commit) => commit.dir === 'core-server')?.staged).toEqual([
       '/work/docs/changelogs/0.4.6/log.md',
     ]);
   });
