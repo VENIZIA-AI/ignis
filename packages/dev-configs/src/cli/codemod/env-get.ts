@@ -200,7 +200,7 @@ export class EnvGetCommand {
       for (const file of files) {
         const source = readFileSync(file, 'utf8');
 
-        if (!source.includes('.get<')) {
+        if (!/\.get\s*</.test(source)) {
           continue;
         }
 

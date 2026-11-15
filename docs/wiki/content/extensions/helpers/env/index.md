@@ -78,7 +78,10 @@ const jwtSecret = applicationEnvironment.getRequired('APP_ENV_JWT_SECRET');
 Pass a `transform` to convert it. The blank check runs first, so `transform` receives a `string`, and a `transform` that answers `null` or `undefined` throws `<key> is not valid`. A required value has no `defaultValue`.
 
 ```typescript
-const port = applicationEnvironment.getRequired('APP_ENV_PORT', { transform: Number });
+const port = applicationEnvironment.getRequired('APP_ENV_PORT', {
+  // Number('abc') is NaN, which is not nullish: answer undefined to refuse it
+  transform: (raw) => (Number.isNaN(Number(raw)) ? undefined : Number(raw)),
+});
 const mode = applicationEnvironment.getRequired('APP_ENV_MODE', {
   transform: (raw) => (raw === 'a' || raw === 'b' ? raw : undefined),
 });
