@@ -7,20 +7,18 @@ migration:
     symbols: [HttpRepository]
     upgrade:
       before: |
-        const repository = new HttpRepository({ dataSource }); // E defaulted to any
+        const repository = new HttpRepository({ resource: 'articles', dataSource }); // E defaulted to any
         const rows = await repository.find({});
         rows[0].title; // any
-        const result = await repository.updateById({ id: 1, data: { title: 'x' } });
-        result.data.title; // any
       after: |
-        // name the row type: E has no usable default
-        const repository = new HttpRepository<IArticle>({ dataSource });
-        const result = await repository.updateById({ id: 1, data: { title: 'x' } });
-        // the write verbs answer data: unknown; narrow it or pass the row type
-        const row = await repository.updateById<IArticle>({ id: 1, data: { title: 'x' } });
+        // name the row type: E defaults to object, so the rows carry no properties
+        const repository = new HttpRepository<IArticle>({ resource: 'articles', dataSource });
+        const rows = await repository.find({});
+        rows[0].title;
     downgrade:
       steps:
         - "Drop the type argument and read the rows as any again; every read compiled."
+    data: "The implementation signatures of the write verbs answer data: unknown; the overloads a caller sees follow the row type."
   - id: raw-sql-repository-datasource-type
     symbols: [BaseRawSqlRepository]
     upgrade:
@@ -41,29 +39,26 @@ migration:
     symbols: [AbstractDriverDataSource, AbstractDriverDataSource.mapSecretToSettings]
     upgrade:
       before: |
-        class MyDataSource extends AbstractDriverDataSource<ISettings, Schema, {}, Client, Connector, MyDriver> {
-          protected override mapSecretToSettings(opts: { secret: Record<string, string> }): AnyObject {
-            return { user: opts.secret.username };
-          }
-        }
+        // the protected hook returned AnyObject: any property read compiled
+        const user = this.mapSecretToSettings({ secret }).user.toLowerCase();
       after: |
-        // the TDriver constraint is IConnectorDriver<TConnector, unknown>; the protected hook returns Record<string, unknown>
-        class MyDataSource extends AbstractDriverDataSource<ISettings, Schema, {}, Client, Connector, MyDriver> {
-          protected override mapSecretToSettings(opts: { secret: Record<string, string> }): Record<string, unknown> {
-            return { user: opts.secret.username };
-          }
-        }
+        // it returns Record<string, unknown>: narrow what you read; the TDriver constraint is IConnectorDriver<TConnector, unknown>
+        const mapped = this.mapSecretToSettings({ secret });
+        const user = typeof mapped.user === 'string' ? mapped.user.toLowerCase() : undefined;
     downgrade:
       steps:
-        - "Type the override's return as Record<string | symbol | number, any> again."
+        - "Read the mapped settings without a narrow again; the older return was any-valued."
   - id: search-controller-definitions
     symbols: [AbstractSearchController]
     upgrade:
       before: |
-        super({ scope: 'SearchController', repository, definitions: { find: { authenticate: { strategies: ['jwt'] } } } as any });
+        // definitions was any: an untyped object fit
+        const definitions = loadDefinitions();
+        super({ scope: 'SearchController', repository, definitions });
       after: |
         // definitions is Record<string, IAuthRouteConfig>
-        super({ scope: 'SearchController', repository, definitions: { find: { authenticate: { strategies: ['jwt'] } } } });
+        const definitions: Record<string, IAuthRouteConfig> = loadDefinitions();
+        super({ scope: 'SearchController', repository, definitions });
     downgrade:
       steps:
         - "Nothing to restore: a definitions object that fits the newer type fits the older any one."
