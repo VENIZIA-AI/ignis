@@ -1,4 +1,3 @@
-import { type AnyType } from '@/common/types';
 import { BaseLogger } from '../base';
 import { type ILogger, type TLogLevel } from '../common';
 import { LogFormatUtility } from '../formatting';
@@ -30,7 +29,7 @@ export class PinoLogger extends BaseLogger {
         ? LogFormatUtility.formatMessage({ message: opts.message, args: opts.args })
         : opts.message;
 
-    const backing = PinoBackingLogger.get() as AnyType;
+    const backing = PinoBackingLogger.get();
     backing[opts.level](this._formattedPrefix + line);
   }
 
