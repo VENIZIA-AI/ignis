@@ -4,7 +4,7 @@ description: "modes.raw takes { use: true } instead of { allow: true }, the same
 packages: ['@venizia/ignis-connectors']
 migration:
   - id: search-modes-raw-is-a-toggle
-    symbols: [SearchControllerFactory.build, ISearchControllerOptions]
+    symbols: [SearchControllerFactory.build, ISearchControllerOptions, SearchRawAccess.resolve]
     upgrade:
       before: |
         SearchControllerFactory.build({

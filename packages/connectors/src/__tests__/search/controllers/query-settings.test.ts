@@ -10,9 +10,12 @@ import type { OpenAPIHono } from '@hono/zod-openapi';
 import {
   Authentication,
   AuthenticationStrategyRegistry,
+  model,
   repository,
   controller as controllerDecorator,
 } from '@venizia/ignis-kernel';
+import { AbstractSearchController } from '@/search/core/controllers/abstract';
+import { BaseSearchEntity, SearchCollectionFactory, field } from '@/search/core/models';
 import { SearchControllerFactory } from '@/search/core/controllers/factory';
 import { SearchControllerOptionsUtility } from '@/search/core/controllers/options';
 import type { ISearchControllerOptions } from '@/search/core/controllers/factory';
@@ -39,6 +42,27 @@ class QuerySettingsProductRepository extends DefaultSearchRepository<
   TProductDocument,
   TypesenseDataSource
 > {}
+
+// A model that hides a field whose name starts with an underscore, and has the sort shapes the engine knows.
+@model({
+  type: 'entity',
+  tableName: 'query_sort_products',
+  settings: { properties: { hidden: ['_secret'] } },
+})
+class QuerySortProduct extends BaseSearchEntity {
+  static override schema = SearchCollectionFactory.define({
+    name: 'query_sort_products',
+    fields: [
+      field.string('title', { searchable: true }),
+      field.string('_secret'),
+      field.number('price'),
+      field.geopoint('location'),
+    ],
+  });
+}
+
+@repository({ model: QuerySortProduct, dataSource: QuerySettingsDataSource })
+class QuerySortRepository extends DefaultSearchRepository<TProductDocument, TypesenseDataSource> {}
 
 @repository({ model: ProductDocumentWithDefaultQueryBy, dataSource: QuerySettingsDataSource })
 class QuerySettingsDefaultByRepository extends DefaultSearchRepository<
@@ -459,6 +483,66 @@ describe('tuning names and sort strings a server chooses', () => {
         query: { allow: { tuning: ['NumTypos'] } },
       } as never),
     ).toThrow(/write the camelCase name/);
+  });
+});
+
+describe('a sort string the engine reads', () => {
+  const build = (sortBy: string) => () =>
+    SearchControllerFactory.build({
+      repository: QuerySortRepository,
+      authenticate: { skip: true },
+      routes: { search: { use: true } },
+      query: { fixed: { tuning: { sortBy } } },
+    });
+
+  test.each([
+    ['_secret:desc'],
+    ['title:asc,_secret:desc'],
+    ['_eval(_secret:=x):desc'],
+    ['_eval(`_secret`:=S):desc'],
+    ['_eval (_secret:=x):desc'],
+    ['_EVAL(_secret:=x):desc'],
+    ['_eval([(_secret:=x):1]):desc,price:asc'],
+    ['_vector_query(_secret:([1])):asc'],
+  ])('a hidden field, however it is written, is refused: %s', (sortBy) => {
+    expect(build(sortBy)).toThrow(/hidden field/);
+  });
+
+  test.each([
+    ['_text_match:desc,_seq_id:asc'],
+    ['location(48.85, 2.35):asc'],
+    ['location(48.85, 2.35, precision: 2km):asc'],
+    ['price(missing_values: last):desc'],
+    ['_text_match:desc,_eval([(price:>5):1]):desc,price:asc'],
+  ])('the forms the engine accepts are accepted: %s', (sortBy) => {
+    expect(build(sortBy)).not.toThrow();
+  });
+
+  test('an unknown name, even one that starts with an underscore, is refused as a field', () => {
+    expect(build('_nothing:desc')).toThrow(/names a field the model does not have/);
+    expect(build('nothing:desc')).toThrow(/names a field the model does not have/);
+  });
+
+  test('an entry with no field, or no name, is refused', () => {
+    expect(build(':desc')).toThrow(/not a field/);
+    expect(build('price desc extra')).toThrow(/not a field/);
+  });
+});
+
+describe('a controller subclassed directly', () => {
+  test('needs no injected: a subclass written before inject existed keeps compiling and gets none', () => {
+    @controllerDecorator({ path: '/direct' })
+    class DirectSearchController extends AbstractSearchController {
+      override binding() {}
+
+      constructor(repositoryInstance: InstanceType<typeof QuerySettingsProductRepository>) {
+        super({ scope: 'direct', repository: repositoryInstance, definitions: {} });
+      }
+    }
+    const dataSource = new QuerySettingsDataSource({ name: 'query-settings-direct-ds' });
+    const direct = new DirectSearchController(new QuerySettingsProductRepository(dataSource));
+
+    expect(direct.injected).toEqual({});
   });
 });
 

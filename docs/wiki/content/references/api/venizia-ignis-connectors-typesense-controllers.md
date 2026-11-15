@@ -48,8 +48,8 @@ export declare abstract class AbstractSearchController<TEntity extends AbstractE
         querySettings?: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
         /** The `response` option when it is on. */
         responseTransform?: ISearchLooseResponse<RouteEnv, Inject>;
-        /** The instances of the classes `inject` declares, by name: `Injection.collect` answers them. */
-        injected: TInjected<Inject>;
+        /** The instances of the classes `inject` declares, by name: `Injection.collect` answers them. Left out, none are declared. */
+        injected?: TInjected<Inject>;
     });
     /** POST /search - single-collection keyword/semantic/hybrid/raw search. Carries the list headers of every IGNIS list endpoint; the body keeps `{ found, isFoundExact, hits }` because `isFoundExact` has no place in a `{ count, data }` envelope, and it is the only carrier of "found is an estimate". */
     search(opts: {
@@ -1154,10 +1154,11 @@ Reads, checks and merges the `query` settings of a search controller.
 
 ```ts
 export declare class SearchSettingsUtility {
-    /** The trust boundary of a function source: the typed options erase the document and the engine here, and its result is checked on every request. */
-    static isFunctionSource<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}>(source: unknown): source is TSearchLooseFunction<RouteEnv, TExtra, Inject>;
-    /** The same boundary for `query.normalize`. */
-    static isNormalize<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}>(value: unknown): value is TSearchLooseNormalize<RouteEnv, TExtra, Inject>;
+    /**
+     * The trust boundary of a function option (`query.fixed`, `query.default`, `query.normalize`): the typed options erase the
+     * document and the engine here, and what the function returns is checked on every request.
+     */
+    static isFunctionOf<Fn extends (...args: never[]) => unknown>(value: unknown): value is Fn;
     /** `statusCode` is set for what a request carries and for what a function source returns; a definition error leaves it unset, as every build error does. */
     private static fail;
     /** The values of `record` for `names`, in that order; `undefined` when `names` is empty or one of them has no value. */
@@ -1177,6 +1178,19 @@ export declare class SearchSettingsUtility {
         isFixed: boolean;
         statusCode?: number;
     }): ISearchLooseSettings;
+    /** The sort names the engine defines itself: not fields of the model. */
+    static readonly ENGINE_SORT_NAMES: ReadonlySet<string>;
+    /**
+     * One entry of an engine sort string: the name before the first `(` or `:`, the arguments in parentheses (the body, scanned
+     * for hidden names) and the direction. Backticks are dropped, since the engine quotes a name with them. `undefined` for an
+     * entry that has none of this shape, which the caller refuses.
+     */
+    static readSortEntry(opts: {
+        entry: string;
+    }): {
+        name: string;
+        body: string;
+    } | undefined;
     /** The top-level entries of an engine sort string: commas inside parentheses and brackets do not split. */
     static splitSortBy(opts: {
         value: string;

@@ -836,7 +836,7 @@ query: {
 
 ### What these options do not cover
 
-- **A sort expression.** A `tuning.sortBy` string is read for the fields it names: a field the model does not have or hides is refused, as for `order` (an `_eval(...)` body is read for hidden fields only). Only the engine knows its own functions and the rest of the expression, so a `sortBy` the engine refuses answers `500` on the first request. A tuning name that selects rows or fields (`filter_by`, `include_fields`, `queryBy`, in either spelling) is refused in `fixed` and `default` like in `allow.tuning`.
+- **A sort expression.** A `tuning.sortBy` string is read entry by entry. The engine's own names (`_text_match`, `_seq_id`, `_group_found`, `_vector_distance`, `_eval`, `_vector_query`) are not fields; every other entry, with or without arguments in parentheses (`location(48.85, 2.35, precision: 2km):asc`), names a field, and a field the model does not have or hides is refused, as for `order`. The arguments and an `_eval` body are read for hidden names. Only the engine knows its own functions and the rest of the expression, so a `sortBy` the engine refuses answers `500` on the first request. A tuning name that selects rows or fields (`filter_by`, `include_fields`, `queryBy`, in either spelling) is refused in `fixed` and `default` like in `allow.tuning`.
 - **No rows for a caller.** A scope that returns `{ or: [] }` answers `200` with no hits and never calls the engine. `null` is the refusal (`403`).
 
 ### Raw mode and multi-search over HTTP

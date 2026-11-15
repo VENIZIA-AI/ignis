@@ -22,7 +22,13 @@ import type { ISearchRouteOptions } from './factory';
 import { SearchResponseUtility } from './response';
 import type { ISearchLooseResponse } from './response';
 import { SearchSettingsUtility } from './settings';
-import type { ISearchFieldCatalog, ISearchResolvedQuery, TSearchLooseSource } from './settings';
+import type {
+  ISearchFieldCatalog,
+  ISearchResolvedQuery,
+  TSearchLooseFunction,
+  TSearchLooseNormalize,
+  TSearchLooseSource,
+} from './settings';
 
 /** The options of `SearchControllerFactory.build`, with the types that depend on the model and the engine left open: what `resolve` reads and checks at runtime. */
 export interface ISearchOptionsInput {
@@ -177,7 +183,9 @@ export class SearchControllerOptionsUtility {
     }
 
     // The function's own types were checked where it was written; its result is checked on every request.
-    if (SearchSettingsUtility.isFunctionSource<RouteEnv, TExtra, Inject>(source)) {
+    if (
+      SearchSettingsUtility.isFunctionOf<TSearchLooseFunction<RouteEnv, TExtra, Inject>>(source)
+    ) {
       return source;
     }
 
@@ -282,7 +290,9 @@ export class SearchControllerOptionsUtility {
 
     if (
       normalize !== undefined &&
-      !SearchSettingsUtility.isNormalize<RouteEnv, TExtra, Inject>(normalize)
+      !SearchSettingsUtility.isFunctionOf<TSearchLooseNormalize<RouteEnv, TExtra, Inject>>(
+        normalize,
+      )
     ) {
       throw SearchControllerOptionsUtility.fail({
         scope,

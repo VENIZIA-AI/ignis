@@ -84,21 +84,11 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
 
 /** Reads, checks and merges the `query` settings of a search controller. */
 export class SearchSettingsUtility {
-  /** The trust boundary of a function source: the typed options erase the document and the engine here, and its result is checked on every request. */
-  static isFunctionSource<
-    RouteEnv extends Env = Env,
-    TExtra extends object = {},
-    Inject extends TInjectMap = {},
-  >(source: unknown): source is TSearchLooseFunction<RouteEnv, TExtra, Inject> {
-    return typeof source === 'function';
-  }
-
-  /** The same boundary for `query.normalize`. */
-  static isNormalize<
-    RouteEnv extends Env = Env,
-    TExtra extends object = {},
-    Inject extends TInjectMap = {},
-  >(value: unknown): value is TSearchLooseNormalize<RouteEnv, TExtra, Inject> {
+  /**
+   * The trust boundary of a function option (`query.fixed`, `query.default`, `query.normalize`): the typed options erase the
+   * document and the engine here, and what the function returns is checked on every request.
+   */
+  static isFunctionOf<Fn extends (...args: never[]) => unknown>(value: unknown): value is Fn {
     return typeof value === 'function';
   }
 
@@ -227,25 +217,34 @@ export class SearchSettingsUtility {
       }
     };
 
-    // The engine's own sort string: `price:desc`, `_text_match:desc,_eval([(status:=ACTIVATED):1]):desc`. Fields it names obey the rules of `order`; an `_eval` body is read for hidden fields.
+    // The engine's own sort string: `price:desc`, `location(48.85, 2.35, precision: 2km):asc`,
+    // `_text_match:desc,_eval([(status:=ACTIVATED):1]):desc`. Every entry names a field (or one of the engine's own
+    // sort names) and may carry arguments in parentheses; the field obeys the rules of `order`, and an argument list
+    // or an `_eval`/`_vector_query` body is read for hidden fields.
     const checkSortBy = (value: unknown) => {
       if (typeof value !== 'string') {
         throw fail('tuning.sortBy must be a string');
       }
 
       for (const entry of SearchSettingsUtility.splitSortBy({ value })) {
-        const field = entry.split(':')[0]?.trim() ?? '';
+        const parsed = SearchSettingsUtility.readSortEntry({ entry });
 
-        if (field.startsWith('_eval(')) {
-          for (const match of entry.matchAll(/([A-Za-z][\w.]*)\s*:/g)) {
-            const name = match[1] ?? '';
+        if (parsed === undefined) {
+          throw fail(
+            `tuning.sortBy has an entry that is not a field with arguments and a direction | entry: ${JSON.stringify(entry)}`,
+          );
+        }
 
-            if (RequestFilterGuard.isHiddenByName({ key: name, hidden: catalog.hidden })) {
-              throw fail(`tuning.sortBy names a hidden field | field: ${name}`);
-            }
+        if (!SearchSettingsUtility.ENGINE_SORT_NAMES.has(parsed.name.toLowerCase())) {
+          checkField({ name: parsed.name, where: 'tuning.sortBy' });
+        }
+
+        for (const match of parsed.body.matchAll(/([A-Za-z_][\w.]*)\s*:/g)) {
+          const name = match[1] ?? '';
+
+          if (RequestFilterGuard.isHiddenByName({ key: name, hidden: catalog.hidden })) {
+            throw fail(`tuning.sortBy names a hidden field | field: ${name}`);
           }
-        } else if (!field.startsWith('_')) {
-          checkField({ name: field, where: 'tuning.sortBy' });
         }
       }
     };
@@ -324,6 +323,34 @@ export class SearchSettingsUtility {
     }
 
     return settings;
+  }
+
+  /** The sort names the engine defines itself: not fields of the model. */
+  static readonly ENGINE_SORT_NAMES: ReadonlySet<string> = new Set([
+    '_text_match',
+    '_seq_id',
+    '_group_found',
+    '_vector_distance',
+    '_eval',
+    '_vector_query',
+  ]);
+
+  /**
+   * One entry of an engine sort string: the name before the first `(` or `:`, the arguments in parentheses (the body, scanned
+   * for hidden names) and the direction. Backticks are dropped, since the engine quotes a name with them. `undefined` for an
+   * entry that has none of this shape, which the caller refuses.
+   */
+  static readSortEntry(opts: { entry: string }): { name: string; body: string } | undefined {
+    const unquoted = opts.entry.replaceAll('`', '');
+    const match = /^\s*([A-Za-z_][\w.]*)\s*(?:\(([\s\S]*)\))?\s*(?::\s*(?:asc|desc))?\s*$/i.exec(
+      unquoted,
+    );
+
+    if (match === null) {
+      return undefined;
+    }
+
+    return { name: match[1] ?? '', body: match[2] ?? '' };
   }
 
   /** The top-level entries of an engine sort string: commas inside parentheses and brackets do not split. */

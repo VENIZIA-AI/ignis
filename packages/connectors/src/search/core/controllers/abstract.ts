@@ -5,7 +5,7 @@ import type {
   TInjectMap,
   TRouteContext,
 } from '@venizia/ignis-kernel';
-import { BaseRestController, DataRangeUtility } from '@venizia/ignis-kernel';
+import { BaseRestController, DataRangeUtility, Injection } from '@venizia/ignis-kernel';
 import type { AbstractEntity } from '@venizia/ignis-kernel';
 import type { TAnyObjectSchema } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
@@ -100,8 +100,8 @@ export abstract class AbstractSearchController<
     querySettings?: ISearchResolvedQuery<RouteEnv, TExtra, Inject>;
     /** The `response` option when it is on. */
     responseTransform?: ISearchLooseResponse<RouteEnv, Inject>;
-    /** The instances of the classes `inject` declares, by name: `Injection.collect` answers them. */
-    injected: TInjected<Inject>;
+    /** The instances of the classes `inject` declares, by name: `Injection.collect` answers them. Left out, none are declared. */
+    injected?: TInjected<Inject>;
   }) {
     super({ scope: opts.scope, isStrict: opts.isStrict });
     this.repository = opts.repository;
@@ -111,7 +111,9 @@ export abstract class AbstractSearchController<
     this.isBodyExtended = opts.isBodyExtended ?? false;
     this.querySettings = opts.querySettings;
     this.responseTransform = opts.responseTransform;
-    this.injected = opts.injected;
+    this.injected =
+      opts.injected ??
+      Injection.collect<Inject>({ scope: opts.scope, inject: undefined, instances: [] });
     this.definitions = opts.definitions;
   }
 
