@@ -6,9 +6,6 @@ export type ValueOrPromise<T> = T | Promise<T>;
 /** Union of the property value types of `T`. */
 export type ValueOf<T> = T[keyof T];
 
-/** Alias of `any`, for places where the type is deliberately unchecked. */
-export type AnyType = any;
-
 /** A concrete class constructor producing `T`. Its arguments are `never[]`, so any constructor fits; build an instance with `Reflect.construct`. */
 export type TConstructor<T> = new (...args: never[]) => T;
 /** Like `TConstructor`, but also matches abstract classes. */

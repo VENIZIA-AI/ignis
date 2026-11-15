@@ -1,8 +1,16 @@
 import { getError } from '@/modules/error';
 import { UidRandom } from '@/modules/uid/common/random';
+import { EchoUtility } from './echo.utility';
 
 const UID_BASE = 36;
 const UID_HALF_LENGTH = 5;
+
+/** A decimal number as text: optional sign, digits with an optional fraction (`5.`, `.5`), an optional exponent. The fraction is one optional group, so a long run of digits that ends in a letter fails in linear time. Hex, octal, separators, `Infinity` and `NaN` are not numbers here. */
+const DECIMAL_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
+
+/** The longest piece of a rejected value an error message echoes: a long value would flood a log line. */
+const ECHO_LIMIT = 40;
+const ECHO_ELLIPSIS = '...';
 
 /** Number, string and key conversions that tolerate bad input; no node import, so it ships on `/core`. */
 export class ParseUtility {
@@ -27,6 +35,35 @@ export class ParseUtility {
     const [shiftedMantissa, shiftedExponent] = `${shifted}e`.split('e');
 
     return Number(`${shiftedMantissa}e${Number(shiftedExponent) - precision}`) + 0;
+  }
+
+  /**
+   * A rejected value for an error message: a number as `String` writes it (`NaN`, `Infinity`; JSON would write
+   * `null`), a string quoted and escaped, anything else as `EchoUtility.toSafeEcho` writes it. Longer than
+   * `ECHO_LIMIT` characters, it is cut and ends with an ellipsis, so a long value cannot flood a log line.
+   */
+  private static echoRejected(opts: { value: unknown }): string {
+    const { value } = opts;
+
+    if (typeof value === 'string') {
+      let kept = '';
+      let count = 0;
+
+      for (const character of value) {
+        if (count === ECHO_LIMIT) {
+          return `${EchoUtility.toSafeEcho({ value: kept }).slice(0, -1)}${ECHO_ELLIPSIS}"`;
+        }
+
+        kept += character;
+        count += 1;
+      }
+
+      return EchoUtility.toSafeEcho({ value: kept });
+    }
+
+    const echoed = typeof value === 'number' ? String(value) : EchoUtility.toSafeEcho({ value });
+
+    return echoed.length > ECHO_LIMIT ? `${echoed.slice(0, ECHO_LIMIT)}${ECHO_ELLIPSIS}` : echoed;
   }
 
   /** Arrays stay arrays - mapping one through the object branch would turn it into an index-keyed object - but their object elements still need their keys camelized. Dates are opaque values. */
@@ -160,6 +197,57 @@ export class ParseUtility {
     const parsed = ParseUtility.round({ value: Number.parseFloat(normalized), precision: digit });
 
     return Number.isNaN(parsed) ? 0 : parsed;
+  }
+
+  /**
+   * Reads a number from a value that should hold one, and refuses anything else: the read of an environment
+   * variable, where `ParseUtility.toInt` answers `0` for garbage and `Number` answers `NaN`.
+   *
+   * - `undefined`, `null` and a blank string answer `undefined`: nothing was set, so a `defaultValue` applies.
+   * - A decimal number as text answers its value. Surrounding whitespace is allowed (`' 12 '` is `12`), so is
+   *   an exponent (`'1e3'` is `1000`), a sign (`'-5'`) and a fraction (`'.5'`, `'5.'`).
+   * - Anything else throws: `'abc'`, `'12px'`, `'0x10'`, `'1,000'`, `'Infinity'`, `'NaN'`, a boolean or an object.
+   *   A number that is not finite throws too; a finite number answers itself.
+   *
+   * @throws ApplicationError `[toNumber] <the value> is not a number`; the value is echoed escaped and cut at 40 characters.
+   * @example
+   * ```ts
+   * applicationEnvironment.get(KEY, {
+   *   transform: (raw) => ParseUtility.toNumber({ input: raw }),
+   *   defaultValue: 6379,
+   * });
+   * ```
+   */
+  static toNumber(opts: { input: unknown }): number | undefined {
+    const { input } = opts;
+
+    if (input === undefined || input === null) {
+      return undefined;
+    }
+
+    if (typeof input === 'number' && Number.isFinite(input)) {
+      return input;
+    }
+
+    if (typeof input === 'string') {
+      const trimmed = input.trim();
+
+      if (trimmed === '') {
+        return undefined;
+      }
+
+      if (DECIMAL_NUMBER.test(trimmed)) {
+        const parsed = Number(trimmed);
+
+        if (Number.isFinite(parsed)) {
+          return parsed;
+        }
+      }
+    }
+
+    throw getError({
+      message: `[toNumber] ${ParseUtility.echoRejected({ value: input })} is not a number`,
+    });
   }
 
   static toBoolean(opts: { input: unknown }): boolean {

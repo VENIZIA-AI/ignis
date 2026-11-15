@@ -23,7 +23,7 @@ migration:
     downgrade:
       steps:
         - "Pass the list as sentinels at the top level again, with masterName beside it, and drop the sentinel scope."
-    data: "A JavaScript caller that still passes sentinels at the top level gets a TypeError at construction, because sentinel.nodes is read."
+    data: "An old-shape config fails when the helper is constructed, not only at typecheck: a JavaScript caller that still passes sentinels at the top level, with no sentinel scope, gets '[RedisSentinelHelper] sentinel.nodes is required | pass sentinel: { masterName, nodes }'. Move it before you deploy."
   - id: master-name-to-sentinel-master-name
     symbols: [IRedisSentinelHelperProps, IRedisSentinelHelperOptions, RedisSentinelHelper, RedisHelperFactory]
     upgrade:
@@ -34,7 +34,7 @@ migration:
     downgrade:
       steps:
         - "Move masterName back to the top level."
-    data: "A JavaScript caller that still passes masterName at the top level fails at construction: with no sentinel scope, reading sentinel.nodes throws a TypeError; with the scope but no sentinel.masterName, ioredis throws 'Requires the name of master.'. Move it before you deploy."
+    data: "A JavaScript caller that still passes masterName at the top level fails at construction: with no sentinel scope, the constructor throws '[RedisSentinelHelper] sentinel.nodes is required | pass sentinel: { masterName, nodes }'; with the scope but no sentinel.masterName, ioredis throws 'Requires the name of master.'. Move it before you deploy."
   - id: role-to-sentinel-role
     symbols: [IRedisSentinelHelperProps, IRedisSentinelHelperOptions, RedisSentinelHelper, RedisHelperFactory]
     upgrade:

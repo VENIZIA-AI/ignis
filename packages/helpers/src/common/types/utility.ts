@@ -1,11 +1,6 @@
 /** `T`, `undefined` or `null`. */
 export type TNullable<T> = T | undefined | null;
 
-/** Escape hatch for a value of unknown shape; prefer a real type. */
-export type AnyType = any;
-/** An object with any string, number or symbol keys. */
-export type AnyObject = Record<string | symbol | number, any>;
-
 /** An options object of shape `T`; empty by default. */
 export type TOptions<T extends object = {}> = T;
 

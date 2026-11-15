@@ -33,7 +33,9 @@ migration:
           async getUserInformation(context: TContext, opts: TUserQuery) { /* ... */ }
         }
 
-        await service.getUserInformation?.(context, userQuery); // userQuery: TUserQuery
+        declare const service: IAuthService;
+        declare const userQuery: TUserQuery;
+        await service.getUserInformation?.(context, userQuery);
     downgrade:
       steps:
         - "Drop the type arguments or the aliases; the older defaults were any-valued records, so interfaces and every read compiled."

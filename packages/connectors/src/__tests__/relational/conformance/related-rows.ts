@@ -9,7 +9,23 @@ export const relatedRowsOf = <Related>(opts: {
 }): Array<Related> => {
   const related: unknown = Reflect.get(opts.row, opts.relation);
 
-  return Array.isArray(related) ? related.filter(opts.isRelated) : [];
+  if (related === undefined) {
+    return [];
+  }
+
+  if (!Array.isArray(related)) {
+    throw new Error(`The include under '${opts.relation}' is not an array`);
+  }
+
+  // An element that fails the guard throws instead of being dropped: a dropped row would turn an
+  // assertion that nothing leaked (an empty list, a `not.toContain`) into a check of nothing.
+  return related.map((element: unknown) => {
+    if (!opts.isRelated(element)) {
+      throw new Error(`An element of the include under '${opts.relation}' has an unexpected shape`);
+    }
+
+    return element;
+  });
 };
 
 /** The named rows an include loaded under `relation`. */
