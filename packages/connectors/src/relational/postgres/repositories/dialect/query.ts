@@ -1,6 +1,6 @@
 import type { IQueryHandlerOptions } from '@venizia/ignis-kernel';
 import { SqlQueryOperators } from '@/relational/core/repositories/dialect/query-operators';
-import type { SQLWrapper } from 'drizzle-orm';
+import type { SQL, SQLWrapper } from 'drizzle-orm';
 import { not, sql } from 'drizzle-orm';
 
 /** Builds `<column> <operator> ARRAY[$1, ...]` with every element BOUND, never interpolated - these operators are wire-reachable with a `z.any()` operand, so raw interpolation is SQL injection. Element type decides only the CAST (text[] vs numeric[]), never the binding. */
@@ -8,7 +8,7 @@ const buildPgArrayComparison = (opts: {
   column: SQLWrapper;
   value: unknown[];
   operator: string;
-}) => {
+}): SQL => {
   const { column, value, operator } = opts;
 
   const items = sql.join(

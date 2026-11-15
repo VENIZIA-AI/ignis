@@ -8,22 +8,35 @@ migration:
     upgrade:
       before: |
         // the request and response type arguments defaulted to AnyObject: any key, any value, and an interface fit
-        interface ISignInResult { token: string; user: { id: number } }
+        interface ISignInResult { token: string }
+        interface IUserQuery { id: number }
+
         class MyAuthService implements IAuthService {
-          async signIn(): Promise<ISignInResult> { return { token: 'x', user: { id: 1 } }; } // TS2416 now
-          async getUserInformation(context: TContext, opts: IUserQuery) { /* ... */ } // an interface request type: TS2416 now
+          async signIn(context: TContext, opts: TSignInRequest): Promise<ISignInResult> { /* ... */ } // TS2416 now
+          async signUp(context: TContext, opts: TSignUpRequest) { /* ... */ }
+          async changePassword(context: TContext, opts: TChangePasswordRequest) { /* ... */ }
+          async getUserInformation(context: TContext, opts: IUserQuery) { /* ... */ } // TS2416 now
         }
-        const service: IAuthService = myAuthService;
-        await service.getUserInformation(context, userQuery); // userQuery is an interface-typed value: TS2345 now
+
+        declare const service: IAuthService;
+        await service.getUserInformation?.(context, userQuery); // userQuery: IUserQuery, TS2345 now
       after: |
         // the defaults are Record<string, unknown>, and an interface has no implicit index signature:
-        // name the request and response types you use as type arguments
-        interface ISignInResult { token: string; user: { id: number } }
-        class MyAuthService implements IAuthService<Env, TSignInRequest, ISignInResult> { /* ... */ }
-        const service: IAuthService<Env, TSignInRequest, ISignInResult> = myAuthService;
+        // declare the shapes as type aliases (they have one), or name them as type arguments of IAuthService
+        type TSignInResult = { token: string };
+        type TUserQuery = { id: number };
+
+        class MyAuthService implements IAuthService {
+          async signIn(context: TContext, opts: TSignInRequest): Promise<TSignInResult> { /* ... */ }
+          async signUp(context: TContext, opts: TSignUpRequest) { /* ... */ }
+          async changePassword(context: TContext, opts: TChangePasswordRequest) { /* ... */ }
+          async getUserInformation(context: TContext, opts: TUserQuery) { /* ... */ }
+        }
+
+        await service.getUserInformation?.(context, userQuery); // userQuery: TUserQuery
     downgrade:
       steps:
-        - "Drop the type arguments; the older defaults were any-valued records, so interfaces and every read compiled."
+        - "Drop the type arguments or the aliases; the older defaults were any-valued records, so interfaces and every read compiled."
   - id: crud-routes-and-response-body
     symbols: [TCrudRoutes, TResponseBodyOf]
     upgrade:
@@ -56,25 +69,28 @@ migration:
         - "Nothing to restore: a repository and a definitions object that fit the newer parameters fit the older any ones."
     data: "A repository whose own options narrow IExtraOptions in a way a method cannot accept bivariantly fails to type-check at the controller's constructor; the shipped repositories were checked."
   - id: query-operator-handler-types
-    symbols: [TQueryOperatorHandlers, IQueryHandlerOptions, SubqueryUtility.buildSubqueryCondition]
+    symbols: [TQueryOperatorHandlers, IQueryHandlerOptions]
     upgrade:
       before: |
         const handlers: TQueryOperatorHandlers = {
           // opts was { column: any; value: any }, and IQueryHandlerOptions.column was a Column
           byName: (opts) => sql`${sql.identifier(opts.column.name)} = ${opts.value}`,
           lengthIs: (opts) => sql`length(${opts.column}) = ${opts.value.length}`,
+          startsWith: (opts) => like(opts.column, `${opts.value}%`),
         };
       after: |
         // opts.column is an SQLWrapper (a Column, or the raw #> extraction the JSON path passes) and opts.value is unknown:
-        // pass the column to a template or an operator, and narrow the value
+        // pass the column to a template or an operator, and narrow the value. The like family (like, notLike, ilike,
+        // notIlike) takes a Column, an SQL or an SQL.Aliased only: wrap the column in a template
         const handlers: TQueryOperatorHandlers = {
           lengthIs: (opts) =>
             typeof opts.value === 'string' ? sql`length(${opts.column}) = ${opts.value.length}` : undefined,
+          startsWith: (opts) => like(sql`${opts.column}`, `${opts.value}%`),
         };
     downgrade:
       steps:
         - "Type the handler's parameters as any again."
-    data: "A helper that takes the handler's column as Column | SQL (such as a Postgres array comparison) takes SQLWrapper now; every drizzle operator accepts it."
+    data: "A helper that takes the handler's column as Column | SQL (such as a Postgres array comparison) takes SQLWrapper now; every drizzle operator except the like family accepts it."
   - id: normalize-count-data-constraint
     symbols: [BaseRestController.normalizeCountData]
     upgrade:
@@ -104,7 +120,7 @@ migration:
 
 ## Who is affected
 
-- **Code that implements `IAuthService` without naming its response types and reads them, types a route map as the bare `TCrudRoutes` against a specific repository, or writes its own operator handler typed `any`.** See the migration above.
+- **Code that implements `IAuthService` with interface request or response types or reads them untyped, types a route map as the bare `TCrudRoutes` against a specific repository, or writes its own operator handler (the like family needs its column wrapped).** See the migration above.
 - **Everyone else.** No action needed.
 
 ## Breaking changes
@@ -115,17 +131,21 @@ migration:
 **Before:**
 
 ```typescript
+interface ISignInResult { token: string }
+
 class MyAuthService implements IAuthService {
-  async signIn(): Promise<ISignInResult> { /* ... */ }
+  async signIn(context: TContext, opts: TSignInRequest): Promise<ISignInResult> { /* ... */ }
+  /* signUp, changePassword */
 }
 ```
 
 **After:**
 
 ```typescript
-interface ISignInResult { token: string }
+type TSignInResult = { token: string };
 
-class MyAuthService implements IAuthService<Env, TSignInRequest, ISignInResult> {
-  async signIn(): Promise<ISignInResult> { /* ... */ }
+class MyAuthService implements IAuthService {
+  async signIn(context: TContext, opts: TSignInRequest): Promise<TSignInResult> { /* ... */ }
+  /* signUp, changePassword */
 }
 ```
