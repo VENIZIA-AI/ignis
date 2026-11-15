@@ -21,12 +21,12 @@ migration:
       before: |
         // the shipped decorator called .openapi() on whatever it was given
       after: |
-        // the shipped decorator throws a named error when it is given anything but a zod schema
+        // the shipped decorator throws a named error when it is given anything but a zod schema carrying .openapi()
         const schemas = QuerySchemaFactory.build({ decorate });
     downgrade:
       steps:
         - "Nothing to restore: the older decorator threw a TypeError ('openapi is not a function') for the same input."
-    data: "A second copy of zod in node_modules fails the check. @hono/zod-openapi declares zod as a peer, so a normal install has one copy."
+    data: "A schema with no .openapi() - for example one built with a second copy of zod that @hono/zod-openapi did not patch - is named in the error. Zod 4 copies pass the instanceof check but carry no .openapi(), so the old code threw a TypeError for them too."
   - id: resolve-model-relations-entry
     symbols: [resolveModelRelations, RepositoryMetadataMixin]
     upgrade:

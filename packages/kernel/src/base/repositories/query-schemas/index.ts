@@ -6,10 +6,11 @@ import { getError } from '@venizia/ignis-helpers/core';
 
 /** The schemas themselves live in `@venizia/ignis-filter`, built with plain `zod` so a browser can use them. Documentation metadata is injected here because it is a server concern - `.openapi()` returns a new schema rather than mutating, and three of the decorations sit on inner nodes, so they cannot be applied after the tree is composed. */
 const openApiDecorator: TSchemaDecorator = (schema, metadata) => {
-  if (!(schema instanceof z.ZodType)) {
+  // `.openapi` is patched onto the zod prototype this module loaded; a schema from another copy of zod has none.
+  if (!(schema instanceof z.ZodType) || typeof Reflect.get(schema, 'openapi') !== 'function') {
     throw getError({
       message:
-        '[openApiDecorator] Only a zod schema can carry OpenAPI metadata | Pass a zod schema to the query schema factory',
+        '[openApiDecorator] Only a zod schema carrying .openapi() can take OpenAPI metadata | Pass a schema built with the zod copy @hono/zod-openapi extends',
     });
   }
 

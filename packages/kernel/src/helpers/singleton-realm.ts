@@ -31,7 +31,10 @@ export class SingletonRealm {
     // `in`, not a truthiness check: a holder whose only field is still `undefined` is a legitimate
     // resolved value, and re-creating it would hand every caller a fresh slot.
     if (anchor in globalThis) {
-      return Reflect.get(globalThis, anchor);
+      const existing: unknown = Reflect.get(globalThis, anchor);
+
+      // The slot is filled by `create()` below, under this same `key`, so its value is the caller's `T`; no type reaches the realm.
+      return existing as T;
     }
 
     const created = create();
