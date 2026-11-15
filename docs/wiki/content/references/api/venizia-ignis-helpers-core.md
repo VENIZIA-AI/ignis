@@ -1584,6 +1584,12 @@ export declare class ParseUtility {
      * the sign of zero was the only disagreement.
      */
     private static round;
+    /**
+     * A rejected value for an error message: a number as `String` writes it (`NaN`, `Infinity`; JSON would write
+     * `null`), a string quoted and escaped, anything else as `EchoUtility.toSafeEcho` writes it. Longer than
+     * `ECHO_LIMIT` characters, it is cut and ends with an ellipsis, so a long value cannot flood a log line.
+     */
+    private static echoRejected;
     /** Arrays stay arrays - mapping one through the object branch would turn it into an index-keyed object - but their object elements still need their keys camelized. Dates are opaque values. */
     private static camelizeValue;
     /**
@@ -1637,7 +1643,7 @@ export declare class ParseUtility {
      * - Anything else throws: `'abc'`, `'12px'`, `'0x10'`, `'1,000'`, `'Infinity'`, `'NaN'`, a boolean or an object.
      *   A number that is not finite throws too; a finite number answers itself.
      *
-     * @throws ApplicationError `[toNumber] <the value> is not a number`.
+     * @throws ApplicationError `[toNumber] <the value> is not a number`; the value is echoed escaped and cut at 40 characters.
      * @example
      * ```ts
      * applicationEnvironment.get(KEY, {
