@@ -217,34 +217,32 @@ export class SearchSettingsUtility {
       }
     };
 
-    // The engine's own sort string: `price:desc`, `location(48.85, 2.35, precision: 2km):asc`,
-    // `_text_match:desc,_eval([(status:=ACTIVATED):1]):desc`. Every entry names a field (or one of the engine's own
-    // sort names) and may carry arguments in parentheses; the field obeys the rules of `order`, and an argument list
-    // or an `_eval`/`_vector_query` body is read for hidden fields.
+    // The engine's own sort string (`price:desc`, `location(48.85, 2.35, precision: 2km):asc`,
+    // `_text_match:desc,_eval([(status:=ACTIVATED):1]):desc`) is the server's, so the guarantee is simple: no hidden field is
+    // named anywhere in it, in any position (a value equal to a hidden name is refused too). The unknown-field check is
+    // separate and lenient: each top-level entry names a field of the model, or one of the engine's own sort names.
     const checkSortBy = (value: unknown) => {
       if (typeof value !== 'string') {
         throw fail('tuning.sortBy must be a string');
       }
 
-      for (const entry of SearchSettingsUtility.splitSortBy({ value })) {
-        const parsed = SearchSettingsUtility.readSortEntry({ entry });
+      for (const token of SearchSettingsUtility.sortTokens({ value })) {
+        if (RequestFilterGuard.isHiddenByName({ key: token, hidden: catalog.hidden })) {
+          throw fail(`tuning.sortBy names a hidden field | field: ${token}`);
+        }
+      }
 
-        if (parsed === undefined) {
+      for (const entry of SearchSettingsUtility.splitSortBy({ value })) {
+        const name = SearchSettingsUtility.sortEntryName({ entry });
+
+        if (name === '') {
           throw fail(
-            `tuning.sortBy has an entry that is not a field with arguments and a direction | entry: ${JSON.stringify(entry)}`,
+            `tuning.sortBy has an entry that names no field | entry: ${JSON.stringify(entry)}`,
           );
         }
 
-        if (!SearchSettingsUtility.ENGINE_SORT_NAMES.has(parsed.name.toLowerCase())) {
-          checkField({ name: parsed.name, where: 'tuning.sortBy' });
-        }
-
-        for (const match of parsed.body.matchAll(/([A-Za-z_][\w.]*)\s*:/g)) {
-          const name = match[1] ?? '';
-
-          if (RequestFilterGuard.isHiddenByName({ key: name, hidden: catalog.hidden })) {
-            throw fail(`tuning.sortBy names a hidden field | field: ${name}`);
-          }
+        if (!SearchSettingsUtility.ENGINE_SORT_NAMES.has(name)) {
+          checkField({ name, where: 'tuning.sortBy' });
         }
       }
     };
@@ -336,33 +334,31 @@ export class SearchSettingsUtility {
   ]);
 
   /**
-   * One entry of an engine sort string: the name before the first `(` or `:`, the arguments in parentheses (the body, scanned
-   * for hidden names) and the direction. Backticks are dropped, since the engine quotes a name with them. `undefined` for an
-   * entry that has none of this shape, which the caller refuses.
+   * Every run of characters in a sort string that can be part of a field name: quotes are dropped, and whitespace, brackets,
+   * commas and the operators of an `_eval` split it. A name with a hyphen or a non-ASCII letter stays whole.
    */
-  static readSortEntry(opts: { entry: string }): { name: string; body: string } | undefined {
-    const unquoted = opts.entry.replaceAll('`', '');
-    const match = /^\s*([A-Za-z_][\w.]*)\s*(?:\(([\s\S]*)\))?\s*(?::\s*(?:asc|desc))?\s*$/i.exec(
-      unquoted,
-    );
-
-    if (match === null) {
-      return undefined;
-    }
-
-    return { name: match[1] ?? '', body: match[2] ?? '' };
+  static sortTokens(opts: { value: string }): string[] {
+    return opts.value
+      .replaceAll(/[`"]/g, '')
+      .split(/[\s()[\],:=!<>&|*$']+/)
+      .filter((token) => token.length > 0);
   }
 
-  /** The top-level entries of an engine sort string: commas inside parentheses and brackets do not split. */
+  /** The top-level entries of an engine sort string: a comma inside brackets or a quoted string does not split. */
   static splitSortBy(opts: { value: string }): string[] {
     const entries: string[] = [];
     let depth = 0;
+    let quote: string | undefined;
     let start = 0;
 
     for (let index = 0; index < opts.value.length; index++) {
-      const character = opts.value[index];
+      const character = opts.value[index] ?? '';
 
-      if (character === '(' || character === '[') {
+      if (quote !== undefined) {
+        quote = character === quote ? undefined : quote;
+      } else if (character === '`' || character === '"') {
+        quote = character;
+      } else if (character === '(' || character === '[') {
         depth += 1;
       } else if (character === ')' || character === ']') {
         depth -= 1;
@@ -375,6 +371,11 @@ export class SearchSettingsUtility {
     entries.push(opts.value.slice(start));
 
     return entries.map((entry) => entry.trim()).filter((entry) => entry.length > 0);
+  }
+
+  /** The name an entry starts with: the run before the first `(`, `:` or whitespace, without quotes. */
+  static sortEntryName(opts: { entry: string }): string {
+    return (/^[^\s(:,]+/.exec(opts.entry.replaceAll(/[`"]/g, ''))?.[0] ?? '').trim();
   }
 
   /** A source's settings for this request: a value as it is, a function called with `{ context, input }` and its result checked like a definition. A function that throws, or returns what is not a valid shape, answers 500: the value is the server's. */

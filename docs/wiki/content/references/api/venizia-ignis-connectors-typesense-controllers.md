@@ -1181,20 +1181,20 @@ export declare class SearchSettingsUtility {
     /** The sort names the engine defines itself: not fields of the model. */
     static readonly ENGINE_SORT_NAMES: ReadonlySet<string>;
     /**
-     * One entry of an engine sort string: the name before the first `(` or `:`, the arguments in parentheses (the body, scanned
-     * for hidden names) and the direction. Backticks are dropped, since the engine quotes a name with them. `undefined` for an
-     * entry that has none of this shape, which the caller refuses.
+     * Every run of characters in a sort string that can be part of a field name: quotes are dropped, and whitespace, brackets,
+     * commas and the operators of an `_eval` split it. A name with a hyphen or a non-ASCII letter stays whole.
      */
-    static readSortEntry(opts: {
-        entry: string;
-    }): {
-        name: string;
-        body: string;
-    } | undefined;
-    /** The top-level entries of an engine sort string: commas inside parentheses and brackets do not split. */
+    static sortTokens(opts: {
+        value: string;
+    }): string[];
+    /** The top-level entries of an engine sort string: a comma inside brackets or a quoted string does not split. */
     static splitSortBy(opts: {
         value: string;
     }): string[];
+    /** The name an entry starts with: the run before the first `(`, `:` or whitespace, without quotes. */
+    static sortEntryName(opts: {
+        entry: string;
+    }): string;
     /** A source's settings for this request: a value as it is, a function called with `{ context, input }` and its result checked like a definition. A function that throws, or returns what is not a valid shape, answers 500: the value is the server's. */
     static resolveSource<RouteEnv extends Env = Env, TExtra extends object = {}, Inject extends TInjectMap = {}>(opts: {
         source?: TSearchLooseSource<RouteEnv, TExtra, Inject>;

@@ -47,7 +47,7 @@ class QuerySettingsProductRepository extends DefaultSearchRepository<
 @model({
   type: 'entity',
   tableName: 'query_sort_products',
-  settings: { properties: { hidden: ['_secret'] } },
+  settings: { properties: { hidden: ['_secret', 'secret-key', 'sécret', '_EVAL'] } },
 })
 class QuerySortProduct extends BaseSearchEntity {
   static override schema = SearchCollectionFactory.define({
@@ -55,6 +55,11 @@ class QuerySortProduct extends BaseSearchEntity {
     fields: [
       field.string('title', { searchable: true }),
       field.string('_secret'),
+      field.string('secret-key'),
+      field.string('sécret'),
+      field.string('_EVAL'),
+      field.string('product-name'),
+      field.string('prix_é'),
       field.number('price'),
       field.geopoint('location'),
     ],
@@ -504,6 +509,16 @@ describe('a sort string the engine reads', () => {
     ['_EVAL(_secret:=x):desc'],
     ['_eval([(_secret:=x):1]):desc,price:asc'],
     ['_vector_query(_secret:([1])):asc'],
+    // An unbalanced quote cannot fold a hidden sort into another entry.
+    ['_eval(title:=`(`),_secret(missing_values: last):desc'],
+    ['_eval(title:="("),_secret(missing_values: last):desc'],
+    ['_eval(secret-key:=x):desc'],
+    ['_eval(`secret-key`:=x):desc'],
+    ['_eval(sécret:=x):desc'],
+    ['secret-key:asc'],
+    ['_EVAL:desc'],
+    // A value that equals a hidden name is refused too: the guarantee is that none is named anywhere.
+    ['title:=_secret'],
   ])('a hidden field, however it is written, is refused: %s', (sortBy) => {
     expect(build(sortBy)).toThrow(/hidden field/);
   });
@@ -514,6 +529,9 @@ describe('a sort string the engine reads', () => {
     ['location(48.85, 2.35, precision: 2km):asc'],
     ['price(missing_values: last):desc'],
     ['_text_match:desc,_eval([(price:>5):1]):desc,price:asc'],
+    ['product-name:desc'],
+    ['prix_é:asc'],
+    ['`product-name`:desc,price:asc'],
   ])('the forms the engine accepts are accepted: %s', (sortBy) => {
     expect(build(sortBy)).not.toThrow();
   });
@@ -524,8 +542,8 @@ describe('a sort string the engine reads', () => {
   });
 
   test('an entry with no field, or no name, is refused', () => {
-    expect(build(':desc')).toThrow(/not a field/);
-    expect(build('price desc extra')).toThrow(/not a field/);
+    expect(build(':desc')).toThrow(/names no field/);
+    expect(build('price:desc,,')).not.toThrow();
   });
 });
 
