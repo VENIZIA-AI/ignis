@@ -23,9 +23,11 @@ migration:
         const response = await axiosFetcher.send({ url });
         const name: string = response.data.name; // any
       after: |
-        // the data is unknown: name it with send<T> or parse it
+        // the data is unknown (TS2322 into a typed local, TS18046 on a read): name it with send<T>, or parse it
         const response = await axiosFetcher.send<{ name: string }>({ url });
         const name = response.data.name;
+
+        const parsed = NameSchema.parse((await axiosFetcher.send({ url })).data);
     downgrade:
       steps:
         - "Read response.data without a type argument again; the older response data was any."

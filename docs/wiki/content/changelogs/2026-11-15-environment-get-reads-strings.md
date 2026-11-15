@@ -49,6 +49,7 @@ migration:
     symbols: [ApplicationEnvironment.get, IApplicationEnvironment.get, IApplicationEnvironmentTransformOptions, IApplicationEnvironmentDefaultedTransformOptions]
     upgrade:
       before: |
+        // TS2769: Property 'transform' is missing in type '{ defaultValue: number }' but required in type 'IApplicationEnvironmentTransformOptions<number>'
         const retries = applicationEnvironment.get<number>('APP_ENV_RETRIES', { defaultValue: 3 });
         const hosts = applicationEnvironment.get<string[]>('APP_ENV_HOSTS', { defaultValue: [] });
       after: |
@@ -125,6 +126,7 @@ migration:
 
 - **Apps that call `get<string>(...)`.** Run `devz codemod env-get --write <paths>` (from the `@venizia/dev-configs` release that follows this one): it removes the type argument and the second type argument of a `transform` read.
 - **Apps that call `get<number>(...)` or another non-string type argument, or read a required variable as a string.** The typecheck names each line: see the migration below.
+- **Apps that pass a value read with `get()` to a library option that requires a string** (drizzle-kit `dbCredentials`, a server config, a bucket name): the value is `string | undefined` now, so read it with `getRequired(key)` or give `get` a `defaultValue`.
 - **Everyone else.** No action needed.
 
 ## Breaking changes
