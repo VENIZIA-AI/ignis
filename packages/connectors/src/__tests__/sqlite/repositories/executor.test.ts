@@ -70,6 +70,13 @@ describe('SqliteQueryExecutor - against a real in-memory libsql database', () =>
     expect(rows).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }]);
   });
 
+  test('select refuses a projection entry that is not a column or an SQL expression', async () => {
+    await RejectionHelper.expectRejection({
+      task: executor.select({ connector, table: users, columns: { id: users.id, bad: 'email' } }),
+      message: /\[toSelectedFields\] Invalid column selection \| 'bad' must be a SQLite column/,
+    });
+  });
+
   // The `where` is what makes this discriminating: without it an executor that dropped the filter
   // and counted the whole table would still satisfy the assertion.
   test('count honours its where', async () => {

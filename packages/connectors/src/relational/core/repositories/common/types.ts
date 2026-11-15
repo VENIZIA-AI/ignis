@@ -11,6 +11,7 @@ import type {
 } from '@venizia/ignis-kernel';
 import type { TNullable } from '@venizia/ignis-helpers/common';
 import type { ScopeThroughLink } from './scope-through';
+import type { RelationalUpdateBuilder } from '../dialect/update';
 import type {
   IRelationalDataSource,
   IRelationalTransaction,
@@ -63,8 +64,10 @@ export interface IRelationalQueryDialect {
   columnNotFoundError(opts: { kind: 'where' | 'order'; key: string; tableName: string }): Error;
   /** The fields the model of a schema hides. */
   resolveHiddenProperties(opts: { schema: TTableSchemaWithId }): Set<string>;
-  mergeFilter<T = any>(opts: { defaultFilter?: TFilter<T>; userFilter?: TFilter<T> }): TFilter<T>;
-  composeScope<T = any>(opts: { scopeWhere: TWhere<T>; userFilter?: TFilter<T> }): TFilter<T>;
+  /** The engine's update transform; an engine without one leaves it out. */
+  readonly updateBuilder?: RelationalUpdateBuilder;
+  mergeFilter<T>(opts: { defaultFilter?: TFilter<T>; userFilter?: TFilter<T> }): TFilter<T>;
+  composeScope<T>(opts: { scopeWhere: TWhere<T>; userFilter?: TFilter<T> }): TFilter<T>;
   build<Schema extends TTableSchemaWithId>(opts: {
     tableName: string;
     schema: Schema;
@@ -143,7 +146,7 @@ export type TRelationalTransactionOf<TDataSource extends IRelationalDataSource> 
 /** Update data split into plain column values and JSON-path updates that need SQL expressions. */
 export interface ITransformedUpdateData {
   /** Regular field updates (non-JSON-path keys) */
-  regularFields: Record<string, any>;
+  regularFields: Record<string, unknown>;
 
   /** SQL expressions for JSON path updates, keyed by the schema PROPERTY name - not the column name, which is what the emitted SQL quotes. The two diverge whenever a column is declared as `jsonb('meta_data')` under a property called `metadata`. */
   jsonExpressions: Record<string, SQL>;

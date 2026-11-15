@@ -1,10 +1,14 @@
 import type { IQueryHandlerOptions } from '@venizia/ignis-kernel';
 import { SqlQueryOperators } from '@/relational/core/repositories/dialect/query-operators';
-import type { AnyType } from '@venizia/ignis-helpers/common';
-import { ilike, not, sql } from 'drizzle-orm';
+import type { Column, SQL } from 'drizzle-orm';
+import { not, sql } from 'drizzle-orm';
 
 /** Builds `<column> <operator> ARRAY[$1, ...]` with every element BOUND, never interpolated - these operators are wire-reachable with a `z.any()` operand, so raw interpolation is SQL injection. Element type decides only the CAST (text[] vs numeric[]), never the binding. */
-const buildPgArrayComparison = (opts: { column: AnyType; value: AnyType[]; operator: string }) => {
+const buildPgArrayComparison = (opts: {
+  column: Column | SQL;
+  value: unknown[];
+  operator: string;
+}) => {
   const { column, value, operator } = opts;
 
   const items = sql.join(
@@ -55,8 +59,9 @@ export class PostgresQueryOperators extends SqlQueryOperators {
       return buildPgArrayComparison({ column: opts.column, value, operator: '&&' });
     },
 
-    [this.ILIKE]: (opts: IQueryHandlerOptions) => ilike(opts.column, opts.value),
-    [this.NOT_ILIKE]: (opts: IQueryHandlerOptions) => not(ilike(opts.column, opts.value)),
+    // The template `ilike` builds; `ilike` itself types the operand as `string | SQLWrapper`, which a caller's value is not.
+    [this.ILIKE]: (opts: IQueryHandlerOptions) => sql`${opts.column} ilike ${opts.value}`,
+    [this.NOT_ILIKE]: (opts: IQueryHandlerOptions) => not(sql`${opts.column} ilike ${opts.value}`),
 
     [this.REGEXP]: (opts: IQueryHandlerOptions) => sql`${opts.column} ~ ${opts.value}`,
     [this.IREGEXP]: (opts: IQueryHandlerOptions) => sql`${opts.column} ~* ${opts.value}`,

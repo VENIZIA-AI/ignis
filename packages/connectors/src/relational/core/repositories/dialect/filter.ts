@@ -26,7 +26,7 @@ import {
 import type { TTableObject, TTableSchemaWithId } from '@/relational/core/models/common';
 import { type MetadataRegistry } from '@venizia/ignis-kernel';
 import type { TConstValue, TNullable } from '@venizia/ignis-helpers/common';
-import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import { BaseHelper, getError, RecordUtility } from '@venizia/ignis-helpers/core';
 import { ObjectUtility } from '@venizia/ignis-helpers/common';
 import {
   and,
@@ -35,10 +35,12 @@ import {
   eq,
   getTableName,
   inArray,
+  is,
   isNull,
   not,
   or,
   sql,
+  Column,
   type AnyColumn,
   type SQL,
   type SQLWrapper,
@@ -130,7 +132,7 @@ export abstract class FilterBuilder extends BaseHelper {
    * scope written as `{ tenantId: 'a' }` holds against a caller's `where: { tenantId: 'b' }` whatever the shapes.
    * The caller can only narrow a scope. Every other part of the filter (order, limit, fields, include) is the caller's.
    */
-  composeScope<T = any>(opts: { scopeWhere: TWhere<T>; userFilter?: TFilter<T> }): TFilter<T> {
+  composeScope<T>(opts: { scopeWhere: TWhere<T>; userFilter?: TFilter<T> }): TFilter<T> {
     const { scopeWhere, userFilter } = opts;
     const userWhere = userFilter?.where;
     const anded: TWhere = { and: [scopeWhere, userWhere ?? {}] };
@@ -148,7 +150,7 @@ export abstract class FilterBuilder extends BaseHelper {
    * so a default can only be narrowed, and a user `undefined` never overrides a defined default. A key that would
    * change the merged object's prototype (`__proto__`, `constructor`, `prototype`) is refused. Other parts user-wins.
    */
-  mergeFilter<T = any>(opts: { defaultFilter?: TFilter<T>; userFilter?: TFilter<T> }): TFilter<T> {
+  mergeFilter<T>(opts: { defaultFilter?: TFilter<T>; userFilter?: TFilter<T> }): TFilter<T> {
     const { defaultFilter, userFilter } = opts;
 
     if (!defaultFilter) {
@@ -187,7 +189,7 @@ export abstract class FilterBuilder extends BaseHelper {
    * A caller's value equal to the default's scalar is a no-op. A server that needs the rows the default hides says so
    * with `shouldSkipDefaultFilter`, which is not on the wire schema.
    */
-  private mergeWhere<T = any>(opts: { defaultWhere: TWhere<T>; userWhere: TWhere<T> }): TWhere<T> {
+  private mergeWhere<T>(opts: { defaultWhere: TWhere<T>; userWhere: TWhere<T> }): TWhere<T> {
     const { defaultWhere, userWhere } = opts;
 
     // Read by runtime key, which the column-keyed `TWhere<T>` does not index.
@@ -621,7 +623,7 @@ export abstract class FilterBuilder extends BaseHelper {
    */
   private buildWhereKeyConditions<Schema extends TTableSchemaWithId>(opts: {
     key: string;
-    value: any;
+    value: unknown;
     columns: TTableColumns;
     tableName: string;
     schema: Schema;
@@ -649,18 +651,20 @@ export abstract class FilterBuilder extends BaseHelper {
       ? this.toDateOperand({ value, key, tableName })
       : value;
 
-    if (!this.isOperatorObject({ value: operand })) {
+    const operators = this.toOperatorObject({ value: operand });
+
+    if (!operators) {
       return [this.buildValueCondition({ column, value: operand })];
     }
 
-    return this.buildOperatorConditions({ column, value: operand });
+    return this.buildOperatorConditions({ column, value: operators });
   }
 
   /**
    * A `where` value for a column Drizzle maps from a `Date`, with every string or number in it parsed to a `Date`.
    * `null` stays `null`; anything that is no timestamp is a 400.
    */
-  private toDateOperand(opts: { value: any; key: string; tableName: string }): any {
+  private toDateOperand(opts: { value: unknown; key: string; tableName: string }): unknown {
     const { value, key, tableName } = opts;
 
     if (value === null) {
@@ -671,14 +675,16 @@ export abstract class FilterBuilder extends BaseHelper {
       return this.toDateList({ values: value, key, tableName });
     }
 
-    if (!this.isOperatorObject({ value })) {
+    const operators = this.toOperatorObject({ value });
+
+    if (!operators) {
       return DateOperandUtility.toDate({ value, key, tableName });
     }
 
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
 
-    for (const op in value) {
-      const operand = value[op];
+    for (const op in operators) {
+      const operand = operators[op];
 
       if (op === QueryOperators.NOT) {
         result[op] = this.toDateOperand({ value: operand, key, tableName });
@@ -704,7 +710,7 @@ export abstract class FilterBuilder extends BaseHelper {
     return result;
   }
 
-  private toDateList(opts: { values: any[]; key: string; tableName: string }): any[] {
+  private toDateList(opts: { values: unknown[]; key: string; tableName: string }): unknown[] {
     const { values, key, tableName } = opts;
 
     // A `null` element is passed on as the SQL NULL it is, which compares as UNKNOWN, as it does for any column.
@@ -716,10 +722,10 @@ export abstract class FilterBuilder extends BaseHelper {
   /** A list operator given something that is no list: the membership operators read it as one value, `between` leaves its own refusal to the operator. */
   private toDateMembershipOperand(opts: {
     op: string;
-    operand: any;
+    operand: unknown;
     key: string;
     tableName: string;
-  }): any {
+  }): unknown {
     const { op, operand, key, tableName } = opts;
 
     if (op === QueryOperators.BETWEEN || op === QueryOperators.NOT_BETWEEN || operand === null) {
@@ -968,7 +974,7 @@ export abstract class FilterBuilder extends BaseHelper {
     return TableColumnCache.get(schema);
   }
 
-  private isPrimitiveValue(opts: { value: any }): boolean {
+  private isPrimitiveValue(opts: { value: unknown }): boolean {
     const { value } = opts;
 
     return (
@@ -980,20 +986,25 @@ export abstract class FilterBuilder extends BaseHelper {
    * Protected, not private: an engine overriding `buildJsonWhereCondition` must tell an operator
    * object from a bare value, and cannot reach the base's own walk to do it.
    */
-  protected isOperatorObject(opts: { value: any }): boolean {
+  protected isOperatorObject(opts: { value: unknown }): boolean {
+    return this.toOperatorObject(opts) !== undefined;
+  }
+
+  /** The operand as the operator object it is - a non-empty plain object whose every key is an operator - or `undefined` for a bare value. */
+  protected toOperatorObject(opts: { value: unknown }): Record<string, unknown> | undefined {
     const { value } = opts;
 
-    if (this.isPrimitiveValue({ value })) {
-      return false;
+    if (this.isPrimitiveValue({ value }) || !RecordUtility.isRecord(value)) {
+      return undefined;
     }
 
     const keys = Object.keys(value);
 
     if (keys.length === 0) {
-      return false;
+      return undefined;
     }
 
-    return keys.every((key) => QueryOperators.isValid(key));
+    return keys.every((key) => QueryOperators.isValid(key)) ? value : undefined;
   }
 
   /**
@@ -1001,7 +1012,7 @@ export abstract class FilterBuilder extends BaseHelper {
    * equality). Protected for the same reason as `isOperatorObject`: an
    * overridden `buildJsonWhereCondition` needs the bare-value branch.
    */
-  protected buildValueCondition(opts: { column: any; value: any }): SQL {
+  protected buildValueCondition(opts: { column: AnyColumn | SQL; value: unknown }): SQL {
     const { column, value } = opts;
 
     if (value === null) {
@@ -1009,13 +1020,21 @@ export abstract class FilterBuilder extends BaseHelper {
     }
 
     if (Array.isArray(value)) {
-      return value.length === 0 ? sql`false` : inArray(column, value);
+      if (value.length === 0) {
+        return sql`false`;
+      }
+
+      return is(column, Column) ? inArray(column, value) : inArray(column, value);
     }
 
-    return eq(column, value);
+    // Drizzle types a `Column` and an SQL fragment as separate overloads, and no overload takes the union.
+    return is(column, Column) ? eq(column, value) : eq(column, value);
   }
 
-  protected buildOperatorConditions(opts: { column: any; value: Record<string, any> }): SQL[] {
+  protected buildOperatorConditions(opts: {
+    column: AnyColumn | SQL;
+    value: Record<string, unknown>;
+  }): SQL[] {
     const { column, value } = opts;
     const conditions: SQL[] = [];
 
@@ -1049,11 +1068,13 @@ export abstract class FilterBuilder extends BaseHelper {
    * Negates a nested condition: `not: <operatorObject>` recurses into the
    * operators, `not: <bareValue>` negates that value equality/array/null condition.
    */
-  private buildNotCondition(opts: { column: any; value: any }): SQL {
+  private buildNotCondition(opts: { column: AnyColumn | SQL; value: unknown }): SQL {
     const { column, value } = opts;
 
-    if (this.isOperatorObject({ value })) {
-      const nested = this.buildOperatorConditions({ column, value });
+    const operators = this.toOperatorObject({ value });
+
+    if (operators) {
+      const nested = this.buildOperatorConditions({ column, value: operators });
       const combined = nested.length === 1 ? nested[0] : and(...nested)!;
 
       return not(combined);
@@ -1065,7 +1086,7 @@ export abstract class FilterBuilder extends BaseHelper {
   /** Builds SQL conditions for logical groups (AND/OR). */
   private buildLogicalGroupCondition<Schema extends TTableSchemaWithId>(opts: {
     key: string;
-    value: any;
+    value: unknown;
     tableName: string;
     schema: Schema;
   }): SQL | undefined {
@@ -1154,7 +1175,7 @@ export abstract class FilterBuilder extends BaseHelper {
    * with a number, in/inq/nin with an all-number array. Only picks between the two fragments the
    * engine passed in, so an engine with already-typed extraction returns false.
    */
-  protected jsonNeedsNumericCast(opts: { operators: Record<string, any> }): boolean {
+  protected jsonNeedsNumericCast(opts: { operators: Record<string, unknown> }): boolean {
     const { operators } = opts;
 
     if (QueryOperators.hasNumericComparison({ operators })) {
@@ -1187,7 +1208,7 @@ export abstract class FilterBuilder extends BaseHelper {
    */
   protected abstract buildJsonWhereCondition(opts: {
     key: string;
-    value: any;
+    value: unknown;
     columns: TTableColumns;
     tableName: string;
   }): SQL[];
@@ -1196,7 +1217,7 @@ export abstract class FilterBuilder extends BaseHelper {
    * A bare JSON operand IS its operator equivalent - `isOperatorObject` counts an array
    * as primitive, so `[10, 20]` must take the same cast `{ inq: [10, 20] }` does.
    */
-  protected toBareJsonOperators(opts: { value: any }): Record<string, any> {
+  protected toBareJsonOperators(opts: { value: unknown }): Record<string, unknown> {
     const { value } = opts;
 
     return Array.isArray(value) ? { [QueryOperators.INQ]: value } : { [QueryOperators.EQ]: value };
@@ -1210,7 +1231,7 @@ export abstract class FilterBuilder extends BaseHelper {
   protected buildJsonOperatorConditions(opts: {
     jsonPath: string | SQL;
     safeNumericCast: string | SQL;
-    operators: Record<string, any>;
+    operators: Record<string, unknown>;
   }): SQL[] {
     const { operators } = opts;
     // Raw text stays accepted for subclasses; wrapped once so every operator shares one fragment.
@@ -1225,11 +1246,13 @@ export abstract class FilterBuilder extends BaseHelper {
       const operand = operators[op];
 
       if (op === QueryOperators.NOT) {
-        if (this.isOperatorObject({ value: operand })) {
+        const nestedOperators = this.toOperatorObject({ value: operand });
+
+        if (nestedOperators) {
           const nested = this.buildJsonOperatorConditions({
             jsonPath,
             safeNumericCast,
-            operators: operand,
+            operators: nestedOperators,
           });
 
           conditions.push(not(nested.length === 1 ? nested[0] : and(...nested)!));

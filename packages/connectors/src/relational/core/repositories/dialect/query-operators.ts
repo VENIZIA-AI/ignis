@@ -9,13 +9,11 @@ import {
   inArray,
   isNotNull,
   isNull,
-  like,
   lt,
   lte,
   ne,
   not,
   notInArray,
-  notLike,
   sql,
 } from 'drizzle-orm';
 import { SubqueryUtility } from './internal';
@@ -105,8 +103,10 @@ export class SqlQueryOperators extends QueryOperators {
         return not(between(opts.column, low, high));
       },
 
-      [this.LIKE]: (opts: IQueryHandlerOptions) => like(opts.column, opts.value),
-      [this.NOT_LIKE]: (opts: IQueryHandlerOptions) => notLike(opts.column, opts.value),
+      // The operand is whatever the caller sent, which `like` types as `string | SQLWrapper`; the template is what `like` itself
+      // builds, and binds any value the same way.
+      [this.LIKE]: (opts: IQueryHandlerOptions) => sql`${opts.column} like ${opts.value}`,
+      [this.NOT_LIKE]: (opts: IQueryHandlerOptions) => sql`${opts.column} not like ${opts.value}`,
     };
   }
 

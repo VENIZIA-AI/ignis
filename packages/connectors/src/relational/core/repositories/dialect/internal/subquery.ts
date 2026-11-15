@@ -1,6 +1,5 @@
 import { getError } from '@venizia/ignis-helpers/core';
-import type { AnyType } from '@venizia/ignis-helpers/common';
-import type { SQL, SQLWrapper } from 'drizzle-orm';
+import type { Column, SQL, SQLWrapper } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 
 const isSqlWrapper = (value: unknown): value is SQLWrapper =>
@@ -12,7 +11,7 @@ export class SubqueryUtility {
    * a request body is JSON and cannot carry one, so a string here is refused rather than run.
    */
   static buildSubqueryCondition(opts: {
-    column: AnyType;
+    column: Column | SQL;
     value: unknown;
     operator: string;
     isNegated: boolean;

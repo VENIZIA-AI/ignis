@@ -159,7 +159,7 @@ export declare abstract class FilterBuilder extends BaseHelper {
      * scope written as `{ tenantId: 'a' }` holds against a caller's `where: { tenantId: 'b' }` whatever the shapes.
      * The caller can only narrow a scope. Every other part of the filter (order, limit, fields, include) is the caller's.
      */
-    composeScope<T = any>(opts: {
+    composeScope<T>(opts: {
         scopeWhere: TWhere<T>;
         userFilter?: TFilter<T>;
     }): TFilter<T>;
@@ -169,7 +169,7 @@ export declare abstract class FilterBuilder extends BaseHelper {
      * so a default can only be narrowed, and a user `undefined` never overrides a defined default. A key that would
      * change the merged object's prototype (`__proto__`, `constructor`, `prototype`) is refused. Other parts user-wins.
      */
-    mergeFilter<T = any>(opts: {
+    mergeFilter<T>(opts: {
         defaultFilter?: TFilter<T>;
         userFilter?: TFilter<T>;
     }): TFilter<T>;
@@ -333,20 +333,24 @@ export declare abstract class FilterBuilder extends BaseHelper {
      * object from a bare value, and cannot reach the base's own walk to do it.
      */
     protected isOperatorObject(opts: {
-        value: any;
+        value: unknown;
     }): boolean;
+    /** The operand as the operator object it is - a non-empty plain object whose every key is an operator - or `undefined` for a bare value. */
+    protected toOperatorObject(opts: {
+        value: unknown;
+    }): Record<string, unknown> | undefined;
     /**
      * Builds a SQL condition for a simple value (null, array, or
      * equality). Protected for the same reason as `isOperatorObject`: an
      * overridden `buildJsonWhereCondition` needs the bare-value branch.
      */
     protected buildValueCondition(opts: {
-        column: any;
-        value: any;
+        column: AnyColumn | SQL;
+        value: unknown;
     }): SQL;
     protected buildOperatorConditions(opts: {
-        column: any;
-        value: Record<string, any>;
+        column: AnyColumn | SQL;
+        value: Record<string, unknown>;
     }): SQL[];
     /**
      * Negates a nested condition: `not: <operatorObject>` recurses into the
@@ -386,7 +390,7 @@ export declare abstract class FilterBuilder extends BaseHelper {
      * engine passed in, so an engine with already-typed extraction returns false.
      */
     protected jsonNeedsNumericCast(opts: {
-        operators: Record<string, any>;
+        operators: Record<string, unknown>;
     }): boolean;
     /**
      * Emits the engine JSON extraction for one where key. Abstract because the syntax is
@@ -394,7 +398,7 @@ export declare abstract class FilterBuilder extends BaseHelper {
      */
     protected abstract buildJsonWhereCondition(opts: {
         key: string;
-        value: any;
+        value: unknown;
         columns: TTableColumns;
         tableName: string;
     }): SQL[];
@@ -403,8 +407,8 @@ export declare abstract class FilterBuilder extends BaseHelper {
      * as primitive, so `[10, 20]` must take the same cast `{ inq: [10, 20] }` does.
      */
     protected toBareJsonOperators(opts: {
-        value: any;
-    }): Record<string, any>;
+        value: unknown;
+    }): Record<string, unknown>;
     /**
      * The cast belongs to each OPERATOR, not the object: one object-wide cast misses the operand in
      * `{ not: { gt: 50 } }` (-> `text > integer`) and over-casts the extraction `like` shares in
@@ -413,7 +417,7 @@ export declare abstract class FilterBuilder extends BaseHelper {
     protected buildJsonOperatorConditions(opts: {
         jsonPath: string | SQL;
         safeNumericCast: string | SQL;
-        operators: Record<string, any>;
+        operators: Record<string, unknown>;
     }): SQL[];
     /**
      * Emits the engine's JSON extraction for one order key.
@@ -778,11 +782,13 @@ export interface IRelationalQueryDialect {
     resolveHiddenProperties(opts: {
         schema: TTableSchemaWithId;
     }): Set<string>;
-    mergeFilter<T = any>(opts: {
+    /** The engine's update transform; an engine without one leaves it out. */
+    readonly updateBuilder?: RelationalUpdateBuilder;
+    mergeFilter<T>(opts: {
         defaultFilter?: TFilter<T>;
         userFilter?: TFilter<T>;
     }): TFilter<T>;
-    composeScope<T = any>(opts: {
+    composeScope<T>(opts: {
         scopeWhere: TWhere<T>;
         userFilter?: TFilter<T>;
     }): TFilter<T>;
@@ -977,7 +983,7 @@ Update data split into plain column values and JSON-path updates that need SQL e
 ```ts
 export interface ITransformedUpdateData {
     /** Regular field updates (non-JSON-path keys) */
-    regularFields: Record<string, any>;
+    regularFields: Record<string, unknown>;
     /** SQL expressions for JSON path updates, keyed by the schema PROPERTY name - not the column name, which is what the emitted SQL quotes. The two diverge whenever a column is declared as `jsonb('meta_data')` under a property called `metadata`. */
     jsonExpressions: Record<string, SQL>;
 }
@@ -1167,8 +1173,8 @@ export declare class PersistableRelationalRepository<EntitySchema extends TTable
     constructor(ds?: TDataSource, opts?: {
         entityClass?: TClass<BaseRelationalEntity<EntitySchema>>;
     });
-    /** Reach the engine's update transform through `dataSource.getQueryDialect()`. Engines without an update builder return `undefined`. `AnyType` rather than `unknown`: the concrete builder is engine-specific, and `unknown` breaks every `updateBuilder.transform(...)` call site. */
-    get updateBuilder(): AnyType;
+    /** Reach the engine's update transform through `dataSource.getQueryDialect()`. Engines without an update builder return `undefined`. */
+    get updateBuilder(): RelationalUpdateBuilder | undefined;
     /** Throw to refuse an update's data. */
     protected validateUpdateData(_opts: {
         data: object;
@@ -1851,7 +1857,7 @@ export declare abstract class RelationalBaseRepository<EntitySchema extends TTab
     getHiddenProperties(): Set<string>;
     hasHiddenProperties(): boolean;
     /** Drizzle select/returning column map excluding hidden properties. Undefined if none hidden. Memoized. */
-    getVisibleProperties(): Record<string, any> | undefined;
+    getVisibleProperties(): Record<string, AnyColumn> | undefined;
     getDefaultFilter(): TFilter | undefined;
     getDefaultLimit(): number | undefined;
     hasDefaultFilter(): boolean;
@@ -1895,13 +1901,13 @@ export declare abstract class RelationalBaseRepository<EntitySchema extends TTab
      * call) is not scoped a second time, and for explicitly-unscoped administrative code written and
      * reviewed at the repository - never inferable from a request.
      */
-    protected applyScopeFilter<DO = any>(opts: {
+    protected applyScopeFilter<DO = DataObject>(opts: {
         userFilter?: TFilter<DO>;
         dangerouslySkipScopeFilter?: boolean;
         mutation?: TScopeOperation;
     }): TFilter<DO>;
     /** Merges default filter with user filter. Skippable via shouldSkipDefaultFilter - the row scope from applyScopeFilter is not. */
-    applyDefaultFilter<DO = any>(opts: {
+    applyDefaultFilter<DO = DataObject>(opts: {
         userFilter?: TFilter<DO>;
         shouldSkipDefaultFilter?: boolean;
         dangerouslySkipScopeFilter?: boolean;
@@ -2228,18 +2234,18 @@ export declare abstract class RelationalUpdateBuilder extends BaseHelper {
     protected abstract composeJsonSet(opts: {
         target: SQL;
         path: string[];
-        value: any;
+        value: unknown;
     }): SQL;
     /** Separates regular fields from JSON path updates and builds the SQL expressions. */
     transform<Schema extends TTableSchemaWithId>(opts: {
         tableName: string;
         schema: Schema;
-        data: Record<string, any>;
+        data: Record<string, unknown>;
     }): ITransformedUpdateData;
     /** Combines regular fields and JSON expressions into the final payload for Drizzle's `.set()`. */
     toUpdateData(opts: {
         transformed: ITransformedUpdateData;
-    }): Record<string, any>;
+    }): Record<string, unknown>;
     /**
      * Resolves a JSON-path key to its schema PROPERTY name plus the validated path. The property
      * is what `jsonExpressions` is keyed by, while the emitted SQL quotes the DB column.
@@ -2299,7 +2305,7 @@ predicate everywhere rather than two copies of a security predicate that could d
 ```ts
 export declare class ScopeFilterDenial {
     /** The empty `inq` compiles to `sql\`false\`` in every dialect, deterministically matching zero rows. */
-    static where<DataObject = any>(): TWhere<DataObject>;
+    static where<DataObject>(): TWhere<DataObject>;
 }
 ```
 
@@ -2320,7 +2326,7 @@ every row, so it is nothing: the scope was not resolved, and `onMissing` decides
 export declare class ScopeResolution {
     /** A non-empty plain object whose every value is defined, and whose `and` / `or` branches are themselves usable (an `and` has at least one). */
     private static isUsableWhere;
-    static normalize<DataObject = any>(opts: {
+    static normalize<DataObject>(opts: {
         value: unknown;
     }): TNullable<TWhere<DataObject>> | typeof ScopeFilters.UNRESTRICTED;
 }

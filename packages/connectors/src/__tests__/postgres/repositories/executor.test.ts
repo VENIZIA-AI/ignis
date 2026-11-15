@@ -141,6 +141,19 @@ describe('PostgresQueryExecutor', () => {
     expect(trail[0]).toBe('select(1)');
   });
 
+  test('select refuses a projection entry that is not a column or an SQL expression', async () => {
+    const { connector } = createFakeConnector();
+
+    await RejectionHelper.expectRejection({
+      task: new PostgresQueryExecutor().select({
+        connector: connector as never,
+        table: usersTable,
+        columns: { id: usersTable.id, bad: 'email' },
+      }),
+      message: /\[toSelectedFields\] Invalid column selection \| 'bad' must be a Postgres column/,
+    });
+  });
+
   // The `where` is what makes this discriminating: without it an executor that dropped the filter
   // and counted the whole table would still satisfy the assertion.
   test('count delegates to $count, passing its where through', async () => {
