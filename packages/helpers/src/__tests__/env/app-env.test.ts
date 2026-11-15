@@ -132,4 +132,35 @@ describe('ApplicationEnvironment.getRequired', () => {
 
     expect(environment.getRequired('APP_ENV_LATE')).toBe('value');
   });
+
+  test('a transform receives the string and its result is answered', () => {
+    const environment = makeEnvironment({ APP_ENV_PORT_REQ: '8080' });
+
+    expect(environment.getRequired('APP_ENV_PORT_REQ', { transform: Number })).toBe(8080);
+  });
+
+  test('a transform never runs for an unset or blank value, which throws first', () => {
+    const environment = makeEnvironment({ APP_ENV_BLANK_T: '  ' });
+    let calls = 0;
+    const transform = (raw: string) => {
+      calls += 1;
+
+      return raw;
+    };
+
+    expect(() => environment.getRequired('APP_ENV_BLANK_T', { transform })).toThrow('is not set');
+    expect(() => environment.getRequired('APP_ENV_NONE_T', { transform })).toThrow('is not set');
+    expect(calls).toBe(0);
+  });
+
+  test('a transform that answers undefined or null throws "is not valid"', () => {
+    const environment = makeEnvironment({ APP_ENV_MODE_REQ: 'weird' });
+
+    expect(() =>
+      environment.getRequired('APP_ENV_MODE_REQ', { transform: () => undefined }),
+    ).toThrow('APP_ENV_MODE_REQ is not valid');
+    expect(() => environment.getRequired('APP_ENV_MODE_REQ', { transform: () => null })).toThrow(
+      'is not valid',
+    );
+  });
 });

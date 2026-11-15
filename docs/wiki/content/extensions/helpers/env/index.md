@@ -34,7 +34,7 @@ The singleton is created once at module load. It reads only keys that start with
 
 > [!WARNING] Put the fallback in `get()`, not after it
 > `ParseUtility.toInt()` always answers a number - `0` for anything unparseable - so `ParseUtility.toInt({ input: get(KEY) }) ?? 6379` never reaches its fallback. Write `ParseUtility.toInt({ input: get(KEY, { defaultValue: '6379' }) })` instead. The broken form is silent: a missing port reads `0`, and a missing retry budget reads `0`, which means "give up after the first failure".
-- **`getRequired(key)` answers a `string` or throws.** It is for a variable the app cannot run without: unset, empty and whitespace-only all throw an error naming the key.
+- **`getRequired(key)` and `getRequired(key, { transform })` answer a value or throw.** It is for a variable the app cannot run without: unset, empty and whitespace-only all throw an error naming the key.
 - **Nothing is converted unless you pass `transform`.** Every `process.env` value is a `string`, and `get()` types it as one. For a number, convert in a `transform` that handles `undefined`: `Number(undefined)` is `NaN`, and `NaN` is not nullish, so a `defaultValue` never replaces it. A required variable is read with `getRequired()`: see "Read a required variable" below.
 - **Stage detection is separate from the singleton.** `Environment.current` reads `process.env.NODE_ENV` directly. It falls back to `'development'` when `NODE_ENV` is unset.
 - **`Environment.is({ name })` compares a name against `Environment.current`.**
@@ -69,10 +69,19 @@ const port = applicationEnvironment.get('APP_ENV_SERVER_PORT', { defaultValue: '
 
 ### Read a required variable
 
-`get()` answers `string | undefined`, so a variable the app cannot start without is read with `getRequired()`. It answers the string, or throws an error naming the key when the variable is unset, empty or whitespace-only (the blank rule `get()` applies to a `defaultValue`).
+`get()` answers `string | undefined`, so a variable the app cannot start without is read with `getRequired()`. It answers the string, or throws an error naming the key (`<key> is not set`) when the variable is unset, empty or whitespace-only (the blank rule `get()` applies to a `defaultValue`).
 
 ```typescript
 const jwtSecret = applicationEnvironment.getRequired('APP_ENV_JWT_SECRET');
+```
+
+Pass a `transform` to convert it. The blank check runs first, so `transform` receives a `string`, and a `transform` that answers `null` or `undefined` throws `<key> is not valid`. A required value has no `defaultValue`.
+
+```typescript
+const port = applicationEnvironment.getRequired('APP_ENV_PORT', { transform: Number });
+const mode = applicationEnvironment.getRequired('APP_ENV_MODE', {
+  transform: (raw) => (raw === 'a' || raw === 'b' ? raw : undefined),
+});
 ```
 
 ### Convert a value while reading it

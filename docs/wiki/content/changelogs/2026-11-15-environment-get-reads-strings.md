@@ -117,7 +117,7 @@ migration:
 - **`get(key)`** answers `string | undefined`.
 - **`get(key, { defaultValue })`** answers `string`.
 - **`get(key, { transform, defaultValue? })`** answers what `transform` returns. `transform` takes `string | undefined`.
-- **Added.** `getRequired(key)` answers a `string`, or throws an error naming the key when the variable is unset, empty or whitespace-only. Use it for a variable the app cannot run without.
+- **Added.** `getRequired(key)` answers a `string`, or throws `<key> is not set` when the variable is unset, empty or whitespace-only. `getRequired(key, { transform })` runs the transform on that string and throws `<key> is not valid` when it answers `null` or `undefined`; there is no `defaultValue`. Use it for a variable the app cannot run without.
 - **Gone.** The `BeforeTransformType` generic, and the `as ReturnType` cast inside `get`.
 - **The store.** `set(key, value)`, the constructor's `envs` and the store hold strings, not any value.
 

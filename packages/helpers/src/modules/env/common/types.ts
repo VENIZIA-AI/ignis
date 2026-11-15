@@ -17,5 +17,7 @@ export interface IApplicationEnvironment {
   get<R>(key: string, opts: IApplicationEnvironmentDefaultedTransformOptions<R>): R;
   // oxlint-disable-next-line typescript/unified-signatures -- one union parameter infers `R` from the transform alone (`number | undefined`); two overloads let the `defaultValue` fix `R`
   get<R>(key: string, opts: IApplicationEnvironmentTransformOptions<R>): R;
+  getRequired(key: string): string;
+  getRequired<R>(key: string, opts: { transform: (raw: string) => R | null | undefined }): R;
   set(key: string, value: string | undefined): void;
 }

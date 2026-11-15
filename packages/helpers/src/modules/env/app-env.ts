@@ -80,17 +80,32 @@ export class ApplicationEnvironment extends BaseHelper implements IApplicationEn
     return opts.transform(rs) ?? opts.defaultValue;
   }
 
-  /** The value of a variable the app cannot run without: a string that is set and not blank (the same rule `get` applies to a `defaultValue`), or an error naming the key. */
-  getRequired(key: string): string {
+  /**
+   * A variable the app cannot run without: it is set and not blank (the rule `get` applies to a `defaultValue`), or this throws an error naming the key. The check runs before `transform`, so `transform` receives a `string`; a `transform` that answers null or undefined throws too. A required value has no `defaultValue`.
+   */
+  getRequired(key: string): string;
+  getRequired<R>(key: string, opts: { transform: (raw: string) => R | null | undefined }): R;
+  getRequired<R>(
+    key: string,
+    opts?: { transform: (raw: string) => R | null | undefined },
+  ): string | R {
     const value = this.get(key);
 
     if (typeof value !== 'string' || !value.trim()) {
-      throw getError({
-        message: `[getRequired] Application environment variable ${key} is not set or is blank`,
-      });
+      throw getError({ message: `[getRequired] ${key} is not set` });
     }
 
-    return value;
+    if (!opts) {
+      return value;
+    }
+
+    const transformed = opts.transform(value);
+
+    if (transformed === null || transformed === undefined) {
+      throw getError({ message: `[getRequired] ${key} is not valid` });
+    }
+
+    return transformed;
   }
 
   set(key: string, value: string | undefined): void {
