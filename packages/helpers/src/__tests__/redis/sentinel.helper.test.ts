@@ -32,16 +32,24 @@ describe('RedisSentinelHelper', () => {
   });
 
   it('an old-shape config, or no sentinel nodes, fails with a clear error when it is constructed', () => {
-    const oldShape = { name: 'sentinel-test', masterName: 'mymaster', sentinels: [{ host: 'h' }] };
+    const message =
+      '[RedisSentinelHelper] sentinel.nodes is required | pass sentinel: { masterName, nodes }';
 
-    for (const opts of [
-      oldShape,
-      { name: 'sentinel-test', sentinel: { masterName: 'mymaster' } },
-    ]) {
-      expect(() => new RedisSentinelHelper(opts as never)).toThrow(
-        '[RedisSentinelHelper] sentinel.nodes is required | pass sentinel: { masterName, nodes }',
-      );
-    }
+    expect(
+      () =>
+        new RedisSentinelHelper({
+          name: 'sentinel-test',
+          // @ts-expect-error the old shape: masterName and sentinels at the top level, no sentinel scope
+          masterName: 'mymaster',
+          sentinels: [{ host: 'h' }],
+        }),
+    ).toThrow(message);
+
+    expect(
+      () =>
+        // @ts-expect-error sentinel has no nodes
+        new RedisSentinelHelper({ name: 'sentinel-test', sentinel: { masterName: 'mymaster' } }),
+    ).toThrow(message);
 
     expect(() => build({}, { nodes: [] })).toThrow('sentinel.nodes is required');
   });
