@@ -15,15 +15,17 @@ in every file that imports them from @venizia/ignis, @venizia/ignis-helpers, @ve
 @venizia/ignis-helpers/common too), whatever local name the import gives them
 (import { AnyType as Loose } ...). The names leave the import, and an import left empty is dropped.
 
-With --strict it writes the tighter types instead, for code that wants to stop using any:
+With --strict it writes the tighter types instead of the default ones, for code that wants to stop using any:
 
   AnyType      becomes  unknown
   AnyObject    becomes  Record<string, unknown>
 
---strict surfaces errors that any hid: a value is no longer assignable to unknown without a check, and an
-interface-typed value is not assignable to Record<string, unknown> (an interface has no implicit index
-signature). Declare the shape as a type alias, spread the value, or narrow it; run your typecheck after it.
-Run it on a path at a time to tighten one part of an app.
+--strict surfaces errors that any hid: an unknown value cannot be read, or passed as a narrower type, without a
+check; an interface-typed value is not assignable to Record<string, unknown> (an interface has no implicit
+index signature); and a symbol or number key on a former AnyObject fails (TS2538). Declare the shape as a type
+alias, spread the value, or narrow it; run your typecheck after it.
+--strict acts only on the alias names: a file already rewritten to any is left alone, so run it instead of
+the default run, on a path at a time, and tighten the rest by hand.
 
 It lists, and leaves alone:
   manual  a re-export (export { AnyType }, export type { AnyObject } from ...), an import("...").AnyType
