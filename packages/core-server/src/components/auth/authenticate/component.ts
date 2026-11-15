@@ -87,6 +87,8 @@ export class AuthenticateComponent extends BaseComponent {
     const options: IAuthenticateOptions = { restOptions, jwtOptions, basicOptions, serviceOptions };
 
     if (jwtOptions) {
+      const standard: string = jwtOptions.standard;
+
       switch (jwtOptions.standard) {
         case JOSEStandards.JWS: {
           this.defineJWSAuth({ options: jwtOptions.options });
@@ -98,7 +100,7 @@ export class AuthenticateComponent extends BaseComponent {
         }
         default: {
           throw getError({
-            message: `[AuthenticateComponent] Unknown JOSE standard: ${(jwtOptions as any).standard}`,
+            message: `[AuthenticateComponent] Unknown JOSE standard: ${standard}`,
           });
         }
       }

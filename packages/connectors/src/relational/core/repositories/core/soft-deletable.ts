@@ -51,7 +51,27 @@ export class SoftDeletableRelationalRepository<
     data?: TSoftDeleteData<PersistObject>;
     deletedAt: Date | null;
   }): Partial<PersistObject> {
-    return { ...opts.data, deletedAt: opts.deletedAt } as any;
+    const patch: Partial<PersistObject> = {};
+
+    // Each own entry is DEFINED, never assigned: an own `__proto__` key from a JSON body stays a plain
+    // key (the update path then refuses it as an unknown column) instead of replacing the patch's prototype.
+    for (const [key, value] of Object.entries(opts.data ?? {})) {
+      Reflect.defineProperty(patch, key, {
+        value,
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
+    }
+
+    Reflect.defineProperty(patch, AuditFields.DELETED_AT, {
+      value: opts.deletedAt,
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
+
+    return patch;
   }
 
   /** `deletedAt` changes only through delete and restore. */

@@ -1069,7 +1069,7 @@ export class TypesenseConnector extends BaseSearchConnector {
     const logger = this.logger.for(this.search.name);
 
     const { common, body } = TypesenseInternal.splitCacheParams({
-      params: params as unknown as Record<string, unknown>,
+      params,
     });
     const paramsRecord = body;
     const requested = TypesenseSearchWindows.readRequestedPage({ params: paramsRecord });

@@ -1,6 +1,5 @@
 import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import type { TRelationalConnector } from '@/relational/postgres/datasources/common';
-import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { RelationalDialects } from '@/relational/core/drivers';
 import { drizzle } from 'drizzle-orm/postgres-js';
@@ -38,14 +37,13 @@ export class PostgresJsDriver<
   async acquire(opts: { schema: Schema }): Promise<TRelationalConnection<Schema>> {
     const reserved = await this.client.reserve();
 
-    const reservedClient = reserved as AnyType;
-    reservedClient.options ??= (this.client as AnyType).options;
+    reserved.options ??= this.client.options;
 
     let connector: TRelationalConnector<Schema>;
 
     try {
       connector = drizzle({
-        client: reservedClient,
+        client: reserved,
         schema: opts.schema,
       }) as TRelationalConnector<Schema>;
     } catch (error) {

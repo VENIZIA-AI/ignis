@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { pgTable, serial, timestamp, varchar } from 'drizzle-orm/pg-core';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { model } from '@venizia/ignis-kernel';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
 import { PostgresQueryExecutor } from '@/relational/postgres/repositories/executor';
 import { BaseRelationalEntity } from '@/relational/core/models';
@@ -126,6 +127,50 @@ describe('SoftDeletableRelationalRepository.deleteById - never reaches DELETE', 
     const setPayload = captured.setPayload as Record<string, AnyType>;
     expect(Object.keys(setPayload)).toEqual(['deletedAt']);
     expect(setPayload.deletedAt).toBeInstanceOf(Date);
+  });
+});
+
+/** A request body as the HTTP layer parses it: `JSON.parse` makes `__proto__` an OWN key, not a prototype. */
+const proto = JSON.parse('{"email":"x","__proto__":{"id":999,"deletedAt":"2020-01-01"}}');
+
+describe('a "__proto__" key in a write body is a plain key, never a prototype', () => {
+  test('a soft delete refuses it as an unknown column and writes nothing', async () => {
+    const { connector, trail } = buildRecordingConnector();
+    const repository = new SoftDeletableRelationalRepository<AnyType>(buildDataSource(connector), {
+      entityClass: SoftAccountEntity,
+    });
+
+    await RejectionHelper.expectRejection({
+      task: repository.deleteById({ id: 1, data: proto }),
+      message: /Column NOT FOUND \| key: '__proto__'/,
+    });
+    expect(trail).not.toContain('update');
+  });
+
+  test('a plain update refuses it as an unknown column and writes nothing', async () => {
+    const { connector, trail } = buildRecordingConnector();
+    const repository = new PersistableRelationalRepository<AnyType>(buildDataSource(connector), {
+      entityClass: SoftAccountEntity,
+    });
+
+    await RejectionHelper.expectRejection({
+      task: repository.updateById({ id: 1, data: proto }),
+      message: /Column NOT FOUND \| key: '__proto__'/,
+    });
+    expect(trail).not.toContain('update');
+  });
+
+  test('the update transform reads own entries only: an inherited key never becomes a column', () => {
+    const data = Object.create({ id: 999 });
+    data.email = 'x';
+
+    const transformed = new PostgresQueryDialect().transformUpdate({
+      tableName: 'data_safety_soft_accounts',
+      schema: softAccounts,
+      data,
+    });
+
+    expect(transformed.regularFields).toEqual({ email: 'x' });
   });
 });
 

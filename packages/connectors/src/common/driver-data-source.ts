@@ -4,6 +4,7 @@ import { MetadataRegistry } from '@venizia/ignis-kernel/metadata';
 import type { AnyObject, AnyType, TClass } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IConnectorDriver } from './driver';
+import { DuckTypingUtility } from './internal';
 
 /**
  * A datasource that holds one client and a connector built over it through a driver: the lifecycle
@@ -247,7 +248,7 @@ export abstract class AbstractDriverDataSource<
       return;
     }
 
-    const oldClient = this.getClient() as AnyType;
+    const oldClient = this.getClient();
 
     // Snapshot so a failed rebuild restores the datasource verbatim;
     // `settings` is copied because rotation mutates it in place.
@@ -267,7 +268,7 @@ export abstract class AbstractDriverDataSource<
       await this.configure();
       newClient = this.client as Client;
     } catch (error) {
-      const halfBuilt = this.client as AnyType;
+      const halfBuilt = this.client;
       this.client = savedClient;
       this.restoreSettings({ saved: savedSettings });
 
@@ -299,9 +300,9 @@ export abstract class AbstractDriverDataSource<
 
     // Commit the live fields in one synchronous step so there is no null window,
     // then soft-evict the old pool so its in-flight transactions can finish.
-    this.client = newClient as AnyType;
+    this.client = newClient;
     this.driver = newDriver;
-    this.connector = newConnector as AnyType;
+    this.connector = newConnector;
 
     const isDrained = await this.drainClient({ client: oldClient });
 
@@ -330,11 +331,13 @@ export abstract class AbstractDriverDataSource<
    * client left undrained keeps a WASM instance or file handle alive forever.
    */
   protected async drainClient(opts: { client: unknown }): Promise<boolean> {
-    const client = opts.client as AnyType;
+    const { client } = opts;
 
-    const drain = typeof client?.end === 'function' ? client.end : client?.close;
+    const drain =
+      DuckTypingUtility.getMethod({ value: client, name: 'end' }) ??
+      DuckTypingUtility.getMethod({ value: client, name: 'close' });
 
-    if (typeof drain !== 'function') {
+    if (!drain) {
       this.logger
         .for(this.drainClient.name)
         .warn('Client exposes neither end() nor close(); nothing to drain');
@@ -342,7 +345,7 @@ export abstract class AbstractDriverDataSource<
       return false;
     }
 
-    await drain.call(client);
+    await drain();
 
     return true;
   }
