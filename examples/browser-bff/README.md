@@ -113,7 +113,7 @@ tab takes over, with no reload.
 
 ```bash
 bun run compile
-bun x vite preview
+bun run vite preview
 ```
 
 The preview runs on a different port, so it is a different origin: it does not see the database

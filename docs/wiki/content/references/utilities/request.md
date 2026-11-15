@@ -9,7 +9,7 @@ lastUpdated: 2026-10-30
 
 `RequestUtility` and `FormBodyUtility` handle HTTP request data: parsing `multipart/form-data` bodies for file uploads, and building safe, RFC-compliant `Content-Disposition` headers for downloads.
 
-The old function names (`parseMultipartBody`, `readFormBody`, `createContentDispositionHeader`, ...) are removed; `devz codemod namespace-functions` moves your calls.
+The old function names (`parseMultipartBody`, `readFormBody`, `createContentDispositionHeader`, ...) are removed; `bun run devz codemod namespace-functions` moves your calls.
 
 ## In one example
 

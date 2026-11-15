@@ -61,7 +61,7 @@ const tokens = ['alice', 'bob'].map(UuidV4Generator.generate); // map passes (va
 
 The same holds for `UuidV4Generator.create()`, `UuidV7Generator.create()` and `UuidHelper.getInstance().v4` / `.v7`, and for Hono's `requestId({ generator: UuidV7Generator.generate })`, which passes the request context. `generate` reads no `this`, so it is safe to pass detached.
 
-The old names `uuidV4`, `uuidV5`, `uuidV7` and `createUuidV4`, `createUuidV5`, `createUuidV7` are removed; `devz codemod namespace-functions` moves your calls to `UuidV4Generator.generate()`, `UuidV5Generator.generate({ namespace, name })`, `UuidV7Generator.generate()` and `.create()`.
+The old names `uuidV4`, `uuidV5`, `uuidV7` and `createUuidV4`, `createUuidV5`, `createUuidV7` are removed; `bun run devz codemod namespace-functions` moves your calls to `UuidV4Generator.generate()`, `UuidV5Generator.generate({ namespace, name })`, `UuidV7Generator.generate()` and `.create()`.
 
 ### In a browser bundle, import the version you need
 

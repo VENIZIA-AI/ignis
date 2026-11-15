@@ -14,7 +14,7 @@ export default defineConfig(oxlintConfigs);
 > **Bun is the only package manager** - never npm, yarn, or pnpm. **Compile with `tsc` directly**,
 > through a package script; never reach for `npx` or `bun x`.
 >
-> `bunx` is fine for running a one-off CLI that is not a project dependency.
+> `bunx` is only for a scoped or well-known package name, never for `vulcan`, `devz`, `ardor` or `ignis`: those names on npm belong to unrelated packages (see [Run the tools with bun run](#run-the-tools-with-bun-run)).
 
 ## Installation
 
@@ -241,7 +241,22 @@ Bun's defaults already match the rest of the old IGNIS style: `tabWidth` 2, `tra
 
 `devz lint` stops at the first tool that fails. `devz clean` takes no argument: `--help` prints the usage, and any other argument exits 2 and deletes nothing.
 
-With a file list, the command drops the files the tools do not handle (`.md`, `.json`, ...) and exits 0 when none is left. A listed file that a `.ignore` skips passes quietly, so a commit that touches only generated code is not blocked. Paths are relative to the project, and `bun run lint src/a.ts` passes them through. Outside a script, run `bun x --no-install devz lint`: `--no-install` keeps Bun from fetching a newer version than the project pins.
+With a file list, the command drops the files the tools do not handle (`.md`, `.json`, ...) and exits 0 when none is left. A listed file that a `.ignore` skips passes quietly, so a commit that touches only generated code is not blocked. Paths are relative to the project, and `bun run lint src/a.ts` passes them through. Outside a script, run `bun run devz lint`: it runs the `devz` your project installed, and never the unrelated `devz` package that npm hosts under the same name (see [Run the tools with bun run](#run-the-tools-with-bun-run)).
+
+### Run the tools with `bun run`
+
+The npm names `vulcan`, `devz`, `ardor` and `ignis` belong to unrelated packages. `bunx devz`, `bun x devz` and `npx devz` can run that foreign code, and `--no-install` does not protect you: a copy that an earlier bare run cached is used anyway. Run the copy your project installed:
+
+```bash
+bun run devz lint
+node_modules/.bin/devz lint
+```
+
+`node_modules/.bin/<bin>` is the strict form: `bun run <name>` falls back to your `$PATH` when no local bin matches, so a global copy of the same name would run. Remove any global copy (`bun pm ls -g`, `npm ls -g`).
+
+Use the same form in a Makefile, a git hook and a workflow; inside a `package.json` script the bare `devz` is the linked bin and is fine. Every `devz ...` command on this page runs as `bun run devz ...`. A scoped package (`bun x @venizia/vulcan init`) is ours; pin its version when a command repeats.
+
+To drop a copy an earlier run cached, delete `~/.bun/install/cache/.bunx-*/{vulcan,devz,ardor,ignis,vulcan-atlas}@*` and `~/.npm/_npx/*/node_modules/{vulcan,devz,ardor,ignis}`. If you find one, assume the foreign code ran: check that machine and rotate the tokens it held.
 
 ### The `devz check` commands
 
@@ -356,8 +371,8 @@ export const PURITY_OPTIONS: IPurityOptions = { esmEntryPrefix: './dist/esm/' };
 ```
 
 ```bash
-devz check purity --claims scripts/checks/purity/manifest.ts           # every claim
-devz check purity kernel --claims scripts/checks/purity/manifest.ts    # one package
+bun run devz check purity --claims scripts/checks/purity/manifest.ts           # every claim
+bun run devz check purity kernel --claims scripts/checks/purity/manifest.ts    # one package
 ```
 
 | Claim field | Meaning |

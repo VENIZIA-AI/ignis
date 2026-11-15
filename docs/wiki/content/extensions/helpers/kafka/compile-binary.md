@@ -8,7 +8,7 @@ difficulty: advanced
 
 `PlatformaticKafkaPlugins.build()` returns every Bun bundler plugin `@platformatic/kafka` needs to survive `bun build --compile`. Register them whenever you compile an application that imports a Kafka helper. Skip them, and the binary crashes on its first run.
 
-The old function names `platformaticKafkaPlugins()`, `platformaticWasmPlugin()` and `platformaticRequirePlugin()` are removed; `devz codemod namespace-functions` moves your calls to `PlatformaticKafkaPlugins.build()`, `.buildWasmPlugin()` and `.buildRequirePlugin()`.
+The old function names `platformaticKafkaPlugins()`, `platformaticWasmPlugin()` and `platformaticRequirePlugin()` are removed; `bun run devz codemod namespace-functions` moves your calls to `PlatformaticKafkaPlugins.build()`, `.buildWasmPlugin()` and `.buildRequirePlugin()`.
 
 ```typescript
 // .configs/builders/compile.ts

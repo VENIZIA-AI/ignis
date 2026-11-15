@@ -38,7 +38,7 @@ $(LINT_FIX_PKG_TARGETS): lint-fix-%:
 
 # Gate: a Breaking Change entry from `knowledge.migrationFrom` on carries a valid `migration:` block. Runs the installed VULCAN, no build.
 changelog-check:
-	@bun x --no-install vulcan changelog check
+	@bun run vulcan changelog check
 
 # site/ is the VitePress theme, written to its API (a `Layout` render method), so only the wiki's
 # own scripts are linted; the formatter also covers its CSS, Vue and JSON. The sidebar config (.vitepress/config.mts) keeps its one-entry-per-line

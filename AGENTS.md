@@ -20,7 +20,7 @@ This is the **only tracked instruction file**. Tool-specific files (`CLAUDE.md`,
 are gitignored adapters that point at this one, written per developer by VULCAN:
 
 ```bash
-make vulcan-sync      # = bun x --no-install vulcan sync
+make vulcan-sync      # = bun run vulcan sync
 ```
 
 ## Must read first

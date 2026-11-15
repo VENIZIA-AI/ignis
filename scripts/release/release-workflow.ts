@@ -181,7 +181,7 @@ const REPORT_STEP = 'Report - published, merge back not done';
 const GITHUB_RELEASE_STEP = 'Create the GitHub Release';
 const CHANGELOG_HISTORY_STEP = 'Changelog history (a stable)';
 const CHANGELOG_HISTORY_COMMAND =
-  'bun x --no-install vulcan changelog check --history --base "$CHANGELOG_BASE"';
+  'bun run vulcan changelog check --history --base "$CHANGELOG_BASE"';
 const CHANGELOG_HISTORY_CONDITION =
   "${{ needs.plan.outputs.kind == 'stable' && needs.plan.outputs.changelog_base != '' }}";
 const STAMP_COMMAND = 'scripts/release/stamp-release.ts';

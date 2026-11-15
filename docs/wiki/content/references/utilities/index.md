@@ -2,7 +2,7 @@
 
 Static-method classes providing common, reusable logic for the IGNIS framework. All utilities are stateless and easy to use, and every method takes one options object.
 
-The helpers utilities used to be bare functions (`int`, `sleep`, `executePromiseWithLimit`, ...). Those names are removed; `devz codemod namespace-functions` moves your calls to the class form.
+The helpers utilities used to be bare functions (`int`, `sleep`, `executePromiseWithLimit`, ...). Those names are removed; `bun run devz codemod namespace-functions` moves your calls to the class form.
 
 ## Quick Reference
 

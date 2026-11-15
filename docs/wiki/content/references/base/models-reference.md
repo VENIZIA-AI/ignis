@@ -961,7 +961,7 @@ Used for `relations` on `BaseEntity` - store a function that returns the relatio
 
 `Source ->` [`packages/kernel/src/base/models/common/schemas.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/schemas.ts), [`packages/kernel/src/base/models/common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/utilities.ts)
 
-These are static methods of `OpenApiSchemas`, `OpenApiResponses` and `ModelUtility`. The old function names are no longer exported; `devz codemod namespace-functions --write` moves a call of an old name to the class form. `ModelUtility.snakeToCamel` takes `{ shape }`.
+These are static methods of `OpenApiSchemas`, `OpenApiResponses` and `ModelUtility`. The old function names are no longer exported; `bun run devz codemod namespace-functions --write` moves a call of an old name to the class form. `ModelUtility.snakeToCamel` takes `{ shape }`.
 
 ### `OpenApiSchemas.idParams`
 

@@ -9,7 +9,7 @@ lastUpdated: 2026-10-30
 
 `PerformanceUtility` measures and logs how long a code block takes to run, built on `performance.now()` (millisecond resolution). `BaseApplication` uses `PerformanceUtility.executeWithMeasure` internally to time component, controller, and datasource registration during startup.
 
-The old function names (`executeWithPerformanceMeasure`, `getPerformanceCheckpoint`, `getExecutedPerformance`) are removed; `devz codemod namespace-functions` moves your calls.
+The old function names (`executeWithPerformanceMeasure`, `getPerformanceCheckpoint`, `getExecutedPerformance`) are removed; `bun run devz codemod namespace-functions` moves your calls.
 
 ## In one example
 

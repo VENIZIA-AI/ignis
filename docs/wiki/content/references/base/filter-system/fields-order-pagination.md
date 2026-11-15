@@ -93,7 +93,7 @@ When the order does not name `id`, the relational repository appends `id ASC`, s
 Sorts.parseEntry(opts: { entry: string }): { field: string; direction: 'asc' | 'desc' }
 ```
 
-The old free function `parseOrderEntry` is gone; `devz codemod namespace-functions` moves its callers.
+The old free function `parseOrderEntry` is gone; `bun run devz codemod namespace-functions` moves its callers.
 
 Every relational and search dialect (Postgres, SQLite, Typesense, Meilisearch) reads each `order` entry through this one parser, so the same 400s apply everywhere `order` is accepted. It throws a `400`, naming the whole entry, in three cases:
 

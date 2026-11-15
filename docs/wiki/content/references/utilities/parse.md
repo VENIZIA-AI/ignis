@@ -9,7 +9,7 @@ lastUpdated: 2026-10-30
 
 `ParseUtility` is a class of static methods for type checking, safe type conversion, and string/object/array transformation - the small helpers repositories and controllers reach for when normalizing loosely typed input. Every method takes one options object.
 
-The old function names (`int`, `float`, `toBoolean`, ...) are removed. `devz codemod namespace-functions` moves your calls to the class form.
+The old function names (`int`, `float`, `toBoolean`, ...) are removed. `bun run devz codemod namespace-functions` moves your calls to the class form.
 
 ## In one example
 

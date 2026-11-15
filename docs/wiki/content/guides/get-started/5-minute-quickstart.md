@@ -167,8 +167,8 @@ The project needs a first commit: `git add -A && git commit -m init`. See [Docke
 Each new app or package comes from a preset, never by hand. Add a frontend that calls `core-api`, and a library other IGNIS apps import:
 
 ```bash
-bun x --no-install vulcan add --preset ardor --app web --frontend-dir apps --api core-api
-bun x --no-install vulcan add --preset ignis --lib billing --dir libs
+bun run vulcan add --preset ardor --app web --frontend-dir apps --api core-api
+bun run vulcan add --preset ignis --lib billing --dir libs
 ```
 
 A frontend needs `--api <app>` (the backend it calls) or `--no-api`. Run `vulcan add` with neither `--app` nor `--lib` in a terminal and it asks what to create.
