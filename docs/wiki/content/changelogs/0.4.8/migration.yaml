@@ -423,7 +423,7 @@ crud-controller-factory-build:
       - Pin @venizia/ignis, @venizia/ignis-kernel and @venizia/ignis-connectors to 0.4.7 and call ControllerFactory.defineCrudController with entity, repository and controller again.
       - Put super.binding() back in a subclass that relied on it, and move controller.readonly and controller.enabledRoutes back from the routes list.
   data: |-
-    Find the call sites with: rg -n '\bControllerFactory\b|defineCrudController|enabledRoutes|super\.binding\(\)|controllerName'. The typecheck finds the rest. A repository class with no @repository({ model }) makes build throw. A subclass that declares a member named $inferData or $inferPersist must rename it. A custom GET /count declared in binding() now shadows the generated route, and a static path such as GET /featured is no longer taken by GET /{id}.
+    Find the call sites with: rg -n '\bControllerFactory\b|defineCrudController|enabledRoutes|super\.binding\(\)|controllerName'. The typecheck finds the rest. A repository class with no @repository({ model }) makes build throw. A subclass that declares a member named $inferData or $inferPersist must rename it. A custom GET /count declared in binding() now shadows the generated route, and a static path such as GET /featured is no longer taken by GET /{id}. Type a route map for one repository as TCrudRoutes<ItemRepository>: restoreById and restoreBy are accepted only for a repository that has both restore methods, and a bare TCrudRoutes lists every route.
 
 search-controller-factory-build:
   symbols: [SearchControllerFactory, SearchControllerFactory.defineSearchController, SearchControllerFactory.build, DefaultSearchRepository]
@@ -1049,30 +1049,113 @@ class-types-never-arguments:
     before: |-
       const readVersion = (cls: TClass<Service>): string => cls.version; // any
       const build = <T>(cls: TConstructor<T>): T => new cls('a', 1);
+
+      // one union entity type over per-entity classes
       const finders: Record<TTarget, TClass<IFinder<IRole | IPermission>>> = {
         roles: RoleRepository,
         permissions: PermissionRepository,
       };
+
+      // a result typed TClass<any> was used as any class
       const target: TClass<MyService> | undefined = ResolverUtility.resolveInjectTarget({ target: injected });
+
+      // classes of different kinds in one call: the parameter and result were TClass<any>
+      const sorted = helper.sortConfigurationsTopologically({ classes: [ConfigA, ConfigB] });
     after: |-
       // name the static you read, on the type of the class itself
       const readVersion = (cls: typeof Service): string => cls.version;
-      // the constructor arguments are never[]: construct through Reflect.construct, or type the constructor you call
+
+      // or, when the parameter must stay a TClass
+      const readTagged = (cls: TClass<Service> & { version: string }): string => cls.version;
+
+      // the arguments are never[], so every constructor fits and none can be called with arguments
       const build = <T>(cls: TConstructor<T>): T => Reflect.construct(cls, ['a', 1]);
+
+      // or type the constructor you call
+      const buildKnown = <T>(cls: new (name: string, count: number) => T): T => new cls('a', 1);
+
       // the class type is checked against the instance now, so name each class by its own entity
       const finders: { roles: TClass<IFinder<IRole>>; permissions: TClass<IFinder<IPermission>> } = {
         roles: RoleRepository,
         permissions: PermissionRepository,
       };
-      // results that were TClass<any> are TClass<unknown>: narrow them
+
+      // the result is TClass<unknown>: narrow it to the class you expect
       const resolved = ResolverUtility.resolveInjectTarget({ target: injected });
       const target = resolved && resolved.prototype instanceof MyService ? resolved : undefined;
-      // sortConfigurationsTopologically infers T from the classes: give one common instance type when they differ
+
+      // T is inferred from the classes; give one common instance type when the classes differ
       const sorted = helper.sortConfigurationsTopologically<BaseConfiguration>({ classes: [ConfigA, ConfigB] });
   downgrade:
     steps:
       - Pin @venizia/ignis-inversion, @venizia/ignis-helpers, @venizia/ignis-kernel, @venizia/ignis-connectors and @venizia/ignis to 0.4.7, where the arguments are any[] and the results TClass<any>. The typeof and intersection forms you added keep compiling.
-  data: 'Two behaviours differ at the edges: injecting into a read-only property throws the framework ApplicationError ("cannot be injected | It is read-only") instead of a TypeError, and assertApplicationBoots skips a target that is not a class. isClass and isClassProvider take unknown, so everything they accepted still fits. TMixinConstructor and TAbstractMixinConstructor are new; TMixinTarget and TAbstractMixinTarget keep any[] through them.'
+  data: 'Two behaviours differ at the edges: injecting into a read-only property throws the framework ApplicationError ("cannot be injected | It is read-only") instead of a TypeError, and assertApplicationBoots skips a target that is not a class. isClass and isClassProvider take unknown, so everything they accepted still fits. TMixinConstructor and TAbstractMixinConstructor are new; TMixinTarget and TAbstractMixinTarget keep any[] through them. A class used as a mixin base has its own item, see mixin-base-takes-tmixinconstructor, and a slot typed with a wider entity than the class carries has class-slot-checks-the-instance.'
+
+class-slot-checks-the-instance:
+  symbols: [TClass, TAbstractClass, TConstructor, TAbstractConstructor]
+  upgrade:
+    before: |-
+      // a slot typed with a wider entity than the class carries: TClass had a { [property: string]: any } intersection,
+      // which relaxed the assignment of a class to the slot
+      interface IMultiLang { en: string }
+      type TNamedEntity = { id: string } & { name?: IMultiLang };
+      interface IOrganizer { id: string; name: IMultiLang; code: string }
+      class OrganizerRepository extends HttpRepository<IOrganizer> {}
+
+      const slot: TClass<HttpRepository<TNamedEntity>> = OrganizerRepository; // TS2419: Types of construct signatures are incompatible
+    after: |-
+      // TClass compares the class's instance with the slot's: type the slot by the members you read,
+      interface IFindable { count(opts: { where?: object }): Promise<{ count: number }> }
+      const slot: TClass<IFindable> = OrganizerRepository;
+
+      // or pick the members from the slot's repository type
+      const picked: TClass<Pick<HttpRepository<TNamedEntity>, 'count' | 'findById'>> = OrganizerRepository;
+
+      // or make the slot generic, so the entity is inferred from the class
+      const register = <TEntity extends TNamedEntity>(repositoryClass: TClass<HttpRepository<TEntity>>) => repositoryClass;
+      const registered = register(OrganizerRepository);
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-helpers and the packages that re-export it to 0.4.7, or type the slot as TClass<T> & { [property: string]: any } in your own code: the older TClass accepted a class whose instance did not fit the slot."
+  data: "Who is affected: a class slot typed TClass<Repo<Wider>> that holds repositories of narrower entities. The cause is the TClass change of this release: 0.4.7 declared TClass<T> as TConstructor<T> & { [property: string]: any } with any[] arguments, and that intersection let such a class through; TClass<T> is now new (...args: never[]) => T, so the instance is compared. Typing the slot with the instance the class really produces (HttpRepository<IOrganizer>) always worked. The error appears for a slot whose entity is wider than the class's: an optional name in the slot and a required one in the class, which puts undefined inside the filter operators of the slot."
+
+mixin-base-takes-tmixinconstructor:
+  symbols: [TClass, TAbstractClass, TConstructor, TMixinConstructor, TAbstractMixinConstructor, TMixinTarget, TAbstractMixinTarget]
+  upgrade:
+    before: |-
+      // a generic mixin over an abstract base, its base parameter constrained by TAbstractClass: the arguments were any[]
+      abstract class CrudBase {
+        async find(): Promise<string[]> { return []; }
+      }
+
+      function stamped<TBase extends TAbstractClass<CrudBase>>(base: TBase): TBase {
+        abstract class Stamped extends base { // TS2545: A mixin class must have a constructor with a single rest parameter of type 'any[]'
+          stamp = 'x';
+        }
+
+        return Stamped;
+      }
+
+      class Controller extends stamped(CrudBase) {
+        override async find(): Promise<string[]> { return ['x']; }
+      }
+    after: |-
+      // constrain the base by TAbstractMixinConstructor (TMixinConstructor for a concrete base): it keeps the any[] arguments TypeScript requires of a mixin
+      function stamped<TBase extends TAbstractMixinConstructor<CrudBase>>(base: TBase): TBase {
+        abstract class Stamped extends base {
+          stamp = 'x';
+        }
+
+        return Stamped;
+      }
+
+      class Controller extends stamped(CrudBase) {
+        override async find(): Promise<string[]> { return ['x']; }
+      }
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis-helpers and the packages that re-export it to 0.4.7, or constrain the base by TAbstractMixinTarget (TMixinTarget for a concrete base) or by TAbstractClass (TClass) again: the older types had any[] arguments. TMixinConstructor and TAbstractMixinConstructor are new in this release, so 0.4.7 does not export them."
+  data: "TMixinTarget<T> and TAbstractMixinTarget<T> also fit a mixin base, but they map the members of T to properties: when the mixin's return type is inferred, or the base parameter is not generic and is typed TAbstractMixinTarget<T>, a subclass of the mixin result that overrides a method with method syntax reports TS2425. Use TMixinConstructor<T> or TAbstractMixinConstructor<T> when a subclass overrides methods. A mixin that reports TS2545 also loses the members of its base for the classes that extend its result: those classes report errors on their overrides (TS2510 when the return type is inferred), so fix the mixin's base type first."
 
 resolver-types-never-arguments:
   symbols: [TResolver, TAsyncResolver, TValueOrResolver, TValueOrAsyncResolver, TTask]
@@ -1168,18 +1251,24 @@ open-config-bags-unknown:
   downgrade:
     steps:
       - Pin @venizia/ignis, @venizia/ignis-kernel and @venizia/ignis-helpers to 0.4.7, where the open keys are any. The keys you declared on your own interface keep compiling.
-  data: Types only. A read back of a uiConfig or securitySchemes value, or of an extra key on a field mapping, needs a narrow.
+  data: Types only. A read back of a uiConfig value, or of an extra key on a field mapping, needs a narrow. The securitySchemes of IApiReferenceOptions is typed by api-reference-security-schemes.
 
 mail-payloads-unknown:
-  symbols: [IMailMessage, IMailAttachment, IMailSendResult, IMailService, IMailTemplateEngine]
+  symbols: [IMailMessage, IMailAttachment, IMailSendResult, IMailService, IMailTemplateEngine, IGenericMailOptions, MailService.sendTemplate, TemplateEngineService.render, TemplateEngineService.validateTemplateData, TemplateEngineService.renderSimpleTemplate]
   upgrade:
     before: |-
       const result = await mailService.send(message);
       const id = result.response.messageId; // any
+
+      // user is an interface-typed object (IUser): Record<string, any> accepted it
+      await mailService.sendTemplate({ templateName: 'welcome', data: user, recipients: 'a@b.c' });
     after: |-
       const result = await mailService.send(message);
       const MessageIdSchema = z.object({ messageId: z.string() });
       const { messageId } = MessageIdSchema.parse(result.response);
+
+      // the data is Record<string, unknown>: an interface-typed value needs a spread
+      await mailService.sendTemplate({ templateName: 'welcome', data: { ...user }, recipients: 'a@b.c' });
   downgrade:
     steps:
       - Pin @venizia/ignis to 0.4.7, where result.response and the template data keys are any.
@@ -1219,15 +1308,27 @@ network-payloads-unknown:
   data: Types only. parseMultipartBody takes a context whose req has formData(), as a Hono context does; a hand-built context needs a formData() method. The AxiosFetcher.send data default comes with network-request-bags-typed.
 
 bearer-payload-encryption-unknown:
-  symbols: [AbstractBearerTokenService.encryptPayload, AbstractBearerTokenService.decryptPayload, AbstractBearerTokenService.serializeField]
+  symbols: [AbstractBearerTokenService.encryptPayload, AbstractBearerTokenService.decryptPayload, AbstractBearerTokenService.serializeField, AbstractBearerTokenService.applySignClaims]
   upgrade:
-    steps:
-      - "A subclass that overrides encryptPayload returns Promise<Record<string, unknown>>, and one that overrides serializeField takes value: unknown."
-      - decryptPayload answers 401 when an encrypted claim is not a string or the decrypted claims carry no userId; a token this service issued always has both.
+    before: |-
+      // a subclass that calls the protected hook with an interface-typed payload, or overrides it typed on an interface
+      interface ITokenPayload { sub: string; tenant: string }
+      abstract class MyTokenService extends AbstractBearerTokenService {
+        issue(signer: SignJWT, payload: ITokenPayload) {
+          return this.applySignClaims({ signer, payload }); // TS2322 now: no index signature
+        }
+      }
+    after: |-
+      // the payload is Record<string, unknown>: spread the interface value, or declare the shape as a type alias
+      abstract class MyTokenService extends AbstractBearerTokenService {
+        issue(signer: SignJWT, payload: ITokenPayload) {
+          return this.applySignClaims({ signer, payload: { ...payload } });
+        }
+      }
   downgrade:
     steps:
-      - "Pin @venizia/ignis to 0.4.7, or return Promise<Record<string, any>> and take value: any again in the overrides."
-  data: Only when applicationSecret is configured (AES on); tokens already issued decode the same, and only a token whose encrypted claim is not a string, or that has no userId, is refused now. Without AES nothing changes.
+      - "Pin @venizia/ignis to 0.4.7, or return Promise<Record<string, any>> and take value: any again in the overrides, and pass an interface-typed payload to applySignClaims directly."
+  data: "A subclass that overrides encryptPayload returns Promise<Record<string, unknown>>, and one that overrides serializeField takes value: unknown. With applicationSecret configured (AES on), decryptPayload answers 401 when an encrypted claim is not a string or the decrypted claims carry no userId; a token this service issued always has both, so tokens already issued decode the same. Without AES nothing changes."
 
 logger-arguments-unknown:
   symbols: [ILogger, AbstractLogger, BaseLogger, ConsoleLogger, HfLogger, PinoLogger, WinstonLogger, DgramTransport, LoggerFactory]
@@ -1254,11 +1355,16 @@ keys-to-camel-answers-a-record:
     before: |-
       const row = ParseUtility.keysToCamel({ source: raw });
       const id: string = row.userId.value; // any
+      const user: IUserRow = ParseUtility.keysToCamel({ source: raw }); // any was assignable to a typed row
+      // ModelUtility.snakeToCamel, which wraps it, now yields the same record
     after: |-
       const row = ParseUtility.keysToCamel({ source: raw });
       // a Record<string, unknown>: narrow what you read
       const userId = row['userId'];
       const id = typeof userId === 'string' ? userId : undefined;
+
+      // a typed row: parse it with the row's schema (a Record<string, unknown> is not assignable to IUserRow)
+      const user = UserRowSchema.parse(ParseUtility.keysToCamel({ source: raw }));
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7, where the result is any.
@@ -1324,14 +1430,22 @@ network-request-bags-typed:
   symbols: [IRequestOptions, IAxiosRequestOptions, INodeFetchRequestOptions, QueryStringUtility.toQueryString, AxiosFetcher, TFetcherResponse]
   upgrade:
     before: |-
+      const query = QueryStringUtility.toQueryString({ params: someObject }); // AnyObject
       await fetcher.send({ url, params: { page: 1 }, headers: { 'x-count': 1 } });
-      const response = await axiosFetcher.send({ url });
+
+      const response = await axiosFetcher.get({ url }); // the verb methods answered any
       const name: string = response.data.name; // any
     after: |-
       // params is a Record<string, unknown>; headers is a Record<string, string>
+      const query = QueryStringUtility.toQueryString({ params: someObject });
       await fetcher.send({ url, params: { page: 1 }, headers: { 'x-count': String(1) } });
-      const response = await axiosFetcher.send<{ name: string }>({ url });
-      const name = response.data.name;
+
+      // the data is unknown (TS18046 on a read, TS2322 into a typed local): parse it, or name it with send<T>
+      const response = await axiosFetcher.get({ url });
+      const parsed = NameSchema.parse(response.data);
+
+      const typed = await axiosFetcher.send<{ name: string }>({ url });
+      const name = typed.data.name;
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7, where params, body and headers take any object and the response data is any.
@@ -1365,35 +1479,83 @@ secrets-registration-by-provider:
   data: Types only.
 
 environment-get-string:
-  symbols: [ApplicationEnvironment.get, IApplicationEnvironment.get, ApplicationEnvironment, ApplicationEnvironment.set, IApplicationEnvironment.set]
+  symbols: [ApplicationEnvironment.get, IApplicationEnvironment.get, ApplicationEnvironment, ApplicationEnvironment.set, IApplicationEnvironment.set, IApplicationEnvironmentTransformOptions, IApplicationEnvironmentDefaultedTransformOptions]
+  codemod: env-get
   upgrade:
     before: |-
       const secret = applicationEnvironment.get<string>('APP_ENV_JWT_SECRET');
+      const port = applicationEnvironment.get<string>('APP_ENV_PORT', { defaultValue: '3000' });
       const max = applicationEnvironment.get<number | undefined, string>('APP_ENV_POOL_MAX', {
         transform: (value) => (value ? Number(value) : undefined),
       });
       const timeout = applicationEnvironment.get<number>('APP_ENV_TIMEOUT', { defaultValue: 5000 }); // a string at run time
+      // TS2769: Property 'transform' is missing in type '{ defaultValue: number; }' but required in type 'IApplicationEnvironmentDefaultedTransformOptions<number>'
+      const retries = applicationEnvironment.get<number>('APP_ENV_RETRIES', { defaultValue: 3 });
+      const hosts = applicationEnvironment.get<string[]>('APP_ENV_HOSTS', { defaultValue: [] });
+      const host: string = applicationEnvironment.get<string>('APP_ENV_DB_HOST'); // undefined at run time when unset
       const environment = new ApplicationEnvironment({ prefix: 'APP_ENV', envs: { APP_ENV_PORT: 3000 } });
+      applicationEnvironment.set('APP_ENV_RETRIES', 3);
+
+      // a test that sets a value of any type and restores what it read
+      const previous: unknown = Reflect.get(applicationEnvironment, 'arguments')['APP_ENV_PORT'];
+      applicationEnvironment.set('APP_ENV_PORT', 5432); // TS2345: number is not string | undefined
+      applicationEnvironment.set('APP_ENV_PORT', previous); // TS2345: unknown is not string | undefined
     after: |-
       // get answers string | undefined: check a required variable where you read it
       const secret = applicationEnvironment.get('APP_ENV_JWT_SECRET');
-      if (secret === undefined) {
-        throw new Error('APP_ENV_JWT_SECRET is not set');
-      }
+      const port = applicationEnvironment.get('APP_ENV_PORT', { defaultValue: '3000' });
       // the second type argument is gone: the transform takes string | undefined
       const max = applicationEnvironment.get<number | undefined>('APP_ENV_POOL_MAX', {
         transform: (value) => (value ? Number(value) : undefined),
       });
+      // the codemod lists these as manual: a union or literal type argument is dropped by hand
+      // before: applicationEnvironment.get<string | undefined>('APP_ENV_X')
+      // after:  applicationEnvironment.get('APP_ENV_X')
+      // before: applicationEnvironment.get<'a' | 'b'>('APP_ENV_MODE')
+      // after:  z.enum(['a', 'b']).parse(applicationEnvironment.get('APP_ENV_MODE'))
+      // a defaultValue must be a string: get('APP_ENV_X', { defaultValue: maybeUndefined }) no longer compiles
+
       // convert in a transform: the value is a string
+      // handle undefined in the transform: Number(undefined) is NaN, and NaN is not nullish, so a defaultValue would never apply
       const timeout = applicationEnvironment.get('APP_ENV_TIMEOUT', {
         transform: (raw) => (raw === undefined ? undefined : Number(raw)),
         defaultValue: 5000,
       });
+      // ParseUtility.toNumber({ input: raw }) in the transform also refuses a value that is not a number, see parse-to-number
+
+      // a default without a transform is a string; any other type needs the transform that makes it
+      const retries = applicationEnvironment.get('APP_ENV_RETRIES', {
+        transform: (raw) => (raw === undefined ? undefined : Number(raw)),
+        defaultValue: 3,
+      });
+      const hosts = applicationEnvironment.get('APP_ENV_HOSTS', {
+        transform: (raw) => ParseUtility.toDelimitedArray({ input: raw }),
+        defaultValue: [],
+      });
+
+      // a variable the app cannot run without: an empty line (KEY=) reads as '' without a defaultValue, so treat it as unset too
+      const host = applicationEnvironment.get('APP_ENV_DB_HOST');
+
+      if (host === undefined || host.trim() === '') {
+        throw new Error('APP_ENV_DB_HOST is not set');
+      }
+
+      // or, in one call: throws an error naming the key when it is unset or blank
+      const required = applicationEnvironment.getRequired('APP_ENV_DB_HOST');
+
+      // the store holds strings
       const environment = new ApplicationEnvironment({ prefix: 'APP_ENV', envs: { APP_ENV_PORT: '3000' } });
+      applicationEnvironment.set('APP_ENV_RETRIES', '3');
+
+      // set takes string | undefined, and get answers string | undefined: save with get, restore with set
+      const previous = applicationEnvironment.get('APP_ENV_PORT');
+      applicationEnvironment.set('APP_ENV_PORT', String(5432));
+      applicationEnvironment.set('APP_ENV_PORT', previous);
   downgrade:
     steps:
       - Pin @venizia/ignis-helpers to 0.4.7 and put the type arguments back (get<string>(key), get<R, string>(key, { transform })), or restore the files from git, since the codemod has no reverse.
-  data: The old get<number>(key) returned the raw string at run time while its type said number, so code that compared it with a number or added to it behaved as a string operation. Check each call that carried a non-string type argument.
+      - "A class that implements IApplicationEnvironment goes back to the older get<ReturnType, BeforeTransformType> and a set that returns any. Pass numbers or any value to the constructor and set again; the older store held any."
+  data: "The old get<number>(key) returned the raw string at run time while its type said number, so code that compared it with a number or added to it behaved as a string operation. Check each call that carried a non-string type argument. Moving a read to a transform changes the value: with `devz codemod env-get --numbers` (opt-in, it rewrites get<number>(key) and get<number>(key, { defaultValue }) to a transform that calls ParseUtility.toNumber) or by hand, a value that used to be a string at run time is a real number, an unset variable still gives undefined or the default, and a non-numeric value throws at the read instead of flowing on as a string. A boolean read stays manual, because the string 'false' is truthy. set returns void where it returned any, and takes string | undefined. A class that implements IApplicationEnvironment adds the four get overloads and the string-valued set. A value read with get() and passed to a library option that requires a string (drizzle-kit dbCredentials, a server config, a bucket name) is string | undefined now: read it with getRequired(key) or give get a defaultValue. The codemod is a style rewrite with no downgrade."
 
 unusable-access-scope-unresolved:
   symbols: [IModelAccessSettings.resolve, ScopeFilters.UNRESTRICTED, ScopeFilterMissingBehaviors, ScopeResolution]
@@ -1624,3 +1786,501 @@ blank-line-padding-rules:
       - "Or stay on the new version and turn the two rules off in a config object after the preset: set '@stylistic/padding-line-between-statements' and '@stylistic/lines-between-class-members' to 'off'."
   data: Nothing stored changes. houseConfigs, reactHouseConfigs and eslintConfigs report a missing blank line after imports, before a return, between class members and around block-like statements at error, so devz lint fails until you run devz lint --fix. The fix only adds blank lines; commit it apart from other changes. oxlint has no port of these rules.
 
+
+any-aliases-removed:
+  symbols: [AnyType, AnyObject]
+  codemod: any-aliases
+  upgrade:
+    before: |-
+      import type { AnyObject, AnyType } from '@venizia/ignis-helpers';
+
+      // a bag of values read later
+      const headers: Record<string, AnyType> = {};
+      headers['x-id'].toUpperCase();
+
+      // a generic default
+      interface IResult<TData = AnyType> { data: TData }
+
+      // a parameter
+      const log = (value: AnyType) => console.log(value);
+      const pick = (source: AnyObject, key: string) => source[key];
+
+      // a generic default over objects
+      interface IPage<TItem extends AnyObject = AnyObject> { items: TItem[] }
+
+      // a decorator target, from the inversion package
+      import type { AnyType as TInversionAny } from '@venizia/ignis-inversion';
+      const decorate = (target: TInversionAny) => Reflect.getMetadata('design:type', target);
+    after: |-
+      // no alias to import. A bag of values read later is Record<string, unknown>: narrow what you read
+      const headers: Record<string, unknown> = {};
+      const id = headers['x-id'];
+      if (typeof id === 'string') {
+        id.toUpperCase();
+      }
+
+      // a generic default is unknown, or the type you really mean
+      interface IResult<TData = unknown> { data: TData }
+
+      // a parameter that only passes the value on is unknown
+      const log = (value: unknown) => console.log(value);
+
+      // AnyObject was Record<string | symbol | number, any>; it becomes Record<string, unknown>.
+      // An interface-typed argument needs an index signature (see interface-values-and-record-unknown):
+      // declare the shape as a type alias, or take `object` and read with Reflect.get
+      const pick = (source: object, key: string): unknown => Reflect.get(source, key);
+
+      interface IPage<TItem extends Record<string, unknown> = Record<string, unknown>> { items: TItem[] }
+
+      // the inversion package no longer exports AnyType; a decorator target is an object
+      const decorate = (target: object) => Reflect.getMetadata('design:type', target);
+  downgrade:
+    steps:
+      - "Declare the aliases in your own code and import them from there: `export type AnyType = any;` and `export type AnyObject = Record<string | symbol | number, any>;`."
+  data: "Types only; nothing changes at run time. devz codemod any-aliases --write rewrites AnyType to unknown and AnyObject to Record<string, unknown> in every file that imports them from @venizia/ignis, @venizia/ignis-helpers, @venizia/ignis-inversion, @venizia/ardor or @venizia/ardor-kernel, drops the names from the import, and lists what it leaves (a re-export, an import() type, a same-named local type). It has no --reverse: restore the files from git. A value an alias used to accept may then fail the typecheck, see interface-values-and-record-unknown."
+
+interface-values-and-record-unknown:
+  symbols: [AnyType, AnyObject]
+  upgrade:
+    before: |-
+      // after the alias is replaced one for one, an interface-typed value no longer fits a Record<string, unknown> parameter
+      interface IUser { id: number; name: string }
+      declare const user: IUser;
+
+      const save = (data: Record<string, unknown>) => data;
+      save(user); // TS2345: Index signature for type 'string' is missing in type 'IUser'
+
+      const bag: Record<string, unknown> = user; // TS2322: the same reason
+    after: |-
+      // declare the shape as a type alias (it has an implicit index signature), or spread the value,
+      // or take object when the function only reads known keys through Reflect.get
+      interface IUser { id: number; name: string }
+      declare const user: IUser;
+
+      type TUser = { id: number; name: string };
+      declare const typedUser: TUser;
+
+      const save = (data: Record<string, unknown>) => data;
+      save(typedUser);
+      save({ ...user });
+
+      const bag: Record<string, unknown> = typedUser;
+  downgrade:
+    steps:
+      - "Declare the alias in your own code and use it for the parameter; an interface fits Record<string | symbol | number, any>."
+  data: A variable typed with an interface is not assignable to Record<string, unknown>, because an interface has no implicit index signature. A type alias has one. Types only.
+
+inject-target-is-object:
+  symbols: [inject]
+  upgrade:
+    before: |-
+      // a wrapper that forwards the decorator's target typed unknown (or an unconstrained generic)
+      const injectKey =
+        (key: string) => (target: unknown, name: string | symbol | undefined, index?: number) =>
+          inject({ key })(target, name, index); // TS2345: Argument of type 'unknown' is not assignable to parameter of type 'object'
+    after: |-
+      // inject() returns a decorator whose target is typed object (it was any); a class and a prototype both fit.
+      // Type the wrapper's target object, or T extends object
+      const injectKey =
+        (key: string) => (target: object, name: string | symbol | undefined, index?: number) =>
+          inject({ key })(target, name, index);
+  downgrade:
+    steps:
+      - "Type the wrapper's target as unknown again; a decorator whose target is typed object fits the older any."
+  data: Every direct use of @inject() on a property or a constructor parameter compiles unchanged.
+
+generated-index-types:
+  symbols: [AutoArtifactGroup, TGeneratedArtifactIndex, TGeneratedArtifactIndexInput]
+  upgrade:
+    before: |-
+      // TGeneratedArtifactIndex listed TClass<any>: any class fit
+      const index: TGeneratedArtifactIndex = { services: [FooService] }; // TS2322 now
+
+      // a group typed without its content type: the classes read from content were TClass<any>
+      declare const group: AutoArtifactGroup;
+      const serviceClass = group.content?.services?.[0];
+      if (serviceClass) {
+        new serviceClass().run(); // TS2339 now: the instance type is never
+      }
+    after: |-
+      // the generated index lists TClass<never>, the bottom boot moves around without knowing your classes;
+      // to write an index by hand, check it against the input type and keep its exact type
+      const index = { services: [FooService] } satisfies TGeneratedArtifactIndexInput;
+      const group: IArtifactGroup = new AutoArtifactGroup({ content: index });
+
+      // build the group from a typed index and let TIndex be inferred, so content keeps your classes
+      const typedGroup = new AutoArtifactGroup({ content: { services: [FooService] } });
+      const typedClass = typedGroup.content?.services?.[0];
+      if (typedClass) {
+        new typedClass().run();
+      }
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-boot to 0.4.7, where TGeneratedArtifactIndex lists TClass<any> per kind and AutoArtifactGroup takes no type argument.
+  data: Types only. A group boot builds itself (the default export of @venizia/ignis-boot/auto and the modules the plugins emit) is still the kernel's IArtifactGroup; only reading its classes through the default type changed.
+
+http-repository-row-type:
+  symbols: [HttpRepository, HttpRepository.patchWhere, HttpRepository.deleteWhere]
+  upgrade:
+    before: |-
+      // E defaulted to any: field names and returned rows were unchecked
+      const repository = new HttpRepository({ resource: 'articles', dataSource });
+      const created = await repository.create({ data: { title: 'x' } });
+      created.data.title; // any
+      await repository.find({ filter: { where: { title: 'x' } } });
+    after: |-
+      // name the row type: E defaults to object, so the returned rows carry no properties and no field name is accepted
+      const repository = new HttpRepository<IArticle>({ resource: 'articles', dataSource });
+      const created = await repository.create({ data: { title: 'x' } });
+      created.data.title;
+      await repository.find({ filter: { where: { title: 'x' } } });
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-connectors to 0.4.7 and drop the type argument; the older default let every read and every field name compile.
+  data: "An error about TDataWithRange on a find, or an excess property such as `'id' does not exist in type 'TWhere<object>'`, means the entity type is not named: write HttpRepository<IEntity>, because with the default object entity no field name is accepted in where, no overload matches, and the call falls through to the ranged result. The protected patchWhere and deleteWhere now answer data: unknown, and search() answers IHttpSearchResult<object> without a row type: a subclass that reads .data.x from them needs the row type or a narrow. Reading find() rows without a type argument still compiles (a keyless object selects any). Types only."
+
+raw-sql-repository-datasource-type:
+  symbols: [BaseRawSqlRepository]
+  upgrade:
+    before: |-
+      class ReportRepository extends BaseRawSqlRepository {
+        rows() { return this.dataSource.settings.schema; } // any
+      }
+    after: |-
+      // dataSource is BaseRawSqlDataSource<object, unknown, TConnector>: read settings through your own datasource type
+      class ReportRepository extends BaseRawSqlRepository {
+        constructor(readonly reports: ReportDataSource) { super(reports); }
+        rows() { return this.reports.settings.schema; }
+      }
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-connectors to 0.4.7 and read this.dataSource.settings directly again; it was typed any.
+  data: Types only.
+
+driver-datasource-secret-mapping:
+  symbols: [AbstractDriverDataSource, AbstractDriverDataSource.mapSecretToSettings]
+  upgrade:
+    before: |-
+      // the protected hook returned AnyObject: an interface return and any property read compiled
+      interface IPgSecret { user: string; password: string }
+      class MyDataSource extends AbstractDriverDataSource<ISettings, Schema, {}, Client, Connector, MyDriver> {
+        protected override mapSecretToSettings(opts: { secret: Record<string, string> }): IPgSecret { /* ... */ } // TS2416 now
+      }
+      const user = this.mapSecretToSettings({ secret }).user.toLowerCase();
+    after: |-
+      // it returns Record<string, unknown>: return that (or declare the shape as a type alias) and narrow what you read;
+      // the TDriver constraint is IConnectorDriver<TConnector, unknown>
+      type TPgSecret = { user: string; password: string };
+      class MyDataSource extends AbstractDriverDataSource<ISettings, Schema, {}, Client, Connector, MyDriver> {
+        protected override mapSecretToSettings(opts: { secret: Record<string, string> }): TPgSecret { /* ... */ }
+      }
+      const mapped = this.mapSecretToSettings({ secret });
+      const user = typeof mapped.user === 'string' ? mapped.user.toLowerCase() : undefined;
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-connectors to 0.4.7, return the interface, and read the mapped settings without a narrow again; the older return was any-valued.
+  data: Types only.
+
+controller-definitions-typed:
+  symbols: [AbstractSearchController, AbstractCrudController, CrudControllerFactory]
+  upgrade:
+    before: |-
+      // definitions was any: an interface-typed object fit
+      interface ISearchDefinitions { search: IAuthRouteConfig }
+      declare const searchRoute: IAuthRouteConfig;
+      const definitions: ISearchDefinitions = { search: searchRoute };
+      super({ scope: 'SearchController', repository, definitions }); // TS2322 now: no index signature
+    after: |-
+      // definitions is Record<string, IAuthRouteConfig>: use a type alias or satisfies
+      const definitions = { search: searchRoute } satisfies Record<string, IAuthRouteConfig>;
+      super({ scope: 'SearchController', repository, definitions });
+
+      // the CRUD controller takes the same type, and the repository as AbstractRepository<D, P> with its default options;
+      // the shipped relational and search repositories, whose options narrow IExtraOptions, still fit
+      const crudDefinitions: Record<string, IAuthRouteConfig> = loadDefinitions();
+      super({ scope: 'ItemController', repository, definitions: crudDefinitions });
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-kernel and @venizia/ignis-connectors to 0.4.7, where definitions is any. A definitions object that fits the newer type fits the older one.
+  data: A repository whose own options narrow IExtraOptions in a way a method cannot accept bivariantly fails to type-check at the controller's constructor; the shipped repositories were checked. Types only.
+
+meilisearch-polled-task:
+  symbols: [IMeilisearchClientLike, IMeilisearchPolledTask, IMeilisearchTask]
+  upgrade:
+    before: |-
+      const task = await client.getTask(7);
+      const id: number = task.taskUid; // IMeilisearchTask.taskUid was required
+    after: |-
+      // getTask answers IMeilisearchPolledTask: the SDK names the id uid, so taskUid may be absent
+      const task = await client.getTask(7);
+      const id: number | undefined = task.taskUid;
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-connectors to 0.4.7, where getTask answers IMeilisearchTask. A getTask implementation that carries taskUid fits both types.
+  data: A caller that reads taskUid from a polled task must handle undefined. The real SDK never set it, so a message that printed it showed undefined before as well.
+
+api-reference-security-schemes:
+  symbols: [IApiReferenceOptions, TApiReferenceSecurityScheme]
+  upgrade:
+    before: |-
+      const schemes: Record<string, Record<string, any>> = loadSchemes(); // any object fit
+      const options: IApiReferenceOptions = { securitySchemes: schemes };
+    after: |-
+      // a scheme is a real OpenAPI security scheme (apiKey, http, oauth2, openIdConnect) or a reference to one
+      const schemes: Record<string, TApiReferenceSecurityScheme> = {
+        bearer: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      };
+      const options: IApiReferenceOptions = { securitySchemes: schemes };
+  downgrade:
+    steps:
+      - Pin @venizia/ignis to 0.4.7 and type the schemes as Record<string, Record<string, any>> again; every scheme that fits the newer type fits it.
+  data: The document is served with openapi 3.0.0 when explorer.openapi is unset. Types only otherwise.
+
+auth-service-defaults-unknown:
+  symbols: [IAuthService]
+  upgrade:
+    before: |-
+      // the request and response type arguments defaulted to AnyObject: any key, any value, and an interface fit
+      interface ISignInResult { token: string }
+      interface IUserQuery { id: number }
+
+      class MyAuthService implements IAuthService {
+        async signIn(context: TContext, opts: TSignInRequest): Promise<ISignInResult> { /* ... */ } // TS2416 now
+        async signUp(context: TContext, opts: TSignUpRequest) { /* ... */ }
+        async changePassword(context: TContext, opts: TChangePasswordRequest) { /* ... */ }
+        async getUserInformation(context: TContext, opts: IUserQuery) { /* ... */ } // TS2416 now
+      }
+
+      declare const service: IAuthService;
+      await service.getUserInformation?.(context, userQuery); // userQuery: IUserQuery, TS2345 now
+    after: |-
+      // the defaults are Record<string, unknown>, and an interface has no implicit index signature:
+      // declare the shapes as type aliases (they have one), or name them as type arguments of IAuthService
+      type TSignInResult = { token: string };
+      type TUserQuery = { id: number };
+
+      class MyAuthService implements IAuthService {
+        async signIn(context: TContext, opts: TSignInRequest): Promise<TSignInResult> { /* ... */ }
+        async signUp(context: TContext, opts: TSignUpRequest) { /* ... */ }
+        async changePassword(context: TContext, opts: TChangePasswordRequest) { /* ... */ }
+        async getUserInformation(context: TContext, opts: TUserQuery) { /* ... */ }
+      }
+
+      await service.getUserInformation?.(context, userQuery); // userQuery: TUserQuery
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-kernel and @venizia/ignis to 0.4.7, or drop the type arguments or the aliases; the older defaults were any-valued records, so interfaces and every read compiled.
+  data: Types only.
+
+query-operator-handler-types:
+  symbols: [TQueryOperatorHandlers, IQueryHandlerOptions]
+  upgrade:
+    before: |-
+      const handlers: TQueryOperatorHandlers = {
+        // opts was { column: any; value: any }, and IQueryHandlerOptions.column was a Column
+        byName: (opts) => sql`${sql.identifier(opts.column.name)} = ${opts.value}`,
+        lengthIs: (opts) => sql`length(${opts.column}) = ${opts.value.length}`,
+        startsWith: (opts) => like(opts.column, `${opts.value}%`),
+      };
+    after: |-
+      // opts.column is an SQLWrapper (a Column, or the raw #> extraction the JSON path passes) and opts.value is unknown:
+      // pass the column to a template or an operator, and narrow the value. The like family (like, notLike, ilike,
+      // notIlike) takes a Column, an SQL or an SQL.Aliased only: wrap the column in a template
+      const handlers: TQueryOperatorHandlers = {
+        lengthIs: (opts) =>
+          typeof opts.value === 'string' ? sql`length(${opts.column}) = ${opts.value.length}` : undefined,
+        startsWith: (opts) => like(sql`${opts.column}`, `${opts.value}%`),
+      };
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-kernel and @venizia/ignis-connectors to 0.4.7, or type the handler's parameters as any again.
+  data: A helper that takes the handler's column as Column | SQL (such as a Postgres array comparison) takes SQLWrapper now; every drizzle operator except the like family accepts it. Types only; the SQL the shipped handlers build is unchanged.
+
+filter-builder-hook-types:
+  symbols: [FilterBuilder, buildValueCondition, buildOperatorConditions, toOperatorObject, isOperatorObject]
+  upgrade:
+    before: |-
+      class MyFilterBuilder extends FilterBuilder {
+        protected override buildValueCondition(opts: { column: any; value: any }): SQL { ... }
+        protected override buildOperatorConditions(opts: { column: any; value: Record<string, any> }): SQL[] { ... }
+      }
+    after: |-
+      // the protected hooks take column: AnyColumn | SQL and value: unknown (Record<string, unknown> for operators);
+      // an SQL.Aliased no longer type-checks as a column. toOperatorObject is new: it answers the operator record or undefined.
+      class MyFilterBuilder extends FilterBuilder {
+        protected override buildValueCondition(opts: { column: AnyColumn | SQL; value: unknown }): SQL { ... }
+        protected override buildOperatorConditions(opts: {
+          column: AnyColumn | SQL;
+          value: Record<string, unknown>;
+        }): SQL[] { ... }
+      }
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-connectors to 0.4.7, or type the overrides' column and value as any again; the older signatures accepted them.
+  data: Types only.
+
+update-builder-types:
+  symbols: [PersistableRelationalRepository, IRelationalQueryDialect, ITransformedUpdateData, RelationalUpdateBuilder, getVisibleProperties]
+  upgrade:
+    before: |-
+      repository.updateBuilder.transform({ data }); // deprecated getter, typed any
+
+      const { regularFields } = builder.transform({ data });
+      const name: string = regularFields.name; // any
+
+      const visible = repository.getVisibleProperties(); // Record<string, any> | undefined
+    after: |-
+      // the getter answers RelationalUpdateBuilder | undefined: check it, or use the dialect's own
+      const updateBuilder = repository.updateBuilder;
+
+      if (updateBuilder) {
+        updateBuilder.transform({ data });
+      }
+
+      const { regularFields } = builder.transform({ data });
+      const name = typeof regularFields['name'] === 'string' ? regularFields['name'] : undefined;
+      // a builder subclass overriding a hook typed any still compiles: the hooks take unknown now
+
+      // a Record<string, AnyColumn> | undefined: the columns a read exposes
+      const visible = repository.getVisibleProperties();
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-connectors to 0.4.7, or call repository.updateBuilder directly and read regularFields and the visible properties without a narrow again; the older types were any.
+  data: Types only.
+
+dialect-merge-defaults-removed:
+  symbols: [IRelationalQueryDialect, ScopeFilterDenial, ScopeResolution, PersistableRelationalRepository]
+  upgrade:
+    before: |-
+      const merged = dialect.mergeFilter({ defaultFilter, userFilter }); // T defaulted to any
+    after: |-
+      // name the row type
+      const merged = dialect.mergeFilter<IRow>({ defaultFilter, userFilter });
+      // ScopeFilterDenial.where<IRow>() and ScopeResolution.normalize<IRow>() name the row type too;
+      // applyScopeFilter and applyDefaultFilter now default it to the repository's DataObject, not any
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-connectors to 0.4.7, or drop the type argument; the older T defaulted to any.
+  data: Types only.
+
+select-projection-is-flat:
+  symbols: [TColumnSelection, ISelectOptions, PostgresQueryExecutor, SqliteQueryExecutor]
+  upgrade:
+    before: |-
+      // a subclass that hands the executor a nested selection
+      this.queryExecutor.select({ connector, table, columns: { meta: { id: table.id } } });
+    after: |-
+      // a projection is flat: every entry is a column or an SQL expression (SQL, SQL.Aliased)
+      this.queryExecutor.select({ connector, table, columns: { id: table.id, label: sql`upper(${table.name})` } });
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-connectors to 0.4.7, or pass the nested selection again; the older executors cast it through to Drizzle.
+  data: "The old executors passed the selection to Drizzle with a cast, so a nested object or a whole table reached Drizzle unchecked. The same call now throws '[toSelectedFields] Invalid column selection'. The repositories in this framework build flat selections only; the break reaches a subclass that calls the executor itself, for select columns or for returning."
+
+schema-metadata-type-is-object:
+  symbols: [TSchemaMetadata, TSchemaDecorator, QuerySchemaFactory]
+  upgrade:
+    before: |-
+      // a decorator or a test that builds its own metadata with another string
+      const metadata: TSchemaMetadata = { description: 'A filter', type: 'string' };
+    after: |-
+      // only 'object' is accepted; code that only reads metadata.type is unaffected
+      const metadata: TSchemaMetadata = { description: 'A filter', type: 'object' };
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-filter to 0.4.6, the last stable release without this change (this package has no 0.4.7 stable tag), or keep your own metadata typed with another string.
+  data: "The shipped decorator now throws a named error when it is given anything but a zod schema carrying .openapi(); a schema with no .openapi(), for example one built with a second copy of zod that @hono/zod-openapi did not patch, is named in the error. The old decorator threw a TypeError ('openapi is not a function') for the same input."
+
+mailgun-config-typed:
+  symbols: [TMailgunConfig, IMailgunMailOptions]
+  upgrade:
+    before: |-
+      // TMailgunConfig was any & { domain: string }, so anything fit, including values read from the environment
+      const options: IMailgunMailOptions = {
+        provider: 'mailgun',
+        config: { username: 'api', key: process.env.MAILGUN_KEY, domain: 'mg.example.com' },
+      };
+      const fromSdk: TMailgunConfig = clientOptions; // an interface-typed value, mailgun.js MailgunClientOptions
+    after: |-
+      // username and key are string: require the value first, and spread an interface-typed value
+      const options: IMailgunMailOptions = {
+        provider: 'mailgun',
+        config: {
+          username: 'api',
+          key: applicationEnvironment.getRequired('APP_ENV_MAILGUN_KEY'),
+          domain: 'mg.example.com',
+        },
+      };
+      const fromSdk: TMailgunConfig = { ...clientOptions, domain: 'mg.example.com' };
+  downgrade:
+    steps:
+      - "Pin @venizia/ignis to 0.4.7, or type the config as `any & { domain: string }` again."
+  data: The run time check is unchanged. A missing username, key or domain still throws when the transport is built.
+
+mail-peer-module-types:
+  symbols: [TNodemailerModule, TMailgunModule, TAmazonSesModule, TAmazonSesClient, INodemailerTransporter, IMailgunMessagesClient, IMailgunSendResult, IAmazonSesClient, IAmazonSesSendEmailInput, MailgunTransportHelper.buildClient, NodemailerTransportHelper.buildTransporter]
+  upgrade:
+    before: |-
+      // a test double or a wrapper handed over as the peer module; every member was any
+      const module: TNodemailerModule = { createTransport: () => fakeTransporter };
+    after: |-
+      // the module types name what the transport calls: the real nodemailer, mailgun.js and
+      // @aws-sdk/client-sesv2 modules fit as they are. A double returns a value with sendMail, verify and close.
+      const module: TNodemailerModule = { createTransport: () => ({ sendMail, verify, close }) };
+
+      // a subclass that overrides the protected seams returns the same interfaces
+      class TestTransport extends NodemailerTransportHelper {
+        protected override buildTransporter(): INodemailerTransporter {
+          return { sendMail, verify, close };
+        }
+      }
+  downgrade:
+    steps:
+      - Pin @venizia/ignis to 0.4.7, or hand over the module as before; the older types accepted any shape, so a double that fits the newer types fits the older ones.
+  data: "Types only, for a module you hand over; a caller that lets the transport load the peer itself is unaffected. One behaviour differs: the SES transport reads the answer of the client without assuming an object. An answer that is null or not an object (the SDK never answers one) used to end in a TypeError and a failed send (send reported success false, verify logged a failure); now send reports success with no messageId and verify reports the account as disabled."
+
+jvalue-column-is-unknown-record:
+  symbols: [PostgresDataTypeEnricher, SqliteDataTypeEnricher]
+  upgrade:
+    before: |-
+      const row = await repository.findById({ id: 1 });
+      const label: string = row?.jValue?.label; // jValue was Record<string, any>
+
+      // meta is an interface-typed value (IMeta): Record<string, any> accepted it
+      interface IMeta { label: string }
+      await repository.create({ data: { jValue: meta } }); // TS2769 now: no index signature
+    after: |-
+      // jValue is Record<string, unknown>: narrow what you read
+      const label = row?.jValue?.label;
+      const text = typeof label === 'string' ? label : undefined;
+
+      // spread the interface value, or declare the shape as a type alias
+      await repository.create({ data: { jValue: { ...meta } } });
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-connectors to 0.4.7, or read jValue without a narrow and pass the interface value directly again; the older column type was Record<string, any>.
+  data: Types only. The stored column does not change.
+
+sqlite-connector-run-result-unknown:
+  symbols: [TSqliteConnector, TSqliteConnection, TSqliteDriver]
+  upgrade:
+    before: |-
+      const connector: TSqliteConnector = dataSource.getConnector();
+      const result = await connector.run(sql`select 1`);
+      result.rowsAffected; // any
+
+      // a helper that spelled the connector type with the driver's own result
+      const migrate = (connector: BaseSQLiteDatabase<'async', ResultSet, TAnyDataSourceSchema>) => connector.run(sql`select 1`);
+      await migrate(dataSource.getConnector()); // TS2345 now: the run result slot is unknown
+    after: |-
+      // the run result slot is unknown (the drivers disagree on it): the repositories read it through the driver
+      const connector: TSqliteConnector = dataSource.getConnector();
+      const result: unknown = await connector.run(sql`select 1`);
+
+      // type the parameter as TSqliteConnector and read the run result as unknown
+      const migrate = (connector: TSqliteConnector) => connector.run(sql`select 1`);
+      await migrate(dataSource.getConnector());
+  downgrade:
+    steps:
+      - Pin @venizia/ignis-connectors to 0.4.7, or read the run result as any and spell the parameter with the driver's result type again.
+  data: Types only.
