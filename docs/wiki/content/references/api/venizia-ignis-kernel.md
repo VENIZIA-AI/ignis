@@ -4508,11 +4508,11 @@ Source: `packages/kernel/src/helpers/inversion/common/types/artifact.ts`
 
 *interface*
 
-Options passed to query operator handler functions.
+Options passed to query operator handler functions. `column` is a `Column` or, on the JSON-path branch, a raw `#>>` extraction expression: both are `SQLWrapper`.
 
 ```ts
 export interface IQueryHandlerOptions<T = unknown> {
-    column: Column;
+    column: SQLWrapper;
     value: T;
 }
 ```
@@ -8550,18 +8550,10 @@ Source: `packages/kernel/src/base/auth/authorize/builders/policy.builder.ts`
 
 *type*
 
-Operator-name to SQL-handler table a relational dialect translates with, so a second SQL engine
-swaps the whole table without touching the walk that reaches it. `column` is wider than
-`IQueryHandlerOptions` names it: the JSON-path branch hands handlers a raw `#>>` extraction
-expression, not a `Column`.
+Operator-name to SQL-handler table a relational dialect translates with, so a second SQL engine swaps the whole table without touching the walk that reaches it.
 
 ```ts
-export type TQueryOperatorHandlers = Record<string, {
-    handle(opts: {
-        column: Column | SQL;
-        value: unknown;
-    }): SQL | undefined;
-}['handle']>;
+export type TQueryOperatorHandlers = Record<string, (opts: IQueryHandlerOptions) => SQL | undefined>;
 ```
 
 Source: `packages/kernel/src/base/repositories/common/types/query.ts`

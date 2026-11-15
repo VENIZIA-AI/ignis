@@ -616,33 +616,33 @@ Drizzle-backed handlers for the neutral QueryOperators vocabulary (SQL branch on
 ```ts
 export declare class PostgresQueryOperators extends SqlQueryOperators {
     static readonly FNS: {
-        contains: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        containedBy: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        overlaps: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        ilike: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        nilike: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        regexp: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        iregexp: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        eq: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        ne: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        neq: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        exists: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        notExists: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        gt: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        gte: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        lt: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        lte: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        is: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        isn: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        in: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        inq: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        inSql: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        ninSql: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        nin: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        between: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        notBetween: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        like: (opts: IQueryHandlerOptions) => SQL<unknown>;
-        nlike: (opts: IQueryHandlerOptions) => SQL<unknown>;
+        contains: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        containedBy: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        overlaps: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        ilike: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        nilike: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        regexp: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        iregexp: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        eq: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        ne: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        neq: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        exists: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        notExists: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        gt: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        gte: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        lt: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        lte: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        is: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        isn: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        in: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        inq: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        inSql: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        ninSql: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        nin: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        between: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        notBetween: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        like: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
+        nlike: (opts: IQueryHandlerOptions) => import("drizzle-orm").SQL<unknown>;
     };
 }
 ```

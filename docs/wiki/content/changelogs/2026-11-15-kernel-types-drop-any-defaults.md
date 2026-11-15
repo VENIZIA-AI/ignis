@@ -1,26 +1,29 @@
 ---
 title: The kernel types stop defaulting to any
-description: "IAuthService responses default to Record<string, unknown>, TCrudRoutes and TResponseBodyOf are checked, the CRUD controllers take the repository with its default options, and a query operator handler is typed on column and value."
+description: "The IAuthService request and response types default to Record<string, unknown>, TCrudRoutes and TResponseBodyOf are checked, the CRUD controllers take the repository with its default options, and a query operator handler takes IQueryHandlerOptions with an SQLWrapper column."
 packages: ['@venizia/ignis-kernel']
 migration:
   - id: auth-service-defaults-unknown
     symbols: [IAuthService]
     upgrade:
       before: |
-        // the response type arguments defaulted to AnyObject: any key, any value
+        // the request and response type arguments defaulted to AnyObject: any key, any value, and an interface fit
+        interface ISignInResult { token: string; user: { id: number } }
         class MyAuthService implements IAuthService {
-          async signIn() { return { token: 'x', user: { id: 1 } }; }
+          async signIn(): Promise<ISignInResult> { return { token: 'x', user: { id: 1 } }; } // TS2416 now
+          async getUserInformation(context: TContext, opts: IUserQuery) { /* ... */ } // an interface request type: TS2416 now
         }
-        const response = await service.signIn(context, request);
-        response.user.id; // any
+        const service: IAuthService = myAuthService;
+        await service.getUserInformation(context, userQuery); // userQuery is an interface-typed value: TS2345 now
       after: |
-        // the defaults are Record<string, unknown>: name the response types you return and read
-        class MyAuthService implements IAuthService<Env, TSignInRequest, ISignInResult> {
-          async signIn(): Promise<ISignInResult> { return { token: 'x', user: { id: 1 } }; }
-        }
+        // the defaults are Record<string, unknown>, and an interface has no implicit index signature:
+        // name the request and response types you use as type arguments
+        interface ISignInResult { token: string; user: { id: number } }
+        class MyAuthService implements IAuthService<Env, TSignInRequest, ISignInResult> { /* ... */ }
+        const service: IAuthService<Env, TSignInRequest, ISignInResult> = myAuthService;
     downgrade:
       steps:
-        - "Drop the type arguments; the older defaults were any-valued records, so every read compiled."
+        - "Drop the type arguments; the older defaults were any-valued records, so interfaces and every read compiled."
   - id: crud-routes-and-response-body
     symbols: [TCrudRoutes, TResponseBodyOf]
     upgrade:
@@ -35,7 +38,7 @@ migration:
     downgrade:
       steps:
         - "Type the map without a type argument as before; the older default accepted every repository."
-    data: "TCrudRoutes without a type argument still lists every route. TResponseBodyOf gives the same type for a route whose responses carry application/json; a response without JSON content contributes never where it was a type error."
+    data: "TCrudRoutes without a type argument still lists every route; the break comes from variance: a map typed for any repository (TCrudRoutes<any> before) was assignable to TCrudRoutes<NonRestorableRepository>, the new default is not. TResponseBodyOf is a fix for a route that mixes a JSON response with one without JSON content (a 200 body beside a 204): it used to give never and now gives the JSON body."
   - id: crud-controller-repository-default-options
     symbols: [AbstractCrudController, CrudControllerFactory]
     upgrade:
@@ -53,22 +56,25 @@ migration:
         - "Nothing to restore: a repository and a definitions object that fit the newer parameters fit the older any ones."
     data: "A repository whose own options narrow IExtraOptions in a way a method cannot accept bivariantly fails to type-check at the controller's constructor; the shipped repositories were checked."
   - id: query-operator-handler-types
-    symbols: [TQueryOperatorHandlers, IQueryHandlerOptions]
+    symbols: [TQueryOperatorHandlers, IQueryHandlerOptions, SubqueryUtility.buildSubqueryCondition]
     upgrade:
       before: |
         const handlers: TQueryOperatorHandlers = {
-          // opts was { column: any; value: any }
+          // opts was { column: any; value: any }, and IQueryHandlerOptions.column was a Column
+          byName: (opts) => sql`${sql.identifier(opts.column.name)} = ${opts.value}`,
           lengthIs: (opts) => sql`length(${opts.column}) = ${opts.value.length}`,
         };
       after: |
-        // opts.value is unknown and opts.column is Column | SQL: narrow the value, or pass it to a template
+        // opts.column is an SQLWrapper (a Column, or the raw #> extraction the JSON path passes) and opts.value is unknown:
+        // pass the column to a template or an operator, and narrow the value
         const handlers: TQueryOperatorHandlers = {
           lengthIs: (opts) =>
             typeof opts.value === 'string' ? sql`length(${opts.column}) = ${opts.value.length}` : undefined,
         };
     downgrade:
       steps:
-        - "Type the handler's parameter as { column: any; value: any } again; a handler typed on IQueryHandlerOptions fits both."
+        - "Type the handler's parameters as any again."
+    data: "A helper that takes the handler's column as Column | SQL (such as a Postgres array comparison) takes SQLWrapper now; every drizzle operator accepts it."
   - id: normalize-count-data-constraint
     symbols: [BaseRestController.normalizeCountData]
     upgrade:
@@ -92,9 +98,9 @@ migration:
 
 ## What changed
 
-- **Auth.** `IAuthService` response types default to `Record<string, unknown>`.
+- **Auth.** The `IAuthService` request and response types default to `Record<string, unknown>`.
 - **CRUD.** `TCrudRoutes` defaults to a repository with both restore methods; `TResponseBodyOf` reads the JSON schema through a helper; the CRUD controller constructors take the repository with its default options and `definitions` as `Record<string, IAuthRouteConfig>`.
-- **Query operators.** `TQueryOperatorHandlers` handlers take `column: Column | SQL` and `value: unknown`.
+- **Query operators.** `TQueryOperatorHandlers` is a plain function table over `IQueryHandlerOptions`, whose `column` is an `SQLWrapper` (a `Column` or the JSON-path extraction) and whose `value` is `unknown`.
 
 ## Who is affected
 
@@ -109,13 +115,17 @@ migration:
 **Before:**
 
 ```typescript
-const response = await service.signIn(context, request);
-response.user.id;
+class MyAuthService implements IAuthService {
+  async signIn(): Promise<ISignInResult> { /* ... */ }
+}
 ```
 
 **After:**
 
 ```typescript
-const response: ISignInResult = await service.signIn(context, request);
-response.user.id;
+interface ISignInResult { token: string }
+
+class MyAuthService implements IAuthService<Env, TSignInRequest, ISignInResult> {
+  async signIn(): Promise<ISignInResult> { /* ... */ }
+}
 ```
