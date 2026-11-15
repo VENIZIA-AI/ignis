@@ -144,7 +144,7 @@ migration:
 
 ## Who is affected
 
-- **Code that imports `AnyType` or `AnyObject` from `@venizia/ignis-helpers`, `@venizia/ignis-inversion` or the `@venizia/ignis` root.** The import fails to compile. Run `devz codemod any-aliases --write <paths>` (from the `@venizia/dev-configs` release that carries this change): it rewrites `AnyType` to `unknown` and `AnyObject` to `Record<string, unknown>`, drops the names from the import, and lists what it leaves (a re-export, an `import()` type, a same-named local type). A value an alias used to accept may then fail the typecheck: an interface-typed value is not assignable to `Record<string, unknown>`; the last migration item says how to fix it by hand.
+- **Code that imports `AnyType` or `AnyObject` from `@venizia/ignis-helpers`, `@venizia/ignis-inversion` or the `@venizia/ignis` root.** The import fails to compile. Run `devz codemod any-aliases --write <paths>` (from the `@venizia/dev-configs` release that carries this change): it rewrites `AnyType` to `unknown` and `AnyObject` to `Record<string, unknown>`, drops the names from the import, and lists what it leaves (a re-export, an `import()` type, a same-named local type). It also reads imports from `@venizia/ardor` and `@venizia/ardor-kernel`, which re-exported the two names, so one run covers both frameworks. A value an alias used to accept may then fail the typecheck: an interface-typed value is not assignable to `Record<string, unknown>`; the last migration item says how to fix it by hand.
 - **Code that wraps the decorator `@inject()` and forwards its target typed `unknown` or as an unconstrained type parameter.** The call fails with TS2345: type the target `object` (see `inject-target-is-object`).
 - **Everyone else.** No action needed.
 
