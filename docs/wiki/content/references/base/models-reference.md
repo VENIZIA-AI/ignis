@@ -864,7 +864,7 @@ type TDataTypeEnricherOptions = {
     nValue: number;
     tValue: string;
     bValue: Buffer;
-    jValue: object;
+    jValue: TJsonValue;
     boValue: boolean;
   }>;
 };
@@ -878,7 +878,7 @@ Emitted columns:
 | `nValue` | `double precision` | `n_value` | `number` | Numeric values |
 | `tValue` | `text` | `t_value` | `string` | Text values |
 | `bValue` | `bytea` | `b_value` | `Buffer` | Binary values |
-| `jValue` | `jsonb` | `j_value` | `Record<string, unknown>` | JSON values |
+| `jValue` | `jsonb` | `j_value` | `TJsonValue` | Any JSON value: an object, an array or a scalar |
 | `boValue` | `boolean` | `bo_value` | `boolean` | Boolean values |
 
 All columns are nullable by default (no `NOT NULL`), since typically only one value column is populated per row depending on the `dataType` discriminator. Pass `defaultValue` to attach SQL defaults to individual columns.

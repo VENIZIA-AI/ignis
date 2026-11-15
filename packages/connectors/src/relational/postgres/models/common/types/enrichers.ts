@@ -1,4 +1,5 @@
 import type { TIdSchemaType } from '@venizia/ignis-kernel';
+import type { TJsonValue } from '@venizia/ignis-helpers/common';
 import type { PgSequenceOptions } from 'drizzle-orm/pg-core';
 import type { TBigIntMode } from '../constants';
 
@@ -9,7 +10,7 @@ export type TDataTypeEnricherOptions = {
     nValue: number;
     tValue: string;
     bValue: Buffer;
-    jValue: object;
+    jValue: TJsonValue;
     boValue: boolean;
   }>;
 };

@@ -45,7 +45,7 @@ description: Every export of every package entry, from the built declarations (g
 | [`@venizia/ignis-helpers/axios`](/references/api/venizia-ignis-helpers-axios) | 4 | 4 |
 | [`@venizia/ignis-helpers/bullmq`](/references/api/venizia-ignis-helpers-bullmq) | 2 | 2 |
 | [`@venizia/ignis-helpers/bun-s3`](/references/api/venizia-ignis-helpers-bun-s3) | 2 | 2 |
-| [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common) | 52 | 52 |
+| [`@venizia/ignis-helpers/common`](/references/api/venizia-ignis-helpers-common) | 54 | 54 |
 | [`@venizia/ignis-helpers/core`](/references/api/venizia-ignis-helpers-core) | 111 | 111 |
 | [`@venizia/ignis-helpers/cron`](/references/api/venizia-ignis-helpers-cron) | 2 | 2 |
 | [`@venizia/ignis-helpers/dotenv-vault`](/references/api/venizia-ignis-helpers-dotenv-vault) | 2 | 2 |

@@ -1,4 +1,5 @@
 import type { TIdSchemaType } from '@venizia/ignis-kernel';
+import type { TJsonValue } from '@venizia/ignis-helpers/common';
 
 /** Options of `SqliteDataTypeEnricher`: per-column defaults for the generic typed-value columns. A default is applied when its key is present, so `0`, `''` and `false` count. */
 export type TDataTypeEnricherOptions = {
@@ -7,7 +8,7 @@ export type TDataTypeEnricherOptions = {
     nValue: number;
     tValue: string;
     bValue: Buffer;
-    jValue: object;
+    jValue: TJsonValue;
     boValue: boolean;
   }>;
 };

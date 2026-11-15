@@ -1,4 +1,5 @@
 import { boolean, customType, doublePrecision, jsonb, text } from 'drizzle-orm/pg-core';
+import type { TJsonValue } from '@venizia/ignis-helpers/common';
 import type { TColumnDefinitions, TDataTypeEnricherOptions } from '../common/types';
 
 const byteaType = customType<{ data: Buffer }>({
@@ -32,8 +33,8 @@ export class PostgresDataTypeEnricher {
           : byteaType('b_value'),
       jValue:
         defaultValue?.jValue !== undefined
-          ? jsonb('j_value').default(defaultValue.jValue).$type<Record<string, unknown>>()
-          : jsonb('j_value').$type<Record<string, unknown>>(),
+          ? jsonb('j_value').default(defaultValue.jValue).$type<TJsonValue>()
+          : jsonb('j_value').$type<TJsonValue>(),
       boValue:
         defaultValue?.boValue !== undefined
           ? boolean('bo_value').default(defaultValue.boValue)

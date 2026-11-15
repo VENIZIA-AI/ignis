@@ -1,4 +1,5 @@
 import { blob, integer, real, text } from 'drizzle-orm/sqlite-core';
+import type { TJsonValue } from '@venizia/ignis-helpers/common';
 import type { TColumnDefinitions, TDataTypeEnricherOptions } from '../common/types';
 
 /** Adds the generic typed-value columns (`data_type`, `n_value`, `t_value`, `b_value`, `j_value`, `bo_value`) to a table's column definitions. */
@@ -30,10 +31,8 @@ export class SqliteDataTypeEnricher {
           : blob('b_value', { mode: 'buffer' }),
       jValue:
         defaultValue?.jValue !== undefined
-          ? text('j_value', { mode: 'json' })
-              .default(defaultValue.jValue)
-              .$type<Record<string, unknown>>()
-          : text('j_value', { mode: 'json' }).$type<Record<string, unknown>>(),
+          ? text('j_value', { mode: 'json' }).default(defaultValue.jValue).$type<TJsonValue>()
+          : text('j_value', { mode: 'json' }).$type<TJsonValue>(),
       boValue:
         defaultValue?.boValue !== undefined
           ? integer('bo_value', { mode: 'boolean' }).default(defaultValue.boValue)

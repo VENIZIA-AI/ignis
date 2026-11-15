@@ -28,6 +28,7 @@ Exhaustive reference for every utility type, resolver function, and constant cla
 | A value that may be absent, or a callback that may be async | [Nullable and Promise Types](#nullable-and-promise-types) |
 | A constructor or class type parameter | [Class and Constructor Types](#class-and-constructor-types) |
 | Telling a class from a plain function at runtime | [isClass](#isclass) |
+| A value any JSON column or payload can hold | [JSON Value Types](#json-value-types) |
 | Making object keys optional or required, or flattening `A & B` | [Object Utility Types](#object-utility-types) |
 | A union type derived from a const class | [Const Value Extraction Types](#const-value-extraction-types) |
 | An option that accepts an eager value or a resolver function | [Value Resolution Types and Functions](#value-resolution-types-and-functions) |
@@ -65,6 +66,8 @@ import type {
   TAbstractMixinConstructor,
   TMixinTarget,
   TAbstractMixinTarget,
+  TJsonPrimitive,
+  TJsonValue,
   TResolver,
   TAsyncResolver,
   TValueOrResolver,
@@ -227,6 +230,22 @@ type TPrettify<T> = { [K in keyof T]: T[K] } & {};
 | `ValueOptional<T, K>` | `T` with keys `K` made optional, the rest unchanged | Relaxing specific required fields |
 | `ValueOptionalExcept<T, K>` | `T` with everything optional except keys `K` | The inverse - only `K` stays required |
 | `TPrettify<T>` | Flattens an intersection (`A & B`) into one object type | Readable IDE hover tooltips when combining types with `&` |
+
+## JSON Value Types
+
+`Source ->` [`types/json.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/json.ts)
+
+```typescript
+type TJsonPrimitive = string | number | boolean | null;
+type TJsonValue = TJsonPrimitive | TJsonValue[] | { [key: string]: TJsonValue };
+```
+
+| Type | Meaning | Use |
+|------|---------|-----|
+| `TJsonPrimitive` | A JSON scalar | A leaf of a JSON value |
+| `TJsonValue` | Any value JSON can hold: a scalar, an array of JSON values, or an object of them | A `jsonb` or JSON column that stores whatever the app puts in it, such as `jValue` of the data-type enrichers |
+
+A value typed as an `interface` is not assignable to `TJsonValue`, because an interface has no index signature: spread it (`{ ...meta }`) or declare its shape as a `type`. A `Date` and an `undefined` member are not JSON either.
 
 ## Const Value Extraction Types
 

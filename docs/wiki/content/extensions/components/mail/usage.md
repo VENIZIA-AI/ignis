@@ -278,10 +278,17 @@ async syncTemplatesFromDatabase() {
   });
 
   templateConfigs.forEach(config => {
+    const template = config.jValue;
+
+    // jValue is a TJsonValue: check it is an object before reading its keys
+    if (typeof template !== 'object' || template === null || Array.isArray(template)) {
+      return;
+    }
+
     templateEngine.registerTemplate({
       name: config.code,
-      content: config.jValue.content,
-      options: { subject: config.jValue.subject, description: config.jValue.description },
+      content: String(template.content),
+      options: { subject: String(template.subject), description: String(template.description) },
     });
     this.logger.info('[syncTemplates] Registered template: %s', config.code);
   });

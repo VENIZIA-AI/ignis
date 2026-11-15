@@ -7,7 +7,7 @@ description: "Every export of @venizia/ignis-helpers/common, from the built decl
 
 > Generated from the built declarations by `vulcan x atlas api gen` - do not edit.
 
-52 exports, 52 with TSDoc. 7 more are re-exported from other entries (listed at the end).
+54 exports, 54 with TSDoc. 7 more are re-exported from other entries (listed at the end).
 
 ## `ClassResolver`
 
@@ -1631,6 +1631,36 @@ export type TInjectionGetter = <T>(opts: {
 ```
 
 Source: `packages/helpers/src/common/types/injection.ts`
+
+## `TJsonPrimitive`
+
+*type*
+
+A JSON scalar.
+
+```ts
+export type TJsonPrimitive = string | number | boolean | null;
+```
+
+Source: `packages/helpers/src/common/types/json.ts`
+
+## `TJsonValue`
+
+*type*
+
+Any value JSON can hold: a scalar, an array of JSON values, or an object whose values are JSON values. The type of a
+`jsonb` or JSON column that stores whatever the app puts in it (`jValue` of the data-type enrichers).
+
+A value typed as an `interface` is not assignable, because an interface has no index signature: spread it
+(`{ ...meta }`) or declare its shape as a `type`.
+
+```ts
+export type TJsonValue = TJsonPrimitive | TJsonValue[] | {
+    [key: string]: TJsonValue;
+};
+```
+
+Source: `packages/helpers/src/common/types/json.ts`
 
 ## `TMimeTypes`
 

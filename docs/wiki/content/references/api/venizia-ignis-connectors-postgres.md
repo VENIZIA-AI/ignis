@@ -391,7 +391,7 @@ export declare class PostgresDataTypeEnricher {
             driverParam: unknown;
             enumValues: undefined;
         }>;
-        jValue: import("drizzle-orm").$Type<import("drizzle-orm/pg-core").PgJsonbBuilderInitial<"j_value">, Record<string, unknown>>;
+        jValue: import("drizzle-orm").$Type<import("drizzle-orm/pg-core").PgJsonbBuilderInitial<"j_value">, TJsonValue>;
         boValue: import("drizzle-orm/pg-core").PgBooleanBuilderInitial<"bo_value">;
     };
     static enrich(opts: {
@@ -409,7 +409,7 @@ export declare class PostgresDataTypeEnricher {
             driverParam: unknown;
             enumValues: undefined;
         }>;
-        jValue: import("drizzle-orm").$Type<import("drizzle-orm/pg-core").PgJsonbBuilderInitial<"j_value">, Record<string, unknown>>;
+        jValue: import("drizzle-orm").$Type<import("drizzle-orm/pg-core").PgJsonbBuilderInitial<"j_value">, TJsonValue>;
         boValue: import("drizzle-orm/pg-core").PgBooleanBuilderInitial<"bo_value">;
     };
 }
@@ -798,7 +798,7 @@ export type TDataTypeEnricherOptions = {
         nValue: number;
         tValue: string;
         bValue: Buffer;
-        jValue: object;
+        jValue: TJsonValue;
         boValue: boolean;
     }>;
 };
