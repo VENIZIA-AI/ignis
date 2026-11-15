@@ -355,21 +355,24 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     expect(helper['lagMonitoringOptions']).toEqual({ topics: ['t'], interval: 5000 });
 
     // Intercept the factory to spy on the NEW client's startLagMonitoring; restored at the end so other tests aren't affected.
-    const origFactory = Reflect.get(KafkaConsumerHelper, 'buildConsumerClient');
+    const origFactory = KafkaConsumerHelper['buildConsumerClient'];
     let newStartCalls = 0;
 
-    Reflect.set(KafkaConsumerHelper, 'buildConsumerClient', (opts: unknown) => {
-      const client: { startLagMonitoring: () => void; stopLagMonitoring: () => void } =
-        Reflect.apply(origFactory, KafkaConsumerHelper, [opts]);
+    Reflect.set(
+      KafkaConsumerHelper,
+      'buildConsumerClient',
+      (opts: Parameters<typeof origFactory>[0]) => {
+        const client = origFactory.call(KafkaConsumerHelper, opts);
 
-      client.startLagMonitoring = () => {
-        newStartCalls += 1;
-      };
+        client.startLagMonitoring = () => {
+          newStartCalls += 1;
+        };
 
-      client.stopLagMonitoring = () => {};
+        client.stopLagMonitoring = () => {};
 
-      return client;
-    });
+        return client;
+      },
+    );
 
     // Don't actually close the old client (it would try to talk to brokers).
     helper['closeOldClient'] = async () => {};
