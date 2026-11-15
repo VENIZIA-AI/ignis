@@ -1,4 +1,3 @@
-import { type AnyType } from '@/common/types';
 import { BaseLogger } from '../base';
 import { type ILogger, type TLogLevel } from '../common';
 import { LogFormatUtility } from '../formatting';
