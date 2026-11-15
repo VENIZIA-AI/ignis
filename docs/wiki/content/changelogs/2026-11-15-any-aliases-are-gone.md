@@ -80,6 +80,9 @@ migration:
       after: |
         // declare the shape as a type alias (it has an implicit index signature), or spread the value,
         // or take object when the function only reads known keys through Reflect.get
+        interface IUser { id: number; name: string }
+        declare const user: IUser;
+
         type TUser = { id: number; name: string };
         declare const typedUser: TUser;
 
@@ -92,7 +95,7 @@ migration:
       steps:
         - "Declare the alias in your own code and use it for the parameter; an interface fits Record<string | symbol | number, any>."
   - id: inversion-any-type-removed
-    symbols: [AnyType, inject]
+    symbols: [AnyType]
     codemod: any-aliases
     upgrade:
       before: |
@@ -102,11 +105,27 @@ migration:
       after: |
         // the inversion package no longer exports AnyType; a decorator target is an object
         const decorate = (target: object) => Reflect.getMetadata('design:type', target);
-
-        // @inject() returns a decorator whose target is typed object (it was any); a class and a prototype both fit
     downgrade:
       steps:
         - "Declare the alias in your own code: `export type AnyType = any;` and import it from there."
+  - id: inject-target-is-object
+    symbols: [inject]
+    upgrade:
+      before: |
+        // a wrapper that forwards the decorator's target typed unknown (or an unconstrained generic)
+        const injectKey =
+          (key: string) => (target: unknown, name: string | symbol | undefined, index?: number) =>
+            inject({ key })(target, name, index); // TS2345: Argument of type 'unknown' is not assignable to parameter of type 'object'
+      after: |
+        // inject() returns a decorator whose target is typed object (it was any); a class and a prototype both fit.
+        // Type the wrapper's target object, or T extends object
+        const injectKey =
+          (key: string) => (target: object, name: string | symbol | undefined, index?: number) =>
+            inject({ key })(target, name, index);
+    downgrade:
+      steps:
+        - "Type the wrapper's target as unknown again; a decorator whose target is typed object fits the older any."
+    data: "Every direct use of @inject() on a property or a constructor parameter compiles unchanged."
 ---
 
 # Changelog - 2026-11-15
@@ -126,6 +145,7 @@ migration:
 ## Who is affected
 
 - **Code that imports `AnyType` or `AnyObject` from `@venizia/ignis-helpers`, `@venizia/ignis-inversion` or the `@venizia/ignis` root.** The import fails to compile. Run `devz codemod any-aliases --write <paths>` (from the `@venizia/dev-configs` release that carries this change): it rewrites `AnyType` to `unknown` and `AnyObject` to `Record<string, unknown>`, drops the names from the import, and lists what it leaves (a re-export, an `import()` type, a same-named local type). A value an alias used to accept may then fail the typecheck: an interface-typed value is not assignable to `Record<string, unknown>`; the last migration item says how to fix it by hand.
+- **Code that wraps the decorator `@inject()` and forwards its target typed `unknown` or as an unconstrained type parameter.** The call fails with TS2345: type the target `object` (see `inject-target-is-object`).
 - **Everyone else.** No action needed.
 
 ## Breaking changes

@@ -881,7 +881,6 @@ Emitted columns:
 | `jValue` | `jsonb` | `j_value` | `Record<string, unknown>` | JSON values |
 | `boValue` | `boolean` | `bo_value` | `boolean` | Boolean values |
 
-
 All columns are nullable by default (no `NOT NULL`), since typically only one value column is populated per row depending on the `dataType` discriminator. Pass `defaultValue` to attach SQL defaults to individual columns.
 
 ```typescript
