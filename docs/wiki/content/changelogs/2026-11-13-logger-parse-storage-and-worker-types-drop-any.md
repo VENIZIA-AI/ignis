@@ -36,12 +36,16 @@ migration:
       before: |
         const row = ParseUtility.keysToCamel({ source: raw });
         const id: string = row.userId.value; // any
+        const user: IUserRow = ParseUtility.keysToCamel({ source: raw }); // any was assignable to a typed row
         // ModelUtility.snakeToCamel, which wraps it, now yields the same record
       after: |
         const row = ParseUtility.keysToCamel({ source: raw });
         // a Record<string, unknown>: narrow what you read
         const userId = row['userId'];
         const id = typeof userId === 'string' ? userId : undefined;
+
+        // a typed row: parse it with the row's schema (a Record<string, unknown> is not assignable to IUserRow)
+        const user = UserRowSchema.parse(ParseUtility.keysToCamel({ source: raw }));
     downgrade:
       steps:
         - "Read the keys of the result without a narrow again; the older result was any."

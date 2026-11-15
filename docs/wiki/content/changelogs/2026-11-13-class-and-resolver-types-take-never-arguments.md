@@ -17,6 +17,26 @@ migration:
     downgrade:
       steps:
         - "Read the static off a TClass value directly again; the older index signature was any. The typeof and intersection forms you added keep compiling."
+  - id: mixin-base-takes-tmixintarget
+    symbols: [TClass, TConstructor, TMixinTarget, TMixinConstructor, TAbstractMixinTarget, TAbstractMixinConstructor]
+    upgrade:
+      before: |
+        // a mixin whose base parameter is constrained by TClass: TClass had any[] arguments
+        interface IEntity { id: number }
+
+        const stamped = <TBase extends TClass<IEntity>>(base: TBase) =>
+          class extends base { // TS2545: A mixin class must have a constructor with a single rest parameter of type 'any[]'
+            stamp = 'x';
+          };
+      after: |
+        // constrain the base by TMixinTarget (or TAbstractMixinTarget for an abstract base): it keeps the any[] arguments TypeScript requires of a mixin
+        const stamped = <TBase extends TMixinTarget<IEntity>>(base: TBase) =>
+          class extends base {
+            stamp = 'x';
+          };
+    downgrade:
+      steps:
+        - "Constrain the base by TClass again; the older TClass had any[] arguments, and TMixinTarget keeps compiling."
   - id: constructors-take-never-arguments
     symbols: [TConstructor, TAbstractConstructor, TClass, TAbstractClass]
     upgrade:
