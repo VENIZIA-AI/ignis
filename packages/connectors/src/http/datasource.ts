@@ -300,7 +300,7 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
   protected async readJsonBody(opts: { response: Response; url: string; verb: string }) {
     const { response, url, verb } = opts;
 
-    return HttpResponseReader.readBody({
+    return HttpResponseReader.readJson({
       response,
       context: `[${this.name}][${verb}] ${response.status} | ${HttpWire.describeUrl({ url, status: response.status })}`,
     });
@@ -401,7 +401,7 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
     const parsed = await this.readJsonBody({ response, url, verb: 'write' });
     const { extra } = HttpResponseReader.readExtra({ body: parsed, headers: response.headers });
     // `extra` is only read off an object body, which carries the rows under `data`.
-    const data = (extra ? (parsed as { data: unknown }).data : parsed) as R;
+    const data = (extra && HttpResponseReader.isPlainObject(parsed) ? parsed.data : parsed) as R;
 
     const countHeader = response.headers.get(HTTP.Headers.RESPONSE_COUNT_DATA);
     const counted = countHeader === null ? Number.NaN : Number(countHeader);

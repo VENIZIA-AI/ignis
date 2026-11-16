@@ -88,7 +88,7 @@ export declare class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettin
         response: Response;
         url: string;
         verb: string;
-    }): Promise<unknown>;
+    }): Promise<import("@venizia/ignis-helpers").TJsonValue>;
     /**
      * A failed response as the error the server threw: its status, code, args and text, and its
      * `extra` with the `requestId` added. `message` adds where it failed, for logs; `normalized.text`

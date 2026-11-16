@@ -128,8 +128,9 @@ lives in `@venizia/ignis-kernel/repository` and is re-exported from `/http`: ano
 server shares the parsing without taking connectors. `HttpDataSource.toResponseError` delegates to
 `HttpResponseReader.toApplicationError({ response, context, rootKey })`, so a client without the
 connector (ARDOR's network service) maps a failed response to the very same `ApplicationError`. A success
-body is read the same way: `HttpDataSource.readJsonBody` calls `HttpResponseReader.readBody`, which answers `null`
-for a 204 or an empty body and a 502 for a body that is not JSON.
+body is read the same way, typed `TJsonValue`: `readBody` (by content type: `null` for a 204 or an empty body, JSON parsed when
+the type names JSON, else the text), `readJson` (always JSON; `HttpDataSource.readJsonBody` calls it) and `readText`; a body that
+claims JSON and is not is a 502 with the size and the type, never the content.
 
 Ids `''`, `.` and `..` are refused: WHATWG URL resolves `.`/`%2e` segments, so encoding cannot save
 them: `deleteById('.')` asks for `/<resource>/`, which a router or proxy that ignores the trailing

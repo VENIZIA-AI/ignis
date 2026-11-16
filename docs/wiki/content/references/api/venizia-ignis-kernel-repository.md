@@ -542,6 +542,8 @@ client of that server: the http connector, and a client that reads it without th
 
 ```ts
 export declare class HttpResponseReader {
+    /** A content type that names JSON: `application/json`, `application/problem+json`, `application/ld+json`. */
+    static readonly JSON_CONTENT_TYPE_PATTERN: RegExp;
     static isPlainObject(value: unknown): value is Record<string, unknown>;
     /** An empty string reads as absent, so a fallback still applies. */
     static toText(value: unknown): string | undefined;
@@ -597,14 +599,25 @@ export declare class HttpResponseReader {
         response: Response;
     }): Promise<string>;
     /**
-     * The body as JSON, `null` for a 204 or an empty body. A body that is not JSON is the server's fault,
-     * named as such with `context` (where it happened, e.g. `[HttpDataSource][read] 200 | /tickets`); its
-     * content stays out of the message, which a relaying server may pass to its clients.
+     * The body of a success answer, by what it says it is: `null` for a 204 or an empty body, the parsed
+     * value when the content type names JSON (`application/json`, `application/problem+json`), the text itself
+     * for any other type (`text/plain`, `text/csv`). A body that claims JSON and is not is a `502` that names
+     * `context` (where it happened, e.g. `[Client][read] 200 | /tickets`), its size and its content type; its
+     * content stays out of the message, which a relaying server may pass to its own clients.
      */
     static readBody(opts: {
         response: Response;
         context: string;
-    }): Promise<unknown>;
+    }): Promise<TJsonValue>;
+    /**
+     * The body as JSON whatever its content type says, `null` for a 204 or an empty body: for a route that
+     * answers JSON under a type a proxy rewrote. Errors as `readBody` does.
+     */
+    static readJson(opts: {
+        response: Response;
+        context: string;
+    }): Promise<TJsonValue>;
+    private static parseJson;
     /**
      * A body the server marked with `x-response-extra` carries `extra` beside its rows. `body` is what
      * the route answers without extras: the `{ count, data }` envelope when the count was asked for in
