@@ -12,6 +12,7 @@ import { data as guideCounts } from './changelog-guide-counts.data';
 import { data as itemSets } from './changelog-items.data';
 import { data as versions } from './changelog-versions.data';
 import { formatDate } from './changelog-entries';
+import { latestPrerelease, prereleaseRows } from './changelog-prerelease-lookup';
 
 export const useChangelogVersion = () => {
   const { page, site, theme } = useData();
@@ -33,11 +34,21 @@ export const useChangelogVersion = () => {
       : `Released ${formatDate(released)}`;
   });
 
+  /** The newest prerelease of this version, while it is in progress; none for a stable version or a line with no prerelease tag. */
+  const latest = computed(() =>
+    prerelease.value ? latestPrerelease({ line: version.value }) : undefined,
+  );
+  const prereleases = computed(() =>
+    prerelease.value ? prereleaseRows({ line: version.value }) : [],
+  );
+
   return {
     version,
     entry,
     previous,
     prerelease,
+    latest,
+    prereleases,
     dateLine,
     project: computed(() => site.value.title),
     items: computed(

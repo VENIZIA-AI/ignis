@@ -23,9 +23,11 @@ import {
   type TChangelogEntry,
   type TVersionEntry,
 } from './changelog-entries';
+import { latestPrerelease } from './changelog-prerelease-lookup';
 import { renderInline } from './changelog-items';
+import PrereleaseLatest from './PrereleaseLatest.vue';
 
-withDefaults(defineProps<{ lede?: string; feed?: string; packageName?: string }>(), {
+const props = withDefaults(defineProps<{ lede?: string; feed?: string; packageName?: string }>(), {
   lede: 'What changed, who is affected and what to do about it.',
   feed: '/changelog.xml',
   packageName: undefined,
@@ -36,6 +38,12 @@ const hasVersions = versions.length > 0;
 
 const guideOf = (version: TVersionEntry) =>
   guideCounts.find((candidate) => candidate.version === version.version);
+
+/** The newest prerelease of a version still in progress; a stable version and a line with no prerelease tag have none. */
+const prereleaseOf = (version: TVersionEntry) =>
+  version.released === null
+    ? latestPrerelease({ line: version.version, packageName: props.packageName })
+    : undefined;
 
 const dateLine = (version: TVersionEntry): string =>
   version.released === null
@@ -97,6 +105,13 @@ const meta = (entry: TChangelogEntry): string =>
             >{{ version.released === null ? 'Prerelease' : 'Stable' }}</span
           >
           <small>{{ dateLine(version) }}</small>
+          <PrereleaseLatest
+            v-if="prereleaseOf(version)"
+            :package-name="prereleaseOf(version)?.packageName ?? ''"
+            :version="prereleaseOf(version)?.prerelease.version ?? ''"
+            :date="prereleaseOf(version)?.prerelease.date ?? ''"
+            part="line"
+          />
         </div>
         <div>
           <p
@@ -111,6 +126,13 @@ const meta = (entry: TChangelogEntry): string =>
               v-html="renderInline({ text: line })"
             ></li>
           </ul>
+          <PrereleaseLatest
+            v-if="prereleaseOf(version)"
+            :package-name="prereleaseOf(version)?.packageName ?? ''"
+            :version="prereleaseOf(version)?.prerelease.version ?? ''"
+            :date="prereleaseOf(version)?.prerelease.date ?? ''"
+            part="command"
+          />
         </div>
         <div class="cx-aside">
           <ChangelogCounts :counts="version.counts" />

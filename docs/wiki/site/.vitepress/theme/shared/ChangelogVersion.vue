@@ -13,6 +13,8 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import ChangelogCounts from './ChangelogCounts.vue';
 import ChangelogItem from './ChangelogItem.vue';
 import ChangelogPath from './ChangelogPath.vue';
+import PrereleaseLatest from './PrereleaseLatest.vue';
+import PrereleaseTable from './PrereleaseTable.vue';
 import { useChangelogVersion, usePackageFilter } from './useChangelogPage';
 import {
   SECTION_NAMES,
@@ -25,7 +27,8 @@ import {
 /** Above this many Breaking items the section is grouped by package. */
 const GROUP_FROM = 12;
 
-const { version, entry, items, guide, guideUrl, prerelease, dateLine } = useChangelogVersion();
+const { version, entry, items, guide, guideUrl, prerelease, dateLine, latest, prereleases } =
+  useChangelogVersion();
 const shortNames = (item: TVersionItem): string[] =>
   item.packages.map((name) => shortPackage({ name }));
 const filter = usePackageFilter({ lists: () => items.value.map(shortNames) });
@@ -151,6 +154,12 @@ onBeforeUnmount(() => window.removeEventListener('hashchange', openHash));
           }}</span>
           <span class="cx-chip">{{ dateLine }}</span>
         </div>
+        <PrereleaseLatest
+          v-if="latest"
+          :package-name="latest.packageName"
+          :version="latest.prerelease.version"
+          :date="latest.prerelease.date"
+        />
         <p v-if="entry.summary" class="cx-sum" v-html="summaryHtml"></p>
         <div class="cx-overview">
           <div v-if="entry.highlights.length">
@@ -169,6 +178,8 @@ onBeforeUnmount(() => window.removeEventListener('hashchange', openHash));
           <summary>Read the full overview ({{ overviewWords }} words)</summary>
           <p v-html="renderInline({ text: entry.overview })"></p>
         </details>
+
+        <PrereleaseTable v-if="prereleases.length > 1" :rows="prereleases" />
 
         <nav class="cx-tabs" :aria-label="version">
           <a :href="`/changelogs/${version}`" aria-current="page"

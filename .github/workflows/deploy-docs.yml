@@ -47,7 +47,8 @@ env:
 jobs:
   # Whether the wiki needs a deploy. A path filter on the trigger would also stop the atlas index on a push that does
   # not touch the wiki, so the filter is this check: a push to develop deploys when docs/wiki/ changed between the
-  # old and the new head (and when the old head cannot be read), a manual run deploys when it asked for `docs`.
+  # old and the new head (and when the old head cannot be read) or when the head is a release commit (the changelog box
+  # names the newest prerelease), a manual run deploys when it asked for `docs`.
   changes:
     name: What changed
     runs-on: ubuntu-26.04
@@ -75,6 +76,9 @@ jobs:
             if [ -z "${BEFORE//0/}" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
               docs=true
             elif ! git diff --quiet "$BEFORE" "$GITHUB_SHA" -- docs/wiki; then
+              docs=true
+            elif git log -1 --format=%s "$GITHUB_SHA" | grep -q 'chore(release):'; then
+              # A release commit changes no page, but the version box of the changelog names the newest prerelease (from the release tags): deploy again so the box follows the release.
               docs=true
             fi
           fi
