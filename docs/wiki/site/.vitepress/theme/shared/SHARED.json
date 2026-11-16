@@ -1,13 +1,13 @@
 {
-  "fingerprint": "35f1353533158ba51f800dafe5f852e072f407b25569d5a61e6aa2e4ea63bf3b",
+  "fingerprint": "b30a31ccdc404406458152f04d0bf23b18b6989dbe9b70bc483b02dbd48965ad",
   "files": {
     "AtAGlance.vue": "82a497e03e3214a0aabca18d2dcf581bd2e9379c4d13594d0df48ce74f398991",
     "ChangelogCounts.vue": "b30cff5391f2cf098cd0a17fea63eb1b1513cbdaa4d12767820bf705e9c828f5",
     "ChangelogEntryHead.vue": "f8816d25c49c41fe338c56fd5571798bc6319c5b71ffc5b7c9665b567aecf4be",
-    "ChangelogIndex.vue": "a2233fcb5f2144b42abffd85f068ae968677e0113d7474e28001956c276b9bf7",
+    "ChangelogIndex.vue": "611870624e5d120d4db924794926ab10fb0a61dd8b698cbfe6ba64146f94d3fe",
     "ChangelogItem.vue": "1a337dff07d72a84dbde7b57dbee5e7f4741fad36a38dcd0a45c476c449ed6ea",
     "ChangelogPath.vue": "48544bab6b1e1f3fe1d3bd976e378925f7f77ab65683645792ce1af42091ed5f",
-    "ChangelogUpgrade.vue": "4a1d8f996007c79fda2224ef089f46f25b3acc441d91aaa03cb8f121f786ca9b",
+    "ChangelogUpgrade.vue": "482bf7f98ea18b78747eb02294adf3e77fabec17157b3b387e1dc5ac9cc07083",
     "ChangelogVersion.vue": "b8cb14c78257a78a05ba46b6bea4d692637d06519495055ff72c45295aad9ccf",
     "CopyCommand.vue": "b642c926e29525cf4a59aad32d58ebcaa189233510fa6864f35bdb567e6dfa98",
     "DocEyebrow.vue": "a420d64f53e054671eea0f5681e06554774f4652439eb1348542fde1d48b47e0",

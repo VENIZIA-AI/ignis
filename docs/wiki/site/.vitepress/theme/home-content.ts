@@ -162,7 +162,7 @@ export const HOME: THomeContent = {
     {
       title: 'Grow',
       text: 'Add another app or a library to the same monorepo.',
-      lines: [['cmd', 'bun run vulcan add --preset ignis --lib billing --dir libs']],
+      lines: [['cmd', 'bun node_modules/.bin/vulcan add --preset ignis --lib billing --dir libs']],
     },
   ],
   fitUse: [
