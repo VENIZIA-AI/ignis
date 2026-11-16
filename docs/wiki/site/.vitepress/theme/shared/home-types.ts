@@ -7,13 +7,13 @@
  */
 
 /** One line of a terminal: a typed command, output, a verdict, a comment, or a gap between groups. */
-export type TTermKind = 'cmd' | 'out' | 'ok' | 'warn' | 'bad' | 'c' | 'verdict' | 'gap';
-export type TTermLine = [TTermKind, string];
+export type TTermType = 'cmd' | 'out' | 'ok' | 'warn' | 'bad' | 'c' | 'verdict' | 'gap';
+export type TTermLine = [TTermType, string];
 
 /** A tab of the hero window: a code sample (highlighted) or a terminal scene (typed). */
 export type THomeTab = {
   file: string;
-  kind: 'code' | 'term';
+  type: 'code' | 'term';
   body: string | TTermLine[];
   /** A line under the window; trusted HTML (code, links). */
   note?: string;

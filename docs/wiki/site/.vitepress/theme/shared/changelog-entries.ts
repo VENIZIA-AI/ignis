@@ -9,6 +9,8 @@
  * is a release overview when its frontmatter says `type: release`, its file name has `batch-overview`,
  * or its title ends in "(Overview)". This file is pure (no VitePress import) so a test can run it.
  */
+import { countSections, firstSentence, parseItems, type TSectionName } from './changelog-items';
+
 export type TChangelogGroup =
   | 'releases'
   | 'features'
@@ -70,8 +72,8 @@ const typeOfBadge = (text: string): TChangelogType => {
 const text = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
 /**
- * One version folder (`changelogs/<X.Y.Z>/log.md`) as the index and the feed know it. Only the frontmatter and the
- * first paragraph are read: no git, no manifest, so the file is the same in every wiki.
+ * One version folder (`changelogs/<X.Y.Z>/log.md`) as the index and the feed know it. Only the frontmatter, the
+ * first paragraph and the items are read: no git, no manifest, so the file is the same in every wiki.
  */
 export type TVersionEntry = {
   url: string;
@@ -80,13 +82,17 @@ export type TVersionEntry = {
   title: string;
   /** `YYYY-MM-DD` once the stable is out; null while the line is in progress. */
   released: string | null;
-  /** The paragraph above the sections: what the release is, as plain text. */
+  /** One sentence on what the release is: the frontmatter's `summary`, else the first sentence of the opening paragraph. */
   summary: string;
+  /** The opening paragraph above the sections, as plain text. */
+  overview: string;
+  /** The frontmatter's `highlights`: the one-line points a version box shows; empty when the log has none. */
+  highlights: string[];
+  /** The count of items per section, in the order of the sections, leaving out an empty one. */
+  counts: [TSectionName, number][];
   packages: string[];
   /** Whether the page has a `## Breaking` section (outside a code fence). */
   hasBreaking: boolean;
-  /** The page as HTML; set only for the two the index shows in full. */
-  html?: string;
 };
 
 /** A plain day, or the ISO string the page data carries for the Date an unquoted `released:` is read as (UTC midnight). */
@@ -156,14 +162,24 @@ const introOf = (src: string): string => {
 };
 
 /**
- * A page of the index shows its sections under the card's own heading: the `<h2>` a section brings, with an id and a
- * permalink anchor, becomes a plain `<h3>`, so two pages on one index never share an id.
+ * VitePress's `transformPageData` for a wiki's config: a version folder's details page and its upgrade page are laid out as
+ * plain pages (no sidebar, no outline, no prose column), because SiteLayout mounts their own components; the upgrade page gets
+ * its title. Any other page is left as it is.
  */
-export const demoteHeadings = (html: string): string =>
-  html.replace(
-    /<h2\b[^>]*>([\s\S]*?)\s*<a class="header-anchor"[^>]*>[^<]*<\/a><\/h2>/g,
-    (_match, title: string) => `<h3>${title.trim()}</h3>`,
-  );
+export const changelogPageData = (opts: {
+  pageData: { relativePath: string; frontmatter: Record<string, unknown> };
+}): { frontmatter: Record<string, unknown>; title?: string } | undefined => {
+  const { relativePath, frontmatter } = opts.pageData;
+  const upgrade = /^changelogs\/(\d+\.\d+\.\d+)\/upgrade\.md$/.exec(relativePath)?.[1];
+
+  if (upgrade !== undefined) {
+    return { frontmatter: { ...frontmatter, layout: 'page' }, title: `Upgrade to ${upgrade}` };
+  }
+
+  return /^changelogs\/\d+\.\d+\.\d+(?:\/log)?\.md$/.test(relativePath)
+    ? { frontmatter: { ...frontmatter, layout: 'page' } }
+    : undefined;
+};
 
 /** A version folder's page as an entry; null for any other page, and for one whose `released:` is not a date. */
 export const parseVersion = (opts: {
@@ -182,12 +198,23 @@ export const parseVersion = (opts: {
     ? opts.frontmatter.packages.filter((entry): entry is string => typeof entry === 'string')
     : [];
 
+  const overview = introOf(opts.src);
+  const highlights = Array.isArray(opts.frontmatter.highlights)
+    ? opts.frontmatter.highlights
+        .filter((entry): entry is string => typeof entry === 'string')
+        .map((entry) => entry.trim())
+        .filter((entry) => entry !== '')
+    : [];
+
   return {
     url: `/changelogs/${version}`,
     version,
     title: text(opts.frontmatter.title) || version,
     released: released ?? null,
-    summary: introOf(opts.src),
+    summary: text(opts.frontmatter.summary) || firstSentence({ text: overview }),
+    overview,
+    highlights,
+    counts: countSections({ items: parseItems({ src: opts.src }) }),
     packages,
     hasBreaking: hasBreakingSection(opts.src),
   };
@@ -202,23 +229,6 @@ export const sortVersions = (versions: TVersionEntry[]): TVersionEntry[] =>
 
     return right[0] - left[0] || right[1] - left[1] || right[2] - left[2];
   });
-
-/**
- * What the index shows of the version folders, in the order it shows them: the latest released line in full, then
- * the line in progress, then the older released lines as a list of titles.
- */
-export const shownVersions = (
-  versions: TVersionEntry[],
-): { latest?: TVersionEntry; inProgress?: TVersionEntry; older: TVersionEntry[] } => {
-  const sorted = sortVersions(versions);
-  const released = sorted.filter((entry) => entry.released !== null);
-
-  return {
-    latest: released[0],
-    inProgress: sorted.find((entry) => entry.released === null),
-    older: released.slice(1),
-  };
-};
 
 export const parseEntry = (opts: {
   url: string;

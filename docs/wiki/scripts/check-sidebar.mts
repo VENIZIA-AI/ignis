@@ -19,6 +19,8 @@ const UNLISTED = [
   /^changelogs\/\d{4}-\d{2}-\d{2}-/,
   // A version folder keeps its page as changelogs/<X.Y.Z>/log.md; the index lists it, so no menu does.
   /^changelogs\/\d+\.\d+\.\d+\/log$/,
+  // The route of the upgrade pages (changelogs/upgrade/[version].md), linked from each version's page.
+  /^changelogs\/upgrade\/\[version\]$/,
   // The author skeleton, reached from no menu.
   /^changelogs\/template$/,
   // Written by `vulcan x atlas api gen`; the sidebar group in config.mts lists them from the folder.

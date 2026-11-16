@@ -20,8 +20,10 @@
  *     scrolling sideways at 320 px (the body without the default 320 px minimum width, the brand name
  *     hidden below 400 px);
  *   - a built inner page has a footer (inner pages have none) or lacks the top bar;
- *   - a version folder of the changelog is not served at `/changelogs/<X.Y.Z>`, or the text of its page is in the
- *     script every page loads (`chunks/theme.*.js`: the changelog index must be mounted by its own page);
+ *   - a version folder of the changelog is not served at `/changelogs/<X.Y.Z>`, its page did not render the details
+ *     component, a folder with a migration block has no upgrade page at `/changelogs/<X.Y.Z>/upgrade` or that page did not
+ *     render, or an item of a version page is in the script every page loads (`chunks/theme.*.js`: the two pages mount
+ *     their components as async components);
  *   - the built changelog index has no `class="cl"` root: the page did not render `ChangelogIndex`.
  *
  * A hydration warning itself appears only in a browser; the server HTML checked here is its cause.
@@ -38,6 +40,8 @@
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { guidesFromFiles } from './changelog-guides';
+import { parseItems } from './changelog-items';
 
 const WIKI = 'docs/wiki';
 const DIST = 'docs/wiki/site/.vitepress/dist';
@@ -54,6 +58,8 @@ const LOG_PATTERNS: [RegExp, string][] = [
 ];
 /** The root element of the changelog index component. */
 const INDEX_ROOT = /class="cl"/;
+/** The root of the details page and of the upgrade page of a version. */
+const DETAIL_ROOT = /class="cx-detail"/;
 /** A version folder of the changelog: `changelogs/<X.Y.Z>/log.md`. */
 const VERSION_FOLDER = /^\d+\.\d+\.\d+$/;
 /** Inner pages to look at, the first that was built: the wikis' own sections. */
@@ -217,7 +223,8 @@ export class BuildCheck {
   /**
    * Every version folder of the changelog is served at `/changelogs/<X.Y.Z>`, which is where the index and the feed link to it:
    * a wiki serves `changelogs/<X.Y.Z>/log.md` there through `rewrites: { 'changelogs/:version/log.md': 'changelogs/:version.md' }`
-   * in its VitePress config. Without that line the links 404.
+   * in its VitePress config. Without that line the links 404. The page must also have rendered the details component: the
+   * config's `transformPageData` (`changelogPageData`) lays the page out so SiteLayout can mount it.
    */
   static scanVersionPages(opts: { changelogs: string; dist: string }): string[] {
     if (!existsSync(opts.changelogs)) {
@@ -228,11 +235,53 @@ export class BuildCheck {
       .filter(
         (name) => VERSION_FOLDER.test(name) && existsSync(join(opts.changelogs, name, 'log.md')),
       )
-      .filter((name) => !existsSync(join(opts.dist, 'changelogs', `${name}.html`)))
-      .map(
-        (name) =>
-          `the version folder changelogs/${name} is not served at /changelogs/${name}: add rewrites: { 'changelogs/:version/log.md': 'changelogs/:version.md' } to the VitePress config`,
-      );
+      .flatMap((name) => {
+        const page = join(opts.dist, 'changelogs', `${name}.html`);
+
+        if (!existsSync(page)) {
+          return [
+            `the version folder changelogs/${name} is not served at /changelogs/${name}: add rewrites: { 'changelogs/:version/log.md': 'changelogs/:version.md' } to the VitePress config`,
+          ];
+        }
+
+        return DETAIL_ROOT.test(readFileSync(page, 'utf8'))
+          ? []
+          : [
+              `the built /changelogs/${name} did not render the details of the version: add transformPageData: (pageData) => changelogPageData({ pageData }) to the VitePress config`,
+            ];
+      });
+  }
+
+  /**
+   * A version folder whose `migration.yaml` holds a block has an upgrade page at `/changelogs/<X.Y.Z>/upgrade`: the dynamic route
+   * `changelogs/upgrade/[version].md` with its `[version].paths.ts`, and `rewrites: { 'changelogs/upgrade/:version.md':
+   * 'changelogs/:version/upgrade.md' }` in the VitePress config.
+   */
+  static scanUpgradePages(opts: { changelogs: string; dist: string }): string[] {
+    if (!existsSync(opts.changelogs)) {
+      return [];
+    }
+
+    const files = readdirSync(opts.changelogs)
+      .filter((name) => VERSION_FOLDER.test(name))
+      .map((name) => join(opts.changelogs, name, 'migration.yaml'))
+      .filter((file) => existsSync(file));
+
+    return guidesFromFiles({ files }).flatMap(({ version }) => {
+      const page = join(opts.dist, 'changelogs', version, 'upgrade.html');
+
+      if (!existsSync(page)) {
+        return [
+          `the version folder changelogs/${version} has migration blocks but no page at /changelogs/${version}/upgrade: add changelogs/upgrade/[version].md and [version].paths.ts, and rewrites: { 'changelogs/upgrade/:version.md': 'changelogs/:version/upgrade.md' } to the VitePress config`,
+        ];
+      }
+
+      return DETAIL_ROOT.test(readFileSync(page, 'utf8'))
+        ? []
+        : [
+            `the built /changelogs/${version}/upgrade did not render the upgrade guide: add transformPageData: (pageData) => changelogPageData({ pageData }) to the VitePress config`,
+          ];
+    });
   }
 
   /**
@@ -250,9 +299,9 @@ export class BuildCheck {
   }
 
   /**
-   * The index of the changelog carries the HTML of the pages it shows in full. Registered as a global component it lands in
-   * the theme chunk, which every page of the wiki loads. A section heading of a version folder, as the index renders it
-   * (`<h3>Breaking</h3>`), is in no other data of the theme: finding one there means the text of a page reached that script.
+   * The details page and the upgrade page of a version mount async components, so the items of the logs are in chunks of their
+   * own. Mounted as plain components they land in the theme chunk, which every page of the wiki loads. The id of an item is in
+   * no other data of the theme: finding one there means the text of a page reached that script.
    */
   static scanThemeChunk(opts: { changelogs: string; dist: string }): string[] {
     const chunks = join(opts.dist, 'assets', 'chunks');
@@ -271,18 +320,14 @@ export class BuildCheck {
         (name) => VERSION_FOLDER.test(name) && existsSync(join(opts.changelogs, name, 'log.md')),
       )
       .flatMap((name) => {
-        const heading = [
-          ...readFileSync(join(opts.changelogs, name, 'log.md'), 'utf8').matchAll(
-            /^## (.+?)\s*$/gm,
-          ),
-        ]
-          .map((match) => match[1])
-          .find((title) => theme.includes(`<h3>${title}</h3>`));
+        const item = parseItems({
+          src: readFileSync(join(opts.changelogs, name, 'log.md'), 'utf8'),
+        }).find((entry) => theme.includes(`"${entry.id}"`));
 
-        return heading === undefined
+        return item === undefined
           ? []
           : [
-              `the text of the version page changelogs/${name} (its "${heading}" section) is in the script every page loads (assets/chunks/theme.*.js): mount ChangelogIndex from changelogs/index.md with a local import, not as a global component`,
+              `the item "${item.id}" of the version page changelogs/${name} is in the script every page loads (assets/chunks/theme.*.js): SiteLayout must mount ChangelogVersion and ChangelogUpgrade as async components`,
             ];
       });
   }
@@ -302,6 +347,7 @@ export class BuildCheck {
     if (opts.changelogs !== undefined) {
       problems.push(
         ...BuildCheck.scanVersionPages({ changelogs: opts.changelogs, dist: opts.dist }),
+        ...BuildCheck.scanUpgradePages({ changelogs: opts.changelogs, dist: opts.dist }),
         ...BuildCheck.scanThemeChunk({ changelogs: opts.changelogs, dist: opts.dist }),
         ...BuildCheck.scanChangelogIndex({ dist: opts.dist }),
       );

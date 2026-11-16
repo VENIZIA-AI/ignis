@@ -7,16 +7,16 @@
 -->
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { TTermKind, TTermLine } from './home-types';
+import type { TTermType, TTermLine } from './home-types';
 
 const props = defineProps<{ lines: TTermLine[] }>();
 
-type TNode = { type: 'cmd'; text: string } | { type: 'group'; lines: [TTermKind, string][] };
+type TNode = { type: 'cmd'; text: string } | { type: 'group'; lines: [TTermType, string][] };
 
 /** The lines become typed commands and groups of output between them. */
 const nodes = computed<TNode[]>(() => {
   const result: TNode[] = [];
-  let group: [TTermKind, string][] = [];
+  let group: [TTermType, string][] = [];
 
   const flush = (): void => {
     if (group.length > 0) {
@@ -25,14 +25,14 @@ const nodes = computed<TNode[]>(() => {
     }
   };
 
-  for (const [kind, text] of props.lines) {
-    if (kind === 'cmd') {
+  for (const [type, text] of props.lines) {
+    if (type === 'cmd') {
       flush();
       result.push({ type: 'cmd', text });
-    } else if (kind === 'gap') {
+    } else if (type === 'gap') {
       flush();
     } else {
-      group.push([kind, text]);
+      group.push([type, text]);
     }
   }
 
