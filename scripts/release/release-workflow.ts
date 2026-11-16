@@ -50,6 +50,7 @@ export class ReleaseWorkflowGuards {
   static readonly GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES = 'github-release-only-views-and-creates';
   static readonly PUBLISH_ENVIRONMENT_IS_CLOSED = 'publish-environment-is-closed';
   static readonly ATLAS_INDEX_JOB_CONFINED = 'atlas-index-job-confined';
+  static readonly DOCS_DEPLOY_JOB_CONFINED = 'docs-deploy-job-confined';
   static readonly CHANGELOG_HISTORY_FOR_A_STABLE = 'changelog-history-for-a-stable';
 
   static readonly SCHEME_SET = new Set<string>([
@@ -92,6 +93,7 @@ export class ReleaseWorkflowGuards {
     this.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
     this.PUBLISH_ENVIRONMENT_IS_CLOSED,
     this.ATLAS_INDEX_JOB_CONFINED,
+    this.DOCS_DEPLOY_JOB_CONFINED,
     this.CHANGELOG_HISTORY_FOR_A_STABLE,
   ]);
 }
@@ -143,6 +145,7 @@ const SCRIPTS_JOB = 'scripts';
 const PUBLISH_JOB = 'publish';
 const APPROVE_JOB = 'approve';
 const ATLAS_JOB = 'atlas-index';
+const DOCS_JOB = 'docs-deploy';
 const GATE_JOBS = [PLAN_JOB, TEST_JOB, SCRIPTS_JOB];
 /** The pair of each release tag, published by VULCAN's action after `publish`: the one place the workflow reads a secret. */
 const ATLAS_ACTION = 'VENIZIA-AI/vulcan/.github/actions/atlas-index@';
@@ -172,6 +175,22 @@ const ATLAS_STEP_NAMES = [
   'Name the tag',
   'Publish the atlas index of the tag',
 ];
+/** The job after `publish` that dispatches the docs deploy: `actions: write` and one command, nothing else. */
+const DOCS_CONDITION =
+  '${{ !cancelled() && contains(fromJSON(\'["success","failure"]\'), needs.publish.result) }}';
+const DOCS_JOB_KEYS = [
+  'name',
+  'needs',
+  'if',
+  'runs-on',
+  'continue-on-error',
+  'timeout-minutes',
+  'permissions',
+  'steps',
+];
+const DOCS_STEP_NAME = 'Dispatch the docs deploy';
+const DOCS_COMMAND = 'gh workflow run deploy-docs.yml --ref develop';
+const DOCS_ENV = { GH_TOKEN: '${{ github.token }}', GH_REPO: '${{ github.repository }}' };
 const STABLE_CONDITION = "${{ needs.plan.outputs.kind == 'stable' }}";
 const APPROVAL_ENVIRONMENT = 'release-approval';
 const MOVED_BRANCHES_STEP = 'Refuse a stable when a branch moved since the plan';
@@ -326,7 +345,10 @@ export class ReleaseWorkflowCheck {
 
     const publishPermissions = publish?.permissions;
     const writers = Object.entries(jobs)
-      .filter(([name, job]) => name !== PUBLISH_JOB && name !== ATLAS_JOB && writesOf(job))
+      .filter(
+        ([name, job]) =>
+          name !== PUBLISH_JOB && name !== ATLAS_JOB && name !== DOCS_JOB && writesOf(job),
+      )
       .map(([name]) => name);
     if (
       typeof publishPermissions !== 'object' ||
@@ -378,6 +400,27 @@ export class ReleaseWorkflowCheck {
       violate(
         ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
         `the '${ATLAS_JOB}' job must need '${PLAN_JOB}' and '${PUBLISH_JOB}' and run after the publish, whether it ended well or failed (a tag stays); hold \`contents: write\` and nothing else (no \`id-token\`, no environment); continue on error; run one tag at a time over the plan matrix; check out the whole history without keeping credentials; and read ATLAS_INDEX_KEY, the one secret of the workflow, on the single step that runs VULCAN's pinned atlas-index action with only \`ref\` set`,
+      );
+    }
+
+    const docs = jobs[DOCS_JOB];
+    const docsSteps = stepsOf(docs);
+    const docsConfined =
+      docs !== undefined &&
+      Object.keys(docs).every((key) => DOCS_JOB_KEYS.includes(key)) &&
+      JSON.stringify(needsOf(docs)) === JSON.stringify([PUBLISH_JOB]) &&
+      docs.if === DOCS_CONDITION &&
+      JSON.stringify(docs.permissions) === JSON.stringify({ actions: 'write' }) &&
+      docs['continue-on-error'] === true &&
+      docsSteps.length === 1 &&
+      docsSteps[0]?.name === DOCS_STEP_NAME &&
+      Object.keys(docsSteps[0]).sort().join(',') === 'env,name,run' &&
+      JSON.stringify(docsSteps[0]?.env) === JSON.stringify(DOCS_ENV) &&
+      docsSteps[0]?.run?.trim() === DOCS_COMMAND;
+    if (!docsConfined) {
+      violate(
+        ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+        `the '${DOCS_JOB}' job must need only '${PUBLISH_JOB}' and run after it, whether it ended well or failed (a tag stays); hold \`actions: write\` and nothing else (no \`contents\`, no \`id-token\`, no environment, no secret); continue on error; and have the one step '${DOCS_STEP_NAME}' that runs exactly \`${DOCS_COMMAND}\` with \`GH_TOKEN\` and \`GH_REPO\` from the workflow's own context`,
       );
     }
 

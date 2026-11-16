@@ -698,3 +698,30 @@ jobs:
           ref: ${{ steps.tag.outputs.tag }}
         env:
           ATLAS_INDEX_KEY: ${{ secrets.ATLAS_INDEX_KEY }}
+
+  # ---------------------------------------------------------------------------------------------
+  # DOCS DEPLOY - the version box of the changelog names the newest prerelease, read from the release tags. The release
+  # commits and tags are pushed with the Actions token, and GitHub starts no workflow from such a push, so
+  # `deploy-docs.yml` would not run for them. A manual dispatch made with that token does start a run, so this job
+  # dispatches the docs deploy on develop (the merge back of a stable is already there) after the publish, whether it
+  # ended well or failed (a tag stays). It holds `actions: write` and nothing else: no `contents`, no `id-token`, no
+  # environment, no secret, no checkout, so the publish identity never shares a job with it and the publish job gains
+  # no permission. A dispatch that fails is a warning: the release has published, and `gh workflow run deploy-docs.yml
+  # --ref develop` deploys by hand.
+  # ---------------------------------------------------------------------------------------------
+  docs-deploy:
+    name: Deploy the wiki
+    needs: publish
+    if: ${{ !cancelled() && contains(fromJSON('["success","failure"]'), needs.publish.result) }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    continue-on-error: true
+    permissions:
+      actions: write
+
+    steps:
+      - name: Dispatch the docs deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run deploy-docs.yml --ref develop

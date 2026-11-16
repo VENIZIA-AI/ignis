@@ -62,7 +62,7 @@ tags: [process, docs, wiki]
    docs:clean`.
 5. The built site reaches production through GitHub Pages, not through you: the
    `.github/workflows/deploy-docs.yml` workflow ("Docs") runs `make docs` and deploys
-   `docs/wiki/site/.vitepress/dist`, on every push to `develop` that touches `docs/wiki/**` and on
+   `docs/wiki/site/.vitepress/dist`, on every push to `develop` that touches `docs/wiki/**` or whose range holds a release commit (the release workflow also dispatches it after a release, so the changelog's latest-prerelease box follows) and on
    manual dispatch with `job=docs` (the default; `job=atlas-index` publishes the atlas pair of a `ref` and deploys no wiki). Nothing else publishes the site - merging your page to `develop` is the deploy.
 6. There is no compiled output in this package any more: `content/` is plain markdown VitePress
    reads directly, and every script under `scripts/` runs straight with `bun`, no build step. The

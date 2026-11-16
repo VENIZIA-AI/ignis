@@ -70,7 +70,7 @@ describe('the release workflow keeps its guards', () => {
   });
 
   test('the guard list and the mutations below cover each other', () => {
-    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(40);
+    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(41);
   });
 });
 
@@ -771,15 +771,20 @@ describe('one mutation per guard: removing the guard from a copy fails the check
     },
     {
       guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
-      edits: [{ find: '          GH_TOKEN: ${{ github.token }}\n', replace: '' }],
+      edits: [
+        {
+          find: '          GH_TOKEN: ${{ github.token }}\n          RELEASE_KIND:',
+          replace: '          RELEASE_KIND:',
+        },
+      ],
     },
     {
       guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
       edits: [
         {
-          find: '          GH_TOKEN: ${{ github.token }}\n',
+          find: '          GH_TOKEN: ${{ github.token }}\n          RELEASE_KIND:',
           replace:
-            '          GH_TOKEN: ${{ github.token }}\n          LEAK: ${{ secrets.RELEASE_PAT }}\n',
+            '          GH_TOKEN: ${{ github.token }}\n          LEAK: ${{ secrets.RELEASE_PAT }}\n          RELEASE_KIND:',
         },
       ],
     },
@@ -1440,6 +1445,101 @@ describe('one mutation per guard: removing the guard from a copy fails the check
           find: '  BUILD_MODE: ${{ github.event.inputs.build_mode }}\n',
           replace:
             '  BUILD_MODE: ${{ github.event.inputs.build_mode }}\n  OTHER: ${{ SECRETS.ATLAS_INDEX_KEY }}\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: '    continue-on-error: true\n    permissions:\n      actions: write\n',
+          replace:
+            '    continue-on-error: true\n    permissions:\n      actions: write\n      contents: write\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: '    continue-on-error: true\n    permissions:\n      actions: write\n',
+          replace:
+            '    continue-on-error: true\n    permissions:\n      actions: write\n      id-token: write\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: '    continue-on-error: true\n    permissions:\n      actions: write\n',
+          replace: '    continue-on-error: true\n    permissions:\n      contents: read\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: '    continue-on-error: true\n    permissions:\n      actions: write\n',
+          replace:
+            '    environment: npm-release\n    continue-on-error: true\n    permissions:\n      actions: write\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: '    timeout-minutes: 5\n    continue-on-error: true\n    permissions:\n      actions: write\n',
+          replace: '    timeout-minutes: 5\n    permissions:\n      actions: write\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: '    needs: publish\n    if: ${{ !cancelled() && contains',
+          replace: '    needs: [plan, publish]\n    if: ${{ !cancelled() && contains',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: 'run: gh workflow run deploy-docs.yml --ref develop',
+          replace: 'run: gh workflow run deploy-docs.yml --ref main',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: 'run: gh workflow run deploy-docs.yml --ref develop',
+          replace:
+            'run: gh workflow run deploy-docs.yml --ref develop && gh release delete atlas-index --yes',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: '          GH_REPO: ${{ github.repository }}\n',
+          replace: '          GH_REPO: ${{ github.repository }}\n          OTHER: x\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.DOCS_DEPLOY_JOB_CONFINED,
+      edits: [
+        {
+          find: '    steps:\n      - name: Dispatch the docs deploy\n',
+          replace:
+            '    steps:\n      - name: Checkout\n        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3\n\n      - name: Dispatch the docs deploy\n',
         },
       ],
     },
