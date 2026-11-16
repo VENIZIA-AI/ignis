@@ -119,7 +119,7 @@ Connecting from outside a Dockerized Kafka needs two listeners: one for containe
 
 ```yaml
 environment:
-  DOCKER_HOST_IP: '192.168.1.100'  # Your host machine's IP
+  DOCKER_HOST_IP: '192.0.2.100'  # Your host machine's IP
   KAFKA_ADVERTISED_LISTENERS: >
     INTERNAL://kafka-1:29092,
     EXTERNAL://${DOCKER_HOST_IP}:19092

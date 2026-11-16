@@ -31,6 +31,10 @@ PKG_NAME = $(shell sed -n 's/^  "name": "\(.*\)",$$/\1/p' packages/$(1)/package.
 WIKI_REPO := VENIZIA-AI/ignis
 WIKI_LINKS_FLAGS := --skip .agents/knowledge/reference/source-map.md,.agents/knowledge/reference/components.md,.agents/knowledge/reference/helpers.md,.agents/knowledge/reference/binding-keys.md,.agents/knowledge/reference/makefile-targets.md
 
+# The VULCAN binary every target runs: the copy this repository installed, by its path (VULCAN's own default; set here so
+# an install that has none, or an older one, does not leave the variable empty).
+VULCAN ?= bun $(CURDIR)/node_modules/.bin/vulcan
+
 # VULCAN's shared targets (okf, atlas tables, agent setup, the wiki gates). `-include`: a fresh clone has no
 # node_modules yet, and `bun install` must still run.
 -include node_modules/@venizia/vulcan/base/make/vulcan.mk

@@ -133,8 +133,8 @@ Every request in IGNIS is automatically assigned a unique `requestId` for log co
 
 **Log output format:**
 ```
-[SpyMW] [abc123][192.168.1.1][=>] GET      /api/users | query: {}
-[SpyMW] [abc123][192.168.1.1][<=] GET      /api/users | Took: 45.20 (ms)
+[SpyMW] [abc123][203.0.113.7][=>] GET      /api/users | query: {}
+[SpyMW] [abc123][203.0.113.7][<=] GET      /api/users | Took: 45.20 (ms)
 ```
 
 **Access request ID in handlers:**
