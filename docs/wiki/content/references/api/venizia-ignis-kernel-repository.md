@@ -590,6 +590,22 @@ export declare class HttpResponseReader {
         rootKey?: string;
     }): Promise<ApplicationError>;
     /**
+     * The body as text: `''` for a 204 or an empty body. `response.json()` throws on those, and each client
+     * that reads a response has copied the guard.
+     */
+    static readText(opts: {
+        response: Response;
+    }): Promise<string>;
+    /**
+     * The body as JSON, `null` for a 204 or an empty body. A body that is not JSON is the server's fault,
+     * named as such with `context` (where it happened, e.g. `[HttpDataSource][read] 200 | /tickets`); its
+     * content stays out of the message, which a relaying server may pass to its clients.
+     */
+    static readBody(opts: {
+        response: Response;
+        context: string;
+    }): Promise<unknown>;
+    /**
      * A body the server marked with `x-response-extra` carries `extra` beside its rows. `body` is what
      * the route answers without extras: the `{ count, data }` envelope when the count was asked for in
      * the body, the rows otherwise. Any other body is returned as it stands - an unmarked object is

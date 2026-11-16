@@ -277,6 +277,8 @@ Without `shouldQueryRange`, `find` with `extra` answers `{ data, extra }`; asked
 
 The connector's readers are exported for a client that talks to the same server - from `@venizia/ignis-kernel/repository`, so that client needs no connector, and re-exported from `/http`: `HttpResponseReader.parseContentRange({ header })`, `HttpResponseReader.readErrorEnvelope({ body, rootKey })`, `HttpResponseReader.readError({ response, rootKey })` and `HttpResponseReader.toApplicationError({ response, context, rootKey })`. The last one is the connector's own error mapping: the status, the normalized code, args and text (`HTTP <status>` when the server sent none), `extra` with `requestId` and the relayed `upstreamRequestIds`, and `details.cause` as `cause`. `context` is your log prefix, for example `[Client][read] 404 | /tickets`.
 
+The same class reads a success body: `HttpResponseReader.readBody({ response, context })` gives the parsed JSON, `null` for a 204 or an empty body (where `response.json()` throws), and a `502` that names `context` and the body's size, never its content, when the body is not JSON; `HttpResponseReader.readText({ response })` gives the text, `''` for a 204 or an empty body. `HttpDataSource` reads its bodies through `readBody`.
+
 ## See also
 
 - [Relations & Includes](./relations) - eager loading, nested `scope` filters, many-to-many

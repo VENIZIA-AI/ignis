@@ -299,20 +299,11 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
    */
   protected async readJsonBody(opts: { response: Response; url: string; verb: string }) {
     const { response, url, verb } = opts;
-    const text = await response.text();
 
-    if (!text) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(text);
-    } catch {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_5.BadGateway,
-        message: `[${this.name}][${verb}] ${response.status} | ${HttpWire.describeUrl({ url, status: response.status })} | The response body is not JSON (${text.length} chars, content-type: ${response.headers.get(HTTP.Headers.CONTENT_TYPE) ?? 'none'})`,
-      });
-    }
+    return HttpResponseReader.readBody({
+      response,
+      context: `[${this.name}][${verb}] ${response.status} | ${HttpWire.describeUrl({ url, status: response.status })}`,
+    });
   }
 
   /**
@@ -409,7 +400,8 @@ export class HttpDataSource extends DataSourceRoot<IHttpDataSourceSettings> {
     // A 204, or a route that answers nothing, has no body to parse.
     const parsed = await this.readJsonBody({ response, url, verb: 'write' });
     const { extra } = HttpResponseReader.readExtra({ body: parsed, headers: response.headers });
-    const data = extra ? parsed.data : parsed;
+    // `extra` is only read off an object body, which carries the rows under `data`.
+    const data = (extra ? (parsed as { data: unknown }).data : parsed) as R;
 
     const countHeader = response.headers.get(HTTP.Headers.RESPONSE_COUNT_DATA);
     const counted = countHeader === null ? Number.NaN : Number(countHeader);

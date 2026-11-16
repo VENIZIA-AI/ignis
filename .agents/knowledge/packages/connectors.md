@@ -123,11 +123,13 @@ A failure is rebuilt as the error the server threw: status, `normalized`, the se
 field issues) as `cause`. `message` names the path only: a BFF that relays the error must not send an
 internal host or a filter's values to its clients. `errorRootKey` must match the
 server's `error.rootKey` - the connector does not guess, and a wrapped envelope otherwise reads as
-`core.system_error`. `HttpResponseReader` (`parseContentRange`, `readErrorEnvelope`, `readError`, `toApplicationError`, plus `isPlainObject`/`toText`)
+`core.system_error`. `HttpResponseReader` (`parseContentRange`, `readErrorEnvelope`, `readError`, `toApplicationError`, `readBody`, `readText`, plus `isPlainObject`/`toText`)
 lives in `@venizia/ignis-kernel/repository` and is re-exported from `/http`: another client of the same
 server shares the parsing without taking connectors. `HttpDataSource.toResponseError` delegates to
 `HttpResponseReader.toApplicationError({ response, context, rootKey })`, so a client without the
-connector (ARDOR's network service) maps a failed response to the very same `ApplicationError`.
+connector (ARDOR's network service) maps a failed response to the very same `ApplicationError`. A success
+body is read the same way: `HttpDataSource.readJsonBody` calls `HttpResponseReader.readBody`, which answers `null`
+for a 204 or an empty body and a 502 for a body that is not JSON.
 
 Ids `''`, `.` and `..` are refused: WHATWG URL resolves `.`/`%2e` segments, so encoding cannot save
 them: `deleteById('.')` asks for `/<resource>/`, which a router or proxy that ignores the trailing

@@ -152,6 +152,39 @@ export class HttpResponseReader {
   }
 
   /**
+   * The body as text: `''` for a 204 or an empty body. `response.json()` throws on those, and each client
+   * that reads a response has copied the guard.
+   */
+  static async readText(opts: { response: Response }): Promise<string> {
+    const { response } = opts;
+
+    return response.status === HTTP.ResultCodes.RS_2.NoContent ? '' : response.text();
+  }
+
+  /**
+   * The body as JSON, `null` for a 204 or an empty body. A body that is not JSON is the server's fault,
+   * named as such with `context` (where it happened, e.g. `[HttpDataSource][read] 200 | /tickets`); its
+   * content stays out of the message, which a relaying server may pass to its clients.
+   */
+  static async readBody(opts: { response: Response; context: string }): Promise<unknown> {
+    const { response, context } = opts;
+    const text = await HttpResponseReader.readText({ response });
+
+    if (!text) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.BadGateway,
+        message: `${context} | The response body is not JSON (${text.length} chars, content-type: ${response.headers.get(HTTP.Headers.CONTENT_TYPE) ?? 'none'})`,
+      });
+    }
+  }
+
+  /**
    * A body the server marked with `x-response-extra` carries `extra` beside its rows. `body` is what
    * the route answers without extras: the `{ count, data }` envelope when the count was asked for in
    * the body, the rows otherwise. Any other body is returned as it stands - an unmarked object is
