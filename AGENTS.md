@@ -20,7 +20,7 @@ This is the **only tracked instruction file**. Tool-specific files (`CLAUDE.md`,
 are gitignored adapters that point at this one, written per developer by VULCAN:
 
 ```bash
-make vulcan-sync      # = bun run vulcan sync
+make vulcan-sync      # = bun node_modules/.bin/vulcan sync
 ```
 
 ## Must read first
@@ -83,7 +83,7 @@ Canonical, tool-neutral facts for IGNIS, in Open Knowledge Format (markdown + YA
 concept per file, links are the graph edges). Start at `.agents/knowledge/index.md`.
 
 It is also served over MCP by **`atlas`** (written into `.mcp.json` per machine by `vulcan sync`; it runs VULCAN's atlas with
-`bun x --no-install vulcan x atlas mcp`; consumers outside this repo use `@venizia/vulcan-atlas`), the same server that answers over the wiki and the changelogs:
+`bun node_modules/.bin/vulcan x atlas mcp --root .`; consumers outside this repo use `@venizia/vulcan-atlas`), the same server that answers over the wiki and the changelogs:
 
 | Tool | Use it for |
 |---|---|

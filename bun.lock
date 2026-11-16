@@ -7,7 +7,7 @@
       "devDependencies": {
         "@types/bun": "catalog:",
         "@venizia/dev-configs": "workspace:*",
-        "@venizia/vulcan": "0.4.10-17",
+        "@venizia/vulcan": "0.4.10-18",
         "eslint": "catalog:",
         "typescript": "catalog:",
         "typescript-eslint": "catalog:",
@@ -352,7 +352,7 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.4.8-14",
+      "version": "0.4.8-15",
       "bin": {
         "ignis-artifacts": "./dist/esm/clis/artifacts.js",
       },
@@ -375,7 +375,7 @@
     },
     "packages/connectors": {
       "name": "@venizia/ignis-connectors",
-      "version": "0.4.8-16",
+      "version": "0.4.8-17",
       "dependencies": {
         "@venizia/ignis-filter": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
@@ -420,7 +420,7 @@
     },
     "packages/core-server": {
       "name": "@venizia/ignis",
-      "version": "0.4.8-17",
+      "version": "0.4.8-18",
       "dependencies": {
         "@venizia/ignis-connectors": "workspace:*",
         "@venizia/ignis-filter": "workspace:*",
@@ -490,7 +490,7 @@
     },
     "packages/core-worker": {
       "name": "@venizia/ignis-worker",
-      "version": "0.4.8-16",
+      "version": "0.4.8-17",
       "dependencies": {
         "@venizia/ignis-helpers": "workspace:*",
         "@venizia/ignis-inversion": "workspace:*",
@@ -513,7 +513,7 @@
     },
     "packages/dev-configs": {
       "name": "@venizia/dev-configs",
-      "version": "0.4.8-10",
+      "version": "0.4.8-11",
       "bin": {
         "devz": "./dist/cli/index.js",
       },
@@ -544,7 +544,7 @@
     },
     "packages/filter": {
       "name": "@venizia/ignis-filter",
-      "version": "0.4.7-6",
+      "version": "0.4.7-7",
       "dependencies": {
         "@venizia/ignis-inversion": "workspace:*",
         "zod": "catalog:",
@@ -561,7 +561,7 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.4.8-14",
+      "version": "0.4.8-15",
       "dependencies": {
         "@venizia/ignis-inversion": "workspace:*",
         "reflect-metadata": "catalog:",
@@ -660,7 +660,7 @@
     },
     "packages/kernel": {
       "name": "@venizia/ignis-kernel",
-      "version": "0.4.8-16",
+      "version": "0.4.8-17",
       "dependencies": {
         "@venizia/ignis-filter": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
@@ -1457,11 +1457,11 @@
 
     "@venizia/ignis-worker": ["@venizia/ignis-worker@workspace:packages/core-worker"],
 
-    "@venizia/vulcan": ["@venizia/vulcan@0.4.10-17", "", { "dependencies": { "@clack/prompts": "1.8.1", "@venizia/vulcan-atlas": "0.4.10-17", "@venizia/vulcan-okf": "0.4.10-17", "zod": "^4.6.7" }, "bin": { "vulcan": "src/cli.ts" } }, "sha512-RD+d9lFIOG6eBntU3eO++TFZ+ssyP4ZBYW89Ir280T+ALJzZQK83oFGw4cB3RbBPcgkfbjPg7V0SvNCJi8lXbg=="],
+    "@venizia/vulcan": ["@venizia/vulcan@0.4.10-18", "", { "dependencies": { "@clack/prompts": "1.8.1", "@venizia/vulcan-atlas": "0.4.10-18", "@venizia/vulcan-okf": "0.4.10-18", "zod": "^4.6.7" }, "bin": { "vulcan": "src/cli.ts" } }, "sha512-e2oaogiAIwF13vEf2A9XHUvqiz2kjzV5CaExxpiDS5e1T/ChADRNR3jeXxQ58nB5+vsbgydyEXz470fihVslcQ=="],
 
-    "@venizia/vulcan-atlas": ["@venizia/vulcan-atlas@0.4.10-17", "", { "dependencies": { "typescript": "^6.0.3", "zod": "^4.6.7" }, "bin": { "vulcan-atlas": "dist/cjs/cli.js" } }, "sha512-dX6Au+hMtXEO6++ss226fCaRW4PvkSmr7yo7v1Q2I/sFuct8VktnJBxCWq8b8leI/ZS3CoepQ8R5vW5rum78Mw=="],
+    "@venizia/vulcan-atlas": ["@venizia/vulcan-atlas@0.4.10-18", "", { "dependencies": { "typescript": "^6.0.3", "zod": "^4.6.7" }, "bin": { "vulcan-atlas": "dist/cjs/cli.js" } }, "sha512-DhSL3bB3Ba408Zl4GJkI2aBpHjjmHSPhtdnvB9cFUUATLRZRSTxANpYerffRaVub/yVyYeEVJhXLQSszlzYq4w=="],
 
-    "@venizia/vulcan-okf": ["@venizia/vulcan-okf@0.4.10-17", "", { "bin": { "vulcan-okf": "src/cli.ts" } }, "sha512-twjIDR7HUANUBh2hl/h5NiHwEvtRdhDGCTKAeuaoD4LiI5xDc5r7SoijDyDKKm+mMRm17ddUX6RMvsYBcXAYkQ=="],
+    "@venizia/vulcan-okf": ["@venizia/vulcan-okf@0.4.10-18", "", { "bin": { "vulcan-okf": "src/cli.ts" } }, "sha512-GCkggc1NbMksry5UhmKdMSvfgZTL/VsLPrQYiqNhwYXRMlf4aul1X1M5nTzAqQUzLTs7jH9gOQ7yobhc1iEMfw=="],
 
     "@vitejs/plugin-react": ["@vitejs/plugin-react@6.1.2", "", { "dependencies": { "@rolldown/pluginutils": "^1.0.1" }, "peerDependencies": { "@rolldown/plugin-babel": "^0.1.7 || ^0.2.0", "babel-plugin-react-compiler": "^1.0.0", "oxc-transform-react": "^0.152.0", "vite": "^8.0.0" }, "optionalPeers": ["@rolldown/plugin-babel", "babel-plugin-react-compiler", "oxc-transform-react"] }, "sha512-fhJNGUdscQa4HkI0xFxwonWyhnVReCPDbXI7FH7jmzpnVCrFQI7PRrhWecO263610vOrs9tr2Y4xcf8uAdFxbw=="],
 
@@ -2657,7 +2657,6 @@
 
     "node-gyp-build-optional-packages/detect-libc": ["detect-libc@2.1.2", "", {}, "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ=="],
 
-    "openapi3-ts/yaml": ["yaml@2.9.0", "", { "bin": { "yaml": "bin.mjs" } }, "sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA=="],
 
     "pg/pg-protocol": ["pg-protocol@1.16.1", "", {}, "sha512-p9VOFMiHB/ZbJATetbg+99PxssTVSQRnyuPSQ67mN1+1KBOjZaZ83ZQzltnxPhJwSsC3nwVjJ10DVJlerbFzLg=="],
 

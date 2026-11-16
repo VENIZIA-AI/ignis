@@ -1706,9 +1706,7 @@ describe('the atlas pair of each release tag', () => {
       Bun.spawnSync({
         cmd: [
           'bun',
-          'x',
-          '--no-install',
-          'vulcan',
+          resolve(ROOT, 'node_modules', '.bin', 'vulcan'),
           'x',
           'atlas',
           'index',

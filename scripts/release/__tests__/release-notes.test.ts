@@ -37,7 +37,7 @@ describe('ReleaseNotes.hasBlocks', () => {
 /** `vulcan changelog notes`, the command VULCAN runs over the same two files: this copy must agree with it. */
 const command = (opts: { args: string[] }): string => {
   const child = Bun.spawnSync(
-    ['bun', 'x', '--no-install', 'vulcan', 'changelog', 'notes', ...opts.args],
+    ['bun', resolve(ROOT, 'node_modules', '.bin', 'vulcan'), 'changelog', 'notes', ...opts.args],
     {
       cwd: ROOT,
       stdout: 'pipe',

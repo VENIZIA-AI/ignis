@@ -78,4 +78,4 @@ help:
 	@echo ""
 	@echo "Development (use bun run directly):"
 	@$(HELP_ROW) "bun run docs:dev" "Start documentation site in development mode."
-	@$(HELP_ROW) "bun run vulcan x atlas mcp" "Start the atlas MCP server over this repo (VULCAN)."
+	@$(HELP_ROW) "bun node_modules/.bin/vulcan x atlas mcp" "Start the atlas MCP server over this repo (VULCAN)."

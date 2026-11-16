@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**121 targets.**
+**122 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -103,6 +103,7 @@ generated:
 | `make purity-test` | - | Run the purity probe's own regression tests. |
 | `make release` | - | Dispatch the release workflow once for the whole plan, e.g. ARGS="kernel --mode prerelease --yes"; a stable (patch, minor, major) releases from main with its own scope: ARGS="--mode patch --dry-run"; ARGS="--plan <printed plan> --yes" continues a run that stopped. |
 | `make release-plan` | - | Print the release plan (dependency order), dispatch nothing. |
+| `make runners-check` | - | Fail when a tracked file runs an unscoped package by name (bunx, bun x, npx, pnpm dlx) |
 | `make setup-hooks` | - | Configure git to use .githooks directory. |
 | `make split-report` | - | Report hub files, stray types, missing barrels, long files, cycles (informational). |
 | `make surface-check` | - | Fail when the public API surface differs from the committed one |

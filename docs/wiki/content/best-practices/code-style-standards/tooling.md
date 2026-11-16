@@ -245,6 +245,7 @@ With a file list, the command drops the files the tools do not handle (`.md`, `.
 
 ### Run the tools with `bun run`
 
+<!-- runners: example -->
 The npm names `vulcan`, `devz`, `ardor` and `ignis` belong to unrelated packages. `bunx devz`, `bun x devz` and `npx devz` can run that foreign code, and `--no-install` does not protect you: a copy that an earlier bare run cached is used anyway. Run the copy your project installed:
 
 ```bash
