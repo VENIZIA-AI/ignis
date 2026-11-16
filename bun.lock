@@ -7,7 +7,7 @@
       "devDependencies": {
         "@types/bun": "catalog:",
         "@venizia/dev-configs": "workspace:*",
-        "@venizia/vulcan": "0.4.10-18",
+        "@venizia/vulcan": "0.4.10-21",
         "eslint": "catalog:",
         "typescript": "catalog:",
         "typescript-eslint": "catalog:",
@@ -375,7 +375,7 @@
     },
     "packages/connectors": {
       "name": "@venizia/ignis-connectors",
-      "version": "0.4.8-17",
+      "version": "0.4.8-18",
       "dependencies": {
         "@venizia/ignis-filter": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
@@ -420,7 +420,7 @@
     },
     "packages/core-server": {
       "name": "@venizia/ignis",
-      "version": "0.4.8-18",
+      "version": "0.4.8-19",
       "dependencies": {
         "@venizia/ignis-connectors": "workspace:*",
         "@venizia/ignis-filter": "workspace:*",
@@ -490,7 +490,7 @@
     },
     "packages/core-worker": {
       "name": "@venizia/ignis-worker",
-      "version": "0.4.8-17",
+      "version": "0.4.8-18",
       "dependencies": {
         "@venizia/ignis-helpers": "workspace:*",
         "@venizia/ignis-inversion": "workspace:*",
@@ -660,7 +660,7 @@
     },
     "packages/kernel": {
       "name": "@venizia/ignis-kernel",
-      "version": "0.4.8-17",
+      "version": "0.4.8-18",
       "dependencies": {
         "@venizia/ignis-filter": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
@@ -1457,11 +1457,11 @@
 
     "@venizia/ignis-worker": ["@venizia/ignis-worker@workspace:packages/core-worker"],
 
-    "@venizia/vulcan": ["@venizia/vulcan@0.4.10-18", "", { "dependencies": { "@clack/prompts": "1.8.1", "@venizia/vulcan-atlas": "0.4.10-18", "@venizia/vulcan-okf": "0.4.10-18", "zod": "^4.6.7" }, "bin": { "vulcan": "src/cli.ts" } }, "sha512-e2oaogiAIwF13vEf2A9XHUvqiz2kjzV5CaExxpiDS5e1T/ChADRNR3jeXxQ58nB5+vsbgydyEXz470fihVslcQ=="],
+    "@venizia/vulcan": ["@venizia/vulcan@0.4.10-21", "", { "dependencies": { "@clack/prompts": "1.8.1", "@venizia/vulcan-atlas": "0.4.10-21", "@venizia/vulcan-okf": "0.4.10-21", "zod": "^4.6.7" }, "bin": { "vulcan": "src/cli.ts" } }, "sha512-+fYtU3zU4he+IPiRWNWH9xQdrkdglaC6iA+if0jFGy7SkKGOMaR8QQf95o4NksyezAc/gYX39SzdgOxkL+3WuA=="],
 
-    "@venizia/vulcan-atlas": ["@venizia/vulcan-atlas@0.4.10-18", "", { "dependencies": { "typescript": "^6.0.3", "zod": "^4.6.7" }, "bin": { "vulcan-atlas": "dist/cjs/cli.js" } }, "sha512-DhSL3bB3Ba408Zl4GJkI2aBpHjjmHSPhtdnvB9cFUUATLRZRSTxANpYerffRaVub/yVyYeEVJhXLQSszlzYq4w=="],
+    "@venizia/vulcan-atlas": ["@venizia/vulcan-atlas@0.4.10-21", "", { "dependencies": { "typescript": "^6.0.3", "zod": "^4.6.7" }, "bin": { "vulcan-atlas": "dist/cjs/cli.js" } }, "sha512-73w6yZtqfKWBCUkqfD+hZDj7LW74b3ZLN2YjPAIB3uBAlPe3TYgnCzotIsSxDKjXhE3zqoJs0JN8YdeL80hn/g=="],
 
-    "@venizia/vulcan-okf": ["@venizia/vulcan-okf@0.4.10-18", "", { "bin": { "vulcan-okf": "src/cli.ts" } }, "sha512-GCkggc1NbMksry5UhmKdMSvfgZTL/VsLPrQYiqNhwYXRMlf4aul1X1M5nTzAqQUzLTs7jH9gOQ7yobhc1iEMfw=="],
+    "@venizia/vulcan-okf": ["@venizia/vulcan-okf@0.4.10-21", "", { "bin": { "vulcan-okf": "src/cli.ts" } }, "sha512-JSevgYUyIE4YB7vU604ekWH4S784OD+AaZHPIMd97JQQ+vGzzgtgiDuR1nJrpy9wKIkDDsM9g4VO6tCN3d9sAw=="],
 
     "@vitejs/plugin-react": ["@vitejs/plugin-react@6.1.2", "", { "dependencies": { "@rolldown/pluginutils": "^1.0.1" }, "peerDependencies": { "@rolldown/plugin-babel": "^0.1.7 || ^0.2.0", "babel-plugin-react-compiler": "^1.0.0", "oxc-transform-react": "^0.152.0", "vite": "^8.0.0" }, "optionalPeers": ["@rolldown/plugin-babel", "babel-plugin-react-compiler", "oxc-transform-react"] }, "sha512-fhJNGUdscQa4HkI0xFxwonWyhnVReCPDbXI7FH7jmzpnVCrFQI7PRrhWecO263610vOrs9tr2Y4xcf8uAdFxbw=="],
 
@@ -2656,7 +2656,6 @@
     "mqtt/readable-stream": ["readable-stream@4.7.0", "", { "dependencies": { "abort-controller": "^3.0.0", "buffer": "^6.0.3", "events": "^3.3.0", "process": "^0.11.10", "string_decoder": "^1.3.0" } }, "sha512-oIGGmcpTLwPga8Bn6/Z75SVaH1z5dUut2ibSyAMVhmUggWpmDn2dapB0n7f8nwaSiRtepAsfJyfXIO5DCVAODg=="],
 
     "node-gyp-build-optional-packages/detect-libc": ["detect-libc@2.1.2", "", {}, "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ=="],
-
 
     "pg/pg-protocol": ["pg-protocol@1.16.1", "", {}, "sha512-p9VOFMiHB/ZbJATetbg+99PxssTVSQRnyuPSQ67mN1+1KBOjZaZ83ZQzltnxPhJwSsC3nwVjJ10DVJlerbFzLg=="],
 
