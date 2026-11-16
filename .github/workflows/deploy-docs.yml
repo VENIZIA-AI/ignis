@@ -78,7 +78,7 @@ jobs:
             elif ! git diff --quiet "$BEFORE" "$GITHUB_SHA" -- docs/wiki; then
               docs=true
             elif git log --format=%s "$BEFORE..$GITHUB_SHA" | grep -qE '^chore\([a-z-]+\): release v'; then
-              # A release commit (chore(<package>): release v<version> [...]) changes no page, but the version box of the changelog names the newest prerelease (from the release tags): deploy again so the box follows the release. The release workflow pushes with the Actions token, which starts no workflow, so this fires on the next push to develop whose range holds a release commit; `gh workflow run deploy-docs.yml --ref develop` deploys at once.
+              # A release commit (chore(<package>): release v<version> [...]) changes no page, but the version box of the changelog names the newest prerelease (from the release tags): deploy again so the box follows the release. The release workflow pushes with the Actions token, which starts no workflow, so its `docs-deploy` job dispatches this workflow after the publish; this branch is the fallback for a later push whose range holds a release commit.
               docs=true
             fi
           fi
