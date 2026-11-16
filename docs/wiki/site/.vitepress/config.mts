@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type DefaultTheme } from 'vitepress';
 import { withMermaid } from 'vitepress-plugin-mermaid';
+import { changelogPageData } from './theme/shared/changelog-entries.ts';
 import { writeChangelogFeed } from './theme/shared/changelog-loader.ts';
 import { venziaCodeTheme } from './theme/shared/code-theme.ts';
 import { WikiTheme } from './theme/shared/wiki-theme.ts';
@@ -378,8 +379,13 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
 const config = defineConfig({
   base: '/',
   appearance: 'dark',
-  // A version folder keeps its page as changelogs/<X.Y.Z>/log.md; the site serves it at /changelogs/<X.Y.Z>.
-  rewrites: { 'changelogs/:version/log.md': 'changelogs/:version.md' },
+  // A version folder keeps its page as changelogs/<X.Y.Z>/log.md; the site serves it at /changelogs/<X.Y.Z>, and the
+  // upgrade page of a version (changelogs/upgrade/[version].md) at /changelogs/<X.Y.Z>/upgrade.
+  rewrites: {
+    'changelogs/:version/log.md': 'changelogs/:version.md',
+    'changelogs/upgrade/:version.md': 'changelogs/:version/upgrade.md',
+  },
+  transformPageData: (pageData) => changelogPageData({ pageData }),
   markdown: {
     // The code windows are dark in both themes (theme/shared/tokens.css), so one dark theme serves both: the
     // shared theme built from the accent on dark of the manifest theme (the value of --accent-on-dark).

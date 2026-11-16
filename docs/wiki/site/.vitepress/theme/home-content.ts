@@ -64,13 +64,13 @@ export const HOME: THomeContent = {
   tabs: [
     {
       file: 'user.controller.ts',
-      kind: 'code',
+      type: 'code',
       body: CONTROLLER_SAMPLE,
       note: 'Nine CRUD routes: find, findOne, findById, count, create, updateById, updateBy, deleteById, deleteBy. Imports left out. <a href="/guides/core-concepts/rest-controllers">REST controllers</a> explains the factory.',
     },
     {
       file: 'make dev',
-      kind: 'term',
+      type: 'term',
       body: [
         ['cmd', 'cd my-product && make dev'],
         ['c', '# the app serves under /api'],

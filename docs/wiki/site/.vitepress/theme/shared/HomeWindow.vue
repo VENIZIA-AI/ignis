@@ -80,7 +80,7 @@ onMounted(() => {
         :class="['win-panel', { 'is-on': active === index }]"
       >
         <pre
-          v-if="tab.kind === 'code'"
+          v-if="tab.type === 'code'"
           style="margin: 0; font: inherit"
           v-html="highlight(tab.body as string)"
         />

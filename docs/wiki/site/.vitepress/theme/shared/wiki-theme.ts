@@ -35,6 +35,13 @@ const VARIABLES: [string, string, string][] = [
   ['accent', 'accent', 'accent'],
   ['accent-ink', 'accent-ink', 'accent-ink'],
   ['accent-text', 'accent-text', 'accent-text'],
+  ['accent-soft', 'accent-soft', 'accent-soft'],
+  ['ok', 'ok', 'ok'],
+  ['ok-soft', 'ok-soft', 'ok-soft'],
+  ['wait', 'wait', 'wait'],
+  ['wait-soft', 'wait-soft', 'wait-soft'],
+  ['info', 'info', 'info'],
+  ['info-soft', 'info-soft', 'info-soft'],
 ];
 /** How much of the accent the soft glow behind the hero mixes in, in light and in dark. */
 const GLOW = { light: 13, dark: 16 };
