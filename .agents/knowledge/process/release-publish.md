@@ -116,8 +116,8 @@ its `develop_sha` is the head of `develop` the trial read. `test` is a matrix, o
 plan, with read-only permissions and no secret: it builds, runs the checks in the steps below, the package's unit tests
 (`make test-$PACKAGE`) and the preset smoke for `core-server` against the VULCAN version the repository declares in
 `devDependencies` (never `latest`). `scripts` runs the repository scripts' tests once (`make test-scripts`, which hold the
-guards below) and, for a stable with a `changelog_base`, `bun run vulcan changelog check --history --base
-"$CHANGELOG_BASE"`: no released folder changed since the previous stable, and no dated entry was added or edited (the
+guards below) and, for a stable with a `changelog_base`, `bun node_modules/.bin/vulcan changelog check
+--history --base "$CHANGELOG_BASE"`: no released folder changed since the previous stable, and no dated entry was added or edited (the
 checkout takes the whole history, the check reads the tag). `approve` exists for a stable only (`if` on the plan's kind), `needs` the three jobs above so nobody
 approves a run that fails a gate, names the environment `release-approval` (reviewer: the owner; `main` only), holds no
 permission and runs one echo; the click is the approval, its name carries the `headline`, and nothing waits for a second

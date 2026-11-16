@@ -278,9 +278,9 @@ const redis = new RedisSentinelHelper({
     role: RedisSentinelRoles.MASTER, // MASTER (default) or SLAVE
     password: 'sentinel-secret', // sentinel.conf requirepass
     nodes: [
-      { host: '10.0.0.1', port: 26379 },
-      { host: '10.0.0.2', port: 26379 },
-      { host: '10.0.0.3' },   // port defaults to 26379
+      { host: '192.0.2.1', port: 26379 },
+      { host: '192.0.2.2', port: 26379 },
+      { host: '192.0.2.3' },   // port defaults to 26379
     ],
   },
   username: 'app-user',      // data-node ACL user (omit it for the default user)

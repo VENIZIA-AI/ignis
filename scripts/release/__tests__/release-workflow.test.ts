@@ -1094,8 +1094,9 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.CHANGELOG_HISTORY_FOR_A_STABLE,
       edits: [
         {
-          find: '        run: bun run vulcan changelog check --history --base "$CHANGELOG_BASE"\n',
-          replace: '        run: bun run vulcan changelog check --base "$CHANGELOG_BASE"\n',
+          find: '        run: bun node_modules/.bin/vulcan changelog check --history --base "$CHANGELOG_BASE"\n',
+          replace:
+            '        run: bun node_modules/.bin/vulcan changelog check --base "$CHANGELOG_BASE"\n',
         },
       ],
     },

@@ -1083,7 +1083,7 @@ redis-sentinel-scope:
       new RedisSentinelHelper({
         name: 'ha-cache',
         masterName: 'mymaster',
-        sentinels: [{ host: '10.0.0.1', port: 26379 }, { host: '10.0.0.2' }],
+        sentinels: [{ host: '192.0.2.1', port: 26379 }, { host: '192.0.2.2' }],
         role: RedisSentinelRoles.SLAVE,
         sentinelUsername: 'sentinel-user',
         sentinelPassword: 'sentinel-secret',
@@ -1097,7 +1097,7 @@ redis-sentinel-scope:
           role: RedisSentinelRoles.SLAVE,
           username: 'sentinel-user',
           password: 'sentinel-secret',
-          nodes: [{ host: '10.0.0.1', port: 26379 }, { host: '10.0.0.2' }],
+          nodes: [{ host: '192.0.2.1', port: 26379 }, { host: '192.0.2.2' }],
         },
         username: 'data-user', // new: the data nodes' ACL user
         password: 'data-secret',

@@ -20,6 +20,43 @@ export default {
   commit: { message: { agent: { signature: 'deny' } } },
   // A write outside the project is refused with a reason instead of prompting.
   guard: { outside: 'deny' },
+  // Values `vulcan doctor` reads as private that are not: placeholders and examples the docs and sources show on purpose.
+  doctor: {
+    privateValues: {
+      acknowledged: [
+        {
+          path: 'docs/wiki/content/**',
+          kinds: ['url-credentials', 'token'],
+          reason:
+            'Wiki examples: placeholder connection strings (user:password@host), the word Bearer or Basic in an auth header sample, and the AWS documentation example key.',
+        },
+        {
+          path: 'docs/wiki/content/**',
+          kinds: ['ipv4'],
+          reason:
+            'Wiki examples whose subject is a private, link-local or multicast address: the JWKS host allow-list, the URL-safety guard (the cloud metadata address), a Docker link, a UDP multicast group. The dated changelog entries are history and keep the addresses they were published with.',
+        },
+        {
+          path: 'packages/*/src/**',
+          kinds: ['url-credentials', 'token', 'ipv4'],
+          reason:
+            'The redaction helper documents the user:password@host shape it removes, the bearer and storage code names the scheme words, and the JWKS and URL-safety code names the private addresses its policy refuses.',
+        },
+        {
+          path: 'examples/**',
+          kinds: ['url-credentials'],
+          reason:
+            'Example apps: the local Docker connection string (postgres:postgres@localhost) and the template that builds one from its parts.',
+        },
+        {
+          path: '{presets/app/files/.configs/builders/Dockerfile,scripts/preset/preset-smoke.ts}',
+          kinds: ['machine-path'],
+          reason:
+            'The home folder of the bun user inside the container image, not a developer machine.',
+        },
+      ],
+    },
+  },
   // The session digest names the rules sessions drop most, then prints the minimap shape from .agents/rules.md.
   digest: { oftenDropped: ['P-09', 'P-10', 'B-03', 'B-05', 'P-05', 'P-15', 'W-02'] },
   // Release order. A rename keeps its old tag prefix and npm name as aliases.
