@@ -96,7 +96,7 @@ describe('HttpResponseReader.readBody reads a body by its content type', () => {
 
     expect(error.statusCode).toBe(502);
     expect(error.message).toBe(
-      `${context} | The response body is not JSON (7 chars, content-type: application/json)`,
+      `${context} | The response body is not JSON (7 chars, content-type: Application/JSON)`,
     );
     expect(error.message).not.toContain('secret');
   });

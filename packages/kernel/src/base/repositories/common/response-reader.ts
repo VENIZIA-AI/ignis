@@ -216,7 +216,7 @@ export class HttpResponseReader {
     try {
       return JSON.parse(text);
     } catch {
-      const contentType = response.headers.get(HTTP.Headers.CONTENT_TYPE)?.toLowerCase() ?? 'none';
+      const contentType = response.headers.get(HTTP.Headers.CONTENT_TYPE) ?? 'none';
 
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.BadGateway,
