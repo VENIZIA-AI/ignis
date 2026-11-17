@@ -9,6 +9,7 @@ highlights:
   - "JWT needs an issuer and a 32-byte secret, JWKS urls use https, request bodies cap at 5 MiB"
   - "AnyType and AnyObject are removed, and public types use unknown or never instead of any"
   - "A child model can take its row scope from its parent, and a datasource can open on first use"
+released: 2026-11-17
 ---
 IGNIS 0.4.8 is a hardening and cleanup release. It lets a child model take its row scope from its parent, closes many request-side and helper-side gaps (hidden fields, raw search, default filters, body limits, storage paths, redaction, crypto options, JWT claims and JWKS urls), rebuilds the static-asset component and the CRUD and search controller factories, and gives the Redis and mail helpers safer defaults. It also replaces `any` with `unknown` or `never` across the public types, removes the `AnyType` and `AnyObject` aliases, trims the shared lint presets, and lets a datasource open on first use. Apps that configure JWT, the static-asset component, the controller factories, Redis helpers or mail queues, and code that read `any`-typed values, must edit them before they upgrade. Some defaults also changed (upload file count, Redis reconnects, outbound proxies, WebSocket and Socket.IO delivery, S3 virtual-hosted buckets, `where` nesting, lint padding), so read every Breaking item; each one comes with upgrade steps and a before and after. Run `bun run devz codemod --list` for the codemods that cover the mechanical renames; `env-get` and `any-aliases` handle the `applicationEnvironment.get` type arguments and the removed aliases.
 
